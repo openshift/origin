@@ -14,7 +14,7 @@ import (
 )
 
 func RelativizeMasterConfigPaths(config *MasterConfig, base string) error {
-	return cmdutil.RelativizePaths(GetMasterFileReferences(config), base)
+	return cmdutil.RelativizePathWithNoBacksteps(GetMasterFileReferences(config), base)
 }
 
 func ResolveMasterConfigPaths(config *MasterConfig, base string) error {
@@ -57,7 +57,7 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 }
 
 func RelativizeNodeConfigPaths(config *NodeConfig, base string) error {
-	return cmdutil.RelativizePaths(GetNodeFileReferences(config), base)
+	return cmdutil.RelativizePathWithNoBacksteps(GetNodeFileReferences(config), base)
 }
 
 func ResolveNodeConfigPaths(config *NodeConfig, base string) error {
