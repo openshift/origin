@@ -295,3 +295,10 @@ func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Clie
 func (c *MasterConfig) DeploymentImageChangeControllerClient() *osclient.Client {
 	return c.OSClient
 }
+
+// OriginNamespaceControllerClients returns a client for openshift and kubernetes.
+// The openshift client object must have authority to delete openshift content in any namespace
+// The kubernetes client object must have authority to execute a finalize request on a namespace
+func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kclient.Client) {
+	return c.OSClient, c.KubernetesClient
+}

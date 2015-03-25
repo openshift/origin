@@ -71,6 +71,7 @@ import (
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
 	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
+	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
@@ -463,6 +464,17 @@ func (c *MasterConfig) RunProjectAuthorizationCache() {
 	// TODO: look at exposing a configuration option in future to control how often we run this loop
 	period := 1 * time.Second
 	c.ProjectAuthorizationCache.Run(period)
+}
+
+// RunOriginNamespaceController starts the controller that takes part in namespace termination of openshift content
+func (c *MasterConfig) RunOriginNamespaceController() {
+	osclient, kclient := c.OriginNamespaceControllerClients()
+	factory := projectcontroller.NamespaceControllerFactory{
+		Client:     osclient,
+		KubeClient: kclient,
+	}
+	controller := factory.Create()
+	controller.Run()
 }
 
 // RunPolicyCache starts the policy cache
