@@ -357,13 +357,13 @@ func (c *Command) Root() *Command {
 }
 
 // execute the command determined by args and the command tree
-func (c *Command) findAndExecute(args []string) (err error) {
+func (c *Command) findAndExecute(args []string) (findErr error, err error) {
 
 	cmd, a, e := c.Find(args)
 	if e != nil {
-		return e
+		return e, nil
 	}
-	return cmd.execute(a)
+	return nil, cmd.execute(a)
 }
 
 func (c *Command) execute(a []string) (err error) {
@@ -443,33 +443,40 @@ func (c *Command) Execute() (err error) {
 
 	c.assureHelpFlag()
 
+	var findErr error
+	var rootCommandError error
+
 	if len(args) == 0 {
 		// Only the executable is called and the root is runnable, run it
 		if c.Runnable() {
-			err = c.execute([]string(nil))
+			rootCommandError = c.execute([]string(nil))
+			err = rootCommandError
+
 		} else {
 			c.Help()
 		}
 	} else {
-		err = c.findAndExecute(args)
+		findErr, err = c.findAndExecute(args)
 	}
 
-	// Now handle the case where the root is runnable and only flags are provided
-	if err != nil && c.Runnable() {
+	// if there was an error caused by running the root command or an inability to locate the requested command
+	// try to reparse the flags and run using the root command.
+	if (findErr != nil || rootCommandError != nil) && c.Runnable() {
 		// This is pretty much a custom version of the *Command.execute method
 		// with a few differences because it's the final command (no fall back)
 		e := c.ParseFlags(args)
 		if e != nil {
 			// Flags parsing had an error.
 			// If an error happens here, we have to report it to the user
-			c.Println(c.errorMsgFromParse())
+			c.Println(e.Error())
 			// If an error happens search also for subcommand info about that
 			if c.cmdErrorBuf != nil && c.cmdErrorBuf.Len() > 0 {
 				c.Println(c.cmdErrorBuf.String())
 			} else {
 				c.Usage()
 			}
-			return e
+			err = e
+			return
 		} else {
 			// If help is called, regardless of other flags, we print that
 			if c.helpFlagVal {
@@ -756,20 +763,20 @@ func (c *Command) InheritedFlags() *flag.FlagSet {
 
 	local := flag.NewFlagSet(c.Name(), flag.ContinueOnError)
 
-        var rmerge func(x *Command)
+	var rmerge func(x *Command)
 
-        rmerge = func(x *Command) {
-                if x.HasPersistentFlags() {
-                        x.PersistentFlags().VisitAll(func(f *flag.Flag) {
-                                if local.Lookup(f.Name) == nil {
-                                        local.AddFlag(f)
-                                }
-                        })
-                }
-                if x.HasParent() {
-                        rmerge(x.parent)
-                }
-        }
+	rmerge = func(x *Command) {
+		if x.HasPersistentFlags() {
+			x.PersistentFlags().VisitAll(func(f *flag.Flag) {
+				if local.Lookup(f.Name) == nil {
+					local.AddFlag(f)
+				}
+			})
+		}
+		if x.HasParent() {
+			rmerge(x.parent)
+		}
+	}
 
 	if c.HasParent() {
 		rmerge(c.parent)
