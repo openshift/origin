@@ -86,6 +86,7 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 	}
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
+		formatString(out, "BuildConfig", build.Labels[buildapi.BuildConfigLabel])
 		formatString(out, "Status", bold(build.Status))
 		if build.StartTimestamp != nil {
 			formatString(out, "Started", build.StartTimestamp.Time)
