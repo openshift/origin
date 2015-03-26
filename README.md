@@ -161,6 +161,14 @@ OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://s
 
 and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1beta1 to see the schemas (and to try the API directly).
 
+Management Console
+------------------
+
+The OpenShift API server also hosts the web-based management console. You can try out the management console at [http://localhost:8443/console](http://localhost:8443/console).
+
+For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/using_openshift/console.html).
+
+![Management console overview](docs/screenshots/console_overview.png?raw=true)
 
 FAQ
 ---

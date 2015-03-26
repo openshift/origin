@@ -135,7 +135,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
         $ openshift ex policy add-user view anypassword:test-admin
 
-5. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8444`.  Login using the user `test-admin` and any password.
+5. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 
     * You will need to have the browser accept the certificate at
       `https://<host>:8443` before the console can consult the OpenShift
@@ -188,7 +188,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
         $ openshift ex new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3" --admin=anypassword:test-admin
 
-10. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8444`.  Login using the user `test-admin` and any password.
+10. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 
     * You will need to have the browser accept the certificate at
       `https://<host>:8443` before the console can consult the OpenShift

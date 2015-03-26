@@ -81,7 +81,7 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
         $ sudo systemctl start openshift
 
-8.  On your host system, try browsing to: https://localhost:8444
+8.  On your host system, try browsing to: https://localhost:8443/console
 
 TIP: See https://github.com/openshift/vagrant-openshift for more advanced options
 
