@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/test"
@@ -36,7 +36,7 @@ func TestValidateDeploymentOK(t *testing.T) {
 func TestValidateDeploymentMissingFields(t *testing.T) {
 	errorCases := map[string]struct {
 		D api.Deployment
-		T errors.ValidationErrorType
+		T fielderrors.ValidationErrorType
 		F string
 	}{
 		"missing strategy.type": {
@@ -45,7 +45,7 @@ func TestValidateDeploymentMissingFields(t *testing.T) {
 				Strategy:           api.DeploymentStrategy{},
 				ControllerTemplate: test.OkControllerTemplate(),
 			},
-			errors.ValidationErrorTypeRequired,
+			fielderrors.ValidationErrorTypeRequired,
 			"strategy.type",
 		},
 	}
@@ -56,10 +56,10 @@ func TestValidateDeploymentMissingFields(t *testing.T) {
 			t.Errorf("Expected failure for scenario %s", k)
 		}
 		for i := range errs {
-			if errs[i].(*errors.ValidationError).Type != v.T {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(*errors.ValidationError).Field != v.F {
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}
@@ -81,7 +81,7 @@ func TestValidateDeploymentConfigOK(t *testing.T) {
 func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 	errorCases := map[string]struct {
 		D api.DeploymentConfig
-		T errors.ValidationErrorType
+		T fielderrors.ValidationErrorType
 		F string
 	}{
 		"missing name": {
@@ -89,7 +89,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "bar"},
 				Template:   test.OkDeploymentTemplate(),
 			},
-			errors.ValidationErrorTypeRequired,
+			fielderrors.ValidationErrorTypeRequired,
 			"name",
 		},
 		"missing namespace": {
@@ -97,7 +97,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: ""},
 				Template:   test.OkDeploymentTemplate(),
 			},
-			errors.ValidationErrorTypeRequired,
+			fielderrors.ValidationErrorTypeRequired,
 			"namespace",
 		},
 		"invalid name": {
@@ -105,7 +105,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{Name: "-foo", Namespace: "bar"},
 				Template:   test.OkDeploymentTemplate(),
 			},
-			errors.ValidationErrorTypeInvalid,
+			fielderrors.ValidationErrorTypeInvalid,
 			"name",
 		},
 		"invalid namespace": {
@@ -113,7 +113,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "-bar"},
 				Template:   test.OkDeploymentTemplate(),
 			},
-			errors.ValidationErrorTypeInvalid,
+			fielderrors.ValidationErrorTypeInvalid,
 			"namespace",
 		},
 
@@ -129,7 +129,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				},
 				Template: test.OkDeploymentTemplate(),
 			},
-			errors.ValidationErrorTypeRequired,
+			fielderrors.ValidationErrorTypeRequired,
 			"triggers[0].type",
 		},
 		"missing Trigger imageChangeParams.from": {
@@ -145,7 +145,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				},
 				Template: test.OkDeploymentTemplate(),
 			},
-			errors.ValidationErrorTypeRequired,
+			fielderrors.ValidationErrorTypeRequired,
 			"triggers[0].imageChangeParams.from",
 		},
 		"both fields illegal Trigger imageChangeParams.repositoryName": {
@@ -165,7 +165,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				},
 				Template: test.OkDeploymentTemplate(),
 			},
-			errors.ValidationErrorTypeInvalid,
+			fielderrors.ValidationErrorTypeInvalid,
 			"triggers[0].imageChangeParams.repositoryName",
 		},
 		"missing Trigger imageChangeParams.containerNames": {
@@ -181,7 +181,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				},
 				Template: test.OkDeploymentTemplate(),
 			},
-			errors.ValidationErrorTypeRequired,
+			fielderrors.ValidationErrorTypeRequired,
 			"triggers[0].imageChangeParams.containerNames",
 		},
 		"missing strategy.type": {
@@ -195,7 +195,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					ControllerTemplate: test.OkControllerTemplate(),
 				},
 			},
-			errors.ValidationErrorTypeRequired,
+			fielderrors.ValidationErrorTypeRequired,
 			"template.strategy.type",
 		},
 		"missing strategy.customParams": {
@@ -209,7 +209,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					ControllerTemplate: test.OkControllerTemplate(),
 				},
 			},
-			errors.ValidationErrorTypeRequired,
+			fielderrors.ValidationErrorTypeRequired,
 			"template.strategy.customParams",
 		},
 		"missing template.strategy.customParams.image": {
@@ -224,7 +224,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					ControllerTemplate: test.OkControllerTemplate(),
 				},
 			},
-			errors.ValidationErrorTypeRequired,
+			fielderrors.ValidationErrorTypeRequired,
 			"template.strategy.customParams.image",
 		},
 	}
@@ -235,10 +235,10 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			t.Errorf("Expected failure for scenario %s", k)
 		}
 		for i := range errs {
-			if errs[i].(*errors.ValidationError).Type != v.T {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(*errors.ValidationError).Field != v.F {
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}
@@ -267,7 +267,7 @@ func TestValidateDeploymentConfigRollbackOK(t *testing.T) {
 func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 	errorCases := map[string]struct {
 		D api.DeploymentConfigRollback
-		T errors.ValidationErrorType
+		T fielderrors.ValidationErrorType
 		F string
 	}{
 		"missing spec.from.name": {
@@ -276,7 +276,7 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 					From: kapi.ObjectReference{},
 				},
 			},
-			errors.ValidationErrorTypeRequired,
+			fielderrors.ValidationErrorTypeRequired,
 			"spec.from.name",
 		},
 		"wrong spec.from.kind": {
@@ -288,7 +288,7 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 					},
 				},
 			},
-			errors.ValidationErrorTypeInvalid,
+			fielderrors.ValidationErrorTypeInvalid,
 			"spec.from.kind",
 		},
 	}
@@ -299,10 +299,10 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 			t.Errorf("Expected failure for scenario %s", k)
 		}
 		for i := range errs {
-			if errs[i].(*errors.ValidationError).Type != v.T {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(*errors.ValidationError).Field != v.F {
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}

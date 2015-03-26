@@ -132,7 +132,7 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 	namespaceReflector := cache.NewReflector(
 		&listWatch{
 			listFunc: func() (runtime.Object, error) {
-				return ac.namespaceInterface.List(labels.Everything())
+				return ac.namespaceInterface.List(labels.Everything(), fields.Everything())
 			},
 			watchFunc: func(resourceVersion string) (watch.Interface, error) {
 				return ac.namespaceInterface.Watch(labels.Everything(), fields.Everything(), resourceVersion)

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/test"
@@ -37,11 +37,11 @@ func (p *podControl) getPod(namespace, podName string) (*kapi.Pod, error) {
 // is evaluating the outcome based only on build state.
 func TestRegistryResourceLocation(t *testing.T) {
 	expectedLocations := map[api.BuildStatus]string{
-		api.BuildStatusComplete: fmt.Sprintf("foo-host:%d/containerLogs/%s/runningPod/foo-container",
+		api.BuildStatusComplete: fmt.Sprintf("//foo-host:%d/containerLogs/%s/runningPod/foo-container",
 			kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusFailed: fmt.Sprintf("foo-host:%d/containerLogs/%s/runningPod/foo-container",
+		api.BuildStatusFailed: fmt.Sprintf("//foo-host:%d/containerLogs/%s/runningPod/foo-container",
 			kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusRunning: fmt.Sprintf("foo-host:%d/containerLogs/%s/runningPod/foo-container?follow=1",
+		api.BuildStatusRunning: fmt.Sprintf("//foo-host:%d/containerLogs/%s/runningPod/foo-container?follow=1",
 			kubernetes.NodePort, kapi.NamespaceDefault),
 		api.BuildStatusNew:       "",
 		api.BuildStatusPending:   "",
@@ -104,9 +104,14 @@ func resourceLocationHelper(buildStatus api.BuildStatus, podPhase string, ctx ka
 	expectedBuild := mockBuild(buildStatus, podPhase)
 	buildRegistry := test.BuildRegistry{Build: expectedBuild}
 	storage := REST{&buildRegistry, &podControl{}}
-	redirector := apiserver.Redirector(&storage)
-	location, err := redirector.ResourceLocation(ctx, "foo-build")
-	return location, err
+	redirector := rest.Redirector(&storage)
+	location, _, err := redirector.ResourceLocation(ctx, "foo-build")
+
+	if location != nil {
+		return location.String(), err
+	}
+
+	return "", err
 }
 
 func mockPod(podPhase kapi.PodPhase) *kapi.Pod {
