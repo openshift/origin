@@ -127,7 +127,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 		t.Fatalf("Couldn't create ImageRepository: %v", err)
 	}
 
-	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
+	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
@@ -135,7 +135,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
-	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
+	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
 	}
 
