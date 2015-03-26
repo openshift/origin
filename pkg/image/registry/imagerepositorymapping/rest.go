@@ -1,6 +1,7 @@
 package imagerepositorymapping
 
 import (
+	"fmt"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -15,6 +16,8 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
 )
+
+const tagAnnotationPrefix = "tags.openshift.io/"
 
 // REST implements the RESTStorage interface in terms of an image registry and
 // image repository registry. It only supports the Create method and is used
@@ -62,15 +65,19 @@ func (s imageRepositoryMappingStrategy) Validate(obj runtime.Object) errors.Vali
 	return validation.ValidateImageRepositoryMapping(mapping)
 }
 
-// applyRepoAnnotationsToImage looks for annotations of the form <tag>.<...> on
-// the ImageRepository and copies them to the Image. For example, if the
-// ImageRepository has the annotations latest.color=blue and other.color=red,
+// applyRepoAnnotationsToImage looks for annotations of the form
+// tags.openshift.io/<tag>.<...> on the ImageRepository and copies them to the
+// Image. For example, if the ImageRepository has the annotations
+// tags.openshift.io/latest.color=blue and tags.openshift.io/other.color=red,
 // and the value of `tag` is latest, the image will receive the annotation
 // color=blue.
 func applyRepoAnnotationsToImage(repo *api.ImageRepository, image *api.Image, tag string) {
 	for key, value := range repo.Annotations {
-		if strings.Index(key, tag+".") == 0 {
-			image.Annotations[key[len(tag)+1:]] = value
+		if strings.Index(key, fmt.Sprintf("%s%s.", tagAnnotationPrefix, tag)) == 0 {
+			if image.Annotations == nil {
+				image.Annotations = make(map[string]string)
+			}
+			image.Annotations[key[len(tagAnnotationPrefix)+len(tag)+1:]] = value
 		}
 	}
 }

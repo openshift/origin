@@ -543,9 +543,9 @@ func TestApplyRepoAnnotationsToImage(t *testing.T) {
 	}{
 		"no annotations anywhere": {
 			tag:              "latest",
-			repoAnnotations:  map[string]string{},
-			imageAnnotations: map[string]string{},
-			expected:         map[string]string{},
+			repoAnnotations:  nil,
+			imageAnnotations: nil,
+			expected:         nil,
 		},
 		"no annotations for tag": {
 			tag:              "latest",
@@ -555,19 +555,19 @@ func TestApplyRepoAnnotationsToImage(t *testing.T) {
 		},
 		"add to image with no previous annotations": {
 			tag:              "latest",
-			repoAnnotations:  map[string]string{"latest.key": "bar"},
-			imageAnnotations: map[string]string{},
+			repoAnnotations:  map[string]string{"tags.openshift.io/latest.key": "bar"},
+			imageAnnotations: nil,
 			expected:         map[string]string{"key": "bar"},
 		},
 		"add to image without overlap": {
 			tag:              "latest",
-			repoAnnotations:  map[string]string{"latest.key1": "bar1", "latest.key2": "bar2"},
+			repoAnnotations:  map[string]string{"tags.openshift.io/latest.key1": "bar1", "tags.openshift.io/latest.key2": "bar2"},
 			imageAnnotations: map[string]string{"abc": "def"},
 			expected:         map[string]string{"abc": "def", "key1": "bar1", "key2": "bar2"},
 		},
 		"add to image, overwrite existing": {
 			tag:              "latest",
-			repoAnnotations:  map[string]string{"latest.key": "bar"},
+			repoAnnotations:  map[string]string{"tags.openshift.io/latest.key": "bar"},
 			imageAnnotations: map[string]string{"key": "def"},
 			expected:         map[string]string{"key": "bar"},
 		},
