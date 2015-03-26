@@ -31,6 +31,10 @@ trap "cleanup" EXIT
 
 set -e
 
+# Prevent user environment from colliding with the test setup
+unset KUBECONFIG
+unset OPENSHIFTCONFIG
+
 USE_LOCAL_IMAGES=${USE_LOCAL_IMAGES:-true}
 
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
@@ -73,7 +77,7 @@ echo openshift: $out
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
 # Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-echo "[INFO] Create certificates for the OpenShift server"
+echo "[INFO] Create certificates for the OpenShift server to ${CERT_DIR}"
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
 ALL_IP_ADDRESSES=`ifconfig | grep "inet " | awk '{print $2}'`
 SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
@@ -82,6 +86,7 @@ do
     SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
 done <<< "${ALL_IP_ADDRESSES}"
 
+# Create certificates
 openshift admin create-all-certs --overwrite=false --cert-dir="${CERT_DIR}" --hostnames="${SERVER_HOSTNAME_LIST}" --nodes="${API_HOST}" --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
 
 # Start openshift
@@ -96,7 +101,6 @@ fi
 
 # set the home directory so we don't pick up the users .config
 export HOME="${CERT_DIR}/admin"
-unset KUBECONFIG
 
 wait_for_url "http://${API_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
