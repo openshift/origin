@@ -20,7 +20,7 @@ type ImageRefGenerator interface {
 	FromName(name string) (*app.ImageRef, error)
 	FromNameAndPorts(name string, ports []string) (*app.ImageRef, error)
 	FromNameAndResolver(name string, resolver app.Resolver) (*app.ImageRef, error)
-	FromRepository(repo *imageapi.ImageRepository, tag string) (*app.ImageRef, error)
+	FromStream(repo *imageapi.ImageStream, tag string) (*app.ImageRef, error)
 	FromDockerfile(name string, dir string, context string) (*app.ImageRef, error)
 }
 
@@ -43,7 +43,7 @@ func (g *imageRefGenerator) FromName(name string) (*app.ImageRef, error) {
 	}
 	return &app.ImageRef{
 		DockerImageReference: ref,
-		AsImageRepository:    true,
+		AsImageStream:        true,
 	}, nil
 }
 
@@ -111,9 +111,9 @@ func (g *imageRefGenerator) FromDockerfile(name string, dir string, context stri
 	return g.FromNameAndPorts(name, ports)
 }
 
-// FromRepository generates an ImageRef from an OpenShift ImageRepository
-func (g *imageRefGenerator) FromRepository(repo *imageapi.ImageRepository, tag string) (*app.ImageRef, error) {
-	pullSpec := repo.Status.DockerImageRepository
+// FromStream generates an ImageRef from an OpenShift ImageStream
+func (g *imageRefGenerator) FromStream(stream *imageapi.ImageStream, tag string) (*app.ImageRef, error) {
+	pullSpec := stream.Status.DockerImageRepository
 	if len(pullSpec) == 0 {
 		// need to know the default OpenShift registry
 		return nil, fmt.Errorf("the repository does not resolve to a pullable Docker repository")
@@ -129,6 +129,6 @@ func (g *imageRefGenerator) FromRepository(repo *imageapi.ImageRepository, tag s
 
 	return &app.ImageRef{
 		DockerImageReference: ref,
-		Repository:           repo,
+		Stream:               stream,
 	}, nil
 }

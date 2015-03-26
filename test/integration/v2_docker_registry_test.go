@@ -73,9 +73,20 @@ func signedManifest() ([]byte, digest.Digest, error) {
 }
 
 func TestV2RegistryGetTags(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestOpenshift(t)
-	defer openshift.Close()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	config := `version: 0.1
 loglevel: debug
@@ -88,23 +99,25 @@ middleware:
     - name: openshift
 `
 
-	os.Setenv("OPENSHIFT_INSECURE", "true")
-	os.Setenv("OPENSHIFT_MASTER", openshift.Server.URL)
+	os.Setenv("OPENSHIFT_CA_DATA", string(clusterAdminClientConfig.CAData))
+	os.Setenv("OPENSHIFT_CERT_DATA", string(clusterAdminClientConfig.CertData))
+	os.Setenv("OPENSHIFT_KEY_DATA", string(clusterAdminClientConfig.KeyData))
+	os.Setenv("OPENSHIFT_MASTER", clusterAdminClientConfig.Host)
 	os.Setenv("REGISTRY_URL", "127.0.0.1:5000")
 
 	go dockerregistry.Execute(strings.NewReader(config))
 
-	repo := imageapi.ImageRepository{
+	stream := imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: testutil.Namespace(),
 			Name:      "test",
 		},
 	}
-	if _, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(&repo); err != nil {
-		t.Fatalf("error creating image repository: %s", err)
+	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(&stream); err != nil {
+		t.Fatalf("error creating image stream: %s", err)
 	}
 
-	tags, err := getTags(repo.Name)
+	tags, err := getTags(stream.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +125,7 @@ middleware:
 		t.Fatalf("expected 0 tags, got: %#v", tags)
 	}
 
-	putUrl := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), repo.Name, "latest")
+	putUrl := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), stream.Name, "latest")
 	signedManifest, dgst, err := signedManifest()
 	if err != nil {
 		t.Fatal(err)
@@ -131,7 +144,7 @@ middleware:
 		t.Fatalf("unexpected put status code: %d", resp.StatusCode)
 	}
 
-	tags, err = getTags(repo.Name)
+	tags, err = getTags(stream.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +155,7 @@ middleware:
 		t.Fatalf("expected latest, got %q", tags[0])
 	}
 
-	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), repo.Name, dgst.String())
+	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), stream.Name, dgst.String())
 	resp, err = http.Get(url)
 	if err != nil {
 		t.Fatalf("error retrieving manifest from registry: %s", err)
@@ -163,14 +176,14 @@ middleware:
 		t.Fatalf("unexpected manifest tag: %s", retrievedManifest.Tag)
 	}
 
-	image, err := openshift.Client.ImageStreamImages(testutil.Namespace()).Get(repo.Name, dgst.String())
+	image, err := clusterAdminClient.ImageStreamImages(testutil.Namespace()).Get(stream.Name, dgst.String())
 	if err != nil {
 		t.Fatalf("error getting imageStreamImage: %s", err)
 	}
 	if e, a := dgst.String(), image.Name; e != a {
 		t.Errorf("image name: expected %q, got %q", e, a)
 	}
-	if e, a := fmt.Sprintf("127.0.0.1:5000/%s/%s@%s", testutil.Namespace(), repo.Name, dgst.String()), image.DockerImageReference; e != a {
+	if e, a := fmt.Sprintf("127.0.0.1:5000/%s/%s@%s", testutil.Namespace(), stream.Name, dgst.String()), image.DockerImageReference; e != a {
 		t.Errorf("image dockerImageReference: expected %q, got %q", e, a)
 	}
 	if e, a := "foo", image.DockerImageMetadata.ID; e != a {

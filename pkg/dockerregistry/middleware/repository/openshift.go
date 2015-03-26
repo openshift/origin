@@ -97,12 +97,12 @@ func (r *repository) Manifests() distribution.ManifestService {
 
 // Tags lists the tags under the named repository.
 func (r *repository) Tags() ([]string, error) {
-	imageRepository, err := r.getImageRepository()
+	imageStream, err := r.getImageStream()
 	if err != nil {
 		return []string{}, nil
 	}
 	tags := []string{}
-	for tag := range imageRepository.Status.Tags {
+	for tag := range imageStream.Status.Tags {
 		tags = append(tags, tag)
 	}
 
@@ -120,11 +120,11 @@ func (r *repository) Exists(dgst digest.Digest) (bool, error) {
 
 // ExistsByTag returns true if the manifest with tag `tag` exists.
 func (r *repository) ExistsByTag(tag string) (bool, error) {
-	imageRepository, err := r.getImageRepository()
+	imageStream, err := r.getImageStream()
 	if err != nil {
 		return false, err
 	}
-	_, found := imageRepository.Status.Tags[tag]
+	_, found := imageStream.Status.Tags[tag]
 	return found, nil
 }
 
@@ -145,21 +145,21 @@ func (r *repository) Get(dgst digest.Digest) (*manifest.SignedManifest, error) {
 
 // Get retrieves the named manifest, if it exists.
 func (r *repository) GetByTag(tag string) (*manifest.SignedManifest, error) {
-	image, err := r.getImageRepositoryTag(tag)
+	image, err := r.getImageStreamTag(tag)
 	if err != nil {
 		// TODO remove when docker 1.6 is out
 		// Since docker 1.5 doesn't support pull by id, we're simulating pull by id
 		// against the v2 registry by using a pull spec of the form
 		// <repo>:<hex portion of digest>, so once we verify we got a 404 from
-		// getImageRepositoryTag, we construct a digest and attempt to get the
+		// getImageStreamTag, we construct a digest and attempt to get the
 		// imageStreamImage using that digest.
 
 		// TODO replace with kerrors.IsStatusError when it's rebased in
 		if err, ok := err.(*kerrors.StatusError); !ok {
-			log.Errorf("GetByTag: getImageRepositoryTag returned error: %s", err)
+			log.Errorf("GetByTag: getImageStreamTag returned error: %s", err)
 			return nil, err
 		} else if err.ErrStatus.Code != http.StatusNotFound {
-			log.Errorf("GetByTag: getImageRepositoryTag returned non-404: %s", err)
+			log.Errorf("GetByTag: getImageStreamTag returned non-404: %s", err)
 		}
 		// let's try to get by id
 		dgst, dgstErr := digest.ParseDigest("sha256:" + tag)
@@ -202,11 +202,7 @@ func (r *repository) Put(manifest *manifest.SignedManifest) error {
 	}
 
 	// Upload to openshift
-	irm := imageapi.ImageRepositoryMapping{
-		TypeMeta: kapi.TypeMeta{
-			APIVersion: "v1beta1",
-			Kind:       "ImageRepositoryMapping",
-		},
+	irm := imageapi.ImageStreamMapping{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: r.namespace,
 			Name:      r.name,
@@ -221,8 +217,8 @@ func (r *repository) Put(manifest *manifest.SignedManifest) error {
 		},
 	}
 
-	if err := r.registryClient.ImageRepositoryMappings(r.namespace).Create(&irm); err != nil {
-		log.Errorf("Error creating ImageRepositoryMapping: %s", err)
+	if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&irm); err != nil {
+		log.Errorf("Error creating ImageStreamMapping: %s", err)
 		return err
 	}
 
@@ -247,9 +243,9 @@ func (r *repository) Delete(dgst digest.Digest) error {
 	return r.registryClient.Images().Delete(dgst.String())
 }
 
-// getImageRepository retrieves the ImageRepository for r.
-func (r *repository) getImageRepository() (*imageapi.ImageRepository, error) {
-	return r.registryClient.ImageRepositories(r.namespace).Get(r.name)
+// getImageStream retrieves the ImageStream for r.
+func (r *repository) getImageStream() (*imageapi.ImageStream, error) {
+	return r.registryClient.ImageStreams(r.namespace).Get(r.name)
 }
 
 // getImage retrieves the Image with digest `dgst`. This uses the registry's
@@ -258,13 +254,13 @@ func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 	return r.registryClient.Images().Get(dgst.String())
 }
 
-// getImageRepositoryTag retrieves the Image with tag `tag` for the ImageRepository
+// getImageStreamTag retrieves the Image with tag `tag` for the ImageStream
 // associated with r.
-func (r *repository) getImageRepositoryTag(tag string) (*imageapi.Image, error) {
-	return r.registryClient.ImageRepositoryTags(r.namespace).Get(r.name, tag)
+func (r *repository) getImageStreamTag(tag string) (*imageapi.Image, error) {
+	return r.registryClient.ImageStreamTags(r.namespace).Get(r.name, tag)
 }
 
-// getImageStreamImage retrieves the Image with digest `dgst` for the ImageRepository
+// getImageStreamImage retrieves the Image with digest `dgst` for the ImageStream
 // associated with r. This ensures the user has access to the image.
 func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.Image, error) {
 	// TODO !!! use user credentials, not the registry's !!!

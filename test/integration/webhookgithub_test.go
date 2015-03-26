@@ -10,6 +10,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
@@ -17,6 +18,8 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
 )
+
+const whPrefix = "/osapi/v1beta1/buildConfigHooks/"
 
 func init() {
 	testutil.RequireEtcd()
@@ -40,7 +43,7 @@ func TestWebhookGithubPush(t *testing.T) {
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
+	postFile(&http.Client{}, "push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
@@ -51,34 +54,52 @@ func TestWebhookGithubPush(t *testing.T) {
 }
 
 func TestWebhookGithubPushWithImageTag(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestBuildOpenshift(t)
-	defer openshift.Close()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	// create imagerepo
-	imageRepo := &imageapi.ImageRepository{
-		ObjectMeta: kapi.ObjectMeta{Name: "imageRepo"},
-		Tags:       map[string]string{"validTag": "success"},
+	imageStream := &imageapi.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{Name: "imageStream"},
+		Spec: imageapi.ImageStreamSpec{
+			DockerImageRepository: "registry:3000/integration/imageStream",
+			Tags: map[string]imageapi.TagReference{
+				"validTag": {
+					DockerImageReference: "registry:3000/integration/imageStream:success",
+				},
+			},
+		},
 	}
-	if _, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
+	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	// create buildconfig
-	buildConfig := mockBuildConfigParms("originalImage", "imageRepo", "validTag")
+	buildConfig := mockBuildConfigParms("originalImage", "imageStream", "validTag")
 
-	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
+	postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
@@ -87,40 +108,58 @@ func TestWebhookGithubPushWithImageTag(t *testing.T) {
 		t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
 	}
 
-	if actual.Parameters.Strategy.DockerStrategy.Image != "registry:3000/integration/imageRepo:success" {
-		t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageRepo:success", actual.Parameters.Strategy.DockerStrategy.Image)
+	if actual.Parameters.Strategy.DockerStrategy.Image != "registry:3000/integration/imageStream:success" {
+		t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageStream:success", actual.Parameters.Strategy.DockerStrategy.Image)
 	}
 }
 
 func TestWebhookGithubPushWithImageTagRef(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestBuildOpenshift(t)
-	defer openshift.Close()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	// create imagerepo
-	imageRepo := &imageapi.ImageRepository{
-		ObjectMeta: kapi.ObjectMeta{Name: "imageRepo"},
-		Tags:       map[string]string{"validTag": "success"},
+	imageStream := &imageapi.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{Name: "imageStream"},
+		Spec: imageapi.ImageStreamSpec{
+			DockerImageRepository: "registry:3000/integration/imageStream",
+			Tags: map[string]imageapi.TagReference{
+				"validTag": {
+					DockerImageReference: "registry:3000/integration/imageStream:success",
+				},
+			},
+		},
 	}
-	if _, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
+	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	// create buildconfig
-	buildConfig := mockBuildConfigRefParms("originalImage", "imageRepo", "validTag")
+	buildConfig := mockBuildConfigRefParms("originalImage", "imageStream", "validTag")
 
-	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
+	postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
@@ -129,39 +168,57 @@ func TestWebhookGithubPushWithImageTagRef(t *testing.T) {
 		t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
 	}
 
-	if actual.Parameters.Strategy.STIStrategy.Image != "registry:3000/integration/imageRepo:success" {
-		t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageRepo:success", actual.Parameters.Strategy.STIStrategy.Image)
+	if actual.Parameters.Strategy.STIStrategy.Image != "registry:3000/integration/imageStream:success" {
+		t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageStream:success", actual.Parameters.Strategy.STIStrategy.Image)
 	}
 }
 
 func TestWebhookGithubPushWithImageTagUnmatched(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestBuildOpenshift(t)
-	defer openshift.Close()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	// create imagerepo
-	imageRepo := &imageapi.ImageRepository{
-		ObjectMeta: kapi.ObjectMeta{Name: "imageRepo"},
-		Tags:       map[string]string{"validTag": "success"},
+	imageStream := &imageapi.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{Name: "imageStream"},
+		Spec: imageapi.ImageStreamSpec{
+			DockerImageRepository: "registry:3000/integration/imageStream",
+			Tags: map[string]imageapi.TagReference{
+				"validTag": {
+					DockerImageReference: "registry:3000/integration/imageStream:success",
+				},
+			},
+		},
 	}
-	if _, err := openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo); err != nil {
+	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	// create buildconfig
-	buildConfig := mockBuildConfigParms("originalImage", "imageRepo", "invalidTag")
-	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	buildConfig := mockBuildConfigParms("originalImage", "imageStream", "invalidTag")
+	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
+	postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
@@ -176,34 +233,52 @@ func TestWebhookGithubPushWithImageTagUnmatched(t *testing.T) {
 }
 
 func TestWebhookGithubPushWithNamespaceUnmatched(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestBuildOpenshift(t)
-	defer openshift.Close()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	// create imagerepo
-	imageRepo := &imageapi.ImageRepository{
-		ObjectMeta: kapi.ObjectMeta{Namespace: "unmatched", Name: "imageRepo"},
-		Tags:       map[string]string{"validTag": "success"},
+	imageStream := &imageapi.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{Namespace: "unmatched", Name: "imageStream"},
+		Spec: imageapi.ImageStreamSpec{
+			DockerImageRepository: "registry:3000/integration/imageStream",
+			Tags: map[string]imageapi.TagReference{
+				"validTag": {
+					DockerImageReference: "registry:3000/integration/imageStream:success",
+				},
+			},
+		},
 	}
-	if _, err := openshift.Client.ImageRepositories("unmatched").Create(imageRepo); err != nil {
+	if _, err := clusterAdminClient.ImageStreams("unmatched").Create(imageStream); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	// create buildconfig
-	buildConfig := mockBuildConfigParms("originalImage", "imageRepo", "validTag")
+	buildConfig := mockBuildConfigParms("originalImage", "imageStream", "validTag")
 
-	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("push", "pushevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
+	postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	event := <-watch.ResultChan()
 	actual := event.Object.(*buildapi.Build)
@@ -223,7 +298,7 @@ func TestWebhookGithubPing(t *testing.T) {
 	defer openshift.Close()
 
 	// create buildconfig
-	buildConfig := mockBuildConfigParms("originalImage", "imageRepo", "validTag")
+	buildConfig := mockBuildConfigParms("originalImage", "imageStream", "validTag")
 	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -235,7 +310,7 @@ func TestWebhookGithubPing(t *testing.T) {
 	defer watch.Stop()
 
 	// trigger build event sending push notification
-	postFile("ping", "pingevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
+	postFile(&http.Client{}, "ping", "pingevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
 
 	// TODO: improve negative testing
 	timer := time.NewTimer(time.Second / 2)
@@ -248,8 +323,7 @@ func TestWebhookGithubPing(t *testing.T) {
 	}
 }
 
-func postFile(event, filename, url string, expStatusCode int, t *testing.T) {
-	client := &http.Client{}
+func postFile(client kclient.HTTPClient, event, filename, url string, expStatusCode int, t *testing.T) {
 	data, err := ioutil.ReadFile("../../pkg/build/webhook/github/fixtures/" + filename)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)
@@ -271,7 +345,7 @@ func postFile(event, filename, url string, expStatusCode int, t *testing.T) {
 	}
 }
 
-func mockBuildConfigParms(imageName, imageRepo, imageTag string) *buildapi.BuildConfig {
+func mockBuildConfigParms(imageName, imageStream, imageTag string) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "pushbuild",
@@ -288,7 +362,7 @@ func mockBuildConfigParms(imageName, imageRepo, imageTag string) *buildapi.Build
 				ImageChange: &buildapi.ImageChangeTrigger{
 					Image: imageName,
 					From: kapi.ObjectReference{
-						Name: imageRepo,
+						Name: imageStream,
 					},
 					Tag: imageTag,
 				},
@@ -315,7 +389,7 @@ func mockBuildConfigParms(imageName, imageRepo, imageTag string) *buildapi.Build
 	}
 }
 
-func mockBuildConfigRefParms(imageName, imageRepo, imageTag string) *buildapi.BuildConfig {
+func mockBuildConfigRefParms(imageName, imageStream, imageTag string) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "pushbuild",
@@ -332,7 +406,7 @@ func mockBuildConfigRefParms(imageName, imageRepo, imageTag string) *buildapi.Bu
 				ImageChange: &buildapi.ImageChangeTrigger{
 					Image: imageName,
 					From: kapi.ObjectReference{
-						Name: imageRepo,
+						Name: imageStream,
 					},
 					Tag: imageTag,
 				},
@@ -350,7 +424,7 @@ func mockBuildConfigRefParms(imageName, imageRepo, imageTag string) *buildapi.Bu
 				Type: buildapi.STIBuildStrategyType,
 				STIStrategy: &buildapi.STIBuildStrategy{
 					From: &kapi.ObjectReference{
-						Name: imageRepo,
+						Name: imageStream,
 					},
 					Tag: imageTag,
 				},

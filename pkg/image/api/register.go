@@ -12,6 +12,10 @@ func init() {
 		&ImageRepositoryList{},
 		&ImageRepositoryMapping{},
 		&ImageRepositoryTag{},
+		&ImageStream{},
+		&ImageStreamList{},
+		&ImageStreamMapping{},
+		&ImageStreamTag{},
 		&ImageStreamImage{},
 		&DockerImage{},
 	)
@@ -23,3 +27,7 @@ func (*ImageRepository) IsAnAPIObject()        {}
 func (*ImageRepositoryList) IsAnAPIObject()    {}
 func (*ImageRepositoryMapping) IsAnAPIObject() {}
 func (*DockerImage) IsAnAPIObject()            {}
+func (*ImageStream) IsAnAPIObject()            {}
+func (*ImageStreamList) IsAnAPIObject()        {}
+func (*ImageStreamMapping) IsAnAPIObject()     {}
+func (*ImageStreamTag) IsAnAPIObject()         {}

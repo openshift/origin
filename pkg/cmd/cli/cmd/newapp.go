@@ -30,7 +30,7 @@ Create a new application in OpenShift by specifying source code, templates, and/
 
 This command will try to build up the components of an application using images or code
 located on your system. It will lookup the images on the local Docker installation (if
-available), a Docker registry, or an OpenShift image repository. If you specify a source
+available), a Docker registry, or an OpenShift image stream. If you specify a source
 code URL, it will set up a build that takes your source code and converts it into an
 image that can run inside of a pod. The images will be deployed via a deployment
 configuration, and a service will be hooked up to the first public port of the app.
@@ -71,7 +71,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	}
 
 	cmd.Flags().Var(&config.SourceRepositories, "code", "Source code to use to build this application.")
-	cmd.Flags().VarP(&config.ImageStreams, "image", "i", "Name of an OpenShift image repository to use in the app.")
+	cmd.Flags().VarP(&config.ImageStreams, "image", "i", "Name of an OpenShift image stream to use in the app.")
 	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to include in the app.")
 	cmd.Flags().Var(&config.Groups, "group", "Indicate components that should be grouped together as <comp1>+<comp2>.")
 	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into each container.")
@@ -116,7 +116,7 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 		}
 		if err == newcmd.ErrNoInputs {
 			// TODO: suggest things to the user
-			return cmdutil.UsageError(c, "You must specify one or more images, image repositories, or source code locations to create an application.")
+			return cmdutil.UsageError(c, "You must specify one or more images, image streams, or source code locations to create an application.")
 		}
 		return err
 	}
@@ -140,13 +140,13 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 			fmt.Fprintf(c.Out(), "Service %q created at %s:%d to talk to pods over port %d.\n", t.Name, t.Spec.PortalIP, t.Spec.Port, t.Spec.TargetPort.IntVal)
 		case *buildapi.BuildConfig:
 			fmt.Fprintf(c.Out(), "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
-		case *imageapi.ImageRepository:
+		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
 				if hasMissingRepo {
 					continue
 				}
 				hasMissingRepo = true
-				fmt.Fprintf(c.Out(), "WARNING: We created an image repository %q, but it does not look like a Docker registry has been integrated with the OpenShift server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
+				fmt.Fprintf(c.Out(), "WARNING: We created an image stream %q, but it does not look like a Docker registry has been integrated with the OpenShift server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
 			}
 		}
 	}

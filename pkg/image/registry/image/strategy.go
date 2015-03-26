@@ -24,8 +24,6 @@ type imageStrategy struct {
 // Image objects via the REST API.
 var Strategy = imageStrategy{kapi.Scheme, kapi.SimpleNameGenerator}
 
-func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {}
-
 // NamespaceScoped is false for images.
 func (imageStrategy) NamespaceScoped() bool {
 	return false
@@ -36,7 +34,7 @@ func (imageStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new image.
-func (imageStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
+func (imageStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	image := obj.(*api.Image)
 	return validation.ValidateImage(image)
 }

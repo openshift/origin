@@ -91,8 +91,8 @@ func TestSimpleDeploymentConfig(t *testing.T) {
 			Namespace: "openshift",
 			Name:      "origin",
 		},
-		Info:              testImageInfo(),
-		AsImageRepository: true,
+		Info:          testImageInfo(),
+		AsImageStream: true,
 	}
 	deploy := &DeploymentConfigRef{Images: []*ImageRef{image}}
 	config, err := deploy.DeploymentConfig()
@@ -262,7 +262,7 @@ func ExampleGenerateSimpleDockerApp() {
 		DockerImageReference: imageapi.DockerImageReference{
 			Name: name,
 		},
-		AsImageRepository: true,
+		AsImageStream: true,
 	}
 	// create our build based on source and input
 	// TODO: we might need to pick a base image if this is STI
@@ -270,7 +270,7 @@ func ExampleGenerateSimpleDockerApp() {
 	// take the output image and wire it into a deployment config
 	deploy := &DeploymentConfigRef{Images: []*ImageRef{output}}
 
-	outputRepo, _ := output.ImageRepository()
+	outputRepo, _ := output.ImageStream()
 	buildConfig, _ := build.BuildConfig()
 	deployConfig, _ := deploy.DeploymentConfig()
 	items := []runtime.Object{

@@ -6,7 +6,7 @@
     "items": [
         {
             "apiVersion": "v1beta1",
-            "kind": "ImageRepository",
+            "kind": "ImageStream",
             "metadata": {
                 "name": "origin-ruby-sample"
             }

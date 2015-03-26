@@ -41,7 +41,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 		}
 
 		// Find the image repo referred to by the trigger params
-		imageRepo, err := g.findImageRepo(config, params)
+		imageStream, err := g.findImageStream(config, params)
 		if err != nil {
 			f := fmt.Sprintf("triggers[%d].imageChange.from", i)
 			v := params.From.Name
@@ -54,7 +54,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 		}
 
 		// Find the latest tag event for the trigger tag
-		latestEvent, err := imageapi.LatestTaggedImage(imageRepo, params.Tag)
+		latestEvent, err := imageapi.LatestTaggedImage(imageStream, params.Tag)
 		if err != nil {
 			f := fmt.Sprintf("triggers[%d].imageChange.tag", i)
 			errs = append(errs, fielderrors.NewFieldInvalid(f, params.Tag, err.Error()))
@@ -110,7 +110,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 	return config, nil
 }
 
-func (g *DeploymentConfigGenerator) findImageRepo(config *deployapi.DeploymentConfig, params *deployapi.DeploymentTriggerImageChangeParams) (*imageapi.ImageRepository, error) {
+func (g *DeploymentConfigGenerator) findImageStream(config *deployapi.DeploymentConfig, params *deployapi.DeploymentTriggerImageChangeParams) (*imageapi.ImageStream, error) {
 	// Try to find the repo by ObjectReference
 	if len(params.From.Name) > 0 {
 		namespace := params.From.Namespace
@@ -118,11 +118,11 @@ func (g *DeploymentConfigGenerator) findImageRepo(config *deployapi.DeploymentCo
 			namespace = config.Namespace
 		}
 
-		return g.Client.GetImageRepository(kapi.WithNamespace(kapi.NewContext(), namespace), params.From.Name)
+		return g.Client.GetImageStream(kapi.WithNamespace(kapi.NewContext(), namespace), params.From.Name)
 	}
 
 	// Fall back to a list based lookup on RepositoryName
-	repos, err := g.Client.ListImageRepositories(kapi.WithNamespace(kapi.NewContext(), config.Namespace))
+	repos, err := g.Client.ListImageStreams(kapi.WithNamespace(kapi.NewContext(), config.Namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (g *DeploymentConfigGenerator) findImageRepo(config *deployapi.DeploymentCo
 			return &repo, nil
 		}
 	}
-	return nil, fmt.Errorf("couldn't find imageRepository for config %s trigger params", labelFor(config))
+	return nil, fmt.Errorf("couldn't find image stream for config %s trigger params", labelFor(config))
 }
 
 // labelFor builds a string identifier for a DeploymentConfig.
@@ -142,28 +142,28 @@ func labelFor(config *deployapi.DeploymentConfig) string {
 
 type GeneratorClient interface {
 	GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
-	GetImageRepository(ctx kapi.Context, name string) (*imageapi.ImageRepository, error)
+	GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
 	// LEGACY: used, to scan all repositories for a DockerImageReference.  Will be removed
 	// when we drop support for reference by DockerImageReference.
-	ListImageRepositories(ctx kapi.Context) (*imageapi.ImageRepositoryList, error)
+	ListImageStreams(ctx kapi.Context) (*imageapi.ImageStreamList, error)
 }
 
 type Client struct {
 	DCFn   func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
-	IRFn   func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error)
-	LIRFn  func(ctx kapi.Context) (*imageapi.ImageRepositoryList, error)
-	LIRFn2 func(ctx kapi.Context, label labels.Selector) (*imageapi.ImageRepositoryList, error)
+	ISFn   func(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
+	LISFn  func(ctx kapi.Context) (*imageapi.ImageStreamList, error)
+	LISFn2 func(ctx kapi.Context, label labels.Selector) (*imageapi.ImageStreamList, error)
 }
 
 func (c Client) GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 	return c.DCFn(ctx, name)
 }
-func (c Client) GetImageRepository(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-	return c.IRFn(ctx, name)
+func (c Client) GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+	return c.ISFn(ctx, name)
 }
-func (c Client) ListImageRepositories(ctx kapi.Context) (*imageapi.ImageRepositoryList, error) {
-	if c.LIRFn2 != nil {
-		return c.LIRFn2(ctx, labels.Everything())
+func (c Client) ListImageStreams(ctx kapi.Context) (*imageapi.ImageStreamList, error) {
+	if c.LISFn2 != nil {
+		return c.LISFn2(ctx, labels.Everything())
 	}
-	return c.LIRFn(ctx)
+	return c.LISFn(ctx)
 }

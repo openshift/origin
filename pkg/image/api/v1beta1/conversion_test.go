@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kv1beta3 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/fsouza/go-dockerclient"
 
@@ -89,18 +90,210 @@ func TestDecodeDockerRegistryJSON(t *testing.T) {
 }
 
 func TestConvertTagEvent(t *testing.T) {
-	newRepo := &newer.ImageRepository{
+	timestamp := util.Now()
+	newRepo := newer.ImageRepository{
 		Status: newer.ImageRepositoryStatus{
 			Tags: map[string]newer.TagEventList{
-				"tag1": {Items: []newer.TagEvent{{DockerImageReference: "ref1"}}},
-				"tag2": {Items: []newer.TagEvent{{DockerImageReference: "ref2"}}},
+				"tag1": {Items: []newer.TagEvent{{Created: timestamp, DockerImageReference: "ref1", Image: "image1"}}},
+				"tag2": {
+					Items: []newer.TagEvent{
+						{Created: timestamp, DockerImageReference: "ref2", Image: "image2"},
+						{Created: timestamp, DockerImageReference: "ref3", Image: "image3"},
+					},
+				},
 			},
 		},
 	}
 
-	oldRepo := &current.ImageRepository{}
-	err := Convert(newRepo, oldRepo)
+	oldRepo := current.ImageRepository{}
+	err := Convert(&newRepo, &oldRepo)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestConvertImageRepositoryToImageStream(t *testing.T) {
+	timestamp := util.Now()
+
+	repo := current.ImageRepository{
+		ObjectMeta: kv1beta3.ObjectMeta{
+			Namespace: "foo",
+			Name:      "bar",
+		},
+		Tags: map[string]string{
+			"t1": "foo/bar:latest",
+		},
+		Status: current.ImageRepositoryStatus{
+			DockerImageRepository: "registry.default.local/foo/bar",
+			Tags: []current.NamedTagEventList{
+				{
+					Tag: "latest",
+					Items: []current.TagEvent{
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+							Image:                "sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+						},
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8833b5f12d958304653401ad01c397fb1e4da1e50329bc8e829a0d04a34368a4",
+							Image:                "sha256:8833b5f12d958304653401ad01c397fb1e4da1e50329bc8e829a0d04a34368a4",
+						},
+					},
+				},
+				{
+					Tag: "t1",
+					Items: []current.TagEvent{
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+							Image:                "sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	expected := newer.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "foo",
+			Name:      "bar",
+		},
+		Spec: newer.ImageStreamSpec{
+			Tags: map[string]newer.TagReference{
+				"t1": {DockerImageReference: "foo/bar:latest"},
+			},
+		},
+		Status: newer.ImageStreamStatus{
+			DockerImageRepository: "registry.default.local/foo/bar",
+			Tags: map[string]newer.TagEventList{
+				"latest": {
+					Items: []newer.TagEvent{
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+							Image:                "sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+						},
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8833b5f12d958304653401ad01c397fb1e4da1e50329bc8e829a0d04a34368a4",
+							Image:                "sha256:8833b5f12d958304653401ad01c397fb1e4da1e50329bc8e829a0d04a34368a4",
+						},
+					},
+				},
+				"t1": {
+					Items: []newer.TagEvent{
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+							Image:                "sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	stream := newer.ImageStream{}
+	err := Convert(&repo, &stream)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !reflect.DeepEqual(expected, stream) {
+		t.Errorf("unexpected conversion output, diff=%s", util.ObjectDiff(expected, stream))
+	}
+}
+
+func TestConvertImageStreamToImageRepository(t *testing.T) {
+	timestamp := util.Now()
+
+	stream := newer.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "foo",
+			Name:      "bar",
+		},
+		Spec: newer.ImageStreamSpec{
+			Tags: map[string]newer.TagReference{
+				"t1": {DockerImageReference: "foo/bar:latest"},
+			},
+		},
+		Status: newer.ImageStreamStatus{
+			DockerImageRepository: "registry.default.local/foo/bar",
+			Tags: map[string]newer.TagEventList{
+				"latest": {
+					Items: []newer.TagEvent{
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+							Image:                "sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+						},
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8833b5f12d958304653401ad01c397fb1e4da1e50329bc8e829a0d04a34368a4",
+							Image:                "sha256:8833b5f12d958304653401ad01c397fb1e4da1e50329bc8e829a0d04a34368a4",
+						},
+					},
+				},
+				"t1": {
+					Items: []newer.TagEvent{
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+							Image:                "sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	expected := current.ImageRepository{
+		ObjectMeta: kv1beta3.ObjectMeta{
+			Namespace: "foo",
+			Name:      "bar",
+		},
+		Tags: map[string]string{
+			"t1": "foo/bar:latest",
+		},
+		Status: current.ImageRepositoryStatus{
+			DockerImageRepository: "registry.default.local/foo/bar",
+			Tags: []current.NamedTagEventList{
+				{
+					Tag: "latest",
+					Items: []current.TagEvent{
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+							Image:                "sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+						},
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8833b5f12d958304653401ad01c397fb1e4da1e50329bc8e829a0d04a34368a4",
+							Image:                "sha256:8833b5f12d958304653401ad01c397fb1e4da1e50329bc8e829a0d04a34368a4",
+						},
+					},
+				},
+				{
+					Tag: "t1",
+					Items: []current.TagEvent{
+						{
+							Created:              timestamp,
+							DockerImageReference: "registry.default.local/foo/bar@sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+							Image:                "sha256:8afb1d1c9a2d65810716eab328595d76d54b01a89e4a3a74bbf3da578f05d4e9",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	repo := current.ImageRepository{}
+	err := Convert(&stream, &repo)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !reflect.DeepEqual(expected, repo) {
+		t.Errorf("unexpected conversion output, diff=%s", util.ObjectDiff(expected, repo))
 	}
 }

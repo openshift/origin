@@ -47,6 +47,47 @@ func init() {
 			out.Size = in.Size
 			return nil
 		},
+		func(in *ImageStream, out *ImageRepository, s conversion.Scope) error {
+			if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+
+			out.DockerImageRepository = in.Spec.DockerImageRepository
+
+			if in.Spec.Tags != nil && out.Tags == nil {
+				out.Tags = make(map[string]string)
+			}
+			for tag, tagRef := range in.Spec.Tags {
+				out.Tags[tag] = tagRef.DockerImageReference
+			}
+
+			return s.Convert(&in.Status, &out.Status, 0)
+		},
+		func(in *ImageRepository, out *ImageStream, s conversion.Scope) error {
+			if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
+				return err
+			}
+
+			out.Spec.DockerImageRepository = in.DockerImageRepository
+
+			if in.Tags != nil && out.Spec.Tags == nil {
+				out.Spec.Tags = make(map[string]TagReference)
+			}
+			for tag, value := range in.Tags {
+				out.Spec.Tags[tag] = TagReference{DockerImageReference: value}
+			}
+			return s.Convert(&in.Status, &out.Status, 0)
+		},
+		func(in *ImageStreamStatus, out *ImageRepositoryStatus, s conversion.Scope) error {
+			out.DockerImageRepository = in.DockerImageRepository
+			out.Tags = in.Tags
+			return nil
+		},
+		func(in *ImageRepositoryStatus, out *ImageStreamStatus, s conversion.Scope) error {
+			out.DockerImageRepository = in.DockerImageRepository
+			out.Tags = in.Tags
+			return nil
+		},
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

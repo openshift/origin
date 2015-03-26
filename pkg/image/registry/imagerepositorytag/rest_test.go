@@ -6,19 +6,49 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/coreos/go-etcd/etcd"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagerepository"
-	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 )
 
-var testDefaultRegistry = imagerepository.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+
+type fakeSubjectAccessReviewRegistry struct {
+}
+
+var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
+
+func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+	return nil, nil
+}
+
+type fakeUser struct {
+}
+
+var _ user.Info = &fakeUser{}
+
+func (u *fakeUser) GetName() string {
+	return "user"
+}
+
+func (u *fakeUser) GetUID() string {
+	return "uid"
+}
+
+func (u *fakeUser) GetGroups() []string {
+	return []string{"group1"}
+}
 
 func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
@@ -26,9 +56,11 @@ func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
 	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec)
 	imageStorage := imageetcd.NewREST(helper)
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(helper, testDefaultRegistry)
-	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
-	storage := NewREST(imageRegistry, imageRepositoryRegistry)
+	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
+	storage := NewREST(imageStreamTagRegistry)
 	return fakeEtcdClient, helper, storage
 }
 
@@ -36,96 +68,36 @@ type statusError interface {
 	Status() kapi.Status
 }
 
-func TestNameAndTag(t *testing.T) {
-	tests := map[string]struct {
-		id           string
-		expectedName string
-		expectedTag  string
-		expectError  bool
-	}{
-		"empty id": {
-			id:          "",
-			expectError: true,
-		},
-		"missing semicolon": {
-			id:          "hello",
-			expectError: true,
-		},
-		"too many semicolons": {
-			id:          "a:b:c",
-			expectError: true,
-		},
-		"empty name": {
-			id:          ":tag",
-			expectError: true,
-		},
-		"empty tag": {
-			id:          "name",
-			expectError: true,
-		},
-		"happy path": {
-			id:           "name:tag",
-			expectError:  false,
-			expectedName: "name",
-			expectedTag:  "tag",
-		},
-	}
-
-	for description, testCase := range tests {
-		name, tag, err := nameAndTag(testCase.id)
-		gotError := err != nil
-		if e, a := testCase.expectError, gotError; e != a {
-			t.Fatalf("%s: expected err: %t, got: %t: %s", description, e, a, err)
-		}
-		if err != nil {
-			continue
-		}
-		if e, a := testCase.expectedName, name; e != a {
-			t.Errorf("%s: name: expected %q, got %q", description, e, a)
-		}
-		if e, a := testCase.expectedTag, tag; e != a {
-			t.Errorf("%s: tag: expected %q, got %q", description, e, a)
-		}
-	}
-}
-
 func TestGetImageRepositoryTag(t *testing.T) {
 	tests := map[string]struct {
 		image           *api.Image
-		repo            *api.ImageRepository
+		repo            *api.ImageStream
 		expectError     bool
 		errorTargetKind string
 		errorTargetID   string
 	}{
 		"happy path": {
 			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
-			repo: &api.ImageRepository{Status: api.ImageRepositoryStatus{
-				Tags: map[string]api.TagEventList{
-					"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
+			repo: &api.ImageStream{
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						"latest": {
+							Annotations: map[string]string{
+								"color": "blue",
+								"size":  "large",
+							},
+						},
+					},
 				},
-			}},
-		},
-		"synthetic image from partial tag": {
-			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: ""}, DockerImageReference: "test"},
-			repo: &api.ImageRepository{Status: api.ImageRepositoryStatus{
-				Tags: map[string]api.TagEventList{
-					"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: ""}}},
+				Status: api.ImageStreamStatus{
+					Tags: map[string]api.TagEventList{
+						"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
+					},
 				},
-			}},
-		},
-		"tag event reference required": {
-			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
-			repo: &api.ImageRepository{Status: api.ImageRepositoryStatus{
-				Tags: map[string]api.TagEventList{
-					"latest": {Items: []api.TagEvent{{Image: "10"}}},
-				},
-			}},
-			expectError:     true,
-			errorTargetKind: "imageRepositoryTag",
-			errorTargetID:   "latest",
+			},
 		},
 		"missing image": {
-			repo: &api.ImageRepository{Status: api.ImageRepositoryStatus{
+			repo: &api.ImageStream{Status: api.ImageStreamStatus{
 				Tags: map[string]api.TagEventList{
 					"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
 				},
@@ -136,18 +108,18 @@ func TestGetImageRepositoryTag(t *testing.T) {
 		},
 		"missing repo": {
 			expectError:     true,
-			errorTargetKind: "imageRepository",
+			errorTargetKind: "imageStream",
 			errorTargetID:   "test",
 		},
 		"missing tag": {
 			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
-			repo: &api.ImageRepository{Status: api.ImageRepositoryStatus{
+			repo: &api.ImageStream{Status: api.ImageStreamStatus{
 				Tags: map[string]api.TagEventList{
 					"other": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
 				},
 			}},
 			expectError:     true,
-			errorTargetKind: "imageRepositoryTag",
+			errorTargetKind: "imageStreamTag",
 			errorTargetID:   "latest",
 		},
 	}
@@ -209,20 +181,23 @@ func TestGetImageRepositoryTag(t *testing.T) {
 			if e, a := testCase.image.Name, actual.Name; e != a {
 				t.Errorf("%s: image name: expected %v, got %v", name, e, a)
 			}
+			if e, a := map[string]string{"size": "large", "color": "blue"}, actual.Annotations; !reflect.DeepEqual(e, a) {
+				t.Errorf("%s: image annotations: expected %v, got %v", name, e, a)
+			}
 		}
 	}
 }
 
 func TestDeleteImageRepositoryTag(t *testing.T) {
 	tests := map[string]struct {
-		repo        *api.ImageRepository
+		repo        *api.ImageStream
 		expectError bool
 	}{
 		"repo not found": {
 			expectError: true,
 		},
 		"nil tag map": {
-			repo: &api.ImageRepository{
+			repo: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
@@ -231,22 +206,83 @@ func TestDeleteImageRepositoryTag(t *testing.T) {
 			expectError: true,
 		},
 		"missing tag": {
-			repo: &api.ImageRepository{
+			repo: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
 				},
-				Tags: map[string]string{"other": "10"},
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						"other": {
+							From: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "test:foo",
+							},
+						},
+					},
+				},
 			},
 			expectError: true,
 		},
 		"happy path": {
-			repo: &api.ImageRepository{
+			repo: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 					Name:      "test",
 				},
-				Tags: map[string]string{"latest": "10", "another": "20"},
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						"another": {
+							From: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "test:foo",
+							},
+						},
+						"latest": {
+							From: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "test:bar",
+							},
+						},
+					},
+				},
+				Status: api.ImageStreamStatus{
+					DockerImageRepository: "registry.default.local/default/test",
+					Tags: map[string]api.TagEventList{
+						"another": {
+							Items: []api.TagEvent{
+								{
+									DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+									Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+								},
+							},
+						},
+						"foo": {
+							Items: []api.TagEvent{
+								{
+									DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+									Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+								},
+							},
+						},
+						"latest": {
+							Items: []api.TagEvent{
+								{
+									DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+									Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+								},
+							},
+						},
+						"bar": {
+							Items: []api.TagEvent{
+								{
+									DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+									Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -271,7 +307,8 @@ func TestDeleteImageRepositoryTag(t *testing.T) {
 			}
 		}
 
-		obj, err := storage.Delete(kapi.NewDefaultContext(), "test:latest")
+		ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+		obj, err := storage.Delete(ctx, "test:latest")
 		gotError := err != nil
 		if e, a := testCase.expectError, gotError; e != a {
 			t.Fatalf("%s: expectError=%t, gotError=%t: %s", name, e, a, err)
@@ -288,11 +325,19 @@ func TestDeleteImageRepositoryTag(t *testing.T) {
 			t.Errorf("%s: expected %#v, got %#v", name, e, a)
 		}
 
-		updatedRepo := &api.ImageRepository{}
+		updatedRepo := &api.ImageStream{}
 		if err := helper.ExtractObj("/imageRepositories/default/test", updatedRepo, false); err != nil {
 			t.Fatalf("%s: error retrieving updated repo: %s", name, err)
 		}
-		if e, a := map[string]string{"another": "20"}, updatedRepo.Tags; !reflect.DeepEqual(e, a) {
+		expected := map[string]api.TagReference{
+			"another": {
+				From: &kapi.ObjectReference{
+					Kind: "ImageStreamTag",
+					Name: "test:foo",
+				},
+			},
+		}
+		if e, a := expected, updatedRepo.Spec.Tags; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: tags: expected %v, got %v", name, e, a)
 		}
 	}

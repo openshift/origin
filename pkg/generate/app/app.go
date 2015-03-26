@@ -163,10 +163,10 @@ func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.
 // ImageRef is a reference to an image
 type ImageRef struct {
 	imageapi.DockerImageReference
-	AsImageRepository bool
+	AsImageStream bool
 
-	Repository *imageapi.ImageRepository
-	Info       *imageapi.DockerImage
+	Stream *imageapi.ImageStream
+	Info   *imageapi.DockerImage
 }
 
 /*
@@ -204,7 +204,7 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 	if r == nil {
 		return &buildapi.BuildOutput{}, nil
 	}
-	imageRepo, err := r.ImageRepository()
+	imageRepo, err := r.ImageStream()
 	if err != nil {
 		return nil, err
 	}
@@ -220,9 +220,9 @@ func (r *ImageRef) BuildTriggers() []buildapi.BuildTriggerPolicy {
 	return []buildapi.BuildTriggerPolicy{}
 }
 
-func (r *ImageRef) ImageRepository() (*imageapi.ImageRepository, error) {
-	if r.Repository != nil {
-		return r.Repository, nil
+func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
+	if r.Stream != nil {
+		return r.Stream, nil
 	}
 
 	name, ok := r.SuggestName()
@@ -230,13 +230,13 @@ func (r *ImageRef) ImageRepository() (*imageapi.ImageRepository, error) {
 		return nil, fmt.Errorf("unable to suggest an image repository name for %q", r.String())
 	}
 
-	repo := &imageapi.ImageRepository{
+	repo := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
 	}
-	if !r.AsImageRepository {
-		repo.DockerImageRepository = r.String()
+	if !r.AsImageStream {
+		repo.Spec.DockerImageRepository = r.String()
 	}
 
 	return repo, nil
@@ -247,7 +247,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 	if !ok {
 		return nil, nil, fmt.Errorf("unable to suggest a container name for the image %q", r.String())
 	}
-	if r.AsImageRepository {
+	if r.AsImageStream {
 		tag := r.Tag
 		if len(tag) == 0 {
 			tag = "latest"

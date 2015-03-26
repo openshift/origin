@@ -105,7 +105,7 @@ func TestInstantiateGetBuildConfigError(t *testing.T) {
 		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 			return bc, nil
 		},
-		GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+		GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 			return nil, fmt.Errorf("get-error")
 		},
 	}}
@@ -308,10 +308,10 @@ func TestGenerateBuildWithImageTagForDockerStrategy(t *testing.T) {
 		},
 	}
 	generator := BuildGenerator{Client: Client{
-		GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-			return &imageapi.ImageRepository{
+		GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			return &imageapi.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
-				Status: imageapi.ImageRepositoryStatus{
+				Status: imageapi.ImageStreamStatus{
 					DockerImageRepository: originalImage,
 					Tags: map[string]imageapi.TagEventList{
 						tagName: {
@@ -324,7 +324,6 @@ func TestGenerateBuildWithImageTagForDockerStrategy(t *testing.T) {
 						},
 					},
 				},
-				Tags: map[string]string{tagName: newTag},
 			}, nil
 		},
 		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
@@ -495,10 +494,10 @@ func TestGenerateBuildWithImageTagForSTIStrategyImage(t *testing.T) {
 		},
 	}
 	generator := BuildGenerator{Client: Client{
-		GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-			return &imageapi.ImageRepository{
+		GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			return &imageapi.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
-				Status: imageapi.ImageRepositoryStatus{
+				Status: imageapi.ImageStreamStatus{
 					DockerImageRepository: originalImage,
 					Tags: map[string]imageapi.TagEventList{
 						tagName: {
@@ -511,7 +510,6 @@ func TestGenerateBuildWithImageTagForSTIStrategyImage(t *testing.T) {
 						},
 					},
 				},
-				Tags: map[string]string{tagName: newTag},
 			}, nil
 		},
 		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
@@ -549,10 +547,10 @@ func TestGenerateBuildWithImageTagForSTIStrategyImageRepository(t *testing.T) {
 		},
 	}
 	generator := BuildGenerator{Client: Client{
-		GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-			return &imageapi.ImageRepository{
+		GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			return &imageapi.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
-				Status: imageapi.ImageRepositoryStatus{
+				Status: imageapi.ImageStreamStatus{
 					DockerImageRepository: originalImage,
 					Tags: map[string]imageapi.TagEventList{
 						tagName: {
@@ -565,7 +563,6 @@ func TestGenerateBuildWithImageTagForSTIStrategyImageRepository(t *testing.T) {
 						},
 					},
 				},
-				Tags: map[string]string{tagName: newTag},
 			}, nil
 		},
 		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
@@ -1039,8 +1036,8 @@ func mockBuildGenerator() *BuildGenerator {
 		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
 			return &buildapi.Build{}, nil
 		},
-		GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-			return &imageapi.ImageRepository{}, nil
+		GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			return &imageapi.ImageStream{}, nil
 		},
 	}}
 }

@@ -1,0 +1,7 @@
+{
+  "apiVersion": "v1beta1",
+  "kind": "ImageStream",
+  "metadata": {
+    "name": "samplerepository"
+  }
+}

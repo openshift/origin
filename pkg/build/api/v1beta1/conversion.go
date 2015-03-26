@@ -57,7 +57,7 @@ func init() {
 				out.From = &kapi.ObjectReference{
 					Name:      in.From.Name,
 					Namespace: in.From.Namespace,
-					Kind:      "ImageRepository",
+					Kind:      "ImageStream",
 				}
 			}
 			out.Tag = in.Tag
@@ -70,7 +70,7 @@ func init() {
 				out.From = &api.ObjectReference{
 					Name:      in.From.Name,
 					Namespace: in.From.Namespace,
-					Kind:      "ImageRepository",
+					Kind:      "ImageStream",
 				}
 			}
 			out.Tag = in.Tag

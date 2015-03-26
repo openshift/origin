@@ -43,15 +43,15 @@ func TestGenerate_fromConfigWithoutTagChange(t *testing.T) {
 			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-				repo := makeRepo(
-					"test-image-repo",
+			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+				stream := makeStream(
+					"test-image-stream",
 					"latest",
 					"registry:8080/repo1:ref1",
 					"00000000000000000000000000000001",
 				)
 
-				return repo, nil
+				return stream, nil
 			},
 		},
 	}
@@ -79,16 +79,16 @@ func TestGenerate_deprecatedFromConfigWithoutTagChange(t *testing.T) {
 				config.Triggers[0] = deploytest.OkImageChangeTriggerDeprecated()
 				return config, nil
 			},
-			LIRFn: func(ctx kapi.Context) (*imageapi.ImageRepositoryList, error) {
-				repo := makeRepo(
-					"test-image-repo",
+			LISFn: func(ctx kapi.Context) (*imageapi.ImageStreamList, error) {
+				stream := makeStream(
+					"test-image-stream",
 					"latest",
 					"registry:8080/repo1:ref1",
 					"00000000000000000000000000000001",
 				)
-				repo.Status.DockerImageRepository = "registry:8080/repo1:ref1"
-				return &imageapi.ImageRepositoryList{
-					Items: []imageapi.ImageRepository{*repo},
+				stream.Status.DockerImageRepository = "registry:8080/repo1:ref1"
+				return &imageapi.ImageStreamList{
+					Items: []imageapi.ImageStream{*stream},
 				}, nil
 			},
 		},
@@ -115,15 +115,15 @@ func TestGenerate_fromZeroConfigWithoutTagChange(t *testing.T) {
 			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(0), nil
 			},
-			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-				repo := makeRepo(
-					"test-image-repo",
+			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+				stream := makeStream(
+					"test-image-stream",
 					"latest",
 					"registry:8080/repo1:ref1",
 					"00000000000000000000000000000001",
 				)
 
-				return repo, nil
+				return stream, nil
 			},
 		},
 	}
@@ -152,15 +152,15 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-				repo := makeRepo(
-					"test-image-repo",
+			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+				stream := makeStream(
+					"test-image-stream",
 					"latest",
 					newRepoName,
 					newImageID,
 				)
 
-				return repo, nil
+				return stream, nil
 			},
 		},
 	}
@@ -191,7 +191,7 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 		t.Fatalf("Expected cause tag %s, got %s", e, a)
 	}
 	if e, a := config.Details.Causes[0].ImageTrigger.RepositoryName, newRepoName; e != a {
-		t.Fatalf("Expected cause repo %s, got %s", e, a)
+		t.Fatalf("Expected cause stream %s, got %s", e, a)
 	}
 }
 
@@ -201,8 +201,8 @@ func TestGenerate_reportsInvalidErrorWhenMissingRepo(t *testing.T) {
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-				return nil, kerrors.NewNotFound("ImageRepository", name)
+			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+				return nil, kerrors.NewNotFound("ImageStream", name)
 			},
 		},
 	}
@@ -221,8 +221,8 @@ func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) 
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound("DeploymentConfig", name)
 			},
-			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-				return nil, kerrors.NewNotFound("ImageRepository", name)
+			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+				return nil, kerrors.NewNotFound("ImageStream", name)
 			},
 		},
 	}
@@ -235,10 +235,10 @@ func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) 
 	}
 }
 
-func makeRepo(name, tag, dir, image string) *imageapi.ImageRepository {
-	return &imageapi.ImageRepository{
+func makeStream(name, tag, dir, image string) *imageapi.ImageStream {
+	return &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: name},
-		Status: imageapi.ImageRepositoryStatus{
+		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
 				tag: {
 					Items: []imageapi.TagEvent{

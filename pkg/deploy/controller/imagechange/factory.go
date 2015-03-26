@@ -19,7 +19,7 @@ import (
 )
 
 // ImageChangeControllerFactory can create an ImageChangeController which
-// watches all ImageRepository changes.
+// watches all ImageStream changes.
 type ImageChangeControllerFactory struct {
 	// Client is an OpenShift client.
 	Client osclient.Interface
@@ -27,16 +27,16 @@ type ImageChangeControllerFactory struct {
 
 // Create creates an ImageChangeController.
 func (factory *ImageChangeControllerFactory) Create() controller.RunnableController {
-	imageRepositoryLW := &deployutil.ListWatcherImpl{
+	imageStreamLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
-			return factory.Client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			return factory.Client.ImageStreams(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 		},
 		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.Client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			return factory.Client.ImageStreams(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		},
 	}
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(imageRepositoryLW, &imageapi.ImageRepository{}, queue, 2*time.Minute).Run()
+	cache.NewReflector(imageStreamLW, &imageapi.ImageStream{}, queue, 2*time.Minute).Run()
 
 	deploymentConfigLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
@@ -85,7 +85,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 			},
 		),
 		Handle: func(obj interface{}) error {
-			repo := obj.(*imageapi.ImageRepository)
+			repo := obj.(*imageapi.ImageStream)
 			return changeController.Handle(repo)
 		},
 	}

@@ -26,14 +26,14 @@ type ImportControllerFactory struct {
 func (f *ImportControllerFactory) Create() controller.RunnableController {
 	lw := &cache.ListWatch{
 		ListFunc: func() (runtime.Object, error) {
-			return f.Client.ImageRepositories(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			return f.Client.ImageStreams(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 		},
 		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return f.Client.ImageRepositories(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			return f.Client.ImageStreams(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		},
 	}
 	q := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(lw, &api.ImageRepository{}, q, 2*time.Minute).Run()
+	cache.NewReflector(lw, &api.ImageStream{}, q, 2*time.Minute).Run()
 
 	c := &ImportController{
 		client:       dockerregistry.NewClient(),
@@ -52,7 +52,7 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 			},
 		),
 		Handle: func(obj interface{}) error {
-			r := obj.(*api.ImageRepository)
+			r := obj.(*api.ImageStream)
 			return c.Next(r)
 		},
 	}

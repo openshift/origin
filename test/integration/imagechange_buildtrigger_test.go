@@ -20,40 +20,50 @@ func init() {
 }
 
 func TestSimpleImageChangeBuildTrigger(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestOpenshift(t)
-	defer openshift.Close()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	imageRepo := &imageapi.ImageRepository{
-		ObjectMeta:            kapi.ObjectMeta{Name: "test-image-trigger-repo"},
-		DockerImageRepository: "registry:8080/openshift/test-image-trigger",
-		Tags: map[string]string{
-			"latest": "latest",
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	imageStream := &imageapi.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{Name: "test-image-trigger-repo"},
+		Spec: imageapi.ImageStreamSpec{
+			DockerImageRepository: "registry:8080/openshift/test-image-trigger",
+			Tags: map[string]imageapi.TagReference{
+				"latest": {
+					DockerImageReference: "registry:8080/openshift/test-image-trigger:latest",
+				},
+			},
 		},
 	}
 
 	config := imageChangeBuildConfig()
 
-	created, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(config)
+	created, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer watch.Stop()
 
-	watch2, err := openshift.Client.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	watch2, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
 	defer watch2.Stop()
 
-	imageRepo, err = openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo)
+	imageStream, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream)
 	if err != nil {
-		t.Fatalf("Couldn't create ImageRepository: %v", err)
+		t.Fatalf("Couldn't create ImageStream: %v", err)
 	}
 
 	// wait for initial build event from the creation of the imagerepo with tag latest
@@ -63,8 +73,8 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	}
 	newBuild := event.Object.(*buildapi.Build)
 	if newBuild.Parameters.Strategy.DockerStrategy.Image != "registry:8080/openshift/test-image-trigger:latest" {
-		i, _ := openshift.Client.ImageRepositories(testutil.Namespace()).Get(imageRepo.Name)
-		bc, _ := openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
+		i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
+		bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:latest", newBuild.Parameters.Strategy.DockerStrategy.Image, i, bc.Triggers[0].ImageChange)
 	}
 	event = <-watch.ResultChan()
@@ -81,7 +91,7 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 
 	// wait for build config to be updated
 	<-watch2.ResultChan()
-	updatedConfig, err := openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
+	updatedConfig, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
@@ -91,17 +101,17 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	}
 
 	// trigger a build by posting a new image
-	if err := openshift.Client.ImageRepositoryMappings(testutil.Namespace()).Create(&imageapi.ImageRepositoryMapping{
+	if err := clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(&imageapi.ImageStreamMapping{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: testutil.Namespace(),
-			Name:      imageRepo.Name,
+			Name:      imageStream.Name,
 		},
 		Tag: "latest",
 		Image: imageapi.Image{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "ref-2-random",
 			},
-			DockerImageReference: "registry:8080/openshift/test-image-trigger:ref-2",
+			DockerImageReference: "registry:8080/openshift/test-image-trigger:ref-2-random",
 		},
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -111,10 +121,10 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Parameters.Strategy.DockerStrategy.Image != "registry:8080/openshift/test-image-trigger:ref-2" {
-		i, _ := openshift.Client.ImageRepositories(testutil.Namespace()).Get(imageRepo.Name)
-		bc, _ := openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
-		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2", newBuild.Parameters.Strategy.DockerStrategy.Image, i, bc.Triggers[0].ImageChange)
+	if newBuild.Parameters.Strategy.DockerStrategy.Image != "registry:8080/openshift/test-image-trigger:ref-2-random" {
+		i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
+		bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
+		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Parameters.Strategy.DockerStrategy.Image, i, bc.Triggers[3].ImageChange)
 	}
 	event = <-watch.ResultChan()
 	if e, a := watchapi.Modified, event.Type; e != a {
@@ -129,50 +139,60 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 	}
 
 	<-watch2.ResultChan()
-	updatedConfig, err = openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
+	updatedConfig, err = clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
-	if updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID != "ref-2-random" {
-		t.Errorf("unexpected trigger id: %#v", updatedConfig.Triggers[0].ImageChange)
+	if e, a := "registry:8080/openshift/test-image-trigger:ref-2-random", updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
+		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
 	}
 }
 
 func TestSimpleImageChangeBuildTriggerFromRef(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	openshift := NewTestOpenshift(t)
-	defer openshift.Close()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	imageRepo := &imageapi.ImageRepository{
-		ObjectMeta:            kapi.ObjectMeta{Name: "test-image-trigger-repo"},
-		DockerImageRepository: "registry:8080/openshift/test-image-trigger",
-		Tags: map[string]string{
-			"latest": "latest",
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	imageStream := &imageapi.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{Name: "test-image-trigger-repo"},
+		Spec: imageapi.ImageStreamSpec{
+			DockerImageRepository: "registry:8080/openshift/test-image-trigger",
+			Tags: map[string]imageapi.TagReference{
+				"latest": {
+					DockerImageReference: "registry:8080/openshift/test-image-trigger:latest",
+				},
+			},
 		},
 	}
 
 	config := imageChangeBuildConfigFromRef()
 
-	created, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(config)
+	created, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer watch.Stop()
 
-	watch2, err := openshift.Client.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	watch2, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
 	defer watch2.Stop()
 
-	imageRepo, err = openshift.Client.ImageRepositories(testutil.Namespace()).Create(imageRepo)
+	imageStream, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream)
 	if err != nil {
-		t.Fatalf("Couldn't create ImageRepository: %v", err)
+		t.Fatalf("Couldn't create ImageStream: %v", err)
 	}
 
 	// wait for initial build event from the creation of the imagerepo with tag latest
@@ -182,8 +202,8 @@ func TestSimpleImageChangeBuildTriggerFromRef(t *testing.T) {
 	}
 	newBuild := event.Object.(*buildapi.Build)
 	if newBuild.Parameters.Strategy.STIStrategy.Image != "registry:8080/openshift/test-image-trigger:latest" {
-		i, _ := openshift.Client.ImageRepositories(testutil.Namespace()).Get(imageRepo.Name)
-		bc, _ := openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
+		i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
+		bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:latest", newBuild.Parameters.Strategy.STIStrategy.Image, i, bc.Triggers[0].ImageChange)
 	}
 	event = <-watch.ResultChan()
@@ -200,7 +220,7 @@ func TestSimpleImageChangeBuildTriggerFromRef(t *testing.T) {
 
 	// wait for build config to be updated
 	<-watch2.ResultChan()
-	updatedConfig, err := openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
+	updatedConfig, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
@@ -210,17 +230,17 @@ func TestSimpleImageChangeBuildTriggerFromRef(t *testing.T) {
 	}
 
 	// trigger a build by posting a new image
-	if err := openshift.Client.ImageRepositoryMappings(testutil.Namespace()).Create(&imageapi.ImageRepositoryMapping{
+	if err := clusterAdminClient.ImageRepositoryMappings(testutil.Namespace()).Create(&imageapi.ImageRepositoryMapping{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: testutil.Namespace(),
-			Name:      imageRepo.Name,
+			Name:      imageStream.Name,
 		},
 		Tag: "latest",
 		Image: imageapi.Image{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "ref-2-random",
 			},
-			DockerImageReference: "registry:8080/openshift/test-image-trigger:ref-2",
+			DockerImageReference: "registry:8080/openshift/test-image-trigger:ref-2-random",
 		},
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -230,10 +250,10 @@ func TestSimpleImageChangeBuildTriggerFromRef(t *testing.T) {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Parameters.Strategy.STIStrategy.Image != "registry:8080/openshift/test-image-trigger:ref-2" {
-		i, _ := openshift.Client.ImageRepositories(testutil.Namespace()).Get(imageRepo.Name)
-		bc, _ := openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
-		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2", newBuild.Parameters.Strategy.STIStrategy.Image, i, bc.Triggers[0].ImageChange)
+	if newBuild.Parameters.Strategy.STIStrategy.Image != "registry:8080/openshift/test-image-trigger:ref-2-random" {
+		i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
+		bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
+		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Parameters.Strategy.STIStrategy.Image, i, bc.Triggers[0].ImageChange)
 	}
 	event = <-watch.ResultChan()
 	if e, a := watchapi.Modified, event.Type; e != a {
@@ -249,12 +269,12 @@ func TestSimpleImageChangeBuildTriggerFromRef(t *testing.T) {
 
 	// wait for build config to be updated
 	<-watch2.ResultChan()
-	updatedConfig, err = openshift.Client.BuildConfigs(testutil.Namespace()).Get(config.Name)
+	updatedConfig, err = clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
-	if updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID != "ref-2-random" {
-		t.Errorf("unexpected trigger id: %#v", updatedConfig.Triggers[0].ImageChange)
+	if e, a := "registry:8080/openshift/test-image-trigger:ref-2-random", updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
+		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
 	}
 }
 
