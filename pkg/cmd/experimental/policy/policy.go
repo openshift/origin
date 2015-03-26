@@ -20,8 +20,8 @@ func NewCommandPolicy(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
-		Short: "manage authorization policy",
-		Long:  `manage authorization policy`,
+		Short: "Manage authorization policy",
+		Long:  `Manage authorization policy`,
 		Run:   runHelp,
 	}
 

@@ -66,6 +66,24 @@ Architecture
 
 The OpenShift v3 management console is based on AngularJS and [Hawt.io](https://github.com/hawtio/hawtio-core)
 
+#### Navigation
+
+The v3 console supports a custom context root.  When running as part of the `openshift start` command the console's context root is injected into the `<base>` tag of the index.html file.  In order to support custom context roots, all console URLs must be relative, so they should not contain a leading "/" character.
+
+For example if you want to specify a URL directly in an HTML template to go to the project overview it would look like
+
+```
+<a href="project/foo/overview">
+```
+
+and would actually resolve to be `/contextroot/project/foo/overview` by the browser.  Similarly, if you want to use JavaScript to change the current page location, you should use the $location service from angular like
+
+```
+$location.url("project/foo/overview")
+```
+
+Finally, if you want to reference the root of the web console use the path `./`
+
 #### Custom directives and filters
 
 The v3 console relies heavily on custom directives and filters, some of which are intended to be utilties and used throughout the console source. The list below is NOT a complete list of all of our directives and filters.

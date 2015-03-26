@@ -22,7 +22,7 @@ func NewCmdRemoveUserFromProject(f *clientcmd.Factory) *cobra.Command {
 	options := &removeUserFromProjectOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "remove-user-from-project  <user> [user]...",
+		Use:   "remove-user  <user> [user]...",
 		Short: "remove user from project",
 		Long:  `remove user from project`,
 		Run: func(cmd *cobra.Command, args []string) {

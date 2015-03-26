@@ -6,15 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
-	"github.com/elazarl/go-bindata-assetfs"
 	restful "github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
@@ -32,7 +32,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
-	"github.com/openshift/origin/pkg/assets"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -81,7 +80,6 @@ import (
 	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
-	"github.com/openshift/origin/pkg/version"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
@@ -97,7 +95,8 @@ import (
 )
 
 const (
-	OpenShiftAPIPrefix        = "/osapi"
+	OpenShiftAPIPrefix        = "/osapi" // TODO: make configurable
+	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
 	OpenShiftAPIV1Beta1       = "v1beta1"
 	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
 	OpenShiftRouteSubdomain   = "router.default.local"
@@ -273,6 +272,55 @@ func initAPIVersionRoute(root *restful.WebService, version string) {
 		Consumes(restful.MIME_JSON))
 }
 
+// If we know the location of the asset server, redirect to it when / is requested
+// and the Accept header supports text/html
+func assetServerRedirect(handler http.Handler, assetPublicURL string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		accept := req.Header.Get("Accept")
+		if req.URL.Path == "/" && strings.Contains(accept, "text/html") {
+			http.Redirect(w, req, assetPublicURL, http.StatusFound)
+		} else {
+			// Dispatch to the next handler
+			handler.ServeHTTP(w, req)
+		}
+	})
+}
+
+// TODO We would like to use the IndexHandler from k8s but we do not yet have a
+// MuxHelper to track all registered paths
+func indexAPIPaths(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/" {
+			// TODO once we have a MuxHelper we will not need to hardcode this list of paths
+			object := api.RootPaths{Paths: []string{
+				"/api",
+				"/api/v1beta1",
+				"/api/v1beta2",
+				"/api/v1beta3",
+				"/healthz",
+				"/healthz/ping",
+				"/logs/",
+				"/metrics",
+				"/osapi",
+				"/osapi/v1beta1",
+				"/swaggerapi/",
+			}}
+			// TODO it would be nice if apiserver.writeRawJSON was not private
+			output, err := json.MarshalIndent(object, "", "  ")
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(output)
+		} else {
+			// Dispatch to the next handler
+			handler.ServeHTTP(w, req)
+		}
+	})
+}
+
 // Run launches the OpenShift master. It takes optional installers that may install additional endpoints into the server.
 // All endpoints get configured CORS behavior
 // Protected installers' endpoints are protected by API authentication and authorization.
@@ -297,6 +345,9 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	for _, i := range unprotected {
 		extra = append(extra, i.InstallAPI(open)...)
 	}
+
+	handler = indexAPIPaths(handler)
+
 	open.Handle("/", handler)
 
 	// install swagger
@@ -312,6 +363,10 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	// add CORS support
 	if origins := c.ensureCORSAllowedOrigins(); len(origins) != 0 {
 		handler = apiserver.CORS(handler, origins, nil, nil, "true")
+	}
+
+	if c.Options.AssetConfig != nil {
+		handler = assetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
 	}
 
 	// Make the outermost filter the requestContextMapper to ensure all components share the same context
@@ -390,7 +445,7 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	if _, err := registry.GetPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
 		glog.Infof("No master policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
-		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.MasterAuthorizationNamespace, c.Options.PolicyConfig.BootstrapPolicyFile); err != nil {
+		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.MasterAuthorizationNamespace, c.Options.PolicyConfig.BootstrapPolicyFile, true, ioutil.Discard); err != nil {
 			glog.Errorf("Error creating bootstrap policy: %v", err)
 		}
 
@@ -471,82 +526,7 @@ func (c *MasterConfig) RunPolicyCache() {
 
 // RunAssetServer starts the asset server for the OpenShift UI.
 func (c *MasterConfig) RunAssetServer() {
-	// TODO use	version.Get().GitCommit as an etag cache header
-	mux := http.NewServeMux()
 
-	masterURL, err := url.Parse(c.Options.AssetConfig.MasterPublicURL)
-	if err != nil {
-		glog.Fatalf("Error parsing master url: %v", err)
-	}
-
-	k8sURL, err := url.Parse(c.Options.AssetConfig.KubernetesPublicURL)
-	if err != nil {
-		glog.Fatalf("Error parsing kubernetes url: %v", err)
-	}
-
-	config := assets.WebConsoleConfig{
-		MasterAddr:        masterURL.Host,
-		MasterPrefix:      OpenShiftAPIPrefix,
-		KubernetesAddr:    k8sURL.Host,
-		KubernetesPrefix:  "/api",
-		OAuthAuthorizeURI: OpenShiftOAuthAuthorizeURL(masterURL.String()),
-		OAuthRedirectBase: c.Options.AssetConfig.PublicURL,
-		OAuthClientID:     OpenShiftWebConsoleClientID,
-		LogoutURI:         c.Options.AssetConfig.LogoutURI,
-	}
-
-	assets.RegisterMimeTypes()
-
-	mux.Handle("/",
-		// Gzip first so that inner handlers can react to the addition of the Vary header
-		assets.GzipHandler(
-			// Generated config.js can not be cached since it changes depending on startup options
-			assets.GeneratedConfigHandler(
-				config,
-				// Cache control should happen after all Vary headers are added, but before
-				// any asset related routing (HTML5ModeHandler and FileServer)
-				assets.CacheControlHandler(
-					version.Get().GitCommit,
-					assets.HTML5ModeHandler(
-						http.FileServer(
-							&assetfs.AssetFS{
-								assets.Asset,
-								assets.AssetDir,
-								"",
-							},
-						),
-					),
-				),
-			),
-		),
-	)
-
-	server := &http.Server{
-		Addr:           c.Options.AssetConfig.ServingInfo.BindAddress,
-		Handler:        mux,
-		ReadTimeout:    5 * time.Minute,
-		WriteTimeout:   5 * time.Minute,
-		MaxHeaderBytes: 1 << 20,
-	}
-
-	go util.Forever(func() {
-		if c.TLS {
-			server.TLSConfig = &tls.Config{
-				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-				MinVersion: tls.VersionTLS10,
-			}
-			glog.Infof("OpenShift UI listening at https://%s", c.Options.AssetConfig.ServingInfo.BindAddress)
-			glog.Fatal(server.ListenAndServeTLS(c.Options.AssetConfig.ServingInfo.ServerCert.CertFile, c.Options.AssetConfig.ServingInfo.ServerCert.KeyFile))
-		} else {
-			glog.Infof("OpenShift UI listening at https://%s", c.Options.AssetConfig.ServingInfo.BindAddress)
-			glog.Fatal(server.ListenAndServe())
-		}
-	}, 0)
-
-	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.Options.AssetConfig.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-
-	glog.Infof("OpenShift UI available at %s", c.Options.AssetConfig.PublicURL)
 }
 
 func (c *MasterConfig) RunDNSServer() {

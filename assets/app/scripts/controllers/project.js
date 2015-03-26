@@ -33,7 +33,7 @@ angular.module('openshiftConsole')
             var message = e.status == 403 ? 
               ("The project " + $scope.projectName + " does not exist or you are not authorized to view it.") :
               ("The project " + $scope.projectName + " does not exist.")
-            var redirect = URI('/error').query({
+            var redirect = URI('error').query({
               "error_description": message,
               "error" : e.status == 403 ? 'access_denied' : 'not_found'
             }).toString();

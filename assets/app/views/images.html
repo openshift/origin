@@ -11,7 +11,7 @@
       <div style="margin-bottom: 10px;" ng-repeat="image in images">
         <h3>{{image.dockerImageReference | imageName}} <span class="small">({{image.metadata.name}})</span></h3>
         <div>Created: <relative-timestamp timestamp="image.metadata.creationTimestamp"></relative-timestamp></div>
-        <div ng-if="build = (image | buildForImage : builds)">Created from: Build {{build.metadata.labels.buildconfig}} (<a href="/project/{{projectName}}/browse/builds" class="small" title="{{build.metadata.name}}">{{build.metadata.name.substr(0, 10)}}</a>)
+        <div ng-if="build = (image | buildForImage : builds)">Created from: Build {{build.metadata.labels.buildconfig}} (<a href="project/{{projectName}}/browse/builds" class="small" title="{{build.metadata.name}}">{{build.metadata.name.substr(0, 10)}}</a>)
       </div>      
     </div>
   </project-page>

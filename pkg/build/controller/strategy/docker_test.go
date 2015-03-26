@@ -35,8 +35,20 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.Env) != 1 {
-		t.Fatalf("Expected 1 element in Env table, got %d", len(container.Env))
+	if len(container.VolumeMounts) != 2 {
+		t.Fatalf("Expected 2 volumes in container, got %d", len(container.VolumeMounts))
+	}
+	if container.VolumeMounts[0].MountPath != dockerSocketPath {
+		t.Fatalf("Expected %s in first VolumeMount, got %s", dockerSocketPath, container.VolumeMounts[0].MountPath)
+	}
+	if container.VolumeMounts[1].MountPath != dockerPushSecretMountPath {
+		t.Fatalf("Expected %s in first VolumeMount, got %s", dockerPushSecretMountPath, container.VolumeMounts[1].MountPath)
+	}
+	if len(actual.Spec.Volumes) != 2 {
+		t.Fatalf("Expected 2 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	}
+	if len(container.Env) != 3 {
+		t.Fatalf("Expected 3 elements in Env table, got %d", len(container.Env))
 	}
 	buildJSON, _ := v1beta1.Codec.Encode(expected)
 	errorCases := map[int][]string{
@@ -73,6 +85,7 @@ func mockDockerBuild() *buildapi.Build {
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "docker-registry/repository/dockerBuild",
+				PushSecretName:       "foo",
 			},
 		},
 		Status:  buildapi.BuildStatusNew,

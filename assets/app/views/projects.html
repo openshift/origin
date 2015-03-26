@@ -1,7 +1,7 @@
 <div class="container">
   <h1>Projects</h1>
   <div class="tile tile-project tile-click" style="margin-bottom: 10px;" ng-repeat="project in projects">
-    <h2 class="project"><a class="tile-target" href="/project/{{project.metadata.name}}">{{project.displayName || project.metadata.name}}</a></h2>
+    <h2 class="project"><a class="tile-target" href="project/{{project.metadata.name}}">{{project.displayName || project.metadata.name}}</a></h2>
     <div class="muted" style="margin-top: -5px;" ng-if="project | annotation : 'description'">{{project | annotation : 'description'}}</div>
   </div>
   <div ng-if="emptyMessage && (projects | hashSize) == 0">{{emptyMessage}}</div>

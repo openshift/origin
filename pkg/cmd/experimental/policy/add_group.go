@@ -25,9 +25,9 @@ func NewCmdAddGroup(f *clientcmd.Factory) *cobra.Command {
 	options := &addGroupOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "add-group <role> <group> [group]...",
-		Short: "add group to role",
-		Long:  `add group to role`,
+		Use:   "add-role-to-group",
+		Short: "add groups to a role",
+		Long:  `add groups to a role`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if !options.complete(cmd) {
 				return

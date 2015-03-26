@@ -2,7 +2,6 @@ package clientcmd
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
@@ -43,45 +42,57 @@ func New(flags *pflag.FlagSet) *Factory {
 type Factory struct {
 	*kubecmd.Factory
 	OpenShiftClientConfig kclientcmd.ClientConfig
+	clients               *clientCache
 }
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	mapper := ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
 
-	w := &Factory{kubecmd.NewFactory(clientConfig), clientConfig}
+	clients := &clientCache{
+		clients: make(map[string]*client.Client),
+		loader:  clientConfig,
+	}
+
+	w := &Factory{
+		Factory:               kubecmd.NewFactory(clientConfig),
+		OpenShiftClientConfig: clientConfig,
+		clients:               clients,
+	}
 
 	w.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
+		if cfg, err := clientConfig.ClientConfig(); err == nil {
+			return kubectl.OutputVersionMapper{mapper, cfg.Version}, api.Scheme
+		}
 		return mapper, api.Scheme
 	}
 
+	kRESTClient := w.Factory.RESTClient
 	w.RESTClient = func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-		oClient, kClient, err := w.Clients()
-		if err != nil {
-			return nil, fmt.Errorf("unable to create client %s: %v", mapping.Kind, err)
-		}
-
 		if latest.OriginKind(mapping.Kind, mapping.APIVersion) {
-			return oClient.RESTClient, nil
-		} else {
-			return kClient.RESTClient, nil
+			client, err := clients.ClientForVersion(mapping.APIVersion)
+			if err != nil {
+				return nil, err
+			}
+			return client.RESTClient, nil
 		}
+		return kRESTClient(mapping)
 	}
 
 	// Save original Describer function
 	kDescriberFunc := w.Factory.Describer
 	w.Describer = func(mapping *meta.RESTMapping) (kubectl.Describer, error) {
-		oClient, kClient, err := w.Clients()
-		if err != nil {
-			return nil, fmt.Errorf("unable to create client %s: %v", mapping.Kind, err)
-		}
-
-		cfg, err := w.OpenShiftClientConfig.ClientConfig()
-		if err != nil {
-			return nil, fmt.Errorf("unable to describe %s: %v", mapping.Kind, err)
-		}
-
 		if latest.OriginKind(mapping.Kind, mapping.APIVersion) {
+			oClient, kClient, err := w.Clients()
+			if err != nil {
+				return nil, fmt.Errorf("unable to create client %s: %v", mapping.Kind, err)
+			}
+
+			cfg, err := clients.ClientConfigForVersion(mapping.APIVersion)
+			if err != nil {
+				return nil, fmt.Errorf("unable to load a client %s: %v", mapping.Kind, err)
+			}
+
 			describer, ok := describe.DescriberFor(mapping.Kind, oClient, kClient, cfg.Host)
 			if !ok {
 				return nil, fmt.Errorf("no description has been implemented for %q", mapping.Kind)
@@ -95,41 +106,20 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		return describe.NewHumanReadablePrinter(noHeaders), nil
 	}
 
-	w.DefaultNamespace = func() (string, error) {
-		return w.OpenShiftClientConfig.Namespace()
-	}
-
 	return w
 }
 
 // Clients returns an OpenShift and Kubernetes client.
 func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
-	cfg, err := f.OpenShiftClientConfig.ClientConfig()
+	kClient, err := f.Client()
 	if err != nil {
 		return nil, nil, err
 	}
-
-	transport, err := kclient.TransportFor(cfg)
+	osClient, err := f.clients.ClientForVersion("")
 	if err != nil {
 		return nil, nil, err
 	}
-	httpClient := &http.Client{
-		Transport: transport,
-	}
-
-	oClient, err := client.New(cfg)
-	if err != nil {
-		return nil, nil, err
-	}
-	kClient, err := kclient.New(cfg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	oClient.Client = &statusHandlerClient{httpClient}
-	kClient.Client = &statusHandlerClient{httpClient}
-
-	return oClient, kClient, nil
+	return osClient, kClient, nil
 }
 
 // ShortcutExpander is a RESTMapper that can be used for OpenShift resources.
@@ -156,4 +146,52 @@ func expandResourceShortcut(resource string) string {
 		return expanded
 	}
 	return resource
+}
+
+// clientCache caches previously loaded clients for reuse, and ensures MatchServerVersion
+// is invoked only once
+type clientCache struct {
+	loader        kclientcmd.ClientConfig
+	clients       map[string]*client.Client
+	defaultConfig *kclient.Config
+}
+
+// ClientConfigForVersion returns the correct config for a server
+func (c *clientCache) ClientConfigForVersion(version string) (*kclient.Config, error) {
+	if c.defaultConfig == nil {
+		config, err := c.loader.ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+		c.defaultConfig = config
+	}
+	// TODO: have a better config copy method
+	config := *c.defaultConfig
+	if len(version) != 0 {
+		config.Version = version
+	}
+	client.SetOpenShiftDefaults(&config)
+
+	return &config, nil
+}
+
+// ClientForVersion initializes or reuses a client for the specified version, or returns an
+// error if that is not possible
+func (c *clientCache) ClientForVersion(version string) (*client.Client, error) {
+	config, err := c.ClientConfigForVersion(version)
+	if err != nil {
+		return nil, err
+	}
+
+	if client, ok := c.clients[config.Version]; ok {
+		return client, nil
+	}
+
+	client, err := client.New(config)
+	if err != nil {
+		return nil, err
+	}
+
+	c.clients[config.Version] = client
+	return client, nil
 }

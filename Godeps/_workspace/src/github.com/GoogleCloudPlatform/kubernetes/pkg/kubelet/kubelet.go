@@ -1667,7 +1667,7 @@ func getHostPortConflicts(pods []api.Pod) []api.Pod {
 func (kl *Kubelet) getPodsExceedingCapacity(pods []api.Pod) []api.Pod {
 	info, err := kl.GetCachedMachineInfo()
 	if err != nil {
-		glog.Error("error getting machine info: %v", err)
+		glog.V(5).Infof("error getting machine info: %v", err)
 		return []api.Pod{}
 	}
 

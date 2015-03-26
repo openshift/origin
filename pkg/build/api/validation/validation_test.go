@@ -505,3 +505,66 @@ func TestValidateTrigger(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateImageChange(t *testing.T) {
+	tests := []struct {
+		name           string
+		ict            *buildapi.ImageChangeTrigger
+		expectedErrNum int
+	}{
+		{
+			name: "Pass",
+			ict: &buildapi.ImageChangeTrigger{
+				Image: "openshift",
+				From: kapi.ObjectReference{
+					Name: "default/repo",
+				},
+			},
+			expectedErrNum: 0,
+		},
+		{
+			name: "Missing image ref",
+			ict: &buildapi.ImageChangeTrigger{
+				Image: "",
+				From: kapi.ObjectReference{
+					Name: "default/repo",
+				},
+			},
+			expectedErrNum: 1,
+		},
+		{
+			name: "Missing From ref",
+			ict: &buildapi.ImageChangeTrigger{
+				Image: "openshift",
+				From: kapi.ObjectReference{
+					Name: "",
+				},
+			},
+			expectedErrNum: 1,
+		},
+		{
+			name: "Both missing refs",
+			ict: &buildapi.ImageChangeTrigger{
+				Image: "",
+				From: kapi.ObjectReference{
+					Name: "",
+				},
+			},
+			expectedErrNum: 2,
+		},
+		{
+			name: "Undefined from field",
+			ict: &buildapi.ImageChangeTrigger{
+				Image: "openshift",
+			},
+			expectedErrNum: 1,
+		},
+	}
+
+	for _, test := range tests {
+		got := len(validateImageChange(test.ict))
+		if test.expectedErrNum != got {
+			t.Errorf("%s: Expected %d error(s), got %d", test.name, test.expectedErrNum, got)
+		}
+	}
+}
