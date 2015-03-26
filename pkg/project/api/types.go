@@ -6,14 +6,27 @@ import (
 
 // ProjectList is a list of Project objects.
 type ProjectList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Project `json:"items"`
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []Project
+}
+
+// ProjectSpec describes the attributes on a Project
+type ProjectSpec struct {
+}
+
+// ProjectStatus is information about the current status of a Project
+type ProjectStatus struct {
+	Phase kapi.NamespacePhase
 }
 
 // Project is a logical top-level container for a set of origin resources
 type Project struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
-	DisplayName     string `json:"displayName,omitempty"`
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	// TODO: remove me
+	DisplayName string
+	Spec        ProjectSpec
+	Status      ProjectStatus
 }
