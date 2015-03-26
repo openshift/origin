@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -107,6 +108,12 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 				templateObj, ok = obj.(*api.Template)
 				if !ok {
 					checkErr(fmt.Errorf("cannot convert input to Template"))
+				}
+
+				version, kind, err := kapi.Scheme.ObjectVersionAndKind(templateObj)
+				checkErr(err)
+				if mapping, err = mapper.RESTMapping(kind, version); err != nil {
+					checkErr(err)
 				}
 			}
 
