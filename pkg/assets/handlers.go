@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/hex"
 	"fmt"
@@ -76,20 +77,24 @@ func CacheControlHandler(version string, h http.Handler) http.Handler {
 	})
 }
 
-func HTML5ModeHandler(h http.Handler) http.Handler {
+// HTML5ModeHandler will serve any static assets we know about, all other paths
+// are assumed to be HTML5 paths for the console application and index.html will
+// be served.
+// contextRoot must contain leading and trailing slashes, e.g. /console/
+func HTML5ModeHandler(contextRoot string, h http.Handler) (http.Handler, error) {
+	b, err := Asset("index.html")
+	if err != nil {
+		return nil, err
+	}
+	b = bytes.Replace(b, []byte(`<base href="/">`), []byte(fmt.Sprintf(`<base href="%s">`, contextRoot)), 1)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, err := Asset(strings.TrimPrefix(r.URL.Path, "/")); err != nil {
-			b, err := Asset("index.html")
-			if err != nil {
-				http.Error(w, "Failed to read index.html", http.StatusInternalServerError)
-				return
-			} else {
-				w.Write(b)
-				return
-			}
+			w.Write(b)
+			return
 		}
 		h.ServeHTTP(w, r)
-	})
+	}), nil
 }
 
 var configTemplate = template.Must(template.New("webConsoleConfig").Parse(`
@@ -134,7 +139,7 @@ type WebConsoleConfig struct {
 
 func GeneratedConfigHandler(config WebConsoleConfig, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/config.js" {
+		if strings.TrimPrefix(r.URL.Path, "/") == "config.js" {
 			w.Header().Add("Cache-Control", "no-cache, no-store")
 			if err := configTemplate.Execute(w, config); err != nil {
 				glog.Errorf("Unable to render config template: %v", err)

@@ -61,15 +61,6 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	listenArg.ListenAddr.Set(masterAddr)
 	masterArgs.EtcdAddr.Set(GetEtcdURL())
 
-	assetAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
-	if len(os.Getenv("OS_ASSETS_ADDR")) > 0 {
-		assetAddr = os.Getenv("OS_ASSETS_ADDR")
-	}
-
-	fmt.Printf("assetAddr: %#v\n", assetAddr)
-	masterArgs.AssetBindAddr.Set(assetAddr)
-	masterArgs.AssetPublicAddr.Set(assetAddr)
-
 	dnsAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
 	if len(os.Getenv("OS_DNS_ADDR")) > 0 {
 		dnsAddr = os.Getenv("OS_DNS_ADDR")

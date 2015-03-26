@@ -29,11 +29,8 @@ type MasterArgs struct {
 	PortalNet  flagtypes.IPNet
 	// addresses for external clients
 	MasterPublicAddr     flagtypes.Addr
-	AssetPublicAddr      flagtypes.Addr
 	KubernetesPublicAddr flagtypes.Addr
 
-	// AssetBindAddr exposed for integration tests to set
-	AssetBindAddr flagtypes.Addr
 	// DNSBindAddr exposed for integration tests to set
 	DNSBindAddr flagtypes.Addr
 
@@ -74,8 +71,6 @@ func NewDefaultMasterArgs() *MasterArgs {
 		PortalNet:            flagtypes.DefaultIPNet("172.30.17.0/24"),
 		MasterPublicAddr:     flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		KubernetesPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
-		AssetPublicAddr:      flagtypes.Addr{Value: "localhost:8444", DefaultScheme: "https", DefaultPort: 8444, AllowPrefix: true}.Default(),
-		AssetBindAddr:        flagtypes.Addr{Value: "0.0.0.0:8444", DefaultScheme: "https", DefaultPort: 8444, AllowPrefix: true}.Default(),
 		DNSBindAddr:          flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "http", DefaultPort: 53, AllowPrefix: true}.Default(),
 
 		ListenArg:          NewDefaultListenArg(),
@@ -410,27 +405,18 @@ func (args MasterArgs) GetKubernetesPublicAddress() (*url.URL, error) {
 }
 
 func (args MasterArgs) GetAssetPublicAddress() (*url.URL, error) {
-	if args.AssetPublicAddr.Provided {
-		return args.AssetPublicAddr.URL, nil
-	}
-	// Derive the asset public address by incrementing the master public address port by 1
-	// TODO: derive the scheme/port from the asset bind scheme/port once that is settable via the command line
 	t, err := args.GetMasterPublicAddress()
 	if err != nil {
 		return nil, err
 	}
 	assetPublicAddr := *t
-	assetPublicAddr.Host = net.JoinHostPort(getHost(assetPublicAddr), strconv.Itoa(getPort(assetPublicAddr)+1))
+	assetPublicAddr.Path = "/console/" // TODO: make a constant
 
 	return &assetPublicAddr, nil
 }
 
 func (args MasterArgs) GetAssetBindAddress() string {
-	if args.AssetBindAddr.Provided {
-		return args.AssetBindAddr.URL.Host
-	}
-	// Derive the asset bind address by incrementing the master bind address port by 1
-	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(args.ListenArg.ListenAddr.Port+1))
+	return args.ListenArg.ListenAddr.URL.Host
 }
 
 func getHost(theURL url.URL) string {

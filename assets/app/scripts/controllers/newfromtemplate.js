@@ -11,7 +11,7 @@ angular.module('openshiftConsole')
   .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse) {
 
     function errorPage(message) {
-      var redirect = URI('/error').query({
+      var redirect = URI('error').query({
         "error_description": message
       }).toString();
       $location.url(redirect);
@@ -133,7 +133,7 @@ angular.module('openshiftConsole')
             );
             return d.promise;
           });
-          $location.path("/project/" + $scope.projectName + "/overview");
+          $location.path("project/" + $scope.projectName + "/overview");
         },
         function(result) { // failure
           $scope.alerts = [

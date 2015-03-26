@@ -20,7 +20,7 @@ angular.module('openshiftConsole')
       // Typically, this means we accessed /oauth directly, rather than via an auth redirect
       if (!token) {
         authLogger.log("OAuthController, no token or error, redirecting to /");
-        $location.url('/');
+        $location.url('./');
         return;
       }
 
@@ -35,24 +35,24 @@ angular.module('openshiftConsole')
         AuthService.setUser(user, token);
 
         // Redirect to original destination (or default to '/')
-        var destination = then || '/';
+        var destination = then || './';
         if (URI(destination).is('absolute')) {
-          if (debug) { Logger.log("OAuthController, invalid absolute redirect", destination); }
-          destination = '/';
+          authLogger.log("OAuthController, invalid absolute redirect", destination);
+          destination = './';
         }
         authLogger.log("OAuthController, redirecting", destination);
         $location.url(destination);
       })
       .catch(function(rejection) {
         // Handle an API error response fetching the user
-        var redirect = URI('/error').query({error: 'user_fetch_failed'}).toString();
+        var redirect = URI('error').query({error: 'user_fetch_failed'}).toString();
         authLogger.error("OAuthController, error fetching user", rejection, "redirecting", redirect);
         $location.url(redirect);
       });
 
     })
     .catch(function(rejection) {
-      var redirect = URI('/error').query({
+      var redirect = URI('error').query({
       	error: rejection.error || "",
       	error_description: rejection.error_description || "",
       	error_uri: rejection.error_uri || "",
