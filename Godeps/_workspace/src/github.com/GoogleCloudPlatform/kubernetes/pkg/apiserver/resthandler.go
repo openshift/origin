@@ -343,9 +343,7 @@ func DeleteResource(r RESTGracefulDeleter, checkBody bool, ctxFn ContextFunc, na
 			return
 		}
 		ctx := ctxFn(req)
-		if len(namespace) > 0 {
-			ctx = api.WithNamespace(ctx, namespace)
-		}
+		ctx = api.WithNamespace(ctx, namespace)
 
 		options := &api.DeleteOptions{}
 		if checkBody {
