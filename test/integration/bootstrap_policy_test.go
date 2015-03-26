@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -56,21 +55,21 @@ func TestAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
 	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(labels.Everything(), fields.Everything()); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !strings.Contains(err.Error(), "Forbidden") {
+	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	if _, err := valerieOpenshiftClient.ImageRepositories(openshiftSharedResourcesNamespace).List(labels.Everything(), fields.Everything()); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageRepositories(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !strings.Contains(err.Error(), "Forbidden") {
+	if _, err := valerieOpenshiftClient.ImageRepositories(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	if _, err := valerieOpenshiftClient.ImageRepositoryTags(openshiftSharedResourcesNamespace).Get("name", "tag"); !kapierror.IsNotFound(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageRepositoryTags(kapi.NamespaceDefault).Get("name", "tag"); err == nil || !strings.Contains(err.Error(), "Forbidden") {
+	if _, err := valerieOpenshiftClient.ImageRepositoryTags(kapi.NamespaceDefault).Get("name", "tag"); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
@@ -90,7 +89,7 @@ func TestOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err == nil || !strings.Contains(err.Error(), "Forbidden") {
+	if _, err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -156,7 +155,7 @@ func TestSelfSubjectAccessReviews(t *testing.T) {
 	subjectAccessReviewTest{
 		clientInterface: valerieOpenshiftClient.SubjectAccessReviews("openshift"),
 		review:          askCanClusterAdminsCreateProject,
-		err:             "Forbidden",
+		err:             "forbidden",
 	}.run(t)
 
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -21,9 +20,10 @@ OpenShift Client
 The OpenShift client exposes commands for managing your applications, as well as lower level
 tools to interact with each component of your system.
 
-At the present time, the CLI wraps many of the upstream Kubernetes commands and works generically
-on all resources.  To create a new application, try:
+To create a new application, you can use the example app source. Login to your server and then
+run new-app:
 
+    $ %[1]s login
     $ %[1]s new-app openshift/ruby-20-centos7~git@github.com/mfojtik/sinatra-app-example
 
 This will create an application based on the Docker image 'openshift/ruby-20-centos7' that builds
@@ -38,6 +38,8 @@ and watch the build logs and build status with:
 
 You'll be able to view the deployed application on the IP and port of the service that new-app
 created for you.
+
+You can easily switch between multiple projects using '%[1]s project <projectname>'.
 
 Note: This is a beta release of OpenShift and may change significantly.  See
     https://github.com/openshift/origin for the latest information on OpenShift.
@@ -78,7 +80,6 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdExec(fullName, f, os.Stdin, out, os.Stderr))
 	cmds.AddCommand(cmd.NewCmdPortForward(fullName, f))
 	cmds.AddCommand(f.NewCmdProxy(out))
-	cmds.AddCommand(kubecmd.NewCmdNamespace(out))
 	cmds.AddCommand(cmd.NewCmdProject(f, out))
 	cmds.AddCommand(cmd.NewCmdOptions(f, out))
 	cmds.AddCommand(version.NewVersionCommand(fullName))

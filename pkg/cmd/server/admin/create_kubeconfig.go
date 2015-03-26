@@ -77,8 +77,8 @@ users:
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
 	flags.StringVar(&options.APIServerCAFile, "certificate-authority", "openshift.local.certificates/ca/cert.crt", "Path to the API server's CA file.")
 	flags.StringVar(&options.ServerNick, "cluster", "master", "Nick name for this server in .kubeconfig.")
-	flags.StringVar(&options.CertFile, "client-certificate", "openshift.local.certificates/admin/cert.crt", "The client cert file.")
-	flags.StringVar(&options.KeyFile, "client-key", "openshift.local.certificates/admin/key.key", "The client key file.")
+	flags.StringVar(&options.CertFile, "client-certificate", "", "The client cert file.")
+	flags.StringVar(&options.KeyFile, "client-key", "", "The client key file.")
 	flags.StringVar(&options.UserNick, "user", "user", "Nick name for this user in .kubeconfig.")
 	flags.StringVar(&options.KubeConfigFile, "kubeconfig", ".kubeconfig", "Path for the resulting .kubeconfig file.")
 
@@ -91,6 +91,15 @@ func (o CreateKubeConfigOptions) Validate(args []string) error {
 	}
 	if len(o.KubeConfigFile) == 0 {
 		return errors.New("kubeconfig must be provided")
+	}
+	if len(o.CertFile) == 0 {
+		return errors.New("client-certificate must be provided")
+	}
+	if len(o.KeyFile) == 0 {
+		return errors.New("client-key must be provided")
+	}
+	if len(o.APIServerCAFile) == 0 {
+		return errors.New("certificate-authority must be provided")
 	}
 	if len(o.ServerNick) == 0 {
 		return errors.New("cluster must be provided")

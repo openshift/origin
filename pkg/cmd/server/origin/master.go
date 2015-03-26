@@ -1,7 +1,10 @@
 package origin
 
 import (
+	"bytes"
 	"crypto/tls"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,6 +22,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
@@ -112,78 +116,6 @@ type APIInstallFunc func(*restful.Container) []string
 // InstallAPI implements APIInstaller
 func (fn APIInstallFunc) InstallAPI(container *restful.Container) []string {
 	return fn(container)
-}
-
-// KubeClient returns the kubernetes client object
-func (c *MasterConfig) KubeClient() *kclient.Client {
-	return c.KubernetesClient
-}
-
-// PolicyClient returns the policy client object
-// It must have the following capabilities:
-//  list, watch all policyBindings in all namespaces
-//  list, watch all policies in all namespaces
-//  create resourceAccessReviews in all namespaces
-func (c *MasterConfig) PolicyClient() *osclient.Client {
-	return c.OSClient
-}
-
-// DeploymentClient returns the deployment client object
-func (c *MasterConfig) DeploymentClient() *kclient.Client {
-	return c.KubernetesClient
-}
-
-// DNSServerClient returns the DNS server client object
-// It must have the following capabilities:
-//   list, watch all services in all namespaces
-func (c *MasterConfig) DNSServerClient() *kclient.Client {
-	return c.KubernetesClient
-}
-
-// BuildLogClient returns the build log client object
-func (c *MasterConfig) BuildLogClient() *kclient.Client {
-	return c.KubernetesClient
-}
-
-// WebHookClient returns the webhook client object
-func (c *MasterConfig) WebHookClient() *osclient.Client {
-	return c.OSClient
-}
-
-// BuildControllerClients returns the build controller client objects
-func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.KubernetesClient
-}
-
-// ImageChangeControllerClient returns the openshift client object
-func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
-	return c.OSClient
-}
-
-// ImageImportControllerClient returns the deployment client object
-func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
-	return c.OSClient
-}
-
-// DeploymentControllerClients returns the deployment controller client object
-func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.KubernetesClient
-}
-
-// DeployerClientConfig returns the client configuration a Deployer instance launched in a pod
-// should use when making API calls.
-func (c *MasterConfig) DeployerClientConfig() *kclient.Config {
-	return &c.DeployerOSClientConfig
-}
-
-func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.KubernetesClient
-}
-func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.KubernetesClient
-}
-func (c *MasterConfig) DeploymentImageChangeControllerClient() *osclient.Client {
-	return c.OSClient
 }
 
 func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []string {
@@ -501,8 +433,28 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 
 // forbidden renders a simple forbidden error
 func forbidden(reason string, w http.ResponseWriter, req *http.Request) {
+	// Reason is an opaque string that describes why access is allowed or forbidden (forbidden by the time we reach here).
+	// We don't have direct access to kind or name (not that those apply either in the general case)
+	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
+	// that makes sense when a human reads it.
+	forbiddenError, _ := kapierror.NewForbidden("", "", errors.New("")).(*kapierror.StatusError)
+	forbiddenError.ErrStatus.Message = fmt.Sprintf("%q is forbidden because %s", req.RequestURI, reason)
+
+	// TODO: this serialization is broken in the general case.  It chooses the latest, but
+	// it should choose the serialization based on the codec for the uri requested.  What is coded here
+	// is better than not returning a status object at all, but needs to be fixed once authorization is
+	// tied into the APIInstaller itself.  Then we'll only have the wrong codec for non-resource requests
+	formatted := &bytes.Buffer{}
+	output, err := klatest.Codec.Encode(&forbiddenError.ErrStatus)
+	if err != nil {
+		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
+	} else {
+		_ = json.Indent(formatted, output, "", "  ")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)
-	fmt.Fprintf(w, "Forbidden: %q %s", req.RequestURI, reason)
+	w.Write(formatted.Bytes())
 }
 
 // RunProjectAuthorizationCache starts the project authorization cache

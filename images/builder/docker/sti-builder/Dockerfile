@@ -13,4 +13,4 @@
 FROM openshift3_beta/ose
 
 ENV HOME /root
-ENTRYPOINT ["/usr/bin/openshift-sti-build", "--loglevel=5"]
+ENTRYPOINT ["/usr/bin/openshift-sti-build"]

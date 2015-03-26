@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"sort"
-	"strings"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -42,9 +41,9 @@ type LoginOptions struct {
 	Reader       io.Reader
 
 	// flow controllers
-	gatherServerInfo  bool
-	gatherAuthInfo    bool
-	gatherProjectInfo bool
+	gatheredServerInfo  bool
+	gatheredAuthInfo    bool
+	gatheredProjectInfo bool
 
 	// Optional, if provided will only try to save in it
 	PathToSaveConfig string
@@ -52,13 +51,13 @@ type LoginOptions struct {
 
 // Gather all required information in a comprehensive order.
 func (o *LoginOptions) GatherInfo() error {
-	if err := o.GatherServerInfo(); err != nil {
+	if err := o.gatherServerInfo(); err != nil {
 		return err
 	}
-	if err := o.GatherAuthInfo(); err != nil {
+	if err := o.gatherAuthInfo(); err != nil {
 		return err
 	}
-	if err := o.GatherProjectInfo(); err != nil {
+	if err := o.gatherProjectInfo(); err != nil {
 		return err
 	}
 	return nil
@@ -69,13 +68,13 @@ func (o *LoginOptions) GatherInfo() error {
 // present ask for interactive user input. Will also ping the server to make sure we can
 // connect to it, and if any problem is found (e.g. certificate issues), ask the user about
 // connecting insecurely.
-func (o *LoginOptions) GatherServerInfo() error {
+func (o *LoginOptions) gatherServerInfo() error {
 	// we need to have a server to talk to
 
 	if util.IsTerminal(o.Reader) {
 		for !o.serverProvided() {
 			defaultServer := defaultClusterURL
-			promptMsg := fmt.Sprintf("Please provide the server URL or just <enter> to use '%v': ", defaultServer)
+			promptMsg := fmt.Sprintf("OpenShift server [%s]: ", defaultServer)
 
 			server := util.PromptForStringWithDefault(o.Reader, defaultServer, promptMsg)
 			kclientcmd.DefaultCluster = clientcmdapi.Cluster{Server: server}
@@ -101,12 +100,14 @@ func (o *LoginOptions) GatherServerInfo() error {
 		// certificate issue, prompt user for insecure connection
 
 		if clientcmd.IsCertificateAuthorityUnknown(result.Error()) {
-			fmt.Println("The server uses a certificate signed by unknown authority. You can bypass the certificate check but it will make all connections insecure.")
+			fmt.Println("The server uses a certificate signed by an unknown authority.")
+			fmt.Println("You can bypass the certificate check, but any data you send to the server could be intercepted by others.")
 
-			clientCfg.Insecure = util.PromptForBool(os.Stdin, "Use insecure connections (strongly discouraged)? [y/N] ")
+			clientCfg.Insecure = util.PromptForBool(os.Stdin, "Use insecure connections? (y/n): ")
 			if !clientCfg.Insecure {
 				return fmt.Errorf(clientcmd.GetPrettyMessageFor(result.Error()))
 			}
+			fmt.Println()
 		}
 	}
 
@@ -114,21 +115,21 @@ func (o *LoginOptions) GatherServerInfo() error {
 
 	o.Config = clientCfg
 
-	o.gatherServerInfo = true
+	o.gatheredServerInfo = true
 	return nil
 }
 
 // Negotiate a bearer token with the auth server, or try to reuse one based on the
 // information already present. In case of any missing information, ask for user input
 // (usually username and password, interactive depending on the Reader).
-func (o *LoginOptions) GatherAuthInfo() error {
+func (o *LoginOptions) gatherAuthInfo() error {
 	if err := o.assertGatheredServerInfo(); err != nil {
 		return err
 	}
 
-	if me, err := o.Whoami(); err == nil && (!o.usernameProvided() || (o.usernameProvided() && o.Username == usernameFromUser(me))) {
-		o.Username = usernameFromUser(me)
-		fmt.Printf("Already logged into '%v' as '%v'.\n", o.Config.Host, o.Username)
+	if me, err := o.whoAmI(); err == nil && (!o.usernameProvided() || (o.usernameProvided() && o.Username == me.Name)) {
+		o.Username = me.Name
+		fmt.Printf("Already logged into %q as %q.\n", o.Config.Host, o.Username)
 
 	} else {
 		// if not, we need to log in again
@@ -140,12 +141,12 @@ func (o *LoginOptions) GatherAuthInfo() error {
 		}
 		o.Config.BearerToken = token
 
-		me, err := o.Whoami()
+		me, err := o.whoAmI()
 		if err != nil {
 			return err
 		}
-		o.Username = usernameFromUser(me)
-		fmt.Printf("Logged into '%v' as '%v'.\n", o.Config.Host, o.Username)
+		o.Username = me.Name
+		fmt.Println("Login successful.\n")
 	}
 
 	// TODO investigate about the safety and intent of the proposal below
@@ -173,14 +174,15 @@ func (o *LoginOptions) GatherAuthInfo() error {
 	// 	}
 	// }
 
-	o.gatherAuthInfo = true
+	o.gatheredAuthInfo = true
 	return nil
 }
 
 // Discover the projects available for the stabilished session and take one to use. It
 // fails in case of no existing projects, and print out useful information in case of
 // multiple projects.
-func (o *LoginOptions) GatherProjectInfo() error {
+// Requires o.Username to be set.
+func (o *LoginOptions) gatherProjectInfo() error {
 	if err := o.assertGatheredAuthInfo(); err != nil {
 		return err
 	}
@@ -199,20 +201,21 @@ func (o *LoginOptions) GatherProjectInfo() error {
 
 	switch len(projectsItems) {
 	case 0:
-		me, err := o.Whoami()
-		if err != nil {
-			return err
-		}
 		// TODO most users will not be allowed to run the suggested commands below, so we should check it and/or
 		// have a server endpoint that allows an admin to describe to users how to request projects
-		fmt.Printf(`You don't have any project.
-If you have access to create a new project, run 'openshift ex new-project <projectname> --admin=%s'.
-To be added as an admin to an existing project, run 'openshift ex policy add-user admin %s -n <projectname>'.
-`, me.Name, me.Name)
+		fmt.Printf(`You don't have any projects. If you have access to create a new project, run
+
+    $ openshift ex new-project <projectname> --admin=%q
+
+To be added as an admin to an existing project, run
+
+    $ openshift ex policy add-user admin %q -n <projectname>
+
+`, o.Username, o.Username)
 
 	case 1:
 		o.Project = projectsItems[0].Name
-		fmt.Printf("Using project '%v'.\n", o.Project)
+		fmt.Printf("Using project %q\n", o.Project)
 
 	default:
 		projects := []string{}
@@ -226,27 +229,30 @@ To be added as an admin to an existing project, run 'openshift ex policy add-use
 			return err
 		}
 
-		if current, err := oClient.Projects().Get(namespace); err != nil {
-			if kerrors.IsNotFound(err) || clientcmd.IsForbidden(err) {
-				o.Project = projects[0]
-			} else {
-				return err
-			}
-		} else {
+		current, err := oClient.Projects().Get(namespace)
+		if err == nil {
 			o.Project = current.Name
+			fmt.Printf("Using project %q\n", o.Project)
+			o.gatheredProjectInfo = true
+			return nil
+		}
+		if !kerrors.IsNotFound(err) && !clientcmd.IsForbidden(err) {
+			return err
 		}
 
-		if n := len(projects); n > 10 {
-			projects = projects[:10]
-			fmt.Printf("You have %d projects, displaying only the first 10. To view all your projects run 'osc get projects'.\n", n)
+		sort.StringSlice(projects).Sort()
+		fmt.Printf("You have access to the following projects and can switch between them with 'osc project <projectname>':\n\n")
+		for _, p := range projects {
+			if o.Project == p {
+				fmt.Printf("  * %s (current)\n", p)
+			} else {
+				fmt.Printf("  * %s\n", p)
+			}
 		}
-		var sortedProjects sort.StringSlice = projects
-		sortedProjects.Sort()
-		fmt.Printf("Your projects are: %v. You can switch between them at any time using 'osc project <project-name>'.\n", strings.Join(projects, ", "))
-		fmt.Printf("Using project '%v'.\n", o.Project)
+		fmt.Println()
 	}
 
-	o.gatherProjectInfo = true
+	o.gatheredProjectInfo = true
 	return nil
 }
 
@@ -284,7 +290,7 @@ func (o *LoginOptions) SaveConfig() (created bool, err error) {
 	return created, configStore.SaveToFile(o.Username, o.Project, o.Config, rawCfg)
 }
 
-func (o *LoginOptions) Whoami() (*api.User, error) {
+func (o *LoginOptions) whoAmI() (*api.User, error) {
 	oClient, err := client.New(o.Config)
 	if err != nil {
 		return nil, err
@@ -299,21 +305,21 @@ func (o *LoginOptions) Whoami() (*api.User, error) {
 }
 
 func (o *LoginOptions) assertGatheredServerInfo() error {
-	if !o.gatherServerInfo {
+	if !o.gatheredServerInfo {
 		return fmt.Errorf("Must gather server info first.")
 	}
 	return nil
 }
 
 func (o *LoginOptions) assertGatheredAuthInfo() error {
-	if !o.gatherAuthInfo {
+	if !o.gatheredAuthInfo {
 		return fmt.Errorf("Must gather auth info first.")
 	}
 	return nil
 }
 
 func (o *LoginOptions) assertGatheredProjectInfo() error {
-	if !o.gatherProjectInfo {
+	if !o.gatheredProjectInfo {
 		return fmt.Errorf("Must gather project info first.")
 	}
 	return nil
@@ -330,8 +336,4 @@ func (o *LoginOptions) passwordProvided() bool {
 func (o *LoginOptions) serverProvided() bool {
 	_, err := o.ClientConfig.ClientConfig()
 	return err == nil || !clientcmd.IsNoServerFound(err)
-}
-
-func usernameFromUser(user *api.User) string {
-	return strings.Split(user.Name, ":")[1]
 }

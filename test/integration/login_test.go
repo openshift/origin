@@ -46,8 +46,7 @@ func TestLogin(t *testing.T) {
 
 	// empty config, should display message
 	loginOptions := newLoginOptions("", "", "", "", false)
-	err = loginOptions.GatherServerInfo()
-	if err == nil {
+	if err := loginOptions.GatherInfo(); err == nil {
 		t.Errorf("Raw login should error out")
 	}
 
@@ -58,20 +57,12 @@ func TestLogin(t *testing.T) {
 
 	loginOptions = newLoginOptions(server, username, password, "", true)
 
-	if err = loginOptions.GatherServerInfo(); err != nil {
+	if err := loginOptions.GatherInfo(); err != nil {
 		t.Fatalf("Error trying to determine server info: ", err)
 	}
 
-	if err = loginOptions.GatherAuthInfo(); err != nil {
-		t.Fatalf("Error trying to determine auth info: ", err)
-	}
-
-	me, err := loginOptions.Whoami()
-	if err != nil {
-		t.Errorf("unexpected error: ", err)
-	}
-	if me.Name != "anypassword:"+username {
-		t.Fatalf("Unexpected user after authentication: %v", me.Name)
+	if loginOptions.Username != "anypassword:"+username {
+		t.Fatalf("Unexpected user after authentication: %#v", loginOptions)
 	}
 
 	newProjectOptions := &newproject.NewProjectOptions{
@@ -92,7 +83,7 @@ func TestLogin(t *testing.T) {
 	}
 
 	if p.Name != project {
-		t.Fatalf("Got the unexpected project: %v", p.Name)
+		t.Fatalf("unexpected project: %#v", p)
 	}
 
 	// TODO Commented because of incorrectly hitting cache when listing projects.

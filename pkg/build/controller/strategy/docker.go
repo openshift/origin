@@ -1,10 +1,13 @@
 package strategy
 
 import (
+	"fmt"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
@@ -26,7 +29,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: build.PodName,
+			Name:      build.PodName,
+			Namespace: build.Namespace,
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
@@ -36,6 +40,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					Env: []kapi.EnvVar{
 						{Name: "BUILD", Value: string(data)},
 					},
+					Command: []string{"--loglevel=" + fmt.Sprintf("%d", cmdutil.GetLogLevel())},
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					Privileged: true,
 				},
@@ -47,6 +52,6 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 
 	setupDockerSocket(pod)
-	setupDockerConfig(pod)
+	setupDockerSecrets(pod, build.Parameters.Output.PushSecretName)
 	return pod, nil
 }

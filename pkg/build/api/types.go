@@ -48,7 +48,7 @@ type BuildParameters struct {
 	Revision *SourceRevision `json:"revision,omitempty"`
 
 	// Strategy defines how to perform a build.
-	Strategy BuildStrategy `json:"strategy,omitempty"`
+	Strategy BuildStrategy `json:"strategy"`
 
 	// Output describes the Docker image the Strategy should produce.
 	Output BuildOutput `json:"output,omitempty"`
@@ -142,7 +142,7 @@ type SourceControlUser struct {
 // BuildStrategy contains the details of how to perform a build.
 type BuildStrategy struct {
 	// Type is the kind of build strategy.
-	Type BuildStrategyType `json:"type,omitempty"`
+	Type BuildStrategyType `json:"type"`
 
 	// DockerStrategy holds the parameters to the Docker build strategy.
 	DockerStrategy *DockerBuildStrategy `json:"dockerStrategy,omitempty"`
@@ -209,7 +209,15 @@ type DockerBuildStrategy struct {
 // STIBuildStrategy defines input parameters specific to an STI build.
 type STIBuildStrategy struct {
 	// Image is the image used to execute the build.
+	// Only valid if From is not present.
 	Image string `json:"image,omitempty"`
+
+	// From is reference to an image repository from where the docker image should be pulled
+	From *kapi.ObjectReference `json:"from,omitempty"`
+
+	// Tag is the name of image repository tag to be used as the build image, it only
+	// applies when From is specified.
+	Tag string `json:"tag,omitempty`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
@@ -230,6 +238,11 @@ type BuildOutput struct {
 	// this field takes priority over DockerImageReference. This value will be used to look up
 	// a Docker image repository to push to. Failure to find the To will result in a build error.
 	To *kapi.ObjectReference `json:"to,omitempty"`
+
+	// pushSecretName is the name of a Secret that would be used for setting
+	// up the authentication for executing the Docker push to authentication
+	// enabled Docker Registry (or Docker Hub).
+	PushSecretName string `json:"pushSecretName,omitempty"`
 
 	// Tag is the "version name" that will be associated with the output image. This
 	// field is only used if the To field is set, and is ignored when DockerImageReference is used.

@@ -10,13 +10,18 @@ import (
 	"strings"
 
 	"github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 )
 
 //TODO: Remove this code once the methods in Kubernetes kubelet/dockertools/config.go are public
 
 // Default docker registry server
-const defaultRegistryServer = "https://index.docker.io/v1/"
+const (
+	defaultRegistryServer = "https://index.docker.io/v1/"
+	PushAuthType          = "PUSH_DOCKERCFG_PATH"
+	PullAuthType          = "PULL_DOCKERCFG_PATH"
+)
 
 // Helper contains all the valid config options for reading the local dockercfg file
 type Helper struct {
@@ -34,14 +39,20 @@ func (h *Helper) InstallFlags(flags *pflag.FlagSet) {
 
 // GetDockerAuth returns a valid Docker AuthConfiguration entry, and whether it was read
 // from the local dockercfg file
-func (h *Helper) GetDockerAuth(registry string) (docker.AuthConfiguration, bool) {
+func (h *Helper) GetDockerAuth(registry, authType string) (docker.AuthConfiguration, bool) {
 	var authCfg docker.AuthConfiguration
 	dockercfgPath := getDockercfgFile("")
+	if pathForAuthType := os.Getenv(authType); len(pathForAuthType) > 0 {
+		glog.Errorf("%s=%s", authType, pathForAuthType)
+		dockercfgPath = getDockercfgFile(pathForAuthType)
+	}
 	if _, err := os.Stat(dockercfgPath); err != nil {
+		glog.Errorf("%s: %v", dockercfgPath, err)
 		return authCfg, false
 	}
 	cfg, err := readDockercfg(dockercfgPath)
 	if err != nil {
+		glog.Errorf("Reading %s failed: ", dockercfgPath, err)
 		return authCfg, false
 	}
 	server := registry
@@ -50,10 +61,12 @@ func (h *Helper) GetDockerAuth(registry string) (docker.AuthConfiguration, bool)
 	}
 	entry, ok := cfg[server]
 	if !ok {
+		glog.Errorf("No configuration for '%s' registry found", server)
 		return authCfg, false
 	}
 	uname, pass, err := getCredentials(entry.Auth)
 	if err != nil {
+		glog.Errorf("Unable to get credentials: %v", err)
 		return authCfg, false
 	}
 	authCfg.Username = uname

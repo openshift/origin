@@ -16,8 +16,11 @@ import (
 	dockercmd "github.com/docker/docker/builder/command"
 	"github.com/docker/docker/builder/parser"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
+	image "github.com/openshift/origin/pkg/image/api"
 
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/source-to-image/pkg/git"
 	"github.com/openshift/source-to-image/pkg/tar"
 )
@@ -69,6 +72,19 @@ func (d *DockerBuilder) Build() error {
 	tag := d.build.Parameters.Output.DockerImageReference
 	defer removeImage(d.dockerClient, tag)
 	if len(d.build.Parameters.Output.DockerImageReference) != 0 {
+		ref, err := image.ParseDockerImageReference(d.build.Parameters.Output.DockerImageReference)
+		if err != nil {
+			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
+		}
+		// Get the Docker push authentication
+		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
+			ref.Registry,
+			dockercfg.PushAuthType,
+		)
+		if authPresent {
+			glog.Infof("Using provided Docker push secrets (%s)", pushAuthConfig.Email)
+			d.auth = pushAuthConfig
+		}
 		return pushImage(d.dockerClient, tag, d.auth)
 	}
 	return nil

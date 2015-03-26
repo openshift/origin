@@ -2,6 +2,8 @@ package kubernetes
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/emicklei/go-restful"
@@ -18,6 +20,8 @@ import (
 	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/algorithmprovider"
+	schedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api"
+	latestschedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
 )
 
@@ -97,8 +101,7 @@ func (c *MasterConfig) RunEndpointController() {
 
 // RunScheduler starts the Kubernetes scheduler
 func (c *MasterConfig) RunScheduler() {
-	configFactory := factory.NewConfigFactory(c.KubeClient)
-	config, err := configFactory.CreateFromProvider(factory.DefaultProvider)
+	config, err := c.createSchedulerConfig()
 	if err != nil {
 		glog.Fatalf("Unable to start scheduler: %v", err)
 	}
@@ -132,4 +135,26 @@ func (c *MasterConfig) RunMinionController() {
 	minionController.Run(10*time.Second, true, true)
 
 	glog.Infof("Started Kubernetes Minion Controller")
+}
+
+func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
+	var policy schedulerapi.Policy
+	var configData []byte
+
+	configFactory := factory.NewConfigFactory(c.KubeClient)
+	if _, err := os.Stat(c.SchedulerConfigFile); err == nil {
+		configData, err = ioutil.ReadFile(c.SchedulerConfigFile)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to read scheduler config: %v", err)
+		}
+		err = latestschedulerapi.Codec.DecodeInto(configData, &policy)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid scheduler configuration: %v", err)
+		}
+
+		return configFactory.CreateFromConfig(policy)
+	}
+
+	// if the config file isn't provided, use the default provider
+	return configFactory.CreateFromProvider(factory.DefaultProvider)
 }

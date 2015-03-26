@@ -2,11 +2,17 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"reflect"
+	"regexp"
 
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/golang/glog"
 )
+
+var invalidSafeStringSep = regexp.MustCompile(`[.:/]`)
 
 // MergeConfig takes a haystack to look for existing stanzas in (probably the merged config), a config object to modify (probably
 // either the local or envvar config), and the new additions to merge in.  It tries to find equivalents for the addition inside of the
@@ -73,7 +79,7 @@ func MergeConfig(haystack, toModify, addition clientcmdapi.Config) (*clientcmdap
 			continue
 		}
 
-		uniqueName := getUniqueName(actualContext.Cluster+"-"+actualContext.AuthInfo, existingContextNames)
+		uniqueName := GenerateContextIdentifier(actualContext.Namespace, actualContext.Cluster, actualContext.AuthInfo, existingContextNames)
 		requestedContextNamesToActualContextNames[requestedKey] = uniqueName
 		ret.Contexts[uniqueName] = *actualContext
 	}
@@ -142,6 +148,19 @@ func getMapKeys(theMap reflect.Value) (*util.StringSet, error) {
 }
 
 func getUniqueName(basename string, existingNames *util.StringSet) string {
+	if parsedUrl, err := url.Parse(basename); err != nil {
+		if host, port, err := net.SplitHostPort(parsedUrl.Host); err != nil {
+			if !existingNames.Has(host) {
+				return host
+			}
+			if id := host + "-" + port; !existingNames.Has(id) {
+				return id
+			}
+		}
+	}
+
+	basename = invalidSafeStringSep.ReplaceAllString(basename, "-")
+
 	if !existingNames.Has(basename) {
 		return basename
 	}
@@ -154,4 +173,69 @@ func getUniqueName(basename string, existingNames *util.StringSet) string {
 	}
 
 	return string(util.NewUUID())
+}
+
+// Generates the best context identifier possible based on the information it gets.
+func GenerateContextIdentifier(namespace string, cluster string, authInfo string, existingContextIdentifiers *util.StringSet) string {
+	ctx := ""
+
+	// try to use plain namespace
+	if len(namespace) > 0 {
+		ctx += namespace
+
+		if !existingContextIdentifiers.Has(ctx) {
+			return ctx
+		}
+	}
+
+	// tries appending "-host" or "-host-port"
+	if len(cluster) > 0 {
+		if parsedUrl, err := url.Parse(cluster); err != nil {
+			if host, port, err := net.SplitHostPort(parsedUrl.Host); err != nil {
+				if len(ctx) > 0 {
+					ctx += "-"
+				}
+				ctx += host
+				if !existingContextIdentifiers.Has(ctx) {
+					return ctx
+				}
+
+				ctx += "-" + port
+				if !existingContextIdentifiers.Has(ctx) {
+					return ctx
+				}
+
+			} else {
+				if len(ctx) > 0 {
+					ctx += "-"
+				}
+				ctx += "-" + parsedUrl.Host
+				if !existingContextIdentifiers.Has(ctx) {
+					return ctx
+				}
+			}
+		}
+	}
+
+	// tries appending "-username"
+	if len(authInfo) > 0 {
+		if len(ctx) > 0 {
+			ctx += "-"
+		}
+		ctx += authInfo
+
+		if !existingContextIdentifiers.Has(ctx) {
+			return ctx
+		}
+	}
+
+	// append an integer
+	for i := 0; i < 100; i++ {
+		if trialName := fmt.Sprintf("%v-%d", ctx, i); !existingContextIdentifiers.Has(trialName) {
+			return trialName
+		}
+	}
+
+	glog.Fatalf("Unable to generate a context identifier. Please provide a context using the '--context=<context>' flag.")
+	return ""
 }
