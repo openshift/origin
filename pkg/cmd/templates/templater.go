@@ -50,6 +50,12 @@ func UseCliTemplates(cmd *cobra.Command) {
 	cmd.SetUsageFunc(templater.UsageFunc())
 }
 
+func UseAdminTemplates(cmd *cobra.Command) {
+	cmd.SetHelpTemplate(AdminHelpTemplate())
+	templater := &Templater{UsageTemplate: AdminUsageTemplate()}
+	cmd.SetUsageFunc(templater.UsageFunc())
+}
+
 func UseMainTemplates(cmd *cobra.Command) {
 	cmd.SetHelpTemplate(MainHelpTemplate())
 	templater := &Templater{UsageTemplate: MainUsageTemplate()}

@@ -170,27 +170,34 @@ echo "templates: ok"
 # verify some default commands
 [ "$(openshift cli)" ]
 [ "$(openshift ex)" ]
-[ "$(openshift ex config 2>&1)" ]
+[ "$(openshift admin config 2>&1)" ]
+[ "$(openshift cli config 2>&1)" ]
 [ "$(openshift ex tokens)" ]
-[ "$(openshift ex policy  2>&1)" ]
+[ "$(openshift admin policy  2>&1)" ]
 [ "$(openshift kubectl 2>&1)" ]
 [ "$(openshift kube 2>&1)" ]
+[ "$(openshift admin 2>&1)" ]
 
 # help for root commands must be consistent
-[ "$(openshift | grep 'OpenShift for Admins')" ]
+[ "$(openshift | grep 'OpenShift Application Platform')" ]
 [ "$(osc | grep 'OpenShift Client')" ]
 [ "$(openshift cli | grep 'OpenShift Client')" ]
 [ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
+[ "$(osadm 2>&1 | grep 'OpenShift Administrative Commands')" ]
+[ "$(openshift admin 2>&1 | grep 'OpenShift Administrative Commands')" ]
 
 # help for root commands with --help flag must be consistent
-[ "$(openshift --help 2>&1 | grep 'OpenShift for Admins')" ]
+[ "$(openshift --help 2>&1 | grep 'OpenShift Application Platform')" ]
 [ "$(osc --help 2>&1 | grep 'OpenShift Client')" ]
 [ "$(openshift cli --help 2>&1 | grep 'OpenShift Client')" ]
 [ "$(openshift kubectl --help 2>&1 | grep 'Kubernetes cluster')" ]
+[ "$(osadm --help 2>&1 | grep 'OpenShift Administrative Commands')" ]
+[ "$(openshift admin --help 2>&1 | grep 'OpenShift Administrative Commands')" ]
 
 # help for root commands through help command must be consistent
 [ "$(openshift help cli 2>&1 | grep 'OpenShift Client')" ]
 [ "$(openshift help kubectl 2>&1 | grep 'Kubernetes cluster')" ]
+[ "$(openshift help admin 2>&1 | grep 'OpenShift Administrative Commands')" ]
 
 # help for given command with --help flag must be consistent
 [ "$(osc get --help 2>&1 | grep 'Display one or many resources')" ]
@@ -308,44 +315,44 @@ osc describe build ${started} | grep openshift/ruby-20-centos7:success$
 osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
 
-openshift ex policy add-group cluster-admin system:unauthenticated
-openshift ex policy remove-group cluster-admin system:unauthenticated
-openshift ex policy remove-group-from-project system:unauthenticated
-openshift ex policy add-user cluster-admin system:no-user
-openshift ex policy remove-user cluster-admin system:no-user
-openshift ex policy remove-user-from-project system:no-user
+openshift admin policy add-role-to-group cluster-admin system:unauthenticated
+openshift admin policy remove-role-from-group cluster-admin system:unauthenticated
+openshift admin policy remove-role-from-group-from-project system:unauthenticated
+openshift admin policy add-role-to-user cluster-admin system:no-user
+openshift admin policy remove-user cluster-admin system:no-user
+openshift admin policy remove-user-from-project system:no-user
 echo "ex policy: ok"
 
 # Test the commands the UI projects page tells users to run
 # These should match what is described in projects.html
-openshift ex new-project ui-test-project --admin="anypassword:createuser"
-openshift ex policy add-user admin anypassword:adduser -n ui-test-project
+osadm new-project ui-test-project --admin="anypassword:createuser"
+osadm policy add-role-to-user admin anypassword:adduser -n ui-test-project
 # Make sure project can be listed by osc (after auth cache syncs)
-sleep 2 && osc get projects | grep 'ui-test-project'
+sleep 2 && [ "$(osc get projects | grep 'ui-test-project')" ]
 # Make sure users got added
-osc describe policybinding master -n ui-test-project | grep createuser
-osc describe policybinding master -n ui-test-project | grep adduser
+[ "$(osc describe policybinding master -n ui-test-project | grep createuser)" ]
+[ "$(osc describe policybinding master -n ui-test-project | grep adduser)" ]
 echo "ui-project-commands: ok"
 
 # Test deleting and recreating a project
-openshift ex new-project recreated-project --admin="anypassword:createuser1"
+osadm new-project recreated-project --admin="anypassword:createuser1"
 osc delete project recreated-project
-openshift ex new-project recreated-project --admin="anypassword:createuser2"
+osadm new-project recreated-project --admin="anypassword:createuser2"
 osc describe policybinding master -n recreated-project | grep anypassword:createuser2
 echo "ex new-project: ok"
 
 # Test running a router
-[ ! "$(openshift ex router | grep 'does not exist')"]
-[ "$(openshift ex router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
-openshift ex router --create --credentials="${OPENSHIFTCONFIG}"
-[ "$(openshift ex router | grep 'service exists')" ]
+[ ! "$(osadm router | grep 'does not exist')" ]
+[ "$(osadm router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
+osadm router --create --credentials="${OPENSHIFTCONFIG}"
+[ "$(osadm router | grep 'service exists')" ]
 echo "ex router: ok"
 
 # Test running a registry
-[ ! "$(openshift ex registry | grep 'does not exist')"]
-[ "$(openshift ex registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
-openshift ex registry --create --credentials="${OPENSHIFTCONFIG}"
-[ "$(openshift ex registry | grep 'service exists')" ]
+[ ! "$(osadm registry | grep 'does not exist')"]
+[ "$(osadm registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
+osadm registry --create --credentials="${OPENSHIFTCONFIG}"
+[ "$(osadm registry | grep 'service exists')" ]
 echo "ex registry: ok"
 
 # verify the image repository had its tags populated

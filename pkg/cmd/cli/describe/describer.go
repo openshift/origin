@@ -480,8 +480,12 @@ func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) 
 		return "", err
 	}
 
-	role, roleErr := d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name)
+	role, err := d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name)
+	return DescribeRoleBinding(roleBinding, role, err)
+}
 
+// DescribeRoleBinding prints out information about a role binding and its associated role
+func DescribeRoleBinding(roleBinding *authorizationapi.RoleBinding, role *authorizationapi.Role, err error) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, roleBinding.ObjectMeta)
 
@@ -489,14 +493,32 @@ func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) 
 		formatString(out, "Users", roleBinding.Users.List())
 		formatString(out, "Groups", roleBinding.Groups.List())
 
-		if roleErr != nil {
-			formatString(out, "ROLE RESOLUTION ERROR", roleErr)
+		switch {
+		case err != nil:
+			formatString(out, "Policy Rules", fmt.Sprintf("error: %v", err))
 
-		} else {
+		case role != nil:
 			fmt.Fprint(out, policyRuleHeadings+"\n")
 			for _, rule := range role.Rules {
 				describePolicyRule(out, rule, "")
 			}
+
+		default:
+			formatString(out, "Policy Rules", "<none>")
+		}
+
+		return nil
+	})
+}
+
+// DescribeRole prints out information about a role
+func DescribeRole(role *authorizationapi.Role) (string, error) {
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, role.ObjectMeta)
+
+		fmt.Fprint(out, policyRuleHeadings+"\n")
+		for _, rule := range role.Rules {
+			describePolicyRule(out, rule, "")
 		}
 
 		return nil

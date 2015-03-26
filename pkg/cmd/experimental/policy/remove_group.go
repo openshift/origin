@@ -24,7 +24,7 @@ func NewCmdRemoveGroup(f *clientcmd.Factory) *cobra.Command {
 	options := &RemoveGroupOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "remove-group <role> <group> [group]...",
+		Use:   "remove-role-from-group <role> <group> [group]...",
 		Short: "remove group from role",
 		Long:  `remove group from role`,
 		Run: func(cmd *cobra.Command, args []string) {

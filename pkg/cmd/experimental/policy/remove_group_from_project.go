@@ -22,7 +22,7 @@ func NewCmdRemoveGroupFromProject(f *clientcmd.Factory) *cobra.Command {
 	options := &removeGroupFromProjectOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "remove-group-from-project  <group> [group]...",
+		Use:   "remove-group  <group> [group]...",
 		Short: "remove group from project",
 		Long:  `remove group from project`,
 		Run: func(cmd *cobra.Command, args []string) {

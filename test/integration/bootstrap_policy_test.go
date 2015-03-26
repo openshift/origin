@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -98,7 +99,7 @@ func TestOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if err := admin.OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.MasterAuthorizationNamespace, masterConfig.PolicyConfig.BootstrapPolicyFile); err != nil {
+	if err := admin.OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.MasterAuthorizationNamespace, masterConfig.PolicyConfig.BootstrapPolicyFile, true, ioutil.Discard); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
