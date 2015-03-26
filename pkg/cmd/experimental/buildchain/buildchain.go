@@ -144,7 +144,8 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 					for tag := range imgRepo.Tags {
 						tags = append(tags, tag)
 					}
-				} else {
+				}
+				if len(tags) == 0 {
 					tags = []string{tag}
 				}
 
