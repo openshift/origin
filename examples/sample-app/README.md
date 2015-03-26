@@ -133,7 +133,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 4. Bind a user to the `view` role in the default namespace so you can observe progress in the web console (`anypassword` is an identity provider, `test-admin` is username)
 
-        $ openshift ex policy add-user view anypassword:test-admin
+        $ openshift ex policy add-role-to-user view anypassword:test-admin
 
 5. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 

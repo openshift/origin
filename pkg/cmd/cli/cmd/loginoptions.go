@@ -209,7 +209,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 
 To be added as an admin to an existing project, run
 
-    $ openshift ex policy add-user admin %q -n <projectname>
+    $ openshift ex policy add-role-to-user admin %q -n <projectname>
 
 `, o.Username, o.Username)
 
