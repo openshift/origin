@@ -56,7 +56,7 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (*url.URL, http.Rou
 	buildPodName := buildutil.GetBuildPodName(build)
 	pod, err := r.PodControl.getPod(build.Namespace, buildPodName)
 	if err != nil {
-		return "", fielderrors.NewFieldNotFound("Pod.Name", buildPodName)
+		return nil, nil, fielderrors.NewFieldNotFound("Pod.Name", buildPodName)
 	}
 
 	buildPodHost := pod.Status.Host

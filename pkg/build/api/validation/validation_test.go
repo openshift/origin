@@ -142,7 +142,7 @@ func TestBuildConfigValidationOutputFailure(t *testing.T) {
 func TestValidateBuildRequest(t *testing.T) {
 	testCases := map[string]*buildapi.BuildRequest{
 		"": {ObjectMeta: kapi.ObjectMeta{Name: "requestName"}},
-		string(errs.ValidationErrorTypeRequired) + "name": {},
+		string(fielderrors.ValidationErrorTypeRequired) + "name": {},
 	}
 
 	for desc, tc := range testCases {
@@ -154,7 +154,7 @@ func TestValidateBuildRequest(t *testing.T) {
 			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
 		}
 		if len(desc) > 0 {
-			err := errors[0].(*errs.ValidationError)
+			err := errors[0].(*fielderrors.ValidationError)
 			errDesc := string(err.Type) + err.Field
 			if desc != errDesc {
 				t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, desc, errDesc)

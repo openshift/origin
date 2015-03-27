@@ -54,7 +54,7 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErr
 func ValidateBuildRequest(request *buildapi.BuildRequest) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	if len(request.Name) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("name"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
 	}
 	if request.Revision != nil {
 		allErrs = append(allErrs, validateRevision(request.Revision).Prefix("revision")...)
