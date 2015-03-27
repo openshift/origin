@@ -139,6 +139,30 @@ func TestBuildConfigValidationOutputFailure(t *testing.T) {
 	}
 }
 
+func TestValidateBuildRequest(t *testing.T) {
+	testCases := map[string]*buildapi.BuildRequest{
+		"": {ObjectMeta: kapi.ObjectMeta{Name: "requestName"}},
+		string(errs.ValidationErrorTypeRequired) + "name": {},
+	}
+
+	for desc, tc := range testCases {
+		errors := ValidateBuildRequest(tc)
+		if len(desc) == 0 && len(errors) > 0 {
+			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
+		}
+		if len(desc) > 0 && len(errors) != 1 {
+			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
+		}
+		if len(desc) > 0 {
+			err := errors[0].(*errs.ValidationError)
+			errDesc := string(err.Type) + err.Field
+			if desc != errDesc {
+				t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, desc, errDesc)
+			}
+		}
+	}
+}
+
 func TestValidateSource(t *testing.T) {
 	errorCases := map[string]*buildapi.BuildSource{
 		string(fielderrors.ValidationErrorTypeRequired) + "git.uri": {

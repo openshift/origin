@@ -17,15 +17,15 @@ type podControl struct{}
 func (p *podControl) getPod(namespace, podName string) (*kapi.Pod, error) {
 	pod := &kapi.Pod{}
 	switch podName {
-	case "pendingPod":
+	case "pending":
 		pod = mockPod(kapi.PodPending)
-	case "runningPod":
+	case "running":
 		pod = mockPod(kapi.PodRunning)
-	case "succeededPod":
+	case "succeeded":
 		pod = mockPod(kapi.PodSucceeded)
-	case "failedPod":
+	case "failed":
 		pod = mockPod(kapi.PodFailed)
-	case "unknownPod":
+	case "unknown":
 		pod = mockPod(kapi.PodUnknown)
 	}
 	return pod, nil
@@ -37,11 +37,11 @@ func (p *podControl) getPod(namespace, podName string) (*kapi.Pod, error) {
 // is evaluating the outcome based only on build state.
 func TestRegistryResourceLocation(t *testing.T) {
 	expectedLocations := map[api.BuildStatus]string{
-		api.BuildStatusComplete: fmt.Sprintf("//foo-host:%d/containerLogs/%s/runningPod/foo-container",
+		api.BuildStatusComplete: fmt.Sprintf("//foo-host:%d/containerLogs/%s/running/foo-container",
 			kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusFailed: fmt.Sprintf("//foo-host:%d/containerLogs/%s/runningPod/foo-container",
+		api.BuildStatusFailed: fmt.Sprintf("//foo-host:%d/containerLogs/%s/running/foo-container",
 			kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusRunning: fmt.Sprintf("//foo-host:%d/containerLogs/%s/runningPod/foo-container?follow=1",
+		api.BuildStatusRunning: fmt.Sprintf("//foo-host:%d/containerLogs/%s/running/foo-container?follow=1",
 			kubernetes.NodePort, kapi.NamespaceDefault),
 		api.BuildStatusNew:       "",
 		api.BuildStatusPending:   "",
@@ -52,7 +52,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 	ctx := kapi.NewDefaultContext()
 
 	for buildStatus, expectedLocation := range expectedLocations {
-		location, err := resourceLocationHelper(buildStatus, "runningPod", ctx)
+		location, err := resourceLocationHelper(buildStatus, "running", ctx)
 		switch buildStatus {
 		case api.BuildStatusNew, api.BuildStatusPending, api.BuildStatusError, api.BuildStatusCancelled:
 			if err == nil {
@@ -76,11 +76,11 @@ func TestRegistryResourceLocation(t *testing.T) {
 // is evaluating the outcome based only on pod phase.
 func TestRegistryResourceLocationPodPhases(t *testing.T) {
 	expectedPodPhases := map[string]bool{
-		"pendingPod":   true,
-		"runningPod":   false,
-		"succeededPod": false,
-		"failedPod":    false,
-		"unknownPod":   true,
+		"pending":   true,
+		"running":   false,
+		"succeeded": false,
+		"failed":    false,
+		"unknown":   true,
 	}
 
 	ctx := kapi.NewDefaultContext()
@@ -137,9 +137,8 @@ func mockPod(podPhase kapi.PodPhase) *kapi.Pod {
 func mockBuild(buildStatus api.BuildStatus, podName string) *api.Build {
 	return &api.Build{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "foo-build",
+			Name: podName,
 		},
-		Status:  buildStatus,
-		PodName: podName,
+		Status: buildStatus,
 	}
 }

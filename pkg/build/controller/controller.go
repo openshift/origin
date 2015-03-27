@@ -12,15 +12,15 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // BuildController watches build resources and manages their state
 type BuildController struct {
-	BuildUpdater  buildclient.BuildUpdater
-	PodManager    podManager
-	BuildStrategy BuildStrategy
-
+	BuildUpdater          buildclient.BuildUpdater
+	PodManager            podManager
+	BuildStrategy         BuildStrategy
 	ImageRepositoryClient imageRepositoryClient
 }
 
@@ -100,8 +100,6 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 
 	// set the expected build parameters, which will be saved if no error occurs
 	build.Status = buildapi.BuildStatusPending
-	build.PodName = fmt.Sprintf("build-%s", build.Name)
-
 	// override DockerImageReference in the strategy for the copy we send to the server
 	build.Parameters.Output.DockerImageReference = spec
 
@@ -141,7 +139,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	var build *buildapi.Build
 	for _, obj := range bc.BuildStore.List() {
 		b := obj.(*buildapi.Build)
-		if b.PodName == pod.Name {
+		if buildutil.GetBuildPodName(b) == pod.Name {
 			build = b
 			break
 		}

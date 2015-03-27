@@ -36,11 +36,6 @@ func (c OSClientBuildConfigClient) Update(buildConfig *buildapi.BuildConfig) err
 	return err
 }
 
-// BuildCreator provides methods for creating new Builds
-type BuildCreator interface {
-	Create(namespace string, build *buildapi.Build) error
-}
-
 // BuildUpdater provides methods for updating existing Builds.
 type BuildUpdater interface {
 	Update(namespace string, build *buildapi.Build) error
@@ -51,19 +46,53 @@ type OSClientBuildClient struct {
 	Client osclient.Interface
 }
 
-// NewOSClientBuildClient creates a new build client that uses an openshift client to create builds
+// NewOSClientBuildClient creates a new build client that uses an openshift client to update builds
 func NewOSClientBuildClient(client osclient.Interface) *OSClientBuildClient {
 	return &OSClientBuildClient{Client: client}
-}
-
-// Create creates builds using the OpenShift client.
-func (c OSClientBuildClient) Create(namespace string, build *buildapi.Build) error {
-	_, e := c.Client.Builds(namespace).Create(build)
-	return e
 }
 
 // Update updates builds using the OpenShift client.
 func (c OSClientBuildClient) Update(namespace string, build *buildapi.Build) error {
 	_, e := c.Client.Builds(namespace).Update(build)
 	return e
+}
+
+// BuildCloner provides methods for cloning builds
+type BuildCloner interface {
+	Clone(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error)
+}
+
+// OSClientBuildClonerClient creates a new build client that uses an openshift client to clone builds
+type OSClientBuildClonerClient struct {
+	Client osclient.Interface
+}
+
+// NewOSClientBuildClonerClient creates a new build client that uses an openshift client to clone builds
+func NewOSClientBuildClonerClient(client osclient.Interface) *OSClientBuildClonerClient {
+	return &OSClientBuildClonerClient{Client: client}
+}
+
+// Clone generates new build for given build name
+func (c OSClientBuildClonerClient) Clone(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+	return c.Client.Builds(namespace).Clone(request)
+}
+
+// BuildConfigInstantiator provides methods for instantiating builds from build configs
+type BuildConfigInstantiator interface {
+	Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error)
+}
+
+// OSClientBuildConfigInstantiatorClient creates a new build client that uses an openshift client to create builds
+type OSClientBuildConfigInstantiatorClient struct {
+	Client osclient.Interface
+}
+
+// NewOSClientBuildConfigInstantiatorClient creates a new build client that uses an openshift client to create builds
+func NewOSClientBuildConfigInstantiatorClient(client osclient.Interface) *OSClientBuildConfigInstantiatorClient {
+	return &OSClientBuildConfigInstantiatorClient{Client: client}
+}
+
+// Instantiate generates new build for given buildConfig
+func (c OSClientBuildConfigInstantiatorClient) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+	return c.Client.BuildConfigs(namespace).Instantiate(request)
 }

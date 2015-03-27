@@ -50,7 +50,7 @@ func (c *Client) BuildConfigs(namespace string) BuildConfigInterface {
 }
 
 // BuildLogs provides a REST client for BuildLogs
-func (c *Client) BuildLogs(namespace string) BuildLogInterface {
+func (c *Client) BuildLogs(namespace string) BuildLogsInterface {
 	return newBuildLogs(c, namespace)
 }
 
