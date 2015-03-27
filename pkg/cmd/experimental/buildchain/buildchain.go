@@ -105,19 +105,19 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 
 			// Retrieve namespace(s)
 			namespace := cmdutil.GetFlagString(cmd, "namespace")
+			if len(namespace) == 0 {
+				namespace, err = f.DefaultNamespace()
+				checkErr(err)
+			}
 			namespaces := make([]string, 0)
-			switch all {
-			case true:
+			if all {
 				nsList, err := kc.Namespaces().List(labels.Everything())
 				checkErr(err)
 				for _, ns := range nsList.Items {
 					namespaces = append(namespaces, ns.Name)
 				}
-			case false:
-				if len(namespace) == 0 {
-					namespace, err = f.DefaultNamespace()
-					checkErr(err)
-				}
+			}
+			if len(namespaces) == 0 {
 				namespaces = append(namespaces, namespace)
 			}
 
@@ -164,7 +164,7 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 			}
 
 			if len(repos) == 0 {
-				checkErr(fmt.Errorf("no image repository available in '%s' namespace for building its dependency tree", namespace))
+				checkErr(fmt.Errorf("no image repository available for building its dependency tree"))
 			}
 
 			output := cmdutil.GetFlagString(cmd, "output")
