@@ -7,7 +7,7 @@ import (
 func TestAllocateSubnet(t *testing.T) {
 	sna, err := NewSubnetAllocator("10.1.0.0/16", 8, nil)
 	if err != nil {
-		t.Fatal("Failed to initialize IP allocator: ", err)
+		t.Fatal("Failed to initialize subnet allocator: ", err)
 	}
 
 	sn, err := sna.GetNetwork()
