@@ -55,3 +55,29 @@ func TestAllocateIPInUse(t *testing.T) {
 		t.Fatal("Did not get expected IP", ip)
 	}
 }
+
+func TestAllocateReleaseIP(t *testing.T) {
+	ipa, err := NewIPAllocator("10.1.2.0/24", nil)
+	if err != nil {
+		t.Fatal("Failed to initialize IP allocator: %v", err)
+	}
+
+	ip, err := ipa.GetIP()
+	if err != nil {
+		t.Fatal("Failed to get IP: ", err)
+	}
+	if ip.String() != "10.1.2.1/24" {
+		t.Fatal("Did not get expected IP")
+	}
+
+	if err := ipa.ReleaseIP(ip); err != nil {
+		t.Fatal("Failed to release the IP")
+	}
+	ip, err = ipa.GetIP()
+	if err != nil {
+		t.Fatal("Failed to get IP: ", err)
+	}
+	if ip.String() != "10.1.2.1/24" {
+		t.Fatal("Did not get expected IP")
+	}
+}
