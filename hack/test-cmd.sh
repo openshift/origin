@@ -352,4 +352,8 @@ echo "ex registry: ok"
 [ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.tags.latest}}")" ]
 [ -n "$(osc get imageRepositories wildfly-8-centos -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 
+# Test building a dependency tree
+[ "$(openshift ex build-chain --all -o dot | grep 'graph')" ]
+echo "ex build-chain: ok"
+
 osc get minions,pods
