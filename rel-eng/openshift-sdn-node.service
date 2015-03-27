@@ -3,8 +3,6 @@ Description=OpenShift SDN Node
 After=openvswitch.service
 After=openshift-sdn-master.service
 After=openshift-master.service
-Wants=openshit-sdn-master.service
-Wants=openshift-master.service
 Requires=openvswitch.service
 Before=openshift-node.service
 Before=docker.service
@@ -19,3 +17,4 @@ RestartSec=1s
 
 [Install]
 WantedBy=multi-user.target
+WantedBy=openshift-node.service
