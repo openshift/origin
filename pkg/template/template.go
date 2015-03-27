@@ -73,7 +73,7 @@ func AddParameter(t *api.Template, param api.Parameter) {
 }
 
 // GetParameterByName searches for a Parameter in the Template
-// based on it's name.
+// based on its name.
 func GetParameterByName(t *api.Template, name string) *api.Parameter {
 	for i, param := range t.Parameters {
 		if param.Name == name {
