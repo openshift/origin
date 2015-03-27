@@ -44,3 +44,8 @@ func (c *FakeBuildConfigs) Watch(label labels.Selector, field fields.Selector, r
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-buildconfigs"})
 	return nil, nil
 }
+
+func (c *FakeBuildConfigs) Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "instantiate-buildConfig"})
+	return nil, nil
+}

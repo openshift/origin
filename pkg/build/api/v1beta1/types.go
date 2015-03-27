@@ -5,6 +5,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
+// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
+const BuildLabel = "build"
+
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
@@ -19,9 +22,6 @@ type Build struct {
 
 	// A human readable message indicating details about why the build has this status
 	Message string `json:"message,omitempty"`
-
-	// PodName is the name of the pod that is used to execute the build
-	PodName string `json:"podName,omitempty"`
 
 	// Cancelled describes if a cancelling event was triggered for the build.
 	Cancelled bool `json:"cancelled,omitempty"`
@@ -284,6 +284,9 @@ type BuildConfig struct {
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy `json:"triggers,omitempty"`
 
+	// LastVersion is used to inform about number of last triggered build.
+	LastVersion int `json:"lastVersion,omitempty"`
+
 	// Parameters holds all the input necessary to produce a new build. A build config may only
 	// define either the Output.To or Output.DockerImageReference fields, but not both.
 	Parameters BuildParameters `json:"parameters,omitempty"`
@@ -382,4 +385,13 @@ type GitInfo struct {
 type BuildLog struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
+}
+
+// BuildRequest is the resource used to pass parameters to build generator
+type BuildRequest struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	// Revision is the information from the source for a specific repo snapshot.
+	Revision *SourceRevision `json:"revision,omitempty"`
 }

@@ -13,6 +13,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 const (
@@ -75,7 +76,7 @@ func (r *Etcd) WatchBuilds(ctx kapi.Context, label labels.Selector, field fields
 		fields := labels.Set{
 			"name":    build.Name,
 			"status":  string(build.Status),
-			"podName": build.PodName,
+			"podName": buildutil.GetBuildPodName(build),
 		}
 		return label.Matches(labels.Set(build.Labels)) && field.Matches(fields)
 	})

@@ -21,6 +21,7 @@ type BuildConfigInterface interface {
 	Update(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	Delete(name string) error
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error)
 }
 
 // buildConfigs implements BuildConfigsNamespacer interface
@@ -86,4 +87,11 @@ func (c *buildConfigs) Watch(label labels.Selector, field fields.Selector, resou
 		LabelsSelectorParam("labels", label).
 		FieldsSelectorParam("fields", field).
 		Watch()
+}
+
+// Instantiate instantiates a new build from build config returning new object or an error
+func (c *buildConfigs) Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
+	result = &buildapi.Build{}
+	err = c.r.Post().Namespace(c.ns).Resource("buildConfigs").Name(request.Name).SubResource("instantiate").Body(request).Do().Into(result)
+	return
 }

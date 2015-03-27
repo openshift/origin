@@ -297,7 +297,7 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 		return nil, err
 	}
 
-	allHostnames := util.NewStringSet("localhost", "127.0.0.1", masterAddr.Host, masterPublicAddr.Host, kubePublicAddr.Host, assetPublicAddr.Host)
+	allHostnames := util.NewStringSet("localhost", "127.0.0.1", "openshift.default.local", "kubernetes.default.local", "kubernetes-ro.default.local", masterAddr.Host, masterPublicAddr.Host, kubePublicAddr.Host, assetPublicAddr.Host)
 	certHostnames := util.StringSet{}
 	for hostname := range allHostnames {
 		if host, _, err := net.SplitHostPort(hostname); err == nil {

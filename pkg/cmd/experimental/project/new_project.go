@@ -101,7 +101,7 @@ func (o *NewProjectOptions) Run() error {
 
 		if err := adduser.Run(); err != nil {
 			fmt.Printf("The project %v was created, but %v could not be added to the %v role.\n", o.ProjectName, o.AdminUser, o.AdminRole)
-			fmt.Printf("To add the user to the existing project, run\n\n\topenshift ex policy add-user --namespace=%v --role-namespace=%v %v %v\n", o.ProjectName, o.MasterPolicyNamespace, o.AdminRole, o.AdminUser)
+			fmt.Printf("To add the user to the existing project, run\n\n\topenshift ex policy add-role-to-user --namespace=%v --role-namespace=%v %v %v\n", o.ProjectName, o.MasterPolicyNamespace, o.AdminRole, o.AdminUser)
 			return err
 		}
 	}

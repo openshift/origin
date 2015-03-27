@@ -215,7 +215,7 @@ wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
-openshift ex policy add-user view anypassword:e2e-user --namespace=default
+openshift ex policy add-role-to-user view anypassword:e2e-user --namespace=default
 
 # create test project so that this shows up in the console
 openshift ex new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="anypassword:e2e-user"
