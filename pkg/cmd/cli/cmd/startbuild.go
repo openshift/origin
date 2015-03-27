@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/spf13/cobra"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/spf13/cobra"
-
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildutil "github.com/openshift/origin/pkg/build/util"
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -53,22 +51,18 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 
 			var newBuild *buildapi.Build
 			if len(buildName) == 0 {
-				// from build config
-				config, err := client.BuildConfigs(namespace).Get(args[0])
-				checkErr(err)
-
-				newBuild, err = buildutil.GenerateBuildWithImageTag(config, nil, client.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter))
+				request := &buildapi.BuildRequest{
+					ObjectMeta: kapi.ObjectMeta{Name: args[0]},
+				}
+				newBuild, err = client.BuildConfigs(namespace).Instantiate(request)
 				checkErr(err)
 			} else {
-				build, err := client.Builds(namespace).Get(buildName)
+				request := &buildapi.BuildRequest{
+					ObjectMeta: kapi.ObjectMeta{Name: buildName},
+				}
+				newBuild, err = client.Builds(namespace).Clone(request)
 				checkErr(err)
-
-				newBuild = buildutil.GenerateBuildFromBuild(build)
 			}
-
-			// Start a build
-			newBuild, err = client.Builds(namespace).Create(newBuild)
-			checkErr(err)
 
 			if follow {
 				set := labels.Set(newBuild.Labels)

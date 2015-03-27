@@ -22,7 +22,7 @@ func (c *Fake) BuildConfigs(namespace string) BuildConfigInterface {
 	return &FakeBuildConfigs{Fake: c, Namespace: namespace}
 }
 
-func (c *Fake) BuildLogs(namespace string) BuildLogInterface {
+func (c *Fake) BuildLogs(namespace string) BuildLogsInterface {
 	return &FakeBuildLogs{Fake: c, Namespace: namespace}
 }
 

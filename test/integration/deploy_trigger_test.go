@@ -25,6 +25,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
@@ -126,7 +127,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 		t.Fatalf("Couldn't create ImageRepository: %v", err)
 	}
 
-	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
+	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
@@ -134,7 +135,7 @@ func TestSimpleImageChangeTrigger(t *testing.T) {
 		t.Fatalf("Error generating config: %v", err)
 	}
 
-	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
+	if config, err = openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
 	}
 
@@ -377,6 +378,16 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	}
 
 	buildEtcd := buildetcd.New(etcdHelper)
+	buildGenerator := &buildgenerator.BuildGenerator{
+		Client: buildgenerator.Client{
+			GetBuildConfigFunc:     buildEtcd.GetBuildConfig,
+			UpdateBuildConfigFunc:  buildEtcd.UpdateBuildConfig,
+			GetBuildFunc:           buildEtcd.GetBuild,
+			CreateBuildFunc:        buildEtcd.CreateBuild,
+			GetImageRepositoryFunc: imageRepositoryRegistry.GetImageRepository,
+		},
+	}
+	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
 	storage := map[string]apiserver.RESTStorage{
 		"images":                   imageStorage,
@@ -393,7 +404,9 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
 		"builds":                    buildregistry.NewREST(buildEtcd),
+		"builds/clone":              buildClone,
 		"buildConfigs":              buildconfigregistry.NewREST(buildEtcd),
+		"buildConfigs/instantiate":  buildConfigInstantiate,
 	}
 
 	version := &apiserver.APIGroupVersion{
@@ -436,10 +449,10 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 	iccFactory.Create().Run()
 
 	biccFactory := buildcontrollerfactory.ImageChangeControllerFactory{
-		Client:             osClient,
-		BuildConfigUpdater: buildclient.NewOSClientBuildConfigClient(osClient),
-		BuildCreator:       buildclient.NewOSClientBuildClient(osClient),
-		Stop:               openshift.stop,
+		Client:                  osClient,
+		BuildConfigUpdater:      buildclient.NewOSClientBuildConfigClient(osClient),
+		BuildConfigInstantiator: buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
+		Stop: openshift.stop,
 	}
 	biccFactory.Create().Run()
 

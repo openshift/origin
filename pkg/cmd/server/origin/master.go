@@ -35,6 +35,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildlogregistry "github.com/openshift/origin/pkg/build/registry/buildlog"
@@ -141,6 +142,17 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageRepositoryRegistry)
 	routeAllocator := c.RouteAllocator()
 
+	buildGenerator := &buildgenerator.BuildGenerator{
+		Client: buildgenerator.Client{
+			GetBuildConfigFunc:     buildEtcd.GetBuildConfig,
+			UpdateBuildConfigFunc:  buildEtcd.UpdateBuildConfig,
+			GetBuildFunc:           buildEtcd.GetBuild,
+			CreateBuildFunc:        buildEtcd.CreateBuild,
+			GetImageRepositoryFunc: imageRepositoryRegistry.GetImageRepository,
+		},
+	}
+	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
+
 	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		Client: deployconfiggenerator.Client{
@@ -160,9 +172,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	// initialize OpenShift API
 	storage := map[string]apiserver.RESTStorage{
-		"builds":       buildregistry.NewREST(buildEtcd),
-		"buildConfigs": buildconfigregistry.NewREST(buildEtcd),
-		"buildLogs":    buildlogregistry.NewREST(buildEtcd, c.BuildLogClient()),
+		"builds":                   buildregistry.NewREST(buildEtcd),
+		"builds/clone":             buildClone,
+		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
+		"buildConfigs/instantiate": buildConfigInstantiate,
+		"buildLogs":                buildlogregistry.NewREST(buildEtcd, c.BuildLogClient()),
 
 		"images":                   imageStorage,
 		"imageStreams":             imageRepositoryStorage,
@@ -176,7 +190,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
 
 		"templateConfigs": templateregistry.NewREST(),
@@ -247,9 +261,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []string {
 	bcClient, _ := c.BuildControllerClients()
+	bcGetterUpdater := buildclient.NewOSClientBuildConfigClient(bcClient)
 	handler := webhook.NewController(
-		buildclient.NewOSClientBuildConfigClient(bcClient),
-		buildclient.NewOSClientBuildClient(bcClient),
+		bcGetterUpdater,
+		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
 		bcClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter),
 		map[string]webhook.Plugin{
 			"generic": generic.New(),
@@ -607,8 +622,8 @@ func (c *MasterConfig) RunBuildPodController() {
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 	bcClient, _ := c.BuildControllerClients()
 	bcUpdater := buildclient.NewOSClientBuildConfigClient(bcClient)
-	bCreator := buildclient.NewOSClientBuildClient(bcClient)
-	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildCreator: bCreator, BuildConfigUpdater: bcUpdater}
+	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
+	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator, BuildConfigUpdater: bcUpdater}
 	factory.Create().Run()
 }
 

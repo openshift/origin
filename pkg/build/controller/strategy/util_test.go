@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
@@ -75,7 +76,7 @@ func TestSetupBuildEnvFails(t *testing.T) {
 	}
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: build.PodName,
+			Name: buildutil.GetBuildPodName(build),
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{

@@ -32,13 +32,13 @@ angular.module('openshiftConsole')
     // All deployments
     // "" service key for deployments not under any service
     // Only being built to improve efficiency in the podRelationships method, not used by the view
-    $scope.deploymentsByService = {};    
+    $scope.deploymentsByService = {};
     // All deployment configs
     // "" service key for deployment configs not under any service
     $scope.deploymentConfigsByService = {};
 
     $scope.labelSuggestions = {};
-    $scope.alerts = $scope.alerts || {};    
+    $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
@@ -80,7 +80,7 @@ angular.module('openshiftConsole')
       angular.forEach($scope.unfilteredServices, function(service, svcName){
         svcSelectors[svcName] = new LabelSelector(service.spec.selector);
         $scope.podsByService[svcName] = {};
-      });      
+      });
 
 
       angular.forEach($scope.pods, function(pod, name){
@@ -88,7 +88,7 @@ angular.module('openshiftConsole')
         var services = [];
         angular.forEach($scope.deployments, function(deployment, depName){
           var ls = depSelectors[depName];
-          if (ls.matches(pod)) {            
+          if (ls.matches(pod)) {
             deployments.push(depName);
             $scope.podsByDeployment[depName][name] = pod;
           }
@@ -115,9 +115,9 @@ angular.module('openshiftConsole')
         }
       });
 
-      Logger.log("podsByDeployment", $scope.podsByDeployment);      
-      Logger.log("podsByService", $scope.podsByService); 
-      Logger.log("monopodsByService", $scope.monopodsByService); 
+      Logger.log("podsByDeployment", $scope.podsByDeployment);
+      Logger.log("podsByService", $scope.podsByService);
+      Logger.log("monopodsByService", $scope.monopodsByService);
     };
 
     // Filter out monopods we know we don't want to see
@@ -132,11 +132,11 @@ angular.module('openshiftConsole')
       // appears.
       if (pod.metadata.annotations && pod.metadata.annotations.deployment) {
         return false;
-      }      
+      }
       // Hide our build pods since we are already showing details for currently running or recently
       // run builds under the appropriate areas
       for (var id in $scope.builds) {
-        if ($scope.builds[id].podName == pod.metadata.name) {
+        if ($scope.builds[id].metadata.name == pod.metadata.name) {
           return false;
         }
       }
@@ -269,7 +269,7 @@ angular.module('openshiftConsole')
           if (triggerTag !== buildTag) {
           	continue;
           }
-          
+
           trigger.builds = trigger.builds || {};
           trigger.builds[build.metadata.name] = build;
         }
@@ -283,7 +283,7 @@ angular.module('openshiftConsole')
         angular.forEach($scope.deploymentConfigs, function(depConfig) {
           angular.forEach($scope.builds, function(build) {
             associateDeploymentConfigTriggersToBuild(depConfig, build);
-          });   
+          });
         });
       }
       else if (action !== 'DELETED') {
@@ -292,7 +292,7 @@ angular.module('openshiftConsole')
         });
       }
 
-      deploymentConfigsByService();      
+      deploymentConfigsByService();
 
       Logger.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
     }));
@@ -306,7 +306,7 @@ angular.module('openshiftConsole')
             associateDeploymentConfigTriggersToBuild(depConfig, bld);
           });
         });
-      }        
+      }
       else if (action === 'ADDED' || action === 'MODIFIED') {
         angular.forEach($scope.deploymentConfigs, function(depConfig) {
           associateDeploymentConfigTriggersToBuild(depConfig, build);
@@ -327,7 +327,7 @@ angular.module('openshiftConsole')
       }
       else {
         delete $scope.alerts["services"];
-      }       
+      }
     };
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
@@ -340,5 +340,5 @@ angular.module('openshiftConsole')
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
-    });    
+    });
   });

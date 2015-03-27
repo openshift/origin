@@ -138,3 +138,13 @@ func getContainerVerbosity(containerEnv []kapi.EnvVar) (verbosity string) {
 	}
 	return
 }
+
+// getPodLabels copies build labels and adds additional one with build name itself
+func getPodLabels(build *buildapi.Build) map[string]string {
+	podLabels := make(map[string]string)
+	for k, v := range build.Labels {
+		podLabels[k] = v
+	}
+	podLabels[buildapi.BuildLabel] = build.Name
+	return podLabels
+}

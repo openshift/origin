@@ -21,6 +21,7 @@ type BuildInterface interface {
 	Update(build *buildapi.Build) (*buildapi.Build, error)
 	Delete(name string) error
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	Clone(request *buildapi.BuildRequest) (*buildapi.Build, error)
 }
 
 // builds implements BuildsNamespacer interface
@@ -87,4 +88,11 @@ func (c *builds) Watch(label labels.Selector, field fields.Selector, resourceVer
 		LabelsSelectorParam("labels", label).
 		FieldsSelectorParam("fields", field).
 		Watch()
+}
+
+// Clone creates a clone of a build returning new object or an error
+func (c *builds) Clone(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
+	result = &buildapi.Build{}
+	err = c.r.Post().Namespace(c.ns).Resource("builds").Name(request.Name).SubResource("clone").Body(request).Do().Into(result)
+	return
 }

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -21,7 +21,7 @@ Examples:
 
 	# Cancel the build with the given name
 	$ %[1]s cancel-build 1da32cvq
-	
+
 	# Cancel the named build and print the build logs
 	$ %[1]s cancel-build 1da32cvq --dump-logs
 
@@ -61,7 +61,7 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 			// Print build logs before cancelling build.
 			if cmdutil.GetFlagBool(cmd, "dump-logs") {
 				// in order to dump logs, you must have a pod assigned to the build.  Since build pod creation is asynchronous, it is possible to cancel a build without a pod being assigned.
-				if len(build.PodName) == 0 {
+				if build.Status != buildapi.BuildStatusRunning {
 					glog.V(2).Infof("Build %v has not yet generated any logs.", buildName)
 
 				} else {
@@ -89,8 +89,10 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 
 			// Create a new build with the same configuration.
 			if cmdutil.GetFlagBool(cmd, "restart") {
-				newBuild := util.GenerateBuildFromBuild(build)
-				newBuild, err = buildClient.Create(newBuild)
+				request := &buildapi.BuildRequest{
+					ObjectMeta: kapi.ObjectMeta{Name: build.Name},
+				}
+				newBuild, err := client.Builds(namespace).Clone(request)
 				checkErr(err)
 				glog.V(2).Infof("Restarted build %s.", buildName)
 				fmt.Fprintf(out, "%s\n", newBuild.Name)
