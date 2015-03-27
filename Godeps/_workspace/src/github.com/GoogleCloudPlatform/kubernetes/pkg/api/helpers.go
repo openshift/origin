@@ -71,7 +71,8 @@ var standardResources = util.NewStringSet(
 	string(ResourcePods),
 	string(ResourceQuotas),
 	string(ResourceServices),
-	string(ResourceReplicationControllers))
+	string(ResourceReplicationControllers),
+	string(ResourceStorage))
 
 func IsStandardResourceName(str string) bool {
 	return standardResources.Has(str)
@@ -83,4 +84,22 @@ func IsStandardResourceName(str string) bool {
 // use &api.DeleteOptions{} directly.
 func NewDeleteOptions(grace int64) *DeleteOptions {
 	return &DeleteOptions{GracePeriodSeconds: &grace}
+}
+
+// this function aims to check if the service portal IP is set or not
+// the objective is not to perform validation here
+func IsServiceIPSet(service *Service) bool {
+	return service.Spec.PortalIP != PortalIPNone && service.Spec.PortalIP != ""
+}
+
+// this function aims to check if the service portal IP is requested or not
+func IsServiceIPRequested(service *Service) bool {
+	return service.Spec.PortalIP == ""
+}
+
+var standardFinalizers = util.NewStringSet(
+	string(FinalizerKubernetes))
+
+func IsStandardFinalizerName(str string) bool {
+	return standardFinalizers.Has(str)
 }

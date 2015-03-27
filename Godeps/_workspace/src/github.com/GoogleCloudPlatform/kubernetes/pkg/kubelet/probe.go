@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kubecontainer "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/container"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/probe"
 	execprobe "github.com/GoogleCloudPlatform/kubernetes/pkg/probe/exec"
 	httprobe "github.com/GoogleCloudPlatform/kubernetes/pkg/probe/http"
@@ -64,7 +65,7 @@ func (kl *Kubelet) probeContainer(pod *api.Pod, status api.PodStatus, container 
 	glog.V(1).Infof("Readiness probe failed/errored: %v, %v", ready, err)
 	kl.readiness.set(containerID, false)
 
-	ref, ok := kl.getRef(containerID)
+	ref, ok := kl.containerRefManager.GetRef(containerID)
 	if !ok {
 		glog.Warningf("No ref for pod '%v' - '%v'", containerID, container.Name)
 	} else {
@@ -189,7 +190,7 @@ type execInContainer struct {
 
 func (kl *Kubelet) newExecInContainer(pod *api.Pod, container api.Container) exec.Cmd {
 	uid := pod.UID
-	podFullName := GetPodFullName(pod)
+	podFullName := kubecontainer.GetPodFullName(pod)
 	return execInContainer{func() ([]byte, error) {
 		return kl.RunInContainer(podFullName, uid, container.Name, container.LivenessProbe.Exec.Command)
 	}}

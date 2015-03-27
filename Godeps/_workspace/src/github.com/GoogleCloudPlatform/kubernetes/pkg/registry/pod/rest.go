@@ -18,16 +18,19 @@ package pod
 
 import (
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 )
 
 // podStrategy implements behavior for Pods
@@ -47,8 +50,8 @@ func (podStrategy) NamespaceScoped() bool {
 	return true
 }
 
-// ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
-func (podStrategy) ResetBeforeCreate(obj runtime.Object) {
+// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
+func (podStrategy) PrepareForCreate(obj runtime.Object) {
 	pod := obj.(*api.Pod)
 	pod.Status = api.PodStatus{
 		Host:  pod.Spec.Host,
@@ -56,8 +59,15 @@ func (podStrategy) ResetBeforeCreate(obj runtime.Object) {
 	}
 }
 
+// PrepareForUpdate clears fields that are not allowed to be set by end users on update.
+func (podStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newPod := obj.(*api.Pod)
+	oldPod := old.(*api.Pod)
+	newPod.Status = oldPod.Status
+}
+
 // Validate validates a new pod.
-func (podStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+func (podStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
 	pod := obj.(*api.Pod)
 	return validation.ValidatePod(pod)
 }
@@ -68,7 +78,7 @@ func (podStrategy) AllowCreateOnUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (podStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+func (podStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidatePodUpdate(obj.(*api.Pod), old.(*api.Pod))
 }
 
@@ -83,43 +93,15 @@ type podStatusStrategy struct {
 
 var StatusStrategy = podStatusStrategy{Strategy}
 
-func (podStatusStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+func (podStatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newPod := obj.(*api.Pod)
+	oldPod := old.(*api.Pod)
+	newPod.Spec = oldPod.Spec
+}
+
+func (podStatusStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
 	// TODO: merge valid fields after update
 	return validation.ValidatePodStatusUpdate(obj.(*api.Pod), old.(*api.Pod))
-}
-
-// PodStatusGetter is an interface used by Pods to fetch and retrieve status info.
-type PodStatusGetter interface {
-	GetPodStatus(namespace, name string) (*api.PodStatus, error)
-	ClearPodStatus(namespace, name string)
-}
-
-// PodStatusDecorator returns a function that updates pod.Status based
-// on the provided pod cache.
-func PodStatusDecorator(cache PodStatusGetter) rest.ObjectFunc {
-	return func(obj runtime.Object) error {
-		pod := obj.(*api.Pod)
-		host := pod.Status.Host
-		if status, err := cache.GetPodStatus(pod.Namespace, pod.Name); err != nil {
-			pod.Status = api.PodStatus{
-				Phase: api.PodUnknown,
-			}
-		} else {
-			pod.Status = *status
-		}
-		pod.Status.Host = host
-		return nil
-	}
-}
-
-// PodStatusReset returns a function that clears the pod cache when the object
-// is deleted.
-func PodStatusReset(cache PodStatusGetter) rest.ObjectFunc {
-	return func(obj runtime.Object) error {
-		pod := obj.(*api.Pod)
-		cache.ClearPodStatus(pod.Namespace, pod.Name)
-		return nil
-	}
 }
 
 // MatchPod returns a generic matcher for a given label and field selector.
@@ -150,12 +132,12 @@ type ResourceGetter interface {
 }
 
 // ResourceLocation returns a URL to which one can send traffic for the specified pod.
-func ResourceLocation(getter ResourceGetter, ctx api.Context, id string) (string, error) {
+func ResourceLocation(getter ResourceGetter, ctx api.Context, id string) (*url.URL, http.RoundTripper, error) {
 	// Allow ID as "podname" or "podname:port".  If port is not specified,
 	// try to use the first defined port on the pod.
 	parts := strings.Split(id, ":")
 	if len(parts) > 2 {
-		return "", errors.NewBadRequest(fmt.Sprintf("invalid pod request %q", id))
+		return nil, nil, errors.NewBadRequest(fmt.Sprintf("invalid pod request %q", id))
 	}
 	name := parts[0]
 	port := ""
@@ -166,11 +148,11 @@ func ResourceLocation(getter ResourceGetter, ctx api.Context, id string) (string
 
 	obj, err := getter.Get(ctx, name)
 	if err != nil {
-		return "", err
+		return nil, nil, err
 	}
 	pod := obj.(*api.Pod)
 	if pod == nil {
-		return "", nil
+		return nil, nil, nil
 	}
 
 	// Try to figure out a port.
@@ -185,9 +167,11 @@ func ResourceLocation(getter ResourceGetter, ctx api.Context, id string) (string
 
 	// We leave off the scheme ('http://') because we have no idea what sort of server
 	// is listening at this endpoint.
-	loc := pod.Status.PodIP
-	if port != "" {
-		loc += fmt.Sprintf(":%s", port)
+	loc := &url.URL{}
+	if port == "" {
+		loc.Host = pod.Status.PodIP
+	} else {
+		loc.Host = net.JoinHostPort(pod.Status.PodIP, port)
 	}
-	return loc, nil
+	return loc, nil, nil
 }

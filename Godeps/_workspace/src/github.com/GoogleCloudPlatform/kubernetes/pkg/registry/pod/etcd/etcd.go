@@ -18,6 +18,8 @@ package etcd
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -30,6 +32,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 )
 
 // rest implements a RESTStorage for pods against etcd
@@ -37,8 +40,8 @@ type REST struct {
 	etcdgeneric.Etcd
 }
 
-// NewREST returns a RESTStorage object that will work against pods.
-func NewREST(h tools.EtcdHelper) (*REST, *BindingREST, *StatusREST) {
+// NewStorage returns a RESTStorage object that will work against pods.
+func NewStorage(h tools.EtcdHelper) (*REST, *BindingREST, *StatusREST) {
 	prefix := "/registry/pods"
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.Pod{} },
@@ -74,18 +77,12 @@ func NewREST(h tools.EtcdHelper) (*REST, *BindingREST, *StatusREST) {
 	return &REST{*store}, &BindingREST{store: store}, &StatusREST{store: &statusStore}
 }
 
-// ResourceLocation returns a pods location from its HostIP
-func (r *REST) ResourceLocation(ctx api.Context, name string) (string, error) {
-	return pod.ResourceLocation(r, ctx, name)
-}
+// Implement Redirector.
+var _ = rest.Redirector(&REST{})
 
-// WithPodStatus returns a rest object that decorates returned responses with extra
-// status information.
-func (r *REST) WithPodStatus(cache pod.PodStatusGetter) *REST {
-	store := *r
-	store.Decorator = pod.PodStatusDecorator(cache)
-	store.AfterDelete = rest.AllFuncs(store.AfterDelete, pod.PodStatusReset(cache))
-	return &store
+// ResourceLocation returns a pods location from its HostIP
+func (r *REST) ResourceLocation(ctx api.Context, name string) (*url.URL, http.RoundTripper, error) {
+	return pod.ResourceLocation(r, ctx, name)
 }
 
 // BindingREST implements the REST endpoint for binding pods to nodes when etcd is in use.
@@ -102,10 +99,10 @@ func (r *BindingREST) Create(ctx api.Context, obj runtime.Object) (out runtime.O
 	binding := obj.(*api.Binding)
 	// TODO: move me to a binding strategy
 	if len(binding.Target.Kind) != 0 && (binding.Target.Kind != "Node" && binding.Target.Kind != "Minion") {
-		return nil, errors.NewInvalid("binding", binding.Name, errors.ValidationErrorList{errors.NewFieldInvalid("to.kind", binding.Target.Kind, "must be empty, 'Node', or 'Minion'")})
+		return nil, errors.NewInvalid("binding", binding.Name, fielderrors.ValidationErrorList{fielderrors.NewFieldInvalid("to.kind", binding.Target.Kind, "must be empty, 'Node', or 'Minion'")})
 	}
 	if len(binding.Target.Name) == 0 {
-		return nil, errors.NewInvalid("binding", binding.Name, errors.ValidationErrorList{errors.NewFieldRequired("to.name")})
+		return nil, errors.NewInvalid("binding", binding.Name, fielderrors.ValidationErrorList{fielderrors.NewFieldRequired("to.name")})
 	}
 	err = r.assignPod(ctx, binding.Name, binding.Target.Name, binding.Annotations)
 	out = &api.Status{Status: api.StatusSuccess}

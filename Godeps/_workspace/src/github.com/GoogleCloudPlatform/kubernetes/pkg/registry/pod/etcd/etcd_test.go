@@ -26,9 +26,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	etcderrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest/resttest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
@@ -39,27 +38,6 @@ import (
 	"github.com/coreos/go-etcd/etcd"
 )
 
-type fakeCache struct {
-	requestedNamespace string
-	requestedName      string
-	clearedNamespace   string
-	clearedName        string
-
-	statusToReturn *api.PodStatus
-	errorToReturn  error
-}
-
-func (f *fakeCache) GetPodStatus(namespace, name string) (*api.PodStatus, error) {
-	f.requestedNamespace = namespace
-	f.requestedName = name
-	return f.statusToReturn, f.errorToReturn
-}
-
-func (f *fakeCache) ClearPodStatus(namespace, name string) {
-	f.clearedNamespace = namespace
-	f.clearedName = name
-}
-
 func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
@@ -69,8 +47,7 @@ func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
 
 func newStorage(t *testing.T) (*REST, *BindingREST, *StatusREST, *tools.FakeEtcdClient, tools.EtcdHelper) {
 	fakeEtcdClient, h := newHelper(t)
-	storage, bindingStorage, statusStorage := NewREST(h)
-	storage = storage.WithPodStatus(&fakeCache{statusToReturn: &api.PodStatus{}})
+	storage, bindingStorage, statusStorage := NewStorage(h)
 	return storage, bindingStorage, statusStorage, fakeEtcdClient, h
 }
 
@@ -112,9 +89,7 @@ func TestStorage(t *testing.T) {
 
 func TestCreate(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{statusToReturn: &api.PodStatus{}}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 	test := resttest.New(t, storage, fakeEtcdClient.SetError)
 	pod := validNewPod()
 	pod.ObjectMeta = api.ObjectMeta{}
@@ -132,9 +107,7 @@ func TestCreate(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{statusToReturn: &api.PodStatus{}}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 	test := resttest.New(t, storage, fakeEtcdClient.SetError)
 
 	createFn := func() runtime.Object {
@@ -155,7 +128,7 @@ func TestDelete(t *testing.T) {
 		}
 		return fakeEtcdClient.Data["/registry/pods/default/foo"].R.Node.TTL == 30
 	}
-	test.TestDeleteNoGraceful(createFn, gracefulSetFn)
+	test.TestDelete(createFn, gracefulSetFn)
 }
 
 func expectPod(t *testing.T, out runtime.Object) (*api.Pod, bool) {
@@ -170,7 +143,7 @@ func expectPod(t *testing.T, out runtime.Object) (*api.Pod, bool) {
 func TestCreateRegistryError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("test error")
-	storage, _, _ := NewREST(helper)
+	storage, _, _ := NewStorage(helper)
 
 	pod := validNewPod()
 	_, err := storage.Create(api.NewDefaultContext(), pod)
@@ -181,9 +154,7 @@ func TestCreateRegistryError(t *testing.T) {
 
 func TestCreateSetsFields(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{statusToReturn: &api.PodStatus{}}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 	pod := validNewPod()
 	_, err := storage.Create(api.NewDefaultContext(), pod)
 	if err != fakeEtcdClient.Err {
@@ -205,48 +176,13 @@ func TestCreateSetsFields(t *testing.T) {
 func TestListError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("test error")
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 	pods, err := storage.List(api.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != fakeEtcdClient.Err {
 		t.Fatalf("Expected %#v, Got %#v", fakeEtcdClient.Err, err)
 	}
 	if pods != nil {
 		t.Errorf("Unexpected non-nil pod list: %#v", pods)
-	}
-}
-
-func TestListCacheError(t *testing.T) {
-	fakeEtcdClient, helper := newHelper(t)
-	fakeEtcdClient.Data["/registry/pods/default"] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Nodes: []*etcd.Node{
-					{
-						Value: runtime.EncodeOrDie(latest.Codec, &api.Pod{
-							ObjectMeta: api.ObjectMeta{Name: "foo"},
-							Status:     api.PodStatus{Host: "machine"},
-						}),
-					},
-				},
-			},
-		},
-	}
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{errorToReturn: client.ErrPodInfoNotAvailable}
-	storage = storage.WithPodStatus(cache)
-
-	pods, err := storage.List(api.NewDefaultContext(), labels.Everything(), fields.Everything())
-	if err != nil {
-		t.Fatalf("Expected no error, got %#v", err)
-	}
-	pl := pods.(*api.PodList)
-	if len(pl.Items) != 1 {
-		t.Fatalf("Unexpected 0-len pod list: %+v", pl)
-	}
-	if e, a := api.PodUnknown, pl.Items[0].Status.Phase; e != a {
-		t.Errorf("Expected %v, got %v", e, a)
 	}
 }
 
@@ -258,9 +194,7 @@ func TestListEmptyPodList(t *testing.T) {
 		E: fakeEtcdClient.NewError(tools.EtcdErrorCodeNotFound),
 	}
 
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 	pods, err := storage.List(api.NewContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -283,7 +217,7 @@ func TestListPodList(t *testing.T) {
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Pod{
 							ObjectMeta: api.ObjectMeta{Name: "foo"},
-							Status:     api.PodStatus{Host: "machine"},
+							Status:     api.PodStatus{Phase: api.PodRunning, Host: "machine"},
 						}),
 					},
 					{
@@ -296,9 +230,7 @@ func TestListPodList(t *testing.T) {
 			},
 		},
 	}
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{statusToReturn: &api.PodStatus{Phase: api.PodRunning}}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 
 	podsObj, err := storage.List(api.NewDefaultContext(), labels.Everything(), fields.Everything())
 	pods := podsObj.(*api.PodList)
@@ -347,9 +279,7 @@ func TestListPodListSelection(t *testing.T) {
 			},
 		},
 	}
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{statusToReturn: &api.PodStatus{Phase: api.PodRunning}}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 
 	ctx := api.NewDefaultContext()
 
@@ -414,7 +344,7 @@ func TestListPodListSelection(t *testing.T) {
 }
 
 func TestPodDecode(t *testing.T) {
-	storage, _, _ := NewREST(tools.EtcdHelper{})
+	storage, _, _ := NewStorage(tools.EtcdHelper{})
 	expected := validNewPod()
 	body, err := latest.Codec.Encode(expected)
 	if err != nil {
@@ -433,6 +363,7 @@ func TestPodDecode(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	expect := validNewPod()
+	expect.Status.Phase = api.PodRunning
 	expect.Status.Host = "machine"
 
 	fakeEtcdClient, helper := newHelper(t)
@@ -443,9 +374,7 @@ func TestGet(t *testing.T) {
 			},
 		},
 	}
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{statusToReturn: &api.PodStatus{Phase: api.PodRunning}}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 
 	obj, err := storage.Get(api.WithNamespace(api.NewContext(), "test"), "foo")
 	pod := obj.(*api.Pod)
@@ -453,37 +382,8 @@ func TestGet(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expect.Status.Phase = api.PodRunning
 	if e, a := expect, pod; !api.Semantic.DeepEqual(e, a) {
 		t.Errorf("Unexpected pod: %s", util.ObjectDiff(e, a))
-	}
-}
-
-func TestGetCacheError(t *testing.T) {
-	expect := validNewPod()
-	expect.Status.Host = "machine"
-
-	fakeEtcdClient, helper := newHelper(t)
-	fakeEtcdClient.Data["/registry/pods/default/foo"] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, expect),
-			},
-		},
-	}
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{errorToReturn: client.ErrPodInfoNotAvailable}
-	storage = storage.WithPodStatus(cache)
-
-	obj, err := storage.Get(api.NewDefaultContext(), "foo")
-	pod := obj.(*api.Pod)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	expect.Status.Phase = api.PodUnknown
-	if e, a := expect, pod; !api.Semantic.DeepEqual(e, a) {
-		t.Errorf("unexpected object: %s", util.ObjectDiff(e, a))
 	}
 }
 
@@ -491,9 +391,7 @@ func TestGetCacheError(t *testing.T) {
 func TestPodStorageValidatesCreate(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("test error")
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{statusToReturn: &api.PodStatus{}}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 
 	pod := validNewPod()
 	pod.Labels = map[string]string{
@@ -511,9 +409,7 @@ func TestPodStorageValidatesCreate(t *testing.T) {
 // TODO: remove, this is covered by RESTTest.TestCreate
 func TestCreatePod(t *testing.T) {
 	_, helper := newHelper(t)
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{statusToReturn: &api.PodStatus{}}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 
 	pod := validNewPod()
 	obj, err := storage.Create(api.NewDefaultContext(), pod)
@@ -535,9 +431,7 @@ func TestCreatePod(t *testing.T) {
 // TODO: remove, this is covered by RESTTest.TestCreate
 func TestCreateWithConflictingNamespace(t *testing.T) {
 	_, helper := newHelper(t)
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 
 	pod := validNewPod()
 	pod.Namespace = "not-default"
@@ -566,9 +460,7 @@ func TestUpdateWithConflictingNamespace(t *testing.T) {
 			},
 		},
 	}
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 
 	pod := validChangedPod()
 	pod.Namespace = "not-default"
@@ -594,6 +486,7 @@ func TestResourceLocation(t *testing.T) {
 		{
 			pod: api.Pod{
 				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				Status:     api.PodStatus{PodIP: expectedIP},
 			},
 			query:    "foo",
 			location: expectedIP,
@@ -601,6 +494,7 @@ func TestResourceLocation(t *testing.T) {
 		{
 			pod: api.Pod{
 				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				Status:     api.PodStatus{PodIP: expectedIP},
 			},
 			query:    "foo:12345",
 			location: expectedIP + ":12345",
@@ -613,6 +507,7 @@ func TestResourceLocation(t *testing.T) {
 						{Name: "ctr"},
 					},
 				},
+				Status: api.PodStatus{PodIP: expectedIP},
 			},
 			query:    "foo",
 			location: expectedIP,
@@ -625,6 +520,7 @@ func TestResourceLocation(t *testing.T) {
 						{Name: "ctr", Ports: []api.ContainerPort{{ContainerPort: 9376}}},
 					},
 				},
+				Status: api.PodStatus{PodIP: expectedIP},
 			},
 			query:    "foo",
 			location: expectedIP + ":9376",
@@ -637,6 +533,7 @@ func TestResourceLocation(t *testing.T) {
 						{Name: "ctr", Ports: []api.ContainerPort{{ContainerPort: 9376}}},
 					},
 				},
+				Status: api.PodStatus{PodIP: expectedIP},
 			},
 			query:    "foo:12345",
 			location: expectedIP + ":12345",
@@ -650,6 +547,7 @@ func TestResourceLocation(t *testing.T) {
 						{Name: "ctr2", Ports: []api.ContainerPort{{ContainerPort: 9376}}},
 					},
 				},
+				Status: api.PodStatus{PodIP: expectedIP},
 			},
 			query:    "foo",
 			location: expectedIP + ":9376",
@@ -663,6 +561,7 @@ func TestResourceLocation(t *testing.T) {
 						{Name: "ctr2", Ports: []api.ContainerPort{{ContainerPort: 1234}}},
 					},
 				},
+				Status: api.PodStatus{PodIP: expectedIP},
 			},
 			query:    "foo",
 			location: expectedIP + ":9376",
@@ -678,18 +577,22 @@ func TestResourceLocation(t *testing.T) {
 				},
 			},
 		}
-		storage, _, _ := NewREST(helper)
-		cache := &fakeCache{statusToReturn: &api.PodStatus{PodIP: expectedIP}}
-		storage = storage.WithPodStatus(cache)
+		storage, _, _ := NewStorage(helper)
 
-		redirector := apiserver.Redirector(storage)
-		location, err := redirector.ResourceLocation(api.NewDefaultContext(), tc.query)
+		redirector := rest.Redirector(storage)
+		location, _, err := redirector.ResourceLocation(api.NewDefaultContext(), tc.query)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
+		if location == nil {
+			t.Errorf("Unexpected nil: %v", location)
+		}
 
-		if location != tc.location {
-			t.Errorf("Expected %v, but got %v", tc.location, location)
+		if location.Scheme != "" {
+			t.Errorf("Expected '%v', but got '%v'", "", location.Scheme)
+		}
+		if location.Host != tc.location {
+			t.Errorf("Expected %v, but got %v", tc.location, location.Host)
 		}
 	}
 }
@@ -712,16 +615,11 @@ func TestDeletePod(t *testing.T) {
 			},
 		},
 	}
-	storage, _, _ := NewREST(helper)
-	cache := &fakeCache{statusToReturn: &api.PodStatus{}}
-	storage = storage.WithPodStatus(cache)
+	storage, _, _ := NewStorage(helper)
 
-	result, err := storage.Delete(api.NewDefaultContext(), "foo", nil)
+	_, err := storage.Delete(api.NewDefaultContext(), "foo", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
-	}
-	if cache.clearedNamespace != "default" || cache.clearedName != "foo" {
-		t.Fatalf("Unexpected cache delete: %s %s %#v", cache.clearedName, cache.clearedNamespace, result)
 	}
 }
 

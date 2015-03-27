@@ -25,10 +25,20 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
+)
+
+// Etcd watch event actions
+const (
+	EtcdCreate = "create"
+	EtcdGet    = "get"
+	EtcdSet    = "set"
+	EtcdCAS    = "compareAndSwap"
+	EtcdDelete = "delete"
 )
 
 // FilterFunc is a predicate which takes an API object and returns true
@@ -51,7 +61,7 @@ func ParseWatchResourceVersion(resourceVersion, kind string) (uint64, error) {
 	version, err := strconv.ParseUint(resourceVersion, 10, 64)
 	if err != nil {
 		// TODO: Does this need to be a ValidationErrorList?  I can't convince myself it does.
-		return 0, errors.NewInvalid(kind, "", errors.ValidationErrorList{errors.NewFieldInvalid("resourceVersion", resourceVersion, err.Error())})
+		return 0, errors.NewInvalid(kind, "", fielderrors.ValidationErrorList{fielderrors.NewFieldInvalid("resourceVersion", resourceVersion, err.Error())})
 	}
 	return version + 1, nil
 }
@@ -376,11 +386,11 @@ func (w *etcdWatcher) sendDelete(res *etcd.Response) {
 
 func (w *etcdWatcher) sendResult(res *etcd.Response) {
 	switch res.Action {
-	case "create", "get":
+	case EtcdCreate, EtcdGet:
 		w.sendAdd(res)
-	case "set", "compareAndSwap":
+	case EtcdSet, EtcdCAS:
 		w.sendModify(res)
-	case "delete":
+	case EtcdDelete:
 		w.sendDelete(res)
 	default:
 		glog.Errorf("unknown action: %v", res.Action)
