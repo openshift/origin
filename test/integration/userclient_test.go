@@ -10,6 +10,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -39,7 +40,7 @@ func TestUserInitialization(t *testing.T) {
 	etcdClient := testutil.NewEtcdClient()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	userRegistry := etcd.New(tools.NewEtcdHelper(etcdClient, interfaces.Codec), user.NewDefaultUserInitStrategy())
-	storage := map[string]apiserver.RESTStorage{
+	storage := map[string]rest.Storage{
 		"userIdentityMappings": useridentitymapping.NewREST(userRegistry),
 		"users":                userregistry.NewREST(userRegistry),
 	}
@@ -182,7 +183,7 @@ func TestUserLookup(t *testing.T) {
 	}
 	contextMapper := kapi.NewRequestContextMapper()
 
-	storage := map[string]apiserver.RESTStorage{
+	storage := map[string]rest.Storage{
 		"userIdentityMappings": useridentitymapping.NewREST(userRegistry),
 		"users":                userregistry.NewREST(userRegistry),
 	}

@@ -11,6 +11,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -76,7 +77,14 @@ func TestImageRepositoryCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if !reflect.DeepEqual(expected, actual) {
+
+	// compareImageRepos compares everything except the status.dockerimagerepository which can be
+	// changed after create
+	if !reflect.DeepEqual(expected.ObjectMeta, actual.ObjectMeta) ||
+			!reflect.DeepEqual(expected.TypeMeta, actual.TypeMeta) ||
+			!reflect.DeepEqual(expected.Tags, actual.Tags) ||
+			!reflect.DeepEqual(expected.Status.Tags, actual.Status.Tags) ||
+			expected.DockerImageRepository != actual.DockerImageRepository {
 		t.Errorf("unexpected object: %s", util.ObjectDiff(expected, actual))
 	}
 
@@ -299,7 +307,7 @@ func NewTestImageOpenShift(t *testing.T) *testImageOpenshift {
 	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(etcdHelper, imagerepository.DefaultRegistryFunc(func() (string, bool) { return openshift.dockerServer.URL, true }))
 	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
 
-	storage := map[string]apiserver.RESTStorage{
+	storage := map[string]rest.Storage{
 		"images":                   imageStorage,
 		"imageRepositories":        imageRepositoryStorage,
 		"imageRepositories/status": imageRepositoryStatus,

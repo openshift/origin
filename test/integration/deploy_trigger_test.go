@@ -11,6 +11,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -305,14 +306,15 @@ func assertEnvVarEquals(name string, value string, deployment *kapi.ReplicationC
 	t.Fatalf("Expected env var with name %s and value %s", name, value)
 }
 
-type podInfoGetter struct {
-	PodInfo kapi.PodInfo
-	Error   error
-}
-
-func (p *podInfoGetter) GetPodInfo(host, namespace, podID string) (kapi.PodInfo, error) {
-	return p.PodInfo, p.Error
-}
+//
+//type podInfoGetter struct {
+//	PodInfo kapi.PodInfo
+//	Error   error
+//}
+//
+//func (p *podInfoGetter) GetPodInfo(host, namespace, podID string) (kapi.PodInfo, error) {
+//	return p.PodInfo, p.Error
+//}
 
 type testOpenshift struct {
 	Client     *osclient.Client
@@ -378,7 +380,7 @@ func NewTestOpenshift(t *testing.T) *testOpenshift {
 
 	buildEtcd := buildetcd.New(etcdHelper)
 
-	storage := map[string]apiserver.RESTStorage{
+	storage := map[string]rest.Storage{
 		"images":                   imageStorage,
 		"imageStreams":             imageRepositoryStorage,
 		"imageStreamImages":        imageStreamImageStorage,
