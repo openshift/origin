@@ -21,9 +21,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"strings"
 	"sync"
@@ -34,6 +36,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	apierrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -120,30 +123,31 @@ func init() {
 // defaultAPIServer exposes nested objects for testability.
 type defaultAPIServer struct {
 	http.Handler
-	group *APIGroupVersion
+	group     *APIGroupVersion
+	container *restful.Container
 }
 
 // uses the default settings
-func handle(storage map[string]RESTStorage) http.Handler {
+func handle(storage map[string]rest.Storage) http.Handler {
 	return handleInternal(storage, admissionControl, mapper, selfLinker)
 }
 
 // tests with a deny admission controller
-func handleDeny(storage map[string]RESTStorage) http.Handler {
+func handleDeny(storage map[string]rest.Storage) http.Handler {
 	return handleInternal(storage, deny.NewAlwaysDeny(), mapper, selfLinker)
 }
 
 // tests using the new namespace scope mechanism
-func handleNamespaced(storage map[string]RESTStorage) http.Handler {
+func handleNamespaced(storage map[string]rest.Storage) http.Handler {
 	return handleInternal(storage, admissionControl, namespaceMapper, selfLinker)
 }
 
 // tests using a custom self linker
-func handleLinker(storage map[string]RESTStorage, selfLinker runtime.SelfLinker) http.Handler {
+func handleLinker(storage map[string]rest.Storage, selfLinker runtime.SelfLinker) http.Handler {
 	return handleInternal(storage, admissionControl, mapper, selfLinker)
 }
 
-func handleInternal(storage map[string]RESTStorage, admissionControl admission.Interface, mapper meta.RESTMapper, selfLinker runtime.SelfLinker) http.Handler {
+func handleInternal(storage map[string]rest.Storage, admissionControl admission.Interface, mapper meta.RESTMapper, selfLinker runtime.SelfLinker) http.Handler {
 	group := &APIGroupVersion{
 		Storage: storage,
 
@@ -167,7 +171,7 @@ func handleInternal(storage map[string]RESTStorage, admissionControl admission.I
 	ws := new(restful.WebService)
 	InstallSupport(mux, ws)
 	container.Add(ws)
-	return &defaultAPIServer{mux, group}
+	return &defaultAPIServer{mux, group, container}
 }
 
 type Simple struct {
@@ -210,6 +214,8 @@ type SimpleRESTStorage struct {
 	updated *Simple
 	created *Simple
 
+	stream *SimpleStream
+
 	deleted       string
 	deleteOptions *api.DeleteOptions
 
@@ -225,7 +231,7 @@ type SimpleRESTStorage struct {
 
 	// The id requested, and location to return for ResourceLocation
 	requestedResourceLocationID string
-	resourceLocation            string
+	resourceLocation            *url.URL
 	expectedResourceNamespace   string
 
 	// If non-nil, called inside the WorkFunc when answering update, delete, create.
@@ -241,8 +247,34 @@ func (storage *SimpleRESTStorage) List(ctx api.Context, label labels.Selector, f
 	return result, storage.errors["list"]
 }
 
+type SimpleStream struct {
+	version     string
+	accept      string
+	contentType string
+	err         error
+
+	io.Reader
+	closed bool
+}
+
+func (s *SimpleStream) Close() error {
+	s.closed = true
+	return nil
+}
+
+func (s *SimpleStream) IsAnAPIObject() {}
+
+func (s *SimpleStream) InputStream(version, accept string) (io.ReadCloser, string, error) {
+	s.version = version
+	s.accept = accept
+	return s, s.contentType, s.err
+}
+
 func (storage *SimpleRESTStorage) Get(ctx api.Context, id string) (runtime.Object, error) {
 	storage.checkContext(ctx)
+	if id == "binary" {
+		return storage.stream, storage.errors["get"]
+	}
 	return api.Scheme.CopyOrDie(&storage.item), storage.errors["get"]
 }
 
@@ -314,18 +346,23 @@ func (storage *SimpleRESTStorage) Watch(ctx api.Context, label labels.Selector, 
 }
 
 // Implement Redirector.
-func (storage *SimpleRESTStorage) ResourceLocation(ctx api.Context, id string) (string, error) {
+var _ = rest.Redirector(&SimpleRESTStorage{})
+
+// Implement Redirector.
+func (storage *SimpleRESTStorage) ResourceLocation(ctx api.Context, id string) (*url.URL, http.RoundTripper, error) {
 	storage.checkContext(ctx)
 	// validate that the namespace context on the request matches the expected input
 	storage.requestedResourceNamespace = api.NamespaceValue(ctx)
 	if storage.expectedResourceNamespace != storage.requestedResourceNamespace {
-		return "", fmt.Errorf("Expected request namespace %s, but got namespace %s", storage.expectedResourceNamespace, storage.requestedResourceNamespace)
+		return nil, nil, fmt.Errorf("Expected request namespace %s, but got namespace %s", storage.expectedResourceNamespace, storage.requestedResourceNamespace)
 	}
 	storage.requestedResourceLocationID = id
 	if err := storage.errors["resourceLocation"]; err != nil {
-		return "", err
+		return nil, nil, err
 	}
-	return storage.resourceLocation, nil
+	// Make a copy so the internal URL never gets mutated
+	locationCopy := *storage.resourceLocation
+	return &locationCopy, nil, nil
 }
 
 type LegacyRESTStorage struct {
@@ -334,6 +371,15 @@ type LegacyRESTStorage struct {
 
 func (storage LegacyRESTStorage) Delete(ctx api.Context, id string) (runtime.Object, error) {
 	return storage.SimpleRESTStorage.Delete(ctx, id, nil)
+}
+
+type MetadataRESTStorage struct {
+	*SimpleRESTStorage
+	types []string
+}
+
+func (m *MetadataRESTStorage) ProducesMIMETypes(method string) []string {
+	return m.types
 }
 
 func extractBody(response *http.Response, object runtime.Object) (string, error) {
@@ -365,7 +411,7 @@ func TestNotFound(t *testing.T) {
 		"watch missing storage":        {"GET", "/api/version/watch/", http.StatusNotFound},
 		"watch with bad method":        {"POST", "/api/version/watch/foo/bar", http.StatusMethodNotAllowed},
 	}
-	handler := handle(map[string]RESTStorage{
+	handler := handle(map[string]rest.Storage{
 		"foo": &SimpleRESTStorage{},
 	})
 	server := httptest.NewServer(handler)
@@ -395,7 +441,7 @@ func (UnimplementedRESTStorage) New() runtime.Object {
 	return &Simple{}
 }
 
-// TestUnimplementedRESTStorage ensures that if a RESTStorage does not implement a given
+// TestUnimplementedRESTStorage ensures that if a rest.Storage does not implement a given
 // method, that it is literally not registered with the server.  In the past,
 // we registered everything, and returned method not supported if it didn't support
 // a verb.  Now we literally do not register a storage if it does not implement anything.
@@ -417,7 +463,7 @@ func TestUnimplementedRESTStorage(t *testing.T) {
 		"proxy object":    {"GET", "/api/version/proxy/foo/bar", http.StatusNotFound},
 		"redirect object": {"GET", "/api/version/redirect/foo/bar", http.StatusNotFound},
 	}
-	handler := handle(map[string]RESTStorage{
+	handler := handle(map[string]rest.Storage{
 		"foo": UnimplementedRESTStorage{},
 	})
 	server := httptest.NewServer(handler)
@@ -444,7 +490,7 @@ func TestUnimplementedRESTStorage(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	handler := handle(map[string]RESTStorage{})
+	handler := handle(map[string]rest.Storage{})
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}
@@ -487,7 +533,7 @@ func TestList(t *testing.T) {
 		{"/api/version/simple", "", "/api/version/simple", false},
 	}
 	for i, testCase := range testCases {
-		storage := map[string]RESTStorage{}
+		storage := map[string]rest.Storage{}
 		simpleStorage := SimpleRESTStorage{expectedResourceNamespace: testCase.namespace}
 		storage["simple"] = &simpleStorage
 		selfLinker := &setTestSelfLinker{
@@ -525,7 +571,7 @@ func TestList(t *testing.T) {
 }
 
 func TestErrorList(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{
 		errors: map[string]error{"list": fmt.Errorf("test Error")},
 	}
@@ -545,7 +591,7 @@ func TestErrorList(t *testing.T) {
 }
 
 func TestNonEmptyList(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{
 		list: []Simple{
 			{
@@ -593,7 +639,7 @@ func TestNonEmptyList(t *testing.T) {
 }
 
 func TestSelfLinkSkipsEmptyName(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{
 		list: []Simple{
 			{
@@ -639,8 +685,28 @@ func TestSelfLinkSkipsEmptyName(t *testing.T) {
 	}
 }
 
+func TestMetadata(t *testing.T) {
+	simpleStorage := &MetadataRESTStorage{&SimpleRESTStorage{}, []string{"text/plain"}}
+	h := handle(map[string]rest.Storage{"simple": simpleStorage})
+	ws := h.(*defaultAPIServer).container.RegisteredWebServices()
+	if len(ws) == 0 {
+		t.Fatal("no web services registered")
+	}
+	matches := map[string]int{}
+	for _, w := range ws {
+		for _, r := range w.Routes() {
+			s := strings.Join(r.Produces, ",")
+			i := matches[s]
+			matches[s] = i + 1
+		}
+	}
+	if matches["text/plain,application/json"] == 0 || matches["application/json"] == 0 || matches["*/*"] == 0 || len(matches) != 3 {
+		t.Errorf("unexpected mime types: %v", matches)
+	}
+}
+
 func TestGet(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{
 		item: Simple{
 			Other: "foo",
@@ -678,8 +744,38 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestGetBinary(t *testing.T) {
+	simpleStorage := SimpleRESTStorage{
+		stream: &SimpleStream{
+			contentType: "text/plain",
+			Reader:      bytes.NewBufferString("response data"),
+		},
+	}
+	stream := simpleStorage.stream
+	server := httptest.NewServer(handle(map[string]rest.Storage{"simple": &simpleStorage}))
+	defer server.Close()
+
+	req, _ := http.NewRequest("GET", server.URL+"/api/version/simple/binary", nil)
+	req.Header.Add("Accept", "text/other, */*")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected response: %#v", resp)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !stream.closed || stream.version != "version" || stream.accept != "text/other, */*" ||
+		resp.Header.Get("Content-Type") != stream.contentType || string(body) != "response data" {
+		t.Errorf("unexpected stream: %#v", stream)
+	}
+}
+
 func TestGetAlternateSelfLink(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{
 		item: Simple{
 			Other: "foo",
@@ -717,7 +813,7 @@ func TestGetAlternateSelfLink(t *testing.T) {
 }
 
 func TestGetNamespaceSelfLink(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{
 		item: Simple{
 			Other: "foo",
@@ -754,7 +850,7 @@ func TestGetNamespaceSelfLink(t *testing.T) {
 	}
 }
 func TestGetMissing(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{
 		errors: map[string]error{"get": apierrs.NewNotFound("simple", "id")},
 	}
@@ -774,7 +870,7 @@ func TestGetMissing(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = &simpleStorage
@@ -797,7 +893,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestDeleteWithOptions(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = &simpleStorage
@@ -834,11 +930,11 @@ func TestDeleteWithOptions(t *testing.T) {
 }
 
 func TestLegacyDelete(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = LegacyRESTStorage{&simpleStorage}
-	var _ RESTDeleter = storage["simple"].(LegacyRESTStorage)
+	var _ rest.Deleter = storage["simple"].(LegacyRESTStorage)
 	handler := handle(storage)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -861,7 +957,7 @@ func TestLegacyDelete(t *testing.T) {
 }
 
 func TestLegacyDeleteIgnoresOptions(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = LegacyRESTStorage{&simpleStorage}
@@ -893,7 +989,7 @@ func TestLegacyDeleteIgnoresOptions(t *testing.T) {
 }
 
 func TestDeleteInvokesAdmissionControl(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = &simpleStorage
@@ -913,7 +1009,7 @@ func TestDeleteInvokesAdmissionControl(t *testing.T) {
 }
 
 func TestDeleteMissing(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	ID := "id"
 	simpleStorage := SimpleRESTStorage{
 		errors: map[string]error{"delete": apierrs.NewNotFound("simple", ID)},
@@ -936,7 +1032,7 @@ func TestDeleteMissing(t *testing.T) {
 }
 
 func TestPatch(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	ID := "id"
 	item := &Simple{
 		ObjectMeta: api.ObjectMeta{
@@ -973,7 +1069,7 @@ func TestPatch(t *testing.T) {
 }
 
 func TestPatchRequiresMatchingName(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	ID := "id"
 	item := &Simple{
 		ObjectMeta: api.ObjectMeta{
@@ -1000,7 +1096,7 @@ func TestPatchRequiresMatchingName(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = &simpleStorage
@@ -1043,7 +1139,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateInvokesAdmissionControl(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = &simpleStorage
@@ -1076,7 +1172,7 @@ func TestUpdateInvokesAdmissionControl(t *testing.T) {
 }
 
 func TestUpdateRequiresMatchingName(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = &simpleStorage
@@ -1105,7 +1201,7 @@ func TestUpdateRequiresMatchingName(t *testing.T) {
 }
 
 func TestUpdateAllowsMissingNamespace(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = &simpleStorage
@@ -1138,7 +1234,7 @@ func TestUpdateAllowsMissingNamespace(t *testing.T) {
 
 // when the object name and namespace can't be retrieved, skip name checking
 func TestUpdateAllowsMismatchedNamespaceOnError(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = &simpleStorage
@@ -1179,7 +1275,7 @@ func TestUpdateAllowsMismatchedNamespaceOnError(t *testing.T) {
 }
 
 func TestUpdatePreventsMismatchedNamespace(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{}
 	ID := "id"
 	storage["simple"] = &simpleStorage
@@ -1212,7 +1308,7 @@ func TestUpdatePreventsMismatchedNamespace(t *testing.T) {
 }
 
 func TestUpdateMissing(t *testing.T) {
-	storage := map[string]RESTStorage{}
+	storage := map[string]rest.Storage{}
 	ID := "id"
 	simpleStorage := SimpleRESTStorage{
 		errors: map[string]error{"update": apierrs.NewNotFound("simple", ID)},
@@ -1246,7 +1342,7 @@ func TestUpdateMissing(t *testing.T) {
 }
 
 func TestCreateNotFound(t *testing.T) {
-	handler := handle(map[string]RESTStorage{
+	handler := handle(map[string]rest.Storage{
 		"simple": &SimpleRESTStorage{
 			// storage.Create can fail with not found error in theory.
 			// See https://github.com/GoogleCloudPlatform/kubernetes/pull/486#discussion_r15037092.
@@ -1275,7 +1371,7 @@ func TestCreateNotFound(t *testing.T) {
 }
 
 func TestCreateChecksDecode(t *testing.T) {
-	handler := handle(map[string]RESTStorage{"simple": &SimpleRESTStorage{}})
+	handler := handle(map[string]rest.Storage{"simple": &SimpleRESTStorage{}})
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}
@@ -1299,7 +1395,7 @@ func TestCreateChecksDecode(t *testing.T) {
 }
 
 func TestUpdateChecksDecode(t *testing.T) {
-	handler := handle(map[string]RESTStorage{"simple": &SimpleRESTStorage{}})
+	handler := handle(map[string]rest.Storage{"simple": &SimpleRESTStorage{}})
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}
@@ -1367,7 +1463,7 @@ func TestCreate(t *testing.T) {
 		namespace:   "default",
 		expectedSet: "/api/version/foo/bar?namespace=default",
 	}
-	handler := handleLinker(map[string]RESTStorage{"foo": &storage}, selfLinker)
+	handler := handleLinker(map[string]rest.Storage{"foo": &storage}, selfLinker)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}
@@ -1423,7 +1519,7 @@ func TestCreateInNamespace(t *testing.T) {
 		namespace:   "other",
 		expectedSet: "/api/version/foo/bar?namespace=other",
 	}
-	handler := handleLinker(map[string]RESTStorage{"foo": &storage}, selfLinker)
+	handler := handleLinker(map[string]rest.Storage{"foo": &storage}, selfLinker)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}
@@ -1479,7 +1575,7 @@ func TestCreateInvokesAdmissionControl(t *testing.T) {
 		namespace:   "other",
 		expectedSet: "/api/version/foo/bar?namespace=other",
 	}
-	handler := handleInternal(map[string]RESTStorage{"foo": &storage}, deny.NewAlwaysDeny(), mapper, selfLinker)
+	handler := handleInternal(map[string]rest.Storage{"foo": &storage}, deny.NewAlwaysDeny(), mapper, selfLinker)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}
@@ -1539,7 +1635,7 @@ func TestDelayReturnsError(t *testing.T) {
 			return nil, apierrs.NewAlreadyExists("foo", "bar")
 		},
 	}
-	handler := handle(map[string]RESTStorage{"foo": &storage})
+	handler := handle(map[string]rest.Storage{"foo": &storage})
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -1603,7 +1699,7 @@ func TestCreateTimeout(t *testing.T) {
 			return obj, nil
 		},
 	}
-	handler := handle(map[string]RESTStorage{
+	handler := handle(map[string]rest.Storage{
 		"foo": &storage,
 	})
 	server := httptest.NewServer(handler)
@@ -1637,7 +1733,7 @@ func TestCORSAllowedOrigins(t *testing.T) {
 		}
 
 		handler := CORS(
-			handle(map[string]RESTStorage{}),
+			handle(map[string]rest.Storage{}),
 			allowedOriginRegexps, nil, nil, "true",
 		)
 		server := httptest.NewServer(handler)

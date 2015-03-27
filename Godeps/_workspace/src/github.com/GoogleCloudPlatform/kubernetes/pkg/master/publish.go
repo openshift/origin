@@ -22,7 +22,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 
 	"github.com/golang/glog"
 )
@@ -40,7 +40,7 @@ func (m *Master) serviceWriterLoop(stop chan struct{}) {
 			if err := m.createMasterServiceIfNeeded("kubernetes", m.serviceReadWriteIP, m.serviceReadWritePort); err != nil {
 				glog.Errorf("Can't create rw service: %v", err)
 			}
-			if err := m.ensureEndpointsContain("kubernetes", m.publicIP, m.publicReadWritePort); err != nil {
+			if err := m.ensureEndpointsContain("kubernetes", m.clusterIP, m.publicReadWritePort); err != nil {
 				glog.Errorf("Can't create rw endpoints: %v", err)
 			}
 		}
@@ -65,7 +65,7 @@ func (m *Master) roServiceWriterLoop(stop chan struct{}) {
 			if err := m.createMasterServiceIfNeeded("kubernetes-ro", m.serviceReadOnlyIP, m.serviceReadOnlyPort); err != nil {
 				glog.Errorf("Can't create ro service: %v", err)
 			}
-			if err := m.ensureEndpointsContain("kubernetes-ro", m.publicIP, m.publicReadOnlyPort); err != nil {
+			if err := m.ensureEndpointsContain("kubernetes-ro", m.clusterIP, m.publicReadOnlyPort); err != nil {
 				glog.Errorf("Can't create ro endpoints: %v", err)
 			}
 		}
@@ -91,7 +91,7 @@ func (m *Master) createMasterNamespaceIfNeeded(ns string) error {
 			Namespace: "",
 		},
 	}
-	_, err := m.storage["namespaces"].(apiserver.RESTCreater).Create(ctx, namespace)
+	_, err := m.storage["namespaces"].(rest.Creater).Create(ctx, namespace)
 	if err != nil && errors.IsAlreadyExists(err) {
 		err = nil
 	}
@@ -121,7 +121,7 @@ func (m *Master) createMasterServiceIfNeeded(serviceName string, serviceIP net.I
 			SessionAffinity: api.AffinityTypeNone,
 		},
 	}
-	_, err := m.storage["services"].(apiserver.RESTCreater).Create(ctx, svc)
+	_, err := m.storage["services"].(rest.Creater).Create(ctx, svc)
 	if err != nil && errors.IsAlreadyExists(err) {
 		err = nil
 	}

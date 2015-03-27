@@ -67,6 +67,9 @@ func init() {
 			if obj.RestartPolicy == "" {
 				obj.RestartPolicy = RestartPolicyAlways
 			}
+			if obj.HostNetwork {
+				defaultHostNetworkPorts(&obj.Containers)
+			}
 		},
 		func(obj *Probe) {
 			if obj.TimeoutSeconds == 0 {
@@ -89,9 +92,9 @@ func init() {
 			}
 		},
 		func(obj *ServiceSpec) {
-			if obj.ContainerPort.Kind == util.IntstrInt && obj.ContainerPort.IntVal == 0 ||
-				obj.ContainerPort.Kind == util.IntstrString && obj.ContainerPort.StrVal == "" {
-				obj.ContainerPort = util.NewIntOrStringFromInt(obj.Port)
+			if obj.TargetPort.Kind == util.IntstrInt && obj.TargetPort.IntVal == 0 ||
+				obj.TargetPort.Kind == util.IntstrString && obj.TargetPort.StrVal == "" {
+				obj.TargetPort = util.NewIntOrStringFromInt(obj.Port)
 			}
 		},
 		func(obj *NamespaceStatus) {
@@ -100,4 +103,15 @@ func init() {
 			}
 		},
 	)
+}
+
+// With host networking default all container ports to host ports.
+func defaultHostNetworkPorts(containers *[]Container) {
+	for i := range *containers {
+		for j := range (*containers)[i].Ports {
+			if (*containers)[i].Ports[j].HostPort == 0 {
+				(*containers)[i].Ports[j].HostPort = (*containers)[i].Ports[j].ContainerPort
+			}
+		}
+	}
 }

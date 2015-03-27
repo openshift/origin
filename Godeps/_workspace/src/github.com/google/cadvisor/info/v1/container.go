@@ -81,7 +81,9 @@ func (self ContainerReferenceSlice) Less(i, j int) bool { return self[i].Name < 
 // ContainerInfoQuery is used when users check a container info from the REST api.
 // It specifies how much data users want to get about a container
 type ContainerInfoRequest struct {
-	// Max number of stats to return.
+	// Max number of stats to return. Specify -1 for all stats currently available.
+	// If start and end time are specified this limit is ignored.
+	// Default: 60
 	NumStats int `json:"num_stats,omitempty"`
 
 	// Start time for which to query information.
@@ -91,6 +93,13 @@ type ContainerInfoRequest struct {
 	// End time for which to query information.
 	// If ommitted, current time is assumed.
 	End time.Time `json:"end,omitempty"`
+}
+
+// Returns a ContainerInfoRequest with all default values specified.
+func DefaultContainerInfoRequest() ContainerInfoRequest {
+	return ContainerInfoRequest{
+		NumStats: 60,
+	}
 }
 
 func (self *ContainerInfoRequest) Equals(other ContainerInfoRequest) bool {
@@ -234,25 +243,28 @@ type LoadStats struct {
 	NrIoWait uint64 `json:"nr_io_wait"`
 }
 
+// CPU usage time statistics.
+type CpuUsage struct {
+	// Total CPU usage.
+	// Units: nanoseconds
+	Total uint64 `json:"total"`
+
+	// Per CPU/core usage of the container.
+	// Unit: nanoseconds.
+	PerCpu []uint64 `json:"per_cpu_usage,omitempty"`
+
+	// Time spent in user space.
+	// Unit: nanoseconds
+	User uint64 `json:"user"`
+
+	// Time spent in kernel space.
+	// Unit: nanoseconds
+	System uint64 `json:"system"`
+}
+
 // All CPU usage metrics are cumulative from the creation of the container
 type CpuStats struct {
-	Usage struct {
-		// Total CPU usage.
-		// Units: nanoseconds
-		Total uint64 `json:"total"`
-
-		// Per CPU/core usage of the container.
-		// Unit: nanoseconds.
-		PerCpu []uint64 `json:"per_cpu_usage,omitempty"`
-
-		// Time spent in user space.
-		// Unit: nanoseconds
-		User uint64 `json:"user"`
-
-		// Time spent in kernel space.
-		// Unit: nanoseconds
-		System uint64 `json:"system"`
-	} `json:"usage"`
+	Usage CpuUsage `json:"usage"`
 	// Smoothed average of number of runnable threads x 1000.
 	// We multiply by thousand to avoid using floats, but preserving precision.
 	// Load is smoothed over the last 10 seconds. Instantaneous value can be read

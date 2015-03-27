@@ -216,22 +216,22 @@ func (factory *ConfigFactory) pollMinions() (cache.Enumerator, error) {
 			conditionMap[cond.Type] = &cond
 		}
 		if condition, ok := conditionMap[api.NodeSchedulable]; ok {
-			if condition.Status != api.ConditionFull {
+			if condition.Status != api.ConditionTrue {
 				continue
 			}
 		}
 		if condition, ok := conditionMap[api.NodeReady]; ok {
-			if condition.Status == api.ConditionFull {
+			if condition.Status == api.ConditionTrue {
 				nodes.Items = append(nodes.Items, node)
 			}
 		} else if condition, ok := conditionMap[api.NodeReachable]; ok {
-			if condition.Status == api.ConditionFull {
+			if condition.Status == api.ConditionTrue {
 				nodes.Items = append(nodes.Items, node)
 			}
 		} else {
 			// If no condition is set, we get unknown node condition. In such cases,
-			// we add nodes unconditionally.
-			nodes.Items = append(nodes.Items, node)
+			// do not add the node
+			glog.V(2).Infof("Minion %s is not available.  Skipping", node.Name)
 		}
 	}
 	return &nodeEnumerator{nodes}, nil
