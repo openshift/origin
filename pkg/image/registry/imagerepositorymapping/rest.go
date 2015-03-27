@@ -48,6 +48,9 @@ func (r *REST) New() runtime.Object {
 	return &api.ImageRepositoryMapping{}
 }
 
+func (imageRepositoryMappingStrategy) PrepareForCreate(obj runtime.Object) {}
+func (imageRepositoryMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+
 // NamespaceScoped is true for image repository mappings.
 func (s imageRepositoryMappingStrategy) NamespaceScoped() bool {
 	return true

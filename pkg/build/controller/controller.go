@@ -170,7 +170,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	case kapi.PodSucceeded, kapi.PodFailed:
 		// Check the exit codes of all the containers in the pod
 		nextStatus = buildapi.BuildStatusComplete
-		for _, info := range pod.Status.Info {
+		for _, info := range pod.Status.ContainerStatuses {
 			if info.State.Termination != nil && info.State.Termination.ExitCode != 0 {
 				nextStatus = buildapi.BuildStatusFailed
 				break

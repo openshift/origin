@@ -24,6 +24,9 @@ type imageStrategy struct {
 // Image objects via the REST API.
 var Strategy = imageStrategy{kapi.Scheme, kapi.SimpleNameGenerator}
 
+func (imageStrategy) PrepareForCreate(obj runtime.Object) {}
+func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+
 // NamespaceScoped is false for images.
 func (imageStrategy) NamespaceScoped() bool {
 	return false

@@ -101,7 +101,7 @@ func ValidateSpecifiedIP(ipString string, field string) fielderrors.ValidationEr
 }
 
 func ValidateURL(urlString string, field string) (*url.URL, fielderrors.ValidationErrorList) {
-	allErrs := errs.ValidationErrorList{}
+	allErrs := fielderrors.ValidationErrorList{}
 
 	urlObj, err := url.Parse(urlString)
 	if err != nil {
@@ -146,14 +146,14 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 		if colocated {
 			publicURL, _ := url.Parse(config.AssetConfig.PublicURL)
 			if publicURL.Path == "/" {
-				allErrs = append(allErrs, errs.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
 			}
 		}
 
 		if config.OAuthConfig != nil && config.OAuthConfig.AssetPublicURL != config.AssetConfig.PublicURL {
 			allErrs = append(allErrs,
-				errs.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "must match oauthConfig.assetPublicURL"),
-				errs.NewFieldInvalid("oauthConfig.assetPublicURL", config.OAuthConfig.AssetPublicURL, "must match assetConfig.publicURL"),
+				fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "must match oauthConfig.assetPublicURL"),
+				fielderrors.NewFieldInvalid("oauthConfig.assetPublicURL", config.OAuthConfig.AssetPublicURL, "must match assetConfig.publicURL"),
 			)
 		}
 

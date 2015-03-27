@@ -36,6 +36,9 @@ func (templateStrategy) NamespaceScoped() bool {
 	return true
 }
 
+func (templateStrategy) PrepareForCreate(obj runtime.Object) {}
+func (templateStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+
 // ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
 func (templateStrategy) ResetBeforeCreate(obj runtime.Object) {
 }

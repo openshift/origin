@@ -27,6 +27,9 @@ func NewStrategy(defaultRegistry DefaultRegistry) Strategy {
 	return Strategy{kapi.Scheme, kapi.SimpleNameGenerator, defaultRegistry}
 }
 
+func (Strategy) PrepareForCreate(obj runtime.Object) {}
+func (Strategy) PrepareForUpdate(obj, old runtime.Object) {}
+
 // NamespaceScoped is true for image repositories.
 func (s Strategy) NamespaceScoped() bool {
 	return true
@@ -145,6 +148,9 @@ type StatusStrategy struct {
 func NewStatusStrategy(strategy Strategy) StatusStrategy {
 	return StatusStrategy{strategy}
 }
+
+func (StatusStrategy) PrepareForCreate(obj runtime.Object) {}
+func (StatusStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 func (StatusStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
 	// TODO: merge valid fields after update

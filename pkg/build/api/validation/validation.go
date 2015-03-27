@@ -240,7 +240,7 @@ func validateImageChange(imageChange *buildapi.ImageChangeTrigger) fielderrors.V
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("image"))
 	}
 	if len(imageChange.From.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.ValidationErrorList{errs.NewFieldRequired("name")}.Prefix("from")...)
+		allErrs = append(allErrs, fielderrors.ValidationErrorList{fielderrors.NewFieldRequired("name")}.Prefix("from")...)
 	}
 	return allErrs
 }
