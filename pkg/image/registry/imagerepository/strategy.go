@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -27,7 +27,7 @@ func NewStrategy(defaultRegistry DefaultRegistry) Strategy {
 	return Strategy{kapi.Scheme, kapi.SimpleNameGenerator, defaultRegistry}
 }
 
-func (Strategy) PrepareForCreate(obj runtime.Object) {}
+func (Strategy) PrepareForCreate(obj runtime.Object)      {}
 func (Strategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 // NamespaceScoped is true for image repositories.
@@ -149,7 +149,7 @@ func NewStatusStrategy(strategy Strategy) StatusStrategy {
 	return StatusStrategy{strategy}
 }
 
-func (StatusStrategy) PrepareForCreate(obj runtime.Object) {}
+func (StatusStrategy) PrepareForCreate(obj runtime.Object)      {}
 func (StatusStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 func (StatusStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {

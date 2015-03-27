@@ -7,12 +7,12 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	utilerr "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/template"
@@ -36,7 +36,7 @@ func (templateStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func (templateStrategy) PrepareForCreate(obj runtime.Object) {}
+func (templateStrategy) PrepareForCreate(obj runtime.Object)      {}
 func (templateStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 // ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.

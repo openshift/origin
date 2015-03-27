@@ -1,8 +1,8 @@
 package validation
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/openshift/origin/pkg/oauth/api"
 )
 

@@ -170,7 +170,7 @@ func okPod() *kapi.Pod {
 		},
 		Status: kapi.PodStatus{
 			ContainerStatuses: []kapi.ContainerStatus{
-				kapi.ContainerStatus{},
+				{},
 			},
 		},
 	}

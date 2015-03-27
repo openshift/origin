@@ -3,8 +3,8 @@ package validation
 import (
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/openshift/origin/pkg/user/api"
 )
 

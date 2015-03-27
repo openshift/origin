@@ -8,8 +8,8 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -97,10 +97,10 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 				}
 			} else {
 				obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand(cmd)).
-				NamespaceParam(namespace).RequireNamespace().
-				FilenameParam(filename).
-				Do().
-				Object()
+					NamespaceParam(namespace).RequireNamespace().
+					FilenameParam(filename).
+					Do().
+					Object()
 
 				checkErr(err)
 
