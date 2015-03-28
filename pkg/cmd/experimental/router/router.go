@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -82,7 +81,8 @@ type config struct {
 }
 
 const defaultLabel = "router=<name>"
-const failoverMonitorImage = "router-failover-monitor"
+const failoverMonitorImage = "keepalived-failover-monitor"
+const libModulesPath = "/lib/modules"
 
 func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	cfg := &config{
@@ -200,7 +200,8 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 					"OPENSHIFT_ROUTER_HA_VIRTUAL_IPS":       cfg.VirtualIPs,
 					"OPENSHIFT_ROUTER_HA_NETWORK_INTERFACE": cfg.NetInterface,
 					"OPENSHIFT_ROUTER_HA_UNICAST_PEERS":     peers,
-					"OPENSHIFT_ROUTER_HA_USE_UNICAST":       strconv.FormatBool(cfg.UseUnicast),
+					"OPENSHIFT_ROUTER_HA_USE_UNICAST":       fmt.Sprintf("%v", cfg.UseUnicast),
+					"OPENSHIFT_ROUTER_HA_REPLICA_COUNT":     fmt.Sprintf("%v", cfg.Replicas),
 				}
 
 				objects := []runtime.Object{
@@ -223,6 +224,10 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 									ObjectMeta: kapi.ObjectMeta{Labels: label},
 									Spec: kapi.PodSpec{
 										Containers: getRouterPodContainers(cfg, env),
+										Volumes:    getFailoverContainerVolumes(),
+										//  TODO(ramr): Can only add this once
+										//  the kubernetes rebase is done.
+										// HostNetwork: true,
 									},
 								},
 							},
@@ -264,7 +269,7 @@ set of nodes/minions.
 	cmd.Flags().StringVar(&cfg.Type, "type", "haproxy-router", "The type of router to use - if you specify --images this flag may be ignored.")
 	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this router on - ${component} will be replaced with --type")
 	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest images for the router instead of the latest release.")
-	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy.")
+	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of port pairs to expose on the router pod. The default is set for HAProxy.")
 	cmd.Flags().IntVar(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
 	cmd.Flags().BoolVar(&cfg.Create, "create", cfg.Create, "Create the router if it does not exist.")
@@ -328,6 +333,15 @@ func getUnicastPeers(kClient *kclient.Client, labels map[string]string) string {
 	return s
 }
 
+func getFailoverContainerVolumes() []kapi.Volume {
+	hostPath := &kapi.HostPathVolumeSource{Path: libModulesPath}
+	src := kapi.VolumeSource{HostPath: hostPath}
+
+	volumes := make([]kapi.Volume, 1)
+	volumes[0] = kapi.Volume{Name: libModulesPath, VolumeSource: src}
+	return volumes
+}
+
 func getRouterContainer(cfg *config, env app.Environment) kapi.Container {
 	ports, err := app.ContainerPortsFromString(cfg.Ports)
 	if err != nil {
@@ -362,13 +376,17 @@ func getFailoverMonitorContainer(cfg *config, env app.Environment) *kapi.Contain
 		return nil
 	}
 
+	mounts := make([]kapi.VolumeMount, 1)
+	mounts[0] = kapi.VolumeMount{Name: libModulesPath, ReadOnly: true, MountPath: libModulesPath}
+
 	return &kapi.Container{
-		Name:       "failover-monitor",
-		Image:      image,
-		Privileged: true,
-		Env:        env.List(),
+		Name:         "failover-monitor",
+		Image:        image,
+		Privileged:   true,
+		VolumeMounts: mounts,
+		Env:          env.List(),
 		// TODO:  Need a non-tcp|http based check here.
-		//        E.g.  pidof failover-monitor
+		//        E.g.  pidof monitor.sh
 		// LivenessProbe: ... ,
 	}
 }
@@ -376,6 +394,7 @@ func getFailoverMonitorContainer(cfg *config, env app.Environment) *kapi.Contain
 func getRouterPodContainers(cfg *config, env app.Environment) []kapi.Container {
 	containers := make([]kapi.Container, 0)
 	containers = append(containers, getRouterContainer(cfg, env))
+
 	if len(cfg.VirtualIPs) > 0 {
 		if c := getFailoverMonitorContainer(cfg, env); c != nil {
 			containers = append(containers, *c)
