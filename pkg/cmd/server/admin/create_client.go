@@ -3,6 +3,7 @@ package admin
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"path"
 
@@ -11,6 +12,8 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
+
+const CreateClientCommandName = "create-api-client-config"
 
 type CreateClientOptions struct {
 	GetSignerCertOptions *GetSignerCertOptions
@@ -25,15 +28,15 @@ type CreateClientOptions struct {
 	PublicAPIServerURL string
 }
 
-func NewCommandCreateClient() *cobra.Command {
+func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateClientOptions{GetSignerCertOptions: &GetSignerCertOptions{}}
 
 	cmd := &cobra.Command{
-		Use:   "create-api-client-config",
+		Use:   commandName,
 		Short: "Create a portable client folder containing a client certificate, a client key, a server certificate authority, and a .kubeconfig file.",
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
+				fmt.Fprintln(c.Out(), err.Error())
 				c.Help()
 				return
 			}
@@ -43,6 +46,7 @@ func NewCommandCreateClient() *cobra.Command {
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 

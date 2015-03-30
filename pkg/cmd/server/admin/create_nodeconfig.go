@@ -3,6 +3,7 @@ package admin
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -16,6 +17,7 @@ import (
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -23,6 +25,8 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
+
+const NodeConfigCommandName = "create-node-config"
 
 type CreateNodeConfigOptions struct {
 	GetSignerCertOptions *GetSignerCertOptions
@@ -46,15 +50,15 @@ type CreateNodeConfigOptions struct {
 	APIServerURL    string
 }
 
-func NewCommandNodeConfig() *cobra.Command {
+func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := NewDefaultCreateNodeConfigOptions()
 
 	cmd := &cobra.Command{
-		Use:   "create-node-config",
+		Use:   commandName,
 		Short: "Create a portable client folder containing a client certificate, a client key, a server certificate authority, and a .kubeconfig file.",
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
+				fmt.Fprintln(c.Out(), err.Error())
 				c.Help()
 				return
 			}
@@ -64,6 +68,7 @@ func NewCommandNodeConfig() *cobra.Command {
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -215,16 +220,20 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() error {
 
 func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile string) error {
 	if o.IsCreateClientCertificate() {
-		createNodeClientCert := CreateNodeClientCertOptions{
+		createNodeClientCert := CreateClientCertOptions{
 			GetSignerCertOptions: o.GetSignerCertOptions,
-			CertFile:             clientCertFile,
-			KeyFile:              clientKeyFile,
-			NodeName:             o.NodeName,
+
+			CertFile: clientCertFile,
+			KeyFile:  clientKeyFile,
+
+			User:   "system:node-" + o.NodeName,
+			Groups: util.StringList([]string{bootstrappolicy.NodesGroup}),
 		}
+
 		if err := createNodeClientCert.Validate(nil); err != nil {
 			return err
 		}
-		if _, err := createNodeClientCert.CreateNodeClientCert(); err != nil {
+		if _, err := createNodeClientCert.CreateClientCert(); err != nil {
 			return err
 		}
 
