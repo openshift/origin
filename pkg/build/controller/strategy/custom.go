@@ -27,9 +27,12 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	strategy := build.Parameters.Strategy.CustomStrategy
-	containerEnv := []kapi.EnvVar{
-		{Name: "BUILD", Value: string(data)},
-		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
+	containerEnv := []kapi.EnvVar{{Name: "BUILD", Value: string(data)}}
+
+	if build.Parameters.Source.Git != nil {
+		containerEnv = append(containerEnv, kapi.EnvVar{
+			Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI,
+		})
 	}
 
 	if strategy == nil || (strategy != nil && len(strategy.Image) == 0) {
