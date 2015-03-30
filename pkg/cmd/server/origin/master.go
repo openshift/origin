@@ -90,7 +90,7 @@ import (
 	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
-	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
@@ -134,9 +134,12 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
 
+	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
+	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
+
 	imageStorage := imageetcd.NewREST(c.EtcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(c.EtcdHelper, imagerepository.DefaultRegistryFunc(defaultRegistryFunc))
+	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(c.EtcdHelper, imagerepository.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
 	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
 	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry)
 	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry)
@@ -214,7 +217,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(authorizationEtcd)),
 		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.Options.PolicyConfig.MasterAuthorizationNamespace)),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
-		"subjectAccessReviews":  subjectaccessreviewregistry.NewREST(c.Authorizer),
+		"subjectAccessReviews":  subjectAccessReviewStorage,
 	}
 
 	admissionControl := admit.NewAlwaysAdmit()
