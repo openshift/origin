@@ -72,7 +72,7 @@ Use "{{.Root.Name}} <command> --help" for more information about a given command
 
 	cliUsageTemplate = `{{ $cmd := . }}{{$exposedFlags := exposed .}}{{ if .HasSubCommands}}
 Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
-  {{rpad .Name 20 }}{{.Short}}{{end}}{{end}}{{end}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}
 {{end}}
 {{ if or .HasLocalFlags $exposedFlags.HasFlags}}Options:
 {{ if .HasLocalFlags}}{{.LocalFlags.FlagUsages}}{{end}}{{ if $exposedFlags.HasFlags}}{{$exposedFlags.FlagUsages}}{{end}}
@@ -86,7 +86,7 @@ Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
 
 	adminUsageTemplate = `{{ $cmd := . }}{{$exposedFlags := exposed .}}{{ if .HasSubCommands}}
 Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
-  {{rpad .Name 20 }}{{.Short}}{{end}}{{end}}{{end}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}
 {{end}}
 {{ if or .HasLocalFlags $exposedFlags.HasFlags}}Options:
 {{ if .HasLocalFlags}}{{.LocalFlags.FlagUsages}}{{end}}{{ if $exposedFlags.HasFlags}}{{$exposedFlags.FlagUsages}}{{end}}
