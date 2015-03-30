@@ -221,7 +221,7 @@ openshift ex policy add-role-to-user view e2e-user --namespace=default
 # create test project so that this shows up in the console
 openshift ex new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 
-echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:$(($API_PORT + 1)).	You may need to visit ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT} first to accept the certificate."
+echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
 
 # install the router
