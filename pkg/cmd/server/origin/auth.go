@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
+	"github.com/openshift/origin/pkg/auth/oauth/external/keycloak"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/oauth/registry"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
@@ -108,6 +109,8 @@ const (
 	AuthHandlerGithub AuthHandlerType = "github"
 	// AuthHandlerGoogle redirects unauthenticated requests to Google to request an OAuth token.
 	AuthHandlerGoogle AuthHandlerType = "google"
+	// AuthHandlerKeycloak redirects unauthenticated requests to Keycloak to request an OAuth token.
+	AuthHandlerKeycloak AuthHandlerType = "keycloak"
 	// AuthHandlerDeny treats unauthenticated requests as failures
 	AuthHandlerDeny AuthHandlerType = "deny"
 )
@@ -376,7 +379,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 	var authHandler handlers.AuthenticationHandler
 	authHandlerType := c.AuthHandler
 	switch authHandlerType {
-	case AuthHandlerGithub, AuthHandlerGoogle:
+	case AuthHandlerGithub, AuthHandlerGoogle, AuthHandlerKeycloak:
 		callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, string(authHandlerType))
 		userRegistry := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(string(authHandlerType) /*for now*/, userRegistry)
@@ -386,6 +389,12 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 			oauthProvider = google.NewProvider(c.GoogleClientID, c.GoogleClientSecret)
 		} else if authHandlerType == AuthHandlerGithub {
 			oauthProvider = github.NewProvider(c.GithubClientID, c.GithubClientSecret)
+		} else if authHandlerType == AuthHandlerKeycloak {
+			var err error
+			oauthProvider, err = keycloak.NewProviderFromFile(c.KeycloakClientConfigFile)
+			if err != nil {
+				return nil, fmt.Errorf("unexpected error creating KeyCloak OAuth provider: %v", err)
+			}
 		}
 
 		state := external.DefaultState()
@@ -468,7 +477,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSu
 	}
 
 	switch c.AuthHandler {
-	case AuthHandlerGithub, AuthHandlerGoogle:
+	case AuthHandlerGithub, AuthHandlerGoogle, AuthHandlerKeycloak:
 		successHandlers = append(successHandlers, external.DefaultState().(handlers.AuthenticationSuccessHandler))
 	case AuthHandlerLogin:
 		successHandlers = append(successHandlers, redirectSuccessHandler{})
