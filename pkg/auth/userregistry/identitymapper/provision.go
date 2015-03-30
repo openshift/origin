@@ -63,8 +63,7 @@ func (p *provisioningIdentityMapper) UserFor(info authapi.UserIdentityInfo) (kus
 func (p *provisioningIdentityMapper) userForWithRetries(info authapi.UserIdentityInfo, allowedRetries int) (kuser.Info, error) {
 	ctx := kapi.NewContext()
 
-	identityName := identityregistry.IdentityName(info.GetProviderName(), info.GetProviderUserName())
-	identity, err := p.identity.GetIdentity(ctx, identityName)
+	identity, err := p.identity.GetIdentity(ctx, info.GetIdentityName())
 
 	if kerrs.IsNotFound(err) {
 		user, err := p.createIdentityAndMapping(ctx, info)
@@ -90,7 +89,7 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx kapi.Context, 
 	// Build the part of the identity we know about
 	identity := &userapi.Identity{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: identityregistry.IdentityName(info.GetProviderName(), info.GetProviderUserName()),
+			Name: info.GetIdentityName(),
 		},
 		ProviderName:     info.GetProviderName(),
 		ProviderUserName: info.GetProviderUserName(),

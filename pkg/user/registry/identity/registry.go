@@ -22,7 +22,7 @@ type Registry interface {
 	UpdateIdentity(ctx kapi.Context, Identity *api.Identity) (*api.Identity, error)
 }
 
-func IdentityName(provider, identity string) string {
+func identityName(provider, identity string) string {
 	// TODO: normalize?
 	return provider + ":" + identity
 }

@@ -18,6 +18,8 @@ const (
 // UserIdentityInfo contains information about an identity.  Identities are distinct from users.  An authentication server of
 // some kind (like oauth for example) describes an identity.  Our system controls the users mapped to this identity.
 type UserIdentityInfo interface {
+	// GetIdentityName returns the name of this identity. It must be equal to GetProviderName() + ":" + GetProviderUserName()
+	GetIdentityName() string
 	// GetProviderName returns the name of the provider of this identity.
 	GetProviderName() string
 	// GetProviderUserName uniquely identifies this particular identity for this provider.  It is NOT guaranteed to be unique across providers
@@ -60,6 +62,10 @@ func NewDefaultUserIdentityInfo(providerName, providerUserName string) *DefaultU
 		ProviderUserName: providerUserName,
 		Extra:            map[string]string{},
 	}
+}
+
+func (i *DefaultUserIdentityInfo) GetIdentityName() string {
+	return i.ProviderName + ":" + i.ProviderUserName
 }
 
 func (i *DefaultUserIdentityInfo) GetProviderName() string {

@@ -34,7 +34,7 @@ func (identityStrategy) GenerateName(base string) string {
 
 func (identityStrategy) ResetBeforeCreate(obj runtime.Object) {
 	identity := obj.(*api.Identity)
-	identity.Name = IdentityName(identity.ProviderName, identity.ProviderUserName)
+	identity.Name = identityName(identity.ProviderName, identity.ProviderUserName)
 }
 
 // Validate validates a new user

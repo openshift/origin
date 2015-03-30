@@ -5,7 +5,6 @@ import (
 	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
-	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 )
 
@@ -20,9 +19,7 @@ func NewLookupIdentityMapper(registry useridentitymapping.Registry) authapi.User
 
 // UserFor returns info about the user for whom identity info has been provided
 func (p *lookupIdentityMapper) UserFor(info authapi.UserIdentityInfo) (kuser.Info, error) {
-	name := identityregistry.IdentityName(info.GetProviderName(), info.GetProviderUserName())
-
-	mapping, err := p.registry.GetUserIdentityMapping(kapi.NewContext(), name)
+	mapping, err := p.registry.GetUserIdentityMapping(kapi.NewContext(), info.GetIdentityName())
 	if err != nil {
 		return nil, err
 	}

@@ -7,7 +7,7 @@ import (
 	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
 )
 
-// UsersInterface has methods to work with User resources in a namespace
+// UsersInterface has methods to work with User resources
 type UsersInterface interface {
 	Users() UserInterface
 }
@@ -20,7 +20,7 @@ type UserInterface interface {
 	Update(user *userapi.User) (*userapi.User, error)
 }
 
-// users implements UserIdentityMappingsNamespacer interface
+// users implements UserInterface interface
 type users struct {
 	r *Client
 }

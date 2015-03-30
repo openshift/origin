@@ -25,6 +25,9 @@ func ValidateUserName(name string, _ bool) (bool, string) {
 	if name == "." {
 		return false, `may not equal "."`
 	}
+	if name == "~" {
+		return false, `may not equal "~"`
+	}
 	return true, ""
 }
 
