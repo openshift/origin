@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -40,7 +40,7 @@ type userIdentityMappingStrategy struct {
 // objects via the REST API.
 var Strategy = userIdentityMappingStrategy{kapi.Scheme}
 
-func (userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object) {}
+func (userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object)      {}
 func (userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 // New returns a new UserIdentityMapping for use with Create.

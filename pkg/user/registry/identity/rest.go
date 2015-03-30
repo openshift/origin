@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
@@ -23,7 +23,7 @@ type identityStrategy struct {
 // objects via the REST API.
 var Strategy = identityStrategy{kapi.Scheme}
 
-func (identityStrategy) PrepareForCreate(obj runtime.Object) {}
+func (identityStrategy) PrepareForCreate(obj runtime.Object)      {}
 func (identityStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 // NamespaceScoped is false for users
