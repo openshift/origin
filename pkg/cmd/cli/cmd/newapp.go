@@ -31,7 +31,7 @@ located on your system. It will lookup the images on the local Docker installati
 available), a Docker registry, or an OpenShift image repository. If you specify a source
 code URL, it will set up a build that takes your source code and converts it into an
 image that can run inside of a pod. The images will be deployed via a deployment
-configuration, and a service will be hookup up to the first public port of the app.
+configuration, and a service will be hooked up to the first public port of the app.
 
 Examples:
 
