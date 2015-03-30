@@ -3,9 +3,10 @@
 #
 # ImageName: openshift/origin-keepalived-failover-monitor
 #
-FROM fedora
+# FROM fedora
+FROM openshift/origin-base
 
-RUN yum -y install keepalived iproute psmisc nc
+RUN yum -y install kmod keepalived iproute psmisc nc net-tools
 
 ADD conf/ /var/lib/openshift/keepalived/failover-monitor/conf/
 ADD lib/  /var/lib/openshift/keepalived/failover-monitor/lib/

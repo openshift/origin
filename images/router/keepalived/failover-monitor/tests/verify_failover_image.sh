@@ -20,7 +20,7 @@ export OPENSHIFT_ROUTER_HA_REPLICA_COUNT=1
 
 function start_failover_container() {
   echo $(test_script) |
-    docker run -it --net=host --privileged=true --entrypoint=/bin/bash  \
+    docker run -dit --net=host --privileged=true  \
                -v /lib/modules:/lib/modules $FAILOVER_IMAGE &
 
 }
@@ -30,9 +30,12 @@ function run_image_verification_test() {
   echo "  - started docker container $cname ..."
 
   #  Wait a bit for all the services to startup.
-  sleep 60
+  sleep 20
 
-  #  Dump logs and kill the container.
+
+  #  Print info, dump logs and kill the container.
+  local numprocs=$(ps -ef |grep keepalived | wc -l)
+  echo "  - There are $numprocs keepalived processes running" 
   echo "  - logs from container $cname:"
   docker logs $cname
   docker rm -f $cname

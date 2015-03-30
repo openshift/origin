@@ -82,6 +82,7 @@ type config struct {
 
 const defaultLabel = "router=<name>"
 const failoverMonitorImage = "keepalived-failover-monitor"
+const libModulesVolumeName = "lib-modules"
 const libModulesPath = "/lib/modules"
 
 func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
@@ -338,7 +339,7 @@ func getFailoverContainerVolumes() []kapi.Volume {
 	src := kapi.VolumeSource{HostPath: hostPath}
 
 	volumes := make([]kapi.Volume, 1)
-	volumes[0] = kapi.Volume{Name: libModulesPath, VolumeSource: src}
+	volumes[0] = kapi.Volume{Name: libModulesVolumeName, VolumeSource: src}
 	return volumes
 }
 
@@ -377,7 +378,7 @@ func getFailoverMonitorContainer(cfg *config, env app.Environment) *kapi.Contain
 	}
 
 	mounts := make([]kapi.VolumeMount, 1)
-	mounts[0] = kapi.VolumeMount{Name: libModulesPath, ReadOnly: true, MountPath: libModulesPath}
+	mounts[0] = kapi.VolumeMount{Name: libModulesVolumeName, ReadOnly: true, MountPath: libModulesPath}
 
 	return &kapi.Container{
 		Name:         "failover-monitor",

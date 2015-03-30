@@ -2,7 +2,7 @@
 
 
 #  Constants.
-readonly VBOX_INTERFACES="enp0s3 enp0s8"
+VBOX_INTERFACES="enp0s3 enp0s8"
 
 
 #
