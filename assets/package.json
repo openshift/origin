@@ -43,7 +43,14 @@
     "grunt-protractor-runner": "1.2.1",
     "jasmine-spec-reporter": "1.1.2",
     "protractor-screenshot-reporter": "0.0.5",
-    "jasmine-beforeall": "0.1.1"
+    "jasmine-beforeall": "0.1.1",
+
+    "clean-css": "2.1.8",
+    "html-minifier": "0.7.0",
+    "imagemin": "1.0.5",
+    "less": "2.4.0",
+    "pretty-bytes": "1.0.4",
+    "uglify-js": "2.4.17"
   },
   "engines": {
     "node": ">=0.10.0"
