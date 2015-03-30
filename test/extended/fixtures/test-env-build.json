@@ -2,15 +2,15 @@
   "apiVersion": "v1beta1",
   "kind": "Build",
   "metadata": {
-    "name": "sample",
+    "name": "test",
     "labels": {
-      "name": "sample"
+      "name": "test"
     }
   },
   "parameters": {
     "output": {
       "to": {
-        "name": "samplerepository"
+        "name": "test"
       }
     },
     "source": {
@@ -18,7 +18,7 @@
       "git": {
         "uri": "https://github.com/openshift/origin"
       },
-      "contextDir": "test/extended/fixtures/context-build-app"
+      "contextDir": "test/extended/fixtures/sti-environment-build-app"
     },
     "strategy": {
       "type": "STI",

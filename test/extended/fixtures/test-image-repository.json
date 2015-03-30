@@ -2,6 +2,6 @@
   "apiVersion": "v1beta1",
   "kind": "ImageRepository",
   "metadata": {
-    "name": "samplerepository"
+    "name": "test"
   }
 }

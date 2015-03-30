@@ -1,0 +1,26 @@
+{
+  "apiVersion": "v1beta1",
+  "kind": "Build",
+  "metadata": {
+    "name": "testcustom",
+    "labels": {
+      "name": "testcustom"
+    }
+  },
+  "parameters": {
+    "output": {
+      "to": {
+        "name": "test"
+      },
+      "tag": "application",
+      "pushSecretName": "docker"
+    },
+    "strategy": {
+      "type": "Custom",
+      "customStrategy": {
+        "exposeDockerSocket": true,
+        "image": "172.30.17.104:5000/foo/bar"
+      }
+    }
+  }
+}

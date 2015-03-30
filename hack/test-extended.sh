@@ -38,9 +38,12 @@ export OPENSHIFT_ON_PANIC=crash
 
 cleanup() {
     set +e
-    server_pids=$(pgrep -P $(cat ${BASETMPDIR}/server.pid))
-    kill $server_pids $(cat ${BASETMPDIR}/server.pid) ${ETCD_PID}
-    rm -rf ${ETCD_DIR}
+    pid=$(cat ${BASETMPDIR}/server.pid 2>/dev/null)
+    if [ ! -z "$pid" ]; then
+      server_pids=$(pgrep -P $pid)
+      kill $server_pids $(cat ${BASETMPDIR}/server.pid) ${ETCD_PID}
+    fi
+    rm -rf ${ETCD_DIR-}
     echo "[INFO] Cleanup complete"
 }
 
@@ -75,7 +78,7 @@ start_server() {
     --signer-key="${CERT_DIR}/ca/key.key" \
     --signer-serial="${CERT_DIR}/ca/serial.txt"
 
-  echo "[INFO] Starting OpenShift server"
+  echo "[INFO] Starting OpenShift ..."
   sudo env "PATH=${PATH}" openshift start \
     --listen="https://0.0.0.0:${OS_MASTER_PORT}" \
     --public-master="https://${OS_MASTER_ADDR}" \
@@ -92,14 +95,23 @@ start_server() {
 
 start_docker_registry() {
   mkdir -p ${BASETMPDIR}/.registry
-  echo "[INFO] Creating Router"
+  echo "[INFO] Creating Router ..."
   openshift ex router --create --credentials="${KUBECONFIG}" \
     --images='openshift/origin-${component}:latest' &>/dev/null
 
-  echo "[INFO] Creating Docker Registry"
+  echo "[INFO] Creating Registry ..."
   openshift ex registry --create --credentials="${KUBECONFIG}" \
     --mount-host="${BASETMPDIR}/.registry" \
     --images='openshift/origin-${component}:latest' &>/dev/null
+}
+
+push_to_registry() {
+  local image=$1
+  local registry=$2
+  echo "[INFO] Caching $image to $registry"
+  ( docker tag $image "${registry}/${image}" && \
+    docker push "${registry}/${image}" \
+  ) &>/dev/null
 }
 
 # Go to the top of the tree.
@@ -134,10 +146,22 @@ wait_for_url_timed "http://${REGISTRY_ADDR}" "" $((2*TIME_MIN))
 #       "409 - Image already exists" during the 'push' when the Build finishes.
 #       This is because Docker Registry cannot handle parallel pushes.
 #       See: https://github.com/docker/docker-registry/issues/537
-echo "[INFO] Pushing openshift/ruby-20-centos7 image to ${REGISTRY_ADDR}"
-docker tag openshift/ruby-20-centos7 ${REGISTRY_ADDR}/openshift/ruby-20-centos7
-docker push ${REGISTRY_ADDR}/openshift/ruby-20-centos7 &>/dev/null
+push_to_registry "openshift/ruby-20-centos7" $REGISTRY_ADDR
+push_to_registry "openshift/origin-custom-docker-builder" $REGISTRY_ADDR
+
+export REGISTRY_ADDR
+
+[ ! -z "${DEBUG-}" ] && set +e
 
 # Run all extended tests cases
-echo "[INFO] Starting extended tests"
-OS_TEST_PACKAGE="test/extended" OS_TEST_TAGS="extended" OS_TEST_NAMESPACE="extended" ${OS_ROOT}/hack/test-integration.sh $@
+while true; do
+  echo "[INFO] Starting extended tests ..."
+  time OS_TEST_PACKAGE="test/extended" OS_TEST_TAGS="extended" OS_TEST_NAMESPACE="extended" ${OS_ROOT}/hack/test-integration.sh $@
+  if [ ! -z "${DEBUG-}" ]; then
+    read -p "Do you want to re-run the test cases? " yn
+    case $yn in
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+  fi
+done
