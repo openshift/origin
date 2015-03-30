@@ -24,6 +24,7 @@ func NewDefaultServerConfig() *osin.ServerConfig {
 	config.AllowClientSecretInParams = true
 	config.AllowGetAccessRequest = true
 	config.RedirectUriSeparator = ","
+	config.ErrorStatusCode = http.StatusBadRequest
 
 	return config
 }

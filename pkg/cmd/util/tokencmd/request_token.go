@@ -1,25 +1,23 @@
 package tokencmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
-	"regexp"
+	"net/url"
+
+	"github.com/RangelReale/osincli"
+	"github.com/golang/glog"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/oauth/server/osinserver"
-
 	server "github.com/openshift/origin/pkg/cmd/server/origin"
+	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 )
-
-const accessTokenRedirectPattern = `#access_token=([\w]+)&`
-
-var accessTokenRedirectRegex = regexp.MustCompile(accessTokenRedirectPattern)
-
-type tokenGetterInfo struct {
-	accessToken string
-}
 
 // RequestToken uses the cmd arguments to locate an openshift oauth server and attempts to authenticate
 // it returns the access token if it gets one.  An error if it does not
@@ -45,20 +43,64 @@ func RequestToken(clientCfg *kclient.Config, reader io.Reader, defaultUsername s
 
 	osClient.Client = &challengingClient{httpClient, reader, defaultUsername, defaultPassword}
 
-	result := osClient.Get().AbsPath(server.OpenShiftOAuthAPIPrefix, osinserver.AuthorizePath).Param("response_type", "token").Param("client_id", "openshift-challenging-client").Do()
+	result := osClient.Get().AbsPath(server.OpenShiftOAuthAPIPrefix, osinserver.AuthorizePath).
+		Param("response_type", "token").
+		Param("client_id", "openshift-challenging-client").
+		Do()
+	if err := result.Error(); err != nil && !isRedirectError(err) {
+		return "", err
+	}
 
 	if len(tokenGetter.accessToken) == 0 {
-		return "", result.Error()
+		r, _ := result.Raw()
+		if description, ok := rawOAuthJSONErrorDescription(r); ok {
+			return "", fmt.Errorf("cannot retrieve a token: %s", description)
+		}
+		glog.V(4).Infof("A request token could not be created, server returned: %s", string(r))
+		return "", fmt.Errorf("the server did not return a token (possible server error)")
 	}
 
 	return tokenGetter.accessToken, nil
 }
 
+func rawOAuthJSONErrorDescription(data []byte) (string, bool) {
+	output := osincli.ResponseData{}
+	decoder := json.NewDecoder(bytes.NewBuffer(data))
+	if err := decoder.Decode(&output); err != nil {
+		return "", false
+	}
+	if _, ok := output["error"]; !ok {
+		return "", false
+	}
+	desc, ok := output["error_description"]
+	if !ok {
+		return "", false
+	}
+	s, ok := desc.(string)
+	if !ok || len(s) == 0 {
+		return "", false
+	}
+	return s, true
+}
+
+const accessTokenKey = "access_token"
+
+var errRedirectComplete = errors.New("found access token")
+
+type tokenGetterInfo struct {
+	accessToken string
+}
+
 // checkRedirect watches the redirects to see if any contain the access_token anchor.  It then stores the value of the access token for later retrieval
 func (tokenGetter *tokenGetterInfo) checkRedirect(req *http.Request, via []*http.Request) error {
-	// if we're redirected with an access token in the anchor, use it to set our transport to a proper bearer auth
-	if matches := accessTokenRedirectRegex.FindAllStringSubmatch(req.URL.String(), 1); matches != nil {
-		tokenGetter.accessToken = matches[0][1]
+	fragment := req.URL.Fragment
+	if values, err := url.ParseQuery(fragment); err == nil {
+		if v, ok := values[accessTokenKey]; ok {
+			if len(v) > 0 {
+				tokenGetter.accessToken = v[0]
+			}
+			return errRedirectComplete
+		}
 	}
 
 	if len(via) >= 10 {
@@ -66,4 +108,15 @@ func (tokenGetter *tokenGetterInfo) checkRedirect(req *http.Request, via []*http
 	}
 
 	return nil
+}
+
+func isRedirectError(err error) bool {
+	if err == errRedirectComplete {
+		return true
+	}
+	switch t := err.(type) {
+	case *url.Error:
+		return t.Err == errRedirectComplete
+	}
+	return false
 }
