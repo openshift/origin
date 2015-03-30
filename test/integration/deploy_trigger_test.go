@@ -307,16 +307,6 @@ func assertEnvVarEquals(name string, value string, deployment *kapi.ReplicationC
 	t.Fatalf("Expected env var with name %s and value %s", name, value)
 }
 
-//
-//type podInfoGetter struct {
-//	PodInfo kapi.PodInfo
-//	Error   error
-//}
-//
-//func (p *podInfoGetter) GetPodInfo(host, namespace, podID string) (kapi.PodInfo, error) {
-//	return p.PodInfo, p.Error
-//}
-
 type testOpenshift struct {
 	Client     *osclient.Client
 	KubeClient kclient.Interface

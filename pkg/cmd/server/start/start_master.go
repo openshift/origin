@@ -16,6 +16,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kyaml "github.com/GoogleCloudPlatform/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -301,7 +302,7 @@ func ReadMasterConfig(filename string) (*configapi.MasterConfig, error) {
 	}
 
 	config := &configapi.MasterConfig{}
-
+	data, err = kyaml.ToJSON(data)
 	if err := configapilatest.Codec.DecodeInto(data, config); err != nil {
 		return nil, err
 	}

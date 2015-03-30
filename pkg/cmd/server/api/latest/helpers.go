@@ -4,7 +4,10 @@ import (
 	"io/ioutil"
 	"path"
 
+	kyaml "github.com/GoogleCloudPlatform/kubernetes/pkg/util/yaml"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+
+	"github.com/ghodss/yaml"
 )
 
 func ReadMasterConfig(filename string) (*configapi.MasterConfig, error) {
@@ -14,6 +17,10 @@ func ReadMasterConfig(filename string) (*configapi.MasterConfig, error) {
 	}
 
 	config := &configapi.MasterConfig{}
+	data, err = kyaml.ToJSON(data)
+	if err != nil {
+		return nil, err
+	}
 
 	if err := Codec.DecodeInto(data, config); err != nil {
 		return nil, err
@@ -37,5 +44,10 @@ func WriteNode(config *configapi.NodeConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json, err
+
+	content, err := yaml.JSONToYAML(json)
+	if err != nil {
+		return nil, err
+	}
+	return content, err
 }

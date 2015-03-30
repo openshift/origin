@@ -16,6 +16,8 @@ import (
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+
+	"github.com/ghodss/yaml"
 )
 
 // MasterArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting the master
@@ -384,7 +386,6 @@ func (args MasterArgs) GetEtcdAddress() (*url.URL, error) {
 	etcdAddr := net.JoinHostPort(getHost(*masterAddr), strconv.Itoa(args.EtcdAddr.DefaultPort))
 	return url.Parse(args.EtcdAddr.DefaultScheme + "://" + etcdAddr)
 }
-
 func (args MasterArgs) GetKubernetesPublicAddress() (*url.URL, error) {
 	if args.KubernetesPublicAddr.Provided {
 		return args.KubernetesPublicAddr.URL, nil
@@ -443,5 +444,10 @@ func WriteMaster(config *configapi.MasterConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json, err
+
+	content, err := yaml.JSONToYAML(json)
+	if err != nil {
+		return nil, err
+	}
+	return content, err
 }

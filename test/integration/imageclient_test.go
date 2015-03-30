@@ -80,11 +80,8 @@ func TestImageRepositoryCreate(t *testing.T) {
 
 	// compareImageRepos compares everything except the status.dockerimagerepository which can be
 	// changed after create
-	if !reflect.DeepEqual(expected.ObjectMeta, actual.ObjectMeta) ||
-		!reflect.DeepEqual(expected.TypeMeta, actual.TypeMeta) ||
-		!reflect.DeepEqual(expected.Tags, actual.Tags) ||
-		!reflect.DeepEqual(expected.Status.Tags, actual.Status.Tags) ||
-		expected.DockerImageRepository != actual.DockerImageRepository {
+	actual.Status.DockerImageRepository = expected.Status.DockerImageRepository
+	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("unexpected object: %s", util.ObjectDiff(expected, actual))
 	}
 
