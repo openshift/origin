@@ -570,9 +570,8 @@ func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, o
 	}
 }
 
-func (d *TemplateDescriber) DescribeObjects(objects []runtime.Object, labels map[string]string, out *tabwriter.Writer) {
+func (d *TemplateDescriber) DescribeObjects(objects []runtime.Object, out *tabwriter.Writer) {
 	formatString(out, "Objects", " ")
-
 	indent := "    "
 	for _, obj := range objects {
 		if d.DescribeObject != nil {
@@ -585,17 +584,13 @@ func (d *TemplateDescriber) DescribeObjects(objects []runtime.Object, labels map
 		_, kind, _ := d.ObjectTyper.ObjectVersionAndKind(obj)
 		meta := kapi.ObjectMeta{}
 		meta.Name, _ = d.MetadataAccessor.Name(obj)
-		meta.Annotations, _ = d.MetadataAccessor.Annotations(obj)
-		meta.Labels, _ = d.MetadataAccessor.Labels(obj)
 		fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, kind, meta.Name))
-		if len(meta.Labels) > 0 {
+		//meta.Annotations, _ = d.MetadataAccessor.Annotations(obj)
+		//meta.Labels, _ = d.MetadataAccessor.Labels(obj)
+		/*if len(meta.Labels) > 0 {
 			formatString(out, indent+"Labels", formatLabels(meta.Labels))
 		}
-		formatAnnotations(out, meta, indent)
-	}
-	if len(labels) > 0 {
-		out.Write([]byte("\n"))
-		formatString(out, indent+"Common Labels", formatLabels(labels))
+		formatAnnotations(out, meta, indent)*/
 	}
 }
 
@@ -612,7 +607,10 @@ func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
 		out.Flush()
 		d.DescribeParameters(template.Parameters, out)
 		out.Write([]byte("\n"))
-		d.DescribeObjects(template.Objects, template.ObjectLabels, out)
+		formatString(out, "Object Labels", formatLabels(template.ObjectLabels))
+		out.Write([]byte("\n"))
+		out.Flush()
+		d.DescribeObjects(template.Objects, out)
 		return nil
 	})
 }
