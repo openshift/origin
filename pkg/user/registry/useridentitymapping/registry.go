@@ -1,13 +1,72 @@
 package useridentitymapping
 
 import (
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
 	"github.com/openshift/origin/pkg/user/api"
 )
 
-// Registry is an interface for things that know how to store Identity objects.
+// Registry is an interface implemented by things that know how to store UserIdentityMapping objects.
 type Registry interface {
-	GetUserIdentityMapping(name string) (*api.UserIdentityMapping, error)
-	// CreateOrUpdateUserIdentityMapping creates or updates the mapping between an
-	// identity and a user.
-	CreateOrUpdateUserIdentityMapping(mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, bool, error)
+	// GetUserIdentityMapping returns a UserIdentityMapping for the named identity
+	GetUserIdentityMapping(ctx kapi.Context, name string) (*api.UserIdentityMapping, error)
+	// CreateUserIdentityMapping associates a user and an identity
+	CreateUserIdentityMapping(ctx kapi.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error)
+	// UpdateUserIdentityMapping updates an associated user and identity
+	UpdateUserIdentityMapping(ctx kapi.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error)
+	// DeleteUserIdentityMapping removes the user association for the named identity
+	DeleteUserIdentityMapping(ctx kapi.Context, name string) error
+}
+
+// Storage is an interface for a standard REST Storage backend
+// TODO: move me somewhere common
+type Storage interface {
+	apiserver.RESTGetter
+	apiserver.RESTDeleter
+
+	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
+	Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error)
+}
+
+// storage puts strong typing around storage calls
+type storage struct {
+	Storage
+}
+
+// NewRegistry returns a new Registry interface for the given Storage. Any mismatched
+// types will panic.
+func NewRegistry(s Storage) Registry {
+	return &storage{s}
+}
+
+func (s *storage) GetUserIdentityMapping(ctx kapi.Context, name string) (*api.UserIdentityMapping, error) {
+	obj, err := s.Get(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*api.UserIdentityMapping), nil
+}
+
+func (s *storage) CreateUserIdentityMapping(ctx kapi.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error) {
+	obj, err := s.Create(ctx, mapping)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*api.UserIdentityMapping), nil
+}
+
+func (s *storage) UpdateUserIdentityMapping(ctx kapi.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error) {
+	obj, _, err := s.Update(ctx, mapping)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*api.UserIdentityMapping), nil
+}
+
+//
+func (s *storage) DeleteUserIdentityMapping(ctx kapi.Context, name string) error {
+	_, err := s.Delete(ctx, name)
+	return err
 }

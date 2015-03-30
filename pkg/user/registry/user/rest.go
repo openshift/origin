@@ -1,44 +1,71 @@
 package user
 
 import (
-	"errors"
+	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
 )
 
-// REST implements the RESTStorage interface in terms of an Registry.
-type REST struct {
-	registry Registry
+// userStrategy implements behavior for Users
+type userStrategy struct {
+	runtime.ObjectTyper
 }
 
-// NewREST returns a new REST.
-func NewREST(registry Registry) apiserver.RESTStorage {
-	return &REST{registry}
+// Strategy is the default logic that applies when creating and updating User
+// objects via the REST API.
+var Strategy = userStrategy{kapi.Scheme}
+
+// NamespaceScoped is false for users
+func (userStrategy) NamespaceScoped() bool {
+	return false
 }
 
-// New returns a new UserIdentityMapping for use with Create and Update.
-func (s *REST) New() runtime.Object {
-	return &api.User{}
+func (userStrategy) GenerateName(base string) string {
+	return base
 }
 
-// Get retrieves an UserIdentityMapping by id.
-func (s *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	// "~" means the currently authenticated user
-	if id == "~" {
-		user, ok := kapi.UserFrom(ctx)
-		if !ok || user.GetName() == "" {
-			return nil, kerrs.NewForbidden("user", "~", errors.New("Requests to ~ must be authenticated"))
+func (userStrategy) ResetBeforeCreate(obj runtime.Object) {
+}
+
+// Validate validates a new user
+func (userStrategy) Validate(obj runtime.Object) kerrs.ValidationErrorList {
+	user := obj.(*api.User)
+	return validation.ValidateUser(user)
+}
+
+// AllowCreateOnUpdate is false for users
+func (userStrategy) AllowCreateOnUpdate() bool {
+	return false
+}
+
+// ValidateUpdate is the default update validation for an end user.
+func (userStrategy) ValidateUpdate(obj, old runtime.Object) kerrs.ValidationErrorList {
+	return validation.ValidateUserUpdate(obj.(*api.User), old.(*api.User))
+}
+
+// MatchUser returns a generic matcher for a given label and field selector.
+func MatchUser(label labels.Selector, field fields.Selector) generic.Matcher {
+	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
+		userObj, ok := obj.(*api.User)
+		if !ok {
+			return false, fmt.Errorf("not a user")
 		}
-		id = user.GetName()
+		fields := UserToSelectableFields(userObj)
+		return label.Matches(labels.Set(userObj.Labels)) && field.Matches(fields), nil
+	})
+}
+
+// UserToSelectableFields returns a label set that represents the object
+func UserToSelectableFields(user *api.User) labels.Set {
+	return labels.Set{
+		"name": user.Name,
 	}
-	if ok, details := validation.ValidateUserName(id, false); !ok {
-		return nil, kerrs.NewFieldInvalid("metadata.name", id, details)
-	}
-	return s.registry.GetUser(id)
 }

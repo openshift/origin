@@ -7,5 +7,5 @@ import (
 )
 
 func TestGithub(t *testing.T) {
-	_ = external.Provider(NewProvider("", ""))
+	_ = external.Provider(NewProvider("github", "clientid", "clientsecret"))
 }

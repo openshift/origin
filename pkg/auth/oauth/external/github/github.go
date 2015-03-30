@@ -22,7 +22,7 @@ const (
 )
 
 type provider struct {
-	clientID, clientSecret string
+	providerName, clientID, clientSecret string
 }
 
 type githubUser struct {
@@ -32,8 +32,8 @@ type githubUser struct {
 	Name  string
 }
 
-func NewProvider(clientID, clientSecret string) external.Provider {
-	return provider{clientID, clientSecret}
+func NewProvider(providerName, clientID, clientSecret string) external.Provider {
+	return provider{providerName, clientID, clientSecret}
 }
 
 // NewConfig implements external/interfaces/Provider.NewConfig
@@ -79,14 +79,10 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 		return nil, false, errors.New("Could not retrieve GitHub id")
 	}
 
-	identity := &authapi.DefaultUserIdentityInfo{
-		UserName: fmt.Sprintf("%d", userdata.ID),
-		Extra: map[string]string{
-			"name":  userdata.Name,
-			"login": userdata.Login,
-			"email": userdata.Email,
-		},
-	}
+	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, fmt.Sprintf("%d", userdata.ID))
+	identity.Extra[authapi.IdentityDisplayNameKey] = userdata.Name
+	identity.Extra[authapi.IdentityLoginKey] = userdata.Login
+	identity.Extra[authapi.IdentityEmailKey] = userdata.Email
 	glog.V(4).Infof("Got identity=%#v", identity)
 
 	return identity, true, nil

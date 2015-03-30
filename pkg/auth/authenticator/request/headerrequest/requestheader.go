@@ -22,12 +22,13 @@ func NewDefaultConfig() *Config {
 }
 
 type Authenticator struct {
-	config *Config
-	mapper authapi.UserIdentityMapper
+	providerName string
+	config       *Config
+	mapper       authapi.UserIdentityMapper
 }
 
-func NewAuthenticator(config *Config, mapper authapi.UserIdentityMapper) *Authenticator {
-	return &Authenticator{config, mapper}
+func NewAuthenticator(providerName string, config *Config, mapper authapi.UserIdentityMapper) *Authenticator {
+	return &Authenticator{providerName, config, mapper}
 }
 
 func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
@@ -46,9 +47,7 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 		return nil, false, nil
 	}
 
-	identity := &authapi.DefaultUserIdentityInfo{
-		UserName: username,
-	}
+	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 	user, err := a.mapper.UserFor(identity)
 	if err != nil {
 		return nil, false, err

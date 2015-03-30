@@ -7,5 +7,5 @@ import (
 )
 
 func TestGoogle(t *testing.T) {
-	_ = external.Provider(NewProvider("", ""))
+	_ = external.Provider(NewProvider("google", "clientid", "clientsecret"))
 }

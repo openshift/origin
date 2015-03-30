@@ -325,8 +325,8 @@ echo "ex policy: ok"
 
 # Test the commands the UI projects page tells users to run
 # These should match what is described in projects.html
-osadm new-project ui-test-project --admin="anypassword:createuser"
-osadm policy add-role-to-user admin anypassword:adduser -n ui-test-project
+osadm new-project ui-test-project --admin="createuser"
+osadm policy add-role-to-user admin adduser -n ui-test-project
 # Make sure project can be listed by osc (after auth cache syncs)
 sleep 2 && [ "$(osc get projects | grep 'ui-test-project')" ]
 # Make sure users got added
@@ -335,10 +335,10 @@ sleep 2 && [ "$(osc get projects | grep 'ui-test-project')" ]
 echo "ui-project-commands: ok"
 
 # Test deleting and recreating a project
-osadm new-project recreated-project --admin="anypassword:createuser1"
+osadm new-project recreated-project --admin="createuser1"
 osc delete project recreated-project
-osadm new-project recreated-project --admin="anypassword:createuser2"
-osc describe policybinding master -n recreated-project | grep anypassword:createuser2
+osadm new-project recreated-project --admin="createuser2"
+osc describe policybinding master -n recreated-project | grep createuser2
 echo "ex new-project: ok"
 
 # Test running a router
