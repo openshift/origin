@@ -11,6 +11,7 @@
     <!-- bower:css -->
     <link rel="stylesheet" href="bower_components/messenger/build/css/messenger.css" />
     <link rel="stylesheet" href="bower_components/messenger/build/css/messenger-theme-block.css" />
+    <link rel="stylesheet" href="bower_components/kubernetes-label-selector/labelFilter.css" />
     <!-- endbower -->
     <!-- endbuild -->
     <!-- build:css(.tmp) styles/main.css -->
@@ -107,12 +108,13 @@
     <script src="bower_components/selectize/dist/js/selectize.js"></script>
     <script src="bower_components/zeroclipboard/dist/ZeroClipboard.js"></script>
     <script src="bower_components/messenger/build/js/messenger.js"></script>
+    <script src="bower_components/kubernetes-label-selector/labelSelector.js"></script>
+    <script src="bower_components/kubernetes-label-selector/labelFilter.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
         <script src="scripts/app.js"></script>
-        <script src="scripts/misc/labelSelector.js"></script>
         <script src="scripts/services/logger.js"></script>
         <script src="scripts/services/ws.js"></script>
         <script src="scripts/services/userstore.js"></script>
@@ -120,7 +122,6 @@
         <script src="scripts/services/data.js"></script>
         <script src="scripts/services/login.js"></script>
         <script src="scripts/services/logout.js"></script>
-        <script src="scripts/services/labelFilter.js"></script>
         <script src="scripts/services/tasks.js"></script>
         <script src="scripts/services/notification.js"></script>
         <script src="scripts/controllers/projects.js"></script>
