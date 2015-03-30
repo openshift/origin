@@ -52,7 +52,7 @@ var (
 		BuildGroupName:              {"builds", "buildconfigs", "buildlogs"},
 		ImageGroupName:              {"images", "imagerepositories", "imagerepositorymappings", "imagerepositorytags"},
 		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
-		UserGroupName:               {"users", "useridentitymappings"},
+		UserGroupName:               {"identities", "users", "useridentitymappings"},
 		OAuthGroupName:              {"oauthauthorizetokens", "oauthaccesstokens", "oauthclients", "oauthclientauthorizations"},
 		PolicyOwnerGroupName:        {"policies", "policybindings"},
 		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews", "subjectaccessreviews"},

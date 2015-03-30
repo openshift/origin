@@ -61,9 +61,9 @@ Available Commands: {{range .Commands}}{{if .Runnable}}
   {{rpad .Use .UsagePadding }} {{.Short}}{{end}}{{end}}
 {{end}}
 {{ if .HasLocalFlags}}Options:
-{{.LocalFlags.FlagUsages}}{{end}}
+{{flagsUsages .LocalFlags}}{{end}}
 {{ if .HasAnyPersistentFlags}}Global Options:
-{{.AllPersistentFlags.FlagUsages}}{{end}}{{ if .HasSubCommands }}
+{{flagsUsages .AllPersistentFlags}}{{end}}{{ if .HasSubCommands }}
 Use "{{.Root.Name}} <command> --help" for more information about a given command.
 {{end}}`
 
@@ -75,7 +75,7 @@ Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}
 {{end}}
 {{ if or .HasLocalFlags $exposedFlags.HasFlags}}Options:
-{{ if .HasLocalFlags}}{{.LocalFlags.FlagUsages}}{{end}}{{ if $exposedFlags.HasFlags}}{{$exposedFlags.FlagUsages}}{{end}}
+{{ if .HasLocalFlags}}{{flagsUsages .LocalFlags}}{{end}}{{ if $exposedFlags.HasFlags}}{{flagsUsages $exposedFlags}}{{end}}
 {{end}}{{ if not $isRootCmd}}Use "{{template "rootCli" .}} --help" for a list of all commands available in {{template "rootCli" .}}.
 {{end}}{{ if .HasSubCommands }}Use "{{template "rootCli" .}} <command> --help" for more information about a given command.
 {{end}}{{ if .HasAnyPersistentFlags}}Use "{{template "rootCli" .}} options" for a list of global command-line options (applies to all commands).
@@ -89,16 +89,15 @@ Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}
 {{end}}
 {{ if or .HasLocalFlags $exposedFlags.HasFlags}}Options:
-{{ if .HasLocalFlags}}{{.LocalFlags.FlagUsages}}{{end}}{{ if $exposedFlags.HasFlags}}{{$exposedFlags.FlagUsages}}{{end}}
+{{ if .HasLocalFlags}}{{flagsUsages .LocalFlags}}{{end}}{{ if $exposedFlags.HasFlags}}{{flagsUsages $exposedFlags}}{{end}}
 {{end}}{{ if not $isRootCmd}}Use "{{template "rootCli" .}} --help" for a list of all commands available in {{template "rootCli" .}}.
 {{end}}{{ if .HasSubCommands }}Use "{{template "rootCli" .}} <command> --help" for more information about a given command.
 {{end}}{{ if .HasAnyPersistentFlags}}Use "{{template "rootCli" .}} options" for a list of global command-line options (applies to all commands).
 {{end}}`
 
-	optionsHelpTemplate = `{{ if .HasAnyPersistentFlags}}The following options can be passed to any command:
+	optionsHelpTemplate = ``
 
-{{.AllPersistentFlags.FlagUsages}}{{end}}
-`
+	optionsUsageTemplate = `{{ if .HasAnyPersistentFlags}}The following options can be passed to any command:
 
-	optionsUsageTemplate = ``
+{{flagsUsages .AllPersistentFlags}}{{end}}`
 )

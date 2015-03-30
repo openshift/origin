@@ -74,7 +74,7 @@ var originTypes = []string{
 	"Template", "TemplateConfig",
 	"Route",
 	"Project",
-	"User", "UserIdentityMapping",
+	"User", "Identity", "UserIdentityMapping",
 	"OAuthClient", "OAuthClientAuthorization", "OAuthAccessToken", "OAuthAuthorizeToken",
 	"Role", "RoleBinding", "Policy", "PolicyBinding", "ResourceAccessReview", "SubjectAccessReview",
 }

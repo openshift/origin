@@ -61,7 +61,7 @@ func TestLogin(t *testing.T) {
 		t.Fatalf("Error trying to determine server info: ", err)
 	}
 
-	if loginOptions.Username != "anypassword:"+username {
+	if loginOptions.Username != username {
 		t.Fatalf("Unexpected user after authentication: %#v", loginOptions)
 	}
 
@@ -70,7 +70,7 @@ func TestLogin(t *testing.T) {
 		ProjectName:           project,
 		AdminRole:             bootstrappolicy.AdminRoleName,
 		MasterPolicyNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		AdminUser:             "anypassword:" + username,
+		AdminUser:             username,
 	}
 	if err := newProjectOptions.Run(); err != nil {
 		t.Fatalf("unexpected error, a project is required to continue: ", err)

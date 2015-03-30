@@ -79,9 +79,10 @@ import (
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
-	"github.com/openshift/origin/pkg/user"
-	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
+	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
+	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -131,9 +132,14 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
-	userEtcd := useretcd.New(c.EtcdHelper, user.NewDefaultUserInitStrategy())
 	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
+
+	userStorage := useretcd.NewREST(c.EtcdHelper)
+	userRegistry := userregistry.NewRegistry(userStorage)
+	identityStorage := identityetcd.NewREST(c.EtcdHelper)
+	identityRegistry := identityregistry.NewRegistry(identityStorage)
+	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
 
 	imageStorage := imageetcd.NewREST(c.EtcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
@@ -202,8 +208,9 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"projects": projectregistry.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
 
-		"userIdentityMappings": useridentitymapping.NewREST(userEtcd),
-		"users":                userregistry.NewREST(userEtcd),
+		"users":                userStorage,
+		"identities":           identityStorage,
+		"userIdentityMappings": userIdentityMappingStorage,
 
 		"oAuthAuthorizeTokens":      authorizetokenregistry.NewREST(oauthEtcd),
 		"oAuthAccessTokens":         accesstokenregistry.NewREST(oauthEtcd),
@@ -462,7 +469,7 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	if _, err := registry.GetPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
 		glog.Infof("No master policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
-		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.MasterAuthorizationNamespace, c.Options.PolicyConfig.BootstrapPolicyFile, true, ioutil.Discard); err != nil {
+		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.MasterAuthorizationNamespace, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 			glog.Errorf("Error creating bootstrap policy: %v", err)
 		}
 

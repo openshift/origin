@@ -24,8 +24,10 @@ import (
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
-	"github.com/openshift/origin/pkg/user"
-	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
+	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
+	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
+	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	testutil "github.com/openshift/origin/test/util"
 )
 
@@ -48,11 +50,16 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	etcdClient := testutil.NewEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 	oauthEtcd := oauthetcd.New(etcdHelper)
-	userRegistry := useretcd.New(etcdHelper, user.NewDefaultUserInitStrategy())
-	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper("front-proxy-test" /*for now*/, userRegistry)
+
+	userStorage := useretcd.NewREST(etcdHelper)
+	userRegistry := userregistry.NewRegistry(userStorage)
+	identityStorage := identityetcd.NewREST(etcdHelper)
+	identityRegistry := identityregistry.NewRegistry(identityStorage)
+
+	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(identityRegistry, userRegistry)
 
 	// this auth request handler is the one that is supposed to recognize information from a front proxy
-	authRequestHandler := headerrequest.NewAuthenticator(headerrequest.NewDefaultConfig(), identityMapper)
+	authRequestHandler := headerrequest.NewAuthenticator("front-proxy-test", headerrequest.NewDefaultConfig(), identityMapper)
 	authHandler := &oauthhandlers.EmptyAuth{}
 
 	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, oauthregistry.NewUserConversion())

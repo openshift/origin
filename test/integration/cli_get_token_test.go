@@ -25,8 +25,10 @@ import (
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
-	"github.com/openshift/origin/pkg/user"
-	useretcd "github.com/openshift/origin/pkg/user/registry/etcd"
+	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
+	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
+	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
@@ -44,10 +46,15 @@ func TestGetToken(t *testing.T) {
 	etcdClient := testutil.NewEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
 	oauthEtcd := oauthetcd.New(etcdHelper)
-	userRegistry := useretcd.New(etcdHelper, user.NewDefaultUserInitStrategy())
-	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper("front-proxy-test" /*for now*/, userRegistry)
 
-	authRequestHandler := basicauthrequest.NewBasicAuthAuthentication(allowanypassword.New(identityMapper), true)
+	userStorage := useretcd.NewREST(etcdHelper)
+	userRegistry := userregistry.NewRegistry(userStorage)
+	identityStorage := identityetcd.NewREST(etcdHelper)
+	identityRegistry := identityregistry.NewRegistry(identityStorage)
+
+	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(identityRegistry, userRegistry)
+
+	authRequestHandler := basicauthrequest.NewBasicAuthAuthentication(allowanypassword.New("get-token-test", identityMapper), true)
 	authHandler := oauthhandlers.NewUnionAuthenticationHandler(
 		map[string]oauthhandlers.AuthenticationChallenger{"login": passwordchallenger.NewBasicAuthChallenger("openshift")}, nil, nil)
 
@@ -107,7 +114,7 @@ func TestGetToken(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	if token.UserName != "front-proxy-test:user" {
+	if token.UserName != "user" {
 		t.Errorf("Expected token for \"user\", but got: %#v", token)
 	}
 }

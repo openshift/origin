@@ -102,7 +102,7 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 		RoleName:         bootstrappolicy.ViewRoleName,
 		BindingNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		Client:           clusterAdminClient,
-		Users:            []string{"anypassword:valerie"},
+		Users:            []string{"valerie"},
 	}
 	if err := addValerie.Run(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -117,7 +117,7 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 		RoleName:         bootstrappolicy.EditRoleName,
 		BindingNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		Client:           clusterAdminClient,
-		Users:            []string{"anypassword:edgar"},
+		Users:            []string{"edgar"},
 	}
 	if err := addEdgar.Run(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -192,7 +192,7 @@ func TestResourceAccessReview(t *testing.T) {
 		RoleName:         bootstrappolicy.ViewRoleName,
 		BindingNamespace: "hammer-project",
 		Client:           haroldClient,
-		Users:            []string{"anypassword:valerie"},
+		Users:            []string{"valerie"},
 	}
 	if err := addValerie.Run(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -203,7 +203,7 @@ func TestResourceAccessReview(t *testing.T) {
 		RoleName:         bootstrappolicy.EditRoleName,
 		BindingNamespace: "mallet-project",
 		Client:           markClient,
-		Users:            []string{"anypassword:edgar"},
+		Users:            []string{"edgar"},
 	}
 	if err := addEdgar.Run(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -216,7 +216,7 @@ func TestResourceAccessReview(t *testing.T) {
 			clientInterface: haroldClient.ResourceAccessReviews("hammer-project"),
 			review:          requestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:     util.NewStringSet("anypassword:harold", "anypassword:valerie"),
+				Users:     util.NewStringSet("harold", "valerie"),
 				Groups:    globalClusterAdminGroups,
 				Namespace: "hammer-project",
 			},
@@ -229,7 +229,7 @@ func TestResourceAccessReview(t *testing.T) {
 			clientInterface: markClient.ResourceAccessReviews("mallet-project"),
 			review:          requestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:     util.NewStringSet("anypassword:mark", "anypassword:edgar"),
+				Users:     util.NewStringSet("mark", "edgar"),
 				Groups:    globalClusterAdminGroups,
 				Namespace: "mallet-project",
 			},
@@ -320,7 +320,7 @@ func TestSubjectAccessReview(t *testing.T) {
 		RoleName:         bootstrappolicy.ViewRoleName,
 		BindingNamespace: "hammer-project",
 		Client:           haroldClient,
-		Users:            []string{"anypassword:valerie"},
+		Users:            []string{"valerie"},
 	}
 	if err := addValerie.Run(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -331,13 +331,13 @@ func TestSubjectAccessReview(t *testing.T) {
 		RoleName:         bootstrappolicy.EditRoleName,
 		BindingNamespace: "mallet-project",
 		Client:           markClient,
-		Users:            []string{"anypassword:edgar"},
+		Users:            []string{"edgar"},
 	}
 	if err := addEdgar.Run(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	askCanValerieGetProject := &authorizationapi.SubjectAccessReview{User: "anypassword:valerie", Verb: "get", Resource: "projects"}
+	askCanValerieGetProject := &authorizationapi.SubjectAccessReview{User: "valerie", Verb: "get", Resource: "projects"}
 	subjectAccessReviewTest{
 		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
 		review:          askCanValerieGetProject,
@@ -357,7 +357,7 @@ func TestSubjectAccessReview(t *testing.T) {
 		},
 	}.run(t)
 
-	askCanEdgarDeletePods := &authorizationapi.SubjectAccessReview{User: "anypassword:edgar", Verb: "delete", Resource: "pods"}
+	askCanEdgarDeletePods := &authorizationapi.SubjectAccessReview{User: "edgar", Verb: "delete", Resource: "pods"}
 	subjectAccessReviewTest{
 		clientInterface: markClient.SubjectAccessReviews("mallet-project"),
 		review:          askCanEdgarDeletePods,
@@ -373,7 +373,7 @@ func TestSubjectAccessReview(t *testing.T) {
 		err:             "forbidden",
 	}.run(t)
 
-	askCanHaroldUpdateProject := &authorizationapi.SubjectAccessReview{User: "anypassword:harold", Verb: "update", Resource: "projects"}
+	askCanHaroldUpdateProject := &authorizationapi.SubjectAccessReview{User: "harold", Verb: "update", Resource: "projects"}
 	subjectAccessReviewTest{
 		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
 		review:          askCanHaroldUpdateProject,

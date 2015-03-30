@@ -11,7 +11,7 @@ import (
 type TestUserIdentityMapper struct{}
 
 func (m *TestUserIdentityMapper) UserFor(identityInfo api.UserIdentityInfo) (user.Info, error) {
-	return &user.DefaultInfo{Name: identityInfo.GetUserName()}, nil
+	return &user.DefaultInfo{Name: identityInfo.GetProviderUserName()}, nil
 }
 
 func TestRequestHeader(t *testing.T) {
@@ -61,7 +61,7 @@ func TestRequestHeader(t *testing.T) {
 
 	for k, testcase := range testcases {
 		mapper := &TestUserIdentityMapper{}
-		auth := NewAuthenticator(&Config{testcase.ConfiguredHeaders}, mapper)
+		auth := NewAuthenticator("testprovider", &Config{testcase.ConfiguredHeaders}, mapper)
 		req := &http.Request{Header: testcase.RequestHeaders}
 
 		user, ok, err := auth.AuthenticateRequest(req)

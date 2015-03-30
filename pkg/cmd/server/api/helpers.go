@@ -49,9 +49,15 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.AssetConfig.ServingInfo.ClientCA)
 	}
 
+	if config.KubernetesMasterConfig != nil {
+		refs = append(refs, &config.KubernetesMasterConfig.SchedulerConfigFile)
+	}
+
 	refs = append(refs, &config.MasterClients.DeployerKubeConfig)
 	refs = append(refs, &config.MasterClients.OpenShiftLoopbackKubeConfig)
 	refs = append(refs, &config.MasterClients.KubernetesKubeConfig)
+
+	refs = append(refs, &config.PolicyConfig.BootstrapPolicyFile)
 
 	return refs
 }

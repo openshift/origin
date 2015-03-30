@@ -131,9 +131,9 @@ This section covers how to perform all the steps of building, deploying, and upd
         $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/ca/cert.crt
         $ sudo chmod +r "$KUBECONFIG"
 
-4. Bind a user to the `view` role in the default namespace so you can observe progress in the web console (`anypassword` is an identity provider, `test-admin` is username)
+4. Bind a user names `test-admin` to the `view` role in the default namespace so you can observe progress in the web console
 
-        $ openshift ex policy add-role-to-user view anypassword:test-admin
+        $ openshift ex policy add-role-to-user view test-admin
 
 5. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 
@@ -186,7 +186,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 9. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
 
-        $ openshift ex new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3" --admin=anypassword:test-admin
+        $ openshift ex new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3" --admin=test-admin
 
 10. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 
