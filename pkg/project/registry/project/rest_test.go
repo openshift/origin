@@ -1,170 +1,61 @@
+/*
+Copyright 2014 Google Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package project
 
 import (
-	//	"fmt"
-	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+
 	"github.com/openshift/origin/pkg/project/api"
 )
 
-// mockLister returns the namespaces in the list
-type mockLister struct {
-	namespaceList *kapi.NamespaceList
-}
-
-func (ml *mockLister) List(user user.Info) (*kapi.NamespaceList, error) {
-	return ml.namespaceList, nil
-}
-
-func TestListProjects(t *testing.T) {
-	namespaceList := kapi.NamespaceList{
-		Items: []kapi.Namespace{
-			{
-				ObjectMeta: kapi.ObjectMeta{Name: "foo"},
-			},
-		},
+func TestProjectStrategy(t *testing.T) {
+	ctx := kapi.NewDefaultContext()
+	if Strategy.NamespaceScoped() {
+		t.Errorf("Projects should not be namespace scoped")
 	}
-	mockClient := &kclient.Fake{
-		NamespacesList: namespaceList,
+	if Strategy.AllowCreateOnUpdate() {
+		t.Errorf("Projects should not allow create on update")
 	}
-	storage := REST{
-		client: mockClient.Namespaces(),
-		lister: &mockLister{&namespaceList},
+	project := &api.Project{
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", ResourceVersion: "10"},
 	}
-	user := &user.DefaultInfo{
-		Name:   "test-user",
-		UID:    "test-uid",
-		Groups: []string{"test-groups"},
+	Strategy.PrepareForCreate(project)
+	if len(project.Spec.Finalizers) != 1 || project.Spec.Finalizers[0] != api.FinalizerProject {
+		t.Errorf("Prepare For Create should have added project finalizer")
 	}
-	ctx := kapi.WithUser(kapi.NewContext(), user)
-	response, err := storage.List(ctx, labels.Everything(), fields.Everything())
-	if err != nil {
-		t.Errorf("%#v should be nil.", err)
+	errs := Strategy.Validate(ctx, project)
+	if len(errs) != 0 {
+		t.Errorf("Unexpected error validating %v", errs)
 	}
-	projects := response.(*api.ProjectList)
-	if len(projects.Items) != 1 {
-		t.Errorf("%#v projects.Items should have len 1.", projects.Items)
+	invalidProject := &api.Project{
+		ObjectMeta: kapi.ObjectMeta{Name: "bar", ResourceVersion: "4"},
 	}
-	responseProject := projects.Items[0]
-	if e, r := responseProject.Name, "foo"; e != r {
-		t.Errorf("%#v != %#v.", e, r)
+	// ensure we copy spec.finalizers from old to new
+	Strategy.PrepareForUpdate(invalidProject, project)
+	if len(invalidProject.Spec.Finalizers) != 1 || invalidProject.Spec.Finalizers[0] != api.FinalizerProject {
+		t.Errorf("PrepareForUpdate should have preserved old.spec.finalizers")
 	}
-}
-
-func TestCreateProjectBadObject(t *testing.T) {
-	storage := REST{}
-
-	obj, err := storage.Create(nil, &api.ProjectList{})
-	if obj != nil {
-		t.Errorf("Expected nil, got %v", obj)
+	errs = Strategy.ValidateUpdate(ctx, invalidProject, project)
+	if len(errs) == 0 {
+		t.Errorf("Expected a validation error")
 	}
-	if strings.Index(err.Error(), "not a project:") == -1 {
-		t.Errorf("Expected 'not an project' error, got %v", err)
-	}
-}
-
-func TestCreateProjectMissingID(t *testing.T) {
-	storage := REST{}
-
-	obj, err := storage.Create(nil, &api.Project{})
-	if obj != nil {
-		t.Errorf("Expected nil obj, got %v", obj)
-	}
-	if !errors.IsInvalid(err) {
-		t.Errorf("Expected 'invalid' error, got %v", err)
-	}
-}
-
-func TestCreateProjectOK(t *testing.T) {
-	mockClient := &kclient.Fake{}
-	storage := REST{
-		client: mockClient.Namespaces(),
-	}
-	_, err := storage.Create(nil, &api.Project{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
-	})
-	if err != nil {
-		t.Errorf("Unexpected non-nil error: %#v", err)
-	}
-	if len(mockClient.Actions) != 1 {
-		t.Errorf("Expected client action for create")
-	}
-	if mockClient.Actions[0].Action != "create-namespace" {
-		t.Errorf("Expected call to create-namespace")
-	}
-
-	/*
-		TODO: Need upstream change to fake_namespaces so create returns the object passed in on client and not nil object
-		project, ok := obj.(*api.Project)
-		if !ok {
-			t.Errorf("Expected project type, got: %#v", obj)
-		}
-		if project.Name != "foo" {
-			t.Errorf("Unexpected project: %#v", project)
-		}*/
-}
-
-func TestGetProjectError(t *testing.T) {
-	// TODO: Need upstream change to fake_namespaces so get returns the error on Fake
-	/*
-		mockRegistry := test.NewProjectRegistry()
-		mockRegistry.Err = fmt.Errorf("bad")
-		storage := REST{registry: mockRegistry}
-
-		project, err := storage.Get(nil, "foo")
-		if project != nil {
-			t.Errorf("Unexpected non-nil project: %#v", project)
-		}
-		if err != mockRegistry.Err {
-			t.Errorf("Expected %#v, got %#v", mockRegistry.Err, err)
-		}*/
-}
-
-func TestGetProjectOK(t *testing.T) {
-	mockClient := &kclient.Fake{}
-	storage := REST{client: mockClient.Namespaces()}
-	project, err := storage.Get(nil, "foo")
-	if project == nil {
-		t.Error("Unexpected nil project")
-	}
-	if err != nil {
-		t.Errorf("Unexpected non-nil error: %v", err)
-	}
-	if project.(*api.Project).Name != "foo" {
-		t.Errorf("Unexpected project: %#v", project)
-	}
-}
-
-func TestDeleteProject(t *testing.T) {
-	mockClient := &kclient.Fake{}
-	storage := REST{
-		client: mockClient.Namespaces(),
-	}
-	obj, err := storage.Delete(nil, "foo")
-	if obj == nil {
-		t.Error("Unexpected nil obj")
-	}
-	if err != nil {
-		t.Errorf("Unexpected non-nil error: %#v", err)
-	}
-	status, ok := obj.(*kapi.Status)
-	if !ok {
-		t.Errorf("Expected status type, got: %#v", obj)
-	}
-	if status.Status != kapi.StatusSuccess {
-		t.Errorf("Expected status=success, got: %#v", status)
-	}
-	if len(mockClient.Actions) != 1 {
-		t.Errorf("Expected client action for delete")
-	}
-	if mockClient.Actions[0].Action != "delete-namespace" {
-		t.Errorf("Expected call to delete-namespace")
+	if invalidProject.ResourceVersion != "4" {
+		t.Errorf("Incoming resource version on update should not be mutated")
 	}
 }

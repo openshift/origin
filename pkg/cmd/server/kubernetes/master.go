@@ -24,8 +24,7 @@ import (
 	latestschedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
 
-	// Namespace controller will be added
-	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/namespace"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/namespace"
 )
 
 const (
@@ -81,6 +80,12 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta2),
 		fmt.Sprintf("Started Kubernetes API at %%s%s (experimental)", KubeAPIPrefixV1Beta3),
 	}
+}
+
+func (c *MasterConfig) RunNamespaceController() {
+	namespaceController := namespace.NewNamespaceManager(c.KubeClient)
+	namespaceController.Run(1 * time.Minute)
+	glog.Infof("Started Kubernetes Namespace Manager")
 }
 
 // RunReplicationController starts the Kubernetes replication controller sync loop

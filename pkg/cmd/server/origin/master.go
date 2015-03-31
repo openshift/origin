@@ -75,7 +75,7 @@ import (
 	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
-	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
+	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
@@ -224,7 +224,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
-		"projects": projectregistry.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
+		"projects": projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
 
 		"users":                userStorage,
 		"identities":           identityStorage,
