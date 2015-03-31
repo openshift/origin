@@ -6,6 +6,7 @@ import (
 	"os"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	ctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
@@ -17,6 +18,7 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/util"
 )
 
 type usage interface {
@@ -45,6 +47,9 @@ Examples:
 
 	# Use a MySQL image in a private registry to create an app
 	$ %[1]s new-app myregistry.com/mycompany/mysql
+
+	# Create an application from the remote repository using the specified label
+	$ %[1]s new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
 
 If you specify source code, you may need to run a build with 'start-build' after the
 application is created.
@@ -76,6 +81,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().Var(&config.Groups, "group", "Indicate components that should be grouped together as <comp1>+<comp2>.")
 	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into each container.")
 	cmd.Flags().StringVar(&config.TypeOfBuild, "build", "", "Specify the type of build to use if you don't want to detect (docker|source)")
+	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application")
 
 	cmdutil.AddPrinterFlags(cmd)
 
@@ -119,6 +125,17 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 			return cmdutil.UsageError(c, "You must specify one or more images, image streams, or source code locations to create an application.")
 		}
 		return err
+	}
+
+	label := cmdutil.GetFlagString(c, "labels")
+	if len(label) != 0 {
+		lbl := ctl.ParseLabels(label)
+		for _, object := range result.List.Items {
+			err = util.AddObjectLabels(object, lbl)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	if len(cmdutil.GetFlagString(c, "output")) != 0 {
