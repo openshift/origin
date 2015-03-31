@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
@@ -55,6 +56,7 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 
 // Delete asynchronously deletes the BuildConfig specified by its id.
 func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
+	deleteFromDeps(id)
 	return &kapi.Status{Status: kapi.StatusSuccess}, r.registry.DeleteBuildConfig(ctx, id)
 }
 
@@ -75,6 +77,11 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if errs := validation.ValidateBuildConfig(buildConfig); len(errs) > 0 {
 		return nil, errors.NewInvalid("buildConfig", buildConfig.Name, errs)
 	}
+
+	if circularDeps(buildConfig) {
+		glog.Warningf("buildConfig %s introduces circular dependencies", buildConfig.Name)
+	}
+
 	err := r.registry.CreateBuildConfig(ctx, buildConfig)
 	if err != nil {
 		return nil, err
@@ -93,6 +100,11 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 	}
 	if !kapi.ValidNamespace(ctx, &buildConfig.ObjectMeta) {
 		return nil, false, errors.NewConflict("buildConfig", buildConfig.Namespace, fmt.Errorf("BuildConfig.Namespace does not match the provided context"))
+	}
+
+	deleteFromDeps(buildConfig.Name)
+	if circularDeps(buildConfig) {
+		glog.Warningf("updated buildConfig %s introduces circular dependencies", buildConfig.Name)
 	}
 
 	err := r.registry.UpdateBuildConfig(ctx, buildConfig)

@@ -3,15 +3,15 @@ package etcd
 import (
 	"github.com/golang/glog"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
