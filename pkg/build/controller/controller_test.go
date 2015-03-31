@@ -144,8 +144,8 @@ func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 		ObjectMeta: kapi.ObjectMeta{Name: "name"},
 		Status: kapi.PodStatus{
 			Phase: status,
-			Info: kapi.PodInfo{
-				"container1": kapi.ContainerStatus{
+			ContainerStatuses: []kapi.ContainerStatus{
+				{
 					State: kapi.ContainerState{
 						Termination: &kapi.ContainerStateTerminated{ExitCode: exitCode},
 					},

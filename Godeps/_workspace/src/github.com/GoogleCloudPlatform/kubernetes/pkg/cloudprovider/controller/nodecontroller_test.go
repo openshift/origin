@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"reflect"
 	"sort"
 	"testing"
@@ -30,12 +31,15 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	fake_cloud "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/fake"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/probe"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
 // FakeNodeHandler is a fake implementation of NodesInterface and NodeInterface. It
-// allows test cases to have fine-grained control over mock behaviors. We alos need
+// allows test cases to have fine-grained control over mock behaviors. We also need
 // PodsInterface and PodInterface to test list & delet pods, which is implemented in
 // the embeded client.Fake field.
 type FakeNodeHandler struct {
@@ -114,6 +118,10 @@ func (m *FakeNodeHandler) Update(node *api.Node) (*api.Node, error) {
 	return node, nil
 }
 
+func (m *FakeNodeHandler) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	return nil, nil
+}
+
 // FakeKubeletClient is a fake implementation of KubeletClient.
 type FakeKubeletClient struct {
 	Status probe.Result
@@ -126,6 +134,10 @@ func (c *FakeKubeletClient) GetPodStatus(host, podNamespace, podID string) (api.
 
 func (c *FakeKubeletClient) GetNodeInfo(host string) (api.NodeInfo, error) {
 	return api.NodeInfo{}, errors.New("Not Implemented")
+}
+
+func (c *FakeKubeletClient) GetConnectionInfo(host string) (string, uint, http.RoundTripper, error) {
+	return "", 0, nil, errors.New("Not Implemented")
 }
 
 func (c *FakeKubeletClient) HealthCheck(host string) (probe.Result, error) {
@@ -235,7 +247,7 @@ func TestRegisterNodes(t *testing.T) {
 		for _, machine := range item.machines {
 			nodes.Items = append(nodes.Items, *newNode(machine))
 		}
-		nodeController := NewNodeController(nil, "", item.machines, &api.NodeResources{}, item.fakeNodeHandler, nil, 10, time.Minute)
+		nodeController := NewNodeController(nil, "", item.machines, &api.NodeResources{}, item.fakeNodeHandler, nil, nil, 10, time.Minute)
 		err := nodeController.RegisterNodes(&nodes, item.retryCount, time.Millisecond)
 		if !item.expectedFail && err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -267,8 +279,15 @@ func TestCreateGetStaticNodesWithSpec(t *testing.T) {
 				Items: []api.Node{
 					{
 						ObjectMeta: api.ObjectMeta{Name: "node0"},
-						Spec:       api.NodeSpec{},
-						Status:     api.NodeStatus{},
+						Spec: api.NodeSpec{
+							ExternalID: "node0",
+						},
+						Status: api.NodeStatus{
+							Capacity: api.ResourceList{
+								api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+								api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+							},
+						},
 					},
 				},
 			},
@@ -279,21 +298,41 @@ func TestCreateGetStaticNodesWithSpec(t *testing.T) {
 				Items: []api.Node{
 					{
 						ObjectMeta: api.ObjectMeta{Name: "node0"},
-						Spec:       api.NodeSpec{},
-						Status:     api.NodeStatus{},
+						Spec: api.NodeSpec{
+							ExternalID: "node0",
+						},
+						Status: api.NodeStatus{
+							Capacity: api.ResourceList{
+								api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+								api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+							},
+						},
 					},
 					{
 						ObjectMeta: api.ObjectMeta{Name: "node1"},
-						Spec:       api.NodeSpec{},
-						Status:     api.NodeStatus{},
+						Spec: api.NodeSpec{
+							ExternalID: "node1",
+						},
+						Status: api.NodeStatus{
+							Capacity: api.ResourceList{
+								api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+								api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+							},
+						},
 					},
 				},
 			},
 		},
 	}
 
+	resources := api.NodeResources{
+		Capacity: api.ResourceList{
+			api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+			api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+		},
+	}
 	for _, item := range table {
-		nodeController := NewNodeController(nil, "", item.machines, &api.NodeResources{}, nil, nil, 10, time.Minute)
+		nodeController := NewNodeController(nil, "", item.machines, &resources, nil, nil, nil, 10, time.Minute)
 		nodes, err := nodeController.GetStaticNodesWithSpec()
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -328,7 +367,7 @@ func TestCreateGetCloudNodesWithSpec(t *testing.T) {
 				Items: []api.Node{
 					{
 						ObjectMeta: api.ObjectMeta{Name: "node0"},
-						Spec:       api.NodeSpec{Capacity: resourceList},
+						Status:     api.NodeStatus{Capacity: resourceList},
 					},
 				},
 			},
@@ -342,11 +381,11 @@ func TestCreateGetCloudNodesWithSpec(t *testing.T) {
 				Items: []api.Node{
 					{
 						ObjectMeta: api.ObjectMeta{Name: "node0"},
-						Spec:       api.NodeSpec{Capacity: resourceList},
+						Status:     api.NodeStatus{Capacity: resourceList},
 					},
 					{
 						ObjectMeta: api.ObjectMeta{Name: "node1"},
-						Spec:       api.NodeSpec{Capacity: resourceList},
+						Status:     api.NodeStatus{Capacity: resourceList},
 					},
 				},
 			},
@@ -354,7 +393,7 @@ func TestCreateGetCloudNodesWithSpec(t *testing.T) {
 	}
 
 	for _, item := range table {
-		nodeController := NewNodeController(item.fakeCloud, ".*", nil, &api.NodeResources{}, nil, nil, 10, time.Minute)
+		nodeController := NewNodeController(item.fakeCloud, ".*", nil, &api.NodeResources{}, nil, nil, nil, 10, time.Minute)
 		nodes, err := nodeController.GetCloudNodesWithSpec()
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -365,7 +404,7 @@ func TestCreateGetCloudNodesWithSpec(t *testing.T) {
 	}
 }
 
-func TestSyncCloud(t *testing.T) {
+func TestSyncCloudNodes(t *testing.T) {
 	table := []struct {
 		fakeNodeHandler      *FakeNodeHandler
 		fakeCloud            *fake_cloud.FakeCloud
@@ -451,8 +490,8 @@ func TestSyncCloud(t *testing.T) {
 	}
 
 	for _, item := range table {
-		nodeController := NewNodeController(item.fakeCloud, item.matchRE, nil, &api.NodeResources{}, item.fakeNodeHandler, nil, 10, time.Minute)
-		if err := nodeController.SyncCloud(); err != nil {
+		nodeController := NewNodeController(item.fakeCloud, item.matchRE, nil, &api.NodeResources{}, item.fakeNodeHandler, nil, nil, 10, time.Minute)
+		if err := nodeController.SyncCloudNodes(); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if item.fakeNodeHandler.RequestCount != item.expectedRequestCount {
@@ -473,7 +512,7 @@ func TestSyncCloud(t *testing.T) {
 	}
 }
 
-func TestSyncCloudDeletePods(t *testing.T) {
+func TestSyncCloudNodesEvictPods(t *testing.T) {
 	table := []struct {
 		fakeNodeHandler      *FakeNodeHandler
 		fakeCloud            *fake_cloud.FakeCloud
@@ -533,8 +572,8 @@ func TestSyncCloudDeletePods(t *testing.T) {
 	}
 
 	for _, item := range table {
-		nodeController := NewNodeController(item.fakeCloud, item.matchRE, nil, &api.NodeResources{}, item.fakeNodeHandler, nil, 10, time.Minute)
-		if err := nodeController.SyncCloud(); err != nil {
+		nodeController := NewNodeController(item.fakeCloud, item.matchRE, nil, &api.NodeResources{}, item.fakeNodeHandler, nil, nil, 10, time.Minute)
+		if err := nodeController.SyncCloudNodes(); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if item.fakeNodeHandler.RequestCount != item.expectedRequestCount {
@@ -551,6 +590,7 @@ func TestSyncCloudDeletePods(t *testing.T) {
 }
 
 func TestNodeConditionsCheck(t *testing.T) {
+	fakeNow := util.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC)
 	table := []struct {
 		node               *api.Node
 		fakeKubeletClient  *FakeKubeletClient
@@ -566,14 +606,18 @@ func TestNodeConditionsCheck(t *testing.T) {
 			},
 			expectedConditions: []api.NodeCondition{
 				{
-					Type:   api.NodeReady,
-					Status: api.ConditionFull,
-					Reason: "Node health check succeeded: kubelet /healthz endpoint returns ok",
+					Type:               api.NodeReady,
+					Status:             api.ConditionTrue,
+					Reason:             "Node health check succeeded: kubelet /healthz endpoint returns ok",
+					LastProbeTime:      fakeNow,
+					LastTransitionTime: fakeNow,
 				},
 				{
-					Type:   api.NodeSchedulable,
-					Status: api.ConditionFull,
-					Reason: "Node is schedulable by default",
+					Type:               api.NodeSchedulable,
+					Status:             api.ConditionTrue,
+					Reason:             "Node is schedulable by default",
+					LastProbeTime:      fakeNow,
+					LastTransitionTime: fakeNow,
 				},
 			},
 		},
@@ -587,14 +631,18 @@ func TestNodeConditionsCheck(t *testing.T) {
 			},
 			expectedConditions: []api.NodeCondition{
 				{
-					Type:   api.NodeReady,
-					Status: api.ConditionNone,
-					Reason: "Node health check failed: kubelet /healthz endpoint returns not ok",
+					Type:               api.NodeReady,
+					Status:             api.ConditionFalse,
+					Reason:             "Node health check failed: kubelet /healthz endpoint returns not ok",
+					LastProbeTime:      fakeNow,
+					LastTransitionTime: fakeNow,
 				},
 				{
-					Type:   api.NodeSchedulable,
-					Status: api.ConditionFull,
-					Reason: "Node is schedulable by default",
+					Type:               api.NodeSchedulable,
+					Status:             api.ConditionTrue,
+					Reason:             "Node is schedulable by default",
+					LastProbeTime:      fakeNow,
+					LastTransitionTime: fakeNow,
 				},
 			},
 		},
@@ -608,32 +656,27 @@ func TestNodeConditionsCheck(t *testing.T) {
 			},
 			expectedConditions: []api.NodeCondition{
 				{
-					Type:   api.NodeReady,
-					Status: api.ConditionUnknown,
-					Reason: "Node health check error: Error",
+					Type:               api.NodeReady,
+					Status:             api.ConditionUnknown,
+					Reason:             "Node health check error: Error",
+					LastProbeTime:      fakeNow,
+					LastTransitionTime: fakeNow,
 				},
 				{
-					Type:   api.NodeSchedulable,
-					Status: api.ConditionNone,
-					Reason: "User marked unschedulable during node create/update",
+					Type:               api.NodeSchedulable,
+					Status:             api.ConditionFalse,
+					Reason:             "User marked unschedulable during node create/update",
+					LastProbeTime:      fakeNow,
+					LastTransitionTime: fakeNow,
 				},
 			},
 		},
 	}
 
 	for _, item := range table {
-		nodeController := NewNodeController(nil, "", nil, nil, nil, item.fakeKubeletClient, 10, time.Minute)
+		nodeController := NewNodeController(nil, "", nil, nil, nil, item.fakeKubeletClient, nil, 10, time.Minute)
+		nodeController.now = func() util.Time { return fakeNow }
 		conditions := nodeController.DoCheck(item.node)
-		for i := range conditions {
-			if conditions[i].LastTransitionTime.IsZero() {
-				t.Errorf("unexpected zero last transition timestamp")
-			}
-			if conditions[i].LastProbeTime.IsZero() {
-				t.Errorf("unexpected zero last probe timestamp")
-			}
-			conditions[i].LastTransitionTime = util.Time{}
-			conditions[i].LastProbeTime = util.Time{}
-		}
 		if !reflect.DeepEqual(item.expectedConditions, conditions) {
 			t.Errorf("expected conditions %+v, got %+v", item.expectedConditions, conditions)
 		}
@@ -662,7 +705,7 @@ func TestPopulateNodeAddresses(t *testing.T) {
 	}
 
 	for _, item := range table {
-		nodeController := NewNodeController(item.fakeCloud, ".*", nil, nil, nil, nil, 10, time.Minute)
+		nodeController := NewNodeController(item.fakeCloud, ".*", nil, nil, nil, nil, nil, 10, time.Minute)
 		result, err := nodeController.PopulateAddresses(item.nodes)
 		// In case of IP querying error, we should continue.
 		if err != nil {
@@ -676,16 +719,129 @@ func TestPopulateNodeAddresses(t *testing.T) {
 	}
 }
 
-func TestSyncNodeStatusTransitionTime(t *testing.T) {
+func TestSyncProbedNodeStatus(t *testing.T) {
+	fakeNow := util.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC)
 	table := []struct {
-		fakeNodeHandler              *FakeNodeHandler
-		fakeKubeletClient            *FakeKubeletClient
-		expectedRequestCount         int
-		expectedTransitionTimeChange bool
+		fakeNodeHandler      *FakeNodeHandler
+		fakeKubeletClient    *FakeKubeletClient
+		fakeCloud            *fake_cloud.FakeCloud
+		expectedNodes        []*api.Node
+		expectedRequestCount int
+	}{
+		{
+			fakeNodeHandler: &FakeNodeHandler{
+				Existing: []*api.Node{newNode("node0"), newNode("node1")},
+			},
+			fakeKubeletClient: &FakeKubeletClient{
+				Status: probe.Success,
+				Err:    nil,
+			},
+			fakeCloud: &fake_cloud.FakeCloud{
+				Addresses: []api.NodeAddress{{Type: api.NodeLegacyHostIP, Address: "1.2.3.4"}},
+			},
+			expectedNodes: []*api.Node{
+				{
+					ObjectMeta: api.ObjectMeta{Name: "node0"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{
+								Type:               api.NodeReady,
+								Status:             api.ConditionTrue,
+								Reason:             "Node health check succeeded: kubelet /healthz endpoint returns ok",
+								LastProbeTime:      fakeNow,
+								LastTransitionTime: fakeNow,
+							},
+							{
+								Type:               api.NodeSchedulable,
+								Status:             api.ConditionTrue,
+								Reason:             "Node is schedulable by default",
+								LastProbeTime:      fakeNow,
+								LastTransitionTime: fakeNow,
+							},
+						},
+						Addresses: []api.NodeAddress{
+							{Type: api.NodeLegacyHostIP, Address: "1.2.3.4"},
+						},
+						Capacity: api.ResourceList{
+							api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+							api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+						},
+					},
+					Spec: api.NodeSpec{
+						ExternalID: "node0",
+					},
+				},
+				{
+					ObjectMeta: api.ObjectMeta{Name: "node1"},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{
+								Type:               api.NodeReady,
+								Status:             api.ConditionTrue,
+								Reason:             "Node health check succeeded: kubelet /healthz endpoint returns ok",
+								LastProbeTime:      fakeNow,
+								LastTransitionTime: fakeNow,
+							},
+							{
+								Type:               api.NodeSchedulable,
+								Status:             api.ConditionTrue,
+								Reason:             "Node is schedulable by default",
+								LastProbeTime:      fakeNow,
+								LastTransitionTime: fakeNow,
+							},
+						},
+						Addresses: []api.NodeAddress{
+							{Type: api.NodeLegacyHostIP, Address: "1.2.3.4"},
+						},
+						Capacity: api.ResourceList{
+							api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+							api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+						},
+					},
+					Spec: api.NodeSpec{
+						ExternalID: "node1",
+					},
+				},
+			},
+			expectedRequestCount: 3, // List + 2xUpdate
+		},
+	}
+
+	for _, item := range table {
+		nodeController := NewNodeController(item.fakeCloud, ".*", nil, nil, item.fakeNodeHandler, item.fakeKubeletClient, nil, 10, time.Minute)
+		nodeController.now = func() util.Time { return fakeNow }
+		if err := nodeController.SyncProbedNodeStatus(); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if item.fakeNodeHandler.RequestCount != item.expectedRequestCount {
+			t.Errorf("expected %v call, but got %v.", item.expectedRequestCount, item.fakeNodeHandler.RequestCount)
+		}
+		if !reflect.DeepEqual(item.expectedNodes, item.fakeNodeHandler.UpdatedNodes) {
+			t.Errorf("expected nodes %+v, got %+v", item.expectedNodes[0], item.fakeNodeHandler.UpdatedNodes[0])
+		}
+		// Second sync will also update the node.
+		item.fakeNodeHandler.RequestCount = 0
+		if err := nodeController.SyncProbedNodeStatus(); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if item.fakeNodeHandler.RequestCount != item.expectedRequestCount {
+			t.Errorf("expected %v call, but got %v.", item.expectedRequestCount, item.fakeNodeHandler.RequestCount)
+		}
+	}
+}
+
+func TestSyncProbedNodeStatusTransitionTime(t *testing.T) {
+	fakeNow := util.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC)
+	table := []struct {
+		fakeNodeHandler        *FakeNodeHandler
+		fakeKubeletClient      *FakeKubeletClient
+		expectedRequestCount   int
+		expectedTransitionTime util.Time
 	}{
 		{
 			// Existing node is healthy, current probe is healthy too.
 			// Existing node is schedulable, again explicitly mark node as schedulable.
+			// Expect transition time to stay the same as before.
 			fakeNodeHandler: &FakeNodeHandler{
 				Existing: []*api.Node{
 					{
@@ -695,13 +851,13 @@ func TestSyncNodeStatusTransitionTime(t *testing.T) {
 							Conditions: []api.NodeCondition{
 								{
 									Type:               api.NodeReady,
-									Status:             api.ConditionFull,
+									Status:             api.ConditionTrue,
 									Reason:             "Node health check succeeded: kubelet /healthz endpoint returns ok",
 									LastTransitionTime: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
 								},
 								{
 									Type:               api.NodeSchedulable,
-									Status:             api.ConditionFull,
+									Status:             api.ConditionTrue,
 									Reason:             "Node is schedulable by default",
 									LastTransitionTime: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
 								},
@@ -714,12 +870,13 @@ func TestSyncNodeStatusTransitionTime(t *testing.T) {
 				Status: probe.Success,
 				Err:    nil,
 			},
-			expectedRequestCount:         2, // List+Update
-			expectedTransitionTimeChange: false,
+			expectedRequestCount:   2, // List+Update
+			expectedTransitionTime: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
 		},
 		{
 			// Existing node is healthy, current probe is unhealthy.
 			// Existing node is schedulable, mark node as unschedulable.
+			// Expect transition time to be now.
 			fakeNodeHandler: &FakeNodeHandler{
 				Existing: []*api.Node{
 					{
@@ -729,13 +886,13 @@ func TestSyncNodeStatusTransitionTime(t *testing.T) {
 							Conditions: []api.NodeCondition{
 								{
 									Type:               api.NodeReady,
-									Status:             api.ConditionFull,
+									Status:             api.ConditionTrue,
 									Reason:             "Node health check succeeded: kubelet /healthz endpoint returns ok",
 									LastTransitionTime: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
 								},
 								{
 									Type:               api.NodeSchedulable,
-									Status:             api.ConditionFull,
+									Status:             api.ConditionTrue,
 									Reason:             "Node is schedulable by default",
 									LastTransitionTime: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
 								},
@@ -748,153 +905,32 @@ func TestSyncNodeStatusTransitionTime(t *testing.T) {
 				Status: probe.Failure,
 				Err:    nil,
 			},
-			expectedRequestCount:         2, // List+Update
-			expectedTransitionTimeChange: true,
+			expectedRequestCount:   2, // List+Update
+			expectedTransitionTime: fakeNow,
 		},
 	}
 
 	for _, item := range table {
-		nodeController := NewNodeController(nil, "", []string{"node0"}, nil, item.fakeNodeHandler, item.fakeKubeletClient, 10, time.Minute)
-		nodeController.lookupIP = func(host string) ([]net.IP, error) {
-			return nil, fmt.Errorf("lookup %v: no such host", host)
-		}
-		if err := nodeController.SyncNodeStatus(); err != nil {
+		nodeController := NewNodeController(nil, "", []string{"node0"}, nil, item.fakeNodeHandler, item.fakeKubeletClient, nil, 10, time.Minute)
+		nodeController.lookupIP = func(host string) ([]net.IP, error) { return nil, fmt.Errorf("lookup %v: no such host", host) }
+		nodeController.now = func() util.Time { return fakeNow }
+		if err := nodeController.SyncProbedNodeStatus(); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if item.expectedRequestCount != item.fakeNodeHandler.RequestCount {
 			t.Errorf("expected %v call, but got %v.", item.expectedRequestCount, item.fakeNodeHandler.RequestCount)
 		}
-		for i := range item.fakeNodeHandler.UpdatedNodes {
-			conditions := item.fakeNodeHandler.UpdatedNodes[i].Status.Conditions
-			for j := range conditions {
-				condition := conditions[j]
-				if item.expectedTransitionTimeChange {
-					if !condition.LastTransitionTime.After(time.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC)) {
-						t.Errorf("unexpected last transition timestamp %v", condition.LastTransitionTime)
-					}
-				} else {
-					if !condition.LastTransitionTime.Equal(time.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC)) {
-						t.Errorf("unexpected last transition timestamp %v", condition.LastTransitionTime)
-					}
+		for _, node := range item.fakeNodeHandler.UpdatedNodes {
+			for _, condition := range node.Status.Conditions {
+				if !condition.LastTransitionTime.Time.Equal(item.expectedTransitionTime.Time) {
+					t.Errorf("expected last transition time %v, but got %v", item.expectedTransitionTime, condition.LastTransitionTime)
 				}
 			}
 		}
 	}
 }
 
-func TestEvictTimeoutedPods(t *testing.T) {
-	table := []struct {
-		fakeNodeHandler      *FakeNodeHandler
-		expectedRequestCount int
-		expectedActions      []client.FakeAction
-	}{
-		// Node created long time ago, with no status.
-		{
-			fakeNodeHandler: &FakeNodeHandler{
-				Existing: []*api.Node{
-					{
-						ObjectMeta: api.ObjectMeta{
-							Name:              "node0",
-							CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
-						},
-					},
-				},
-				Fake: client.Fake{
-					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
-				},
-			},
-			expectedRequestCount: 1, // List
-			expectedActions:      []client.FakeAction{{Action: "list-pods"}, {Action: "delete-pod", Value: "pod0"}},
-		},
-		// Node created recently, with no status.
-		{
-			fakeNodeHandler: &FakeNodeHandler{
-				Existing: []*api.Node{
-					{
-						ObjectMeta: api.ObjectMeta{
-							Name:              "node0",
-							CreationTimestamp: util.Now(),
-						},
-					},
-				},
-				Fake: client.Fake{
-					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
-				},
-			},
-			expectedRequestCount: 1, // List
-			expectedActions:      nil,
-		},
-		// Node created long time ago, with status updated long time ago.
-		{
-			fakeNodeHandler: &FakeNodeHandler{
-				Existing: []*api.Node{
-					{
-						ObjectMeta: api.ObjectMeta{
-							Name:              "node0",
-							CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
-						},
-						Status: api.NodeStatus{
-							Conditions: []api.NodeCondition{
-								{
-									Type:          api.NodeReady,
-									Status:        api.ConditionFull,
-									LastProbeTime: util.Date(2013, 1, 1, 0, 0, 0, 0, time.UTC),
-								},
-							},
-						},
-					},
-				},
-				Fake: client.Fake{
-					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
-				},
-			},
-			expectedRequestCount: 1, // List
-			expectedActions:      []client.FakeAction{{Action: "list-pods"}, {Action: "delete-pod", Value: "pod0"}},
-		},
-		// Node created long time ago, with status updated recently.
-		{
-			fakeNodeHandler: &FakeNodeHandler{
-				Existing: []*api.Node{
-					{
-						ObjectMeta: api.ObjectMeta{
-							Name:              "node0",
-							CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
-						},
-						Status: api.NodeStatus{
-							Conditions: []api.NodeCondition{
-								{
-									Type:          api.NodeReady,
-									Status:        api.ConditionFull,
-									LastProbeTime: util.Now(),
-								},
-							},
-						},
-					},
-				},
-				Fake: client.Fake{
-					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
-				},
-			},
-			expectedRequestCount: 1, // List
-			expectedActions:      nil,
-		},
-	}
-
-	for _, item := range table {
-		nodeController := NewNodeController(nil, "", []string{"node0"}, nil, item.fakeNodeHandler, nil, 10, 5*time.Minute)
-		if err := nodeController.EvictTimeoutedPods(); err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if item.expectedRequestCount != item.fakeNodeHandler.RequestCount {
-			t.Errorf("expected %v call, but got %v.", item.expectedRequestCount, item.fakeNodeHandler.RequestCount)
-		}
-		if !reflect.DeepEqual(item.expectedActions, item.fakeNodeHandler.Actions) {
-			t.Errorf("actions differs, expected %+v, got %+v", item.expectedActions, item.fakeNodeHandler.Actions)
-		}
-	}
-}
-
-func TestSyncNodeStatusDeletePods(t *testing.T) {
+func TestSyncProbedNodeStatusEvictPods(t *testing.T) {
 	table := []struct {
 		fakeNodeHandler      *FakeNodeHandler
 		fakeKubeletClient    *FakeKubeletClient
@@ -911,7 +947,7 @@ func TestSyncNodeStatusDeletePods(t *testing.T) {
 							Conditions: []api.NodeCondition{
 								{
 									Type:               api.NodeReady,
-									Status:             api.ConditionFull,
+									Status:             api.ConditionTrue,
 									Reason:             "Node health check succeeded: kubelet /healthz endpoint returns ok",
 									LastTransitionTime: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
 								},
@@ -941,7 +977,7 @@ func TestSyncNodeStatusDeletePods(t *testing.T) {
 							Conditions: []api.NodeCondition{
 								{
 									Type:               api.NodeReady,
-									Status:             api.ConditionFull,
+									Status:             api.ConditionTrue,
 									Reason:             "Node health check succeeded: kubelet /healthz endpoint returns ok",
 									LastTransitionTime: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
 								},
@@ -970,7 +1006,7 @@ func TestSyncNodeStatusDeletePods(t *testing.T) {
 							Conditions: []api.NodeCondition{
 								{
 									Type:   api.NodeReady,
-									Status: api.ConditionNone,
+									Status: api.ConditionFalse,
 									Reason: "Node health check failed: kubelet /healthz endpoint returns not ok",
 									// Here, last transition time is Now(). In node controller, the new condition's probe time is
 									// also Now(). The two calls to Now() yields differnt time due to test execution, but the
@@ -1002,7 +1038,7 @@ func TestSyncNodeStatusDeletePods(t *testing.T) {
 							Conditions: []api.NodeCondition{
 								{
 									Type:   api.NodeReady,
-									Status: api.ConditionNone,
+									Status: api.ConditionFalse,
 									Reason: "Node health check failed: kubelet /healthz endpoint returns not ok",
 									// Here, last transition time is in the past, and in node controller, the
 									// new condition's probe time is Now(). The time difference is larger than
@@ -1028,11 +1064,9 @@ func TestSyncNodeStatusDeletePods(t *testing.T) {
 	}
 
 	for _, item := range table {
-		nodeController := NewNodeController(nil, "", []string{"node0"}, nil, item.fakeNodeHandler, item.fakeKubeletClient, 10, 5*time.Minute)
-		nodeController.lookupIP = func(host string) ([]net.IP, error) {
-			return nil, fmt.Errorf("lookup %v: no such host", host)
-		}
-		if err := nodeController.SyncNodeStatus(); err != nil {
+		nodeController := NewNodeController(nil, "", []string{"node0"}, nil, item.fakeNodeHandler, item.fakeKubeletClient, nil, 10, 5*time.Minute)
+		nodeController.lookupIP = func(host string) ([]net.IP, error) { return nil, fmt.Errorf("lookup %v: no such host", host) }
+		if err := nodeController.SyncProbedNodeStatus(); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if item.expectedRequestCount != item.fakeNodeHandler.RequestCount {
@@ -1044,108 +1078,359 @@ func TestSyncNodeStatusDeletePods(t *testing.T) {
 	}
 }
 
-func TestSyncNodeStatus(t *testing.T) {
+func TestMonitorNodeStatusEvictPods(t *testing.T) {
+	fakeNow := util.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC)
 	table := []struct {
-		fakeNodeHandler      *FakeNodeHandler
-		fakeKubeletClient    *FakeKubeletClient
-		fakeCloud            *fake_cloud.FakeCloud
-		expectedNodes        []*api.Node
-		expectedRequestCount int
+		fakeNodeHandler   *FakeNodeHandler
+		expectedEvictPods bool
+		evictionTimeout   time.Duration
 	}{
+		// Node created recently, with no status (happens only at cluster startup).
 		{
 			fakeNodeHandler: &FakeNodeHandler{
-				Existing: []*api.Node{newNode("node0"), newNode("node1")},
-			},
-			fakeKubeletClient: &FakeKubeletClient{
-				Status: probe.Success,
-				Err:    nil,
-			},
-			fakeCloud: &fake_cloud.FakeCloud{
-				Addresses: []api.NodeAddress{{Type: api.NodeLegacyHostIP, Address: "1.2.3.4"}},
-			},
-			expectedNodes: []*api.Node{
-				{
-					ObjectMeta: api.ObjectMeta{Name: "node0"},
-					Status: api.NodeStatus{
-						Conditions: []api.NodeCondition{
-							{
-								Type:   api.NodeReady,
-								Status: api.ConditionFull,
-								Reason: "Node health check succeeded: kubelet /healthz endpoint returns ok",
-							},
-							{
-								Type:   api.NodeSchedulable,
-								Status: api.ConditionFull,
-								Reason: "Node is schedulable by default",
-							},
-						},
-						Addresses: []api.NodeAddress{
-							{Type: api.NodeLegacyHostIP, Address: "1.2.3.4"},
+				Existing: []*api.Node{
+					{
+						ObjectMeta: api.ObjectMeta{
+							Name:              "node0",
+							CreationTimestamp: fakeNow,
 						},
 					},
 				},
-				{
-					ObjectMeta: api.ObjectMeta{Name: "node1"},
-					Status: api.NodeStatus{
-						Conditions: []api.NodeCondition{
-							{
-								Type:   api.NodeReady,
-								Status: api.ConditionFull,
-								Reason: "Node health check succeeded: kubelet /healthz endpoint returns ok",
-							},
-							{
-								Type:   api.NodeSchedulable,
-								Status: api.ConditionFull,
-								Reason: "Node is schedulable by default",
-							},
+				Fake: client.Fake{
+					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
+				},
+			},
+			evictionTimeout:   30 * time.Minute,
+			expectedEvictPods: false,
+		},
+		// Node created long time ago, and kubelet posted NotReady for a short period of time.
+		{
+			fakeNodeHandler: &FakeNodeHandler{
+				Existing: []*api.Node{
+					{
+						ObjectMeta: api.ObjectMeta{
+							Name:              "node0",
+							CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
 						},
-						Addresses: []api.NodeAddress{
-							{Type: api.NodeLegacyHostIP, Address: "1.2.3.4"},
+						Status: api.NodeStatus{
+							Conditions: []api.NodeCondition{
+								{
+									Type:   api.NodeReady,
+									Status: api.ConditionFalse,
+									// Node status has just been updated, and transited to NotReady for 10min.
+									LastProbeTime:      util.Date(2015, 1, 1, 11, 59, 0, 0, time.UTC),
+									LastTransitionTime: util.Date(2015, 1, 1, 11, 50, 0, 0, time.UTC),
+								},
+							},
 						},
 					},
 				},
+				Fake: client.Fake{
+					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
+				},
 			},
-			expectedRequestCount: 3, // List + 2xUpdate
+			evictionTimeout:   30 * time.Minute,
+			expectedEvictPods: false,
+		},
+		// Node created long time ago, and kubelet posted NotReady for a long period of time.
+		{
+			fakeNodeHandler: &FakeNodeHandler{
+				Existing: []*api.Node{
+					{
+						ObjectMeta: api.ObjectMeta{
+							Name:              "node0",
+							CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+						},
+						Status: api.NodeStatus{
+							Conditions: []api.NodeCondition{
+								{
+									Type:   api.NodeReady,
+									Status: api.ConditionFalse,
+									// Node status has just been updated, and transited to NotReady for 1hr.
+									LastProbeTime:      util.Date(2015, 1, 1, 11, 59, 0, 0, time.UTC),
+									LastTransitionTime: util.Date(2015, 1, 1, 11, 0, 0, 0, time.UTC),
+								},
+							},
+						},
+					},
+				},
+				Fake: client.Fake{
+					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
+				},
+			},
+			evictionTimeout:   30 * time.Minute,
+			expectedEvictPods: true,
+		},
+		// Node created long time ago, node controller posted Unknown for a short period of time.
+		{
+			fakeNodeHandler: &FakeNodeHandler{
+				Existing: []*api.Node{
+					{
+						ObjectMeta: api.ObjectMeta{
+							Name:              "node0",
+							CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+						},
+						Status: api.NodeStatus{
+							Conditions: []api.NodeCondition{
+								{
+									Type:   api.NodeReady,
+									Status: api.ConditionUnknown,
+									// Node status was updated by nodecontroller 10min ago
+									LastProbeTime:      util.Date(2015, 1, 1, 11, 50, 0, 0, time.UTC),
+									LastTransitionTime: util.Date(2015, 1, 1, 11, 50, 0, 0, time.UTC),
+								},
+							},
+						},
+					},
+				},
+				Fake: client.Fake{
+					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
+				},
+			},
+			evictionTimeout:   30 * time.Minute,
+			expectedEvictPods: false,
+		},
+		// Node created long time ago, node controller posted Unknown for a long period of time.
+		{
+			fakeNodeHandler: &FakeNodeHandler{
+				Existing: []*api.Node{
+					{
+						ObjectMeta: api.ObjectMeta{
+							Name:              "node0",
+							CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+						},
+						Status: api.NodeStatus{
+							Conditions: []api.NodeCondition{
+								{
+									Type:   api.NodeReady,
+									Status: api.ConditionUnknown,
+									// Node status was updated by nodecontroller 1hr ago
+									LastProbeTime:      util.Date(2015, 1, 1, 11, 0, 0, 0, time.UTC),
+									LastTransitionTime: util.Date(2015, 1, 1, 11, 0, 0, 0, time.UTC),
+								},
+							},
+						},
+					},
+				},
+				Fake: client.Fake{
+					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
+				},
+			},
+			evictionTimeout:   30 * time.Minute,
+			expectedEvictPods: true,
 		},
 	}
 
 	for _, item := range table {
-		nodeController := NewNodeController(item.fakeCloud, ".*", nil, nil, item.fakeNodeHandler, item.fakeKubeletClient, 10, time.Minute)
-		if err := nodeController.SyncNodeStatus(); err != nil {
+		nodeController := NewNodeController(nil, "", []string{"node0"}, nil, item.fakeNodeHandler, nil, nil, 10, item.evictionTimeout)
+		nodeController.now = func() util.Time { return fakeNow }
+		if err := nodeController.MonitorNodeStatus(); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
-		if item.fakeNodeHandler.RequestCount != item.expectedRequestCount {
-			t.Errorf("expected %v call, but got %v.", item.expectedRequestCount, item.fakeNodeHandler.RequestCount)
-		}
-		for i := range item.fakeNodeHandler.UpdatedNodes {
-			conditions := item.fakeNodeHandler.UpdatedNodes[i].Status.Conditions
-			for j := range conditions {
-				if conditions[j].LastTransitionTime.IsZero() {
-					t.Errorf("unexpected zero last transition timestamp")
-				}
-				if conditions[j].LastProbeTime.IsZero() {
-					t.Errorf("unexpected zero last probe timestamp")
-				}
-				conditions[j].LastTransitionTime = util.Time{}
-				conditions[j].LastProbeTime = util.Time{}
+		podEvicted := false
+		for _, action := range item.fakeNodeHandler.Actions {
+			if action.Action == "delete-pod" {
+				podEvicted = true
 			}
+		}
+		if item.expectedEvictPods != podEvicted {
+			t.Errorf("expected pod eviction: %+v, got %+v", item.expectedEvictPods, podEvicted)
+		}
+	}
+}
+
+func TestMonitorNodeStatusUpdateStatus(t *testing.T) {
+	fakeNow := util.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC)
+	table := []struct {
+		fakeNodeHandler      *FakeNodeHandler
+		expectedRequestCount int
+		expectedNodes        []*api.Node
+	}{
+		// Node created long time ago, without status:
+		// Expect Unknown status posted from node controller.
+		{
+			fakeNodeHandler: &FakeNodeHandler{
+				Existing: []*api.Node{
+					{
+						ObjectMeta: api.ObjectMeta{
+							Name:              "node0",
+							CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+						},
+					},
+				},
+				Fake: client.Fake{
+					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
+				},
+			},
+			expectedRequestCount: 2, // List+Update
+			expectedNodes: []*api.Node{
+				{
+					ObjectMeta: api.ObjectMeta{
+						Name:              "node0",
+						CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+					},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{
+								Type:               api.NodeReady,
+								Status:             api.ConditionUnknown,
+								Reason:             fmt.Sprintf("Kubelet never posted node status"),
+								LastProbeTime:      util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+								LastTransitionTime: fakeNow,
+							},
+						},
+					},
+				},
+			},
+		},
+		// Node created recently, without status.
+		// Expect no action from node controller (within startup grace period).
+		{
+			fakeNodeHandler: &FakeNodeHandler{
+				Existing: []*api.Node{
+					{
+						ObjectMeta: api.ObjectMeta{
+							Name:              "node0",
+							CreationTimestamp: fakeNow,
+						},
+					},
+				},
+				Fake: client.Fake{
+					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
+				},
+			},
+			expectedRequestCount: 1, // List
+			expectedNodes:        nil,
+		},
+		// Node created long time ago, with status updated by kubelet exceeds grace period.
+		// Expect Unknown status posted from node controller.
+		{
+			fakeNodeHandler: &FakeNodeHandler{
+				Existing: []*api.Node{
+					{
+						ObjectMeta: api.ObjectMeta{
+							Name:              "node0",
+							CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+						},
+						Status: api.NodeStatus{
+							Conditions: []api.NodeCondition{
+								{
+									Type:   api.NodeReady,
+									Status: api.ConditionTrue,
+									// Node status hasn't been updated for 1hr.
+									LastProbeTime:      util.Date(2015, 1, 1, 11, 0, 0, 0, time.UTC),
+									LastTransitionTime: util.Date(2015, 1, 1, 11, 0, 0, 0, time.UTC),
+								},
+							},
+							Capacity: api.ResourceList{
+								api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+								api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+							},
+						},
+						Spec: api.NodeSpec{
+							ExternalID: "node0",
+						},
+					},
+				},
+				Fake: client.Fake{
+					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
+				},
+			},
+			expectedRequestCount: 2, // List+Update
+			expectedNodes: []*api.Node{
+				{
+					ObjectMeta: api.ObjectMeta{
+						Name:              "node0",
+						CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+					},
+					Status: api.NodeStatus{
+						Conditions: []api.NodeCondition{
+							{
+								Type:               api.NodeReady,
+								Status:             api.ConditionUnknown,
+								Reason:             fmt.Sprintf("Kubelet stopped posting node status"),
+								LastProbeTime:      util.Date(2015, 1, 1, 11, 0, 0, 0, time.UTC),
+								LastTransitionTime: fakeNow,
+							},
+						},
+						Capacity: api.ResourceList{
+							api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+							api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+						},
+					},
+					Spec: api.NodeSpec{
+						ExternalID: "node0",
+					},
+				},
+			},
+		},
+		// Node created long time ago, with status updated recently.
+		// Expect no action from node controller (within monitor grace period).
+		{
+			fakeNodeHandler: &FakeNodeHandler{
+				Existing: []*api.Node{
+					{
+						ObjectMeta: api.ObjectMeta{
+							Name:              "node0",
+							CreationTimestamp: util.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+						},
+						Status: api.NodeStatus{
+							Conditions: []api.NodeCondition{
+								{
+									Type:   api.NodeReady,
+									Status: api.ConditionTrue,
+									// Node status has just been updated.
+									LastProbeTime:      fakeNow,
+									LastTransitionTime: fakeNow,
+								},
+							},
+							Capacity: api.ResourceList{
+								api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+								api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+							},
+						},
+						Spec: api.NodeSpec{
+							ExternalID: "node0",
+						},
+					},
+				},
+				Fake: client.Fake{
+					PodsList: api.PodList{Items: []api.Pod{*newPod("pod0", "node0")}},
+				},
+			},
+			expectedRequestCount: 1, // List
+			expectedNodes:        nil,
+		},
+	}
+
+	for _, item := range table {
+		nodeController := NewNodeController(nil, "", []string{"node0"}, nil, item.fakeNodeHandler, nil, nil, 10, 5*time.Minute)
+		nodeController.now = func() util.Time { return fakeNow }
+		if err := nodeController.MonitorNodeStatus(); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if item.expectedRequestCount != item.fakeNodeHandler.RequestCount {
+			t.Errorf("expected %v call, but got %v.", item.expectedRequestCount, item.fakeNodeHandler.RequestCount)
 		}
 		if !reflect.DeepEqual(item.expectedNodes, item.fakeNodeHandler.UpdatedNodes) {
 			t.Errorf("expected nodes %+v, got %+v", item.expectedNodes[0], item.fakeNodeHandler.UpdatedNodes[0])
-		}
-		// Second sync will also update the node.
-		item.fakeNodeHandler.RequestCount = 0
-		if err := nodeController.SyncNodeStatus(); err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if item.fakeNodeHandler.RequestCount != item.expectedRequestCount {
-			t.Errorf("expected %v call, but got %v.", item.expectedRequestCount, item.fakeNodeHandler.RequestCount)
 		}
 	}
 }
 
 func newNode(name string) *api.Node {
-	return &api.Node{ObjectMeta: api.ObjectMeta{Name: name}}
+	return &api.Node{
+		ObjectMeta: api.ObjectMeta{Name: name},
+		Spec: api.NodeSpec{
+			ExternalID: name,
+		},
+		Status: api.NodeStatus{
+			Capacity: api.ResourceList{
+				api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+				api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+			},
+		},
+	}
 }
 
 func newPod(name, host string) *api.Pod {

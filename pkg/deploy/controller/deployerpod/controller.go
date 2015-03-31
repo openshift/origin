@@ -42,7 +42,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 	case kapi.PodSucceeded, kapi.PodFailed:
 		nextStatus = deployapi.DeploymentStatusComplete
 		// Detect failure based on the container state
-		for _, info := range pod.Status.Info {
+		for _, info := range pod.Status.ContainerStatuses {
 			if info.State.Termination != nil && info.State.Termination.ExitCode != 0 {
 				nextStatus = deployapi.DeploymentStatusFailed
 			}

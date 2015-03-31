@@ -31,6 +31,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta2"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
@@ -41,12 +42,14 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/controller"
+	controlleretcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/controller/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/endpoint"
+	endpointsetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/endpoint/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/event"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/limitrange"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
+	nodeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace"
 	namespaceetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
@@ -104,6 +107,9 @@ type Config struct {
 	// Defaults to 6443 if not set.
 	ReadWritePort int
 
+	// ExternalHost is the host name to use for external (public internet) facing URLs (e.g. Swagger)
+	ExternalHost string
+
 	// If nil, the first result from net.InterfaceAddrs will be used.
 	PublicAddress net.IP
 
@@ -113,9 +119,6 @@ type Config struct {
 
 	// The name of the cluster.
 	ClusterName string
-
-	// If true we will periodically probe pods statuses.
-	SyncPodStatus bool
 }
 
 // Master contains state for a Kubernetes cluster master/api server.
@@ -141,7 +144,10 @@ type Master struct {
 	v1beta3               bool
 	requestContextMapper  api.RequestContextMapper
 
-	publicIP             net.IP
+	// External host is the name that should be used in external (public internet) URLs for this master
+	externalHost string
+	// clusterIP is the IP address of the master within the cluster.
+	clusterIP            net.IP
 	publicReadOnlyPort   int
 	publicReadWritePort  int
 	serviceReadOnlyIP    net.IP
@@ -151,7 +157,7 @@ type Master struct {
 	masterServices       *util.Runner
 
 	// storage contains the RESTful endpoints exposed by this master
-	storage map[string]apiserver.RESTStorage
+	storage map[string]rest.Storage
 
 	// registries are internal client APIs for accessing the storage layer
 	// TODO: define the internal typed interface in a way that clients can
@@ -277,7 +283,8 @@ func New(c *Config) *Master {
 		cacheTimeout: c.CacheTimeout,
 
 		masterCount:         c.MasterCount,
-		publicIP:            c.PublicAddress,
+		externalHost:        c.ExternalHost,
+		clusterIP:           c.PublicAddress,
 		publicReadOnlyPort:  c.ReadOnlyPort,
 		publicReadWritePort: c.ReadWritePort,
 		serviceReadOnlyIP:   serviceReadOnlyIP,
@@ -348,60 +355,51 @@ func logStackOnRecover(panicReason interface{}, httpWriter http.ResponseWriter) 
 
 // init initializes master.
 func (m *Master) init(c *Config) {
-	podStorage, bindingStorage, podStatusStorage := podetcd.NewREST(c.EtcdHelper)
+	podStorage, bindingStorage, podStatusStorage := podetcd.NewStorage(c.EtcdHelper)
 	podRegistry := pod.NewRegistry(podStorage)
 
 	eventRegistry := event.NewEtcdRegistry(c.EtcdHelper, uint64(c.EventTTL.Seconds()))
 	limitRangeRegistry := limitrange.NewEtcdRegistry(c.EtcdHelper)
 
-	resourceQuotaStorage, resourceQuotaStatusStorage := resourcequotaetcd.NewREST(c.EtcdHelper)
+	resourceQuotaStorage, resourceQuotaStatusStorage := resourcequotaetcd.NewStorage(c.EtcdHelper)
 	secretRegistry := secret.NewEtcdRegistry(c.EtcdHelper)
 
-	namespaceStorage := namespaceetcd.NewREST(c.EtcdHelper)
+	namespaceStorage, namespaceStatusStorage, namespaceFinalizeStorage := namespaceetcd.NewStorage(c.EtcdHelper)
 	m.namespaceRegistry = namespace.NewRegistry(namespaceStorage)
 
+	endpointsStorage := endpointsetcd.NewStorage(c.EtcdHelper)
+	m.endpointRegistry = endpoint.NewRegistry(endpointsStorage)
+
+	nodeStorage := nodeetcd.NewStorage(c.EtcdHelper, c.KubeletClient)
+	m.nodeRegistry = minion.NewRegistry(nodeStorage)
+
 	// TODO: split me up into distinct storage registries
-	registry := etcd.NewRegistry(c.EtcdHelper, podRegistry)
-
+	registry := etcd.NewRegistry(c.EtcdHelper, podRegistry, m.endpointRegistry)
 	m.serviceRegistry = registry
-	m.endpointRegistry = registry
-	m.nodeRegistry = registry
 
-	nodeStorage := minion.NewREST(m.nodeRegistry)
-	// TODO: unify the storage -> registry and storage -> client patterns
-	nodeStorageClient := RESTStorageToNodes(nodeStorage)
-	podCache := NewPodCache(
-		c.KubeletClient,
-		nodeStorageClient.Nodes(),
-		podRegistry,
-	)
-
-	if c.SyncPodStatus {
-		go util.Forever(podCache.UpdateAllContainers, m.cacheTimeout)
-		go util.Forever(podCache.GarbageCollectPodStatus, time.Minute*30)
-		// Note the pod cache needs access to an un-decorated RESTStorage
-		podStorage = podStorage.WithPodStatus(podCache)
-	}
+	controllerStorage := controlleretcd.NewREST(c.EtcdHelper)
 
 	// TODO: Factor out the core API registration
-	m.storage = map[string]apiserver.RESTStorage{
+	m.storage = map[string]rest.Storage{
 		"pods":         podStorage,
 		"pods/status":  podStatusStorage,
 		"pods/binding": bindingStorage,
 		"bindings":     bindingStorage,
 
-		"replicationControllers": controller.NewREST(registry, podRegistry),
-		"services":               service.NewREST(m.serviceRegistry, c.Cloud, m.nodeRegistry, m.portalNet, c.ClusterName),
-		"endpoints":              endpoint.NewREST(m.endpointRegistry),
+		"replicationControllers": controllerStorage,
+		"services":               service.NewStorage(m.serviceRegistry, c.Cloud, m.nodeRegistry, m.endpointRegistry, m.portalNet, c.ClusterName),
+		"endpoints":              endpointsStorage,
 		"minions":                nodeStorage,
 		"nodes":                  nodeStorage,
-		"events":                 event.NewREST(eventRegistry),
+		"events":                 event.NewStorage(eventRegistry),
 
-		"limitRanges":           limitrange.NewREST(limitRangeRegistry),
+		"limitRanges":           limitrange.NewStorage(limitRangeRegistry),
 		"resourceQuotas":        resourceQuotaStorage,
 		"resourceQuotas/status": resourceQuotaStatusStorage,
 		"namespaces":            namespaceStorage,
-		"secrets":               secret.NewREST(secretRegistry),
+		"namespaces/status":     namespaceStatusStorage,
+		"namespaces/finalize":   namespaceFinalizeStorage,
+		"secrets":               secret.NewStorage(secretRegistry),
 	}
 
 	apiVersions := []string{"v1beta1", "v1beta2"}
@@ -503,14 +501,23 @@ func (m *Master) init(c *Config) {
 // register their own web services into the Kubernetes mux prior to initialization
 // of swagger, so that other resource types show up in the documentation.
 func (m *Master) InstallSwaggerAPI() {
-	webServicesUrl := ""
-	// Use the secure read write port, if available.
-	if m.publicReadWritePort != 0 {
-		webServicesUrl = "https://" + net.JoinHostPort(m.publicIP.String(), strconv.Itoa(m.publicReadWritePort))
-	} else {
-		// Use the read only port.
-		webServicesUrl = "http://" + net.JoinHostPort(m.publicIP.String(), strconv.Itoa(m.publicReadOnlyPort))
+	hostAndPort := m.externalHost
+	protocol := "https://"
+
+	// TODO: this is kind of messed up, we should just pipe in the full URL from the outside, rather
+	// than guessing at it.
+	if len(m.externalHost) == 0 && m.clusterIP != nil {
+		host := m.clusterIP.String()
+		if m.publicReadWritePort != 0 {
+			hostAndPort = net.JoinHostPort(host, strconv.Itoa(m.publicReadWritePort))
+		} else {
+			// Use the read only port.
+			hostAndPort = net.JoinHostPort(host, strconv.Itoa(m.publicReadOnlyPort))
+			protocol = "http://"
+		}
 	}
+	webServicesUrl := protocol + hostAndPort
+
 	// Enable swagger UI and discovery API
 	swaggerConfig := swagger.Config{
 		WebServicesUrl:  webServicesUrl,
@@ -576,7 +583,7 @@ func (m *Master) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 
 // api_v1beta1 returns the resources and codec for API version v1beta1.
 func (m *Master) api_v1beta1() *apiserver.APIGroupVersion {
-	storage := make(map[string]apiserver.RESTStorage)
+	storage := make(map[string]rest.Storage)
 	for k, v := range m.storage {
 		storage[k] = v
 	}
@@ -589,7 +596,7 @@ func (m *Master) api_v1beta1() *apiserver.APIGroupVersion {
 
 // api_v1beta2 returns the resources and codec for API version v1beta2.
 func (m *Master) api_v1beta2() *apiserver.APIGroupVersion {
-	storage := make(map[string]apiserver.RESTStorage)
+	storage := make(map[string]rest.Storage)
 	for k, v := range m.storage {
 		storage[k] = v
 	}
@@ -602,7 +609,7 @@ func (m *Master) api_v1beta2() *apiserver.APIGroupVersion {
 
 // api_v1beta3 returns the resources and codec for API version v1beta3.
 func (m *Master) api_v1beta3() *apiserver.APIGroupVersion {
-	storage := make(map[string]apiserver.RESTStorage)
+	storage := make(map[string]rest.Storage)
 	for k, v := range m.storage {
 		if k == "minions" {
 			continue

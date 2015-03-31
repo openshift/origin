@@ -35,9 +35,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/httplog"
+	kubecontainer "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/container"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/httpstream"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/httpstream/spdy"
 	"github.com/golang/glog"
@@ -83,9 +83,9 @@ type HostInterface interface {
 	GetRootInfo(req *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error)
 	GetDockerVersion() ([]uint, error)
 	GetCachedMachineInfo() (*cadvisorApi.MachineInfo, error)
-	GetPods() ([]api.Pod, util.StringSet)
+	GetPods() []api.Pod
 	GetPodByName(namespace, name string) (*api.Pod, bool)
-	GetPodStatus(name string, uid types.UID) (api.PodStatus, error)
+	GetPodStatus(name string) (api.PodStatus, error)
 	RunInContainer(name string, uid types.UID, container string, cmd []string) ([]byte, error)
 	ExecInContainer(name string, uid types.UID, container string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool) error
 	GetKubeletContainerLogs(podFullName, containerName, tail string, follow bool, stdout, stderr io.Writer) error
@@ -252,7 +252,7 @@ func (s *Server) handleContainerLogs(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusOK)
-	err = s.host.GetKubeletContainerLogs(GetPodFullName(pod), containerName, tail, follow, &fw, &fw)
+	err = s.host.GetKubeletContainerLogs(kubecontainer.GetPodFullName(pod), containerName, tail, follow, &fw, &fw)
 	if err != nil {
 		s.error(w, err)
 		return
@@ -261,7 +261,7 @@ func (s *Server) handleContainerLogs(w http.ResponseWriter, req *http.Request) {
 
 // handlePods returns a list of pod bound to the Kubelet and their spec
 func (s *Server) handlePods(w http.ResponseWriter, req *http.Request) {
-	pods, _ := s.host.GetPods()
+	pods := s.host.GetPods()
 	podList := &api.PodList{
 		Items: pods,
 	}
@@ -290,7 +290,6 @@ func (s *Server) handlePodStatus(w http.ResponseWriter, req *http.Request, versi
 		return
 	}
 	podID := u.Query().Get("podID")
-	podUID := types.UID(u.Query().Get("UUID"))
 	podNamespace := u.Query().Get("podNamespace")
 	if len(podID) == 0 {
 		http.Error(w, "Missing 'podID=' query entry.", http.StatusBadRequest)
@@ -305,7 +304,7 @@ func (s *Server) handlePodStatus(w http.ResponseWriter, req *http.Request, versi
 		http.Error(w, "Pod does not exist", http.StatusNotFound)
 		return
 	}
-	status, err := s.host.GetPodStatus(GetPodFullName(pod), podUID)
+	status, err := s.host.GetPodStatus(kubecontainer.GetPodFullName(pod))
 	if err != nil {
 		s.error(w, err)
 		return
@@ -342,6 +341,7 @@ func (s *Server) handleNodeInfoVersioned(w http.ResponseWriter, req *http.Reques
 		NodeSystemInfo: api.NodeSystemInfo{
 			MachineID:  info.MachineID,
 			SystemUUID: info.SystemUUID,
+			BootID:     info.BootID,
 		},
 	})
 
@@ -409,7 +409,7 @@ func (s *Server) handleRun(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	command := strings.Split(u.Query().Get("cmd"), " ")
-	data, err := s.host.RunInContainer(GetPodFullName(pod), uid, container, command)
+	data, err := s.host.RunInContainer(kubecontainer.GetPodFullName(pod), uid, container, command)
 	if err != nil {
 		s.error(w, err)
 		return
@@ -517,7 +517,7 @@ WaitForStreams:
 		stdinStream.Close()
 	}
 
-	err = s.host.ExecInContainer(GetPodFullName(pod), uid, container, u.Query()[api.ExecCommandParamm], stdinStream, stdoutStream, stderrStream, tty)
+	err = s.host.ExecInContainer(kubecontainer.GetPodFullName(pod), uid, container, u.Query()[api.ExecCommandParamm], stdinStream, stdoutStream, stderrStream, tty)
 	if err != nil {
 		msg := fmt.Sprintf("Error executing command in container: %v", err)
 		glog.Error(msg)
@@ -598,7 +598,7 @@ Loop:
 			case "error":
 				ch := make(chan httpstream.Stream)
 				dataStreamChans[port] = ch
-				go waitForPortForwardDataStreamAndRun(GetPodFullName(pod), uid, stream, ch, s.host)
+				go waitForPortForwardDataStreamAndRun(kubecontainer.GetPodFullName(pod), uid, stream, ch, s.host)
 			case "data":
 				ch, ok := dataStreamChans[port]
 				if ok {
@@ -655,11 +655,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // serveStats implements stats logic.
 func (s *Server) serveStats(w http.ResponseWriter, req *http.Request) {
-	// /stats/<podfullname>/<containerName> or /stats/<namespace>/<podfullname>/<uid>/<containerName>
+	// /stats/<pod name>/<container name> or /stats/<namespace>/<pod name>/<uid>/<container name>
 	components := strings.Split(strings.TrimPrefix(path.Clean(req.URL.Path), "/"), "/")
 	var stats *cadvisorApi.ContainerInfo
 	var err error
-	var query cadvisorApi.ContainerInfoRequest
+	query := cadvisorApi.DefaultContainerInfoRequest()
 	err = json.NewDecoder(req.Body).Decode(&query)
 	if err != nil && err != io.EOF {
 		s.error(w, err)
@@ -680,14 +680,14 @@ func (s *Server) serveStats(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Pod does not exist", http.StatusNotFound)
 			return
 		}
-		stats, err = s.host.GetContainerInfo(GetPodFullName(pod), "", components[2], &query)
+		stats, err = s.host.GetContainerInfo(kubecontainer.GetPodFullName(pod), "", components[2], &query)
 	case 5:
 		pod, ok := s.host.GetPodByName(components[1], components[2])
 		if !ok {
 			http.Error(w, "Pod does not exist", http.StatusNotFound)
 			return
 		}
-		stats, err = s.host.GetContainerInfo(GetPodFullName(pod), types.UID(components[3]), components[4], &query)
+		stats, err = s.host.GetContainerInfo(kubecontainer.GetPodFullName(pod), types.UID(components[3]), components[4], &query)
 	default:
 		http.Error(w, "unknown resource.", http.StatusNotFound)
 		return

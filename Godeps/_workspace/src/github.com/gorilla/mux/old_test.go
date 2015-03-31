@@ -96,8 +96,8 @@ func TestRouteMatchers(t *testing.T) {
 		method = "GET"
 		headers = map[string]string{"X-Requested-With": "XMLHttpRequest"}
 		resultVars = map[bool]map[string]string{
-			true:  map[string]string{"var1": "www", "var2": "product", "var3": "42"},
-			false: map[string]string{},
+			true:  {"var1": "www", "var2": "product", "var3": "42"},
+			false: {},
 		}
 	}
 
@@ -110,8 +110,8 @@ func TestRouteMatchers(t *testing.T) {
 		method = "POST"
 		headers = map[string]string{"Content-Type": "application/json"}
 		resultVars = map[bool]map[string]string{
-			true:  map[string]string{"var4": "google", "var5": "product", "var6": "42"},
-			false: map[string]string{},
+			true:  {"var4": "google", "var5": "product", "var6": "42"},
+			false: {},
 		}
 	}
 
@@ -329,35 +329,6 @@ var pathMatcherTests = []pathMatcherTest{
 	},
 }
 
-type queryMatcherTest struct {
-	matcher queryMatcher
-	url     string
-	result  bool
-}
-
-var queryMatcherTests = []queryMatcherTest{
-	{
-		matcher: queryMatcher(map[string]string{"foo": "bar", "baz": "ding"}),
-		url:     "http://localhost:8080/?foo=bar&baz=ding",
-		result:  true,
-	},
-	{
-		matcher: queryMatcher(map[string]string{"foo": "", "baz": ""}),
-		url:     "http://localhost:8080/?foo=anything&baz=anything",
-		result:  true,
-	},
-	{
-		matcher: queryMatcher(map[string]string{"foo": "ding", "baz": "bar"}),
-		url:     "http://localhost:8080/?foo=bar&baz=ding",
-		result:  false,
-	},
-	{
-		matcher: queryMatcher(map[string]string{"bar": "foo", "ding": "baz"}),
-		url:     "http://localhost:8080/?foo=bar&baz=ding",
-		result:  false,
-	},
-}
-
 type schemeMatcherTest struct {
 	matcher schemeMatcher
 	url     string
@@ -519,23 +490,8 @@ func TestPathMatcher(t *testing.T) {
 	}
 }
 
-func TestQueryMatcher(t *testing.T) {
-	for _, v := range queryMatcherTests {
-		request, _ := http.NewRequest("GET", v.url, nil)
-		var routeMatch RouteMatch
-		result := v.matcher.Match(request, &routeMatch)
-		if result != v.result {
-			if v.result {
-				t.Errorf("%#v: should match %v.", v.matcher, v.url)
-			} else {
-				t.Errorf("%#v: should not match %v.", v.matcher, v.url)
-			}
-		}
-	}
-}
-
 func TestSchemeMatcher(t *testing.T) {
-	for _, v := range queryMatcherTests {
+	for _, v := range schemeMatcherTests {
 		request, _ := http.NewRequest("GET", v.url, nil)
 		var routeMatch RouteMatch
 		result := v.matcher.Match(request, &routeMatch)
@@ -735,7 +691,7 @@ func TestNewRegexp(t *testing.T) {
 	}
 
 	for pattern, paths := range tests {
-		p, _ = newRouteRegexp(pattern, false, false, false)
+		p, _ = newRouteRegexp(pattern, false, false, false, false)
 		for path, result := range paths {
 			matches = p.regexp.FindStringSubmatch(path)
 			if result == nil {

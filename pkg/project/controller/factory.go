@@ -27,7 +27,7 @@ type NamespaceControllerFactory struct {
 func (factory *NamespaceControllerFactory) Create() controller.RunnableController {
 	namespaceLW := &cache.ListWatch{
 		ListFunc: func() (runtime.Object, error) {
-			return factory.KubeClient.Namespaces().List(labels.Everything())
+			return factory.KubeClient.Namespaces().List(labels.Everything(), fields.Everything())
 		},
 		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
 			return factory.KubeClient.Namespaces().Watch(labels.Everything(), fields.Everything(), resourceVersion)

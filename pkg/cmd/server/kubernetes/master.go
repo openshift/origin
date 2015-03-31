@@ -131,7 +131,8 @@ func (c *MasterConfig) RunMinionController() {
 	if err != nil {
 		glog.Fatalf("Failure to create kubelet client: %v", err)
 	}
-	minionController := minioncontroller.NewNodeController(nil, "", c.NodeHosts, nodeResources, c.KubeClient, kubeletClient, 10, 5*time.Minute)
+
+	minionController := minioncontroller.NewNodeController(nil, "", c.NodeHosts, nodeResources, c.KubeClient, kubeletClient, nil, 10, 5*time.Minute)
 	minionController.Run(10*time.Second, true, true)
 
 	glog.Infof("Started Kubernetes Minion Controller")

@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -47,6 +48,9 @@ func (r *REST) New() runtime.Object {
 	return &api.ImageRepositoryMapping{}
 }
 
+func (imageRepositoryMappingStrategy) PrepareForCreate(obj runtime.Object)      {}
+func (imageRepositoryMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+
 // NamespaceScoped is true for image repository mappings.
 func (s imageRepositoryMappingStrategy) NamespaceScoped() bool {
 	return true
@@ -57,7 +61,7 @@ func (s imageRepositoryMappingStrategy) ResetBeforeCreate(obj runtime.Object) {
 }
 
 // Validate validates a new ImageRepositoryMapping.
-func (s imageRepositoryMappingStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+func (s imageRepositoryMappingStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
 	mapping := obj.(*api.ImageRepositoryMapping)
 	return validation.ValidateImageRepositoryMapping(mapping)
 }
@@ -130,8 +134,8 @@ func (s *REST) findRepositoryForMapping(ctx kapi.Context, mapping *api.ImageRepo
 				return &list.Items[i], nil
 			}
 		}
-		return nil, errors.NewInvalid("imageRepositoryMapping", "", errors.ValidationErrorList{
-			errors.NewFieldNotFound("dockerImageRepository", mapping.DockerImageRepository),
+		return nil, errors.NewInvalid("imageRepositoryMapping", "", fielderrors.ValidationErrorList{
+			fielderrors.NewFieldNotFound("dockerImageRepository", mapping.DockerImageRepository),
 		})
 	}
 	return nil, errors.NewNotFound("ImageRepository", "")

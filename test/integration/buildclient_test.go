@@ -10,6 +10,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -208,7 +209,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	}
 	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
-	storage := map[string]apiserver.RESTStorage{
+	storage := map[string]rest.Storage{
 		"builds":                   buildregistry.NewREST(buildEtcd),
 		"builds/clone":             buildClone,
 		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),

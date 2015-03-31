@@ -272,7 +272,7 @@ osc new-app php mysql
 echo "new-app: ok"
 
 osc get routes
-osc create -f test/integration/fixtures/test-route.json create routes
+osc create -f test/integration/fixtures/test-route.json
 osc delete routes testroute
 echo "routes: ok"
 
@@ -336,6 +336,7 @@ echo "ui-project-commands: ok"
 
 # Test deleting and recreating a project
 osadm new-project recreated-project --admin="createuser1"
+osc delete project recreated-project
 osc delete project recreated-project
 osadm new-project recreated-project --admin="createuser2"
 osc describe policybinding master -n recreated-project | grep createuser2

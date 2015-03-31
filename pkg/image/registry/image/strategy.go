@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -24,6 +24,9 @@ type imageStrategy struct {
 // Image objects via the REST API.
 var Strategy = imageStrategy{kapi.Scheme, kapi.SimpleNameGenerator}
 
+func (imageStrategy) PrepareForCreate(obj runtime.Object)      {}
+func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+
 // NamespaceScoped is false for images.
 func (imageStrategy) NamespaceScoped() bool {
 	return false
@@ -34,7 +37,7 @@ func (imageStrategy) ResetBeforeCreate(obj runtime.Object) {
 }
 
 // Validate validates a new image.
-func (imageStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+func (imageStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
 	image := obj.(*api.Image)
 	return validation.ValidateImage(image)
 }

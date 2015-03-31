@@ -18,7 +18,6 @@ package kubelet
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
@@ -44,8 +43,6 @@ const (
 	FileSource = "file"
 	// Updates from querying a web page
 	HTTPSource = "http"
-	// Updates received to the kubelet server
-	ServerSource = "server"
 	// Updates from Kubernetes API Server
 	ApiserverSource = "api"
 	// Updates from all sources
@@ -72,23 +69,21 @@ type PodUpdate struct {
 	Source string
 }
 
-// GetPodFullName returns a name that uniquely identifies a pod.
-func GetPodFullName(pod *api.Pod) string {
-	// Use underscore as the delimiter because it is not allowed in pod name
-	// (DNS subdomain format), while allowed in the container name format.
-	return fmt.Sprintf("%s_%s", pod.Name, pod.Namespace)
-}
-
-// Build the pod full name from pod name and namespace.
-func BuildPodFullName(name, namespace string) string {
-	return name + "_" + namespace
-}
-
-// Parse the pod full name.
-func ParsePodFullName(podFullName string) (string, string, error) {
-	parts := strings.Split(podFullName, "_")
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("failed to parse the pod full name %q", podFullName)
+// Gets all validated sources from the specified sources.
+func GetValidatedSources(sources []string) ([]string, error) {
+	validated := make([]string, 0, len(sources))
+	for _, source := range sources {
+		switch source {
+		case AllSource:
+			return []string{FileSource, HTTPSource, ApiserverSource}, nil
+		case FileSource, HTTPSource, ApiserverSource:
+			validated = append(validated, source)
+			break
+		case "":
+			break
+		default:
+			return []string{}, fmt.Errorf("unknown pod source %q", source)
+		}
 	}
-	return parts[0], parts[1], nil
+	return validated, nil
 }

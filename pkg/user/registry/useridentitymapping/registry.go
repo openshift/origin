@@ -2,7 +2,7 @@ package useridentitymapping
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -23,8 +23,8 @@ type Registry interface {
 // Storage is an interface for a standard REST Storage backend
 // TODO: move me somewhere common
 type Storage interface {
-	apiserver.RESTGetter
-	apiserver.RESTDeleter
+	rest.Getter
+	rest.Deleter
 
 	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
 	Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error)

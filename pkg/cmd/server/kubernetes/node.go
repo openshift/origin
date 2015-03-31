@@ -123,7 +123,7 @@ func (c *NodeConfig) RunKubelet() {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	recorder := record.FromSource(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
-	kubelet.SetupCapabilities(true)
+	kubelet.SetupCapabilities(true, []string{})
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates, recorder)
 	kconfig.NewSourceApiserver(c.Client, c.NodeHost, cfg.Channel("api"))
 	gcPolicy := kubelet.ContainerGCPolicy{
@@ -156,10 +156,8 @@ func (c *NodeConfig) RunKubelet() {
 		5*time.Minute,
 		recorder,
 		cadvisorInterface,
-		20*time.Second,
-		1*time.Minute,
 		imageGCPolicy,
-	)
+		nil)
 	if err != nil {
 		glog.Fatalf("Couldn't run kubelet: %s", err)
 	}
