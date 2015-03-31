@@ -127,6 +127,8 @@ This section covers how to perform all the steps of building, deploying, and upd
     installation, users would generate their own keys and not have access
     to the system keys.)
 
+        $ osc login -u test-admin --client-certificate=`pwd`/openshift.local.certificates/admin/cert.crt --client-key=`pwd`/openshift.local.certificates/admin/key.key --certificate-authority=`pwd`/openshift.local.certificates/ca/cert.crt
+
         $ export KUBECONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig
         $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/ca/cert.crt
         $ sudo chmod +r "$KUBECONFIG"
