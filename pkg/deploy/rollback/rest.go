@@ -5,8 +5,8 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/validation"
@@ -44,7 +44,7 @@ func (c Client) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *dep
 }
 
 // NewREST safely creates a new REST.
-func NewREST(generator GeneratorClient, codec runtime.Codec) apiserver.RESTStorage {
+func NewREST(generator GeneratorClient, codec runtime.Codec) *REST {
 	return &REST{
 		generator: generator,
 		codec:     codec,
@@ -98,6 +98,6 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 func newInvalidDeploymentError(rollback *deployapi.DeploymentConfigRollback, reason string) error {
-	err := kerrors.NewFieldInvalid("spec.from.name", rollback.Spec.From.Name, reason)
-	return kerrors.NewInvalid("DeploymentConfigRollback", "", kerrors.ValidationErrorList{err})
+	err := fielderrors.NewFieldInvalid("spec.from.name", rollback.Spec.From.Name, reason)
+	return kerrors.NewInvalid("DeploymentConfigRollback", "", fielderrors.ValidationErrorList{err})
 }

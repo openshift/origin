@@ -22,13 +22,14 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/container"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 )
 
-type syncPodFnType func(*api.Pod, bool, dockertools.DockerContainers) error
+type syncPodFnType func(*api.Pod, *api.Pod, container.Pod) error
 
 type podWorkers struct {
 	// Protects all per worker fields.
@@ -60,8 +61,8 @@ type workUpdate struct {
 	// The pod state to reflect.
 	pod *api.Pod
 
-	// Whether there exists a mirror pod for pod.
-	hasMirrorPod bool
+	// The mirror pod of pod; nil if it does not exist.
+	mirrorPod *api.Pod
 
 	// Function to call when the update is complete.
 	updateCompleteFn func()
@@ -90,14 +91,14 @@ func (p *podWorkers) managePodLoop(podUpdates <-chan workUpdate) {
 				glog.Errorf("Error updating docker cache: %v", err)
 				return
 			}
-			containers, err := p.dockerCache.RunningContainers()
+			pods, err := p.dockerCache.GetPods()
 			if err != nil {
-				glog.Errorf("Error listing containers while syncing pod: %v", err)
+				glog.Errorf("Error getting pods while syncing pod: %v", err)
 				return
 			}
 
-			err = p.syncPodFn(newWork.pod, newWork.hasMirrorPod,
-				containers.FindContainersByPod(newWork.pod.UID, GetPodFullName(newWork.pod)))
+			err = p.syncPodFn(newWork.pod, newWork.mirrorPod,
+				container.Pods(pods).FindPodByID(newWork.pod.UID))
 			if err != nil {
 				glog.Errorf("Error syncing pod %s, skipping: %v", newWork.pod.UID, err)
 				p.recorder.Eventf(newWork.pod, "failedSync", "Error syncing pod, skipping: %v", err)
@@ -111,7 +112,7 @@ func (p *podWorkers) managePodLoop(podUpdates <-chan workUpdate) {
 }
 
 // Apply the new setting to the specified pod. updateComplete is called when the update is completed.
-func (p *podWorkers) UpdatePod(pod *api.Pod, hasMirrorPod bool, updateComplete func()) {
+func (p *podWorkers) UpdatePod(pod *api.Pod, mirrorPod *api.Pod, updateComplete func()) {
 	uid := pod.UID
 	var podUpdates chan workUpdate
 	var exists bool
@@ -134,13 +135,13 @@ func (p *podWorkers) UpdatePod(pod *api.Pod, hasMirrorPod bool, updateComplete f
 		p.isWorking[pod.UID] = true
 		podUpdates <- workUpdate{
 			pod:              pod,
-			hasMirrorPod:     hasMirrorPod,
+			mirrorPod:        mirrorPod,
 			updateCompleteFn: updateComplete,
 		}
 	} else {
 		p.lastUndeliveredWorkUpdate[pod.UID] = workUpdate{
 			pod:              pod,
-			hasMirrorPod:     hasMirrorPod,
+			mirrorPod:        mirrorPod,
 			updateCompleteFn: updateComplete,
 		}
 	}

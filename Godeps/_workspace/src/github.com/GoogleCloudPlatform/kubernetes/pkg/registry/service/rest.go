@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -29,8 +31,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/endpoint"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 )
@@ -40,12 +44,13 @@ type REST struct {
 	registry    Registry
 	cloud       cloudprovider.Interface
 	machines    minion.Registry
+	endpoints   endpoint.Registry
 	portalMgr   *ipAllocator
 	clusterName string
 }
 
-// NewREST returns a new REST.
-func NewREST(registry Registry, cloud cloudprovider.Interface, machines minion.Registry, portalNet *net.IPNet,
+// NewStorage returns a new REST.
+func NewStorage(registry Registry, cloud cloudprovider.Interface, machines minion.Registry, endpoints endpoint.Registry, portalNet *net.IPNet,
 	clusterName string) *REST {
 	// TODO: Before we can replicate masters, this has to be synced (e.g. lives in etcd)
 	ipa := newIPAllocator(portalNet)
@@ -58,6 +63,7 @@ func NewREST(registry Registry, cloud cloudprovider.Interface, machines minion.R
 		registry:    registry,
 		cloud:       cloud,
 		machines:    machines,
+		endpoints:   endpoints,
 		portalMgr:   ipa,
 		clusterName: clusterName,
 	}
@@ -73,8 +79,7 @@ func reloadIPsFromStorage(ipa *ipAllocator, registry Registry) {
 	}
 	for i := range services.Items {
 		service := &services.Items[i]
-		if service.Spec.PortalIP == "" {
-			glog.Warningf("service %q has no PortalIP", service.Name)
+		if !api.IsServiceIPSet(service) {
 			continue
 		}
 		if err := ipa.Allocate(net.ParseIP(service.Spec.PortalIP)); err != nil {
@@ -91,17 +96,17 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (runtime.Object, err
 		return nil, err
 	}
 
-	if len(service.Spec.PortalIP) == 0 {
+	if api.IsServiceIPRequested(service) {
 		// Allocate next available.
 		ip, err := rs.portalMgr.AllocateNext()
 		if err != nil {
 			return nil, err
 		}
 		service.Spec.PortalIP = ip.String()
-	} else {
+	} else if api.IsServiceIPSet(service) {
 		// Try to respect the requested IP.
 		if err := rs.portalMgr.Allocate(net.ParseIP(service.Spec.PortalIP)); err != nil {
-			el := errors.ValidationErrorList{errors.NewFieldInvalid("spec.portalIP", service.Spec.PortalIP, err.Error())}
+			el := fielderrors.ValidationErrorList{fielderrors.NewFieldInvalid("spec.portalIP", service.Spec.PortalIP, err.Error())}
 			return nil, errors.NewInvalid("Service", service.Name, el)
 		}
 	}
@@ -111,14 +116,18 @@ func (rs *REST) Create(ctx api.Context, obj runtime.Object) (runtime.Object, err
 	if service.Spec.CreateExternalLoadBalancer {
 		err := rs.createExternalLoadBalancer(ctx, service)
 		if err != nil {
-			rs.portalMgr.Release(net.ParseIP(service.Spec.PortalIP))
+			if api.IsServiceIPSet(service) {
+				rs.portalMgr.Release(net.ParseIP(service.Spec.PortalIP))
+			}
 			return nil, err
 		}
 	}
 
 	out, err := rs.registry.CreateService(ctx, service)
 	if err != nil {
-		rs.portalMgr.Release(net.ParseIP(service.Spec.PortalIP))
+		if api.IsServiceIPSet(service) {
+			rs.portalMgr.Release(net.ParseIP(service.Spec.PortalIP))
+		}
 		err = rest.CheckGeneratedNameError(rest.Services, err, service)
 	}
 	return out, err
@@ -137,7 +146,9 @@ func (rs *REST) Delete(ctx api.Context, id string) (runtime.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	rs.portalMgr.Release(net.ParseIP(service.Spec.PortalIP))
+	if api.IsServiceIPSet(service) {
+		rs.portalMgr.Release(net.ParseIP(service.Spec.PortalIP))
+	}
 	if service.Spec.CreateExternalLoadBalancer {
 		rs.deleteExternalLoadBalancer(ctx, service)
 	}
@@ -168,7 +179,7 @@ func (rs *REST) List(ctx api.Context, label labels.Selector, field fields.Select
 }
 
 // Watch returns Services events via a watch.Interface.
-// It implements apiserver.ResourceWatcher.
+// It implements rest.Watcher.
 func (rs *REST) Watch(ctx api.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return rs.registry.WatchServices(ctx, label, field, resourceVersion)
 }
@@ -217,19 +228,24 @@ func (rs *REST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, boo
 	return out, false, err
 }
 
+// Implement Redirector.
+var _ = rest.Redirector(&REST{})
+
 // ResourceLocation returns a URL to which one can send traffic for the specified service.
-func (rs *REST) ResourceLocation(ctx api.Context, id string) (string, error) {
-	eps, err := rs.registry.GetEndpoints(ctx, id)
+func (rs *REST) ResourceLocation(ctx api.Context, id string) (*url.URL, http.RoundTripper, error) {
+	eps, err := rs.endpoints.GetEndpoints(ctx, id)
 	if err != nil {
-		return "", err
+		return nil, nil, err
 	}
 	if len(eps.Endpoints) == 0 {
-		return "", fmt.Errorf("no endpoints available for %v", id)
+		return nil, nil, fmt.Errorf("no endpoints available for %v", id)
 	}
 	// We leave off the scheme ('http://') because we have no idea what sort of server
 	// is listening at this endpoint.
 	ep := &eps.Endpoints[rand.Intn(len(eps.Endpoints))]
-	return net.JoinHostPort(ep.IP, strconv.Itoa(ep.Port)), nil
+	return &url.URL{
+		Host: net.JoinHostPort(ep.IP, strconv.Itoa(ep.Port)),
+	}, nil, nil
 }
 
 func (rs *REST) getLoadbalancerName(ctx api.Context, service *api.Service) string {

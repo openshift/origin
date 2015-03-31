@@ -20,9 +20,11 @@ import (
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/endpoint"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -36,10 +38,6 @@ const (
 	ControllerPath string = "/registry/controllers"
 	// ServicePath is the path to service resources in etcd
 	ServicePath string = "/registry/services/specs"
-	// ServiceEndpointPath is the path to service endpoints resources in etcd
-	ServiceEndpointPath string = "/registry/services/endpoints"
-	// NodePath is the path to node resources in etcd
-	NodePath string = "/registry/minions"
 )
 
 // TODO: Need to add a reconciler loop that makes sure that things in pods are reflected into
@@ -49,14 +47,16 @@ const (
 // MinionRegistry, PodRegistry and ServiceRegistry, backed by etcd.
 type Registry struct {
 	tools.EtcdHelper
-	pods pod.Registry
+	pods      pod.Registry
+	endpoints endpoint.Registry
 }
 
 // NewRegistry creates an etcd registry.
-func NewRegistry(helper tools.EtcdHelper, pods pod.Registry) *Registry {
+func NewRegistry(helper tools.EtcdHelper, pods pod.Registry, endpoints endpoint.Registry) *Registry {
 	registry := &Registry{
 		EtcdHelper: helper,
 		pods:       pods,
+		endpoints:  endpoints,
 	}
 	return registry
 }
@@ -226,30 +226,6 @@ func (r *Registry) GetService(ctx api.Context, name string) (*api.Service, error
 	return &svc, nil
 }
 
-// GetEndpoints obtains the endpoints for the service identified by 'name'.
-func (r *Registry) GetEndpoints(ctx api.Context, name string) (*api.Endpoints, error) {
-	var endpoints api.Endpoints
-	key, err := makeServiceEndpointsKey(ctx, name)
-	if err != nil {
-		return nil, err
-	}
-	err = r.ExtractObj(key, &endpoints, false)
-	if err != nil {
-		return nil, etcderr.InterpretGetError(err, "endpoints", name)
-	}
-	return &endpoints, nil
-}
-
-// makeServiceEndpointsListKey constructs etcd paths to service endpoint directories enforcing namespace rules.
-func makeServiceEndpointsListKey(ctx api.Context) string {
-	return MakeEtcdListKey(ctx, ServiceEndpointPath)
-}
-
-// makeServiceEndpointsListKey constructs etcd paths to service endpoint items enforcing namespace rules.
-func makeServiceEndpointsKey(ctx api.Context, name string) (string, error) {
-	return MakeEtcdItemKey(ctx, ServiceEndpointPath, name)
-}
-
 // DeleteService deletes a Service specified by its name.
 func (r *Registry) DeleteService(ctx api.Context, name string) error {
 	key, err := makeServiceKey(ctx, name)
@@ -263,12 +239,9 @@ func (r *Registry) DeleteService(ctx api.Context, name string) error {
 
 	// TODO: can leave dangling endpoints, and potentially return incorrect
 	// endpoints if a new service is created with the same name
-	key, err = makeServiceEndpointsKey(ctx, name)
-	if err != nil {
+	err = r.endpoints.DeleteEndpoints(ctx, name)
+	if err != nil && !errors.IsNotFound(err) {
 		return err
-	}
-	if err := r.Delete(key, true); err != nil && !tools.IsEtcdNotFound(err) {
-		return etcderr.InterpretDeleteError(err, "endpoints", name)
 	}
 	return nil
 }
@@ -304,111 +277,4 @@ func (r *Registry) WatchServices(ctx api.Context, label labels.Selector, field f
 		return r.WatchList(makeServiceListKey(ctx), version, tools.Everything)
 	}
 	return nil, fmt.Errorf("only the 'name' and default (everything) field selectors are supported")
-}
-
-// ListEndpoints obtains a list of Services.
-func (r *Registry) ListEndpoints(ctx api.Context) (*api.EndpointsList, error) {
-	list := &api.EndpointsList{}
-	key := makeServiceEndpointsListKey(ctx)
-	err := r.ExtractToList(key, list)
-	return list, err
-}
-
-// UpdateEndpoints update Endpoints of a Service.
-func (r *Registry) UpdateEndpoints(ctx api.Context, endpoints *api.Endpoints) error {
-	key, err := makeServiceEndpointsKey(ctx, endpoints.Name)
-	if err != nil {
-		return err
-	}
-	// TODO: this is a really bad misuse of AtomicUpdate, need to compute a diff inside the loop.
-	err = r.AtomicUpdate(key, &api.Endpoints{}, true,
-		func(input runtime.Object) (runtime.Object, uint64, error) {
-			// TODO: racy - label query is returning different results for two simultaneous updaters
-			return endpoints, 0, nil
-		})
-	return etcderr.InterpretUpdateError(err, "endpoints", endpoints.Name)
-}
-
-// WatchEndpoints begins watching for new, changed, or deleted endpoint configurations.
-func (r *Registry) WatchEndpoints(ctx api.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := tools.ParseWatchResourceVersion(resourceVersion, "endpoints")
-	if err != nil {
-		return nil, err
-	}
-	if !label.Empty() {
-		return nil, fmt.Errorf("label selectors are not supported on endpoints")
-	}
-	if value, found := field.RequiresExactMatch("name"); found {
-		key, err := makeServiceEndpointsKey(ctx, value)
-		if err != nil {
-			return nil, err
-		}
-		return r.Watch(key, version), nil
-	}
-	if field.Empty() {
-		return r.WatchList(makeServiceEndpointsListKey(ctx), version, tools.Everything)
-	}
-	return nil, fmt.Errorf("only the 'ID' and default (everything) field selectors are supported")
-}
-
-func makeNodeKey(nodeID string) string {
-	return NodePath + "/" + nodeID
-}
-
-func makeNodeListKey() string {
-	return NodePath
-}
-
-func (r *Registry) ListMinions(ctx api.Context) (*api.NodeList, error) {
-	minions := &api.NodeList{}
-	err := r.ExtractToList(makeNodeListKey(), minions)
-	return minions, err
-}
-
-func (r *Registry) CreateMinion(ctx api.Context, minion *api.Node) error {
-	// TODO: Add some validations.
-	err := r.CreateObj(makeNodeKey(minion.Name), minion, nil, 0)
-	return etcderr.InterpretCreateError(err, "minion", minion.Name)
-}
-
-func (r *Registry) UpdateMinion(ctx api.Context, minion *api.Node) error {
-	// TODO: Add some validations.
-	err := r.SetObj(makeNodeKey(minion.Name), minion, nil, 0)
-	return etcderr.InterpretUpdateError(err, "minion", minion.Name)
-}
-
-func (r *Registry) GetMinion(ctx api.Context, minionID string) (*api.Node, error) {
-	var minion api.Node
-	key := makeNodeKey(minionID)
-	err := r.ExtractObj(key, &minion, false)
-	if err != nil {
-		return nil, etcderr.InterpretGetError(err, "minion", minionID)
-	}
-	return &minion, nil
-}
-
-func (r *Registry) DeleteMinion(ctx api.Context, minionID string) error {
-	key := makeNodeKey(minionID)
-	err := r.Delete(key, true)
-	if err != nil {
-		return etcderr.InterpretDeleteError(err, "minion", minionID)
-	}
-	return nil
-}
-
-func (r *Registry) WatchMinions(ctx api.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := tools.ParseWatchResourceVersion(resourceVersion, "node")
-	if err != nil {
-		return nil, err
-	}
-	key := makeNodeListKey()
-	return r.WatchList(key, version, func(obj runtime.Object) bool {
-		minionObj, ok := obj.(*api.Node)
-		if !ok {
-			// Must be an error: return true to propagate to upper level.
-			return true
-		}
-		// TODO: Add support for filtering based on field, once NodeStatus is defined.
-		return label.Matches(labels.Set(minionObj.Labels))
-	})
 }

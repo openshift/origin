@@ -196,7 +196,7 @@ func testPrinter(t *testing.T, printer ResourcePrinter, unmarshalFunc func(data 
 	}
 	// Use real decode function to undo the versioning process.
 	poutput = testStruct{}
-	err = testapi.Codec().DecodeInto(buf.Bytes(), &poutput)
+	err = runtime.YAMLDecoder(testapi.Codec()).DecodeInto(buf.Bytes(), &poutput)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +217,7 @@ func testPrinter(t *testing.T, printer ResourcePrinter, unmarshalFunc func(data 
 	}
 	// Use real decode function to undo the versioning process.
 	objOut = api.Pod{}
-	err = testapi.Codec().DecodeInto(buf.Bytes(), &objOut)
+	err = runtime.YAMLDecoder(testapi.Codec()).DecodeInto(buf.Bytes(), &objOut)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,11 +327,15 @@ func TestTemplateStrings(t *testing.T) {
 		expect string
 	}{
 		"nilInfo":   {api.Pod{}, "false"},
-		"emptyInfo": {api.Pod{Status: api.PodStatus{Info: api.PodInfo{}}}, "false"},
+		"emptyInfo": {api.Pod{Status: api.PodStatus{ContainerStatuses: []api.ContainerStatus{}}}, "false"},
 		"fooExists": {
 			api.Pod{
 				Status: api.PodStatus{
-					Info: api.PodInfo{"foo": api.ContainerStatus{}},
+					ContainerStatuses: []api.ContainerStatus{
+						{
+							Name: "foo",
+						},
+					},
 				},
 			},
 			"false",
@@ -339,7 +343,11 @@ func TestTemplateStrings(t *testing.T) {
 		"barExists": {
 			api.Pod{
 				Status: api.PodStatus{
-					Info: api.PodInfo{"bar": api.ContainerStatus{}},
+					ContainerStatuses: []api.ContainerStatus{
+						{
+							Name: "bar",
+						},
+					},
 				},
 			},
 			"false",
@@ -347,9 +355,13 @@ func TestTemplateStrings(t *testing.T) {
 		"bothExist": {
 			api.Pod{
 				Status: api.PodStatus{
-					Info: api.PodInfo{
-						"foo": api.ContainerStatus{},
-						"bar": api.ContainerStatus{},
+					ContainerStatuses: []api.ContainerStatus{
+						{
+							Name: "foo",
+						},
+						{
+							Name: "bar",
+						},
 					},
 				},
 			},
@@ -358,9 +370,12 @@ func TestTemplateStrings(t *testing.T) {
 		"oneValid": {
 			api.Pod{
 				Status: api.PodStatus{
-					Info: api.PodInfo{
-						"foo": api.ContainerStatus{},
-						"bar": api.ContainerStatus{
+					ContainerStatuses: []api.ContainerStatus{
+						{
+							Name: "foo",
+						},
+						{
+							Name: "bar",
 							State: api.ContainerState{
 								Running: &api.ContainerStateRunning{
 									StartedAt: util.Time{},
@@ -375,15 +390,17 @@ func TestTemplateStrings(t *testing.T) {
 		"bothValid": {
 			api.Pod{
 				Status: api.PodStatus{
-					Info: api.PodInfo{
-						"foo": api.ContainerStatus{
+					ContainerStatuses: []api.ContainerStatus{
+						{
+							Name: "foo",
 							State: api.ContainerState{
 								Running: &api.ContainerStateRunning{
 									StartedAt: util.Time{},
 								},
 							},
 						},
-						"bar": api.ContainerStatus{
+						{
+							Name: "bar",
 							State: api.ContainerState{
 								Running: &api.ContainerStateRunning{
 									StartedAt: util.Time{},
@@ -524,7 +541,7 @@ func TestPrintMinionStatus(t *testing.T) {
 		{
 			minion: api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "foo1"},
-				Status:     api.NodeStatus{Conditions: []api.NodeCondition{{Type: api.NodeReady, Status: api.ConditionFull}}},
+				Status:     api.NodeStatus{Conditions: []api.NodeCondition{{Type: api.NodeReady, Status: api.ConditionTrue}}},
 			},
 			status: "Ready",
 		},
@@ -532,8 +549,8 @@ func TestPrintMinionStatus(t *testing.T) {
 			minion: api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "foo2"},
 				Status: api.NodeStatus{Conditions: []api.NodeCondition{
-					{Type: api.NodeReady, Status: api.ConditionFull},
-					{Type: api.NodeReachable, Status: api.ConditionFull}}},
+					{Type: api.NodeReady, Status: api.ConditionTrue},
+					{Type: api.NodeReachable, Status: api.ConditionTrue}}},
 			},
 			status: "Ready,Reachable",
 		},
@@ -541,22 +558,22 @@ func TestPrintMinionStatus(t *testing.T) {
 			minion: api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "foo3"},
 				Status: api.NodeStatus{Conditions: []api.NodeCondition{
-					{Type: api.NodeReady, Status: api.ConditionFull},
-					{Type: api.NodeReady, Status: api.ConditionFull}}},
+					{Type: api.NodeReady, Status: api.ConditionTrue},
+					{Type: api.NodeReady, Status: api.ConditionTrue}}},
 			},
 			status: "Ready",
 		},
 		{
 			minion: api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "foo4"},
-				Status:     api.NodeStatus{Conditions: []api.NodeCondition{{Type: api.NodeReady, Status: api.ConditionNone}}},
+				Status:     api.NodeStatus{Conditions: []api.NodeCondition{{Type: api.NodeReady, Status: api.ConditionFalse}}},
 			},
 			status: "NotReady",
 		},
 		{
 			minion: api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "foo5"},
-				Status:     api.NodeStatus{Conditions: []api.NodeCondition{{Type: "InvalidValue", Status: api.ConditionFull}}},
+				Status:     api.NodeStatus{Conditions: []api.NodeCondition{{Type: "InvalidValue", Status: api.ConditionTrue}}},
 			},
 			status: "Unknown",
 		},
@@ -571,9 +588,9 @@ func TestPrintMinionStatus(t *testing.T) {
 			minion: api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "foo7"},
 				Status: api.NodeStatus{Conditions: []api.NodeCondition{
-					{Type: api.NodeSchedulable, Status: api.ConditionFull},
-					{Type: api.NodeReady, Status: api.ConditionFull},
-					{Type: api.NodeReachable, Status: api.ConditionFull}}},
+					{Type: api.NodeSchedulable, Status: api.ConditionTrue},
+					{Type: api.NodeReady, Status: api.ConditionTrue},
+					{Type: api.NodeReachable, Status: api.ConditionTrue}}},
 			},
 			status: "Schedulable,Ready,Reachable",
 		},
@@ -581,9 +598,9 @@ func TestPrintMinionStatus(t *testing.T) {
 			minion: api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "foo8"},
 				Status: api.NodeStatus{Conditions: []api.NodeCondition{
-					{Type: api.NodeSchedulable, Status: api.ConditionNone},
-					{Type: api.NodeReady, Status: api.ConditionNone},
-					{Type: api.NodeReachable, Status: api.ConditionFull}}},
+					{Type: api.NodeSchedulable, Status: api.ConditionFalse},
+					{Type: api.NodeReady, Status: api.ConditionFalse},
+					{Type: api.NodeReachable, Status: api.ConditionTrue}}},
 			},
 			status: "NotSchedulable,NotReady,Reachable",
 		},

@@ -28,6 +28,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"golang.org/x/net/html"
 	"golang.org/x/net/websocket"
 )
@@ -274,16 +275,17 @@ func TestProxy(t *testing.T) {
 		}))
 		defer proxyServer.Close()
 
+		serverURL, _ := url.Parse(proxyServer.URL)
 		simpleStorage := &SimpleRESTStorage{
 			errors:                    map[string]error{},
-			resourceLocation:          proxyServer.URL,
+			resourceLocation:          serverURL,
 			expectedResourceNamespace: item.reqNamespace,
 		}
 
-		namespaceHandler := handleNamespaced(map[string]RESTStorage{"foo": simpleStorage})
+		namespaceHandler := handleNamespaced(map[string]rest.Storage{"foo": simpleStorage})
 		namespaceServer := httptest.NewServer(namespaceHandler)
 		defer namespaceServer.Close()
-		legacyNamespaceHandler := handle(map[string]RESTStorage{"foo": simpleStorage})
+		legacyNamespaceHandler := handle(map[string]rest.Storage{"foo": simpleStorage})
 		legacyNamespaceServer := httptest.NewServer(legacyNamespaceHandler)
 		defer legacyNamespaceServer.Close()
 
@@ -334,13 +336,14 @@ func TestProxyUpgrade(t *testing.T) {
 	}))
 	defer backendServer.Close()
 
+	serverURL, _ := url.Parse(backendServer.URL)
 	simpleStorage := &SimpleRESTStorage{
 		errors:                    map[string]error{},
-		resourceLocation:          backendServer.URL,
+		resourceLocation:          serverURL,
 		expectedResourceNamespace: "myns",
 	}
 
-	namespaceHandler := handleNamespaced(map[string]RESTStorage{"foo": simpleStorage})
+	namespaceHandler := handleNamespaced(map[string]rest.Storage{"foo": simpleStorage})
 
 	server := httptest.NewServer(namespaceHandler)
 	defer server.Close()

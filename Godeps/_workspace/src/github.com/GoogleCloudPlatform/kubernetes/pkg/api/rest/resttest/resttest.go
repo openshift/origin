@@ -22,21 +22,23 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/coreos/go-etcd/etcd"
 )
 
 type Tester struct {
 	*testing.T
-	storage      apiserver.RESTStorage
+	storage      rest.Storage
 	storageError injectErrorFunc
 	clusterScope bool
 }
 
 type injectErrorFunc func(err error)
 
-func New(t *testing.T, storage apiserver.RESTStorage, storageError injectErrorFunc) *Tester {
+func New(t *testing.T, storage rest.Storage, storageError injectErrorFunc) *Tester {
 	return &Tester{
 		T:            t,
 		storage:      storage,
@@ -85,7 +87,7 @@ func (t *Tester) TestCreateResetsUserData(valid runtime.Object) {
 	objectMeta.UID = "bad-uid"
 	objectMeta.CreationTimestamp = now
 
-	obj, err := t.storage.(apiserver.RESTCreater).Create(api.NewDefaultContext(), valid)
+	obj, err := t.storage.(rest.Creater).Create(api.NewDefaultContext(), valid)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -111,7 +113,7 @@ func (t *Tester) TestCreateHasMetadata(valid runtime.Object) {
 		context = api.NewContext()
 	}
 
-	obj, err := t.storage.(apiserver.RESTCreater).Create(context, valid)
+	obj, err := t.storage.(rest.Creater).Create(context, valid)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -131,7 +133,7 @@ func (t *Tester) TestCreateGeneratesName(valid runtime.Object) {
 
 	objectMeta.GenerateName = "test-"
 
-	_, err = t.storage.(apiserver.RESTCreater).Create(api.NewDefaultContext(), valid)
+	_, err = t.storage.(rest.Creater).Create(api.NewDefaultContext(), valid)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -148,7 +150,7 @@ func (t *Tester) TestCreateGeneratesNameReturnsServerTimeout(valid runtime.Objec
 
 	objectMeta.GenerateName = "test-"
 	t.withStorageError(errors.NewAlreadyExists("kind", "thing"), func() {
-		_, err := t.storage.(apiserver.RESTCreater).Create(api.NewDefaultContext(), valid)
+		_, err := t.storage.(rest.Creater).Create(api.NewDefaultContext(), valid)
 		if err == nil || !errors.IsServerTimeout(err) {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -158,7 +160,7 @@ func (t *Tester) TestCreateGeneratesNameReturnsServerTimeout(valid runtime.Objec
 func (t *Tester) TestCreateInvokesValidation(invalid ...runtime.Object) {
 	for i, obj := range invalid {
 		ctx := api.NewDefaultContext()
-		_, err := t.storage.(apiserver.RESTCreater).Create(ctx, obj)
+		_, err := t.storage.(rest.Creater).Create(ctx, obj)
 		if !errors.IsInvalid(err) {
 			t.Errorf("%d: Expected to get an invalid resource error, got %v", i, err)
 		}
@@ -173,7 +175,7 @@ func (t *Tester) TestCreateRejectsMismatchedNamespace(valid runtime.Object) {
 
 	objectMeta.Namespace = "not-default"
 
-	_, err = t.storage.(apiserver.RESTCreater).Create(api.NewDefaultContext(), valid)
+	_, err = t.storage.(rest.Creater).Create(api.NewDefaultContext(), valid)
 	if err == nil {
 		t.Errorf("Expected an error, but we didn't get one")
 	} else if strings.Contains(err.Error(), "Controller.Namespace does not match the provided context") {
@@ -189,12 +191,50 @@ func (t *Tester) TestCreateRejectsNamespace(valid runtime.Object) {
 
 	objectMeta.Namespace = "not-default"
 
-	_, err = t.storage.(apiserver.RESTCreater).Create(api.NewDefaultContext(), valid)
+	_, err = t.storage.(rest.Creater).Create(api.NewDefaultContext(), valid)
 	if err == nil {
 		t.Errorf("Expected an error, but we didn't get one")
 	} else if strings.Contains(err.Error(), "Controller.Namespace does not match the provided context") {
 		t.Errorf("Expected 'Controller.Namespace does not match the provided context' error, got '%v'", err.Error())
 	}
+}
+
+func (t *Tester) TestDeleteInvokesValidation(invalid ...runtime.Object) {
+	for i, obj := range invalid {
+		objectMeta, err := api.ObjectMetaFor(obj)
+		if err != nil {
+			t.Fatalf("object does not have ObjectMeta: %v\n%#v", err, obj)
+		}
+		ctx := api.NewDefaultContext()
+		_, err = t.storage.(rest.GracefulDeleter).Delete(ctx, objectMeta.Name, nil)
+		if !errors.IsInvalid(err) {
+			t.Errorf("%d: Expected to get an invalid resource error, got %v", i, err)
+		}
+	}
+}
+
+func (t *Tester) TestDelete(createFn func() runtime.Object, wasGracefulFn func() bool, invalid ...runtime.Object) {
+	t.TestDeleteNonExist(createFn)
+	t.TestDeleteNoGraceful(createFn, wasGracefulFn)
+	t.TestDeleteInvokesValidation(invalid...)
+	// TODO: Test delete namespace mismatch rejection
+	// once #5684 is fixed.
+}
+
+func (t *Tester) TestDeleteNonExist(createFn func() runtime.Object) {
+	existing := createFn()
+	objectMeta, err := api.ObjectMetaFor(existing)
+	if err != nil {
+		t.Fatalf("object does not have ObjectMeta: %v\n%#v", err, existing)
+	}
+	context := api.NewDefaultContext()
+
+	t.withStorageError(&etcd.EtcdError{ErrorCode: tools.EtcdErrorCodeNotFound}, func() {
+		_, err := t.storage.(rest.GracefulDeleter).Delete(context, objectMeta.Name, nil)
+		if err == nil || !errors.IsNotFound(err) {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+	})
 }
 
 func (t *Tester) TestDeleteGraceful(createFn func() runtime.Object, expectedGrace int64, wasGracefulFn func() bool) {
@@ -210,11 +250,11 @@ func (t *Tester) TestDeleteNoGraceful(createFn func() runtime.Object, wasGracefu
 	}
 
 	ctx := api.WithNamespace(api.NewContext(), objectMeta.Namespace)
-	_, err = t.storage.(apiserver.RESTGracefulDeleter).Delete(ctx, objectMeta.Name, api.NewDeleteOptions(10))
+	_, err = t.storage.(rest.GracefulDeleter).Delete(ctx, objectMeta.Name, api.NewDeleteOptions(10))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := t.storage.(apiserver.RESTGetter).Get(ctx, objectMeta.Name); !errors.IsNotFound(err) {
+	if _, err := t.storage.(rest.Getter).Get(ctx, objectMeta.Name); !errors.IsNotFound(err) {
 		t.Errorf("unexpected error, object should not exist: %v", err)
 	}
 	if wasGracefulFn() {
@@ -229,11 +269,11 @@ func (t *Tester) TestDeleteGracefulHasDefault(existing runtime.Object, expectedG
 	}
 
 	ctx := api.WithNamespace(api.NewContext(), objectMeta.Namespace)
-	_, err = t.storage.(apiserver.RESTGracefulDeleter).Delete(ctx, objectMeta.Name, &api.DeleteOptions{})
+	_, err = t.storage.(rest.GracefulDeleter).Delete(ctx, objectMeta.Name, &api.DeleteOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := t.storage.(apiserver.RESTGetter).Get(ctx, objectMeta.Name); err != nil {
+	if _, err := t.storage.(rest.Getter).Get(ctx, objectMeta.Name); err != nil {
 		t.Errorf("unexpected error, object should exist: %v", err)
 	}
 	if !wasGracefulFn() {
@@ -248,11 +288,11 @@ func (t *Tester) TestDeleteGracefulUsesZeroOnNil(existing runtime.Object, expect
 	}
 
 	ctx := api.WithNamespace(api.NewContext(), objectMeta.Namespace)
-	_, err = t.storage.(apiserver.RESTGracefulDeleter).Delete(ctx, objectMeta.Name, nil)
+	_, err = t.storage.(rest.GracefulDeleter).Delete(ctx, objectMeta.Name, nil)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := t.storage.(apiserver.RESTGetter).Get(ctx, objectMeta.Name); !errors.IsNotFound(err) {
+	if _, err := t.storage.(rest.Getter).Get(ctx, objectMeta.Name); !errors.IsNotFound(err) {
 		t.Errorf("unexpected error, object should exist: %v", err)
 	}
 }

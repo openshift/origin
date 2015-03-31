@@ -111,7 +111,7 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 			}
 			namespaces := make([]string, 0)
 			if all {
-				nsList, err := kc.Namespaces().List(labels.Everything())
+				nsList, err := kc.Namespaces().List(labels.Everything(), fields.Everything())
 				checkErr(err)
 				for _, ns := range nsList.Items {
 					namespaces = append(namespaces, ns.Name)

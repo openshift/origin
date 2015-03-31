@@ -169,8 +169,8 @@ func okPod() *kapi.Pod {
 			},
 		},
 		Status: kapi.PodStatus{
-			Info: kapi.PodInfo{
-				"container1": kapi.ContainerStatus{},
+			ContainerStatuses: []kapi.ContainerStatus{
+				{},
 			},
 		},
 	}
@@ -185,10 +185,12 @@ func succeededPod() *kapi.Pod {
 func failedPod() *kapi.Pod {
 	p := okPod()
 	p.Status.Phase = kapi.PodFailed
-	p.Status.Info["container1"] = kapi.ContainerStatus{
-		State: kapi.ContainerState{
-			Termination: &kapi.ContainerStateTerminated{
-				ExitCode: 1,
+	p.Status.ContainerStatuses = []kapi.ContainerStatus{
+		{
+			State: kapi.ContainerState{
+				Termination: &kapi.ContainerStateTerminated{
+					ExitCode: 1,
+				},
 			},
 		},
 	}

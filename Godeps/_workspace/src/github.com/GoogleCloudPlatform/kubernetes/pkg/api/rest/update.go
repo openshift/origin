@@ -20,6 +20,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 )
 
 // RESTUpdateStrategy defines the minimum validation, accepted input, and
@@ -32,9 +33,13 @@ type RESTUpdateStrategy interface {
 	NamespaceScoped() bool
 	// AllowCreateOnUpdate returns true if the object can be created by a PUT.
 	AllowCreateOnUpdate() bool
+	// PrepareForUpdate is invoked on update before validation to normalize
+	// the object.  For example: remove fields that are not to be persisted,
+	// sort order-insensitive list fields, etc.
+	PrepareForUpdate(obj, old runtime.Object)
 	// ValidateUpdate is invoked after default fields in the object have been filled in before
 	// the object is persisted.
-	ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList
+	ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList
 }
 
 // BeforeUpdate ensures that common operations for all resources are performed on update. It only returns
@@ -52,6 +57,7 @@ func BeforeUpdate(strategy RESTUpdateStrategy, ctx api.Context, obj, old runtime
 	} else {
 		objectMeta.Namespace = api.NamespaceNone
 	}
+	strategy.PrepareForUpdate(obj, old)
 	if errs := strategy.ValidateUpdate(obj, old); len(errs) > 0 {
 		return errors.NewInvalid(kind, objectMeta.Name, errs)
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	utilerr "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/template"
@@ -35,12 +36,15 @@ func (templateStrategy) NamespaceScoped() bool {
 	return true
 }
 
+func (templateStrategy) PrepareForCreate(obj runtime.Object)      {}
+func (templateStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+
 // ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
 func (templateStrategy) ResetBeforeCreate(obj runtime.Object) {
 }
 
 // Validate validates a new template.
-func (templateStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+func (templateStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
 	template := obj.(*api.Template)
 	return validation.ValidateTemplate(template)
 }
@@ -51,7 +55,7 @@ func (templateStrategy) AllowCreateOnUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (templateStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+func (templateStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateTemplateUpdate(obj.(*api.Template), old.(*api.Template))
 }
 
