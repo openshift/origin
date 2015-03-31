@@ -33,10 +33,6 @@ func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
 }
 
 func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, source *SourceRef) (*Pipeline, error) {
-	pipeline := &Pipeline{
-		From: from,
-	}
-
 	strategy.Base = input
 
 	name, ok := NameSuggestions{source, input}.SuggestName()
@@ -65,11 +61,12 @@ func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, 
 		Output:   output,
 	}
 
-	pipeline.InputImage = input
-	pipeline.Image = output
-	pipeline.Build = build
-
-	return pipeline, nil
+	return &Pipeline{
+		From:       from,
+		InputImage: input,
+		Image:      output,
+		Build:      build,
+	}, nil
 }
 
 func (p *Pipeline) NeedsDeployment(env Environment) error {
