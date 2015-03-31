@@ -35,6 +35,13 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 			options.Reader = reader
 			options.ClientConfig = f.OpenShiftClientConfig
 
+			if certFile := cmdutil.GetFlagString(cmd, "client-certificate"); len(certFile) > 0 {
+				options.CertFile = certFile
+			}
+			if keyFile := cmdutil.GetFlagString(cmd, "client-key"); len(keyFile) > 0 {
+				options.KeyFile = keyFile
+			}
+
 			checkErr(options.GatherInfo())
 
 			forcePath := cmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName)
