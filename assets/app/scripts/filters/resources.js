@@ -144,4 +144,14 @@ angular.module('openshiftConsole')
       return (resource && resource.annotations && resource.annotations.provider) ||
         (resource && resource.metadata && resource.metadata.namespace);
     };
+  })
+  .filter('imageRepoReference', function(){
+    return function(objectRef, tag){
+      tag = tag || "latest";
+      var ns = objectRef.namespace || "";
+      ns = ns == "" ? ns : ns + "/";
+      var ref = ns + objectRef.name;
+      ref += " [" + tag + "]";
+      return ref;
+    };
   });
