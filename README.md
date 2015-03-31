@@ -94,15 +94,14 @@ Some requirements, some silly errors.
 The current design has a long path for packets directed for the overlay network.
 There are two veth-pairs, a linux bridge, and then the OpenVSwitch, that cause a drop in performance of about 40%
 
-Hand-crafted solutions that eliminate the long-path to just a single veth-pair bring the performance close to the wire. The performance has been measured using sockperf.
+An optimzed solution that eliminates the long-path to just a single veth-pair bring the performance close to the wire. The performance has been measured using sockperf.
 
   | openshift-sdn | openshift-sdn (optimized) | without overlay
 --- | --------- | ------- | ------
 Latency | 112us | 84us | 82us
 
+The optimized solution is available for use with OpenShift/Kubernetes only. Use '-kube' option with openshift-sdn on all hosts. And use the network_plugin for OpenShift/Kubernetes as 'redhat/openshift-ovs-subet'.
+
 #### TODO
 
- - Add more options, so that users can choose the subnet to give to the cluster. The default is hardcoded today to "10.1.0.0/16"
- - Performance enhancements, as discussed above
- - Usability without depending on openshift
-
+ - Network isolation between groups of containers

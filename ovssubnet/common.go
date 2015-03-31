@@ -1,26 +1,17 @@
-package controller
+package ovssubnet
 
 import (
-	"crypto/md5"
 	"errors"
 	"fmt"
 	log "github.com/golang/glog"
 	"net"
-	"os/exec"
-	"strconv"
 	"time"
 
+	"github.com/openshift/openshift-sdn/ovssubnet/controller/kube"
+	"github.com/openshift/openshift-sdn/ovssubnet/controller/lbr"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/pkg/registry"
 )
-
-type Controller interface {
-	StartMaster(sync bool, containerNetwork string, containerSubnetLength uint) error
-	StartNode(sync, skipsetup bool) error
-	AddNode(minionIP string) error
-	DeleteNode(minionIP string) error
-	Stop()
-}
 
 type OvsController struct {
 	subnetRegistry  registry.SubnetRegistry
@@ -29,9 +20,32 @@ type OvsController struct {
 	hostName        string
 	subnetAllocator *netutils.SubnetAllocator
 	sig             chan struct{}
+	flowController  FlowController
 }
 
-func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) (Controller, error) {
+type FlowController interface {
+	Setup(localSubnet, globalSubnet string) error
+	AddOFRules(minionIP, localSubnet, localIP string) error
+	DelOFRules(minionIP, localIP string) error
+}
+
+func NewKubeController(sub registry.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
+	kubeController, err := NewController(sub, hostname, selfIP)
+	if err == nil {
+		kubeController.flowController = kube.NewFlowController()
+	}
+	return kubeController, err
+}
+
+func NewDefaultController(sub registry.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
+	defaultController, err := NewController(sub, hostname, selfIP)
+	if err == nil {
+		defaultController.flowController = lbr.NewFlowController()
+	}
+	return defaultController, err
+}
+
+func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
 	if selfIP == "" {
 		addrs, err := net.LookupIP(hostname)
 		if err != nil {
@@ -124,15 +138,20 @@ func (oc *OvsController) AddNode(minion string) error {
 		log.Errorf("Error creating network for minion %s.", minion)
 		return err
 	}
-	addrs, err := net.LookupIP(minion)
-	if err != nil {
-		log.Errorf("Failed to lookup IP address for minion %s.", minion)
-		return err
-	}
-	minionIP := addrs[0].String()
-	if minionIP == "" {
-		// minion's name is the IP address itself
-		minionIP = minion
+	var minionIP string
+	ip := net.ParseIP(minion)
+	if ip == nil {
+		addrs, err := net.LookupIP(minion)
+		if err != nil {
+			log.Errorf("Failed to lookup IP address for minion %s: %v", minion, err)
+			return err
+		}
+		minionIP = addrs[0].String()
+		if minionIP == "" {
+			return fmt.Errorf("Failed to obtain IP address from minion label: %s", minion)
+		}
+	} else {
+		minionIP = ip.String()
 	}
 	sub := &registry.Subnet{
 		Minion: minionIP,
@@ -178,31 +197,26 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 		log.Errorf("Failed to get subnet for this host: %v", err)
 		return err
 	}
-	// restart docker daemon
-	_, ipnet, err := net.ParseCIDR(oc.localSubnet.Sub)
+	// call flow controller's setup
 	if err == nil {
 		if !skipsetup {
 			// Assume we are working with IPv4
-			subnetMaskLength, _ := ipnet.Mask.Size()
 			containerNetwork, err := oc.subnetRegistry.GetContainerNetwork()
 			if err != nil {
 				log.Errorf("Failed to obtain ContainerNetwork: %v", err)
 				return err
 			}
-			out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), containerNetwork, strconv.Itoa(subnetMaskLength)).CombinedOutput()
-			log.Infof("Output of setup script:\n%s", out)
+			err = oc.flowController.Setup(oc.localSubnet.Sub, containerNetwork)
 			if err != nil {
-				log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
 				return err
 			}
 		}
-		exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0").CombinedOutput()
 		subnets, err := oc.subnetRegistry.GetSubnets()
 		if err != nil {
 			log.Errorf("Could not fetch existing subnets: %v", err)
 		}
 		for _, s := range *subnets {
-			oc.AddOFRules(s.Minion, s.Sub)
+			oc.flowController.AddOFRules(s.Minion, s.Sub, oc.localIP)
 		}
 		go oc.watchCluster()
 	}
@@ -259,10 +273,10 @@ func (oc *OvsController) watchCluster() {
 			switch ev.Type {
 			case registry.Added:
 				// add openflow rules
-				oc.AddOFRules(ev.Sub.Minion, ev.Sub.Sub)
+				oc.flowController.AddOFRules(ev.Sub.Minion, ev.Sub.Sub, oc.localIP)
 			case registry.Deleted:
 				// delete openflow rules meant for the minion
-				oc.DelOFRules(ev.Sub.Minion)
+				oc.flowController.DelOFRules(ev.Sub.Minion, oc.localIP)
 			}
 		case <-oc.sig:
 			stop <- true
@@ -274,48 +288,4 @@ func (oc *OvsController) watchCluster() {
 func (oc *OvsController) Stop() {
 	close(oc.sig)
 	//oc.sig <- struct{}{}
-}
-
-func (oc *OvsController) AddOFRules(minionIP, subnet string) {
-	cookie := generateCookie(minionIP)
-	if minionIP == oc.localIP {
-		// self, so add the input rules
-		iprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,ip,in_port=10,nw_dst=%s,actions=output:9", cookie, subnet)
-		arprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,arp,in_port=10,nw_dst=%s,actions=output:9", cookie, subnet)
-		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", iprule).CombinedOutput()
-		log.Infof("Output of adding %s: %s (%v)", iprule, o, e)
-		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", arprule).CombinedOutput()
-		log.Infof("Output of adding %s: %s (%v)", arprule, o, e)
-	} else {
-		iprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,ip,in_port=9,nw_dst=%s,actions=set_field:%s->tun_dst,output:10", cookie, subnet, minionIP)
-		arprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,arp,in_port=9,nw_dst=%s,actions=set_field:%s->tun_dst,output:10", cookie, subnet, minionIP)
-		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", iprule).CombinedOutput()
-		log.Infof("Output of adding %s: %s (%v)", iprule, o, e)
-		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", arprule).CombinedOutput()
-		log.Infof("Output of adding %s: %s (%v)", arprule, o, e)
-	}
-}
-
-func (oc *OvsController) DelOFRules(minion string) {
-	log.Infof("Calling del rules for %s.", minion)
-	cookie := generateCookie(minion)
-	if minion == oc.localIP {
-		iprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,ip,in_port=10", cookie)
-		arprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,arp,in_port=10", cookie)
-		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
-		log.Infof("Output of deleting local ip rules: %s (%v)", o, e)
-		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", arprule).CombinedOutput()
-		log.Infof("Output of deleting local arp rules: %s (%v)", o, e)
-	} else {
-		iprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,ip,in_port=9", cookie)
-		arprule := fmt.Sprintf("table=0,cookie=0x%s/0xffffffff,arp,in_port=9", cookie)
-		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
-		log.Infof("Output of deleting %s: %s (%v)", iprule, o, e)
-		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", arprule).CombinedOutput()
-		log.Infof("Output of deleting %s: %s (%v)", arprule, o, e)
-	}
-}
-
-func generateCookie(ip string) string {
-	return strconv.FormatInt(int64(md5.Sum([]byte(ip))[0]), 16)
 }

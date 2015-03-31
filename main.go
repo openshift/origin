@@ -11,9 +11,15 @@ import (
 	"syscall"
 
 	log "github.com/golang/glog"
-	"github.com/openshift/openshift-sdn/ovs-simple/controller"
+	"github.com/openshift/openshift-sdn/ovssubnet"
 	"github.com/openshift/openshift-sdn/pkg/registry"
 )
+
+type NetworkManager interface {
+	StartMaster(sync bool, containerNetwork string, containerSubnetLength uint) error
+	StartNode(sync, skipsetup bool) error
+	Stop()
+}
 
 type CmdLineOpts struct {
 	containerNetwork      string
@@ -29,6 +35,7 @@ type CmdLineOpts struct {
 	minion                bool
 	skipsetup             bool
 	sync                  bool
+	kube                  bool
 	help                  bool
 }
 
@@ -50,11 +57,12 @@ func init() {
 	flag.BoolVar(&opts.minion, "minion", false, "Run in minion mode")
 	flag.BoolVar(&opts.skipsetup, "skip-setup", false, "Skip the setup when in minion mode")
 	flag.BoolVar(&opts.sync, "sync", false, "Sync the minions directly to etcd-path (Do not wait for PaaS to do so!)")
+	flag.BoolVar(&opts.kube, "kube", false, "Use kubernetes hooks for optimal integration with OVS. This option bypasses the Linux bridge. Any docker containers started manually (not through OpenShift/Kubernetes) will stay local and not connect to the SDN.")
 
 	flag.BoolVar(&opts.help, "help", false, "print this message")
 }
 
-func newNetworkManager() (controller.Controller, error) {
+func newNetworkManager() (NetworkManager, error) {
 	sub, err := newSubnetRegistry()
 	if err != nil {
 		return nil, err
@@ -68,7 +76,11 @@ func newNetworkManager() (controller.Controller, error) {
 		host = strings.TrimSpace(string(output))
 	}
 
-	return controller.NewController(sub, string(host), opts.ip)
+	if opts.kube {
+		return ovssubnet.NewKubeController(sub, string(host), opts.ip)
+	}
+	// default OVS controller
+	return ovssubnet.NewDefaultController(sub, string(host), opts.ip)
 }
 
 func newSubnetRegistry() (registry.SubnetRegistry, error) {

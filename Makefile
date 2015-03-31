@@ -31,6 +31,10 @@ install:
 	rm -f /usr/bin/openshift-sdn-simple-setup-node.sh
 	cp -f $(OUT_DIR)/local/go/bin/openshift-sdn /usr/bin/
 	cp -f $(OUT_DIR)/local/go/bin/openshift-sdn-simple-setup-node.sh /usr/bin/
+	cp -f $(OUT_DIR)/local/go/bin/openshift-ovs-subnet /usr/bin/
+	cp -f $(OUT_DIR)/local/go/bin/openshift-sdn-kube-subnet-setup.sh /usr/bin/
+	mkdir -p /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet/
+	cp -f $(OUT_DIR)/local/go/bin/openshift-ovs-subnet /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet/
 
 # Remove all build artifacts.
 #
