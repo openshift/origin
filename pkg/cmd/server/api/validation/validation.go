@@ -6,60 +6,60 @@ import (
 	"os"
 	"strings"
 
-	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-func ValidateBindAddress(bindAddress string) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateBindAddress(bindAddress string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	if len(bindAddress) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("bindAddress"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("bindAddress"))
 	} else if _, _, err := net.SplitHostPort(bindAddress); err != nil {
-		allErrs = append(allErrs, errs.NewFieldInvalid("bindAddress", bindAddress, "must be a host:port"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("bindAddress", bindAddress, "must be a host:port"))
 	}
 
 	return allErrs
 }
 
-func ValidateServingInfo(info api.ServingInfo) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateServingInfo(info api.ServingInfo) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, ValidateBindAddress(info.BindAddress)...)
 
 	if len(info.ServerCert.CertFile) > 0 {
 		if _, err := os.Stat(info.ServerCert.CertFile); err != nil {
-			allErrs = append(allErrs, errs.NewFieldInvalid("certFile", info.ServerCert.CertFile, "could not read file"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("certFile", info.ServerCert.CertFile, "could not read file"))
 		}
 
 		if len(info.ServerCert.KeyFile) == 0 {
-			allErrs = append(allErrs, errs.NewFieldRequired("keyFile"))
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("keyFile"))
 		} else if _, err := os.Stat(info.ServerCert.KeyFile); err != nil {
-			allErrs = append(allErrs, errs.NewFieldInvalid("keyFile", info.ServerCert.KeyFile, "could not read file"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("keyFile", info.ServerCert.KeyFile, "could not read file"))
 		}
 
 		if len(info.ClientCA) > 0 {
 			if _, err := os.Stat(info.ClientCA); err != nil {
-				allErrs = append(allErrs, errs.NewFieldInvalid("clientCA", info.ClientCA, "could not read file"))
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("clientCA", info.ClientCA, "could not read file"))
 			}
 		}
 	} else {
 		if len(info.ServerCert.KeyFile) > 0 {
-			allErrs = append(allErrs, errs.NewFieldInvalid("keyFile", info.ServerCert.KeyFile, "cannot specify a keyFile without a certFile"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("keyFile", info.ServerCert.KeyFile, "cannot specify a keyFile without a certFile"))
 		}
 
 		if len(info.ClientCA) > 0 {
-			allErrs = append(allErrs, errs.NewFieldInvalid("clientCA", info.ClientCA, "cannot specify a clientCA without a certFile"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("clientCA", info.ClientCA, "cannot specify a clientCA without a certFile"))
 		}
 	}
 
 	return allErrs
 }
 
-func ValidateKubeConfig(path string, field string) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateKubeConfig(path string, field string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, ValidateFile(path, field)...)
 	// TODO: load and parse
@@ -67,8 +67,8 @@ func ValidateKubeConfig(path string, field string) errs.ValidationErrorList {
 	return allErrs
 }
 
-func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	if len(config.MasterIP) > 0 {
 		allErrs = append(allErrs, ValidateSpecifiedIP(config.MasterIP, "masterIP")...)
@@ -76,7 +76,7 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) errs.Val
 
 	if len(config.ServicesSubnet) > 0 {
 		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.ServicesSubnet)); err != nil {
-			allErrs = append(allErrs, errs.NewFieldInvalid("servicesSubnet", config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.17.0/24)"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("servicesSubnet", config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.17.0/24)"))
 		}
 	}
 
@@ -87,38 +87,38 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) errs.Val
 	return allErrs
 }
 
-func ValidateSpecifiedIP(ipString string, field string) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateSpecifiedIP(ipString string, field string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	ip := net.ParseIP(ipString)
 	if ip == nil {
-		allErrs = append(allErrs, errs.NewFieldInvalid(field, ipString, "must be a valid IP"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, ipString, "must be a valid IP"))
 	} else if ip.IsUnspecified() {
-		allErrs = append(allErrs, errs.NewFieldInvalid(field, ipString, "cannot be an unspecified IP"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, ipString, "cannot be an unspecified IP"))
 	}
 
 	return allErrs
 }
 
-func ValidateURL(urlString string, field string) (*url.URL, errs.ValidationErrorList) {
-	allErrs := errs.ValidationErrorList{}
+func ValidateURL(urlString string, field string) (*url.URL, fielderrors.ValidationErrorList) {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	urlObj, err := url.Parse(urlString)
 	if err != nil {
-		allErrs = append(allErrs, errs.NewFieldInvalid(field, urlString, "must be a valid URL"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, urlString, "must be a valid URL"))
 		return nil, allErrs
 	}
 	if len(urlObj.Scheme) == 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid(field, urlString, "must contain a scheme (e.g. http://)"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, urlString, "must contain a scheme (e.g. http://)"))
 	}
 	if len(urlObj.Host) == 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid(field, urlString, "must contain a host"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, urlString, "must contain a host"))
 	}
 	return urlObj, allErrs
 }
 
-func ValidateAssetConfig(config *api.AssetConfig) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateAssetConfig(config *api.AssetConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
@@ -128,15 +128,15 @@ func ValidateAssetConfig(config *api.AssetConfig) errs.ValidationErrorList {
 	}
 	if urlObj != nil {
 		if !strings.HasSuffix(urlObj.Path, "/") {
-			allErrs = append(allErrs, errs.NewFieldInvalid("publicURL", config.PublicURL, "must have a trailing slash in path"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("publicURL", config.PublicURL, "must have a trailing slash in path"))
 		}
 	}
 
 	return allErrs
 }
 
-func ValidateMasterConfig(config *api.MasterConfig) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
@@ -146,14 +146,14 @@ func ValidateMasterConfig(config *api.MasterConfig) errs.ValidationErrorList {
 		if colocated {
 			publicURL, _ := url.Parse(config.AssetConfig.PublicURL)
 			if publicURL.Path == "/" {
-				allErrs = append(allErrs, errs.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
 			}
 		}
 
 		if config.OAuthConfig != nil && config.OAuthConfig.AssetPublicURL != config.AssetConfig.PublicURL {
 			allErrs = append(allErrs,
-				errs.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "must match oauthConfig.assetPublicURL"),
-				errs.NewFieldInvalid("oauthConfig.assetPublicURL", config.OAuthConfig.AssetPublicURL, "must match assetConfig.publicURL"),
+				fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "must match oauthConfig.assetPublicURL"),
+				fielderrors.NewFieldInvalid("oauthConfig.assetPublicURL", config.OAuthConfig.AssetPublicURL, "must match assetConfig.publicURL"),
 			)
 		}
 
@@ -178,8 +178,8 @@ func ValidateMasterConfig(config *api.MasterConfig) errs.ValidationErrorList {
 	return allErrs
 }
 
-func ValidatePolicyConfig(config api.PolicyConfig) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, ValidateFile(config.BootstrapPolicyFile, "bootstrapPolicyFile")...)
 	allErrs = append(allErrs, ValidateNamespace(config.MasterAuthorizationNamespace, "masterAuthorizationNamespace")...)
@@ -188,23 +188,23 @@ func ValidatePolicyConfig(config api.PolicyConfig) errs.ValidationErrorList {
 	return allErrs
 }
 
-func ValidateNamespace(namespace, field string) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateNamespace(namespace, field string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	if len(namespace) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired(field))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired(field))
 	} else if ok, _ := kvalidation.ValidateNamespaceName(namespace, false); !ok {
-		allErrs = append(allErrs, errs.NewFieldInvalid(field, namespace, "must be a valid namespace"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, namespace, "must be a valid namespace"))
 	}
 
 	return allErrs
 }
 
-func ValidateNodeConfig(config *api.NodeConfig) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	if len(config.NodeName) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("nodeName"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("nodeName"))
 	}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
@@ -215,26 +215,26 @@ func ValidateNodeConfig(config *api.NodeConfig) errs.ValidationErrorList {
 	}
 
 	if len(config.NetworkContainerImage) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("networkContainerImage"))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("networkContainerImage"))
 	}
 
 	return allErrs
 }
 
-func ValidateFile(path string, field string) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateFile(path string, field string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	if len(path) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired(field))
+		allErrs = append(allErrs, fielderrors.NewFieldRequired(field))
 	} else if _, err := os.Stat(path); err != nil {
-		allErrs = append(allErrs, errs.NewFieldInvalid(field, path, "could not read file"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, path, "could not read file"))
 	}
 
 	return allErrs
 }
 
-func ValidateAllInOneConfig(master *api.MasterConfig, node *api.NodeConfig) errs.ValidationErrorList {
-	allErrs := errs.ValidationErrorList{}
+func ValidateAllInOneConfig(master *api.MasterConfig, node *api.NodeConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, ValidateMasterConfig(master).Prefix("masterConfig")...)
 

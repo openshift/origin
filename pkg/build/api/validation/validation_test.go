@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -142,7 +142,7 @@ func TestBuildConfigValidationOutputFailure(t *testing.T) {
 func TestValidateBuildRequest(t *testing.T) {
 	testCases := map[string]*buildapi.BuildRequest{
 		"": {ObjectMeta: kapi.ObjectMeta{Name: "requestName"}},
-		string(errs.ValidationErrorTypeRequired) + "name": {},
+		string(fielderrors.ValidationErrorTypeRequired) + "name": {},
 	}
 
 	for desc, tc := range testCases {
@@ -154,7 +154,7 @@ func TestValidateBuildRequest(t *testing.T) {
 			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
 		}
 		if len(desc) > 0 {
-			err := errors[0].(*errs.ValidationError)
+			err := errors[0].(*fielderrors.ValidationError)
 			errDesc := string(err.Type) + err.Field
 			if desc != errDesc {
 				t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, desc, errDesc)
@@ -165,13 +165,13 @@ func TestValidateBuildRequest(t *testing.T) {
 
 func TestValidateSource(t *testing.T) {
 	errorCases := map[string]*buildapi.BuildSource{
-		string(errs.ValidationErrorTypeRequired) + "git.uri": {
+		string(fielderrors.ValidationErrorTypeRequired) + "git.uri": {
 			Type: buildapi.BuildSourceGit,
 			Git: &buildapi.GitBuildSource{
 				URI: "",
 			},
 		},
-		string(errs.ValidationErrorTypeInvalid) + "git.uri": {
+		string(fielderrors.ValidationErrorTypeInvalid) + "git.uri": {
 			Type: buildapi.BuildSourceGit,
 			Git: &buildapi.GitBuildSource{
 				URI: "::",
@@ -183,7 +183,7 @@ func TestValidateSource(t *testing.T) {
 		if len(errors) != 1 {
 			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
 		}
-		err := errors[0].(*errs.ValidationError)
+		err := errors[0].(*fielderrors.ValidationError)
 		errDesc := string(err.Type) + err.Field
 		if desc != errDesc {
 			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, desc, errDesc)
@@ -197,7 +197,7 @@ func TestValidateBuildParameters(t *testing.T) {
 		*buildapi.BuildParameters
 	}{
 		{
-			string(errs.ValidationErrorTypeInvalid) + "output.dockerImageReference",
+			string(fielderrors.ValidationErrorTypeInvalid) + "output.dockerImageReference",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -216,7 +216,7 @@ func TestValidateBuildParameters(t *testing.T) {
 			},
 		},
 		{
-			string(errs.ValidationErrorTypeInvalid) + "output.to.kind",
+			string(fielderrors.ValidationErrorTypeInvalid) + "output.to.kind",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -238,7 +238,7 @@ func TestValidateBuildParameters(t *testing.T) {
 			},
 		},
 		{
-			string(errs.ValidationErrorTypeRequired) + "output.to.name",
+			string(fielderrors.ValidationErrorTypeRequired) + "output.to.name",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -257,7 +257,7 @@ func TestValidateBuildParameters(t *testing.T) {
 			},
 		},
 		{
-			string(errs.ValidationErrorTypeInvalid) + "output.to.name",
+			string(fielderrors.ValidationErrorTypeInvalid) + "output.to.name",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -279,7 +279,7 @@ func TestValidateBuildParameters(t *testing.T) {
 			},
 		},
 		{
-			string(errs.ValidationErrorTypeInvalid) + "output.to.namespace",
+			string(fielderrors.ValidationErrorTypeInvalid) + "output.to.namespace",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -301,7 +301,7 @@ func TestValidateBuildParameters(t *testing.T) {
 			},
 		},
 		{
-			string(errs.ValidationErrorTypeInvalid) + "strategy.type",
+			string(fielderrors.ValidationErrorTypeInvalid) + "strategy.type",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -316,7 +316,7 @@ func TestValidateBuildParameters(t *testing.T) {
 			},
 		},
 		{
-			string(errs.ValidationErrorTypeRequired) + "strategy.type",
+			string(fielderrors.ValidationErrorTypeRequired) + "strategy.type",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -333,7 +333,7 @@ func TestValidateBuildParameters(t *testing.T) {
 		// invalid because both image and from are specified in the
 		// sti strategy definition
 		{
-			string(errs.ValidationErrorTypeInvalid) + "strategy.stiStrategy.image",
+			string(fielderrors.ValidationErrorTypeInvalid) + "strategy.stiStrategy.image",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -358,7 +358,7 @@ func TestValidateBuildParameters(t *testing.T) {
 		// invalid because neither image nor from are specified in the
 		// sti strategy definition
 		{
-			string(errs.ValidationErrorTypeRequired) + "strategy.stiStrategy.from",
+			string(fielderrors.ValidationErrorTypeRequired) + "strategy.stiStrategy.from",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -382,7 +382,7 @@ func TestValidateBuildParameters(t *testing.T) {
 		if len(errors) != 1 {
 			t.Errorf("%s: Unexpected validation result: %v", config.err, errors)
 		}
-		err := errors[0].(*errs.ValidationError)
+		err := errors[0].(*fielderrors.ValidationError)
 		errDesc := string(err.Type) + err.Field
 		if config.err != errDesc {
 			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, config.err, errDesc)
@@ -448,22 +448,22 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 func TestValidateTrigger(t *testing.T) {
 	tests := map[string]struct {
 		trigger  buildapi.BuildTriggerPolicy
-		expected []*errs.ValidationError
+		expected []*fielderrors.ValidationError
 	}{
 		"trigger without type": {
 			trigger:  buildapi.BuildTriggerPolicy{},
-			expected: []*errs.ValidationError{errs.NewFieldRequired("type")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("type")},
 		},
 		"github type with no github webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GithubWebHookBuildTriggerType},
-			expected: []*errs.ValidationError{errs.NewFieldRequired("github")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("github")},
 		},
 		"github trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:          buildapi.GithubWebHookBuildTriggerType,
 				GithubWebHook: &buildapi.WebHookTrigger{},
 			},
-			expected: []*errs.ValidationError{errs.NewFieldRequired("github.secret")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("github.secret")},
 		},
 		"github trigger with generic webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
@@ -472,18 +472,18 @@ func TestValidateTrigger(t *testing.T) {
 					Secret: "secret101",
 				},
 			},
-			expected: []*errs.ValidationError{errs.NewFieldInvalid("generic", "", "long description")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("generic", "", "long description")},
 		},
 		"generic trigger with no generic webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GenericWebHookBuildTriggerType},
-			expected: []*errs.ValidationError{errs.NewFieldRequired("generic")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("generic")},
 		},
 		"generic trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:           buildapi.GenericWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{},
 			},
-			expected: []*errs.ValidationError{errs.NewFieldRequired("generic.secret")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("generic.secret")},
 		},
 		"generic trigger with github webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
@@ -492,7 +492,7 @@ func TestValidateTrigger(t *testing.T) {
 					Secret: "secret101",
 				},
 			},
-			expected: []*errs.ValidationError{errs.NewFieldInvalid("github", "", "long github description")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("github", "", "long github description")},
 		},
 		"valid github trigger": {
 			trigger: buildapi.BuildTriggerPolicy{
@@ -520,7 +520,7 @@ func TestValidateTrigger(t *testing.T) {
 			continue
 		}
 		err := errors[0]
-		validationError := err.(*errs.ValidationError)
+		validationError := err.(*fielderrors.ValidationError)
 		if validationError.Type != test.expected[0].Type {
 			t.Errorf("%s: Unexpected error type: %s", desc, validationError.Type)
 		}

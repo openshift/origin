@@ -33,7 +33,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/httpstream"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/httpstream/spdy"
 	cadvisorApi "github.com/google/cadvisor/info/v1"
@@ -45,7 +44,7 @@ type fakeKubelet struct {
 	containerInfoFunc                  func(podFullName string, uid types.UID, containerName string, req *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error)
 	rootInfoFunc                       func(query *cadvisorApi.ContainerInfoRequest) (*cadvisorApi.ContainerInfo, error)
 	machineInfoFunc                    func() (*cadvisorApi.MachineInfo, error)
-	podsFunc                           func() ([]api.Pod, util.StringSet)
+	podsFunc                           func() []api.Pod
 	logFunc                            func(w http.ResponseWriter, req *http.Request)
 	runFunc                            func(podFullName string, uid types.UID, containerName string, cmd []string) ([]byte, error)
 	dockerVersionFunc                  func() ([]uint, error)
@@ -60,7 +59,7 @@ func (fk *fakeKubelet) GetPodByName(namespace, name string) (*api.Pod, bool) {
 	return fk.podByNameFunc(namespace, name)
 }
 
-func (fk *fakeKubelet) GetPodStatus(name string, uid types.UID) (api.PodStatus, error) {
+func (fk *fakeKubelet) GetPodStatus(name string) (api.PodStatus, error) {
 	return fk.statusFunc(name)
 }
 
@@ -80,7 +79,7 @@ func (fk *fakeKubelet) GetCachedMachineInfo() (*cadvisorApi.MachineInfo, error) 
 	return fk.machineInfoFunc()
 }
 
-func (fk *fakeKubelet) GetPods() ([]api.Pod, util.StringSet) {
+func (fk *fakeKubelet) GetPods() []api.Pod {
 	return fk.podsFunc()
 }
 
@@ -167,8 +166,8 @@ func getPodName(name, namespace string) string {
 func TestPodStatus(t *testing.T) {
 	fw := newServerTest()
 	expected := api.PodStatus{
-		Info: map[string]api.ContainerStatus{
-			"goodpod": {},
+		ContainerStatuses: []api.ContainerStatus{
+			{Name: "goodpod"},
 		},
 	}
 	fw.fakeKubelet.statusFunc = func(name string) (api.PodStatus, error) {

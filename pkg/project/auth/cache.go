@@ -67,22 +67,6 @@ func subjectRecordKeyFn(obj interface{}) (string, error) {
 	return subjectRecord.subject, nil
 }
 
-// TODO: Eliminate listWatch when this merges upstream: https://github.com/GoogleCloudPlatform/kubernetes/pull/4453
-type listFunc func() (runtime.Object, error)
-type watchFunc func(resourceVersion string) (watch.Interface, error)
-type listWatch struct {
-	listFunc  listFunc
-	watchFunc watchFunc
-}
-
-func (lw *listWatch) List() (runtime.Object, error) {
-	return lw.listFunc()
-}
-
-func (lw *listWatch) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.watchFunc(resourceVersion)
-}
-
 // AuthorizationCache maintains a cache on the set of namespaces a user or group can access.
 type AuthorizationCache struct {
 	namespaceStore          cache.Store
@@ -130,11 +114,11 @@ func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kclient.Namespa
 func (ac *AuthorizationCache) Run(period time.Duration) {
 
 	namespaceReflector := cache.NewReflector(
-		&listWatch{
-			listFunc: func() (runtime.Object, error) {
-				return ac.namespaceInterface.List(labels.Everything())
+		&cache.ListWatch{
+			ListFunc: func() (runtime.Object, error) {
+				return ac.namespaceInterface.List(labels.Everything(), fields.Everything())
 			},
-			watchFunc: func(resourceVersion string) (watch.Interface, error) {
+			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
 				return ac.namespaceInterface.Watch(labels.Everything(), fields.Everything(), resourceVersion)
 			},
 		},
@@ -145,11 +129,11 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 	namespaceReflector.Run()
 
 	policyBindingReflector := cache.NewReflector(
-		&listWatch{
-			listFunc: func() (runtime.Object, error) {
+		&cache.ListWatch{
+			ListFunc: func() (runtime.Object, error) {
 				return ac.policyBindingsNamespacer.PolicyBindings(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 			},
-			watchFunc: func(resourceVersion string) (watch.Interface, error) {
+			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
 				return ac.policyBindingsNamespacer.PolicyBindings(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 			},
 		},
@@ -160,11 +144,11 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 	policyBindingReflector.Run()
 
 	policyReflector := cache.NewReflector(
-		&listWatch{
-			listFunc: func() (runtime.Object, error) {
+		&cache.ListWatch{
+			ListFunc: func() (runtime.Object, error) {
 				return ac.policiesNamespacer.Policies(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 			},
-			watchFunc: func(resourceVersion string) (watch.Interface, error) {
+			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
 				return ac.policiesNamespacer.Policies(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 			},
 		},

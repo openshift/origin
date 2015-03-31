@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest/resttest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -40,11 +40,11 @@ func validChanged() *api.Template {
 func TestStorage(t *testing.T) {
 	_, helper := newHelper(t)
 	storage := NewREST(helper)
-	var _ apiserver.RESTCreater = storage
-	var _ apiserver.RESTLister = storage
-	var _ apiserver.RESTGracefulDeleter = storage
-	var _ apiserver.RESTUpdater = storage
-	var _ apiserver.RESTGetter = storage
+	var _ rest.Creater = storage
+	var _ rest.Lister = storage
+	var _ rest.GracefulDeleter = storage
+	var _ rest.Updater = storage
+	var _ rest.Getter = storage
 }
 
 func TestCreate(t *testing.T) {

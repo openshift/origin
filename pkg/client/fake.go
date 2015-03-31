@@ -62,6 +62,10 @@ func (c *Fake) Templates(namespace string) TemplateInterface {
 	return &FakeTemplates{Fake: c}
 }
 
+func (c *Fake) Identities() IdentityInterface {
+	return &FakeIdentities{Fake: c}
+}
+
 func (c *Fake) Users() UserInterface {
 	return &FakeUsers{Fake: c}
 }

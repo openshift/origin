@@ -31,7 +31,7 @@ located on your system. It will lookup the images on the local Docker installati
 available), a Docker registry, or an OpenShift image repository. If you specify a source
 code URL, it will set up a build that takes your source code and converts it into an
 image that can run inside of a pod. The images will be deployed via a deployment
-configuration, and a service will be hookup up to the first public port of the app.
+configuration, and a service will be hooked up to the first public port of the app.
 
 Examples:
 
@@ -118,7 +118,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 			for _, item := range result.List.Items {
 				switch t := item.(type) {
 				case *kapi.Service:
-					fmt.Fprintf(os.Stderr, "Service %q created at %s:%d to talk to pods over port %d.\n", t.Name, t.Spec.PortalIP, t.Spec.Port, t.Spec.ContainerPort.IntVal)
+					fmt.Fprintf(os.Stderr, "Service %q created at %s:%d to talk to pods over port %d.\n", t.Name, t.Spec.PortalIP, t.Spec.Port, t.Spec.TargetPort.IntVal)
 				case *buildapi.BuildConfig:
 					fmt.Fprintf(os.Stderr, "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
 				case *imageapi.ImageRepository:

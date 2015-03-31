@@ -27,9 +27,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-
 	"github.com/fsouza/go-dockerclient"
 	"github.com/google/gofuzz"
+
 	"speter.net/go/exp/math/dec/inf"
 )
 
@@ -198,6 +198,9 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			c.FuzzNoCustom(s) // fuzz self without calling this function again
 			s.Type = api.SecretTypeOpaque
 		},
+		func(s *api.NamespaceSpec, c fuzz.Continue) {
+			s.Finalizers = []api.FinalizerName{api.FinalizerKubernetes}
+		},
 		func(s *api.NamespaceStatus, c fuzz.Continue) {
 			s.Phase = api.NamespaceActive
 		},
@@ -212,11 +215,11 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 		},
 		func(ss *api.ServiceSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(ss) // fuzz self without calling this function again
-			switch ss.ContainerPort.Kind {
+			switch ss.TargetPort.Kind {
 			case util.IntstrInt:
-				ss.ContainerPort.IntVal = 1 + ss.ContainerPort.IntVal%65535 // non-zero
+				ss.TargetPort.IntVal = 1 + ss.TargetPort.IntVal%65535 // non-zero
 			case util.IntstrString:
-				ss.ContainerPort.StrVal = "x" + ss.ContainerPort.StrVal // non-empty
+				ss.TargetPort.StrVal = "x" + ss.TargetPort.StrVal // non-empty
 			}
 		},
 	)

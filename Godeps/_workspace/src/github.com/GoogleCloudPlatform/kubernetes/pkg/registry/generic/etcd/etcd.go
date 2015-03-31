@@ -18,6 +18,7 @@ package etcd
 
 import (
 	"fmt"
+	"path"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeerr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -109,6 +110,19 @@ func NamespaceKeyRootFunc(ctx api.Context, prefix string) string {
 		key = key + "/" + ns
 	}
 	return key
+}
+
+// NoNamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing namespace rules.
+// If a namespace is on context, it errors.
+func NoNamespaceKeyFunc(ctx api.Context, prefix string, name string) (string, error) {
+	ns, ok := api.NamespaceFrom(ctx)
+	if ok && len(ns) > 0 {
+		return "", kubeerr.NewBadRequest("Namespace parameter is not allowed.")
+	}
+	if len(name) == 0 {
+		return "", kubeerr.NewBadRequest("Name parameter required.")
+	}
+	return path.Join(prefix, name), nil
 }
 
 // NamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing namespace rules.
@@ -241,6 +255,7 @@ func (e *Etcd) UpdateWithName(ctx api.Context, name string, obj runtime.Object) 
 
 // Update performs an atomic update and set of the object. Returns the result of the update
 // or an error. If the registry allows create-on-update, the create flow will be executed.
+// A bool is returned along with the object and any errors, to indicate object creation.
 func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	name, err := e.ObjectNameFunc(obj)
 	if err != nil {

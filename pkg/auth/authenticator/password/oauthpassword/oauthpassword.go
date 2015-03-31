@@ -11,12 +11,13 @@ import (
 )
 
 type Authenticator struct {
-	mapper authapi.UserIdentityMapper
-	client *osincli.Client
+	providerName string
+	mapper       authapi.UserIdentityMapper
+	client       *osincli.Client
 }
 
-func New(client *osincli.Client, identityMapper authapi.UserIdentityMapper) authenticator.Password {
-	return &Authenticator{identityMapper, client}
+func New(providerName string, client *osincli.Client, identityMapper authapi.UserIdentityMapper) authenticator.Password {
+	return &Authenticator{providerName, identityMapper, client}
 }
 
 func (a *Authenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
@@ -33,10 +34,8 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 		return nil, false, err
 	}
 
-	identity := &authapi.DefaultUserIdentityInfo{
-		UserName: username,
-		Extra:    map[string]string{"token": token.AccessToken},
-	}
+	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
+	identity.Extra["token"] = token.AccessToken
 	user, err := a.mapper.UserFor(identity)
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 	if err != nil {

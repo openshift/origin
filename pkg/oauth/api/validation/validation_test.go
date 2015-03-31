@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 )
 
@@ -21,7 +21,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 
 	errorCases := map[string]struct {
 		A oapi.OAuthClientAuthorization
-		T errors.ValidationErrorType
+		T fielderrors.ValidationErrorType
 		F string
 	}{
 		"zero-length name": {
@@ -30,7 +30,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
-			T: errors.ValidationErrorTypeRequired,
+			T: fielderrors.ValidationErrorTypeRequired,
 			F: "name",
 		},
 		"disallowed namespace": {
@@ -40,7 +40,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
-			T: errors.ValidationErrorTypeInvalid,
+			T: fielderrors.ValidationErrorTypeInvalid,
 			F: "namespace",
 		},
 	}
@@ -51,10 +51,10 @@ func TestValidateClientAuthorization(t *testing.T) {
 			continue
 		}
 		for i := range errs {
-			if errs[i].(*errors.ValidationError).Type != v.T {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(*errors.ValidationError).Field != v.F {
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}
@@ -71,17 +71,17 @@ func TestValidateClient(t *testing.T) {
 
 	errorCases := map[string]struct {
 		Client oapi.OAuthClient
-		T      errors.ValidationErrorType
+		T      fielderrors.ValidationErrorType
 		F      string
 	}{
 		"zero-length name": {
 			Client: oapi.OAuthClient{},
-			T:      errors.ValidationErrorTypeRequired,
+			T:      fielderrors.ValidationErrorTypeRequired,
 			F:      "name",
 		},
 		"disallowed namespace": {
 			Client: oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"}},
-			T:      errors.ValidationErrorTypeInvalid,
+			T:      fielderrors.ValidationErrorTypeInvalid,
 			F:      "namespace",
 		},
 	}
@@ -92,10 +92,10 @@ func TestValidateClient(t *testing.T) {
 			continue
 		}
 		for i := range errs {
-			if errs[i].(*errors.ValidationError).Type != v.T {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(*errors.ValidationError).Field != v.F {
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}
@@ -115,7 +115,7 @@ func TestValidateAccessTokens(t *testing.T) {
 
 	errorCases := map[string]struct {
 		Token oapi.OAuthAccessToken
-		T     errors.ValidationErrorType
+		T     fielderrors.ValidationErrorType
 		F     string
 	}{
 		"zero-length name": {
@@ -124,7 +124,7 @@ func TestValidateAccessTokens(t *testing.T) {
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
-			T: errors.ValidationErrorTypeRequired,
+			T: fielderrors.ValidationErrorTypeRequired,
 			F: "name",
 		},
 		"disallowed namespace": {
@@ -134,7 +134,7 @@ func TestValidateAccessTokens(t *testing.T) {
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
-			T: errors.ValidationErrorTypeInvalid,
+			T: fielderrors.ValidationErrorTypeInvalid,
 			F: "namespace",
 		},
 	}
@@ -145,10 +145,10 @@ func TestValidateAccessTokens(t *testing.T) {
 			continue
 		}
 		for i := range errs {
-			if errs[i].(*errors.ValidationError).Type != v.T {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(*errors.ValidationError).Field != v.F {
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}
@@ -168,7 +168,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 
 	errorCases := map[string]struct {
 		Token oapi.OAuthAuthorizeToken
-		T     errors.ValidationErrorType
+		T     fielderrors.ValidationErrorType
 		F     string
 	}{
 		"zero-length name": {
@@ -177,7 +177,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
-			T: errors.ValidationErrorTypeRequired,
+			T: fielderrors.ValidationErrorTypeRequired,
 			F: "name",
 		},
 		"zero-length client name": {
@@ -186,7 +186,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
-			T: errors.ValidationErrorTypeRequired,
+			T: fielderrors.ValidationErrorTypeRequired,
 			F: "clientname",
 		},
 		"zero-length user name": {
@@ -195,7 +195,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 				ClientName: "myclient",
 				UserUID:    "myuseruid",
 			},
-			T: errors.ValidationErrorTypeRequired,
+			T: fielderrors.ValidationErrorTypeRequired,
 			F: "username",
 		},
 		"zero-length user uid": {
@@ -204,7 +204,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 				ClientName: "myclient",
 				UserName:   "myusername",
 			},
-			T: errors.ValidationErrorTypeRequired,
+			T: fielderrors.ValidationErrorTypeRequired,
 			F: "useruid",
 		},
 		"disallowed namespace": {
@@ -214,7 +214,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
-			T: errors.ValidationErrorTypeInvalid,
+			T: fielderrors.ValidationErrorTypeInvalid,
 			F: "namespace",
 		},
 	}
@@ -225,10 +225,10 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 			continue
 		}
 		for i := range errs {
-			if errs[i].(*errors.ValidationError).Type != v.T {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
 				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
 			}
-			if errs[i].(*errors.ValidationError).Field != v.F {
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}

@@ -80,12 +80,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret string) {
 		Name: pushSecret,
 		VolumeSource: kapi.VolumeSource{
 			Secret: &kapi.SecretVolumeSource{
-				Target: kapi.ObjectReference{
-					Kind: "Secret",
-					Name: pushSecret,
-					// TODO: Remove the namespace once it gets fixed upstream
-					Namespace: pod.Namespace,
-				},
+				SecretName: pushSecret,
 			},
 		},
 	}

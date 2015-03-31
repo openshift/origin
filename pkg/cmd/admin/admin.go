@@ -2,7 +2,7 @@ package admin
 
 import (
 	"fmt"
-	"os"
+	"io"
 
 	"github.com/spf13/cobra"
 
@@ -28,21 +28,19 @@ Note: This is a beta release of OpenShift and may change significantly.  See
     https://github.com/openshift/origin for the latest information on OpenShift.
 `
 
-func NewCommandAdmin(name, fullName string) *cobra.Command {
+func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	// Main command
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "tools for managing an OpenShift cluster",
 		Long:  fmt.Sprintf(longDesc),
 		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(os.Stdout)
+			c.SetOutput(out)
 			c.Help()
 		},
 	}
 
 	f := clientcmd.New(cmd.PersistentFlags())
-	//in := os.Stdin
-	out := os.Stdout
 
 	templates.UseAdminTemplates(cmd)
 
@@ -54,17 +52,15 @@ func NewCommandAdmin(name, fullName string) *cobra.Command {
 	cmd.AddCommand(config.NewCmdConfig(fullName, "config"))
 
 	// TODO: these probably belong in a sub command
-	cmd.AddCommand(admin.NewCommandCreateKubeConfig())
-	cmd.AddCommand(admin.NewCommandCreateBootstrapPolicyFile())
-	cmd.AddCommand(admin.NewCommandOverwriteBootstrapPolicy(out))
-	cmd.AddCommand(admin.NewCommandNodeConfig())
+	cmd.AddCommand(admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, out))
+	cmd.AddCommand(admin.NewCommandCreateBootstrapPolicyFile(admin.CreateBootstrapPolicyFileCommand, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out))
+	cmd.AddCommand(admin.NewCommandOverwriteBootstrapPolicy(admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out))
+	cmd.AddCommand(admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out))
 	// TODO: these should be rolled up together
-	cmd.AddCommand(admin.NewCommandCreateAllCerts())
-	cmd.AddCommand(admin.NewCommandCreateClientCert())
-	cmd.AddCommand(admin.NewCommandCreateNodeClientCert())
-	cmd.AddCommand(admin.NewCommandCreateServerCert())
-	cmd.AddCommand(admin.NewCommandCreateSignerCert())
-	cmd.AddCommand(admin.NewCommandCreateClient())
+	cmd.AddCommand(admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, out))
+	cmd.AddCommand(admin.NewCommandCreateClient(admin.CreateClientCommandName, fullName+" "+admin.CreateClientCommandName, out))
+	cmd.AddCommand(admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, out))
+	cmd.AddCommand(admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, out))
 
 	if name == fullName {
 		cmd.AddCommand(version.NewVersionCommand(fullName))

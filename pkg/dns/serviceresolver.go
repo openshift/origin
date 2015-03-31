@@ -2,9 +2,11 @@ package dns
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 
 	"github.com/skynetservices/skydns/msg"
 	"github.com/skynetservices/skydns/server"
@@ -15,25 +17,31 @@ import (
 // will be `<name>.<namespace>.<base>` where base can be an arbitrary depth
 // DNS suffix. Queries not recognized within this base will return an error.
 type ServiceResolver struct {
-	accessor ServiceAccessor
-	config   *server.Config
-	base     string
+	config    *server.Config
+	accessor  ServiceAccessor
+	endpoints kclient.EndpointsNamespacer
+	base      string
+	fallback  FallbackFunc
 }
 
 // ServiceResolver implements server.Backend
 var _ server.Backend = &ServiceResolver{}
 
+type FallbackFunc func(name string, exact bool) (string, bool)
+
 // NewServiceResolver creates an object that will return DNS record entries for
 // SkyDNS based on service names.
-func NewServiceResolver(config *server.Config, accessor ServiceAccessor) *ServiceResolver {
+func NewServiceResolver(config *server.Config, accessor ServiceAccessor, endpoints kclient.EndpointsNamespacer, fn FallbackFunc) *ServiceResolver {
 	domain := config.Domain
 	if !strings.HasSuffix(domain, ".") {
 		domain = domain + "."
 	}
 	return &ServiceResolver{
-		accessor: accessor,
-		config:   config,
-		base:     domain,
+		config:    config,
+		accessor:  accessor,
+		endpoints: endpoints,
+		base:      domain,
+		fallback:  fn,
 	}
 }
 
@@ -43,33 +51,44 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 	if !strings.HasSuffix(name, b.base) {
 		return nil, nil
 	}
+	log.Printf("serving records for %s %t", name, exact)
 	prefix := strings.Trim(strings.TrimSuffix(name, b.base), ".")
 	segments := strings.Split(prefix, ".")
 	switch c := len(segments); {
-	case c == 1:
-		items, err := b.accessor.Services(segments[0]).List(labels.Everything())
-		if err != nil {
-			return nil, err
-		}
-		services := make([]msg.Service, 0, len(items.Items))
-		for _, svc := range items.Items {
-			services = append(services, msg.Service{
-				Host: fmt.Sprintf("%s.%s", svc.Name, name),
-				Port: svc.Spec.Port,
-
-				Priority: 10,
-				Weight:   10,
-				Ttl:      30,
-
-				Text: "",
-				Key:  msg.Path(name),
-			})
-		}
-		return services, nil
 	case c >= 2:
 		svc, err := b.accessor.Services(segments[c-1]).Get(segments[c-2])
 		if err != nil {
+			if errors.IsNotFound(err) && b.fallback != nil {
+				if fallback, ok := b.fallback(prefix, exact); ok {
+					return b.Records(fallback+b.base, exact)
+				}
+			}
 			return nil, err
+		}
+		// replace with constant
+		if svc.Spec.PortalIP == "None" {
+			endpoints, err := b.endpoints.Endpoints(segments[c-1]).Get(segments[c-2])
+			if err != nil {
+				return nil, err
+			}
+			services := make([]msg.Service, 0, len(endpoints.Endpoints))
+			for _, e := range endpoints.Endpoints {
+				services = append(services, msg.Service{
+					Host: e.IP,
+					Port: e.Port,
+
+					Priority: 10,
+					Weight:   10,
+					Ttl:      30,
+
+					Text: "",
+					Key:  msg.Path(name),
+				})
+			}
+			return services, nil
+		}
+		if len(svc.Spec.PortalIP) == 0 {
+			return nil, nil
 		}
 		return []msg.Service{
 			{

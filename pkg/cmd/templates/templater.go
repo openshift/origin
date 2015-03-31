@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"text/template"
@@ -36,6 +37,27 @@ func (templater *Templater) UsageFunc() func(*cobra.Command) error {
 					}
 				}
 				return exposed
+			},
+			"flagsUsages": func(f *flag.FlagSet) string {
+				x := new(bytes.Buffer)
+
+				f.VisitAll(func(flag *flag.Flag) {
+					format := "--%s=%s: %s\n"
+
+					if flag.Value.Type() == "string" {
+						format = "--%s='%s': %s\n"
+					}
+
+					if len(flag.Shorthand) > 0 {
+						format = "  -%s, " + format
+					} else {
+						format = "   %s   " + format
+					}
+
+					fmt.Fprintf(x, format, flag.Shorthand, flag.Name, flag.DefValue, flag.Usage)
+				})
+
+				return x.String()
 			},
 		})
 

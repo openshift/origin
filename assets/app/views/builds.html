@@ -19,10 +19,19 @@
           </div>
           <div ng-switch="buildConfig.parameters.strategy.type">
             <div ng-switch-when="STI">
-              <dl class="dl-horizontal">
-                <dt>Builder image:</dt>
-                <dd>{{buildConfig.parameters.strategy.stiStrategy.image}}</dd>
-              </dl>
+              <div ng-if="buildConfig.parameters.strategy.stiStrategy.image">
+                <dl class="dl-horizontal">
+                  <dt>Builder image:</dt>
+                  <dd>{{buildConfig.parameters.strategy.stiStrategy.image}}</dd>
+                </dl>
+              </div>
+              <div ng-if="buildConfig.parameters.strategy.stiStrategy.from">
+                <dl class="dl-horizontal">
+                  <dt>Builder image repo [tag]:</dt>
+                  <dd>{{buildConfig.parameters.strategy.stiStrategy.from | imageRepoReference : buildConfig.parameters.strategy.stiStrategy.tag}}
+                  </dd>                  
+                </dl>
+              </div>
             </div>
             <div ng-switch-when="Docker">
               <div ng-if="buildConfig.parameters.strategy.dockerStrategy.image">
@@ -51,8 +60,8 @@
             <div ng-switch="buildConfig.parameters.output.to.kind">
               <div ng-switch-when="ImageRepository">
                 <dl class="dl-horizontal">
-                  <dt>Output image:</dt>
-                  <dd>{{buildConfig.parameters.output.to.name}}</dd>
+                  <dt>Output image repo [tag]:</dt>
+                    <dd>{{buildConfig.parameters.output.to | imageRepoReference : buildConfig.parameters.output.tag}}</dd>
                 </dl>
               </div>
             </div>

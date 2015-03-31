@@ -26,8 +26,8 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/golang/glog"
 )
 
@@ -204,13 +204,10 @@ func (d *PodDescriber) Describe(namespace, name string) (string, error) {
 
 	pod, err := pc.Get(name)
 	if err != nil {
-		events, err2 := d.Events(namespace).List(
+		eventsInterface := d.Events(namespace)
+		events, err2 := eventsInterface.List(
 			labels.Everything(),
-			fields.Set{
-				"involvedObject.name":      name,
-				"involvedObject.namespace": namespace,
-			}.AsSelector(),
-		)
+			eventsInterface.GetFieldSelector(&name, &namespace, nil, nil))
 		if err2 == nil && len(events.Items) > 0 {
 			return tabbedString(func(out io.Writer) error {
 				fmt.Fprintf(out, "Pod '%v': error '%v', but found events.\n", name, err)
@@ -370,7 +367,14 @@ func (d *NodeDescriber) Describe(namespace, name string) (string, error) {
 		pods = append(pods, pod)
 	}
 
-	events, _ := d.Events(namespace).Search(node)
+	var events *api.EventList
+	if ref, err := api.GetReference(node); err != nil {
+		glog.Errorf("Unable to construct reference to '%#v': %v", node, err)
+	} else {
+		// TODO: We haven't decided the namespace for Node object yet.
+		ref.UID = types.UID(ref.Name)
+		events, _ = d.Events("").Search(ref)
+	}
 
 	return describeNode(node, pods, events)
 }
@@ -378,6 +382,8 @@ func (d *NodeDescriber) Describe(namespace, name string) (string, error) {
 func describeNode(node *api.Node, pods []api.Pod, events *api.EventList) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		fmt.Fprintf(out, "Name:\t%s\n", node.Name)
+		fmt.Fprintf(out, "Labels:\t%s\n", formatLabels(node.Labels))
+		fmt.Fprintf(out, "CreationTimestamp:\t%s\n", node.CreationTimestamp.Time.Format(time.RFC1123Z))
 		if len(node.Status.Conditions) > 0 {
 			fmt.Fprint(out, "Conditions:\n  Type\tStatus\tLastProbeTime\tLastTransitionTime\tReason\tMessage\n")
 			for _, c := range node.Status.Conditions {
@@ -395,9 +401,9 @@ func describeNode(node *api.Node, pods []api.Pod, events *api.EventList) (string
 			addresses = append(addresses, address.Address)
 		}
 		fmt.Fprintf(out, "Addresses:\t%s\n", strings.Join(addresses, ","))
-		if len(node.Spec.Capacity) > 0 {
+		if len(node.Status.Capacity) > 0 {
 			fmt.Fprintf(out, "Capacity:\n")
-			for resource, value := range node.Spec.Capacity {
+			for resource, value := range node.Status.Capacity {
 				fmt.Fprintf(out, " %s:\t%s\n", resource, value.String())
 			}
 		}

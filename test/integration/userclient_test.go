@@ -3,29 +3,22 @@
 package integration
 
 import (
-	"net/http"
-	"net/http/httptest"
-	"reflect"
+	"sync"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 
-	"github.com/openshift/origin/pkg/api/latest"
-	oapauth "github.com/openshift/origin/pkg/auth/authenticator/password/oauthpassword/registry"
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/user"
+	authapi "github.com/openshift/origin/pkg/auth/api"
+	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
+	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/user/api"
-	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
-	"github.com/openshift/origin/pkg/user/registry/etcd"
+	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
+	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -34,297 +27,231 @@ func init() {
 	testutil.RequireEtcd()
 }
 
+func makeIdentityInfo(providerName, providerUserName string, extra map[string]string) authapi.UserIdentityInfo {
+	info := authapi.NewDefaultUserIdentityInfo("idp", "bob")
+	if extra != nil {
+		info.Extra = extra
+	}
+	return info
+}
+
+func makeUser(name string, identities ...string) *api.User {
+	return &api.User{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: name,
+		},
+		Identities: identities,
+	}
+}
+func makeIdentity(providerName, providerUserName string) *api.Identity {
+	return &api.Identity{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: providerName + ":" + providerUserName,
+		},
+		ProviderName:     providerName,
+		ProviderUserName: providerUserName,
+	}
+}
+func makeIdentityWithUserReference(providerName, providerUserName string, userName string, userUID types.UID) *api.Identity {
+	identity := makeIdentity(providerName, providerUserName)
+	identity.User.Name = userName
+	identity.User.UID = userUID
+	return identity
+}
+func makeMapping(user, identity string) *api.UserIdentityMapping {
+	return &api.UserIdentityMapping{
+		ObjectMeta: kapi.ObjectMeta{Name: identity},
+		User:       kapi.ObjectReference{Name: user},
+		Identity:   kapi.ObjectReference{Name: identity},
+	}
+}
+
 func TestUserInitialization(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	etcdClient := testutil.NewEtcdClient()
-	interfaces, _ := latest.InterfacesFor(latest.Version)
-	userRegistry := etcd.New(tools.NewEtcdHelper(etcdClient, interfaces.Codec), user.NewDefaultUserInitStrategy())
-	storage := map[string]apiserver.RESTStorage{
-		"userIdentityMappings": useridentitymapping.NewREST(userRegistry),
-		"users":                userregistry.NewREST(userRegistry),
-	}
 
-	osMux := http.NewServeMux()
-	server := httptest.NewServer(osMux)
-	defer server.Close()
-	handlerContainer := master.NewHandlerContainer(osMux)
-
-	version := &apiserver.APIGroupVersion{
-		Root:    "/osapi",
-		Version: "v1beta1",
-
-		Storage: storage,
-		Codec:   latest.Codec,
-
-		Mapper: latest.RESTMapper,
-
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  interfaces.MetadataAccessor,
-
-		Admit:   admit.NewAlwaysAdmit(),
-		Context: kapi.NewRequestContextMapper(),
-	}
-	if err := version.InstallREST(handlerContainer); err != nil {
-		t.Fatalf("unable to install REST: %v", err)
-	}
-
-	mapping := api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: ":test"},
-		User: api.User{
-			ObjectMeta: kapi.ObjectMeta{Name: ":test"},
-		},
-		Identity: api.Identity{
-			ObjectMeta: kapi.ObjectMeta{Name: ":test"},
-			Provider:   "",
-			UserName:   "test",
-			Extra: map[string]string{
-				"name": "Mr. Test",
-			},
-		},
-	}
-
-	client, err := client.New(&kclient.Config{Host: server.URL})
+	masterConfig, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	actual, created, err := client.UserIdentityMappings().CreateOrUpdate(&mapping)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !created {
-		t.Errorf("expected created to be true")
+
+	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(masterConfig.EtcdClientInfo.URL)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expectedUser := api.User{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: ":test",
-			// Copy the UID and timestamp from the actual one
-			UID:               actual.User.UID,
-			CreationTimestamp: actual.User.CreationTimestamp,
+	userRegistry := userregistry.NewRegistry(useretcd.NewREST(etcdHelper))
+	identityRegistry := identityregistry.NewRegistry(identityetcd.NewREST(etcdHelper))
+	useridentityMappingRegistry := useridentitymapping.NewRegistry(useridentitymapping.NewREST(userRegistry, identityRegistry))
+
+	lookup := identitymapper.NewLookupIdentityMapper(useridentityMappingRegistry)
+	provisioner := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(identityRegistry, userRegistry)
+
+	testcases := map[string]struct {
+		Identity authapi.UserIdentityInfo
+		Mapper   authapi.UserIdentityMapper
+
+		CreateIdentity *api.Identity
+		CreateUser     *api.User
+		CreateMapping  *api.UserIdentityMapping
+
+		ExpectedErr      error
+		ExpectedUserName string
+		ExpectedFullName string
+	}{
+		"lookup missing identity": {
+			Identity: makeIdentityInfo("idp", "bob", nil),
+			Mapper:   lookup,
+
+			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
 		},
-		FullName: "Mr. Test",
-	}
-	// Copy the UID and timestamp from the actual one
-	mapping.Identity.UID = actual.Identity.UID
-	mapping.Identity.CreationTimestamp = actual.Identity.CreationTimestamp
-	expected := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: ":test",
-			// Copy the UID and timestamp from the actual one
-			UID:               actual.UID,
-			CreationTimestamp: actual.CreationTimestamp,
+		"lookup existing identity": {
+			Identity: makeIdentityInfo("idp", "bob", nil),
+			Mapper:   lookup,
+
+			CreateUser:     makeUser("mappeduser"),
+			CreateIdentity: makeIdentity("idp", "bob"),
+			CreateMapping:  makeMapping("mappeduser", "idp:bob"),
+
+			ExpectedUserName: "mappeduser",
 		},
-		Identity: mapping.Identity,
-		User:     expectedUser,
-	}
-	compareIgnoringSelfLinkAndVersion(t, expected, actual)
+		"provision missing identity and user": {
+			Identity: makeIdentityInfo("idp", "bob", nil),
+			Mapper:   provisioner,
 
-	// Make sure uid, name, and creation timestamp get initialized
-	if len(actual.UID) == 0 {
-		t.Fatalf("Expected UID to be set")
-	}
-	if len(actual.Name) == 0 {
-		t.Fatalf("Expected Name to be set")
-	}
-	if actual.CreationTimestamp.IsZero() {
-		t.Fatalf("Expected CreationTimestamp to be set")
-	}
-	if len(actual.User.UID) == 0 {
-		t.Fatalf("Expected UID to be set")
-	}
-	if len(actual.User.Name) == 0 {
-		t.Fatalf("Expected Name to be set")
-	}
-	if actual.User.CreationTimestamp.IsZero() {
-		t.Fatalf("Expected CreationTimestamp to be set")
-	}
-	if len(actual.Identity.UID) == 0 {
-		t.Fatalf("Expected UID to be set")
-	}
-	if len(actual.Identity.Name) == 0 {
-		t.Fatalf("Expected Name to be set")
-	}
-	if actual.Identity.CreationTimestamp.IsZero() {
-		t.Fatalf("Expected CreationTimestamp to be set")
-	}
+			ExpectedUserName: "bob",
+		},
+		"provision missing identity and user with preferred username and display name": {
+			Identity: makeIdentityInfo("idp", "bob", map[string]string{"name": "Bob, Sr.", "login": "admin"}),
+			Mapper:   provisioner,
 
-	user, err := userRegistry.GetUser(expected.User.Name)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	compareIgnoringSelfLinkAndVersion(t, &expected.User, user)
+			ExpectedUserName: "admin",
+			ExpectedFullName: "Bob, Sr.",
+		},
+		"provision missing identity for existing user": {
+			Identity: makeIdentityInfo("idp", "bob", nil),
+			Mapper:   provisioner,
 
-	actualUser, err := client.Users().Get(expectedUser.Name)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	compareIgnoringSelfLinkAndVersion(t, &expected.User, actualUser)
-}
+			CreateUser: makeUser("bob", "idp:bob"),
 
-type testTokenSource struct {
-	Token string
-	Err   error
-}
+			ExpectedUserName: "bob",
+		},
+		"provision missing identity with conflicting user": {
+			Identity: makeIdentityInfo("idp", "bob", nil),
+			Mapper:   provisioner,
 
-func (s *testTokenSource) AuthenticatePassword(username, password string) (string, bool, error) {
-	return s.Token, s.Token != "", s.Err
-}
+			CreateUser: makeUser("bob"),
 
-func TestUserLookup(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	etcdClient := testutil.NewEtcdClient()
-	interfaces, _ := latest.InterfacesFor(latest.Version)
-	userRegistry := etcd.New(tools.NewEtcdHelper(etcdClient, interfaces.Codec), user.NewDefaultUserInitStrategy())
-	userInfo := &kuser.DefaultInfo{
-		Name: ":test",
-	}
-	contextMapper := kapi.NewRequestContextMapper()
+			ExpectedUserName: "bob2",
+		},
+		"provision missing identity with conflicting user and preferred username": {
+			Identity: makeIdentityInfo("idp", "bob", map[string]string{"login": "admin"}),
+			Mapper:   provisioner,
 
-	storage := map[string]apiserver.RESTStorage{
-		"userIdentityMappings": useridentitymapping.NewREST(userRegistry),
-		"users":                userregistry.NewREST(userRegistry),
+			CreateUser: makeUser("admin"),
+
+			ExpectedUserName: "admin2",
+		},
+		"provision with existing unmapped identity": {
+			Identity: makeIdentityInfo("idp", "bob", nil),
+			Mapper:   provisioner,
+
+			CreateIdentity: makeIdentity("idp", "bob"),
+
+			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+		},
+		"provision with existing mapped identity with invalid user UID": {
+			Identity: makeIdentityInfo("idp", "bob", nil),
+			Mapper:   provisioner,
+
+			CreateUser:     makeUser("mappeduser"),
+			CreateIdentity: makeIdentityWithUserReference("idp", "bob", "mappeduser", "invalidUID"),
+
+			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+		},
+		"provision returns existing mapping": {
+			Identity: makeIdentityInfo("idp", "bob", nil),
+			Mapper:   provisioner,
+
+			CreateUser:     makeUser("mappeduser"),
+			CreateIdentity: makeIdentity("idp", "bob"),
+			CreateMapping:  makeMapping("mappeduser", "idp:bob"),
+
+			ExpectedUserName: "mappeduser",
+		},
 	}
 
-	osMux := http.NewServeMux()
-	handlerContainer := master.NewHandlerContainer(osMux)
-
-	version := &apiserver.APIGroupVersion{
-		Root:    "/osapi",
-		Version: "v1beta1",
-
-		Storage: storage,
-		Codec:   latest.Codec,
-
-		Mapper: latest.RESTMapper,
-
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  interfaces.MetadataAccessor,
-
-		Admit:   admit.NewAlwaysAdmit(),
-		Context: contextMapper,
-	}
-	if err := version.InstallREST(handlerContainer); err != nil {
-		t.Fatalf("unable to install REST: %v", err)
-	}
-
-	// Wrap with authenticator
-	authenticatedHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		ctx, ok := contextMapper.Get(req)
-		if !ok {
-			t.Fatalf("No context on request")
-			return
+	for k, testcase := range testcases {
+		// Cleanup
+		if err := etcdHelper.Delete(useretcd.EtcdPrefix, true); err != nil && !tools.IsEtcdNotFound(err) {
+			t.Fatalf("Could not clean up users: %v", err)
 		}
-		if err := contextMapper.Update(req, kapi.WithUser(ctx, userInfo)); err != nil {
-			t.Fatalf("Could not set user on request")
-			return
+		if err := etcdHelper.Delete(identityetcd.EtcdPrefix, true); err != nil && !tools.IsEtcdNotFound(err) {
+			t.Fatalf("Could not clean up identities: %v", err)
 		}
-		osMux.ServeHTTP(w, req)
-	})
 
-	// Wrap with contextmapper
-	contextHandler, err := kapi.NewRequestContextFilter(contextMapper, authenticatedHandler)
-	if err != nil {
-		t.Fatalf("Could not create context filter")
-	}
+		// Pre-create items
+		if testcase.CreateUser != nil {
+			_, err := clusterAdminClient.Users().Create(testcase.CreateUser)
+			if err != nil {
+				t.Errorf("%s: Could not create user: %v", k, err)
+				continue
+			}
+		}
+		if testcase.CreateIdentity != nil {
+			_, err := clusterAdminClient.Identities().Create(testcase.CreateIdentity)
+			if err != nil {
+				t.Errorf("%s: Could not create identity: %v", k, err)
+				continue
+			}
+		}
+		if testcase.CreateMapping != nil {
+			_, err := clusterAdminClient.UserIdentityMappings().Update(testcase.CreateMapping)
+			if err != nil {
+				t.Errorf("%s: Could not create mapping: %v", k, err)
+				continue
+			}
+		}
 
-	server := httptest.NewServer(contextHandler)
+		// Spawn 5 simultaneous mappers to test race conditions
+		var wg sync.WaitGroup
+		for i := 0; i < 5; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
 
-	mapping := api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: ":test"},
-		User: api.User{
-			ObjectMeta: kapi.ObjectMeta{Name: ":test"},
-		},
-		Identity: api.Identity{
-			ObjectMeta: kapi.ObjectMeta{Name: ":test"},
-			Provider:   "",
-			UserName:   "test",
-			Extra: map[string]string{
-				"name": "Mr. Test",
-			},
-		},
-	}
+				userInfo, err := testcase.Mapper.UserFor(testcase.Identity)
+				if err != nil {
+					if testcase.ExpectedErr == nil {
+						t.Errorf("%s: Expected success, got error '%v'", k, err)
+					} else if err.Error() != testcase.ExpectedErr.Error() {
+						t.Errorf("%s: Expected error %v, got '%v'", k, testcase.ExpectedErr.Error(), err)
+					}
+					return
+				}
+				if err == nil && testcase.ExpectedErr != nil {
+					t.Errorf("%s: Expected error '%v', got none", k, testcase.ExpectedErr)
+					return
+				}
 
-	client, err := client.New(&kclient.Config{Host: server.URL})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+				if userInfo.GetName() != testcase.ExpectedUserName {
+					t.Errorf("%s: Expected username %s, got %s", k, testcase.ExpectedUserName, userInfo.GetName())
+					return
+				}
 
-	actual, created, err := client.UserIdentityMappings().CreateOrUpdate(&mapping)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !created {
-		// TODO: t.Errorf("expected created to be true")
-	}
-	expectedUser := api.User{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: ":test",
-			// Copy the UID and timestamp from the actual one
-			UID:               actual.User.UID,
-			CreationTimestamp: actual.User.CreationTimestamp,
-		},
-		FullName: "Mr. Test",
-	}
-	// Copy the UID and timestamp from the actual one
-	mapping.Identity.UID = actual.Identity.UID
-	mapping.Identity.CreationTimestamp = actual.Identity.CreationTimestamp
-	expected := &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: ":test",
-			// Copy the UID and timestamp from the actual one
-			UID:               actual.UID,
-			CreationTimestamp: actual.CreationTimestamp,
-		},
-		Identity: mapping.Identity,
-		User:     expectedUser,
-	}
-	compareIgnoringSelfLinkAndVersion(t, expected, actual)
+				user, err := clusterAdminClient.Users().Get(userInfo.GetName())
+				if err != nil {
+					t.Errorf("%s: Error getting user: %v", err)
+				}
+				if user.FullName != testcase.ExpectedFullName {
+					t.Errorf("%s: Expected full name %s, got %s", testcase.ExpectedFullName, user.FullName)
+				}
 
-	// check the user returned by the registry
-	user, err := userRegistry.GetUser(expected.User.Name)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	compareIgnoringSelfLinkAndVersion(t, &expected.User, user)
-
-	// check the user returned by the client
-	actualUser, err := client.Users().Get(expectedUser.Name)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	compareIgnoringSelfLinkAndVersion(t, &expected.User, actualUser)
-
-	// check the current user
-	currentUser, err := client.Users().Get("~")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	compareIgnoringSelfLinkAndVersion(t, &expected.User, currentUser)
-
-	// test retrieving user info from a token
-	authorizer := oapauth.New(&testTokenSource{Token: "token"}, server.URL, nil)
-	info, ok, err := authorizer.AuthenticatePassword("foo", "bar")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !ok {
-		t.Fatalf("should have been authenticated")
-	}
-	if user.Name != info.GetName() || string(user.UID) != info.GetUID() {
-		t.Errorf("unexpected user info", info)
-	}
-}
-
-func compareIgnoringSelfLinkAndVersion(t *testing.T, expected runtime.Object, actual runtime.Object) {
-	if actualAccessor, _ := meta.Accessor(actual); actualAccessor != nil {
-		actualAccessor.SetSelfLink("")
-		actualAccessor.SetResourceVersion("")
-	}
-
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("expected\n %#v,\n got\n %#v", expected, actual)
+			}()
+		}
+		wg.Wait()
 	}
 }

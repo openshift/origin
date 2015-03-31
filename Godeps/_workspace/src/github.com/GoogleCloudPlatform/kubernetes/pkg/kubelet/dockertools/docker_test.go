@@ -92,13 +92,13 @@ func verifyPackUnpack(t *testing.T, podNamespace, podUID, podName, containerName
 	util.DeepHashObject(hasher, *container)
 	computedHash := uint64(hasher.Sum32())
 	podFullName := fmt.Sprintf("%s_%s", podName, podNamespace)
-	name := BuildDockerName(types.UID(podUID), podFullName, container)
-	returnedPodFullName, returnedUID, returnedContainerName, hash, err := ParseDockerName(name)
+	name := BuildDockerName(KubeletContainerName{podFullName, types.UID(podUID), container.Name}, container)
+	returned, hash, err := ParseDockerName(name)
 	if err != nil {
 		t.Errorf("Failed to parse Docker container name %q: %v", name, err)
 	}
-	if podFullName != returnedPodFullName || podUID != string(returnedUID) || containerName != returnedContainerName || computedHash != hash {
-		t.Errorf("For (%s, %s, %s, %d), unpacked (%s, %s, %s, %d)", podFullName, podUID, containerName, computedHash, returnedPodFullName, returnedUID, returnedContainerName, hash)
+	if podFullName != returned.PodFullName || podUID != string(returned.PodUID) || containerName != returned.ContainerName || computedHash != hash {
+		t.Errorf("For (%s, %s, %s, %d), unpacked (%s, %s, %s, %d)", podFullName, podUID, containerName, computedHash, returned.PodFullName, returned.PodUID, returned.ContainerName, hash)
 	}
 }
 
@@ -117,12 +117,12 @@ func TestContainerManifestNaming(t *testing.T) {
 	name := fmt.Sprintf("k8s_%s_%s_%s_%s_42", container.Name, podName, podNamespace, podUID)
 	podFullName := fmt.Sprintf("%s_%s", podName, podNamespace)
 
-	returnedPodFullName, returnedPodUID, returnedContainerName, hash, err := ParseDockerName(name)
+	returned, hash, err := ParseDockerName(name)
 	if err != nil {
 		t.Errorf("Failed to parse Docker container name %q: %v", name, err)
 	}
-	if returnedPodFullName != podFullName || string(returnedPodUID) != podUID || returnedContainerName != container.Name || hash != 0 {
-		t.Errorf("unexpected parse: %s %s %s %d", returnedPodFullName, returnedPodUID, returnedContainerName, hash)
+	if returned.PodFullName != podFullName || string(returned.PodUID) != podUID || returned.ContainerName != container.Name || hash != 0 {
+		t.Errorf("unexpected parse: %s %s %s %d", returned.PodFullName, returned.PodUID, returned.ContainerName, hash)
 	}
 }
 
@@ -634,6 +634,70 @@ func TestFindContainersByPod(t *testing.T) {
 		result := test.testContainers.FindContainersByPod(test.inputPodID, test.inputPodFullName)
 		if !reflect.DeepEqual(result, test.expectedContainers) {
 			t.Errorf("expected: %v, saw: %v", test.expectedContainers, result)
+		}
+	}
+}
+
+func TestMakePortsAndBindings(t *testing.T) {
+	container := api.Container{
+		Ports: []api.ContainerPort{
+			{
+				ContainerPort: 80,
+				HostPort:      8080,
+				HostIP:        "127.0.0.1",
+			},
+			{
+				ContainerPort: 443,
+				HostPort:      443,
+				Protocol:      "tcp",
+			},
+			{
+				ContainerPort: 444,
+				HostPort:      444,
+				Protocol:      "udp",
+			},
+			{
+				ContainerPort: 445,
+				HostPort:      445,
+				Protocol:      "foobar",
+			},
+		},
+	}
+	exposedPorts, bindings := makePortsAndBindings(&container)
+	if len(container.Ports) != len(exposedPorts) ||
+		len(container.Ports) != len(bindings) {
+		t.Errorf("Unexpected ports and bindings, %#v %#v %#v", container, exposedPorts, bindings)
+	}
+	for key, value := range bindings {
+		switch value[0].HostPort {
+		case "8080":
+			if !reflect.DeepEqual(docker.Port("80/tcp"), key) {
+				t.Errorf("Unexpected docker port: %#v", key)
+			}
+			if value[0].HostIP != "127.0.0.1" {
+				t.Errorf("Unexpected host IP: %s", value[0].HostIP)
+			}
+		case "443":
+			if !reflect.DeepEqual(docker.Port("443/tcp"), key) {
+				t.Errorf("Unexpected docker port: %#v", key)
+			}
+			if value[0].HostIP != "" {
+				t.Errorf("Unexpected host IP: %s", value[0].HostIP)
+			}
+		case "444":
+			if !reflect.DeepEqual(docker.Port("444/udp"), key) {
+				t.Errorf("Unexpected docker port: %#v", key)
+			}
+			if value[0].HostIP != "" {
+				t.Errorf("Unexpected host IP: %s", value[0].HostIP)
+			}
+		case "445":
+			if !reflect.DeepEqual(docker.Port("445/tcp"), key) {
+				t.Errorf("Unexpected docker port: %#v", key)
+			}
+			if value[0].HostIP != "" {
+				t.Errorf("Unexpected host IP: %s", value[0].HostIP)
+			}
 		}
 	}
 }

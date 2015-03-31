@@ -28,6 +28,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/coreos/go-etcd/etcd"
 )
@@ -42,11 +43,12 @@ type testRESTStrategy struct {
 func (t *testRESTStrategy) NamespaceScoped() bool     { return t.namespaceScoped }
 func (t *testRESTStrategy) AllowCreateOnUpdate() bool { return t.allowCreateOnUpdate }
 
-func (t *testRESTStrategy) ResetBeforeCreate(obj runtime.Object) {}
-func (t *testRESTStrategy) Validate(obj runtime.Object) errors.ValidationErrorList {
+func (t *testRESTStrategy) PrepareForCreate(obj runtime.Object)      {}
+func (t *testRESTStrategy) PrepareForUpdate(obj, old runtime.Object) {}
+func (t *testRESTStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
 	return nil
 }
-func (t *testRESTStrategy) ValidateUpdate(obj, old runtime.Object) errors.ValidationErrorList {
+func (t *testRESTStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return nil
 }
 

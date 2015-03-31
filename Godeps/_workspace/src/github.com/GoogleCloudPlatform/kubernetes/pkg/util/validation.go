@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"net"
 	"regexp"
 )
 
@@ -31,11 +32,6 @@ var labelValueRegexp = regexp.MustCompile("^" + LabelValueFmt + "$")
 
 func IsValidLabelValue(value string) bool {
 	return (len(value) <= LabelValueMaxLength && labelValueRegexp.MatchString(value))
-}
-
-// Annotation values are opaque.
-func IsValidAnnotationValue(value string) bool {
-	return true
 }
 
 const QualifiedNameFmt string = "(" + qnameTokenFmt + "/)?" + qnameTokenFmt
@@ -93,4 +89,9 @@ func IsCIdentifier(value string) bool {
 // IsValidPortNum tests that the argument is a valid, non-zero port number.
 func IsValidPortNum(port int) bool {
 	return 0 < port && port < 65536
+}
+
+// IsValidIP tests that the argument is a valid IPv4 address.
+func IsValidIP(value string) bool {
+	return net.ParseIP(value) != nil && net.ParseIP(value).To4() != nil
 }

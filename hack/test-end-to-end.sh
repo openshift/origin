@@ -184,7 +184,8 @@ do
 	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
 done <<< "${ALL_IP_ADDRESSES}"
 
-openshift admin create-all-certs --overwrite=false --cert-dir="${CERT_DIR}" --hostnames="${SERVER_HOSTNAME_LIST}" --nodes="127.0.0.1" --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
+openshift admin create-master-certs --overwrite=false --cert-dir="${CERT_DIR}" --hostnames="${SERVER_HOSTNAME_LIST}" --master="${MASTER_ADDR}" --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
+openshift admin create-node-config --listen="https://0.0.0.0:10250" --node-dir="${CERT_DIR}/node-127.0.0.1" --node="127.0.0.1" --hostnames="${SERVER_HOSTNAME_LIST}" --master="${MASTER_ADDR}"  --certificate-authority="${CERT_DIR}/ca/cert.crt" --signer-cert="${CERT_DIR}/ca/cert.crt" --signer-key="${CERT_DIR}/ca/key.key" --signer-serial="${CERT_DIR}/ca/serial.txt"
 
 
 echo "[INFO] Starting OpenShift server"
@@ -215,10 +216,10 @@ wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/127.0.
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
-openshift ex policy add-role-to-user view anypassword:e2e-user --namespace=default
+openshift ex policy add-role-to-user view e2e-user --namespace=default
 
 # create test project so that this shows up in the console
-openshift ex new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="anypassword:e2e-user"
+openshift ex new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:$(($API_PORT + 1)).	You may need to visit ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT} first to accept the certificate."
 echo "Log in as 'e2e-user' to see the 'test' project."

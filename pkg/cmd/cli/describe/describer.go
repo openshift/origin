@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
@@ -35,6 +36,8 @@ func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host
 		return &DeploymentDescriber{c}, true
 	case "DeploymentConfig":
 		return NewDeploymentConfigDescriber(c, kclient), true
+	case "Identity":
+		return &IdentityDescriber{c}, true
 	case "Image":
 		return &ImageDescriber{c}, true
 	case "ImageRepository":
@@ -57,6 +60,10 @@ func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host
 		return &RoleBindingDescriber{c}, true
 	case "Role":
 		return &RoleDescriber{c}, true
+	case "User":
+		return &UserDescriber{c}, true
+	case "UserIdentityMapping":
+		return &UserIdentityMappingDescriber{c}, true
 	}
 	return nil, false
 }
@@ -88,6 +95,7 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 	}
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
+		formatString(out, "BuildConfig", build.Labels[buildapi.BuildConfigLabel])
 		formatString(out, "Status", bold(build.Status))
 		if build.StartTimestamp != nil {
 			formatString(out, "Started", build.StartTimestamp.Time)
@@ -159,10 +167,14 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 		}
 	}
 	if p.Output.To != nil {
-		if p.Output.To.Namespace != "" {
-			formatString(out, "Output to", fmt.Sprintf("%s/%s", p.Output.To.Namespace, p.Output.To.Name))
+		tag := buildapi.DefaultImageTag
+		if len(p.Output.Tag) != 0 {
+			tag = p.Output.Tag
+		}
+		if len(p.Output.To.Namespace) != 0 {
+			formatString(out, "Output to", fmt.Sprintf("%s/%s:%s", p.Output.To.Namespace, p.Output.To.Name, tag))
 		} else {
-			formatString(out, "Output to", p.Output.To.Name)
+			formatString(out, "Output to", fmt.Sprintf("%s:%s", p.Output.To.Name, tag))
 		}
 	}
 
@@ -184,19 +196,19 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 }
 
 func describeSTIStrategy(s *buildapi.STIBuildStrategy, out *tabwriter.Writer) {
-	if s.From != nil && s.From.Name != "" {
-		if s.From.Namespace != "" {
+	if s.From != nil && len(s.From.Name) != 0 {
+		if len(s.From.Namespace) != 0 {
 			formatString(out, "Image Repository", fmt.Sprintf("%s/%s", s.From.Name, s.From.Namespace))
 		} else {
 			formatString(out, "Image Repository", s.From.Name)
 		}
-		if s.Tag != "" {
+		if len(s.Tag) != 0 {
 			formatString(out, "Image Repository Tag", s.Tag)
 		}
 	} else {
 		formatString(out, "Builder Image", s.Image)
 	}
-	if s.Scripts != "" {
+	if len(s.Scripts) != 0 {
 		formatString(out, "Scripts", s.Scripts)
 	}
 	if s.Incremental {
@@ -215,7 +227,7 @@ func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, host s
 		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 			continue
 		}
-		if trigger.ImageChange.From.Namespace != "" {
+		if len(trigger.ImageChange.From.Namespace) != 0 {
 			formatString(out, "Image Repository Trigger", fmt.Sprintf("%s/%s", trigger.ImageChange.From.Namespace, trigger.ImageChange.From.Name))
 		} else {
 			formatString(out, "Image Repository Trigger", trigger.ImageChange.From.Name)
@@ -605,6 +617,123 @@ func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
 		d.DescribeParameters(template.Parameters, out)
 		out.Write([]byte("\n"))
 		d.DescribeObjects(template.Objects, template.ObjectLabels, out)
+		return nil
+	})
+}
+
+// IdentityDescriber generates information about a user
+type IdentityDescriber struct {
+	client.Interface
+}
+
+func (d *IdentityDescriber) Describe(namespace, name string) (string, error) {
+	userClient := d.Users()
+	identityClient := d.Identities()
+
+	identity, err := identityClient.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, identity.ObjectMeta)
+
+		if len(identity.User.Name) == 0 {
+			formatString(out, "User Name", identity.User.Name)
+			formatString(out, "User UID", identity.User.UID)
+		} else {
+			resolvedUser, err := userClient.Get(identity.User.Name)
+
+			nameValue := identity.User.Name
+			uidValue := string(identity.User.UID)
+
+			if kerrs.IsNotFound(err) {
+				nameValue += fmt.Sprintf(" (Error: User does not exist)")
+			} else if err != nil {
+				nameValue += fmt.Sprintf(" (Error: User lookup failed)")
+			} else {
+				if !util.NewStringSet(resolvedUser.Identities...).Has(name) {
+					nameValue += fmt.Sprintf(" (Error: User identities do not include %s)", name)
+				}
+				if resolvedUser.UID != identity.User.UID {
+					uidValue += fmt.Sprintf(" (Error: Actual user UID is %s)", string(resolvedUser.UID))
+				}
+			}
+
+			formatString(out, "User Name", nameValue)
+			formatString(out, "User UID", uidValue)
+		}
+		return nil
+	})
+
+}
+
+// UserIdentityMappingDescriber generates information about a user
+type UserIdentityMappingDescriber struct {
+	client.Interface
+}
+
+func (d *UserIdentityMappingDescriber) Describe(namespace, name string) (string, error) {
+	c := d.UserIdentityMappings()
+
+	mapping, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, mapping.ObjectMeta)
+		formatString(out, "Identity", mapping.Identity.Name)
+		formatString(out, "User Name", mapping.User.Name)
+		formatString(out, "User UID", mapping.User.UID)
+		return nil
+	})
+}
+
+// UserDescriber generates information about a user
+type UserDescriber struct {
+	client.Interface
+}
+
+func (d *UserDescriber) Describe(namespace, name string) (string, error) {
+	userClient := d.Users()
+	identityClient := d.Identities()
+
+	user, err := userClient.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, user.ObjectMeta)
+		if len(user.FullName) > 0 {
+			formatString(out, "Full Name", user.FullName)
+		}
+
+		if len(user.Identities) == 0 {
+			formatString(out, "Identities", "<none>")
+		} else {
+			for i, identity := range user.Identities {
+				resolvedIdentity, err := identityClient.Get(identity)
+
+				value := identity
+				if kerrs.IsNotFound(err) {
+					value += fmt.Sprintf(" (Error: Identity does not exist)")
+				} else if err != nil {
+					value += fmt.Sprintf(" (Error: Identity lookup failed)")
+				} else if resolvedIdentity.User.Name != name {
+					value += fmt.Sprintf(" (Error: Identity maps to user name '%s')", resolvedIdentity.User.Name)
+				} else if resolvedIdentity.User.UID != user.UID {
+					value += fmt.Sprintf(" (Error: Identity maps to user UID '%s')", resolvedIdentity.User.UID)
+				}
+
+				if i == 0 {
+					formatString(out, "Identities", value)
+				} else {
+					fmt.Fprintf(out, "           \t%s\n", value)
+				}
+			}
+		}
 		return nil
 	})
 }

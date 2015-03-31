@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -30,6 +31,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -90,12 +92,12 @@ type Mux interface {
 	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
 }
 
-// APIGroupVersion is a helper for exposing RESTStorage objects as http.Handlers via go-restful
+// APIGroupVersion is a helper for exposing rest.Storage objects as http.Handlers via go-restful
 // It handles URLs of the form:
 // /${storage_key}[/${object_name}]
-// Where 'storage_key' points to a RESTStorage object stored in storage.
+// Where 'storage_key' points to a rest.Storage object stored in storage.
 type APIGroupVersion struct {
-	Storage map[string]RESTStorage
+	Storage map[string]rest.Storage
 
 	Root    string
 	Version string
@@ -193,6 +195,26 @@ func APIVersionHandler(versions ...string) restful.RouteFunction {
 		// TODO: use restful's Response methods
 		writeRawJSON(http.StatusOK, api.APIVersions{Versions: versions}, resp.ResponseWriter)
 	}
+}
+
+// write renders a returned runtime.Object to the response as a stream or an encoded object.
+func write(statusCode int, apiVersion string, codec runtime.Codec, object runtime.Object, w http.ResponseWriter, req *http.Request) {
+	if stream, ok := object.(rest.ResourceStreamer); ok {
+		out, contentType, err := stream.InputStream(apiVersion, req.Header.Get("Accept"))
+		if err != nil {
+			errorJSONFatal(err, codec, w)
+			return
+		}
+		defer out.Close()
+		if len(contentType) == 0 {
+			contentType = "application/octet-stream"
+		}
+		w.Header().Set("Content-Type", contentType)
+		w.WriteHeader(statusCode)
+		io.Copy(w, out)
+		return
+	}
+	writeJSON(statusCode, codec, object, w)
 }
 
 // writeJSON renders an object as JSON to the response.

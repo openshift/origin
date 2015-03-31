@@ -8,18 +8,18 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/network"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/network/exec"
 	// Volume plugins
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume/empty_dir"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume/gce_pd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume/git_repo"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume/host_path"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume/nfs"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/volume/secret"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/empty_dir"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/gce_pd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/git_repo"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/host_path"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/nfs"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/secret"
 )
 
 // ProbeVolumePlugins collects all volume plugins into an easy to use list.
-func ProbeVolumePlugins() []volume.Plugin {
-	allPlugins := []volume.Plugin{}
+func ProbeVolumePlugins() []volume.VolumePlugin {
+	allPlugins := []volume.VolumePlugin{}
 
 	// The list of plugins to probe is decided by the kubelet binary, not
 	// by dynamic linking or other "magic".  Plugins will be analyzed and

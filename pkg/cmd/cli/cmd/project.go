@@ -62,13 +62,13 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 					}
 
 					if rawCfg.CurrentContext != currentProject {
-						fmt.Printf("Using project %q from context named %q on server %q.\n", currentProject, rawCfg.CurrentContext, clientCfg.Host)
+						fmt.Fprintf(out, "Using project %q from context named %q on server %q.\n", currentProject, rawCfg.CurrentContext, clientCfg.Host)
 					} else {
-						fmt.Printf("Using project %q on server %q.\n", currentProject, clientCfg.Host)
+						fmt.Fprintf(out, "Using project %q on server %q.\n", currentProject, clientCfg.Host)
 					}
 
 				} else {
-					fmt.Printf("No project has been set. Pass a project name to make that the default.\n")
+					fmt.Fprintf(out, "No project has been set. Pass a project name to make that the default.\n")
 				}
 				return
 			}
@@ -169,9 +169,9 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 			}
 
 			if contextInUse != namespaceInUse {
-				fmt.Printf("Now using project %q from context named %q on server %q.\n", namespaceInUse, contextInUse, clientCfg.Host)
+				fmt.Fprintf(out, "Now using project %q from context named %q on server %q.\n", namespaceInUse, contextInUse, clientCfg.Host)
 			} else {
-				fmt.Printf("Now using project %q on server %q.\n", namespaceInUse, clientCfg.Host)
+				fmt.Fprintf(out, "Now using project %q on server %q.\n", namespaceInUse, clientCfg.Host)
 			}
 		},
 	}
