@@ -30,7 +30,7 @@ Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
 ExclusiveArch:  x86_64
-Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
+Source0:        https://%{import_path}/archive/v%{version}.tar.gz
 
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.2-7
