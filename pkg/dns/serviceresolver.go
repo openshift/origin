@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 
@@ -65,8 +66,7 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 			}
 			return nil, err
 		}
-		// replace with constant
-		if svc.Spec.PortalIP == "None" {
+		if svc.Spec.PortalIP == kapi.PortalIPNone {
 			endpoints, err := b.endpoints.Endpoints(segments[c-1]).Get(segments[c-2])
 			if err != nil {
 				return nil, err
