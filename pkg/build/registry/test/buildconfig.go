@@ -1,6 +1,8 @@
 package test
 
 import (
+	"sync"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -13,26 +15,40 @@ type BuildConfigRegistry struct {
 	BuildConfigs    *api.BuildConfigList
 	BuildConfig     *api.BuildConfig
 	DeletedConfigID string
+	sync.Mutex
 }
 
 func (r *BuildConfigRegistry) ListBuildConfigs(ctx kapi.Context, labels labels.Selector) (*api.BuildConfigList, error) {
+	r.Lock()
+	defer r.Unlock()
 	return r.BuildConfigs, r.Err
 }
 
 func (r *BuildConfigRegistry) GetBuildConfig(ctx kapi.Context, id string) (*api.BuildConfig, error) {
+	r.Lock()
+	defer r.Unlock()
 	return r.BuildConfig, r.Err
 }
 
 func (r *BuildConfigRegistry) CreateBuildConfig(ctx kapi.Context, config *api.BuildConfig) error {
+	r.Lock()
+	defer r.Unlock()
+	r.BuildConfig = config
 	return r.Err
 }
 
 func (r *BuildConfigRegistry) UpdateBuildConfig(ctx kapi.Context, config *api.BuildConfig) error {
+	r.Lock()
+	defer r.Unlock()
+	r.BuildConfig = config
 	return r.Err
 }
 
 func (r *BuildConfigRegistry) DeleteBuildConfig(ctx kapi.Context, id string) error {
+	r.Lock()
+	defer r.Unlock()
 	r.DeletedConfigID = id
+	r.BuildConfig = nil
 	return r.Err
 }
 

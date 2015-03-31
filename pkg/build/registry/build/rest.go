@@ -107,7 +107,8 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 	if err != nil {
 		return nil, false, err
 	}
-	return build, false, nil
+	out, err := r.Get(ctx, build.Name)
+	return out, false, err
 }
 
 // Watch begins watching for new, changed, or deleted Builds.
