@@ -6,8 +6,12 @@ import (
 	"net/url"
 	"strconv"
 
+	"code.google.com/p/go-uuid/uuid"
+	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -16,8 +20,6 @@ import (
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-
-	"github.com/ghodss/yaml"
 )
 
 // MasterArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting the master
@@ -87,10 +89,6 @@ func NewDefaultMasterArgs() *MasterArgs {
 // BuildSerializeableMasterConfig takes the MasterArgs (partially complete config) and uses them along with defaulting behavior to create the fully specified
 // config object for starting the master
 func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig, error) {
-	masterAddr, err := args.GetMasterAddress()
-	if err != nil {
-		return nil, err
-	}
 	masterPublicAddr, err := args.GetMasterPublicAddress()
 	if err != nil {
 		return nil, err
@@ -137,6 +135,11 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		}
 	}
 
+	oauthConfig, err := args.BuildSerializeableOAuthConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	config := &configapi.MasterConfig{
 		ServingInfo: configapi.ServingInfo{
 			BindAddress: args.ListenArg.ListenAddr.URL.Host,
@@ -146,19 +149,14 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		KubernetesMasterConfig: kubernetesMasterConfig,
 		EtcdConfig:             etcdConfig,
 
-		OAuthConfig: &configapi.OAuthConfig{
-			ProxyCA:         cmdutil.Env("OPENSHIFT_OAUTH_REQUEST_HEADER_CA_FILE", ""),
-			MasterURL:       masterAddr.String(),
-			MasterPublicURL: masterPublicAddr.String(),
-			AssetPublicURL:  assetPublicAddr.String(),
-		},
+		OAuthConfig: oauthConfig,
 
 		AssetConfig: &configapi.AssetConfig{
 			ServingInfo: configapi.ServingInfo{
 				BindAddress: args.GetAssetBindAddress(),
 			},
 
-			LogoutURI:           cmdutil.Env("OPENSHIFT_LOGOUT_URI", ""),
+			LogoutURI:           "",
 			MasterPublicURL:     masterPublicAddr.String(),
 			PublicURL:           assetPublicAddr.String(),
 			KubernetesPublicURL: kubePublicAddr.String(),
@@ -200,6 +198,85 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.CertArgs.CertDir)
 		config.AssetConfig.ServingInfo.ClientCA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
 	}
+
+	return config, nil
+}
+
+func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, error) {
+	masterAddr, err := args.GetMasterAddress()
+	if err != nil {
+		return nil, err
+	}
+	masterPublicAddr, err := args.GetMasterPublicAddress()
+	if err != nil {
+		return nil, err
+	}
+	assetPublicAddr, err := args.GetAssetPublicAddress()
+	if err != nil {
+		return nil, err
+	}
+
+	config := &configapi.OAuthConfig{
+		MasterURL:       masterAddr.String(),
+		MasterPublicURL: masterPublicAddr.String(),
+		AssetPublicURL:  assetPublicAddr.String(),
+
+		IdentityProviders: []configapi.IdentityProvider{},
+		GrantConfig: configapi.GrantConfig{
+			Method: "auto",
+		},
+
+		SessionConfig: &configapi.SessionConfig{
+			SessionSecrets:       []string{uuid.NewUUID().String()},
+			SessionMaxAgeSeconds: 300,
+			SessionName:          "ssn",
+		},
+
+		TokenConfig: configapi.TokenConfig{
+			AuthorizeTokenMaxAgeSeconds: 300,
+			AccessTokenMaxAgeSeconds:    3600,
+		},
+	}
+
+	// Make sure we don't start up in a permissive auth mode they don't expect
+	if cmdutil.Env("OPENSHIFT_OAUTH_HANDLER", "login") != "login" {
+		return nil, fmt.Errorf("OPENSHIFT_OAUTH_HANDLER is deprecated. Use the master configuration file to configure OAuth.")
+	}
+	if cmdutil.Env("OPENSHIFT_OAUTH_PASSWORD_AUTH", "anypassword") != "anypassword" {
+		return nil, fmt.Errorf("OPENSHIFT_OAUTH_PASSWORD_AUTH is deprecated. Use the master configuration file to configure OAuth.")
+	}
+
+	// Warn about deprecation
+	// TODO: remove before 3.0
+	deprecated := []string{
+		"OPENSHIFT_OAUTH_ACCESS_TOKEN_MAX_AGE_SECONDS",
+		"OPENSHIFT_OAUTH_AUTHORIZE_TOKEN_MAX_AGE_SECONDS",
+		"OPENSHIFT_OAUTH_GRANT_HANDLER",
+		"OPENSHIFT_OAUTH_HANDLER",
+		"OPENSHIFT_OAUTH_PASSWORD_AUTH",
+		"OPENSHIFT_OAUTH_REQUEST_HANDLERS",
+		"OPENSHIFT_OAUTH_SESSION_MAX_AGE_SECONDS",
+		"OPENSHIFT_OAUTH_SESSION_NAME",
+		"OPENSHIFT_OAUTH_SESSION_SECRET",
+	}
+	for _, key := range deprecated {
+		if value := cmdutil.Env(key, ""); len(value) != 0 {
+			glog.Warningf("%s is deprecated. Use the master configuration file to configure OAuth.", key)
+		}
+	}
+
+	config.IdentityProviders = append(config.IdentityProviders,
+		configapi.IdentityProvider{
+			Usage: configapi.IdentityProviderUsage{
+				ProviderName:    "anypassword",
+				UseAsChallenger: true,
+				UseAsLogin:      true,
+			},
+			Provider: runtime.EmbeddedObject{
+				&configapi.AllowAllPasswordIdentityProvider{},
+			},
+		},
+	)
 
 	return config, nil
 }
