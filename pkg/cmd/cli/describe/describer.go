@@ -167,10 +167,14 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 		}
 	}
 	if p.Output.To != nil {
-		if p.Output.To.Namespace != "" {
-			formatString(out, "Output to", fmt.Sprintf("%s/%s", p.Output.To.Namespace, p.Output.To.Name))
+		tag := buildapi.DefaultImageTag
+		if len(p.Output.Tag) != 0 {
+			tag = p.Output.Tag
+		}
+		if len(p.Output.To.Namespace) != 0 {
+			formatString(out, "Output to", fmt.Sprintf("%s/%s:%s", p.Output.To.Namespace, p.Output.To.Name, tag))
 		} else {
-			formatString(out, "Output to", p.Output.To.Name)
+			formatString(out, "Output to", fmt.Sprintf("%s:%s", p.Output.To.Name, tag))
 		}
 	}
 
@@ -192,19 +196,19 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 }
 
 func describeSTIStrategy(s *buildapi.STIBuildStrategy, out *tabwriter.Writer) {
-	if s.From != nil && s.From.Name != "" {
-		if s.From.Namespace != "" {
+	if s.From != nil && len(s.From.Name) != 0 {
+		if len(s.From.Namespace) != 0 {
 			formatString(out, "Image Repository", fmt.Sprintf("%s/%s", s.From.Name, s.From.Namespace))
 		} else {
 			formatString(out, "Image Repository", s.From.Name)
 		}
-		if s.Tag != "" {
+		if len(s.Tag) != 0 {
 			formatString(out, "Image Repository Tag", s.Tag)
 		}
 	} else {
 		formatString(out, "Builder Image", s.Image)
 	}
-	if s.Scripts != "" {
+	if len(s.Scripts) != 0 {
 		formatString(out, "Scripts", s.Scripts)
 	}
 	if s.Incremental {
@@ -223,7 +227,7 @@ func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, host s
 		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 			continue
 		}
-		if trigger.ImageChange.From.Namespace != "" {
+		if len(trigger.ImageChange.From.Namespace) != 0 {
 			formatString(out, "Image Repository Trigger", fmt.Sprintf("%s/%s", trigger.ImageChange.From.Namespace, trigger.ImageChange.From.Name))
 		} else {
 			formatString(out, "Image Repository Trigger", trigger.ImageChange.From.Name)
