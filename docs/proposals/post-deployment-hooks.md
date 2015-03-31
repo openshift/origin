@@ -250,6 +250,22 @@ const (
 )
 ```
 
+#### Validations related to hooks
+
+Initially, valid values for `Lifecycle.Post.FailurePolicy` will be `Retry` and `Continue`. This may change in the future if deployments can be safely rolled back automatically.
+
+TODO: `ExecNewPodAction.ContainerName`
+
+1. Could reject container names that aren't defined in the deploymentConfig.
+
+
+#### Hook and deployment status relationship
+
+The status of a deployment hook is distinct from the status of the deployment iteself. The deployment status may be updated in response to a change in hook status.
+
+1. The `Pre` hook executes while the deployment has a `New` status, and the hook will have a terminal status prior to the deployment transitioning past `New`.
+2. The `Post` hook executes while the deployment has a `Running` status, and the hook will have a terminal status prior to the deployment transitioning past `Running`.
+
 
 ### Example: Rails migration
 
