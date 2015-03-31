@@ -6,8 +6,12 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 )
 
+func init() {
+	deps = make(map[string]map[string]string)
+}
+
 // deps contains all image repositories mapped to their dependencies
-var deps = make(map[string]map[string]string)
+var deps map[string]map[string]string
 
 // circularDeps checks for circular dependencies in build configurations
 func circularDeps(config *api.BuildConfig) bool {
@@ -47,7 +51,7 @@ func circularDeps(config *api.BuildConfig) bool {
 			deps[from] = make(map[string]string)
 		}
 		fromDeps := deps[from]
-		fromDeps[to] = config.Name
+		fromDeps[to] = config.Namespace + "/" + config.Name
 	}
 
 	return false
@@ -56,6 +60,10 @@ func circularDeps(config *api.BuildConfig) bool {
 // findConflicts traces if there are any conflicts in the dependencies
 // of From and To in a build configuration
 func findConflicts(from, to string) error {
+	if from == to {
+		// From and To are the same repo
+		return errors.New("circular dependencies in buildConfigs")
+	}
 	toDeps := deps[to]
 
 	// Check the dependencies of the dependency we want to add
