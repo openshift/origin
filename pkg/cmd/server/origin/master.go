@@ -23,6 +23,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
@@ -178,7 +179,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 
 	// initialize OpenShift API
-	storage := map[string]apiserver.RESTStorage{
+	storage := map[string]rest.Storage{
 		"builds":                   buildregistry.NewREST(buildEtcd),
 		"builds/clone":             buildClone,
 		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),

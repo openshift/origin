@@ -2,7 +2,7 @@ package imagerepository
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -31,10 +31,10 @@ type Registry interface {
 
 // Storage is an interface for a standard REST Storage backend
 type Storage interface {
-	apiserver.RESTGracefulDeleter
-	apiserver.RESTLister
-	apiserver.RESTGetter
-	apiserver.ResourceWatcher
+	rest.GracefulDeleter
+	rest.Lister
+	rest.Getter
+	rest.Watcher
 
 	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
 	Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error)
@@ -43,12 +43,12 @@ type Storage interface {
 // storage puts strong typing around storage calls
 type storage struct {
 	Storage
-	status apiserver.RESTUpdater
+	status rest.Updater
 }
 
 // NewRegistry returns a new Registry interface for the given Storage. Any mismatched
 // types will panic.
-func NewRegistry(s Storage, status apiserver.RESTUpdater) Registry {
+func NewRegistry(s Storage, status rest.Updater) Registry {
 	return &storage{s, status}
 }
 

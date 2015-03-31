@@ -5,8 +5,10 @@ import (
 	"io"
 	"strings"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -94,21 +96,24 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 					checkErr(err)
 				}
 			} else {
-				schema, err := f.Validator()
+				obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand(cmd)).
+					NamespaceParam(namespace).RequireNamespace().
+					FilenameParam(filename).
+					Do().
+					Object()
+
 				checkErr(err)
-				cfg, err := f.ClientConfig()
-				checkErr(err)
-				var (
-					ok   bool
-					data []byte
-				)
-				mapping, _, _, data, err = cmdutil.ResourceFromFile(filename, typer, mapper, schema, cfg.Version)
-				checkErr(err)
-				obj, err := mapping.Codec.Decode(data)
-				checkErr(err)
+
+				var ok bool
 				templateObj, ok = obj.(*api.Template)
 				if !ok {
 					checkErr(fmt.Errorf("cannot convert input to Template"))
+				}
+
+				version, kind, err := kapi.Scheme.ObjectVersionAndKind(templateObj)
+				checkErr(err)
+				if mapping, err = mapper.RESTMapping(kind, version); err != nil {
+					checkErr(err)
 				}
 			}
 

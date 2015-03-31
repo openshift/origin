@@ -2,7 +2,6 @@ package generator
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -15,7 +14,7 @@ type REST struct {
 	codec     runtime.Codec
 }
 
-func NewREST(generator *DeploymentConfigGenerator, codec runtime.Codec) apiserver.RESTStorage {
+func NewREST(generator *DeploymentConfigGenerator, codec runtime.Codec) *REST {
 	return &REST{generator: generator, codec: codec}
 }
 

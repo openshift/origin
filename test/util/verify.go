@@ -138,9 +138,9 @@ func CreateServiceForPod(pod *kapi.Pod, ns string) *kapi.Service {
 			Name: ns,
 		},
 		Spec: kapi.ServiceSpec{
-			Selector:      map[string]string{"name": pod.Name},
-			ContainerPort: kubeutil.IntOrString{Kind: kubeutil.IntstrInt, IntVal: 8080},
-			Port:          8080,
+			Selector:   map[string]string{"name": pod.Name},
+			TargetPort: kubeutil.IntOrString{Kind: kubeutil.IntstrInt, IntVal: 8080},
+			Port:       8080,
 		},
 	}
 	if service, err := client.Services(ns).Create(service); err != nil {

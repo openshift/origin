@@ -5,7 +5,6 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -22,7 +21,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against Project resources
-func NewREST(client kclient.NamespaceInterface, lister projectauth.Lister) apiserver.RESTStorage {
+func NewREST(client kclient.NamespaceInterface, lister projectauth.Lister) *REST {
 	return &REST{client: client, lister: lister}
 }
 

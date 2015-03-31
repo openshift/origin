@@ -11,6 +11,7 @@ import (
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
@@ -63,7 +64,7 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		name = user.GetName()
 	}
 	if ok, details := validation.ValidateUserName(name, false); !ok {
-		return nil, kerrs.NewFieldInvalid("metadata.name", name, details)
+		return nil, fielderrors.NewFieldInvalid("metadata.name", name, details)
 	}
 
 	return r.Etcd.Get(ctx, name)

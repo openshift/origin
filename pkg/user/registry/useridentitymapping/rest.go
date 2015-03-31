@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -38,6 +39,9 @@ type userIdentityMappingStrategy struct {
 // Strategy is the default logic that applies when creating UserIdentityMapping
 // objects via the REST API.
 var Strategy = userIdentityMappingStrategy{kapi.Scheme}
+
+func (userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object)      {}
+func (userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 // New returns a new UserIdentityMapping for use with Create.
 func (r *REST) New() runtime.Object {
@@ -95,13 +99,13 @@ func (s userIdentityMappingStrategy) ResetBeforeUpdate(obj runtime.Object) {
 }
 
 // Validate validates a new UserIdentityMapping.
-func (s userIdentityMappingStrategy) Validate(obj runtime.Object) kerrs.ValidationErrorList {
+func (s userIdentityMappingStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
 	mapping := obj.(*api.UserIdentityMapping)
 	return validation.ValidateUserIdentityMapping(mapping)
 }
 
 // Validate validates an updated UserIdentityMapping.
-func (s userIdentityMappingStrategy) ValidateUpdate(obj runtime.Object, old runtime.Object) kerrs.ValidationErrorList {
+func (s userIdentityMappingStrategy) ValidateUpdate(obj runtime.Object, old runtime.Object) fielderrors.ValidationErrorList {
 	mapping := obj.(*api.UserIdentityMapping)
 	oldmapping := old.(*api.UserIdentityMapping)
 	return validation.ValidateUserIdentityMappingUpdate(mapping, oldmapping)
@@ -187,8 +191,8 @@ func (s *REST) createOrUpdate(ctx kapi.Context, obj runtime.Object, forceCreate 
 
 	// Validate identity
 	if kerrs.IsNotFound(identityErr) {
-		errs := kerrs.ValidationErrorList([]error{
-			kerrs.NewFieldInvalid("identity.name", mapping.Identity.Name, "referenced identity does not exist"),
+		errs := fielderrors.ValidationErrorList([]error{
+			fielderrors.NewFieldInvalid("identity.name", mapping.Identity.Name, "referenced identity does not exist"),
 		})
 		return nil, false, kerrs.NewInvalid("UserIdentityMapping", mapping.Name, errs)
 	}
@@ -196,8 +200,8 @@ func (s *REST) createOrUpdate(ctx kapi.Context, obj runtime.Object, forceCreate 
 	// Get new user
 	newUser, err := s.userRegistry.GetUser(ctx, mapping.User.Name)
 	if kerrs.IsNotFound(err) {
-		errs := kerrs.ValidationErrorList([]error{
-			kerrs.NewFieldInvalid("user.name", mapping.User.Name, "referenced user does not exist"),
+		errs := fielderrors.ValidationErrorList([]error{
+			fielderrors.NewFieldInvalid("user.name", mapping.User.Name, "referenced user does not exist"),
 		})
 		return nil, false, kerrs.NewInvalid("UserIdentityMapping", mapping.Name, errs)
 	}
