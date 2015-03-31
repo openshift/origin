@@ -9,6 +9,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	kv1beta1 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -39,8 +40,8 @@ func TestProjectIsNamespace(t *testing.T) {
 
 	// create a kube and its client
 	kubeInterfaces, _ := klatest.InterfacesFor(klatest.Version)
-	namespaceStorage := namespaceetcd.NewREST(etcdHelper)
-	kubeStorage := map[string]apiserver.RESTStorage{
+	namespaceStorage, _, _ := namespaceetcd.NewStorage(etcdHelper)
+	kubeStorage := map[string]rest.Storage{
 		"namespaces": namespaceStorage,
 	}
 
@@ -76,7 +77,7 @@ func TestProjectIsNamespace(t *testing.T) {
 
 	// create an origin
 	originInterfaces, _ := latest.InterfacesFor(latest.Version)
-	originStorage := map[string]apiserver.RESTStorage{
+	originStorage := map[string]rest.Storage{
 		"projects": projectregistry.NewREST(kubeClient.Namespaces(), nil),
 	}
 	osVersion := &apiserver.APIGroupVersion{

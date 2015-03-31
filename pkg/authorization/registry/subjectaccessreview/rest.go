@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -19,7 +18,7 @@ type REST struct {
 }
 
 // NewREST creates a new REST for policies.
-func NewREST(authorizer authorizer.Authorizer) apiserver.RESTStorage {
+func NewREST(authorizer authorizer.Authorizer) *REST {
 	return &REST{authorizer}
 }
 

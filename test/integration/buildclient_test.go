@@ -10,6 +10,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -23,6 +24,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
@@ -194,10 +196,24 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 			return "registry:3000", true
 		}),
 	)
+	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
 
-	storage := map[string]apiserver.RESTStorage{
+	buildGenerator := &buildgenerator.BuildGenerator{
+		Client: buildgenerator.Client{
+			GetBuildConfigFunc:     buildEtcd.GetBuildConfig,
+			UpdateBuildConfigFunc:  buildEtcd.UpdateBuildConfig,
+			GetBuildFunc:           buildEtcd.GetBuild,
+			CreateBuildFunc:        buildEtcd.CreateBuild,
+			GetImageRepositoryFunc: imageRepositoryRegistry.GetImageRepository,
+		},
+	}
+	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
+
+	storage := map[string]rest.Storage{
 		"builds":                   buildregistry.NewREST(buildEtcd),
+		"builds/clone":             buildClone,
 		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
+		"buildConfigs/instantiate": buildConfigInstantiate,
 		"imageRepositories":        imageRepositoryStorage,
 		"imageRepositories/status": imageRepositoryStatus,
 	}
@@ -223,10 +239,12 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	}
 
 	openshift.whPrefix = "/osapi/v1beta1/buildConfigHooks/"
+	bcClient := buildclient.NewOSClientBuildConfigClient(osClient)
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
-		webhook.NewController(buildclient.NewOSClientBuildConfigClient(osClient), buildclient.NewOSClientBuildClient(osClient), osClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter), map[string]webhook.Plugin{
-			"github": github.New(),
-		})))
+		webhook.NewController(bcClient, buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
+			osClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter), map[string]webhook.Plugin{
+				"github": github.New(),
+			})))
 
 	bcFactory := buildcontrollerfactory.BuildControllerFactory{
 		OSClient:     osClient,

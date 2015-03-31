@@ -16,6 +16,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kyaml "github.com/GoogleCloudPlatform/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -253,42 +254,18 @@ func (o MasterOptions) CreateCerts() error {
 	if err != nil {
 		return err
 	}
-	mintAllCertsOptions := admin.CreateAllCertsOptions{
+	mintAllCertsOptions := admin.CreateMasterCertsOptions{
 		CertDir:            o.MasterArgs.CertArgs.CertDir,
 		SignerName:         signerName,
 		Hostnames:          hostnames.List(),
-		NodeList:           o.MasterArgs.NodeList,
 		APIServerURL:       masterAddr.String(),
 		PublicAPIServerURL: publicMasterAddr.String(),
 	}
 	if err := mintAllCertsOptions.Validate(nil); err != nil {
 		return err
 	}
-	if err := mintAllCertsOptions.CreateAllCerts(); err != nil {
+	if err := mintAllCertsOptions.CreateMasterCerts(); err != nil {
 		return err
-	}
-
-	rootCAFile := admin.DefaultRootCAFile(o.MasterArgs.CertArgs.CertDir)
-	for _, clientCertInfo := range admin.DefaultClientCerts(o.MasterArgs.CertArgs.CertDir) {
-		createKubeConfigOptions := admin.CreateKubeConfigOptions{
-			APIServerURL:       masterAddr.String(),
-			PublicAPIServerURL: publicMasterAddr.String(),
-			APIServerCAFile:    rootCAFile,
-			ServerNick:         "master",
-
-			CertFile: clientCertInfo.CertLocation.CertFile,
-			KeyFile:  clientCertInfo.CertLocation.KeyFile,
-			UserNick: clientCertInfo.SubDir,
-
-			KubeConfigFile: admin.DefaultKubeConfigFilename(o.MasterArgs.CertArgs.CertDir, clientCertInfo.SubDir),
-		}
-
-		if err := createKubeConfigOptions.Validate(nil); err != nil {
-			return err
-		}
-		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -301,7 +278,7 @@ func ReadMasterConfig(filename string) (*configapi.MasterConfig, error) {
 	}
 
 	config := &configapi.MasterConfig{}
-
+	data, err = kyaml.ToJSON(data)
 	if err := configapilatest.Codec.DecodeInto(data, config); err != nil {
 		return nil, err
 	}
@@ -421,6 +398,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	openshiftConfig.RunDeploymentConfigChangeController()
 	openshiftConfig.RunDeploymentImageChangeTriggerController()
 	openshiftConfig.RunImageImportController()
+	openshiftConfig.RunOriginNamespaceController()
 	openshiftConfig.RunProjectAuthorizationCache()
 
 	return nil

@@ -1,8 +1,10 @@
-package util
+package generator
 
 import (
 	"fmt"
 	"reflect"
+	"regexp"
+	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -25,62 +27,52 @@ const (
 	imageRepoNamespace     = "testns"
 )
 
-func TestGenerateBuildFromConfig(t *testing.T) {
-	source := mockSource()
-	strategy := mockDockerStrategy()
-	output := mockOutput()
+func TestInstantiate(t *testing.T) {
+	generator := BuildGenerator{Client: Client{
+		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+			return mockBuildConfig(mockSource(), mockSTIStrategyForImage(), mockOutput()), nil
+		},
+		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			return nil
+		},
+		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+			return nil
+		},
+		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+			return &buildapi.Build{}, nil
+		},
+	}}
 
-	bc := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:   "test-build-config",
-			Labels: map[string]string{"testlabel": "testvalue"},
-		},
-		Parameters: buildapi.BuildParameters{
-			Source: source,
-			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitSourceRevision{
-					Commit: "1234",
-				},
-			},
-			Strategy: strategy,
-			Output:   output,
-		},
-	}
-	revision := &buildapi.SourceRevision{
-		Type: buildapi.BuildSourceGit,
-		Git: &buildapi.GitSourceRevision{
-			Commit: "abcd",
-		},
-	}
-	build := GenerateBuildFromConfig(bc, revision, nil, nil)
-	if !reflect.DeepEqual(source, build.Parameters.Source) {
-		t.Errorf("Build source does not match BuildConfig source")
-	}
-	if !reflect.DeepEqual(strategy, build.Parameters.Strategy) {
-		t.Errorf("Build strategy does not match BuildConfig strategy")
-	}
-	if !reflect.DeepEqual(output, build.Parameters.Output) {
-		t.Errorf("Build output does not match BuildConfig output")
-	}
-	if !reflect.DeepEqual(revision, build.Parameters.Revision) {
-		t.Errorf("Build revision does not match passed in revision")
-	}
-	if build.Labels["testlabel"] != bc.Labels["testlabel"] {
-		t.Errorf("Build does not contain labels from BuildConfig")
-	}
-	if build.Labels[buildapi.BuildConfigLabel] != bc.Name {
-		t.Errorf("Build does not contain labels from BuildConfig")
+	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
 	}
 }
 
-func TestGenerateBuildWithImageTagForDockerStrategy(t *testing.T) {
+func TestInstantiateRetry(t *testing.T) {
+	instantiationCalls := 0
+	generator := BuildGenerator{Client: Client{
+		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+			return mockBuildConfig(mockSource(), mockSTIStrategyForImage(), mockOutput()), nil
+		},
+		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			instantiationCalls++
+			return fmt.Errorf("update-error")
+		},
+	}}
+
+	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	if err == nil || !strings.Contains(err.Error(), "update-error") {
+		t.Errorf("Expected update-error, got different %v", err)
+	}
+
+}
+
+func TestInstantiateGetBuildConfigError(t *testing.T) {
 	source := mockSource()
 	strategy := mockDockerStrategy()
 	strategy.DockerStrategy.Image = originalImage
 	output := mockOutput()
-	imageRepoGetter := &mockImageRepositoryNamespaceGetter{"", imageRepoName}
-
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
@@ -109,23 +101,251 @@ func TestGenerateBuildWithImageTagForDockerStrategy(t *testing.T) {
 			},
 		},
 	}
+	generator := BuildGenerator{Client: Client{
+		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+			return bc, nil
+		},
+		GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+			return nil, fmt.Errorf("get-error")
+		},
+	}}
 
-	build, err := GenerateBuildWithImageTag(bc, nil, imageRepoGetter)
+	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	if err == nil || !strings.Contains(err.Error(), "get-error") {
+		t.Errorf("Expected get-error, got different %v", err)
+	}
+}
+
+func TestInstantiateGenerateBuildError(t *testing.T) {
+	generator := BuildGenerator{Client: Client{
+		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+			return nil, fmt.Errorf("get-error")
+		},
+	}}
+
+	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	if err == nil || !strings.Contains(err.Error(), "get-error") {
+		t.Errorf("Expected get-error, got different %v", err)
+	}
+}
+
+func TestClone(t *testing.T) {
+	generator := BuildGenerator{Client: Client{
+		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+			return nil
+		},
+		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+			return &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "test-build-1",
+					Namespace: kapi.NamespaceDefault,
+				},
+			}, nil
+		},
+	}}
+
+	_, err := generator.Clone(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
+	}
+}
+
+func TestCloneError(t *testing.T) {
+	generator := BuildGenerator{Client: Client{
+		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+			return nil, fmt.Errorf("get-error")
+		},
+	}}
+
+	_, err := generator.Clone(kapi.NewContext(), &buildapi.BuildRequest{})
+	if err == nil || !strings.Contains(err.Error(), "get-error") {
+		t.Errorf("Expected get-error, got different %v", err)
+	}
+}
+
+func TestCreateBuild(t *testing.T) {
+	build := &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "test-build",
+			Namespace: kapi.NamespaceDefault,
+		},
+	}
+	generator := BuildGenerator{Client: Client{
+		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+			return nil
+		},
+		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+			return build, nil
+		},
+	}}
+
+	build, err := generator.createBuild(kapi.NewDefaultContext(), build)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
+	if build.CreationTimestamp.IsZero() || len(build.UID) == 0 {
+		t.Error("Expected meta fields being filled in!")
+	}
+}
+
+func TestCreateBuildNamespaceError(t *testing.T) {
+	build := &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "test-build",
+		},
+	}
+	generator := mockBuildGenerator()
+
+	_, err := generator.createBuild(kapi.NewContext(), build)
+	if err == nil || !strings.Contains(err.Error(), "Build.Namespace") {
+		t.Errorf("Expected namespace error, got different %v", err)
+	}
+}
+
+func TestCreateBuildCreateError(t *testing.T) {
+	build := &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "test-build",
+			Namespace: kapi.NamespaceDefault,
+		},
+	}
+	generator := BuildGenerator{Client: Client{
+		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+			return fmt.Errorf("create-error")
+		},
+	}}
+
+	_, err := generator.createBuild(kapi.NewDefaultContext(), build)
+	if err == nil || !strings.Contains(err.Error(), "create-error") {
+		t.Errorf("Expected create-error, got different %v", err)
+	}
+}
+
+func TestGenerateBuildFromConfig(t *testing.T) {
+	source := mockSource()
+	strategy := mockDockerStrategy()
+	output := mockOutput()
+	bc := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:   "test-build-config",
+			Labels: map[string]string{"testlabel": "testvalue"},
+		},
+		Parameters: buildapi.BuildParameters{
+			Source: source,
+			Revision: &buildapi.SourceRevision{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitSourceRevision{
+					Commit: "1234",
+				},
+			},
+			Strategy: strategy,
+			Output:   output,
+		},
+	}
+	revision := &buildapi.SourceRevision{
+		Type: buildapi.BuildSourceGit,
+		Git: &buildapi.GitSourceRevision{
+			Commit: "abcd",
+		},
+	}
+	generator := mockBuildGenerator()
+
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, revision, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
+	if !reflect.DeepEqual(source, build.Parameters.Source) {
+		t.Errorf("Build source does not match BuildConfig source")
+	}
+	if !reflect.DeepEqual(strategy, build.Parameters.Strategy) {
+		t.Errorf("Build strategy does not match BuildConfig strategy")
+	}
+	if !reflect.DeepEqual(output, build.Parameters.Output) {
+		t.Errorf("Build output does not match BuildConfig output")
+	}
+	if !reflect.DeepEqual(revision, build.Parameters.Revision) {
+		t.Errorf("Build revision does not match passed in revision")
+	}
+	if build.Labels["testlabel"] != bc.Labels["testlabel"] {
+		t.Errorf("Build does not contain labels from BuildConfig")
+	}
+	if build.Labels[buildapi.BuildConfigLabel] != bc.Name {
+		t.Errorf("Build does not contain labels from BuildConfig")
+	}
+}
+
+func TestGenerateBuildWithImageTagForDockerStrategy(t *testing.T) {
+	source := mockSource()
+	strategy := mockDockerStrategy()
+	strategy.DockerStrategy.Image = originalImage
+	output := mockOutput()
+	bc := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "test-build-config",
+		},
+		Parameters: buildapi.BuildParameters{
+			Source: source,
+			Revision: &buildapi.SourceRevision{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitSourceRevision{
+					Commit: "1234",
+				},
+			},
+			Strategy: strategy,
+			Output:   output,
+		},
+		Triggers: []buildapi.BuildTriggerPolicy{
+			{
+				Type: buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{
+					Image: originalImage,
+					From: kapi.ObjectReference{
+						Name: imageRepoName,
+					},
+					Tag: tagName,
+				},
+			},
+		},
+	}
+	generator := BuildGenerator{Client: Client{
+		GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+			return &imageapi.ImageRepository{
+				ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
+				Status: imageapi.ImageRepositoryStatus{
+					DockerImageRepository: originalImage,
+					Tags: map[string]imageapi.TagEventList{
+						tagName: {
+							Items: []imageapi.TagEvent{
+								{
+									DockerImageReference: fmt.Sprintf("%s:%s", originalImage, newTag),
+									Image:                newTag,
+								},
+							},
+						},
+					},
+				},
+				Tags: map[string]string{tagName: newTag},
+			}, nil
+		},
+		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			return nil
+		},
+	}}
+
+	build, err := generator.generateBuild(kapi.NewContext(), bc, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
 	}
 	if build.Parameters.Strategy.DockerStrategy.Image != newImage {
 		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.Image, newImage)
 	}
 }
 
-func TestGenerateBuildWithImageTagUnmatchedRepo(t *testing.T) {
+func TestGenerateBuildFromConfigWithImageTagUnmatchedRepo(t *testing.T) {
 	source := mockSource()
 	strategy := mockDockerStrategy()
 	strategy.DockerStrategy.Image = originalImage
 	output := mockOutput()
-	imageRepoGetter := &mockImageRepositoryNamespaceGetter{"", imageRepoName}
-
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
@@ -154,23 +374,22 @@ func TestGenerateBuildWithImageTagUnmatchedRepo(t *testing.T) {
 			},
 		},
 	}
+	generator := mockBuildGenerator()
 
-	build, err := GenerateBuildWithImageTag(bc, nil, imageRepoGetter)
+	build, err := generator.generateBuild(kapi.NewContext(), bc, nil)
 	if err != nil {
-		t.Errorf("Unexpected error %v", err)
+		t.Fatalf("Unexpected error %v", err)
 	}
 	if build.Parameters.Strategy.DockerStrategy.Image != originalImage {
 		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.Image, originalImage)
 	}
 }
 
-func TestGenerateBuildWithImageTagNoTrigger(t *testing.T) {
+func TestGenerateBuildFromConfigWithImageTagNoTrigger(t *testing.T) {
 	source := mockSource()
 	strategy := mockDockerStrategy()
 	strategy.DockerStrategy.Image = originalImage
 	output := mockOutput()
-	imageRepoGetter := &mockImageRepositoryNamespaceGetter{"", imageRepoName}
-
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
@@ -187,23 +406,22 @@ func TestGenerateBuildWithImageTagNoTrigger(t *testing.T) {
 			Output:   output,
 		},
 	}
+	generator := mockBuildGenerator()
 
-	build, err := GenerateBuildWithImageTag(bc, nil, imageRepoGetter)
+	build, err := generator.generateBuild(kapi.NewContext(), bc, nil)
 	if err != nil {
-		t.Errorf("Unexpected error %v", err)
+		t.Fatalf("Unexpected error %v", err)
 	}
 	if build.Parameters.Strategy.DockerStrategy.Image != originalImage {
 		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.Image, originalImage)
 	}
 }
 
-func TestGenerateBuildWithImageTagUnmatchedTag(t *testing.T) {
+func TestGenerateBuildFromConfigWithImageTagUnmatchedTag(t *testing.T) {
 	source := mockSource()
 	strategy := mockDockerStrategy()
 	strategy.DockerStrategy.Image = originalImage
 	output := mockOutput()
-	imageRepoGetter := &mockImageRepositoryNamespaceGetter{"", imageRepoName}
-
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
@@ -232,10 +450,11 @@ func TestGenerateBuildWithImageTagUnmatchedTag(t *testing.T) {
 			},
 		},
 	}
+	generator := mockBuildGenerator()
 
-	build, err := GenerateBuildWithImageTag(bc, nil, imageRepoGetter)
+	build, err := generator.generateBuild(kapi.NewContext(), bc, nil)
 	if err != nil {
-		t.Errorf("Unexpected error %v", err)
+		t.Fatalf("Unexpected error %v", err)
 	}
 	if build.Parameters.Strategy.DockerStrategy.Image != originalImage {
 		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.Image, originalImage)
@@ -246,7 +465,6 @@ func TestGenerateBuildWithImageTagForSTIStrategyImage(t *testing.T) {
 	source := mockSource()
 	strategy := mockSTIStrategyForImage()
 	output := mockOutput()
-	imageRepoGetter := &mockImageRepositoryNamespaceGetter{"", imageRepoName}
 
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
@@ -276,10 +494,34 @@ func TestGenerateBuildWithImageTagForSTIStrategyImage(t *testing.T) {
 			},
 		},
 	}
+	generator := BuildGenerator{Client: Client{
+		GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+			return &imageapi.ImageRepository{
+				ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
+				Status: imageapi.ImageRepositoryStatus{
+					DockerImageRepository: originalImage,
+					Tags: map[string]imageapi.TagEventList{
+						tagName: {
+							Items: []imageapi.TagEvent{
+								{
+									DockerImageReference: fmt.Sprintf("%s:%s", originalImage, newTag),
+									Image:                newTag,
+								},
+							},
+						},
+					},
+				},
+				Tags: map[string]string{tagName: newTag},
+			}, nil
+		},
+		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			return nil
+		},
+	}}
 
-	build, err := GenerateBuildWithImageTag(bc, nil, imageRepoGetter)
+	build, err := generator.generateBuild(kapi.NewContext(), bc, nil)
 	if err != nil {
-		t.Errorf("Unexpected error %v", err)
+		t.Fatalf("Unexpected error %v", err)
 	}
 	if build.Parameters.Strategy.STIStrategy.Image != newImage {
 		t.Errorf("STI base image value %s does not match expected value %s", build.Parameters.Strategy.STIStrategy.Image, newImage)
@@ -290,8 +532,6 @@ func TestGenerateBuildWithImageTagForSTIStrategyImageRepository(t *testing.T) {
 	source := mockSource()
 	strategy := mockSTIStrategyForImageRepository()
 	output := mockOutput()
-	imageRepoGetter := &mockImageRepositoryNamespaceGetter{imageRepoNamespace, imageRepoName}
-
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
@@ -308,10 +548,34 @@ func TestGenerateBuildWithImageTagForSTIStrategyImageRepository(t *testing.T) {
 			Output:   output,
 		},
 	}
+	generator := BuildGenerator{Client: Client{
+		GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+			return &imageapi.ImageRepository{
+				ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
+				Status: imageapi.ImageRepositoryStatus{
+					DockerImageRepository: originalImage,
+					Tags: map[string]imageapi.TagEventList{
+						tagName: {
+							Items: []imageapi.TagEvent{
+								{
+									DockerImageReference: fmt.Sprintf("%s:%s", originalImage, newTag),
+									Image:                newTag,
+								},
+							},
+						},
+					},
+				},
+				Tags: map[string]string{tagName: newTag},
+			}, nil
+		},
+		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			return nil
+		},
+	}}
 
-	build, err := GenerateBuildWithImageTag(bc, nil, imageRepoGetter)
+	build, err := generator.generateBuild(kapi.NewContext(), bc, nil)
 	if err != nil {
-		t.Errorf("Unexpected error %v", err)
+		t.Fatal("Unexpected error %v", err)
 	}
 	if build.Parameters.Strategy.STIStrategy.Image != newImage {
 		t.Errorf("STI base image value %s does not match expected value %s", build.Parameters.Strategy.STIStrategy.Image, newImage)
@@ -322,7 +586,6 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	source := mockSource()
 	strategy := mockDockerStrategy()
 	output := mockOutput()
-
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build",
@@ -339,7 +602,8 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 			Output:   output,
 		},
 	}
-	newBuild := GenerateBuildFromBuild(build)
+
+	newBuild := generateBuildFromBuild(build)
 	if !reflect.DeepEqual(build.Parameters, newBuild.Parameters) {
 		t.Errorf("Build parameters does not match the original Build parameters")
 	}
@@ -353,11 +617,15 @@ func TestSubstituteImageDockerNil(t *testing.T) {
 	strategy := mockDockerStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// Docker build with nil base image
 	// base image should still be nil
-	SubstituteImageReferences(build, originalImage, newImage)
+	substituteImageReferences(build, originalImage, newImage)
 	if build.Parameters.Strategy.DockerStrategy.Image != "" {
 		t.Errorf("Base image name was improperly substituted in docker strategy")
 	}
@@ -368,12 +636,16 @@ func TestSubstituteImageDockerMatch(t *testing.T) {
 	strategy := mockDockerStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// Docker build with a matched base image
 	// base image should be replaced.
 	build.Parameters.Strategy.DockerStrategy.Image = originalImage
-	SubstituteImageReferences(build, originalImage, newImage)
+	substituteImageReferences(build, originalImage, newImage)
 	if build.Parameters.Strategy.DockerStrategy.Image != newImage {
 		t.Errorf("Base image name was not substituted in docker strategy")
 	}
@@ -387,11 +659,15 @@ func TestSubstituteImageDockerMismatch(t *testing.T) {
 	strategy := mockDockerStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// Docker build with an unmatched base image
 	// base image should not be replaced.
-	SubstituteImageReferences(build, "unmatched", "dummy")
+	substituteImageReferences(build, "unmatched", "dummy")
 	if build.Parameters.Strategy.DockerStrategy.Image == "dummy2" {
 		t.Errorf("Base image name was improperly substituted in docker strategy")
 	}
@@ -402,11 +678,15 @@ func TestSubstituteImageSTIMatch(t *testing.T) {
 	strategy := mockSTIStrategyForImage()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// STI build with a matched base image
 	// base image should be replaced
-	SubstituteImageReferences(build, originalImage, newImage)
+	substituteImageReferences(build, originalImage, newImage)
 	if build.Parameters.Strategy.STIStrategy.Image != newImage {
 		t.Errorf("Base image name was not substituted in sti strategy")
 	}
@@ -421,11 +701,15 @@ func TestSubstituteImageRepositorySTIMatch(t *testing.T) {
 	repoRef := *strategy.STIStrategy.From
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// STI build with a matched base image
 	// base image should be replaced
-	SubstituteImageRepoReferences(build, repoRef, newImage)
+	substituteImageRepoReferences(build, repoRef, newImage)
 	if build.Parameters.Strategy.STIStrategy.Image != newImage {
 		t.Errorf("Base image name was not substituted in sti strategy")
 	}
@@ -439,11 +723,15 @@ func TestSubstituteImageSTIMismatch(t *testing.T) {
 	strategy := mockSTIStrategyForImage()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// STI build with an unmatched base image
 	// base image should not be replaced
-	SubstituteImageReferences(build, "unmatched", "dummy")
+	substituteImageReferences(build, "unmatched", "dummy")
 	if build.Parameters.Strategy.STIStrategy.Image == "dummy" {
 		t.Errorf("Base image name was improperly substituted in STI strategy")
 	}
@@ -457,11 +745,15 @@ func TestSubstituteImageRepositorySTIMismatch(t *testing.T) {
 	imageRepoRef := kapi.ObjectReference{
 		Name: "unmatched",
 	}
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// STI build with an unmatched image repository
 	// base image should not be set
-	SubstituteImageRepoReferences(build, imageRepoRef, "dummy")
+	substituteImageRepoReferences(build, imageRepoRef, "dummy")
 	if build.Parameters.Strategy.STIStrategy.Image == "dummy" {
 		t.Errorf("Base image name was improperly set in STI strategy")
 	}
@@ -472,14 +764,18 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 	strategy := mockCustomStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// Full custom build with a Image and a well defined environment variable image value,
 	// both should be replaced.  Additional environment variables should not be touched.
 	build.Parameters.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 2)
 	build.Parameters.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
 	build.Parameters.Strategy.CustomStrategy.Env[1] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: originalImage}
-	SubstituteImageReferences(build, originalImage, newImage)
+	substituteImageReferences(build, originalImage, newImage)
 	if build.Parameters.Strategy.CustomStrategy.Image != newImage {
 		t.Errorf("Base image name was not substituted in custom strategy")
 	}
@@ -498,7 +794,6 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 	if len(bc.Parameters.Strategy.CustomStrategy.Env) != 0 {
 		t.Errorf("Custom BuildConfig Env was updated when Build was modified")
 	}
-
 }
 
 func TestSubstituteImageCustomAllMismatch(t *testing.T) {
@@ -506,11 +801,15 @@ func TestSubstituteImageCustomAllMismatch(t *testing.T) {
 	strategy := mockCustomStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// Full custom build with base image that is not matched
 	// Base image name should be unchanged
-	SubstituteImageReferences(build, "dummy", "dummy")
+	substituteImageReferences(build, "dummy", "dummy")
 	if build.Parameters.Strategy.CustomStrategy.Image != originalImage {
 		t.Errorf("Base image name was improperly substituted in custom strategy")
 	}
@@ -521,14 +820,18 @@ func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
 	strategy := mockCustomStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// Full custom build with a Image and a well defined environment variable image value that does not match the new image
 	// Only base image should be replaced.  Environment variables should not be touched.
 	build.Parameters.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 2)
 	build.Parameters.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
 	build.Parameters.Strategy.CustomStrategy.Env[1] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: "dummy"}
-	SubstituteImageReferences(build, originalImage, newImage)
+	substituteImageReferences(build, originalImage, newImage)
 	if build.Parameters.Strategy.CustomStrategy.Image != newImage {
 		t.Errorf("Base image name was not substituted in custom strategy")
 	}
@@ -548,14 +851,18 @@ func TestSubstituteImageCustomBaseMatchEnvMissing(t *testing.T) {
 	strategy := mockCustomStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// Custom build with a base Image but no image environment variable.
 	// base image should be replaced, new image environment variable should be added,
 	// existing environment variable should be untouched
 	build.Parameters.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 1)
 	build.Parameters.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
-	SubstituteImageReferences(build, originalImage, newImage)
+	substituteImageReferences(build, originalImage, newImage)
 	if build.Parameters.Strategy.CustomStrategy.Image != newImage {
 		t.Errorf("Base image name was not substituted in custom strategy")
 	}
@@ -575,11 +882,15 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 	strategy := mockCustomStrategy()
 	output := mockOutput()
 	bc := mockBuildConfig(source, strategy, output)
-	build := GenerateBuildFromConfig(bc, nil, nil, nil)
+	generator := mockBuildGenerator()
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
 
 	// Custom build with a base Image but no environment variables
 	// base image should be replaced, new image environment variable should be added
-	SubstituteImageReferences(build, originalImage, newImage)
+	substituteImageReferences(build, originalImage, newImage)
 	if build.Parameters.Strategy.CustomStrategy.Image != newImage {
 		t.Errorf("Base image name was not substituted in custom strategy")
 	}
@@ -588,6 +899,39 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 	}
 	if c := len(build.Parameters.Strategy.CustomStrategy.Env); c != 1 {
 		t.Errorf("Expected %d, found %d environment variables", 1, c)
+	}
+}
+
+func TestGetNextBuildName(t *testing.T) {
+	bc := mockBuildConfig(mockSource(), mockSTIStrategyForImage(), mockOutput())
+	if expected, actual := bc.Name+"-1", getNextBuildName(bc); expected != actual {
+		t.Errorf("Wrong buildName, expected %s, got %s", expected, actual)
+	}
+	if expected, actual := 1, bc.LastVersion; expected != actual {
+		t.Errorf("Wrong version, expected %d, got %d", expected, actual)
+	}
+}
+
+func TestGetNextBuildNameFromBuild(t *testing.T) {
+	testCases := []struct {
+		value    string
+		expected string
+	}{
+		// 0
+		{"mybuild-1", `^mybuild-1-\d+$`},
+		// 1
+		{"mybuild-1-1426794070", `^mybuild-1-\d+$`},
+		// 2
+		{"mybuild-1-1426794070-1-1426794070", `^mybuild-1-1426794070-1-\d+$`},
+		// 3
+		{"my-build-1", `^my-build-1-\d+$`},
+	}
+
+	for i, tc := range testCases {
+		buildName := getNextBuildNameFromBuild(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: tc.value}})
+		if matched, err := regexp.MatchString(tc.expected, buildName); !matched || err != nil {
+			t.Errorf("(%d) Unexpected build name, got %s", i, buildName)
+		}
 	}
 }
 
@@ -666,30 +1010,22 @@ func mockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrateg
 	}
 }
 
-type mockImageRepositoryNamespaceGetter struct {
-	namespace string
-	name      string
-}
-
-func (m *mockImageRepositoryNamespaceGetter) GetByNamespace(namespace, name string) (*imageapi.ImageRepository, error) {
-	if m.namespace != namespace || m.name != name {
-		return nil, nil
-	}
-	return &imageapi.ImageRepository{
-		ObjectMeta: kapi.ObjectMeta{Name: imageRepoName},
-		Status: imageapi.ImageRepositoryStatus{
-			DockerImageRepository: originalImage,
-			Tags: map[string]imageapi.TagEventList{
-				tagName: {
-					Items: []imageapi.TagEvent{
-						{
-							DockerImageReference: fmt.Sprintf("%s:%s", originalImage, newTag),
-							Image:                newTag,
-						},
-					},
-				},
-			},
+func mockBuildGenerator() *BuildGenerator {
+	return &BuildGenerator{Client: Client{
+		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+			return mockBuildConfig(mockSource(), mockSTIStrategyForImage(), mockOutput()), nil
 		},
-		Tags: map[string]string{tagName: newTag},
-	}, nil
+		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			return nil
+		},
+		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+			return nil
+		},
+		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+			return &buildapi.Build{}, nil
+		},
+		GetImageRepositoryFunc: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+			return &imageapi.ImageRepository{}, nil
+		},
+	}}
 }

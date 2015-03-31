@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -32,15 +33,15 @@ type CreateBootstrapPolicyFileOptions struct {
 	OpenShiftSharedResourcesNamespace string
 }
 
-func NewCommandCreateBootstrapPolicyFile() *cobra.Command {
+func NewCommandCreateBootstrapPolicyFile(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateBootstrapPolicyFileOptions{}
 
 	cmd := &cobra.Command{
-		Use:   CreateBootstrapPolicyFileCommand,
+		Use:   commandName,
 		Short: "Create bootstrap policy for OpenShift.",
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
+				fmt.Fprintln(c.Out(), err.Error())
 				c.Help()
 				return
 			}
@@ -50,6 +51,7 @@ func NewCommandCreateBootstrapPolicyFile() *cobra.Command {
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 

@@ -10,7 +10,22 @@ type FakeUserIdentityMappings struct {
 	Fake *Fake
 }
 
-func (c *FakeUserIdentityMappings) CreateOrUpdate(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, bool, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "createorupdate-useridentitymapping"})
-	return nil, false, nil
+func (c *FakeUserIdentityMappings) Get(name string) (*userapi.UserIdentityMapping, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-useridentitymapping", Value: name})
+	return &userapi.UserIdentityMapping{}, nil
+}
+
+func (c *FakeUserIdentityMappings) Create(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-useridentitymapping", Value: mapping})
+	return &userapi.UserIdentityMapping{}, nil
+}
+
+func (c *FakeUserIdentityMappings) Update(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-useridentitymapping", Value: mapping})
+	return &userapi.UserIdentityMapping{}, nil
+}
+
+func (c *FakeUserIdentityMappings) Delete(name string) error {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-useridentitymapping", Value: name})
+	return nil
 }

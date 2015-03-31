@@ -716,9 +716,9 @@ func expectedService(name string, port int, proto kapi.Protocol) map[string]kapi
 				Name: name,
 			},
 			Spec: kapi.ServiceSpec{
-				Port:          port,
-				Protocol:      proto,
-				ContainerPort: util.NewIntOrStringFromInt(port),
+				Port:       port,
+				Protocol:   proto,
+				TargetPort: util.NewIntOrStringFromInt(port),
 				Selector: map[string]string{
 					"deploymentconfig": name,
 				},

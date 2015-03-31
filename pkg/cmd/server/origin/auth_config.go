@@ -13,6 +13,10 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
+	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
+	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 )
 
 type AuthConfig struct {
@@ -24,6 +28,9 @@ type AuthConfig struct {
 	AssetPublicAddresses []string
 	MasterRoots          *x509.CertPool
 	EtcdHelper           tools.EtcdHelper
+
+	UserRegistry     userregistry.Registry
+	IdentityRegistry identityregistry.Registry
 
 	// Max age of authorize tokens
 	AuthorizeTokenMaxAgeSeconds int32
@@ -103,12 +110,20 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 		string(AuthRequestHandlerBasicAuth),
 	}, ",")
 
+	userStorage := useretcd.NewREST(etcdHelper)
+	userRegistry := userregistry.NewRegistry(userStorage)
+	identityStorage := identityetcd.NewREST(etcdHelper)
+	identityRegistry := identityregistry.NewRegistry(identityStorage)
+
 	ret := &AuthConfig{
 		MasterAddr:           options.OAuthConfig.MasterURL,
 		MasterPublicAddr:     options.OAuthConfig.MasterPublicURL,
 		AssetPublicAddresses: assetPublicURLs,
 		MasterRoots:          apiServerCAs,
 		EtcdHelper:           etcdHelper,
+
+		IdentityRegistry: identityRegistry,
+		UserRegistry:     userRegistry,
 
 		// Max token ages
 		AuthorizeTokenMaxAgeSeconds: cmdutil.EnvInt("OPENSHIFT_OAUTH_AUTHORIZE_TOKEN_MAX_AGE_SECONDS", 300, 1),

@@ -1,48 +1,58 @@
 package api
 
-import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-)
+import kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
 // Auth system gets identity name and provider
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
 
 type User struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta
+	kapi.ObjectMeta
 
-	FullName string `json:"fullName,omitempty"`
+	FullName string
+
+	Identities []string
 }
 
 type UserList struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
-	Items           []User `json:"items"`
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []User
 }
 
 type Identity struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta
+	kapi.ObjectMeta
 
-	// Provider is the source of identity information - if empty, the default provider
-	// is assumed.
-	Provider string `json:"provider"`
+	// ProviderName is the source of identity information
+	ProviderName string
 
-	// UserName uniquely represents this identity in the scope of the identity provider
-	UserName string `json:"userName"`
+	// ProviderUserName uniquely represents this identity in the scope of the provider
+	ProviderUserName string
 
-	Extra map[string]string `json:"extra,omitempty"`
+	// User is a reference to the user this identity is associated with
+	// Both Name and UID must be set
+	User kapi.ObjectReference
+
+	Extra map[string]string
+}
+
+type IdentityList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []Identity
 }
 
 type UserIdentityMapping struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta
+	kapi.ObjectMeta
 
-	Identity Identity `json:"identity,omitempty"`
-	User     User     `json:"user,omitempty"`
+	Identity kapi.ObjectReference
+	User     kapi.ObjectReference
 }
 
 func (*User) IsAnAPIObject()                {}
 func (*UserList) IsAnAPIObject()            {}
 func (*Identity) IsAnAPIObject()            {}
+func (*IdentityList) IsAnAPIObject()        {}
 func (*UserIdentityMapping) IsAnAPIObject() {}

@@ -24,15 +24,22 @@ import (
 // A successful response may also include name and/or email:
 //   {"id":"userid", "name": "User Name", "email":"user@example.com"}
 type Authenticator struct {
-	url    string
-	mapper authapi.UserIdentityMapper
+	providerName string
+	url          string
+	mapper       authapi.UserIdentityMapper
 }
 
 // RemoteUserData holds user data returned from a remote basic-auth protected endpoint.
 // These field names can not be changed unless external integrators are also updated.
 type RemoteUserData struct {
-	ID    string
-	Name  string
+	// ID is the immutable identity of the user
+	ID string
+	// Login is the optional login of the user
+	// Useful when the id is different than the username/login used by the user to authenticate
+	Login string
+	// Name is the optional display name of the user
+	Name string
+	// Email is the optional email address of the user
 	Email string
 }
 
@@ -42,8 +49,8 @@ type RemoteError struct {
 }
 
 // New returns an authenticator which will make a basic auth call to the given url.
-func New(url string, mapper authapi.UserIdentityMapper) authenticator.Password {
-	return &Authenticator{url, mapper}
+func New(providerName string, url string, mapper authapi.UserIdentityMapper) authenticator.Password {
+	return &Authenticator{providerName, url, mapper}
 }
 
 func (a *Authenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
@@ -89,13 +96,10 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 		return nil, false, errors.New("Could not retrieve user data")
 	}
 
-	identity := &authapi.DefaultUserIdentityInfo{
-		UserName: username,
-		Extra: map[string]string{
-			"name":  remoteUserData.Name,
-			"email": remoteUserData.Email,
-		},
-	}
+	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, remoteUserData.ID)
+	identity.Extra[authapi.IdentityDisplayNameKey] = remoteUserData.Name
+	identity.Extra[authapi.IdentityLoginKey] = remoteUserData.Login
+	identity.Extra[authapi.IdentityEmailKey] = remoteUserData.Email
 	user, err := a.mapper.UserFor(identity)
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 	if err != nil {

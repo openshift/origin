@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
@@ -110,11 +109,7 @@ func WriteNode(config *configapi.NodeConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	content, err := yaml.JSONToYAML(json)
-	if err != nil {
-		return nil, err
-	}
-	return content, nil
+	return json, err
 }
 
 // defaultHostname returns the default hostname for this system.

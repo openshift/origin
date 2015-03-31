@@ -3,6 +3,7 @@ package admin
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
+
+const CreateSignerCertCommandName = "create-signer-cert"
 
 type CreateSignerCertOptions struct {
 	CertFile   string
@@ -28,15 +31,15 @@ func BindSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.FlagSe
 	flags.BoolVar(&options.Overwrite, prefix+"overwrite", options.Overwrite, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 }
 
-func NewCommandCreateSignerCert() *cobra.Command {
+func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateSignerCertOptions{Overwrite: true}
 
 	cmd := &cobra.Command{
-		Use:   "create-signer-cert",
+		Use:   commandName,
 		Short: "Create signer certificate",
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
+				fmt.Fprintln(c.Out(), err.Error())
 				c.Help()
 				return
 			}
@@ -46,6 +49,7 @@ func NewCommandCreateSignerCert() *cobra.Command {
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	BindSignerCertOptions(options, cmd.Flags(), "")
 

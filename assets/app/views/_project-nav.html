@@ -18,7 +18,24 @@
           </div>
           <div class="col-md-4 active-filters">
           </div>
-          <div class="col-md-2" style="margin-top: 30px;"><a href="project/{{projectName}}/catalog" class="btn btn-lg btn-primary">Create <i class="fa fa-plus" /></a></div>
+          <div class="col-md-2" style="margin-top: 30px;">
+            <span ng-if="project.status.phase == 'Active'">
+              <a href="project/{{projectName}}/catalog" class="btn btn-lg btn-primary">
+                <span>Create</span>
+                <i class="fa fa-plus" />
+              </a>
+            </span>
+            <span ng-if="project.status.phase != 'Active'">
+              <a href="project/{{projectName}}/catalog" class="btn btn-lg btn-primary" disabled="disabled">
+                <span>Create</span>
+                <i class="fa fa-plus" />
+              </a>
+              <span class="pficon-layered" data-toggle="tooltip" data-placement="left" title="This project has been marked for deletion. No content may be created in this project." style="cursor: help; font-size: 32px; vertical-align: top; margin-left: 5px;">
+                <span class="pficon pficon-warning-triangle"></span>
+                <span class="pficon pficon-warning-exclamation"></span>
+              </span>              
+            </span>
+          </div>
         </div>
     </div>
   </div>

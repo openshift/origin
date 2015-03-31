@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
@@ -53,7 +54,7 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 
 	osClient := osclient.NewOrDie(&kclient.Config{Host: server.URL})
 
-	storage := map[string]apiserver.RESTStorage{
+	storage := map[string]rest.Storage{
 		"templateConfigs": templateregistry.NewREST(),
 	}
 

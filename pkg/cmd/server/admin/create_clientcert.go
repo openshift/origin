@@ -2,10 +2,8 @@ package admin
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/golang/glog"
-	"github.com/spf13/cobra"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -23,40 +21,6 @@ type CreateClientCertOptions struct {
 	Groups util.StringList
 
 	Overwrite bool
-}
-
-func NewCommandCreateClientCert() *cobra.Command {
-	options := &CreateClientCertOptions{GetSignerCertOptions: &GetSignerCertOptions{}}
-
-	cmd := &cobra.Command{
-		Use:   "create-client-cert",
-		Short: "Create client certificate",
-		Run: func(c *cobra.Command, args []string) {
-			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
-				c.Help()
-				return
-			}
-
-			if _, err := options.CreateClientCert(); err != nil {
-				fmt.Println(err.Error())
-				c.Help()
-				return
-			}
-		},
-	}
-
-	flags := cmd.Flags()
-	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "")
-
-	flags.StringVar(&options.CertFile, "cert", "openshift.local.certificates/user/cert.crt", "The certificate file.")
-	flags.StringVar(&options.KeyFile, "key", "openshift.local.certificates/user/key.key", "The key file.")
-
-	flags.StringVar(&options.User, "user", "", "The scope qualified username.")
-	flags.Var(&options.Groups, "groups", "The list of groups this user belongs to. Comma delimited list")
-	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
-
-	return cmd
 }
 
 func (o CreateClientCertOptions) Validate(args []string) error {

@@ -4,7 +4,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 )
 
-// FakeBuildLogs implements BuildLogInterface. Meant to be embedded into a struct to get a default
+// FakeBuildLogs implements BuildLogsInterface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the methods you want to test easier.
 type FakeBuildLogs struct {
 	Fake      *Fake

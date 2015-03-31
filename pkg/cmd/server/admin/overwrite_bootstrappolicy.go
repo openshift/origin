@@ -28,22 +28,27 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
+const OverwriteBootstrapPolicyCommandName = "overwrite-policy"
+
 type OverwriteBootstrapPolicyOptions struct {
 	File             string
 	MasterConfigFile string
-	Force            bool
-	Out              io.Writer
+
+	Force                        bool
+	Out                          io.Writer
+	CreateBootstrapPolicyCommand string
 }
 
-func NewCommandOverwriteBootstrapPolicy(out io.Writer) *cobra.Command {
+func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, createBootstrapPolicyCommand string, out io.Writer) *cobra.Command {
 	options := &OverwriteBootstrapPolicyOptions{Out: out}
+	options.CreateBootstrapPolicyCommand = createBootstrapPolicyCommand
 
 	cmd := &cobra.Command{
-		Use:   "overwrite-policy",
+		Use:   commandName,
 		Short: "Reset the policy to the default values",
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
+				fmt.Fprintln(c.Out(), err.Error())
 				c.Help()
 				return
 			}
@@ -53,11 +58,12 @@ func NewCommandOverwriteBootstrapPolicy(out io.Writer) *cobra.Command {
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
 	flags.BoolVarP(&options.Force, "force", "f", false, "You must confirm you really want to reset your policy. This will delete any custom settings you may have.")
-	flags.StringVar(&options.File, "filename", "", "The policy template file containing roles and bindings.  One can be created with '"+CreateBootstrapPolicyFileFullCommand+"'.")
+	flags.StringVar(&options.File, "filename", "", "The policy template file containing roles and bindings.  One can be created with '"+createBootstrapPolicyCommand+"'.")
 	flags.StringVar(&options.MasterConfigFile, "master-config", "master.yaml", "Location of the master configuration file to run from in order to connect to etcd and directly modify the policy.")
 
 	return cmd
@@ -91,13 +97,14 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 		return err
 	}
 
-	return OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.MasterAuthorizationNamespace, o.File, o.Force, o.Out)
+	return OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.MasterAuthorizationNamespace, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
 }
 
-func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, policyFile string, change bool, out io.Writer) error {
+func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, policyFile, createBootstrapPolicyCommand string, change bool, out io.Writer) error {
 	if !change {
 		fmt.Fprintf(out, "Performing a dry run of policy overwrite:\n\n")
 	}
+
 	mapper := cmdclientcmd.ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
 	typer := api.Scheme
 	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
@@ -120,7 +127,7 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 	return r.Visit(func(info *resource.Info) error {
 		template, ok := info.Object.(*templateapi.Template)
 		if !ok {
-			return errors.New("policy must be contained in a template.  One can be created with '" + CreateBootstrapPolicyFileFullCommand + "'.")
+			return errors.New("policy must be contained in a template.  One can be created with '" + createBootstrapPolicyCommand + "'.")
 		}
 
 		for _, item := range template.Objects {

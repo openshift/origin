@@ -6,11 +6,11 @@ import (
 
 // BuildLogsNamespacer has methods to work with BuildLogs resources in a namespace
 type BuildLogsNamespacer interface {
-	BuildLogs(namespace string) BuildLogInterface
+	BuildLogs(namespace string) BuildLogsInterface
 }
 
 // BuildLogsInterface exposes methods on BuildLogs resources.
-type BuildLogInterface interface {
+type BuildLogsInterface interface {
 	Redirect(name string) *kclient.Request
 }
 

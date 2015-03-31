@@ -22,7 +22,7 @@ func (c *Fake) BuildConfigs(namespace string) BuildConfigInterface {
 	return &FakeBuildConfigs{Fake: c, Namespace: namespace}
 }
 
-func (c *Fake) BuildLogs(namespace string) BuildLogInterface {
+func (c *Fake) BuildLogs(namespace string) BuildLogsInterface {
 	return &FakeBuildLogs{Fake: c, Namespace: namespace}
 }
 
@@ -60,6 +60,10 @@ func (c *Fake) Routes(namespace string) RouteInterface {
 
 func (c *Fake) Templates(namespace string) TemplateInterface {
 	return &FakeTemplates{Fake: c}
+}
+
+func (c *Fake) Identities() IdentityInterface {
+	return &FakeIdentities{Fake: c}
 }
 
 func (c *Fake) Users() UserInterface {

@@ -324,6 +324,21 @@
 			"Rev": "f057a25b5d37a496c1ce25fbe1dc1b1971266240"
 		},
 		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api",
+			"Comment": "v0.12.0-1094-gcb7c781",
+			"Rev": "cb7c781da50a2f248f84f6407fe50479f625052f"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/algorithmprovider",
+			"Comment": "v0.12.0-1094-gcb7c781",
+			"Rev": "cb7c781da50a2f248f84f6407fe50479f625052f"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory",
+			"Comment": "v0.12.0-1094-gcb7c781",
+			"Rev": "cb7c781da50a2f248f84f6407fe50479f625052f"
+		},
+		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/third_party/golang/netutil",
 			"Comment": "v0.13.1-dev-641-gf057a25",
 			"Rev": "f057a25b5d37a496c1ce25fbe1dc1b1971266240"

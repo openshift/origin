@@ -57,7 +57,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "osc":
 		cmd = cli.NewCommandCLI(basename, basename)
 	case "osadm":
-		cmd = admin.NewCommandAdmin(basename, basename)
+		cmd = admin.NewCommandAdmin(basename, basename, os.Stdout)
 	default:
 		cmd = NewCommandOpenShift()
 	}
@@ -83,7 +83,7 @@ func NewCommandOpenShift() *cobra.Command {
 
 	startAllInOne, _ := start.NewCommandStartAllInOne()
 	root.AddCommand(startAllInOne)
-	root.AddCommand(admin.NewCommandAdmin("admin", "openshift admin"))
+	root.AddCommand(admin.NewCommandAdmin("admin", "openshift admin", os.Stdout))
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
 	root.AddCommand(cli.NewCmdKubectl("kube"))
 	root.AddCommand(newExperimentalCommand("openshift", "ex"))

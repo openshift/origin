@@ -80,12 +80,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret string) {
 		Name: pushSecret,
 		VolumeSource: kapi.VolumeSource{
 			Secret: &kapi.SecretVolumeSource{
-				Target: kapi.ObjectReference{
-					Kind: "Secret",
-					Name: pushSecret,
-					// TODO: Remove the namespace once it gets fixed upstream
-					Namespace: pod.Namespace,
-				},
+				SecretName: pushSecret,
 			},
 		},
 	}
@@ -137,4 +132,14 @@ func getContainerVerbosity(containerEnv []kapi.EnvVar) (verbosity string) {
 		}
 	}
 	return
+}
+
+// getPodLabels copies build labels and adds additional one with build name itself
+func getPodLabels(build *buildapi.Build) map[string]string {
+	podLabels := make(map[string]string)
+	for k, v := range build.Labels {
+		podLabels[k] = v
+	}
+	podLabels[buildapi.BuildLabel] = build.Name
+	return podLabels
 }

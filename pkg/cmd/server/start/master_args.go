@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/ghodss/yaml"
 	"github.com/spf13/pflag"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -17,6 +16,8 @@ import (
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+
+	"github.com/ghodss/yaml"
 )
 
 // MasterArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting the master
@@ -297,7 +298,7 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 		return nil, err
 	}
 
-	allHostnames := util.NewStringSet("localhost", "127.0.0.1", masterAddr.Host, masterPublicAddr.Host, kubePublicAddr.Host, assetPublicAddr.Host)
+	allHostnames := util.NewStringSet("localhost", "127.0.0.1", "openshift.default.local", "kubernetes.default.local", "kubernetes-ro.default.local", masterAddr.Host, masterPublicAddr.Host, kubePublicAddr.Host, assetPublicAddr.Host)
 	certHostnames := util.StringSet{}
 	for hostname := range allHostnames {
 		if host, _, err := net.SplitHostPort(hostname); err == nil {
@@ -385,7 +386,6 @@ func (args MasterArgs) GetEtcdAddress() (*url.URL, error) {
 	etcdAddr := net.JoinHostPort(getHost(*masterAddr), strconv.Itoa(args.EtcdAddr.DefaultPort))
 	return url.Parse(args.EtcdAddr.DefaultScheme + "://" + etcdAddr)
 }
-
 func (args MasterArgs) GetKubernetesPublicAddress() (*url.URL, error) {
 	if args.KubernetesPublicAddr.Provided {
 		return args.KubernetesPublicAddr.URL, nil
@@ -444,9 +444,10 @@ func WriteMaster(config *configapi.MasterConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	content, err := yaml.JSONToYAML(json)
 	if err != nil {
 		return nil, err
 	}
-	return content, nil
+	return content, err
 }

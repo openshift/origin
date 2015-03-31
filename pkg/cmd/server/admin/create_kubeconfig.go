@@ -3,6 +3,7 @@ package admin
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +14,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 )
+
+const CreateKubeConfigCommandName = "create-kubeconfig"
 
 type CreateKubeConfigOptions struct {
 	APIServerURL       string
@@ -27,11 +30,11 @@ type CreateKubeConfigOptions struct {
 	KubeConfigFile string
 }
 
-func NewCommandCreateKubeConfig() *cobra.Command {
+func NewCommandCreateKubeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateKubeConfigOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "create-kubeconfig",
+		Use:   commandName,
 		Short: "Create a basic .kubeconfig file from client certs",
 		Long: `
 Create's a .kubeconfig file at <--kubeconfig> that looks like this:
@@ -60,7 +63,7 @@ users:
 `,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
+				fmt.Fprintln(c.Out(), err.Error())
 				c.Help()
 				return
 			}
@@ -70,6 +73,7 @@ users:
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 

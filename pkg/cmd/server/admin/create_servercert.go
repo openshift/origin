@@ -3,6 +3,7 @@ package admin
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
+
+const CreateServerCertCommandName = "create-server-cert"
 
 type CreateServerCertOptions struct {
 	GetSignerCertOptions *GetSignerCertOptions
@@ -22,15 +25,15 @@ type CreateServerCertOptions struct {
 	Overwrite bool
 }
 
-func NewCommandCreateServerCert() *cobra.Command {
+func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateServerCertOptions{GetSignerCertOptions: &GetSignerCertOptions{}}
 
 	cmd := &cobra.Command{
-		Use:   "create-server-cert",
+		Use:   commandName,
 		Short: "Create server certificate",
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
+				fmt.Fprintln(c.Out(), err.Error())
 				c.Help()
 				return
 			}
@@ -40,6 +43,7 @@ func NewCommandCreateServerCert() *cobra.Command {
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "")
