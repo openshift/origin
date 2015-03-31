@@ -79,6 +79,9 @@ var originTypes = []string{
 	"Role", "RoleBinding", "Policy", "PolicyBinding", "ResourceAccessReview", "SubjectAccessReview",
 }
 
+// UserResources is a group of user-defined resources
+var UserResources = []string{"bc", "builds", "services", "imageStreams", "pods", "routes", "dc", "rc"}
+
 // OriginKind returns true if OpenShift owns the kind described in a given apiVersion.
 // TODO: make this based on scheme information or other behavior
 func OriginKind(kind, apiVersion string) bool {

@@ -32,3 +32,15 @@ func (m MultiRESTMapper) RESTMapping(kind string, versions ...string) (mapping *
 	}
 	return
 }
+
+// AliasesForResource returns whether a resource has an alias or not. This implementation
+// supports multiple REST schemas and return the first match.
+func (m MultiRESTMapper) AliasesForResource(resource string) (aliases []string, has bool) {
+	for _, t := range m {
+		aliases, has = t.AliasesForResource(resource)
+		if has {
+			return
+		}
+	}
+	return
+}

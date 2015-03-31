@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	ctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/fsouza/go-dockerclient"
@@ -21,6 +22,7 @@ import (
 	genapp "github.com/openshift/origin/pkg/generate/app"
 	gen "github.com/openshift/origin/pkg/generate/generator"
 	"github.com/openshift/origin/pkg/generate/source"
+	"github.com/openshift/origin/pkg/util"
 )
 
 const longDescription = `
@@ -49,6 +51,9 @@ Examples:
 
     # Find a git repository in the current directory and build artifacts based on detection
     $ openshift ex generate
+
+    # Build artifacts from a git repository in the current directory using the specified label
+    $ openshift ex generate -l name=hello-world
 
     # Specify the directory for the repository to use
     $ openshift ex generate ./repo/dir
@@ -97,6 +102,7 @@ func NewCmdGenerate(f *clientcmd.Factory, parentName, name string, out io.Writer
 	flag.StringVarP(&input.port, "port", "p", "", "Port to expose on pod deployment")
 	flag.StringVarP(&environment, "environment", "e", "", "Comma-separated list of environment variables to add to the deployment."+
 		"Should be in the form of var1=value1,var2=value2,...")
+	flag.StringP("labels", "l", "", "Label to set in all resources for this configuration")
 	kcmdutil.AddPrinterFlags(c)
 	dockerHelper.InstallFlags(flag)
 	return c
@@ -148,6 +154,17 @@ func RunGenerate(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []s
 	list, err := generator.run()
 	if err != nil {
 		return err
+	}
+
+	label := kcmdutil.GetFlagString(c, "labels")
+	if len(label) != 0 {
+		lbl := ctl.ParseLabels(label)
+		for _, object := range list.Items {
+			err = util.AddObjectLabels(object, lbl)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// Output config
