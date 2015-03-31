@@ -15,7 +15,8 @@ angular
     'ngResource',
     'ngRoute',
     'ngSanitize',
-    'ngTouch'
+    'ngTouch',
+    'kubernetesUI'
   ])
   .constant("mainNavTabs", [])  // even though its not really a "constant", it has to be created as a constant and not a value
                          // or it can't be referenced during module config
