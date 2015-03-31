@@ -41,7 +41,10 @@ func getIP(t *testing.T) string {
 
 func TestIPServe(t *testing.T) {
 	inuse := make([]string, 0)
-	ipam, _ := netutils.NewIPAllocator("10.20.30.40/24", inuse)
+	ipam, err := netutils.NewIPAllocator("10.20.30.40/24", inuse)
+	if err != nil {
+		t.Fatalf("Error while initializing IPAM: %v", err)
+	}
 	go ListenAndServeNetutilServer(ipam, net.ParseIP("127.0.0.1"), 9080, nil)
 
 	// get, get, delete, get
@@ -53,7 +56,7 @@ func TestIPServe(t *testing.T) {
 	if ip != "10.20.30.2/24" {
 		t.Fatalf("Wrong IP. Expected 10.20.30.2/24, got %s", ip)
 	}
-	err := delIP(t, ip)
+	err = delIP(t, ip)
 	if err != nil {
 		t.Fatalf("Error while deleting IP address %s: %v", ip, err)
 	}

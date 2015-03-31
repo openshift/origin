@@ -21,6 +21,13 @@ type TLSOptions struct {
 	KeyFile  string
 }
 
+// IpamInterface contains all the methods required by the server.
+type IpamInterface interface {
+	GetIP() (*net.IPNet, error)
+	ReleaseIP(ip *net.IPNet) error
+	//GetStats() string
+}
+
 // ListenAndServeNetutilServer initializes a server to respond to HTTP network requests on the ipam interface
 func ListenAndServeNetutilServer(ipam IpamInterface, address net.IP, port uint, tlsOptions *TLSOptions) {
 	handler := NewServer(ipam)
@@ -37,13 +44,6 @@ func ListenAndServeNetutilServer(ipam IpamInterface, address net.IP, port uint, 
 	} else {
 		s.ListenAndServe()
 	}
-}
-
-// IpamInterface contains all the methods required by the server.
-type IpamInterface interface {
-	GetIP() (*net.IPNet, error)
-	ReleaseIP(ip *net.IPNet) error
-	//GetStats() string
 }
 
 // NewServer initializes and configures the netutils_server.Server object to handle HTTP requests.
@@ -88,8 +88,12 @@ func (s *Server) handleGateway(w http.ResponseWriter, req *http.Request) {
 func (s *Server) handleIP(w http.ResponseWriter, req *http.Request) {
 	if req.Method == "GET" {
 		w.Header().Add("Content-type", "application/json")
-		ipnet, _ := s.ipam.GetIP()
-		w.Write([]byte(ipnet.String()))
+		ipnet, err := s.ipam.GetIP()
+		if err != nil {
+			s.error(w, err)
+		} else {
+			w.Write([]byte(ipnet.String()))
+		}
 	} else if req.Method == "DELETE" {
 		ip, ipNet, err := net.ParseCIDR(req.URL.Path[len("/netutils/ip/"):])
 		if err != nil {
