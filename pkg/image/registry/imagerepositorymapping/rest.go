@@ -48,7 +48,6 @@ func (r *REST) New() runtime.Object {
 	return &api.ImageRepositoryMapping{}
 }
 
-func (imageRepositoryMappingStrategy) PrepareForCreate(obj runtime.Object)      {}
 func (imageRepositoryMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 // NamespaceScoped is true for image repository mappings.
@@ -56,8 +55,8 @@ func (s imageRepositoryMappingStrategy) NamespaceScoped() bool {
 	return true
 }
 
-// ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
-func (s imageRepositoryMappingStrategy) ResetBeforeCreate(obj runtime.Object) {
+// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
+func (s imageRepositoryMappingStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new ImageRepositoryMapping.

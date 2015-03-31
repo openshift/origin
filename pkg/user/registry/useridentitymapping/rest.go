@@ -40,9 +40,6 @@ type userIdentityMappingStrategy struct {
 // objects via the REST API.
 var Strategy = userIdentityMappingStrategy{kapi.Scheme}
 
-func (userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object)      {}
-func (userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {}
-
 // New returns a new UserIdentityMapping for use with Create.
 func (r *REST) New() runtime.Object {
 	return &api.UserIdentityMapping{}
@@ -61,8 +58,8 @@ func (userIdentityMappingStrategy) AllowCreateOnUpdate() bool {
 	return true
 }
 
-// ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
-func (s userIdentityMappingStrategy) ResetBeforeCreate(obj runtime.Object) {
+// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
+func (s userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object) {
 	mapping := obj.(*api.UserIdentityMapping)
 
 	if len(mapping.Name) == 0 {
@@ -80,8 +77,8 @@ func (s userIdentityMappingStrategy) ResetBeforeCreate(obj runtime.Object) {
 	mapping.User.UID = ""
 }
 
-// ResetBeforeUpdate clears fields that are not allowed to be set by end users on update
-func (s userIdentityMappingStrategy) ResetBeforeUpdate(obj runtime.Object) {
+// PrepareForUpdate clears fields that are not allowed to be set by end users on update
+func (s userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	mapping := obj.(*api.UserIdentityMapping)
 
 	if len(mapping.Name) == 0 {
@@ -123,7 +120,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if !ok {
 		return nil, errors.New("Invalid type")
 	}
-	Strategy.ResetBeforeCreate(mapping)
+	Strategy.PrepareForCreate(mapping)
 	createdMapping, _, err := s.createOrUpdate(ctx, obj, true)
 	return createdMapping, err
 }
@@ -136,7 +133,7 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 	if !ok {
 		return nil, false, errors.New("Invalid type")
 	}
-	Strategy.ResetBeforeUpdate(mapping)
+	Strategy.PrepareForUpdate(mapping, nil)
 	return s.createOrUpdate(ctx, mapping, false)
 }
 
