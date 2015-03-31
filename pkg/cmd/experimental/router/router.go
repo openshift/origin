@@ -224,11 +224,9 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 								Template: &kapi.PodTemplateSpec{
 									ObjectMeta: kapi.ObjectMeta{Labels: label},
 									Spec: kapi.PodSpec{
-										Containers: getRouterPodContainers(cfg, env),
-										Volumes:    getFailoverContainerVolumes(),
-										//  TODO(ramr): Can only add this once
-										//  the kubernetes rebase is done.
-										// HostNetwork: true,
+										Containers:  getRouterPodContainers(cfg, env),
+										Volumes:     getFailoverContainerVolumes(),
+										HostNetwork: true,
 									},
 								},
 							},
@@ -389,6 +387,7 @@ func getFailoverMonitorContainer(cfg *config, env app.Environment) *kapi.Contain
 		// TODO:  Need a non-tcp|http based check here.
 		//        E.g.  pidof monitor.sh
 		// LivenessProbe: ... ,
+		ImagePullPolicy: kapi.PullIfNotPresent,
 	}
 }
 
