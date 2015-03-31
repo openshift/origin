@@ -13,6 +13,7 @@ import (
 func NewServerDefaults() (*server.Config, error) {
 	config := &server.Config{
 		Domain: "local.",
+		Local:  "openshift.default.local.",
 	}
 	return config, server.SetDefaults(config)
 }
@@ -23,7 +24,7 @@ func NewServerDefaults() (*server.Config, error) {
 func ListenAndServe(config *server.Config, client *client.Client, etcdclient *etcd.Client) error {
 	stop := make(chan struct{})
 	accessor := NewCachedServiceAccessor(client, stop)
-	resolver := NewServiceResolver(config, accessor)
+	resolver := NewServiceResolver(config, accessor, client, openshiftFallback)
 	resolvers := server.FirstBackend{resolver}
 	if etcdclient != nil {
 		resolvers = append(resolvers, backendetcd.NewBackend(etcdclient, &backendetcd.Config{
@@ -35,6 +36,13 @@ func ListenAndServe(config *server.Config, client *client.Client, etcdclient *et
 	s := server.New(resolvers, config)
 	defer close(stop)
 	return s.Run()
+}
+
+func openshiftFallback(name string, exact bool) (string, bool) {
+	if name == "openshift.default" {
+		return "kubernetes.default.", true
+	}
+	return "", false
 }
 
 // counter is a SkyDNS compatible Counter
