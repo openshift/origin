@@ -2,10 +2,12 @@ package validation
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/user/api/validation"
 )
 
@@ -127,11 +129,70 @@ func ValidateGrantConfig(config api.GrantConfig) fielderrors.ValidationErrorList
 func ValidateSessionConfig(config *api.SessionConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if len(config.SessionSecrets) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("sessionSecrets"))
+	// Validate session secrets file, if specified
+	if len(config.SessionSecretsFile) > 0 {
+		fileErrs := ValidateFile(config.SessionSecretsFile, "sessionSecretsFile")
+		if len(fileErrs) != 0 {
+			// Missing file
+			allErrs = append(allErrs, fileErrs...)
+		} else {
+			// Validate file contents
+			secrets, err := latest.ReadSessionSecrets(config.SessionSecretsFile)
+			if err != nil {
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("sessionSecretsFile", config.SessionSecretsFile, fmt.Sprintf("error reading file: %v", err)))
+			} else {
+				for _, err := range ValidateSessionSecrets(secrets) {
+					allErrs = append(allErrs, fielderrors.NewFieldInvalid("sessionSecretsFile", config.SessionSecretsFile, err.Error()))
+				}
+			}
+		}
 	}
+
 	if len(config.SessionName) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("sessionName"))
+	}
+
+	return allErrs
+}
+
+func ValidateSessionSecrets(config *api.SessionSecrets) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(config.Secrets) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("secrets"))
+	}
+
+	for i, secret := range config.Secrets {
+		switch {
+		case len(secret.Authentication) == 0:
+			allErrs = append(allErrs, fielderrors.NewFieldRequired(fmt.Sprintf("secrets[%d].authentication", i)))
+		case len(secret.Authentication) < 32:
+			// Don't output current value in error message... we don't want it logged
+			allErrs = append(allErrs,
+				fielderrors.NewFieldInvalid(
+					fmt.Sprintf("secrets[%d].authentpsecretsication", i),
+					strings.Repeat("*", len(secret.Authentication)),
+					"must be at least 32 characters long",
+				),
+			)
+		}
+
+		switch len(secret.Encryption) {
+		case 0:
+			// Require encryption secrets
+			allErrs = append(allErrs, fielderrors.NewFieldRequired(fmt.Sprintf("secrets[%d].encryption", i)))
+		case 16, 24, 32:
+			// Valid lengths
+		default:
+			// Don't output current value in error message... we don't want it logged
+			allErrs = append(allErrs,
+				fielderrors.NewFieldInvalid(
+					fmt.Sprintf("secrets[%d].encryption", i),
+					strings.Repeat("*", len(secret.Encryption)),
+					"must be 16, 24, or 32 characters long",
+				),
+			)
+		}
 	}
 
 	return allErrs

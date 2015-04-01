@@ -48,6 +48,11 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	}
 
 	if config.OAuthConfig != nil {
+
+		if config.OAuthConfig.SessionConfig != nil {
+			refs = append(refs, &config.OAuthConfig.SessionConfig.SessionSecretsFile)
+		}
+
 		for _, identityProvider := range config.OAuthConfig.IdentityProviders {
 			switch provider := identityProvider.Provider.Object.(type) {
 			case (*RequestHeaderIdentityProvider):

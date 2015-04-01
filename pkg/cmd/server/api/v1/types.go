@@ -179,13 +179,31 @@ type TokenConfig struct {
 	AccessTokenMaxAgeSeconds int32 `json:"accessTokenMaxAgeSeconds"`
 }
 
+// SessionConfig specifies options for cookie-based sessions. Used by AuthRequestHandlerSession
 type SessionConfig struct {
-	// SessionSecrets list the secret(s) to use to encrypt created sessions. Used by AuthRequestHandlerSession
-	SessionSecrets []string `json:"sessionSecrets"`
+	// SessionSecretsFile is a reference to a file containing a serialized SessionSecrets object
+	// If no file is specified, a random signing and encryption key are generated at each server start
+	SessionSecretsFile string `json:"sessionSecretsFile"`
 	// SessionMaxAgeSeconds specifies how long created sessions last. Used by AuthRequestHandlerSession
 	SessionMaxAgeSeconds int32 `json:"sessionMaxAgeSeconds"`
 	// SessionName is the cookie name used to store the session
 	SessionName string `json:"sessionName"`
+}
+
+// SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.
+type SessionSecrets struct {
+	v1beta3.TypeMeta `json:",inline"`
+
+	// New sessions are signed and encrypted using the first secret.
+	// Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.
+	Secrets []SessionSecret `json:"secrets"`
+}
+
+type SessionSecret struct {
+	// Signing secret, used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.
+	Authentication string `json:"authentication"`
+	// Encrypting secret, used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-
+	Encryption string `json:"encryption"`
 }
 
 type IdentityProvider struct {
