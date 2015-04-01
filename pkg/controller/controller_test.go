@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kcache "github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 func TestRetryController_handleOneRetryableError(t *testing.T) {
@@ -86,6 +87,7 @@ func TestQueueRetryManager_retries(t *testing.T) {
 			return true
 		},
 		retries: make(map[string]int),
+		limiter: kutil.NewTokenBucketRateLimiter(1000, 1000),
 	}
 
 	objects := []testObj{
@@ -129,7 +131,7 @@ func TestRetryController_realFifoEventOrdering(t *testing.T) {
 
 	controller := &RetryController{
 		Queue:        fifo,
-		RetryManager: NewQueueRetryManager(fifo, keyFunc, func(_ interface{}, _ error, _ int) bool { return true }),
+		RetryManager: NewQueueRetryManager(fifo, keyFunc, func(_ interface{}, _ error, _ int) bool { return true }, kutil.NewTokenBucketRateLimiter(1000, 10)),
 		Handle: func(obj interface{}) error {
 			if e, a := 1, obj.(testObj).value; e != a {
 				t.Fatalf("expected to handle test value %d, got %d", e, a)
@@ -156,6 +158,48 @@ func TestRetryController_realFifoEventOrdering(t *testing.T) {
 		t.Fatalf("expected queued value %d, got %d", e, a)
 	}
 }
+
+// This test ensures that when events are retried, the
+// requeue rate does not exceed the configured rate limit,
+// including burst behavior.
+func TestRetryController_ratelimit(t *testing.T) {
+	keyFunc := func(obj interface{}) (string, error) {
+		return "key", nil
+	}
+	fifo := kcache.NewFIFO(keyFunc)
+	limiter := &mockLimiter{}
+	retryManager := NewQueueRetryManager(fifo,
+		keyFunc,
+		func(_ interface{}, _ error, c int) bool {
+			if c < 15 {
+				return true
+			}
+			return false
+		},
+		limiter,
+	)
+	for i := 0; i < 10; i++ {
+		retryManager.Retry("key", nil)
+	}
+
+	if limiter.count != 10 {
+		t.Fatalf("Retries did not invoke rate limiter, expected %d got %d", 10, limiter.count)
+	}
+}
+
+type mockLimiter struct {
+	count int
+}
+
+func (l *mockLimiter) CanAccept() bool {
+	return true
+}
+
+func (l *mockLimiter) Accept() {
+	l.count++
+}
+
+func (l *mockLimiter) Stop() {}
 
 type testObj struct {
 	id    string

@@ -25,10 +25,11 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// logAndRetry retries forever - BuildPodController currently has no fatal errors
-func logAndRetry(obj interface{}, err error, _ int) bool {
+// limitedLogAndRetry stops retrying after 60 attempts.  Given the throttler configuration,
+// this means this event has been retried over a period of at least 50 seconds.
+func limitedLogAndRetry(obj interface{}, err error, count int) bool {
 	kutil.HandleError(err)
-	return true
+	return count < 60
 }
 
 // BuildControllerFactory constructs BuildController objects
@@ -62,7 +63,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 
 	return &controller.RetryController{
 		Queue:        queue,
-		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, logAndRetry),
+		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, limitedLogAndRetry, kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			build := obj.(*buildapi.Build)
 			return buildController.HandleBuild(build)
@@ -106,7 +107,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 
 	return &controller.RetryController{
 		Queue:        queue,
-		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, logAndRetry),
+		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, limitedLogAndRetry, kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			pod := obj.(*kapi.Pod)
 			return buildPodController.HandlePod(pod)
@@ -145,13 +146,17 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, _ int) bool {
+			func(obj interface{}, err error, count int) bool {
 				kutil.HandleError(err)
 				if _, isFatal := err.(buildcontroller.ImageChangeControllerFatalError); isFatal {
 					return false
 				}
+				if count > 60 {
+					return false
+				}
 				return true
 			},
+			kutil.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			imageRepo := obj.(*imageapi.ImageStream)

@@ -74,6 +74,7 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 				}
 				return true
 			},
+			kutil.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			config := obj.(*deployapi.DeploymentConfig)
