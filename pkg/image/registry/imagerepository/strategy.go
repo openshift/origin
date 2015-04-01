@@ -27,7 +27,6 @@ func NewStrategy(defaultRegistry DefaultRegistry) Strategy {
 	return Strategy{kapi.Scheme, kapi.SimpleNameGenerator, defaultRegistry}
 }
 
-func (Strategy) PrepareForCreate(obj runtime.Object)      {}
 func (Strategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 // NamespaceScoped is true for image repositories.
@@ -35,8 +34,8 @@ func (s Strategy) NamespaceScoped() bool {
 	return true
 }
 
-// ResetBeforeCreate clears fields that are not allowed to be set by end users on creation.
-func (s Strategy) ResetBeforeCreate(obj runtime.Object) {
+// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
+func (s Strategy) PrepareForCreate(obj runtime.Object) {
 	repo := obj.(*api.ImageRepository)
 	repo.Status = api.ImageRepositoryStatus{
 		DockerImageRepository: s.dockerImageRepository(repo),
