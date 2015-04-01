@@ -44,7 +44,9 @@ func decorate(template string, trim bool) string {
 
 const (
 	// TODO: $isRootCmd should be done in code, not in the template
-	funcs = `{{$isRootCmd := or (and (eq .Name "cli") (eq .Root.Name "openshift")) (eq .Name "osc") (and (eq .Name "admin") (eq .Root.Name "openshift")) (eq .Name "osadm")}}{{define "rootCli"}}{{if eq .Root.Name "osadm"}}osadm{{else}}{{if eq .Root.Name "osc"}}osc{{else}}openshift {{.Name}}{{end}}{{end}}{{end}}`
+	funcIsRootCmd = `{{$isRootCmd := or (and (eq .Name "cli") (eq .Root.Name "openshift")) (eq .Name "osc") (and (eq .Name "admin") (eq .Root.Name "openshift")) (eq .Name "osadm")}}`
+	funcRootCli   = `{{define "rootCli"}}{{if eq .Root.Name "osadm"}}osadm{{else}}{{if eq .Root.Name "osc"}}osc{{else}}openshift {{.Name}}{{end}}{{end}}{{end}}`
+	funcs         = funcIsRootCmd + funcRootCli
 
 	mainHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
@@ -62,42 +64,42 @@ Available Commands: {{range .Commands}}{{if .Runnable}}
 {{end}}
 {{ if .HasLocalFlags}}Options:
 {{flagsUsages .LocalFlags}}{{end}}
-{{ if .HasAnyPersistentFlags}}Global Options:
-{{flagsUsages .AllPersistentFlags}}{{end}}{{ if .HasSubCommands }}
+{{ if .HasInheritedFlags}}Global Options:
+{{flagsUsages .InheritedFlags}}{{end}}{{ if .HasSubCommands }}
 Use "{{.Root.Name}} <command> --help" for more information about a given command.
 {{end}}`
 
 	cliHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
-	cliUsageTemplate = `{{ $cmd := . }}{{$exposedFlags := exposed .}}{{ if .HasSubCommands}}
+	cliUsageTemplate = `{{ $cmd := . }}{{$explicitlyExposedFlags := exposed .}}{{$localNotPersistentFlags := flagsNotIntersected .LocalFlags .PersistentFlags}}{{ if .HasSubCommands}}
 Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}
 {{end}}
-{{ if or .HasLocalFlags $exposedFlags.HasFlags}}Options:
-{{ if .HasLocalFlags}}{{flagsUsages .LocalFlags}}{{end}}{{ if $exposedFlags.HasFlags}}{{flagsUsages $exposedFlags}}{{end}}
+{{ if or $localNotPersistentFlags.HasFlags $explicitlyExposedFlags.HasFlags}}Options:
+{{ if $localNotPersistentFlags.HasFlags}}{{flagsUsages $localNotPersistentFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}
 {{end}}{{ if not $isRootCmd}}Use "{{template "rootCli" .}} --help" for a list of all commands available in {{template "rootCli" .}}.
 {{end}}{{ if .HasSubCommands }}Use "{{template "rootCli" .}} <command> --help" for more information about a given command.
-{{end}}{{ if .HasAnyPersistentFlags}}Use "{{template "rootCli" .}} options" for a list of global command-line options (applies to all commands).
+{{end}}{{ if .HasInheritedFlags}}Use "{{template "rootCli" .}} options" for a list of global command-line options (applies to all commands).
 {{end}}`
 
 	adminHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
-	adminUsageTemplate = `{{ $cmd := . }}{{$exposedFlags := exposed .}}{{ if .HasSubCommands}}
+	adminUsageTemplate = `{{ $cmd := . }}{{$explicitlyExposedFlags := exposed .}}{{$localNotPersistentFlags := flagsNotIntersected .LocalFlags .PersistentFlags}}{{ if .HasSubCommands}}
 Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}
 {{end}}
-{{ if or .HasLocalFlags $exposedFlags.HasFlags}}Options:
-{{ if .HasLocalFlags}}{{flagsUsages .LocalFlags}}{{end}}{{ if $exposedFlags.HasFlags}}{{flagsUsages $exposedFlags}}{{end}}
+{{ if or $localNotPersistentFlags.HasFlags $explicitlyExposedFlags.HasFlags}}Options:
+{{ if $localNotPersistentFlags.HasFlags}}{{flagsUsages $localNotPersistentFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}
 {{end}}{{ if not $isRootCmd}}Use "{{template "rootCli" .}} --help" for a list of all commands available in {{template "rootCli" .}}.
 {{end}}{{ if .HasSubCommands }}Use "{{template "rootCli" .}} <command> --help" for more information about a given command.
-{{end}}{{ if .HasAnyPersistentFlags}}Use "{{template "rootCli" .}} options" for a list of global command-line options (applies to all commands).
+{{end}}{{ if .HasInheritedFlags}}Use "{{template "rootCli" .}} options" for a list of global command-line options (applies to all commands).
 {{end}}`
 
 	optionsHelpTemplate = ``
 
-	optionsUsageTemplate = `{{ if .HasAnyPersistentFlags}}The following options can be passed to any command:
+	optionsUsageTemplate = `{{ if .HasInheritedFlags}}The following options can be passed to any command:
 
-{{flagsUsages .AllPersistentFlags}}{{end}}`
+{{flagsUsages .InheritedFlags}}{{end}}`
 )

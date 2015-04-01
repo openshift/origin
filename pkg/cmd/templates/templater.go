@@ -38,6 +38,15 @@ func (templater *Templater) UsageFunc() func(*cobra.Command) error {
 				}
 				return exposed
 			},
+			"flagsNotIntersected": func(l *flag.FlagSet, r *flag.FlagSet) *flag.FlagSet {
+				f := flag.NewFlagSet("notIntersected", flag.ContinueOnError)
+				l.VisitAll(func(flag *flag.Flag) {
+					if r.Lookup(flag.Name) == nil {
+						f.AddFlag(flag)
+					}
+				})
+				return f
+			},
 			"flagsUsages": func(f *flag.FlagSet) string {
 				x := new(bytes.Buffer)
 
