@@ -47,11 +47,11 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 	cmds.Flags().StringVarP(&options.Password, "password", "p", "", "Password, will prompt if not provided")
 
 	templater := templates.Templater{
-		UsageTemplate: templates.CliUsageTemplate(),
-		Exposed:       []string{"server", "username", "password", "certificate-authority", "insecure-skip-tls-verify", "context"},
+		UsageTemplate: templates.MainUsageTemplate(),
+		Exposed:       []string{"server", "certificate-authority", "insecure-skip-tls-verify", "context"},
 	}
 	cmds.SetUsageFunc(templater.UsageFunc())
-	cmds.SetHelpTemplate(templates.CliHelpTemplate())
+	cmds.SetHelpTemplate(templates.MainHelpTemplate())
 
 	return cmds
 }

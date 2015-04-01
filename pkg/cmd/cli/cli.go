@@ -10,7 +10,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/config"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -61,8 +60,6 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	f := clientcmd.New(cmds.PersistentFlags())
 	in := os.Stdin
 	out := os.Stdout
-
-	templates.UseCliTemplates(cmds)
 
 	cmds.AddCommand(cmd.NewCmdLogin(f, in, out))
 	cmds.AddCommand(cmd.NewCmdProject(f, out))

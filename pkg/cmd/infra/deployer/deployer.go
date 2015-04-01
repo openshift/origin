@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -66,8 +65,6 @@ func NewCommandDeployer(name string) *cobra.Command {
 			}
 		},
 	}
-
-	templates.UseMainTemplates(cmd)
 
 	cmd.AddCommand(version.NewVersionCommand(name))
 

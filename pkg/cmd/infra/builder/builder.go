@@ -4,7 +4,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/build/builder/cmd"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -25,8 +24,6 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 			cmd.RunSTIBuild()
 		},
 	}
-
-	templates.UseMainTemplates(cmd)
 
 	cmd.AddCommand(version.NewVersionCommand(name))
 	return cmd
@@ -49,8 +46,6 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 			cmd.RunDockerBuild()
 		},
 	}
-	cmd.SetUsageTemplate(templates.MainUsageTemplate())
-	cmd.SetHelpTemplate(templates.MainHelpTemplate())
 	cmd.AddCommand(version.NewVersionCommand(name))
 	return cmd
 }

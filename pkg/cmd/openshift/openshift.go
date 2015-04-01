@@ -62,6 +62,7 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = NewCommandOpenShift()
 	}
 
+	templates.UseMainTemplates(cmd)
 	flagtypes.GLog(cmd.PersistentFlags())
 
 	return cmd
@@ -78,8 +79,6 @@ func NewCommandOpenShift() *cobra.Command {
 			c.Help()
 		},
 	}
-
-	templates.UseMainTemplates(root)
 
 	startAllInOne, _ := start.NewCommandStartAllInOne()
 	root.AddCommand(startAllInOne)
