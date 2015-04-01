@@ -152,6 +152,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
 	createNodeConfig.Hostnames = []string{nodeArgs.NodeName}
 	createNodeConfig.ListenAddr = nodeArgs.ListenArg.ListenAddr
 	createNodeConfig.APIServerCAFile = admin.DefaultCertFilename(nodeArgs.CertArgs.CertDir, "ca")
+	createNodeConfig.NodeClientCAFile = admin.DefaultCertFilename(nodeArgs.CertArgs.CertDir, "ca")
 
 	if err := createNodeConfig.Validate(nil); err != nil {
 		return err

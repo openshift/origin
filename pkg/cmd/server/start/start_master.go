@@ -295,18 +295,11 @@ func ReadMasterConfig(filename string) (*configapi.MasterConfig, error) {
 }
 
 func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
-	glog.Infof("Starting an OpenShift master, reachable at %s (etcd: %s)", openshiftMasterConfig.ServingInfo.BindAddress, openshiftMasterConfig.EtcdClientInfo.URL)
+	glog.Infof("Starting an OpenShift master, reachable at %s (etcd: %v)", openshiftMasterConfig.ServingInfo.BindAddress, openshiftMasterConfig.EtcdClientInfo.URLs)
 	glog.Infof("OpenShift master public address is %s", openshiftMasterConfig.AssetConfig.MasterPublicURL)
 
 	if openshiftMasterConfig.EtcdConfig != nil {
-		etcdConfig := &etcd.Config{
-			BindAddr:     openshiftMasterConfig.EtcdConfig.ServingInfo.BindAddress,
-			PeerBindAddr: openshiftMasterConfig.EtcdConfig.PeerAddress,
-			MasterAddr:   openshiftMasterConfig.EtcdConfig.MasterAddress,
-			EtcdDir:      openshiftMasterConfig.EtcdConfig.StorageDir,
-		}
-
-		etcdConfig.Run()
+		etcd.RunEtcd(openshiftMasterConfig.EtcdConfig)
 	}
 
 	// Allow privileged containers

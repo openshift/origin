@@ -42,12 +42,13 @@ type CreateNodeConfigOptions struct {
 	DNSIP                 string
 	ListenAddr            flagtypes.Addr
 
-	ClientCertFile  string
-	ClientKeyFile   string
-	ServerCertFile  string
-	ServerKeyFile   string
-	APIServerCAFile string
-	APIServerURL    string
+	ClientCertFile   string
+	ClientKeyFile    string
+	ServerCertFile   string
+	ServerKeyFile    string
+	NodeClientCAFile string
+	APIServerCAFile  string
+	APIServerURL     string
 }
 
 func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
@@ -85,10 +86,11 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 	flags.StringVar(&options.DNSIP, "dns-ip", options.DNSIP, "DNS server IP for the cluster.")
 	flags.Var(&options.ListenAddr, "listen", "The address to listen for connections on (scheme://host:port).")
 
-	flags.StringVar(&options.ClientCertFile, "client-certificate", "", "The client cert file.")
-	flags.StringVar(&options.ClientKeyFile, "client-key", "", "The client key file.")
-	flags.StringVar(&options.ServerCertFile, "server-certificate", "", "The server cert file for serving secure traffic.")
-	flags.StringVar(&options.ServerKeyFile, "server-key", "", "The server key file for serving secure traffic.")
+	flags.StringVar(&options.ClientCertFile, "client-certificate", "", "The client cert file for the node to contact the API.")
+	flags.StringVar(&options.ClientKeyFile, "client-key", "", "The client key file for the node to contact the API.")
+	flags.StringVar(&options.ServerCertFile, "server-certificate", "", "The server cert file for the node to serve secure traffic.")
+	flags.StringVar(&options.ServerKeyFile, "server-key", "", "The server key file for the node to serve secure traffic.")
+	flags.StringVar(&options.NodeClientCAFile, "node-client-certificate-authority", options.NodeClientCAFile, "The file containing signing authorities to use to verify requests to the node. If empty, all requests will be allowed.")
 	flags.StringVar(&options.APIServerURL, "master", options.APIServerURL, "The API server's URL.")
 	flags.StringVar(&options.APIServerCAFile, "certificate-authority", options.APIServerCAFile, "Path to the API server's CA file.")
 
@@ -101,11 +103,12 @@ func NewDefaultCreateNodeConfigOptions() *CreateNodeConfigOptions {
 	options.DNSDomain = "local"
 	options.APIServerURL = "https://localhost:8443"
 	options.APIServerCAFile = "openshift.local.certificates/ca/cert.crt"
+	options.NodeClientCAFile = "openshift.local.certificates/ca/cert.crt"
 
 	imageTemplate := variable.NewDefaultImageTemplate()
 	options.NetworkContainerImage = imageTemplate.ExpandOrDie("pod")
 
-	options.ListenAddr = flagtypes.Addr{Value: "0.0.0.0:10250", DefaultScheme: "http", DefaultPort: 10250, AllowPrefix: true}.Default()
+	options.ListenAddr = flagtypes.Addr{Value: "0.0.0.0:10250", DefaultScheme: "https", DefaultPort: 10250, AllowPrefix: true}.Default()
 
 	return options
 }
@@ -120,6 +123,10 @@ func (o CreateNodeConfigOptions) IsCreateServerCertificate() bool {
 
 func (o CreateNodeConfigOptions) UseTLS() bool {
 	return o.ListenAddr.URL.Scheme == "https"
+}
+
+func (o CreateNodeConfigOptions) UseNodeClientCA() bool {
+	return o.UseTLS() && len(o.NodeClientCAFile) > 0
 }
 
 func (o CreateNodeConfigOptions) Validate(args []string) error {
@@ -187,9 +194,12 @@ func CopyFile(src, dest string, permissions os.FileMode) error {
 func (o CreateNodeConfigOptions) CreateNodeFolder() error {
 	clientCertFile := path.Join(o.NodeConfigDir, "client.crt")
 	clientKeyFile := path.Join(o.NodeConfigDir, "client.key")
+	apiServerCAFile := path.Join(o.NodeConfigDir, "ca.crt")
+
 	serverCertFile := path.Join(o.NodeConfigDir, "server.crt")
 	serverKeyFile := path.Join(o.NodeConfigDir, "server.key")
-	clientCopyOfCAFile := path.Join(o.NodeConfigDir, "ca.crt")
+	nodeClientCAFile := path.Join(o.NodeConfigDir, "node-client-ca.crt")
+
 	kubeConfigFile := path.Join(o.NodeConfigDir, ".kubeconfig")
 	nodeConfigFile := path.Join(o.NodeConfigDir, "node-config.yaml")
 	nodeJSONFile := path.Join(o.NodeConfigDir, "node-registration.json")
@@ -201,14 +211,19 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() error {
 		if err := o.MakeServerCert(serverCertFile, serverKeyFile); err != nil {
 			return err
 		}
+		if o.UseNodeClientCA() {
+			if err := o.MakeNodeClientCA(nodeClientCAFile); err != nil {
+				return err
+			}
+		}
 	}
-	if err := o.MakeCA(clientCopyOfCAFile); err != nil {
+	if err := o.MakeAPIServerCA(apiServerCAFile); err != nil {
 		return err
 	}
-	if err := o.MakeKubeConfig(clientCertFile, clientKeyFile, clientCopyOfCAFile, kubeConfigFile); err != nil {
+	if err := o.MakeKubeConfig(clientCertFile, clientKeyFile, apiServerCAFile, kubeConfigFile); err != nil {
 		return err
 	}
-	if err := o.MakeNodeConfig(serverCertFile, serverKeyFile, kubeConfigFile, nodeConfigFile); err != nil {
+	if err := o.MakeNodeConfig(serverCertFile, serverKeyFile, nodeClientCAFile, kubeConfigFile, nodeConfigFile); err != nil {
 		return err
 	}
 	if err := o.MakeNodeJSON(nodeJSONFile); err != nil {
@@ -279,8 +294,16 @@ func (o CreateNodeConfigOptions) MakeServerCert(serverCertFile, serverKeyFile st
 	return nil
 }
 
-func (o CreateNodeConfigOptions) MakeCA(clientCopyOfCAFile string) error {
+func (o CreateNodeConfigOptions) MakeAPIServerCA(clientCopyOfCAFile string) error {
 	if err := CopyFile(o.APIServerCAFile, clientCopyOfCAFile, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (o CreateNodeConfigOptions) MakeNodeClientCA(clientCopyOfCAFile string) error {
+	if err := CopyFile(o.NodeClientCAFile, clientCopyOfCAFile, 0644); err != nil {
 		return err
 	}
 
@@ -309,7 +332,7 @@ func (o CreateNodeConfigOptions) MakeKubeConfig(clientCertFile, clientKeyFile, c
 	return nil
 }
 
-func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, kubeConfigFile, nodeConfigFile string) error {
+func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, nodeClientCAFile, kubeConfigFile, nodeConfigFile string) error {
 	config := &configapi.NodeConfig{
 		NodeName: o.NodeName,
 
@@ -332,6 +355,7 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, k
 			CertFile: serverCertFile,
 			KeyFile:  serverKeyFile,
 		}
+		config.ServingInfo.ClientCA = nodeClientCAFile
 	}
 
 	// Resolve relative to CWD

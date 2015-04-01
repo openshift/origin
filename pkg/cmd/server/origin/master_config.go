@@ -62,7 +62,8 @@ type MasterConfig struct {
 	// a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
 
-	EtcdHelper tools.EtcdHelper
+	EtcdHelper          tools.EtcdHelper
+	KubeletClientConfig *kclient.KubeletConfig
 
 	// ClientCAs will be used to request client certificates in connections to the API.
 	// This CertPool should contain all the CAs that will be used for client certificate verification.
@@ -91,7 +92,7 @@ type MasterConfig struct {
 
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
-	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(options.EtcdClientInfo.URL)
+	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(options.EtcdClientInfo)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}
@@ -125,6 +126,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	policyCache := newPolicyCache(etcdHelper)
 	requestContextMapper := kapi.NewRequestContextMapper()
 
+	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
+
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
 	admissionControlPluginNames := []string{"AlwaysAdmit"}
 	admissionController := admission.NewFromPlugins(kubeClient, admissionControlPluginNames, "")
@@ -145,8 +148,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 		TLS: configapi.UseTLS(options.ServingInfo),
 
-		ImageFor:   imageTemplate.ExpandOrDie,
-		EtcdHelper: etcdHelper,
+		ImageFor:            imageTemplate.ExpandOrDie,
+		EtcdHelper:          etcdHelper,
+		KubeletClientConfig: kubeletClientConfig,
 
 		ClientCAs:    clientCAs,
 		APIClientCAs: apiClientCAs,

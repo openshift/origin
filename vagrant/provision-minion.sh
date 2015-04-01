@@ -33,17 +33,19 @@ pushd /vagrant
   cp _output/local/go/bin/openshift /usr/bin
 popd
 
+# Copy over the certificates directory
+cp -r /vagrant/openshift.local.certificates /
+chown -R vagrant.vagrant /openshift.local.certificates
+
 if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
+  export ETCD_CA=/openshift.local.certificates/ca/cert.crt
+  export ETCD_CLIENT_CERT=/openshift.local.certificates/master/etcd-client.crt
+  export ETCD_CLIENT_KEY=/openshift.local.certificates/master/etcd-client.key
   $(dirname $0)/provision-node-sdn.sh $@
 else
   # Setup default networking between the nodes
   $(dirname $0)/provision-gre-network.sh $@
 fi
-
-# Copy over the certificates directory and modify the kubeconfig file to use the master ip
-cp -r /vagrant/openshift.local.certificates /
-chown -R vagrant.vagrant /openshift.local.certificates
-sed -ie "s/10.0.2.15/${MASTER_IP}/g" /openshift.local.certificates/admin/.kubeconfig
 
 # get the minion name, index is 1-based
 minion_name=${MINION_NAMES[$MINION_INDEX-1]}
@@ -55,7 +57,7 @@ Requires=docker.service network.service
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start node --kubeconfig=/openshift.local.certificates/node-${minion_name}/.kubeconfig
+ExecStart=/usr/bin/openshift start node --kubeconfig=/openshift.local.certificates/node-${minion_name}/.kubeconfig --hostname=${minion_name} 
 Restart=on-failure
 RestartSec=10s
 
@@ -69,8 +71,8 @@ systemctl enable openshift-node.service
 systemctl start openshift-node.service
 
 # Set up the KUBECONFIG environment variable for use by the client
-echo 'export KUBECONFIG=/openshift.local.certificates/node-${minion_name}/.kubeconfig' >> /root/.bash_profile
-echo 'export KUBECONFIG=/openshift.local.certificates/node-${minion_name}/.kubeconfig' >> /home/vagrant/.bash_profile
+echo 'export KUBECONFIG=/openshift.local.certificates/admin/.kubeconfig' >> /root/.bash_profile
+echo 'export KUBECONFIG=/openshift.local.certificates/admin/.kubeconfig' >> /home/vagrant/.bash_profile
 
 # Register with the master
 #curl -X POST -H 'Accept: application/json' -d "{\"kind\":\"Minion\", \"id\":"${MINION_IP}", \"apiVersion\":\"v1beta1\", \"hostIP\":"${MINION_IP}" }" http://${MASTER_IP}:8080/api/v1beta1/minions

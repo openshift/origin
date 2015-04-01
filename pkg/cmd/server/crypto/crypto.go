@@ -101,21 +101,41 @@ func GetTLSCertificateConfig(certFile, keyFile string) (*TLSCertificateConfig, e
 }
 
 func CertPoolFromFile(filename string) (*x509.CertPool, error) {
+	pool := x509.NewCertPool()
+	if len(filename) == 0 {
+		return pool, nil
+	}
+
 	pemBlock, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
+
 	certs, err := certsFromPEM(pemBlock)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading %s: %s", filename, err)
 	}
 
-	roots := x509.NewCertPool()
-	for _, root := range certs {
-		roots.AddCert(root)
+	for _, cert := range certs {
+		pool.AddCert(cert)
 	}
 
-	return roots, nil
+	return pool, nil
+}
+
+func CertificatesFromFile(file string) ([]*x509.Certificate, error) {
+	if len(file) == 0 {
+		return nil, nil
+	}
+	pemBlock, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	certs, err := certsFromPEM(pemBlock)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading %s: %s", file, err)
+	}
+	return certs, nil
 }
 
 func certsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {

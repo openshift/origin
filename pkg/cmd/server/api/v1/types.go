@@ -47,7 +47,9 @@ type MasterConfig struct {
 	CORSAllowedOrigins []string `json:"corsAllowedOrigins"`
 
 	// EtcdClientInfo contains information about how to connect to etcd
-	EtcdClientInfo RemoteConnectionInfo `json:"etcdClientInfo"`
+	EtcdClientInfo EtcdConnectionInfo `json:"etcdClientInfo"`
+	// KubeletClientInfo contains information about how to connect to kubelets
+	KubeletClientInfo KubeletConnectionInfo `json:"kubeletClientInfo"`
 
 	// KubernetesMasterConfig, if present start the kubernetes master in this process
 	KubernetesMasterConfig *KubernetesMasterConfig `json:"kubernetesMasterConfig"`
@@ -84,11 +86,31 @@ type ImageConfig struct {
 }
 
 type RemoteConnectionInfo struct {
-	// URL is the URL for etcd
+	// URL is the remote URL to connect to
 	URL string `json:"url"`
-	// CA is the CA for confirming that the server at the etcdURL is the actual server
+	// CA is the CA for verifying TLS connections
 	CA string `json:"ca"`
-	// EtcdClientCertInfo is the TLS client cert information for securing communication to  etcd
+	// CertInfo is the TLS client cert information to present
+	// this is anonymous so that we can inline it for serialization
+	CertInfo `json:",inline"`
+}
+
+type KubeletConnectionInfo struct {
+	// Port is the port to connect to kubelets on
+	Port uint `json:"port"`
+	// CA is the CA for verifying TLS connections to kubelets
+	CA string `json:"ca"`
+	// CertInfo is the TLS client cert information for securing communication to kubelets
+	// this is anonymous so that we can inline it for serialization
+	CertInfo `json:",inline"`
+}
+
+type EtcdConnectionInfo struct {
+	// URLs are the URLs for etcd
+	URLs []string `json:"urls"`
+	// CA is a file containing trusted roots for the etcd server certificates
+	CA string `json:"ca"`
+	// CertInfo is the TLS client cert information for securing communication to etcd
 	// this is anonymous so that we can inline it for serialization
 	CertInfo `json:",inline"`
 }
@@ -243,11 +265,16 @@ const (
 )
 
 type EtcdConfig struct {
+	// ServingInfo describes how to start serving the etcd master
 	ServingInfo ServingInfo `json:"servingInfo"`
+	// Address is the advertised host:port for client connections to etcd
+	Address string `json:"address"`
+	// PeerServingInfo describes how to start serving the etcd peer
+	PeerServingInfo ServingInfo `json:"peerServingInfo"`
+	// PeerAddress is the advertised host:port for peer connections to etcd
+	PeerAddress string `json:"peerAddress"`
 
-	PeerAddress   string `json:"peerAddress"`
-	MasterAddress string `json:"masterAddress"`
-	StorageDir    string `json:"storageDirectory"`
+	StorageDir string `json:"storageDirectory"`
 }
 
 type KubernetesMasterConfig struct {

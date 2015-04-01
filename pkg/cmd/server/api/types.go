@@ -48,7 +48,9 @@ type MasterConfig struct {
 	CORSAllowedOrigins []string
 
 	// EtcdClientInfo contains information about how to connect to etcd
-	EtcdClientInfo RemoteConnectionInfo
+	EtcdClientInfo EtcdConnectionInfo
+	// KubeletClientInfo contains information about how to connect to kubelets
+	KubeletClientInfo KubeletConnectionInfo
 
 	// KubernetesMasterConfig, if present start the kubernetes master in this process
 	KubernetesMasterConfig *KubernetesMasterConfig
@@ -89,12 +91,29 @@ type ImageConfig struct {
 }
 
 type RemoteConnectionInfo struct {
-	// URL is the URL for etcd
+	// URL is the remote URL to connect to
 	URL string
-	// CA is the CA for confirming that the server at the etcdURL is the actual server
+	// CA is the CA for verifying TLS connections
 	CA string
-	// EtcdClientCertInfo is the TLS client cert information for securing communication to  etcd
-	// this is anonymous so that we can inline it for serialization
+	// CertInfo is the TLS client cert information to present
+	ClientCert CertInfo
+}
+
+type KubeletConnectionInfo struct {
+	// Port is the port to connect to kubelets on
+	Port uint
+	// CA is the CA for verifying TLS connections to kubelets
+	CA string
+	// CertInfo is the TLS client cert information for securing communication to kubelets
+	ClientCert CertInfo
+}
+
+type EtcdConnectionInfo struct {
+	// URLs are the URLs for etcd
+	URLs []string
+	// CA is a file containing trusted roots for the etcd server certificates
+	CA string
+	// ClientCert is the TLS client cert information for securing communication to etcd
 	ClientCert CertInfo
 }
 
@@ -264,10 +283,14 @@ const (
 var ValidGrantHandlerTypes = util.NewStringSet(string(GrantHandlerAuto), string(GrantHandlerPrompt), string(GrantHandlerDeny))
 
 type EtcdConfig struct {
+	// ServingInfo describes how to start serving the etcd master
 	ServingInfo ServingInfo
-
-	PeerAddress   string
-	MasterAddress string
+	// Address is the advertised host:port for client connections to etcd
+	Address string
+	// PeerServingInfo describes how to start serving the etcd peer
+	PeerServingInfo ServingInfo
+	// PeerAddress is the advertised host:port for peer connections to etcd
+	PeerAddress string
 	// StorageDir indicates where to save the etcd data
 	StorageDir string
 }

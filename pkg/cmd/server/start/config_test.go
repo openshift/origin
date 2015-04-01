@@ -209,11 +209,30 @@ func TestKubernetesAddressExplicit(t *testing.T) {
 }
 
 func TestEtcdAddressDefaulting(t *testing.T) {
-	expected := "http://example.com:4001"
-	master := "https://example.com:9012"
+	expected := "https://example.com:4001"
+	master := "http://example.com:9012"
 
 	masterArgs := NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set(master)
+
+	actual, err := masterArgs.GetEtcdAddress()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if expected != actual.String() {
+		t.Fatalf("expected %v, got %v", expected, actual)
+	}
+}
+
+func TestEtcdAddressUseListenScheme(t *testing.T) {
+	// Scheme from --listen arg
+	// Host from --master arg
+	// Port from default
+	expected := "http://example.com:4001"
+
+	masterArgs := NewDefaultMasterArgs()
+	masterArgs.MasterAddr.Set("https://example.com:9012")
+	masterArgs.ListenArg.ListenAddr.Set("http://0.0.0.0:8043")
 
 	actual, err := masterArgs.GetEtcdAddress()
 	if err != nil {

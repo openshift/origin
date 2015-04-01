@@ -2,14 +2,15 @@ package buildlog
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/test"
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 )
 
 type podControl struct{}
@@ -37,12 +38,9 @@ func (p *podControl) getPod(namespace, podName string) (*kapi.Pod, error) {
 // is evaluating the outcome based only on build state.
 func TestRegistryResourceLocation(t *testing.T) {
 	expectedLocations := map[api.BuildStatus]string{
-		api.BuildStatusComplete: fmt.Sprintf("//foo-host:%d/containerLogs/%s/running/foo-container",
-			kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusFailed: fmt.Sprintf("//foo-host:%d/containerLogs/%s/running/foo-container",
-			kubernetes.NodePort, kapi.NamespaceDefault),
-		api.BuildStatusRunning: fmt.Sprintf("//foo-host:%d/containerLogs/%s/running/foo-container?follow=1",
-			kubernetes.NodePort, kapi.NamespaceDefault),
+		api.BuildStatusComplete:  fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running/foo-container", kapi.NamespaceDefault),
+		api.BuildStatusFailed:    fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running/foo-container", kapi.NamespaceDefault),
+		api.BuildStatusRunning:   fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running/foo-container?follow=1", kapi.NamespaceDefault),
 		api.BuildStatusNew:       "",
 		api.BuildStatusPending:   "",
 		api.BuildStatusError:     "",
@@ -103,15 +101,14 @@ func TestRegistryResourceLocationPodPhases(t *testing.T) {
 func resourceLocationHelper(buildStatus api.BuildStatus, podPhase string, ctx kapi.Context) (string, error) {
 	expectedBuild := mockBuild(buildStatus, podPhase)
 	buildRegistry := test.BuildRegistry{Build: expectedBuild}
-	storage := REST{&buildRegistry, &podControl{}}
+
+	storage := REST{&buildRegistry, &podControl{}, &kclient.HTTPKubeletClient{EnableHttps: true, Port: 12345, Client: &http.Client{}}}
 	redirector := rest.Redirector(&storage)
 	location, _, err := redirector.ResourceLocation(ctx, "foo-build")
-
-	if location != nil {
-		return location.String(), err
+	if err != nil {
+		return "", err
 	}
-
-	return "", err
+	return location.String(), err
 }
 
 func mockPod(podPhase kapi.PodPhase) *kapi.Pod {

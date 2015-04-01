@@ -241,6 +241,8 @@ func (o NodeOptions) CreateCerts() error {
 
 		APIServerURL:    masterAddr.String(),
 		APIServerCAFile: getSignerOptions.CertFile,
+
+		NodeClientCAFile: getSignerOptions.CertFile,
 	}
 
 	if err := createNodeConfigOptions.Validate(nil); err != nil {

@@ -92,7 +92,7 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 		return utilerrors.NewAggregate(err)
 	}
 
-	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(masterConfig.EtcdClientInfo.URL)
+	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(masterConfig.EtcdClientInfo)
 	if err != nil {
 		return err
 	}

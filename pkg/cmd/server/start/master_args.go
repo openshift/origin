@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -70,7 +71,7 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 func NewDefaultMasterArgs() *MasterArgs {
 	config := &MasterArgs{
 		MasterAddr:           flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
-		EtcdAddr:             flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "http", DefaultPort: 4001}.Default(),
+		EtcdAddr:             flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "https", DefaultPort: 4001}.Default(),
 		PortalNet:            flagtypes.DefaultIPNet("172.30.17.0/24"),
 		MasterPublicAddr:     flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		KubernetesPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
@@ -120,15 +121,18 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		return nil, err
 	}
 
+	builtInEtcd := !args.EtcdAddr.Provided
 	var etcdConfig *configapi.EtcdConfig
-	if !args.EtcdAddr.Provided {
+	if builtInEtcd {
 		etcdConfig, err = args.BuildSerializeableEtcdConfig()
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	builtInKubernetes := !args.KubeConnectionArgs.KubernetesAddr.Provided && len(args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) == 0
 	var kubernetesMasterConfig *configapi.KubernetesMasterConfig
-	if !args.KubeConnectionArgs.KubernetesAddr.Provided && len(args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) == 0 {
+	if builtInKubernetes {
 		kubernetesMasterConfig, err = args.BuildSerializeableKubeMasterConfig()
 		if err != nil {
 			return nil, err
@@ -139,6 +143,10 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	if err != nil {
 		return nil, err
 	}
+
+	kubeletClientInfo := admin.DefaultMasterKubeletClientCertInfo(args.CertArgs.CertDir)
+
+	etcdClientInfo := admin.DefaultMasterEtcdClientCertInfo(args.CertArgs.CertDir)
 
 	config := &configapi.MasterConfig{
 		ServingInfo: configapi.ServingInfo{
@@ -172,11 +180,12 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			KubernetesKubeConfig:        admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "kube-client"),
 		},
 
-		EtcdClientInfo: configapi.RemoteConnectionInfo{
-			URL: etcdAddress.String(),
-			// TODO allow for https etcd
-			CA:         "",
-			ClientCert: configapi.CertInfo{},
+		EtcdClientInfo: configapi.EtcdConnectionInfo{
+			URLs: []string{etcdAddress.String()},
+		},
+
+		KubeletClientInfo: configapi.KubeletConnectionInfo{
+			Port: ports.KubeletPort,
 		},
 
 		PolicyConfig: configapi.PolicyConfig{
@@ -193,10 +202,21 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	if args.ListenArg.UseTLS() {
 		config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.CertArgs.CertDir)
-		config.ServingInfo.ClientCA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
+		config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.CertArgs.CertDir)
 
 		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.CertArgs.CertDir)
-		config.AssetConfig.ServingInfo.ClientCA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
+
+		// Only set up ca/cert info for kubelet connections if we're self-hosting Kubernetes
+		if builtInKubernetes {
+			config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
+			config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
+		}
+
+		// Only set up ca/cert info for etcd connections if we're self-hosting etcd
+		if builtInEtcd {
+			config.EtcdClientInfo.CA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
+			config.EtcdClientInfo.ClientCert = etcdClientInfo.CertLocation
+		}
 	}
 
 	return config, nil
@@ -288,16 +308,33 @@ func (args MasterArgs) BuildSerializeableEtcdConfig() (*configapi.EtcdConfig, er
 		return nil, err
 	}
 
+	etcdPeerAddr, err := args.GetEtcdPeerAddress()
+	if err != nil {
+		return nil, err
+	}
+
 	config := &configapi.EtcdConfig{
 		ServingInfo: configapi.ServingInfo{
 			BindAddress: args.GetEtcdBindAddress(),
 		},
-		PeerAddress:   args.GetEtcdPeerBindAddress(),
-		MasterAddress: etcdAddr.Host,
-		StorageDir:    args.EtcdDir,
+		PeerServingInfo: configapi.ServingInfo{
+			BindAddress: args.GetEtcdPeerBindAddress(),
+		},
+		Address:     etcdAddr.Host,
+		PeerAddress: etcdPeerAddr.Host,
+		StorageDir:  args.EtcdDir,
+	}
+
+	if args.ListenArg.UseTLS() {
+		config.ServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.CertArgs.CertDir)
+		config.ServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.CertArgs.CertDir)
+
+		config.PeerServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.CertArgs.CertDir)
+		config.PeerServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.CertArgs.CertDir)
 	}
 
 	return config, nil
+
 }
 
 // BuildSerializeableKubeMasterConfig creates a fully specified kubernetes master startup configuration based on MasterArgs
@@ -398,17 +435,11 @@ func (args MasterArgs) GetMasterAddress() (*url.URL, error) {
 		return args.MasterAddr.URL, nil
 	}
 
-	// If the user specifies a bind address, and the master is not provided, use the bind port by default
-	port := args.MasterAddr.Port
-	if args.ListenArg.ListenAddr.Provided {
-		port = args.ListenArg.ListenAddr.Port
-	}
+	// Use the bind port by default
+	port := args.ListenArg.ListenAddr.Port
 
-	// If the user specifies a bind address, and the master is not provided, use the bind scheme by default
-	scheme := args.MasterAddr.URL.Scheme
-	if args.ListenArg.ListenAddr.Provided {
-		scheme = args.ListenArg.ListenAddr.URL.Scheme
-	}
+	// Use the bind scheme by default
+	scheme := args.ListenArg.ListenAddr.URL.Scheme
 
 	addr := ""
 	if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
@@ -460,8 +491,29 @@ func (args MasterArgs) GetEtcdAddress() (*url.URL, error) {
 		return nil, err
 	}
 
-	etcdAddr := net.JoinHostPort(getHost(*masterAddr), strconv.Itoa(args.EtcdAddr.DefaultPort))
-	return url.Parse(args.EtcdAddr.DefaultScheme + "://" + etcdAddr)
+	return &url.URL{
+		// Use the bind scheme by default
+		Scheme: args.ListenArg.ListenAddr.URL.Scheme,
+
+		Host: net.JoinHostPort(getHost(*masterAddr), strconv.Itoa(args.EtcdAddr.DefaultPort)),
+	}, nil
+}
+
+func (args MasterArgs) GetEtcdPeerAddress() (*url.URL, error) {
+	// Derive from the etcd address, on port 7001
+	etcdAddress, err := args.GetEtcdAddress()
+	if err != nil {
+		return nil, err
+	}
+
+	host, _, err := net.SplitHostPort(etcdAddress.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	etcdAddress.Host = net.JoinHostPort(host, "7001")
+
+	return etcdAddress, nil
 }
 func (args MasterArgs) GetKubernetesPublicAddress() (*url.URL, error) {
 	if args.KubernetesPublicAddr.Provided {

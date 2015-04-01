@@ -129,6 +129,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		glog.Fatalf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
 	}
 
+	kubeletClient, err := kclient.NewKubeletClient(c.KubeletClientConfig)
+	if err != nil {
+		glog.Fatalf("Unable to configure Kubelet client: %v", err)
+	}
+
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
@@ -184,7 +189,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"builds/clone":             buildClone,
 		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
 		"buildConfigs/instantiate": buildConfigInstantiate,
-		"buildLogs":                buildlogregistry.NewREST(buildEtcd, c.BuildLogClient()),
+		"buildLogs":                buildlogregistry.NewREST(buildEtcd, c.BuildLogClient(), kubeletClient),
 
 		"images":                   imageStorage,
 		"imageStreams":             imageRepositoryStorage,
