@@ -129,9 +129,9 @@ This section covers how to perform all the steps of building, deploying, and upd
     installation, users would generate their own keys and not have access
     to the system keys.)
 
-        $ export KUBECONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig
+        $ export OPENSHIFTCONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig
         $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/ca/cert.crt
-        $ sudo chmod +r "$KUBECONFIG"
+        $ sudo chmod a+rwX "$OPENSHIFTCONFIG"
 
 
 4. Bind a user names `test-admin` to the `view` role in the default namespace so you can observe progress in the web console
@@ -176,7 +176,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         Endpoints:  172.17.0.60:5000
         No events.
 
-    If "Endpoints" is listed as `<empty>`, your registry hasn't started yet.  You can run `osc get pods` to
+    If "Endpoints" is listed as `<none>`, your registry hasn't started yet.  You can run `osc get pods` to
     see the registry pod and if there are any issues. Once the pod has started, the IP of the pod will
     be added to the docker-registry service list so that it's reachable from other places.
 
@@ -236,10 +236,18 @@ This section covers how to perform all the steps of building, deploying, and upd
    *Note:* You can skip this step if you did not create a forked repository.
 
 
-14. Submit the application template for processing (generating shared parameters requested in the template)
+14. Log in with the "test-admin" user and switch to the "test" project which will be used by every command from now on. This 
+    will update the file pointed by $OPENSHIFTCONFIG and will make it easy to switch betwen the "master" context and the 
+    "test-admin" user:
+
+        $ osc login -u test-admin -p pass
+        $ osc project test
+
+
+15. Submit the application template for processing (generating shared parameters requested in the template)
     and then request creation of the processed template:
 
-        $ osc process -n test -f application-template-stibuild.json | osc create -n test -f -
+        $ osc process -f application-template-stibuild.json | osc create -f -
 
     This will define a number of related OpenShift entities in the project:
 
@@ -258,20 +266,20 @@ This section covers how to perform all the steps of building, deploying, and upd
     immediately.
 
 
-15. *Optional:* Trigger a build of your application:
+16. *Optional:* Trigger a build of your application:
  * If you setup the GitHub webhook, push a change to `app.rb` in your ruby sample repository.
  * Otherwise you can request a new build by running:
 
-            $ osc start-build -n test ruby-sample-build
+            $ osc start-build ruby-sample-build
 
 
-16. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
+17. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
 
-        $ osc get -n test builds
+        $ osc get builds
 
     You can add the --watch flag to wait for updates until the build completes:
 
-        $ osc get -n test builds --watch
+        $ osc get builds --watch
 
     Sample output:
 
@@ -288,16 +296,16 @@ This section covers how to perform all the steps of building, deploying, and upd
      command (substituting your build name from the "osc get builds"
      output):
 
-         $ osc build-logs -n test ruby-sample-build-1
+         $ osc build-logs ruby-sample-build-1
 
     The creation of the new image in the Docker registry will
     automatically trigger a deployment of the application, creating a
     pod each for the frontend (your Ruby code) and backend.
 
 
-17. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
+18. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
 
-        $ osc get -n test pods
+        $ osc get pods
 
     Sample output:
 
@@ -307,9 +315,9 @@ This section covers how to perform all the steps of building, deploying, and upd
         ruby-sample-build-1                       sti-build                  openshift/origin-sti-builder:latest                                                                           openshiftdev.local/127.0.0.1   build=ruby-sample-build-1,buildconfig=ruby-sample-build,name=ruby-sample-build,template=application-template-stibuild   Succeeded           3 minutes
 
 
-18. Determine the IP for the frontend service:
+19. Determine the IP for the frontend service:
 
-        $ osc get -n test services
+        $ osc get services
 
     Sample output:
 
@@ -322,7 +330,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     *Note:* you can also get this information from the web console.
 
 
-19. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
+20. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
 
 	- - -
 	**VAGRANT USERS:**
@@ -336,14 +344,14 @@ This section covers how to perform all the steps of building, deploying, and upd
     You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
 
 
-20. Make a change to your ruby sample main.html file, commit, and push it via git.
+21. Make a change to your ruby sample main.html file, commit, and push it via git.
 
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
-            $ osc start-build -n test ruby-sample-build
+            $ osc start-build ruby-sample-build
 
 
-21. Repeat step 16 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
+22. Repeat step 16 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.
 
@@ -354,7 +362,7 @@ OpenShift also provides features that live outside the deployment life cycle lik
 
 1.  Your sample app has been created with a secure route which can be viewed by performing a `GET` on the route api object.
 
-            $ osc get -n test routes
+            $ osc get routes
             NAME                HOST/PORT           PATH                SERVICE             LABELS
             route-edge          www.example.com                         frontend            template=application-template-stibuild
 
@@ -372,6 +380,7 @@ the ip address shown below with the correct one for your environment.
             $ openshift ex router --create --credentials="`pwd`/openshift.local.certificates/openshift-router/.kubeconfig"
               router # the service
               router # the deployment config
+
 
 3.  Wait for the router to start.
 
@@ -391,7 +400,8 @@ the ip address shown below with the correct one for your environment.
                 <title>Hello from OpenShift v3!</title>
                 ... removed for readability ...
 
-7. *Optional*: View the certificate being used for the secure route.
+
+6. *Optional*: View the certificate being used for the secure route.
 
             $ openssl s_client -servername www.example.com -connect 10.0.2.15:443
             ... removed for readability ...
@@ -409,7 +419,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - List the existing services:
 
-        $ osc get -n test services
+        $ osc get services
 
     Sample output:
 
@@ -420,7 +430,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - To remove the **frontend** service use the command:
 
-        $ osc delete service -n test frontend
+        $ osc delete service frontend
 
     Sample output:
 
@@ -428,7 +438,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - Check the service was removed:
 
-        $ osc get -n test services
+        $ osc get services
 
     Sample output:
 
@@ -447,7 +457,7 @@ Another interesting example is deleting a pod.
 
   - List available pods:
 
-        $ osc get -n test pods
+        $ osc get pods
 
     Sample output:
 
@@ -458,7 +468,7 @@ Another interesting example is deleting a pod.
 
   - Delete the **frontend** pod by specifying its ID:
 
-        $ osc delete pod -n test frontend-1-lb4c4
+        $ osc delete pod frontend-1-lb4c4
 
   - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
 
