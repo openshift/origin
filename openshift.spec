@@ -3,12 +3,12 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %{!?commit:
-%global commit cfb4a5665b6fbbfa8123d9421288263af50630a3
+%global commit c30f469f17d75aa237c29493f30daeb035a3c398
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2-87-gcfb4a56 -X github.com/openshift/origin/pkg/version.commitFromGit cfb4a56 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit f057a25 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2.0-32-gc30f469 -X github.com/openshift/origin/pkg/version.commitFromGit c30f469 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 8d94c43 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
 }
 # String used for --images flag
 # If you're setting docker_registry make sure it ends in a trailing /
@@ -23,8 +23,8 @@
 %global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.4.2.0
-Release:        0%{?dist}
+Version:        0.4.2.1
+Release:        1%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -179,6 +179,52 @@ fi
 
 
 %changelog
+* Wed Apr 01 2015 Scott Dodson <sdodson@redhat.com> 0.4.2.1
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- Temporarily remove asset build failures from Jenkins (jliggitt@redhat.com)
+- Merge pull request #1527 from abhgupta/abhgupta-dev
+  (dmcphers+openshiftbot@redhat.com)
+- Add helper for p12 cert creation (jliggitt@redhat.com)
+- Update vagrant cert wiring (jliggitt@redhat.com)
+- Fix build logs with authenticated node (jliggitt@redhat.com)
+- Serve node/etcd over https (jliggitt@redhat.com)
+- Merge pull request #1523 from pweil-/fix-resetbefore-methods
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1343 from fabianofranz/test_e2e_with_login
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1496 from kargakis/minor-fix
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1513 from kargakis/describe-help
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1451 from ironcladlou/post-deployment-hook-proposal
+  (dmcphers+openshiftbot@redhat.com)
+- fix ResetBefore* methods (pweil@redhat.com)
+- Merge pull request #1526 from pweil-/fix-godep-hash (ccoleman@redhat.com)
+- UPSTREAM: Fixing accidental hardcoding of priority function weight
+  (abhgupta@redhat.com)
+- UPSTREAM: Removing EqualPriority from the list of default priorities
+  (abhgupta@redhat.com)
+- UPSTREAM: Remove pods from the assumed pod list when they are deleted
+  (abhgupta@redhat.com)
+- UPSTREAM: Updating priority function weight based on specified configuration
+  (abhgupta@redhat.com)
+- Fix switching between contexts that don't have a namespace explicit
+  (contact@fabianofranz.com)
+- osc login must check if cert data were provided through flags before saving
+  (contact@fabianofranz.com)
+- Make test-end-to-end use osc login|project (contact@fabianofranz.com)
+- UPSTREAM: fix godep hash from bad restore (pweil@redhat.com)
+- Merge pull request #1508 from smarterclayton/fix_e2e_message
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1426 from deads2k/deads-expose-auth-config
+  (dmcphers+openshiftbot@redhat.com)
+- Add deprecation warnings for OAUTH envvars (jliggitt@redhat.com)
+- expose oauth config in config (deads@redhat.com)
+- new-app: Avoid extra declaration (kargakis@users.noreply.github.com)
+- Wrap describe command (kargakis@users.noreply.github.com)
+- Console now on /console (ccoleman@redhat.com)
+- Expand validation and status spec (ironcladlou@gmail.com)
+
 * Tue Mar 31 2015 Scott Dodson <sdodson@redhat.com> 0.4.2.0
 - Merge remote-tracking branch 'upstream/pr/1309' (sdodson@redhat.com)
 - Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
