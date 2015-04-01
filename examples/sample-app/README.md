@@ -28,13 +28,13 @@ Setup
 -----
 At this stage of OpenShift 3 development, there are a few things that you will need to configure on the host where OpenShift is running in order for things to work.
 
-**NOTE:** You do not need to do this if you are using [Vagrant](https://vagrantup.com/) to work with OpenShift.  Refer to the "VAGRANT USERS" callouts throughout this document for modifications specific to Vagrant users. 
+**NOTE:** You do not need to do this if you are using [Vagrant](https://vagrantup.com/) to work with OpenShift.  Refer to the "VAGRANT USERS" callouts throughout this document for modifications specific to Vagrant users.
 
-- - - 
+- - -
 **VAGRANT USERS**:
 If you haven't already, fire up a Vagrant instance.
 
-	$ vagrant up 
+	$ vagrant up
 	$ vagrant ssh
 
 Inside of your Vagrant instance, the path to the origin directory is `/data/src/github.com/openshift/origin`.
@@ -104,15 +104,17 @@ This section covers how to perform all the steps of building, deploying, and upd
 
         $ ./pullimages.sh
 
+
 2. Launch an all-in-one `openshift` instance
-                                                                                               
+
         $ sudo openshift start &> logs/openshift.log &
-        
+
        **VAGRANT USERS**: Instead of the above command, use
-   
+
         $ sudo /data/src/github.com/openshift/origin/_output/local/go/bin/openshift start --public-master=localhost &> logs/openshift.log &
 
     Note: sudo is required so the kubernetes proxy can manipulate iptables rules to expose service ports.
+
 
 3. Set up your client to reach the OpenShift master now running.
 
@@ -127,15 +129,15 @@ This section covers how to perform all the steps of building, deploying, and upd
     installation, users would generate their own keys and not have access
     to the system keys.)
 
-        $ osc login -u test-admin --client-certificate=`pwd`/openshift.local.certificates/admin/cert.crt --client-key=`pwd`/openshift.local.certificates/admin/key.key --certificate-authority=`pwd`/openshift.local.certificates/ca/cert.crt
-
         $ export KUBECONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig
         $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/ca/cert.crt
         $ sudo chmod +r "$KUBECONFIG"
 
+
 4. Bind a user names `test-admin` to the `view` role in the default namespace so you can observe progress in the web console
 
         $ openshift ex policy add-role-to-user view test-admin
+
 
 5. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 
@@ -160,6 +162,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     could be used for persistent storage, but that is beyond the scope
     of this tutorial.
 
+
 7. Confirm the registry is started (this can take a few minutes):
 
         $ osc describe service docker-registry
@@ -177,9 +180,10 @@ This section covers how to perform all the steps of building, deploying, and upd
     see the registry pod and if there are any issues. Once the pod has started, the IP of the pod will
     be added to the docker-registry service list so that it's reachable from other places.
 
+
 8. Confirm the registry is accessible (you may need to run this more than once):
 
-        $ curl `osc get service docker-registry --template="{{ .portalIP}}:{{ .port }}"`
+        $ curl `osc get service docker-registry --template="{{ .portalIP }}:{{ .port }}"`
 
     You should see:
 
@@ -189,6 +193,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 9. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
 
         $ openshift ex new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3" --admin=test-admin
+
 
 10. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 
@@ -214,21 +219,22 @@ This section covers how to perform all the steps of building, deploying, and upd
     Without your own fork, you can still run the initial build from
     OpenShift's public repository, just not a changed build.
 
+
 12. *Optional:* Add the following webhook under the settings in your new GitHub repository:
 
         $ https://<host>:8443/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=test
-
 
   * Note: Using the webhook requires that your OpenShift server be
     publicly accessible so GitHub can reach it to invoke the hook. You
     will almost certainly need to "Disable SSL Verification" for your test
     instance as the certificate chain generated is not publicly verified.
 
-	
+
 13. Edit application-template-stibuild.json which will define the sample application
 
  * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
    *Note:* You can skip this step if you did not create a forked repository.
+
 
 14. Submit the application template for processing (generating shared parameters requested in the template)
     and then request creation of the processed template:
@@ -247,13 +253,17 @@ This section covers how to perform all the steps of building, deploying, and upd
       that will deployed as output of the build
 
     Note that no build has actually occurred yet, so at this time there
-    is no image to deploy and no application to visit.
+    is no image to deploy and no application to visit. But since we've defined
+    ImageChange trigger inside of BuildConfig object a new Build will be started
+    immediately.
 
-15. Trigger an initial build of your application
- * If you setup the GitHub webhook, push a change to app.rb in your ruby sample repository.
+
+15. *Optional:* Trigger a build of your application:
+ * If you setup the GitHub webhook, push a change to `app.rb` in your ruby sample repository.
  * Otherwise you can request a new build by running:
 
             $ osc start-build -n test ruby-sample-build
+
 
 16. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
 
@@ -265,9 +275,8 @@ This section covers how to perform all the steps of building, deploying, and upd
 
     Sample output:
 
-        Name                                   Status              Pod Name
-        ----------                             ----------          ----------
-        20f54507-3dcd-11e4-984b-3c970e3bf0b7   complete            build-docker-20f54507-3dcd-11e4-984b-3c970e3bf0b7
+        NAME                  TYPE                STATUS              POD
+        ruby-sample-build-1   STI                 Complete            ruby-sample-build-1
 
      The built image will be named with the ImageRepository
      (origin-ruby-sample) named in the BuildConfig and pushed to the
@@ -279,11 +288,12 @@ This section covers how to perform all the steps of building, deploying, and upd
      command (substituting your build name from the "osc get builds"
      output):
 
-         $ osc build-logs -n test 20f54507-3dcd-11e4-984b-3c970e3bf0b7
+         $ osc build-logs -n test ruby-sample-build-1
 
     The creation of the new image in the Docker registry will
     automatically trigger a deployment of the application, creating a
     pod each for the frontend (your Ruby code) and backend.
+
 
 17. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
 
@@ -291,10 +301,11 @@ This section covers how to perform all the steps of building, deploying, and upd
 
     Sample output:
 
-        Name                                                Image(s)                                                                                                          Host                     Labels                                                                                                                                                       Status
-        ----------                                          ----------                                                                                                        ----------               ----------                                                                                                                                                   ----------
-        1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
-        4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.30.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
+        POD                   IP                  CONTAINER(S)               IMAGE(S)                                                                                                      HOST                           LABELS                                                                                                                  STATUS              CREATED
+        database-1-zhomu      172.17.0.16         ruby-helloworld-database   openshift/mysql-55-centos7                                                                                    openshiftdev.local/127.0.0.1   deployment=database-1,deploymentconfig=database,name=database,template=application-template-stibuild                    Running             3 minutes
+        frontend-1-lb4c4      172.17.0.20         ruby-helloworld            172.30.17.113:5000/test/origin-ruby-sample:029721e6cb1b4a4f6b52ccac0abfbf2a3be1a344fb1355a75bed29ccca0d1ba2   openshiftdev.local/127.0.0.1   deployment=frontend-1,deploymentconfig=frontend,name=frontend,template=application-template-stibuild                    Running             About a minute
+        ruby-sample-build-1                       sti-build                  openshift/origin-sti-builder:latest                                                                           openshiftdev.local/127.0.0.1   build=ruby-sample-build-1,buildconfig=ruby-sample-build,name=ruby-sample-build,template=application-template-stibuild   Succeeded           3 minutes
+
 
 18. Determine the IP for the frontend service:
 
@@ -302,15 +313,14 @@ This section covers how to perform all the steps of building, deploying, and upd
 
     Sample output:
 
-        Name                Labels                            Selector            IP                  Port
-        ----------          ----------                        ----------          ----------          ----------
-        database            template=ruby-helloworld-sample   name=database       172.30.17.5        5434
-        frontend            template=ruby-helloworld-sample   name=frontend       172.30.17.4        5432
-
+        NAME                LABELS                                   SELECTOR            IP                PORT
+        database            template=application-template-stibuild   name=database       172.30.17.5       5434
+        frontend            template=application-template-stibuild   name=frontend       172.30.17.4       5432
 
     In this case, the IP for frontend is 172.30.17.4 and it is on port 5432.
 
     *Note:* you can also get this information from the web console.
+
 
 19. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
 
@@ -321,9 +331,10 @@ This section covers how to perform all the steps of building, deploying, and upd
 		$ vagrant ssh -- -L 9999:172.30.17.4:5432 (or 9999:whatever IP address was reported above)
 
 	You can now confirm the application is accessible on port 5432 by going to `http://<host>:9999`.  Note that port 9999 is arbitrary.
-	- - - 
+	- - -
 
     You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
+
 
 20. Make a change to your ruby sample main.html file, commit, and push it via git.
 
@@ -336,6 +347,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.
 
+
 Advanced
 ---------
 OpenShift also provides features that live outside the deployment life cycle like routing.
@@ -344,7 +356,7 @@ OpenShift also provides features that live outside the deployment life cycle lik
 
             $ osc get -n test routes
             NAME                HOST/PORT           PATH                SERVICE             LABELS
-            route-edge          www.example.com                         frontend            template=ruby-helloworld-sample
+            route-edge          www.example.com                         frontend            template=application-template-stibuild
 
 
 2.  To use the route you must first install a router.  OpenShift provides an HAProxy router implementation that we'll use.
@@ -361,9 +373,7 @@ the ip address shown below with the correct one for your environment.
               router # the service
               router # the deployment config
 
-
 3.  Wait for the router to start.
-
 
             $ osc describe dc router
             # watch for the number of deployed pods to go to 1
@@ -403,10 +413,9 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
     Sample output:
 
-        Name                Labels                            Selector            IP                  Port
-        ----------          ----------                        ----------          ----------          ----------
-        frontend            template=ruby-helloworld-sample   name=frontend       172.30.17.4        5432
-        database            template=ruby-helloworld-sample   name=database       172.30.17.5        5434
+        NAME                LABELS                                   SELECTOR            IP                PORT
+        database            template=application-template-stibuild   name=database       172.30.17.5       5434
+        frontend            template=application-template-stibuild   name=frontend       172.30.17.4       5432
 
 
   - To remove the **frontend** service use the command:
@@ -415,9 +424,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
     Sample output:
 
-        Status
-        ----------
-        Success
+        services/frontend
 
   - Check the service was removed:
 
@@ -425,10 +432,8 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
     Sample output:
 
-        Name                Labels                            Selector            IP                  Port
-        ----------          ----------                        ----------          ----------          ----------
-        database            template=ruby-helloworld-sample   name=database       172.30.17.5        5434
-
+        NAME                LABELS                                   SELECTOR            IP                PORT
+        database            template=application-template-stibuild   name=database       172.30.17.5       5434
 
   - You can also curl the application to check the service has terminated:
 
@@ -446,14 +451,14 @@ Another interesting example is deleting a pod.
 
     Sample output:
 
-        Name                                                Image(s)                                                                                                          Host                     Labels                                                                                                                                                       Status
-        ----------                                          ----------                                                                                                        ----------               ----------                                                                                                                                                   ----------
-        1b978f62-605f-11e4-b0db-3c970e3bf0b7                mysql                                                                                                             localhost.localdomain/   deploymentConfig=,deploymentID=database,name=database,replicationController=1b960e56-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample             Running
-        4a792f55-605f-11e4-b0db-3c970e3bf0b7                172.30.17.3:5001/openshift/origin-ruby-sample:9477bdb99a409b9c747e699361ae7934fd83bb4092627e2ee35f9f0b0869885b   localhost.localdomain/   deploymentConfig=frontend,deploymentID=frontend-1,name=frontend,replicationController=4a749831-605f-11e4-b0db-3c970e3bf0b7,template=ruby-helloworld-sample   Running
+        POD                   IP                  CONTAINER(S)               IMAGE(S)                                                                                                      HOST                           LABELS                                                                                                                  STATUS              CREATED
+        database-1-zhomu      172.17.0.16         ruby-helloworld-database   openshift/mysql-55-centos7                                                                                    openshiftdev.local/127.0.0.1   deployment=database-1,deploymentconfig=database,name=database,template=application-template-stibuild                    Running             9 minutes
+        frontend-1-lb4c4      172.17.0.20         ruby-helloworld            172.30.17.113:5000/test/origin-ruby-sample:029721e6cb1b4a4f6b52ccac0abfbf2a3be1a344fb1355a75bed29ccca0d1ba2   openshiftdev.local/127.0.0.1   deployment=frontend-1,deploymentconfig=frontend,name=frontend,template=application-template-stibuild                    Running             7 minutes
+        ruby-sample-build-1                       sti-build                  openshift/origin-sti-builder:latest                                                                           openshiftdev.local/127.0.0.1   build=ruby-sample-build-1,buildconfig=ruby-sample-build,name=ruby-sample-build,template=application-template-stibuild   Succeeded           9 minutes
 
   - Delete the **frontend** pod by specifying its ID:
 
-        $ osc delete pod -n test 4a792f55-605f-11e4-b0db-3c970e3bf0b7
+        $ osc delete pod -n test frontend-1-lb4c4
 
   - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
 
