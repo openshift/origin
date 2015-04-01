@@ -4,7 +4,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"strings"
 
 	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
@@ -12,13 +11,36 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-func ValidateBindAddress(bindAddress string) fielderrors.ValidationErrorList {
+func ValidateHostPort(value string, field string) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if len(bindAddress) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("bindAddress"))
-	} else if _, _, err := net.SplitHostPort(bindAddress); err != nil {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("bindAddress", bindAddress, "must be a host:port"))
+	if len(value) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired(field))
+	} else if _, _, err := net.SplitHostPort(value); err != nil {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, value, "must be a host:port"))
+	}
+
+	return allErrs
+}
+
+func ValidateCertInfo(certInfo api.CertInfo, required bool) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if required || len(certInfo.CertFile) > 0 || len(certInfo.KeyFile) > 0 {
+		if len(certInfo.CertFile) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("certFile"))
+		}
+		if len(certInfo.KeyFile) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("keyFile"))
+		}
+	}
+
+	if len(certInfo.CertFile) > 0 {
+		allErrs = append(allErrs, ValidateFile(certInfo.CertFile, "certFile")...)
+	}
+
+	if len(certInfo.KeyFile) > 0 {
+		allErrs = append(allErrs, ValidateFile(certInfo.KeyFile, "keyFile")...)
 	}
 
 	return allErrs
@@ -27,29 +49,14 @@ func ValidateBindAddress(bindAddress string) fielderrors.ValidationErrorList {
 func ValidateServingInfo(info api.ServingInfo) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	allErrs = append(allErrs, ValidateBindAddress(info.BindAddress)...)
+	allErrs = append(allErrs, ValidateHostPort(info.BindAddress, "bindAddress")...)
+	allErrs = append(allErrs, ValidateCertInfo(info.ServerCert, false)...)
 
 	if len(info.ServerCert.CertFile) > 0 {
-		if _, err := os.Stat(info.ServerCert.CertFile); err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("certFile", info.ServerCert.CertFile, "could not read file"))
-		}
-
-		if len(info.ServerCert.KeyFile) == 0 {
-			allErrs = append(allErrs, fielderrors.NewFieldRequired("keyFile"))
-		} else if _, err := os.Stat(info.ServerCert.KeyFile); err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("keyFile", info.ServerCert.KeyFile, "could not read file"))
-		}
-
 		if len(info.ClientCA) > 0 {
-			if _, err := os.Stat(info.ClientCA); err != nil {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("clientCA", info.ClientCA, "could not read file"))
-			}
+			allErrs = append(allErrs, ValidateFile(info.ClientCA, "clientCA")...)
 		}
 	} else {
-		if len(info.ServerCert.KeyFile) > 0 {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("keyFile", info.ServerCert.KeyFile, "cannot specify a keyFile without a certFile"))
-		}
-
 		if len(info.ClientCA) > 0 {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("clientCA", info.ClientCA, "cannot specify a clientCA without a certFile"))
 		}
@@ -67,22 +74,18 @@ func ValidateKubeConfig(path string, field string) fielderrors.ValidationErrorLi
 	return allErrs
 }
 
-func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) fielderrors.ValidationErrorList {
+func ValidateRemoteConnectionInfo(remoteConnectionInfo api.RemoteConnectionInfo) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if len(config.MasterIP) > 0 {
-		allErrs = append(allErrs, ValidateSpecifiedIP(config.MasterIP, "masterIP")...)
+	if len(remoteConnectionInfo.URL) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("url"))
 	}
 
-	if len(config.ServicesSubnet) > 0 {
-		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.ServicesSubnet)); err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("servicesSubnet", config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.17.0/24)"))
-		}
+	if len(remoteConnectionInfo.CA) > 0 {
+		allErrs = append(allErrs, ValidateFile(remoteConnectionInfo.CA, "ca")...)
 	}
 
-	if len(config.SchedulerConfigFile) > 0 {
-		allErrs = append(allErrs, ValidateFile(config.SchedulerConfigFile, "schedulerConfigFile")...)
-	}
+	allErrs = append(allErrs, ValidateCertInfo(remoteConnectionInfo.ClientCert, false)...)
 
 	return allErrs
 }
@@ -117,77 +120,6 @@ func ValidateURL(urlString string, field string) (*url.URL, fielderrors.Validati
 	return urlObj, allErrs
 }
 
-func ValidateAssetConfig(config *api.AssetConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-
-	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
-
-	urlObj, urlErrs := ValidateURL(config.PublicURL, "publicURL")
-	if len(urlErrs) > 0 {
-		allErrs = append(allErrs, urlErrs...)
-	}
-	if urlObj != nil {
-		if !strings.HasSuffix(urlObj.Path, "/") {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("publicURL", config.PublicURL, "must have a trailing slash in path"))
-		}
-	}
-
-	return allErrs
-}
-
-func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-
-	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
-
-	if config.AssetConfig != nil {
-		allErrs = append(allErrs, ValidateAssetConfig(config.AssetConfig).Prefix("assetConfig")...)
-		colocated := config.AssetConfig.ServingInfo.BindAddress == config.ServingInfo.BindAddress
-		if colocated {
-			publicURL, _ := url.Parse(config.AssetConfig.PublicURL)
-			if publicURL.Path == "/" {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
-			}
-		}
-
-		if config.OAuthConfig != nil && config.OAuthConfig.AssetPublicURL != config.AssetConfig.PublicURL {
-			allErrs = append(allErrs,
-				fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "must match oauthConfig.assetPublicURL"),
-				fielderrors.NewFieldInvalid("oauthConfig.assetPublicURL", config.OAuthConfig.AssetPublicURL, "must match assetConfig.publicURL"),
-			)
-		}
-
-		// TODO warn when the CORS list does not include the assetConfig.publicURL host:port
-		// only warn cause they could handle CORS headers themselves in a proxy
-	}
-
-	if config.DNSConfig != nil {
-		allErrs = append(allErrs, ValidateBindAddress(config.DNSConfig.BindAddress).Prefix("dnsConfig")...)
-	}
-
-	if config.KubernetesMasterConfig != nil {
-		allErrs = append(allErrs, ValidateKubernetesMasterConfig(config.KubernetesMasterConfig).Prefix("kubernetesMasterConfig")...)
-	}
-
-	allErrs = append(allErrs, ValidatePolicyConfig(config.PolicyConfig).Prefix("policyConfig")...)
-
-	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.DeployerKubeConfig, "deployerKubeConfig").Prefix("masterClients")...)
-	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, "openShiftLoopbackKubeConfig").Prefix("masterClients")...)
-	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.KubernetesKubeConfig, "kubernetesKubeConfig").Prefix("masterClients")...)
-
-	return allErrs
-}
-
-func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-
-	allErrs = append(allErrs, ValidateFile(config.BootstrapPolicyFile, "bootstrapPolicyFile")...)
-	allErrs = append(allErrs, ValidateNamespace(config.MasterAuthorizationNamespace, "masterAuthorizationNamespace")...)
-	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, "openShiftSharedResourcesNamespace")...)
-
-	return allErrs
-}
-
 func ValidateNamespace(namespace, field string) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
@@ -195,27 +127,6 @@ func ValidateNamespace(namespace, field string) fielderrors.ValidationErrorList 
 		allErrs = append(allErrs, fielderrors.NewFieldRequired(field))
 	} else if ok, _ := kvalidation.ValidateNamespaceName(namespace, false); !ok {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, namespace, "must be a valid namespace"))
-	}
-
-	return allErrs
-}
-
-func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-
-	if len(config.NodeName) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("nodeName"))
-	}
-
-	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
-	allErrs = append(allErrs, ValidateKubeConfig(config.MasterKubeConfig, "masterKubeConfig")...)
-
-	if len(config.DNSIP) > 0 {
-		allErrs = append(allErrs, ValidateSpecifiedIP(config.DNSIP, "dnsIP")...)
-	}
-
-	if len(config.NetworkContainerImage) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("networkContainerImage"))
 	}
 
 	return allErrs
@@ -229,18 +140,6 @@ func ValidateFile(path string, field string) fielderrors.ValidationErrorList {
 	} else if _, err := os.Stat(path); err != nil {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, path, "could not read file"))
 	}
-
-	return allErrs
-}
-
-func ValidateAllInOneConfig(master *api.MasterConfig, node *api.NodeConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-
-	allErrs = append(allErrs, ValidateMasterConfig(master).Prefix("masterConfig")...)
-
-	allErrs = append(allErrs, ValidateNodeConfig(node).Prefix("nodeConfig")...)
-
-	// Validation between the configs
 
 	return allErrs
 }

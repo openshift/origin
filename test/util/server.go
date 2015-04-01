@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path"
 	"time"
@@ -10,9 +11,10 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	"github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/experimental/project"
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/start"
@@ -71,53 +73,173 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	return masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs, certArgs
 }
 
-func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
-	DeleteAllEtcdKeys()
+func DefaultMasterOptions() (*configapi.MasterConfig, error) {
+	startOptions := start.MasterOptions{}
+	startOptions.MasterArgs, _, _, _, _, _ = setupStartOptions()
+	startOptions.Complete()
 
-	masterArgs, nodeArgs, _, _, _, _ := setupStartOptions()
-	masterArgs.NodeList = nil
+	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {
+		return nil, err
+	}
+	if err := CreateBootstrapPolicy(startOptions.MasterArgs); err != nil {
+		return nil, err
+	}
 
+	return startOptions.MasterArgs.BuildSerializeableMasterConfig()
+}
+
+func CreateBootstrapPolicy(masterArgs *start.MasterArgs) error {
+	createBootstrapPolicy := &admin.CreateBootstrapPolicyFileOptions{
+		File: masterArgs.PolicyArgs.PolicyFile,
+		MasterAuthorizationNamespace:      "master",
+		OpenShiftSharedResourcesNamespace: "openshift",
+	}
+
+	if err := createBootstrapPolicy.Validate(nil); err != nil {
+		return err
+	}
+	if err := createBootstrapPolicy.CreateBootstrapPolicyFile(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateMasterCerts(masterArgs *start.MasterArgs) error {
+	hostnames, err := masterArgs.GetServerCertHostnames()
+	if err != nil {
+		return err
+	}
+	masterURL, err := masterArgs.GetMasterAddress()
+	if err != nil {
+		return err
+	}
+	publicMasterURL, err := masterArgs.GetMasterPublicAddress()
+	if err != nil {
+		return err
+	}
+
+	createMasterCerts := admin.CreateMasterCertsOptions{
+		CertDir:    masterArgs.CertArgs.CertDir,
+		SignerName: admin.DefaultSignerName(),
+		Hostnames:  hostnames.List(),
+
+		APIServerURL:       masterURL.String(),
+		PublicAPIServerURL: publicMasterURL.String(),
+	}
+
+	if err := createMasterCerts.Validate(nil); err != nil {
+		return err
+	}
+	if err := createMasterCerts.CreateMasterCerts(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
+	getSignerOptions := &admin.GetSignerCertOptions{
+		CertFile:   admin.DefaultCertFilename(nodeArgs.CertArgs.CertDir, "ca"),
+		KeyFile:    admin.DefaultKeyFilename(nodeArgs.CertArgs.CertDir, "ca"),
+		SerialFile: admin.DefaultSerialFilename(nodeArgs.CertArgs.CertDir, "ca"),
+	}
+
+	createNodeConfig := admin.NewDefaultCreateNodeConfigOptions()
+	createNodeConfig.GetSignerCertOptions = getSignerOptions
+	createNodeConfig.NodeConfigDir = path.Join(nodeArgs.CertArgs.CertDir, "node-"+nodeArgs.NodeName)
+	createNodeConfig.NodeName = nodeArgs.NodeName
+	createNodeConfig.Hostnames = []string{nodeArgs.NodeName}
+	createNodeConfig.ListenAddr = nodeArgs.ListenArg.ListenAddr
+	createNodeConfig.APIServerCAFile = admin.DefaultCertFilename(nodeArgs.CertArgs.CertDir, "ca")
+	createNodeConfig.NodeClientCAFile = admin.DefaultCertFilename(nodeArgs.CertArgs.CertDir, "ca")
+
+	if err := createNodeConfig.Validate(nil); err != nil {
+		return err
+	}
+	if err := createNodeConfig.CreateNodeFolder(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, error) {
 	startOptions := start.AllInOneOptions{}
-	startOptions.MasterArgs, startOptions.NodeArgs = masterArgs, nodeArgs
+	startOptions.MasterArgs, startOptions.NodeArgs, _, _, _, _ = setupStartOptions()
+	startOptions.MasterArgs.NodeList = nil
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.Complete()
 
-	errCh := make(chan error)
-	go func() {
-		errCh <- startOptions.StartAllInOne()
-		close(errCh)
-	}()
+	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {
+		return nil, nil, err
+	}
 
-	adminKubeConfigFile := getAdminKubeConfigFile(*masterArgs.CertArgs)
+	if err := CreateNodeCerts(startOptions.NodeArgs); err != nil {
+		return nil, nil, err
+	}
 
-	openshiftMasterConfig, err := startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	masterOptions, err := startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	nodeOptions, err := startOptions.NodeArgs.BuildSerializeableNodeConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return masterOptions, nodeOptions, nil
+}
+
+func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *configapi.NodeConfig) (string, error) {
+	adminKubeConfigFile, err := StartConfiguredMaster(masterConfig)
+	if err != nil {
+		return "", err
+	}
+
+	if err := start.StartNode(*nodeConfig); err != nil {
+		return "", err
+	}
+
+	return adminKubeConfigFile, nil
+}
+
+func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
+	master, node, err := DefaultAllInOneOptions()
 	if err != nil {
 		return nil, "", err
 	}
 
-	// wait for the server to come up: 35 seconds
-	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", masterArgs.MasterAddr.URL.Host, 100*time.Millisecond, 1*time.Second, 35); err != nil {
-		select {
-		case err := <-errCh:
-			if err != nil {
-				return nil, "", err
-			}
-		default:
-		}
-		return nil, "", err
+	adminKubeConfigFile, err := StartConfiguredAllInOne(master, node)
+	return master, adminKubeConfigFile, err
+}
+
+func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error) {
+	DeleteAllEtcdKeys()
+
+	_, _, _, _, _, certArgs := setupStartOptions()
+
+	if err := start.StartMaster(masterConfig); err != nil {
+		return "", err
+	}
+	adminKubeConfigFile := getAdminKubeConfigFile(*certArgs)
+	clientConfig, err := GetClusterAdminClientConfig(adminKubeConfigFile)
+	if err != nil {
+		return "", err
+	}
+	masterURL, err := url.Parse(clientConfig.Host)
+	if err != nil {
+		return "", err
 	}
 
-	// try to get a client
-	for {
-		select {
-		case err := <-errCh:
-			if err != nil {
-				return nil, "", err
-			}
-		default:
-		}
-		// confirm that we can actually query from the api server
+	// wait for the server to come up: 35 seconds
+	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", masterURL.Host, 100*time.Millisecond, 1*time.Second, 35); err != nil {
+		return "", err
+	}
 
+	for {
+		// confirm that we can actually query from the api server
 		if client, err := GetClusterAdminClient(adminKubeConfigFile); err == nil {
 			if _, err := client.Policies(bootstrappolicy.DefaultMasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err == nil {
 				break
@@ -125,61 +247,19 @@ func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	return openshiftMasterConfig, adminKubeConfigFile, nil
-}
 
-// TODO Unify with StartAllInOne.
+	return adminKubeConfigFile, nil
+}
 
 // StartTestMaster starts up a test master and returns back the startOptions so you can get clients and certs
 func StartTestMaster() (*configapi.MasterConfig, string, error) {
-	DeleteAllEtcdKeys()
-
-	masterArgs, _, _, _, _, _ := setupStartOptions()
-
-	startOptions := start.MasterOptions{}
-	startOptions.MasterArgs = masterArgs
-	startOptions.Complete()
-
-	var startError error
-	go func() {
-		err := startOptions.StartMaster()
-		if err != nil {
-			startError = err
-			fmt.Printf("ERROR STARTING SERVER! %v", err)
-		}
-	}()
-
-	adminKubeConfigFile := getAdminKubeConfigFile(*masterArgs.CertArgs)
-
-	openshiftMasterConfig, err := startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	master, err := DefaultMasterOptions()
 	if err != nil {
 		return nil, "", err
 	}
 
-	// wait for the server to come up: 35 seconds
-	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", masterArgs.MasterAddr.URL.Host, 100*time.Millisecond, 1*time.Second, 35); err != nil {
-		return nil, "", err
-	}
-
-	stopChannel := make(chan struct{})
-	util.Until(
-		func() {
-			if startError != nil {
-				close(stopChannel)
-				return
-			}
-
-			// confirm that we can actually query from the api server
-			client, err := GetClusterAdminClient(adminKubeConfigFile)
-			if err != nil {
-				return
-			}
-			if _, err := client.Policies(bootstrappolicy.DefaultMasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err == nil {
-				close(stopChannel)
-			}
-		}, 100*time.Millisecond, stopChannel)
-
-	return openshiftMasterConfig, adminKubeConfigFile, startError
+	adminKubeConfigFile, err := StartConfiguredMaster(master)
+	return master, adminKubeConfigFile, err
 }
 
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns

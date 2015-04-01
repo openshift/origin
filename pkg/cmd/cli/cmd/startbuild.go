@@ -85,7 +85,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 					if build.Name == newBuild.Name {
 						switch build.Status {
 						case buildapi.BuildStatusRunning, buildapi.BuildStatusComplete, buildapi.BuildStatusFailed:
-							rd, err := client.BuildLogs(namespace).Redirect(newBuild.Name).Stream()
+							rd, err := client.BuildLogs(namespace).Get(newBuild.Name).Stream()
 							checkErr(err)
 							defer rd.Close()
 

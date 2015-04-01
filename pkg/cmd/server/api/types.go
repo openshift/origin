@@ -2,6 +2,8 @@ package api
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 // NodeConfig is the fully specified config starting an OpenShift node
@@ -46,7 +48,9 @@ type MasterConfig struct {
 	CORSAllowedOrigins []string
 
 	// EtcdClientInfo contains information about how to connect to etcd
-	EtcdClientInfo RemoteConnectionInfo
+	EtcdClientInfo EtcdConnectionInfo
+	// KubeletClientInfo contains information about how to connect to kubelets
+	KubeletClientInfo KubeletConnectionInfo
 
 	// KubernetesMasterConfig, if present start the kubernetes master in this process
 	KubernetesMasterConfig *KubernetesMasterConfig
@@ -87,12 +91,29 @@ type ImageConfig struct {
 }
 
 type RemoteConnectionInfo struct {
-	// URL is the URL for etcd
+	// URL is the remote URL to connect to
 	URL string
-	// CA is the CA for confirming that the server at the etcdURL is the actual server
+	// CA is the CA for verifying TLS connections
 	CA string
-	// EtcdClientCertInfo is the TLS client cert information for securing communication to  etcd
-	// this is anonymous so that we can inline it for serialization
+	// CertInfo is the TLS client cert information to present
+	ClientCert CertInfo
+}
+
+type KubeletConnectionInfo struct {
+	// Port is the port to connect to kubelets on
+	Port uint
+	// CA is the CA for verifying TLS connections to kubelets
+	CA string
+	// CertInfo is the TLS client cert information for securing communication to kubelets
+	ClientCert CertInfo
+}
+
+type EtcdConnectionInfo struct {
+	// URLs are the URLs for etcd
+	URLs []string
+	// CA is a file containing trusted roots for the etcd server certificates
+	CA string
+	// ClientCert is the TLS client cert information for securing communication to etcd
 	ClientCert CertInfo
 }
 
@@ -138,9 +159,6 @@ type AssetConfig struct {
 }
 
 type OAuthConfig struct {
-	// ProxyCA is the certificate bundle for confirming the identity of front proxy forwards to the oauth server
-	ProxyCA string
-
 	// MasterURL is used for building valid client redirect URLs for external access
 	MasterURL string
 
@@ -150,14 +168,129 @@ type OAuthConfig struct {
 	// AssetPublicURL is used for building valid client redirect URLs for external access
 	AssetPublicURL string
 
-	// all the handlers here
+	//IdentityProviders is an ordered list of ways for a user to identify themselves
+	IdentityProviders []IdentityProvider
+
+	// GrantConfig describes how to handle grants
+	GrantConfig GrantConfig
+
+	// SessionConfig hold information about configuring sessions.
+	SessionConfig *SessionConfig
+
+	TokenConfig TokenConfig
 }
 
-type EtcdConfig struct {
-	ServingInfo ServingInfo
+type TokenConfig struct {
+	// Max age of authorize tokens
+	AuthorizeTokenMaxAgeSeconds int32
+	// Max age of access tokens
+	AccessTokenMaxAgeSeconds int32
+}
 
-	PeerAddress   string
-	MasterAddress string
+type SessionConfig struct {
+	// SessionSecrets list the secret(s) to use to encrypt created sessions. Used by AuthRequestHandlerSession
+	SessionSecrets []string
+	// SessionMaxAgeSeconds specifies how long created sessions last. Used by AuthRequestHandlerSession
+	SessionMaxAgeSeconds int32
+	// SessionName is the cookie name used to store the session
+	SessionName string
+}
+
+type IdentityProviderUsage struct {
+	// ProviderName is used to qualify the identities returned by this provider
+	ProviderName string
+
+	// UseAsChallenger indicates whether to issue WWW-Authenticate challenges for this provider
+	UseAsChallenger bool
+	// UseAsLogin indicates whether to use this identity provider for unauthenticated browsers to login against
+	UseAsLogin bool
+}
+
+type IdentityProvider struct {
+	// Usage contains metadata about how to use this provider
+	Usage IdentityProviderUsage
+
+	// Provider contains the information about how to set up a specific identity provider
+	Provider runtime.EmbeddedObject
+}
+
+type BasicAuthPasswordIdentityProvider struct {
+	api.TypeMeta
+
+	// RemoteConnectionInfo contains information about how to connect to the external basic auth server
+	RemoteConnectionInfo RemoteConnectionInfo
+}
+
+type AllowAllPasswordIdentityProvider struct {
+	api.TypeMeta
+}
+
+type DenyAllPasswordIdentityProvider struct {
+	api.TypeMeta
+}
+
+type HTPasswdPasswordIdentityProvider struct {
+	api.TypeMeta
+
+	// File is a reference to your htpasswd file
+	File string
+}
+
+type RequestHeaderIdentityProvider struct {
+	api.TypeMeta
+
+	// ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.
+	ClientCA string
+	// Headers is the set of headers to check for identity information
+	Headers util.StringSet
+}
+
+type OAuthRedirectingIdentityProvider struct {
+	api.TypeMeta
+
+	// ClientID is the oauth client ID
+	ClientID string
+	// ClientSecret is the oauth client secret
+	ClientSecret string
+
+	// Provider contains the information about exactly which kind of oauth you're identifying with
+	Provider runtime.EmbeddedObject
+}
+
+type GoogleOAuthProvider struct {
+	api.TypeMeta
+}
+type GitHubOAuthProvider struct {
+	api.TypeMeta
+}
+
+type GrantConfig struct {
+	// Method: allow, deny, prompt
+	Method GrantHandlerType
+}
+
+type GrantHandlerType string
+
+const (
+	// GrantHandlerAuto auto-approves client authorization grant requests
+	GrantHandlerAuto GrantHandlerType = "auto"
+	// GrantHandlerPrompt prompts the user to approve new client authorization grant requests
+	GrantHandlerPrompt GrantHandlerType = "prompt"
+	// GrantHandlerDeny auto-denies client authorization grant requests
+	GrantHandlerDeny GrantHandlerType = "deny"
+)
+
+var ValidGrantHandlerTypes = util.NewStringSet(string(GrantHandlerAuto), string(GrantHandlerPrompt), string(GrantHandlerDeny))
+
+type EtcdConfig struct {
+	// ServingInfo describes how to start serving the etcd master
+	ServingInfo ServingInfo
+	// Address is the advertised host:port for client connections to etcd
+	Address string
+	// PeerServingInfo describes how to start serving the etcd peer
+	PeerServingInfo ServingInfo
+	// PeerAddress is the advertised host:port for peer connections to etcd
+	PeerAddress string
 	// StorageDir indicates where to save the etcd data
 	StorageDir string
 }

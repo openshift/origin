@@ -23,7 +23,6 @@ type userStrategy struct {
 // objects via the REST API.
 var Strategy = userStrategy{kapi.Scheme}
 
-func (userStrategy) PrepareForCreate(obj runtime.Object)      {}
 func (userStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 // NamespaceScoped is false for users
@@ -35,7 +34,7 @@ func (userStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (userStrategy) ResetBeforeCreate(obj runtime.Object) {
+func (userStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new user

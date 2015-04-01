@@ -44,11 +44,7 @@ func (c *MasterConfig) EnsurePortalFlags() {
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
 func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
-	kubeletClient, err := kclient.NewKubeletClient(
-		&kclient.KubeletConfig{
-			Port: 10250,
-		},
-	)
+	kubeletClient, err := kclient.NewKubeletClient(c.KubeletClientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
@@ -123,11 +119,7 @@ func (c *MasterConfig) RunMinionController() {
 		},
 	}
 
-	// TODO: enable this for TLS and make configurable
-	kubeletClient, err := kclient.NewKubeletClient(&kclient.KubeletConfig{
-		Port:        10250,
-		EnableHttps: false,
-	})
+	kubeletClient, err := kclient.NewKubeletClient(c.KubeletClientConfig)
 	if err != nil {
 		glog.Fatalf("Failure to create kubelet client: %v", err)
 	}

@@ -11,8 +11,8 @@ type FakeBuildLogs struct {
 	Namespace string
 }
 
-// Redirect builds and returns a buildLog request
-func (c *FakeBuildLogs) Redirect(name string) *kclient.Request {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "redirect"})
+// Get builds and returns a buildLog request
+func (c *FakeBuildLogs) Get(name string) *kclient.Request {
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "proxy"})
 	return &kclient.Request{}
 }

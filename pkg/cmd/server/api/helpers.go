@@ -3,10 +3,10 @@ package api
 import (
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -32,15 +32,38 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	refs = append(refs, &config.EtcdClientInfo.ClientCert.KeyFile)
 	refs = append(refs, &config.EtcdClientInfo.CA)
 
+	refs = append(refs, &config.KubeletClientInfo.ClientCert.CertFile)
+	refs = append(refs, &config.KubeletClientInfo.ClientCert.KeyFile)
+	refs = append(refs, &config.KubeletClientInfo.CA)
+
 	if config.EtcdConfig != nil {
 		refs = append(refs, &config.EtcdConfig.ServingInfo.ServerCert.CertFile)
 		refs = append(refs, &config.EtcdConfig.ServingInfo.ServerCert.KeyFile)
 		refs = append(refs, &config.EtcdConfig.ServingInfo.ClientCA)
+
+		refs = append(refs, &config.EtcdConfig.PeerServingInfo.ServerCert.CertFile)
+		refs = append(refs, &config.EtcdConfig.PeerServingInfo.ServerCert.KeyFile)
+		refs = append(refs, &config.EtcdConfig.PeerServingInfo.ClientCA)
+
 		refs = append(refs, &config.EtcdConfig.StorageDir)
 	}
 
 	if config.OAuthConfig != nil {
-		refs = append(refs, &config.OAuthConfig.ProxyCA)
+		for _, identityProvider := range config.OAuthConfig.IdentityProviders {
+			switch provider := identityProvider.Provider.Object.(type) {
+			case (*RequestHeaderIdentityProvider):
+				refs = append(refs, &provider.ClientCA)
+
+			case (*HTPasswdPasswordIdentityProvider):
+				refs = append(refs, &provider.File)
+
+			case (*BasicAuthPasswordIdentityProvider):
+				refs = append(refs, &provider.RemoteConnectionInfo.CA)
+				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
+				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
+
+			}
+		}
 	}
 
 	if config.AssetConfig != nil {
@@ -124,15 +147,7 @@ func UseTLS(servingInfo ServingInfo) bool {
 
 // GetAPIClientCertCAPool returns the cert pool used to validate client certificates to the API server
 func GetAPIClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
-	certs, err := getAPIClientCertCAs(options)
-	if err != nil {
-		return nil, err
-	}
-	roots := x509.NewCertPool()
-	for _, root := range certs {
-		roots.AddCert(root)
-	}
-	return roots, nil
+	return crypto.CertPoolFromFile(options.ServingInfo.ClientCA)
 }
 
 // GetClientCertCAPool returns a cert pool containing all client CAs that could be presented (union of API and OAuth)
@@ -166,15 +181,7 @@ func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 		return x509.NewCertPool(), nil
 	}
 
-	caRoots, err := crypto.GetTLSCARoots(options.ServingInfo.ClientCA)
-	if err != nil {
-		return nil, err
-	}
-	roots := x509.NewCertPool()
-	for _, root := range caRoots.Roots {
-		roots.AddCert(root)
-	}
-	return roots, nil
+	return crypto.CertPoolFromFile(options.ServingInfo.ClientCA)
 }
 
 func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
@@ -182,19 +189,27 @@ func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 		return nil, nil
 	}
 
-	caFile := options.OAuthConfig.ProxyCA
-	if len(caFile) == 0 {
-		return nil, nil
+	allCerts := []*x509.Certificate{}
+
+	if options.OAuthConfig != nil {
+		for _, identityProvider := range options.OAuthConfig.IdentityProviders {
+
+			switch provider := identityProvider.Provider.Object.(type) {
+			case (*RequestHeaderIdentityProvider):
+				caFile := provider.ClientCA
+				if len(caFile) == 0 {
+					continue
+				}
+				certs, err := crypto.CertificatesFromFile(caFile)
+				if err != nil {
+					return nil, fmt.Errorf("Error reading %s: %s", caFile, err)
+				}
+				allCerts = append(allCerts, certs...)
+			}
+		}
 	}
-	caPEMBlock, err := ioutil.ReadFile(caFile)
-	if err != nil {
-		return nil, err
-	}
-	certs, err := crypto.CertsFromPEM(caPEMBlock)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading %s: %s", caFile, err)
-	}
-	return certs, nil
+
+	return allCerts, nil
 }
 
 func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
@@ -202,10 +217,69 @@ func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 		return nil, nil
 	}
 
-	apiClientCertCAs, err := crypto.GetTLSCARoots(options.ServingInfo.ClientCA)
-	if err != nil {
-		return nil, err
+	return crypto.CertificatesFromFile(options.ServingInfo.ClientCA)
+}
+
+func GetKubeletClientConfig(options MasterConfig) *kclient.KubeletConfig {
+	config := &kclient.KubeletConfig{
+		Port: options.KubeletClientInfo.Port,
 	}
 
-	return apiClientCertCAs.Roots, nil
+	if len(options.KubeletClientInfo.CA) > 0 {
+		config.EnableHttps = true
+		config.CAFile = options.KubeletClientInfo.CA
+	}
+
+	if len(options.KubeletClientInfo.ClientCert.CertFile) > 0 {
+		config.EnableHttps = true
+		config.CertFile = options.KubeletClientInfo.ClientCert.CertFile
+		config.KeyFile = options.KubeletClientInfo.ClientCert.KeyFile
+	}
+
+	return config
+}
+
+func IsPasswordAuthenticator(provider IdentityProvider) bool {
+	return IsPasswordAuthenticatorProviderType(provider.Provider)
+}
+func IsPasswordAuthenticatorProviderType(provider runtime.EmbeddedObject) bool {
+	switch provider.Object.(type) {
+	case
+		(*BasicAuthPasswordIdentityProvider),
+		(*AllowAllPasswordIdentityProvider),
+		(*DenyAllPasswordIdentityProvider),
+		(*HTPasswdPasswordIdentityProvider):
+
+		return true
+	}
+
+	return false
+}
+
+func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
+	switch provider.Object.(type) {
+	case
+		(*RequestHeaderIdentityProvider),
+		(*OAuthRedirectingIdentityProvider),
+		(*BasicAuthPasswordIdentityProvider),
+		(*AllowAllPasswordIdentityProvider),
+		(*DenyAllPasswordIdentityProvider),
+		(*HTPasswdPasswordIdentityProvider):
+
+		return true
+	}
+
+	return false
+}
+
+func IsOAuthProviderType(provider runtime.EmbeddedObject) bool {
+	switch provider.Object.(type) {
+	case
+		(*GoogleOAuthProvider),
+		(*GitHubOAuthProvider):
+
+		return true
+	}
+
+	return false
 }

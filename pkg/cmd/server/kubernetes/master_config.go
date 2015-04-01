@@ -29,8 +29,9 @@ type MasterConfig struct {
 
 	RequestContextMapper kapi.RequestContextMapper
 
-	EtcdHelper tools.EtcdHelper
-	KubeClient *kclient.Client
+	EtcdHelper          tools.EtcdHelper
+	KubeClient          *kclient.Client
+	KubeletClientConfig *kclient.KubeletConfig
 
 	Authorizer       authorizer.Authorizer
 	AdmissionControl admission.Interface
@@ -44,7 +45,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	// Connect and setup etcd interfaces
-	etcdClient, err := etcd.GetAndTestEtcdClient(options.EtcdClientInfo.URL)
+	etcdClient, err := etcd.GetAndTestEtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +53,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 	}
+
+	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	portalNet := net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 
@@ -77,6 +80,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		RequestContextMapper: requestContextMapper,
 		EtcdHelper:           ketcdHelper,
 		KubeClient:           kubeClient,
+		KubeletClientConfig:  kubeletClientConfig,
 		Authorizer:           apiserver.NewAlwaysAllowAuthorizer(),
 		AdmissionControl:     admissionController,
 		SchedulerConfigFile:  options.KubernetesMasterConfig.SchedulerConfigFile,

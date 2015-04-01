@@ -94,7 +94,7 @@ func TestOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(masterConfig.EtcdClientInfo.URL)
+	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(masterConfig.EtcdClientInfo)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

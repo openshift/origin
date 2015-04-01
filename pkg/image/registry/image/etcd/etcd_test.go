@@ -8,6 +8,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest/resttest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -498,5 +499,34 @@ func TestWatchOK(t *testing.T) {
 			t.Errorf("watching channel should be closed")
 		}
 		watching.Stop()
+	}
+}
+
+type fakeStrategy struct {
+	rest.RESTCreateStrategy
+}
+
+func (fakeStrategy) PrepareForCreate(obj runtime.Object) {
+	img := obj.(*api.Image)
+	img.Annotations = make(map[string]string, 1)
+	img.Annotations["test"] = "PrepareForCreate"
+}
+
+func TestStrategyPrepareMethods(t *testing.T) {
+	_, helper := newHelper(t)
+	storage := NewREST(helper)
+	img := validNewImage()
+	strategy := fakeStrategy{image.Strategy}
+
+	storage.store.CreateStrategy = strategy
+
+	obj, err := storage.Create(kapi.NewDefaultContext(), img)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	newImage := obj.(*api.Image)
+	if newImage.Annotations["test"] != "PrepareForCreate" {
+		t.Errorf("Expected PrepareForCreate annotation")
 	}
 }

@@ -98,6 +98,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 
 	if args.ListenArg.UseTLS() {
 		config.ServingInfo.ServerCert = admin.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName)
+		config.ServingInfo.ClientCA = admin.DefaultKubeletClientCAFile(args.CertArgs.CertDir)
 	}
 
 	return config, nil

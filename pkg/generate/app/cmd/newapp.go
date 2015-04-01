@@ -382,9 +382,8 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 		}
 	}
 
-	list := &kapi.List{Items: objects}
 	return &AppResult{
-		List:       list,
+		List:       &kapi.List{Items: objects},
 		BuildNames: buildNames,
 		HasSource:  hasSource,
 	}, nil

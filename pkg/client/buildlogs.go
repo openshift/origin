@@ -11,7 +11,7 @@ type BuildLogsNamespacer interface {
 
 // BuildLogsInterface exposes methods on BuildLogs resources.
 type BuildLogsInterface interface {
-	Redirect(name string) *kclient.Request
+	Get(name string) *kclient.Request
 }
 
 // buildLogs implements BuildLogsNamespacer interface
@@ -28,7 +28,7 @@ func newBuildLogs(c *Client, namespace string) *buildLogs {
 	}
 }
 
-// Redirect builds and returns a buildLog request
-func (c *buildLogs) Redirect(name string) *kclient.Request {
-	return c.r.Get().Namespace(c.ns).Prefix("redirect").Resource("buildLogs").Name(name)
+// Get builds and returns a buildLog request
+func (c *buildLogs) Get(name string) *kclient.Request {
+	return c.r.Get().Namespace(c.ns).Prefix("proxy").Resource("buildLogs").Name(name)
 }

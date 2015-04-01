@@ -30,6 +30,12 @@ pushd /vagrant
   ./hack/install-etcd.sh
 popd
 
+# Initialize certificates
+echo "Generating certs"
+pushd /vagrant
+  /usr/bin/openshift admin create-all-certs --overwrite=false --master=https://${MASTER_IP}:8443 --hostnames=${MASTER_IP},${MASTER_NAME} --nodes=${node_list}
+popd
+
 # Start docker
 systemctl enable docker.service
 systemctl start docker.service
@@ -55,9 +61,12 @@ systemctl start openshift-master.service
 
 # if SDN requires service on master, then set it up
 if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
+  export ETCD_CA=/vagrant/openshift.local.certificates/ca/cert.crt
+  export ETCD_CLIENT_CERT=/vagrant/openshift.local.certificates/master/etcd-client.crt
+  export ETCD_CLIENT_KEY=/vagrant/openshift.local.certificates/master/etcd-client.key
   $(dirname $0)/provision-master-sdn.sh $@
 fi
 
-# Set up the KUBECONFIG environment variable for use by the client
+# Set up the KUBECONFIG environment variable for use by osc
 echo 'export KUBECONFIG=/vagrant/openshift.local.certificates/admin/.kubeconfig' >> /root/.bash_profile
 echo 'export KUBECONFIG=/vagrant/openshift.local.certificates/admin/.kubeconfig' >> /home/vagrant/.bash_profile

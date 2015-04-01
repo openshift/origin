@@ -800,3 +800,47 @@ func TestEtcdGetImageRepositoryInDifferentNamespaces(t *testing.T) {
 	}
 }
 */
+type fakeStrategy struct {
+	imagerepository.Strategy
+}
+
+func (fakeStrategy) PrepareForCreate(obj runtime.Object) {
+	img := obj.(*api.ImageRepository)
+	img.Annotations = make(map[string]string, 1)
+	img.Annotations["test"] = "PrepareForCreate"
+}
+
+func (fakeStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	img := obj.(*api.ImageRepository)
+	img.Annotations["test"] = "PrepareForUpdate"
+}
+
+func TestStrategyPrepareMethods(t *testing.T) {
+	_, helper := newHelper(t)
+	storage, _ := NewREST(helper, testDefaultRegistry)
+	repo := validNewRepo()
+	strategy := fakeStrategy{imagerepository.NewStrategy(testDefaultRegistry)}
+
+	storage.store.CreateStrategy = strategy
+	storage.store.UpdateStrategy = strategy
+
+	obj, err := storage.Create(kapi.NewDefaultContext(), repo)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	newRep := obj.(*api.ImageRepository)
+	if newRep.Annotations["test"] != "PrepareForCreate" {
+		t.Errorf("Expected PrepareForCreate annotation")
+	}
+
+	obj, _, err = storage.Update(kapi.NewDefaultContext(), newRep)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	newRep = obj.(*api.ImageRepository)
+	if newRep.Annotations["test"] != "PrepareForUpdate" {
+		t.Errorf("Expected PrepareForUpdate annotation")
+	}
+}
