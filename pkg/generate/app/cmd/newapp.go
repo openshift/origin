@@ -116,7 +116,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository
 	b.AddImages(c.Components, func(input *app.ComponentInput) app.ComponentReference {
 		input.Resolver = app.PerfectMatchWeightedResolver{
 			app.WeightedResolver{Resolver: c.imageStreamResolver, Weight: 0.0},
-			app.WeightedResolver{Resolver: c.dockerResolver, Weight: 0.0},
+			app.WeightedResolver{Resolver: c.dockerResolver, Weight: 2.0},
 		}
 		return input
 	})
@@ -365,11 +365,11 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
 	for _, p := range pipelines {
-		obj, err := p.Objects(accept)
+		accepted, err := p.Objects(accept, app.AcceptNew)
 		if err != nil {
 			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
 		}
-		objects = append(objects, obj...)
+		objects = append(objects, accepted...)
 	}
 
 	objects = app.AddServices(objects)

@@ -18,9 +18,9 @@ type Bulk struct {
 func NewPrintNameOrErrorAfter(out, errs io.Writer) func(*resource.Info, error) {
 	return func(info *resource.Info, err error) {
 		if err == nil {
-			fmt.Fprintf(out, "%s\n", info.Name)
+			fmt.Fprintf(out, "%s/%s\n", info.Mapping.Resource, info.Name)
 		} else {
-			fmt.Fprintf(errs, "%v\n", err)
+			fmt.Fprintf(errs, "Error: %v\n", err)
 		}
 	}
 }

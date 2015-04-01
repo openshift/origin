@@ -85,35 +85,43 @@ func (p *Pipeline) NeedsDeployment(env Environment) error {
 	return nil
 }
 
-func (p *Pipeline) Objects(accept Acceptor) (Objects, error) {
+func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 	objects := Objects{}
 	if p.InputImage != nil && p.InputImage.AsImageRepository && accept.Accept(p.InputImage) {
 		repo, err := p.InputImage.ImageRepository()
 		if err != nil {
 			return nil, err
 		}
-		objects = append(objects, repo)
+		if objectAccept.Accept(repo) {
+			objects = append(objects, repo)
+		}
 	}
 	if p.Image != nil && p.Image.AsImageRepository && accept.Accept(p.Image) {
 		repo, err := p.Image.ImageRepository()
 		if err != nil {
 			return nil, err
 		}
-		objects = append(objects, repo)
+		if objectAccept.Accept(repo) {
+			objects = append(objects, repo)
+		}
 	}
 	if p.Build != nil && accept.Accept(p.Build) {
 		build, err := p.Build.BuildConfig()
 		if err != nil {
 			return nil, err
 		}
-		objects = append(objects, build)
+		if objectAccept.Accept(build) {
+			objects = append(objects, build)
+		}
 	}
 	if p.Deployment != nil && accept.Accept(p.Deployment) {
 		dc, err := p.Deployment.DeploymentConfig()
 		if err != nil {
 			return nil, err
 		}
-		objects = append(objects, dc)
+		if objectAccept.Accept(dc) {
+			objects = append(objects, dc)
+		}
 	}
 	return objects, nil
 }
@@ -205,6 +213,31 @@ func AddServices(objects Objects) Objects {
 		}
 	}
 	return append(svcs, objects...)
+}
+
+type acceptNew struct{}
+
+// AcceptNew only accepts runtime.Objects with an empty resource version.
+var AcceptNew Acceptor = acceptNew{}
+
+func (acceptNew) Accept(from interface{}) bool {
+	if obj, ok := from.(runtime.Object); ok {
+		if meta, err := kapi.ObjectMetaFor(obj); err == nil {
+			if len(meta.ResourceVersion) == 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+type acceptAll struct{}
+
+// AcceptAll accepts all objects
+var AcceptAll Acceptor = acceptAll{}
+
+func (acceptAll) Accept(_ interface{}) bool {
+	return true
 }
 
 type Objects []runtime.Object
