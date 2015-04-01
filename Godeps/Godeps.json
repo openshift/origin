@@ -26,11 +26,6 @@
             "Rev": "937a34c9de13c766c814510f76bca091dee06028"
         },
         {
-            "ImportPath": "code.google.com/p/goauth2/oauth",
-            "Comment": "weekly-50",
-            "Rev": "7fc9d958c83464bd7650240569bf93a102266e6a"
-        },
-        {
             "ImportPath": "code.google.com/p/google-api-go-client/compute/v1",
             "Comment": "release-105",
             "Rev": "98c78185197025f935947caac56a7b6d022f89d2"
@@ -900,7 +895,7 @@
         },
         {
             "ImportPath": "golang.org/x/oauth2",
-            "Rev": "2e66694fea36dc820636630792a55cdc6987e05b"
+            "Rev": "c4932a9b59a60daa02a28db1bb7be39d6ec2e542"
         },
         {
             "ImportPath": "google.golang.org/appengine",

@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.google.com/p/goauth2/oauth"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
+	"golang.org/x/oauth2"
 
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/teststorage"
 )
@@ -37,18 +37,24 @@ func TestClientCredentialFlow(t *testing.T) {
 	oauthServer.Install(mux, "")
 	server := httptest.NewServer(mux)
 
-	config := &oauth.Config{
-		ClientId:     "test",
+	config := &oauth2.Config{
+		ClientID:     "test",
 		ClientSecret: "secret",
-		Scope:        "a_scope",
-		AuthURL:      server.URL + "/authorize",
-		TokenURL:     server.URL + "/token",
+		Scopes:       []string{"a_scope"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  server.URL + "/authorize",
+			TokenURL: server.URL + "/token",
+		},
 	}
 
-	transport := &oauth.Transport{Config: config}
-	if err := transport.AuthenticateClient(); err != nil {
+	token, err := config.PasswordCredentialsToken(oauth2.NoContext, config.ClientID, config.ClientSecret)
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if !token.Valid() {
+		t.Fatal("invalid token")
+	}
+
 	if storage.AccessData == nil {
 		t.Fatalf("unexpected nil access data")
 	}
@@ -109,13 +115,15 @@ func TestAuthorizeStartFlow(t *testing.T) {
 	oaclient = osinclient
 	authReq = oaclient.NewAuthorizeRequest(osincli.CODE)
 
-	config := &oauth.Config{
-		ClientId:     "test",
+	config := &oauth2.Config{
+		ClientID:     "test",
 		ClientSecret: "",
-		Scope:        "a_scope",
-		RedirectURL:  assertServer.URL + "/assert",
-		AuthURL:      server.URL + "/authorize",
-		TokenURL:     server.URL + "/token",
+		Scopes:       []string{"a_scope"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  server.URL + "/authorize",
+			TokenURL: server.URL + "/token",
+		},
+		RedirectURL: assertServer.URL + "/assert",
 	}
 	url := config.AuthCodeURL("")
 	client := http.Client{ /*CheckRedirect: func(req *http.Request, via []*http.Request) error {
