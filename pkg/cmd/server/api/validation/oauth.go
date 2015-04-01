@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
@@ -28,10 +29,11 @@ func ValidateOAuthConfig(config *api.OAuthConfig) fielderrors.ValidationErrorLis
 
 	allErrs = append(allErrs, ValidateGrantConfig(config.GrantConfig).Prefix("grantConfig")...)
 
-	redirectingIdentityProviders := []int{}
+	providerNames := util.NewStringSet()
+	redirectingIdentityProviders := []string{}
 	for i, identityProvider := range config.IdentityProviders {
-		if identityProvider.Usage.UseAsLogin {
-			redirectingIdentityProviders = append(redirectingIdentityProviders, i)
+		if identityProvider.UseAsLogin {
+			redirectingIdentityProviders = append(redirectingIdentityProviders, identityProvider.Name)
 
 			if api.IsPasswordAuthenticator(identityProvider) {
 				if config.SessionConfig == nil {
@@ -41,6 +43,13 @@ func ValidateOAuthConfig(config *api.OAuthConfig) fielderrors.ValidationErrorLis
 		}
 
 		allErrs = append(allErrs, ValidateIdentityProvider(identityProvider).Prefix(fmt.Sprintf("identityProvider[%d]", i))...)
+
+		if len(identityProvider.Name) > 0 {
+			if providerNames.Has(identityProvider.Name) {
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("identityProvider[%d].name", i), identityProvider.Name, "must have a unique name"))
+			}
+			providerNames.Insert(identityProvider.Name)
+		}
 	}
 
 	if len(redirectingIdentityProviders) > 1 {
@@ -53,8 +62,8 @@ func ValidateOAuthConfig(config *api.OAuthConfig) fielderrors.ValidationErrorLis
 func ValidateIdentityProvider(identityProvider api.IdentityProvider) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if len(identityProvider.Usage.ProviderName) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("usage.providerName"))
+	if len(identityProvider.Name) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
 	}
 
 	if !api.IsIdentityProviderType(identityProvider.Provider) {
@@ -68,11 +77,11 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) fielderrors
 			if len(provider.Headers) == 0 {
 				allErrs = append(allErrs, fielderrors.NewFieldRequired("provider.headers"))
 			}
-			if identityProvider.Usage.UseAsChallenger {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("provider.useAsChallenger", identityProvider.Usage.UseAsChallenger, "request header providers cannot be used for challenges"))
+			if identityProvider.UseAsChallenger {
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("challenge", identityProvider.UseAsChallenger, "request header providers cannot be used for challenges"))
 			}
-			if identityProvider.Usage.UseAsLogin {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("provider.useAsLogin", identityProvider.Usage.UseAsChallenger, "request header providers cannot be used for browser login"))
+			if identityProvider.UseAsLogin {
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("login", identityProvider.UseAsChallenger, "request header providers cannot be used for browser login"))
 			}
 
 		case (*api.BasicAuthPasswordIdentityProvider):
@@ -91,8 +100,8 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) fielderrors
 			if !api.IsOAuthProviderType(provider.Provider) {
 				allErrs = append(allErrs, fielderrors.NewFieldInvalid("provider.provider", provider.Provider, fmt.Sprintf("%v is invalid in this context", identityProvider.Provider)))
 			}
-			if identityProvider.Usage.UseAsChallenger {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("provider.useAsChallenger", identityProvider.Usage.UseAsChallenger, "oauth providers cannot be used for challenges"))
+			if identityProvider.UseAsChallenger {
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("challenge", identityProvider.UseAsChallenger, "oauth providers cannot be used for challenges"))
 			}
 		}
 

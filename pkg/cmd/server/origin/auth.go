@@ -307,12 +307,12 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				return nil, err
 			}
 
-			if identityProvider.Usage.UseAsLogin {
+			if identityProvider.UseAsLogin {
 				redirectors["login"] = &redirector{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
 				login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, successHandler}, login.DefaultLoginFormRenderer)
 				login.Install(mux, OpenShiftLoginPrefix)
 			}
-			if identityProvider.Usage.UseAsChallenger {
+			if identityProvider.UseAsChallenger {
 				challengers["login"] = passwordchallenger.NewBasicAuthChallenger("openshift")
 			}
 
@@ -324,10 +324,10 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				switch provider.Provider.Object.(type) {
 				case (*configapi.GoogleOAuthProvider):
 					callbackPath = path.Join(OpenShiftOAuthCallbackPrefix, "google")
-					oauthProvider = google.NewProvider(identityProvider.Usage.ProviderName, provider.ClientID, provider.ClientSecret)
+					oauthProvider = google.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret)
 				case (*configapi.GitHubOAuthProvider):
 					callbackPath = path.Join(OpenShiftOAuthCallbackPrefix, "github")
-					oauthProvider = github.NewProvider(identityProvider.Usage.ProviderName, provider.ClientID, provider.ClientSecret)
+					oauthProvider = github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret)
 				default:
 					return nil, fmt.Errorf("unexpected oauth provider %#v", provider)
 				}
@@ -339,10 +339,10 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				}
 
 				mux.Handle(callbackPath, oauthHandler)
-				if identityProvider.Usage.UseAsLogin {
-					redirectors[identityProvider.Usage.ProviderName] = oauthHandler
+				if identityProvider.UseAsLogin {
+					redirectors[identityProvider.Name] = oauthHandler
 				}
-				if identityProvider.Usage.UseAsChallenger {
+				if identityProvider.UseAsChallenger {
 					return nil, errors.New("oauth identity providers cannot issue challenges")
 				}
 			}
@@ -358,7 +358,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 
 	switch provider := identityProvider.Provider.Object.(type) {
 	case (*configapi.AllowAllPasswordIdentityProvider):
-		return allowanypassword.New(identityProvider.Usage.ProviderName, identityMapper), nil
+		return allowanypassword.New(identityProvider.Name, identityMapper), nil
 
 	case (*configapi.DenyAllPasswordIdentityProvider):
 		return denypassword.New(), nil
@@ -368,7 +368,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		if len(htpasswdFile) == 0 {
 			return nil, fmt.Errorf("HTPasswdFile is required to support htpasswd auth")
 		}
-		if htpasswordAuth, err := htpasswd.New(identityProvider.Usage.ProviderName, htpasswdFile, identityMapper); err != nil {
+		if htpasswordAuth, err := htpasswd.New(identityProvider.Name, htpasswdFile, identityMapper); err != nil {
 			return nil, fmt.Errorf("Error loading htpasswd file %s: %v", htpasswdFile, err)
 		} else {
 			return htpasswordAuth, nil
@@ -379,7 +379,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		if len(basicAuthURL) == 0 {
 			return nil, fmt.Errorf("BasicAuthURL is required to support basic password auth")
 		}
-		return basicauthpassword.New(identityProvider.Usage.ProviderName, basicAuthURL, identityMapper), nil
+		return basicauthpassword.New(identityProvider.Name, basicAuthURL, identityMapper), nil
 
 	default:
 		return nil, fmt.Errorf("No password auth found that matches %v.  The oauth server cannot start!", identityProvider)
@@ -396,7 +396,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSu
 
 	addedRedirectSuccessHandler := false
 	for _, identityProvider := range c.Options.IdentityProviders {
-		if !identityProvider.Usage.UseAsLogin {
+		if !identityProvider.UseAsLogin {
 			continue
 		}
 
@@ -437,9 +437,9 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 				var authRequestHandler authenticator.Request
 
 				authRequestConfig := &headerrequest.Config{
-					UserNameHeaders: provider.Headers.List(),
+					UserNameHeaders: provider.Headers,
 				}
-				authRequestHandler = headerrequest.NewAuthenticator(identityProvider.Usage.ProviderName, authRequestConfig, identityMapper)
+				authRequestHandler = headerrequest.NewAuthenticator(identityProvider.Name, authRequestConfig, identityMapper)
 
 				// Wrap with an x509 verifier
 				if len(provider.ClientCA) > 0 {

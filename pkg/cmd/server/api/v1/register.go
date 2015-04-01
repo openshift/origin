@@ -12,7 +12,6 @@ func init() {
 		&MasterConfig{},
 		&NodeConfig{},
 
-		&IdentityProviderUsage{},
 		&IdentityProvider{},
 		&BasicAuthPasswordIdentityProvider{},
 		&AllowAllPasswordIdentityProvider{},
@@ -26,7 +25,6 @@ func init() {
 	)
 }
 
-func (*IdentityProviderUsage) IsAnAPIObject()             {}
 func (*IdentityProvider) IsAnAPIObject()                  {}
 func (*BasicAuthPasswordIdentityProvider) IsAnAPIObject() {}
 func (*AllowAllPasswordIdentityProvider) IsAnAPIObject()  {}
