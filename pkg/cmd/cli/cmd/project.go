@@ -89,7 +89,7 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 
 			// Check if argument is an existing context, if so just set it as the context in use.
 			// If not a context then we will try to handle it as a project.
-			if context, ok := config.Contexts[argument]; ok {
+			if context, ok := config.Contexts[argument]; ok && len(context.Namespace) > 0 {
 				contextInUse = argument
 				namespaceInUse = context.Namespace
 
@@ -132,7 +132,7 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 					cluster := config.Clusters[ctx.Cluster]
 					authInfo := config.AuthInfos[ctx.AuthInfo]
 
-					if namespace == project.Name && clusterAndAuthEquality(clientCfg, cluster, authInfo) {
+					if len(namespace) > 0 && namespace == project.Name && clusterAndAuthEquality(clientCfg, cluster, authInfo) {
 						exists = true
 						config.CurrentContext = k
 
@@ -168,7 +168,7 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 				}
 			}
 
-			if err = kclientcmd.WriteToFile(*config, configStore.Path); err != nil {
+			if err := kclientcmd.WriteToFile(*config, configStore.Path); err != nil {
 				glog.Fatalf("Error saving project information in the config: %v.", err)
 			}
 
