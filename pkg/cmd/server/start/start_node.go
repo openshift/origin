@@ -98,6 +98,10 @@ func (o NodeOptions) Validate(args []string) error {
 		}
 	}
 
+	if err := o.NodeArgs.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -133,7 +137,7 @@ func (o NodeOptions) RunNode() error {
 
 	if mintCerts {
 		if err := o.CreateCerts(); err != nil {
-			return nil
+			return err
 		}
 	}
 
@@ -219,7 +223,7 @@ func (o NodeOptions) CreateCerts() error {
 		dnsIP = o.NodeArgs.ClusterDNS.String()
 	}
 
-	masterAddr, err := o.NodeArgs.KubeConnectionArgs.GetKubernetesAddress(&o.NodeArgs.DefaultKubernetesURL)
+	masterAddr, err := o.NodeArgs.KubeConnectionArgs.GetKubernetesAddress(o.NodeArgs.DefaultKubernetesURL)
 	if err != nil {
 		return err
 	}

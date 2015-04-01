@@ -1,6 +1,7 @@
 package start
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -27,7 +28,7 @@ type NodeArgs struct {
 	AllowDisabledDocker bool
 	VolumeDir           string
 
-	DefaultKubernetesURL url.URL
+	DefaultKubernetesURL *url.URL
 	ClusterDomain        string
 	ClusterDNS           net.IP
 
@@ -68,6 +69,17 @@ func NewDefaultNodeArgs() *NodeArgs {
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
 		CertArgs:           NewDefaultCertArgs(),
 	}
+}
+
+func (args NodeArgs) Validate() error {
+	if err := args.KubeConnectionArgs.Validate(); err != nil {
+		return err
+	}
+	if _, err := args.KubeConnectionArgs.GetKubernetesAddress(args.DefaultKubernetesURL); err != nil {
+		return errors.New("--kubeconfig must be set to provide API server connection information")
+	}
+
+	return nil
 }
 
 // BuildSerializeableNodeConfig takes the NodeArgs (partially complete config) and uses them along with defaulting behavior to create the fully specified

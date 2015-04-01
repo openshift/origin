@@ -96,11 +96,6 @@ func (c *AssetConfig) buildHandler() (http.Handler, error) {
 		return nil, err
 	}
 
-	k8sURL, err := url.Parse(c.Options.KubernetesPublicURL)
-	if err != nil {
-		return nil, err
-	}
-
 	publicURL, err := url.Parse(c.Options.PublicURL)
 	if err != nil {
 		glog.Fatal(err)
@@ -109,7 +104,7 @@ func (c *AssetConfig) buildHandler() (http.Handler, error) {
 	config := assets.WebConsoleConfig{
 		MasterAddr:        masterURL.Host,
 		MasterPrefix:      OpenShiftAPIPrefix,
-		KubernetesAddr:    k8sURL.Host,
+		KubernetesAddr:    masterURL.Host,
 		KubernetesPrefix:  KubernetesAPIPrefix,
 		OAuthAuthorizeURI: OpenShiftOAuthAuthorizeURL(masterURL.String()),
 		OAuthRedirectBase: c.Options.PublicURL,

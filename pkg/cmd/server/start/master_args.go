@@ -30,8 +30,7 @@ type MasterArgs struct {
 	EtcdAddr   flagtypes.Addr
 	PortalNet  flagtypes.IPNet
 	// addresses for external clients
-	MasterPublicAddr     flagtypes.Addr
-	KubernetesPublicAddr flagtypes.Addr
+	MasterPublicAddr flagtypes.Addr
 
 	// DNSBindAddr exposed for integration tests to set
 	DNSBindAddr flagtypes.Addr
@@ -56,7 +55,6 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 	flags.Var(&args.MasterAddr, prefix+"master", "The master address for use by OpenShift components (host, host:port, or URL). Scheme and port default to the --listen scheme and port. When unset, attempt to use the first public IPv4 non-loopback address registered on this host.")
 	flags.Var(&args.MasterPublicAddr, prefix+"public-master", "The master address for use by public clients, if different (host, host:port, or URL). Defaults to same as --master.")
 	flags.Var(&args.EtcdAddr, prefix+"etcd", "The address of the etcd server (host, host:port, or URL). If specified, no built-in etcd will be started.")
-	flags.Var(&args.KubernetesPublicAddr, prefix+"public-kubernetes", "The Kubernetes server address for use by public clients, if different. (host, host:port, or URL). Defaults to same as --kubernetes.")
 	flags.Var(&args.PortalNet, prefix+"portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 
 	flags.StringVar(&args.EtcdDir, prefix+"etcd-dir", "openshift.local.etcd", "The etcd data directory.")
@@ -68,12 +66,11 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 // NewDefaultMasterArgs creates MasterArgs with sub-objects created and default values set.
 func NewDefaultMasterArgs() *MasterArgs {
 	config := &MasterArgs{
-		MasterAddr:           flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
-		EtcdAddr:             flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "https", DefaultPort: 4001}.Default(),
-		PortalNet:            flagtypes.DefaultIPNet("172.30.17.0/24"),
-		MasterPublicAddr:     flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
-		KubernetesPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
-		DNSBindAddr:          flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "http", DefaultPort: 53, AllowPrefix: true}.Default(),
+		MasterAddr:       flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
+		EtcdAddr:         flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "https", DefaultPort: 4001}.Default(),
+		PortalNet:        flagtypes.DefaultIPNet("172.30.17.0/24"),
+		MasterPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
+		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "http", DefaultPort: 53, AllowPrefix: true}.Default(),
 
 		ListenArg:          NewDefaultListenArg(),
 		PolicyArgs:         NewDefaultPolicyArgs(),
@@ -89,10 +86,6 @@ func NewDefaultMasterArgs() *MasterArgs {
 // config object for starting the master
 func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig, error) {
 	masterPublicAddr, err := args.GetMasterPublicAddress()
-	if err != nil {
-		return nil, err
-	}
-	kubePublicAddr, err := args.GetKubernetesPublicAddress()
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +121,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		}
 	}
 
-	builtInKubernetes := !args.KubeConnectionArgs.KubernetesAddr.Provided && len(args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) == 0
+	builtInKubernetes := len(args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) == 0
 	var kubernetesMasterConfig *configapi.KubernetesMasterConfig
 	if builtInKubernetes {
 		kubernetesMasterConfig, err = args.BuildSerializeableKubeMasterConfig()
@@ -162,10 +155,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 				BindAddress: args.GetAssetBindAddress(),
 			},
 
-			LogoutURL:           "",
-			MasterPublicURL:     masterPublicAddr.String(),
-			PublicURL:           assetPublicAddr.String(),
-			KubernetesPublicURL: kubePublicAddr.String(),
+			LogoutURL:       "",
+			MasterPublicURL: masterPublicAddr.String(),
+			PublicURL:       assetPublicAddr.String(),
 		},
 
 		DNSConfig: &configapi.DNSConfig{
@@ -374,16 +366,14 @@ func (args MasterArgs) Validate() error {
 		return fmt.Errorf("master public url may not include a path: '%v'", addr.Path)
 	}
 
+	if err := args.KubeConnectionArgs.Validate(); err != nil {
+		return err
+	}
+
 	if addr, err := args.KubeConnectionArgs.GetKubernetesAddress(masterAddr); err != nil {
 		return err
 	} else if len(addr.Path) != 0 {
 		return fmt.Errorf("kubernetes url may not include a path: '%v'", addr.Path)
-	}
-
-	if addr, err := args.GetKubernetesPublicAddress(); err != nil {
-		return err
-	} else if len(addr.Path) != 0 {
-		return fmt.Errorf("kubernetes public url may not include a path: '%v'", addr.Path)
 	}
 
 	return nil
@@ -399,16 +389,12 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 	if err != nil {
 		return nil, err
 	}
-	kubePublicAddr, err := args.GetKubernetesPublicAddress()
-	if err != nil {
-		return nil, err
-	}
 	assetPublicAddr, err := args.GetAssetPublicAddress()
 	if err != nil {
 		return nil, err
 	}
 
-	allHostnames := util.NewStringSet("localhost", "127.0.0.1", "openshift.default.local", "kubernetes.default.local", "kubernetes-ro.default.local", masterAddr.Host, masterPublicAddr.Host, kubePublicAddr.Host, assetPublicAddr.Host)
+	allHostnames := util.NewStringSet("localhost", "127.0.0.1", "openshift.default.local", "kubernetes.default.local", "kubernetes-ro.default.local", masterAddr.Host, masterPublicAddr.Host, assetPublicAddr.Host)
 	certHostnames := util.StringSet{}
 	for hostname := range allHostnames {
 		if host, _, err := net.SplitHostPort(hostname); err == nil {
@@ -510,23 +496,6 @@ func (args MasterArgs) GetEtcdPeerAddress() (*url.URL, error) {
 	etcdAddress.Host = net.JoinHostPort(host, "7001")
 
 	return etcdAddress, nil
-}
-func (args MasterArgs) GetKubernetesPublicAddress() (*url.URL, error) {
-	if args.KubernetesPublicAddr.Provided {
-		return args.KubernetesPublicAddr.URL, nil
-	}
-	if args.KubeConnectionArgs.KubernetesAddr.Provided {
-		return args.KubeConnectionArgs.KubernetesAddr.URL, nil
-	}
-	config, ok, err := args.KubeConnectionArgs.GetExternalKubernetesClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	if ok && len(config.Host) > 0 {
-		return url.Parse(config.Host)
-	}
-
-	return args.GetMasterPublicAddress()
 }
 
 func (args MasterArgs) GetAssetPublicAddress() (*url.URL, error) {

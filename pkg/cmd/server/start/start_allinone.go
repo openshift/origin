@@ -91,7 +91,7 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 	flags.StringVar(&options.MasterConfigFile, "master-config", "", "Location of the master configuration file to run from, or write to (when used with --write-config). When running from configuration files, all other command-line arguments are ignored.")
 	flags.StringVar(&options.NodeConfigFile, "node-config", "", "Location of the node configuration file to run from, or write to (when used with --write-config). When running from configuration files, all other command-line arguments are ignored.")
 
-	masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs, certArgs := GetAllInOneArgs()
+	masterArgs, nodeArgs, listenArg, imageFormatArgs, _, certArgs := GetAllInOneArgs()
 	options.MasterArgs, options.NodeArgs = masterArgs, nodeArgs
 	// by default, all-in-ones all disabled docker.  Set it here so that if we allow it to be bound later, bindings take precendence
 	options.NodeArgs.AllowDisabledDocker = true
@@ -101,7 +101,6 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 	BindListenArg(listenArg, flags, "")
 	BindPolicyArgs(options.MasterArgs.PolicyArgs, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
-	BindKubeConnectionArgs(kubeConnectionArgs, flags, "")
 	BindCertArgs(certArgs, flags, "")
 
 	startMaster, _ := NewCommandStartMaster()
@@ -154,6 +153,14 @@ func (o AllInOneOptions) Validate(args []string) error {
 		return err
 	}
 
+	if err := o.NodeArgs.Validate(); err != nil {
+		return err
+	}
+
+	if len(o.MasterArgs.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) != 0 {
+		return errors.New("all-in-one cannot start against with a remote kubernetes, start just the master instead")
+	}
+
 	return nil
 }
 
@@ -165,7 +172,20 @@ func (o AllInOneOptions) Complete() error {
 	}
 	o.MasterArgs.NodeList = nodeList.List()
 
+	masterAddr, err := o.MasterArgs.GetMasterAddress()
+	if err != nil {
+		return nil
+	}
+	// in the all-in-one, default kubernetes URL to the master's address
+	o.NodeArgs.DefaultKubernetesURL = masterAddr
 	o.NodeArgs.NodeName = strings.ToLower(o.NodeArgs.NodeName)
+
+	// in the all-in-one, default ClusterDNS to the master's address
+	if host, _, err := net.SplitHostPort(masterAddr.Host); err == nil {
+		if ip := net.ParseIP(host); ip != nil {
+			o.NodeArgs.ClusterDNS = ip
+		}
+	}
 
 	return nil
 }
@@ -199,28 +219,11 @@ func (o AllInOneOptions) StartAllInOne() error {
 	}
 
 	masterOptions := MasterOptions{o.MasterArgs, o.WriteConfigOnly, o.MasterConfigFile}
-
-	masterAddr, err := masterOptions.MasterArgs.GetMasterAddress()
-	if err != nil {
-		return nil
-	}
-
-	// in the all-in-one, default kubernetes URL to the master's address
-	o.NodeArgs.DefaultKubernetesURL = *masterAddr
-
-	// in the all-in-one, default ClusterDNS to the master's address
-	if host, _, err := net.SplitHostPort(masterAddr.Host); err == nil {
-		if ip := net.ParseIP(host); ip != nil {
-			o.NodeArgs.ClusterDNS = ip
-		}
-	}
-
-	nodeOptions := NodeOptions{o.NodeArgs, o.WriteConfigOnly, o.NodeConfigFile}
-
 	if err := masterOptions.RunMaster(); err != nil {
 		return err
 	}
 
+	nodeOptions := NodeOptions{o.NodeArgs, o.WriteConfigOnly, o.NodeConfigFile}
 	if err := nodeOptions.RunNode(); err != nil {
 		return err
 	}

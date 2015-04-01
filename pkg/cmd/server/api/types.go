@@ -152,10 +152,6 @@ type AssetConfig struct {
 
 	// MasterPublicURL is how the web console can access the OpenShift api server
 	MasterPublicURL string
-
-	// TODO: we probably don't need this since we have a proxy
-	// KubernetesPublicURL is how the web console can access the Kubernetes api server
-	KubernetesPublicURL string
 }
 
 type OAuthConfig struct {
