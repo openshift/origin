@@ -207,6 +207,9 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 
 				objects := []runtime.Object{
 					&dapi.DeploymentConfig{
+						TypeMeta: kapi.TypeMeta{
+							APIVersion: "v1beta3",
+						},
 						ObjectMeta: kapi.ObjectMeta{
 							Name:   name,
 							Labels: label,
