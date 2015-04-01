@@ -30,6 +30,36 @@
       },
       "tags": {
       }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "dockerImageRepository": "openshift/mysql-55-centos7",
+      "kind": "ImageRepository",
+      "metadata": {
+        "name": "mysql-55-centos7"
+      },
+      "tags": {
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "dockerImageRepository": "openshift/postgresql-92-centos7",
+      "kind": "ImageRepository",
+      "metadata": {
+        "name": "postgresql-92-centos7"
+      },
+      "tags": {
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "dockerImageRepository": "openshift/mongodb-24-centos7",
+      "kind": "ImageRepository",
+      "metadata": {
+        "name": "mongodb-24-centos7"
+      },
+      "tags": {
+      }
     }
   ],
   "kind": "ImageRepositoryList"
