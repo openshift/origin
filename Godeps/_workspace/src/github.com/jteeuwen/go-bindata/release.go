@@ -281,7 +281,7 @@ func uncompressed_memcopy(w io.Writer, asset *Asset, r io.Reader) error {
 	if utf8.Valid(b) {
 		fmt.Fprintf(w, "`%s`", sanitize(b))
 	} else {
-		fmt.Fprintf(w, "%q", b)
+		fmt.Fprintf(w, "%+q", b)
 	}
 
 	_, err = fmt.Fprintf(w, `)
