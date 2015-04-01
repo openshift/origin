@@ -248,43 +248,69 @@ func testBuildHandler() *STI {
 }
 
 func TestPostExecute(t *testing.T) {
-	incrementalTest := []bool{true, false}
-	for _, incremental := range incrementalTest {
-		previousImageIDTest := []string{"", "test-image"}
-		for _, previousImageID := range previousImageIDTest {
-			bh := testBuildHandler()
-			bh.result.Messages = []string{"one", "two"}
-			bh.request.CallbackURL = "https://my.callback.org/test"
-			bh.request.Tag = "test/tag"
-			dh := bh.docker.(*test.FakeDocker)
-			bh.request.Incremental = incremental
-			if previousImageID != "" {
-				bh.request.RemovePreviousImage = true
-				bh.incremental = incremental
-				bh.docker.(*test.FakeDocker).GetImageIDResult = previousImageID
-			}
-			err := bh.PostExecute("test-container-id", "cmd1")
-			if err != nil {
-				t.Errorf("Unexpected errror from postExecute: %v", err)
-			}
-			// Ensure CommitContainer was called with the right parameters
-			if !reflect.DeepEqual(dh.CommitContainerOpts.Command, []string{"cmd1/run"}) {
-				t.Errorf("Unexpected commit container command: %#v", dh.CommitContainerOpts.Command)
-			}
-			if dh.CommitContainerOpts.Repository != bh.request.Tag {
-				t.Errorf("Unexpected tag commited: %s", dh.CommitContainerOpts.Repository)
-			}
+	type postExecuteTest struct {
+		tag             string
+		incremental     bool
+		previousImageID string
+	}
+	testCases := []postExecuteTest{
+		// 0: tagged, incremental, without previous image
+		{"test/tag", true, ""},
+		// 1: tagged, incremental, with previous image
+		{"test/tag", true, "test-image"},
+		// 2: tagged, no incremental, without previous image
+		{"test/tag", false, ""},
+		// 3: tagged, no incremental, with previous image
+		{"test/tag", false, "test-image"},
 
-			if incremental && previousImageID != "" {
-				if dh.RemoveImageName != "test-image" {
-					t.Errorf("Previous image was not removed: %s", dh.RemoveImageName)
-				}
-			} else {
-				if dh.RemoveImageName != "" {
-					t.Errorf("Unexpected image removed: %s", dh.RemoveImageName)
-				}
-			}
+		// 4: no tag, incremental, without previous image
+		{"", true, ""},
+		// 5: no tag, incremental, with previous image
+		{"", true, "test-image"},
+		// 6: no tag, no incremental, without previous image
+		{"", false, ""},
+		// 7: no tag, no incremental, with previous image
+		{"", false, "test-image"},
+	}
 
+	for i, tc := range testCases {
+		bh := testBuildHandler()
+		containerID := "test-container-id"
+		bh.result.Messages = []string{"one", "two"}
+		bh.request.CallbackURL = "https://my.callback.org/test"
+		bh.request.Tag = tc.tag
+		bh.request.Incremental = tc.incremental
+		dh := bh.docker.(*test.FakeDocker)
+		if tc.previousImageID != "" {
+			bh.request.RemovePreviousImage = true
+			bh.incremental = tc.incremental
+			bh.docker.(*test.FakeDocker).GetImageIDResult = tc.previousImageID
+		}
+		ci := bh.callbackInvoker.(*test.FakeCallbackInvoker)
+		err := bh.PostExecute(containerID, "cmd1")
+		if err != nil {
+			t.Errorf("(%d) Unexpected error from postExecute: %v", i, err)
+		}
+		// Ensure CommitContainer was called with the right parameters
+		if !reflect.DeepEqual(dh.CommitContainerOpts.Command, []string{"cmd1/" + api.Run}) {
+			t.Errorf("(%d) Unexpected commit container command: %#v", i, dh.CommitContainerOpts.Command)
+		}
+		if dh.CommitContainerOpts.Repository != tc.tag {
+			t.Errorf("(%d) Unexpected tag commited, expected %s, got %s", i, tc.tag, dh.CommitContainerOpts.Repository)
+		}
+		// Ensure image removal when incremental and previousImageID present
+		if tc.incremental && tc.previousImageID != "" {
+			if dh.RemoveImageName != "test-image" {
+				t.Errorf("(%d) Previous image was not removed: %s", i, dh.RemoveImageName)
+			}
+		} else {
+			if dh.RemoveImageName != "" {
+				t.Errorf("(%d) Unexpected image removed: %s", i, dh.RemoveImageName)
+			}
+		}
+		// Ensure Callback was called
+		if ci.CallbackURL != bh.request.CallbackURL {
+			t.Errorf("(%d) Unexpected callbackURL, expected %s, got %", i, bh.request.CallbackURL, ci.CallbackURL)
 		}
 	}
 }
@@ -485,7 +511,7 @@ func TestFetchSource(t *testing.T) {
 			}
 		}
 		if ft.copyExpected {
-			if fh.CopySource != "a-repo-source" {
+			if fh.CopySource != "a-repo-source/." {
 				t.Errorf("Copy was not called with the expected source.")
 			}
 			if fh.CopyDest != expectedTargetDir {

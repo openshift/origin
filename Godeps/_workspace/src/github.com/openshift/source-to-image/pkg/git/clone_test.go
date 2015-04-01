@@ -24,7 +24,7 @@ func TestCloneWithContext(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	if fs.CopySource != "upload/tmp/subdir" {
+	if fs.CopySource != "upload/tmp/subdir/." {
 		t.Errorf("The source directory should be 'upload/tmp/subdir', it is %v", fs.CopySource)
 	}
 	if fs.CopyDest != "upload/src" {
@@ -54,7 +54,7 @@ func TestCloneLocalWithContext(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	if fs.CopySource != "source/subdir" {
+	if fs.CopySource != "source/subdir/." {
 		t.Errorf("The source directory should be 'source/subdir', it is %v", fs.CopySource)
 	}
 	if fs.CopyDest != "upload/src" {

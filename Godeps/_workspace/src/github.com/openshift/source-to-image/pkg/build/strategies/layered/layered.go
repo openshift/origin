@@ -115,9 +115,18 @@ func (b *Layered) Build(request *api.Request) (*api.Result, error) {
 
 	// goroutine to stream container's output
 	go func(reader io.Reader) {
-		scanner := bufio.NewScanner(reader)
-		for scanner.Scan() {
-			glog.V(2).Info(scanner.Text())
+		scanner := bufio.NewReader(reader)
+		for {
+			text, err := scanner.ReadString('\n')
+			if err != nil {
+				// we're ignoring ErrClosedPipe, as this is information
+				// the docker container ended streaming logs
+				if glog.V(2) && err != io.ErrClosedPipe {
+					glog.Errorf("Error reading docker stdout, %v", err)
+				}
+				break
+			}
+			glog.V(2).Info(text)
 		}
 	}(outReader)
 

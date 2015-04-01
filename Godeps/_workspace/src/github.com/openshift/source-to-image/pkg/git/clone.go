@@ -25,7 +25,7 @@ func (c *Clone) Download(request *api.Request) error {
 		}
 		glog.V(2).Infof("Cloning into %s", targetSourceDir)
 		if err := c.Clone(request.Source, targetSourceDir); err != nil {
-			glog.Errorf("Git clone failed: %+v", err)
+			glog.V(1).Infof("Git clone failed: %+v", err)
 			return err
 		}
 
@@ -40,7 +40,9 @@ func (c *Clone) Download(request *api.Request) error {
 		if len(request.ContextDir) > 0 {
 			originalTargetDir := filepath.Join(request.WorkingDir, "upload", "src")
 			c.RemoveDirectory(originalTargetDir)
-			err := c.Copy(filepath.Join(targetSourceDir, request.ContextDir), originalTargetDir)
+			// we want to copy entire dir contents, thus we need to use dir/. construct
+			path := filepath.Join(targetSourceDir, request.ContextDir) + string(filepath.Separator) + "."
+			err := c.Copy(path, originalTargetDir)
 			if err != nil {
 				return err
 			}
@@ -50,5 +52,7 @@ func (c *Clone) Download(request *api.Request) error {
 		return nil
 	}
 
-	return c.Copy(filepath.Join(request.Source, request.ContextDir), targetSourceDir)
+	// we want to copy entire dir contents, thus we need to use dir/. construct
+	path := filepath.Join(request.Source, request.ContextDir) + string(filepath.Separator) + "."
+	return c.Copy(path, targetSourceDir)
 }
