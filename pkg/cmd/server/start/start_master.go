@@ -16,7 +16,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	kyaml "github.com/GoogleCloudPlatform/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -180,7 +179,7 @@ func (o MasterOptions) RunMaster() error {
 	var masterConfig *configapi.MasterConfig
 	var err error
 	if startUsingConfigFile {
-		masterConfig, err = ReadMasterConfig(o.ConfigFile)
+		masterConfig, err = configapilatest.ReadAndResolveMasterConfig(o.ConfigFile)
 	} else {
 		masterConfig, err = o.MasterArgs.BuildSerializeableMasterConfig()
 	}
@@ -207,7 +206,7 @@ func (o MasterOptions) RunMaster() error {
 			return err
 		}
 
-		content, err := WriteMaster(masterConfig)
+		content, err := configapilatest.WriteMaster(masterConfig)
 		if err != nil {
 			return err
 		}
@@ -269,29 +268,6 @@ func (o MasterOptions) CreateCerts() error {
 	}
 
 	return nil
-}
-
-func ReadMasterConfig(filename string) (*configapi.MasterConfig, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	config := &configapi.MasterConfig{}
-	data, err = kyaml.ToJSON(data)
-	if err := configapilatest.Codec.DecodeInto(data, config); err != nil {
-		return nil, err
-	}
-
-	base, err := cmdutil.MakeAbs(filepath.Dir(filename), "")
-	if err != nil {
-		return nil, err
-	}
-	if err := configapi.ResolveMasterConfigPaths(config, base); err != nil {
-		return nil, err
-	}
-
-	return config, nil
 }
 
 func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
