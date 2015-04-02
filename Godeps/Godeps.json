@@ -154,6 +154,11 @@
             "Rev": "8d94c43e705824f23791b66ad5de4ea095d5bb32"
         },
         {
+            "ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/namespace",
+            "Comment": "v0.13.1-dev-640-g8d94c43",
+            "Rev": "8d94c43e705824f23791b66ad5de4ea095d5bb32"
+        },
+        {
             "ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/probe",
             "Comment": "v0.13.1-dev-641-gf057a25",
             "Rev": "8d94c43e705824f23791b66ad5de4ea095d5bb32"
