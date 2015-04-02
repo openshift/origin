@@ -13,6 +13,7 @@ import (
 	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 )
 
@@ -361,8 +362,8 @@ func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.M
 	root.SetArgs(argsToUse)
 	root.Execute()
 
-	masterCfg, masterErr := ReadMasterConfig(fakeMasterConfigFile.Name())
-	nodeCfg, nodeErr := ReadNodeConfig(fakeNodeConfigFile.Name())
+	masterCfg, masterErr := configapilatest.ReadAndResolveMasterConfig(fakeMasterConfigFile.Name())
+	nodeCfg, nodeErr := configapilatest.ReadAndResolveNodeConfig(fakeNodeConfigFile.Name())
 
 	return cfg.MasterArgs, masterCfg, masterErr, cfg.NodeArgs, nodeCfg, nodeErr
 }

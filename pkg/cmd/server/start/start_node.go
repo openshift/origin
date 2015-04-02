@@ -140,7 +140,7 @@ func (o NodeOptions) RunNode() error {
 	var nodeConfig *configapi.NodeConfig
 	var err error
 	if startUsingConfigFile {
-		nodeConfig, err = ReadNodeConfig(o.ConfigFile)
+		nodeConfig, err = configapilatest.ReadAndResolveNodeConfig(o.ConfigFile)
 	} else {
 		nodeConfig, err = o.NodeArgs.BuildSerializeableNodeConfig()
 	}
@@ -167,7 +167,7 @@ func (o NodeOptions) RunNode() error {
 			return err
 		}
 
-		content, err := WriteNode(nodeConfig)
+		content, err := configapilatest.WriteNode(nodeConfig)
 		if err != nil {
 			return err
 		}
@@ -253,29 +253,6 @@ func (o NodeOptions) CreateCerts() error {
 	}
 
 	return nil
-}
-
-func ReadNodeConfig(filename string) (*configapi.NodeConfig, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	config := &configapi.NodeConfig{}
-
-	if err := configapilatest.Codec.DecodeInto(data, config); err != nil {
-		return nil, err
-	}
-
-	base, err := cmdutil.MakeAbs(filepath.Dir(filename), "")
-	if err != nil {
-		return nil, err
-	}
-	if err := configapi.ResolveNodeConfigPaths(config, base); err != nil {
-		return nil, err
-	}
-
-	return config, nil
 }
 
 func StartNode(config configapi.NodeConfig) error {

@@ -14,7 +14,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -102,15 +101,6 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 	}
 
 	return config, nil
-}
-
-// WriteNode serializes the config to yaml.
-func WriteNode(config *configapi.NodeConfig) ([]byte, error) {
-	json, err := latestconfigapi.Codec.Encode(config)
-	if err != nil {
-		return nil, err
-	}
-	return json, err
 }
 
 // defaultHostname returns the default hostname for this system.

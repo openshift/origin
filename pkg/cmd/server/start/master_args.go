@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
@@ -565,18 +563,4 @@ func getPort(theURL url.URL) int {
 
 	intport, _ := strconv.Atoi(port)
 	return intport
-}
-
-// WriteMaster serializes the config to yaml.
-func WriteMaster(config *configapi.MasterConfig) ([]byte, error) {
-	json, err := latestconfigapi.Codec.Encode(config)
-	if err != nil {
-		return nil, err
-	}
-
-	content, err := yaml.JSONToYAML(json)
-	if err != nil {
-		return nil, err
-	}
-	return content, err
 }
