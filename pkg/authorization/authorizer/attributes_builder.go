@@ -36,9 +36,14 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		return nil, err
 	}
 
+	resource := requestInfo.Resource
+	if len(requestInfo.Subresource) > 0 {
+		resource = requestInfo.Resource + "/" + requestInfo.Subresource
+	}
+
 	return DefaultAuthorizationAttributes{
 		Verb:              requestInfo.Verb,
-		Resource:          requestInfo.Resource,
+		Resource:          resource,
 		ResourceName:      requestInfo.Name,
 		RequestAttributes: req,
 		NonResourceURL:    false,

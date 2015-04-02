@@ -38,6 +38,7 @@ const (
 	// OpenshiftExposedGroupName includes resources that are commonly viewed and modified by end users of the system.  It does not include any sensitive resources that control authentication or authorization
 	OpenshiftExposedGroupName = ResourceGroupPrefix + ":exposedopenshift"
 	OpenshiftAllGroupName     = ResourceGroupPrefix + ":allopenshift"
+	OpenshiftStatusGroupName  = ResourceGroupPrefix + ":allopenshift-status"
 
 	QuotaGroupName = ResourceGroupPrefix + ":quota"
 	// KubeInternalsGroupName includes those resources that should reasonably be viewable to end users, but that most users should probably not modify.  Kubernetes herself will maintain these resources
@@ -45,11 +46,12 @@ const (
 	// KubeExposedGroupName includes resources that are commonly viewed and modified by end users of the system.
 	KubeExposedGroupName = ResourceGroupPrefix + ":exposedkube"
 	KubeAllGroupName     = ResourceGroupPrefix + ":allkube"
+	KubeStatusGroupName  = ResourceGroupPrefix + ":allkube-status"
 )
 
 var (
 	GroupsToResources = map[string][]string{
-		BuildGroupName:              {"builds", "buildconfigs", "buildlogs"},
+		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate"},
 		ImageGroupName:              {"images", "imagerepositories", "imagerepositorymappings", "imagerepositorytags", "imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
 		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
 		UserGroupName:               {"identities", "users", "useridentitymappings"},
@@ -58,11 +60,13 @@ var (
 		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews", "subjectaccessreviews"},
 		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, "templates", "templateconfigs", "routes", "projects"},
 		OpenshiftAllGroupName:       {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, PermissionGrantingGroupName},
+		OpenshiftStatusGroupName:    {"imagerepositories/status"},
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
 		KubeInternalsGroupName: {"endpoints", "minions", "nodes", "bindings", "events", "namespaces"},
 		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services"},
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
+		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status"},
 	}
 )
 
