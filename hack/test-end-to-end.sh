@@ -229,7 +229,15 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	# Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
 	export HOME="${CERT_DIR}/admin"
 	sudo chmod -R a+rwX "${HOME}"
-	export OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig"
+
+	# cluster admin (superuser) config
+	ADMIN_OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig"
+	# e2e-user (project admin and viewer) config
+	# initialized with a copy of the cluster admin's config to pick up server name and certificate authority
+	E2EUSER_OPENSHIFTCONFIG="${CERT_DIR}/e2euser.kubeconfig"
+	cp "${ADMIN_OPENSHIFTCONFIG}" "${E2EUSER_OPENSHIFTCONFIG}"
+
+	export OPENSHIFTCONFIG="${ADMIN_OPENSHIFTCONFIG}"
 	echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
 fi
 
@@ -285,15 +293,22 @@ osc process -n custom -f examples/sample-app/application-template-custombuild.js
 
 # Client setup (log in as e2e-user and set 'test' as the default project)
 echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
+export OPENSHIFTCONFIG="${E2EUSER_OPENSHIFTCONFIG}"
+echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
 osc login -u e2e-user -p pass
 osc project test
 
 echo "[INFO] Applying STI application config"
 osc create -f "${STI_CONFIG_FILE}"
 
+echo "[INFO] Back to 'master' context with 'system:admin' user..."
+export OPENSHIFTCONFIG="${ADMIN_OPENSHIFTCONFIG}"
+echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
+
 # Trigger build
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
 #osc start-build -n test ruby-sample-build --follow
+# must be done as cluster-admin until build-logs no longer uses /proxy
 wait_for_build "test"
 wait_for_app "test"
 
@@ -313,9 +328,6 @@ wait_for_app "test"
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-echo "[INFO] Back to 'master' context with 'admin' user..."
-osc project master
-
 wait_for_command '[[ "$(osc get endpoints router -t "{{ if .endpoints }}{{ len .endpoints }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 echo "[INFO] Validating routed app response..."
