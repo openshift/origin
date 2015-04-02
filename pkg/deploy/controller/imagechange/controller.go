@@ -5,8 +5,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -26,72 +24,56 @@ func (e fatalError) Error() string { return "fatal error handling imageRepositor
 
 // Handle processes image change triggers associated with imageRepo.
 func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageRepository) error {
-	configsToGenerate := []*deployapi.DeploymentConfig{}
-	firedTriggersForConfig := make(map[string][]deployapi.DeploymentTriggerImageChangeParams)
-
 	configs, err := c.deploymentConfigClient.listDeploymentConfigs()
 	if err != nil {
 		return fmt.Errorf("couldn't get list of deploymentConfigs while handling imageRepo %s: %v", labelForRepo(imageRepo), err)
 	}
 
+	// Find any configs which should be updated based on the new image state
+	configsToUpdate := map[string]*deployapi.DeploymentConfig{}
 	for _, config := range configs {
 		glog.V(4).Infof("Detecting changed images for deploymentConfig %s", labelFor(config))
 
-		// Extract relevant triggers for this imageRepo for this config
-		triggersForConfig := []deployapi.DeploymentTriggerImageChangeParams{}
 		for _, trigger := range config.Triggers {
-			if trigger.Type != deployapi.DeploymentTriggerOnImageChange ||
-				!trigger.ImageChangeParams.Automatic {
+			params := trigger.ImageChangeParams
+
+			// Only automatic image change triggers should fire
+			if trigger.Type != deployapi.DeploymentTriggerOnImageChange || !params.Automatic {
 				continue
 			}
-			if triggerMatchesImage(config, trigger.ImageChangeParams, imageRepo) {
-				glog.V(4).Infof("Found matching %s trigger for deploymentConfig %s: %#v", trigger.Type, labelFor(config), trigger.ImageChangeParams)
-				triggersForConfig = append(triggersForConfig, *trigger.ImageChangeParams)
+
+			// Check if the image repo matches the trigger
+			if !triggerMatchesImage(config, params, imageRepo) {
+				continue
 			}
-		}
 
-		for _, params := range triggersForConfig {
-			glog.V(4).Infof("Processing image triggers for deploymentConfig %s", labelFor(config))
-			containerNames := util.NewStringSet(params.ContainerNames...)
-			for _, container := range config.Template.ControllerTemplate.Template.Spec.Containers {
-				if !containerNames.Has(container.Name) {
-					continue
-				}
+			// Find the latest tag event for the trigger tag
+			latestEvent, err := imageapi.LatestTaggedImage(imageRepo, params.Tag)
+			if err != nil {
+				glog.V(4).Infof("Couldn't find latest tag event for tag %s in imageRepo %s: %s", params.Tag, labelForRepo(imageRepo), err)
+				continue
+			}
 
-				ref, err := imageapi.ParseDockerImageReference(container.Image)
-				if err != nil {
-					glog.V(4).Infof("Skipping container %s for config %s; container's image is invalid: %v", container.Name, labelFor(config), err)
-					continue
-				}
-
-				latest, err := imageapi.LatestTaggedImage(imageRepo, params.Tag)
-				if err != nil {
-					glog.V(4).Infof("Skipping container %s for config %s; %s", container.Name, labelFor(config), err)
-					continue
-				}
-
-				containerImageID := ref.ID
-				if len(containerImageID) == 0 {
-					// For v1 images, the container image's tag name is by convention the same as the image ID it references
-					containerImageID = ref.Tag
-				}
-				if latest.Image != containerImageID {
-					glog.V(4).Infof("Container %s for config %s: image id changed from %q to %q; regenerating config", container.Name, labelFor(config), containerImageID, latest.Image)
-					configsToGenerate = append(configsToGenerate, config)
-					firedTriggersForConfig[config.Name] = append(firedTriggersForConfig[config.Name], params)
-				}
+			// Ensure a change occured
+			if len(latestEvent.DockerImageReference) > 0 &&
+				latestEvent.DockerImageReference != params.LastTriggeredImage {
+				// Mark the config for regeneration
+				configsToUpdate[config.Name] = config
 			}
 		}
 	}
 
+	// Attempt to regenerate all configs which may contain image updates
 	anyFailed := false
-	for _, config := range configsToGenerate {
-		err := c.regenerate(imageRepo, config, firedTriggersForConfig[config.Name])
+	for _, config := range configsToUpdate {
+		err := c.regenerate(config)
 		if err != nil {
 			anyFailed = true
+			glog.Infof("couldn't regenerate depoymentConfig %s: %s", labelFor(config), err)
 			continue
 		}
-		glog.V(4).Infof("Updated deploymentConfig %s in response to image change trigger", labelFor(config))
+
+		glog.V(4).Infof("Regenerated deploymentConfig %s in response to image change trigger", labelFor(config))
 	}
 
 	if anyFailed {
@@ -106,64 +88,41 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageRepository) erro
 // When matching:
 // - The trigger From field is preferred over the deprecated RepositoryName field.
 // - The namespace of the trigger is preferred over the config's namespace.
-func triggerMatchesImage(config *deployapi.DeploymentConfig, trigger *deployapi.DeploymentTriggerImageChangeParams, repo *imageapi.ImageRepository) bool {
-	if len(trigger.From.Name) > 0 {
-		namespace := trigger.From.Namespace
+func triggerMatchesImage(config *deployapi.DeploymentConfig, params *deployapi.DeploymentTriggerImageChangeParams, repo *imageapi.ImageRepository) bool {
+	if len(params.From.Name) > 0 {
+		namespace := params.From.Namespace
 		if len(namespace) == 0 {
 			namespace = config.Namespace
 		}
 
-		return repo.Namespace == namespace && repo.Name == trigger.From.Name
+		return repo.Namespace == namespace && repo.Name == params.From.Name
 	}
 
 	// This is an invalid state (as one of From.Name or RepositoryName is required), but
 	// account for it anyway.
-	if len(trigger.RepositoryName) == 0 {
+	if len(params.RepositoryName) == 0 {
 		return false
 	}
 
 	// If the repo's repository information isn't yet available, we can't assume it'll match.
 	return len(repo.Status.DockerImageRepository) > 0 &&
-		trigger.RepositoryName == repo.Status.DockerImageRepository
+		params.RepositoryName == repo.Status.DockerImageRepository
 }
 
-func (c *ImageChangeController) regenerate(imageRepo *imageapi.ImageRepository, config *deployapi.DeploymentConfig, triggers []deployapi.DeploymentTriggerImageChangeParams) error {
+// regenerate calls the generator to get a new config. If the newly generated
+// config's version is newer, update the old config to be the new config.
+// Otherwise do nothing.
+func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) error {
 	// Get a regenerated config which includes the new image repo references
 	newConfig, err := c.deploymentConfigClient.generateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
 		return fmt.Errorf("error generating new version of deploymentConfig %s: %v", labelFor(config), err)
 	}
 
-	// Update the deployment config with the trigger that resulted in the new config
-	causes := []*deployapi.DeploymentCause{}
-	for _, trigger := range triggers {
-		repoName := trigger.RepositoryName
-
-		if len(repoName) == 0 {
-			if len(imageRepo.Status.DockerImageRepository) == 0 {
-				// If the trigger relies on a image repo reference, and we don't know what docker repo
-				// it points at, we can't build a cause for the reference yet.
-				continue
-			}
-
-			latest, err := imageapi.LatestTaggedImage(imageRepo, trigger.Tag)
-			if err != nil {
-				return fmt.Errorf("error generating new version of deploymentConfig: %s: %s", labelFor(config), err)
-			}
-			repoName = latest.DockerImageReference
-		}
-
-		causes = append(causes,
-			&deployapi.DeploymentCause{
-				Type: deployapi.DeploymentTriggerOnImageChange,
-				ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
-					RepositoryName: repoName,
-					Tag:            trigger.Tag,
-				},
-			})
-	}
-	newConfig.Details = &deployapi.DeploymentDetails{
-		Causes: causes,
+	// No update occured
+	if config.LatestVersion == newConfig.LatestVersion {
+		glog.V(4).Infof("No version difference for generated config %s", labelFor(config))
+		return nil
 	}
 
 	// Persist the new config
@@ -172,6 +131,7 @@ func (c *ImageChangeController) regenerate(imageRepo *imageapi.ImageRepository, 
 		return err
 	}
 
+	glog.Infof("Regenerated depoymentConfig %s for image updates", labelFor(config))
 	return nil
 }
 
