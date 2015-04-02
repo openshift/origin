@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -12,13 +13,12 @@ import (
 // CreateSampleImageRepository creates a ImageRepository in given namespace
 func CreateSampleImageRepository(namespace string) *imageapi.ImageRepository {
 	var repo imageapi.ImageRepository
-	jsonData, err := ioutil.ReadFile("fixtures/sample-image-repository.json")
+	jsonData, err := ioutil.ReadFile("fixtures/test-image-repository.json")
 	if err != nil {
 		fmt.Printf("ERROR: Unable to read: %v", err)
 		return nil
 	}
 	latest.Codec.DecodeInto(jsonData, &repo)
-
 	client, _ := GetClusterAdminClient(KubeConfigPath())
 	result, err := client.ImageRepositories(namespace).Create(&repo)
 	if err != nil {
@@ -45,4 +45,15 @@ func GetBuildFixture(filename string) *buildapi.Build {
 	}
 	latest.Codec.DecodeInto(jsonData, &build)
 	return &build
+}
+
+func GetSecretFixture(filename string) *kapi.Secret {
+	var secret kapi.Secret
+	jsonData, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fmt.Printf("ERROR: Unable to read %s: %v", filename, err)
+		return nil
+	}
+	latest.Codec.DecodeInto(jsonData, &secret)
+	return &secret
 }
