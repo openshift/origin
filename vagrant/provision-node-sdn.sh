@@ -28,7 +28,7 @@ After=openvswitch.service
 Before=openshift-node.service
 
 [Service]
-ExecStart=/usr/bin/openshift-sdn -minion -etcd-endpoints=https://${MASTER_IP}:4001 -public-ip=${MINION_IP} -etcd-keyfile=${ETCD_CLIENT_KEY} -etcd-certfile=${ETCD_CLIENT_CERT} -etcd-cafile=${ETCD_CAFILE}
+ExecStart=/usr/bin/openshift-sdn -minion -etcd-endpoints=https://${MASTER_IP}:4001 -public-ip=${MINION_IP} -etcd-keyfile=${ETCD_KEYFILE} -etcd-certfile=${ETCD_CERTFILE} -etcd-cafile=${ETCD_CAFILE}
 
 [Install]
 WantedBy=multi-user.target

@@ -38,9 +38,9 @@ cp -r /vagrant/openshift.local.certificates /
 chown -R vagrant.vagrant /openshift.local.certificates
 
 if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
-  export ETCD_CA=/openshift.local.certificates/ca/cert.crt
-  export ETCD_CLIENT_CERT=/openshift.local.certificates/master/etcd-client.crt
-  export ETCD_CLIENT_KEY=/openshift.local.certificates/master/etcd-client.key
+  export ETCD_CAFILE=/openshift.local.certificates/ca/cert.crt
+  export ETCD_CERTFILE=/openshift.local.certificates/master/etcd-client.crt
+  export ETCD_KEYFILE=/openshift.local.certificates/master/etcd-client.key
   $(dirname $0)/provision-node-sdn.sh $@
 else
   # Setup default networking between the nodes
@@ -57,7 +57,7 @@ Requires=docker.service network.service
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start node --kubeconfig=/openshift.local.certificates/node-${minion_name}/.kubeconfig --hostname=${minion_name} 
+ExecStart=/usr/bin/openshift start node --config=/openshift.local.certificates/node-${minion_name}/node-config.yaml
 Restart=on-failure
 RestartSec=10s
 
