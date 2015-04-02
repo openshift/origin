@@ -151,7 +151,7 @@ function wait_for_app() {
 	wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
 
 	echo "[INFO] Waiting for app to start..."
-	wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))	
+	wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
 
 	echo "[INFO] Testing app"
 	wait_for_command '[[ "$(curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337)" = "Key created" ]]'
@@ -313,8 +313,8 @@ wait_for_app "test"
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-echo "[INFO] Back to 'master' context with 'admin' user..."
-osc project master
+echo "[INFO] Back to 'default' context with 'admin' user..."
+osc project default
 
 wait_for_command '[[ "$(osc get endpoints router -t "{{ if .endpoints }}{{ len .endpoints }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
