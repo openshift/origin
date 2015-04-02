@@ -54,48 +54,8 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 		Short: "Revert part of an application back to a previous deployment.",
 		Long:  fmt.Sprintf(rollbackLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 || len(args[0]) == 0 {
-				usageError(cmd, "A deployment name is required.")
-			}
-
-			rollback.Spec.From.Name = args[0]
-
-			outputFormat := cmdutil.GetFlagString(cmd, "output")
-			outputTemplate := cmdutil.GetFlagString(cmd, "template")
-			dryRun := cmdutil.GetFlagBool(cmd, "dry-run")
-
-			osClient, _, err := f.Clients()
-			checkErr(err)
-
-			namespace, err := f.DefaultNamespace()
-			checkErr(err)
-
-			// Generate the rollback config
-			newConfig, err := osClient.DeploymentConfigs(namespace).Rollback(rollback)
-			checkErr(err)
-
-			// If dry-run is specified, describe the rollback and exit
-			if dryRun {
-				describer := describe.NewDeploymentConfigDescriberForConfig(newConfig)
-				description, descErr := describer.Describe(newConfig.Namespace, newConfig.Name)
-				checkErr(descErr)
-				out.Write([]byte(description))
-				return
-			}
-
-			// If an output format is specified, display the rollback config JSON and exit
-			// WITHOUT performing a rollback.
-			if len(outputFormat) > 0 {
-				printer, _, perr := kubectl.GetPrinter(outputFormat, outputTemplate)
-				checkErr(perr)
-				versionedPrinter := kubectl.NewVersionedPrinter(printer, kapi.Scheme, latest.Version)
-				versionedPrinter.PrintObj(newConfig, out)
-				return
-			}
-
-			// Apply the rollback config
-			_, updateErr := osClient.DeploymentConfigs(namespace).Update(newConfig)
-			checkErr(updateErr)
+			err := RunRollback(f, out, cmd, args, rollback)
+			cmdutil.CheckErr(err)
 		},
 	}
 
@@ -107,4 +67,59 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=template or -o=templatefile.")
 
 	return cmd
+}
+
+func RunRollback(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, rollback *deployapi.DeploymentConfigRollback) error {
+	if len(args) == 0 || len(args[0]) == 0 {
+		return cmdutil.UsageError(cmd, "A deployment name is required.")
+	}
+
+	rollback.Spec.From.Name = args[0]
+
+	outputFormat := cmdutil.GetFlagString(cmd, "output")
+	outputTemplate := cmdutil.GetFlagString(cmd, "template")
+	dryRun := cmdutil.GetFlagBool(cmd, "dry-run")
+
+	osClient, _, err := f.Clients()
+	if err != nil {
+		return err
+	}
+
+	namespace, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	// Generate the rollback config
+	newConfig, err := osClient.DeploymentConfigs(namespace).Rollback(rollback)
+	if err != nil {
+		return err
+	}
+
+	// If dry-run is specified, describe the rollback and exit
+	if dryRun {
+		describer := describe.NewDeploymentConfigDescriberForConfig(newConfig)
+		description, err := describer.Describe(newConfig.Namespace, newConfig.Name)
+		if err != nil {
+			return err
+		}
+		out.Write([]byte(description))
+		return nil
+	}
+
+	// If an output format is specified, display the rollback config JSON and exit
+	// WITHOUT performing a rollback.
+	if len(outputFormat) > 0 {
+		printer, _, err := kubectl.GetPrinter(outputFormat, outputTemplate)
+		if err != nil {
+			return err
+		}
+		versionedPrinter := kubectl.NewVersionedPrinter(printer, kapi.Scheme, latest.Version)
+		versionedPrinter.PrintObj(newConfig, out)
+		return nil
+	}
+
+	// Apply the rollback config
+	_, err = osClient.DeploymentConfigs(namespace).Update(newConfig)
+	return err
 }

@@ -25,34 +25,19 @@ prompt for user input as needed.
 `
 
 func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
-	options := &LoginOptions{}
+	options := &LoginOptions{
+		Reader:       reader,
+		Out:          out,
+		ClientConfig: f.OpenShiftClientConfig,
+	}
 
 	cmds := &cobra.Command{
 		Use:   "login [--username=<username>] [--password=<password>] [--server=<server>] [--context=<context>] [--certificate-authority=<path>]",
 		Short: "Logs in and save the configuration",
 		Long:  longDescription,
 		Run: func(cmd *cobra.Command, args []string) {
-			options.Reader = reader
-			options.ClientConfig = f.OpenShiftClientConfig
-
-			if certFile := cmdutil.GetFlagString(cmd, "client-certificate"); len(certFile) > 0 {
-				options.CertFile = certFile
-			}
-			if keyFile := cmdutil.GetFlagString(cmd, "client-key"); len(keyFile) > 0 {
-				options.KeyFile = keyFile
-			}
-
-			checkErr(options.GatherInfo())
-
-			forcePath := cmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName)
-			options.PathToSaveConfig = forcePath
-
-			newFileCreated, err := options.SaveConfig()
-			checkErr(err)
-
-			if newFileCreated {
-				fmt.Println("Welcome to OpenShift! See 'osc help' for to get started.")
-			}
+			err := RunLogin(cmd, options)
+			cmdutil.CheckErr(err)
 		},
 	}
 
@@ -69,4 +54,30 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 	cmds.SetHelpTemplate(templates.CliHelpTemplate())
 
 	return cmds
+}
+
+func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
+	if certFile := cmdutil.GetFlagString(cmd, "client-certificate"); len(certFile) > 0 {
+		options.CertFile = certFile
+	}
+	if keyFile := cmdutil.GetFlagString(cmd, "client-key"); len(keyFile) > 0 {
+		options.KeyFile = keyFile
+	}
+
+	if err := options.GatherInfo(); err != nil {
+		return err
+	}
+
+	forcePath := cmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName)
+	options.PathToSaveConfig = forcePath
+
+	newFileCreated, err := options.SaveConfig()
+	if err != nil {
+		return err
+	}
+
+	if newFileCreated {
+		fmt.Fprintln(options.Out, "Welcome to OpenShift! See 'osc help' to get started.")
+	}
+	return nil
 }

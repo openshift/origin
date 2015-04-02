@@ -2,12 +2,8 @@ package buildchain
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
-
-	"github.com/golang/glog"
-	"github.com/spf13/cobra"
 )
 
 // invalidRepoTagErr is returned when an invalid image repository and tag
@@ -86,16 +82,4 @@ func treeSize(root *ImageRepo) int {
 	}
 
 	return size
-}
-
-func usageError(cmd *cobra.Command, format string, args ...interface{}) {
-	glog.Errorf(format, args...)
-	glog.Errorf("See '%s -h' for help.", cmd.CommandPath())
-	os.Exit(1)
-}
-
-func checkErr(err error) {
-	if err != nil {
-		glog.FatalDepth(1, err)
-	}
 }

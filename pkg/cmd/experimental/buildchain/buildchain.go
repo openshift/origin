@@ -91,118 +91,8 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 		Short: "Output build dependencies of a specific image repository",
 		Long:  longDescription,
 		Run: func(cmd *cobra.Command, args []string) {
-			all := cmdutil.GetFlagBool(cmd, "all")
-			allTags := cmdutil.GetFlagBool(cmd, "all-tags")
-			if len(args) > 1 ||
-				(len(args) == 1 && all) ||
-				(len(args) == 0 && allTags) ||
-				(all && allTags) {
-				usageError(cmd, "Must pass nothing, an image repository name:tag combination, or specify the --all flag")
-			}
-
-			osc, kc, err := f.Clients()
-			checkErr(err)
-
-			// Retrieve namespace(s)
-			namespace := cmdutil.GetFlagString(cmd, "namespace")
-			if len(namespace) == 0 {
-				namespace, err = f.DefaultNamespace()
-				checkErr(err)
-			}
-			namespaces := make([]string, 0)
-			if all {
-				nsList, err := kc.Namespaces().List(labels.Everything(), fields.Everything())
-				checkErr(err)
-				for _, ns := range nsList.Items {
-					namespaces = append(namespaces, ns.Name)
-				}
-			}
-			if len(namespaces) == 0 {
-				namespaces = append(namespaces, namespace)
-			}
-
-			// Get all build configurations
-			buildConfigList := make([]buildapi.BuildConfig, 0)
-			for _, namespace := range namespaces {
-				cfgList, err := osc.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
-				checkErr(err)
-				buildConfigList = append(buildConfigList, cfgList.Items...)
-			}
-
-			// Parse user input and validate specified image repository
-			repos := make(map[string][]string)
-			if !all && len(args) != 0 {
-				name, tag, err := parseTag(args[0])
-				checkErr(err)
-
-				// Validate the specified image repository
-				imgRepo, err := osc.ImageRepositories(namespace).Get(name)
-				checkErr(err)
-
-				tags := make([]string, 0)
-				if allTags {
-					for tag := range imgRepo.Status.Tags {
-						tags = append(tags, tag)
-					}
-				}
-				if len(tags) == 0 {
-					tags = []string{tag}
-				}
-
-				repo := join(namespace, name)
-				// Set the specified repo as the only one to output dependencies for
-				repos[repo] = tags
-			} else {
-				// Get all image repositories from build configurations
-				repos = getRepos(buildConfigList)
-
-				// Make sure from now on that the --all flag is true
-				// since we are building dependency trees for every
-				// image repository available either in the current
-				// namespace or in every namespace
-				all = true
-			}
-
-			if len(repos) == 0 {
-				checkErr(fmt.Errorf("no image repository available for building its dependency tree"))
-			}
-
-			output := cmdutil.GetFlagString(cmd, "output")
-			for repo, tags := range repos {
-				for _, tag := range tags {
-					root, err := findRepoDeps(repo, tag, all, buildConfigList)
-					checkErr(err)
-
-					// Check if the given image repository doesn't have any dependencies
-					if treeSize(root) < 2 {
-						glog.Infof("%s:%s has no dependencies\n", root.FullName, tag)
-						continue
-					}
-
-					switch output {
-					case "json":
-						jsonDump, err := json.MarshalIndent(root, "", "\t")
-						checkErr(err)
-						fmt.Println(string(jsonDump))
-					case "dot":
-						g := dot.NewGraph()
-						_, name, err := split(repo)
-						checkErr(err)
-						graphName := validDOT(name)
-						g.SetName(graphName)
-						// Directed graph since we illustrate dependencies
-						g.SetDir(true)
-						// Explicitly allow multiple pairs of edges between
-						// the same pair of nodes
-						g.SetStrict(false)
-						fmt.Println(dotDump(root, g, graphName))
-					case "ast":
-						fmt.Println(root)
-					default:
-						usageError(cmd, "Wrong output format specified: %s", output)
-					}
-				}
-			}
+			err := RunBuildChain(f, cmd, args)
+			cmdutil.CheckErr(err)
 		},
 	}
 
@@ -210,6 +100,140 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 	cmd.Flags().Bool("all-tags", false, "Build dependency trees for all tags of a specific image repository")
 	cmd.Flags().StringP("output", "o", "json", "Output format of dependency tree(s)")
 	return cmd
+}
+
+func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+	all := cmdutil.GetFlagBool(cmd, "all")
+	allTags := cmdutil.GetFlagBool(cmd, "all-tags")
+	if len(args) > 1 ||
+		(len(args) == 1 && all) ||
+		(len(args) == 0 && allTags) ||
+		(all && allTags) {
+		return cmdutil.UsageError(cmd, "Must pass nothing, an image repository name:tag combination, or specify the --all flag")
+	}
+
+	osc, kc, err := f.Clients()
+	if err != nil {
+		return err
+	}
+
+	// Retrieve namespace(s)
+	namespace := cmdutil.GetFlagString(cmd, "namespace")
+	if len(namespace) == 0 {
+		namespace, err = f.DefaultNamespace()
+		if err != nil {
+			return err
+		}
+	}
+	namespaces := make([]string, 0)
+	if all {
+		nsList, err := kc.Namespaces().List(labels.Everything(), fields.Everything())
+		if err != nil {
+			return err
+		}
+		for _, ns := range nsList.Items {
+			namespaces = append(namespaces, ns.Name)
+		}
+	}
+	if len(namespaces) == 0 {
+		namespaces = append(namespaces, namespace)
+	}
+
+	// Get all build configurations
+	buildConfigList := make([]buildapi.BuildConfig, 0)
+	for _, namespace := range namespaces {
+		cfgList, err := osc.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
+		if err != nil {
+			return err
+		}
+		buildConfigList = append(buildConfigList, cfgList.Items...)
+	}
+
+	// Parse user input and validate specified image repository
+	repos := make(map[string][]string)
+	if !all && len(args) != 0 {
+		name, tag, err := parseTag(args[0])
+		if err != nil {
+			return err
+		}
+
+		// Validate the specified image repository
+		imgRepo, err := osc.ImageRepositories(namespace).Get(name)
+		if err != nil {
+			return err
+		}
+
+		tags := make([]string, 0)
+		if allTags {
+			for tag := range imgRepo.Status.Tags {
+				tags = append(tags, tag)
+			}
+		}
+		if len(tags) == 0 {
+			tags = []string{tag}
+		}
+
+		repo := join(namespace, name)
+		// Set the specified repo as the only one to output dependencies for
+		repos[repo] = tags
+	} else {
+		// Get all image repositories from build configurations
+		repos = getRepos(buildConfigList)
+
+		// Make sure from now on that the --all flag is true
+		// since we are building dependency trees for every
+		// image repository available either in the current
+		// namespace or in every namespace
+		all = true
+	}
+
+	if len(repos) == 0 {
+		return fmt.Errorf("no image repository available for building its dependency tree")
+	}
+
+	output := cmdutil.GetFlagString(cmd, "output")
+	for repo, tags := range repos {
+		for _, tag := range tags {
+			root, err := findRepoDeps(repo, tag, all, buildConfigList)
+			if err != nil {
+				return err
+			}
+
+			// Check if the given image repository doesn't have any dependencies
+			if treeSize(root) < 2 {
+				glog.Infof("%s:%s has no dependencies\n", root.FullName, tag)
+				continue
+			}
+
+			switch output {
+			case "json":
+				jsonDump, err := json.MarshalIndent(root, "", "\t")
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(jsonDump))
+			case "dot":
+				g := dot.NewGraph()
+				_, name, err := split(repo)
+				if err != nil {
+					return err
+				}
+				graphName := validDOT(name)
+				g.SetName(graphName)
+				// Directed graph since we illustrate dependencies
+				g.SetDir(true)
+				// Explicitly allow multiple pairs of edges between
+				// the same pair of nodes
+				g.SetStrict(false)
+				fmt.Println(dotDump(root, g, graphName))
+			case "ast":
+				fmt.Println(root)
+			default:
+				return cmdutil.UsageError(cmd, "Wrong output format specified: %s", output)
+			}
+		}
+	}
+	return nil
 }
 
 // getRepos iterates over a given set of build configurations
@@ -343,14 +367,16 @@ func findRepoDeps(repo, tag string, all bool, buildConfigList []buildapi.BuildCo
 var once sync.Once
 
 // dotDump dumps the given image repository tree in DOT syntax
-func dotDump(root *ImageRepo, g *dot.Graph, graphName string) string {
+func dotDump(root *ImageRepo, g *dot.Graph, graphName string) (string, error) {
 	if root == nil {
-		return ""
+		return "", nil
 	}
 
 	// Add current node
 	rootNamespace, rootName, err := split(root.FullName)
-	checkErr(err)
+	if err != nil {
+		return "", err
+	}
 	attrs := make(map[string]string)
 	for _, tag := range root.Tags {
 		setTag(tag, attrs)
@@ -369,10 +395,14 @@ func dotDump(root *ImageRepo, g *dot.Graph, graphName string) string {
 		for _, edge := range root.Edges {
 			if child.FullName == edge.To {
 				_, childName, err := split(child.FullName)
-				checkErr(err)
+				if err != nil {
+					return "", err
+				}
 				childName = validDOT(childName)
 				edgeNamespace, edgeName, err := split(edge.FullName)
-				checkErr(err)
+				if err != nil {
+					return "", err
+				}
 				edgeName = validDOT(edgeName)
 
 				edgeAttrs := make(map[string]string)
@@ -381,15 +411,17 @@ func dotDump(root *ImageRepo, g *dot.Graph, graphName string) string {
 			}
 		}
 		// Recursively add every child and their children as nodes
-		dotDump(child, g, graphName)
+		if _, err := dotDump(child, g, graphName); err != nil {
+			return "", err
+		}
 	}
 
 	dotOutput := g.String()
 
 	// Parse DOT output for validation
 	if _, err := dot.Parse([]byte(dotOutput)); err != nil {
-		checkErr(fmt.Errorf("cannot parse DOT output: %v\n", err))
+		return "", fmt.Errorf("cannot parse DOT output: %v", err)
 	}
 
-	return dotOutput
+	return dotOutput, nil
 }
