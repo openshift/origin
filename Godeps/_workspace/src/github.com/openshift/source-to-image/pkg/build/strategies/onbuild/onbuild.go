@@ -78,6 +78,9 @@ func (b *OnBuild) Build(request *api.Request) (*api.Result, error) {
 		return nil, err
 	}
 
+	// If necessary, copy the STI scripts into application root directory
+	b.copySTIScripts(request)
+
 	glog.V(2).Info("Creating application Dockerfile")
 	if err := b.CreateDockerfile(request); err != nil {
 		return nil, err
@@ -140,6 +143,19 @@ func (b *OnBuild) CreateDockerfile(request *api.Request) error {
 	//        directory.
 	buffer.WriteString(fmt.Sprintf(`ENTRYPOINT ["./%s"]`+"\n", entrypoint))
 	return b.fs.WriteFile(filepath.Join(uploadDir, "Dockerfile"), buffer.Bytes())
+}
+
+func (b *OnBuild) copySTIScripts(request *api.Request) {
+	scriptsPath := filepath.Join(request.WorkingDir, "upload", "scripts")
+	sourcePath := filepath.Join(request.WorkingDir, "upload", "src")
+	if _, err := b.fs.Stat(filepath.Join(scriptsPath, api.Run)); err == nil {
+		glog.V(3).Infof("Found STI 'run' script, copying to application source dir")
+		b.fs.Copy(filepath.Join(scriptsPath, api.Run), sourcePath)
+	}
+	if _, err := b.fs.Stat(filepath.Join(scriptsPath, api.Assemble)); err == nil {
+		glog.V(3).Infof("Found STI 'assemble' script, copying to application source dir")
+		b.fs.Copy(filepath.Join(scriptsPath, api.Assemble), sourcePath)
+	}
 }
 
 // hasAssembleScript checks if the the assemble script is available
