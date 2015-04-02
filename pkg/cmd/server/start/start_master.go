@@ -15,6 +15,7 @@ import (
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -280,8 +281,10 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
+	//       and https://github.com/openshift/origin/issues/<new>
 	capabilities.Initialize(capabilities.Capabilities{
-		AllowPrivileged: true,
+		AllowPrivileged:    true,
+		HostNetworkSources: []string{kubelet.ApiserverSource, kubelet.FileSource},
 	})
 
 	openshiftConfig, err := origin.BuildMasterConfig(*openshiftMasterConfig)

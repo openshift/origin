@@ -35,6 +35,7 @@ tar xzf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
 # Copy primary binaries to the appropriate locations.
 cp -f "${imagedir}/openshift" images/origin/bin
 cp -f "${imagedir}/openshift" images/router/haproxy/bin
+cp -f "${imagedir}/openshift" images/router/keepalived/failover-monitor/bin
 
 # Copy image binaries to the appropriate locations.
 cp -f "${imagedir}/pod" images/pod/bin
@@ -53,6 +54,8 @@ image openshift/origin-pod                   images/pod
 # images that depend on openshift/origin-base
 image openshift/origin                       images/origin
 image openshift/origin-haproxy-router        images/router/haproxy
+image openshift/origin-keepalived-failover-monitor  \
+                                             images/router/keepalived/failover-monitor
 image openshift/origin-docker-registry       images/dockerregistry
 # images that depend on openshift/origin
 image openshift/origin-deployer              images/deployer

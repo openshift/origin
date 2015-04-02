@@ -116,7 +116,11 @@ func (c *NodeConfig) RunKubelet() {
 	// initialize Kubelet
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-	kubelet.SetupCapabilities(true, []string{})
+	// TODO: make this configurable and not set it here.
+	//       https://github.com/openshift/origin/issues/<new>
+	hostNetworkCapabilities := []string{kubelet.ApiserverSource, kubelet.FileSource}
+
+	kubelet.SetupCapabilities(true, hostNetworkCapabilities)
 	recorder := record.FromSource(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates, recorder)
 	kconfig.NewSourceApiserver(c.Client, c.NodeHost, cfg.Channel("api"))
