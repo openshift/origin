@@ -83,6 +83,13 @@ func ValidateAssetConfig(config *api.AssetConfig) fielderrors.ValidationErrorLis
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
+	if len(config.LogoutURL) > 0 {
+		_, urlErrs := ValidateURL(config.LogoutURL, "logoutURL")
+		if len(urlErrs) > 0 {
+			allErrs = append(allErrs, urlErrs...)
+		}
+	}
+
 	urlObj, urlErrs := ValidateURL(config.PublicURL, "publicURL")
 	if len(urlErrs) > 0 {
 		allErrs = append(allErrs, urlErrs...)

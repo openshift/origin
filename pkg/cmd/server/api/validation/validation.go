@@ -79,6 +79,9 @@ func ValidateRemoteConnectionInfo(remoteConnectionInfo api.RemoteConnectionInfo)
 
 	if len(remoteConnectionInfo.URL) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("url"))
+	} else {
+		_, urlErrs := ValidateURL(remoteConnectionInfo.URL, "url")
+		allErrs = append(allErrs, urlErrs...)
 	}
 
 	if len(remoteConnectionInfo.CA) > 0 {

@@ -146,9 +146,9 @@ type AssetConfig struct {
 	// PublicURL is where you can find the asset server (TODO do we really need this?)
 	PublicURL string
 
-	// LogoutURI is an optional, absolute URI to redirect web browsers to after logging out of the web console.
+	// LogoutURL is an optional, absolute URL to redirect web browsers to after logging out of the web console.
 	// If not specified, the built-in logout page is shown.
-	LogoutURI string
+	LogoutURL string
 
 	// MasterPublicURL is how the web console can access the OpenShift api server
 	MasterPublicURL string
@@ -159,7 +159,7 @@ type AssetConfig struct {
 }
 
 type OAuthConfig struct {
-	// MasterURL is used for building valid client redirect URLs for external access
+	// MasterURL is used for building valid client redirect URLs for internal access
 	MasterURL string
 
 	// MasterPublicURL is used for building valid client redirect URLs for external access
@@ -196,20 +196,13 @@ type SessionConfig struct {
 	SessionName string
 }
 
-type IdentityProviderUsage struct {
-	// ProviderName is used to qualify the identities returned by this provider
-	ProviderName string
-
+type IdentityProvider struct {
+	// Name is used to qualify the identities returned by this provider
+	Name string
 	// UseAsChallenger indicates whether to issue WWW-Authenticate challenges for this provider
 	UseAsChallenger bool
 	// UseAsLogin indicates whether to use this identity provider for unauthenticated browsers to login against
 	UseAsLogin bool
-}
-
-type IdentityProvider struct {
-	// Usage contains metadata about how to use this provider
-	Usage IdentityProviderUsage
-
 	// Provider contains the information about how to set up a specific identity provider
 	Provider runtime.EmbeddedObject
 }
@@ -242,7 +235,7 @@ type RequestHeaderIdentityProvider struct {
 	// ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.
 	ClientCA string
 	// Headers is the set of headers to check for identity information
-	Headers util.StringSet
+	Headers []string
 }
 
 type OAuthRedirectingIdentityProvider struct {

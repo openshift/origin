@@ -114,7 +114,7 @@ func (c *AssetConfig) buildHandler() (http.Handler, error) {
 		OAuthAuthorizeURI: OpenShiftOAuthAuthorizeURL(masterURL.String()),
 		OAuthRedirectBase: c.Options.PublicURL,
 		OAuthClientID:     OpenShiftWebConsoleClientID,
-		LogoutURI:         c.Options.LogoutURI,
+		LogoutURI:         c.Options.LogoutURL,
 	}
 
 	handler := http.FileServer(

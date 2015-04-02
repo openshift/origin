@@ -29,11 +29,9 @@ func TestHTPasswd(t *testing.T) {
 	}
 
 	masterOptions.OAuthConfig.IdentityProviders[0] = configapi.IdentityProvider{
-		Usage: configapi.IdentityProviderUsage{
-			ProviderName:    "htpasswd",
-			UseAsChallenger: true,
-			UseAsLogin:      true,
-		},
+		Name:            "htpasswd",
+		UseAsChallenger: true,
+		UseAsLogin:      true,
 		Provider: runtime.EmbeddedObject{
 			&configapi.HTPasswdPasswordIdentityProvider{
 				File: htpasswdFile.Name(),

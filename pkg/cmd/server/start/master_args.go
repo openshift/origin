@@ -162,7 +162,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 				BindAddress: args.GetAssetBindAddress(),
 			},
 
-			LogoutURI:           "",
+			LogoutURL:           "",
 			MasterPublicURL:     masterPublicAddr.String(),
 			PublicURL:           assetPublicAddr.String(),
 			KubernetesPublicURL: kubePublicAddr.String(),
@@ -285,11 +285,9 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 
 	config.IdentityProviders = append(config.IdentityProviders,
 		configapi.IdentityProvider{
-			Usage: configapi.IdentityProviderUsage{
-				ProviderName:    "anypassword",
-				UseAsChallenger: true,
-				UseAsLogin:      true,
-			},
+			Name:            "anypassword",
+			UseAsChallenger: true,
+			UseAsLogin:      true,
 			Provider: runtime.EmbeddedObject{
 				&configapi.AllowAllPasswordIdentityProvider{},
 			},
