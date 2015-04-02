@@ -205,6 +205,8 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 															},
 														},
 													},
+													//give the router a chance to come up before we start probing, 5 should be plenty
+													InitialDelaySeconds: 5,
 												},
 											},
 										},
