@@ -9,7 +9,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -147,7 +146,7 @@ func UseTLS(servingInfo ServingInfo) bool {
 
 // GetAPIClientCertCAPool returns the cert pool used to validate client certificates to the API server
 func GetAPIClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
-	return crypto.CertPoolFromFile(options.ServingInfo.ClientCA)
+	return cmdutil.CertPoolFromFile(options.ServingInfo.ClientCA)
 }
 
 // GetClientCertCAPool returns a cert pool containing all client CAs that could be presented (union of API and OAuth)
@@ -181,7 +180,7 @@ func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 		return x509.NewCertPool(), nil
 	}
 
-	return crypto.CertPoolFromFile(options.ServingInfo.ClientCA)
+	return cmdutil.CertPoolFromFile(options.ServingInfo.ClientCA)
 }
 
 func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
@@ -200,7 +199,7 @@ func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 				if len(caFile) == 0 {
 					continue
 				}
-				certs, err := crypto.CertificatesFromFile(caFile)
+				certs, err := cmdutil.CertificatesFromFile(caFile)
 				if err != nil {
 					return nil, fmt.Errorf("Error reading %s: %s", caFile, err)
 				}
@@ -217,7 +216,7 @@ func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 		return nil, nil
 	}
 
-	return crypto.CertificatesFromFile(options.ServingInfo.ClientCA)
+	return cmdutil.CertificatesFromFile(options.ServingInfo.ClientCA)
 }
 
 func GetKubeletClientConfig(options MasterConfig) *kclient.KubeletConfig {

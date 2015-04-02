@@ -375,11 +375,15 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		}
 
 	case (*configapi.BasicAuthPasswordIdentityProvider):
-		basicAuthURL := provider.RemoteConnectionInfo.URL
-		if len(basicAuthURL) == 0 {
-			return nil, fmt.Errorf("BasicAuthURL is required to support basic password auth")
+		connectionInfo := provider.RemoteConnectionInfo
+		if len(connectionInfo.URL) == 0 {
+			return nil, fmt.Errorf("URL is required for BasicAuthPasswordIdentityProvider")
 		}
-		return basicauthpassword.New(identityProvider.Name, basicAuthURL, identityMapper), nil
+		transport, err := cmdutil.TransportFor(connectionInfo.CA, connectionInfo.ClientCert.CertFile, connectionInfo.ClientCert.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("Error building BasicAuthPasswordIdentityProvider client: %v", err)
+		}
+		return basicauthpassword.New(identityProvider.Name, connectionInfo.URL, transport, identityMapper), nil
 
 	default:
 		return nil, fmt.Errorf("No password auth found that matches %v.  The oauth server cannot start!", identityProvider)

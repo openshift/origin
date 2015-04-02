@@ -9,7 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
@@ -69,7 +69,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		}
 	}
 
-	clientCAs, err := crypto.CertPoolFromFile(options.ServingInfo.ClientCA)
+	clientCAs, err := util.CertPoolFromFile(options.ServingInfo.ClientCA)
 	if err != nil {
 		return nil, err
 	}

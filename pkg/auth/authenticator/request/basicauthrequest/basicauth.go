@@ -21,9 +21,12 @@ func NewBasicAuthAuthentication(passwordAuthenticator authenticator.Password, re
 }
 
 func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
-	username, password, err := getBasicAuthInfo(req)
+	username, password, hasBasicAuth, err := getBasicAuthInfo(req)
 	if err != nil {
 		return nil, false, err
+	}
+	if !hasBasicAuth {
+		return nil, false, nil
 	}
 
 	user, ok, err := authHandler.passwordAuthenticator.AuthenticatePassword(username, password)
@@ -33,24 +36,27 @@ func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Reques
 	return user, ok, err
 }
 
-func getBasicAuthInfo(r *http.Request) (string, string, error) {
+// getBasicAuthInfo returns the username and password in the request's basic-auth Authorization header,
+// a boolean indicating whether the request had a valid basic-auth header, and any error encountered
+// attempting to extract the basic-auth data.
+func getBasicAuthInfo(r *http.Request) (string, string, bool, error) {
 	// Retrieve the Authorization header and check whether it contains basic auth information
 	const basicScheme string = "Basic "
 	auth := r.Header.Get("Authorization")
 
 	if !strings.HasPrefix(auth, basicScheme) {
-		return "", "", nil
+		return "", "", false, nil
 	}
 
 	str, err := base64.StdEncoding.DecodeString(auth[len(basicScheme):])
 	if err != nil {
-		return "", "", errors.New("No valid base64 data in basic auth scheme found")
+		return "", "", false, errors.New("No valid base64 data in basic auth scheme found")
 	}
 
 	cred := strings.Split(string(str), ":")
 	if len(cred) != 2 {
-		return "", "", errors.New("Invalid Authorization header")
+		return "", "", false, errors.New("Invalid Authorization header")
 	}
 
-	return cred[0], cred[1], nil
+	return cred[0], cred[1], true, nil
 }
