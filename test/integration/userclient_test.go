@@ -97,6 +97,7 @@ func TestUserInitialization(t *testing.T) {
 		CreateIdentity *api.Identity
 		CreateUser     *api.User
 		CreateMapping  *api.UserIdentityMapping
+		UpdateUser     *api.User
 
 		ExpectedErr      error
 		ExpectedUserName string
@@ -172,6 +173,18 @@ func TestUserInitialization(t *testing.T) {
 
 			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
 		},
+		"provision with existing mapped identity without user backreference": {
+			Identity: makeIdentityInfo("idp", "bob", nil),
+			Mapper:   provisioner,
+
+			CreateUser:     makeUser("mappeduser"),
+			CreateIdentity: makeIdentity("idp", "bob"),
+			CreateMapping:  makeMapping("mappeduser", "idp:bob"),
+			// Update user to a version which does not reference the identity
+			UpdateUser: makeUser("mappeduser"),
+
+			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+		},
 		"provision returns existing mapping": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
 			Mapper:   provisioner,
@@ -212,6 +225,21 @@ func TestUserInitialization(t *testing.T) {
 			_, err := clusterAdminClient.UserIdentityMappings().Update(testcase.CreateMapping)
 			if err != nil {
 				t.Errorf("%s: Could not create mapping: %v", k, err)
+				continue
+			}
+		}
+		if testcase.UpdateUser != nil {
+			if testcase.UpdateUser.ResourceVersion == "" {
+				existingUser, err := clusterAdminClient.Users().Get(testcase.UpdateUser.Name)
+				if err != nil {
+					t.Errorf("%s: Could not get user to update: %v", k, err)
+					continue
+				}
+				testcase.UpdateUser.ResourceVersion = existingUser.ResourceVersion
+			}
+			_, err := clusterAdminClient.Users().Update(testcase.UpdateUser)
+			if err != nil {
+				t.Errorf("%s: Could not update user: %v", k, err)
 				continue
 			}
 		}

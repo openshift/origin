@@ -177,6 +177,10 @@ func (p *provisioningIdentityMapper) getMapping(ctx kapi.Context, identity *user
 		glog.Errorf("identity.user.uid (%s) and user.uid (%s) do not match for identity %s", identity.User.UID, u.UID, identity.Name)
 		return nil, kerrs.NewNotFound("UserIdentityMapping", identity.Name)
 	}
+	if !util.NewStringSet(u.Identities...).Has(identity.Name) {
+		glog.Errorf("user.identities (%#v) does not include identity (%s)", u, identity.Name)
+		return nil, kerrs.NewNotFound("UserIdentityMapping", identity.Name)
+	}
 	return &kuser.DefaultInfo{
 		Name: u.Name,
 		UID:  string(u.UID),
