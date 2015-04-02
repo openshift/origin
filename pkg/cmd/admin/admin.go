@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	"github.com/openshift/origin/pkg/cmd/experimental/config"
 	"github.com/openshift/origin/pkg/cmd/experimental/policy"
@@ -30,7 +31,7 @@ Note: This is a beta release of OpenShift and may change significantly.  See
 
 func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	// Main command
-	cmd := &cobra.Command{
+	cmds := &cobra.Command{
 		Use:   name,
 		Short: "tools for managing an OpenShift cluster",
 		Long:  fmt.Sprintf(longDesc),
@@ -40,31 +41,33 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 		},
 	}
 
-	f := clientcmd.New(cmd.PersistentFlags())
+	f := clientcmd.New(cmds.PersistentFlags())
 
-	templates.UseAdminTemplates(cmd)
+	templates.UseAdminTemplates(cmds)
 
-	cmd.AddCommand(project.NewCmdNewProject(f, fullName, "new-project"))
-	cmd.AddCommand(policy.NewCommandPolicy(f, fullName, "policy"))
-	cmd.AddCommand(exrouter.NewCmdRouter(f, fullName, "router", out))
-	cmd.AddCommand(exregistry.NewCmdRegistry(f, fullName, "registry", out))
-	cmd.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
-	cmd.AddCommand(config.NewCmdConfig(fullName, "config"))
+	cmds.AddCommand(project.NewCmdNewProject(f, fullName, "new-project"))
+	cmds.AddCommand(policy.NewCommandPolicy(f, fullName, "policy"))
+	cmds.AddCommand(exrouter.NewCmdRouter(f, fullName, "router", out))
+	cmds.AddCommand(exregistry.NewCmdRegistry(f, fullName, "registry", out))
+	cmds.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
+	cmds.AddCommand(config.NewCmdConfig(fullName, "config"))
 
 	// TODO: these probably belong in a sub command
-	cmd.AddCommand(admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, out))
-	cmd.AddCommand(admin.NewCommandCreateBootstrapPolicyFile(admin.CreateBootstrapPolicyFileCommand, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out))
-	cmd.AddCommand(admin.NewCommandOverwriteBootstrapPolicy(admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out))
-	cmd.AddCommand(admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out))
+	cmds.AddCommand(admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, out))
+	cmds.AddCommand(admin.NewCommandCreateBootstrapPolicyFile(admin.CreateBootstrapPolicyFileCommand, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out))
+	cmds.AddCommand(admin.NewCommandOverwriteBootstrapPolicy(admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out))
+	cmds.AddCommand(admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out))
 	// TODO: these should be rolled up together
-	cmd.AddCommand(admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, out))
-	cmd.AddCommand(admin.NewCommandCreateClient(admin.CreateClientCommandName, fullName+" "+admin.CreateClientCommandName, out))
-	cmd.AddCommand(admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, out))
-	cmd.AddCommand(admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, out))
+	cmds.AddCommand(admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, out))
+	cmds.AddCommand(admin.NewCommandCreateClient(admin.CreateClientCommandName, fullName+" "+admin.CreateClientCommandName, out))
+	cmds.AddCommand(admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, out))
+	cmds.AddCommand(admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, out))
 
 	if name == fullName {
-		cmd.AddCommand(version.NewVersionCommand(fullName))
+		cmds.AddCommand(version.NewVersionCommand(fullName))
 	}
 
-	return cmd
+	cmds.AddCommand(cmd.NewCmdOptions(f, out))
+
+	return cmds
 }

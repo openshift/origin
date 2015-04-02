@@ -205,6 +205,8 @@ echo "templates: ok"
 # help for root commands must be consistent
 [ "$(openshift | grep 'OpenShift Application Platform')" ]
 [ "$(osc | grep 'OpenShift Client')" ]
+[ "! $(osc | grep 'Options')" ]
+[ "! $(osc | grep 'Global Options')" ]
 [ "$(openshift cli | grep 'OpenShift Client')" ]
 [ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
 [ "$(osadm 2>&1 | grep 'OpenShift Administrative Commands')" ]
@@ -213,6 +215,8 @@ echo "templates: ok"
 # help for root commands with --help flag must be consistent
 [ "$(openshift --help 2>&1 | grep 'OpenShift Application Platform')" ]
 [ "$(osc --help 2>&1 | grep 'OpenShift Client')" ]
+[ "$(osc login --help 2>&1 | grep 'Options')" ]
+[ "! $(osc login --help 2>&1 | grep 'Global Options')" ]
 [ "$(openshift cli --help 2>&1 | grep 'OpenShift Client')" ]
 [ "$(openshift kubectl --help 2>&1 | grep 'Kubernetes cluster')" ]
 [ "$(osadm --help 2>&1 | grep 'OpenShift Administrative Commands')" ]
