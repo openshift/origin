@@ -33,11 +33,11 @@ Loggers:
 * `OpenShiftLogLevel.auth` - auth specific logger, this includes login, logout, and oauth
 
 The supported log levels are:
-* OFF (default)
+* OFF (default for all loggers except main)
 * INFO
 * DEBUG
 * WARN
-* ERROR
+* ERROR (default for main)
 
 Note: currently most of our logging either goes to INFO or ERROR
 
