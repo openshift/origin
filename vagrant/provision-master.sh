@@ -33,7 +33,32 @@ popd
 # Initialize certificates
 echo "Generating certs"
 pushd /vagrant
-  /usr/bin/openshift admin create-all-certs --overwrite=false --master=https://${MASTER_IP}:8443 --hostnames=${MASTER_IP},${MASTER_NAME} --nodes=${node_list}
+  CERT_DIR=`pwd`/openshift.local.certificates
+
+  # Master certs
+  /usr/bin/openshift admin create-master-certs \
+    --overwrite=false \
+    --cert-dir=${CERT_DIR} \
+    --master=https://${MASTER_IP}:8443 \
+    --hostnames=${MASTER_IP},${MASTER_NAME}
+
+  # Certs for nodes
+  for (( i=0; i<${#MINION_NAMES[@]}; i++)); do
+    minion=${MINION_NAMES[$i]}
+    ip=${minion_ip_array[$i]}
+
+    /usr/bin/openshift admin create-node-config \
+      --node-dir="${CERT_DIR}/node-${minion}" \
+      --node="${minion}" \
+      --hostnames="${minion},${ip}" \
+      --master="https://${MASTER_IP}:8443" \
+      --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
+      --certificate-authority="${CERT_DIR}/ca/cert.crt" \
+      --signer-cert="${CERT_DIR}/ca/cert.crt" \
+      --signer-key="${CERT_DIR}/ca/key.key" \
+      --signer-serial="${CERT_DIR}/ca/serial.txt"
+  done
+
 popd
 
 # Start docker
@@ -48,7 +73,7 @@ Requires=docker.service network.service
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start master --master=${MASTER_IP} --nodes=${node_list}
+ExecStart=/usr/bin/openshift start master --master=https://${MASTER_IP}:8443 --nodes=${node_list}
 WorkingDirectory=/vagrant/
 
 [Install]
@@ -61,9 +86,9 @@ systemctl start openshift-master.service
 
 # if SDN requires service on master, then set it up
 if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
-  export ETCD_CA=/vagrant/openshift.local.certificates/ca/cert.crt
-  export ETCD_CLIENT_CERT=/vagrant/openshift.local.certificates/master/etcd-client.crt
-  export ETCD_CLIENT_KEY=/vagrant/openshift.local.certificates/master/etcd-client.key
+  export ETCD_CAFILE=/vagrant/openshift.local.certificates/ca/cert.crt
+  export ETCD_CERTFILE=/vagrant/openshift.local.certificates/master/etcd-client.crt
+  export ETCD_KEYFILE=/vagrant/openshift.local.certificates/master/etcd-client.key
   $(dirname $0)/provision-master-sdn.sh $@
 fi
 

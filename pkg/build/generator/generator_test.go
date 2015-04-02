@@ -700,21 +700,17 @@ func TestSubstituteImageRepositorySTIMatch(t *testing.T) {
 	strategy := mockSTIStrategyForImageRepository()
 	repoRef := *strategy.STIStrategy.From
 	output := mockOutput()
-	bc := mockBuildConfig(source, strategy, output)
-	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Unexpected error %v", err)
-	}
 
+	// this test just uses a build rather than generating a build from a config
+	// because generating a build from a config will try to resolve the From reference
+	// in the buildconfig and without significantly more infrastructure setup, that
+	// resolution will fail.
+	build := mockBuild(source, strategy, output)
 	// STI build with a matched base image
 	// base image should be replaced
 	substituteImageRepoReferences(build, repoRef, newImage)
 	if build.Parameters.Strategy.STIStrategy.Image != newImage {
 		t.Errorf("Base image name was not substituted in sti strategy")
-	}
-	if bc.Parameters.Strategy.STIStrategy.Image != "" {
-		t.Errorf("STI BuildConfig was updated when Build was modified")
 	}
 }
 
@@ -995,6 +991,25 @@ func mockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrateg
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
+		},
+		Parameters: buildapi.BuildParameters{
+			Source: source,
+			Revision: &buildapi.SourceRevision{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitSourceRevision{
+					Commit: "1234",
+				},
+			},
+			Strategy: strategy,
+			Output:   output,
+		},
+	}
+}
+
+func mockBuild(source buildapi.BuildSource, strategy buildapi.BuildStrategy, output buildapi.BuildOutput) *buildapi.Build {
+	return &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "test-build",
 		},
 		Parameters: buildapi.BuildParameters{
 			Source: source,

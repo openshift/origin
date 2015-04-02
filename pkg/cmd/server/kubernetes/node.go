@@ -116,8 +116,8 @@ func (c *NodeConfig) RunKubelet() {
 	// initialize Kubelet
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-	recorder := record.FromSource(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
 	kubelet.SetupCapabilities(true, []string{})
+	recorder := record.FromSource(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates, recorder)
 	kconfig.NewSourceApiserver(c.Client, c.NodeHost, cfg.Channel("api"))
 	gcPolicy := kubelet.ContainerGCPolicy{
@@ -172,6 +172,7 @@ func (c *NodeConfig) RunKubelet() {
 		if clusterDNS != nil {
 			glog.Infof("  Kubelet is setting %s as a DNS nameserver for domain %q", clusterDNS, c.ClusterDomain)
 		}
+		k.BirthCry()
 
 		if c.TLS {
 			server.TLSConfig = &tls.Config{

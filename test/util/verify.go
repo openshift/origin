@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -14,8 +15,8 @@ import (
 type ValidateFunc func(string) error
 
 // VerifyImage verifies if the latest image in given ImageRepository is valid
-func VerifyImage(repo *imageapi.ImageRepository, ns string, validator ValidateFunc) error {
-	pod := CreatePodFromImage(repo, ns)
+func VerifyImage(repo *imageapi.ImageRepository, tag, ns string, validator ValidateFunc) error {
+	pod := CreatePodFromImage(repo, tag, ns)
 	if pod == nil {
 		return fmt.Errorf("Unable to create Pod for %+v", repo.Status.DockerImageRepository)
 	}
@@ -41,79 +42,54 @@ func WaitForAddress(pod *kapi.Pod, service *kapi.Service, ns string) (string, er
 	if err != nil {
 		return "", err
 	}
-	// TODO: There is no Pods.Watch() (yet) in OpenShift. The Watch() is already
-	// implemented in upstream, so uncomment this once that happens.
-	/*
-		podWatch, err := client.Pods(ns).Watch(labels.Everything(), labels.Everything(), "0")
-		if err != nil {
-			return "", fmt.Errorf("Unable to create watcher for Pod: %v", err)
+	watcher, err := client.Endpoints(ns).Watch(labels.Everything(), fields.Everything(), "0")
+	if err != nil {
+		return "", fmt.Errorf("Unexpected error: %v", err)
+	}
+	defer watcher.Stop()
+	for event := range watcher.ResultChan() {
+		eventEndpoint, ok := event.Object.(*kapi.Endpoints)
+		if !ok {
+			return "", fmt.Errorf("Unable to convert object %+v to Endpoints", eventEndpoint)
 		}
-		defer podWatch.Stop()
-
-		running := false
-		for event := range podWatch.ResultChan() {
-			currentPod, ok := event.Object.(*kapi.Pod)
-			if !ok {
-				return "", fmt.Errorf("Unable to convert event object to Pod")
-			}
-			if pod.Name == currentPod.Name {
-				switch pod.Status.Phase {
-				case kapi.PodFailed:
-					return "", fmt.Errorf("Pod failed to run")
-				case kapi.PodRunning:
-					running = true
-				}
-			}
-			if running == true {
-				break
-			}
-		}
-		fmt.Printf("The Pod %s is now running.", pod.Name)
-	*/
-
-	// Now wait for the service to get the endpoint
-	// TODO: Endpoints() have no Watch in upstream, once they do, replace this
-	// code to use Watch()
-	for retries := 240; retries != 0; retries-- {
-		endpoints, err := client.Endpoints(ns).Get(service.Name)
-		if err != nil {
-			fmt.Printf("%v\n", err)
-			time.Sleep(1 * time.Second)
+		if eventEndpoint.Name != service.Name {
 			continue
 		}
-		if len(endpoints.Endpoints) == 0 {
-			fmt.Printf("Waiting for Service %s endpoints...\n", service.Name)
-			time.Sleep(1 * time.Second)
+		if len(eventEndpoint.Endpoints) == 0 {
+			fmt.Printf("Waiting for %s address\n", eventEndpoint.Name)
 			continue
 		}
-		for i := range endpoints.Endpoints {
-			ep := &endpoints.Endpoints[i]
-			addr := net.JoinHostPort(ep.IP, strconv.Itoa(ep.Port))
-			fmt.Printf("The Service %s has endpoint: %s", pod.Name, addr)
+		for i := range eventEndpoint.Endpoints {
+			e := &eventEndpoint.Endpoints[i]
+			addr := net.JoinHostPort(e.IP, strconv.Itoa(e.Port))
+			fmt.Printf("Discovered new %s endpoint: %s\n", service.Name, addr)
 			return addr, nil
 		}
 	}
-
 	return "", fmt.Errorf("Service does not get any endpoints")
 }
 
 // CreatePodFromImage creates a Pod from the latest image available in the Image
 // Repository
-func CreatePodFromImage(repo *imageapi.ImageRepository, ns string) *kapi.Pod {
+func CreatePodFromImage(repo *imageapi.ImageRepository, tag, ns string) *kapi.Pod {
 	client, err := GetClusterAdminKubeClient(KubeConfigPath())
 	if err != nil {
 		return nil
 	}
+	imageName := repo.Status.DockerImageRepository
+	if len(tag) > 0 {
+		imageName += ":" + tag
+	}
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:   ns + "pod",
-			Labels: map[string]string{"name": ns + "pod"},
+			Name:   ns,
+			Labels: map[string]string{"name": ns},
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
 				{
 					Name:  "sample",
-					Image: repo.Status.DockerImageRepository,
+					Image: imageName,
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
@@ -138,7 +114,7 @@ func CreateServiceForPod(pod *kapi.Pod, ns string) *kapi.Service {
 			Name: ns,
 		},
 		Spec: kapi.ServiceSpec{
-			Selector:   map[string]string{"name": pod.Name},
+			Selector:   map[string]string{"name": ns},
 			TargetPort: kubeutil.IntOrString{Kind: kubeutil.IntstrInt, IntVal: 8080},
 			Port:       8080,
 		},

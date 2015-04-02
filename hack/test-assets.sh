@@ -42,10 +42,6 @@ pushd "${OS_ROOT}" > /dev/null
 
     popd > /dev/null  
 
-    # Only fail on Travis
-    # This is a temporary fix until we figure out why asset building is failing on Jenkins
-    if [[ "${TRAVIS-}" == "true" ]]; then
-      exit 1
-    fi
+    exit 1
   fi
 popd > /dev/null

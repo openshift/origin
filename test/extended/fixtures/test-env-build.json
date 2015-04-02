@@ -1,0 +1,30 @@
+{
+  "apiVersion": "v1beta1",
+  "kind": "Build",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
+    }
+  },
+  "parameters": {
+    "output": {
+      "to": {
+        "name": "test"
+      }
+    },
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri": "https://github.com/openshift/origin"
+      },
+      "contextDir": "test/extended/fixtures/sti-environment-build-app"
+    },
+    "strategy": {
+      "type": "STI",
+      "stiStrategy": {
+        "image": "openshift/ruby-20-centos7"
+      }
+    }
+  }
+}

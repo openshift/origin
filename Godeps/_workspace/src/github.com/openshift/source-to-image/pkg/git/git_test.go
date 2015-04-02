@@ -47,7 +47,7 @@ func TestGitClone(t *testing.T) {
 	if ch.Name != "git" {
 		t.Errorf("Unexpected command name: %s\n", ch.Name)
 	}
-	if !reflect.DeepEqual(ch.Args, []string{"clone", "--recursive", "source1", "target1"}) {
+	if !reflect.DeepEqual(ch.Args, []string{"clone", "--quiet", "--recursive", "source1", "target1"}) {
 		t.Errorf("Unexpected command arguments: %#v\n", ch.Args)
 	}
 }

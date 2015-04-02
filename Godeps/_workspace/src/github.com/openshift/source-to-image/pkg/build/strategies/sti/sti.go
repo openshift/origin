@@ -108,7 +108,7 @@ func New(req *api.Request) (*STI, error) {
 func (b *STI) Build(request *api.Request) (*api.Result, error) {
 	defer b.garbage.Cleanup(request)
 
-	glog.Infof("Building %s", request.Tag)
+	glog.V(1).Infof("Building %s", request.Tag)
 	if err := b.preparer.Prepare(request); err != nil {
 		return nil, err
 	}
@@ -216,22 +216,27 @@ func (b *STI) PostExecute(containerID string, location string) error {
 
 	buildEnv := append(scripts.ConvertEnvironment(env), b.generateConfigEnv()...)
 
-	cmd := []string{}
 	opts := docker.CommitContainerOptions{
-		Command:     append(cmd, filepath.Join(location, api.Run)),
+		Command:     append([]string{}, filepath.Join(location, api.Run)),
 		Env:         buildEnv,
 		ContainerID: containerID,
 		Repository:  b.request.Tag,
 	}
+
 	imageID, err := b.docker.CommitContainer(opts)
 	if err != nil {
 		return errors.NewBuildError(b.request.Tag, err)
 	}
-	b.result.Success = true
-	glog.Infof("Successfully built %s", b.request.Tag)
 
+	b.result.Success = true
 	b.result.ImageID = imageID
-	glog.V(1).Infof("Tagged %s as %s", imageID, b.request.Tag)
+
+	if len(b.request.Tag) > 0 {
+		glog.V(1).Infof("Successfully built %s", b.request.Tag)
+		glog.V(1).Infof("Tagged %s as %s", imageID, b.request.Tag)
+	} else {
+		glog.V(1).Infof("Successfully built %s", imageID)
+	}
 
 	if b.incremental && b.request.RemovePreviousImage && previousImageID != "" {
 		glog.V(1).Infof("Removing previously-tagged image %s", previousImageID)
@@ -351,21 +356,36 @@ func (b *STI) Execute(command string, request *api.Request) error {
 	}
 	// goroutine to stream container's output
 	go func(reader io.Reader) {
-		scanner := bufio.NewScanner(reader)
-		for scanner.Scan() {
-			if glog.V(2) || command == api.Usage {
-				glog.Info(scanner.Text())
+		scanner := bufio.NewReader(reader)
+		for {
+			text, err := scanner.ReadString('\n')
+			if err != nil {
+				// we're ignoring ErrClosedPipe, as this is information
+				// the docker container ended streaming logs
+				if glog.V(2) && err != io.ErrClosedPipe {
+					glog.Errorf("Error reading docker stdout, %v", err)
+				}
+				break
+			}
+			if glog.V(2) || request.Quiet != true || command == api.Usage {
+				glog.Info(text)
 			}
 		}
 	}(outReader)
 	// goroutine to stream container's error
 	go func(reader io.Reader) {
-		scanner := bufio.NewScanner(reader)
-		for scanner.Scan() {
-			text := scanner.Text()
-			if glog.V(1) {
-				glog.Errorf(text)
+		scanner := bufio.NewReader(reader)
+		for {
+			text, err := scanner.ReadString('\n')
+			if err != nil {
+				// we're ignoring ErrClosedPipe, as this is information
+				// the docker container ended streaming logs
+				if err != io.ErrClosedPipe {
+					glog.Errorf("Error reading docker stderr, %v", err)
+				}
+				break
 			}
+			glog.Error(text)
 			if len(errOutput) < maxErrorOutput {
 				errOutput += text + "\n"
 			}

@@ -1,22 +1,24 @@
 package generator
 
 import (
+	"flag"
 	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 
-	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func TestGenerateFromMissingDeploymentConfig(t *testing.T) {
+func init() {
+	flag.Set("v", "5")
+}
+
+func TestGenerate_fromMissingDeploymentConfig(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
-		Codec: api.Codec,
 		Client: Client{
 			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound("deploymentConfig", id)
@@ -35,15 +37,21 @@ func TestGenerateFromMissingDeploymentConfig(t *testing.T) {
 	}
 }
 
-func TestGenerateFromConfigWithoutTagChange(t *testing.T) {
+func TestGenerate_fromConfigWithoutTagChange(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
-		Codec: api.Codec,
 		Client: Client{
 			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			LIRFn: func(ctx kapi.Context) (*imageapi.ImageRepositoryList, error) {
-				return okImageRepoList(), nil
+			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+				repo := makeRepo(
+					"test-image-repo",
+					"latest",
+					"registry:8080/repo1:ref1",
+					"00000000000000000000000000000001",
+				)
+
+				return repo, nil
 			},
 		},
 	}
@@ -63,17 +71,25 @@ func TestGenerateFromConfigWithoutTagChange(t *testing.T) {
 	}
 }
 
-func TestGenerateFromZeroConfigWithoutTagChange(t *testing.T) {
-	dc := basicDeploymentConfig()
-	dc.LatestVersion = 0
+func TestGenerate_deprecatedFromConfigWithoutTagChange(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
-		Codec: api.Codec,
 		Client: Client{
 			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
-				return dc, nil
+				config := deploytest.OkDeploymentConfig(1)
+				config.Triggers[0] = deploytest.OkImageChangeTriggerDeprecated()
+				return config, nil
 			},
 			LIRFn: func(ctx kapi.Context) (*imageapi.ImageRepositoryList, error) {
-				return okImageRepoList(), nil
+				repo := makeRepo(
+					"test-image-repo",
+					"latest",
+					"registry:8080/repo1:ref1",
+					"00000000000000000000000000000001",
+				)
+				repo.Status.DockerImageRepository = "registry:8080/repo1:ref1"
+				return &imageapi.ImageRepositoryList{
+					Items: []imageapi.ImageRepository{*repo},
+				}, nil
 			},
 		},
 	}
@@ -93,20 +109,26 @@ func TestGenerateFromZeroConfigWithoutTagChange(t *testing.T) {
 	}
 }
 
-func TestGenerateFromConfigWithNoDeployment(t *testing.T) {
+func TestGenerate_fromZeroConfigWithoutTagChange(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
-		Codec: api.Codec,
 		Client: Client{
 			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
-				return deploytest.OkDeploymentConfig(1), nil
+				return deploytest.OkDeploymentConfig(0), nil
 			},
-			LIRFn: func(ctx kapi.Context) (*imageapi.ImageRepositoryList, error) {
-				return okImageRepoList(), nil
+			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+				repo := makeRepo(
+					"test-image-repo",
+					"latest",
+					"registry:8080/repo1:ref1",
+					"00000000000000000000000000000001",
+				)
+
+				return repo, nil
 			},
 		},
 	}
 
-	config, err := generator.Generate(kapi.NewDefaultContext(), "deploy2")
+	config, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
 
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -121,19 +143,24 @@ func TestGenerateFromConfigWithNoDeployment(t *testing.T) {
 	}
 }
 
-func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
+func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
+	newRepoName := "registry:8080/openshift/test-image@sha256:00000000000000000000000000000002"
+	newImageID := "00000000000000000000000000000002"
+
 	generator := &DeploymentConfigGenerator{
-		Codec: api.Codec,
 		Client: Client{
 			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			LIRFn: func(ctx kapi.Context) (*imageapi.ImageRepositoryList, error) {
-				list := okImageRepoList()
-				list.Items[0].Tags["tag1"] = "ref2"
-				list.Items[0].Status.Tags["tag1"].Items[0].Image = "ref2"
-				list.Items[0].Status.Tags["tag1"].Items[0].DockerImageReference = "registry:8080/repo1@ref2"
-				return list, nil
+			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
+				repo := makeRepo(
+					"test-image-repo",
+					"latest",
+					newRepoName,
+					newImageID,
+				)
+
+				return repo, nil
 			},
 		},
 	}
@@ -152,19 +179,27 @@ func TestGenerateFromConfigWithUpdatedImageRef(t *testing.T) {
 		t.Fatalf("Expected config LatestVersion=2, got %d", config.LatestVersion)
 	}
 
-	expected := "registry:8080/repo1@ref2"
-	actual := config.Template.ControllerTemplate.Template.Spec.Containers[0].Image
-	if expected != actual {
-		t.Fatalf("Expected container image %s, got %s", expected, actual)
+	if e, a := newRepoName, config.Template.ControllerTemplate.Template.Spec.Containers[0].Image; e != a {
+		t.Fatalf("Expected container image %s, got %s", e, a)
+	}
+
+	if e, a := newRepoName, config.Triggers[0].ImageChangeParams.LastTriggeredImage; e != a {
+		t.Fatalf("Expected LastTriggeredImage %s, got %s", e, a)
+	}
+
+	if e, a := config.Details.Causes[0].ImageTrigger.Tag, "latest"; e != a {
+		t.Fatalf("Expected cause tag %s, got %s", e, a)
+	}
+	if e, a := config.Details.Causes[0].ImageTrigger.RepositoryName, newRepoName; e != a {
+		t.Fatalf("Expected cause repo %s, got %s", e, a)
 	}
 }
 
-func TestGenerateReportsInvalidErrorWhenMissingRepo(t *testing.T) {
+func TestGenerate_reportsInvalidErrorWhenMissingRepo(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
-		Codec: api.Codec,
 		Client: Client{
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				return referenceDeploymentConfig(), nil
+				return deploytest.OkDeploymentConfig(1), nil
 			},
 			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
 				return nil, kerrors.NewNotFound("ImageRepository", name)
@@ -175,14 +210,13 @@ func TestGenerateReportsInvalidErrorWhenMissingRepo(t *testing.T) {
 	if err == nil || !kerrors.IsInvalid(err) {
 		t.Fatalf("Unexpected error type: %v", err)
 	}
-	if !strings.Contains(err.Error(), "not found 'repo1'") {
+	if !strings.Contains(err.Error(), "not found") {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
 
-func TestGenerateReportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) {
+func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
-		Codec: api.Codec,
 		Client: Client{
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound("DeploymentConfig", name)
@@ -200,211 +234,19 @@ func TestGenerateReportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
-func TestGenerateReportsErrorWhenRepoHasNoImage(t *testing.T) {
-	generator := &DeploymentConfigGenerator{
-		Codec: api.Codec,
-		Client: Client{
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				return referenceDeploymentConfig(), nil
-			},
-			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-				return &emptyImageRepo().Items[0], nil
-			},
-		},
-	}
-	_, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
-	if err == nil || !kerrors.IsInvalid(err) {
-		t.Fatalf("Unexpected error type: %v", err)
-	}
-	if !strings.Contains(err.Error(), "image repository /imageRepo1 does not have a Docker") {
-		t.Errorf("unexpected error message: %v", err)
-	}
-}
 
-func TestGenerateDeploymentConfigWithFrom(t *testing.T) {
-	generator := &DeploymentConfigGenerator{
-		Codec: api.Codec,
-		Client: Client{
-			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				return referenceDeploymentConfig(), nil
-			},
-			IRFn: func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-				return &internalImageRepo().Items[0], nil
-			},
-		},
-	}
-
-	config, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
-
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	if config == nil {
-		t.Fatalf("Expected non-nil config")
-	}
-
-	if config.LatestVersion != 2 {
-		t.Fatalf("Expected config LatestVersion=2, got %d", config.LatestVersion)
-	}
-
-	expected := "internal/namespace/imageRepo1@ref1"
-	actual := config.Template.ControllerTemplate.Template.Spec.Containers[0].Image
-	if expected != actual {
-		t.Fatalf("Expected container image %s, got %s", expected, actual)
-	}
-}
-
-func okImageRepoList() *imageapi.ImageRepositoryList {
-	return &imageapi.ImageRepositoryList{
-		Items: []imageapi.ImageRepository{
-			{
-				ObjectMeta:            kapi.ObjectMeta{Name: "imageRepo1"},
-				DockerImageRepository: "registry:8080/repo1",
-				Tags: map[string]string{
-					"tag1": "ref1",
-				},
-				Status: imageapi.ImageRepositoryStatus{
-					DockerImageRepository: "registry:8080/repo1",
-					Tags: map[string]imageapi.TagEventList{
-						"tag1": {
-							Items: []imageapi.TagEvent{
-								{
-									DockerImageReference: "registry:8080/repo1:ref1",
-									Image:                "ref1",
-								},
-							},
+func makeRepo(name, tag, dir, image string) *imageapi.ImageRepository {
+	return &imageapi.ImageRepository{
+		ObjectMeta: kapi.ObjectMeta{Name: name},
+		Status: imageapi.ImageRepositoryStatus{
+			Tags: map[string]imageapi.TagEventList{
+				tag: {
+					Items: []imageapi.TagEvent{
+						{
+							DockerImageReference: dir,
+							Image:                image,
 						},
 					},
-				},
-			},
-		},
-	}
-}
-
-func basicPodTemplate() *kapi.PodTemplateSpec {
-	return &kapi.PodTemplateSpec{
-		Spec: kapi.PodSpec{
-			Containers: []kapi.Container{
-				{
-					Name:  "container1",
-					Image: "registry:8080/repo1:ref1",
-				},
-				{
-					Name:  "container2",
-					Image: "registry:8080/repo1:ref2",
-				},
-			},
-		},
-	}
-}
-
-func basicDeploymentConfig() *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
-		ObjectMeta:    kapi.ObjectMeta{Name: "deploy1"},
-		LatestVersion: 1,
-		Triggers: []deployapi.DeploymentTriggerPolicy{
-			{
-				Type: deployapi.DeploymentTriggerOnImageChange,
-				ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
-					ContainerNames: []string{
-						"container1",
-					},
-					RepositoryName: "registry:8080/repo1",
-					Tag:            "tag1",
-				},
-			},
-		},
-		Template: deployapi.DeploymentTemplate{
-			ControllerTemplate: kapi.ReplicationControllerSpec{
-				Template: basicPodTemplate(),
-			},
-		},
-	}
-}
-
-func referenceDeploymentConfig() *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
-		ObjectMeta:    kapi.ObjectMeta{Name: "deploy1"},
-		LatestVersion: 1,
-		Triggers: []deployapi.DeploymentTriggerPolicy{
-			{
-				Type: deployapi.DeploymentTriggerOnImageChange,
-				ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
-					ContainerNames: []string{
-						"container1",
-					},
-					From: kapi.ObjectReference{
-						Name: "repo1",
-					},
-					Tag: "tag1",
-				},
-			},
-		},
-		Template: deployapi.DeploymentTemplate{
-			ControllerTemplate: kapi.ReplicationControllerSpec{
-				Template: basicPodTemplate(),
-			},
-		},
-	}
-}
-
-func basicDeployment() *kapi.ReplicationController {
-	config := basicDeploymentConfig()
-	encodedConfig, _ := deployutil.EncodeDeploymentConfig(config, api.Codec)
-
-	return &kapi.ReplicationController{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: deployutil.LatestDeploymentNameForConfig(config),
-			Annotations: map[string]string{
-				deployapi.DeploymentConfigAnnotation:        config.Name,
-				deployapi.DeploymentStatusAnnotation:        string(deployapi.DeploymentStatusNew),
-				deployapi.DeploymentEncodedConfigAnnotation: encodedConfig,
-			},
-			Labels: config.Labels,
-		},
-		Spec: kapi.ReplicationControllerSpec{
-			Template: basicPodTemplate(),
-		},
-	}
-}
-
-func internalImageRepo() *imageapi.ImageRepositoryList {
-	return &imageapi.ImageRepositoryList{
-		Items: []imageapi.ImageRepository{
-			{
-				ObjectMeta: kapi.ObjectMeta{Name: "imageRepo1"},
-				Tags: map[string]string{
-					"tag1": "ref1",
-				},
-				Status: imageapi.ImageRepositoryStatus{
-					DockerImageRepository: "internal/namespace/imageRepo1",
-					Tags: map[string]imageapi.TagEventList{
-						"tag1": {
-							Items: []imageapi.TagEvent{
-								{
-									DockerImageReference: "internal/namespace/imageRepo1@ref1",
-									Image:                "ref1",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func emptyImageRepo() *imageapi.ImageRepositoryList {
-	return &imageapi.ImageRepositoryList{
-		Items: []imageapi.ImageRepository{
-			{
-				ObjectMeta: kapi.ObjectMeta{Name: "imageRepo1"},
-				Tags: map[string]string{
-					"tag1": "ref1",
-				},
-				Status: imageapi.ImageRepositoryStatus{
-					DockerImageRepository: "",
 				},
 			},
 		},

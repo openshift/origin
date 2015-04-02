@@ -10,7 +10,7 @@ env:
 
 matrix:
   exclude:
-    - go: 1.4
+    - go: 1.3
       env: TEST_ASSETS=true
 
 install:

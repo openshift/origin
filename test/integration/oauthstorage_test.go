@@ -7,13 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.google.com/p/goauth2/oauth"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
+	"golang.org/x/oauth2"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/etcd"
@@ -126,13 +125,15 @@ func TestOAuthStorage(t *testing.T) {
 	oaclient = osinclient // initialize the assert server client as well
 	authReq = oaclient.NewAuthorizeRequest(osincli.CODE)
 
-	config := &oauth.Config{
-		ClientId:     "test",
+	config := &oauth2.Config{
+		ClientID:     "test",
 		ClientSecret: "",
-		Scope:        "a_scope",
+		Scopes:       []string{"a_scope"},
 		RedirectURL:  assertServer.URL + "/assert",
-		AuthURL:      server.URL + "/authorize",
-		TokenURL:     server.URL + "/token",
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  server.URL + "/authorize",
+			TokenURL: server.URL + "/token",
+		},
 	}
 	url := config.AuthCodeURL("")
 	client := http.Client{ /*CheckRedirect: func(req *http.Request, via []*http.Request) error {

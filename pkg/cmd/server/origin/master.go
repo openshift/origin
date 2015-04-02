@@ -173,7 +173,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			IRFn:   imageRepositoryRegistry.GetImageRepository,
 			LIRFn2: imageRepositoryRegistry.ListImageRepositories,
 		},
-		Codec: latest.Codec,
 	}
 	_, kclient := c.DeploymentConfigControllerClients()
 	deployRollback := &deployrollback.RollbackGenerator{}

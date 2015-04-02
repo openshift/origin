@@ -1,11 +1,14 @@
 package git
 
 import (
+	"bufio"
+	"io"
 	"net/url"
 	"os"
 	"regexp"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/util"
 )
 
@@ -60,11 +63,21 @@ func (h *stiGit) ValidCloneSpec(source string) bool {
 
 // Clone clones a git repository to a specific target directory
 func (h *stiGit) Clone(source, target string) error {
+	outReader, outWriter := io.Pipe()
+	errReader, errWriter := io.Pipe()
+	defer func() {
+		outReader.Close()
+		outWriter.Close()
+		errReader.Close()
+		errWriter.Close()
+	}()
 	opts := util.CommandOpts{
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+		Stdout: outWriter,
+		Stderr: errWriter,
 	}
-	return h.runner.RunWithOptions(opts, "git", "clone", "--recursive", source, target)
+	go pipeToLog(outReader, glog.Info)
+	go pipeToLog(errReader, glog.Error)
+	return h.runner.RunWithOptions(opts, "git", "clone", "--quiet", "--recursive", source, target)
 }
 
 // Checkout checks out a specific branch reference of a given git repository
@@ -75,4 +88,18 @@ func (h *stiGit) Checkout(repo, ref string) error {
 		Dir:    repo,
 	}
 	return h.runner.RunWithOptions(opts, "git", "checkout", ref)
+}
+
+func pipeToLog(reader io.Reader, log func(...interface{})) {
+	scanner := bufio.NewReader(reader)
+	for {
+		if text, err := scanner.ReadString('\n'); err != nil {
+			if err != io.ErrClosedPipe {
+				glog.Errorf("Error reading stdout, %v", err)
+			}
+			break
+		} else {
+			log(text)
+		}
+	}
 }
