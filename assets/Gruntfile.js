@@ -252,8 +252,8 @@ module.exports = function (grunt) {
                 createConfig: function(context, block) {
                   var generated = context.options.generated;
                   generated.options = {
-                    compress: true,
-                    mangle: true,
+                    compress: {},
+                    mangle: {},
                     beautify: {
                       beautify: true,
                       indent_level: 0, // Don't waste characters indenting

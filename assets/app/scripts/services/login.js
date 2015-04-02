@@ -6,22 +6,22 @@ angular.module('openshiftConsole')
   var _oauth_redirect_uri = "";
 
   this.OAuthClientID = function(id) {
-  	if (id) {
-  	  _oauth_client_id = id;
-  	}
-  	return _oauth_client_id;
+    if (id) {
+      _oauth_client_id = id;
+    }
+    return _oauth_client_id;
   };
   this.OAuthAuthorizeURI = function(uri) {
-  	if (uri) {
-  	  _oauth_authorize_uri = uri;
-  	}
-  	return _oauth_authorize_uri;
+    if (uri) {
+      _oauth_authorize_uri = uri;
+    }
+    return _oauth_authorize_uri;
   };
   this.OAuthRedirectURI = function(uri) {
-  	if (uri) {
-  	  _oauth_redirect_uri = uri;
-  	}
-  	return _oauth_redirect_uri;
+    if (uri) {
+      _oauth_redirect_uri = uri;
+    }
+    return _oauth_redirect_uri;
   };
 
   this.$get = function($location, $q, Logger) {
@@ -30,15 +30,15 @@ angular.module('openshiftConsole')
     return {
       // Returns a promise that resolves with {user:{...}, token:''}, or rejects with {error:'...'[,error_description:'...',error_uri:'...']}
       login: function() {
-      	if (_oauth_client_id == "") {
-      		return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthClientID() not set'}); 
-      	}
-      	if (_oauth_authorize_uri == "") {
-      		return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthAuthorizeURI() not set'}); 
-      	}
-      	if (_oauth_redirect_uri == "") {
-      		return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthRedirectURI not set'}); 
-      	}
+        if (_oauth_client_id == "") {
+          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthClientID() not set'}); 
+        }
+        if (_oauth_authorize_uri == "") {
+          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthAuthorizeURI() not set'}); 
+        }
+        if (_oauth_redirect_uri == "") {
+          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthRedirectURI not set'}); 
+        }
 
         var deferred = $q.defer();
         var uri = new URI(_oauth_authorize_uri);
@@ -59,39 +59,43 @@ angular.module('openshiftConsole')
       // If no token and no error is present, resolves with {}
       // Example error codes: https://tools.ietf.org/html/rfc6749#section-5.2
       finish: function() {
-      	// Get url
-      	var u = new URI($location.url());
+        // Get url
+        var u = new URI($location.url());
 
-      	// Read params
-      	var queryParams = u.query(true);
-      	var fragmentParams = new URI("?" + u.fragment()).query(true); 
-      	authLogger.log("RedirectLoginService.finish()", queryParams, fragmentParams);
+        // Read params
+        var queryParams = u.query(true);
+        var fragmentParams = new URI("?" + u.fragment()).query(true); 
+        authLogger.log("RedirectLoginService.finish()", queryParams, fragmentParams);
 
-     	// Error codes can come in query params or fragment params
-     	// Handle an error response from the OAuth server
-      	var error = queryParams.error || fragmentParams.error;
-     	if (error) {
-     	  var error_description = queryParams.error_description || fragmentParams.error_description;
-     	  var error_uri = queryParams.error_uri || fragmentParams.error_uri;
-      	  authLogger.log("RedirectLoginService.finish(), error", error, error_description, error_uri);
-      	  return $q.reject({
-      	    error: error,
-      	    error_description: error_description,
-      	    error_uri: error_uri
-      	  });
-      	}
+       // Error codes can come in query params or fragment params
+       // Handle an error response from the OAuth server
+        var error = queryParams.error || fragmentParams.error;
+       if (error) {
+         var error_description = queryParams.error_description || fragmentParams.error_description;
+         var error_uri = queryParams.error_uri || fragmentParams.error_uri;
+          authLogger.log("RedirectLoginService.finish(), error", error, error_description, error_uri);
+          return $q.reject({
+            error: error,
+            error_description: error_description,
+            error_uri: error_uri
+          });
+        }
 
-      	// Handle an access_token response
-      	if (fragmentParams.access_token && fragmentParams.token_type == "bearer") {
-      	  var deferred = $q.defer();
-      	  deferred.resolve({
-      	    token: fragmentParams.access_token,
-      	    then: fragmentParams.state
-      	  });
-      	  return deferred.promise;
-      	}
+        // Handle an access_token response
+        if (fragmentParams.access_token && fragmentParams.token_type == "bearer") {
+          var deferred = $q.defer();
+          deferred.resolve({
+            token: fragmentParams.access_token,
+            then: fragmentParams.state
+          });
+          return deferred.promise;
+        }
 
-      	return $q.when({});
+        // No token and no error is invalid
+        return $q.reject({
+          error: "invalid_request",
+          error_description: "No API token returned",
+        });
       }
     };
   };
