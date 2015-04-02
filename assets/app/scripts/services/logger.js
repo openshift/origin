@@ -8,7 +8,11 @@ angular.module('openshiftConsole')
     var logger = {
       get: function(name) {
         var logger = Logger.get("OpenShift/" + name);
-        logger.setLevel(Logger[localStorage['OpenShiftLogLevel.' + name] || "OFF"]);      
+        var logLevel = "OFF";
+        if (localStorage) {
+          logLevel = localStorage['OpenShiftLogLevel.' + name] || logLevel;
+        }
+        logger.setLevel(Logger[logLevel]);
         return logger;
       },
       log: function() {
@@ -29,7 +33,11 @@ angular.module('openshiftConsole')
     };
 
     // Set default log level
-    OSLogger.setLevel(Logger[localStorage['OpenShiftLogLevel.main'] || "OFF"]);      
+    var logLevel = "ERROR";
+    if (localStorage) {
+      logLevel = localStorage['OpenShiftLogLevel.main'] || logLevel;
+    }
+    OSLogger.setLevel(Logger[logLevel]);      
     return logger;
   };
 });
