@@ -109,8 +109,13 @@ func (c *NodeConfig) RunKubelet() {
 	}
 
 	cadvisorInterface, err := cadvisor.New(4194)
+	if err == nil {
+		// TODO: use VersionInfo after the next rebase
+		_, err = cadvisorInterface.MachineInfo()
+	}
 	if err != nil {
 		glog.Errorf("WARNING: cAdvisor cannot be started: %v", err)
+		cadvisorInterface = &cadvisor.Fake{}
 	}
 
 	// initialize Kubelet
