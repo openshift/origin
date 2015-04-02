@@ -23,6 +23,8 @@ type usage interface {
 	UsageError(commandName string) string
 }
 
+var errExit = fmt.Errorf("exit directly")
+
 const newAppLongDesc = `
 Create a new application in OpenShift by specifying source code, templates, and/or images.
 
@@ -52,85 +54,19 @@ ALPHA: This command is under active development - feedback is appreciated.
 
 func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
-
 	helper := dockerutil.NewHelper()
+
 	cmd := &cobra.Command{
 		Use:   "new-app <components> [--code=<path|url>]",
 		Short: "Create a new application",
 		Long:  fmt.Sprintf(newAppLongDesc, fullName),
 
 		Run: func(c *cobra.Command, args []string) {
-			namespace, err := f.DefaultNamespace()
-			checkErr(err)
-
-			if dockerClient, _, err := helper.GetClient(); err == nil {
-				if err := dockerClient.Ping(); err == nil {
-					config.SetDockerClient(dockerClient)
-				} else {
-					glog.V(2).Infof("No local Docker daemon detected: %v", err)
-				}
-			}
-
-			osclient, _, err := f.Clients()
-			if err != nil {
-				glog.Fatalf("Error getting client: %v", err)
-			}
-			config.SetOpenShiftClient(osclient, namespace)
-
-			unknown := config.AddArguments(args)
-			if len(unknown) != 0 {
-				glog.Fatalf("Did not recognize the following arguments: %v", unknown)
-			}
-
-			result, err := config.Run(out)
-			if err != nil {
-				if errs, ok := err.(errors.Aggregate); ok {
-					if len(errs.Errors()) == 1 {
-						err = errs.Errors()[0]
-					}
-				}
-				if err == newcmd.ErrNoInputs {
-					// TODO: suggest things to the user
-					glog.Fatal("You must specify one or more images, image repositories, or source code locations to create an application.")
-				}
-				if u, ok := err.(usage); ok {
-					glog.Fatal(u.UsageError(c.CommandPath()))
-				}
-				glog.Fatalf("Error: %v", err)
-			}
-
-			if len(cmdutil.GetFlagString(c, "output")) != 0 {
-				if err := f.Factory.PrintObject(c, result.List, out); err != nil {
-					glog.Fatalf("Error: %v", err)
-				}
-				return
-			}
-
-			bulk := configcmd.Bulk{
-				Factory: f.Factory,
-				After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
-			}
-			if errs := bulk.Create(result.List, namespace); len(errs) != 0 {
+			err := RunNewApplication(f, out, c, args, config, helper)
+			if err == errExit {
 				os.Exit(1)
 			}
-
-			hasMissingRepo := false
-			for _, item := range result.List.Items {
-				switch t := item.(type) {
-				case *kapi.Service:
-					fmt.Fprintf(os.Stderr, "Service %q created at %s:%d to talk to pods over port %d.\n", t.Name, t.Spec.PortalIP, t.Spec.Port, t.Spec.TargetPort.IntVal)
-				case *buildapi.BuildConfig:
-					fmt.Fprintf(os.Stderr, "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
-				case *imageapi.ImageRepository:
-					if len(t.Status.DockerImageRepository) == 0 {
-						if hasMissingRepo {
-							continue
-						}
-						hasMissingRepo = true
-						fmt.Fprintf(os.Stderr, "WARNING: We created an image repository %q, but it does not look like a Docker registry has been integrated with the OpenShift server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
-					}
-				}
-			}
+			cmdutil.CheckErr(err)
 		},
 	}
 
@@ -144,4 +80,75 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd
+}
+
+func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig, helper *dockerutil.Helper) error {
+	namespace, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	if dockerClient, _, err := helper.GetClient(); err == nil {
+		if err := dockerClient.Ping(); err == nil {
+			config.SetDockerClient(dockerClient)
+		} else {
+			glog.V(2).Infof("No local Docker daemon detected: %v", err)
+		}
+	}
+
+	osclient, _, err := f.Clients()
+	if err != nil {
+		return err
+	}
+	config.SetOpenShiftClient(osclient, namespace)
+
+	unknown := config.AddArguments(args)
+	if len(unknown) != 0 {
+		return cmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
+	}
+
+	result, err := config.Run(out)
+	if err != nil {
+		if errs, ok := err.(errors.Aggregate); ok {
+			if len(errs.Errors()) == 1 {
+				err = errs.Errors()[0]
+			}
+		}
+		if err == newcmd.ErrNoInputs {
+			// TODO: suggest things to the user
+			return cmdutil.UsageError(c, "You must specify one or more images, image repositories, or source code locations to create an application.")
+		}
+		return err
+	}
+
+	if len(cmdutil.GetFlagString(c, "output")) != 0 {
+		return f.Factory.PrintObject(c, result.List, out)
+	}
+
+	bulk := configcmd.Bulk{
+		Factory: f.Factory,
+		After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
+	}
+	if errs := bulk.Create(result.List, namespace); len(errs) != 0 {
+		return errExit
+	}
+
+	hasMissingRepo := false
+	for _, item := range result.List.Items {
+		switch t := item.(type) {
+		case *kapi.Service:
+			fmt.Fprintf(c.Out(), "Service %q created at %s:%d to talk to pods over port %d.\n", t.Name, t.Spec.PortalIP, t.Spec.Port, t.Spec.TargetPort.IntVal)
+		case *buildapi.BuildConfig:
+			fmt.Fprintf(c.Out(), "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
+		case *imageapi.ImageRepository:
+			if len(t.Status.DockerImageRepository) == 0 {
+				if hasMissingRepo {
+					continue
+				}
+				hasMissingRepo = true
+				fmt.Fprintf(c.Out(), "WARNING: We created an image repository %q, but it does not look like a Docker registry has been integrated with the OpenShift server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
+			}
+		}
+	}
+	return nil
 }

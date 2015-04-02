@@ -6,6 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -25,23 +27,34 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 		Short: "Show container logs from the build container",
 		Long:  fmt.Sprintf(buildLogsLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) != 1 {
-				usageError(cmd, "<build> is a required argument")
-			}
-
-			namespace, err := f.DefaultNamespace()
-			checkErr(err)
-
-			c, _, err := f.Clients()
-			checkErr(err)
-
-			readCloser, err := c.BuildLogs(namespace).Get(args[0]).Stream()
-			checkErr(err)
-			defer readCloser.Close()
-
-			_, err = io.Copy(out, readCloser)
-			checkErr(err)
+			err := RunBuildLogs(f, out, cmd, args)
+			cmdutil.CheckErr(err)
 		},
 	}
 	return cmd
+}
+
+func RunBuildLogs(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+	if len(args) != 1 {
+		return cmdutil.UsageError(cmd, "<build> is a required argument")
+	}
+
+	namespace, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	c, _, err := f.Clients()
+	if err != nil {
+		return err
+	}
+
+	readCloser, err := c.BuildLogs(namespace).Get(args[0]).Stream()
+	if err != nil {
+		return err
+	}
+	defer readCloser.Close()
+
+	_, err = io.Copy(out, readCloser)
+	return err
 }
