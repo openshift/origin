@@ -56,6 +56,10 @@ func (c Client) GetImageRepository(ctx kapi.Context, name string) (*imageapi.Ima
 	return c.GetImageRepositoryFunc(ctx, name)
 }
 
+type fatalError struct {
+	error
+}
+
 // Instantiate returns new Build object based on a BuildRequest object
 func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating build from config %s", request.Name)
@@ -170,38 +174,16 @@ func (g *BuildGenerator) generateBuildUsingImageTriggerTag(ctx kapi.Context, con
 		}
 		icTrigger := trigger.ImageChange
 		glog.V(4).Infof("Found image change trigger with reference to repo %s", icTrigger.From.Name)
-
-		var namespace string
-		if len(icTrigger.From.Namespace) != 0 {
-			namespace = icTrigger.From.Namespace
-		} else {
-			namespace = config.Namespace
-		}
-
-		imageRepo, err := g.Client.GetImageRepository(kapi.WithNamespace(ctx, namespace), icTrigger.From.Name)
-		if err != nil && errors.IsNotFound(err) {
-			continue
-		} else if err != nil {
-			return nil, err
-		}
-
-		if imageRepo == nil || len(imageRepo.Status.DockerImageRepository) == 0 {
+		imageRef, err := g.resolveImageRepoReference(ctx, &icTrigger.From, icTrigger.Tag, config.Namespace)
+		if err != nil {
+			if _, ok := err.(fatalError); ok {
+				return nil, err
+			}
 			continue
 		}
-		glog.V(4).Infof("Found image repository %s", imageRepo.Name)
-
 		// for the ImageChange trigger, record the image it substitutes for and get the latest
 		// image id from the imagerepository.  We will substitute all images in the buildconfig
 		// with the latest values from the imagerepositories.
-		tag := icTrigger.Tag
-		if len(tag) == 0 {
-			tag = buildapi.DefaultImageTag
-		}
-		latest, err := imageapi.LatestTaggedImage(imageRepo, tag)
-		if err != nil {
-			continue
-		}
-		imageRef := latest.DockerImageReference
 		glog.V(4).Infof("Adding substitution %s with %s", icTrigger.Image, imageRef)
 		imageSubstitutions[icTrigger.Image] = imageRef
 	}
@@ -230,6 +212,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		},
 		Status: buildapi.BuildStatusNew,
 	}
+
 	build.Name = getNextBuildName(bc)
 	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
 		return nil, err
@@ -252,7 +235,46 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		substituteImageRepoReferences(build, imageRepo, newImage)
 	}
 
+	// If after doing all the substitutions for ImageChangeTriggers, the Build is still using a From reference instead
+	// of a resolved image, we need to resolve that From reference to a valid image so we can run the build.  Builds do
+	// not consume ImageRepo references, only image specs.
+	if build.Parameters.Strategy.Type == buildapi.STIBuildStrategyType && build.Parameters.Strategy.STIStrategy.From != nil {
+		image, err := g.resolveImageRepoReference(ctx, build.Parameters.Strategy.STIStrategy.From, build.Parameters.Strategy.STIStrategy.Tag, build.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		build.Parameters.Strategy.STIStrategy.Image = image
+		build.Parameters.Strategy.STIStrategy.From = nil
+		build.Parameters.Strategy.STIStrategy.Tag = ""
+	}
 	return build, nil
+}
+
+func (g *BuildGenerator) resolveImageRepoReference(ctx kapi.Context, from *kapi.ObjectReference, tag string, defaultNamespace string) (string, error) {
+	var namespace string
+	if len(from.Namespace) != 0 {
+		namespace = from.Namespace
+	} else {
+		namespace = defaultNamespace
+	}
+	imageRepo, err := g.Client.GetImageRepository(kapi.WithNamespace(ctx, namespace), from.Name)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return "", err
+		}
+		return "", fatalError{err}
+	}
+
+	if imageRepo == nil || len(imageRepo.Status.DockerImageRepository) == 0 {
+		return "", fmt.Errorf("could not resolve image repository %s/%s", namespace, from.Name)
+	}
+	glog.V(4).Infof("Found image repository %s/%s", namespace, imageRepo.Name)
+
+	latest, err := imageapi.LatestTaggedImage(imageRepo, tag)
+	if err != nil {
+		return "", err
+	}
+	return latest.DockerImageReference, nil
 }
 
 // getNextBuildName returns name of the next build and increments BuildConfig's LastVersion.
