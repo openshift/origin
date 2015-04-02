@@ -240,6 +240,8 @@ type APIRequestInfo struct {
 	Namespace  string
 	// Resource is the name of the resource being requested.  This is not the kind.  For example: pods
 	Resource string
+	// Subresource is the name of the subresource being requested.  This is not the kind or the resource.  For example: status for a pods/pod-name/status
+	Subresource string
 	// Kind is the type of object being manipulated.  For example: Pod
 	Kind string
 	// Name is empty for some verbs, but if the request directly indicates a name (not in body content) then this field is filled in.
@@ -340,22 +342,17 @@ func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIReques
 
 	// URL forms: /namespaces/{namespace}/{kind}/*, where parts are adjusted to be relative to kind
 	if currentParts[0] == "namespaces" {
-		if len(currentParts) < 3 {
-			requestInfo.Resource = "namespaces"
-			if len(currentParts) > 1 {
-				requestInfo.Namespace = currentParts[1]
-			}
-		} else {
-			requestInfo.Resource = currentParts[2]
+		if len(currentParts) > 1 {
 			requestInfo.Namespace = currentParts[1]
-			currentParts = currentParts[2:]
+			if len(currentParts) > 2 {
+				currentParts = currentParts[2:]
+			}
 		}
 	} else {
 		// URL forms: /{resource}/*
 		// URL forms: POST /{resource} is a legacy API convention to create in "default" namespace
 		// URL forms: /{resource}/{resourceName} use the "default" namespace if omitted from query param
 		// URL forms: /{resource} assume cross-namespace operation if omitted from query param
-		requestInfo.Resource = currentParts[0]
 		requestInfo.Namespace = req.URL.Query().Get("namespace")
 		if len(requestInfo.Namespace) == 0 {
 			if len(currentParts) > 1 || req.Method == "POST" {
@@ -371,9 +368,16 @@ func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIReques
 	// Raw should have everything not in Parts
 	requestInfo.Raw = requestInfo.Raw[:len(requestInfo.Raw)-len(currentParts)]
 
-	// if there's another part remaining after the kind, then that's the resource name
-	if len(requestInfo.Parts) >= 2 {
+	// parts look like: resource/resourceName/subresource/other/stuff/we/don't/interpret
+	switch {
+	case len(requestInfo.Parts) >= 3:
+		requestInfo.Subresource = requestInfo.Parts[2]
+		fallthrough
+	case len(requestInfo.Parts) == 2:
 		requestInfo.Name = requestInfo.Parts[1]
+		fallthrough
+	case len(requestInfo.Parts) == 1:
+		requestInfo.Resource = requestInfo.Parts[0]
 	}
 
 	// if there's no name on the request and we thought it was a get before, then the actual verb is a list
