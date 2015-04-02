@@ -26,7 +26,7 @@ var (
 	buildColumns            = []string{"NAME", "TYPE", "STATUS", "POD"}
 	buildConfigColumns      = []string{"NAME", "TYPE", "SOURCE"}
 	imageColumns            = []string{"NAME", "DOCKER REF"}
-	imageRepositoryColumns  = []string{"NAME", "DOCKER REPO", "TAGS"}
+	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
@@ -55,8 +55,10 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(buildConfigColumns, printBuildConfigList)
 	p.Handler(imageColumns, printImage)
 	p.Handler(imageColumns, printImageList)
-	p.Handler(imageRepositoryColumns, printImageRepository)
-	p.Handler(imageRepositoryColumns, printImageRepositoryList)
+	p.Handler(imageStreamColumns, printImageRepository)
+	p.Handler(imageStreamColumns, printImageRepositoryList)
+	p.Handler(imageStreamColumns, printImageStream)
+	p.Handler(imageStreamColumns, printImageStreamList)
 	p.Handler(projectColumns, printProject)
 	p.Handler(projectColumns, printProjectList)
 	p.Handler(routeColumns, printRoute)
@@ -203,13 +205,11 @@ func printImageList(images *imageapi.ImageList, w io.Writer) error {
 
 func printImageRepository(repo *imageapi.ImageRepository, w io.Writer) error {
 	tags := ""
-	if len(repo.Tags) > 0 {
-		var t []string
-		for tag := range repo.Tags {
-			t = append(t, tag)
-		}
-		tags = strings.Join(t, ",")
+	set := util.NewStringSet()
+	for tag := range repo.Status.Tags {
+		set.Insert(tag)
 	}
+	tags = strings.Join(set.List(), ",")
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", repo.Name, repo.Status.DockerImageRepository, tags)
 	return err
 }
@@ -217,6 +217,26 @@ func printImageRepository(repo *imageapi.ImageRepository, w io.Writer) error {
 func printImageRepositoryList(repos *imageapi.ImageRepositoryList, w io.Writer) error {
 	for _, repo := range repos.Items {
 		if err := printImageRepository(&repo, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printImageStream(stream *imageapi.ImageStream, w io.Writer) error {
+	tags := ""
+	set := util.NewStringSet()
+	for tag := range stream.Status.Tags {
+		set.Insert(tag)
+	}
+	tags = strings.Join(set.List(), ",")
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", stream.Name, stream.Status.DockerImageRepository, tags)
+	return err
+}
+
+func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer) error {
+	for _, stream := range streams.Items {
+		if err := printImageStream(&stream, w); err != nil {
 			return err
 		}
 	}

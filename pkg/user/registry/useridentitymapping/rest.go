@@ -96,13 +96,13 @@ func (s userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {
 }
 
 // Validate validates a new UserIdentityMapping.
-func (s userIdentityMappingStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
+func (s userIdentityMappingStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	mapping := obj.(*api.UserIdentityMapping)
 	return validation.ValidateUserIdentityMapping(mapping)
 }
 
 // Validate validates an updated UserIdentityMapping.
-func (s userIdentityMappingStrategy) ValidateUpdate(obj runtime.Object, old runtime.Object) fielderrors.ValidationErrorList {
+func (s userIdentityMappingStrategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime.Object) fielderrors.ValidationErrorList {
 	mapping := obj.(*api.UserIdentityMapping)
 	oldmapping := old.(*api.UserIdentityMapping)
 	return validation.ValidateUserIdentityMappingUpdate(mapping, oldmapping)

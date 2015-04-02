@@ -44,6 +44,10 @@ func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host
 		return &ImageRepositoryDescriber{c}, true
 	case "ImageRepositoryTag":
 		return &ImageRepositoryTagDescriber{c}, true
+	case "ImageStream":
+		return &ImageStreamDescriber{c}, true
+	case "ImageStreamTag":
+		return &ImageStreamTagDescriber{c}, true
 	case "ImageStreamImage":
 		return &ImageStreamImageDescriber{c}, true
 	case "Route":
@@ -310,6 +314,26 @@ func (d *ImageRepositoryTagDescriber) Describe(namespace, name string) (string, 
 	return describeImage(image)
 }
 
+// ImageStreamTagDescriber generates information about a ImageStreamTag (Image).
+type ImageStreamTagDescriber struct {
+	client.Interface
+}
+
+func (d *ImageStreamTagDescriber) Describe(namespace, name string) (string, error) {
+	c := d.ImageStreamTags(namespace)
+	repo, tag := parsers.ParseRepositoryTag(name)
+	if tag == "" {
+		// TODO use repo's preferred default, when that's coded
+		tag = "latest"
+	}
+	image, err := c.Get(repo, tag)
+	if err != nil {
+		return "", err
+	}
+
+	return describeImage(image)
+}
+
 // ImageStreamImageDescriber generates information about a ImageStreamImage (Image).
 type ImageStreamImageDescriber struct {
 	client.Interface
@@ -342,6 +366,26 @@ func (d *ImageRepositoryDescriber) Describe(namespace, name string) (string, err
 		formatMeta(out, imageRepository.ObjectMeta)
 		formatString(out, "Tags", formatLabels(imageRepository.Tags))
 		formatString(out, "Registry", imageRepository.Status.DockerImageRepository)
+		return nil
+	})
+}
+
+// ImageStreamDescriber generates information about a ImageStream
+type ImageStreamDescriber struct {
+	client.Interface
+}
+
+func (d *ImageStreamDescriber) Describe(namespace, name string) (string, error) {
+	c := d.ImageStreams(namespace)
+	imageStream, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, imageStream.ObjectMeta)
+		formatImageStreamTags(out, imageStream)
+		formatString(out, "Registry", imageStream.Status.DockerImageRepository)
 		return nil
 	})
 }

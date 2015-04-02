@@ -13,14 +13,26 @@ import (
 	"github.com/coreos/go-etcd/etcd"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagerepository"
-	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
 )
 
-var testDefaultRegistry = imagerepository.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+
+type fakeSubjectAccessReviewRegistry struct {
+}
+
+var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
+
+func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+	return nil, nil
+}
 
 func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
@@ -28,9 +40,11 @@ func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
 	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec)
 	imageStorage := imageetcd.NewREST(helper)
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(helper, testDefaultRegistry)
-	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
-	storage := NewREST(imageRegistry, imageRepositoryRegistry)
+	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamMappingRegistry := imagestreammapping.NewRegistry(imageStreamMappingStorage)
+	storage := NewREST(imageStreamMappingRegistry)
 	return fakeEtcdClient, helper, storage
 }
 
@@ -97,10 +111,7 @@ func TestCreateConflictingNamespace(t *testing.T) {
 	mapping := validNewMappingWithName()
 	mapping.Namespace = "some-value"
 
-	ch, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), mapping)
-	if ch != nil {
-		t.Error("Expected a nil obj, but we got a value")
-	}
+	obj, err := storage.Create(kapi.WithNamespace(kapi.NewContext(), "legal-name"), mapping)
 	expectedError := "the namespace of the provided object does not match the namespace sent on the request"
 	if err == nil {
 		t.Fatalf("Expected '" + expectedError + "', but we didn't get one")
@@ -108,9 +119,12 @@ func TestCreateConflictingNamespace(t *testing.T) {
 	if !strings.Contains(err.Error(), expectedError) {
 		t.Errorf("Expected '"+expectedError+"' error, got '%v'", err.Error())
 	}
+	if obj.(*kapi.Status) != nil {
+		t.Errorf("Expected a nil obj, but we got a value: %#v", obj)
+	}
 }
 
-func TestCreateErrorListingImageRepositories(t *testing.T) {
+func TestCreateErrorListingImageStreams(t *testing.T) {
 	fakeEtcdClient, _, storage := setup(t)
 	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
@@ -120,7 +134,7 @@ func TestCreateErrorListingImageRepositories(t *testing.T) {
 	}
 
 	obj, err := storage.Create(kapi.NewDefaultContext(), validNewMappingWithDockerImageRepository())
-	if obj != nil {
+	if obj.(*kapi.Status) != nil {
 		t.Fatalf("Unexpected non-nil obj %#v", obj)
 	}
 	if err == nil {
@@ -131,12 +145,12 @@ func TestCreateErrorListingImageRepositories(t *testing.T) {
 	}
 }
 
-func TestCreateImageRepositoryNotFound(t *testing.T) {
+func TestCreateImageStreamNotFound(t *testing.T) {
 	fakeEtcdClient, _, storage := setup(t)
 	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{
+				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
 					ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "bar"},
 				}),
 			},
@@ -144,7 +158,7 @@ func TestCreateImageRepositoryNotFound(t *testing.T) {
 	}
 
 	obj, err := storage.Create(kapi.NewDefaultContext(), validNewMappingWithDockerImageRepository())
-	if obj != nil {
+	if obj.(*kapi.Status) != nil {
 		t.Errorf("Unexpected non-nil obj %#v", obj)
 	}
 	if err == nil {
@@ -158,9 +172,11 @@ func TestCreateImageRepositoryNotFound(t *testing.T) {
 func TestCreateSuccessWithDockerImageRepository(t *testing.T) {
 	fakeEtcdClient, helper, storage := setup(t)
 
-	initialRepo := &api.ImageRepository{
-		ObjectMeta:            kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
-		DockerImageRepository: "localhost:5000/someproject/somerepo",
+	initialStream := &api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
+		Spec: api.ImageStreamSpec{
+			DockerImageRepository: "localhost:5000/someproject/somerepo",
+		},
 	}
 
 	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
@@ -168,7 +184,7 @@ func TestCreateSuccessWithDockerImageRepository(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
+						Value:         runtime.EncodeOrDie(latest.Codec, initialStream),
 						ModifiedIndex: 1,
 					},
 				},
@@ -178,7 +194,7 @@ func TestCreateSuccessWithDockerImageRepository(t *testing.T) {
 	fakeEtcdClient.Data["/imageRepositories/default/somerepo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
+				Value:         runtime.EncodeOrDie(latest.Codec, initialStream),
 				ModifiedIndex: 1,
 			},
 		},
@@ -201,7 +217,7 @@ func TestCreateSuccessWithDockerImageRepository(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo := &api.ImageRepository{}
+	repo := &api.ImageStream{}
 	if err := helper.ExtractObj("/imageRepositories/default/somerepo", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
@@ -213,9 +229,11 @@ func TestCreateSuccessWithDockerImageRepository(t *testing.T) {
 func TestCreateSuccessWithMismatchedNames(t *testing.T) {
 	fakeEtcdClient, helper, storage := setup(t)
 
-	initialRepo := &api.ImageRepository{
-		ObjectMeta:            kapi.ObjectMeta{Namespace: "default", Name: "repo1"},
-		DockerImageRepository: "localhost:5000/someproject/somerepo",
+	initialStream := &api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "repo1"},
+		Spec: api.ImageStreamSpec{
+			DockerImageRepository: "localhost:5000/someproject/somerepo",
+		},
 	}
 
 	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
@@ -223,7 +241,7 @@ func TestCreateSuccessWithMismatchedNames(t *testing.T) {
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
-						Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
+						Value:         runtime.EncodeOrDie(latest.Codec, initialStream),
 						ModifiedIndex: 1,
 					},
 				},
@@ -233,7 +251,7 @@ func TestCreateSuccessWithMismatchedNames(t *testing.T) {
 	fakeEtcdClient.Data["/imageRepositories/default/repo1"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
+				Value:         runtime.EncodeOrDie(latest.Codec, initialStream),
 				ModifiedIndex: 1,
 			},
 		},
@@ -256,7 +274,7 @@ func TestCreateSuccessWithMismatchedNames(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo := &api.ImageRepository{}
+	repo := &api.ImageStream{}
 	if err := helper.ExtractObj("/imageRepositories/default/repo1", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
@@ -271,14 +289,14 @@ func TestCreateSuccessWithMismatchedNames(t *testing.T) {
 func TestCreateSuccessWithName(t *testing.T) {
 	fakeEtcdClient, helper, storage := setup(t)
 
-	initialRepo := &api.ImageRepository{
+	initialStream := &api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
 	}
 
 	fakeEtcdClient.Data["/imageRepositories/default/somerepo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
+				Value:         runtime.EncodeOrDie(latest.Codec, initialStream),
 				ModifiedIndex: 1,
 			},
 		},
@@ -301,7 +319,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo := &api.ImageRepository{}
+	repo := &api.ImageStream{}
 	if err := helper.ExtractObj("/imageRepositories/default/somerepo", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
@@ -312,16 +330,24 @@ func TestCreateSuccessWithName(t *testing.T) {
 
 func TestAddExistingImageWithNewTag(t *testing.T) {
 	imageID := "8d812da98d6dd61620343f1a5bf6585b34ad6ed16e5c5f7c7216a525d6aeb772"
-	existingRepo := &api.ImageRepository{
+	existingRepo := &api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "somerepo",
 			Namespace: "default",
 		},
-		DockerImageRepository: "localhost:5000/someproject/somerepo",
-		Tags: map[string]string{
-			"existingTag": imageID,
+		Spec: api.ImageStreamSpec{
+			DockerImageRepository: "localhost:5000/someproject/somerepo",
+			/*
+				Tags: map[string]api.TagReference{
+					"existingTag": {
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+
+						Tag: "existingTag", Reference: imageID},
+				},
+			*/
 		},
-		Status: api.ImageRepositoryStatus{
+		Status: api.ImageStreamStatus{
 			Tags: map[string]api.TagEventList{
 				"existingTag": {Items: []api.TagEvent{{DockerImageReference: "localhost:5000/someproject/somerepo:" + imageID}}},
 			},
@@ -397,13 +423,15 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo := &api.ImageRepository{}
+	repo := &api.ImageStream{}
 	if err := helper.ExtractObj("/imageRepositories/default/somerepo", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
-	if e, a := "", repo.Tags["latest"]; e != a {
-		t.Errorf("Expected %s, got %s", e, a)
-	}
+	/*
+		if e, a := "", repo.Spec.Tags["latest"].Reference; e != a {
+			t.Errorf("Expected %s, got %s", e, a)
+		}
+	*/
 	if e, a := 2, len(repo.Status.Tags); e != a {
 		t.Fatalf("repo.Status.Tags length: expected %d, got %d: %#v", e, a, repo.Status.Tags)
 	}
@@ -433,16 +461,20 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 }
 
 func TestAddExistingImageAndTag(t *testing.T) {
-	existingRepo := &api.ImageRepository{
+	existingRepo := &api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "somerepo",
 			Namespace: "default",
 		},
-		DockerImageRepository: "localhost:5000/someproject/somerepo",
-		Tags: map[string]string{
-			"existingTag": "existingImage",
+		Spec: api.ImageStreamSpec{
+			DockerImageRepository: "localhost:5000/someproject/somerepo",
+			/*
+				Tags: map[string]api.TagReference{
+					"existingTag": {Tag: "existingTag", Reference: "existingImage"},
+				},
+			*/
 		},
-		Status: api.ImageRepositoryStatus{
+		Status: api.ImageStreamStatus{
 			Tags: map[string]api.TagEventList{
 				"existingTag": {Items: []api.TagEvent{{DockerImageReference: "existingImage"}}},
 			},
@@ -518,78 +550,20 @@ func TestAddExistingImageAndTag(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo := &api.ImageRepository{}
+	repo := &api.ImageStream{}
 	if err := helper.ExtractObj("/imageRepositories/default/somerepo", repo, false); err != nil {
 		t.Fatalf("Unexpected non-nil err: %#v", err)
 	}
 	// Tags aren't changed during mapping creation
-	if e, a := "existingImage", repo.Tags["existingTag"]; e != a {
-		t.Errorf("Expected %s, got %s", e, a)
-	}
+	/*
+		if e, a := "existingImage", repo.Spec.Tags["existingTag"].Reference; e != a {
+			t.Errorf("Expected %s, got %s", e, a)
+		}
+	*/
 	if e, a := 1, len(repo.Status.Tags); e != a {
 		t.Errorf("repo.Status.Tags length: expected %d, got %d", e, a)
 	}
 	if e, a := mapping.DockerImageRepository+":imageID1", repo.Status.Tags["existingTag"].Items[0].DockerImageReference; e != a {
 		t.Errorf("unexpected repo: %#v", repo)
-	}
-}
-
-func TestApplyRepoAnnotationsToImage(t *testing.T) {
-	tests := map[string]struct {
-		repoAnnotations  map[string]string
-		imageAnnotations map[string]string
-		tag              string
-		expected         map[string]string
-	}{
-		"no annotations anywhere": {
-			tag:              "latest",
-			repoAnnotations:  map[string]string{},
-			imageAnnotations: map[string]string{},
-			expected:         map[string]string{},
-		},
-		"no annotations for tag": {
-			tag:              "latest",
-			repoAnnotations:  map[string]string{"other.key": "bar"},
-			imageAnnotations: map[string]string{"abc": "def"},
-			expected:         map[string]string{"abc": "def"},
-		},
-		"add to image with no previous annotations": {
-			tag:              "latest",
-			repoAnnotations:  map[string]string{"latest.key": "bar"},
-			imageAnnotations: map[string]string{},
-			expected:         map[string]string{"key": "bar"},
-		},
-		"add to image without overlap": {
-			tag:              "latest",
-			repoAnnotations:  map[string]string{"latest.key1": "bar1", "latest.key2": "bar2"},
-			imageAnnotations: map[string]string{"abc": "def"},
-			expected:         map[string]string{"abc": "def", "key1": "bar1", "key2": "bar2"},
-		},
-		"add to image, overwrite existing": {
-			tag:              "latest",
-			repoAnnotations:  map[string]string{"latest.key": "bar"},
-			imageAnnotations: map[string]string{"key": "def"},
-			expected:         map[string]string{"key": "bar"},
-		},
-	}
-
-	for testName, test := range tests {
-		repo := api.ImageRepository{
-			ObjectMeta: kapi.ObjectMeta{
-				Annotations: test.repoAnnotations,
-			},
-		}
-
-		image := api.Image{
-			ObjectMeta: kapi.ObjectMeta{
-				Annotations: test.imageAnnotations,
-			},
-		}
-
-		applyRepoAnnotationsToImage(&repo, &image, test.tag)
-
-		if e, a := test.expected, image.Annotations; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: expected %v, got %v", testName, e, a)
-		}
 	}
 }

@@ -40,7 +40,7 @@ func (identityStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new user
-func (identityStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
+func (identityStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	identity := obj.(*api.Identity)
 	return validation.ValidateIdentity(identity)
 }
@@ -51,7 +51,7 @@ func (identityStrategy) AllowCreateOnUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an identity
-func (identityStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (identityStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateIdentityUpdate(obj.(*api.Identity), old.(*api.Identity))
 }
 

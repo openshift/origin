@@ -38,7 +38,7 @@ func (userStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new user
-func (userStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
+func (userStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	user := obj.(*api.User)
 	return validation.ValidateUser(user)
 }
@@ -49,7 +49,7 @@ func (userStrategy) AllowCreateOnUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (userStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (userStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateUserUpdate(obj.(*api.User), old.(*api.User))
 }
 

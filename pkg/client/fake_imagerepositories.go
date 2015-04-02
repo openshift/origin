@@ -19,7 +19,7 @@ type FakeImageRepositories struct {
 var _ ImageRepositoryInterface = &FakeImageRepositories{}
 
 func (c *FakeImageRepositories) List(label labels.Selector, field fields.Selector) (*imageapi.ImageRepositoryList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-imagerepositries"})
+	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-imagerepositories"})
 	return &imageapi.ImageRepositoryList{}, nil
 }
 

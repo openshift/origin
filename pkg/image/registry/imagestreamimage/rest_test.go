@@ -6,15 +6,26 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/openshift/origin/pkg/api/latest"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagerepository"
-	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
 )
 import "testing"
 
-var testDefaultRegistry = imagerepository.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+
+type fakeSubjectAccessReviewRegistry struct {
+}
+
+var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
+
+func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+	return nil, nil
+}
 
 func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
@@ -22,9 +33,9 @@ func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
 	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec)
 	imageStorage := imageetcd.NewREST(helper)
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(helper, testDefaultRegistry)
-	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
-	storage := NewREST(imageRegistry, imageRepositoryRegistry)
+	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	storage := NewREST(imageRegistry, imageStreamRegistry)
 	return fakeEtcdClient, helper, storage
 }
 
@@ -84,7 +95,7 @@ func TestNameAndID(t *testing.T) {
 func TestGet(t *testing.T) {
 	tests := map[string]struct {
 		input       string
-		repo        *api.ImageRepository
+		repo        *api.ImageStream
 		image       *api.Image
 		expectError bool
 	}{
@@ -115,13 +126,13 @@ func TestGet(t *testing.T) {
 		},
 		"nil tags": {
 			input:       "repo@id",
-			repo:        &api.ImageRepository{},
+			repo:        &api.ImageStream{},
 			expectError: true,
 		},
 		"image not found": {
 			input: "repo@id",
-			repo: &api.ImageRepository{
-				Status: api.ImageRepositoryStatus{
+			repo: &api.ImageStream{
+				Status: api.ImageStreamStatus{
 					Tags: map[string]api.TagEventList{
 						"latest": {
 							Items: []api.TagEvent{
@@ -135,8 +146,8 @@ func TestGet(t *testing.T) {
 		},
 		"happy path": {
 			input: "repo@id",
-			repo: &api.ImageRepository{
-				Status: api.ImageRepositoryStatus{
+			repo: &api.ImageStream{
+				Status: api.ImageStreamStatus{
 					Tags: map[string]api.TagEventList{
 						"latest": {
 							Items: []api.TagEvent{

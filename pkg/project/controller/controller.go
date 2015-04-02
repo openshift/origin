@@ -52,7 +52,7 @@ func deleteAllContent(client osclient.Interface, namespace string) (err error) {
 	if err != nil {
 		return err
 	}
-	err = deleteImageRepositories(client, namespace)
+	err = deleteImageStreams(client, namespace)
 	if err != nil {
 		return err
 	}
@@ -149,13 +149,13 @@ func deletePolicies(client osclient.Interface, ns string) error {
 	return nil
 }
 
-func deleteImageRepositories(client osclient.Interface, ns string) error {
-	items, err := client.ImageRepositories(ns).List(labels.Everything(), fields.Everything())
+func deleteImageStreams(client osclient.Interface, ns string) error {
+	items, err := client.ImageStreams(ns).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return err
 	}
 	for i := range items.Items {
-		err := client.ImageRepositories(ns).Delete(items.Items[i].Name)
+		err := client.ImageStreams(ns).Delete(items.Items[i].Name)
 		if err != nil {
 			return err
 		}

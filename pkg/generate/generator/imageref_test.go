@@ -28,13 +28,12 @@ func TestFromName(t *testing.T) {
 
 func TestFromRepository(t *testing.T) {
 	g := NewImageRefGenerator()
-	repo := image.ImageRepository{
-		DockerImageRepository: "test/image",
-		Status: image.ImageRepositoryStatus{
+	repo := image.ImageStream{
+		Status: image.ImageStreamStatus{
 			DockerImageRepository: "my.registry:5000/test/image",
 		},
 	}
-	imageRef, err := g.FromRepository(&repo, "tag1234")
+	imageRef, err := g.FromStream(&repo, "tag1234")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

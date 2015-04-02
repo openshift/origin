@@ -97,7 +97,7 @@ type ComponentMatch struct {
 
 	Builder     bool
 	Image       *imageapi.DockerImage
-	ImageStream *imageapi.ImageRepository
+	ImageStream *imageapi.ImageStream
 	ImageTag    string
 	Template    *templateapi.Template
 }

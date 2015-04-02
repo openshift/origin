@@ -3,13 +3,18 @@
   "items": [
     {
       "apiVersion": "v1beta1",
-      "dockerImageRepository": "openshift/ruby-20-centos",
-      "kind": "ImageRepository",
+      "kind": "ImageStream",
       "metadata": {
         "name": "ruby-20-centos-buildcli"
       },
-      "tags": {
-        "valid": "success"
+      "spec": {
+        "dockerImageRepository": "openshift/ruby-20-centos",
+        "tags": [
+          {
+            "name": "valid",
+            "dockerImageReference": "openshift/ruby-20-centos7:success"
+          }
+        ]
       }
     },
     {

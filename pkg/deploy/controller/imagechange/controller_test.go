@@ -147,10 +147,10 @@ func TestHandle_matchScenarios(t *testing.T) {
 		}
 	}
 
-	updates := map[string]*imageapi.ImageRepository{
+	updates := map[string]*imageapi.ImageStream{
 		"update.1": {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
-			Status: imageapi.ImageRepositoryStatus{
+			Status: imageapi.ImageStreamStatus{
 				Tags: tagHistoryFor(
 					"latest",
 					"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
@@ -162,7 +162,7 @@ func TestHandle_matchScenarios(t *testing.T) {
 		// which use the deprecated RepositoryName reference
 		"update.2": {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
-			Status: imageapi.ImageRepositoryStatus{
+			Status: imageapi.ImageStreamStatus{
 				DockerImageRepository: "registry:8080/openshift/test-image",
 				Tags: tagHistoryFor(
 					"latest",
@@ -253,10 +253,10 @@ func TestHandle_matchScenarios(t *testing.T) {
 	}
 }
 
-func makeRepo(name, tag, dir, image string) *imageapi.ImageRepository {
-	return &imageapi.ImageRepository{
+func makeRepo(name, tag, dir, image string) *imageapi.ImageStream {
+	return &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: name},
-		Status: imageapi.ImageRepositoryStatus{
+		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
 				tag: {
 					Items: []imageapi.TagEvent{

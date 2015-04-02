@@ -16,29 +16,32 @@ import (
 const dockerImageRepositoryCheckAnnotation = "openshift.io/image.dockerRepositoryCheck"
 
 type ImportController struct {
-	repositories client.ImageRepositoriesNamespacer
-	mappings     client.ImageRepositoryMappingsNamespacer
+	repositories client.ImageStreamsNamespacer
+	mappings     client.ImageStreamMappingsNamespacer
 	client       dockerregistry.Client
 }
 
 // needsImport returns true if the provided repository should have its tags imported.
-func needsImport(repo *api.ImageRepository) bool {
-	if len(repo.DockerImageRepository) == 0 {
+func needsImport(repo *api.ImageStream) bool {
+	if len(repo.Spec.DockerImageRepository) == 0 {
 		return false
 	}
 	if repo.Annotations != nil && len(repo.Annotations[dockerImageRepositoryCheckAnnotation]) != 0 {
 		return false
 	}
-	if len(repo.Tags) == 0 {
-		return true
-	}
-	emptyTags := 0
-	for _, v := range repo.Tags {
-		if len(v) == 0 {
-			emptyTags++
+	return true
+	/*
+		if len(repo.Spec.Tags) == 0 {
+			return true
 		}
-	}
-	return emptyTags > 0
+		emptyTags := 0
+		for _, v := range repo.Spec.Tags {
+			if len(v.DockerImageReference) == 0 {
+				emptyTags++
+			}
+		}
+		return emptyTags > 0
+	*/
 }
 
 // Next processes the given image repository, looking for repos that have DockerImageRepository
@@ -46,11 +49,11 @@ func needsImport(repo *api.ImageRepository) bool {
 // the image repository is not modified (so it will be tried again later). If a permanent
 // failure occurs the image is marked with an annotation. The tags of the original spec image
 // are left as is (those are updated through status).
-func (c *ImportController) Next(repo *api.ImageRepository) error {
+func (c *ImportController) Next(repo *api.ImageStream) error {
 	if !needsImport(repo) {
 		return nil
 	}
-	name := repo.DockerImageRepository
+	name := repo.Spec.DockerImageRepository
 
 	ref, err := api.ParseDockerImageReference(name)
 	if err != nil {
@@ -71,34 +74,36 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 		return err
 	}
 
-	newTags := make(map[string]string, len(repo.Tags))
+	newTags := make(map[string]string) //, len(repo.Spec.Tags))
 	imageToTag := make(map[string][]string)
-	switch {
-	case len(repo.Tags) == 0:
-		// copy all tags
-		for tag := range tags {
-			// TODO: switch to image when pull by ID is automatic
-			newTags[tag] = tag
-		}
-		for tag, image := range tags {
-			imageToTag[image] = append(imageToTag[image], tag)
-		}
-	default:
-		for tag, v := range repo.Tags {
-			if len(v) != 0 {
-				newTags[tag] = v
-				continue
-			}
-			image, ok := tags[tag]
-			if !ok {
-				// tag not found, set empty
-				continue
-			}
-			imageToTag[image] = append(imageToTag[image], tag)
-			// TODO: switch to image when pull by ID is automatic
-			newTags[tag] = tag
-		}
+	//switch {
+	//case len(repo.Tags) == 0:
+	// copy all tags
+	for tag := range tags {
+		// TODO: switch to image when pull by ID is automatic
+		newTags[tag] = tag
 	}
+	for tag, image := range tags {
+		imageToTag[image] = append(imageToTag[image], tag)
+	}
+	/*
+		default:
+			for tag, v := range repo.Tags {
+				if len(v) != 0 {
+					newTags[tag] = v
+					continue
+				}
+				image, ok := tags[tag]
+				if !ok {
+					// tag not found, set empty
+					continue
+				}
+				imageToTag[image] = append(imageToTag[image], tag)
+				// TODO: switch to image when pull by ID is automatic
+				newTags[tag] = tag
+			}
+		}
+	*/
 
 	// nothing to tag - no images in the upstream repo, or we're in sync
 	if len(imageToTag) == 0 {
@@ -146,7 +151,7 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 				Tag:       pullRefTag,
 			}
 
-			mapping := &api.ImageRepositoryMapping{
+			mapping := &api.ImageStreamMapping{
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      repo.Name,
 					Namespace: repo.Namespace,
@@ -160,7 +165,7 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 					DockerImageMetadata:  image,
 				},
 			}
-			if err := c.mappings.ImageRepositoryMappings(repo.Namespace).Create(mapping); err != nil {
+			if err := c.mappings.ImageStreamMappings(repo.Namespace).Create(mapping); err != nil {
 				if errors.IsNotFound(err) {
 					return c.done(repo, err.Error())
 				}
@@ -174,7 +179,7 @@ func (c *ImportController) Next(repo *api.ImageRepository) error {
 }
 
 // ignore marks the repository as being processed due to an error or failure condition
-func (c *ImportController) done(repo *api.ImageRepository, reason string) error {
+func (c *ImportController) done(repo *api.ImageStream, reason string) error {
 	if len(reason) == 0 {
 		reason = util.Now().UTC().Format(time.RFC3339)
 	}
@@ -182,7 +187,7 @@ func (c *ImportController) done(repo *api.ImageRepository, reason string) error 
 		repo.Annotations = make(map[string]string)
 	}
 	repo.Annotations[dockerImageRepositoryCheckAnnotation] = reason
-	if _, err := c.repositories.ImageRepositories(repo.Namespace).Update(repo); err != nil && !errors.IsNotFound(err) {
+	if _, err := c.repositories.ImageStreams(repo.Namespace).Update(repo); err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 	return nil

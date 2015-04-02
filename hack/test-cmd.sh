@@ -269,29 +269,73 @@ osc create -f test/integration/fixtures/test-image.json
 osc delete images test
 echo "images: ok"
 
+osc get imageStreams
+osc create -f test/integration/fixtures/test-image-stream.json
+[ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
+osc create -f examples/sample-app/docker-registry-config.json
+[ -n "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
+osc delete -f examples/sample-app/docker-registry-config.json
+osc delete imageStreams test
+[ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
+osc create -f examples/image-streams/image-streams.json
+[ -n "$(osc get imageStreams ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
+osc delete imageStreams ruby-20-centos7
+osc delete imageStreams nodejs-010-centos7
+osc delete imageStreams wildfly-8-centos
+osc delete imageStreams mysql-55-centos7
+osc delete imageStreams postgresql-92-centos7
+osc delete imageStreams mongodb-24-centos7
+[ -z "$(osc get imageStreams ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
+echo "imageStreams: ok"
+
+osc create -f test/integration/fixtures/test-image-stream.json
+osc create -f test/integration/fixtures/test-image-stream-mapping.json
+osc get images
+osc get imageStreams
+osc get imageStreamTag test:sometag
+osc get imageStreamImage test@sha256:4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125
+osc delete imageStreams test
+echo "imageStreamMappings: ok"
+
 osc get imageRepositories
 osc create -f test/integration/fixtures/test-image-repository.json
-[ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
-osc create -f examples/sample-app/docker-registry-config.json
 [ -n "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
-osc delete -f examples/sample-app/docker-registry-config.json
 osc delete imageRepositories test
-[ -z "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
 osc create -f examples/image-repositories/image-repositories.json
 [ -n "$(osc get imageRepositories ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageRepositories mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageRepositories postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageRepositories mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
 osc delete imageRepositories ruby-20-centos7
 osc delete imageRepositories nodejs-010-centos7
+osc delete imageRepositories mysql-55-centos7
+osc delete imageRepositories postgresql-92-centos7
+osc delete imageRepositories mongodb-24-centos7
 [ -z "$(osc get imageRepositories ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageRepositories mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageRepositories postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageRepositories mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
 # don't delete wildfly-8-centos
 echo "imageRepositories: ok"
 
 osc create -f test/integration/fixtures/test-image-repository.json
-osc create -f test/integration/fixtures/test-mapping.json
+osc create -f test/integration/fixtures/test-image-repository-mapping.json
 osc get images
 osc get imageRepositories
+osc get imageRepositoryTag test:sometag
 osc delete imageRepositories test
 echo "imageRepositoryMappings: ok"
 
@@ -339,6 +383,8 @@ osc cancel-build "${started}" --dump-logs --restart
 # the build should use that specific tag of the image instead of the image field
 # as defined in the buildconfig
 started=$(osc start-build ruby-sample-build-validtag)
+osc describe imagestream ruby-20-centos7-buildcli
+osc describe build ${started}
 osc describe build ${started} | grep openshift/ruby-20-centos7:success$
 osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
@@ -385,8 +431,8 @@ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 echo "ex registry: ok"
 
 # verify the image repository had its tags populated
-[ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.tags.latest}}")" ]
-[ -n "$(osc get imageRepositories wildfly-8-centos -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
+[ -n "$(osc get imageStreams wildfly-8-centos -t "{{.status.tags.latest}}")" ]
+[ -n "$(osc get imageStreams wildfly-8-centos -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 
 # Test building a dependency tree
 [ "$(openshift ex build-chain --all -o dot | grep 'graph')" ]

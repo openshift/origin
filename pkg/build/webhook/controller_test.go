@@ -14,13 +14,10 @@ import (
 
 type okImageRepositoryNamespaceGetter struct{}
 
-func (m *okImageRepositoryNamespaceGetter) GetByNamespace(namespace, name string) (*imageapi.ImageRepository, error) {
-	return &imageapi.ImageRepository{
-		Status: imageapi.ImageRepositoryStatus{
+func (m *okImageRepositoryNamespaceGetter) GetByNamespace(namespace, name string) (*imageapi.ImageStream, error) {
+	return &imageapi.ImageStream{
+		Status: imageapi.ImageStreamStatus{
 			DockerImageRepository: "repository/image",
-		},
-		Tags: map[string]string{
-			"latest": "latest",
 		},
 	}, nil
 }

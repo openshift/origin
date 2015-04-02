@@ -20,7 +20,7 @@ type ImageChangeControllerFatalError struct {
 }
 
 func (e ImageChangeControllerFatalError) Error() string {
-	return "fatal error handling ImageRepository change: " + e.Reason
+	return "fatal error handling ImageStream change: " + e.Reason
 }
 
 // ImageChangeController watches for changes to ImageRepositories and triggers
@@ -34,8 +34,8 @@ type ImageChangeController struct {
 	Stop <-chan struct{}
 }
 
-// HandleImageRepo processes the next ImageRepository event.
-func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageRepository) error {
+// HandleImageRepo processes the next ImageStream event.
+func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) error {
 	glog.V(4).Infof("Build image change controller detected imagerepo change %s", repo.Status.DockerImageRepository)
 
 	// TODO: this is inefficient
@@ -66,13 +66,9 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageRepository) 
 
 			// (must be different) to trigger a build
 			last := change.LastTriggeredImageID
-			next := latest.Image
-			if len(next) == 0 {
-				// tags without images should still trigger builds (when going from a pure tag to an image
-				// based tag, we should rebuild)
-				next = latest.DockerImageReference
-			}
-			if len(last) == 0 || next != last {
+			next := latest.DockerImageReference
+
+			if len(last) == 0 || (len(next) > 0 && next != last) {
 				change.LastTriggeredImageID = next
 				shouldBuild = true
 			}

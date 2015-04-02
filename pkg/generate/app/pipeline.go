@@ -46,7 +46,7 @@ func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, 
 			Tag:  "latest",
 		},
 
-		AsImageRepository: true,
+		AsImageStream: true,
 	}
 	if input != nil {
 		// TODO: assumes that build doesn't change the image metadata. In the future
@@ -84,15 +84,15 @@ func (p *Pipeline) NeedsDeployment(env Environment) error {
 
 func (p *Pipeline) Objects(accept Acceptor) (Objects, error) {
 	objects := Objects{}
-	if p.InputImage != nil && p.InputImage.AsImageRepository && accept.Accept(p.InputImage) {
-		repo, err := p.InputImage.ImageRepository()
+	if p.InputImage != nil && p.InputImage.AsImageStream && accept.Accept(p.InputImage) {
+		repo, err := p.InputImage.ImageStream()
 		if err != nil {
 			return nil, err
 		}
 		objects = append(objects, repo)
 	}
-	if p.Image != nil && p.Image.AsImageRepository && accept.Accept(p.Image) {
-		repo, err := p.Image.ImageRepository()
+	if p.Image != nil && p.Image.AsImageStream && accept.Accept(p.Image) {
+		repo, err := p.Image.ImageStream()
 		if err != nil {
 			return nil, err
 		}

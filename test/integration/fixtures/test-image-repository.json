@@ -6,9 +6,5 @@
       "color": "blue"
     },
     "name": "test"
-  },
-  "tags": {
-    "another": "bar",
-    "latest": "foo"
   }
 }

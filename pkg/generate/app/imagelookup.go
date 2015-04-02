@@ -247,7 +247,7 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 }
 
 type ImageStreamResolver struct {
-	Client            client.ImageRepositoriesNamespacer
+	Client            client.ImageStreamsNamespacer
 	ImageStreamImages client.ImageStreamImagesNamespacer
 	Namespaces        []string
 }
@@ -263,7 +263,7 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 	}
 	for _, namespace := range namespaces {
 		glog.V(4).Infof("checking image stream %s/%s with ref %q", namespace, ref.Name, ref.Tag)
-		repo, err := r.Client.ImageRepositories(namespace).Get(ref.Name)
+		repo, err := r.Client.ImageStreams(namespace).Get(ref.Name)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				continue
@@ -314,7 +314,7 @@ func InputImageFromMatch(match *ComponentMatch) (*ImageRef, error) {
 		if err != nil {
 			return nil, err
 		}
-		input.AsImageRepository = true
+		input.AsImageStream = true
 		input.Info = match.Image
 		return input, nil
 
@@ -323,7 +323,7 @@ func InputImageFromMatch(match *ComponentMatch) (*ImageRef, error) {
 		if err != nil {
 			return nil, err
 		}
-		input.AsImageRepository = false
+		input.AsImageStream = false
 		input.Info = match.Image
 		return input, nil
 

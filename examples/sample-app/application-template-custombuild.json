@@ -29,18 +29,20 @@
     },
     {
       "apiVersion": "v1beta1",
-      "kind": "ImageRepository",
+      "kind": "ImageStream",
       "metadata": {
         "name": "origin-ruby-sample"
       }
     },
     {
       "apiVersion": "v1beta1",
-      "kind": "ImageRepository",
+      "kind": "ImageStream",
       "metadata": {
         "name": "origin-custom-docker-builder"
       },
-      "dockerImageRepository": "openshift/origin-custom-docker-builder"
+      "spec": {
+        "dockerImageRepository": "openshift/origin-custom-docker-builder"
+      }
     },
     {
       "apiVersion": "v1beta1",

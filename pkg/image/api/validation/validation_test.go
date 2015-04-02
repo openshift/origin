@@ -55,14 +55,14 @@ func TestValidateImageMissingFields(t *testing.T) {
 	}
 }
 
-func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
+func TestValidateImageStreamMappingNotOK(t *testing.T) {
 	errorCases := map[string]struct {
-		I api.ImageRepositoryMapping
+		I api.ImageStreamMapping
 		T fielderrors.ValidationErrorType
 		F string
 	}{
 		"missing DockerImageRepository": {
-			api.ImageRepositoryMapping{
+			api.ImageStreamMapping{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 				},
@@ -79,7 +79,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 			"dockerImageRepository",
 		},
 		"missing Name": {
-			api.ImageRepositoryMapping{
+			api.ImageStreamMapping{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 				},
@@ -96,7 +96,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 			"name",
 		},
 		"missing Tag": {
-			api.ImageRepositoryMapping{
+			api.ImageStreamMapping{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 				},
@@ -113,7 +113,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 			"tag",
 		},
 		"missing image name": {
-			api.ImageRepositoryMapping{
+			api.ImageStreamMapping{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 				},
@@ -130,7 +130,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 			"image.name",
 		},
 		"invalid repository pull spec": {
-			api.ImageRepositoryMapping{
+			api.ImageStreamMapping{
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 				},
@@ -150,7 +150,7 @@ func TestValidateImageRepositoryMappingNotOK(t *testing.T) {
 	}
 
 	for k, v := range errorCases {
-		errs := ValidateImageRepositoryMapping(&v.I)
+		errs := ValidateImageStreamMapping(&v.I)
 		if len(errs) == 0 {
 			t.Errorf("Expected failure for %s", k)
 			continue

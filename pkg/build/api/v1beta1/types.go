@@ -217,11 +217,11 @@ type STIBuildStrategy struct {
 	// For BuildConfigs, From takes precedence.
 	Image string `json:"image,omitempty"`
 
-	// Tag is the name of image repository tag to be used as the build image, it only
+	// Tag is the name of image stream tag to be used as the build image, it only
 	// applies when From is specified.
 	Tag string `json:"tag,omitempty"`
 
-	// From is reference to an image repository from where the docker image should be pulled
+	// From is reference to an image stream from where the docker image should be pulled
 	// Only allowed in BuildConfigs, Builds use the Image field exclusively.
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
@@ -239,9 +239,9 @@ type STIBuildStrategy struct {
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy
 // should produce.
 type BuildOutput struct {
-	// To defines an optional ImageRepository to push the output of this build to. The namespace
-	// may be empty, in which case the ImageRepository will be looked for in the namespace of
-	// the build. Kind must be set to 'ImageRepository' and is the only supported value. If set,
+	// To defines an optional ImageStream to push the output of this build to. The namespace
+	// may be empty, in which case the ImageStream will be looked for in the namespace of
+	// the build. Kind must be set to 'ImageStream' and is the only supported value. If set,
 	// this field takes priority over DockerImageReference. This value will be used to look up
 	// a Docker image repository to push to.
 	To *kapi.ObjectReference `json:"to,omitempty"`
@@ -298,22 +298,22 @@ type WebHookTrigger struct {
 	Secret string `json:"secret,omitempty"`
 }
 
-// ImageChangeTrigger allows builds to be triggered when an ImageRepository changes
+// ImageChangeTrigger allows builds to be triggered when an ImageStream changes
 type ImageChangeTrigger struct {
 	// Image is used to specify the value in the BuildConfig to replace with the
-	// immutable image id supplied by the ImageRepository when this trigger fires.
+	// immutable image id supplied by the ImageStream when this trigger fires.
 	Image          string `json:"image"`
 	RepositoryName string `json:"repositoryName,omitempty"`
-	// From is a reference to a Docker image repository to watch for changes. This field takes
+	// From is a reference to an image stream to watch for changes. This field takes
 	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta2. The
-	// Kind may be left blank, in which case it defaults to "ImageRepository". The "Name" is
-	// the only required subfield - if Namespace is blank, the namespace of the current deployment
+	// Kind may be left blank, in which case it defaults to "ImageStream". The "Name" is
+	// the only required subfield - if Namespace is blank, the namespace of the current build
 	// trigger will be used.
 	From kapi.ObjectReference `json:"from"`
-	// ImageRepositoryRef a reference to a Docker image repository to watch for changes.
+	// ImageRepositoryRef a reference to an image stream to watch for changes.
 	// DEPRECATED: replaced by From
 	ImageRepositoryRef *kapi.ObjectReference `json:"imageRepositoryRef"`
-	// Tag is the name of an image repository tag to watch for changes.
+	// Tag is the name of an image stream tag to watch for changes.
 	Tag string `json:"tag,omitempty"`
 	// LastTriggeredImageID is used internally by the ImageChangeController to save last
 	// used image ID for build
