@@ -61,7 +61,7 @@ Once the container is started, you can jump into a console inside the container 
 
 If you just want to experiment with the API without worrying about security privileges, you can disable authorization checks by running this from the host system.  This command grants full access to anyone.
 
-    $ docker exec -it openshift-origin bash -c "openshift admin --config=/var/lib/openshift/openshift.local.certificates/admin/.kubeconfig policy add-role-to-group cluster-admin system:authenticated system:unauthenticated"
+    $ docker exec -it openshift-origin bash -c "openshift admin policy add-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.certificates/admin/.kubeconfig"
 
 
 ### Start Developing
