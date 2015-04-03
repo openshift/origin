@@ -6,12 +6,14 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"strings"
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -80,6 +82,15 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 			startProfiler()
 
 			if err := options.StartAllInOne(); err != nil {
+				if kerrors.IsInvalid(err) {
+					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
+						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.ID)
+						for _, cause := range details.Causes {
+							fmt.Fprintln(c.Out(), cause.Message)
+						}
+						os.Exit(255)
+					}
+				}
 				glog.Fatal(err)
 			}
 		},
