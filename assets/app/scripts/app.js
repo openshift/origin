@@ -160,7 +160,7 @@ angular
 
     RedirectLoginServiceProvider.OAuthClientID(AUTH_CFG.oauth_client_id);
     RedirectLoginServiceProvider.OAuthAuthorizeURI(AUTH_CFG.oauth_authorize_uri);
-    RedirectLoginServiceProvider.OAuthRedirectURI(AUTH_CFG.oauth_redirect_base + "/oauth");
+    RedirectLoginServiceProvider.OAuthRedirectURI(URI(AUTH_CFG.oauth_redirect_base).segment("oauth").toString());
   })
   .config(function($compileProvider){
     $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|mailto|git):/i);
