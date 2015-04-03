@@ -85,9 +85,13 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 			BindAddress: net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(ports.KubeletPort)),
 		},
 
-		VolumeDirectory:       args.VolumeDir,
-		NetworkContainerImage: args.ImageFormatArgs.ImageTemplate.ExpandOrDie("pod"),
-		AllowDisabledDocker:   args.AllowDisabledDocker,
+		ImageConfig: configapi.ImageConfig{
+			Format: args.ImageFormatArgs.ImageTemplate.Format,
+			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
+		},
+
+		VolumeDirectory:     args.VolumeDir,
+		AllowDisabledDocker: args.AllowDisabledDocker,
 
 		DNSDomain: args.ClusterDomain,
 		DNSIP:     dnsIP,

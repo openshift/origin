@@ -27,8 +27,8 @@ type NodeConfig struct {
 	// VolumeDir is the directory that volumes will be stored under
 	VolumeDirectory string `json:"volumeDirectory"`
 
-	// NetworkContainerImage is the image used as the Kubelet network namespace and volume container.
-	NetworkContainerImage string `json:"networkContainerImage"`
+	// ImageConfig holds options that describe how to build image names for system components
+	ImageConfig ImageConfig `json:"imageConfig"`
 
 	// AllowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.
 	AllowDisabledDocker bool `json:"allowDisabledDocker"`

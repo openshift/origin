@@ -140,7 +140,7 @@ func (c *NodeConfig) RunKubelet() {
 		c.DockerClient,
 		c.Client,
 		c.VolumeDir,
-		c.NetworkContainerImage,
+		c.ImageFor("pod"),
 		3*time.Second,
 		0.0,
 		10,
