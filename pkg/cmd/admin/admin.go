@@ -14,7 +14,6 @@ import (
 	exregistry "github.com/openshift/origin/pkg/cmd/experimental/registry"
 	exrouter "github.com/openshift/origin/pkg/cmd/experimental/router"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -42,8 +41,6 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	}
 
 	f := clientcmd.New(cmds.PersistentFlags())
-
-	templates.UseAdminTemplates(cmds)
 
 	cmds.AddCommand(project.NewCmdNewProject(f, fullName, "new-project"))
 	cmds.AddCommand(policy.NewCommandPolicy(f, fullName, "policy"))
