@@ -155,7 +155,7 @@ func waitForComplete(build *buildapi.Build, w watch.Interface, t *testing.T) {
 		}
 		switch eventBuild.Status {
 		case buildapi.BuildStatusFailed, buildapi.BuildStatusError:
-			t.Fatalf("Unexpected status for Build %s: ", eventBuild.Name, buildapi.BuildStatusFailed)
+			t.Fatalf("Unexpected status for Build %s: %v", eventBuild.Name, buildapi.BuildStatusFailed)
 		case buildapi.BuildStatusComplete:
 			return
 		default:

@@ -58,7 +58,7 @@ func TestLogin(t *testing.T) {
 	loginOptions = newLoginOptions(server, username, password, "", true)
 
 	if err := loginOptions.GatherInfo(); err != nil {
-		t.Fatalf("Error trying to determine server info: ", err)
+		t.Fatalf("Error trying to determine server info: %v", err)
 	}
 
 	if loginOptions.Username != username {
@@ -73,13 +73,13 @@ func TestLogin(t *testing.T) {
 		AdminUser:             username,
 	}
 	if err := newProjectOptions.Run(); err != nil {
-		t.Fatalf("unexpected error, a project is required to continue: ", err)
+		t.Fatalf("unexpected error, a project is required to continue: %v", err)
 	}
 
 	oClient, _ := client.New(loginOptions.Config)
 	p, err := oClient.Projects().Get(project)
 	if err != nil {
-		t.Errorf("unexpected error: ", err)
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	if p.Name != project {
@@ -91,7 +91,7 @@ func TestLogin(t *testing.T) {
 
 	// err = loginOptions.GatherProjectInfo()
 	// if err != nil {
-	// 	t.Fatalf("unexpected error: ", err)
+	// 	t.Fatalf("unexpected error: %v", err)
 	// }
 
 	// if loginOptions.Project != project {
@@ -105,7 +105,7 @@ func TestLogin(t *testing.T) {
 	// defer os.Remove(configFile.Name())
 
 	// if _, err = loginOptions.SaveConfig(configFile.Name()); err != nil {
-	// 	t.Fatalf("unexpected error: ", err)
+	// 	t.Fatalf("unexpected error: %v", err)
 	// }
 }
 

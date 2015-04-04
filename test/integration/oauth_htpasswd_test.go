@@ -57,7 +57,7 @@ func TestHTPasswd(t *testing.T) {
 
 	// Make sure we can't authenticate
 	if _, err := tokencmd.RequestToken(&anonConfig, nil, "username", "password"); err == nil {
-		t.Errorf("Expected error, got none", err)
+		t.Error("Expected error, got none")
 	}
 
 	// Update the htpasswd file with output of `htpasswd -n -b username password`
