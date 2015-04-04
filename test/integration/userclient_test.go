@@ -272,10 +272,10 @@ func TestUserInitialization(t *testing.T) {
 
 				user, err := clusterAdminClient.Users().Get(userInfo.GetName())
 				if err != nil {
-					t.Errorf("%s: Error getting user: %v", err)
+					t.Errorf("%s: Error getting user: %v", k, err)
 				}
 				if user.FullName != testcase.ExpectedFullName {
-					t.Errorf("%s: Expected full name %s, got %s", testcase.ExpectedFullName, user.FullName)
+					t.Errorf("%s: Expected full name %s, got %s", k, testcase.ExpectedFullName, user.FullName)
 				}
 
 			}()
