@@ -10,7 +10,6 @@
 /examples/sample-app/logs/openshift.log
 *.swp
 .vimrc
-.kubeconfig
 .vagrant-openshift.json*
 .DS_Store
 .idea
