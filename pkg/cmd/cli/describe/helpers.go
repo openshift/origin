@@ -7,9 +7,10 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/docker/docker/pkg/units"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/docker/docker/pkg/units"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -58,6 +59,10 @@ func formatString(out *tabwriter.Writer, label string, v interface{}) {
 	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s\n", label, toString(v)))
 }
 
+func formatTime(out *tabwriter.Writer, label string, t time.Time) {
+	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s ago\n", label, formatRelativeTime(t)))
+}
+
 func formatLabels(labelMap map[string]string) string {
 	return labels.Set(labelMap).String()
 }
@@ -85,10 +90,18 @@ func formatAnnotations(out *tabwriter.Writer, m api.ObjectMeta, prefix string) {
 	}
 }
 
+var timeNowFn = func() time.Time {
+	return time.Now()
+}
+
+func formatRelativeTime(t time.Time) string {
+	return units.HumanDuration(timeNowFn().Sub(t))
+}
+
 func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 	formatString(out, "Name", m.Name)
 	if !m.CreationTimestamp.IsZero() {
-		formatString(out, "Created", m.CreationTimestamp)
+		formatTime(out, "Created", m.CreationTimestamp.Time)
 	}
 	formatString(out, "Labels", formatLabels(m.Labels))
 	formatAnnotations(out, m, "")
@@ -149,7 +162,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			specTag = "<pushed>"
 		}
 		for _, event := range stream.Status.Tags[tag].Items {
-			d := time.Now().Sub(event.Created.Time)
+			d := timeNowFn().Sub(event.Created.Time)
 			image := event.Image
 			ref, err := imageapi.ParseDockerImageReference(event.DockerImageReference)
 			if err == nil {

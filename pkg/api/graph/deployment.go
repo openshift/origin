@@ -2,13 +2,14 @@ package graph
 
 import (
 	"sort"
+	"strconv"
 
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/search"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
-	//build "github.com/openshift/origin/pkg/build/api"
+	build "github.com/openshift/origin/pkg/build/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
 )
@@ -332,6 +333,30 @@ func (m SortedServiceGroups) Less(i, j int) bool {
 		return false
 	}
 	return true
+}
+
+type RecentBuildReferences []*build.Build
+
+func (m RecentBuildReferences) Len() int      { return len(m) }
+func (m RecentBuildReferences) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m RecentBuildReferences) Less(i, j int) bool {
+	return m[i].CreationTimestamp.After(m[j].CreationTimestamp.Time)
+}
+
+type RecentDeploymentReferences []*kapi.ReplicationController
+
+func (m RecentDeploymentReferences) Len() int      { return len(m) }
+func (m RecentDeploymentReferences) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m RecentDeploymentReferences) Less(i, j int) bool {
+	a, err := strconv.Atoi(m[i].Annotations[deploy.DeploymentVersionAnnotation])
+	if err != nil {
+		return false
+	}
+	b, err := strconv.Atoi(m[j].Annotations[deploy.DeploymentVersionAnnotation])
+	if err != nil {
+		return true
+	}
+	return a > b
 }
 
 func CompareObjectMeta(a, b *kapi.ObjectMeta) bool {
