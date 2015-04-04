@@ -110,6 +110,7 @@ func recordEvent(sink EventSink, event *api.Event, updateExistingEvent bool) boo
 	// If we can't contact the server, then hold everything while we keep trying.
 	// Otherwise, something about the event is malformed and we should abandon it.
 	giveUp := false
+	alreadyExists := errors.IsAlreadyExists(err)
 	switch err.(type) {
 	case *client.RequestConstructionError:
 		// We will construct the request the same next time, so don't keep trying.
@@ -124,7 +125,9 @@ func recordEvent(sink EventSink, event *api.Event, updateExistingEvent bool) boo
 		// This case includes actual http transport errors. Go ahead and retry.
 	}
 	if giveUp {
-		glog.Errorf("Unable to write event '%#v': '%v' (will not retry!)", event, err)
+		if !alreadyExists {
+			glog.Errorf("Unable to write event '%#v': '%v' (will not retry!)", event, err)
+		}
 		return true
 	}
 	glog.Errorf("Unable to write event: '%v' (may retry after sleeping)", err)
