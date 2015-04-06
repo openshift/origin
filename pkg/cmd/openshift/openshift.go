@@ -3,6 +3,8 @@ package openshift
 import (
 	"fmt"
 	"os"
+	"runtime"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -44,6 +46,12 @@ Note: This is a beta release of OpenShift and may change significantly.  See
 // or the global OpenShift command
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
+
+	// Make case-insensitive and strip executable suffix if present
+	if runtime.GOOS == "windows" {
+		basename = strings.ToLower(basename)
+		basename = strings.TrimSuffix(basename, ".exe")
+	}
 
 	switch basename {
 	case "openshift-router":
