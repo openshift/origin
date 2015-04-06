@@ -20,9 +20,7 @@ func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList 
 		allErrs = append(allErrs, ValidateSpecifiedIP(config.DNSIP, "dnsIP")...)
 	}
 
-	if len(config.NetworkContainerImage) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("networkContainerImage"))
-	}
+	allErrs = append(allErrs, ValidateImageConfig(config.ImageConfig).Prefix("imageConfig")...)
 
 	return allErrs
 }

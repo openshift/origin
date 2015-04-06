@@ -243,14 +243,14 @@ func (o NodeOptions) CreateCerts() error {
 
 		NodeConfigDir: nodeConfigDir,
 
-		NodeName:              o.NodeArgs.NodeName,
-		Hostnames:             []string{o.NodeArgs.NodeName},
-		VolumeDir:             o.NodeArgs.VolumeDir,
-		NetworkContainerImage: o.NodeArgs.ImageFormatArgs.ImageTemplate.ExpandOrDie("pod"),
-		AllowDisabledDocker:   o.NodeArgs.AllowDisabledDocker,
-		DNSDomain:             o.NodeArgs.ClusterDomain,
-		DNSIP:                 dnsIP,
-		ListenAddr:            o.NodeArgs.ListenArg.ListenAddr,
+		NodeName:            o.NodeArgs.NodeName,
+		Hostnames:           []string{o.NodeArgs.NodeName},
+		VolumeDir:           o.NodeArgs.VolumeDir,
+		ImageTemplate:       o.NodeArgs.ImageFormatArgs.ImageTemplate,
+		AllowDisabledDocker: o.NodeArgs.AllowDisabledDocker,
+		DNSDomain:           o.NodeArgs.ClusterDomain,
+		DNSIP:               dnsIP,
+		ListenAddr:          o.NodeArgs.ListenArg.ListenAddr,
 
 		APIServerURL:    masterAddr.String(),
 		APIServerCAFile: getSignerOptions.CertFile,

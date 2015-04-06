@@ -33,14 +33,14 @@ type CreateNodeConfigOptions struct {
 
 	NodeConfigDir string
 
-	NodeName              string
-	Hostnames             util.StringList
-	VolumeDir             string
-	NetworkContainerImage string
-	AllowDisabledDocker   bool
-	DNSDomain             string
-	DNSIP                 string
-	ListenAddr            flagtypes.Addr
+	NodeName            string
+	Hostnames           util.StringList
+	VolumeDir           string
+	ImageTemplate       variable.ImageTemplate
+	AllowDisabledDocker bool
+	DNSDomain           string
+	DNSIP               string
+	ListenAddr          flagtypes.Addr
 
 	ClientCertFile   string
 	ClientKeyFile    string
@@ -80,7 +80,8 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 	flags.StringVar(&options.NodeName, "node", "", "The name of the node as it appears in etcd.")
 	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
 	flags.StringVar(&options.VolumeDir, "volume-dir", options.VolumeDir, "The volume storage directory.  This path is not relativized.")
-	flags.StringVar(&options.NetworkContainerImage, "network-container-image", options.NetworkContainerImage, "The exact name of the image.  No processing is done on this argument.")
+	flags.StringVar(&options.ImageTemplate.Format, "images", options.ImageTemplate.Format, "When fetching the network container image, use this format. The latest release will be used by default.")
+	flags.BoolVar(&options.ImageTemplate.Latest, "latest-images", options.ImageTemplate.Latest, "If true, attempt to use the latest images for the cluster instead of the latest release.")
 	flags.BoolVar(&options.AllowDisabledDocker, "allow-disabled-docker", options.AllowDisabledDocker, "Allow the node to start without docker being available.")
 	flags.StringVar(&options.DNSDomain, "dns-domain", options.DNSDomain, "DNS domain for the cluster.")
 	flags.StringVar(&options.DNSIP, "dns-ip", options.DNSIP, "DNS server IP for the cluster.")
@@ -105,8 +106,7 @@ func NewDefaultCreateNodeConfigOptions() *CreateNodeConfigOptions {
 	options.APIServerCAFile = "openshift.local.certificates/ca/cert.crt"
 	options.NodeClientCAFile = "openshift.local.certificates/ca/cert.crt"
 
-	imageTemplate := variable.NewDefaultImageTemplate()
-	options.NetworkContainerImage = imageTemplate.ExpandOrDie("pod")
+	options.ImageTemplate = variable.NewDefaultImageTemplate()
 
 	options.ListenAddr = flagtypes.Addr{Value: "0.0.0.0:10250", DefaultScheme: "https", DefaultPort: 10250, AllowPrefix: true}.Default()
 
@@ -340,9 +340,13 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 			BindAddress: net.JoinHostPort(o.ListenAddr.Host, strconv.Itoa(ports.KubeletPort)),
 		},
 
-		VolumeDirectory:       o.VolumeDir,
-		NetworkContainerImage: o.NetworkContainerImage,
-		AllowDisabledDocker:   o.AllowDisabledDocker,
+		VolumeDirectory:     o.VolumeDir,
+		AllowDisabledDocker: o.AllowDisabledDocker,
+
+		ImageConfig: configapi.ImageConfig{
+			Format: o.ImageTemplate.Format,
+			Latest: o.ImageTemplate.Latest,
+		},
 
 		DNSDomain: o.DNSDomain,
 		DNSIP:     o.DNSIP,
