@@ -54,14 +54,14 @@ statusSwitch:
 		// Before kicking off the strategy, handle any pre action and ensure the
 		// action has reached a terminal status. A failed pre action may cause the
 		// deployment to fail.
-		preStatus, err := c.lifecycleManager.Status(lifecycle.Pre, deployment)
+		preStatus, err := c.lifecycleManager.Status(lifecycle.PreDeploymentContext, deployment)
 		if err != nil {
 			return fatalError(fmt.Sprintf("couldn't determine pre hook status for %s: %s", labelForDeployment(deployment), err))
 		}
 
 		switch preStatus {
 		case lifecycle.Pending:
-			err := c.lifecycleManager.Execute(lifecycle.Pre, deployment)
+			err := c.lifecycleManager.Execute(lifecycle.PreDeploymentContext, deployment)
 			if err != nil {
 				return fatalError(fmt.Sprintf("couldn't execute pre hook for %s: %v", labelForDeployment(deployment), err))
 			}

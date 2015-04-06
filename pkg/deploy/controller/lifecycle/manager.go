@@ -25,14 +25,14 @@ const (
 	Failed Status = "Failed"
 )
 
-// Context informs the manager which Lifecycle point is being handled.
-type Context string
+// DeploymentContext informs the manager which Lifecycle point is being handled.
+type DeploymentContext string
 
 const (
-	// Pre refers to Lifecycle.Pre
-	Pre Context = "Pre"
-	// Post refers to Lifecycle.Post
-	Post Context = "Post"
+	// PreDeploymentContext refers to Lifecycle.Pre
+	PreDeploymentContext DeploymentContext = "PreDeploymentContext"
+	// PostDeploymentContext refers to Lifecycle.Post
+	PostDeploymentContext DeploymentContext = "PostDeploymentContext"
 )
 
 // Interface provides deployment controllers with a way to execute and track
@@ -49,7 +49,7 @@ const (
 type Interface interface {
 	// Execute executes the deployment lifecycle action for the given context.
 	// If no action is defined, Execute should return nil.
-	Execute(context Context, deployment *kapi.ReplicationController) error
+	Execute(context DeploymentContext, deployment *kapi.ReplicationController) error
 	// Status returns the status of the lifecycle action for the deployment. If
 	// no action is defined for the given context, Status returns Complete. If
 	// the action finished, either Complete or Failed is returned depending on
@@ -58,7 +58,7 @@ type Interface interface {
 	// instead of Failed).
 	//
 	// If the status couldn't be determined, an error is returned.
-	Status(context Context, deployment *kapi.ReplicationController) (Status, error)
+	Status(context DeploymentContext, deployment *kapi.ReplicationController) (Status, error)
 }
 
 // Plugin knows how to execute lifecycle handlers and report their status.
@@ -68,10 +68,10 @@ type Plugin interface {
 	// CanHandle should return true if the plugin knows how to execute handler.
 	CanHandle(handler *deployapi.Handler) bool
 	// Execute executes handler in the given context for deployment.
-	Execute(context Context, handler *deployapi.Handler, deployment *kapi.ReplicationController, config *deployapi.DeploymentConfig) error
+	Execute(context DeploymentContext, handler *deployapi.Handler, deployment *kapi.ReplicationController, config *deployapi.DeploymentConfig) error
 	// Status should report the actual status of the action without taking into
 	// account failure policies.
-	Status(context Context, handler *deployapi.Handler, deployment *kapi.ReplicationController) Status
+	Status(context DeploymentContext, handler *deployapi.Handler, deployment *kapi.ReplicationController) Status
 }
 
 // LifecycleManager implements a pluggable lifecycle.Interface which handles
@@ -89,7 +89,7 @@ type LifecycleManager struct {
 var _ Interface = &LifecycleManager{}
 
 // Execute implements Interface.
-func (m *LifecycleManager) Execute(context Context, deployment *kapi.ReplicationController) error {
+func (m *LifecycleManager) Execute(context DeploymentContext, deployment *kapi.ReplicationController) error {
 	// Decode the config
 	config, err := m.DecodeConfig(deployment)
 	if err != nil {
@@ -111,7 +111,7 @@ func (m *LifecycleManager) Execute(context Context, deployment *kapi.Replication
 }
 
 // Status implements Interface.
-func (m *LifecycleManager) Status(context Context, deployment *kapi.ReplicationController) (Status, error) {
+func (m *LifecycleManager) Status(context DeploymentContext, deployment *kapi.ReplicationController) (Status, error) {
 	// Decode the config
 	config, err := m.DecodeConfig(deployment)
 	if err != nil {
@@ -147,7 +147,7 @@ func (m *LifecycleManager) pluginFor(handler *deployapi.Handler) (Plugin, error)
 }
 
 // handlerFor finds any handler in config for the given context.
-func handlerFor(context Context, config *deployapi.DeploymentConfig) *deployapi.Handler {
+func handlerFor(context DeploymentContext, config *deployapi.DeploymentConfig) *deployapi.Handler {
 	if config.Template.Strategy.Lifecycle == nil {
 		return nil
 	}
@@ -155,9 +155,9 @@ func handlerFor(context Context, config *deployapi.DeploymentConfig) *deployapi.
 	// Find any right handler given the context
 	var handler *deployapi.Handler
 	switch context {
-	case Pre:
+	case PreDeploymentContext:
 		handler = config.Template.Strategy.Lifecycle.Pre
-	case Post:
+	case PostDeploymentContext:
 		handler = config.Template.Strategy.Lifecycle.Post
 	}
 	return handler

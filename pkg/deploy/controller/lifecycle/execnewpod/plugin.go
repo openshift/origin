@@ -25,7 +25,7 @@ func (p *Plugin) CanHandle(handler *deployapi.Handler) bool {
 	return handler.ExecNewPod != nil
 }
 
-func (p *Plugin) Execute(context lifecycle.Context, handler *deployapi.Handler, deployment *kapi.ReplicationController, config *deployapi.DeploymentConfig) error {
+func (p *Plugin) Execute(context lifecycle.DeploymentContext, handler *deployapi.Handler, deployment *kapi.ReplicationController, config *deployapi.DeploymentConfig) error {
 	podSpec := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			GenerateName: fmt.Sprintf("deployment-%s-lifecycle-%s-", deployment.Name, strings.ToLower(string(context))),
@@ -57,7 +57,7 @@ func (p *Plugin) Execute(context lifecycle.Context, handler *deployapi.Handler, 
 	return nil
 }
 
-func (p *Plugin) Status(context lifecycle.Context, handler *deployapi.Handler, deployment *kapi.ReplicationController) lifecycle.Status {
+func (p *Plugin) Status(context lifecycle.DeploymentContext, handler *deployapi.Handler, deployment *kapi.ReplicationController) lifecycle.Status {
 	podAnnotation, phaseAnnotation := annotationsFor(context)
 	podName := deployment.Annotations[podAnnotation]
 	if len(podName) == 0 {
@@ -78,14 +78,14 @@ func (p *Plugin) Status(context lifecycle.Context, handler *deployapi.Handler, d
 	return status
 }
 
-func annotationsFor(context lifecycle.Context) (string, string) {
+func annotationsFor(context lifecycle.DeploymentContext) (string, string) {
 	var podAnnotation string
 	var phaseAnnotation string
 	switch context {
-	case lifecycle.Pre:
+	case lifecycle.PreDeploymentContext:
 		podAnnotation = deployapi.PreExecNewPodActionPodAnnotation
 		phaseAnnotation = deployapi.PreExecNewPodActionPodPhaseAnnotation
-	case lifecycle.Post:
+	case lifecycle.PostDeploymentContext:
 		podAnnotation = deployapi.PostExecNewPodActionPodAnnotation
 		phaseAnnotation = deployapi.PostExecNewPodActionPodPhaseAnnotation
 	}

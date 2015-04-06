@@ -46,13 +46,13 @@ statusSwitch:
 		// Before finalizing the status of the deployment, let any post action
 		// execute. The post action can't cause the deployment to be failed at
 		// this point.
-		postStatus, err := c.lifecycleManager.Status(lifecycle.Post, deployment)
+		postStatus, err := c.lifecycleManager.Status(lifecycle.PostDeploymentContext, deployment)
 		if err != nil {
 			return fmt.Errorf("couldn't determine post hook status for %s: %s", labelForDeployment(deployment), err)
 		}
 		switch postStatus {
 		case lifecycle.Pending:
-			err := c.lifecycleManager.Execute(lifecycle.Post, deployment)
+			err := c.lifecycleManager.Execute(lifecycle.PostDeploymentContext, deployment)
 			if err != nil {
 				return fmt.Errorf("couldn't execute post hook for %s: %v", labelForDeployment(deployment), err)
 			}
