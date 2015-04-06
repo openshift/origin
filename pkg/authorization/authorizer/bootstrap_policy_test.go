@@ -320,6 +320,45 @@ func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 	test.test(t)
 }
 
+func TestAdminUpdateStatusInMallet(t *testing.T) {
+	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
+		attributes: &DefaultAuthorizationAttributes{
+			Verb:     "update",
+			Resource: "pods/status",
+		},
+		expectedAllowed: false,
+		expectedReason:  "Matthew cannot update on pods/status in mallet",
+	}
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
+	test.test(t)
+}
+func TestAdminGetStatusInMallet(t *testing.T) {
+	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
+		attributes: &DefaultAuthorizationAttributes{
+			Verb:     "get",
+			Resource: "pods/status",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in mallet",
+	}
+	test.policies = newDefaultGlobalPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.policies = append(test.policies, newMalletPolicies()...)
+	test.bindings = newDefaultGlobalBinding()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.bindings = append(test.bindings, newMalletBindings()...)
+
+	test.test(t)
+}
+
 func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
