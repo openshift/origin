@@ -4,8 +4,8 @@ angular.module('openshiftConsole')
 .factory('Notification', function($rootScope) {
   function Notification() {
     this.messenger = Messenger({
-      extraClasses: 'messenger-fixed messenger-on-top messenger-on-right',
-      theme: 'block',
+      extraClasses: 'messenger-fixed messenger-on-bottom messenger-on-right',
+      theme: 'flat',
       messageDefaults: {
         showCloseButton: true,
         hideAfter: 10
