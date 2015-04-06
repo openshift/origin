@@ -24,7 +24,7 @@ func (c *ExecNewPodController) Handle(pod *kapi.Pod) error {
 	// Verify the assumption that we'll be given only pods correlated to a deployment
 	deploymentName, hasDeploymentName := pod.Annotations[deployapi.DeploymentAnnotation]
 	if !hasDeploymentName {
-		glog.V(2).Infof("Ignoring pod %s; no deployment annotation found", pod.Name)
+		glog.V(4).Infof("Ignoring pod %s; no deployment annotation found", pod.Name)
 		return nil
 	}
 
@@ -55,7 +55,7 @@ func (c *ExecNewPodController) Handle(pod *kapi.Pod) error {
 	} else if hasPostPodName && postPodName == pod.Name {
 		phaseAnnotation = deployapi.PostExecNewPodActionPodPhaseAnnotation
 	} else {
-		glog.V(2).Infof("Ignoring pod %s; name doesn't match lifeycle annotations on associated deployment %s", pod.Name, labelForDeployment(deployment))
+		glog.V(4).Infof("Ignoring pod %s; name doesn't match lifeycle annotations on associated deployment %s", pod.Name, labelForDeployment(deployment))
 		return nil
 	}
 
