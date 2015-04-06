@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
+	"github.com/golang/glog"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -59,6 +60,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	kubeClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig)
 	if err != nil {
 		return nil, err
+	}
+
+	if options.NodeName == "localhost" {
+		glog.Warningf(`Using "localhost" as node name will not resolve from all locations`)
 	}
 
 	var dnsIP net.IP
