@@ -57,23 +57,23 @@ func (p *Plugin) Execute(context lifecycle.DeploymentContext, handler *deployapi
 	return nil
 }
 
-func (p *Plugin) Status(context lifecycle.DeploymentContext, handler *deployapi.Handler, deployment *kapi.ReplicationController) lifecycle.Status {
+func (p *Plugin) Status(context lifecycle.DeploymentContext, handler *deployapi.Handler, deployment *kapi.ReplicationController) deployapi.DeploymentLifecycleStatus {
 	podAnnotation, phaseAnnotation := annotationsFor(context)
 	podName := deployment.Annotations[podAnnotation]
 	if len(podName) == 0 {
-		return lifecycle.Pending
+		return deployapi.DeploymentLifecycleStatusPending
 	}
 
 	phase := kapi.PodPhase(deployment.Annotations[phaseAnnotation])
 
-	var status lifecycle.Status
+	var status deployapi.DeploymentLifecycleStatus
 	switch phase {
 	case kapi.PodPending, kapi.PodRunning, kapi.PodUnknown:
-		status = lifecycle.Running
+		status = deployapi.DeploymentLifecycleStatusRunning
 	case kapi.PodSucceeded:
-		status = lifecycle.Complete
+		status = deployapi.DeploymentLifecycleStatusComplete
 	case kapi.PodFailed:
-		status = lifecycle.Failed
+		status = deployapi.DeploymentLifecycleStatusFailed
 	}
 	return status
 }

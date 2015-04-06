@@ -60,21 +60,21 @@ statusSwitch:
 		}
 
 		switch preStatus {
-		case lifecycle.Pending:
+		case deployapi.DeploymentLifecycleStatusPending:
 			err := c.lifecycleManager.Execute(lifecycle.PreDeploymentContext, deployment)
 			if err != nil {
 				return fatalError(fmt.Sprintf("couldn't execute pre hook for %s: %v", labelForDeployment(deployment), err))
 			}
 			// block the deployment
 			break statusSwitch
-		case lifecycle.Running:
+		case deployapi.DeploymentLifecycleStatusRunning:
 			// block the deployment
 			break statusSwitch
-		case lifecycle.Failed:
+		case deployapi.DeploymentLifecycleStatusFailed:
 			// fail the deployment
 			nextStatus = deployapi.DeploymentStatusFailed
 			break statusSwitch
-		case lifecycle.Complete:
+		case deployapi.DeploymentLifecycleStatusComplete:
 			// continue the deployment
 		}
 

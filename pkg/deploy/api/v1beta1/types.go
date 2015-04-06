@@ -91,22 +91,40 @@ type Lifecycle struct {
 
 // Handler defines a specific deployment lifecycle action.
 type Handler struct {
+	// Status is the current status of the handler.
+	Status DeploymentLifecycleStatus `json:"status"`
 	// FailurePolicy specifies what action to take if the handler fails.
 	FailurePolicy HandlerFailurePolicy `json:"failurePolicy"`
 	// ExecNewPod specifies the action to take.
 	ExecNewPod *ExecNewPodAction `json:"execNewPod,omitempty"`
 }
 
+// DeploymentLifecycleStatus represents the status of a lifecycle action.
+type DeploymentLifecycleStatus string
+
+const (
+	// DeploymentLifecycleStatusPending means the action has not yet executed.
+	DeploymentLifecycleStatusPending DeploymentLifecycleStatus = "Pending"
+	// DeploymentLifecycleStatusRunning means the action is currently executing.
+	DeploymentLifecycleStatusRunning DeploymentLifecycleStatus = "Running"
+	// DeploymentLifecycleStatusComplete means the action completed
+	// successfully, taking into account failure policy.
+	DeploymentLifecycleStatusComplete DeploymentLifecycleStatus = "Complete"
+	// DeploymentLifecycleStatusFailed means the action failed to execute,
+	// taking into account failure policy.
+	DeploymentLifecycleStatusFailed DeploymentLifecycleStatus = "Failed"
+)
+
 // HandlerFailurePolicy describes the action to take if a handler fails.
 type HandlerFailurePolicy string
 
 const (
-	// RetryHandlerFailurePolicy means retry the handler until it succeeds.
-	RetryHandlerFailurePolicy HandlerFailurePolicy = "Retry"
-	// AbortHandlerFailurePolicy means abort the deployment (if possible).
-	AbortHandlerFailurePolicy HandlerFailurePolicy = "Abort"
-	// IgnoreHandlerFailurePolicy means ignore failure and continue the deployment.
-	IgnoreHandlerFailurePolicy HandlerFailurePolicy = "Ignore"
+	// HandlerFailurePolicyRetry means retry the handler until it succeeds.
+	HandlerFailurePolicyRetry HandlerFailurePolicy = "Retry"
+	// HandlerFailurePolicyAbort means abort the deployment (if possible).
+	HandlerFailurePolicyAbort HandlerFailurePolicy = "Abort"
+	// HandlerFailurePolicyIgnore means ignore failure and continue the deployment.
+	HandlerFailurePolicyIgnore HandlerFailurePolicy = "Ignore"
 )
 
 // ExecNewPodAction runs a command in a new pod based on the specified

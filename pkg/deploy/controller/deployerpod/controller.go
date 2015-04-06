@@ -51,17 +51,17 @@ statusSwitch:
 			return fmt.Errorf("couldn't determine post hook status for %s: %s", labelForDeployment(deployment), err)
 		}
 		switch postStatus {
-		case lifecycle.Pending:
+		case deployapi.DeploymentLifecycleStatusPending:
 			err := c.lifecycleManager.Execute(lifecycle.PostDeploymentContext, deployment)
 			if err != nil {
 				return fmt.Errorf("couldn't execute post hook for %s: %v", labelForDeployment(deployment), err)
 			}
 			// block the deployment
 			break statusSwitch
-		case lifecycle.Running:
+		case deployapi.DeploymentLifecycleStatusRunning:
 			// block the deployment
 			break statusSwitch
-		case lifecycle.Failed, lifecycle.Complete:
+		case deployapi.DeploymentLifecycleStatusFailed, deployapi.DeploymentLifecycleStatusComplete:
 			// continue the deployment
 		}
 

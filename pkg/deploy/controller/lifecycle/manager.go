@@ -8,23 +8,6 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-// Status represents the status of a lifecycle action, and should be treated
-// as the source of truth by controllers.
-type Status string
-
-const (
-	// Pending means the action has not yet executed.
-	Pending Status = "Pending"
-	// Running means the action is currently executing.
-	Running Status = "Running"
-	// Complete means the action completed successfully, taking into account
-	// failure policy.
-	Complete Status = "Complete"
-	// Failed means the action failed to execute, taking into account failure
-	// policy.
-	Failed Status = "Failed"
-)
-
 // DeploymentContext informs the manager which Lifecycle point is being handled.
 type DeploymentContext string
 
@@ -58,7 +41,7 @@ type Interface interface {
 	// instead of Failed).
 	//
 	// If the status couldn't be determined, an error is returned.
-	Status(context DeploymentContext, deployment *kapi.ReplicationController) (Status, error)
+	Status(context DeploymentContext, deployment *kapi.ReplicationController) (deployapi.DeploymentLifecycleStatus, error)
 }
 
 // Plugin knows how to execute lifecycle handlers and report their status.
@@ -71,7 +54,7 @@ type Plugin interface {
 	Execute(context DeploymentContext, handler *deployapi.Handler, deployment *kapi.ReplicationController, config *deployapi.DeploymentConfig) error
 	// Status should report the actual status of the action without taking into
 	// account failure policies.
-	Status(context DeploymentContext, handler *deployapi.Handler, deployment *kapi.ReplicationController) Status
+	Status(context DeploymentContext, handler *deployapi.Handler, deployment *kapi.ReplicationController) deployapi.DeploymentLifecycleStatus
 }
 
 // LifecycleManager implements a pluggable lifecycle.Interface which handles
@@ -111,7 +94,7 @@ func (m *LifecycleManager) Execute(context DeploymentContext, deployment *kapi.R
 }
 
 // Status implements Interface.
-func (m *LifecycleManager) Status(context DeploymentContext, deployment *kapi.ReplicationController) (Status, error) {
+func (m *LifecycleManager) Status(context DeploymentContext, deployment *kapi.ReplicationController) (deployapi.DeploymentLifecycleStatus, error) {
 	// Decode the config
 	config, err := m.DecodeConfig(deployment)
 	if err != nil {
@@ -120,7 +103,7 @@ func (m *LifecycleManager) Status(context DeploymentContext, deployment *kapi.Re
 
 	handler := handlerFor(context, config)
 	if handler == nil {
-		return Complete, nil
+		return deployapi.DeploymentLifecycleStatusComplete, nil
 	}
 
 	plugin, err := m.pluginFor(handler)
@@ -129,8 +112,9 @@ func (m *LifecycleManager) Status(context DeploymentContext, deployment *kapi.Re
 	}
 
 	status := plugin.Status(context, handler, deployment)
-	if status == Failed && handler.FailurePolicy == deployapi.IgnoreHandlerFailurePolicy {
-		status = Complete
+	if status == deployapi.DeploymentLifecycleStatusFailed &&
+		handler.FailurePolicy == deployapi.HandlerFailurePolicyIgnore {
+		status = deployapi.DeploymentLifecycleStatusComplete
 	}
 	return status, nil
 }
