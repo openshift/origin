@@ -213,7 +213,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		},
 		Status: buildapi.BuildStatusNew,
 	}
-
+	build.Config = &kapi.ObjectReference{Kind: "BuildConfig", Name: bc.Name, Namespace: bc.Namespace}
 	build.Name = getNextBuildName(bc)
 	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
 		return nil, err
