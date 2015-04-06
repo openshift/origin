@@ -1,6 +1,7 @@
 package start
 
 import (
+	"fmt"
 	"net"
 	"net/url"
 	"os/exec"
@@ -45,7 +46,11 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
 
 // NewDefaultNodeArgs creates NodeArgs with sub-objects created and default values set.
 func NewDefaultNodeArgs() *NodeArgs {
-	hostname := defaultHostname()
+	hostname, err := defaultHostname()
+	if err != nil {
+		hostname = "localhost"
+		glog.Warningf("Unable to lookup hostname, using %q: %v", hostname, err)
+	}
 
 	var dnsIP net.IP
 	if clusterDNS := cmdutil.Env("OPENSHIFT_DNS_ADDR", ""); len(clusterDNS) > 0 {
@@ -99,13 +104,13 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 }
 
 // defaultHostname returns the default hostname for this system.
-func defaultHostname() string {
+func defaultHostname() (string, error) {
 
 	// Note: We use exec here instead of os.Hostname() because we
 	// want the FQDN, and this is the easiest way to get it.
 	fqdn, err := exec.Command("uname", "-n").Output()
 	if err != nil {
-		glog.Fatalf("Couldn't determine hostname: %v", err)
+		return "", fmt.Errorf("Couldn't determine hostname: %v", err)
 	}
-	return strings.TrimSpace(string(fqdn))
+	return strings.TrimSpace(string(fqdn)), nil
 }
