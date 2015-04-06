@@ -109,30 +109,6 @@ func TestCommandBindingEtcd(t *testing.T) {
 	}
 }
 
-func TestCommandBindingKubernetes(t *testing.T) {
-	valueToSet := "http://example.org:9123"
-	actualCfg := executeMasterCommand([]string{"--kubernetes=" + valueToSet})
-
-	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.KubeConnectionArgs.KubernetesAddr.Set(valueToSet)
-
-	if expectedArgs.KubeConnectionArgs.KubernetesAddr.String() != actualCfg.KubeConnectionArgs.KubernetesAddr.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.KubeConnectionArgs.KubernetesAddr.String(), actualCfg.KubeConnectionArgs.KubernetesAddr.String())
-	}
-}
-
-func TestCommandBindingKubernetesPublic(t *testing.T) {
-	valueToSet := "http://example.org:9123"
-	actualCfg := executeMasterCommand([]string{"--public-kubernetes=" + valueToSet})
-
-	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.KubernetesPublicAddr.Set(valueToSet)
-
-	if expectedArgs.KubernetesPublicAddr.String() != actualCfg.KubernetesPublicAddr.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.KubernetesPublicAddr.String(), actualCfg.KubernetesPublicAddr.String())
-	}
-}
-
 func TestCommandBindingPortalNet(t *testing.T) {
 	valueToSet := "192.168.0.0/16"
 	actualCfg := executeMasterCommand([]string{"--portal-net=" + valueToSet})

@@ -29,11 +29,9 @@ func TestHTPasswd(t *testing.T) {
 	}
 
 	masterOptions.OAuthConfig.IdentityProviders[0] = configapi.IdentityProvider{
-		Usage: configapi.IdentityProviderUsage{
-			ProviderName:    "htpasswd",
-			UseAsChallenger: true,
-			UseAsLogin:      true,
-		},
+		Name:            "htpasswd",
+		UseAsChallenger: true,
+		UseAsLogin:      true,
 		Provider: runtime.EmbeddedObject{
 			&configapi.HTPasswdPasswordIdentityProvider{
 				File: htpasswdFile.Name(),
@@ -59,7 +57,7 @@ func TestHTPasswd(t *testing.T) {
 
 	// Make sure we can't authenticate
 	if _, err := tokencmd.RequestToken(&anonConfig, nil, "username", "password"); err == nil {
-		t.Errorf("Expected error, got none", err)
+		t.Error("Expected error, got none")
 	}
 
 	// Update the htpasswd file with output of `htpasswd -n -b username password`

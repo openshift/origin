@@ -1,6 +1,7 @@
 package start
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -27,7 +28,7 @@ type NodeArgs struct {
 	AllowDisabledDocker bool
 	VolumeDir           string
 
-	DefaultKubernetesURL url.URL
+	DefaultKubernetesURL *url.URL
 	ClusterDomain        string
 	ClusterDNS           net.IP
 
@@ -70,6 +71,17 @@ func NewDefaultNodeArgs() *NodeArgs {
 	}
 }
 
+func (args NodeArgs) Validate() error {
+	if err := args.KubeConnectionArgs.Validate(); err != nil {
+		return err
+	}
+	if _, err := args.KubeConnectionArgs.GetKubernetesAddress(args.DefaultKubernetesURL); err != nil {
+		return errors.New("--kubeconfig must be set to provide API server connection information")
+	}
+
+	return nil
+}
+
 // BuildSerializeableNodeConfig takes the NodeArgs (partially complete config) and uses them along with defaulting behavior to create the fully specified
 // config object for starting the node
 func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, error) {
@@ -85,9 +97,13 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 			BindAddress: net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(ports.KubeletPort)),
 		},
 
-		VolumeDirectory:       args.VolumeDir,
-		NetworkContainerImage: args.ImageFormatArgs.ImageTemplate.ExpandOrDie("pod"),
-		AllowDisabledDocker:   args.AllowDisabledDocker,
+		ImageConfig: configapi.ImageConfig{
+			Format: args.ImageFormatArgs.ImageTemplate.Format,
+			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
+		},
+
+		VolumeDirectory:     args.VolumeDir,
+		AllowDisabledDocker: args.AllowDisabledDocker,
 
 		DNSDomain: args.ClusterDomain,
 		DNSIP:     dnsIP,

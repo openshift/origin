@@ -28,7 +28,7 @@ type Plugin interface {
 type controller struct {
 	buildConfigInstantiator buildclient.BuildConfigInstantiator
 	buildConfigGetter       buildclient.BuildConfigGetter
-	imageRepoGetter         osclient.ImageRepositoryNamespaceGetter
+	imageRepoGetter         osclient.ImageStreamNamespaceGetter
 	plugins                 map[string]Plugin
 }
 
@@ -43,7 +43,7 @@ type urlVars struct {
 
 // NewController creates new webhook controller and feed it with provided plugins.
 func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildConfigInstantiator buildclient.BuildConfigInstantiator,
-	imageRepoGetter osclient.ImageRepositoryNamespaceGetter, plugins map[string]Plugin) http.Handler {
+	imageRepoGetter osclient.ImageStreamNamespaceGetter, plugins map[string]Plugin) http.Handler {
 	return &controller{
 		buildConfigGetter:       buildConfigGetter,
 		buildConfigInstantiator: buildConfigInstantiator,

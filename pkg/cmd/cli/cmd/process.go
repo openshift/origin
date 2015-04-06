@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
@@ -62,87 +63,8 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 		Short: "Process template into list of resources",
 		Long:  fmt.Sprintf(processLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			storedTemplate := ""
-			if len(args) > 0 {
-				storedTemplate = args[0]
-			}
-
-			filename := cmdutil.GetFlagString(cmd, "filename")
-			if len(storedTemplate) == 0 && len(filename) == 0 {
-				usageError(cmd, "Must pass a filename or name of stored template")
-			}
-
-			namespace, err := f.DefaultNamespace()
-			checkErr(err)
-
-			mapper, typer := f.Object()
-
-			client, _, err := f.Clients()
-			checkErr(err)
-
-			var (
-				templateObj *api.Template
-				mapping     *meta.RESTMapping
-			)
-
-			if len(storedTemplate) > 0 {
-				templateObj, err = client.Templates(namespace).Get(storedTemplate)
-				if err != nil {
-					checkErr(fmt.Errorf("Error retrieving template \"%s/%s\", please confirm it exists", namespace, storedTemplate))
-				}
-
-				version, kind, err := mapper.VersionAndKindForResource("template")
-				if mapping, err = mapper.RESTMapping(kind, version); err != nil {
-					checkErr(err)
-				}
-			} else {
-				obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand(cmd)).
-					NamespaceParam(namespace).RequireNamespace().
-					FilenameParam(filename).
-					Do().
-					Object()
-
-				checkErr(err)
-
-				var ok bool
-				templateObj, ok = obj.(*api.Template)
-				if !ok {
-					checkErr(fmt.Errorf("cannot convert input to Template"))
-				}
-
-				version, kind, err := kapi.Scheme.ObjectVersionAndKind(templateObj)
-				checkErr(err)
-				if mapping, err = mapper.RESTMapping(kind, version); err != nil {
-					checkErr(err)
-				}
-			}
-
-			if cmd.Flag("value").Changed {
-				injectUserVars(cmd, templateObj)
-			}
-
-			printer, err := f.Factory.PrinterForMapping(cmd, mapping)
-			checkErr(err)
-
-			// If 'parameters' flag is set it does not do processing but only print
-			// the template parameters to console for inspection.
-			if cmdutil.GetFlagBool(cmd, "parameters") == true {
-				err = describe.PrintTemplateParameters(templateObj.Parameters, out)
-				checkErr(err)
-				return
-			}
-
-			result, err := client.TemplateConfigs(namespace).Create(templateObj)
-			checkErr(err)
-
-			// We need to override the default output format to JSON so we can return
-			// processed template. Users might still be able to change the output
-			// format using the 'output' flag.
-			if !cmd.Flag("output").Changed {
-				cmd.Flags().Set("output", "json")
-				printer, _ = f.PrinterForMapping(cmd, mapping)
-			}
-			printer.PrintObj(result, out)
+			err := RunProcess(f, out, cmd, args)
+			cmdutil.CheckErr(err)
 		},
 	}
 
@@ -152,4 +74,109 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 	cmd.Flags().StringP("value", "v", "", "Specify a list of key-value pairs (eg. -v FOO=BAR,BAR=FOO) to set/override parameter values")
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
 	return cmd
+}
+
+func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+	storedTemplate := ""
+	if len(args) > 0 {
+		storedTemplate = args[0]
+	}
+
+	filename := cmdutil.GetFlagString(cmd, "filename")
+	if len(storedTemplate) == 0 && len(filename) == 0 {
+		return cmdutil.UsageError(cmd, "Must pass a filename or name of stored template")
+	}
+
+	namespace, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	mapper, typer := f.Object()
+
+	client, _, err := f.Clients()
+	if err != nil {
+		return err
+	}
+
+	var (
+		templateObj *api.Template
+		mapping     *meta.RESTMapping
+	)
+
+	if len(storedTemplate) > 0 {
+		templateObj, err = client.Templates(namespace).Get(storedTemplate)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return fmt.Errorf("template %q could not be found", storedTemplate)
+			}
+			return err
+		}
+
+		version, kind, err := mapper.VersionAndKindForResource("template")
+		if mapping, err = mapper.RESTMapping(kind, version); err != nil {
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand(cmd)).
+			NamespaceParam(namespace).RequireNamespace().
+			FilenameParam(filename).
+			Do().
+			Object()
+
+		if err != nil {
+			return err
+		}
+
+		var ok bool
+		templateObj, ok = obj.(*api.Template)
+		if !ok {
+			return fmt.Errorf("cannot convert input to Template")
+		}
+
+		version, kind, err := kapi.Scheme.ObjectVersionAndKind(templateObj)
+		if err != nil {
+			return err
+		}
+		if mapping, err = mapper.RESTMapping(kind, version); err != nil {
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if cmd.Flag("value").Changed {
+		injectUserVars(cmd, templateObj)
+	}
+
+	printer, err := f.Factory.PrinterForMapping(cmd, mapping)
+	if err != nil {
+		return err
+	}
+
+	// If 'parameters' flag is set it does not do processing but only print
+	// the template parameters to console for inspection.
+	if cmdutil.GetFlagBool(cmd, "parameters") == true {
+		err = describe.PrintTemplateParameters(templateObj.Parameters, out)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	result, err := client.TemplateConfigs(namespace).Create(templateObj)
+	if err != nil {
+		return err
+	}
+
+	// We need to override the default output format to JSON so we can return
+	// processed template. Users might still be able to change the output
+	// format using the 'output' flag.
+	if !cmd.Flag("output").Changed {
+		cmd.Flags().Set("output", "json")
+		printer, _ = f.PrinterForMapping(cmd, mapping)
+	}
+	return printer.PrintObj(result, out)
 }

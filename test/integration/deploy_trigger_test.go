@@ -2,6 +2,8 @@
 
 package integration
 
+/*
+
 import (
 	"fmt"
 	"net/http"
@@ -468,3 +470,4 @@ func makeRepo(name, tag, dir, image string) *imageapi.ImageRepository {
 		},
 	}
 }
+*/

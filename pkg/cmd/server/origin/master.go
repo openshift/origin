@@ -62,10 +62,13 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepository"
-	imagerepositoryetcd "github.com/openshift/origin/pkg/image/registry/imagerepository/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
 	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
+	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
+	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/accesstoken"
 	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/authorizetoken"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
@@ -92,7 +95,7 @@ import (
 	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
-	subjectaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
@@ -146,22 +149,32 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
 
+	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
+	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
+
 	imageStorage := imageetcd.NewREST(c.EtcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageRepositoryStorage, imageRepositoryStatus := imagerepositoryetcd.NewREST(c.EtcdHelper, imagerepository.DefaultRegistryFunc(defaultRegistryFunc))
-	imageRepositoryRegistry := imagerepository.NewRegistry(imageRepositoryStorage, imageRepositoryStatus)
-	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageRegistry, imageRepositoryRegistry)
-	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageRegistry, imageRepositoryRegistry)
-	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageRepositoryRegistry)
+	imageStreamStorage, imageStreamStatusStorage := imagestreametcd.NewREST(c.EtcdHelper, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage)
+	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamMappingRegistry := imagestreammapping.NewRegistry(imageStreamMappingStorage)
+	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
+	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
+
+	imageRepositoryStorage, imageRepositoryStatusStorage := imagerepository.NewREST(imageStreamRegistry)
+	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageStreamMappingRegistry)
+	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageStreamTagRegistry)
+
 	routeAllocator := c.RouteAllocator()
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc:     buildEtcd.GetBuildConfig,
-			UpdateBuildConfigFunc:  buildEtcd.UpdateBuildConfig,
-			GetBuildFunc:           buildEtcd.GetBuild,
-			CreateBuildFunc:        buildEtcd.CreateBuild,
-			GetImageRepositoryFunc: imageRepositoryRegistry.GetImageRepository,
+			GetBuildConfigFunc:    buildEtcd.GetBuildConfig,
+			UpdateBuildConfigFunc: buildEtcd.UpdateBuildConfig,
+			GetBuildFunc:          buildEtcd.GetBuild,
+			CreateBuildFunc:       buildEtcd.CreateBuild,
+			GetImageStreamFunc:    imageStreamRegistry.GetImageStream,
 		},
 	}
 	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
@@ -170,8 +183,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		Client: deployconfiggenerator.Client{
 			DCFn:   deployEtcd.GetDeploymentConfig,
-			IRFn:   imageRepositoryRegistry.GetImageRepository,
-			LIRFn2: imageRepositoryRegistry.ListImageRepositories,
+			ISFn:   imageStreamRegistry.GetImageStream,
+			LISFn2: imageStreamRegistry.ListImageStreams,
 		},
 	}
 	_, kclient := c.DeploymentConfigControllerClients()
@@ -191,12 +204,13 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"buildLogs":                buildlogregistry.NewREST(buildEtcd, c.BuildLogClient(), kubeletClient),
 
 		"images":                   imageStorage,
-		"imageStreams":             imageRepositoryStorage,
+		"imageStreams":             imageStreamStorage,
+		"imageStreams/status":      imageStreamStatusStorage,
 		"imageStreamImages":        imageStreamImageStorage,
-		"imageStreamMappings":      imageRepositoryMappingStorage,
-		"imageStreamTags":          imageRepositoryTagStorage,
+		"imageStreamMappings":      imageStreamMappingStorage,
+		"imageStreamTags":          imageStreamTagStorage,
 		"imageRepositories":        imageRepositoryStorage,
-		"imageRepositories/status": imageRepositoryStatus,
+		"imageRepositories/status": imageRepositoryStatusStorage,
 		"imageRepositoryMappings":  imageRepositoryMappingStorage,
 		"imageRepositoryTags":      imageRepositoryTagStorage,
 
@@ -226,7 +240,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(authorizationEtcd)),
 		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.Options.PolicyConfig.MasterAuthorizationNamespace)),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
-		"subjectAccessReviews":  subjectaccessreviewregistry.NewREST(c.Authorizer),
+		"subjectAccessReviews":  subjectAccessReviewStorage,
 	}
 
 	admissionControl := admit.NewAlwaysAdmit()
@@ -278,7 +292,7 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 	handler := webhook.NewController(
 		bcGetterUpdater,
 		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
-		bcClient.ImageRepositories(kapi.NamespaceAll).(osclient.ImageRepositoryNamespaceGetter),
+		bcClient.ImageStreams(kapi.NamespaceAll).(osclient.ImageStreamNamespaceGetter),
 		map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),

@@ -61,7 +61,7 @@ Once the container is started, you can jump into a console inside the container 
 
 If you just want to experiment with the API without worrying about security privileges, you can disable authorization checks by running this from the host system.  This command grants full access to anyone.
 
-    $ docker exec -it openshift-origin bash -c "openshift admin --config=/var/lib/openshift/openshift.local.certificates/admin/.kubeconfig policy add-role-to-group cluster-admin system:authenticated system:unauthenticated"
+    $ docker exec -it openshift-origin bash -c "openshift admin policy add-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.certificates/admin/.kubeconfig"
 
 
 ### Start Developing
@@ -83,7 +83,7 @@ Once setup with a Go development environment and Docker, you can:
 3.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
-        $ export KUBECONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig 
+        $ export OPENSHIFTCONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig 
         $ _output/local/go/bin/osc create -f examples/hello-openshift/hello-pod.json
 
 In your browser, go to [http://localhost:6061](http://localhost:6061) and you should see 'Welcome to OpenShift'.

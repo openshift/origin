@@ -178,3 +178,20 @@ Examples:
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd
 }
+
+func NewCmdProxy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := f.NewCmdProxy(out)
+	longDesc := `Run a proxy to the Kubernetes API server.
+
+Examples:
+
+	# Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
+	$ %[1]s proxy --port=8011 --www=./local/www/
+
+	# Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
+	# This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta1/pods/
+	$ %[1]s proxy --api-prefix=k8s-api
+`
+	cmd.Long = fmt.Sprintf(longDesc, fullName)
+	return cmd
+}

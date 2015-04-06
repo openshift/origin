@@ -31,12 +31,11 @@ func TestPushSecretName(t *testing.T) {
 	client, _ := testutil.GetClusterAdminClient(testutil.KubeConfigPath())
 	kclient, _ := testutil.GetClusterAdminKubeClient(testutil.KubeConfigPath())
 
-	repo := testutil.CreateSampleImageRepository(namespace)
-
-	if repo == nil {
-		t.Fatal("Failed to create ImageRepository")
+	stream := testutil.CreateSampleImageStream(namespace)
+	if stream == nil {
+		t.Fatal("Failed to create ImageStream")
 	}
-	defer testutil.DeleteSampleImageRepository(repo, namespace)
+	defer testutil.DeleteSampleImageStream(stream, namespace)
 
 	// Create Secret with dockercfg
 	secret := testutil.GetSecretFixture("fixtures/test-secret.json")
@@ -64,7 +63,7 @@ func TestPushSecretName(t *testing.T) {
 	// Now build the application image using custom build (run the previous image)
 	// Custom build will copy the dockercfg file into the application image.
 	customBuild := testutil.GetBuildFixture("fixtures/test-custom-build.json")
-	imageName := fmt.Sprintf("%s/%s/%s", os.Getenv("REGISTRY_ADDR"), namespace, repo.Name)
+	imageName := fmt.Sprintf("%s/%s/%s", os.Getenv("REGISTRY_ADDR"), namespace, stream.Name)
 	customBuild.Parameters.Strategy.CustomStrategy.Image = imageName
 	newCustomBuild, err := client.Builds(namespace).Create(customBuild)
 	if err != nil {
@@ -73,7 +72,7 @@ func TestPushSecretName(t *testing.T) {
 	waitForComplete(newCustomBuild, watcher, t)
 
 	// Verify that the dockercfg file is there
-	if err := testutil.VerifyImage(repo, "application", namespace, validatePushSecret); err != nil {
+	if err := testutil.VerifyImage(stream, "application", namespace, validatePushSecret); err != nil {
 		t.Fatalf("Image verification failed: %v", err)
 	}
 }
@@ -89,11 +88,11 @@ func TestSTIEnvironmentBuild(t *testing.T) {
 	build := testutil.GetBuildFixture("fixtures/test-env-build.json")
 	client, _ := testutil.GetClusterAdminClient(testutil.KubeConfigPath())
 
-	repo := testutil.CreateSampleImageRepository(namespace)
-	if repo == nil {
-		t.Fatal("Failed to create ImageRepository")
+	stream := testutil.CreateSampleImageStream(namespace)
+	if stream == nil {
+		t.Fatal("Failed to create ImageStream")
 	}
-	defer testutil.DeleteSampleImageRepository(repo, namespace)
+	defer testutil.DeleteSampleImageStream(stream, namespace)
 
 	// TODO: Tweak the selector to match the build name
 	watcher, err := client.Builds(namespace).Watch(labels.Everything(), fields.Everything(), "0")
@@ -108,7 +107,7 @@ func TestSTIEnvironmentBuild(t *testing.T) {
 	}
 
 	waitForComplete(newBuild, watcher, t)
-	if err := testutil.VerifyImage(repo, "", namespace, validateSTIEnvironment); err != nil {
+	if err := testutil.VerifyImage(stream, "", namespace, validateSTIEnvironment); err != nil {
 		t.Fatalf("The build image failed validation: %v", err)
 	}
 }
@@ -156,7 +155,7 @@ func waitForComplete(build *buildapi.Build, w watch.Interface, t *testing.T) {
 		}
 		switch eventBuild.Status {
 		case buildapi.BuildStatusFailed, buildapi.BuildStatusError:
-			t.Fatalf("Unexpected status for Build %s: ", eventBuild.Name, buildapi.BuildStatusFailed)
+			t.Fatalf("Unexpected status for Build %s: %v", eventBuild.Name, buildapi.BuildStatusFailed)
 		case buildapi.BuildStatusComplete:
 			return
 		default:

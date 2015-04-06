@@ -10,6 +10,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
 // NodeConfig represents the required parameters to start the OpenShift node
@@ -28,8 +29,9 @@ type NodeConfig struct {
 	ClusterDomain string
 	ClusterDNS    net.IP
 
-	// The image used as the Kubelet network namespace and volume container.
-	NetworkContainerImage string
+	// a function that returns the appropriate image to use for a named component
+	ImageFor func(component string) string
+
 	// The name of the network plugin to activate
 	NetworkPluginName string
 
@@ -72,6 +74,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		return nil, err
 	}
 
+	imageTemplate := variable.NewDefaultImageTemplate()
+	imageTemplate.Format = options.ImageConfig.Format
+	imageTemplate.Latest = options.ImageConfig.Latest
+
 	config := &NodeConfig{
 		NodeHost:    options.NodeName,
 		BindAddress: options.ServingInfo.BindAddress,
@@ -84,10 +90,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		ClusterDomain: options.DNSDomain,
 		ClusterDNS:    dnsIP,
 
-		VolumeDir:             options.VolumeDirectory,
-		NetworkContainerImage: options.NetworkContainerImage,
-		AllowDisabledDocker:   options.AllowDisabledDocker,
-		Client:                kubeClient,
+		VolumeDir:           options.VolumeDirectory,
+		ImageFor:            imageTemplate.ExpandOrDie,
+		AllowDisabledDocker: options.AllowDisabledDocker,
+		Client:              kubeClient,
 	}
 
 	return config, nil

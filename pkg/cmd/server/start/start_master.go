@@ -87,6 +87,15 @@ func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
 			startProfiler()
 
 			if err := options.StartMaster(); err != nil {
+				if kerrors.IsInvalid(err) {
+					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
+						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.ID)
+						for _, cause := range details.Causes {
+							fmt.Fprintln(c.Out(), cause.Message)
+						}
+						os.Exit(255)
+					}
+				}
 				glog.Fatal(err)
 			}
 		},
@@ -218,7 +227,7 @@ func (o MasterOptions) RunMaster() error {
 
 	errs := validation.ValidateMasterConfig(masterConfig)
 	if len(errs) != 0 {
-		return kerrors.NewInvalid("masterConfig", "", errs)
+		return kerrors.NewInvalid("MasterConfig", o.ConfigFile, errs)
 	}
 
 	if err := StartMaster(masterConfig); err != nil {

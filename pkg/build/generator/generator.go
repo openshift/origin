@@ -25,15 +25,15 @@ type GeneratorClient interface {
 	UpdateBuildConfig(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
 	GetBuild(ctx kapi.Context, name string) (*buildapi.Build, error)
 	CreateBuild(ctx kapi.Context, build *buildapi.Build) error
-	GetImageRepository(ctx kapi.Context, name string) (*imageapi.ImageRepository, error)
+	GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
 }
 
 type Client struct {
-	GetBuildConfigFunc     func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
-	UpdateBuildConfigFunc  func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
-	GetBuildFunc           func(ctx kapi.Context, name string) (*buildapi.Build, error)
-	CreateBuildFunc        func(ctx kapi.Context, build *buildapi.Build) error
-	GetImageRepositoryFunc func(ctx kapi.Context, name string) (*imageapi.ImageRepository, error)
+	GetBuildConfigFunc    func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
+	UpdateBuildConfigFunc func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
+	GetBuildFunc          func(ctx kapi.Context, name string) (*buildapi.Build, error)
+	CreateBuildFunc       func(ctx kapi.Context, build *buildapi.Build) error
+	GetImageStreamFunc    func(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
 }
 
 func (c Client) GetBuildConfig(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
@@ -52,8 +52,8 @@ func (c Client) CreateBuild(ctx kapi.Context, build *buildapi.Build) error {
 	return c.CreateBuildFunc(ctx, build)
 }
 
-func (c Client) GetImageRepository(ctx kapi.Context, name string) (*imageapi.ImageRepository, error) {
-	return c.GetImageRepositoryFunc(ctx, name)
+func (c Client) GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+	return c.GetImageStreamFunc(ctx, name)
 }
 
 type fatalError struct {
@@ -102,7 +102,7 @@ func (g *BuildGenerator) createBuild(ctx kapi.Context, build *buildapi.Build) (*
 }
 
 // generateBuild generates a build definition based on the current imageid
-// from any ImageRepository that is associated to the BuildConfig by an ImageChangeTrigger.
+// from any ImageStream that is associated to the BuildConfig by an ImageChangeTrigger.
 // Takes a BuildConfig to base the build on, an optional SourceRevision to build, and an optional
 // Client to use to get ImageRepositories to check for affiliation to this BuildConfig (by way of
 // an ImageChangeTrigger).  If there is a match in the image repo list, the resulting build will use
@@ -144,7 +144,7 @@ func (g *BuildGenerator) generateBuildUsingObjectReference(ctx kapi.Context, con
 		tag = buildapi.DefaultImageTag
 	}
 
-	imageRepo, err := g.Client.GetImageRepository(kapi.WithNamespace(ctx, namespace), from.Name)
+	imageRepo, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), from.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -179,6 +179,7 @@ func (g *BuildGenerator) generateBuildUsingImageTriggerTag(ctx kapi.Context, con
 			if _, ok := err.(fatalError); ok {
 				return nil, err
 			}
+
 			continue
 		}
 		// for the ImageChange trigger, record the image it substitutes for and get the latest
@@ -257,7 +258,7 @@ func (g *BuildGenerator) resolveImageRepoReference(ctx kapi.Context, from *kapi.
 	} else {
 		namespace = defaultNamespace
 	}
-	imageRepo, err := g.Client.GetImageRepository(kapi.WithNamespace(ctx, namespace), from.Name)
+	imageStream, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), from.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return "", err
@@ -265,12 +266,12 @@ func (g *BuildGenerator) resolveImageRepoReference(ctx kapi.Context, from *kapi.
 		return "", fatalError{err}
 	}
 
-	if imageRepo == nil || len(imageRepo.Status.DockerImageRepository) == 0 {
-		return "", fmt.Errorf("could not resolve image repository %s/%s", namespace, from.Name)
+	if imageStream == nil || len(imageStream.Status.DockerImageRepository) == 0 {
+		return "", fmt.Errorf("could not resolve image stream %s/%s", namespace, from.Name)
 	}
-	glog.V(4).Infof("Found image repository %s/%s", namespace, imageRepo.Name)
+	glog.V(4).Infof("Found image stream %s/%s", namespace, imageStream.Name)
 
-	latest, err := imageapi.LatestTaggedImage(imageRepo, tag)
+	latest, err := imageapi.LatestTaggedImage(imageStream, tag)
 	if err != nil {
 		return "", err
 	}

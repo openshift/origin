@@ -43,7 +43,7 @@ func (templateStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 // Validate validates a new template.
-func (templateStrategy) Validate(obj runtime.Object) fielderrors.ValidationErrorList {
+func (templateStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
 	template := obj.(*api.Template)
 	return validation.ValidateTemplate(template)
 }
@@ -54,7 +54,7 @@ func (templateStrategy) AllowCreateOnUpdate() bool {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (templateStrategy) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
+func (templateStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateTemplateUpdate(obj.(*api.Template), old.(*api.Template))
 }
 

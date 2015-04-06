@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	//kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/miekg/dns"
@@ -15,7 +15,7 @@ import (
 )
 
 func TestDNS(t *testing.T) {
-	masterConfig, _, err := testutil.StartTestAllInOne()
+	masterConfig, clientFile, err := testutil.StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -50,8 +50,7 @@ func TestDNS(t *testing.T) {
 		close(stop)
 	}, 50*time.Millisecond, stop)
 
-	// TODO: uncomment when headless services are supported
-	/*client, err := testutil.GetClusterAdminKubeClient(clientFile)
+	client, err := testutil.GetClusterAdminKubeClient(clientFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -60,7 +59,7 @@ func TestDNS(t *testing.T) {
 			Name: "headless",
 		},
 		Spec: kapi.ServiceSpec{
-			PortalIP: "None",
+			PortalIP: kapi.PortalIPNone,
 			Port:     443,
 		},
 	}); err != nil {
@@ -79,7 +78,7 @@ func TestDNS(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	headlessIP := net.ParseIP("172.0.0.1")*/
+	headlessIP := net.ParseIP("172.0.0.1")
 
 	// verify recursive DNS lookup is visible when expected
 	tests := []struct {
@@ -97,11 +96,11 @@ func TestDNS(t *testing.T) {
 			recursionExpected: false,
 			expect:            &masterIP,
 		},
-		/*{
+		{
 			dnsQuestionName:   "headless.default.local.",
 			recursionExpected: false,
 			expect:            &headlessIP,
-		},*/
+		},
 		{
 			dnsQuestionName:   "www.google.com.",
 			recursionExpected: true,

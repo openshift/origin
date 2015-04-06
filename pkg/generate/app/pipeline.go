@@ -13,7 +13,7 @@ import (
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deploy "github.com/openshift/origin/pkg/deploy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	image "github.com/openshift/origin/pkg/image/api"
 )
 
 type Pipeline struct {
@@ -33,10 +33,6 @@ func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
 }
 
 func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, source *SourceRef) (*Pipeline, error) {
-	pipeline := &Pipeline{
-		From: from,
-	}
-
 	strategy.Base = input
 
 	name, ok := NameSuggestions{source, input}.SuggestName()
@@ -45,12 +41,12 @@ func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, 
 	}
 
 	output := &ImageRef{
-		DockerImageReference: imageapi.DockerImageReference{
+		DockerImageReference: image.DockerImageReference{
 			Name: name,
 			Tag:  "latest",
 		},
 
-		AsImageRepository: true,
+		AsImageStream: true,
 	}
 	if input != nil {
 		// TODO: assumes that build doesn't change the image metadata. In the future
@@ -65,11 +61,12 @@ func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, 
 		Output:   output,
 	}
 
-	pipeline.InputImage = input
-	pipeline.Image = output
-	pipeline.Build = build
-
-	return pipeline, nil
+	return &Pipeline{
+		From:       from,
+		InputImage: input,
+		Image:      output,
+		Build:      build,
+	}, nil
 }
 
 func (p *Pipeline) NeedsDeployment(env Environment) error {
@@ -87,15 +84,15 @@ func (p *Pipeline) NeedsDeployment(env Environment) error {
 
 func (p *Pipeline) Objects(accept Acceptor) (Objects, error) {
 	objects := Objects{}
-	if p.InputImage != nil && p.InputImage.AsImageRepository && accept.Accept(p.InputImage) {
-		repo, err := p.InputImage.ImageRepository()
+	if p.InputImage != nil && p.InputImage.AsImageStream && accept.Accept(p.InputImage) {
+		repo, err := p.InputImage.ImageStream()
 		if err != nil {
 			return nil, err
 		}
 		objects = append(objects, repo)
 	}
-	if p.Image != nil && p.Image.AsImageRepository && accept.Accept(p.Image) {
-		repo, err := p.Image.ImageRepository()
+	if p.Image != nil && p.Image.AsImageStream && accept.Accept(p.Image) {
+		repo, err := p.Image.ImageStream()
 		if err != nil {
 			return nil, err
 		}

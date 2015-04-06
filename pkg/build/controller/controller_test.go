@@ -72,27 +72,27 @@ func (_ *errExistsPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
 	return kerrors.NewNotFound("kind", "name")
 }
 
-type okImageRepositoryClient struct{}
+type okImageStreamClient struct{}
 
-func (_ *okImageRepositoryClient) GetImageRepository(namespace, name string) (*imageapi.ImageRepository, error) {
-	return &imageapi.ImageRepository{
+func (_ *okImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
+	return &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: namespace},
-		Status: imageapi.ImageRepositoryStatus{
+		Status: imageapi.ImageStreamStatus{
 			DockerImageRepository: "image/repo",
 		},
 	}, nil
 }
 
-type errImageRepositoryClient struct{}
+type errImageStreamClient struct{}
 
-func (_ *errImageRepositoryClient) GetImageRepository(namespace, name string) (*imageapi.ImageRepository, error) {
-	return nil, errors.New("GetImageRepository error!")
+func (_ *errImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
+	return nil, errors.New("GetImageStream error!")
 }
 
-type errNotFoundImageRepositoryClient struct{}
+type errNotFoundImageStreamClient struct{}
 
-func (_ *errNotFoundImageRepositoryClient) GetImageRepository(namespace, name string) (*imageapi.ImageRepository, error) {
-	return nil, kerrors.NewNotFound("ImageRepository", name)
+func (_ *errNotFoundImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
+	return nil, kerrors.NewNotFound("ImageStream", name)
 }
 
 func mockBuild(status buildapi.BuildStatus, output buildapi.BuildOutput) *buildapi.Build {
@@ -124,10 +124,10 @@ func mockBuild(status buildapi.BuildStatus, output buildapi.BuildOutput) *builda
 
 func mockBuildController() *BuildController {
 	return &BuildController{
-		BuildUpdater:          &okBuildUpdater{},
-		PodManager:            &okPodManager{},
-		BuildStrategy:         &okStrategy{},
-		ImageRepositoryClient: &okImageRepositoryClient{},
+		BuildUpdater:      &okBuildUpdater{},
+		PodManager:        &okPodManager{},
+		BuildStrategy:     &okStrategy{},
+		ImageStreamClient: &okImageStreamClient{},
 	}
 }
 
@@ -162,7 +162,7 @@ func TestHandleBuild(t *testing.T) {
 		buildOutput   buildapi.BuildOutput
 		buildStrategy BuildStrategy
 		buildUpdater  buildclient.BuildUpdater
-		imageClient   imageRepositoryClient
+		imageClient   imageStreamClient
 		podManager    podManager
 		outputSpec    string
 	}
@@ -266,7 +266,7 @@ func TestHandleBuild(t *testing.T) {
 		{ // 12
 			inStatus:    buildapi.BuildStatusNew,
 			outStatus:   buildapi.BuildStatusError,
-			imageClient: &errNotFoundImageRepositoryClient{},
+			imageClient: &errNotFoundImageStreamClient{},
 			buildOutput: buildapi.BuildOutput{
 				To: &kapi.ObjectReference{
 					Name: "foo",
@@ -276,7 +276,7 @@ func TestHandleBuild(t *testing.T) {
 		{ // 13
 			inStatus:    buildapi.BuildStatusNew,
 			outStatus:   buildapi.BuildStatusError,
-			imageClient: &errImageRepositoryClient{},
+			imageClient: &errImageStreamClient{},
 			buildOutput: buildapi.BuildOutput{
 				To: &kapi.ObjectReference{
 					Name: "foo",
@@ -311,7 +311,7 @@ func TestHandleBuild(t *testing.T) {
 			ctrl.PodManager = tc.podManager
 		}
 		if tc.imageClient != nil {
-			ctrl.ImageRepositoryClient = tc.imageClient
+			ctrl.ImageStreamClient = tc.imageClient
 		}
 
 		err := ctrl.HandleBuild(build)

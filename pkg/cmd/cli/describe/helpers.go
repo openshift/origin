@@ -3,13 +3,17 @@ package describe
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"text/tabwriter"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/docker/docker/pkg/units"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 const emptyString = "<none>"
@@ -119,4 +123,52 @@ func webhookURL(c *buildapi.BuildConfig, configHost string) map[string]string {
 		result[string(trigger.Type)] = url
 	}
 	return result
+}
+
+func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) {
+	if len(stream.Status.Tags) == 0 {
+		fmt.Fprintf(out, "Tags:\t<none>\n")
+		return
+	}
+	fmt.Fprint(out, "Tags:\n  Tag\tSpec\tCreated\tPullSpec\tImage\n")
+	sortedTags := []string{}
+	for k := range stream.Status.Tags {
+		sortedTags = append(sortedTags, k)
+	}
+	sort.Strings(sortedTags)
+	for _, tag := range sortedTags {
+		tagRef, ok := stream.Spec.Tags[tag]
+		specTag := ""
+		if ok {
+			if tagRef.From != nil {
+				specTag = fmt.Sprintf("%s/%s", tagRef.From.Namespace, tagRef.From.Name)
+			} else if len(tagRef.DockerImageReference) != 0 {
+				specTag = tagRef.DockerImageReference
+			}
+		} else {
+			specTag = "<pushed>"
+		}
+		for _, event := range stream.Status.Tags[tag].Items {
+			d := time.Now().Sub(event.Created.Time)
+			image := event.Image
+			ref, err := imageapi.ParseDockerImageReference(event.DockerImageReference)
+			if err == nil {
+				if ref.ID == image {
+					image = ""
+				}
+			}
+			fmt.Fprintf(out, "  %s \t%s \t%s ago \t%s \t%v\n",
+				tag,
+				specTag,
+				units.HumanDuration(d),
+				event.DockerImageReference,
+				image)
+			if tag != "" {
+				tag = ""
+			}
+			if specTag != "" {
+				specTag = ""
+			}
+		}
+	}
 }

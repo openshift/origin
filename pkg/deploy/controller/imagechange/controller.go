@@ -10,7 +10,7 @@ import (
 )
 
 // ImageChangeController increments the version of a DeploymentConfig which has an image
-// change trigger when a tag update to a triggered ImageRepository is detected.
+// change trigger when a tag update to a triggered ImageStream is detected.
 //
 // Use the ImageChangeControllerFactory to create this controller.
 type ImageChangeController struct {
@@ -23,7 +23,7 @@ type fatalError string
 func (e fatalError) Error() string { return "fatal error handling imageRepository: " + string(e) }
 
 // Handle processes image change triggers associated with imageRepo.
-func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageRepository) error {
+func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 	configs, err := c.deploymentConfigClient.listDeploymentConfigs()
 	if err != nil {
 		return fmt.Errorf("couldn't get list of deploymentConfigs while handling imageRepo %s: %v", labelForRepo(imageRepo), err)
@@ -88,7 +88,7 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageRepository) erro
 // When matching:
 // - The trigger From field is preferred over the deprecated RepositoryName field.
 // - The namespace of the trigger is preferred over the config's namespace.
-func triggerMatchesImage(config *deployapi.DeploymentConfig, params *deployapi.DeploymentTriggerImageChangeParams, repo *imageapi.ImageRepository) bool {
+func triggerMatchesImage(config *deployapi.DeploymentConfig, params *deployapi.DeploymentTriggerImageChangeParams, repo *imageapi.ImageStream) bool {
 	if len(params.From.Name) > 0 {
 		namespace := params.From.Namespace
 		if len(namespace) == 0 {
@@ -135,7 +135,7 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 	return nil
 }
 
-func labelForRepo(imageRepo *imageapi.ImageRepository) string {
+func labelForRepo(imageRepo *imageapi.ImageStream) string {
 	return fmt.Sprintf("%s/%s", imageRepo.Namespace, imageRepo.Name)
 }
 

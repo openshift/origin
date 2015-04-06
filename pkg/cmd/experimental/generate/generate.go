@@ -83,49 +83,8 @@ func NewCmdGenerate(f *clientcmd.Factory, parentName, name string, out io.Writer
 		Short: "Generates an application configuration from a source repository",
 		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
-			var err error
-
-			osClient, _, err := f.Clients()
-			if err != nil {
-				glog.V(4).Infof("Error getting OpenShift client: %v", err)
-			}
-
-			ns, err := f.DefaultNamespace()
-			if err != nil {
-				glog.V(4).Infof("Error getting default namespace: %v", err)
-			}
-			dockerClient, _, err := dockerHelper.GetClient()
-			if err != nil {
-				glog.V(4).Infof("Error getting docker client: %v", err)
-			}
-
-			// Determine which source to use
-			input.sourceDir, input.sourceURL, err = getSource(input.sourceURL, args, os.Getwd)
-			checkErr(err)
-
-			// Create an image resolver
-			resolver := getResolver(ns, osClient, dockerClient)
-			checkErr(err)
-
-			// Get environment variables
-			input.env, err = getEnvironment(environment)
-			checkErr(err)
-
-			// Generate config
-			generator := &appGenerator{
-				input:          input,
-				resolver:       resolver,
-				srcRefGen:      gen.NewSourceRefGenerator(),
-				strategyRefGen: gen.NewBuildStrategyRefGenerator(source.DefaultDetectors, resolver),
-				imageRefGen:    gen.NewImageRefGenerator(),
-			}
-			list, err := generator.run()
-			checkErr(err)
-
-			// Output config
-			setDefaultPrinter(c)
-			err = f.Factory.PrintObject(c, list, out)
-			checkErr(err)
+			err := RunGenerate(f, out, c, args, dockerHelper, input, environment)
+			kcmdutil.CheckErr(err)
 		},
 	}
 
@@ -141,6 +100,59 @@ func NewCmdGenerate(f *clientcmd.Factory, parentName, name string, out io.Writer
 	kcmdutil.AddPrinterFlags(c)
 	dockerHelper.InstallFlags(flag)
 	return c
+}
+
+func RunGenerate(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, dockerHelper *dh.Helper, input params, environment string) error {
+	var err error
+
+	osClient, _, err := f.Clients()
+	if err != nil {
+		glog.V(4).Infof("Error getting OpenShift client: %v", err)
+	}
+
+	ns, err := f.DefaultNamespace()
+	if err != nil {
+		glog.V(4).Infof("Error getting default namespace: %v", err)
+	}
+	dockerClient, _, err := dockerHelper.GetClient()
+	if err != nil {
+		glog.V(4).Infof("Error getting docker client: %v", err)
+	}
+
+	// Determine which source to use
+	input.sourceDir, input.sourceURL, err = getSource(input.sourceURL, args, os.Getwd)
+	if err != nil {
+		return err
+	}
+
+	// Create an image resolver
+	resolver := getResolver(ns, osClient, dockerClient)
+	if err != nil {
+		return err
+	}
+
+	// Get environment variables
+	input.env, err = getEnvironment(environment)
+	if err != nil {
+		return err
+	}
+
+	// Generate config
+	generator := &appGenerator{
+		input:          input,
+		resolver:       resolver,
+		srcRefGen:      gen.NewSourceRefGenerator(),
+		strategyRefGen: gen.NewBuildStrategyRefGenerator(source.DefaultDetectors, resolver),
+		imageRefGen:    gen.NewImageRefGenerator(),
+	}
+	list, err := generator.run()
+	if err != nil {
+		return err
+	}
+
+	// Output config
+	setDefaultPrinter(c)
+	return f.Factory.PrintObject(c, list, out)
 }
 
 type getDirFunc func() (string, error)
@@ -352,12 +364,4 @@ func (g *appGenerator) run() (*kapi.List, error) {
 	objects = genapp.AddServices(objects)
 
 	return &kapi.List{Items: objects}, nil
-}
-
-func checkErr(err error) {
-	if err == nil {
-		return
-	}
-	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-	os.Exit(1)
 }

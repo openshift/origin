@@ -14,11 +14,11 @@ import (
 
 type ValidateFunc func(string) error
 
-// VerifyImage verifies if the latest image in given ImageRepository is valid
-func VerifyImage(repo *imageapi.ImageRepository, tag, ns string, validator ValidateFunc) error {
-	pod := CreatePodFromImage(repo, tag, ns)
+// VerifyImage verifies if the latest image in given ImageStream is valid
+func VerifyImage(stream *imageapi.ImageStream, tag, ns string, validator ValidateFunc) error {
+	pod := CreatePodFromImage(stream, tag, ns)
 	if pod == nil {
-		return fmt.Errorf("Unable to create Pod for %+v", repo.Status.DockerImageRepository)
+		return fmt.Errorf("Unable to create Pod for %+v", stream.Status.DockerImageRepository)
 	}
 	service := CreateServiceForPod(pod, ns)
 	if service == nil {
@@ -70,13 +70,13 @@ func WaitForAddress(pod *kapi.Pod, service *kapi.Service, ns string) (string, er
 }
 
 // CreatePodFromImage creates a Pod from the latest image available in the Image
-// Repository
-func CreatePodFromImage(repo *imageapi.ImageRepository, tag, ns string) *kapi.Pod {
+// Stream
+func CreatePodFromImage(stream *imageapi.ImageStream, tag, ns string) *kapi.Pod {
 	client, err := GetClusterAdminKubeClient(KubeConfigPath())
 	if err != nil {
 		return nil
 	}
-	imageName := repo.Status.DockerImageRepository
+	imageName := stream.Status.DockerImageRepository
 	if len(tag) > 0 {
 		imageName += ":" + tag
 	}

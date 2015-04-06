@@ -21,6 +21,9 @@ angular.module('openshiftConsole')
       case 'not_found':
         $scope.errorMessage = "Not found";
         break;
+      case 'invalid_request':
+        $scope.errorMessage = "Invalid request";
+        break;
       default:
         $scope.errorMessage = "An error has occurred";
     }

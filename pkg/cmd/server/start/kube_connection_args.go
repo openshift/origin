@@ -27,7 +27,8 @@ type KubeConnectionArgs struct {
 }
 
 func BindKubeConnectionArgs(args *KubeConnectionArgs, flags *pflag.FlagSet, prefix string) {
-	flags.Var(&args.KubernetesAddr, prefix+"kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If specified, no Kubernetes components will be started.")
+	// TODO remove entirely
+	flags.Var(&args.KubernetesAddr, prefix+"kubernetes", "removed in favor of --"+prefix+"kubeconfig")
 	flags.StringVar(&args.ClientConfigLoadingRules.ExplicitPath, prefix+"kubeconfig", "", "Path to the kubeconfig file to use for requests to the Kubernetes API.")
 }
 
@@ -39,6 +40,14 @@ func NewDefaultKubeConnectionArgs() *KubeConnectionArgs {
 	config.CertArgs = NewDefaultCertArgs()
 
 	return config
+}
+
+func (args KubeConnectionArgs) Validate() error {
+	if args.KubernetesAddr.Provided {
+		return errors.New("--kubernetes is no longer allowed, try using --kubeconfig")
+	}
+
+	return nil
 }
 
 func (args KubeConnectionArgs) GetExternalKubernetesClientConfig() (*client.Config, bool, error) {
@@ -53,10 +62,6 @@ func (args KubeConnectionArgs) GetExternalKubernetesClientConfig() (*client.Conf
 }
 
 func (args KubeConnectionArgs) GetKubernetesAddress(defaultAddress *url.URL) (*url.URL, error) {
-	if args.KubernetesAddr.Provided {
-		return args.KubernetesAddr.URL, nil
-	}
-
 	config, ok, err := args.GetExternalKubernetesClientConfig()
 	if err != nil {
 		return nil, err

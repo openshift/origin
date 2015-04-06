@@ -97,6 +97,7 @@ func TestUserInitialization(t *testing.T) {
 		CreateIdentity *api.Identity
 		CreateUser     *api.User
 		CreateMapping  *api.UserIdentityMapping
+		UpdateUser     *api.User
 
 		ExpectedErr      error
 		ExpectedUserName string
@@ -172,6 +173,18 @@ func TestUserInitialization(t *testing.T) {
 
 			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
 		},
+		"provision with existing mapped identity without user backreference": {
+			Identity: makeIdentityInfo("idp", "bob", nil),
+			Mapper:   provisioner,
+
+			CreateUser:     makeUser("mappeduser"),
+			CreateIdentity: makeIdentity("idp", "bob"),
+			CreateMapping:  makeMapping("mappeduser", "idp:bob"),
+			// Update user to a version which does not reference the identity
+			UpdateUser: makeUser("mappeduser"),
+
+			ExpectedErr: kerrs.NewNotFound("UserIdentityMapping", "idp:bob"),
+		},
 		"provision returns existing mapping": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
 			Mapper:   provisioner,
@@ -215,6 +228,21 @@ func TestUserInitialization(t *testing.T) {
 				continue
 			}
 		}
+		if testcase.UpdateUser != nil {
+			if testcase.UpdateUser.ResourceVersion == "" {
+				existingUser, err := clusterAdminClient.Users().Get(testcase.UpdateUser.Name)
+				if err != nil {
+					t.Errorf("%s: Could not get user to update: %v", k, err)
+					continue
+				}
+				testcase.UpdateUser.ResourceVersion = existingUser.ResourceVersion
+			}
+			_, err := clusterAdminClient.Users().Update(testcase.UpdateUser)
+			if err != nil {
+				t.Errorf("%s: Could not update user: %v", k, err)
+				continue
+			}
+		}
 
 		// Spawn 5 simultaneous mappers to test race conditions
 		var wg sync.WaitGroup
@@ -244,10 +272,10 @@ func TestUserInitialization(t *testing.T) {
 
 				user, err := clusterAdminClient.Users().Get(userInfo.GetName())
 				if err != nil {
-					t.Errorf("%s: Error getting user: %v", err)
+					t.Errorf("%s: Error getting user: %v", k, err)
 				}
 				if user.FullName != testcase.ExpectedFullName {
-					t.Errorf("%s: Expected full name %s, got %s", testcase.ExpectedFullName, user.FullName)
+					t.Errorf("%s: Expected full name %s, got %s", k, testcase.ExpectedFullName, user.FullName)
 				}
 
 			}()

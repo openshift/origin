@@ -65,6 +65,15 @@ func NewCommandStartNode() (*cobra.Command, *NodeOptions) {
 			startProfiler()
 
 			if err := options.StartNode(); err != nil {
+				if kerrors.IsInvalid(err) {
+					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
+						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.ID)
+						for _, cause := range details.Causes {
+							fmt.Fprintln(c.Out(), cause.Message)
+						}
+						os.Exit(255)
+					}
+				}
 				glog.Fatal(err)
 			}
 		},
@@ -96,6 +105,10 @@ func (o NodeOptions) Validate(args []string) error {
 		if len(o.ConfigFile) == 0 {
 			return errors.New("--config is required if --write-config is true")
 		}
+	}
+
+	if err := o.NodeArgs.Validate(); err != nil {
+		return err
 	}
 
 	return nil
@@ -133,7 +146,7 @@ func (o NodeOptions) RunNode() error {
 
 	if mintCerts {
 		if err := o.CreateCerts(); err != nil {
-			return nil
+			return err
 		}
 	}
 
@@ -179,7 +192,7 @@ func (o NodeOptions) RunNode() error {
 
 	errs := validation.ValidateNodeConfig(nodeConfig)
 	if len(errs) != 0 {
-		return kerrors.NewInvalid("nodeConfig", "", errs)
+		return kerrors.NewInvalid("NodeConfig", o.ConfigFile, errs)
 	}
 
 	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig)
@@ -219,7 +232,7 @@ func (o NodeOptions) CreateCerts() error {
 		dnsIP = o.NodeArgs.ClusterDNS.String()
 	}
 
-	masterAddr, err := o.NodeArgs.KubeConnectionArgs.GetKubernetesAddress(&o.NodeArgs.DefaultKubernetesURL)
+	masterAddr, err := o.NodeArgs.KubeConnectionArgs.GetKubernetesAddress(o.NodeArgs.DefaultKubernetesURL)
 	if err != nil {
 		return err
 	}
@@ -230,14 +243,14 @@ func (o NodeOptions) CreateCerts() error {
 
 		NodeConfigDir: nodeConfigDir,
 
-		NodeName:              o.NodeArgs.NodeName,
-		Hostnames:             []string{o.NodeArgs.NodeName},
-		VolumeDir:             o.NodeArgs.VolumeDir,
-		NetworkContainerImage: o.NodeArgs.ImageFormatArgs.ImageTemplate.ExpandOrDie("pod"),
-		AllowDisabledDocker:   o.NodeArgs.AllowDisabledDocker,
-		DNSDomain:             o.NodeArgs.ClusterDomain,
-		DNSIP:                 dnsIP,
-		ListenAddr:            o.NodeArgs.ListenArg.ListenAddr,
+		NodeName:            o.NodeArgs.NodeName,
+		Hostnames:           []string{o.NodeArgs.NodeName},
+		VolumeDir:           o.NodeArgs.VolumeDir,
+		ImageTemplate:       o.NodeArgs.ImageFormatArgs.ImageTemplate,
+		AllowDisabledDocker: o.NodeArgs.AllowDisabledDocker,
+		DNSDomain:           o.NodeArgs.ClusterDomain,
+		DNSIP:               dnsIP,
+		ListenAddr:          o.NodeArgs.ListenArg.ListenAddr,
 
 		APIServerURL:    masterAddr.String(),
 		APIServerCAFile: getSignerOptions.CertFile,

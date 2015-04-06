@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -493,6 +494,242 @@ func TestImageWithMetadata(t *testing.T) {
 			stringE := fmt.Sprintf("%#v", e)
 			stringA := fmt.Sprintf("%#v", a)
 			t.Errorf("%s: image: %s", name, util.StringDiff(stringE, stringA))
+		}
+	}
+}
+
+func TestLatestTaggedImage(t *testing.T) {
+	tests := []struct {
+		tag         string
+		tags        map[string]TagEventList
+		expected    string
+		shouldError bool
+	}{
+		{
+			tag:         "foo",
+			tags:        map[string]TagEventList{},
+			shouldError: true,
+		},
+		{
+			tag: "foo",
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "latest-ref"},
+						{DockerImageReference: "older"},
+					},
+				},
+			},
+			shouldError: true,
+		},
+		{
+			tag: "",
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "latest-ref"},
+						{DockerImageReference: "older"},
+					},
+				},
+			},
+			expected: "latest-ref",
+		},
+		{
+			tag: "foo",
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "latest-ref"},
+						{DockerImageReference: "older"},
+					},
+				},
+				"foo": {
+					Items: []TagEvent{
+						{DockerImageReference: "foo-ref"},
+						{DockerImageReference: "older"},
+					},
+				},
+			},
+			expected: "foo-ref",
+		},
+	}
+
+	for i, test := range tests {
+		stream := &ImageStream{}
+		stream.Status.Tags = test.tags
+
+		actual, err := LatestTaggedImage(stream, test.tag)
+		if err != nil {
+			if !test.shouldError {
+				t.Errorf("%d: unexpected error: %v", i, err)
+			}
+			continue
+		}
+		if e, a := test.expected, actual.DockerImageReference; e != a {
+			t.Errorf("%d: expected %q, got %q", i, e, a)
+		}
+	}
+}
+
+func TestAddTagEventToImageStream(t *testing.T) {
+	tests := map[string]struct {
+		tags           map[string]TagEventList
+		nextRef        string
+		nextImage      string
+		expectedTags   map[string]TagEventList
+		expectedUpdate bool
+	}{
+		"nil entry for tag": {
+			tags:      map[string]TagEventList{},
+			nextRef:   "ref",
+			nextImage: "image",
+			expectedTags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "ref",
+							Image:                "image",
+						},
+					},
+				},
+			},
+			expectedUpdate: true,
+		},
+		"empty items for tag": {
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{},
+				},
+			},
+			nextRef:   "ref",
+			nextImage: "image",
+			expectedTags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "ref",
+							Image:                "image",
+						},
+					},
+				},
+			},
+			expectedUpdate: true,
+		},
+		"same ref and image": {
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "ref",
+							Image:                "image",
+						},
+					},
+				},
+			},
+			nextRef:   "ref",
+			nextImage: "image",
+			expectedTags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "ref",
+							Image:                "image",
+						},
+					},
+				},
+			},
+			expectedUpdate: false,
+		},
+		"same ref, different image": {
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "ref",
+							Image:                "image",
+						},
+					},
+				},
+			},
+			nextRef:   "ref",
+			nextImage: "newimage",
+			expectedTags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "ref",
+							Image:                "newimage",
+						},
+					},
+				},
+			},
+			expectedUpdate: true,
+		},
+		"different ref, same image": {
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "ref",
+							Image:                "image",
+						},
+					},
+				},
+			},
+			nextRef:   "newref",
+			nextImage: "image",
+			expectedTags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "newref",
+							Image:                "image",
+						},
+					},
+				},
+			},
+			expectedUpdate: true,
+		},
+		"different ref, different image": {
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "ref",
+							Image:                "image",
+						},
+					},
+				},
+			},
+			nextRef:   "newref",
+			nextImage: "newimage",
+			expectedTags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{
+							DockerImageReference: "newref",
+							Image:                "newimage",
+						},
+						{
+							DockerImageReference: "ref",
+							Image:                "image",
+						},
+					},
+				},
+			},
+			expectedUpdate: true,
+		},
+	}
+
+	for name, test := range tests {
+		stream := &ImageStream{}
+		stream.Status.Tags = test.tags
+		updated := AddTagEventToImageStream(stream, "latest", TagEvent{DockerImageReference: test.nextRef, Image: test.nextImage})
+		if e, a := test.expectedUpdate, updated; e != a {
+			t.Errorf("%s: expected updated=%t, got %t", name, e, a)
+		}
+		if e, a := test.expectedTags, stream.Status.Tags; !reflect.DeepEqual(e, a) {
+			t.Errorf("%s: expected tags=%v, got %v", name, e, a)
 		}
 	}
 }

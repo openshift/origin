@@ -16,14 +16,6 @@ angular.module('openshiftConsole')
       var token = data.token;
       var then = data.then;
       
-      // Redirect to the root if we didn't get a token or an error
-      // Typically, this means we accessed /oauth directly, rather than via an auth redirect
-      if (!token) {
-        authLogger.log("OAuthController, no token or error, redirecting to /");
-        $location.url('./');
-        return;
-      }
-
       // Try to fetch the user
       var opts = {errorNotification: false, http: {auth: {token: token, triggerLogin: false}}};
       authLogger.log("OAuthController, got token, fetching user", opts);

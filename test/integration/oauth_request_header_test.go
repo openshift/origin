@@ -11,7 +11,6 @@ import (
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -106,15 +105,13 @@ func TestOAuthRequestHeader(t *testing.T) {
 	}
 
 	masterOptions.OAuthConfig.IdentityProviders[0] = configapi.IdentityProvider{
-		Usage: configapi.IdentityProviderUsage{
-			ProviderName:    "requestheader",
-			UseAsChallenger: false,
-			UseAsLogin:      false,
-		},
+		Name:            "requestheader",
+		UseAsChallenger: false,
+		UseAsLogin:      false,
 		Provider: runtime.EmbeddedObject{
 			&configapi.RequestHeaderIdentityProvider{
 				ClientCA: caFile.Name(),
-				Headers:  util.NewStringSet("My-Remote-User", "SSO-User"),
+				Headers:  []string{"My-Remote-User", "SSO-User"},
 			},
 		},
 	}

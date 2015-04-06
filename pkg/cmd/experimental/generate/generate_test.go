@@ -672,7 +672,7 @@ type expectedObjects struct {
 	services          map[string]kapi.Service
 	buildConfig       buildapi.BuildConfig
 	deploymentConfig  deployapi.DeploymentConfig
-	imageRepositories map[string]imageapi.ImageRepository
+	imageRepositories map[string]imageapi.ImageStream
 }
 
 func expectedBuildTriggers() []buildapi.BuildTriggerPolicy {
@@ -813,10 +813,10 @@ func expectedDeploymentConfig(name string, port int, proto kapi.Protocol, enviro
 	}
 }
 
-func expectedImageRepos(names []string) map[string]imageapi.ImageRepository {
-	result := make(map[string]imageapi.ImageRepository)
+func expectedImageRepos(names []string) map[string]imageapi.ImageStream {
+	result := make(map[string]imageapi.ImageStream)
 	for _, name := range names {
-		result[name] = imageapi.ImageRepository{
+		result[name] = imageapi.ImageStream{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: name,
 			},
@@ -1307,7 +1307,7 @@ func validateDeploymentConfig(t *testing.T, name string, expected deployapi.Depl
 	}
 }
 
-func validateImageRepos(t *testing.T, name string, expected map[string]imageapi.ImageRepository, actual []imageapi.ImageRepository) {
+func validateImageRepos(t *testing.T, name string, expected map[string]imageapi.ImageStream, actual []imageapi.ImageStream) {
 	if len(expected) != len(actual) {
 		t.Errorf("%s: did not get the same number of image repositories. %s", name, actualExpected(actual, expected))
 		return
@@ -1343,7 +1343,7 @@ func validateObjectList(t *testing.T, name string, list *kapi.List, expected exp
 	validateDeploymentConfig(t, name, expected.deploymentConfig, deploymentConfigs)
 
 	// Validate image repositories
-	imageRepos := []imageapi.ImageRepository{}
+	imageRepos := []imageapi.ImageStream{}
 	generated.WithType(&imageRepos)
 	validateImageRepos(t, name, expected.imageRepositories, imageRepos)
 }

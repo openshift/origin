@@ -6,21 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/docker/distribution/digest"
 )
 
 // DockerDefaultNamespace is the value for namespace when a single segment name is provided.
 const DockerDefaultNamespace = "library"
-
-// DockerImageReference points to a Docker image.
-type DockerImageReference struct {
-	Registry  string
-	Namespace string
-	Name      string
-	Tag       string
-	ID        string
-}
 
 // TODO remove (base, tag, id)
 func parseRepositoryTag(repos string) (string, string, string) {
@@ -46,9 +36,9 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		ref DockerImageReference
 	)
 	// TODO replace with docker version once docker/docker PR11109 is merged upstream
-	repo, tag, id := parseRepositoryTag(spec)
+	stream, tag, id := parseRepositoryTag(spec)
 
-	repoParts := strings.Split(repo, "/")
+	repoParts := strings.Split(stream, "/")
 	switch len(repoParts) {
 	case 2:
 		// namespace/name
@@ -89,6 +79,14 @@ func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
 	}
 	if len(r.Tag) == 0 {
 		r.Tag = "latest"
+	}
+	return r
+}
+
+// Minimal reduces a DockerImageReference to its minimalist form.
+func (r DockerImageReference) Minimal() DockerImageReference {
+	if r.Tag == "latest" {
+		r.Tag = ""
 	}
 	return r
 }
@@ -145,7 +143,7 @@ func (f *simulatedByIdPullSpecGenerator) pullSpec(r DockerImageReference) string
 }
 
 // realByIdPullSpecGenerator generates real pull by ID pull specs against
-// a v2 registry using the <repo>@<algo:digest> format.
+// a v2 registry using the <stream>@<algo:digest> format.
 type realByIdPullSpecGenerator struct{}
 
 func (*realByIdPullSpecGenerator) pullSpec(r DockerImageReference) string {
@@ -210,85 +208,46 @@ func ImageWithMetadata(image Image) (*Image, error) {
 	return &image, nil
 }
 
-func TagValueToTagEvent(repo *ImageRepository, value string) (*TagEvent, error) {
-	if strings.Contains(value, "@") {
-		segs := strings.SplitN(value, "@", 2)
-		if len(segs[1]) == 0 {
-			return nil, fmt.Errorf("%q may not end with a @", value)
-		}
-		ref, err := DockerImageReferenceForRepository(repo)
-		if err != nil {
-			return nil, err
-		}
-		ref.ID = segs[1]
-		return &TagEvent{
-			Created:              util.Now(),
-			DockerImageReference: ref.String(),
-			Image:                ref.ID,
-		}, nil
-	}
-	return LatestTaggedImage(repo, value)
-}
-
-// DockerImageReferenceForRepository returns a DockerImageReference that represents
-// the ImageRepository or false, if no valid reference exists.
-func DockerImageReferenceForRepository(repo *ImageRepository) (DockerImageReference, error) {
-	spec := repo.Status.DockerImageRepository
+// DockerImageReferenceForStream returns a DockerImageReference that represents
+// the ImageStream or false, if no valid reference exists.
+func DockerImageReferenceForStream(stream *ImageStream) (DockerImageReference, error) {
+	spec := stream.Status.DockerImageRepository
 	if len(spec) == 0 {
-		spec = repo.DockerImageRepository
+		spec = stream.Spec.DockerImageRepository
 	}
 	if len(spec) == 0 {
-		return DockerImageReference{}, fmt.Errorf("no possible pull spec for %s/%s", repo.Namespace, repo.Name)
+		return DockerImageReference{}, fmt.Errorf("no possible pull spec for %s/%s", stream.Namespace, stream.Name)
 	}
 	return ParseDockerImageReference(spec)
 }
 
 // LatestTaggedImage returns the most recent TagEvent for the specified image
 // repository and tag. Will resolve lookups for the empty tag.
-func LatestTaggedImage(repo *ImageRepository, tag string) (*TagEvent, error) {
+func LatestTaggedImage(stream *ImageStream, tag string) (*TagEvent, error) {
 	if len(tag) == 0 {
 		tag = "latest"
 	}
 	// find the most recent tag event with an image reference
-	if repo.Status.Tags != nil {
-		if history, ok := repo.Status.Tags[tag]; ok {
-			for _, item := range history.Items {
-				if len(item.DockerImageReference) > 0 {
-					return &item, nil
-				}
-			}
+	if stream.Status.Tags != nil {
+		if history, ok := stream.Status.Tags[tag]; ok {
+			return &history.Items[0], nil
 		}
 	}
 
-	// infer a pull spec given the pull locations - requires the tag
-	// to have a value, for .status.DIR or .DIR to be set, and for
-	// one of those values to be valid.
-	if value, ok := repo.Tags[tag]; ok && len(value) > 0 {
-		ref, err := DockerImageReferenceForRepository(repo)
-		if err != nil {
-			return nil, err
-		}
-		ref.Tag = value
-		return &TagEvent{
-			Created:              util.Now(),
-			DockerImageReference: ref.String(),
-		}, nil
-	}
-
-	return nil, fmt.Errorf("no image recorded for %s/%s:%s", repo.Namespace, repo.Name, tag)
+	return nil, fmt.Errorf("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, tag)
 }
 
-// AddTagEventToImageRepository attempts to update the given image repository with a tag event. It will
+// AddTagEventToImageStream attempts to update the given image stream with a tag event. It will
 // collapse duplicate entries - returning true if a change was made or false if no change
 // occurred.
-func AddTagEventToImageRepository(repo *ImageRepository, tag string, next TagEvent) bool {
-	if repo.Status.Tags == nil {
-		repo.Status.Tags = make(map[string]TagEventList)
+func AddTagEventToImageStream(stream *ImageStream, tag string, next TagEvent) bool {
+	if stream.Status.Tags == nil {
+		stream.Status.Tags = make(map[string]TagEventList)
 	}
 
-	tags, ok := repo.Status.Tags[tag]
+	tags, ok := stream.Status.Tags[tag]
 	if !ok || len(tags.Items) == 0 {
-		repo.Status.Tags[tag] = TagEventList{Items: []TagEvent{next}}
+		stream.Status.Tags[tag] = TagEventList{Items: []TagEvent{next}}
 		return true
 	}
 
@@ -300,18 +259,18 @@ func AddTagEventToImageRepository(repo *ImageRepository, tag string, next TagEve
 			return false
 		}
 		previous.Image = next.Image
-		repo.Status.Tags[tag] = tags
+		stream.Status.Tags[tag] = tags
 		return true
 	}
 
 	// image has not changed, but image reference has
 	if next.Image == previous.Image {
 		previous.DockerImageReference = next.DockerImageReference
-		repo.Status.Tags[tag] = tags
+		stream.Status.Tags[tag] = tags
 		return true
 	}
 
 	tags.Items = append([]TagEvent{next}, tags.Items...)
-	repo.Status.Tags[tag] = tags
+	stream.Status.Tags[tag] = tags
 	return true
 }

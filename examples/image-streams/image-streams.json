@@ -1,0 +1,66 @@
+{
+  "apiVersion": "v1beta1",
+  "kind": "ImageStreamList",
+  "items": [
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "ruby-20-centos7"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/ruby-20-centos7"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "nodejs-010-centos7"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/nodejs-010-centos7"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "wildfly-8-centos"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/wildfly-8-centos"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "mysql-55-centos7"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/mysql-55-centos7"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "postgresql-92-centos7"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/postgresql-92-centos7"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "mongodb-24-centos7"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/mongodb-24-centos7"
+      }
+    }
+  ]
+}

@@ -15,6 +15,10 @@ func init() {
 		&ImageRepositoryList{},
 		&ImageRepositoryMapping{},
 		&ImageRepositoryTag{},
+		&ImageStream{},
+		&ImageStreamList{},
+		&ImageStreamMapping{},
+		&ImageStreamTag{},
 		&ImageStreamImage{},
 	)
 }
@@ -24,3 +28,7 @@ func (*ImageList) IsAnAPIObject()              {}
 func (*ImageRepository) IsAnAPIObject()        {}
 func (*ImageRepositoryList) IsAnAPIObject()    {}
 func (*ImageRepositoryMapping) IsAnAPIObject() {}
+func (*ImageStream) IsAnAPIObject()            {}
+func (*ImageStreamList) IsAnAPIObject()        {}
+func (*ImageStreamMapping) IsAnAPIObject()     {}
+func (*ImageStreamTag) IsAnAPIObject()         {}

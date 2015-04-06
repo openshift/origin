@@ -40,7 +40,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 	expectedActionSet := util.NewStringSet(
 		"list-buildconfig",
 		"list-policies",
-		"list-imagerepositries",
+		"list-imagestreams",
 		"list-policyBindings",
 		"list-roleBinding",
 		"list-role",

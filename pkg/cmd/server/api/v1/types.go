@@ -27,8 +27,8 @@ type NodeConfig struct {
 	// VolumeDir is the directory that volumes will be stored under
 	VolumeDirectory string `json:"volumeDirectory"`
 
-	// NetworkContainerImage is the image used as the Kubelet network namespace and volume container.
-	NetworkContainerImage string `json:"networkContainerImage"`
+	// ImageConfig holds options that describe how to build image names for system components
+	ImageConfig ImageConfig `json:"imageConfig"`
 
 	// AllowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.
 	AllowDisabledDocker bool `json:"allowDisabledDocker"`
@@ -145,16 +145,12 @@ type AssetConfig struct {
 	// PublicURL is where you can find the asset server (TODO do we really need this?)
 	PublicURL string `json:"publicURL"`
 
-	// LogoutURI is an optional, absolute URI to redirect web browsers to after logging out of the web console.
+	// LogoutURL is an optional, absolute URL to redirect web browsers to after logging out of the web console.
 	// If not specified, the built-in logout page is shown.
-	LogoutURI string `json:"logoutURI"`
+	LogoutURL string `json:"logoutURL"`
 
 	// MasterPublicURL is how the web console can access the OpenShift v1beta3 server
 	MasterPublicURL string `json:"masterPublicURL"`
-
-	// TODO: we probably don't need this since we have a proxy
-	// KubernetesPublicURL is how the web console can access the Kubernetes v1beta3 server
-	KubernetesPublicURL string `json:"kubernetesPublicURL"`
 }
 
 type OAuthConfig struct {
@@ -192,16 +188,14 @@ type SessionConfig struct {
 	SessionName string `json:"sessionName"`
 }
 
-type IdentityProviderUsage struct {
-	ProviderName string `json:"providerName"`
-
-	UseAsChallenger bool `json:"challenge"`
-	UseAsLogin      bool `json:"login"`
-}
-
 type IdentityProvider struct {
-	Usage IdentityProviderUsage `json:"usage"`
-
+	// Name is used to qualify the identities returned by this provider
+	Name string `json:"name"`
+	// UseAsChallenger indicates whether to issue WWW-Authenticate challenges for this provider
+	UseAsChallenger bool `json:"challenge"`
+	// UseAsLogin indicates whether to use this identity provider for unauthenticated browsers to login against
+	UseAsLogin bool `json:"login"`
+	// Provider contains the information about how to set up a specific identity provider
 	Provider runtime.RawExtension `json:"provider"`
 }
 
@@ -228,8 +222,8 @@ type HTPasswdPasswordIdentityProvider struct {
 type RequestHeaderIdentityProvider struct {
 	v1beta3.TypeMeta `json:",inline"`
 
-	ClientCA     string   `json:"clientCA"`
-	HeadersSlice []string `json:"headers"`
+	ClientCA string   `json:"clientCA"`
+	Headers  []string `json:"headers"`
 }
 
 type OAuthRedirectingIdentityProvider struct {

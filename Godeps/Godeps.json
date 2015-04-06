@@ -154,6 +154,11 @@
             "Rev": "8d94c43e705824f23791b66ad5de4ea095d5bb32"
         },
         {
+            "ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/namespace",
+            "Comment": "v0.13.1-dev-640-g8d94c43",
+            "Rev": "8d94c43e705824f23791b66ad5de4ea095d5bb32"
+        },
+        {
             "ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/probe",
             "Comment": "v0.13.1-dev-641-gf057a25",
             "Rev": "8d94c43e705824f23791b66ad5de4ea095d5bb32"
@@ -645,6 +650,11 @@
         {
             "ImportPath": "github.com/golang/protobuf/proto",
             "Rev": "7f07925444bb51fa4cf9dfe6f7661876f8852275"
+        },
+        {
+            "ImportPath": "github.com/gonum/graph",
+            "Comment": "v0.1-11-gf6ac2b0",
+            "Rev": "f6ac2b0f80f5a28ee70af78ce415393b37bcd6c1"
         },
         {
             "ImportPath": "github.com/google/cadvisor/api",

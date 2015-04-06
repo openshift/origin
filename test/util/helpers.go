@@ -10,29 +10,30 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// CreateSampleImageRepository creates a ImageRepository in given namespace
-func CreateSampleImageRepository(namespace string) *imageapi.ImageRepository {
-	var repo imageapi.ImageRepository
-	jsonData, err := ioutil.ReadFile("fixtures/test-image-repository.json")
+// CreateSampleImageStream creates an ImageStream in given namespace
+func CreateSampleImageStream(namespace string) *imageapi.ImageStream {
+	var stream imageapi.ImageStream
+	jsonData, err := ioutil.ReadFile("fixtures/test-image-stream.json")
 	if err != nil {
 		fmt.Printf("ERROR: Unable to read: %v", err)
 		return nil
 	}
-	latest.Codec.DecodeInto(jsonData, &repo)
+	latest.Codec.DecodeInto(jsonData, &stream)
+
 	client, _ := GetClusterAdminClient(KubeConfigPath())
-	result, err := client.ImageRepositories(namespace).Create(&repo)
+	result, err := client.ImageStreams(namespace).Create(&stream)
 	if err != nil {
-		fmt.Printf("ERROR: Unable to create sample ImageRepository: %v\n", err)
+		fmt.Printf("ERROR: Unable to create sample ImageStream: %v\n", err)
 		return nil
 	}
 	return result
 }
 
-// DeleteSampleImageRepository removes the ImageRepository created in given
+// DeleteSampleImageStream removes the ImageStream created in given
 // namespace
-func DeleteSampleImageRepository(repo *imageapi.ImageRepository, namespace string) {
+func DeleteSampleImageStream(stream *imageapi.ImageStream, namespace string) {
 	client, _ := GetClusterAdminClient(KubeConfigPath())
-	client.ImageRepositories(namespace).Delete(repo.Name)
+	client.ImageRepositories(namespace).Delete(stream.Name)
 }
 
 // GetBuildFixture reads the Build JSON and returns and Build object

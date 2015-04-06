@@ -25,11 +25,11 @@ func ImageFromName(name string, tag string) (*ImageRef, error) {
 	}, nil
 }
 
-func ImageFromRepository(repo *image.ImageRepository, tag string) (*ImageRef, error) {
-	pullSpec := repo.Status.DockerImageRepository
+func ImageFromRepository(stream *image.ImageStream, tag string) (*ImageRef, error) {
+	pullSpec := stream.Status.DockerImageRepository
 	if len(pullSpec) == 0 {
 		// need to know the default OpenShift registry
-		return nil, fmt.Errorf("the repository does not resolve to a pullable Docker repository")
+		return nil, fmt.Errorf("the stream does not resolve to a pullable Docker repository")
 	}
 
 	ref, err := ImageFromName(pullSpec, tag)
@@ -37,6 +37,6 @@ func ImageFromRepository(repo *image.ImageRepository, tag string) (*ImageRef, er
 		return nil, err
 	}
 
-	ref.Repository = repo
+	ref.Stream = stream
 	return ref, nil
 }

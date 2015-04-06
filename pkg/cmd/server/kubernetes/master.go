@@ -23,6 +23,9 @@ import (
 	schedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api"
 	latestschedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
+
+	// Namespace controller will be added
+	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/namespace"
 )
 
 const (

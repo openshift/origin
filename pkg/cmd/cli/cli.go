@@ -10,7 +10,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/config"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -62,11 +61,10 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	in := os.Stdin
 	out := os.Stdout
 
-	templates.UseCliTemplates(cmds)
-
 	cmds.AddCommand(cmd.NewCmdLogin(f, in, out))
 	cmds.AddCommand(cmd.NewCmdProject(f, out))
 	cmds.AddCommand(cmd.NewCmdNewApplication(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdStatus(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdStartBuild(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdCancelBuild(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdBuildLogs(fullName, f, out))
@@ -81,12 +79,12 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdLog(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdExec(fullName, f, os.Stdin, out, os.Stderr))
 	cmds.AddCommand(cmd.NewCmdPortForward(fullName, f))
-	cmds.AddCommand(f.NewCmdProxy(out))
-	cmds.AddCommand(cmd.NewCmdOptions(f, out))
+	cmds.AddCommand(cmd.NewCmdProxy(fullName, f, out))
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName))
 	}
 	cmds.AddCommand(config.NewCmdConfig(fullName, "config"))
+	cmds.AddCommand(cmd.NewCmdOptions(f, out))
 
 	return cmds
 }

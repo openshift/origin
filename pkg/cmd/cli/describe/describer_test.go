@@ -26,7 +26,7 @@ func TestDescribeFor(t *testing.T) {
 	c := &client.Client{}
 	testTypesList := []string{
 		"Build", "BuildConfig", "BuildLog", "Deployment", "DeploymentConfig",
-		"Image", "ImageRepository", "ImageRepositoryTag", "ImageStreamImage",
+		"Image", "ImageStream", "ImageStreamTag", "ImageStreamImage",
 		"Route", "Project",
 	}
 	for _, o := range testTypesList {
@@ -47,8 +47,8 @@ func TestDescribers(t *testing.T) {
 		&BuildLogDescriber{c},
 		&DeploymentDescriber{c},
 		&ImageDescriber{c},
-		&ImageRepositoryDescriber{c},
-		&ImageRepositoryTagDescriber{c},
+		&ImageStreamDescriber{c},
+		&ImageStreamTagDescriber{c},
 		&ImageStreamImageDescriber{c},
 		&RouteDescriber{c},
 		&ProjectDescriber{c},

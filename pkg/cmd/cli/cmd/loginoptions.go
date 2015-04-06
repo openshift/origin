@@ -39,6 +39,7 @@ type LoginOptions struct {
 	ClientConfig kclientcmd.ClientConfig
 	Config       *kclient.Config
 	Reader       io.Reader
+	Out          io.Writer
 
 	// cert data to be used when authenticating
 	CertFile string

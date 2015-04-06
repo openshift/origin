@@ -123,6 +123,7 @@ type WebConsoleConfig struct {
 	MasterAddr string
 	// MasterPrefix is the OpenShift API context root
 	MasterPrefix string
+	// TODO this is probably unneeded since everything goes through the openshift master's proxy
 	// KubernetesAddr is the host:port the UI should call the kubernetes API on. Scheme is derived from the scheme the UI is served on, so they must be the same.
 	KubernetesAddr string
 	// KubernetesPrefix is the Kubernetes API context root

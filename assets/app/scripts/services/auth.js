@@ -66,6 +66,9 @@ angular.module('openshiftConsole')
     var _logoutPromise = null;
   
     var userStore = loadService($injector, _userStore, "AuthServiceProvider.UserStore()");
+    if (!userStore.available()) {
+      Logger.error("AuthServiceProvider.$get user store " + _userStore + " not available");
+    }
     var loginService = loadService($injector, _loginService, "AuthServiceProvider.LoginService()");
     var logoutService = loadService($injector, _logoutService, "AuthServiceProvider.LogoutService()");
 
