@@ -107,8 +107,11 @@ func (o NodeOptions) Validate(args []string) error {
 		}
 	}
 
-	if err := o.NodeArgs.Validate(); err != nil {
-		return err
+	// if we are not starting up using a config file, run the argument validation
+	if o.WriteConfigOnly || len(o.ConfigFile) == 0 {
+		if err := o.NodeArgs.Validate(); err != nil {
+			return err
+		}
 	}
 
 	return nil

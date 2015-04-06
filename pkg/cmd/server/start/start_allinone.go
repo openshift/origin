@@ -160,12 +160,16 @@ func (o AllInOneOptions) Validate(args []string) error {
 		}
 	}
 
-	if err := o.MasterArgs.Validate(); err != nil {
-		return err
-	}
+	// if we are not starting up using a config file, run the argument validation
+	if o.WriteConfigOnly || ((len(o.MasterConfigFile) == 0) && (len(o.NodeConfigFile) == 0)) {
+		if err := o.MasterArgs.Validate(); err != nil {
+			return err
+		}
 
-	if err := o.NodeArgs.Validate(); err != nil {
-		return err
+		if err := o.NodeArgs.Validate(); err != nil {
+			return err
+		}
+
 	}
 
 	if len(o.MasterArgs.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) != 0 {
