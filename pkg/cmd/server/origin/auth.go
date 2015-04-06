@@ -332,7 +332,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 					return nil, fmt.Errorf("unexpected oauth provider %#v", provider)
 				}
 
-				state := external.DefaultState()
+				state := external.DefaultState(getCSRF())
 				oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, successHandler, errorHandler, identityMapper)
 				if err != nil {
 					return nil, fmt.Errorf("unexpected error: %v", err)
@@ -406,7 +406,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSu
 
 		switch identityProvider.Provider.Object.(type) {
 		case (*configapi.OAuthRedirectingIdentityProvider):
-			successHandlers = append(successHandlers, external.DefaultState().(handlers.AuthenticationSuccessHandler))
+			successHandlers = append(successHandlers, external.DefaultState(getCSRF()).(handlers.AuthenticationSuccessHandler))
 		}
 
 		if !addedRedirectSuccessHandler && configapi.IsPasswordAuthenticator(identityProvider) {
