@@ -1,7 +1,6 @@
 package start
 
 import (
-	"fmt"
 	"net"
 	"net/url"
 	"os/exec"
@@ -40,17 +39,13 @@ type NodeArgs struct {
 // BindNodeArgs binds the options to the flags with prefix + default flag names
 func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
 	flags.StringVar(&args.VolumeDir, prefix+"volume-dir", "openshift.local.volumes", "The volume storage directory.")
-	// TODO rename this node-name and recommend hostname -f
+	// TODO rename this node-name and recommend uname -n
 	flags.StringVar(&args.NodeName, prefix+"hostname", args.NodeName, "The hostname to identify this node with the master.")
 }
 
 // NewDefaultNodeArgs creates NodeArgs with sub-objects created and default values set.
 func NewDefaultNodeArgs() *NodeArgs {
-	hostname, err := defaultHostname()
-	if err != nil {
-		hostname = "localhost"
-		glog.Warningf("Unable to lookup hostname, using %q: %v", hostname, err)
-	}
+	hostname := defaultHostname()
 
 	var dnsIP net.IP
 	if clusterDNS := cmdutil.Env("OPENSHIFT_DNS_ADDR", ""); len(clusterDNS) > 0 {
@@ -104,13 +99,13 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 }
 
 // defaultHostname returns the default hostname for this system.
-func defaultHostname() (string, error) {
+func defaultHostname() string {
 
 	// Note: We use exec here instead of os.Hostname() because we
 	// want the FQDN, and this is the easiest way to get it.
-	fqdn, err := exec.Command("hostname", "-f").Output()
+	fqdn, err := exec.Command("uname", "-n").Output()
 	if err != nil {
-		return "", fmt.Errorf("Couldn't determine hostname: %v", err)
+		glog.Fatalf("Couldn't determine hostname: %v", err)
 	}
-	return strings.TrimSpace(string(fqdn)), nil
+	return strings.TrimSpace(string(fqdn))
 }
