@@ -9,46 +9,40 @@
  */
 angular.module('openshiftConsole')
   .controller('ImagesController', function ($scope, DataService, $filter, LabelFilter, Logger) {
-    $scope.images = {};
-    $scope.unfilteredImages = {};
+    $scope.imageStreams = {};
+    $scope.unfilteredImageStreams = {};
     $scope.builds = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};    
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
-    watches.push(DataService.watch("images", $scope, function(images) {
-      $scope.unfilteredImages = images.by("metadata.name");
-      LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredImages, $scope.labelSuggestions);
+    watches.push(DataService.watch("imageStreams", $scope, function(imageStreams) {
+      $scope.unfilteredImageStreams = imageStreams.by("metadata.name");
+      LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredImageStreams, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-      $scope.images = LabelFilter.getLabelSelector().select($scope.unfilteredImages);
-      $scope.emptyMessage = "No images to show";
+      $scope.imageStreams = LabelFilter.getLabelSelector().select($scope.unfilteredImageStreams);
+      $scope.emptyMessage = "No image streams to show";
       updateFilterWarning();
-      Logger.log("images (subscribe)", $scope.images);
-    }));    
-
-    // Also load builds so we can link out to builds associated with images
-    watches.push(DataService.watch("builds", $scope, function(builds) {
-      $scope.builds = builds.by("metadata.name");
-      Logger.log("builds (subscribe)", $scope.builds);
-    }));     
+      Logger.log("image streams (subscribe)", $scope.imageStreams);
+    })); 
 
     var updateFilterWarning = function() {
-      if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.images) && !$.isEmptyObject($scope.unfilteredImages)) {
-        $scope.alerts["images"] = {
+      if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.imageStreams) && !$.isEmptyObject($scope.unfilteredImageStreams)) {
+        $scope.alerts["imageStreams"] = {
           type: "warning",
-          details: "The active filters are hiding all images."
+          details: "The active filters are hiding all image streams."
         };
       }
       else {
-        delete $scope.alerts["images"];
+        delete $scope.alerts["imageStreams"];
       }       
     };
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
       // trigger a digest loop
       $scope.$apply(function() {
-        $scope.images = labelSelector.select($scope.unfilteredImages);
+        $scope.imageStreams = labelSelector.select($scope.unfilteredImageStreams);
         updateFilterWarning();
       });
     });  

@@ -70,7 +70,7 @@ angular
       .href(projectHref("browse"))
       .subPath("Builds", "builds", builder.join(templatePath, 'builds.html'))
       .subPath("Deployments", "deployments", builder.join(templatePath, 'deployments.html'))
-      .subPath("Images", "images", builder.join(templatePath, 'images.html'))
+      .subPath("Image Streams", "images", builder.join(templatePath, 'images.html'))
       .subPath("Pods", "pods", builder.join(templatePath, 'pods.html'))
       .subPath("Services", "services", builder.join(templatePath, 'services.html'))
       .build();
