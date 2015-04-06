@@ -61,7 +61,9 @@ statusSwitch:
 		case deployapi.DeploymentLifecycleStatusRunning:
 			// block the deployment
 			break statusSwitch
-		case deployapi.DeploymentLifecycleStatusFailed, deployapi.DeploymentLifecycleStatusComplete:
+		case deployapi.DeploymentLifecycleStatusFailed,
+			deployapi.DeploymentLifecycleStatusComplete,
+			deployapi.DeploymentLifecycleStatusCompleteWithErrors:
 			// continue the deployment
 		}
 

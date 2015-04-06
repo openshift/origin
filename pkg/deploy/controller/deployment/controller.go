@@ -74,7 +74,8 @@ statusSwitch:
 			// fail the deployment
 			nextStatus = deployapi.DeploymentStatusFailed
 			break statusSwitch
-		case deployapi.DeploymentLifecycleStatusComplete:
+		case deployapi.DeploymentLifecycleStatusComplete,
+			deployapi.DeploymentLifecycleStatusCompleteWithErrors:
 			// continue the deployment
 		}
 

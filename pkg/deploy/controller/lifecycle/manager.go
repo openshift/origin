@@ -22,9 +22,9 @@ const (
 // lifecycle actions.
 //
 // This interface abstracts action policy handling; users should assume
-// Complete and Failed are terminal states, and that any request to retry has
-// already been accounted for. Users should not attempt to retry Failed
-// actions.
+// Complete, Failed, and CompleteWithErrors are terminal states, and that any
+// request to retry has already been accounted for. Users should not attempt
+// to retry actions with status Failed or CompleteWithErrors.
 //
 // Users should not be concerned with whether a given lifecycle action is
 // actually defined on a deployment; calls to execute non-existent actions
@@ -35,10 +35,13 @@ type Interface interface {
 	Execute(context DeploymentContext, deployment *kapi.ReplicationController) error
 	// Status returns the status of the lifecycle action for the deployment. If
 	// no action is defined for the given context, Status returns Complete. If
-	// the action finished, either Complete or Failed is returned depending on
-	// the failure policy associated with the action (for example, if the action
-	// failed but the policy is set to ignore failures, Complete is returned
-	// instead of Failed).
+	// the action finished, one of the following will be returned:
+	//
+	//  1. Complete: If the action succeeded or doesn't exist
+	//  2. Failed: If the action failed and the policy is not configured to
+	//     ignore failures
+	//  3. CompleteWithErrors: If the action failed and the policy is configured
+	//     to ignore failures
 	//
 	// If the status couldn't be determined, an error is returned.
 	Status(context DeploymentContext, deployment *kapi.ReplicationController) (deployapi.DeploymentLifecycleStatus, error)
@@ -114,7 +117,7 @@ func (m *LifecycleManager) Status(context DeploymentContext, deployment *kapi.Re
 	status := plugin.Status(context, handler, deployment)
 	if status == deployapi.DeploymentLifecycleStatusFailed &&
 		handler.FailurePolicy == deployapi.HandlerFailurePolicyIgnore {
-		status = deployapi.DeploymentLifecycleStatusComplete
+		status = deployapi.DeploymentLifecycleStatusCompleteWithErrors
 	}
 	return status, nil
 }

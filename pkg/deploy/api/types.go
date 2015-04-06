@@ -112,6 +112,9 @@ const (
 	// DeploymentLifecycleStatusFailed means the action failed to execute,
 	// taking into account failure policy.
 	DeploymentLifecycleStatusFailed DeploymentLifecycleStatus = "Failed"
+	// DeploymentLifecycleStatusCompleteWithErrors means the action failed to
+	// execute, but the failure was ignored due to failure policy.
+	DeploymentLifecycleStatusCompleteWithErrors DeploymentLifecycleStatus = "CompleteWithErrors"
 )
 
 // HandlerFailurePolicy describes the action to take if a handler fails.
