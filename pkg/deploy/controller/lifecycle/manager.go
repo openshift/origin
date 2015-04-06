@@ -86,7 +86,7 @@ type LifecycleManager struct {
 	DecodeConfig func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error)
 }
 
-var _ = Interface(&LifecycleManager{})
+var _ Interface = &LifecycleManager{}
 
 // Execute implements Interface.
 func (m *LifecycleManager) Execute(context Context, deployment *kapi.ReplicationController) error {
