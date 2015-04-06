@@ -1,4 +1,4 @@
-package template
+package util
 
 import (
 	"reflect"
@@ -7,6 +7,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 

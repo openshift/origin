@@ -1,4 +1,4 @@
-package template
+package util
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+
 	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -19,6 +20,13 @@ const (
 	ErrorOnExistingDstKey
 	ErrorOnDifferentDstKeyValue
 )
+
+// ReportError reports the single item validation error and properly set the
+// prefix and index to match the Config item JSON index
+func ReportError(allErrs *fielderrors.ValidationErrorList, index int, err fielderrors.ValidationError) {
+	i := fielderrors.ValidationErrorList{}
+	*allErrs = append(*allErrs, append(i, &err).PrefixIndex(index).Prefix("item")...)
+}
 
 // addReplicationControllerNestedLabels adds new label(s) to a nested labels of a single ReplicationController object
 func addReplicationControllerNestedLabels(obj *kapi.ReplicationController, labels labels.Set) error {
@@ -103,7 +111,7 @@ func AddConfigLabels(c *configapi.Config, labels labels.Set) fielderrors.Validat
 	itemErrors := fielderrors.ValidationErrorList{}
 	for i, in := range c.Items {
 		if err := AddObjectLabels(in, labels); err != nil {
-			reportError(&itemErrors, i, *fielderrors.NewFieldInvalid("labels", err, fmt.Sprintf("error applying labels %v to %v", labels, in)))
+			ReportError(&itemErrors, i, *fielderrors.NewFieldInvalid("labels", err, fmt.Sprintf("error applying labels %v to %v", labels, in)))
 		}
 	}
 	return itemErrors.Prefix("Config")

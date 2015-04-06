@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
 	"github.com/openshift/origin/pkg/template/generator"
+	"github.com/openshift/origin/pkg/util"
 )
 
 // templateStrategy implements behavior for Templates
@@ -101,7 +102,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	if tpl.ObjectLabels != nil {
 		objectLabels := labels.Set(tpl.ObjectLabels)
-		if err := template.AddConfigLabels(cfg, objectLabels); len(err) > 0 {
+		if err := util.AddConfigLabels(cfg, objectLabels); len(err) > 0 {
 			// TODO: We don't report the processing errors to users as there is no
 			// good way how to do it for just some items.
 			glog.V(1).Infof(utilerr.NewAggregate(err).Error())
