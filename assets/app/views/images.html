@@ -1,17 +1,45 @@
 <div ng-controller="ProjectController" class="content">
   <project-page>
     <div ng-controller="ImagesController">
-      <h1>Images</h1>
+      <h1>Image Streams</h1>
       <alerts alerts="alerts"></alerts>      
-      <div ng-if="(images | hashSize) == 0">
+      <div ng-if="(imageStreams | hashSize) == 0">
         <div>
           <em>{{emptyMessage}}</em>
         </div>
       </div>      
-      <div style="margin-bottom: 10px;" ng-repeat="image in images">
-        <h3>{{image.dockerImageReference | imageName}} <span class="small">({{image.metadata.name}})</span></h3>
-        <div>Created: <relative-timestamp timestamp="image.metadata.creationTimestamp"></relative-timestamp></div>
-        <div ng-if="build = (image | buildForImage : builds)">Created from: Build {{build.metadata.labels.buildconfig}} (<a href="project/{{projectName}}/browse/builds" class="small" title="{{build.metadata.name}}">{{build.metadata.name.substr(0, 10)}}</a>)
+      <div ng-repeat="imageStream in imageStreams">
+        <div class="tile" ng-repeat="tag in imageStream.status.tags">
+          <div>
+            <span>{{imageStream.metadata.name}}:{{tag.tag}}</span>
+            <span ng-if="!tag.items.length"> &mdash; <em>No images for this tag</em></span>
+            <span ng-if="tag.items.length && tag.items[0].image">
+              <span> &mdash; </span>
+              <short-id id="{{tag.items[0].image}}"></short-id>
+              <span> created </span>
+              <relative-timestamp timestamp="tag.items[0].created"></relative-timestamp>        
+            </span>
+          </div>
+          <div class="muted small">
+            <div ng-if="imageStream.spec.dockerImageRepository">From Docker repository: {{imageStream.spec.dockerImageRepository}}:{{tag.tag}}</div>
+            <div ng-if="imageStream.spec.tags">
+              <div ng-repeat="specTag in imageStream.spec.tags" ng-if="specTag.name == tag.tag">
+                <div ng-if="specTag.dockerImageReference">From Docker repository: {{specTag.dockerImageReference}}</div>
+                <div ng-if="specTag.from">From image stream: {{specTag.from.namespace}}/{{specTag.from.name}}</div>
+              </div>
+            </div>
+          </div>
+          <div ng-if="tag.items.length > 1">
+            <div click-to-reveal link-text="Show older images...">
+              <div ng-repeat="image in tag.items" ng-if="$index != 0">
+                <short-id ng-if="image.image" id="{{image.image}}"></short-id>
+                <span ng-if="!image.image">{{image.dockerImageReference}}</span>
+                <span> created </span>
+                <relative-timestamp timestamp="image.created"></relative-timestamp>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>      
     </div>
   </project-page>
