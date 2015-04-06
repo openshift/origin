@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 type TLSCertificateConfig struct {
@@ -62,7 +63,7 @@ func GetTLSCARoots(caFile string) (*TLSCARoots, error) {
 	if err != nil {
 		return nil, err
 	}
-	roots, err := certsFromPEM(caPEMBlock)
+	roots, err := cmdutil.CertificatesFromPEM(caPEMBlock)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading %s: %s", caFile, err)
 	}
@@ -82,7 +83,7 @@ func GetTLSCertificateConfig(certFile, keyFile string) (*TLSCertificateConfig, e
 	if err != nil {
 		return nil, err
 	}
-	certs, err := certsFromPEM(certPEMBlock)
+	certs, err := cmdutil.CertificatesFromPEM(certPEMBlock)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading %s: %s", certFile, err)
 	}
@@ -98,72 +99,6 @@ func GetTLSCertificateConfig(certFile, keyFile string) (*TLSCertificateConfig, e
 	key := keyPairCert.PrivateKey
 
 	return &TLSCertificateConfig{certs, key}, nil
-}
-
-func CertPoolFromFile(filename string) (*x509.CertPool, error) {
-	pool := x509.NewCertPool()
-	if len(filename) == 0 {
-		return pool, nil
-	}
-
-	pemBlock, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	certs, err := certsFromPEM(pemBlock)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading %s: %s", filename, err)
-	}
-
-	for _, cert := range certs {
-		pool.AddCert(cert)
-	}
-
-	return pool, nil
-}
-
-func CertificatesFromFile(file string) ([]*x509.Certificate, error) {
-	if len(file) == 0 {
-		return nil, nil
-	}
-	pemBlock, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-	certs, err := certsFromPEM(pemBlock)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading %s: %s", file, err)
-	}
-	return certs, nil
-}
-
-func certsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
-	ok := false
-	certs := []*x509.Certificate{}
-	for len(pemCerts) > 0 {
-		var block *pem.Block
-		block, pemCerts = pem.Decode(pemCerts)
-		if block == nil {
-			break
-		}
-		if block.Type != "CERTIFICATE" || len(block.Headers) != 0 {
-			continue
-		}
-
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return certs, err
-		}
-
-		certs = append(certs, cert)
-		ok = true
-	}
-
-	if !ok {
-		return certs, errors.New("Could not read any certificates")
-	}
-	return certs, nil
 }
 
 var (

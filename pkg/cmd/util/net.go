@@ -2,7 +2,10 @@ package util
 
 import (
 	"crypto/tls"
+	"errors"
+	"fmt"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/golang/glog"
@@ -41,4 +44,37 @@ func WaitForSuccessfulDial(https bool, network, address string, timeout, interva
 		return nil
 	}
 	return err
+}
+
+// TransportFor returns an http.Transport for the given ca and client cert (which may be empty strings)
+func TransportFor(ca string, certFile string, keyFile string) (http.RoundTripper, error) {
+	if len(ca) == 0 && len(certFile) == 0 && len(keyFile) == 0 {
+		return http.DefaultTransport, nil
+	}
+
+	if (len(certFile) == 0) != (len(keyFile) == 0) {
+		return nil, errors.New("certFile and keyFile must be specified together")
+	}
+
+	// Copy default transport
+	transport := *http.DefaultTransport.(*http.Transport)
+	transport.TLSClientConfig = &tls.Config{}
+
+	if len(ca) != 0 {
+		roots, err := CertPoolFromFile(ca)
+		if err != nil {
+			return nil, fmt.Errorf("error loading cert pool from ca file %s: %v", ca, err)
+		}
+		transport.TLSClientConfig.RootCAs = roots
+	}
+
+	if len(certFile) != 0 {
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			return nil, fmt.Errorf("error loading x509 keypair from cert file %s and key file %s: %v", certFile, keyFile, err)
+		}
+		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
+	}
+
+	return &transport, nil
 }

@@ -26,6 +26,7 @@ import (
 type Authenticator struct {
 	providerName string
 	url          string
+	client       *http.Client
 	mapper       authapi.UserIdentityMapper
 }
 
@@ -49,8 +50,14 @@ type RemoteError struct {
 }
 
 // New returns an authenticator which will make a basic auth call to the given url.
-func New(providerName string, url string, mapper authapi.UserIdentityMapper) authenticator.Password {
-	return &Authenticator{providerName, url, mapper}
+// A custom transport can be provided (typically to customize TLS options like trusted roots or present a client certificate).
+// If no transport is provided, http.DefaultTransport is used
+func New(providerName string, url string, transport http.RoundTripper, mapper authapi.UserIdentityMapper) authenticator.Password {
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+	client := &http.Client{Transport: transport}
+	return &Authenticator{providerName, url, client, mapper}
 }
 
 func (a *Authenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
@@ -62,7 +69,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	req.SetBasicAuth(username, password)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := a.client.Do(req)
 	if err != nil {
 		return nil, false, err
 	}
