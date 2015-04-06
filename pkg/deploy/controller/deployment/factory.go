@@ -84,6 +84,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 				}
 				return true
 			},
+			kutil.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			deployment := obj.(*kapi.ReplicationController)

@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	controller "github.com/openshift/origin/pkg/controller"
@@ -73,6 +74,7 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 			podQueue,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, count int) bool { return count < 1 },
+			kutil.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			pod := obj.(*kapi.Pod)
