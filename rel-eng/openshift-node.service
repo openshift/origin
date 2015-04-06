@@ -6,8 +6,8 @@ Documentation=https://github.com/openshift/origin
 
 [Service]
 Type=notify
-EnvironmentFile=-/etc/sysconfig/openshift-node
-ExecStart=/usr/bin/openshift start $ROLE --images=${IMAGES} $OPTIONS
+EnvironmentFile=/etc/sysconfig/openshift-node
+ExecStart=/usr/bin/openshift start node --config=${CONFIG_FILE} $OPTIONS
 WorkingDirectory=/var/lib/openshift/
 
 [Install]
