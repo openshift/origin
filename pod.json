@@ -12,7 +12,7 @@
           "ports": [{
               "containerPort": 8443,
           }],
-          "command": ["start", "master", "--kubernetes=:8443"],
+          "command": ["start", "master"],
           "imagePullPolicy": "PullIfNotPresent"
         }
       ],

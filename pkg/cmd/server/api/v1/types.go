@@ -151,10 +151,6 @@ type AssetConfig struct {
 
 	// MasterPublicURL is how the web console can access the OpenShift v1beta3 server
 	MasterPublicURL string `json:"masterPublicURL"`
-
-	// TODO: we probably don't need this since we have a proxy
-	// KubernetesPublicURL is how the web console can access the Kubernetes v1beta3 server
-	KubernetesPublicURL string `json:"kubernetesPublicURL"`
 }
 
 type OAuthConfig struct {
