@@ -3,12 +3,12 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %{!?commit:
-%global commit c30f469f17d75aa237c29493f30daeb035a3c398
+%global commit e095fe29b723e971423c88d31ced2e6c16b48bba
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2.0-32-gc30f469 -X github.com/openshift/origin/pkg/version.commitFromGit c30f469 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 8d94c43 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2.1-89-ge095fe2 -X github.com/openshift/origin/pkg/version.commitFromGit e095fe2 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 8d94c43 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
 }
 # String used for --images flag
 # If you're setting docker_registry make sure it ends in a trailing /
@@ -23,7 +23,7 @@
 %global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.4.2.1
+Version:        0.4.2.2
 Release:        1%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
@@ -179,6 +179,149 @@ fi
 
 
 %changelog
+* Mon Apr 06 2015 Scott Dodson <sdodson@redhat.com> 0.4.2.2
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- Merge pull request #1587 from liggitt/image_format_node
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1554 from deads2k/deads-fix-start-node
+  (dmcphers+openshiftbot@redhat.com)
+- remove dead parameters from openshift start (deads@redhat.com)
+- Merge pull request #1586 from liggitt/config_validation
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1314 from smarterclayton/status
+  (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: Do not log errors where the event already exists
+  (ccoleman@redhat.com)
+- Implement an `osc status` command that groups resources by their
+  relationships (ccoleman@redhat.com)
+- Merge pull request #1594 from kargakis/wrap-proxy
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1593 from kargakis/vet-test
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1588 from nak3/add_option_description
+  (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/gonum/graph):f6ac2b0f80f5a28ee70af78ce415393b37bcd6c1
+  (ccoleman@redhat.com)
+- Wrap proxy command (kargakis@users.noreply.github.com)
+- go vet test (kargakis@users.noreply.github.com)
+- Update config arg in Readme to be after command (ccoleman@redhat.com)
+- Fix broken cli commands in README (ccoleman@redhat.com)
+- Merge pull request #1583 from liggitt/oauth_redirect
+  (dmcphers+openshiftbot@redhat.com)
+- Add description for --master option of openshift-master start
+  (nakayamakenjiro@gmail.com)
+- Use imageConfig in node (jliggitt@redhat.com)
+- Output config errors better (jliggitt@redhat.com)
+- Merge pull request #1584 from fabianofranz/one_help_template_to_rule_them_all
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1507 from smarterclayton/template_label_position
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1581 from liggitt/login_error
+  (dmcphers+openshiftbot@redhat.com)
+- Integrating help and usage templates in all commands
+  (contact@fabianofranz.com)
+- Merge pull request #1525 from ncdc/image-stream
+  (dmcphers+openshiftbot@redhat.com)
+- Fix OAuth redirect (jliggitt@redhat.com)
+- Show error on login redirect without token (jliggitt@redhat.com)
+- Merge pull request #1533 from fabianofranz/issues_1529
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1573 from derekwaynecarr/dependency_namespace_controller
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1571 from jwforres/log_error_when_user_store_unavailable
+  (dmcphers+openshiftbot@redhat.com)
+- Deprecate ImageRepository, add ImageStream (agoldste@redhat.com)
+- UPSTREAM: Pass ctx to Validate, ValidateUpdate (agoldste@redhat.com)
+- Issue 1529 - fix regression in help templates (contact@fabianofranz.com)
+- Merge pull request #1566 from smarterclayton/better_errors
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1553 from fabianofranz/sample_app_readme_with_login
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1548 from abhgupta/abhgupta-dev
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1532 from liggitt/unnest_idp_usage
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1535 from liggitt/verify_identity_reference
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1511 from kargakis/another-literal-fix
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1531 from smarterclayton/disable_cadvisor_on_mac
+  (dmcphers+openshiftbot@redhat.com)
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- Remove the use of checkErr in our codebase (ccoleman@redhat.com)
+- Add compile dependency on Kubernetes namespace controller (decarr@redhat.com)
+- bump(github.com/GoogleCloudPlatform/kubernetes/pkg/namespace:8d94c43e705824f2
+  3791b66ad5de4ea095d5bb32) (decarr@redhat.com)
+- Adjust default log levels for web console and log errors when the local
+  storage user store is unavailable (jforrest@redhat.com)
+- Update sample app README to use login and project commands
+  (contact@fabianofranz.com)
+- Merge pull request #1549 from soltysh/update_sample_app_readme
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1515 from mfojtik/build_secret_extended
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1528 from bparees/fetchonupdate
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1433 from ironcladlou/deploy-trigger-test-fix
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1538 from soltysh/sti_rebase
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1539 from liggitt/node_config_yaml
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1524 from bparees/fromref_bug
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1534 from liggitt/1207952_vagrant_cert_creation
+  (dmcphers@redhat.com)
+- Updated sample-app output to match current state of work
+  (maszulik@redhat.com)
+- Test PushSecretName via extended tests (mfojtik@redhat.com)
+- Separate e2e-user config file in end to end (jliggitt@redhat.com)
+- Merge pull request #1560 from
+  smarterclayton/allow_project_change_with_empty_namespcae
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1559 from bparees/add_image_repos
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1551 from pmorie/birthcry
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1543 from tomgross/master
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1318 from kargakis/replace-import
+  (dmcphers+openshiftbot@redhat.com)
+- Uncommenting test for headless services (abhgupta@redhat.com)
+- Replacing "None" for service PortalIP with constant (abhgupta@redhat.com)
+- Merge pull request #1552 from liggitt/fix_assets
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1479 from kargakis/test-cmd-build-chain
+  (dmcphers+openshiftbot@redhat.com)
+- return updated build+buildconfig objects on update (bparees@redhat.com)
+- Changing projects with empty namespace should succeed (ccoleman@redhat.com)
+- add db images to sample repos (bparees@redhat.com)
+- UPSTREAM: Encode binary assets in ASCII only (jliggitt@redhat.com)
+- Restore asset tests on Jenkins (jliggitt@redhat.com)
+- Rewrite deployment ImageRepo handling (ironcladlou@gmail.com)
+- Send a birthcry event when openshift node starts (pmorie@gmail.com)
+- Set unix LF EOL for shell scripts (itconsense@gmail.com)
+- Updated STI binary (maszulik@redhat.com)
+- Tweak OAuth config (jliggitt@redhat.com)
+- Verify identity reference (jliggitt@redhat.com)
+- Fix node yaml config serialization, unify config reading helper methods
+  (jliggitt@redhat.com)
+- Use struct literal to build a new pipeline
+  (kargakis@users.noreply.github.com)
+- bump(github.com/openshift/source-to-
+  image):957c66bdbe15daca7b3af41f2c311af160473796 (maszulik@redhat.com)
+- Remove osin example (kargakis@users.noreply.github.com)
+- bump(golang.org/x/oauth2):c4932a9b59a60daa02a28db1bb7be39d6ec2e542
+  (kargakis@users.noreply.github.com)
+- Remove duplicate oauth2 library (kargakis@users.noreply.github.com)
+- Update vagrant cluster commands (jliggitt@redhat.com)
+- Use the Fake cAdvisor interface on Macs (ccoleman@redhat.com)
+- resolve from references when creating builds
+  https://bugzilla.redhat.com/show_bug.cgi?id=1206052 (bparees@redhat.com)
+- Move common template labels out of the objects description field
+  (ccoleman@redhat.com)
+- Test build-chain in hack/test-cmd (kargakis@users.noreply.github.com)
+
 * Wed Apr 01 2015 Scott Dodson <sdodson@redhat.com> 0.4.2.1
 - Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
 - Temporarily remove asset build failures from Jenkins (jliggitt@redhat.com)
