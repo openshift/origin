@@ -16,28 +16,28 @@ type FakeBuildConfigs struct {
 }
 
 func (c *FakeBuildConfigs) List(label labels.Selector, field fields.Selector) (*buildapi.BuildConfigList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-buildconfig"})
-	return &buildapi.BuildConfigList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-buildconfig"}, &buildapi.BuildConfigList{})
+	return obj.(*buildapi.BuildConfigList), err
 }
 
 func (c *FakeBuildConfigs) Get(name string) (*buildapi.BuildConfig, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-buildconfig", Value: name})
-	return &buildapi.BuildConfig{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-buildconfig", Value: name}, &buildapi.BuildConfig{})
+	return obj.(*buildapi.BuildConfig), err
 }
 
 func (c *FakeBuildConfigs) Create(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-buildconfig"})
-	return &buildapi.BuildConfig{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-buildconfig"}, &buildapi.BuildConfig{})
+	return obj.(*buildapi.BuildConfig), err
 }
 
 func (c *FakeBuildConfigs) Update(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-buildconfig"})
-	return &buildapi.BuildConfig{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-buildconfig"}, &buildapi.BuildConfig{})
+	return obj.(*buildapi.BuildConfig), err
 }
 
 func (c *FakeBuildConfigs) Delete(name string) error {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-buildconfig", Value: name})
-	return nil
+	_, err := c.Fake.Invokes(FakeAction{Action: "delete-buildconfig", Value: name}, &buildapi.BuildConfig{})
+	return err
 }
 
 func (c *FakeBuildConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
@@ -46,6 +46,6 @@ func (c *FakeBuildConfigs) Watch(label labels.Selector, field fields.Selector, r
 }
 
 func (c *FakeBuildConfigs) Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "instantiate-buildConfig"})
-	return nil, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "instantiate-buildconfig", Value: request}, &buildapi.Build{})
+	return obj.(*buildapi.Build), err
 }

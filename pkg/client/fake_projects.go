@@ -11,23 +11,23 @@ type FakeProjects struct {
 }
 
 func (c *FakeProjects) List(label labels.Selector, field fields.Selector) (*projectapi.ProjectList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-projects"})
-	return &projectapi.ProjectList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-projects"}, &projectapi.ProjectList{})
+	return obj.(*projectapi.ProjectList), err
 }
 
 func (c *FakeProjects) Get(name string) (*projectapi.Project, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-project"})
-	return &projectapi.Project{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-project"}, &projectapi.Project{})
+	return obj.(*projectapi.Project), err
 }
 
 func (c *FakeProjects) Create(project *projectapi.Project) (*projectapi.Project, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-project", Value: project})
-	return &projectapi.Project{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-project", Value: project}, &projectapi.Project{})
+	return obj.(*projectapi.Project), err
 }
 
 func (c *FakeProjects) Update(project *projectapi.Project) (*projectapi.Project, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-project"})
-	return &projectapi.Project{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-project"}, &projectapi.Project{})
+	return obj.(*projectapi.Project), err
 }
 
 func (c *FakeProjects) Delete(name string) error {

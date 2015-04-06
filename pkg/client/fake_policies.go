@@ -13,13 +13,13 @@ type FakePolicies struct {
 }
 
 func (c *FakePolicies) List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-policies"})
-	return &authorizationapi.PolicyList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-policies"}, &authorizationapi.PolicyList{})
+	return obj.(*authorizationapi.PolicyList), err
 }
 
 func (c *FakePolicies) Get(name string) (*authorizationapi.Policy, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-policy"})
-	return &authorizationapi.Policy{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-policy"}, &authorizationapi.Policy{})
+	return obj.(*authorizationapi.Policy), err
 }
 
 func (c *FakePolicies) Delete(name string) error {
