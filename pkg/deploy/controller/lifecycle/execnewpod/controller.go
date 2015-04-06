@@ -38,12 +38,13 @@ func (c *ExecNewPodController) Handle(pod *kapi.Pod) error {
 	postPodName, hasPostPodName := deployment.Annotations[deployapi.PostExecNewPodActionPodAnnotation]
 
 	if !hasPrePodName || !hasPostPodName {
-		glog.V(2).Infof("Ignoring pod %s; no ExecNewPod annotations found on associated deployment %s", pod.Name, labelForDeployment(deployment))
+		glog.V(4).Infof("Ignoring pod %s; no ExecNewPod annotations found on associated deployment %s", pod.Name, labelForDeployment(deployment))
 		return nil
 	}
 
 	if pod.Name != prePodName && pod.Name != postPodName {
-		glog.V(2).Infof("Ignoring pod %s; name doesn't match lifeycle annotations on associated deployment %s", pod.Name, labelForDeployment(deployment))
+		glog.V(4).Infof("Ignoring pod %s; name doesn't match lifeycle annotations on associated deployment %s", pod.Name, labelForDeployment(deployment))
+		return nil
 	}
 
 	// Determine whether this is a pre or post action pod so we can update the
