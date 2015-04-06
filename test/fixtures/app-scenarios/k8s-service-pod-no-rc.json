@@ -9,7 +9,6 @@
       "labels": {
         "template": "hello-openshift"
       },
-      "namespace": "example",
       "port": 5432,
       "protocol": "TCP",
       "selector": {
@@ -40,8 +39,7 @@
       "kind": "Pod",
       "labels": {
         "name": "hello-openshift"
-      },
-      "namespace": "example"
+      }
     }
   ],
   "kind": "List"

@@ -83,6 +83,14 @@ func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
 	return r
 }
 
+// Minimal reduces a DockerImageReference to its minimalist form.
+func (r DockerImageReference) Minimal() DockerImageReference {
+	if r.Tag == "latest" {
+		r.Tag = ""
+	}
+	return r
+}
+
 var dockerPullSpecGenerator pullSpecGenerator
 
 // String converts a DockerImageReference to a Docker pull spec.

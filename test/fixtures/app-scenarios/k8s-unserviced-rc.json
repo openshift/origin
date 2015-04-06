@@ -53,12 +53,11 @@
         },
         "replicas": 1
       },
-      "id": "database-1",
+      "id": "database-rc-1",
       "kind": "ReplicationController",
       "labels": {
         "template": "ruby-helloworld-sample"
-      },
-      "namespace": "example"
+      }
     },
     {
       "annotations": {},
@@ -122,22 +121,20 @@
         },
         "replicas": 3
       },
-      "id": "frontend-1",
+      "id": "frontend-rc-1",
       "kind": "ReplicationController",
       "labels": {
         "template": "ruby-helloworld-sample"
-      },
-      "namespace": "example"
+      }
     },
     {
       "apiVersion": "v1beta1",
       "containerPort": 3306,
-      "id": "database",
+      "id": "database-rc",
       "kind": "Service",
       "labels": {
         "template": "ruby-helloworld-sample"
       },
-      "namespace": "example",
       "port": 5434,
       "protocol": "TCP",
       "selector": {

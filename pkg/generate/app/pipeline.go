@@ -13,7 +13,7 @@ import (
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deploy "github.com/openshift/origin/pkg/deploy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	image "github.com/openshift/origin/pkg/image/api"
 )
 
 type Pipeline struct {
@@ -41,7 +41,7 @@ func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, 
 	}
 
 	output := &ImageRef{
-		DockerImageReference: imageapi.DockerImageReference{
+		DockerImageReference: image.DockerImageReference{
 			Name: name,
 			Tag:  "latest",
 		},

@@ -9,7 +9,6 @@
       "labels": {
         "template": "empty-service"
       },
-      "namespace": "example",
       "port": 5432,
       "protocol": "TCP",
       "selector": {

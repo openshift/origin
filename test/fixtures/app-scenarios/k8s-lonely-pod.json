@@ -24,8 +24,7 @@
       "kind": "Pod",
       "labels": {
         "name": "lonely-pod"
-      },
-      "namespace": "example"
+      }
     }
   ],
   "kind": "List"
