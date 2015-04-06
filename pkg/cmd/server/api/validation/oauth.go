@@ -6,6 +6,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/user/api/validation"
 )
 
 func ValidateOAuthConfig(config *api.OAuthConfig) fielderrors.ValidationErrorList {
@@ -64,6 +65,9 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) fielderrors
 
 	if len(identityProvider.Name) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
+	}
+	if ok, err := validation.ValidateIdentityProviderName(identityProvider.Name); !ok {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", identityProvider.Name, err))
 	}
 
 	if !api.IsIdentityProviderType(identityProvider.Provider) {

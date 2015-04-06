@@ -105,14 +105,11 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		return nil, err
 	}
 
-	corsAllowedOrigins := []string{}
-	corsAllowedOrigins = append(corsAllowedOrigins, args.CORSAllowedOrigins...)
 	// always include the all-in-one server's web console as an allowed CORS origin
 	// always include localhost as an allowed CORS origin
 	// always include master public address as an allowed CORS origin
-	for _, origin := range []string{assetPublicAddr.Host, masterPublicAddr.Host, "localhost", "127.0.0.1"} {
-		corsAllowedOrigins = append(corsAllowedOrigins, origin)
-	}
+	corsAllowedOrigins := util.NewStringSet(args.CORSAllowedOrigins...)
+	corsAllowedOrigins.Insert(assetPublicAddr.Host, masterPublicAddr.Host, "localhost", "127.0.0.1")
 
 	etcdAddress, err := args.GetEtcdAddress()
 	if err != nil {
@@ -150,7 +147,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		ServingInfo: configapi.ServingInfo{
 			BindAddress: args.ListenArg.ListenAddr.URL.Host,
 		},
-		CORSAllowedOrigins: corsAllowedOrigins,
+		CORSAllowedOrigins: corsAllowedOrigins.List(),
 
 		KubernetesMasterConfig: kubernetesMasterConfig,
 		EtcdConfig:             etcdConfig,

@@ -65,6 +65,15 @@ func NewCommandStartNode() (*cobra.Command, *NodeOptions) {
 			startProfiler()
 
 			if err := options.StartNode(); err != nil {
+				if kerrors.IsInvalid(err) {
+					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
+						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.ID)
+						for _, cause := range details.Causes {
+							fmt.Fprintln(c.Out(), cause.Message)
+						}
+						os.Exit(255)
+					}
+				}
 				glog.Fatal(err)
 			}
 		},
@@ -179,7 +188,7 @@ func (o NodeOptions) RunNode() error {
 
 	errs := validation.ValidateNodeConfig(nodeConfig)
 	if len(errs) != 0 {
-		return kerrors.NewInvalid("nodeConfig", "", errs)
+		return kerrors.NewInvalid("NodeConfig", o.ConfigFile, errs)
 	}
 
 	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig)
