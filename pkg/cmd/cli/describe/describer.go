@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -243,9 +244,29 @@ func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, host s
 	}
 }
 
+type sortableBuilds []buildapi.Build
+
+func (s sortableBuilds) Len() int {
+	return len(s)
+}
+
+func (s sortableBuilds) Less(i, j int) bool {
+	return s[i].CreationTimestamp.Before(s[j].CreationTimestamp)
+}
+
+func (s sortableBuilds) Swap(i, j int) {
+	t := s[i]
+	s[i] = s[j]
+	s[j] = t
+}
+
 func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) {
 	c := d.BuildConfigs(namespace)
 	buildConfig, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+	builds, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.BuildConfigLabel: name}), fields.Everything())
 	if err != nil {
 		return "", err
 	}
@@ -259,6 +280,23 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		}
 		describeBuildParameters(buildConfig.Parameters, out)
 		d.DescribeTriggers(buildConfig, d.host, out)
+		if len(builds.Items) == 0 {
+			return nil
+		}
+		fmt.Fprintf(out, "Builds(Name,Status,Creation Time)\n")
+		sortedBuilds := sortableBuilds(builds.Items)
+		sort.Sort(sortedBuilds)
+		c := 0
+		for i := range sortedBuilds {
+			// iterate backwards so we're printing the newest items first
+			build := sortedBuilds[len(sortedBuilds)-1-i]
+			fmt.Fprintf(out, fmt.Sprintf("- %s %s %v\n", build.Name, build.Status, build.CreationTimestamp.Rfc3339Copy().Time))
+			c++
+			// only print the 10 most recent builds.
+			if c > 10 {
+				break
+			}
+		}
 		return nil
 	})
 }
