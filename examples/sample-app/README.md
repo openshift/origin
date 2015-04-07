@@ -236,8 +236,8 @@ This section covers how to perform all the steps of building, deploying, and upd
    *Note:* You can skip this step if you did not create a forked repository.
 
 
-14. Log in with the "test-admin" user and switch to the "test" project which will be used by every command from now on. This 
-    will update the file pointed by $OPENSHIFTCONFIG and will make it easy to switch betwen the "master" context and the 
+14. Log in with the "test-admin" user and switch to the "test" project which will be used by every command from now on. This
+    will update the file pointed by $OPENSHIFTCONFIG and will make it easy to switch betwen the "master" context and the
     "test-admin" user:
 
         $ osc login -u test-admin -p pass
@@ -253,7 +253,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
     * A BuildConfig (ruby-sample-build) to specify a build that uses
       your ruby-hello-world fork as the input for a source-to-image (STI) build
-    * ImageRepositories for the images used and created in the build:
+    * ImageStreams for the images used and created in the build:
       * The ruby-20-centos7 STI builder will build an image from your source
       * The output image will be called origin-ruby-sample
     * DeploymentConfigs (frontend, backend) for defining Deployments once the images are available
@@ -286,7 +286,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         NAME                  TYPE                STATUS              POD
         ruby-sample-build-1   STI                 Complete            ruby-sample-build-1
 
-     The built image will be named with the ImageRepository
+     The built image will be named with the ImageStream
      (origin-ruby-sample) named in the BuildConfig and pushed to the
      private Docker registry running in OpenShift.  (Note that the private
      docker registry is using ephemeral storage, so when it is stopped,
@@ -294,9 +294,9 @@ This section covers how to perform all the steps of building, deploying, and upd
 
      If you want to see the build logs of a complete build, use the
      command below (substituting your build name from the "osc get builds"
-     output). Notice that for now only cluster admins can run the `build-logs` 
-     command, so we have to explicitly tell the command to use the `master` 
-     context from the $OPENSHIFTCONFIG config file: 
+     output). Notice that for now only cluster admins can run the `build-logs`
+     command, so we have to explicitly tell the command to use the `master`
+     context from the $OPENSHIFTCONFIG config file:
 
          $ osc build-logs ruby-sample-build-1 --context=master -n test
 
@@ -353,7 +353,7 @@ This section covers how to perform all the steps of building, deploying, and upd
             $ osc start-build ruby-sample-build
 
 
-22. Repeat step 16 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
+22. Repeat step 17 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.
 
