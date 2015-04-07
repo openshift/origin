@@ -40,7 +40,6 @@ import (
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	"github.com/openshift/origin/pkg/auth/server/grant"
 	"github.com/openshift/origin/pkg/auth/server/login"
-	"github.com/openshift/origin/pkg/auth/server/session"
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -231,16 +230,6 @@ func getCSRF() csrf.CSRF {
 	return csrf.NewCookieCSRF("csrf", "/", "", false, false)
 }
 
-func (c *AuthConfig) getSessionAuth() *session.Authenticator {
-	if c.Options.SessionConfig != nil {
-		if c.sessionAuth == nil {
-			sessionStore := session.NewStore(int(c.Options.SessionConfig.SessionMaxAgeSeconds), c.Options.SessionConfig.SessionSecrets...)
-			c.sessionAuth = session.NewAuthenticator(sessionStore, c.Options.SessionConfig.SessionName)
-		}
-	}
-	return c.sessionAuth
-}
-
 func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
 	authRequestHandler, err := c.getAuthenticationRequestHandler()
 	if err != nil {
@@ -278,10 +267,10 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 
 // getAuthenticationFinalizer returns an authentication finalizer which is called just prior to writing a response to an authorization request
 func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
-	if c.getSessionAuth() != nil {
+	if c.SessionAuth != nil {
 		// The session needs to know the authorize flow is done so it can invalidate the session
 		return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, w http.ResponseWriter) (bool, error) {
-			_ = c.getSessionAuth().InvalidateAuthentication(w, ar.HttpRequest)
+			_ = c.SessionAuth.InvalidateAuthentication(w, ar.HttpRequest)
 			return false, nil
 		})
 	}
@@ -394,8 +383,8 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSuccessHandler {
 	successHandlers := handlers.AuthenticationSuccessHandlers{}
 
-	if c.getSessionAuth() != nil {
-		successHandlers = append(successHandlers, c.getSessionAuth())
+	if c.SessionAuth != nil {
+		successHandlers = append(successHandlers, c.SessionAuth)
 	}
 
 	addedRedirectSuccessHandler := false
@@ -421,8 +410,8 @@ func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSu
 func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, error) {
 	var authRequestHandlers []authenticator.Request
 
-	if c.getSessionAuth() != nil {
-		authRequestHandlers = append(authRequestHandlers, c.getSessionAuth())
+	if c.SessionAuth != nil {
+		authRequestHandlers = append(authRequestHandlers, c.SessionAuth)
 	}
 
 	for _, identityProvider := range c.Options.IdentityProviders {

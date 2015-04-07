@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strconv"
 
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
@@ -234,7 +233,7 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 		},
 
 		SessionConfig: &configapi.SessionConfig{
-			SessionSecrets:       []string{uuid.NewUUID().String()},
+			SessionSecretsFile:   "",
 			SessionMaxAgeSeconds: 300,
 			SessionName:          "ssn",
 		},

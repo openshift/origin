@@ -183,7 +183,7 @@ func (o NodeOptions) RunNode() error {
 			return err
 		}
 
-		content, err := configapilatest.WriteNode(nodeConfig)
+		content, err := configapilatest.WriteYAML(nodeConfig)
 		if err != nil {
 			return err
 		}
