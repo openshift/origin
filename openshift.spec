@@ -3,12 +3,12 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %{!?commit:
-%global commit 88d4c53460bfd73d3a3490db8a62520b23ae9b69
+%global commit 2edc8729f32737fd815eda868c79dac4c80a5121
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2.2-30-g88d4c53 -X github.com/openshift/origin/pkg/version.commitFromGit 88d4c53 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 8d94c43 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2.3 -X github.com/openshift/origin/pkg/version.commitFromGit 2edc872 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 8d94c43 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
 }
 # String used for --images flag
 # If you're setting docker_registry make sure it ends in a trailing /
@@ -23,7 +23,7 @@
 %global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.4.2.3
+Version:        0.4.2.4
 Release:        1%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
@@ -179,6 +179,9 @@ fi
 
 
 %changelog
+* Tue Apr 07 2015 Scott Dodson <sdodson@redhat.com> 0.4.2.4
+- Bump
+
 * Tue Apr 07 2015 Scott Dodson <sdodson@redhat.com> 0.4.2.3
 - Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
 - Merge pull request #1570 from derekwaynecarr/cherry_pick_ns_fix
