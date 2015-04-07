@@ -75,7 +75,7 @@ import (
 	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
-	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
+	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
@@ -224,7 +224,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
-		"projects": projectregistry.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
+		"projects": projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
 
 		"users":                userStorage,
 		"identities":           identityStorage,
@@ -243,13 +243,20 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"subjectAccessReviews":  subjectAccessReviewStorage,
 	}
 
+	// for v1beta1, we dual register camelCase and camelcase names
+	v1beta1Storage := map[string]rest.Storage{}
+	for k, v := range storage {
+		v1beta1Storage[k] = v
+		v1beta1Storage[strings.ToLower(k)] = v
+	}
+
 	admissionControl := admit.NewAlwaysAdmit()
 
 	version := &apiserver.APIGroupVersion{
 		Root:    OpenShiftAPIPrefix,
 		Version: OpenShiftAPIV1Beta1,
 
-		Storage: storage,
+		Storage: v1beta1Storage,
 		Codec:   v1beta1.Codec,
 
 		Mapper: latest.RESTMapper,

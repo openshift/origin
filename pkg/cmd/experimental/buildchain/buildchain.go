@@ -152,7 +152,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 	// Parse user input and validate specified image repository
 	repos := make(map[string][]string)
 	if !all && len(args) != 0 {
-		name, tag, err := parseTag(args[0])
+		name, specifiedTag, err := parseTag(args[0])
 		if err != nil {
 			return err
 		}
@@ -162,18 +162,25 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		if err != nil {
 			return err
 		}
+		repo := join(namespace, name)
 
+		// Validate specified tag
 		tags := make([]string, 0)
-		if allTags {
-			for tag := range imgRepo.Status.Tags {
-				tags = append(tags, tag)
+		exists := false
+		for tag := range imgRepo.Status.Tags {
+			tags = append(tags, tag)
+			if specifiedTag == tag {
+				exists = true
 			}
 		}
-		if len(tags) == 0 {
-			tags = []string{tag}
+		if !exists && !allTags {
+			// The specified tag isn't a part of our image repository
+			return fmt.Errorf("no tag %s exists in %s", specifiedTag, repo)
+		} else if !allTags {
+			// Use only the specified tag
+			tags = []string{specifiedTag}
 		}
 
-		repo := join(namespace, name)
 		// Set the specified repo as the only one to output dependencies for
 		repos[repo] = tags
 	} else {

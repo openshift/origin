@@ -21,7 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/client"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
+	projectregistry "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	testutil "github.com/openshift/origin/test/util"
 )
 

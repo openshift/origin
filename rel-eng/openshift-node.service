@@ -5,9 +5,6 @@ After=openshift-master.service
 After=openshift-sdn-master.service
 After=openshift-sdn-node.service
 Requires=docker.service
-Wants=openshift-master.service
-Wants=openshift-sdn-master.service
-Wants=openshift-sdn-node.service
 Documentation=https://github.com/openshift/origin
 
 [Service]

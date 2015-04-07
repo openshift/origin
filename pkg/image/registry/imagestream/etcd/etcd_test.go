@@ -26,12 +26,18 @@ var (
 )
 
 type fakeSubjectAccessReviewRegistry struct {
+	err              error
+	allow            bool
+	request          *authorizationapi.SubjectAccessReview
+	requestNamespace string
 }
 
 var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
 
 func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
-	return nil, nil
+	f.request = subjectAccessReview
+	f.requestNamespace = kapi.NamespaceValue(ctx)
+	return &authorizationapi.SubjectAccessReviewResponse{Allowed: f.allow}, f.err
 }
 
 func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
@@ -205,6 +211,108 @@ func TestCreateImageStreamOK(t *testing.T) {
 	}
 }
 
+func TestCreateImageStreamSpecTagsFromSet(t *testing.T) {
+	tests := map[string]struct {
+		otherNamespace string
+		sarExpected    bool
+		sarAllowed     bool
+	}{
+		"same namespace (blank), no sar": {
+			otherNamespace: "",
+			sarExpected:    false,
+		},
+		"same namespace (set), no sar": {
+			otherNamespace: "default",
+			sarExpected:    false,
+		},
+		"different namespace, sar allowed": {
+			otherNamespace: "otherns",
+			sarExpected:    true,
+			sarAllowed:     true,
+		},
+		"different namespace, sar denied": {
+			otherNamespace: "otherns",
+			sarExpected:    true,
+			sarAllowed:     false,
+		},
+	}
+	for name, test := range tests {
+		fakeEtcdClient, helper := newHelper(t)
+		sarRegistry := &fakeSubjectAccessReviewRegistry{
+			allow: test.sarAllowed,
+		}
+		storage, _ := NewREST(helper, noDefaultRegistry, sarRegistry)
+
+		otherNamespace := test.otherNamespace
+		if len(otherNamespace) == 0 {
+			otherNamespace = "default"
+		}
+		fakeEtcdClient.Data[fmt.Sprintf("/imageRepositories/%s/other", otherNamespace)] = tools.EtcdResponseWithError{
+			R: &etcd.Response{
+				Node: &etcd.Node{
+					Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
+						ObjectMeta: kapi.ObjectMeta{Name: "other", Namespace: otherNamespace},
+						Status: api.ImageStreamStatus{
+							Tags: map[string]api.TagEventList{
+								"latest": {
+									Items: []api.TagEvent{
+										{
+											DockerImageReference: fmt.Sprintf("%s/other:latest", otherNamespace),
+										},
+									},
+								},
+							},
+						},
+					}),
+					ModifiedIndex: 1,
+				},
+			},
+		}
+
+		stream := &api.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+			Spec: api.ImageStreamSpec{
+				Tags: map[string]api.TagReference{
+					"other": {
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamTag",
+							Namespace: test.otherNamespace,
+							Name:      "other:latest",
+						},
+					},
+				},
+			},
+		}
+		ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+		_, err := storage.Create(ctx, stream)
+		if test.sarExpected {
+			if sarRegistry.request == nil {
+				t.Errorf("%s: expected sar request", name)
+				continue
+			}
+			if e, a := test.sarAllowed, err == nil; e != a {
+				t.Errorf("%s: expected sarAllowed=%t, got error %t: %v", name, e, a, err)
+				continue
+			}
+
+			continue
+		}
+
+		// sar not expected
+		if err != nil {
+			t.Fatalf("%s: unexpected error: %v", name, err)
+		}
+
+		actual := &api.ImageStream{}
+		if err := helper.ExtractObj("/imageRepositories/default/foo", actual, false); err != nil {
+			t.Fatalf("%s: unexpected extraction error: %v", name, err)
+		}
+		if e, a := fmt.Sprintf("%s/other:latest", otherNamespace), actual.Status.Tags["other"].Items[0].DockerImageReference; e != a {
+			t.Errorf("%s: dockerImageReference: expected %q, got %q", name, e, a)
+		}
+	}
+}
+
 func TestCreateRegistryErrorSaving(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("foo")
@@ -270,6 +378,119 @@ func TestUpdateImageStreamOK(t *testing.T) {
 	}
 	if stream.Name != "bar" {
 		t.Errorf("Unexpected stream returned: %#v", stream)
+	}
+}
+
+func TestUpdateImageStreamSpecTagsFromSet(t *testing.T) {
+	tests := map[string]struct {
+		otherNamespace string
+		sarExpected    bool
+		sarAllowed     bool
+	}{
+		"same namespace (blank), no sar": {
+			otherNamespace: "",
+			sarExpected:    false,
+		},
+		"same namespace (set), no sar": {
+			otherNamespace: "default",
+			sarExpected:    false,
+		},
+		"different namespace, sar allowed": {
+			otherNamespace: "otherns",
+			sarExpected:    true,
+			sarAllowed:     true,
+		},
+		"different namespace, sar denied": {
+			otherNamespace: "otherns",
+			sarExpected:    true,
+			sarAllowed:     false,
+		},
+	}
+	for name, test := range tests {
+		fakeEtcdClient, helper := newHelper(t)
+		sarRegistry := &fakeSubjectAccessReviewRegistry{
+			allow: test.sarAllowed,
+		}
+		storage, _ := NewREST(helper, noDefaultRegistry, sarRegistry)
+
+		fakeEtcdClient.Data["/imageRepositories/default/foo"] = tools.EtcdResponseWithError{
+			R: &etcd.Response{
+				Node: &etcd.Node{
+					Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
+						ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "default"},
+					}),
+					ModifiedIndex: 1,
+				},
+			},
+		}
+
+		otherNamespace := test.otherNamespace
+		if len(otherNamespace) == 0 {
+			otherNamespace = "default"
+		}
+		fakeEtcdClient.Data[fmt.Sprintf("/imageRepositories/%s/other", otherNamespace)] = tools.EtcdResponseWithError{
+			R: &etcd.Response{
+				Node: &etcd.Node{
+					Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
+						ObjectMeta: kapi.ObjectMeta{Name: "other", Namespace: otherNamespace},
+						Status: api.ImageStreamStatus{
+							Tags: map[string]api.TagEventList{
+								"latest": {
+									Items: []api.TagEvent{
+										{
+											DockerImageReference: fmt.Sprintf("%s/other:latest", otherNamespace),
+										},
+									},
+								},
+							},
+						},
+					}),
+					ModifiedIndex: 1,
+				},
+			},
+		}
+
+		stream := &api.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
+			Spec: api.ImageStreamSpec{
+				Tags: map[string]api.TagReference{
+					"other": {
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamTag",
+							Namespace: test.otherNamespace,
+							Name:      "other:latest",
+						},
+					},
+				},
+			},
+		}
+		ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+		_, _, err := storage.Update(ctx, stream)
+		if test.sarExpected {
+			if sarRegistry.request == nil {
+				t.Errorf("%s: expected sar request", name)
+				continue
+			}
+			if e, a := test.sarAllowed, err == nil; e != a {
+				t.Errorf("%s: expected sarAllowed=%t, got error %t: %v", name, e, a, err)
+				continue
+			}
+
+			continue
+		}
+
+		// sar not expected
+		if err != nil {
+			t.Fatalf("%s: unexpected error: %v", name, err)
+		}
+
+		actual := &api.ImageStream{}
+		if err := helper.ExtractObj("/imageRepositories/default/foo", actual, false); err != nil {
+			t.Fatalf("%s: unexpected extraction error: %v", name, err)
+		}
+		if e, a := fmt.Sprintf("%s/other:latest", otherNamespace), actual.Status.Tags["other"].Items[0].DockerImageReference; e != a {
+			t.Errorf("%s: dockerImageReference: expected %q, got %q", name, e, a)
+		}
 	}
 }
 

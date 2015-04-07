@@ -1,9 +1,11 @@
 package validation
 
 import (
+	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/openshift/origin/pkg/image/api"
 )
@@ -164,6 +166,121 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 		}
 		if !match {
 			t.Errorf("%s: expected errors to have field %s and type %s: %v", k, v.F, v.T, errs)
+		}
+	}
+}
+
+func TestValidateImageStream(t *testing.T) {
+	tests := map[string]struct {
+		namespace             string
+		name                  string
+		dockerImageRepository string
+		specTags              map[string]api.TagReference
+		statusTags            map[string]api.TagEventList
+		expected              fielderrors.ValidationErrorList
+	}{
+		"missing name": {
+			namespace: "foo",
+			name:      "",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldRequired("name"),
+			},
+		},
+		"missing namespace": {
+			namespace: "",
+			name:      "foo",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("namespace", "", ""),
+			},
+		},
+		"invalid namespace": {
+			namespace: "!$",
+			name:      "foo",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("namespace", "!$", ""),
+			},
+		},
+		"invalid dockerImageRepository": {
+			namespace: "namespace",
+			name:      "foo",
+			dockerImageRepository: "a-|///bbb",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("spec.dockerImageRepository", "a-|///bbb", "the docker pull spec \"a-|///bbb\" must be two or three segments separated by slashes"),
+			},
+		},
+		"both dockerImageReference and from set": {
+			namespace: "namespace",
+			name:      "foo",
+			specTags: map[string]api.TagReference{
+				"tag": {
+					DockerImageReference: "abc",
+					From:                 &kapi.ObjectReference{},
+				},
+			},
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("spec.tags[tag]", "", "only 1 of dockerImageReference or from may be set"),
+			},
+		},
+		"status tag missing dockerImageReference": {
+			namespace: "namespace",
+			name:      "foo",
+			statusTags: map[string]api.TagEventList{
+				"tag": {
+					Items: []api.TagEvent{
+						{DockerImageReference: ""},
+						{DockerImageReference: "foo/bar:latest"},
+						{DockerImageReference: ""},
+					},
+				},
+			},
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldRequired("status.tags[tag].Items[0].dockerImageReference"),
+				fielderrors.NewFieldRequired("status.tags[tag].Items[2].dockerImageReference"),
+			},
+		},
+		"valid": {
+			namespace: "namespace",
+			name:      "foo",
+			specTags: map[string]api.TagReference{
+				"tag": {
+					DockerImageReference: "abc",
+				},
+				"other": {
+					From: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "other:latest",
+					},
+				},
+			},
+			statusTags: map[string]api.TagEventList{
+				"tag": {
+					Items: []api.TagEvent{
+						{DockerImageReference: "foo/bar:latest"},
+					},
+				},
+			},
+			expected: fielderrors.ValidationErrorList{},
+		},
+	}
+
+	for name, test := range tests {
+		stream := api.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace: test.namespace,
+				Name:      test.name,
+			},
+			Spec: api.ImageStreamSpec{
+				DockerImageRepository: test.dockerImageRepository,
+				Tags: test.specTags,
+			},
+			Status: api.ImageStreamStatus{
+				Tags: test.statusTags,
+			},
+		}
+
+		errs := ValidateImageStream(&stream)
+		if e, a := test.expected, errs; !reflect.DeepEqual(e, a) {
+			t.Errorf("%s: unexpected errors: %s", name, util.ObjectDiff(e, a))
 		}
 	}
 }

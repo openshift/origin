@@ -46,6 +46,11 @@ func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorLis
 			result = append(result, fielderrors.NewFieldInvalid("spec.dockerImageRepository", stream.Spec.DockerImageRepository, err.Error()))
 		}
 	}
+	for tag, tagRef := range stream.Spec.Tags {
+		if len(tagRef.DockerImageReference) > 0 && tagRef.From != nil {
+			result = append(result, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s]", tag), "", "only 1 of dockerImageReference or from may be set"))
+		}
+	}
 	for tag, history := range stream.Status.Tags {
 		for i, tagEvent := range history.Items {
 			if len(tagEvent.DockerImageReference) == 0 {

@@ -40,7 +40,7 @@ BuildRequires:  golang >= 1.2-7
 
 %package master
 Summary:        OpenShift Master
-Requires:       openshift = %{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
@@ -50,7 +50,7 @@ Requires(postun): systemd
 
 %package node
 Summary:        OpenShift Node
-Requires:       openshift = %{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
 Requires:       docker-io >= 1.3.2
 Requires:       tuned-profiles-openshift-node
 Requires(post): systemd
@@ -63,6 +63,7 @@ Requires(postun): systemd
 %package -n tuned-profiles-openshift-node
 Summary:        Tuned profiles for OpenShift Node hosts
 Requires:       tuned >= 2.3
+Requires:       %{name} = %{version}-%{release}
 
 %description -n tuned-profiles-openshift-node
 %{summary}
@@ -111,6 +112,7 @@ do
   install -p -m 755 ${bin} %{buildroot}%{_bindir}/${bin}
 done
 
+install -d -m 0755 %{buildroot}/etc/%{name}
 install -d -m 0755 %{buildroot}%{_unitdir}
 install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift-master.service
 install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift-node.service
@@ -131,7 +133,8 @@ install -m 0644 -t %{buildroot}%{_libdir}/tuned/openshift-node tuned/openshift-n
 %doc README.md LICENSE
 %{_bindir}/openshift
 %{_bindir}/osc
-%{_sharedstatedir}/openshift
+%{_sharedstatedir}/%{name}
+/etc/%{name}
 
 %files master
 %defattr(-,root,root,-)
