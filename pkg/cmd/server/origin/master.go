@@ -243,13 +243,20 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"subjectAccessReviews":  subjectAccessReviewStorage,
 	}
 
+	// for v1beta1, we dual register camelCase and camelcase names
+	v1beta1Storage := map[string]rest.Storage{}
+	for k, v := range storage {
+		v1beta1Storage[k] = v
+		v1beta1Storage[strings.ToLower(k)] = v
+	}
+
 	admissionControl := admit.NewAlwaysAdmit()
 
 	version := &apiserver.APIGroupVersion{
 		Root:    OpenShiftAPIPrefix,
 		Version: OpenShiftAPIV1Beta1,
 
-		Storage: storage,
+		Storage: v1beta1Storage,
 		Codec:   v1beta1.Codec,
 
 		Mapper: latest.RESTMapper,
