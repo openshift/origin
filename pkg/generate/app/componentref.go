@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
@@ -142,20 +144,64 @@ type WeightedResolver struct {
 type PerfectMatchWeightedResolver []WeightedResolver
 
 func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, error) {
-	match, err := WeightedResolvers(r).Resolve(value)
-	if err != nil {
-		if multiple, ok := err.(ErrMultipleMatches); ok {
-			sort.Sort(ScoredComponentMatches(multiple.Matches))
-			if multiple.Matches[0].Score == 0.0 && (len(multiple.Matches) == 1 || multiple.Matches[1].Score != 0.0) {
-				return multiple.Matches[0], nil
+	imperfect := []*ComponentMatch{}
+	group := []WeightedResolver{}
+	for i, resolver := range r {
+		if len(group) == 0 || resolver.Weight == group[0].Weight {
+			group = append(group, resolver)
+			if i != len(r)-1 && r[i+1].Weight == group[0].Weight {
+				continue
 			}
 		}
-		return nil, err
+		match, other, err := resolveExact(WeightedResolvers(group), value)
+		switch {
+		case match != nil:
+			if match.Score == 0.0 {
+				return match, nil
+			}
+			if resolver.Weight != 0.0 {
+				match.Score = resolver.Weight * match.Score
+			}
+			imperfect = append(imperfect, match)
+		case len(other) > 0:
+			sort.Sort(ScoredComponentMatches(other))
+			if other[0].Score == 0.0 && (len(other) == 1 || other[1].Score != 0.0) {
+				return other[0], nil
+			}
+			for _, m := range other {
+				if resolver.Weight != 0.0 {
+					m.Score = resolver.Weight * m.Score
+				}
+				imperfect = append(imperfect, m)
+			}
+		case err != nil:
+			return nil, err
+		}
+		group = nil
 	}
-	if match.Score != 0.0 {
-		return nil, ErrMultipleMatches{value, []*ComponentMatch{match}}
+	switch len(imperfect) {
+	case 0:
+		return nil, ErrNoMatch{value: value}
+	case 1:
+		return imperfect[0], nil
+	default:
+		return nil, ErrMultipleMatches{value, imperfect}
 	}
-	return match, nil
+}
+
+func resolveExact(resolver Resolver, value string) (exact *ComponentMatch, inexact []*ComponentMatch, err error) {
+	match, err := resolver.Resolve(value)
+	if err != nil {
+		switch t := err.(type) {
+		case ErrNoMatch:
+			return nil, nil, nil
+		case ErrMultipleMatches:
+			return nil, t.Matches, nil
+		default:
+			return nil, nil, err
+		}
+	}
+	return match, nil, nil
 }
 
 type WeightedResolvers []WeightedResolver
@@ -164,24 +210,18 @@ func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
 	candidates := []*ComponentMatch{}
 	errs := []error{}
 	for _, resolver := range r {
-		match, err := resolver.Resolve(value)
-		if err != nil {
-			if multiple, ok := err.(ErrMultipleMatches); ok {
-				for _, match := range multiple.Matches {
-					if resolver.Weight != 0.0 {
-						match.Score = match.Score * resolver.Weight
-					}
-					candidates = append(candidates, match)
-				}
-				continue
-			}
-			if _, ok := err.(ErrNoMatch); ok {
-				continue
-			}
+		match, other, err := resolveExact(resolver.Resolver, value)
+		switch {
+		case match != nil:
+			candidates = append(candidates, match)
+		case len(other) > 0:
+			candidates = append(candidates, other...)
+		case err != nil:
 			errs = append(errs, err)
-			continue
 		}
-		candidates = append(candidates, match)
+	}
+	if len(errs) != 0 {
+		return nil, errors.NewAggregate(errs)
 	}
 	switch len(candidates) {
 	case 0:

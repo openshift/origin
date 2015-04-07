@@ -40,11 +40,11 @@ func (e ErrMultipleMatches) Error() string {
 func (e ErrMultipleMatches) UsageError(commandName string) string {
 	buf := &bytes.Buffer{}
 	for _, match := range e.Matches {
-		fmt.Fprintf(buf, "* %[1]s (use %[2]s)\n", match.Name, match.Argument)
-		fmt.Fprintf(buf, "  %s\n\n", match.Description)
+		fmt.Fprintf(buf, "* %s %f\n", match.Description, match.Score)
+		fmt.Fprintf(buf, "  Use %[1]s to specify this image\n\n", match.Argument)
 	}
 	return fmt.Sprintf(`
-The argument %[1]q could apply to the following images or image repositories:
+The argument %[1]q could apply to the following Docker images or OpenShift image repositories:
 
 %[2]s
 `, e.Image, buf.String())

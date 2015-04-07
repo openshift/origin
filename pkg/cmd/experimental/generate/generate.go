@@ -357,7 +357,7 @@ func (g *appGenerator) run() (*kapi.List, error) {
 	glog.V(2).Infof("Generated pipeline: %#v", pipeline)
 
 	// Generate objects and service
-	objects, err := pipeline.Objects(genapp.NewAcceptFirst())
+	objects, err := pipeline.Objects(genapp.NewAcceptFirst(), genapp.AcceptAll)
 	if err != nil {
 		return nil, err
 	}

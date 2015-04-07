@@ -270,6 +270,7 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 			}
 			return nil, err
 		}
+		ref.Namespace = namespace
 		searchTag := ref.Tag
 		if len(searchTag) == 0 {
 			searchTag = "latest"
@@ -291,7 +292,7 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 			Value:       ref.String(),
 			Argument:    fmt.Sprintf("--image=%q", ref.String()),
 			Name:        ref.Name,
-			Description: fmt.Sprintf("Image stream %s (tag %q) in namespace %s, tracks %q", ref.Name, searchTag, ref.Namespace, repo.Status.DockerImageRepository),
+			Description: fmt.Sprintf("Image repository %s (tag %q) in project %s, tracks %q", repo.Name, searchTag, repo.Namespace, repo.Status.DockerImageRepository),
 			Builder:     IsBuilderImage(&imageData.DockerImageMetadata),
 			Score:       0,
 
