@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	etcdconfig "github.com/coreos/etcd/config"
-	"github.com/coreos/etcd/etcd"
+	//etcdconfig "github.com/coreos/etcd/config"
+	_ "github.com/coreos/etcd/etcdmain"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
@@ -19,7 +19,7 @@ import (
 // RunEtcd starts an etcd server and runs it forever
 func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 
-	config := etcdconfig.New()
+	/*config := etcdconfig.New()
 
 	config.Addr = etcdServerConfig.Address
 	config.BindAddr = etcdServerConfig.ServingInfo.BindAddress
@@ -48,7 +48,7 @@ func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 		server.Run()
 		glog.Fatalf("etcd died, exiting.")
 	}, 500*time.Millisecond)
-	<-server.ReadyNotify()
+	<-server.ReadyNotify()*/
 }
 
 // getAndTestEtcdClient creates an etcd client based on the provided config and waits
