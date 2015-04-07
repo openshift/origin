@@ -1,4 +1,4 @@
-package deployerpod
+package execnewpod
 
 import (
 	"time"
@@ -11,28 +11,23 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	controller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	lifecycle "github.com/openshift/origin/pkg/deploy/controller/lifecycle"
-	execnewpod "github.com/openshift/origin/pkg/deploy/controller/lifecycle/execnewpod"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // DeployerPodControllerFactory can create a DeployerPodController which gets
 // pods from a queue populated from a watch of all pods filtered by a cache of
 // deployments associated with pods.
-type DeployerPodControllerFactory struct {
+type ExecNewPodControllerFactory struct {
 	// KubeClient is a Kubernetes client.
 	KubeClient kclient.Interface
-	// Codec is used for encoding/decoding.
-	Codec runtime.Codec
 }
 
 // Create creates a DeployerPodController.
-func (factory *DeployerPodControllerFactory) Create() controller.RunnableController {
+func (factory *ExecNewPodControllerFactory) Create() controller.RunnableController {
 	deploymentLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
 			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
@@ -41,9 +36,6 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		},
 	}
-	deploymentQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentQueue, 2*time.Minute).Run()
-
 	deploymentStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentStore, 2*time.Minute).Run()
 
@@ -61,22 +53,7 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 	}
 	cache.NewPoller(pollFunc, 10*time.Second, podQueue).Run()
 
-	lifecycleManager := &lifecycle.LifecycleManager{
-		Plugins: []lifecycle.Plugin{
-			&execnewpod.Plugin{
-				PodClient: &execnewpod.PodClientImpl{
-					CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-						return factory.KubeClient.Pods(namespace).Create(pod)
-					},
-				},
-			},
-		},
-		DecodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
-		},
-	}
-
-	podController := &DeployerPodController{
+	podController := &ExecNewPodController{
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
@@ -85,7 +62,6 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
 			},
 		},
-		lifecycleManager: lifecycleManager,
 	}
 
 	return &controller.RetryController{
@@ -94,7 +70,6 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 			podQueue,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, count int) bool { return count < 1 },
-			kutil.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			pod := obj.(*kapi.Pod)
@@ -103,30 +78,32 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 	}
 }
 
-// pollPods lists all pods associated with pending or running deployments and returns
-// a cache.Enumerator suitable for use with a cache.Poller.
 func pollPods(deploymentStore cache.Store, kClient kclient.PodsNamespacer) (cache.Enumerator, error) {
 	list := &kapi.PodList{}
 
 	for _, obj := range deploymentStore.List() {
 		deployment := obj.(*kapi.ReplicationController)
-
-		switch deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation]) {
-		case deployapi.DeploymentStatusPending, deployapi.DeploymentStatusRunning:
-			// Validate the correlating pod annotation
-			podID, hasPodID := deployment.Annotations[deployapi.DeploymentPodAnnotation]
-			if !hasPodID {
-				glog.V(2).Infof("Unexpected state: deployment %s has no pod annotation; skipping pod polling", deployment.Name)
-				continue
+		status := deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation])
+		switch status {
+		case deployapi.DeploymentStatusNew, deployapi.DeploymentStatusPending, deployapi.DeploymentStatusRunning:
+			// Only return lifecycle pods for the deployment
+			lifecyclePods := []string{}
+			if name, ok := deployment.Annotations[deployapi.PreExecNewPodActionPodAnnotation]; ok {
+				lifecyclePods = append(lifecyclePods, name)
 			}
 
-			pod, err := kClient.Pods(deployment.Namespace).Get(podID)
-			if err != nil {
-				glog.V(2).Infof("Couldn't find pod %s for deployment %s: %#v", podID, deployment.Name, err)
-				continue
+			if name, ok := deployment.Annotations[deployapi.PostExecNewPodActionPodAnnotation]; ok {
+				lifecyclePods = append(lifecyclePods, name)
 			}
 
-			list.Items = append(list.Items, *pod)
+			for _, name := range lifecyclePods {
+				pod, err := kClient.Pods(deployment.Namespace).Get(name)
+				if err != nil {
+					glog.V(2).Infof("Couldn't find pod %s for deployment %s: %#v", name, deployment.Name, err)
+					continue
+				}
+				list.Items = append(list.Items, *pod)
+			}
 		}
 	}
 

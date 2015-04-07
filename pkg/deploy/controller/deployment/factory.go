@@ -15,6 +15,8 @@ import (
 
 	controller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	lifecycle "github.com/openshift/origin/pkg/deploy/controller/lifecycle"
+	execnewpod "github.com/openshift/origin/pkg/deploy/controller/lifecycle/execnewpod"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -44,6 +46,21 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 	deploymentQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentQueue, 2*time.Minute).Run()
 
+	lifecycleManager := &lifecycle.LifecycleManager{
+		Plugins: []lifecycle.Plugin{
+			&execnewpod.Plugin{
+				PodClient: &execnewpod.PodClientImpl{
+					CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+						return factory.KubeClient.Pods(namespace).Create(pod)
+					},
+				},
+			},
+		},
+		DecodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
+		},
+	}
+
 	deployController := &DeploymentController{
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -67,6 +84,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
 		},
+		lifecycleManager: lifecycleManager,
 	}
 
 	return &controller.RetryController{

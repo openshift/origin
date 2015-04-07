@@ -52,6 +52,7 @@ import (
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
+	execnewpodcontroller "github.com/openshift/origin/pkg/deploy/controller/lifecycle/execnewpod"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
@@ -705,6 +706,7 @@ func (c *MasterConfig) RunDeployerPodController() {
 	_, kclient := c.DeploymentControllerClients()
 	factory := deployerpodcontroller.DeployerPodControllerFactory{
 		KubeClient: kclient,
+		Codec:      latest.Codec,
 	}
 
 	controller := factory.Create()
@@ -736,6 +738,16 @@ func (c *MasterConfig) RunDeploymentConfigChangeController() {
 func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	osclient := c.DeploymentImageChangeControllerClient()
 	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
+	controller := factory.Create()
+	controller.Run()
+}
+
+func (c *MasterConfig) RunExecNewPodController() {
+	_, kclient := c.DeploymentControllerClients()
+	factory := &execnewpodcontroller.ExecNewPodControllerFactory{
+		KubeClient: kclient,
+	}
+
 	controller := factory.Create()
 	controller.Run()
 }
