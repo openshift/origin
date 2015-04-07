@@ -112,6 +112,7 @@ do
   install -p -m 755 ${bin} %{buildroot}%{_bindir}/${bin}
 done
 
+install -d -m 0755 %{buildroot}/etc/%{name}
 install -d -m 0755 %{buildroot}%{_unitdir}
 install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift-master.service
 install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift-node.service
@@ -133,6 +134,7 @@ install -m 0644 -t %{buildroot}%{_libdir}/tuned/openshift-node tuned/openshift-n
 %{_bindir}/openshift
 %{_bindir}/osc
 %{_sharedstatedir}/openshift
+/etc/%{name}
 
 %files master
 %defattr(-,root,root,-)
