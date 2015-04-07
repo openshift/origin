@@ -145,7 +145,7 @@ backend be_http_{{$serviceUnit.TemplateSafeName}}
 backend be_http_{{$serviceUnit.TemplateSafeName}}{{$cfg.TemplateSafePath}}
                 {{ end }}
   mode http
-  balance leastconn
+  balance source
   timeout check 5000ms
                 {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
   server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
@@ -154,7 +154,7 @@ backend be_http_{{$serviceUnit.TemplateSafeName}}{{$cfg.TemplateSafePath}}
 
             {{ if eq $cfg.TLSTermination "passthrough" }}
 backend be_tcp_{{$serviceUnit.TemplateSafeName}}
-  balance leastconn
+  balance source
   timeout check 5000ms
                 {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
   server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
@@ -164,7 +164,7 @@ backend be_tcp_{{$serviceUnit.TemplateSafeName}}
             {{ if eq $cfg.TLSTermination "reencrypt" }}
 backend be_secure_{{$serviceUnit.TemplateSafeName}}
   mode http
-  balance leastconn
+  balance source
   timeout check 5000ms
                 {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
   server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfg.Host}}_pod.pem
