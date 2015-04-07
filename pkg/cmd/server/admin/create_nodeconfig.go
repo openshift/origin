@@ -320,6 +320,8 @@ func (o CreateNodeConfigOptions) MakeKubeConfig(clientCertFile, clientKeyFile, c
 		KeyFile:  clientKeyFile,
 		UserNick: "node",
 
+		ContextNamespace: kapi.NamespaceDefault,
+
 		KubeConfigFile: kubeConfigFile,
 	}
 	if err := createKubeConfigOptions.Validate(nil); err != nil {

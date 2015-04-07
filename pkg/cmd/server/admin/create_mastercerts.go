@@ -10,6 +10,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -137,6 +139,8 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *GetSign
 			CertFile: clientCertInfo.CertLocation.CertFile,
 			KeyFile:  clientCertInfo.CertLocation.KeyFile,
 			UserNick: clientCertInfo.User,
+
+			ContextNamespace: kapi.NamespaceDefault,
 
 			KubeConfigFile: path.Join(filepath.Dir(clientCertInfo.CertLocation.CertFile), ".kubeconfig"),
 		}
