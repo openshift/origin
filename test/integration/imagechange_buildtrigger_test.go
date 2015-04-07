@@ -30,6 +30,14 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
+	})
+
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "test-image-trigger-repo"},
 		Spec: imageapi.ImageStreamSpec{
@@ -158,6 +166,14 @@ func TestSimpleImageChangeBuildTriggerFromRef(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
+
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
+	})
 
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "test-image-trigger-repo"},

@@ -59,8 +59,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	portalNet := net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 
 	// in-order list of plug-ins that should intercept admission decisions
-	// TODO: add NamespaceExists
-	admissionControlPluginNames := []string{"LimitRanger", "ResourceQuota"}
+	admissionControlPluginNames := []string{"NamespaceExists", "NamespaceLifecycle", "LimitRanger", "ResourceQuota"}
 	admissionController := admission.NewFromPlugins(kubeClient, admissionControlPluginNames, "")
 
 	_, portString, err := net.SplitHostPort(options.ServingInfo.BindAddress)
