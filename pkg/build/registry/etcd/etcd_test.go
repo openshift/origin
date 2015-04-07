@@ -3,6 +3,7 @@ package etcd
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
@@ -10,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -65,6 +67,24 @@ func TestEtcdGetBuild(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	} else if build.Name != "foo" {
+		t.Errorf("Unexpected build: %#v", build)
+	}
+}
+
+func TestEtcdGetBuildWithDuration(t *testing.T) {
+	fakeClient := tools.NewFakeEtcdClient(t)
+	start := util.Date(2015, time.April, 8, 12, 1, 1, 0, time.Local)
+	completion := util.Date(2015, time.April, 8, 12, 1, 5, 0, time.Local)
+	fakeClient.Set(makeTestDefaultBuildKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.Build{
+		ObjectMeta:          kapi.ObjectMeta{Name: "foo"},
+		StartTimestamp:      &start,
+		CompletionTimestamp: &completion,
+	}), 0)
+	registry := NewTestEtcd(fakeClient)
+	build, err := registry.GetBuild(kapi.NewDefaultContext(), "foo")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	} else if build.Name != "foo" && build.Duration != time.Duration(4)*time.Second {
 		t.Errorf("Unexpected build: %#v", build)
 	}
 }
@@ -261,18 +281,24 @@ func TestEtcdEmptyListBuilds(t *testing.T) {
 func TestEtcdListBuilds(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	key := makeTestDefaultBuildListKey()
+	start := util.Date(2015, time.April, 8, 12, 1, 1, 0, time.Local)
+	completion := util.Date(2015, time.April, 8, 12, 1, 5, 0, time.Local)
 	fakeClient.Data[key] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{
-							ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+							ObjectMeta:          kapi.ObjectMeta{Name: "foo"},
+							StartTimestamp:      &start,
+							CompletionTimestamp: &completion,
 						}),
 					},
 					{
 						Value: runtime.EncodeOrDie(latest.Codec, &api.Build{
-							ObjectMeta: kapi.ObjectMeta{Name: "bar"},
+							ObjectMeta:          kapi.ObjectMeta{Name: "bar"},
+							StartTimestamp:      &start,
+							CompletionTimestamp: &completion,
 						}),
 					},
 				},
@@ -286,7 +312,9 @@ func TestEtcdListBuilds(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if len(builds.Items) != 2 || builds.Items[0].Name != "foo" || builds.Items[1].Name != "bar" {
+	duration := time.Duration(4) * time.Second
+	if len(builds.Items) != 2 || builds.Items[0].Name != "foo" || builds.Items[1].Name != "bar" ||
+		builds.Items[0].Duration != duration || builds.Items[1].Duration != duration {
 		t.Errorf("Unexpected build list: %#v", builds)
 	}
 }
