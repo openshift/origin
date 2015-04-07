@@ -3,11 +3,11 @@ package controller
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/project/api"
 )
 
 func TestSyncNamespaceThatIsTerminating(t *testing.T) {
@@ -17,18 +17,18 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		KubeClient: mockKubeClient,
 		Client:     mockOriginClient,
 	}
-	//now := util.Now()
-	testNamespace := &api.Namespace{
-		ObjectMeta: api.ObjectMeta{
-			Name:            "test",
-			ResourceVersion: "1",
-			//			DeletionTimestamp: &now,
+	now := util.Now()
+	testNamespace := &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:              "test",
+			ResourceVersion:   "1",
+			DeletionTimestamp: &now,
 		},
-		//		Spec: api.NamespaceSpec{
-		//			Finalizers: []api.FinalizerName{"kubernetes"},
-		//		},
-		Status: api.NamespaceStatus{
-			Phase: api.NamespaceTerminating,
+		Spec: kapi.NamespaceSpec{
+			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, api.FinalizerProject},
+		},
+		Status: kapi.NamespaceStatus{
+			Phase: kapi.NamespaceTerminating,
 		},
 	}
 	err := nm.Handle(testNamespace)
@@ -67,18 +67,16 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 		KubeClient: mockKubeClient,
 		Client:     mockOriginClient,
 	}
-	//now := util.Now()
-	testNamespace := &api.Namespace{
-		ObjectMeta: api.ObjectMeta{
+	testNamespace := &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
 			Name:            "test",
 			ResourceVersion: "1",
-			//      DeletionTimestamp: &now,
 		},
-		//    Spec: api.NamespaceSpec{
-		//      Finalizers: []api.FinalizerName{"kubernetes"},
-		//    },
-		Status: api.NamespaceStatus{
-			Phase: api.NamespaceActive,
+		Spec: kapi.NamespaceSpec{
+			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, api.FinalizerProject},
+		},
+		Status: kapi.NamespaceStatus{
+			Phase: kapi.NamespaceActive,
 		},
 	}
 	err := nm.Handle(testNamespace)
