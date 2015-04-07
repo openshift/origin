@@ -107,6 +107,37 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	config.Triggers[0].ImageChangeParams.RepositoryName = ""
 	config.Triggers[0].ImageChangeParams.From = kapi.ObjectReference{Name: "imageRepo"}
 	describe()
+
+	config.Template.Strategy = deployapitest.OkStrategy()
+	config.Template.Strategy.RecreateParams = &deployapi.RecreateDeploymentStrategyParams{
+		Pre: &deployapi.LifecycleHook{
+			FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
+			ExecNewPod: &deployapi.ExecNewPodHook{
+				ContainerName: "container",
+				Command:       []string{"/command1", "args"},
+				Env: []kapi.EnvVar{
+					{
+						Name:  "KEY1",
+						Value: "value1",
+					},
+				},
+			},
+		},
+		Post: &deployapi.LifecycleHook{
+			FailurePolicy: deployapi.LifecycleHookFailurePolicyIgnore,
+			ExecNewPod: &deployapi.ExecNewPodHook{
+				ContainerName: "container",
+				Command:       []string{"/command2", "args"},
+				Env: []kapi.EnvVar{
+					{
+						Name:  "KEY2",
+						Value: "value2",
+					},
+				},
+			},
+		},
+	}
+	describe()
 }
 
 func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {

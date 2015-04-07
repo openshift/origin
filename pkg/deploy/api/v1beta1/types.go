@@ -53,6 +53,8 @@ type DeploymentStrategy struct {
 	Type DeploymentStrategyType `json:"type,omitempty"`
 	// CustomParams are the input to the Custom deployment strategy.
 	CustomParams *CustomDeploymentStrategyParams `json:"customParams,omitempty"`
+	// RecreateParams are the input to the Recreate deployment strategy.
+	RecreateParams *RecreateDeploymentStrategyParams `json:"recreateParams,omitempty"`
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
@@ -73,6 +75,51 @@ type CustomDeploymentStrategyParams struct {
 	Environment []kapi.EnvVar `json:"environment,omitempty"`
 	// Command is optional and overrides CMD in the container Image.
 	Command []string `json:"command,omitempty"`
+}
+
+// RecreateDeploymentStrategyParams are the input to the Recreate deployment
+// strategy.
+type RecreateDeploymentStrategyParams struct {
+	// Pre is a lifecycle hook which is executed before the strategy manipulates
+	// the deployment. All LifecycleHookFailurePolicy values are supported.
+	Pre *LifecycleHook `json:"pre"`
+	// Post is a lifecycle hook which is executed after the strategy has
+	// finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
+	// is NOT supported.
+	Post *LifecycleHook `json:"post"`
+}
+
+// Handler defines a specific deployment lifecycle action.
+type LifecycleHook struct {
+	// FailurePolicy specifies what action to take if the hook fails.
+	FailurePolicy LifecycleHookFailurePolicy `json:"failurePolicy"`
+	// ExecNewPod specifies the options for a lifecycle hook backed by a pod.
+	ExecNewPod *ExecNewPodHook `json:"execNewPod,omitempty"`
+}
+
+// HandlerFailurePolicy describes possibles actions to take if a hook fails.
+type LifecycleHookFailurePolicy string
+
+const (
+	// LifecycleHookFailurePolicyRetry means retry the hook until it succeeds.
+	LifecycleHookFailurePolicyRetry LifecycleHookFailurePolicy = "Retry"
+	// LifecycleHookFailurePolicyAbort means abort the deployment (if possible).
+	LifecycleHookFailurePolicyAbort LifecycleHookFailurePolicy = "Abort"
+	// LifecycleHookFailurePolicyIgnore means ignore failure and continue the deployment.
+	LifecycleHookFailurePolicyIgnore LifecycleHookFailurePolicy = "Ignore"
+)
+
+// ExecNewPodHook is a hook implementation which runs a command in a new pod
+// based on the specified container which is assumed to be part of the
+// deployment template.
+type ExecNewPodHook struct {
+	// Command is the action command and its arguments.
+	Command []string `json:"command"`
+	// Env is a set of environment variables to supply to the hook pod's container.
+	Env []kapi.EnvVar `json:"env,omitempty"`
+	// ContainerName is the name of a container in the deployment pod template
+	// whose Docker image will be used for the hook pod's container.
+	ContainerName string `json:"containerName"`
 }
 
 // A DeploymentList is a collection of deployments.
