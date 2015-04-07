@@ -227,8 +227,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	output := mockOutput()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:   "test-build-config",
-			Labels: map[string]string{"testlabel": "testvalue"},
+			Name:      "test-build-config",
+			Namespace: "test-namespace",
+			Labels:    map[string]string{"testlabel": "testvalue"},
 		},
 		Parameters: buildapi.BuildParameters{
 			Source: source,
@@ -271,6 +272,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	}
 	if build.Labels[buildapi.BuildConfigLabel] != bc.Name {
 		t.Errorf("Build does not contain labels from BuildConfig")
+	}
+	if build.Config.Name != bc.Name || build.Config.Namespace != bc.Namespace || build.Config.Kind != "BuildConfig" {
+		t.Errorf("Build does not contain correct BuildConfig reference: %v", build.Config)
 	}
 }
 

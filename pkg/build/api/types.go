@@ -36,6 +36,9 @@ type Build struct {
 	// the Pod running the Build terminated.
 	// It is represented in RFC3339 form and is in UTC.
 	CompletionTimestamp *util.Time `json:"completionTimestamp,omitempty"`
+
+	// Config is an ObjectReference to the BuildConfig this Build is based on.
+	Config *kapi.ObjectReference `json:"config,omitempty"`
 }
 
 // BuildParameters encapsulates all the inputs necessary to represent a build.

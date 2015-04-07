@@ -292,11 +292,13 @@ This section covers how to perform all the steps of building, deploying, and upd
      docker registry is using ephemeral storage, so when it is stopped,
      the image will be lost.)
 
-     If you want to see the build logs of a complete build, use this
-     command (substituting your build name from the "osc get builds"
-     output):
+     If you want to see the build logs of a complete build, use the
+     command below (substituting your build name from the "osc get builds"
+     output). Notice that for now only cluster admins can run the `build-logs` 
+     command, so we have to explicitly tell the command to use the `master` 
+     context from the $OPENSHIFTCONFIG config file: 
 
-         $ osc build-logs ruby-sample-build-1
+         $ osc build-logs ruby-sample-build-1 --context=master -n test
 
     The creation of the new image in the Docker registry will
     automatically trigger a deployment of the application, creating a

@@ -27,7 +27,7 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Ro
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     util.NewStringSet("get", "list"),
-					Resources: util.NewStringSet("templates", "imageRepositories", "imageRepositoryTags"),
+					Resources: util.NewStringSet("templates", "imagerepositories", "imagerepositorytags"),
 				},
 			},
 		},
@@ -58,12 +58,12 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch", "redirect", "create", "update", "delete"),
+					Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "delete"),
 					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch", "redirect"),
-					Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
+					Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName),
 				},
 			},
 		},
@@ -74,12 +74,12 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch", "redirect", "create", "update", "delete"),
+					Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "delete"),
 					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch", "redirect"),
-					Resources: util.NewStringSet(authorizationapi.KubeAllGroupName),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
+					Resources: util.NewStringSet(authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName),
 				},
 			},
 		},
@@ -90,8 +90,8 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch", "redirect"),
-					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
+					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName),
 				},
 			},
 		},

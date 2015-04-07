@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
-	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -50,7 +49,6 @@ func NewDefaultNodeArgs() *NodeArgs {
 	hostname, err := defaultHostname()
 	if err != nil {
 		hostname = "localhost"
-		glog.Warningf("Unable to lookup hostname, using %q: %v", hostname, err)
 	}
 
 	var dnsIP net.IP

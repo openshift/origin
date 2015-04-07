@@ -11,18 +11,13 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
+	"github.com/openshift/origin/pkg/util"
 )
 
 var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
-
-// reportError reports the single item validation error and properly set the
-// prefix and index to match the Config item JSON index
-func reportError(allErrs *fielderrors.ValidationErrorList, index int, err fielderrors.ValidationError) {
-	i := fielderrors.ValidationErrorList{}
-	*allErrs = append(*allErrs, append(i, &err).PrefixIndex(index).Prefix("item")...)
-}
 
 // Processor process the Template into the List with substituted parameters
 type Processor struct {
@@ -48,12 +43,12 @@ func (p *Processor) Process(template *api.Template) (*configapi.Config, fielderr
 	for i, item := range template.Objects {
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
-			reportError(&templateErrors, i, *fielderrors.NewFieldNotSupported("parameters", err))
+			util.ReportError(&templateErrors, i, *fielderrors.NewFieldNotSupported("parameters", err))
 		}
 		// Remove namespace from the item
 		itemMeta, err := meta.Accessor(newItem)
 		if err != nil {
-			reportError(&templateErrors, i, *fielderrors.NewFieldInvalid("namespace", err, "failed to remove the item namespace"))
+			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("namespace", err, "failed to remove the item namespace"))
 		}
 		itemMeta.SetNamespace("")
 		template.Objects[i] = newItem

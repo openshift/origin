@@ -332,7 +332,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 					return nil, fmt.Errorf("unexpected oauth provider %#v", provider)
 				}
 
-				state := external.DefaultState()
+				state := external.DefaultState(getCSRF())
 				oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, successHandler, errorHandler, identityMapper)
 				if err != nil {
 					return nil, fmt.Errorf("unexpected error: %v", err)
@@ -375,11 +375,15 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		}
 
 	case (*configapi.BasicAuthPasswordIdentityProvider):
-		basicAuthURL := provider.RemoteConnectionInfo.URL
-		if len(basicAuthURL) == 0 {
-			return nil, fmt.Errorf("BasicAuthURL is required to support basic password auth")
+		connectionInfo := provider.RemoteConnectionInfo
+		if len(connectionInfo.URL) == 0 {
+			return nil, fmt.Errorf("URL is required for BasicAuthPasswordIdentityProvider")
 		}
-		return basicauthpassword.New(identityProvider.Name, basicAuthURL, identityMapper), nil
+		transport, err := cmdutil.TransportFor(connectionInfo.CA, connectionInfo.ClientCert.CertFile, connectionInfo.ClientCert.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("Error building BasicAuthPasswordIdentityProvider client: %v", err)
+		}
+		return basicauthpassword.New(identityProvider.Name, connectionInfo.URL, transport, identityMapper), nil
 
 	default:
 		return nil, fmt.Errorf("No password auth found that matches %v.  The oauth server cannot start!", identityProvider)
@@ -402,7 +406,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSu
 
 		switch identityProvider.Provider.Object.(type) {
 		case (*configapi.OAuthRedirectingIdentityProvider):
-			successHandlers = append(successHandlers, external.DefaultState().(handlers.AuthenticationSuccessHandler))
+			successHandlers = append(successHandlers, external.DefaultState(getCSRF()).(handlers.AuthenticationSuccessHandler))
 		}
 
 		if !addedRedirectSuccessHandler && configapi.IsPasswordAuthenticator(identityProvider) {

@@ -83,6 +83,7 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 				}
 				return true
 			},
+			kutil.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			repo := obj.(*imageapi.ImageStream)

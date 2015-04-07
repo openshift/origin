@@ -7,9 +7,10 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
+	"github.com/golang/glog"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
@@ -61,6 +62,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		return nil, err
 	}
 
+	if options.NodeName == "localhost" {
+		glog.Warningf(`Using "localhost" as node name will not resolve from all locations`)
+	}
+
 	var dnsIP net.IP
 	if len(options.DNSIP) > 0 {
 		dnsIP = net.ParseIP(options.DNSIP)
@@ -69,7 +74,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		}
 	}
 
-	clientCAs, err := crypto.CertPoolFromFile(options.ServingInfo.ClientCA)
+	clientCAs, err := util.CertPoolFromFile(options.ServingInfo.ClientCA)
 	if err != nil {
 		return nil, err
 	}

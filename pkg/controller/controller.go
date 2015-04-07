@@ -85,6 +85,10 @@ type QueueRetryManager struct {
 
 	// retries maps resources to their current retry count.
 	retries map[string]int
+
+	// limits how fast retries can be enqueued to ensure you can't tight
+	// loop on retries.
+	limiter kutil.RateLimiter
 }
 
 // ReQueue is a queue that allows an object to be requeued
@@ -94,12 +98,13 @@ type ReQueue interface {
 }
 
 // NewQueueRetryManager safely creates a new QueueRetryManager.
-func NewQueueRetryManager(queue ReQueue, keyFn kcache.KeyFunc, retryFn RetryFunc) *QueueRetryManager {
+func NewQueueRetryManager(queue ReQueue, keyFn kcache.KeyFunc, retryFn RetryFunc, limiter kutil.RateLimiter) *QueueRetryManager {
 	return &QueueRetryManager{
 		queue:     queue,
 		keyFunc:   keyFn,
 		retryFunc: retryFn,
 		retries:   make(map[string]int),
+		limiter:   limiter,
 	}
 }
 
@@ -115,6 +120,7 @@ func (r *QueueRetryManager) Retry(resource interface{}, err error) {
 	tries := r.retries[id]
 
 	if r.retryFunc(resource, err, tries) {
+		r.limiter.Accept()
 		// It's important to use AddIfNotPresent to prevent overwriting newer
 		// state in the queue which may have arrived asynchronously.
 		r.queue.AddIfNotPresent(resource)

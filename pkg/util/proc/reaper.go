@@ -27,7 +27,7 @@ func StartReaper() {
 					glog.V(4).Infof("Waiting to reap")
 					cpid, _ := syscall.Wait4(-1, nil, syscall.WNOHANG, nil)
 					if cpid < 1 {
-						glog.V(4).Infof("No more process to reap.")
+						glog.V(4).Infof("No more processes to reap.")
 						break
 					}
 

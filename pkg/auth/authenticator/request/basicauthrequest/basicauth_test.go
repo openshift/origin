@@ -71,9 +71,12 @@ func TestGetBasicAuthInfo(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	req.SetBasicAuth(Username, Password)
 
-	username, password, err := getBasicAuthInfo(req)
+	username, password, hasBasicAuth, err := getBasicAuthInfo(req)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
+	}
+	if !hasBasicAuth {
+		t.Errorf("Expected hasBasicAuth")
 	}
 	if username != Username {
 		t.Errorf("Expected %v, got %v", Username, username)
@@ -86,9 +89,12 @@ func TestGetBasicAuthInfo(t *testing.T) {
 func TestGetBasicAuthInfoNoHeader(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 
-	username, password, err := getBasicAuthInfo(req)
+	username, password, hasBasicAuth, err := getBasicAuthInfo(req)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
+	}
+	if hasBasicAuth {
+		t.Errorf("Expected hasBasicAuth to be false")
 	}
 	if len(username) != 0 {
 		t.Errorf("Unexpected username: %v", username)
@@ -102,9 +108,12 @@ func TestGetBasicAuthInfoNotBasicHeader(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	req.Header.Add("Authorization", "notbasic")
 
-	username, password, err := getBasicAuthInfo(req)
+	username, password, hasBasicAuth, err := getBasicAuthInfo(req)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
+	}
+	if hasBasicAuth {
+		t.Errorf("Expected hasBasicAuth to be false")
 	}
 	if len(username) != 0 {
 		t.Errorf("Unexpected username: %v", username)
@@ -120,9 +129,12 @@ func TestGetBasicAuthInfoNotBase64Encoded(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	req.Header.Add("Authorization", "Basic invalid:string")
 
-	username, password, err := getBasicAuthInfo(req)
+	username, password, hasBasicAuth, err := getBasicAuthInfo(req)
 	if err == nil {
 		t.Errorf("Expected error: %v", ExpectedError)
+	}
+	if hasBasicAuth {
+		t.Errorf("Expected hasBasicAuth to be false")
 	}
 	if err.Error() != ExpectedError {
 		t.Errorf("Expected %v, got %v", ExpectedError, err)
@@ -141,9 +153,12 @@ func TestGetBasicAuthInfoNotCredentials(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.org", nil)
 	req.Header.Add("Authorization", "Basic "+ValidBase64String)
 
-	username, password, err := getBasicAuthInfo(req)
+	username, password, hasBasicAuth, err := getBasicAuthInfo(req)
 	if err == nil {
 		t.Errorf("Expected error: %v", ExpectedError)
+	}
+	if hasBasicAuth {
+		t.Errorf("Expected hasBasicAuth to be false")
 	}
 	if err.Error() != ExpectedError {
 		t.Errorf("Expected %v, got %v", ExpectedError, err)
