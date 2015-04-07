@@ -42,6 +42,8 @@ func NewREST(h tools.EtcdHelper, defaultRegistry imagestream.DefaultRegistry, su
 	}
 
 	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry)
+	rest := &REST{subjectAccessReviewRegistry: subjectAccessReviewRegistry}
+	strategy.ImageStreamGetter = rest
 
 	statusStore := store
 	statusStore.UpdateStrategy = imagestream.NewStatusStrategy(strategy)
@@ -50,8 +52,8 @@ func NewREST(h tools.EtcdHelper, defaultRegistry imagestream.DefaultRegistry, su
 	store.UpdateStrategy = strategy
 	store.Decorator = strategy.Decorate
 
-	rest := &REST{store: &store, subjectAccessReviewRegistry: subjectAccessReviewRegistry}
-	strategy.ImageStreamGetter = rest
+	rest.store = &store
+
 	return rest, &StatusREST{store: &statusStore}
 }
 

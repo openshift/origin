@@ -149,9 +149,9 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 			streamRefNamespace = stream.Namespace
 		}
 		if streamRefNamespace != stream.Namespace || tagRefStreamName != stream.Name {
-			obj, err := s.ImageStreamGetter.Get(kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace), tagRefStreamName)
+			obj, err := s.ImageStreamGetter.Get(kapi.WithNamespace(kapi.NewContext(), streamRefNamespace), tagRefStreamName)
 			if err != nil {
-				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, fmt.Sprintf("error retrieving image stream %s/%s: %v", tagRef.From.Namespace, tagRefStreamName, err)))
+				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, fmt.Sprintf("error retrieving image stream %s/%s: %v", streamRefNamespace, tagRefStreamName, err)))
 				continue
 			}
 
@@ -255,6 +255,9 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user string) fielderr
 		if tagRef.From == nil {
 			continue
 		}
+		if len(tagRef.From.Namespace) == 0 {
+			continue
+		}
 		if stream.Namespace == tagRef.From.Namespace {
 			continue
 		}
@@ -277,7 +280,7 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user string) fielderr
 		ctx := kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace)
 		glog.V(1).Infof("Performing SubjectAccessReview for user %s to %s/%s", user, tagRef.From.Namespace, streamName)
 		resp, err := v.subjectAccessReviewClient.CreateSubjectAccessReview(ctx, &subjectAccessReview)
-		if err != nil || !resp.Allowed {
+		if err != nil || resp == nil || (resp != nil && !resp.Allowed) {
 			errors = append(errors, fielderrors.NewFieldForbidden(fmt.Sprintf("spec.tags[%s].from", tag), fmt.Sprintf("%s/%s", tagRef.From.Namespace, streamName)))
 			continue
 		}
