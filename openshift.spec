@@ -3,12 +3,12 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %{!?commit:
-%global commit e095fe29b723e971423c88d31ced2e6c16b48bba
+%global commit 88d4c53460bfd73d3a3490db8a62520b23ae9b69
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2.1-89-ge095fe2 -X github.com/openshift/origin/pkg/version.commitFromGit e095fe2 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 8d94c43 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2.2-30-g88d4c53 -X github.com/openshift/origin/pkg/version.commitFromGit 88d4c53 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 8d94c43 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
 }
 # String used for --images flag
 # If you're setting docker_registry make sure it ends in a trailing /
@@ -23,7 +23,7 @@
 %global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.4.2.2
+Version:        0.4.2.3
 Release:        1%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
@@ -179,6 +179,56 @@ fi
 
 
 %changelog
+* Tue Apr 07 2015 Scott Dodson <sdodson@redhat.com> 0.4.2.3
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- Merge pull request #1570 from derekwaynecarr/cherry_pick_ns_fix
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1609 from bparees/build_desc
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1617 from
+  fabianofranz/sample_app_readme_needs_cluster_admin_in_build_logs
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1611 from deads2k/deads-fix-kubeconfig-validation
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1608 from liggitt/oauth_csrf_validation
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1585 from liggitt/basic_auth_url_ca
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1578 from pweil-/reaper-typo
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1605 from kargakis/appropriate-refactor
+  (dmcphers+openshiftbot@redhat.com)
+- The build-logs command needs a cluster admin to run, make it clear in README
+  (contact@fabianofranz.com)
+- Merge pull request #1600 from deads2k/deads-fix-display-of-custom-policy
+  (dmcphers+openshiftbot@redhat.com)
+- print builds as part of buildconfig description (bparees@redhat.com)
+- Merge pull request #1580 from deads2k/deads-subresources
+  (dmcphers+openshiftbot@redhat.com)
+- only validate start args when NOT using config (deads@redhat.com)
+- Merge pull request #1606 from bparees/buildcfg_ref
+  (dmcphers+openshiftbot@redhat.com)
+- Validate CSRF in external oauth flow (jliggitt@redhat.com)
+- Move labeling functions to util package (kargakis@users.noreply.github.com)
+- Merge pull request #1561 from bparees/tight_loops
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1604 from liggitt/windows_commands
+  (dmcphers+openshiftbot@redhat.com)
+- Plumb CA and client cert options into basic auth IDP (jliggitt@redhat.com)
+- add buildconfig reference field to builds (bparees@redhat.com)
+- support subresources (deads@redhat.com)
+- UPSTREAM: support subresources in api info resolver (deads@redhat.com)
+- Move hostname detection warning to runtime (jliggitt@redhat.com)
+- Make osc.exe work on Windows (jliggitt@redhat.com)
+- add delays when handling retries so we don't tight loop (bparees@redhat.com)
+- UPSTREAM: add a blocking accept method to RateLimiter
+  https://github.com/GoogleCloudPlatform/kubernetes/pull/6314
+  (bparees@redhat.com)
+- display pretty strings for policy rule extensions (deads@redhat.com)
+- UPSTREAM Client must specify a resource version on finalize
+  (decarr@redhat.com)
+- fix typo (pweil@redhat.com)
+
 * Mon Apr 06 2015 Scott Dodson <sdodson@redhat.com> 0.4.2.2
 - Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
 - Merge pull request #1587 from liggitt/image_format_node
