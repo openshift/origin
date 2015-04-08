@@ -34,9 +34,9 @@ const (
 	mainHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
-	mainUsageTemplate = vars + `{{ $cmd := . }}{{ if .HasSubCommands}}
-Available Commands: {{range .Commands}}{{if .Runnable}}{{if ne .Name "options"}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}
+	mainUsageTemplate = vars + `{{ $cmd := . }}{{ if .HasRunnableSubCommands}}
+Available Commands: {{range .Commands}}{{if and .Runnable (ne .Name "options")}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
 {{end}}
 {{ if or $localNotPersistentFlags.HasFlags $explicitlyExposedFlags.HasFlags}}Options:
 {{ if $localNotPersistentFlags.HasFlags}}{{flagsUsages $localNotPersistentFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}
