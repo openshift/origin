@@ -189,7 +189,7 @@ func (o AllInOneOptions) Complete() error {
 
 	masterAddr, err := o.MasterArgs.GetMasterAddress()
 	if err != nil {
-		return nil
+		return err
 	}
 	// in the all-in-one, default kubernetes URL to the master's address
 	o.NodeArgs.DefaultKubernetesURL = masterAddr

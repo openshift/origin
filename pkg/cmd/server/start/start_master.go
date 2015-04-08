@@ -180,12 +180,12 @@ func (o MasterOptions) RunMaster() error {
 
 	if mintCerts {
 		if err := o.CreateCerts(); err != nil {
-			return nil
+			return err
 		}
 	}
 	if writeBootstrapPolicy {
 		if err := o.CreateBootstrapPolicy(); err != nil {
-			return nil
+			return err
 		}
 	}
 
