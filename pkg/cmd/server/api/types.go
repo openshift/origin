@@ -270,7 +270,52 @@ type GoogleIdentityProvider struct {
 	ClientSecret string
 }
 
+type OpenIDIdentityProvider struct {
 	api.TypeMeta
+
+	// CA is the optional trusted certificate authority bundle to use when making requests to the server
+	// If empty, the default system roots are used
+	CA string
+
+	// ClientID is the oauth client ID
+	ClientID string
+	// ClientSecret is the oauth client secret
+	ClientSecret string
+
+	// ExtraScopes are any scopes to request in addition to the standard "openid" scope.
+	ExtraScopes []string
+
+	// URLs to use to authenticate
+	URLs OpenIDURLs
+
+	// Claims mappings
+	Claims OpenIDClaims
+}
+
+type OpenIDURLs struct {
+	// Authorize is the oauth authorization URL
+	Authorize string
+	// Token is the oauth token granting URL
+	Token string
+	// UserInfo is the optional userinfo URL.
+	// If present, a granted access_token is used to request claims
+	// If empty, a granted id_token is parsed for claims
+	UserInfo string
+}
+
+type OpenIDClaims struct {
+	// ID is the list of claims whose values should be used as the user ID. Required.
+	// OpenID standard identity claim is "sub"
+	ID []string
+	// PreferredUsername is the list of claims whose values should be used as the preferred username.
+	// If unspecified, the preferred username is determined from the value of the id claim
+	PreferredUsername []string
+	// Name is the list of claims whose values should be used as the display name. Optional.
+	// If unspecified, no display name is set for the identity
+	Name []string
+	// Email is the list of claims whose values should be used as the email address. Optional.
+	// If unspecified, no email is set for the identity
+	Email []string
 }
 
 type GrantConfig struct {

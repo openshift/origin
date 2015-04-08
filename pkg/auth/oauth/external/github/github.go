@@ -36,6 +36,10 @@ func NewProvider(providerName, clientID, clientSecret string) external.Provider 
 	return provider{providerName, clientID, clientSecret}
 }
 
+func (p provider) GetTransport() (http.RoundTripper, error) {
+	return nil, nil
+}
+
 // NewConfig implements external/interfaces/Provider.NewConfig
 func (p provider) NewConfig() (*osincli.ClientConfig, error) {
 	config := &osincli.ClientConfig{

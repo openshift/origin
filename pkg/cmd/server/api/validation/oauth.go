@@ -77,18 +77,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) fielderrors
 	} else {
 		switch provider := identityProvider.Provider.Object.(type) {
 		case (*api.RequestHeaderIdentityProvider):
-			if len(provider.ClientCA) > 0 {
-				allErrs = append(allErrs, ValidateFile(provider.ClientCA, "provider.clientCA")...)
-			}
-			if len(provider.Headers) == 0 {
-				allErrs = append(allErrs, fielderrors.NewFieldRequired("provider.headers"))
-			}
-			if identityProvider.UseAsChallenger {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("challenge", identityProvider.UseAsChallenger, "request header providers cannot be used for challenges"))
-			}
-			if identityProvider.UseAsLogin {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("login", identityProvider.UseAsChallenger, "request header providers cannot be used for browser login"))
-			}
+			allErrs = append(allErrs, ValidateRequestHeaderIdentityProvider(provider, identityProvider)...)
 
 		case (*api.BasicAuthPasswordIdentityProvider):
 			allErrs = append(allErrs, ValidateRemoteConnectionInfo(provider.RemoteConnectionInfo).Prefix("provider")...)
@@ -102,9 +91,29 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) fielderrors
 		case (*api.GoogleIdentityProvider):
 			allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
 
-			}
-		}
+		case (*api.OpenIDIdentityProvider):
+			allErrs = append(allErrs, ValidateOpenIDIdentityProvider(provider, identityProvider)...)
 
+		}
+	}
+
+	return allErrs
+}
+
+func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityProvider, identityProvider api.IdentityProvider) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(provider.ClientCA) > 0 {
+		allErrs = append(allErrs, ValidateFile(provider.ClientCA, "provider.clientCA")...)
+	}
+	if len(provider.Headers) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("provider.headers"))
+	}
+	if identityProvider.UseAsChallenger {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("challenge", identityProvider.UseAsChallenger, "request header providers cannot be used for challenges"))
+	}
+	if identityProvider.UseAsLogin {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("login", identityProvider.UseAsChallenger, "request header providers cannot be used for browser login"))
 	}
 
 	return allErrs
@@ -121,6 +130,40 @@ func ValidateOAuthIdentityProvider(clientID, clientSecret string, challenge bool
 	}
 	if challenge {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("challenge", challenge, "oauth providers cannot be used for challenges"))
+	}
+
+	return allErrs
+}
+
+func ValidateOpenIDIdentityProvider(provider *api.OpenIDIdentityProvider, identityProvider api.IdentityProvider) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
+
+	// Communication with the Authorization Endpoint MUST utilize TLS
+	// http://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+	_, urlErrs := ValidateSecureURL(provider.URLs.Authorize, "authorize")
+	allErrs = append(allErrs, urlErrs.Prefix("provider.urls")...)
+
+	// Communication with the Token Endpoint MUST utilize TLS
+	// http://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
+	_, urlErrs = ValidateSecureURL(provider.URLs.Token, "token")
+	allErrs = append(allErrs, urlErrs.Prefix("provider.urls")...)
+
+	if len(provider.URLs.UserInfo) != 0 {
+		// Communication with the UserInfo Endpoint MUST utilize TLS
+		// http://openid.net/specs/openid-connect-core-1_0.html#UserInfo
+		_, urlErrs = ValidateSecureURL(provider.URLs.UserInfo, "userInfo")
+		allErrs = append(allErrs, urlErrs.Prefix("provider.urls")...)
+	}
+
+	// At least one claim to use as the user id is required
+	if len(provider.Claims.ID) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("provider.claims.id", "[]", "at least one id claim is required (OpenID standard identity claim is 'sub')"))
+	}
+
+	if len(provider.CA) != 0 {
+		allErrs = append(allErrs, ValidateFile(provider.CA, "provider.ca")...)
 	}
 
 	return allErrs

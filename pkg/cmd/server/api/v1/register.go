@@ -21,6 +21,7 @@ func init() {
 		&RequestHeaderIdentityProvider{},
 		&GitHubIdentityProvider{},
 		&GoogleIdentityProvider{},
+		&OpenIDIdentityProvider{},
 		&GrantConfig{},
 	)
 }
@@ -33,6 +34,7 @@ func (*HTPasswdPasswordIdentityProvider) IsAnAPIObject()  {}
 func (*RequestHeaderIdentityProvider) IsAnAPIObject()     {}
 func (*GitHubIdentityProvider) IsAnAPIObject()            {}
 func (*GoogleIdentityProvider) IsAnAPIObject()            {}
+func (*OpenIDIdentityProvider) IsAnAPIObject()            {}
 func (*GrantConfig) IsAnAPIObject()                       {}
 
 func (*MasterConfig) IsAnAPIObject()   {}

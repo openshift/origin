@@ -15,6 +15,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"github.com/emicklei/go-restful"
@@ -34,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
+	"github.com/openshift/origin/pkg/auth/oauth/external/openid"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/oauth/registry"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
@@ -340,8 +342,37 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 	case (*configapi.GoogleIdentityProvider):
 		return google.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret)
 
+	case (*configapi.OpenIDIdentityProvider):
+		transport, err := cmdutil.TransportFor(provider.CA, "", "")
+		if err != nil {
+			return nil, err
+		}
+
+		// OpenID Connect requests MUST contain the openid scope value
+		// http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+		scopes := util.NewStringSet("openid")
+		scopes.Insert(provider.ExtraScopes...)
+
+		config := openid.Config{
+			ClientID:     provider.ClientID,
+			ClientSecret: provider.ClientSecret,
+
+			Scopes: scopes.List(),
+
+			AuthorizeURL: provider.URLs.Authorize,
+			TokenURL:     provider.URLs.Token,
+			UserInfoURL:  provider.URLs.UserInfo,
+
+			IDClaims:                provider.Claims.ID,
+			PreferredUsernameClaims: provider.Claims.PreferredUsername,
+			EmailClaims:             provider.Claims.Email,
+			NameClaims:              provider.Claims.Name,
+		}
+
+		return openid.NewProvider(identityProvider.Name, transport, config)
+
 	default:
-		return nil, fmt.Errorf("No password auth found that matches %v.  The oauth server cannot start!", identityProvider)
+		return nil, fmt.Errorf("No OAuth provider found that matches %v.  The OAuth server cannot start!", identityProvider)
 	}
 
 }
@@ -379,7 +410,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		return basicauthpassword.New(identityProvider.Name, connectionInfo.URL, transport, identityMapper), nil
 
 	default:
-		return nil, fmt.Errorf("No password auth found that matches %v.  The oauth server cannot start!", identityProvider)
+		return nil, fmt.Errorf("No password auth found that matches %v.  The OAuth server cannot start!", identityProvider)
 	}
 
 }
