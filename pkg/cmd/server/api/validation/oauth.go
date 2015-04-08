@@ -96,21 +96,31 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) fielderrors
 		case (*api.HTPasswdPasswordIdentityProvider):
 			allErrs = append(allErrs, ValidateFile(provider.File, "provider.file")...)
 
-		case (*api.OAuthRedirectingIdentityProvider):
-			if len(provider.ClientID) == 0 {
-				allErrs = append(allErrs, fielderrors.NewFieldRequired("provider.clientID"))
-			}
-			if len(provider.ClientSecret) == 0 {
-				allErrs = append(allErrs, fielderrors.NewFieldRequired("provider.clientSecret"))
-			}
-			if !api.IsOAuthProviderType(provider.Provider) {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("provider.provider", provider.Provider, fmt.Sprintf("%v is invalid in this context", identityProvider.Provider)))
-			}
-			if identityProvider.UseAsChallenger {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("challenge", identityProvider.UseAsChallenger, "oauth providers cannot be used for challenges"))
+		case (*api.GitHubIdentityProvider):
+			allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
+
+		case (*api.GoogleIdentityProvider):
+			allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
+
 			}
 		}
 
+	}
+
+	return allErrs
+}
+
+func ValidateOAuthIdentityProvider(clientID, clientSecret string, challenge bool) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(clientID) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("provider.clientID"))
+	}
+	if len(clientSecret) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("provider.clientSecret"))
+	}
+	if challenge {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("challenge", challenge, "oauth providers cannot be used for challenges"))
 	}
 
 	return allErrs

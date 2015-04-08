@@ -252,22 +252,24 @@ type RequestHeaderIdentityProvider struct {
 	Headers []string
 }
 
-type OAuthRedirectingIdentityProvider struct {
+type GitHubIdentityProvider struct {
 	api.TypeMeta
 
 	// ClientID is the oauth client ID
 	ClientID string
 	// ClientSecret is the oauth client secret
 	ClientSecret string
-
-	// Provider contains the information about exactly which kind of oauth you're identifying with
-	Provider runtime.EmbeddedObject
 }
 
-type GoogleOAuthProvider struct {
+type GoogleIdentityProvider struct {
 	api.TypeMeta
+
+	// ClientID is the oauth client ID
+	ClientID string
+	// ClientSecret is the oauth client secret
+	ClientSecret string
 }
-type GitHubOAuthProvider struct {
+
 	api.TypeMeta
 }
 

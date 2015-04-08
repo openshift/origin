@@ -244,19 +244,20 @@ type RequestHeaderIdentityProvider struct {
 	Headers  []string `json:"headers"`
 }
 
-type OAuthRedirectingIdentityProvider struct {
+type GitHubIdentityProvider struct {
 	v1beta3.TypeMeta `json:",inline"`
 
 	ClientID     string `json:"clientID"`
 	ClientSecret string `json:"clientSecret"`
-
-	Provider runtime.RawExtension `json:"provider"`
 }
 
-type GoogleOAuthProvider struct {
+type GoogleIdentityProvider struct {
 	v1beta3.TypeMeta `json:",inline"`
+
+	ClientID     string `json:"clientID"`
+	ClientSecret string `json:"clientSecret"`
 }
-type GitHubOAuthProvider struct {
+
 	v1beta3.TypeMeta `json:",inline"`
 }
 
