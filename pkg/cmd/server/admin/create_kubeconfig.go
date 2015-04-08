@@ -11,6 +11,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 )
@@ -26,6 +28,9 @@ type CreateKubeConfigOptions struct {
 	CertFile string
 	KeyFile  string
 	UserNick string
+
+	ContextNick      string
+	ContextNamespace string
 
 	KubeConfigFile string
 }
@@ -52,8 +57,14 @@ contexts:
 - context:
     cluster: <--cluster>
     user: <--user>
-  name: <--cluster>
-current-context: <--cluster>
+    namespace: <--namespace>
+  name: <--context>
+- context:
+    cluster: public-<--cluster>
+    user: <--user>
+    namespace: <--namespace>
+  name: public-<--context>
+current-context: <--context>
 kind: Config
 users:
 - name: <--user>
@@ -84,6 +95,8 @@ users:
 	flags.StringVar(&options.CertFile, "client-certificate", "", "The client cert file.")
 	flags.StringVar(&options.KeyFile, "client-key", "", "The client key file.")
 	flags.StringVar(&options.UserNick, "user", "user", "Nick name for this user in .kubeconfig.")
+	flags.StringVar(&options.ContextNick, "context", "", "Nick name for this context in .kubeconfig.")
+	flags.StringVar(&options.ContextNamespace, "namespace", kapi.NamespaceDefault, "Namespace for this context in .kubeconfig.")
 	flags.StringVar(&options.KubeConfigFile, "kubeconfig", ".kubeconfig", "Path for the resulting .kubeconfig file.")
 
 	return cmd
@@ -111,12 +124,20 @@ func (o CreateKubeConfigOptions) Validate(args []string) error {
 	if len(o.UserNick) == 0 {
 		return errors.New("user-nick must be provided")
 	}
+	if len(o.ContextNamespace) == 0 {
+		return errors.New("namespace must be provided")
+	}
 
 	return nil
 }
 
 func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error) {
 	glog.V(2).Infof("creating a .kubeconfig with: %#v", o)
+
+	// if you don't specify a context nick, assign it to the context namespace
+	if len(o.ContextNick) == 0 {
+		o.ContextNick = o.ContextNamespace
+	}
 
 	caData, err := ioutil.ReadFile(o.APIServerCAFile)
 	if err != nil {
@@ -144,23 +165,24 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 	}
 
 	contexts := make(map[string]clientcmdapi.Context)
-	contexts[o.ServerNick] = clientcmdapi.Context{Cluster: o.ServerNick, AuthInfo: o.UserNick}
+	contexts[o.ContextNick] = clientcmdapi.Context{Cluster: o.ServerNick, AuthInfo: o.UserNick, Namespace: o.ContextNamespace}
 
 	createPublic := len(o.PublicAPIServerURL) > 0
 	if createPublic {
-		publicNick := "public-" + o.ServerNick
-		clusters[publicNick] = clientcmdapi.Cluster{
+		publicClusterNick := "public-" + o.ServerNick
+		publicContextNick := "public-" + o.ContextNick
+		clusters[publicClusterNick] = clientcmdapi.Cluster{
 			Server: o.PublicAPIServerURL,
 			CertificateAuthorityData: caData,
 		}
-		contexts[publicNick] = clientcmdapi.Context{Cluster: o.ServerNick, AuthInfo: o.UserNick}
+		contexts[publicContextNick] = clientcmdapi.Context{Cluster: publicClusterNick, AuthInfo: o.UserNick, Namespace: o.ContextNamespace}
 	}
 
 	kubeConfig := &clientcmdapi.Config{
 		Clusters:       clusters,
 		AuthInfos:      credentials,
 		Contexts:       contexts,
-		CurrentContext: o.ServerNick,
+		CurrentContext: o.ContextNick,
 	}
 
 	// Ensure the parent dir exists
