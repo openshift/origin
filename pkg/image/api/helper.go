@@ -75,7 +75,7 @@ func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
 		r.Namespace = "library"
 	}
 	if len(r.Registry) == 0 {
-		r.Registry = "index.docker.io"
+		r.Registry = "docker.io"
 	}
 	if len(r.Tag) == 0 {
 		r.Tag = "latest"

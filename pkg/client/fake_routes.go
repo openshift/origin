@@ -16,23 +16,23 @@ type FakeRoutes struct {
 }
 
 func (c *FakeRoutes) List(label labels.Selector, field fields.Selector) (*routeapi.RouteList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-routes"})
-	return &routeapi.RouteList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-routes"}, &routeapi.RouteList{})
+	return obj.(*routeapi.RouteList), err
 }
 
 func (c *FakeRoutes) Get(name string) (*routeapi.Route, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-route"})
-	return &routeapi.Route{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-route"}, &routeapi.Route{})
+	return obj.(*routeapi.Route), err
 }
 
 func (c *FakeRoutes) Create(route *routeapi.Route) (*routeapi.Route, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-route"})
-	return &routeapi.Route{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-route"}, &routeapi.Route{})
+	return obj.(*routeapi.Route), err
 }
 
 func (c *FakeRoutes) Update(route *routeapi.Route) (*routeapi.Route, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-route"})
-	return &routeapi.Route{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-route"}, &routeapi.Route{})
+	return obj.(*routeapi.Route), err
 }
 
 func (c *FakeRoutes) Delete(name string) error {

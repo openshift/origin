@@ -19,23 +19,23 @@ type FakeImageStreams struct {
 var _ ImageStreamInterface = &FakeImageStreams{}
 
 func (c *FakeImageStreams) List(label labels.Selector, field fields.Selector) (*imageapi.ImageStreamList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-imagestreams"})
-	return &imageapi.ImageStreamList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-imagestreams"}, &imageapi.ImageStreamList{})
+	return obj.(*imageapi.ImageStreamList), err
 }
 
 func (c *FakeImageStreams) Get(name string) (*imageapi.ImageStream, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-imagestream", Value: name})
-	return &imageapi.ImageStream{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-imagestream", Value: name}, &imageapi.ImageStream{})
+	return obj.(*imageapi.ImageStream), err
 }
 
 func (c *FakeImageStreams) Create(repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-imagestream"})
-	return &imageapi.ImageStream{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-imagestream"}, &imageapi.ImageStream{})
+	return obj.(*imageapi.ImageStream), err
 }
 
 func (c *FakeImageStreams) Update(repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-imagestream"})
-	return &imageapi.ImageStream{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-imagestream"}, &imageapi.ImageStream{})
+	return obj.(*imageapi.ImageStream), err
 }
 
 func (c *FakeImageStreams) Delete(name string) error {

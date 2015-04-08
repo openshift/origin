@@ -12,23 +12,23 @@ type FakeRoleBindings struct {
 }
 
 func (c *FakeRoleBindings) List(label labels.Selector, field fields.Selector) (*authorizationapi.RoleBindingList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-roleBinding"})
-	return &authorizationapi.RoleBindingList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-roleBinding"}, &authorizationapi.RoleBindingList{})
+	return obj.(*authorizationapi.RoleBindingList), err
 }
 
 func (c *FakeRoleBindings) Get(name string) (*authorizationapi.RoleBinding, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-roleBinding"})
-	return &authorizationapi.RoleBinding{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-roleBinding"}, &authorizationapi.RoleBinding{})
+	return obj.(*authorizationapi.RoleBinding), err
 }
 
 func (c *FakeRoleBindings) Create(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-roleBinding", Value: roleBinding})
-	return &authorizationapi.RoleBinding{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-roleBinding", Value: roleBinding}, &authorizationapi.RoleBinding{})
+	return obj.(*authorizationapi.RoleBinding), err
 }
 
 func (c *FakeRoleBindings) Update(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-roleBinding"})
-	return &authorizationapi.RoleBinding{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-roleBinding"}, &authorizationapi.RoleBinding{})
+	return obj.(*authorizationapi.RoleBinding), err
 }
 
 func (c *FakeRoleBindings) Delete(name string) error {

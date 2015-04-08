@@ -238,22 +238,22 @@ wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.2
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/${KUBELET_HOST}" "apiserver(minions): " 0.25 80
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
-openshift ex policy add-role-to-user view e2e-user --namespace=default
+openshift admin policy add-role-to-user view e2e-user --namespace=default
 
 # create test project so that this shows up in the console
-openshift ex new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
+openshift admin new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
 
 # install the router
 echo "[INFO] Installing the router"
-openshift ex router --create --credentials="${CERT_DIR}/openshift-router/.kubeconfig" --images="${USE_IMAGES}"
+openshift admin router --create --credentials="${CERT_DIR}/openshift-router/.kubeconfig" --images="${USE_IMAGES}"
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
 # TODO: add --images="${USE_IMAGES}" when the Docker registry is built alongside OpenShift
-openshift ex registry --create --credentials="${CERT_DIR}/openshift-registry/.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images='openshift/origin-${component}:latest'
+openshift admin registry --create --credentials="${CERT_DIR}/openshift-registry/.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images='openshift/origin-${component}:latest'
 
 echo "[INFO] Pre-pulling and pushing ruby-20-centos7"
 docker pull openshift/ruby-20-centos7:latest

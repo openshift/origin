@@ -2,11 +2,13 @@ package graph
 
 import (
 	"testing"
+	"time"
 
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	build "github.com/openshift/origin/pkg/build/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
@@ -15,7 +17,35 @@ import (
 
 func TestGraph(t *testing.T) {
 	g := New()
-	BuildConfig(g, &build.BuildConfig{
+	now := time.Now()
+	builds := []build.Build{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:              "build1-1-abc",
+				Labels:            map[string]string{build.BuildConfigLabel: "build1"},
+				CreationTimestamp: util.NewTime(now.Add(-10 * time.Second)),
+			},
+			Status: build.BuildStatusFailed,
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:              "build1-2-abc",
+				Labels:            map[string]string{build.BuildConfigLabel: "build1"},
+				CreationTimestamp: util.NewTime(now.Add(-5 * time.Second)),
+			},
+			Status: build.BuildStatusComplete,
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:              "build1-3-abc",
+				Labels:            map[string]string{build.BuildConfigLabel: "build1"},
+				CreationTimestamp: util.NewTime(now.Add(-15 * time.Second)),
+			},
+			Status: build.BuildStatusPending,
+		},
+	}
+
+	n := BuildConfig(g, &build.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build1"},
 		Triggers: []build.BuildTriggerPolicy{
 			{
@@ -37,6 +67,7 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	})
+	JoinBuilds(n.(*BuildConfigNode), builds)
 	BuildConfig(g, &build.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "test"},
 		Parameters: build.BuildParameters{
@@ -143,6 +174,7 @@ func TestGraph(t *testing.T) {
 	})
 
 	CoverServices(g)
+
 	ir, dc, bc, other := 0, 0, 0, 0
 	for _, node := range g.NodeList() {
 		t.Logf("node: %d %v", node.ID(), node)
@@ -230,6 +262,16 @@ func TestGraph(t *testing.T) {
 			t.Logf("%sdeployment %s", indent, deployment.Deployment.Name)
 			for _, image := range deployment.Images {
 				t.Logf("%s  image %s", indent, image.Image.ImageSpec())
+				if image.Build != nil {
+					if image.Build.LastSuccessfulBuild != nil {
+						t.Logf("%s    built at %s", indent, image.Build.LastSuccessfulBuild.CreationTimestamp)
+					} else if image.Build.LastUnsuccessfulBuild != nil {
+						t.Logf("%s    build %s at %s", indent, image.Build.LastUnsuccessfulBuild.Status, image.Build.LastSuccessfulBuild.CreationTimestamp)
+					}
+					for _, b := range image.Build.ActiveBuilds {
+						t.Logf("%s    build %s %s", indent, b.Name, b.Status)
+					}
+				}
 			}
 		}
 		if dcs != 0 || svcs != 0 {

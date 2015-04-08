@@ -16,23 +16,23 @@ type FakeBuilds struct {
 }
 
 func (c *FakeBuilds) List(label labels.Selector, field fields.Selector) (*buildapi.BuildList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-builds"})
-	return &buildapi.BuildList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-builds"}, &buildapi.BuildList{})
+	return obj.(*buildapi.BuildList), err
 }
 
 func (c *FakeBuilds) Get(name string) (*buildapi.Build, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-build"})
-	return &buildapi.Build{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-build"}, &buildapi.Build{})
+	return obj.(*buildapi.Build), err
 }
 
 func (c *FakeBuilds) Create(build *buildapi.Build) (*buildapi.Build, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-build", Value: build})
-	return &buildapi.Build{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-build", Value: build}, &buildapi.Build{})
+	return obj.(*buildapi.Build), err
 }
 
 func (c *FakeBuilds) Update(build *buildapi.Build) (*buildapi.Build, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-build"})
-	return &buildapi.Build{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-build"}, &buildapi.Build{})
+	return obj.(*buildapi.Build), err
 }
 
 func (c *FakeBuilds) Delete(name string) error {

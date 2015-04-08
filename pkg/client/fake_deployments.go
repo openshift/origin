@@ -16,23 +16,23 @@ type FakeDeployments struct {
 }
 
 func (c *FakeDeployments) List(label labels.Selector, field fields.Selector) (*deployapi.DeploymentList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-deployment"})
-	return &deployapi.DeploymentList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-deployment"}, &deployapi.DeploymentList{})
+	return obj.(*deployapi.DeploymentList), err
 }
 
 func (c *FakeDeployments) Get(name string) (*deployapi.Deployment, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-deployment"})
-	return &deployapi.Deployment{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-deployment"}, &deployapi.Deployment{})
+	return obj.(*deployapi.Deployment), err
 }
 
 func (c *FakeDeployments) Create(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-deployment"})
-	return &deployapi.Deployment{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-deployment"}, &deployapi.Deployment{})
+	return obj.(*deployapi.Deployment), err
 }
 
 func (c *FakeDeployments) Update(deployment *deployapi.Deployment) (*deployapi.Deployment, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-deployment", Value: deployment})
-	return &deployapi.Deployment{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-deployment", Value: deployment}, &deployapi.Deployment{})
+	return obj.(*deployapi.Deployment), err
 }
 
 func (c *FakeDeployments) Delete(name string) error {

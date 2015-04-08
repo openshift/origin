@@ -13,21 +13,21 @@ type FakeIdentities struct {
 }
 
 func (c *FakeIdentities) List(label labels.Selector, field fields.Selector) (*userapi.IdentityList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-identities"})
-	return &userapi.IdentityList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-identities"}, &userapi.IdentityList{})
+	return obj.(*userapi.IdentityList), err
 }
 
 func (c *FakeIdentities) Get(name string) (*userapi.Identity, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-identity", Value: name})
-	return &userapi.Identity{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-identity", Value: name}, &userapi.Identity{})
+	return obj.(*userapi.Identity), err
 }
 
 func (c *FakeIdentities) Create(identity *userapi.Identity) (*userapi.Identity, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-identity", Value: identity})
-	return &userapi.Identity{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-identity", Value: identity}, &userapi.Identity{})
+	return obj.(*userapi.Identity), err
 }
 
 func (c *FakeIdentities) Update(identity *userapi.Identity) (*userapi.Identity, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-identity", Value: identity})
-	return &userapi.Identity{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-identity", Value: identity}, &userapi.Identity{})
+	return obj.(*userapi.Identity), err
 }

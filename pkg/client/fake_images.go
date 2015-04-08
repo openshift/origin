@@ -17,18 +17,18 @@ type FakeImages struct {
 var _ ImageInterface = &FakeImages{}
 
 func (c *FakeImages) List(label labels.Selector, field fields.Selector) (*imageapi.ImageList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-images"})
-	return &imageapi.ImageList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-images"}, &imageapi.ImageList{})
+	return obj.(*imageapi.ImageList), err
 }
 
 func (c *FakeImages) Get(name string) (*imageapi.Image, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-image", Value: name})
-	return &imageapi.Image{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-image", Value: name}, &imageapi.Image{})
+	return obj.(*imageapi.Image), err
 }
 
 func (c *FakeImages) Create(image *imageapi.Image) (*imageapi.Image, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-image"})
-	return &imageapi.Image{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-image"}, &imageapi.Image{})
+	return obj.(*imageapi.Image), err
 }
 
 func (c *FakeImages) Delete(name string) error {

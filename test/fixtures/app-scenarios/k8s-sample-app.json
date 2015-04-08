@@ -53,7 +53,7 @@
         },
         "replicas": 1
       },
-      "id": "database-1",
+      "id": "database-app-1",
       "kind": "ReplicationController",
       "labels": {
         "template": "ruby-helloworld-sample"
@@ -121,7 +121,7 @@
         },
         "replicas": 3
       },
-      "id": "frontend-1",
+      "id": "frontend-app-1",
       "kind": "ReplicationController",
       "labels": {
         "template": "ruby-helloworld-sample"
@@ -130,7 +130,7 @@
     {
       "apiVersion": "v1beta1",
       "containerPort": 3306,
-      "id": "database",
+      "id": "database-app",
       "kind": "Service",
       "labels": {
         "template": "ruby-helloworld-sample"
@@ -145,7 +145,7 @@
     {
       "apiVersion": "v1beta1",
       "containerPort": 8080,
-      "id": "frontend",
+      "id": "frontend-app",
       "kind": "Service",
       "labels": {
         "template": "ruby-helloworld-sample"
