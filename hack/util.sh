@@ -232,7 +232,8 @@ function start_etcd {
   etcd -name test -data-dir ${ETCD_DIR} -bind-addr ${host}:${port} ${initial_cluster} >/dev/null 2>/dev/null &
   export ETCD_PID=$!
 
-  wait_for_url "http://${host}:${port}/version" "etcd: "
+  wait_for_url "http://${host}:${port}/version" "etcd: " 0.25 80
+  curl -X PUT  "http://${host}:${port}/v2/keys/_test"
 }
 
 # stop_openshift_server utility function to terminate an
