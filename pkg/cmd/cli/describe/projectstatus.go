@@ -24,6 +24,7 @@ type ProjectStatusDescriber struct {
 	C client.Interface
 }
 
+// Describe returns the description of a project
 func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error) {
 	project, err := d.C.Projects().Get(namespace)
 	if err != nil {

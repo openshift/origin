@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
+// NewCmdOptions implements the OpenShift cli options command
 func NewCmdOptions(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "options",

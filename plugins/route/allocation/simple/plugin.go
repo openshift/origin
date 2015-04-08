@@ -20,7 +20,7 @@ type SimpleAllocationPlugin struct {
 	DNSSuffix string
 }
 
-// Creates a new SimpleAllocationPlugin.
+// NewSimpleAllocationPlugin creates a new SimpleAllocationPlugin.
 func NewSimpleAllocationPlugin(suffix string) (*SimpleAllocationPlugin, error) {
 	if len(suffix) == 0 {
 		suffix = defaultDNSSuffix
@@ -46,7 +46,7 @@ func (p *SimpleAllocationPlugin) Allocate(route *routeapi.Route) (*routeapi.Rout
 	return &routeapi.RouterShard{ShardName: "global", DNSSuffix: p.DNSSuffix}, nil
 }
 
-// Generate a host name for a route - using the service name,
+// GenerateHostname generates a host name for a route - using the service name,
 // namespace (if provided) and the router shard dns suffix.
 func (p *SimpleAllocationPlugin) GenerateHostname(route *routeapi.Route, shard *routeapi.RouterShard) string {
 

@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewCmdProject implements the OpenShift cli rollback command
 func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "project <project-name>",
@@ -41,6 +42,7 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	return cmd
 }
 
+// RunProject contains all the necessary functionality for the OpenShift cli project command
 func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	argsLength := len(args)
 

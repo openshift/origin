@@ -57,6 +57,7 @@ application is created.
 ALPHA: This command is under active development - feedback is appreciated.
 `
 
+// NewCmdNewApplication implements the OpenShift cli new-app command
 func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	_, typer := f.Object()
 	config := newcmd.NewAppConfig(typer)
@@ -89,6 +90,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	return cmd
 }
 
+// RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig, helper *dockerutil.Helper) error {
 	namespace, err := f.DefaultNamespace()
 

@@ -21,6 +21,7 @@ Examples:
 	$ %[1]s build-logs 566bed879d2d
 `
 
+// NewCmdBuildLogs implements the OpenShift cli build-logs command
 func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "build-logs <build>",
@@ -34,6 +35,7 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 	return cmd
 }
 
+// RunBuildLogs contains all the necessary functionality for the OpenShift cli build-logs command
 func RunBuildLogs(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return cmdutil.UsageError(cmd, "<build> is a required argument")

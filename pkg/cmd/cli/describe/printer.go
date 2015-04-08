@@ -51,6 +51,7 @@ var (
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 )
 
+// NewHumanReadablePrinter returns a new HumanReadablePrinter
 func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p := kctl.NewHumanReadablePrinter(noHeaders)
 	p.Handler(buildColumns, printBuild)

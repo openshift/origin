@@ -18,6 +18,7 @@ For more information about individual items, use the describe command (e.g. osc 
 osc describe deploymentConfig, osc describe service).
 `
 
+// NewCmdStatus implements the OpenShift cli status command
 func NewCmdStatus(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
@@ -31,6 +32,7 @@ func NewCmdStatus(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	return cmd
 }
 
+// RunStatus contains all the necessary functionality for the OpenShift cli status command
 func RunStatus(f *clientcmd.Factory, out io.Writer) error {
 	client, kclient, err := f.Clients()
 	if err != nil {

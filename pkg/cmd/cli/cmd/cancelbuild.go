@@ -29,9 +29,7 @@ Examples:
 	$ %[1]s cancel-build 1da32cvq --restart
 `
 
-// NewCmdCancelBuild manages a build cancelling event.
-// To cancel a build its name has to be specified, and two options
-// are available: displaying logs and restarting.
+// NewCmdCancelBuild implements the OpenShift cli cancel-build command
 func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cancel-build <build>",
@@ -48,6 +46,7 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 	return cmd
 }
 
+// RunCancelBuild contains all the necessary functionality for the OpenShift cli cancel-build command
 func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	if len(args) == 0 || len(args[0]) == 0 {
 		return cmdutil.UsageError(cmd, "You must specify the name of a build to cancel.")
