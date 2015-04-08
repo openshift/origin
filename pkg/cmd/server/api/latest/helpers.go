@@ -4,25 +4,24 @@ import (
 	"io/ioutil"
 	"path"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	kyaml "github.com/GoogleCloudPlatform/kubernetes/pkg/util/yaml"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 
 	"github.com/ghodss/yaml"
 )
 
+func ReadSessionSecrets(filename string) (*configapi.SessionSecrets, error) {
+	config := &configapi.SessionSecrets{}
+	if err := ReadYAMLFile(filename, config); err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
 func ReadMasterConfig(filename string) (*configapi.MasterConfig, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
 	config := &configapi.MasterConfig{}
-	data, err = kyaml.ToJSON(data)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := Codec.DecodeInto(data, config); err != nil {
+	if err := ReadYAMLFile(filename, config); err != nil {
 		return nil, err
 	}
 	return config, nil
@@ -34,26 +33,18 @@ func ReadAndResolveMasterConfig(filename string) (*configapi.MasterConfig, error
 		return nil, err
 	}
 
-	configapi.ResolveMasterConfigPaths(masterConfig, path.Dir(filename))
+	if err := configapi.ResolveMasterConfigPaths(masterConfig, path.Dir(filename)); err != nil {
+		return nil, err
+	}
+
 	return masterConfig, nil
 }
 
 func ReadNodeConfig(filename string) (*configapi.NodeConfig, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
 	config := &configapi.NodeConfig{}
-	data, err = kyaml.ToJSON(data)
-	if err != nil {
+	if err := ReadYAMLFile(filename, config); err != nil {
 		return nil, err
 	}
-
-	if err := Codec.DecodeInto(data, config); err != nil {
-		return nil, err
-	}
-
 	return config, nil
 }
 
@@ -63,13 +54,15 @@ func ReadAndResolveNodeConfig(filename string) (*configapi.NodeConfig, error) {
 		return nil, err
 	}
 
-	configapi.ResolveNodeConfigPaths(nodeConfig, path.Dir(filename))
+	if err := configapi.ResolveNodeConfigPaths(nodeConfig, path.Dir(filename)); err != nil {
+		return nil, err
+	}
+
 	return nodeConfig, nil
 }
 
-// WriteMaster serializes the config to yaml.
-func WriteMaster(config *configapi.MasterConfig) ([]byte, error) {
-	json, err := Codec.Encode(config)
+func WriteYAML(obj runtime.Object) ([]byte, error) {
+	json, err := Codec.Encode(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -81,16 +74,14 @@ func WriteMaster(config *configapi.MasterConfig) ([]byte, error) {
 	return content, err
 }
 
-// WriteNode serializes the config to yaml.
-func WriteNode(config *configapi.NodeConfig) ([]byte, error) {
-	json, err := Codec.Encode(config)
+func ReadYAMLFile(filename string, obj runtime.Object) error {
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	content, err := yaml.JSONToYAML(json)
+	data, err = kyaml.ToJSON(data)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return content, err
+	return Codec.DecodeInto(data, obj)
 }

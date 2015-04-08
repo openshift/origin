@@ -219,7 +219,7 @@ func (o MasterOptions) RunMaster() error {
 			return err
 		}
 
-		content, err := configapilatest.WriteMaster(masterConfig)
+		content, err := configapilatest.WriteYAML(masterConfig)
 		if err != nil {
 			return err
 		}
@@ -306,11 +306,13 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 
 	unprotectedInstallers := []origin.APIInstaller{}
 
-	authConfig, err := origin.BuildAuthConfig(*openshiftMasterConfig)
-	if err != nil {
-		return err
+	if openshiftMasterConfig.OAuthConfig != nil {
+		authConfig, err := origin.BuildAuthConfig(*openshiftMasterConfig)
+		if err != nil {
+			return err
+		}
+		unprotectedInstallers = append(unprotectedInstallers, authConfig)
 	}
-	unprotectedInstallers = append(unprotectedInstallers, authConfig)
 
 	var standaloneAssetConfig *origin.AssetConfig
 	if openshiftMasterConfig.AssetConfig != nil {

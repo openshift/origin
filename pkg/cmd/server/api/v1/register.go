@@ -11,6 +11,7 @@ func init() {
 	api.Scheme.AddKnownTypes("v1",
 		&MasterConfig{},
 		&NodeConfig{},
+		&SessionSecrets{},
 
 		&IdentityProvider{},
 		&BasicAuthPasswordIdentityProvider{},
@@ -36,5 +37,6 @@ func (*GrantConfig) IsAnAPIObject()                       {}
 func (*GoogleOAuthProvider) IsAnAPIObject()               {}
 func (*GitHubOAuthProvider) IsAnAPIObject()               {}
 
-func (*MasterConfig) IsAnAPIObject() {}
-func (*NodeConfig) IsAnAPIObject()   {}
+func (*MasterConfig) IsAnAPIObject()   {}
+func (*NodeConfig) IsAnAPIObject()     {}
+func (*SessionSecrets) IsAnAPIObject() {}

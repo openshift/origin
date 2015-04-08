@@ -380,7 +380,7 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		return err
 	}
 
-	content, err := latestconfigapi.WriteNode(config)
+	content, err := latestconfigapi.WriteYAML(config)
 	if err != nil {
 		return err
 	}

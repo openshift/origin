@@ -329,6 +329,9 @@ osc delete imageRepositories mongodb-24-centos7
 [ -z "$(osc get imageRepositories postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageRepositories mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
 # don't delete wildfly-8-centos
+osc create -f - << EOF
+{"apiVersion": "v1beta1","dockerImageRepository": "openshift/mysql-55-centos7","kind": "ImageRepository","metadata": {"name": "mysql"}}
+EOF
 echo "imageRepositories: ok"
 
 osc create -f test/integration/fixtures/test-image-repository.json
@@ -339,7 +342,13 @@ osc get imageRepositoryTag test:sometag
 osc delete imageRepositories test
 echo "imageRepositoryMappings: ok"
 
+[ -n "$(osc get imageRepositories mysql -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 [ "$(osc new-app php mysql -o yaml | grep 3306)" ]
+# verify we can generate a Docker image based component "mongodb" directly
+[ ! "$(osc new-app unknownhubimage -o yaml)" ]
+[ "$(osc new-app mongo -o yaml | grep library/mongo)" ]
+# the local image repository takes precedence over the Docker Hub "mysql" image
+[ "$(osc new-app mysql -o yaml | grep mysql-55-centos7)" ]
 osc new-app php mysql
 echo "new-app: ok"
 

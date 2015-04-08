@@ -1,13 +1,17 @@
 package origin
 
 import (
+	"crypto/md5"
 	"crypto/x509"
 	"fmt"
+
+	"code.google.com/p/go-uuid/uuid"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
@@ -26,8 +30,7 @@ type AuthConfig struct {
 	UserRegistry     userregistry.Registry
 	IdentityRegistry identityregistry.Registry
 
-	// sessionAuth holds the Authenticator built from the exported Session* options. It should only be accessed via getSessionAuth(), since it is lazily built.
-	sessionAuth *session.Authenticator
+	SessionAuth *session.Authenticator
 }
 
 func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
@@ -39,6 +42,15 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 	apiServerCAs, err := configapi.GetAPIServerCertCAPool(options)
 	if err != nil {
 		return nil, err
+	}
+
+	var sessionAuth *session.Authenticator
+	if options.OAuthConfig.SessionConfig != nil {
+		auth, err := BuildSessionAuth(options.OAuthConfig.SessionConfig)
+		if err != nil {
+			return nil, err
+		}
+		sessionAuth = auth
 	}
 
 	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
@@ -60,8 +72,45 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 
 		IdentityRegistry: identityRegistry,
 		UserRegistry:     userRegistry,
+
+		SessionAuth: sessionAuth,
 	}
 
 	return ret, nil
+}
 
+func BuildSessionAuth(config *configapi.SessionConfig) (*session.Authenticator, error) {
+	secrets, err := getSessionSecrets(config.SessionSecretsFile)
+	if err != nil {
+		return nil, err
+	}
+	sessionStore := session.NewStore(int(config.SessionMaxAgeSeconds), secrets...)
+	return session.NewAuthenticator(sessionStore, config.SessionName), nil
+}
+
+func getSessionSecrets(filename string) ([]string, error) {
+	// Build secrets list
+	secrets := []string{}
+
+	if len(filename) != 0 {
+		sessionSecrets, err := latest.ReadSessionSecrets(filename)
+		if err != nil {
+			return nil, fmt.Errorf("error reading sessionSecretsFile %s: %v", filename, err)
+		}
+
+		if len(sessionSecrets.Secrets) == 0 {
+			return nil, fmt.Errorf("sessionSecretsFile %s contained no secrets", filename)
+		}
+
+		for _, s := range sessionSecrets.Secrets {
+			secrets = append(secrets, s.Authentication)
+			secrets = append(secrets, s.Encryption)
+		}
+	} else {
+		// Generate random signing and encryption secrets if none are specified in config
+		secrets = append(secrets, fmt.Sprintf("%x", md5.Sum([]byte(uuid.NewRandom().String()))))
+		secrets = append(secrets, fmt.Sprintf("%x", md5.Sum([]byte(uuid.NewRandom().String()))))
+	}
+
+	return secrets, nil
 }

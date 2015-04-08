@@ -39,8 +39,13 @@ type templateRouter struct {
 
 func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath string) (*templateRouter, error) {
 	router := &templateRouter{templates, reloadScriptPath, map[string]ServiceUnit{}, certManager{}}
-	err := router.readState()
-	return router, err
+	if err := router.readState(); err != nil {
+		return nil, err
+	}
+	if err := router.Commit(); err != nil {
+		return nil, err
+	}
+	return router, nil
 }
 
 func (r *templateRouter) readState() error {
