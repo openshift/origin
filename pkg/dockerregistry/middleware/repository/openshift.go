@@ -10,7 +10,6 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/digest"
@@ -18,7 +17,10 @@ import (
 	repomw "github.com/docker/distribution/registry/middleware/repository"
 	"github.com/docker/libtrust"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/dockerregistry"
+	"github.com/openshift/origin/pkg/dockerregistry/auth"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"golang.org/x/net/context"
 )
 
 func init() {
@@ -28,7 +30,6 @@ func init() {
 type repository struct {
 	distribution.Repository
 
-	// TODO cache this at the app level
 	registryClient *client.Client
 	registryAddr   string
 	namespace      string
@@ -37,50 +38,20 @@ type repository struct {
 
 // newRepository returns a new repository middleware.
 func newRepository(repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
-	openshiftAddr := os.Getenv("OPENSHIFT_MASTER")
-	if len(openshiftAddr) == 0 {
-		return nil, errors.New("OPENSHIFT_MASTER is required")
-	}
 
+	registryClient, err := dockerregistry.NewRegistryOpenShiftClient()
+	if err != nil {
+		return nil, err
+	}
 	registryAddr := os.Getenv("REGISTRY_URL")
 	if len(registryAddr) == 0 {
 		return nil, errors.New("REGISTRY_URL is required")
 	}
 
-	insecure := os.Getenv("OPENSHIFT_INSECURE") == "true"
-	var tlsClientConfig kclient.TLSClientConfig
-	if !insecure {
-		caData := os.Getenv("OPENSHIFT_CA_DATA")
-		if len(caData) == 0 {
-			return nil, errors.New("OPENSHIFT_CA_DATA is required")
-		}
-		certData := os.Getenv("OPENSHIFT_CERT_DATA")
-		if len(certData) == 0 {
-			return nil, errors.New("OPENSHIFT_CERT_DATA is required")
-		}
-		certKeyData := os.Getenv("OPENSHIFT_KEY_DATA")
-		if len(certKeyData) == 0 {
-			return nil, errors.New("OPENSHIFT_KEY_DATA is required")
-		}
-		tlsClientConfig = kclient.TLSClientConfig{
-			CAData:   []byte(caData),
-			CertData: []byte(certData),
-			KeyData:  []byte(certKeyData),
-		}
-	}
-
-	registryClientConfig := kclient.Config{
-		Host:            openshiftAddr,
-		TLSClientConfig: tlsClientConfig,
-		Insecure:        insecure,
-	}
-	registryClient, err := client.New(&registryClientConfig)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating OpenShift client: %s", err)
-	}
-
 	nameParts := strings.SplitN(repo.Name(), "/", 2)
-
+	if len(nameParts) != 2 {
+		return nil, errors.New("Incorrect image stream name")
+	}
 	return &repository{
 		Repository:     repo,
 		registryClient: registryClient,
@@ -96,8 +67,8 @@ func (r *repository) Manifests() distribution.ManifestService {
 }
 
 // Tags lists the tags under the named repository.
-func (r *repository) Tags() ([]string, error) {
-	imageStream, err := r.getImageStream()
+func (r *repository) Tags(ctx context.Context) ([]string, error) {
+	imageStream, err := r.getImageStream(ctx)
 	if err != nil {
 		return []string{}, nil
 	}
@@ -110,7 +81,7 @@ func (r *repository) Tags() ([]string, error) {
 }
 
 // Exists returns true if the manifest specified by dgst exists.
-func (r *repository) Exists(dgst digest.Digest) (bool, error) {
+func (r *repository) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
 	image, err := r.getImage(dgst)
 	if err != nil {
 		return false, err
@@ -119,8 +90,8 @@ func (r *repository) Exists(dgst digest.Digest) (bool, error) {
 }
 
 // ExistsByTag returns true if the manifest with tag `tag` exists.
-func (r *repository) ExistsByTag(tag string) (bool, error) {
-	imageStream, err := r.getImageStream()
+func (r *repository) ExistsByTag(ctx context.Context, tag string) (bool, error) {
+	imageStream, err := r.getImageStream(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -129,8 +100,8 @@ func (r *repository) ExistsByTag(tag string) (bool, error) {
 }
 
 // Get retrieves the manifest with digest `dgst`.
-func (r *repository) Get(dgst digest.Digest) (*manifest.SignedManifest, error) {
-	_, err := r.getImageStreamImage(dgst)
+func (r *repository) Get(ctx context.Context, dgst digest.Digest) (*manifest.SignedManifest, error) {
+	_, err := r.getImageStreamImage(ctx, dgst)
 	if err != nil {
 		return nil, err
 	}
@@ -144,8 +115,8 @@ func (r *repository) Get(dgst digest.Digest) (*manifest.SignedManifest, error) {
 }
 
 // Get retrieves the named manifest, if it exists.
-func (r *repository) GetByTag(tag string) (*manifest.SignedManifest, error) {
-	image, err := r.getImageStreamTag(tag)
+func (r *repository) GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error) {
+	image, err := r.getImageStreamTag(ctx, tag)
 	if err != nil {
 		// TODO remove when docker 1.6 is out
 		// Since docker 1.5 doesn't support pull by id, we're simulating pull by id
@@ -167,7 +138,7 @@ func (r *repository) GetByTag(tag string) (*manifest.SignedManifest, error) {
 			log.Errorf("GetByTag: unable to parse digest: %s", dgstErr)
 			return nil, err
 		}
-		image, err = r.getImageStreamImage(dgst)
+		image, err = r.getImageStreamImage(ctx, dgst)
 		if err != nil {
 			log.Errorf("GetByTag: getImageStreamImage returned error: %s", err)
 			return nil, err
@@ -188,7 +159,7 @@ func (r *repository) GetByTag(tag string) (*manifest.SignedManifest, error) {
 }
 
 // Put creates or updates the named manifest.
-func (r *repository) Put(manifest *manifest.SignedManifest) error {
+func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest) error {
 	// Resolve the payload in the manifest.
 	payload, err := manifest.Payload()
 	if err != nil {
@@ -239,13 +210,17 @@ func (r *repository) Put(manifest *manifest.SignedManifest) error {
 }
 
 // Delete deletes the manifest with digest `dgst`.
-func (r *repository) Delete(dgst digest.Digest) error {
+func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
 	return r.registryClient.Images().Delete(dgst.String())
 }
 
 // getImageStream retrieves the ImageStream for r.
-func (r *repository) getImageStream() (*imageapi.ImageStream, error) {
-	return r.registryClient.ImageStreams(r.namespace).Get(r.name)
+func (r *repository) getImageStream(ctx context.Context) (*imageapi.ImageStream, error) {
+	client, err := getUserOpenShiftClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return client.ImageStreams(r.namespace).Get(r.name)
 }
 
 // getImage retrieves the Image with digest `dgst`. This uses the registry's
@@ -256,15 +231,22 @@ func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 
 // getImageStreamTag retrieves the Image with tag `tag` for the ImageStream
 // associated with r.
-func (r *repository) getImageStreamTag(tag string) (*imageapi.Image, error) {
-	return r.registryClient.ImageStreamTags(r.namespace).Get(r.name, tag)
+func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imageapi.Image, error) {
+	client, err := getUserOpenShiftClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return client.ImageStreamTags(r.namespace).Get(r.name, tag)
 }
 
 // getImageStreamImage retrieves the Image with digest `dgst` for the ImageStream
 // associated with r. This ensures the user has access to the image.
-func (r *repository) getImageStreamImage(dgst digest.Digest) (*imageapi.Image, error) {
-	// TODO !!! use user credentials, not the registry's !!!
-	return r.registryClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
+func (r *repository) getImageStreamImage(ctx context.Context, dgst digest.Digest) (*imageapi.Image, error) {
+	client, err := getUserOpenShiftClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return client.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
 
 // manifestFromImage converts an Image to a SignedManifest.
@@ -296,4 +278,12 @@ func (r *repository) manifestFromImage(image *imageapi.Image) (*manifest.SignedM
 		return nil, err
 	}
 	return &sm, err
+}
+
+func getUserOpenShiftClient(ctx context.Context) (*client.Client, error) {
+	bearerToken, ok := auth.BearerTokenFrom(ctx)
+	if !ok {
+		return nil, errors.New("unable to create user OpenShift client: bearer token missing")
+	}
+	return dockerregistry.NewUserOpenShiftClient(bearerToken)
 }
