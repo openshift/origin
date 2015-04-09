@@ -65,10 +65,10 @@ func NewTemplatePlugin(templatePath, reloadScriptPath string) (*TemplatePlugin, 
 func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) error {
 	key := endpointsKey(*endpoints)
 
-	glog.V(4).Infof("Processing %d Endpoints for Name: %v (%v)", len(endpoints.Endpoints), endpoints.Name, eventType)
+	glog.V(4).Infof("Processing %d Endpoints for Name: %v (%v)", len(endpoints.Subsets), endpoints.Name, eventType)
 
-	for i, e := range endpoints.Endpoints {
-		glog.V(4).Infof("  Endpoint %d : %s", i, e)
+	for i, s := range endpoints.Subsets {
+		glog.V(4).Infof("  Subset %d : %#v", i, s)
 	}
 
 	if _, ok := p.Router.FindServiceUnit(key); !ok {
@@ -121,15 +121,20 @@ func endpointsKey(endpoints kapi.Endpoints) string {
 
 // createRouterEndpoints creates openshift router endpoints based on k8s endpoints
 func createRouterEndpoints(endpoints *kapi.Endpoints) []Endpoint {
-	routerEndpoints := make([]Endpoint, len(endpoints.Endpoints))
+	out := make([]Endpoint, 0, len(endpoints.Subsets)*4)
 
-	for i, e := range endpoints.Endpoints {
-		routerEndpoints[i] = Endpoint{
-			ID:   fmt.Sprintf("%s:%d", e.IP, e.Port),
-			IP:   e.IP,
-			Port: strconv.Itoa(e.Port),
+	// TODO: review me for sanity
+	for _, s := range endpoints.Subsets {
+		for _, a := range s.Addresses {
+			for _, p := range s.Ports {
+				out = append(out, Endpoint{
+					ID:   fmt.Sprintf("%s:%d", a.IP, p.Port),
+					IP:   a.IP,
+					Port: strconv.Itoa(p.Port),
+				})
+			}
 		}
 	}
 
-	return routerEndpoints
+	return out
 }

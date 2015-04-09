@@ -137,7 +137,8 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *kapi.Service:
-			fmt.Fprintf(c.Out(), "Service %q created at %s:%d to talk to pods over port %d.\n", t.Name, t.Spec.PortalIP, t.Spec.Port, t.Spec.TargetPort.IntVal)
+			// TODO: handle multi-port created services
+			fmt.Fprintf(c.Out(), "Service %q created at %s:%d to talk to pods over port %d.\n", t.Name, t.Spec.PortalIP, t.Spec.Ports[0].Port, t.Spec.Ports[0].TargetPort.IntVal)
 		case *buildapi.BuildConfig:
 			fmt.Fprintf(c.Out(), "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
 		case *imageapi.ImageStream:
