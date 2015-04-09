@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/docker/distribution/digest"
+	"github.com/golang/glog"
 )
 
 // DockerDefaultNamespace is the value for namespace when a single segment name is provided.
@@ -271,6 +273,26 @@ func AddTagEventToImageStream(stream *ImageStream, tag string, next TagEvent) bo
 	}
 
 	tags.Items = append([]TagEvent{next}, tags.Items...)
+
+	// limit the total number of items per tag.
+	// default to 3, but allow overriding via env var
+	maxItems := 3
+
+	s := os.Getenv("OPENSHIFT_MAX_TAG_HISTORY_ITEMS")
+	if len(s) > 0 {
+		if i, err := strconv.Atoi(s); err != nil {
+			glog.Errorf("Unable to parse OPENSHIFT_MAX_TAG_HISTORY_ITEMS %q (%s); defaulting to 3", s, err)
+		} else {
+			maxItems = i
+		}
+	}
+
+	if maxItems > len(tags.Items) {
+		maxItems = len(tags.Items)
+	}
+
+	tags.Items = tags.Items[0:maxItems]
+
 	stream.Status.Tags[tag] = tags
 	return true
 }
