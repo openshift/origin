@@ -106,6 +106,14 @@ func ValidateSpecifiedIP(ipString string, field string) fielderrors.ValidationEr
 	return allErrs
 }
 
+func ValidateSecureURL(urlString string, field string) (*url.URL, fielderrors.ValidationErrorList) {
+	url, urlErrs := ValidateURL(urlString, field)
+	if len(urlErrs) == 0 && url.Scheme != "https" {
+		urlErrs = append(urlErrs, fielderrors.NewFieldInvalid(field, urlString, "must use https scheme"))
+	}
+	return url, urlErrs
+}
+
 func ValidateURL(urlString string, field string) (*url.URL, fielderrors.ValidationErrorList) {
 	allErrs := fielderrors.ValidationErrorList{}
 
@@ -115,7 +123,7 @@ func ValidateURL(urlString string, field string) (*url.URL, fielderrors.Validati
 		return nil, allErrs
 	}
 	if len(urlObj.Scheme) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, urlString, "must contain a scheme (e.g. http://)"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, urlString, "must contain a scheme (e.g. https://)"))
 	}
 	if len(urlObj.Host) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, urlString, "must contain a host"))

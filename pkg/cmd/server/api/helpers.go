@@ -66,6 +66,9 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
 
+			case (*OpenIDIdentityProvider):
+				refs = append(refs, &provider.CA)
+
 			}
 		}
 	}
@@ -244,10 +247,7 @@ func GetKubeletClientConfig(options MasterConfig) *kclient.KubeletConfig {
 }
 
 func IsPasswordAuthenticator(provider IdentityProvider) bool {
-	return IsPasswordAuthenticatorProviderType(provider.Provider)
-}
-func IsPasswordAuthenticatorProviderType(provider runtime.EmbeddedObject) bool {
-	switch provider.Object.(type) {
+	switch provider.Provider.Object.(type) {
 	case
 		(*BasicAuthPasswordIdentityProvider),
 		(*AllowAllPasswordIdentityProvider),
@@ -264,11 +264,13 @@ func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
 	switch provider.Object.(type) {
 	case
 		(*RequestHeaderIdentityProvider),
-		(*OAuthRedirectingIdentityProvider),
 		(*BasicAuthPasswordIdentityProvider),
 		(*AllowAllPasswordIdentityProvider),
 		(*DenyAllPasswordIdentityProvider),
-		(*HTPasswdPasswordIdentityProvider):
+		(*HTPasswdPasswordIdentityProvider),
+		(*OpenIDIdentityProvider),
+		(*GitHubIdentityProvider),
+		(*GoogleIdentityProvider):
 
 		return true
 	}
@@ -276,11 +278,12 @@ func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
 	return false
 }
 
-func IsOAuthProviderType(provider runtime.EmbeddedObject) bool {
-	switch provider.Object.(type) {
+func IsOAuthIdentityProvider(provider IdentityProvider) bool {
+	switch provider.Provider.Object.(type) {
 	case
-		(*GoogleOAuthProvider),
-		(*GitHubOAuthProvider):
+		(*OpenIDIdentityProvider),
+		(*GitHubIdentityProvider),
+		(*GoogleIdentityProvider):
 
 		return true
 	}
