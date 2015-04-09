@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -275,11 +274,6 @@ func StartNode(config configapi.NodeConfig) error {
 	nodeConfig, err := kubernetes.BuildKubernetesNodeConfig(config)
 	if err != nil {
 		return err
-	}
-
-	// TODO: recording should occur in individual components
-	if config.RecordEvents {
-		record.StartRecording(nodeConfig.Client.Events(""))
 	}
 
 	nodeConfig.EnsureVolumeDir()

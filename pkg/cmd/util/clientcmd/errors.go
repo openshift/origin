@@ -1,11 +1,9 @@
 package clientcmd
 
 import (
-	"net/http"
 	"strings"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 )
 
 const (
@@ -47,13 +45,7 @@ func IsCertificateAuthorityUnknown(err error) bool {
 }
 
 func IsForbidden(err error) bool {
-	if kerrors.IsForbidden(err) {
-		return true
-	}
-	if e, ok := err.(*kclient.UnexpectedStatusError); ok {
-		return e.Response != nil && e.Response.StatusCode == http.StatusForbidden
-	}
-	return false
+	return kerrors.IsForbidden(err)
 }
 
 func detectReason(err error) int {

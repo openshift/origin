@@ -32,9 +32,6 @@ type NodeConfig struct {
 
 	// AllowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.
 	AllowDisabledDocker bool `json:"allowDisabledDocker"`
-
-	// RecordEvents indicates whether or not to record events from the master
-	RecordEvents bool `json:"recordEvents"`
 }
 
 type MasterConfig struct {
