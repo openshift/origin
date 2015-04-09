@@ -41,6 +41,7 @@ type Interface interface {
 	RootResourceAccessReviews
 	SubjectAccessReviewsNamespacer
 	TemplatesNamespacer
+	TemplateConfigsNamespacer
 }
 
 // Builds provides a REST client for Builds

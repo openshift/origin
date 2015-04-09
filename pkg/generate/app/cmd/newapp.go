@@ -20,27 +20,34 @@ import (
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/template"
 )
 
 // AppConfig contains all the necessary configuration for an application
 type AppConfig struct {
 	SourceRepositories util.StringList
 
-	Components   util.StringList
-	ImageStreams util.StringList
-	DockerImages util.StringList
-	Groups       util.StringList
-	Environment  util.StringList
+	Components         util.StringList
+	ImageStreams       util.StringList
+	DockerImages       util.StringList
+	Templates          util.StringList
+	TemplateParameters util.StringList
+	Groups             util.StringList
+	Environment        util.StringList
 
 	TypeOfBuild string
 
 	dockerResolver      app.Resolver
 	imageStreamResolver app.Resolver
+	templateResolver    app.Resolver
 
 	searcher app.Searcher
 	detector app.Detector
 
 	typer runtime.ObjectTyper
+
+	osclient        client.Interface
+	originNamespace string
 }
 
 // UsageError is an interface for printing usage errors
@@ -70,18 +77,24 @@ func NewAppConfig(typer runtime.ObjectTyper) *AppConfig {
 // SetDockerClient sets the passed Docker client in the application configuration
 func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 	c.dockerResolver = app.DockerClientResolver{
-		Client: dockerclient,
-
+		Client:           dockerclient,
 		RegistryResolver: c.dockerResolver,
 	}
 }
 
 // SetOpenShiftClient sets the passed OpenShift client in the application configuration
 func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespace string) {
+	c.osclient = osclient
+	c.originNamespace = originNamespace
 	c.imageStreamResolver = app.ImageStreamResolver{
 		Client:            osclient,
 		ImageStreamImages: osclient,
 		Namespaces:        []string{originNamespace, "default"},
+	}
+	c.templateResolver = app.TemplateResolver{
+		Client: osclient,
+		TemplateConfigsNamespacer: osclient,
+		Namespaces:                []string{originNamespace, "openshift", "default"},
 	}
 }
 
@@ -107,41 +120,54 @@ func (c *AppConfig) AddArguments(args []string) []string {
 }
 
 // validate converts all of the arguments on the config into references to objects, or returns an error
-func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository, cmdutil.Environment, error) {
+func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository, cmdutil.Environment, cmdutil.Environment, error) {
 	b := &app.ReferenceBuilder{}
 	for _, s := range c.SourceRepositories {
 		b.AddSourceRepository(s)
 	}
-	b.AddImages(c.DockerImages, func(input *app.ComponentInput) app.ComponentReference {
+	b.AddComponents(c.DockerImages, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--docker-image=%q", input.From)
 		input.Resolver = c.dockerResolver
 		return input
 	})
-	b.AddImages(c.ImageStreams, func(input *app.ComponentInput) app.ComponentReference {
+	b.AddComponents(c.ImageStreams, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--image=%q", input.From)
 		input.Resolver = c.imageStreamResolver
 		return input
 	})
-	b.AddImages(c.Components, func(input *app.ComponentInput) app.ComponentReference {
+	b.AddComponents(c.Templates, func(input *app.ComponentInput) app.ComponentReference {
+		input.Argument = fmt.Sprintf("--template=%q", input.From)
+		input.Resolver = c.templateResolver
+		return input
+	})
+	b.AddComponents(c.Components, func(input *app.ComponentInput) app.ComponentReference {
 		input.Resolver = app.PerfectMatchWeightedResolver{
 			app.WeightedResolver{Resolver: c.imageStreamResolver, Weight: 0.0},
+			app.WeightedResolver{Resolver: c.templateResolver, Weight: 0.0},
 			app.WeightedResolver{Resolver: c.dockerResolver, Weight: 2.0},
 		}
 		return input
 	})
 	b.AddGroups(c.Groups)
 	refs, repos, errs := b.Result()
+
 	if len(c.TypeOfBuild) != 0 && len(repos) == 0 {
 		errs = append(errs, fmt.Errorf("when --build is specified you must provide at least one source code location"))
 	}
 
-	env, duplicate, envErrs := cmdutil.ParseEnvironmentArguments(c.Environment)
-	for _, s := range duplicate {
+	env, duplicateEnv, envErrs := cmdutil.ParseEnvironmentArguments(c.Environment)
+	for _, s := range duplicateEnv {
 		glog.V(1).Infof("The environment variable %q was overwritten", s)
 	}
 	errs = append(errs, envErrs...)
 
-	return refs, repos, env, errors.NewAggregate(errs)
+	parms, duplicateParms, parmsErrs := cmdutil.ParseEnvironmentArguments(c.TemplateParameters)
+	for _, s := range duplicateParms {
+		glog.V(1).Infof("The template parameter %q was overwritten", s)
+	}
+	errs = append(errs, parmsErrs...)
+
+	return refs, repos, env, parms, errors.NewAggregate(errs)
 }
 
 // resolve the references to ensure they are all valid, and identify any images that don't match user input.
@@ -158,6 +184,10 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 				glog.Infof("Image %q is a builder, so a repository will be expected unless you also specify --build=docker", input)
 				input.ExpectToBuild = true
 			}
+		case input.ExpectToBuild && input.Match.IsTemplate():
+			// TODO: harder - break the template pieces and check if source code can be attached (look for a build config, build image, etc)
+			errs = append(errs, fmt.Errorf("template with source code explicitly attached is not supported - you must either specify the template and source code separately or attach an image to the source code using the '[image]~[code]' form"))
+			continue
 		case input.ExpectToBuild && !input.Match.Builder:
 			if len(c.TypeOfBuild) == 0 {
 				errs = append(errs, fmt.Errorf("none of the images that match %q can build source code - check whether this is the image you want to use, then use --build=source to build using source or --build=docker to treat this as a Docker base image and set up a layered Docker build", ref))
@@ -283,7 +313,9 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 		glog.V(2).Infof("found group: %#v", group)
 		common := app.PipelineGroup{}
 		for _, ref := range group {
-
+			if !ref.Input().Match.IsImage() {
+				continue
+			}
 			var pipeline *app.Pipeline
 			if ref.Input().ExpectToBuild {
 				glog.V(2).Infof("will use %q as the base image for a source build of %q", ref, ref.Input().Uses)
@@ -298,7 +330,6 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, strategy, source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
-
 			} else {
 				glog.V(2).Infof("will include %q", ref)
 				input, err := app.InputImageFromMatch(ref.Input().Match)
@@ -309,7 +340,6 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
 			}
-
 			if err := pipeline.NeedsDeployment(environment); err != nil {
 				return nil, fmt.Errorf("can't set up a deployment for %q: %v", ref.Input(), err)
 			}
@@ -322,6 +352,39 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 		pipelines = append(pipelines, common...)
 	}
 	return pipelines, nil
+}
+
+// buildTemplates converts a set of resolved, valid references into references to template objects.
+func (c *AppConfig) buildTemplates(components app.ComponentReferences, environment app.Environment) ([]runtime.Object, error) {
+	objects := []runtime.Object{}
+
+	for _, ref := range components {
+		if !ref.Input().Match.IsTemplate() {
+			continue
+		}
+
+		tpl := ref.Input().Match.Template
+
+		glog.V(4).Infof("processing template %s/%s", c.originNamespace, tpl.Name)
+		for _, env := range environment.List() {
+			// only set environment values that match what's expected by the template.
+			if v := template.GetParameterByName(tpl, env.Name); v != nil {
+				v.Value = env.Value
+				v.Generate = ""
+				template.AddParameter(tpl, *v)
+			} else {
+				return nil, fmt.Errorf("unexpected parameter name %q", env.Name)
+			}
+		}
+
+		result, err := c.osclient.TemplateConfigs(c.originNamespace).Create(tpl)
+		if err != nil {
+			return nil, fmt.Errorf("error processing template %s/%s: %v", c.originNamespace, tpl.Name, err)
+		}
+
+		objects = append(objects, result.Items...)
+	}
+	return objects, nil
 }
 
 // ErrNoInputs is returned when no inputs are specified
@@ -337,14 +400,15 @@ type AppResult struct {
 
 // Run executes the provided config.
 func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
-	components, repositories, environment, err := c.validate()
+	components, repositories, environment, parameters, err := c.validate()
 	if err != nil {
 		return nil, err
 	}
 
 	hasSource := len(repositories) != 0
-	hasImages := len(components) != 0
-	if !hasSource && !hasImages {
+	hasComponents := len(components) != 0
+
+	if !hasSource && !hasComponents {
 		return nil, ErrNoInputs
 	}
 
@@ -357,7 +421,7 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 	}
 
 	glog.V(4).Infof("Code %v", repositories)
-	glog.V(4).Infof("Images %v", components)
+	glog.V(4).Infof("Components %v", components)
 
 	// TODO: Source detection needs to happen before components
 	//       are validated and resolved.
@@ -385,6 +449,12 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 	}
 
 	objects = app.AddServices(objects)
+
+	templateObjects, err := c.buildTemplates(components, app.Environment(parameters))
+	if err != nil {
+		return nil, err
+	}
+	objects = append(objects, templateObjects...)
 
 	buildNames := []string{}
 	for _, obj := range objects {

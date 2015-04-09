@@ -88,6 +88,10 @@ func (c *Fake) Templates(namespace string) TemplateInterface {
 	return &FakeTemplates{Fake: c}
 }
 
+func (c *Fake) TemplateConfigs(namespace string) TemplateConfigInterface {
+	return &FakeTemplateConfigs{Fake: c}
+}
+
 func (c *Fake) Identities() IdentityInterface {
 	return &FakeIdentities{Fake: c}
 }
