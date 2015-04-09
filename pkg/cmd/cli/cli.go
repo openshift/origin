@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/config"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -83,7 +85,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName))
 	}
-	cmds.AddCommand(config.NewCmdConfig(fullName, "config"))
+	cmds.AddCommand(config.NewCmdConfig(f, fullName, "config"))
 	cmds.AddCommand(cmd.NewCmdOptions(f, out))
 
 	return cmds
@@ -94,7 +96,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 func NewCmdKubectl(name string) *cobra.Command {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	f := clientcmd.New(flags)
-	cmd := f.Factory.NewKubectlCommand(os.Stdin, os.Stdout, os.Stderr)
+	cmd := kubecmd.NewKubectlCommand(f.Factory, os.Stdin, os.Stdout, os.Stderr)
 	cmd.Aliases = []string{"kubectl"}
 	cmd.Use = name
 	cmd.Short = "Kubernetes cluster management via kubectl"
