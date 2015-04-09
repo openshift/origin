@@ -46,7 +46,7 @@ angular.module('openshiftConsole')
       $scope.pods = pods.by("metadata.name");
       podRelationships();
       Logger.log("pods", $scope.pods);
-    }, {poll: true}));
+    }));
 
     watches.push(DataService.watch("services", $scope, function(services) {
       $scope.unfilteredServices = services.by("metadata.name");
