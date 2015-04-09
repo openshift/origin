@@ -123,9 +123,9 @@ func mockPod(podPhase kapi.PodPhase) *kapi.Pod {
 					Name: "foo-container",
 				},
 			},
+			Host: "foo-host",
 		},
 		Status: kapi.PodStatus{
-			Host:  "foo-host",
 			Phase: podPhase,
 		},
 	}

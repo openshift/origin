@@ -10,10 +10,10 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	oauthhandlers "github.com/openshift/origin/pkg/auth/oauth/handlers"
 	oauthregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
@@ -48,7 +48,7 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 
 	// setup
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
+	etcdHelper, _ := master.NewEtcdHelper(etcdClient, latest.Version)
 	oauthEtcd := oauthetcd.New(etcdHelper)
 
 	userStorage := useretcd.NewREST(etcdHelper)

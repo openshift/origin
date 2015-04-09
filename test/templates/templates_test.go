@@ -69,9 +69,10 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 		Storage: storage,
 		Codec:   interfaces.Codec,
 
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  interfaces.MetadataAccessor,
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    interfaces.MetadataAccessor,
 
 		Admit:   admit.NewAlwaysAdmit(),
 		Context: kapi.NewRequestContextMapper(),

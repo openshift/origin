@@ -32,11 +32,12 @@ func TestWebhookGithubPush(t *testing.T) {
 
 	// create buildconfig
 	buildConfig := mockBuildConfigParms("image", "repo", "tag")
-	if _, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	bc, err := openshift.Client.BuildConfigs(testutil.Namespace()).Create(buildConfig)
+	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	watch, err := openshift.Client.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), bc.ResourceVersion)
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/deploy/api"
 )
