@@ -37,8 +37,8 @@ func (c *users) List(label labels.Selector, field fields.Selector) (result *user
 	result = &userapi.UserList{}
 	err = c.r.Get().
 		Resource("users").
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Do().
 		Into(result)
 	return
