@@ -14,7 +14,6 @@ import (
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -360,9 +359,6 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		openshiftConfig.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
 		go daemon.SdNotify("READY=1")
 	}
-
-	// TODO: recording should occur in individual components
-	record.StartRecording(openshiftConfig.KubeClient().Events(""))
 
 	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
 

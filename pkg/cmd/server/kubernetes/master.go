@@ -12,12 +12,13 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	minioncontroller "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
-	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 	schedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api"
@@ -60,8 +61,6 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 
 		EventTTL: 2 * time.Hour,
 
-		EnableV1Beta3: true,
-
 		PortalNet: c.PortalNet,
 
 		RequestContextMapper: c.RequestContextMapper,
@@ -98,7 +97,7 @@ func (c *MasterConfig) RunReplicationController() {
 // RunEndpointController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunEndpointController() {
 	endpoints := service.NewEndpointController(c.KubeClient)
-	go kubeutil.Forever(func() { endpoints.SyncServiceEndpoints() }, time.Second*10)
+	go util.Forever(func() { endpoints.SyncServiceEndpoints() }, time.Second*10)
 
 	glog.Infof("Started Kubernetes Endpoint Controller")
 }
@@ -109,6 +108,10 @@ func (c *MasterConfig) RunScheduler() {
 	if err != nil {
 		glog.Fatalf("Unable to start scheduler: %v", err)
 	}
+	eventcast := record.NewBroadcaster()
+	config.Recorder = eventcast.NewRecorder(kapi.EventSource{Component: "scheduler"})
+	eventcast.StartRecordingToSink(c.KubeClient.Events(""))
+
 	s := scheduler.New(config)
 	s.Run()
 	glog.Infof("Started Kubernetes Scheduler")
@@ -132,8 +135,19 @@ func (c *MasterConfig) RunMinionController() {
 		glog.Fatalf("Failure to create kubelet client: %v", err)
 	}
 
-	minionController := minioncontroller.NewNodeController(nil, "", c.NodeHosts, nodeResources, c.KubeClient, kubeletClient, nil, 10, 5*time.Minute)
-	minionController.Run(10*time.Second, true, true)
+	minionController := minioncontroller.NewNodeController(
+		nil, "", c.NodeHosts, nodeResources,
+		c.KubeClient, kubeletClient,
+		10,            // registerRetryCount
+		5*time.Minute, // podEvictionTimeout
+
+		util.NewTokenBucketRateLimiter(0.1, 10), // deleting pods qps / burst
+
+		40*time.Second, // monitor grace
+		1*time.Minute,  // startup grace
+		10*time.Second, // monitor period
+	)
+	minionController.Run(10*time.Second, true)
 
 	glog.Infof("Started Kubernetes Minion Controller")
 }
