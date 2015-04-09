@@ -95,6 +95,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		ClusterDomain: options.DNSDomain,
 		ClusterDNS:    dnsIP,
 
+		NetworkPluginName: options.NetworkPluginName,
+
 		VolumeDir:           options.VolumeDirectory,
 		ImageFor:            imageTemplate.ExpandOrDie,
 		AllowDisabledDocker: options.AllowDisabledDocker,
