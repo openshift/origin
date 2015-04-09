@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 )
 
 const (
@@ -53,8 +54,7 @@ func detectReason(err error) int {
 		switch {
 		case strings.Contains(err.Error(), "certificate signed by unknown authority"):
 			return certificateAuthorityUnknownReason
-
-		case strings.Contains(err.Error(), "no server found for"):
+		case clientcmd.IsConfigurationInvalid(err), strings.Contains(err.Error(), "no server found for"):
 			return noServerFoundReason
 		}
 	}
