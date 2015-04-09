@@ -194,12 +194,20 @@ angular.module('openshiftConsole')
     };
   })
   .filter('imageRepoReference', function(){
-    return function(objectRef, tag){
-      tag = tag || "latest";
+    return function(objectRef, kind, tag){
       var ns = objectRef.namespace || "";
-      ns = ns == "" ? ns : ns + "/";
+      ns = ns === "" ? ns : ns + "/";
+
+      if (kind === "ImageStreamTag" || kind === "ImageStreamImage") {
+        return ns+objectRef.name;
+      }
       var ref = ns + objectRef.name;
-      ref += " [" + tag + "]";
+      // until v1beta2, the ImageStreamImage Kind isn't being set so we need to
+      // manually check if the name looks like an ImageStreamImage
+      if (objectRef.name.indexOf("@") === -1) {
+        tag = tag || "latest";
+        ref += " [" + tag + "]";
+      }
       return ref;
     };
   });

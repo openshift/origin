@@ -9,7 +9,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
-func TestBuildValdationSuccess(t *testing.T) {
+func TestBuildValidationSuccess(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
 		Parameters: buildapi.BuildParameters{
@@ -309,7 +309,7 @@ func TestValidateBuildParameters(t *testing.T) {
 						URI: "http://github.com/my/repository",
 					},
 				},
-				Strategy: buildapi.BuildStrategy{Type: "classic-joke"},
+				Strategy: buildapi.BuildStrategy{Type: "invalid-type"},
 				Output: buildapi.BuildOutput{
 					DockerImageReference: "repository/data",
 				},
@@ -330,32 +330,7 @@ func TestValidateBuildParameters(t *testing.T) {
 				},
 			},
 		},
-		// invalid because both image and from are specified in the
-		// sti strategy definition
-		{
-			string(fielderrors.ValidationErrorTypeInvalid) + "strategy.stiStrategy.image",
-			&buildapi.BuildParameters{
-				Source: buildapi.BuildSource{
-					Type: buildapi.BuildSourceGit,
-					Git: &buildapi.GitBuildSource{
-						URI: "http://github.com/my/repository",
-					},
-				},
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.STIBuildStrategyType,
-					STIStrategy: &buildapi.STIBuildStrategy{
-						Image: "image",
-						From: &kapi.ObjectReference{
-							Name: "reponame",
-						},
-					},
-				},
-				Output: buildapi.BuildOutput{
-					DockerImageReference: "repository/data",
-				},
-			},
-		},
-		// invalid because neither image nor from are specified in the
+		// invalid because from is not specified in the
 		// sti strategy definition
 		{
 			string(fielderrors.ValidationErrorTypeRequired) + "strategy.stiStrategy.from",
@@ -369,6 +344,26 @@ func TestValidateBuildParameters(t *testing.T) {
 				Strategy: buildapi.BuildStrategy{
 					Type:        buildapi.STIBuildStrategyType,
 					STIStrategy: &buildapi.STIBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
+				},
+			},
+		},
+		// invalid because from is not specified in the
+		// custom strategy definition
+		{
+			string(fielderrors.ValidationErrorTypeRequired) + "strategy.customStrategy.from",
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.CustomBuildStrategyType,
+					CustomStrategy: &buildapi.CustomBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
 					DockerImageReference: "repository/data",
@@ -405,7 +400,9 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 				Strategy: buildapi.BuildStrategy{
 					Type: buildapi.STIBuildStrategyType,
 					STIStrategy: &buildapi.STIBuildStrategy{
-						Image: "repository/builder-image",
+						From: &kapi.ObjectReference{
+							Name: "reponame",
+						},
 					},
 				},
 				Output: buildapi.BuildOutput{
@@ -422,8 +419,46 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 					},
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.STIBuildStrategyType,
-					STIStrategy: &buildapi.STIBuildStrategy{
+					Type: buildapi.CustomBuildStrategyType,
+					CustomStrategy: &buildapi.CustomBuildStrategy{
+						From: &kapi.ObjectReference{
+							Name: "reponame",
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
+				},
+			},
+		},
+		{
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					DockerImageReference: "repository/data",
+				},
+			},
+		},
+		{
+			&buildapi.BuildParameters{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{
 						From: &kapi.ObjectReference{
 							Name: "reponame",
 						},
@@ -526,69 +561,6 @@ func TestValidateTrigger(t *testing.T) {
 		}
 		if validationError.Field != test.expected[0].Field {
 			t.Errorf("%s: Unexpected error field: %s", desc, validationError.Field)
-		}
-	}
-}
-
-func TestValidateImageChange(t *testing.T) {
-	tests := []struct {
-		name           string
-		ict            *buildapi.ImageChangeTrigger
-		expectedErrNum int
-	}{
-		{
-			name: "Pass",
-			ict: &buildapi.ImageChangeTrigger{
-				Image: "openshift",
-				From: kapi.ObjectReference{
-					Name: "default/repo",
-				},
-			},
-			expectedErrNum: 0,
-		},
-		{
-			name: "Missing image ref",
-			ict: &buildapi.ImageChangeTrigger{
-				Image: "",
-				From: kapi.ObjectReference{
-					Name: "default/repo",
-				},
-			},
-			expectedErrNum: 1,
-		},
-		{
-			name: "Missing From ref",
-			ict: &buildapi.ImageChangeTrigger{
-				Image: "openshift",
-				From: kapi.ObjectReference{
-					Name: "",
-				},
-			},
-			expectedErrNum: 1,
-		},
-		{
-			name: "Both missing refs",
-			ict: &buildapi.ImageChangeTrigger{
-				Image: "",
-				From: kapi.ObjectReference{
-					Name: "",
-				},
-			},
-			expectedErrNum: 2,
-		},
-		{
-			name: "Undefined from field",
-			ict: &buildapi.ImageChangeTrigger{
-				Image: "openshift",
-			},
-			expectedErrNum: 1,
-		},
-	}
-
-	for _, test := range tests {
-		got := len(validateImageChange(test.ict))
-		if test.expectedErrNum != got {
-			t.Errorf("%s: Expected %d error(s), got %d", test.name, test.expectedErrNum, got)
 		}
 	}
 }

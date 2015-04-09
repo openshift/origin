@@ -178,8 +178,8 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 
 	var newFileData string
-	if d.build.Parameters.Strategy.DockerStrategy.Image != "" {
-		newFileData, err = replaceValidCmd(dockercmd.From, d.build.Parameters.Strategy.DockerStrategy.Image, fileData)
+	if d.build.Parameters.Strategy.DockerStrategy.From != nil && d.build.Parameters.Strategy.DockerStrategy.From.Kind == "DockerImage" {
+		newFileData, err = replaceValidCmd(dockercmd.From, d.build.Parameters.Strategy.DockerStrategy.From.Name, fileData)
 		if err != nil {
 			return err
 		}

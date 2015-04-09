@@ -184,7 +184,7 @@ func printBuildList(buildList *buildapi.BuildList, w io.Writer) error {
 
 func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer) error {
 	if bc.Parameters.Strategy.Type == buildapi.CustomBuildStrategyType {
-		_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, bc.Parameters.Strategy.Type, bc.Parameters.Strategy.CustomStrategy.Image)
+		_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, bc.Parameters.Strategy.Type, bc.Parameters.Strategy.CustomStrategy.From.Name)
 		return err
 	}
 	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, bc.Parameters.Strategy.Type, bc.Parameters.Source.Git.URI)

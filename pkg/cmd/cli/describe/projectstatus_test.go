@@ -131,7 +131,7 @@ func TestProjectStatus(t *testing.T) {
 				"service frontend (172.30.17.154:5432 -> 8080)",
 				"database deploys",
 				"frontend deploys",
-				"with example/ruby-20-centos7:latest",
+				"with docker.io/openshift/ruby-20-centos7:latest",
 				"#1 deployed 8 seconds ago",
 				"#1 deployed less than a second ago",
 				"To see more information",

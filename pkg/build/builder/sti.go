@@ -35,7 +35,7 @@ func NewSTIBuilder(client DockerClient, dockerSocket string, authCfg docker.Auth
 func (s *STIBuilder) Build() error {
 	tag := s.build.Parameters.Output.DockerImageReference
 	request := &stiapi.Request{
-		BaseImage:    s.build.Parameters.Strategy.STIStrategy.Image,
+		BaseImage:    s.build.Parameters.Strategy.STIStrategy.From.Name,
 		DockerSocket: s.dockerSocket,
 		Source:       s.build.Parameters.Source.Git.URI,
 		ContextDir:   s.build.Parameters.Source.ContextDir,

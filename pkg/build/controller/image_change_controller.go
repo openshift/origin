@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -11,6 +12,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -34,6 +36,13 @@ type ImageChangeController struct {
 	Stop <-chan struct{}
 }
 
+// getImageStreamNameFromReference strips off the :tag or @id suffix
+// from an ImageStream[Tag,Image,''].Name
+func getImageStreamNameFromReference(ref *kapi.ObjectReference) string {
+	name := strings.Split(ref.Name, ":")[0]
+	return strings.Split(name, "@")[0]
+}
+
 // HandleImageRepo processes the next ImageStream event.
 func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) error {
 	glog.V(4).Infof("Build image change controller detected imagerepo change %s", repo.Status.DockerImageRepository)
@@ -41,6 +50,10 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 	// TODO: this is inefficient
 	for _, bc := range c.BuildConfigStore.List() {
 		config := bc.(*buildapi.BuildConfig)
+		from := buildutil.GetImageStreamForStrategy(config)
+		if from == nil || from.Kind != "ImageStreamTag" {
+			continue
+		}
 
 		shouldBuild := false
 		// For every ImageChange trigger find the latest tagged image from the image repository and replace that value
@@ -50,31 +63,35 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 				continue
 			}
-			change := trigger.ImageChange
+			fromStreamName := getImageStreamNameFromReference(from)
 
-			changeNamespace := change.From.Namespace
-			if len(changeNamespace) == 0 {
-				changeNamespace = config.Namespace
+			fromNamespace := from.Namespace
+			if len(fromNamespace) == 0 {
+				fromNamespace = config.Namespace
 			}
 
 			// only trigger a build if this image repo matches the name and namespace of the ref in the build trigger
 			// also do not trigger if the imagerepo does not have a valid DockerImageRepository value for us to pull
 			// the image from
-			if len(repo.Status.DockerImageRepository) == 0 || change.From.Name != repo.Name || changeNamespace != repo.Namespace {
+			if len(repo.Status.DockerImageRepository) == 0 || fromStreamName != repo.Name || fromNamespace != repo.Namespace {
 				continue
 			}
-			latest, err := imageapi.LatestTaggedImage(repo, change.Tag)
+
+			// This split is safe because ImageStreamTag names always have the form
+			// name:tag.
+			tag := strings.Split(from.Name, ":")[1]
+			latest, err := imageapi.LatestTaggedImage(repo, tag)
 			if err != nil {
 				util.HandleError(fmt.Errorf("unable to find tagged image: %v", err))
 				continue
 			}
 
 			// (must be different) to trigger a build
-			last := change.LastTriggeredImageID
+			last := trigger.ImageChange.LastTriggeredImageID
 			next := latest.DockerImageReference
 
 			if len(last) == 0 || (len(next) > 0 && next != last) {
-				change.LastTriggeredImageID = next
+				trigger.ImageChange.LastTriggeredImageID = next
 				shouldBuild = true
 			}
 		}

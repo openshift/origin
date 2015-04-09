@@ -175,10 +175,7 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 		if strategy.CustomStrategy == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("customStrategy"))
 		} else {
-			// CustomBuildStrategy requires 'image' to be specified in JSON
-			if len(strategy.CustomStrategy.Image) == 0 {
-				allErrs = append(allErrs, fielderrors.NewFieldRequired("image"))
-			}
+			allErrs = append(allErrs, validateCustomStrategy(strategy.CustomStrategy).Prefix("customStrategy")...)
 		}
 	default:
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("type", strategy.Type, "type is not in the enumerated list"))
@@ -189,11 +186,16 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 
 func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if (strategy.From == nil || len(strategy.From.Name) == 0) && len(strategy.Image) == 0 {
+	if strategy.From == nil || len(strategy.From.Name) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
 	}
-	if (strategy.From != nil && len(strategy.From.Name) != 0) && len(strategy.Image) != 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("image", strategy.Image, "only one of 'image' and 'from' may be set"))
+	return allErrs
+}
+
+func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	if strategy.From == nil || len(strategy.From.Name) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
 	}
 	return allErrs
 }
@@ -229,8 +231,6 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) fielderrors.Validatio
 	case buildapi.ImageChangeBuildTriggerType:
 		if trigger.ImageChange == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("imageChange"))
-		} else {
-			allErrs = append(allErrs, validateImageChange(trigger.ImageChange).Prefix("imageChange")...)
 		}
 	}
 	return allErrs
@@ -242,17 +242,6 @@ func validateTriggerPresence(params map[buildapi.BuildTriggerType]bool, t builda
 		if triggerType != t && present {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid(string(triggerType), "", "triggerType wasn't found"))
 		}
-	}
-	return allErrs
-}
-
-func validateImageChange(imageChange *buildapi.ImageChangeTrigger) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	if len(imageChange.Image) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("image"))
-	}
-	if len(imageChange.From.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.ValidationErrorList{fielderrors.NewFieldRequired("name")}.Prefix("from")...)
 	}
 	return allErrs
 }

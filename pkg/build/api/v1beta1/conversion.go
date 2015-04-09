@@ -1,6 +1,8 @@
 package v1beta1
 
 import (
+	"strings"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
@@ -55,54 +57,176 @@ func init() {
 			}
 			return nil
 		},
-		// Rename STIBuildStrategy.BuildImage to STIBuildStrategy.Image
 		func(in *newer.STIBuildStrategy, out *STIBuildStrategy, s conversion.Scope) error {
-			out.BuilderImage = in.Image
-			out.Image = in.Image
 			if in.From != nil {
-				out.From = &kapi.ObjectReference{
-					Name:      in.From.Name,
-					Namespace: in.From.Namespace,
-					Kind:      "ImageStream",
+				switch in.From.Kind {
+				case "ImageStreamImage":
+					// This will break v1beta1 clients that assume From is always an ImageStream
+					// kind, but there's no better alternative here.
+					out.From = &kapi.ObjectReference{
+						Name:      in.From.Name,
+						Namespace: in.From.Namespace,
+						Kind:      in.From.Kind,
+					}
+				case "ImageStreamTag":
+					bits := strings.Split(in.From.Name, ":")
+					out.From = &kapi.ObjectReference{
+						Name:      bits[0],
+						Namespace: in.From.Namespace,
+						Kind:      "ImageStream",
+					}
+					if len(bits) > 1 {
+						out.Tag = bits[1]
+					}
+				case "DockerImage":
+					out.Image = in.From.Name
+					out.BuilderImage = in.From.Name
 				}
 			}
-			out.Tag = in.Tag
 			out.Scripts = in.Scripts
 			out.Clean = !in.Incremental
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
+			out.Scripts = in.Scripts
+			out.Incremental = !in.Clean
 			if in.From != nil {
 				out.From = &api.ObjectReference{
 					Name:      in.From.Name,
 					Namespace: in.From.Namespace,
-					Kind:      "ImageStream",
+					Kind:      "ImageStreamTag",
+				}
+				if in.From.Kind != "ImageStreamTag" {
+					if len(in.Tag) > 0 {
+						out.From.Name = out.From.Name + ":" + in.Tag
+					} else {
+						out.From.Name = out.From.Name + ":latest"
+					}
 				}
 			}
-			out.Tag = in.Tag
-			out.Scripts = in.Scripts
-			out.Incremental = !in.Clean
-			if len(in.Image) != 0 {
-				out.Image = in.Image
-			} else {
-				out.Image = in.BuilderImage
+			if in.Image != "" {
+				out.From = &api.ObjectReference{
+					Name: in.Image,
+					Kind: "DockerImage",
+				}
+			} else if in.BuilderImage != "" {
+				out.From = &api.ObjectReference{
+					Name: in.BuilderImage,
+					Kind: "DockerImage",
+				}
 			}
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		// Rename DockerBuildStrategy.BaseImage to DockerBuildStrategy.Image
 		func(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
 			out.NoCache = in.NoCache
-			out.BaseImage = in.Image
+			if in.From != nil {
+				switch in.From.Kind {
+				case "ImageStreamImage":
+					// This will break v1beta1 clients that assume From is always an ImageStream
+					// kind, but there's no better alternative here.
+					out.From = &kapi.ObjectReference{
+						Name:      in.From.Name,
+						Namespace: in.From.Namespace,
+						Kind:      in.From.Kind,
+					}
+				case "ImageStreamTag":
+					bits := strings.Split(in.From.Name, ":")
+					out.From = &kapi.ObjectReference{
+						Name:      bits[0],
+						Namespace: in.From.Namespace,
+						Kind:      "ImageStream",
+					}
+					if len(bits) > 1 {
+						out.Tag = bits[1]
+					}
+				case "DockerImage":
+					out.Image = in.From.Name
+					out.BaseImage = in.From.Name
+				}
+			}
 			return nil
 		},
 		func(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
 			out.NoCache = in.NoCache
-			if len(in.Image) != 0 {
-				out.Image = in.Image
-			} else {
-				out.Image = in.BaseImage
+			if in.From != nil {
+				out.From = &api.ObjectReference{
+					Name:      in.From.Name,
+					Namespace: in.From.Namespace,
+					Kind:      "ImageStreamTag",
+				}
+				if in.From.Kind != "ImageStreamTag" {
+					if len(in.Tag) > 0 {
+						out.From.Name = out.From.Name + ":" + in.Tag
+					} else {
+						out.From.Name = out.From.Name + ":latest"
+					}
+				}
+			}
+			if in.Image != "" {
+				out.From = &api.ObjectReference{
+					Name: in.Image,
+					Kind: "DockerImage",
+				}
+			} else if in.BaseImage != "" {
+				out.From = &api.ObjectReference{
+					Name: in.BaseImage,
+					Kind: "DockerImage",
+				}
 			}
 			return nil
+		},
+		func(in *newer.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
+			if in.From != nil {
+				switch in.From.Kind {
+				case "ImageStreamImage":
+					// This will break v1beta1 clients that assume From is always an ImageStream
+					// kind, but there's no better alternative here.
+					out.From = &kapi.ObjectReference{
+						Name:      in.From.Name,
+						Namespace: in.From.Namespace,
+						Kind:      in.From.Kind,
+					}
+				case "ImageStreamTag":
+					bits := strings.Split(in.From.Name, ":")
+					out.From = &kapi.ObjectReference{
+						Name:      bits[0],
+						Namespace: in.From.Namespace,
+						Kind:      "ImageStream",
+					}
+					if len(bits) > 1 {
+						out.Tag = bits[1]
+					}
+				case "DockerImage":
+					out.Image = in.From.Name
+				}
+			}
+			out.ExposeDockerSocket = in.ExposeDockerSocket
+			return s.Convert(&in.Env, &out.Env, 0)
+		},
+		func(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
+			out.ExposeDockerSocket = in.ExposeDockerSocket
+			if in.From != nil {
+				out.From = &api.ObjectReference{
+					Name:      in.From.Name,
+					Namespace: in.From.Namespace,
+					Kind:      "ImageStreamTag",
+				}
+				if in.From.Kind != "ImageStreamTag" {
+					if len(in.Tag) > 0 {
+						out.From.Name = out.From.Name + ":" + in.Tag
+					} else {
+						out.From.Name = out.From.Name + ":latest"
+					}
+				}
+			}
+			if len(in.Image) != 0 {
+				out.From = &api.ObjectReference{
+					Name: in.Image,
+					Kind: "DockerImage",
+				}
+			}
+			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		// Deprecate ImageTag and Registry, replace with To / Tag / DockerImageReference
 		func(in *newer.BuildOutput, out *BuildOutput, s conversion.Scope) error {
@@ -145,33 +269,13 @@ func init() {
 		},
 		// Rename ImageRepositoryRef to From
 		func(in *newer.ImageChangeTrigger, out *ImageChangeTrigger, s conversion.Scope) error {
-			if err := s.Convert(&in.From, &out.From, 0); err != nil {
-				return err
-			}
-			if len(in.From.Name) != 0 {
-				out.ImageRepositoryRef = &kapi.ObjectReference{}
-				if err := s.Convert(&in.From, out.ImageRepositoryRef, conversion.AllowDifferentFieldTypeNames); err != nil {
-					return err
-				}
-			}
-			out.Tag = in.Tag
+			// Note we lose the From/Image data in the ICT here if it was present,
+			// that data no longer has any value.
 			out.LastTriggeredImageID = in.LastTriggeredImageID
-			out.Image = in.Image
 			return nil
 		},
 		func(in *ImageChangeTrigger, out *newer.ImageChangeTrigger, s conversion.Scope) error {
-			if in.ImageRepositoryRef != nil {
-				if err := s.Convert(in.ImageRepositoryRef, &out.From, conversion.AllowDifferentFieldTypeNames); err != nil {
-					return err
-				}
-			} else {
-				if err := s.Convert(&in.From, &out.From, 0); err != nil {
-					return err
-				}
-			}
-			out.Tag = in.Tag
 			out.LastTriggeredImageID = in.LastTriggeredImageID
-			out.Image = in.Image
 			return nil
 		})
 }

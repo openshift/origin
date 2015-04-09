@@ -35,7 +35,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		})
 	}
 
-	if strategy == nil || (strategy != nil && len(strategy.Image) == 0) {
+	if strategy == nil || strategy.From == nil || len(strategy.From.Name) == 0 {
 		return nil, errors.New("CustomBuildStrategy cannot be executed without image")
 	}
 
@@ -58,7 +58,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			Containers: []kapi.Container{
 				{
 					Name:  "custom-build",
-					Image: strategy.Image,
+					Image: strategy.From.Name,
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					Privileged: true,

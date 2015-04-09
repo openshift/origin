@@ -187,13 +187,7 @@ describe("ApplicationGenerator", function(){
                     "type": "github"
                 },
                 {
-                  "imageChange" : {
-                    "image" : "172.30.17.58:5000/test/origin-ruby-sample:latest",
-                    "from" : {
-                      "name" : "origin-ruby-sample"
-                    },
-                    "tag" : "latest"
-                  },
+                  "imageChange" : {},
                   "type" : "imageChange"
                 }
             ]

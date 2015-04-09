@@ -185,13 +185,7 @@ angular.module("openshiftConsole")
       }
       if(input.buildConfig.buildOnImageChange){
         triggers.push({
-          imageChange: {
-            image: dockerSpec,
-            from:{
-              name: input.imageName
-            },
-            tag: input.imageTag
-          },
+          imageChange: {},
           type: "imageChange"
         });
       }

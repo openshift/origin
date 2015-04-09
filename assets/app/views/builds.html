@@ -27,8 +27,8 @@
               </div>
               <div ng-if="buildConfig.parameters.strategy.stiStrategy.from">
                 <dl class="dl-horizontal">
-                  <dt>Builder image repo [tag]:</dt>
-                  <dd>{{buildConfig.parameters.strategy.stiStrategy.from | imageRepoReference : buildConfig.parameters.strategy.stiStrategy.tag}}
+                  <dt>Builder image stream:</dt>
+                  <dd>{{buildConfig.parameters.strategy.stiStrategy.from | imageRepoReference : buildConfig.parameters.strategy.stiStrategy.from.kind : buildConfig.parameters.strategy.stiStrategy.Tag}}
                   </dd>                  
                 </dl>
               </div>
@@ -40,12 +40,28 @@
                   <dd>{{buildConfig.parameters.strategy.dockerStrategy.image}}</dd>
                 </dl>
               </div>
+              <div ng-if="buildConfig.parameters.strategy.dockerStrategy.from">
+                <dl class="dl-horizontal">
+                  <dt>Builder image stream:</dt>
+                  <dd>{{buildConfig.parameters.strategy.dockerStrategy.from | imageRepoReference : buildConfig.parameters.strategy.dockerStrategy.from.kind : buildConfig.parameters.strategy.dockerStrategy.Tag}}
+                  </dd>                  
+                </dl>
+              </div>
             </div>
             <div ng-switch-when="Custom">
-              <dl class="dl-horizontal">
-                <dt>Builder image:</dt>
-                <dd>{{buildConfig.parameters.strategy.customStrategy.image}}</dd>
-              </dl>
+              <div ng-if="buildConfig.parameters.strategy.customStrategy.image">
+                <dl class="dl-horizontal">
+                  <dt>Builder image:</dt>
+                  <dd>{{buildConfig.parameters.strategy.customStrategy.image}}</dd>
+                </dl>
+              </div>
+              <div ng-if="buildConfig.parameters.strategy.customStrategy.from">
+                <dl class="dl-horizontal">
+                  <dt>Builder image stream:</dt>
+                  <dd>{{buildConfig.parameters.strategy.customStrategy.from | imageRepoReference : buildConfig.parameters.strategy.customStrategy.from.kind : buildConfig.parameters.strategy.customStrategy.Tag}}
+                  </dd>                  
+                </dl>
+              </div>
             </div>
           </div>
           <div ng-if="buildConfig.parameters.source">
@@ -106,8 +122,41 @@
                       </dd>
                     </dl>
                   </span>
-                  <span ng-switch-when="imageChange">
-                    Image change on image repository {{trigger.imageChange.from.name}}:{{trigger.imageChange.tag}}
+                  <span ng-switch-when="imageChange">                    
+                    <div ng-switch="buildConfig.parameters.strategy.type">
+                      <div ng-switch-when="STI">
+                        <dl class="dl-horizontal" ng-if="buildConfig.parameters.strategy.stiStrategy.from&& buildConfig.parameters.strategy.stiStrategy.from.kind!='ImageStreamImage'">
+                          <dt>
+                            New image for:
+                          </dt>
+                          <dd>
+                            Image stream {{buildConfig.parameters.strategy.stiStrategy.from | imageRepoReference : buildConfig.parameters.strategy.stiStrategy.from.kind : buildConfig.parameters.strategy.stiStrategy.Tag}}
+                          </dd>
+                        </dl>
+                      </div>
+                      <div ng-switch-when="Docker">
+                        <dl class="dl-horizontal" ng-if="buildConfig.parameters.strategy.dockerStrategy.from && buildConfig.parameters.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
+                           <dt>
+                            New image for:
+                          </dt>
+                          <dd>
+                            Image stream {{buildConfig.parameters.strategy.dockerStrategy.from | imageRepoReference : buildConfig.parameters.strategy.dockerStrategy.from.kind : buildConfig.parameters.strategy.dockerStrategy.Tag}}
+                          </dd>
+                          <br>
+                        </dl>
+                      </div>
+                      <div ng-switch-when="Custom">
+                        <dl class="dl-horizontal" ng-if="buildConfig.parameters.strategy.customStrategy.from && buildConfig.parameters.strategy.customStrategy.from.kind!='ImageStreamImage'">
+                          <dt>
+                            New image for:
+                          </dt>
+                          <dd>
+                            Image stream {{buildConfig.parameters.strategy.customStrategy.from | imageRepoReference : buildConfig.parameters.strategy.customStrategy.from.kind : buildConfig.parameters.strategy.customStrategy.Tag}}
+                          </dd>
+                           <br>
+                        </dl>
+                      </div>                  
+                    </div>
                   </span>
                   <span ng-switch-default>{{trigger.type}}</span>
                 </span>
@@ -192,11 +241,6 @@
           </div>
         </div>
       </div>
-
-
-
-
-        
     </div>
       <!-- render any builds whose build configs no longer exist -->
       <div class="tile" ng-repeat="(buildConfigName, blds) in buildsByBuildConfig" ng-if="!buildConfigs[buildConfigName]">
