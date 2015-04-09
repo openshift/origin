@@ -245,7 +245,9 @@
   "kind": "Template",
   "metadata": {
     "annotations": {
-      "description": "This example shows how to create a simple ruby application in openshift origin v3"
+      "description": "This example shows how to create a simple ruby application in openshift origin v3",
+      "tags": "instant-app,ruby,mysql",
+      "iconClass" : "icon-ruby"
     },
     "name": "ruby-helloworld-sample"
   },

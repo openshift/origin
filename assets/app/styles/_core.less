@@ -16,10 +16,12 @@ html, body {
   }
   .container-main {
     background-color: @body-bg;
+    padding-bottom: @grid-gutter-width * 2;
     .flex(@columns: 1);
   }
   #content-wrap > .container {
     margin-top: 35px;
+    margin-bottom: @grid-gutter-width * 2;
     h1 {
       margin-top: 10px;
     }
@@ -143,9 +145,10 @@ html, body {
 
 
 // Create App
-// --------------
+// --------------------------------------------------
 
-.create-from-template {
+.create-from-template,
+.create-from-image {
   .template-name {
     text-align: right;
     span.fa {
@@ -160,37 +163,42 @@ html, body {
   span.fa.visible-xs-inline {
     margin-right: 10px;
   }
-}
-
-.flow {
-  display: table;
-  width: 100%;
-  > .flow-block {
-    display: inline-block;
-    &.right {
-      font-size: @font-size-small;
-      font-weight: normal;
-    }
-    .action {
+  .flow {
+    border-top: 1px solid rgba(0, 0, 0, 0.15);
+    display: table;
+    margin-top: @grid-gutter-width * 1.5;
+    width: 100%;
+    > .flow-block {
+      display: inline-block;
+      &.right {
         font-size: @font-size-small;
         font-weight: normal;
-        // &:extend(.action-inline);
       }
-    > ul.list-inline {
-      margin-bottom: 0;
-      > li {
-        font-size: @font-size-small;
-        text-align: left;
+      .action {
+          font-size: @font-size-small;
+          font-weight: normal;
+          // &:extend(.action-inline);
+        }
+      > ul.list-inline {
+        margin-bottom: 0;
+        > li {
+          font-size: @font-size-small;
+          text-align: left;
+        }
       }
     }
   }
 }
+
 @media (min-width: 767px) {
-  .flow > .flow-block {
-    display: table-cell;
-    &.right {
-      // float: right;
-      text-align: right;
+  .create-from-template,
+  .create-from-image {
+    .flow > .flow-block {
+      display: table-cell;
+      &.right {
+        // float: right;
+        text-align: right;
+      }
     }
   }
 }
@@ -215,7 +223,8 @@ html, body {
   }
 }
 
-// Modals //
+// Models
+// --------------------------------------------------
 .modal {
   &.modal-create {
     .modal-content {
@@ -224,15 +233,15 @@ html, body {
         background-color: transparent;
       }
       .modal-body {
-        .template-icon {
+        .template-icon, .image-icon {
           text-align: center;
         }
-        .template-icon {
+        .template-icon, .image-icon {
           font-size: 80px;
           line-height: 80px;
         }
         @media (min-width:@screen-sm-min) {
-          .template-icon {
+          .template-icon, .image-icon {
             font-size: 130px;
             line-height: 130px;
           }
@@ -255,10 +264,10 @@ html, body {
 }
 
 // Misc
-// ------------
-
+// --------------------------------------------------
 .action-inline {
   margin-left: @action-link-inline-margin;
+  font-size: @font-size-small;
   i.pficon, i.fa {
     color: @btn-default-color;
     margin-right: 5px;
@@ -274,13 +283,22 @@ code {
   white-space: normal;
 }
 .gutter-top-bottom {
-  padding: 15px 0;
+  padding: @grid-gutter-width / 2 0;
+  &.gutter-top-bottom-2x {
+    padding: @grid-gutter-width 0;
+  }
 }
 .gutter-top {
-  padding-top: 15px;
+  padding-top: @grid-gutter-width / 2;
+  &.gutter-top-2x {
+    padding-top: @grid-gutter-width;
+  }
 }
 .gutter-bottom {
-  padding-bottom: 15px;
+  padding-bottom: @grid-gutter-width / 2;
+  &.gutter-bottom-2x {
+    padding-bottom: @grid-gutter-width;
+  }
 }
 select:invalid {
     box-shadow: none;
@@ -290,7 +308,6 @@ select:invalid {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .well > {
   h1, h2, h3, h4, h5 {
     &:first-child {
@@ -298,7 +315,6 @@ select:invalid {
     }
   }
 }
-
 
 .attention-message {
   background-color: lighten(@brand-primary, 20%);
@@ -323,4 +339,31 @@ select:invalid {
 .short-id {
   background-color: #f1f1f1;
   color: #666;
+}
+.input-number {
+  width: 60px;
+}
+
+
+//
+// Component animations
+// --------------------------------------------------
+.fade {
+  opacity: 0;
+  .transition(opacity 0.2s ease 0s);
+  &.in {
+    opacity: 1;
+  }
+}
+.collapse {
+  display: none;
+  &.in {
+    display: block;
+  }
+}
+.collapsing {
+  position: relative;
+  height: 0;
+  overflow: hidden;
+  .transition(height .10s ease);
 }

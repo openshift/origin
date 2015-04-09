@@ -1,6 +1,27 @@
 'use strict';
 
 angular.module('openshiftConsole')
+  /**
+   * Replace special chars with underscore (e.g. '.')
+   * @returns {Function}
+   */
+  .filter("underscore", function(){
+    return function(value){
+      return value.replace(/\./g, '_');
+    };
+  })
+  .filter("defaultIfBlank", function(){
+    return function(input, defaultValue){
+      if(input === null) return defaultValue;
+      if(typeof input !== "string"){
+        input = String(input);
+      }
+      if(input.trim().length === 0){
+        return defaultValue;
+      }
+      return input;
+    };
+  })
   .filter('hashSize', function() {
     return function(hash) {
       if(!hash) { return 0; }
@@ -121,5 +142,53 @@ angular.module('openshiftConsole')
           return task.titles.success;
         }
       }
+    };
+  })
+  .filter('httpHttps', function() {
+    return function(isSecure) {
+        return isSecure ? 'https://' : 'http://';
+    };
+  })
+  .filter('yesNo', function() {
+      return function(isTrue) {
+          return isTrue ? 'Yes' : 'No';
+      };
+  })
+  /**
+   * Filter a hash of values
+   * 
+   * @param {Hash} entries  A Hash to filter
+   * @param {String} keys    A comma delimited string of keys to evaluate against
+   * @returns {Hash} A filtered set where the keys of those in keys
+   */
+  .filter("valuesIn", function(){
+    return function(entries, keys){
+      var readonly = keys.split(",");
+      var result = {};
+      angular.forEach(entries, function(value, key){
+        if( readonly.indexOf(key) !== -1){
+          result[key] = value;
+        }
+      });
+      return result;
+    };
+  })
+    /**
+   * Filter a hash of values
+   * 
+   * @param {Hash} entries  A Hash to filter
+   * @param {String} keys    A comma delimited string of keys to evaluate against
+   * @returns {Hash} A filtered set where the keys of those not in keys
+   */
+  .filter("valuesNotIn", function(){
+    return function(entries, keys){
+      var readonly = keys.split(",");
+      var result = {};
+      angular.forEach(entries, function(value, key){
+        if( readonly.indexOf(key) === -1){
+          result[key] = value;
+        }
+      });
+      return result;
     };
   });
