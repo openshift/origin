@@ -19,6 +19,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project/proxy"
@@ -145,6 +146,65 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 	if project.DisplayName != namespace.Annotations["displayname"] {
 		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.DisplayName, namespace.Annotations["displayname"])
+	}
+
+}
+
+// TestProjectMustExist verifies that content cannot be added in a project that does not exist
+func TestProjectMustExist(t *testing.T) {
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	pod := &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{Name: "pod"},
+		Spec: kapi.PodSpec{
+			Containers:    []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+			RestartPolicy: kapi.RestartPolicyAlways,
+			DNSPolicy:     kapi.DNSClusterFirst,
+		},
+	}
+
+	_, err = clusterAdminKubeClient.Pods("test").Create(pod)
+	if err == nil {
+		t.Errorf("Expected an error on creation of a Kubernetes resource because namespace does not exist")
+	}
+
+	build := &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+		Parameters: buildapi.BuildParameters{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
+				ContextDir: "context",
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
+			},
+			Output: buildapi.BuildOutput{
+				DockerImageReference: "repository/data",
+			},
+		},
+		Status: buildapi.BuildStatusNew,
+	}
+
+	_, err = clusterAdminClient.Builds("test").Create(build)
+	if err == nil {
+		t.Errorf("Expected an error on creation of a Origin resource because namespace does not exist")
 	}
 
 }

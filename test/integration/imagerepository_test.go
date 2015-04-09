@@ -31,6 +31,11 @@ func TestImageRepositoryList(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
 	builds, err := clusterAdminClient.ImageRepositories(testutil.Namespace()).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
@@ -51,6 +56,11 @@ func TestImageRepositoryCreate(t *testing.T) {
 	}
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -93,6 +103,11 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	}
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -242,6 +257,10 @@ func TestImageRepositoryDelete(t *testing.T) {
 	}
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

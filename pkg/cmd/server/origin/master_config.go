@@ -129,7 +129,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
-	admissionControlPluginNames := []string{"AlwaysAdmit"}
+	admissionControlPluginNames := []string{"OriginNamespaceLifecycle"}
 	admissionController := admission.NewFromPlugins(kubeClient, admissionControlPluginNames, "")
 
 	config := &MasterConfig{

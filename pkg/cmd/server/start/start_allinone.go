@@ -18,12 +18,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/namespace/exists"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/namespace/lifecycle"
-	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcequota"
 )
 
 type AllInOneOptions struct {
