@@ -223,14 +223,73 @@ type acceptNew struct{}
 var AcceptNew Acceptor = acceptNew{}
 
 func (acceptNew) Accept(from interface{}) bool {
-	if obj, ok := from.(runtime.Object); ok {
-		if meta, err := kapi.ObjectMetaFor(obj); err == nil {
-			if len(meta.ResourceVersion) == 0 {
-				return true
-			}
+	_, meta, err := objectMetaData(from)
+	if err != nil {
+		return false
+	}
+	if len(meta.ResourceVersion) > 0 {
+		return false
+	}
+	return true
+}
+
+type acceptUnique struct {
+	typer   runtime.ObjectTyper
+	objects map[string]struct{}
+}
+
+func (a *acceptUnique) Accept(from interface{}) bool {
+	obj, meta, err := objectMetaData(from)
+	if err != nil {
+		return false
+	}
+	_, kind, err := a.typer.ObjectVersionAndKind(obj)
+	if err != nil {
+		return false
+	}
+	key := fmt.Sprintf("%s/%s", kind, meta.Name)
+	_, exists := a.objects[key]
+	if exists {
+		return false
+	}
+	a.objects[key] = struct{}{}
+	return true
+}
+
+// NewAcceptUnique creates an acceptor that only accepts unique objects
+// by kind and name
+func NewAcceptUnique(typer runtime.ObjectTyper) Acceptor {
+	return &acceptUnique{
+		typer:   typer,
+		objects: map[string]struct{}{},
+	}
+}
+
+func objectMetaData(raw interface{}) (runtime.Object, *kapi.ObjectMeta, error) {
+	obj, ok := raw.(runtime.Object)
+	if !ok {
+		return nil, nil, fmt.Errorf("%#v is not a runtime.Object", raw)
+	}
+	meta, err := kapi.ObjectMetaFor(obj)
+	if err != nil {
+		return nil, nil, err
+	}
+	return obj, meta, nil
+}
+
+// Acceptors is a list of acceptors that behave like a single acceptor.
+// All acceptors must accept an object for it to be accepted.
+type Acceptors []Acceptor
+
+// Accept iterates through all acceptors and determines whether the object
+// should be accepted
+func (aa Acceptors) Accept(from interface{}) bool {
+	for _, a := range aa {
+		if !a.Accept(from) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 type acceptAll struct{}

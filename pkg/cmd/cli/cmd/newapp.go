@@ -58,7 +58,8 @@ ALPHA: This command is under active development - feedback is appreciated.
 `
 
 func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	config := newcmd.NewAppConfig()
+	_, typer := f.Object()
+	config := newcmd.NewAppConfig(typer)
 	helper := dockerutil.NewHelper()
 
 	cmd := &cobra.Command{
@@ -90,6 +91,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 
 func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig, helper *dockerutil.Helper) error {
 	namespace, err := f.DefaultNamespace()
+
 	if err != nil {
 		return err
 	}

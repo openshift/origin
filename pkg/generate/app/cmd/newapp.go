@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/fsouza/go-dockerclient"
@@ -37,6 +38,8 @@ type AppConfig struct {
 
 	searcher app.Searcher
 	detector app.Detector
+
+	typer runtime.ObjectTyper
 }
 
 type UsageError interface {
@@ -48,7 +51,7 @@ type errlist interface {
 	Errors() []error
 }
 
-func NewAppConfig() *AppConfig {
+func NewAppConfig(typer runtime.ObjectTyper) *AppConfig {
 	dockerResolver := app.DockerRegistryResolver{dockerregistry.NewClient()}
 	return &AppConfig{
 		detector: app.SourceRepositoryEnumerator{
@@ -57,6 +60,7 @@ func NewAppConfig() *AppConfig {
 		},
 		dockerResolver: dockerResolver,
 		searcher:       &simpleSearcher{dockerResolver},
+		typer:          typer,
 	}
 }
 
@@ -364,8 +368,9 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
+	acceptUnique := app.NewAcceptUnique(c.typer)
 	for _, p := range pipelines {
-		accepted, err := p.Objects(accept, app.AcceptNew)
+		accepted, err := p.Objects(accept, app.Acceptors{acceptUnique, app.AcceptNew})
 		if err != nil {
 			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
 		}
