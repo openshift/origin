@@ -3,12 +3,12 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %{!?commit:
-%global commit 03a3f4567bb82e038a91b0c86a5e0691396cfb60
+%global commit 8aabf9c0b23bb02861ca9b2c691569cd79e1d003
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2.4-19-g03a3f45 -X github.com/openshift/origin/pkg/version.commitFromGit 03a3f45 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 8d94c43 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2.5-39-g8aabf9c -X github.com/openshift/origin/pkg/version.commitFromGit 8aabf9c -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 8d94c43 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
 }
 # String used for --images flag
 # If you're setting docker_registry make sure it ends in a trailing /
@@ -23,7 +23,7 @@
 %global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.4.2.5
+Version:        0.4.3.0
 Release:        1%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
@@ -182,6 +182,60 @@ fi
 
 
 %changelog
+* Thu Apr 09 2015 Scott Dodson <sdodson@redhat.com> 0.4.3.0
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- Merge pull request #1631 from liggitt/openid
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1632 from smarterclayton/etcd2
+  (dmcphers+openshiftbot@redhat.com)
+- Add OpenID identity provider (jliggitt@redhat.com)
+- Refactor OAuth config (jliggitt@redhat.com)
+- Widen the OpenShift CIDR to 172.30.0.0/16 (ccoleman@redhat.com)
+- Add running builds and deployments to status output (ccoleman@redhat.com)
+- Separate project status loggers (ccoleman@redhat.com)
+- Add a generic injectable test client (ccoleman@redhat.com)
+- UPSTREAM: Support a pluggable fake (ccoleman@redhat.com)
+- Upgrade from etcd 0.4.6 -> 2.0.9 (ccoleman@redhat.com)
+- bump(github.com/coreos/etcd):02697ca725e5c790cc1f9d0918ff22fad84cb4c5
+  (ccoleman@redhat.com)
+- Godeps.json formatting is wrong (ccoleman@redhat.com)
+- Merge pull request #1654 from ncdc/fix-flakey-exec
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1653 from deads2k/deads-stop-swallowing-error
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1640 from fabianofranz/bump_cobra
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1599 from deads2k/deads-allow-project-to-change-context
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1472 from pravisankar/v2registry-changes
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1638 from csrwng/web_console_imgstreams
+  (dmcphers+openshiftbot@redhat.com)
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- UPSTREAM: Don't use command pipes for exec/port forward (agoldste@redhat.com)
+- stop swallowing errors (deads@redhat.com)
+- Adjust help template to latest version of Cobra (contact@fabianofranz.com)
+- bump(github.com/inconshreveable/mousetrap):
+  76626ae9c91c4f2a10f34cad8ce83ea42c93bb75C (contact@fabianofranz.com)
+- bump(github.com/spf13/cobra): b78326bb16338c597567474a3ff35d76b75b804e
+  (contact@fabianofranz.com)
+- bump(github.com/spf13/pflag): 18d831e92d67eafd1b0db8af9ffddbd04f7ae1f4
+  (contact@fabianofranz.com)
+- UPSTREAM: make .Stream handle error status codes (deads@redhat.com)
+- Test switching contexts with osc project (deads@redhat.com)
+- set context namespace in generated .kubeconfig (deads@redhat.com)
+- Add image streams to the types handled by web console. (cewong@redhat.com)
+- perform initial commit to write config (pweil@redhat.com)
+- OpenShift auth handler for v2 docker registry (rpenta@redhat.com)
+- Merge pull request #1540 from liggitt/oauth_secret_config
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1556 from smarterclayton/cleanup_new_app_resolution
+  (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: add context to ManifestService methods (rpenta@redhat.com)
+- OAuth secret config (jliggitt@redhat.com)
+- new-app should treat image repositories as more specific than docker images
+  (ccoleman@redhat.com)
+
 * Tue Apr 07 2015 Scott Dodson <sdodson@redhat.com> 0.4.2.5
 - Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
 - Project life-cycle updates (decarr@redhat.com)
