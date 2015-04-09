@@ -56,4 +56,13 @@ angular.module('openshiftConsole')
         }
       }
     }
+  })
+  .directive('shortId', function() {
+    return {
+      restrict:'E',
+      scope: {
+        id: '@'
+      },
+      template: '<code class="short-id" title="{{id}}">{{id.substring(0, 6)}}</code>'
+    }
   });

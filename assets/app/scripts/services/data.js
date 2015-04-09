@@ -228,8 +228,14 @@ angular.module('openshiftConsole')
 
     var deferred = $q.defer();
 
-    if (!force && this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
-      var obj = this._data(type, context).by('metadata.name')[name];
+    var existingData = this._data(type, context);
+
+    // If this is a cached type (immutable types only), ignore the force parameter
+    if (this._isTypeCached(type) && existingData && existingData.by('metadata.name')[name]) {
+      return existingData.by('metadata.name')[name];
+    }
+    else if (!force && this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
+      var obj = existingData.by('metadata.name')[name];
       if (obj) {
         $rootScope.$apply(function(){
           deferred.resolve(obj);
@@ -255,6 +261,14 @@ angular.module('openshiftConsole')
           url: self._urlForType(type, name, context, false, ns)
         }, opts.http || {}))
         .success(function(data, status, headerFunc, config, statusText) {
+          if (self._isTypeCached(type)) {
+            if (!existingData) {
+              self._data(type, context, [data]);
+            }
+            else {
+              existingData.update(data, "ADDED");
+            }
+          }
           deferred.resolve(data);
         })
         .error(function(data, status, headers, config) {
@@ -654,8 +668,10 @@ angular.module('openshiftConsole')
     buildConfigHooks:          API_CFG.openshift,
     deploymentConfigs:         API_CFG.openshift,
     images:                    API_CFG.openshift,
-    imageRepositories:         API_CFG.openshift,
+    imageRepositories:         API_CFG.openshift, // DEPRECATED, leave here until removed from API
     imageStreams:              API_CFG.openshift,
+    imageStreamImages:         API_CFG.openshift,
+    imageStreamTags:           API_CFG.openshift,    
     oAuthAccessTokens:         API_CFG.openshift,
     oAuthAuthorizeTokens:      API_CFG.openshift,
     oAuthClients:              API_CFG.openshift,
@@ -748,7 +764,7 @@ angular.module('openshiftConsole')
     BuildConfig:              "buildConfigs",
     DeploymentConfig:         "deploymentConfigs",
     Image:                    "images",
-    ImageRepository:          "imageRepositories",
+    ImageRepository:          "imageRepositories", // DEPRECATED, leave here until removed from API
     ImageStream:              "imageStreams",
     OAuthAccessToken:         "oAuthAccessTokens",
     OAuthAuthorizeToken:      "oAuthAuthorizeTokens",
@@ -771,6 +787,14 @@ angular.module('openshiftConsole')
 
   DataService.prototype._objectType = function(kind) {
     return OBJECT_KIND_MAP[kind];
+  };
+
+  var CACHED_TYPE = {
+    imageStreamImages: true
+  };
+
+  DataService.prototype._isTypeCached = function(type) {
+    return !!CACHED_TYPE[type];
   };
 
   DataService.prototype._getNamespace = function(type, context, opts) {
