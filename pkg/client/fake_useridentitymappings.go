@@ -11,18 +11,18 @@ type FakeUserIdentityMappings struct {
 }
 
 func (c *FakeUserIdentityMappings) Get(name string) (*userapi.UserIdentityMapping, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-useridentitymapping", Value: name})
-	return &userapi.UserIdentityMapping{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-useridentitymapping", Value: name}, &userapi.UserIdentityMapping{})
+	return obj.(*userapi.UserIdentityMapping), err
 }
 
 func (c *FakeUserIdentityMappings) Create(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-useridentitymapping", Value: mapping})
-	return &userapi.UserIdentityMapping{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-useridentitymapping", Value: mapping}, &userapi.UserIdentityMapping{})
+	return obj.(*userapi.UserIdentityMapping), err
 }
 
 func (c *FakeUserIdentityMappings) Update(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-useridentitymapping", Value: mapping})
-	return &userapi.UserIdentityMapping{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-useridentitymapping", Value: mapping}, &userapi.UserIdentityMapping{})
+	return obj.(*userapi.UserIdentityMapping), err
 }
 
 func (c *FakeUserIdentityMappings) Delete(name string) error {

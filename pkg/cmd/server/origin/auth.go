@@ -15,6 +15,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"github.com/emicklei/go-restful"
@@ -34,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
+	"github.com/openshift/origin/pkg/auth/oauth/external/openid"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/oauth/registry"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
@@ -305,41 +307,74 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				challengers["login"] = passwordchallenger.NewBasicAuthChallenger("openshift")
 			}
 
-		} else {
-			switch provider := identityProvider.Provider.Object.(type) {
-			case (*configapi.OAuthRedirectingIdentityProvider):
-				callbackPath := ""
-				var oauthProvider external.Provider
-				switch provider.Provider.Object.(type) {
-				case (*configapi.GoogleOAuthProvider):
-					callbackPath = path.Join(OpenShiftOAuthCallbackPrefix, "google")
-					oauthProvider = google.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret)
-				case (*configapi.GitHubOAuthProvider):
-					callbackPath = path.Join(OpenShiftOAuthCallbackPrefix, "github")
-					oauthProvider = github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret)
-				default:
-					return nil, fmt.Errorf("unexpected oauth provider %#v", provider)
-				}
+		} else if configapi.IsOAuthIdentityProvider(identityProvider) {
+			oauthProvider, err := c.getOAuthProvider(identityProvider)
+			if err != nil {
+				return nil, err
+			}
 
-				state := external.DefaultState(getCSRF())
-				oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, successHandler, errorHandler, identityMapper)
-				if err != nil {
-					return nil, fmt.Errorf("unexpected error: %v", err)
-				}
+			state := external.DefaultState(getCSRF())
+			callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, identityProvider.Name)
+			oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, successHandler, errorHandler, identityMapper)
+			if err != nil {
+				return nil, fmt.Errorf("unexpected error: %v", err)
+			}
 
-				mux.Handle(callbackPath, oauthHandler)
-				if identityProvider.UseAsLogin {
-					redirectors[identityProvider.Name] = oauthHandler
-				}
-				if identityProvider.UseAsChallenger {
-					return nil, errors.New("oauth identity providers cannot issue challenges")
-				}
+			mux.Handle(callbackPath, oauthHandler)
+			if identityProvider.UseAsLogin {
+				redirectors[identityProvider.Name] = oauthHandler
+			}
+			if identityProvider.UseAsChallenger {
+				return nil, errors.New("oauth identity providers cannot issue challenges")
 			}
 		}
 	}
 
 	authHandler := handlers.NewUnionAuthenticationHandler(challengers, redirectors, errorHandler)
 	return authHandler, nil
+}
+
+func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvider) (external.Provider, error) {
+	switch provider := identityProvider.Provider.Object.(type) {
+	case (*configapi.GitHubIdentityProvider):
+		return github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret), nil
+
+	case (*configapi.GoogleIdentityProvider):
+		return google.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret)
+
+	case (*configapi.OpenIDIdentityProvider):
+		transport, err := cmdutil.TransportFor(provider.CA, "", "")
+		if err != nil {
+			return nil, err
+		}
+
+		// OpenID Connect requests MUST contain the openid scope value
+		// http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+		scopes := util.NewStringSet("openid")
+		scopes.Insert(provider.ExtraScopes...)
+
+		config := openid.Config{
+			ClientID:     provider.ClientID,
+			ClientSecret: provider.ClientSecret,
+
+			Scopes: scopes.List(),
+
+			AuthorizeURL: provider.URLs.Authorize,
+			TokenURL:     provider.URLs.Token,
+			UserInfoURL:  provider.URLs.UserInfo,
+
+			IDClaims:                provider.Claims.ID,
+			PreferredUsernameClaims: provider.Claims.PreferredUsername,
+			EmailClaims:             provider.Claims.Email,
+			NameClaims:              provider.Claims.Name,
+		}
+
+		return openid.NewProvider(identityProvider.Name, transport, config)
+
+	default:
+		return nil, fmt.Errorf("No OAuth provider found that matches %v.  The OAuth server cannot start!", identityProvider)
+	}
+
 }
 
 func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.IdentityProvider) (authenticator.Password, error) {
@@ -375,7 +410,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		return basicauthpassword.New(identityProvider.Name, connectionInfo.URL, transport, identityMapper), nil
 
 	default:
-		return nil, fmt.Errorf("No password auth found that matches %v.  The oauth server cannot start!", identityProvider)
+		return nil, fmt.Errorf("No password auth found that matches %v.  The OAuth server cannot start!", identityProvider)
 	}
 
 }
@@ -393,8 +428,7 @@ func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSu
 			continue
 		}
 
-		switch identityProvider.Provider.Object.(type) {
-		case (*configapi.OAuthRedirectingIdentityProvider):
+		if configapi.IsOAuthIdentityProvider(identityProvider) {
 			successHandlers = append(successHandlers, external.DefaultState(getCSRF()).(handlers.AuthenticationSuccessHandler))
 		}
 

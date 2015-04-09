@@ -16,23 +16,23 @@ type FakeTemplates struct {
 }
 
 func (c *FakeTemplates) List(label labels.Selector, field fields.Selector) (*templateapi.TemplateList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-templates"})
-	return &templateapi.TemplateList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-templates"}, &templateapi.TemplateList{})
+	return obj.(*templateapi.TemplateList), err
 }
 
 func (c *FakeTemplates) Get(name string) (*templateapi.Template, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-template"})
-	return &templateapi.Template{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-template"}, &templateapi.Template{})
+	return obj.(*templateapi.Template), err
 }
 
 func (c *FakeTemplates) Create(template *templateapi.Template) (*templateapi.Template, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-template", Value: template})
-	return &templateapi.Template{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-template", Value: template}, &templateapi.Template{})
+	return obj.(*templateapi.Template), err
 }
 
 func (c *FakeTemplates) Update(template *templateapi.Template) (*templateapi.Template, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-template"})
-	return &templateapi.Template{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-template"}, &templateapi.Template{})
+	return obj.(*templateapi.Template), err
 }
 
 func (c *FakeTemplates) Delete(name string) error {

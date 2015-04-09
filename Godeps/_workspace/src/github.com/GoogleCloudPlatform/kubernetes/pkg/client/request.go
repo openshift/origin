@@ -494,6 +494,30 @@ func (r *Request) Stream() (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	switch {
+	case (resp.StatusCode >= 200) && (resp.StatusCode < 300):
+		return resp.Body, nil
+
+	default:
+		// we have a decent shot at taking the object returned, parsing it as a status object and returning a more normal error
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("%v while accessing %v", resp.Status, r.finalURL())
+		}
+
+		if runtimeObject, err := r.codec.Decode(bodyBytes); err == nil {
+			statusError := errors.FromObject(runtimeObject)
+
+			if _, ok := statusError.(APIStatus); ok {
+				return nil, statusError
+			}
+		}
+
+		bodyText := string(bodyBytes)
+		return nil, fmt.Errorf("%s while accessing %v: %s", resp.Status, r.finalURL(), bodyText)
+	}
+
 	return resp.Body, nil
 }
 

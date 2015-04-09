@@ -13,18 +13,18 @@ type FakePolicyBindings struct {
 }
 
 func (c *FakePolicyBindings) List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-policyBindings"})
-	return &authorizationapi.PolicyBindingList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-policyBindings"}, &authorizationapi.PolicyBindingList{})
+	return obj.(*authorizationapi.PolicyBindingList), err
 }
 
 func (c *FakePolicyBindings) Get(name string) (*authorizationapi.PolicyBinding, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-policyBinding"})
-	return &authorizationapi.PolicyBinding{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-policyBinding"}, &authorizationapi.PolicyBinding{})
+	return obj.(*authorizationapi.PolicyBinding), err
 }
 
 func (c *FakePolicyBindings) Create(policyBinding *authorizationapi.PolicyBinding) (*authorizationapi.PolicyBinding, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-policyBinding", Value: policyBinding})
-	return &authorizationapi.PolicyBinding{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-policyBinding", Value: policyBinding}, &authorizationapi.PolicyBinding{})
+	return obj.(*authorizationapi.PolicyBinding), err
 }
 
 func (c *FakePolicyBindings) Delete(name string) error {

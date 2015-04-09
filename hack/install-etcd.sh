@@ -16,7 +16,7 @@ if [ -d etcd ]; then
 fi
 
 etcd_version=$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json \
-  github.com/coreos/etcd/server)
+  github.com/coreos/etcd/etcdserver)
 
 mkdir -p etcd && cd etcd
 

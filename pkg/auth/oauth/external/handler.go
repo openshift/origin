@@ -41,6 +41,12 @@ func NewExternalOAuthRedirector(provider Provider, state State, redirectURL stri
 		return nil, err
 	}
 
+	transport, err := provider.GetTransport()
+	if err != nil {
+		return nil, err
+	}
+	client.Transport = transport
+
 	return &Handler{
 		provider:     provider,
 		state:        state,
@@ -90,7 +96,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	accessReq := h.client.NewAccessRequest(osincli.AUTHORIZATION_CODE, authData)
 	accessData, err := accessReq.GetToken()
 	if err != nil {
-		glog.V(4).Infof("Error getting access token:", err)
+		glog.V(4).Infof("Error getting access token: %v", err)
 		h.handleError(err, w, req)
 		return
 	}

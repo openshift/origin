@@ -9,6 +9,6 @@ type FakeSubjectAccessReviews struct {
 }
 
 func (c *FakeSubjectAccessReviews) Create(subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-subjectAccessReview", Value: subjectAccessReview})
-	return &authorizationapi.SubjectAccessReviewResponse{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-subjectAccessReview", Value: subjectAccessReview}, &authorizationapi.SubjectAccessReviewResponse{})
+	return obj.(*authorizationapi.SubjectAccessReviewResponse), err
 }

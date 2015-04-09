@@ -19,28 +19,28 @@ type FakeImageRepositories struct {
 var _ ImageRepositoryInterface = &FakeImageRepositories{}
 
 func (c *FakeImageRepositories) List(label labels.Selector, field fields.Selector) (*imageapi.ImageRepositoryList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-imagerepositories"})
-	return &imageapi.ImageRepositoryList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-imagerepositories"}, &imageapi.ImageRepositoryList{})
+	return obj.(*imageapi.ImageRepositoryList), err
 }
 
 func (c *FakeImageRepositories) Get(name string) (*imageapi.ImageRepository, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-imagerepository", Value: name})
-	return &imageapi.ImageRepository{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-imagerepository", Value: name}, &imageapi.ImageRepository{})
+	return obj.(*imageapi.ImageRepository), err
 }
 
 func (c *FakeImageRepositories) Create(repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-imagerepository"})
-	return &imageapi.ImageRepository{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-imagerepository"}, &imageapi.ImageRepository{})
+	return obj.(*imageapi.ImageRepository), err
 }
 
 func (c *FakeImageRepositories) Update(repo *imageapi.ImageRepository) (*imageapi.ImageRepository, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-imagerepository"})
-	return &imageapi.ImageRepository{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-imagerepository"}, &imageapi.ImageRepository{})
+	return obj.(*imageapi.ImageRepository), err
 }
 
 func (c *FakeImageRepositories) Delete(name string) error {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-imagerepository", Value: name})
-	return nil
+	_, err := c.Fake.Invokes(FakeAction{Action: "delete-imagerepository", Value: name}, &imageapi.ImageRepository{})
+	return err
 }
 
 func (c *FakeImageRepositories) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {

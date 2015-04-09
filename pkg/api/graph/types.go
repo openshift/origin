@@ -2,11 +2,14 @@ package graph
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
 
 	"github.com/gonum/graph"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	build "github.com/openshift/origin/pkg/build/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
@@ -53,6 +56,10 @@ func (*ServiceNode) Kind() int {
 type BuildConfigNode struct {
 	Node
 	*build.BuildConfig
+
+	LastSuccessfulBuild   *build.Build
+	LastUnsuccessfulBuild *build.Build
+	ActiveBuilds          []build.Build
 }
 
 func (n BuildConfigNode) Object() interface{} {
@@ -70,6 +77,9 @@ func (*BuildConfigNode) Kind() int {
 type DeploymentConfigNode struct {
 	Node
 	*deploy.DeploymentConfig
+
+	ActiveDeployment *kapi.ReplicationController
+	Deployments      []*kapi.ReplicationController
 }
 
 func (n DeploymentConfigNode) Object() interface{} {
@@ -171,7 +181,7 @@ func DockerRepository(g MutableUniqueGraph, name, tag string) graph.Node {
 			ref.Tag = "latest"
 		}
 		if len(ref.Registry) == 0 {
-			ref.Registry = "index.docker.io"
+			ref.Registry = "docker.io"
 		}
 		if len(ref.Namespace) == 0 {
 			ref.Namespace = image.DockerDefaultNamespace
@@ -232,7 +242,10 @@ func BuildConfig(g MutableUniqueGraph, config *build.BuildConfig) graph.Node {
 	node, found := g.FindOrCreate(
 		UniqueName(fmt.Sprintf("%d|%s/%s", BuildConfigGraphKind, config.Namespace, config.Name)),
 		func(node Node) graph.Node {
-			return &BuildConfigNode{node, config}
+			return &BuildConfigNode{
+				Node:        node,
+				BuildConfig: config,
+			}
 		},
 	)
 	if found {
@@ -254,6 +267,8 @@ func BuildConfig(g MutableUniqueGraph, config *build.BuildConfig) graph.Node {
 		g.AddEdge(in, node, BuildInputGraphEdgeKind)
 	}
 
+	// TODO: this belongs in a utility class, and the internal model needs to be simplified
+	covered := util.StringSet{}
 	for _, trigger := range config.Triggers {
 		if trigger.ImageChange != nil {
 			t := trigger.ImageChange
@@ -261,7 +276,33 @@ func BuildConfig(g MutableUniqueGraph, config *build.BuildConfig) graph.Node {
 			if len(from.Name) == 0 {
 				continue
 			}
+			covered.Insert(t.Image)
 			in := ImageStreamTag(g, defaultNamespace(from.Namespace, config.Namespace), from.Name, t.Tag)
+			g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
+		}
+	}
+	var imageName, tag string
+	var from *kapi.ObjectReference
+	switch s := config.Parameters.Strategy; {
+	case s.DockerStrategy != nil:
+		imageName = s.DockerStrategy.Image
+	case s.DockerStrategy != nil:
+		imageName = s.CustomStrategy.Image
+	case s.STIStrategy != nil:
+		imageName, from, tag = s.STIStrategy.Image, s.STIStrategy.From, s.STIStrategy.Tag
+		if from != nil && len(from.Name) == 0 {
+			from = nil
+		}
+	}
+	switch {
+	case from != nil:
+		in := ImageStreamTag(g, defaultNamespace(from.Namespace, config.Namespace), from.Name, tag)
+		g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
+	case len(imageName) > 0 && !covered.Has(imageName):
+		if ref, err := image.ParseDockerImageReference(imageName); err == nil {
+			tag := ref.Tag
+			ref.Tag = ""
+			in := DockerRepository(g, ref.String(), tag)
 			g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
 		}
 	}
@@ -274,7 +315,7 @@ func DeploymentConfig(g MutableUniqueGraph, config *deploy.DeploymentConfig) gra
 	node, found := g.FindOrCreate(
 		UniqueName(fmt.Sprintf("%d|%s/%s", DeploymentConfigGraphKind, config.Namespace, config.Name)),
 		func(node Node) graph.Node {
-			return &DeploymentConfigNode{node, config}
+			return &DeploymentConfigNode{Node: node, DeploymentConfig: config}
 		},
 	)
 	if found {
@@ -332,6 +373,69 @@ func CoverServices(g Graph) Graph {
 		}
 	}
 	return g
+}
+
+func JoinBuilds(node *BuildConfigNode, builds []build.Build) {
+	matches := []*build.Build{}
+	for i := range builds {
+		if belongsToBuildConfig(node.BuildConfig, &builds[i]) {
+			matches = append(matches, &builds[i])
+		}
+	}
+	if len(matches) == 0 {
+		return
+	}
+	sort.Sort(RecentBuildReferences(matches))
+	for i := range matches {
+		switch matches[i].Status {
+		case build.BuildStatusComplete:
+			if node.LastSuccessfulBuild == nil {
+				node.LastSuccessfulBuild = matches[i]
+			}
+		case build.BuildStatusFailed, build.BuildStatusCancelled, build.BuildStatusError:
+			if node.LastUnsuccessfulBuild == nil {
+				node.LastUnsuccessfulBuild = matches[i]
+			}
+		default:
+			node.ActiveBuilds = append(node.ActiveBuilds, *matches[i])
+		}
+	}
+}
+
+func JoinDeployments(node *DeploymentConfigNode, deploys []kapi.ReplicationController) {
+	matches := []*kapi.ReplicationController{}
+	for i := range deploys {
+		if belongsToDeploymentConfig(node.DeploymentConfig, &deploys[i]) {
+			matches = append(matches, &deploys[i])
+		}
+	}
+	if len(matches) == 0 {
+		return
+	}
+	sort.Sort(RecentDeploymentReferences(matches))
+	if strconv.Itoa(node.DeploymentConfig.LatestVersion) == matches[0].Annotations[deploy.DeploymentVersionAnnotation] {
+		node.ActiveDeployment = matches[0]
+		node.Deployments = matches[1:]
+		return
+	}
+	node.Deployments = matches
+}
+
+func belongsToBuildConfig(config *build.BuildConfig, b *build.Build) bool {
+	if b.Labels == nil {
+		return false
+	}
+	if b.Labels[build.BuildConfigLabel] == config.Name {
+		return true
+	}
+	return false
+}
+
+func belongsToDeploymentConfig(config *deploy.DeploymentConfig, b *kapi.ReplicationController) bool {
+	if b.Annotations != nil {
+		return config.Name == b.Annotations[deploy.DeploymentConfigAnnotation]
+	}
+	return false
 }
 
 func defaultNamespace(value, defaultValue string) string {

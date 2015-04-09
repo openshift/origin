@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	etcdconfig "github.com/coreos/etcd/config"
-	"github.com/coreos/etcd/etcd"
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -18,40 +15,60 @@ import (
 
 // RunEtcd starts an etcd server and runs it forever
 func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
+	cfg := &config{
+		name: defaultName,
+		dir:  etcdServerConfig.StorageDir,
 
-	config := etcdconfig.New()
+		TickMs:       100,
+		ElectionMs:   1000,
+		maxSnapFiles: 5,
+		maxWalFiles:  5,
 
-	config.Addr = etcdServerConfig.Address
-	config.BindAddr = etcdServerConfig.ServingInfo.BindAddress
-
-	if configapi.UseTLS(etcdServerConfig.ServingInfo) {
-		config.CAFile = etcdServerConfig.ServingInfo.ClientCA
-		config.CertFile = etcdServerConfig.ServingInfo.ServerCert.CertFile
-		config.KeyFile = etcdServerConfig.ServingInfo.ServerCert.KeyFile
+		initialClusterToken: "etcd-cluster",
 	}
-
-	config.Peer.Addr = etcdServerConfig.PeerAddress
-	config.Peer.BindAddr = etcdServerConfig.PeerServingInfo.BindAddress
+	var err error
+	if configapi.UseTLS(etcdServerConfig.ServingInfo) {
+		cfg.clientTLSInfo.CAFile = etcdServerConfig.ServingInfo.ClientCA
+		cfg.clientTLSInfo.CertFile = etcdServerConfig.ServingInfo.ServerCert.CertFile
+		cfg.clientTLSInfo.KeyFile = etcdServerConfig.ServingInfo.ServerCert.KeyFile
+	}
+	if cfg.lcurls, err = urlsFromStrings(etcdServerConfig.ServingInfo.BindAddress, cfg.clientTLSInfo); err != nil {
+		glog.Fatalf("Unable to build etcd client URLs: %v", err)
+	}
 
 	if configapi.UseTLS(etcdServerConfig.PeerServingInfo) {
-		config.Peer.CAFile = etcdServerConfig.PeerServingInfo.ClientCA
-		config.Peer.CertFile = etcdServerConfig.PeerServingInfo.ServerCert.CertFile
-		config.Peer.KeyFile = etcdServerConfig.PeerServingInfo.ServerCert.KeyFile
+		cfg.peerTLSInfo.CAFile = etcdServerConfig.PeerServingInfo.ClientCA
+		cfg.peerTLSInfo.CertFile = etcdServerConfig.PeerServingInfo.ServerCert.CertFile
+		cfg.peerTLSInfo.KeyFile = etcdServerConfig.PeerServingInfo.ServerCert.KeyFile
+	}
+	if cfg.lpurls, err = urlsFromStrings(etcdServerConfig.PeerServingInfo.BindAddress, cfg.peerTLSInfo); err != nil {
+		glog.Fatalf("Unable to build etcd peer URLs: %v", err)
 	}
 
-	config.DataDir = etcdServerConfig.StorageDir
-	config.Name = "openshift.local"
+	if cfg.acurls, err = urlsFromStrings(etcdServerConfig.Address, cfg.clientTLSInfo); err != nil {
+		glog.Fatalf("Unable to build etcd announce client URLs: %v", err)
+	}
+	if cfg.apurls, err = urlsFromStrings(etcdServerConfig.PeerAddress, cfg.peerTLSInfo); err != nil {
+		glog.Fatalf("Unable to build etcd announce peer URLs: %v", err)
+	}
 
-	server := etcd.New(config)
-	go util.Forever(func() {
-		glog.Infof("Started etcd at %s", config.Addr)
-		server.Run()
-		glog.Fatalf("etcd died, exiting.")
-	}, 500*time.Millisecond)
-	<-server.ReadyNotify()
+	if err := cfg.resolveUrls(); err != nil {
+		glog.Fatalf("Unable to resolve etcd URLs: %v", err)
+	}
+
+	cfg.initialCluster = fmt.Sprintf("%s=%s", cfg.name, cfg.apurls[0].String())
+
+	stopped, err := startEtcd(cfg)
+	if err != nil {
+		glog.Fatalf("Unable to start etcd: %v", err)
+	}
+	go func() {
+		glog.Infof("Started etcd at %s", etcdServerConfig.Address)
+		<-stopped
+	}()
 }
 
-// getAndTestEtcdClient creates an etcd client based on the provided config and waits
+// GetAndTestEtcdClient creates an etcd client based on the provided config and waits
 // until etcd server is reachable. It errors out and exits if the server cannot
 // be reached for a certain amount of time.
 func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
@@ -93,7 +110,7 @@ func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdcli
 	return etcdClient, nil
 }
 
-// newOpenShiftEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version
+// NewOpenShiftEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version
 // is incorrect.
 func NewOpenShiftEtcdHelper(etcdClientInfo configapi.EtcdConnectionInfo) (helper tools.EtcdHelper, err error) {
 	// Connect and setup etcd interfaces

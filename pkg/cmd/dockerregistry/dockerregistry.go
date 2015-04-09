@@ -13,6 +13,7 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/s3"
 	"github.com/docker/distribution/version"
 	gorillahandlers "github.com/gorilla/handlers"
+	_ "github.com/openshift/origin/pkg/dockerregistry/auth"
 	_ "github.com/openshift/origin/pkg/dockerregistry/middleware/repository"
 	"golang.org/x/net/context"
 )

@@ -16,23 +16,23 @@ type FakeDeploymentConfigs struct {
 }
 
 func (c *FakeDeploymentConfigs) List(label labels.Selector, field fields.Selector) (*deployapi.DeploymentConfigList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-deploymentconfig"})
-	return &deployapi.DeploymentConfigList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-deploymentconfig"}, &deployapi.DeploymentConfigList{})
+	return obj.(*deployapi.DeploymentConfigList), err
 }
 
 func (c *FakeDeploymentConfigs) Get(name string) (*deployapi.DeploymentConfig, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-deploymentconfig"})
-	return &deployapi.DeploymentConfig{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-deploymentconfig"}, &deployapi.DeploymentConfig{})
+	return obj.(*deployapi.DeploymentConfig), err
 }
 
 func (c *FakeDeploymentConfigs) Create(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-deploymentconfig"})
-	return &deployapi.DeploymentConfig{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-deploymentconfig"}, &deployapi.DeploymentConfig{})
+	return obj.(*deployapi.DeploymentConfig), err
 }
 
 func (c *FakeDeploymentConfigs) Update(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-deploymentconfig"})
-	return &deployapi.DeploymentConfig{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-deploymentconfig"}, &deployapi.DeploymentConfig{})
+	return obj.(*deployapi.DeploymentConfig), err
 }
 
 func (c *FakeDeploymentConfigs) Delete(name string) error {

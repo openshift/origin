@@ -12,23 +12,23 @@ type FakeRoles struct {
 }
 
 func (c *FakeRoles) List(label labels.Selector, field fields.Selector) (*authorizationapi.RoleList, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "list-role"})
-	return &authorizationapi.RoleList{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "list-role"}, &authorizationapi.RoleList{})
+	return obj.(*authorizationapi.RoleList), err
 }
 
 func (c *FakeRoles) Get(name string) (*authorizationapi.Role, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-role"})
-	return &authorizationapi.Role{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-role"}, &authorizationapi.Role{})
+	return obj.(*authorizationapi.Role), err
 }
 
 func (c *FakeRoles) Create(role *authorizationapi.Role) (*authorizationapi.Role, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-role", Value: role})
-	return &authorizationapi.Role{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-role", Value: role}, &authorizationapi.Role{})
+	return obj.(*authorizationapi.Role), err
 }
 
 func (c *FakeRoles) Update(role *authorizationapi.Role) (*authorizationapi.Role, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "update-role"})
-	return &authorizationapi.Role{}, nil
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-role"}, &authorizationapi.Role{})
+	return obj.(*authorizationapi.Role), err
 }
 
 func (c *FakeRoles) Delete(name string) error {

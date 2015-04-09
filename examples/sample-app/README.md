@@ -53,18 +53,18 @@ This will set up a go workspace locally and will build all go components.  It is
 
 First, you'll need to configure the Docker daemon on your host to trust the Docker registry service you'll be starting.
 
-To do this, you need to add "--insecure-registry 172.30.17.0/24" to the Docker daemon invocation, eg:
+To do this, you need to add "--insecure-registry 172.30.0.0/16" to the Docker daemon invocation, eg:
 
-    $ docker -d --insecure-registry 172.30.17.0/24
+    $ docker -d --insecure-registry 172.30.0.0/16
 
 Note that you need to have installed Docker 1.3.2 or higher in order to use the `--insecure-registry` flag.
 
 If you are running Docker as a service via `systemd`, you can add this argument to the options value in `/etc/sysconfig/docker`
 
-This will instruct the Docker daemon to trust any Docker registry on the 172.30.17.0/24 subnet,
+This will instruct the Docker daemon to trust any Docker registry on the 172.30.0.0/16 subnet,
 rather than requiring the registry to have a verifiable certificate.
 
-These instructions assume you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.17.0/24.
+These instructions assume you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.0.0/16.
 
 ### FirewallD Changes ###
 

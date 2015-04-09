@@ -1,15 +1,29 @@
 package client
 
-type FakeAction struct {
-	Action string
-	Value  interface{}
-}
+import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+)
+
+type FakeAction testclient.FakeAction
 
 // Fake implements Interface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the method you want to test easier.
 type Fake struct {
 	// Fake by default keeps a simple list of the methods that have been called.
 	Actions []FakeAction
+	Err     error
+	// ReactFn is an optional function that will be invoked with the provided action
+	// and return a response.
+	ReactFn testclient.ReactionFunc
+}
+
+func (c *Fake) Invokes(action FakeAction, obj runtime.Object) (runtime.Object, error) {
+	c.Actions = append(c.Actions, action)
+	if c.ReactFn != nil {
+		return c.ReactFn(testclient.FakeAction(action))
+	}
+	return obj, c.Err
 }
 
 var _ Interface = &Fake{}

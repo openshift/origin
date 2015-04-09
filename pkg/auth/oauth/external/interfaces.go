@@ -13,6 +13,8 @@ import (
 type Provider interface {
 	// NewConfig returns a client information that allows a standard oauth client to communicate with external oauth
 	NewConfig() (*osincli.ClientConfig, error)
+	// GetTransport returns the transport to use for server-to-server calls. If nil is returned, http.DefaultTransport is used.
+	GetTransport() (http.RoundTripper, error)
 	// AddCustomParameters allows an external oauth provider to provide parameters that are extension to the spec.  Some providers require this.
 	AddCustomParameters(*osincli.AuthorizeRequest)
 	// GetUserIdentity takes the external oauth token information this and returns the user identity, isAuthenticated, and error

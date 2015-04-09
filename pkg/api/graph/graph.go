@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
@@ -399,4 +400,13 @@ func pathEqual(a, b []graph.Node) bool {
 		}
 	}
 	return true
+}
+
+func Fprint(out io.Writer, g Graph) {
+	for _, node := range g.NodeList() {
+		fmt.Fprintf(out, "node %d %s\n", node.ID(), node)
+	}
+	for _, edge := range g.EdgeList() {
+		fmt.Fprintf(out, "edge %d -> %d : %d\n", edge.Head().ID(), edge.Head().ID(), g.EdgeKind(edge))
+	}
 }

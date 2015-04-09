@@ -10,6 +10,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -128,6 +130,8 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		CertFile: clientCertFile,
 		KeyFile:  clientKeyFile,
 		UserNick: o.User,
+
+		ContextNamespace: kapi.NamespaceDefault,
 
 		KubeConfigFile: kubeConfigFile,
 	}
