@@ -197,10 +197,15 @@ func AddServices(objects Objects) Objects {
 							Labels:       t.Labels,
 						},
 						Spec: kapi.ServiceSpec{
-							TargetPort: kutil.NewIntOrStringFromInt(p.ContainerPort),
-							Port:       p.ContainerPort,
-							Selector:   t.Template.ControllerTemplate.Selector,
-							Protocol:   p.Protocol,
+							Selector: t.Template.ControllerTemplate.Selector,
+							Ports: []kapi.ServicePort{
+								{
+									Name:       p.Name,
+									Port:       p.ContainerPort,
+									Protocol:   p.Protocol,
+									TargetPort: kutil.NewIntOrStringFromInt(p.ContainerPort),
+								},
+							},
 						},
 					})
 					break

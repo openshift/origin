@@ -100,10 +100,11 @@ func (c *NodeConfig) RunKubelet() {
 	// TODO: clean this up and make it more formal (service named 'dns'?). Use multiple ports.
 	clusterDNS := c.ClusterDNS
 	if clusterDNS == nil {
-		if service, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil && len(service.Endpoints) > 0 {
-			firstIP := service.Endpoints[0].IP
-			if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", firstIP, 53), 50*time.Millisecond, 0, 2); err == nil {
-				clusterDNS = net.ParseIP(firstIP)
+		if service, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
+			if ip, ok := firstIP(service, 53); ok {
+				if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", ip, 53), 50*time.Millisecond, 0, 2); err == nil {
+					clusterDNS = net.ParseIP(ip)
+				}
 			}
 		}
 	}
@@ -231,4 +232,27 @@ func (c *NodeConfig) RunProxy() {
 	serviceConfig.RegisterHandler(proxier)
 
 	glog.Infof("Started Kubernetes Proxy on %s", host)
+}
+
+// TODO: more generic location
+func includesPort(ports []kapi.EndpointPort, port int) bool {
+	for _, p := range ports {
+		if p.Port == port {
+			return true
+		}
+	}
+	return false
+}
+
+// TODO: more generic location
+func firstIP(endpoints *kapi.Endpoints, port int) (string, bool) {
+	for _, s := range endpoints.Subsets {
+		if !includesPort(s.Ports, port) {
+			continue
+		}
+		for _, a := range s.Addresses {
+			return a.IP, true
+		}
+	}
+	return "", false
 }
