@@ -25,6 +25,9 @@ type NodeConfig struct {
 	// ip
 	DNSIP string
 
+	// NetworkPluginName is a string specifying the networking plugin
+	NetworkPluginName string
+
 	// VolumeDir is the directory that volumes will be stored under
 	VolumeDirectory string
 
