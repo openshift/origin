@@ -44,6 +44,7 @@ type DockerServer struct {
 	mux            *mux.Router
 	hook           func(*http.Request)
 	failures       map[string]string
+	multiFailures  []map[string]string
 	execCallbacks  map[string]func()
 	customHandlers map[string]http.Handler
 	handlerMutex   sync.RWMutex
@@ -156,9 +157,20 @@ func (s *DockerServer) PrepareFailure(id string, urlRegexp string) {
 	s.failures[id] = urlRegexp
 }
 
+// PrepareMultiFailures enqueues a new expected failure based on a URL regexp
+// it receives an id for the failure.
+func (s *DockerServer) PrepareMultiFailures(id string, urlRegexp string) {
+	s.multiFailures = append(s.multiFailures, map[string]string{"error": id, "url": urlRegexp})
+}
+
 // ResetFailure removes an expected failure identified by the given id.
 func (s *DockerServer) ResetFailure(id string) {
 	delete(s.failures, id)
+}
+
+// ResetMultiFailures removes all enqueued failures.
+func (s *DockerServer) ResetMultiFailures() {
+	s.multiFailures = []map[string]string{}
 }
 
 // CustomHandler registers a custom handler for a specific path.
@@ -235,6 +247,19 @@ func (s *DockerServer) handlerWrapper(f func(http.ResponseWriter, *http.Request)
 				continue
 			}
 			http.Error(w, errorID, http.StatusBadRequest)
+			return
+		}
+		for i, failure := range s.multiFailures {
+			matched, err := regexp.MatchString(failure["url"], r.URL.Path)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if !matched {
+				continue
+			}
+			http.Error(w, failure["error"], http.StatusBadRequest)
+			s.multiFailures = append(s.multiFailures[:i], s.multiFailures[i+1:]...)
 			return
 		}
 		f(w, r)

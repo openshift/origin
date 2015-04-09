@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2015 Google Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,20 +18,33 @@ package testclient
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
+// NewSimpleFake returns a client that will respond with the provided objects
+func NewSimpleFake(objects ...runtime.Object) *Fake {
+	o := NewObjects(api.Scheme)
+	for _, obj := range objects {
+		if err := o.Add(obj); err != nil {
+			panic(err)
+		}
+	}
+	return &Fake{ReactFn: ObjectReaction(o, latest.RESTMapper)}
+}
+
 type FakeAction struct {
 	Action string
 	Value  interface{}
 }
 
+// ReactionFunc is a function that returns an object or error for a given Action
 type ReactionFunc func(FakeAction) (runtime.Object, error)
 
-// Fake implements Interface. Meant to be embedded into a struct to get a default
+// Fake implements client.Interface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the method you want to test easier.
 type Fake struct {
 	Actions []FakeAction
@@ -39,10 +52,13 @@ type Fake struct {
 	Err     error
 
 	// ReactFn is an optional function that will be invoked with the provided action
-	// and return a response.
+	// and return a response. It can implement scenario specific behavior. The type
+	// of object returned must match the expected type from the caller (even if nil).
 	ReactFn ReactionFunc
 }
 
+// Invokes records the provided FakeAction and then invokes the ReactFn (if provided).
+// obj is expected to be of the same type a normal call would return.
 func (c *Fake) Invokes(action FakeAction, obj runtime.Object) (runtime.Object, error) {
 	c.Actions = append(c.Actions, action)
 	if c.ReactFn != nil {
@@ -73,6 +89,14 @@ func (c *Fake) Events(namespace string) client.EventInterface {
 
 func (c *Fake) Endpoints(namespace string) client.EndpointsInterface {
 	return &FakeEndpoints{Fake: c, Namespace: namespace}
+}
+
+func (c *Fake) PersistentVolumes() client.PersistentVolumeInterface {
+	return &FakePersistentVolumes{Fake: c}
+}
+
+func (c *Fake) PersistentVolumeClaims(namespace string) client.PersistentVolumeClaimInterface {
+	return &FakePersistentVolumeClaims{Fake: c, Namespace: namespace}
 }
 
 func (c *Fake) Pods(namespace string) client.PodInterface {

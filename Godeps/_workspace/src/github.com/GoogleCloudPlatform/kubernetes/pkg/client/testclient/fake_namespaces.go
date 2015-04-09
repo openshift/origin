@@ -50,7 +50,7 @@ func (c *FakeNamespaces) Create(namespace *api.Namespace) (*api.Namespace, error
 }
 
 func (c *FakeNamespaces) Update(namespace *api.Namespace) (*api.Namespace, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-namespace", Value: namespace.Name}, &api.Namespace{})
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-namespace", Value: namespace}, &api.Namespace{})
 	return obj.(*api.Namespace), err
 }
 
@@ -60,11 +60,11 @@ func (c *FakeNamespaces) Watch(label labels.Selector, field fields.Selector, res
 }
 
 func (c *FakeNamespaces) Finalize(namespace *api.Namespace) (*api.Namespace, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "finalize-namespace", Value: namespace.Name}, &api.Namespace{})
+	obj, err := c.Fake.Invokes(FakeAction{Action: "finalize-namespace", Value: namespace}, &api.Namespace{})
 	return obj.(*api.Namespace), err
 }
 
 func (c *FakeNamespaces) Status(namespace *api.Namespace) (*api.Namespace, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "status-namespace", Value: namespace.Name}, &api.Namespace{})
+	obj, err := c.Fake.Invokes(FakeAction{Action: "status-namespace", Value: namespace}, &api.Namespace{})
 	return obj.(*api.Namespace), err
 }

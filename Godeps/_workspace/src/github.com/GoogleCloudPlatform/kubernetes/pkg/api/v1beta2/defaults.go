@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
+	"net"
+	"strconv"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -66,6 +68,15 @@ func init() {
 			if obj.SessionAffinity == "" {
 				obj.SessionAffinity = AffinityTypeNone
 			}
+			for i := range obj.Ports {
+				sp := &obj.Ports[i]
+				if sp.Protocol == "" {
+					sp.Protocol = ProtocolTCP
+				}
+				if sp.ContainerPort == util.NewIntOrStringFromInt(0) || sp.ContainerPort == util.NewIntOrStringFromString("") {
+					sp.ContainerPort = util.NewIntOrStringFromInt(sp.Port)
+				}
+			}
 		},
 		func(obj *PodSpec) {
 			if obj.DNSPolicy == "" {
@@ -95,7 +106,42 @@ func init() {
 		},
 		func(obj *Endpoints) {
 			if obj.Protocol == "" {
-				obj.Protocol = "TCP"
+				obj.Protocol = ProtocolTCP
+			}
+			if len(obj.Subsets) == 0 && len(obj.Endpoints) > 0 {
+				// Must be a legacy-style object - populate
+				// Subsets from the older fields.  Do this the
+				// simplest way, which is dumb (but valid).
+				for i := range obj.Endpoints {
+					host, portStr, err := net.SplitHostPort(obj.Endpoints[i])
+					if err != nil {
+						glog.Errorf("failed to SplitHostPort(%q)", obj.Endpoints[i])
+					}
+					var tgtRef *ObjectReference
+					for j := range obj.TargetRefs {
+						if obj.TargetRefs[j].Endpoint == obj.Endpoints[i] {
+							tgtRef = &ObjectReference{}
+							*tgtRef = obj.TargetRefs[j].ObjectReference
+						}
+					}
+					port, err := strconv.Atoi(portStr)
+					if err != nil {
+						glog.Errorf("failed to Atoi(%q)", portStr)
+					}
+					obj.Subsets = append(obj.Subsets, EndpointSubset{
+						Addresses: []EndpointAddress{{IP: host, TargetRef: tgtRef}},
+						Ports:     []EndpointPort{{Protocol: obj.Protocol, Port: port}},
+					})
+				}
+			}
+			for i := range obj.Subsets {
+				ss := &obj.Subsets[i]
+				for i := range ss.Ports {
+					ep := &ss.Ports[i]
+					if ep.Protocol == "" {
+						ep.Protocol = ProtocolTCP
+					}
+				}
 			}
 		},
 		func(obj *HTTPGetAction) {
@@ -106,6 +152,11 @@ func init() {
 		func(obj *NamespaceStatus) {
 			if obj.Phase == "" {
 				obj.Phase = NamespaceActive
+			}
+		},
+		func(obj *Minion) {
+			if obj.ExternalID == "" {
+				obj.ExternalID = obj.ID
 			}
 		},
 	)

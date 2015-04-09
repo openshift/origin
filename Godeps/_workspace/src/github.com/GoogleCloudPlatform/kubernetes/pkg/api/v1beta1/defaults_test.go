@@ -20,8 +20,10 @@ import (
 	"reflect"
 	"testing"
 
+	newer "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	current "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
@@ -30,13 +32,18 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 		t.Errorf("%v\n %#v", err, obj)
 		return nil
 	}
-	obj2 := reflect.New(reflect.TypeOf(obj).Elem()).Interface().(runtime.Object)
-	err = current.Codec.DecodeInto(data, obj2)
+	obj2, err := newer.Codec.Decode(data)
 	if err != nil {
 		t.Errorf("%v\nData: %s\nSource: %#v", err, string(data), obj)
 		return nil
 	}
-	return obj2
+	obj3 := reflect.New(reflect.TypeOf(obj).Elem()).Interface().(runtime.Object)
+	err = newer.Scheme.Convert(obj2, obj3)
+	if err != nil {
+		t.Errorf("%v\nSource: %#v", err, obj2)
+		return nil
+	}
+	return obj3
 }
 
 func TestSetDefaultService(t *testing.T) {
@@ -61,13 +68,56 @@ func TestSetDefaultSecret(t *testing.T) {
 	}
 }
 
+// Test that we use "legacy" fields if "modern" fields are not provided.
+func TestSetDefaulEndpointsLegacy(t *testing.T) {
+	in := &current.Endpoints{
+		Protocol:   "UDP",
+		Endpoints:  []string{"1.2.3.4:93", "5.6.7.8:76"},
+		TargetRefs: []current.EndpointObjectReference{{Endpoint: "1.2.3.4:93", ObjectReference: current.ObjectReference{ID: "foo"}}},
+	}
+	obj := roundTrip(t, runtime.Object(in))
+	out := obj.(*current.Endpoints)
+
+	if len(out.Subsets) != 2 {
+		t.Errorf("Expected 2 EndpointSubsets, got %d (%#v)", len(out.Subsets), out.Subsets)
+	}
+	expected := []current.EndpointSubset{
+		{
+			Addresses: []current.EndpointAddress{{IP: "1.2.3.4", TargetRef: &current.ObjectReference{ID: "foo"}}},
+			Ports:     []current.EndpointPort{{Protocol: current.ProtocolUDP, Port: 93}},
+		},
+		{
+			Addresses: []current.EndpointAddress{{IP: "5.6.7.8"}},
+			Ports:     []current.EndpointPort{{Protocol: current.ProtocolUDP, Port: 76}},
+		},
+	}
+	if !reflect.DeepEqual(out.Subsets, expected) {
+		t.Errorf("Expected %#v, got %#v", expected, out.Subsets)
+	}
+}
+
 func TestSetDefaulEndpointsProtocol(t *testing.T) {
-	in := &current.Endpoints{}
+	in := &current.Endpoints{Subsets: []current.EndpointSubset{
+		{Ports: []current.EndpointPort{{}, {Protocol: "UDP"}, {}}},
+	}}
 	obj := roundTrip(t, runtime.Object(in))
 	out := obj.(*current.Endpoints)
 
 	if out.Protocol != current.ProtocolTCP {
 		t.Errorf("Expected protocol %s, got %s", current.ProtocolTCP, out.Protocol)
+	}
+	for i := range out.Subsets {
+		for j := range out.Subsets[i].Ports {
+			if in.Subsets[i].Ports[j].Protocol == "" {
+				if out.Subsets[i].Ports[j].Protocol != current.ProtocolTCP {
+					t.Errorf("Expected protocol %s, got %s", current.ProtocolTCP, out.Subsets[i].Ports[j].Protocol)
+				}
+			} else {
+				if out.Subsets[i].Ports[j].Protocol != in.Subsets[i].Ports[j].Protocol {
+					t.Errorf("Expected protocol %s, got %s", in.Subsets[i].Ports[j].Protocol, out.Subsets[i].Ports[j].Protocol)
+				}
+			}
+		}
 	}
 }
 
@@ -103,5 +153,48 @@ func TestSetDefaultContainerManifestHostNetwork(t *testing.T) {
 	hostPortNum := s2.Containers[0].Ports[0].HostPort
 	if hostPortNum != portNum {
 		t.Errorf("Expected container port to be defaulted, was made %d instead of %d", hostPortNum, portNum)
+	}
+}
+
+func TestSetDefaultServicePort(t *testing.T) {
+	// Unchanged if set.
+	in := &current.Service{Ports: []current.ServicePort{{Protocol: "UDP", Port: 9376, ContainerPort: util.NewIntOrStringFromInt(118)}}}
+	out := roundTrip(t, runtime.Object(in)).(*current.Service)
+	if out.Ports[0].Protocol != current.ProtocolUDP {
+		t.Errorf("Expected protocol %s, got %s", current.ProtocolUDP, out.Ports[0].Protocol)
+	}
+	if out.Ports[0].ContainerPort != in.Ports[0].ContainerPort {
+		t.Errorf("Expected port %d, got %d", in.Ports[0].ContainerPort, out.Ports[0].ContainerPort)
+	}
+
+	// Defaulted.
+	in = &current.Service{Ports: []current.ServicePort{{Protocol: "", Port: 9376, ContainerPort: util.NewIntOrStringFromInt(0)}}}
+	out = roundTrip(t, runtime.Object(in)).(*current.Service)
+	if out.Ports[0].Protocol != current.ProtocolTCP {
+		t.Errorf("Expected protocol %s, got %s", current.ProtocolTCP, out.Ports[0].Protocol)
+	}
+	if out.Ports[0].ContainerPort != util.NewIntOrStringFromInt(in.Ports[0].Port) {
+		t.Errorf("Expected port %d, got %v", in.Ports[0].Port, out.Ports[0].ContainerPort)
+	}
+
+	// Defaulted.
+	in = &current.Service{Ports: []current.ServicePort{{Protocol: "", Port: 9376, ContainerPort: util.NewIntOrStringFromString("")}}}
+	out = roundTrip(t, runtime.Object(in)).(*current.Service)
+	if out.Ports[0].Protocol != current.ProtocolTCP {
+		t.Errorf("Expected protocol %s, got %s", current.ProtocolTCP, out.Ports[0].Protocol)
+	}
+	if out.Ports[0].ContainerPort != util.NewIntOrStringFromInt(in.Ports[0].Port) {
+		t.Errorf("Expected port %d, got %v", in.Ports[0].Port, out.Ports[0].ContainerPort)
+	}
+}
+
+func TestSetDefaultMinionExternalID(t *testing.T) {
+	name := "node0"
+	m := &current.Minion{}
+	m.ID = name
+	obj2 := roundTrip(t, runtime.Object(m))
+	m2 := obj2.(*current.Minion)
+	if m2.ExternalID != name {
+		t.Errorf("Expected default External ID: %s, got: %s", name, m2.ExternalID)
 	}
 }

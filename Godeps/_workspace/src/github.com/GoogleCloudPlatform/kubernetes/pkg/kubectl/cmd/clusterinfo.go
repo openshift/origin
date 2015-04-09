@@ -19,30 +19,37 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 
 	"github.com/daviddengcn/go-colortext"
 	"github.com/spf13/cobra"
 )
 
-func (f *Factory) NewCmdClusterInfo(out io.Writer) *cobra.Command {
+func NewCmdClusterInfo(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "clusterinfo",
-		Short: "Display cluster info",
-		Long:  "Display addresses of the master and services with label kubernetes.io/cluster-service=true",
+		Use: "cluster-info",
+		// clusterinfo is deprecated.
+		Aliases: []string{"clusterinfo"},
+		Short:   "Display cluster info",
+		Long:    "Display addresses of the master and services with label kubernetes.io/cluster-service=true",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunClusterInfo(f, out, cmd)
-			util.CheckErr(err)
+			cmdutil.CheckErr(err)
 		},
 	}
 	return cmd
 }
 
-func RunClusterInfo(factory *Factory, out io.Writer, cmd *cobra.Command) error {
+func RunClusterInfo(factory *cmdutil.Factory, out io.Writer, cmd *cobra.Command) error {
+	if os.Args[1] == "clusterinfo" {
+		printDeprecationWarning("cluster-info", "clusterinfo")
+	}
+
 	client, err := factory.ClientConfig()
 	if err != nil {
 		return err
@@ -56,7 +63,7 @@ func RunClusterInfo(factory *Factory, out io.Writer, cmd *cobra.Command) error {
 	}
 
 	// TODO use generalized labels once they are implemented (#341)
-	b := resource.NewBuilder(mapper, typer, factory.ClientMapperForCommand(cmd)).
+	b := resource.NewBuilder(mapper, typer, factory.ClientMapperForCommand()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		SelectorParam("kubernetes.io/cluster-service=true").
 		ResourceTypeOrNameArgs(false, []string{"services"}...).

@@ -17,6 +17,7 @@ limitations under the License.
 package kubectl
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strings"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -32,7 +34,7 @@ type describeClient struct {
 	T         *testing.T
 	Namespace string
 	Err       error
-	*client.Fake
+	client.Interface
 }
 
 func init() {
@@ -40,8 +42,13 @@ func init() {
 }
 
 func TestDescribePod(t *testing.T) {
-	fake := &client.Fake{}
-	c := &describeClient{T: t, Namespace: "foo", Fake: fake}
+	fake := testclient.NewSimpleFake(&api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			Name:      "bar",
+			Namespace: "foo",
+		},
+	})
+	c := &describeClient{T: t, Namespace: "foo", Interface: fake}
 	d := PodDescriber{c}
 	out, err := d.Describe("foo", "bar")
 	if err != nil {
@@ -53,8 +60,13 @@ func TestDescribePod(t *testing.T) {
 }
 
 func TestDescribeService(t *testing.T) {
-	fake := &client.Fake{}
-	c := &describeClient{T: t, Namespace: "foo", Fake: fake}
+	fake := testclient.NewSimpleFake(&api.Service{
+		ObjectMeta: api.ObjectMeta{
+			Name:      "bar",
+			Namespace: "foo",
+		},
+	})
+	c := &describeClient{T: t, Namespace: "foo", Interface: fake}
 	d := ServiceDescriber{c}
 	out, err := d.Describe("foo", "bar")
 	if err != nil {
@@ -67,34 +79,32 @@ func TestDescribeService(t *testing.T) {
 
 func TestPodDescribeResultsSorted(t *testing.T) {
 	// Arrange
-	fake := &client.Fake{
-		EventsList: api.EventList{
-			Items: []api.Event{
-				{
-					Source:         api.EventSource{Component: "kubelet"},
-					Message:        "Item 1",
-					FirstTimestamp: util.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
-					LastTimestamp:  util.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
-					Count:          1,
-				},
-				{
-					Source:         api.EventSource{Component: "scheduler"},
-					Message:        "Item 2",
-					FirstTimestamp: util.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
-					LastTimestamp:  util.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
-					Count:          1,
-				},
-				{
-					Source:         api.EventSource{Component: "kubelet"},
-					Message:        "Item 3",
-					FirstTimestamp: util.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
-					LastTimestamp:  util.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
-					Count:          1,
-				},
+	fake := testclient.NewSimpleFake(&api.EventList{
+		Items: []api.Event{
+			{
+				Source:         api.EventSource{Component: "kubelet"},
+				Message:        "Item 1",
+				FirstTimestamp: util.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
+				LastTimestamp:  util.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
+				Count:          1,
+			},
+			{
+				Source:         api.EventSource{Component: "scheduler"},
+				Message:        "Item 2",
+				FirstTimestamp: util.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
+				LastTimestamp:  util.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
+				Count:          1,
+			},
+			{
+				Source:         api.EventSource{Component: "kubelet"},
+				Message:        "Item 3",
+				FirstTimestamp: util.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
+				LastTimestamp:  util.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
+				Count:          1,
 			},
 		},
-	}
-	c := &describeClient{T: t, Namespace: "foo", Fake: fake}
+	})
+	c := &describeClient{T: t, Namespace: "foo", Interface: fake}
 	d := PodDescriber{c}
 
 	// Act
@@ -105,6 +115,83 @@ func TestPodDescribeResultsSorted(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	VerifyDatesInOrder(out, "\n" /* rowDelimiter */, "\t" /* columnDelimiter */, t)
+}
+
+func TestDescribeContainers(t *testing.T) {
+	testCases := []struct {
+		input            api.ContainerStatus
+		expectedElements []string
+	}{
+		// Running state.
+		{
+			input: api.ContainerStatus{
+				Name: "test",
+				State: api.ContainerState{
+					Running: &api.ContainerStateRunning{
+						StartedAt: util.NewTime(time.Now()),
+					},
+				},
+				Ready:        true,
+				RestartCount: 7,
+				Image:        "image",
+			},
+			expectedElements: []string{"test", "State", "Running", "Ready", "True", "Restart Count", "7", "Image", "image", "Started"},
+		},
+		// Waiting state.
+		{
+			input: api.ContainerStatus{
+				Name: "test",
+				State: api.ContainerState{
+					Waiting: &api.ContainerStateWaiting{
+						Reason: "potato",
+					},
+				},
+				Ready:        true,
+				RestartCount: 7,
+				Image:        "image",
+			},
+			expectedElements: []string{"test", "State", "Waiting", "Ready", "True", "Restart Count", "7", "Image", "image", "Reason", "potato"},
+		},
+		// Terminated state.
+		{
+			input: api.ContainerStatus{
+				Name: "test",
+				State: api.ContainerState{
+					Termination: &api.ContainerStateTerminated{
+						StartedAt:  util.NewTime(time.Now()),
+						FinishedAt: util.NewTime(time.Now()),
+						Reason:     "potato",
+						ExitCode:   2,
+					},
+				},
+				Ready:        true,
+				RestartCount: 7,
+				Image:        "image",
+			},
+			expectedElements: []string{"test", "State", "Terminated", "Ready", "True", "Restart Count", "7", "Image", "image", "Reason", "potato", "Started", "Finished", "Exit Code", "2"},
+		},
+		// No state defaults to waiting.
+		{
+			input: api.ContainerStatus{
+				Name:         "test",
+				Ready:        true,
+				RestartCount: 7,
+				Image:        "image",
+			},
+			expectedElements: []string{"test", "State", "Waiting", "Ready", "True", "Restart Count", "7", "Image", "image"},
+		},
+	}
+
+	for i, testCase := range testCases {
+		out := new(bytes.Buffer)
+		describeContainers([]api.ContainerStatus{testCase.input}, out)
+		output := out.String()
+		for _, expected := range testCase.expectedElements {
+			if !strings.Contains(output, expected) {
+				t.Errorf("Test case %d: expected to find %q in output: %q", i, expected, output)
+			}
+		}
+	}
 }
 
 func TestDescribers(t *testing.T) {

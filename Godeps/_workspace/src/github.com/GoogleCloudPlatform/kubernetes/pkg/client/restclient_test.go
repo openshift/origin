@@ -39,7 +39,7 @@ func TestSetsCodec(t *testing.T) {
 		Codec  runtime.Codec
 	}{
 		"v1beta1": {false, "/api/v1beta1/", v1beta1.Codec},
-		"":        {false, "/api/v1beta1/", v1beta1.Codec},
+		"":        {false, "/api/" + latest.Version + "/", latest.Codec},
 		"v1beta2": {false, "/api/v1beta2/", v1beta2.Codec},
 		"v1beta3": {false, "/api/v1beta3/", v1beta3.Codec},
 		"v1beta4": {true, "", nil},
@@ -225,7 +225,13 @@ func TestDoRequestSuccess(t *testing.T) {
 }
 
 func TestDoRequestFailed(t *testing.T) {
-	status := &api.Status{Status: api.StatusFailure, Reason: api.StatusReasonInvalid, Details: &api.StatusDetails{ID: "test", Kind: "test"}}
+	status := &api.Status{
+		Code:    http.StatusNotFound,
+		Status:  api.StatusFailure,
+		Reason:  api.StatusReasonNotFound,
+		Message: " \"\" not found",
+		Details: &api.StatusDetails{},
+	}
 	expectedBody, _ := latest.Codec.Encode(status)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   404,
@@ -253,7 +259,7 @@ func TestDoRequestFailed(t *testing.T) {
 	}
 	actual := ss.Status()
 	if !reflect.DeepEqual(status, &actual) {
-		t.Errorf("Unexpected mis-match. Expected %#v.  Saw %#v", status, actual)
+		t.Errorf("Unexpected mis-match: %s", util.ObjectDiff(status, &actual))
 	}
 }
 

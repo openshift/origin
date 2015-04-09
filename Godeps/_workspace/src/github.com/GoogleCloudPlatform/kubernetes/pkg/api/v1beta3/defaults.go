@@ -52,12 +52,18 @@ func init() {
 				obj.TerminationMessagePath = TerminationMessagePathDefault
 			}
 		},
-		func(obj *Service) {
-			if obj.Spec.Protocol == "" {
-				obj.Spec.Protocol = ProtocolTCP
+		func(obj *ServiceSpec) {
+			if obj.SessionAffinity == "" {
+				obj.SessionAffinity = AffinityTypeNone
 			}
-			if obj.Spec.SessionAffinity == "" {
-				obj.Spec.SessionAffinity = AffinityTypeNone
+			for i := range obj.Ports {
+				sp := &obj.Ports[i]
+				if sp.Protocol == "" {
+					sp.Protocol = ProtocolTCP
+				}
+				if sp.TargetPort == util.NewIntOrStringFromInt(0) || sp.TargetPort == util.NewIntOrStringFromString("") {
+					sp.TargetPort = util.NewIntOrStringFromInt(sp.Port)
+				}
 			}
 		},
 		func(obj *PodSpec) {
@@ -82,8 +88,14 @@ func init() {
 			}
 		},
 		func(obj *Endpoints) {
-			if obj.Protocol == "" {
-				obj.Protocol = "TCP"
+			for i := range obj.Subsets {
+				ss := &obj.Subsets[i]
+				for i := range ss.Ports {
+					ep := &ss.Ports[i]
+					if ep.Protocol == "" {
+						ep.Protocol = ProtocolTCP
+					}
+				}
 			}
 		},
 		func(obj *HTTPGetAction) {
@@ -91,15 +103,14 @@ func init() {
 				obj.Path = "/"
 			}
 		},
-		func(obj *ServiceSpec) {
-			if obj.TargetPort.Kind == util.IntstrInt && obj.TargetPort.IntVal == 0 ||
-				obj.TargetPort.Kind == util.IntstrString && obj.TargetPort.StrVal == "" {
-				obj.TargetPort = util.NewIntOrStringFromInt(obj.Port)
-			}
-		},
 		func(obj *NamespaceStatus) {
 			if obj.Phase == "" {
 				obj.Phase = NamespaceActive
+			}
+		},
+		func(obj *Node) {
+			if obj.Spec.ExternalID == "" {
+				obj.Spec.ExternalID = obj.Name
 			}
 		},
 	)

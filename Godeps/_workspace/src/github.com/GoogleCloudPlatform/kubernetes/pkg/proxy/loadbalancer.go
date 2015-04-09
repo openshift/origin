@@ -17,6 +17,7 @@ limitations under the License.
 package proxy
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -26,8 +27,19 @@ import (
 // LoadBalancer is an interface for distributing incoming requests to service endpoints.
 type LoadBalancer interface {
 	// NextEndpoint returns the endpoint to handle a request for the given
-	// service and source address.
-	NextEndpoint(service types.NamespacedName, srcAddr net.Addr) (string, error)
-	NewService(service types.NamespacedName, sessionAffinityType api.AffinityType, stickyMaxAgeMinutes int) error
-	CleanupStaleStickySessions(service types.NamespacedName)
+	// service-port and source address.
+	NextEndpoint(service ServicePortName, srcAddr net.Addr) (string, error)
+	NewService(service ServicePortName, sessionAffinityType api.AffinityType, stickyMaxAgeMinutes int) error
+	CleanupStaleStickySessions(service ServicePortName)
+}
+
+// ServicePortName carries a namespace + name + portname.  This is the unique
+// identfier for a load-balanced service.
+type ServicePortName struct {
+	types.NamespacedName
+	Port string
+}
+
+func (spn ServicePortName) String() string {
+	return fmt.Sprintf("%s:%s", spn.NamespacedName.String(), spn.Port)
 }

@@ -52,13 +52,15 @@ import (
 	nodeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace"
 	namespaceetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace/etcd"
+	pvetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolume/etcd"
+	pvcetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolumeclaim/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	podetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod/etcd"
 	resourcequotaetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequota/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/secret"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	//"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/emicklei/go-restful"
@@ -78,8 +80,8 @@ type Config struct {
 	EnableUISupport   bool
 	// allow downstream consumers to disable swagger
 	EnableSwaggerSupport bool
-	// allow v1beta3 to be conditionally enabled
-	EnableV1Beta3 bool
+	// allow v1beta3 to be conditionally disabled
+	DisableV1Beta3 bool
 	// allow downstream consumers to disable the index route
 	EnableIndex            bool
 	EnableProfiling        bool
@@ -209,7 +211,9 @@ func setDefaults(c *Config) {
 	if c.CacheTimeout == 0 {
 		c.CacheTimeout = 5 * time.Second
 	}
-	for c.PublicAddress == nil {
+	for c.PublicAddress == nil || c.PublicAddress.IsUnspecified() {
+		// TODO: This should be done in the caller and just require a
+		// valid value to be passed in.
 		hostIP, err := util.ChooseHostInterface()
 		if err != nil {
 			glog.Fatalf("Unable to find suitable network address.error='%v' . "+
@@ -277,7 +281,7 @@ func New(c *Config) *Master {
 		authenticator:         c.Authenticator,
 		authorizer:            c.Authorizer,
 		admissionControl:      c.AdmissionControl,
-		v1beta3:               c.EnableV1Beta3,
+		v1beta3:               !c.DisableV1Beta3,
 		requestContextMapper:  c.RequestContextMapper,
 
 		cacheTimeout: c.CacheTimeout,
@@ -355,14 +359,16 @@ func logStackOnRecover(panicReason interface{}, httpWriter http.ResponseWriter) 
 
 // init initializes master.
 func (m *Master) init(c *Config) {
-	podStorage, bindingStorage, podStatusStorage := podetcd.NewStorage(c.EtcdHelper)
-	podRegistry := pod.NewRegistry(podStorage)
+	podStorage := podetcd.NewStorage(c.EtcdHelper, c.KubeletClient)
+	podRegistry := pod.NewRegistry(podStorage.Pod)
 
 	eventRegistry := event.NewEtcdRegistry(c.EtcdHelper, uint64(c.EventTTL.Seconds()))
 	limitRangeRegistry := limitrange.NewEtcdRegistry(c.EtcdHelper)
 
 	resourceQuotaStorage, resourceQuotaStatusStorage := resourcequotaetcd.NewStorage(c.EtcdHelper)
 	secretRegistry := secret.NewEtcdRegistry(c.EtcdHelper)
+	persistentVolumeStorage, persistentVolumeStatusStorage := pvetcd.NewStorage(c.EtcdHelper)
+	persistentVolumeClaimStorage, persistentVolumeClaimStatusStorage := pvcetcd.NewStorage(c.EtcdHelper)
 
 	namespaceStorage, namespaceStatusStorage, namespaceFinalizeStorage := namespaceetcd.NewStorage(c.EtcdHelper)
 	m.namespaceRegistry = namespace.NewRegistry(namespaceStorage)
@@ -381,10 +387,11 @@ func (m *Master) init(c *Config) {
 
 	// TODO: Factor out the core API registration
 	m.storage = map[string]rest.Storage{
-		"pods":         podStorage,
-		"pods/status":  podStatusStorage,
-		"pods/binding": bindingStorage,
-		"bindings":     bindingStorage,
+		"pods":         podStorage.Pod,
+		"pods/status":  podStorage.Status,
+		"pods/log":     podStorage.Log,
+		"pods/binding": podStorage.Binding,
+		"bindings":     podStorage.Binding,
 
 		"replicationControllers": controllerStorage,
 		"services":               service.NewStorage(m.serviceRegistry, c.Cloud, m.nodeRegistry, m.endpointRegistry, m.portalNet, c.ClusterName),
@@ -393,13 +400,17 @@ func (m *Master) init(c *Config) {
 		"nodes":                  nodeStorage,
 		"events":                 event.NewStorage(eventRegistry),
 
-		"limitRanges":           limitrange.NewStorage(limitRangeRegistry),
-		"resourceQuotas":        resourceQuotaStorage,
-		"resourceQuotas/status": resourceQuotaStatusStorage,
-		"namespaces":            namespaceStorage,
-		"namespaces/status":     namespaceStatusStorage,
-		"namespaces/finalize":   namespaceFinalizeStorage,
-		"secrets":               secret.NewStorage(secretRegistry),
+		"limitRanges":                   limitrange.NewStorage(limitRangeRegistry),
+		"resourceQuotas":                resourceQuotaStorage,
+		"resourceQuotas/status":         resourceQuotaStatusStorage,
+		"namespaces":                    namespaceStorage,
+		"namespaces/status":             namespaceStatusStorage,
+		"namespaces/finalize":           namespaceFinalizeStorage,
+		"secrets":                       secret.NewStorage(secretRegistry),
+		"persistentVolumes":             persistentVolumeStorage,
+		"persistentVolumes/status":      persistentVolumeStatusStorage,
+		"persistentVolumeClaims":        persistentVolumeClaimStorage,
+		"persistentVolumeClaims/status": persistentVolumeClaimStatusStorage,
 	}
 
 	apiVersions := []string{"v1beta1", "v1beta2"}
@@ -409,7 +420,7 @@ func (m *Master) init(c *Config) {
 	if err := m.api_v1beta2().InstallREST(m.handlerContainer); err != nil {
 		glog.Fatalf("Unable to setup API v1beta2: %v", err)
 	}
-	if c.EnableV1Beta3 {
+	if m.v1beta3 {
 		if err := m.api_v1beta3().InstallREST(m.handlerContainer); err != nil {
 			glog.Fatalf("Unable to setup API v1beta3: %v", err)
 		}
@@ -431,9 +442,9 @@ func (m *Master) init(c *Config) {
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(m.muxHelper)
 	}
-	/*if c.EnableUISupport {
-		ui.InstallSupport(m.mux)
-	}*/
+	if c.EnableUISupport {
+		ui.InstallSupport(m.muxHelper, m.enableSwaggerSupport)
+	}
 
 	if c.EnableProfiling {
 		m.mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -561,7 +572,7 @@ func (m *Master) getServersToValidate(c *Config) map[string]apiserver.Server {
 		glog.Errorf("Failed to list minions: %v", err)
 	}
 	for ix, node := range nodes.Items {
-		serversToValidate[fmt.Sprintf("node-%d", ix)] = apiserver.Server{Addr: node.Name, Port: ports.KubeletPort, Path: "/healthz"}
+		serversToValidate[fmt.Sprintf("node-%d", ix)] = apiserver.Server{Addr: node.Name, Port: ports.KubeletPort, Path: "/healthz", EnableHTTPS: true}
 	}
 	return serversToValidate
 }
@@ -572,9 +583,10 @@ func (m *Master) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 
 		Mapper: latest.RESTMapper,
 
-		Creater: api.Scheme,
-		Typer:   api.Scheme,
-		Linker:  latest.SelfLinker,
+		Creater:   api.Scheme,
+		Convertor: api.Scheme,
+		Typer:     api.Scheme,
+		Linker:    latest.SelfLinker,
 
 		Admit:   m.admissionControl,
 		Context: m.requestContextMapper,

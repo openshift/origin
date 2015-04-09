@@ -46,17 +46,17 @@ func (c *FakeResourceQuotas) Delete(name string) error {
 }
 
 func (c *FakeResourceQuotas) Create(resourceQuota *api.ResourceQuota) (*api.ResourceQuota, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-resourceQuota"}, &api.ResourceQuota{})
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-resourceQuota", Value: resourceQuota}, &api.ResourceQuota{})
 	return obj.(*api.ResourceQuota), err
 }
 
 func (c *FakeResourceQuotas) Update(resourceQuota *api.ResourceQuota) (*api.ResourceQuota, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-resourceQuota", Value: resourceQuota.Name}, &api.ResourceQuota{})
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-resourceQuota", Value: resourceQuota}, &api.ResourceQuota{})
 	return obj.(*api.ResourceQuota), err
 }
 
 func (c *FakeResourceQuotas) UpdateStatus(resourceQuota *api.ResourceQuota) (*api.ResourceQuota, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-status-resourceQuota", Value: resourceQuota.Name}, &api.ResourceQuota{})
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-status-resourceQuota", Value: resourceQuota}, &api.ResourceQuota{})
 	return obj.(*api.ResourceQuota), err
 }
 

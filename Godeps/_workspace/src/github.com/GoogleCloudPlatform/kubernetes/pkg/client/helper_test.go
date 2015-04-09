@@ -273,6 +273,7 @@ func TestSetKubernetesDefaults(t *testing.T) {
 				Version:        latest.Version,
 				Codec:          latest.Codec,
 				LegacyBehavior: (latest.Version == "v1beta1" || latest.Version == "v1beta2"),
+				QPS:            5,
 			},
 			false,
 		},
@@ -307,7 +308,7 @@ func TestSetKubernetesDefaults(t *testing.T) {
 func TestSetKubernetesDefaultsUserAgent(t *testing.T) {
 	config := &Config{}
 	if err := SetKubernetesDefaults(config); err != nil {
-		t.Errorf("unexpected error: %v")
+		t.Errorf("unexpected error: %v", err)
 	}
 	if !strings.Contains(config.UserAgent, "kubernetes/") {
 		t.Errorf("no user agent set: %#v", config)
