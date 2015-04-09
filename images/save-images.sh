@@ -17,3 +17,8 @@ do
 done
 
 echo "Images for ${IMAGE_VERSION} saved to ~/openshift3_beta--IMAGE-NAME-${IMAGE_VERSION}.tar.gz"
+
+STI_BAU_VERSION="latest"
+docker save localhost:5000/openshift3_beta/sti-basicauthurl:${STI_BAU_VERSION} | gzip > ~/openshift3_beta--sti-basicauthurl-${STI_BAU_VERSION}.tar.gz
+
+echo "Image saved to ~/openshift3_beta--sti-basicauthurl-${STI_BAU_VERSION}.tar.gz"
