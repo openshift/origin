@@ -66,6 +66,15 @@ Probing Containers
 
 In general you may want to investigate a particular container.  You can either gather the logs from a container via `docker logs [container id]` or use `docker exec -it [container id] /bin/sh` to enter the container's namespace and poke around.
 
+Sometimes you'll hit a problem while developing an sti builder or Docker build where the image fails to start up.  Another scenario that is possible is that you're working on a liveness probe and it's failing and therefore killing the container before you have time to figure out what is happening.  Sometimes you can run `docker start <CONTAINER ID>` however if the pod has been destroyed and it was dependent on a volume it won't let you restart the container if the volume has been cleaned up.
+
+If you simply want to take a container that OpenShift has created but debug it outside of the Master's knowledge you can run the following:
+
+    $ docker commit <CONTAINER ID> <some new name>
+    $ docker run -it <name from previous step> /bin/bash
+
+Obviously this won't work if you don't have bash installed but you could always package it in for debugging purposes.
+
 
 Benign Errors/Messages
 ----------------------
