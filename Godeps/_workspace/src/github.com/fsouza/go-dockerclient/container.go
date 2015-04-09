@@ -198,6 +198,12 @@ type Config struct {
 	Labels          map[string]string   `json:"Labels,omitempty" yaml:"Labels,omitempty"`
 }
 
+// LogConfig defines the log driver type and the configuration for it.
+type LogConfig struct {
+	Type   string            `json:"Type,omitempty" yaml:"Type,omitempty"`
+	Config map[string]string `json:"Config,omitempty" yaml:"Config,omitempty"`
+}
+
 // SwarmNode containers information about which Swarm node the container is on
 type SwarmNode struct {
 	ID     string            `json:"ID,omitempty" yaml:"ID,omitempty"`
@@ -406,6 +412,8 @@ type HostConfig struct {
 	PidMode         string                 `json:"PidMode,omitempty" yaml:"PidMode,omitempty"`
 	RestartPolicy   RestartPolicy          `json:"RestartPolicy,omitempty" yaml:"RestartPolicy,omitempty"`
 	Devices         []Device               `json:"Devices,omitempty" yaml:"Devices,omitempty"`
+	LogConfig       LogConfig              `json:"LogConfig,omitempty" yaml:"LogConfig,omitempty"`
+	ReadonlyRootfs  bool                   `json:"ReadonlyRootfs,omitempty" yaml:"ReadonlyRootfs,omitempty"`
 }
 
 // StartContainer starts a container, returning an error in case of failure.

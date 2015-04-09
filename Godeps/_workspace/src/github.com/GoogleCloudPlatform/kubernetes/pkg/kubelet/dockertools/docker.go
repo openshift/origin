@@ -19,21 +19,16 @@ package dockertools
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"hash/adler32"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
-	"path"
 	"strconv"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/credentialprovider"
 	kubecontainer "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/container"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/leaky"
@@ -178,6 +173,7 @@ func (d *dockerContainerCommandRunner) runInContainerUsingNsinit(containerID str
 }
 
 // RunInContainer uses nsinit to run the command inside the container identified by containerID
+// TODO(yifan): Use strong type for containerID.
 func (d *dockerContainerCommandRunner) RunInContainer(containerID string, cmd []string) ([]byte, error) {
 	// If native exec support does not exist in the local docker daemon use nsinit.
 	useNativeExec, err := d.nativeExecSupportExists()
@@ -222,12 +218,8 @@ func (d *dockerContainerCommandRunner) RunInContainer(containerID string, cmd []
 //  - match cgroups of container
 //  - should we support `docker exec`?
 //  - should we support nsenter in a container, running with elevated privs and --pid=host?
+//  - use strong type for containerId
 func (d *dockerContainerCommandRunner) ExecInContainer(containerId string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool) error {
-	nsenter, err := exec.LookPath("nsenter")
-	if err != nil {
-		return fmt.Errorf("exec unavailable - unable to locate nsenter")
-	}
-
 	container, err := d.client.InspectContainer(containerId)
 	if err != nil {
 		return err
@@ -244,7 +236,8 @@ func (d *dockerContainerCommandRunner) ExecInContainer(containerId string, cmd [
 	args = append(args, fmt.Sprintf("HOSTNAME=%s", container.Config.Hostname))
 	args = append(args, container.Config.Env...)
 	args = append(args, cmd...)
-	command := exec.Command(nsenter, args...)
+	command := exec.Command("nsenter", args...)
+	// TODO use exec.LookPath
 	if tty {
 		p, err := StartPty(command)
 		if err != nil {
@@ -265,26 +258,39 @@ func (d *dockerContainerCommandRunner) ExecInContainer(containerId string, cmd [
 
 		return command.Wait()
 	} else {
+		cp := func(dst io.WriteCloser, src io.Reader, closeDst bool) {
+			defer func() {
+				if closeDst {
+					dst.Close()
+				}
+			}()
+			io.Copy(dst, src)
+		}
 		if stdin != nil {
-			// Use an os.Pipe here as it returns true *os.File objects.
-			// This way, if you run 'kubectl exec -p <pod> -i bash' (no tty) and type 'exit',
-			// the call below to command.Run() can unblock because its Stdin is the read half
-			// of the pipe.
-			r, w, err := os.Pipe()
+			inPipe, err := command.StdinPipe()
 			if err != nil {
 				return err
 			}
-			go io.Copy(w, stdin)
-
-			command.Stdin = r
+			go func() {
+				cp(inPipe, stdin, false)
+				inPipe.Close()
+			}()
 		}
 
 		if stdout != nil {
-			command.Stdout = stdout
+			outPipe, err := command.StdoutPipe()
+			if err != nil {
+				return err
+			}
+			go cp(stdout, outPipe, true)
 		}
 
 		if stderr != nil {
-			command.Stderr = stderr
+			errPipe, err := command.StderrPipe()
+			if err != nil {
+				return err
+			}
+			go cp(stderr, errPipe, true)
 		}
 
 		return command.Run()
@@ -299,8 +305,12 @@ func (d *dockerContainerCommandRunner) ExecInContainer(containerId string, cmd [
 //  - match cgroups of container
 //  - should we support nsenter + socat on the host? (current impl)
 //  - should we support nsenter + socat in a container, running with elevated privs and --pid=host?
-func (d *dockerContainerCommandRunner) PortForward(podInfraContainerID string, port uint16, stream io.ReadWriteCloser) error {
-	container, err := d.client.InspectContainer(podInfraContainerID)
+func (d *dockerContainerCommandRunner) PortForward(pod *kubecontainer.Pod, port uint16, stream io.ReadWriteCloser) error {
+	podInfraContainer := pod.FindContainerByName(PodInfraContainerName)
+	if podInfraContainer == nil {
+		return fmt.Errorf("cannot find pod infra container in pod %q", kubecontainer.BuildPodFullName(pod.Name, pod.Namespace))
+	}
+	container, err := d.client.InspectContainer(string(podInfraContainer.ID))
 	if err != nil {
 		return err
 	}
@@ -314,8 +324,16 @@ func (d *dockerContainerCommandRunner) PortForward(podInfraContainerID string, p
 	args := []string{"-t", fmt.Sprintf("%d", containerPid), "-n", "socat", "-", fmt.Sprintf("TCP4:localhost:%d", port)}
 	// TODO use exec.LookPath
 	command := exec.Command("nsenter", args...)
-	command.Stdin = stream
-	command.Stdout = stream
+	in, err := command.StdinPipe()
+	if err != nil {
+		return err
+	}
+	out, err := command.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	go io.Copy(in, stream)
+	go io.Copy(stream, out)
 	return command.Run()
 }
 
@@ -433,286 +451,6 @@ func (c DockerContainers) FindContainersByPod(podUID types.UID, podFullName stri
 	return containers
 }
 
-// GetKubeletDockerContainers takes client and boolean whether to list all container or just the running ones.
-// Returns a map of docker containers that we manage. The map key is the docker container ID
-func GetKubeletDockerContainers(client DockerInterface, allContainers bool) (DockerContainers, error) {
-	result := make(DockerContainers)
-	containers, err := client.ListContainers(docker.ListContainersOptions{All: allContainers})
-	if err != nil {
-		return nil, err
-	}
-	for i := range containers {
-		container := &containers[i]
-		if len(container.Names) == 0 {
-			continue
-		}
-		// Skip containers that we didn't create to allow users to manually
-		// spin up their own containers if they want.
-		// TODO(dchen1107): Remove the old separator "--" by end of Oct
-		if !strings.HasPrefix(container.Names[0], "/"+containerNamePrefix+"_") &&
-			!strings.HasPrefix(container.Names[0], "/"+containerNamePrefix+"--") {
-			glog.V(3).Infof("Docker Container: %s is not managed by kubelet.", container.Names[0])
-			continue
-		}
-		result[DockerID(container.ID)] = container
-	}
-	return result, nil
-}
-
-// GetRecentDockerContainersWithNameAndUUID returns a list of dead docker containers which matches the name
-// and uid given.
-func GetRecentDockerContainersWithNameAndUUID(client DockerInterface, podFullName string, uid types.UID, containerName string) ([]*docker.Container, error) {
-	var result []*docker.Container
-	containers, err := client.ListContainers(docker.ListContainersOptions{All: true})
-	if err != nil {
-		return nil, err
-	}
-	for _, dockerContainer := range containers {
-		if len(dockerContainer.Names) == 0 {
-			continue
-		}
-		dockerName, _, err := ParseDockerName(dockerContainer.Names[0])
-		if err != nil {
-			continue
-		}
-		if dockerName.PodFullName != podFullName {
-			continue
-		}
-		if uid != "" && dockerName.PodUID != uid {
-			continue
-		}
-		if dockerName.ContainerName != containerName {
-			continue
-		}
-		inspectResult, _ := client.InspectContainer(dockerContainer.ID)
-		if inspectResult != nil && !inspectResult.State.Running && !inspectResult.State.Paused {
-			result = append(result, inspectResult)
-		}
-	}
-	return result, nil
-}
-
-// GetKubeletDockerContainerLogs returns logs of specific container
-// By default the function will return snapshot of the container log
-// Log streaming is possible if 'follow' param is set to true
-// Log tailing is possible when number of tailed lines are set and only if 'follow' is false
-// TODO: Make 'RawTerminal' option  flagable.
-func GetKubeletDockerContainerLogs(client DockerInterface, containerID, tail string, follow bool, stdout, stderr io.Writer) (err error) {
-	opts := docker.LogsOptions{
-		Container:    containerID,
-		Stdout:       true,
-		Stderr:       true,
-		OutputStream: stdout,
-		ErrorStream:  stderr,
-		Timestamps:   true,
-		RawTerminal:  false,
-		Follow:       follow,
-	}
-
-	if !follow {
-		opts.Tail = tail
-	}
-
-	err = client.Logs(opts)
-	return
-}
-
-var (
-	// ErrNoContainersInPod is returned when there are no containers for a given pod
-	ErrNoContainersInPod = errors.New("no containers exist for this pod")
-
-	// ErrNoPodInfraContainerInPod is returned when there is no pod infra container for a given pod
-	ErrNoPodInfraContainerInPod = errors.New("No pod infra container exists for this pod")
-
-	// ErrContainerCannotRun is returned when a container is created, but cannot run properly
-	ErrContainerCannotRun = errors.New("Container cannot run")
-)
-
-// Internal information kept for containers from inspection
-type containerStatusResult struct {
-	status api.ContainerStatus
-	ip     string
-	err    error
-}
-
-func inspectContainer(client DockerInterface, dockerID, containerName, tPath string) *containerStatusResult {
-	result := containerStatusResult{api.ContainerStatus{}, "", nil}
-
-	inspectResult, err := client.InspectContainer(dockerID)
-
-	if err != nil {
-		result.err = err
-		return &result
-	}
-	if inspectResult == nil {
-		// Why did we not get an error?
-		return &result
-	}
-
-	glog.V(3).Infof("Container inspect result: %+v", *inspectResult)
-	result.status = api.ContainerStatus{
-		Name:        containerName,
-		Image:       inspectResult.Config.Image,
-		ImageID:     DockerPrefix + inspectResult.Image,
-		ContainerID: DockerPrefix + dockerID,
-	}
-
-	waiting := true
-	if inspectResult.State.Running {
-		result.status.State.Running = &api.ContainerStateRunning{
-			StartedAt: util.NewTime(inspectResult.State.StartedAt),
-		}
-		if containerName == PodInfraContainerName && inspectResult.NetworkSettings != nil {
-			result.ip = inspectResult.NetworkSettings.IPAddress
-		}
-		waiting = false
-	} else if !inspectResult.State.FinishedAt.IsZero() {
-		reason := ""
-		// Note: An application might handle OOMKilled gracefully.
-		// In that case, the container is oom killed, but the exit
-		// code could be 0.
-		if inspectResult.State.OOMKilled {
-			reason = "OOM Killed"
-		} else {
-			reason = inspectResult.State.Error
-		}
-		result.status.State.Termination = &api.ContainerStateTerminated{
-			ExitCode:   inspectResult.State.ExitCode,
-			Reason:     reason,
-			StartedAt:  util.NewTime(inspectResult.State.StartedAt),
-			FinishedAt: util.NewTime(inspectResult.State.FinishedAt),
-		}
-		if tPath != "" {
-			path, found := inspectResult.Volumes[tPath]
-			if found {
-				data, err := ioutil.ReadFile(path)
-				if err != nil {
-					glog.Errorf("Error on reading termination-log %s: %v", path, err)
-				} else {
-					result.status.State.Termination.Message = string(data)
-				}
-			}
-		}
-		waiting = false
-	}
-
-	if waiting {
-		// TODO(dchen1107): Separate issue docker/docker#8294 was filed
-		// TODO(dchen1107): Need to figure out why we are still waiting
-		// Check any issue to run container
-		result.status.State.Waiting = &api.ContainerStateWaiting{
-			Reason: ErrContainerCannotRun.Error(),
-		}
-	}
-
-	return &result
-}
-
-// GetDockerPodStatus returns docker related status for all containers in the pod/manifest and
-// infrastructure container
-func GetDockerPodStatus(client DockerInterface, manifest api.PodSpec, podFullName string, uid types.UID) (*api.PodStatus, error) {
-	var podStatus api.PodStatus
-	statuses := make(map[string]api.ContainerStatus)
-
-	expectedContainers := make(map[string]api.Container)
-	for _, container := range manifest.Containers {
-		expectedContainers[container.Name] = container
-	}
-	expectedContainers[PodInfraContainerName] = api.Container{}
-
-	containers, err := client.ListContainers(docker.ListContainersOptions{All: true})
-	if err != nil {
-		return nil, err
-	}
-
-	for _, value := range containers {
-		if len(value.Names) == 0 {
-			continue
-		}
-		dockerName, _, err := ParseDockerName(value.Names[0])
-		if err != nil {
-			continue
-		}
-		if dockerName.PodFullName != podFullName {
-			continue
-		}
-		if uid != "" && dockerName.PodUID != uid {
-			continue
-		}
-		dockerContainerName := dockerName.ContainerName
-		c, found := expectedContainers[dockerContainerName]
-		terminationMessagePath := ""
-		if !found {
-			// TODO(dchen1107): should figure out why not continue here
-			// continue
-		} else {
-			terminationMessagePath = c.TerminationMessagePath
-		}
-		// We assume docker return us a list of containers in time order
-		if containerStatus, found := statuses[dockerContainerName]; found {
-			containerStatus.RestartCount += 1
-			statuses[dockerContainerName] = containerStatus
-			continue
-		}
-
-		result := inspectContainer(client, value.ID, dockerContainerName, terminationMessagePath)
-		if result.err != nil {
-			return nil, err
-		}
-
-		// Add user container information
-		if dockerContainerName == PodInfraContainerName &&
-			result.status.State.Running != nil {
-			// Found network container
-			podStatus.PodIP = result.ip
-		} else {
-			statuses[dockerContainerName] = result.status
-		}
-	}
-
-	if len(statuses) == 0 && podStatus.PodIP == "" {
-		return nil, ErrNoContainersInPod
-	}
-
-	// Not all containers expected are created, check if there are
-	// image related issues
-	if len(statuses) < len(manifest.Containers) {
-		var containerStatus api.ContainerStatus
-		for _, container := range manifest.Containers {
-			if _, found := statuses[container.Name]; found {
-				continue
-			}
-
-			image := container.Image
-			// Check image is ready on the node or not
-			// TODO(dchen1107): docker/docker/issues/8365 to figure out if the image exists
-			_, err := client.InspectImage(image)
-			if err == nil {
-				containerStatus.State.Waiting = &api.ContainerStateWaiting{
-					Reason: fmt.Sprintf("Image: %s is ready, container is creating", image),
-				}
-			} else if err == docker.ErrNoSuchImage {
-				containerStatus.State.Waiting = &api.ContainerStateWaiting{
-					Reason: fmt.Sprintf("Image: %s is not ready on the node", image),
-				}
-			} else {
-				containerStatus.State.Waiting = &api.ContainerStateWaiting{
-					Reason: err.Error(),
-				}
-			}
-
-			statuses[container.Name] = containerStatus
-		}
-	}
-
-	podStatus.ContainerStatuses = make([]api.ContainerStatus, 0)
-	for _, status := range statuses {
-		podStatus.ContainerStatuses = append(podStatus.ContainerStatuses, status)
-	}
-
-	return &podStatus, nil
-}
-
 const containerNamePrefix = "k8s"
 
 func HashContainer(container *api.Container) uint64 {
@@ -767,23 +505,6 @@ func ParseDockerName(name string) (dockerName *KubeletContainerName, hash uint64
 	return &KubeletContainerName{podFullName, podUID, containerName}, hash, nil
 }
 
-func GetRunningContainers(client DockerInterface, ids []string) ([]*docker.Container, error) {
-	result := []*docker.Container{}
-	if client == nil {
-		return nil, fmt.Errorf("unexpected nil docker client.")
-	}
-	for ix := range ids {
-		status, err := client.InspectContainer(ids[ix])
-		if err != nil {
-			return nil, err
-		}
-		if status != nil && status.State.Running {
-			result = append(result, status)
-		}
-	}
-	return result, nil
-}
-
 // Get a docker endpoint, either from the string passed in, or $DOCKER_HOST environment variables
 func getDockerEndpoint(dockerEndpoint string) string {
 	var endpoint string
@@ -812,13 +533,55 @@ func ConnectToDockerOrDie(dockerEndpoint string) DockerInterface {
 	return client
 }
 
+// TODO(yifan): Move this to container.Runtime.
 type ContainerCommandRunner interface {
 	RunInContainer(containerID string, cmd []string) ([]byte, error)
 	GetDockerServerVersion() ([]uint, error)
 	ExecInContainer(containerID string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool) error
-	PortForward(podInfraContainerID string, port uint16, stream io.ReadWriteCloser) error
+	PortForward(pod *kubecontainer.Pod, port uint16, stream io.ReadWriteCloser) error
 }
 
+func milliCPUToShares(milliCPU int64) int64 {
+	if milliCPU == 0 {
+		// zero milliCPU means unset. Use kernel default.
+		return 0
+	}
+	// Conceptually (milliCPU / milliCPUToCPU) * sharesPerCPU, but factored to improve rounding.
+	shares := (milliCPU * sharesPerCPU) / milliCPUToCPU
+	if shares < minShares {
+		return minShares
+	}
+	return shares
+}
+
+// GetKubeletDockerContainers lists all container or just the running ones.
+// Returns a map of docker containers that we manage, keyed by container ID.
+// TODO: Move this function with dockerCache to DockerManager.
+func GetKubeletDockerContainers(client DockerInterface, allContainers bool) (DockerContainers, error) {
+	result := make(DockerContainers)
+	containers, err := client.ListContainers(docker.ListContainersOptions{All: allContainers})
+	if err != nil {
+		return nil, err
+	}
+	for i := range containers {
+		container := &containers[i]
+		if len(container.Names) == 0 {
+			continue
+		}
+		// Skip containers that we didn't create to allow users to manually
+		// spin up their own containers if they want.
+		// TODO(dchen1107): Remove the old separator "--" by end of Oct
+		if !strings.HasPrefix(container.Names[0], "/"+containerNamePrefix+"_") &&
+			!strings.HasPrefix(container.Names[0], "/"+containerNamePrefix+"--") {
+			glog.V(3).Infof("Docker Container: %s is not managed by kubelet.", container.Names[0])
+			continue
+		}
+		result[DockerID(container.ID)] = container
+	}
+	return result, nil
+}
+
+// TODO: Move this function with dockerCache to DockerManager.
 func GetPods(client DockerInterface, all bool) ([]*kubecontainer.Pod, error) {
 	pods := make(map[types.UID]*kubecontainer.Pod)
 	var result []*kubecontainer.Pod
@@ -866,166 +629,4 @@ func GetPods(client DockerInterface, all bool) ([]*kubecontainer.Pod, error) {
 		result = append(result, c)
 	}
 	return result, nil
-}
-
-func milliCPUToShares(milliCPU int64) int64 {
-	if milliCPU == 0 {
-		// zero milliCPU means unset. Use kernel default.
-		return 0
-	}
-	// Conceptually (milliCPU / milliCPUToCPU) * sharesPerCPU, but factored to improve rounding.
-	shares := (milliCPU * sharesPerCPU) / milliCPUToCPU
-	if shares < minShares {
-		return minShares
-	}
-	return shares
-}
-
-func makePortsAndBindings(container *api.Container) (map[docker.Port]struct{}, map[docker.Port][]docker.PortBinding) {
-	exposedPorts := map[docker.Port]struct{}{}
-	portBindings := map[docker.Port][]docker.PortBinding{}
-	for _, port := range container.Ports {
-		exteriorPort := port.HostPort
-		if exteriorPort == 0 {
-			// No need to do port binding when HostPort is not specified
-			continue
-		}
-		interiorPort := port.ContainerPort
-		// Some of this port stuff is under-documented voodoo.
-		// See http://stackoverflow.com/questions/20428302/binding-a-port-to-a-host-interface-using-the-rest-api
-		var protocol string
-		switch strings.ToUpper(string(port.Protocol)) {
-		case "UDP":
-			protocol = "/udp"
-		case "TCP":
-			protocol = "/tcp"
-		default:
-			glog.Warningf("Unknown protocol %q: defaulting to TCP", port.Protocol)
-			protocol = "/tcp"
-		}
-		dockerPort := docker.Port(strconv.Itoa(interiorPort) + protocol)
-		exposedPorts[dockerPort] = struct{}{}
-		portBindings[dockerPort] = []docker.PortBinding{
-			{
-				HostPort: strconv.Itoa(exteriorPort),
-				HostIP:   port.HostIP,
-			},
-		}
-	}
-	return exposedPorts, portBindings
-}
-
-func makeCapabilites(capAdd []api.CapabilityType, capDrop []api.CapabilityType) ([]string, []string) {
-	var (
-		addCaps  []string
-		dropCaps []string
-	)
-	for _, cap := range capAdd {
-		addCaps = append(addCaps, string(cap))
-	}
-	for _, cap := range capDrop {
-		dropCaps = append(dropCaps, string(cap))
-	}
-	return addCaps, dropCaps
-}
-
-// RunContainer creates and starts a docker container with the required RunContainerOptions.
-// On success it will return the container's ID with nil error. During the process, it will
-// use the reference and event recorder to report the state of the container (e.g. created,
-// started, failed, etc.).
-// TODO(yifan): To use a strong type for the returned container ID.
-func RunContainer(client DockerInterface, container *api.Container, pod *api.Pod, opts *kubecontainer.RunContainerOptions,
-	refManager *kubecontainer.RefManager, ref *api.ObjectReference, recorder record.EventRecorder) (string, error) {
-	dockerName := KubeletContainerName{
-		PodFullName:   kubecontainer.GetPodFullName(pod),
-		PodUID:        pod.UID,
-		ContainerName: container.Name,
-	}
-	exposedPorts, portBindings := makePortsAndBindings(container)
-	// TODO(vmarmol): Handle better.
-	// Cap hostname at 63 chars (specification is 64bytes which is 63 chars and the null terminating char).
-	const hostnameMaxLen = 63
-	containerHostname := pod.Name
-	if len(containerHostname) > hostnameMaxLen {
-		containerHostname = containerHostname[:hostnameMaxLen]
-	}
-	dockerOpts := docker.CreateContainerOptions{
-		Name: BuildDockerName(dockerName, container),
-		Config: &docker.Config{
-			Cmd:          container.Command,
-			Env:          opts.Envs,
-			ExposedPorts: exposedPorts,
-			Hostname:     containerHostname,
-			Image:        container.Image,
-			Memory:       container.Resources.Limits.Memory().Value(),
-			CPUShares:    milliCPUToShares(container.Resources.Limits.Cpu().MilliValue()),
-			WorkingDir:   container.WorkingDir,
-		},
-	}
-	dockerContainer, err := client.CreateContainer(dockerOpts)
-	if err != nil {
-		if ref != nil {
-			recorder.Eventf(ref, "failed", "Failed to create docker container with error: %v", err)
-		}
-		return "", err
-	}
-	// Remember this reference so we can report events about this container
-	if ref != nil {
-		refManager.SetRef(dockerContainer.ID, ref)
-		recorder.Eventf(ref, "created", "Created with docker id %v", dockerContainer.ID)
-	}
-
-	// The reason we create and mount the log file in here (not in kubelet) is because
-	// the file's location depends on the ID of the container, and we need to create and
-	// mount the file before actually starting the container.
-	// TODO(yifan): Consider to pull this logic out since we might need to reuse it in
-	// other container runtime.
-	if opts.PodContainerDir != "" && len(container.TerminationMessagePath) != 0 {
-		containerLogPath := path.Join(opts.PodContainerDir, dockerContainer.ID)
-		fs, err := os.Create(containerLogPath)
-		if err != nil {
-			// TODO: Clean up the previouly created dir? return the error?
-			glog.Errorf("Error on creating termination-log file %q: %v", containerLogPath, err)
-		} else {
-			fs.Close() // Close immediately; we're just doing a `touch` here
-			b := fmt.Sprintf("%s:%s", containerLogPath, container.TerminationMessagePath)
-			opts.Binds = append(opts.Binds, b)
-		}
-	}
-
-	privileged := false
-	if capabilities.Get().AllowPrivileged {
-		privileged = container.Privileged
-	} else if container.Privileged {
-		return "", fmt.Errorf("container requested privileged mode, but it is disallowed globally.")
-	}
-
-	capAdd, capDrop := makeCapabilites(container.Capabilities.Add, container.Capabilities.Drop)
-	hc := &docker.HostConfig{
-		PortBindings: portBindings,
-		Binds:        opts.Binds,
-		NetworkMode:  opts.NetMode,
-		IpcMode:      opts.IpcMode,
-		Privileged:   privileged,
-		CapAdd:       capAdd,
-		CapDrop:      capDrop,
-	}
-	if len(opts.DNS) > 0 {
-		hc.DNS = opts.DNS
-	}
-	if len(opts.DNSSearch) > 0 {
-		hc.DNSSearch = opts.DNSSearch
-	}
-
-	if err = client.StartContainer(dockerContainer.ID, hc); err != nil {
-		if ref != nil {
-			recorder.Eventf(ref, "failed",
-				"Failed to start with docker id %v with error: %v", dockerContainer.ID, err)
-		}
-		return "", err
-	}
-	if ref != nil {
-		recorder.Eventf(ref, "started", "Started with docker id %v", dockerContainer.ID)
-	}
-	return dockerContainer.ID, nil
 }

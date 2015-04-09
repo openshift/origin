@@ -22,7 +22,7 @@ import (
 	"strconv"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	libutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -57,7 +57,7 @@ func selectContainer(pod *api.Pod, in io.Reader, out io.Writer) string {
 	}
 }
 
-func (f *Factory) NewCmdLog(out io.Writer) *cobra.Command {
+func NewCmdLog(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "log [-f] POD [CONTAINER]",
 		Short:   "Print the logs for a container in a pod.",
@@ -65,7 +65,7 @@ func (f *Factory) NewCmdLog(out io.Writer) *cobra.Command {
 		Example: log_example,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunLog(f, out, cmd, args)
-			util.CheckErr(err)
+			cmdutil.CheckErr(err)
 		},
 	}
 	cmd.Flags().BoolP("follow", "f", false, "Specify if the logs should be streamed.")
@@ -73,13 +73,13 @@ func (f *Factory) NewCmdLog(out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func RunLog(f *Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+func RunLog(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return util.UsageError(cmd, "POD is required for log")
+		return cmdutil.UsageError(cmd, "POD is required for log")
 	}
 
 	if len(args) > 2 {
-		return util.UsageError(cmd, "log POD [CONTAINER]")
+		return cmdutil.UsageError(cmd, "log POD [CONTAINER]")
 	}
 
 	namespace, err := f.DefaultNamespace()
@@ -100,19 +100,23 @@ func RunLog(f *Factory, out io.Writer, cmd *cobra.Command, args []string) error 
 
 	var container string
 	if len(args) == 1 {
+		if len(pod.Spec.Containers) != 1 {
+			return fmt.Errorf("POD %s has more than one container; please specify the container to print logs for", pod.ObjectMeta.Name)
+		}
+		container = pod.Spec.Containers[0].Name
 	} else {
 		container = args[1]
 	}
 
 	follow := false
-	if util.GetFlagBool(cmd, "follow") {
+	if cmdutil.GetFlagBool(cmd, "follow") {
 		follow = true
 	}
 
 	readCloser, err := client.RESTClient.Get().
 		Prefix("proxy").
 		Resource("minions").
-		Name(pod.Status.Host).
+		Name(pod.Spec.Host).
 		Suffix("containerLogs", namespace, podID, container).
 		Param("follow", strconv.FormatBool(follow)).
 		Stream()

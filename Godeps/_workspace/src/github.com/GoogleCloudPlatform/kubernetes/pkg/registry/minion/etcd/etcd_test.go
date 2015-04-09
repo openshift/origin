@@ -34,6 +34,11 @@ import (
 	"github.com/coreos/go-etcd/etcd"
 )
 
+const (
+	PASS = iota
+	FAIL
+)
+
 type fakeConnectionInfoGetter struct {
 }
 

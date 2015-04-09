@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -41,7 +41,7 @@ func TestFinalized(t *testing.T) {
 }
 
 func TestFinalize(t *testing.T) {
-	mockClient := &client.Fake{}
+	mockClient := &testclient.Fake{}
 	testNamespace := api.Namespace{
 		ObjectMeta: api.ObjectMeta{
 			Name:            "test",
@@ -58,10 +58,17 @@ func TestFinalize(t *testing.T) {
 	if mockClient.Actions[0].Action != "finalize-namespace" {
 		t.Errorf("Expected finalize-namespace action %v", mockClient.Actions[0].Action)
 	}
+	finalizers := mockClient.Actions[0].Value.(*api.Namespace).Spec.Finalizers
+	if len(finalizers) != 1 {
+		t.Errorf("There should be a single finalizer remaining")
+	}
+	if "other" != string(finalizers[0]) {
+		t.Errorf("Unexpected finalizer value, %v", finalizers[0])
+	}
 }
 
 func TestSyncNamespaceThatIsTerminating(t *testing.T) {
-	mockClient := &client.Fake{}
+	mockClient := &testclient.Fake{}
 	nm := NamespaceManager{kubeClient: mockClient, store: cache.NewStore(cache.MetaNamespaceKeyFunc)}
 	now := util.Now()
 	testNamespace := api.Namespace{
@@ -85,7 +92,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		"list-services",
 		"list-pods",
 		"list-resourceQuotas",
-		"list-controllers",
+		"list-replicationControllers",
 		"list-secrets",
 		"list-limitRanges",
 		"list-events",
@@ -101,7 +108,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 }
 
 func TestSyncNamespaceThatIsActive(t *testing.T) {
-	mockClient := &client.Fake{}
+	mockClient := &testclient.Fake{}
 	nm := NamespaceManager{kubeClient: mockClient, store: cache.NewStore(cache.MetaNamespaceKeyFunc)}
 	testNamespace := api.Namespace{
 		ObjectMeta: api.ObjectMeta{

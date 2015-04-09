@@ -36,28 +36,28 @@ type Repository interface {
 // ManifestService provides operations on image manifests.
 type ManifestService interface {
 	// Exists returns true if the manifest exists.
-	Exists(ctx context.Context, dgst digest.Digest) (bool, error)
+	Exists(dgst digest.Digest) (bool, error)
 
 	// Get retrieves the identified by the digest, if it exists.
-	Get(ctx context.Context, dgst digest.Digest) (*manifest.SignedManifest, error)
+	Get(dgst digest.Digest) (*manifest.SignedManifest, error)
 
 	// Delete removes the manifest, if it exists.
-	Delete(ctx context.Context, dgst digest.Digest) error
+	Delete(dgst digest.Digest) error
 
 	// Put creates or updates the manifest.
-	Put(ctx context.Context, manifest *manifest.SignedManifest) error
+	Put(manifest *manifest.SignedManifest) error
 
 	// TODO(stevvooe): The methods after this message should be moved to a
 	// discrete TagService, per active proposals.
 
 	// Tags lists the tags under the named repository.
-	Tags(ctx context.Context) ([]string, error)
+	Tags() ([]string, error)
 
 	// ExistsByTag returns true if the manifest exists.
-	ExistsByTag(ctx context.Context, tag string) (bool, error)
+	ExistsByTag(tag string) (bool, error)
 
 	// GetByTag retrieves the named manifest, if it exists.
-	GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error)
+	GetByTag(tag string) (*manifest.SignedManifest, error)
 
 	// TODO(stevvooe): There are several changes that need to be done to this
 	// interface:

@@ -18,7 +18,6 @@ package etcd
 
 import (
 	"fmt"
-	"path"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeerr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -63,7 +62,8 @@ type Etcd struct {
 	// Used for listing/watching; should not include trailing "/"
 	KeyRootFunc func(ctx api.Context) string
 
-	// Called for Create/Update/Get/Delete
+	// Called for Create/Update/Get/Delete. Note that 'namespace' can be
+	// gotten from ctx.
 	KeyFunc func(ctx api.Context, name string) (string, error)
 
 	// Called to get the name of an object
@@ -110,19 +110,6 @@ func NamespaceKeyRootFunc(ctx api.Context, prefix string) string {
 		key = key + "/" + ns
 	}
 	return key
-}
-
-// NoNamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing namespace rules.
-// If a namespace is on context, it errors.
-func NoNamespaceKeyFunc(ctx api.Context, prefix string, name string) (string, error) {
-	ns, ok := api.NamespaceFrom(ctx)
-	if ok && len(ns) > 0 {
-		return "", kubeerr.NewBadRequest("Namespace parameter is not allowed.")
-	}
-	if len(name) == 0 {
-		return "", kubeerr.NewBadRequest("Name parameter required.")
-	}
-	return path.Join(prefix, name), nil
 }
 
 // NamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing namespace rules.
@@ -417,20 +404,32 @@ func (e *Etcd) finalizeDelete(obj runtime.Object, runHooks bool) (runtime.Object
 	return &api.Status{Status: api.StatusSuccess}, nil
 }
 
-// WatchPredicate starts a watch for the items that m matches.
-// TODO: Detect if m references a single object instead of a list.
+// Watch makes a matcher for the given label and field, and calls
+// WatchPredicate. If possible, you should customize PredicateFunc to produre a
+// matcher that matches by key.
 func (e *Etcd) Watch(ctx api.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return e.WatchPredicate(ctx, e.PredicateFunc(label, field), resourceVersion)
 }
 
 // WatchPredicate starts a watch for the items that m matches.
-// TODO: Detect if m references a single object instead of a list.
 func (e *Etcd) WatchPredicate(ctx api.Context, m generic.Matcher, resourceVersion string) (watch.Interface, error) {
 	version, err := tools.ParseWatchResourceVersion(resourceVersion, e.EndpointName)
 	if err != nil {
 		return nil, err
 	}
-	return e.Helper.WatchList(e.KeyRootFunc(ctx), version, func(obj runtime.Object) bool {
+
+	var watchKey string
+	if name, ok := m.MatchesSingle(); ok {
+		key, err := e.KeyFunc(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		watchKey = key
+	} else {
+		watchKey = e.KeyRootFunc(ctx)
+	}
+
+	return e.Helper.WatchList(watchKey, version, func(obj runtime.Object) bool {
 		matches, err := m.Matches(obj)
 		if err != nil {
 			glog.Errorf("unable to match watch: %v", err)

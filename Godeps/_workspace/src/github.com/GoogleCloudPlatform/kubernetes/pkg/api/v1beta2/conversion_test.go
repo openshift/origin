@@ -18,6 +18,7 @@ package v1beta2_test
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	newer "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -55,6 +56,191 @@ func TestServiceEmptySelector(t *testing.T) {
 	selector = obj.(*newer.Service).Spec.Selector
 	if selector == nil || len(selector) != 0 {
 		t.Errorf("unexpected selector: %#v", obj)
+	}
+}
+
+func TestServicePorts(t *testing.T) {
+	testCases := []struct {
+		given     current.Service
+		expected  newer.Service
+		roundtrip current.Service
+	}{
+		{
+			given: current.Service{
+				TypeMeta: current.TypeMeta{
+					ID: "legacy-with-defaults",
+				},
+				Port:     111,
+				Protocol: current.ProtocolTCP,
+			},
+			expected: newer.Service{
+				Spec: newer.ServiceSpec{Ports: []newer.ServicePort{{
+					Port:     111,
+					Protocol: newer.ProtocolTCP,
+				}}},
+			},
+			roundtrip: current.Service{
+				Ports: []current.ServicePort{{
+					Port:     111,
+					Protocol: current.ProtocolTCP,
+				}},
+			},
+		},
+		{
+			given: current.Service{
+				TypeMeta: current.TypeMeta{
+					ID: "legacy-full",
+				},
+				PortName:      "p",
+				Port:          111,
+				Protocol:      current.ProtocolTCP,
+				ContainerPort: util.NewIntOrStringFromString("p"),
+			},
+			expected: newer.Service{
+				Spec: newer.ServiceSpec{Ports: []newer.ServicePort{{
+					Name:       "p",
+					Port:       111,
+					Protocol:   newer.ProtocolTCP,
+					TargetPort: util.NewIntOrStringFromString("p"),
+				}}},
+			},
+			roundtrip: current.Service{
+				Ports: []current.ServicePort{{
+					Name:          "p",
+					Port:          111,
+					Protocol:      current.ProtocolTCP,
+					ContainerPort: util.NewIntOrStringFromString("p"),
+				}},
+			},
+		},
+		{
+			given: current.Service{
+				TypeMeta: current.TypeMeta{
+					ID: "both",
+				},
+				PortName:      "p",
+				Port:          111,
+				Protocol:      current.ProtocolTCP,
+				ContainerPort: util.NewIntOrStringFromString("p"),
+				Ports: []current.ServicePort{{
+					Name:          "q",
+					Port:          222,
+					Protocol:      current.ProtocolUDP,
+					ContainerPort: util.NewIntOrStringFromInt(93),
+				}},
+			},
+			expected: newer.Service{
+				Spec: newer.ServiceSpec{Ports: []newer.ServicePort{{
+					Name:       "q",
+					Port:       222,
+					Protocol:   newer.ProtocolUDP,
+					TargetPort: util.NewIntOrStringFromInt(93),
+				}}},
+			},
+			roundtrip: current.Service{
+				Ports: []current.ServicePort{{
+					Name:          "q",
+					Port:          222,
+					Protocol:      current.ProtocolUDP,
+					ContainerPort: util.NewIntOrStringFromInt(93),
+				}},
+			},
+		},
+		{
+			given: current.Service{
+				TypeMeta: current.TypeMeta{
+					ID: "one",
+				},
+				Ports: []current.ServicePort{{
+					Name:          "p",
+					Port:          111,
+					Protocol:      current.ProtocolUDP,
+					ContainerPort: util.NewIntOrStringFromInt(93),
+				}},
+			},
+			expected: newer.Service{
+				Spec: newer.ServiceSpec{Ports: []newer.ServicePort{{
+					Name:       "p",
+					Port:       111,
+					Protocol:   newer.ProtocolUDP,
+					TargetPort: util.NewIntOrStringFromInt(93),
+				}}},
+			},
+			roundtrip: current.Service{
+				Ports: []current.ServicePort{{
+					Name:          "p",
+					Port:          111,
+					Protocol:      current.ProtocolUDP,
+					ContainerPort: util.NewIntOrStringFromInt(93),
+				}},
+			},
+		},
+		{
+			given: current.Service{
+				TypeMeta: current.TypeMeta{
+					ID: "two",
+				},
+				Ports: []current.ServicePort{{
+					Name:          "p",
+					Port:          111,
+					Protocol:      current.ProtocolUDP,
+					ContainerPort: util.NewIntOrStringFromInt(93),
+				}, {
+					Name:          "q",
+					Port:          222,
+					Protocol:      current.ProtocolTCP,
+					ContainerPort: util.NewIntOrStringFromInt(76),
+				}},
+			},
+			expected: newer.Service{
+				Spec: newer.ServiceSpec{Ports: []newer.ServicePort{{
+					Name:       "p",
+					Port:       111,
+					Protocol:   newer.ProtocolUDP,
+					TargetPort: util.NewIntOrStringFromInt(93),
+				}, {
+					Name:       "q",
+					Port:       222,
+					Protocol:   newer.ProtocolTCP,
+					TargetPort: util.NewIntOrStringFromInt(76),
+				}}},
+			},
+			roundtrip: current.Service{
+				Ports: []current.ServicePort{{
+					Name:          "p",
+					Port:          111,
+					Protocol:      current.ProtocolUDP,
+					ContainerPort: util.NewIntOrStringFromInt(93),
+				}, {
+					Name:          "q",
+					Port:          222,
+					Protocol:      current.ProtocolTCP,
+					ContainerPort: util.NewIntOrStringFromInt(76),
+				}},
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		// Convert versioned -> internal.
+		got := newer.Service{}
+		if err := newer.Scheme.Convert(&tc.given, &got); err != nil {
+			t.Errorf("[Case: %d] Unexpected error: %v", i, err)
+			continue
+		}
+		if !reflect.DeepEqual(got.Spec.Ports, tc.expected.Spec.Ports) {
+			t.Errorf("[Case: %d] Expected %v, got %v", i, tc.expected.Spec.Ports, got.Spec.Ports)
+		}
+
+		// Convert internal -> versioned.
+		got2 := current.Service{}
+		if err := newer.Scheme.Convert(&got, &got2); err != nil {
+			t.Errorf("[Case: %d] Unexpected error: %v", i, err)
+			continue
+		}
+		if !reflect.DeepEqual(got2.Ports, tc.roundtrip.Ports) {
+			t.Errorf("[Case: %d] Expected %v, got %v", i, tc.roundtrip.Ports, got2.Ports)
+		}
 	}
 }
 
@@ -227,35 +413,104 @@ func TestEndpointsConversion(t *testing.T) {
 				Endpoints: []string{},
 			},
 			expected: newer.Endpoints{
-				Protocol:  newer.ProtocolTCP,
-				Endpoints: []newer.Endpoint{},
+				Subsets: []newer.EndpointSubset{},
 			},
 		},
 		{
 			given: current.Endpoints{
 				TypeMeta: current.TypeMeta{
-					ID: "one",
+					ID: "one legacy",
 				},
 				Protocol:  current.ProtocolTCP,
 				Endpoints: []string{"1.2.3.4:88"},
 			},
 			expected: newer.Endpoints{
-				Protocol:  newer.ProtocolTCP,
-				Endpoints: []newer.Endpoint{{IP: "1.2.3.4", Port: 88}},
+				Subsets: []newer.EndpointSubset{{
+					Ports:     []newer.EndpointPort{{Name: "", Port: 88, Protocol: newer.ProtocolTCP}},
+					Addresses: []newer.EndpointAddress{{IP: "1.2.3.4"}},
+				}},
 			},
 		},
 		{
 			given: current.Endpoints{
 				TypeMeta: current.TypeMeta{
-					ID: "several",
+					ID: "several legacy",
 				},
 				Protocol:  current.ProtocolUDP,
 				Endpoints: []string{"1.2.3.4:88", "1.2.3.4:89", "1.2.3.4:90"},
 			},
 			expected: newer.Endpoints{
-				Protocol:  newer.ProtocolUDP,
-				Endpoints: []newer.Endpoint{{IP: "1.2.3.4", Port: 88}, {IP: "1.2.3.4", Port: 89}, {IP: "1.2.3.4", Port: 90}},
+				Subsets: []newer.EndpointSubset{
+					{
+						Ports:     []newer.EndpointPort{{Name: "", Port: 88, Protocol: newer.ProtocolUDP}},
+						Addresses: []newer.EndpointAddress{{IP: "1.2.3.4"}},
+					},
+					{
+						Ports:     []newer.EndpointPort{{Name: "", Port: 89, Protocol: newer.ProtocolUDP}},
+						Addresses: []newer.EndpointAddress{{IP: "1.2.3.4"}},
+					},
+					{
+						Ports:     []newer.EndpointPort{{Name: "", Port: 90, Protocol: newer.ProtocolUDP}},
+						Addresses: []newer.EndpointAddress{{IP: "1.2.3.4"}},
+					},
+				}},
+		},
+		{
+			given: current.Endpoints{
+				TypeMeta: current.TypeMeta{
+					ID: "one subset",
+				},
+				Protocol:  current.ProtocolTCP,
+				Endpoints: []string{"1.2.3.4:88"},
+				Subsets: []current.EndpointSubset{{
+					Ports:     []current.EndpointPort{{Name: "", Port: 88, Protocol: current.ProtocolTCP}},
+					Addresses: []current.EndpointAddress{{IP: "1.2.3.4"}},
+				}},
 			},
+			expected: newer.Endpoints{
+				Subsets: []newer.EndpointSubset{{
+					Ports:     []newer.EndpointPort{{Name: "", Port: 88, Protocol: newer.ProtocolTCP}},
+					Addresses: []newer.EndpointAddress{{IP: "1.2.3.4"}},
+				}},
+			},
+		},
+		{
+			given: current.Endpoints{
+				TypeMeta: current.TypeMeta{
+					ID: "several subset",
+				},
+				Protocol:  current.ProtocolUDP,
+				Endpoints: []string{"1.2.3.4:88", "5.6.7.8:88", "1.2.3.4:89", "5.6.7.8:89"},
+				Subsets: []current.EndpointSubset{
+					{
+						Ports:     []current.EndpointPort{{Name: "", Port: 88, Protocol: current.ProtocolUDP}},
+						Addresses: []current.EndpointAddress{{IP: "1.2.3.4"}, {IP: "5.6.7.8"}},
+					},
+					{
+						Ports:     []current.EndpointPort{{Name: "", Port: 89, Protocol: current.ProtocolUDP}},
+						Addresses: []current.EndpointAddress{{IP: "1.2.3.4"}, {IP: "5.6.7.8"}},
+					},
+					{
+						Ports:     []current.EndpointPort{{Name: "named", Port: 90, Protocol: current.ProtocolUDP}},
+						Addresses: []current.EndpointAddress{{IP: "1.2.3.4"}, {IP: "5.6.7.8"}},
+					},
+				},
+			},
+			expected: newer.Endpoints{
+				Subsets: []newer.EndpointSubset{
+					{
+						Ports:     []newer.EndpointPort{{Name: "", Port: 88, Protocol: newer.ProtocolUDP}},
+						Addresses: []newer.EndpointAddress{{IP: "1.2.3.4"}, {IP: "5.6.7.8"}},
+					},
+					{
+						Ports:     []newer.EndpointPort{{Name: "", Port: 89, Protocol: newer.ProtocolUDP}},
+						Addresses: []newer.EndpointAddress{{IP: "1.2.3.4"}, {IP: "5.6.7.8"}},
+					},
+					{
+						Ports:     []newer.EndpointPort{{Name: "named", Port: 90, Protocol: newer.ProtocolUDP}},
+						Addresses: []newer.EndpointAddress{{IP: "1.2.3.4"}, {IP: "5.6.7.8"}},
+					},
+				}},
 		},
 	}
 
@@ -266,8 +521,8 @@ func TestEndpointsConversion(t *testing.T) {
 			t.Errorf("[Case: %d] Unexpected error: %v", i, err)
 			continue
 		}
-		if got.Protocol != tc.expected.Protocol || !newer.Semantic.DeepEqual(got.Endpoints, tc.expected.Endpoints) {
-			t.Errorf("[Case: %d] Expected %v, got %v", i, tc.expected, got)
+		if !newer.Semantic.DeepEqual(got.Subsets, tc.expected.Subsets) {
+			t.Errorf("[Case: %d] Expected %#v, got %#v", i, tc.expected.Subsets, got.Subsets)
 		}
 
 		// Convert internal -> versioned.
@@ -277,7 +532,7 @@ func TestEndpointsConversion(t *testing.T) {
 			continue
 		}
 		if got2.Protocol != tc.given.Protocol || !newer.Semantic.DeepEqual(got2.Endpoints, tc.given.Endpoints) {
-			t.Errorf("[Case: %d] Expected %v, got %v", i, tc.given, got2)
+			t.Errorf("[Case: %d] Expected %#v, got %#v", i, tc.given.Endpoints, got2.Endpoints)
 		}
 	}
 }

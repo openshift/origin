@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"reflect"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -28,6 +29,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	errs "github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume"
 
 	"github.com/golang/glog"
 )
@@ -232,6 +234,11 @@ func ValidateObjectMetaUpdate(old, meta *api.ObjectMeta) errs.ValidationErrorLis
 		meta.CreationTimestamp = old.CreationTimestamp
 	}
 
+	// Reject updates that don't specify a resource version
+	if meta.ResourceVersion == "" {
+		allErrs = append(allErrs, errs.NewFieldInvalid("resourceVersion", meta.ResourceVersion, "resourceVersion must be specified for an update"))
+	}
+
 	if old.Name != meta.Name {
 		allErrs = append(allErrs, errs.NewFieldInvalid("name", meta.Name, "field is immutable"))
 	}
@@ -300,6 +307,14 @@ func validateSource(source *api.VolumeSource) errs.ValidationErrorList {
 		numVolumes++
 		allErrs = append(allErrs, validateNFS(source.NFS).Prefix("nfs")...)
 	}
+	if source.ISCSI != nil {
+		numVolumes++
+		allErrs = append(allErrs, validateISCSIVolumeSource(source.ISCSI).Prefix("iscsi")...)
+	}
+	if source.Glusterfs != nil {
+		numVolumes++
+		allErrs = append(allErrs, validateGlusterfs(source.Glusterfs).Prefix("glusterfs")...)
+	}
 	if numVolumes != 1 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("", source, "exactly 1 volume type is required"))
 	}
@@ -318,6 +333,23 @@ func validateGitRepoVolumeSource(gitRepo *api.GitRepoVolumeSource) errs.Validati
 	allErrs := errs.ValidationErrorList{}
 	if gitRepo.Repository == "" {
 		allErrs = append(allErrs, errs.NewFieldRequired("repository"))
+	}
+	return allErrs
+}
+
+func validateISCSIVolumeSource(iscsi *api.ISCSIVolumeSource) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	if iscsi.TargetPortal == "" {
+		allErrs = append(allErrs, errs.NewFieldRequired("targetPortal"))
+	}
+	if iscsi.IQN == "" {
+		allErrs = append(allErrs, errs.NewFieldRequired("iqn"))
+	}
+	if iscsi.FSType == "" {
+		allErrs = append(allErrs, errs.NewFieldRequired("fsType"))
+	}
+	if iscsi.Lun < 0 || iscsi.Lun > 255 {
+		allErrs = append(allErrs, errs.NewFieldInvalid("lun", iscsi.Lun, ""))
 	}
 	return allErrs
 }
@@ -358,12 +390,24 @@ func validateNFS(nfs *api.NFSVolumeSource) errs.ValidationErrorList {
 	return allErrs
 }
 
+func validateGlusterfs(glusterfs *api.GlusterfsVolumeSource) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	if glusterfs.EndpointsName == "" {
+		allErrs = append(allErrs, errs.NewFieldRequired("endpoints"))
+	}
+	if glusterfs.Path == "" {
+		allErrs = append(allErrs, errs.NewFieldRequired("path"))
+	}
+	return allErrs
+}
+
 func ValidatePersistentVolumeName(name string, prefix bool) (bool, string) {
-	return util.IsDNS1123Label(name), name
+	return nameIsDNSSubdomain(name, prefix)
 }
 
 func ValidatePersistentVolume(pv *api.PersistentVolume) errs.ValidationErrorList {
-	allErrs := ValidateObjectMeta(&pv.ObjectMeta, false, ValidatePersistentVolumeName)
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, ValidateObjectMeta(&pv.ObjectMeta, false, ValidatePersistentVolumeName).Prefix("metadata")...)
 
 	if len(pv.Spec.Capacity) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("persistentVolume.Capacity"))
@@ -388,14 +432,62 @@ func ValidatePersistentVolume(pv *api.PersistentVolume) errs.ValidationErrorList
 	return allErrs
 }
 
+// ValidatePersistentVolumeUpdate tests to see if the update is legal for an end user to make.
+// newPv is updated with fields that cannot be changed.
+func ValidatePersistentVolumeUpdate(newPv, oldPv *api.PersistentVolume) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = ValidatePersistentVolume(newPv)
+	newPv.Status = oldPv.Status
+	return allErrs
+}
+
+// ValidatePersistentVolumeStatusUpdate tests to see if the status update is legal for an end user to make.
+// newPv is updated with fields that cannot be changed.
+func ValidatePersistentVolumeStatusUpdate(newPv, oldPv *api.PersistentVolume) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, ValidateObjectMetaUpdate(&oldPv.ObjectMeta, &newPv.ObjectMeta).Prefix("metadata")...)
+	if newPv.ResourceVersion == "" {
+		allErrs = append(allErrs, fmt.Errorf("ResourceVersion must be specified"))
+	}
+	newPv.Spec = oldPv.Spec
+	return allErrs
+}
+
 func ValidatePersistentVolumeClaim(pvc *api.PersistentVolumeClaim) errs.ValidationErrorList {
 	allErrs := ValidateObjectMeta(&pvc.ObjectMeta, true, ValidatePersistentVolumeName)
 	if len(pvc.Spec.AccessModes) == 0 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("persistentVolumeClaim.Spec.AccessModes", pvc.Spec.AccessModes, "at least 1 AccessModeType is required"))
 	}
-	if len(pvc.Spec.Resources.Requests) == 0 {
-		allErrs = append(allErrs, errs.NewFieldInvalid("persistentVolumeClaim.Spec.Resources.Requests", pvc.Spec.AccessModes, "No Resource.Requests specified"))
+	if _, ok := pvc.Spec.Resources.Requests[api.ResourceStorage]; !ok {
+		allErrs = append(allErrs, errs.NewFieldInvalid("persistentVolumeClaim.Spec.Resources.Requests", pvc.Spec.Resources.Requests, "No Storage size specified"))
 	}
+	return allErrs
+}
+
+func ValidatePersistentVolumeClaimUpdate(newPvc, oldPvc *api.PersistentVolumeClaim) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = ValidatePersistentVolumeClaim(newPvc)
+	if oldPvc.Status.VolumeRef != nil {
+		oldModesAsString := volume.GetAccessModesAsString(oldPvc.Spec.AccessModes)
+		newModesAsString := volume.GetAccessModesAsString(newPvc.Spec.AccessModes)
+		if oldModesAsString != newModesAsString {
+			allErrs = append(allErrs, errs.NewFieldInvalid("spec.AccessModes", oldPvc.Spec.AccessModes, "field is immutable"))
+		}
+		if !reflect.DeepEqual(oldPvc.Spec.Resources, newPvc.Spec.Resources) {
+			allErrs = append(allErrs, errs.NewFieldInvalid("spec.Resources", oldPvc.Spec.Resources, "field is immutable"))
+		}
+	}
+	newPvc.Status = oldPvc.Status
+	return allErrs
+}
+
+func ValidatePersistentVolumeClaimStatusUpdate(newPvc, oldPvc *api.PersistentVolumeClaim) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, ValidateObjectMetaUpdate(&oldPvc.ObjectMeta, &newPvc.ObjectMeta).Prefix("metadata")...)
+	if newPvc.ResourceVersion == "" {
+		allErrs = append(allErrs, fmt.Errorf("ResourceVersion must be specified"))
+	}
+	newPvc.Spec = oldPvc.Spec
 	return allErrs
 }
 
@@ -764,8 +856,8 @@ func ValidatePodStatusUpdate(newPod, oldPod *api.Pod) errs.ValidationErrorList {
 	allErrs = append(allErrs, ValidateObjectMetaUpdate(&oldPod.ObjectMeta, &newPod.ObjectMeta).Prefix("metadata")...)
 
 	// TODO: allow change when bindings are properly decoupled from pods
-	if newPod.Status.Host != oldPod.Status.Host {
-		allErrs = append(allErrs, errs.NewFieldInvalid("status.host", newPod.Status.Host, "pod host cannot be changed directly"))
+	if newPod.Spec.Host != oldPod.Spec.Host {
+		allErrs = append(allErrs, errs.NewFieldInvalid("status.host", newPod.Spec.Host, "pod host cannot be changed directly"))
 	}
 
 	// For status update we ignore changes to pod spec.
@@ -781,18 +873,12 @@ func ValidateService(service *api.Service) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	allErrs = append(allErrs, ValidateObjectMeta(&service.ObjectMeta, true, ValidateServiceName).Prefix("metadata")...)
 
-	if !util.IsValidPortNum(service.Spec.Port) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("spec.port", service.Spec.Port, portRangeErrorMsg))
+	if len(service.Spec.Ports) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("spec.ports"))
 	}
-	if len(service.Spec.Protocol) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("spec.protocol"))
-	} else if !supportedPortProtocols.Has(strings.ToUpper(string(service.Spec.Protocol))) {
-		allErrs = append(allErrs, errs.NewFieldNotSupported("spec.protocol", service.Spec.Protocol))
-	}
-	if service.Spec.TargetPort.Kind == util.IntstrInt && service.Spec.TargetPort.IntVal != 0 && !util.IsValidPortNum(service.Spec.TargetPort.IntVal) {
-		allErrs = append(allErrs, errs.NewFieldInvalid("spec.containerPort", service.Spec.Port, portRangeErrorMsg))
-	} else if service.Spec.TargetPort.Kind == util.IntstrString && len(service.Spec.TargetPort.StrVal) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("spec.containerPort"))
+	allPortNames := util.StringSet{}
+	for i := range service.Spec.Ports {
+		allErrs = append(allErrs, validateServicePort(&service.Spec.Ports[i], i, &allPortNames).PrefixIndex(i).Prefix("spec.ports")...)
 	}
 
 	if service.Spec.Selector != nil {
@@ -822,6 +908,39 @@ func ValidateService(service *api.Service) errs.ValidationErrorList {
 	return allErrs
 }
 
+func validateServicePort(sp *api.ServicePort, index int, allNames *util.StringSet) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	if len(sp.Name) == 0 {
+		// Allow empty names if they are the first port (mostly for compat).
+		if index != 0 {
+			allErrs = append(allErrs, errs.NewFieldRequired("name"))
+		}
+	} else if !util.IsDNS1123Label(sp.Name) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("name", sp.Name, dns1123LabelErrorMsg))
+	} else if allNames.Has(sp.Name) {
+		allErrs = append(allErrs, errs.NewFieldDuplicate("name", sp.Name))
+	}
+
+	if !util.IsValidPortNum(sp.Port) {
+		allErrs = append(allErrs, errs.NewFieldInvalid("port", sp.Port, portRangeErrorMsg))
+	}
+
+	if len(sp.Protocol) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("protocol"))
+	} else if !supportedPortProtocols.Has(strings.ToUpper(string(sp.Protocol))) {
+		allErrs = append(allErrs, errs.NewFieldNotSupported("protocol", sp.Protocol))
+	}
+
+	if sp.TargetPort != util.NewIntOrStringFromInt(0) && sp.TargetPort != util.NewIntOrStringFromString("") {
+		if sp.TargetPort.Kind == util.IntstrInt && !util.IsValidPortNum(sp.TargetPort.IntVal) {
+			allErrs = append(allErrs, errs.NewFieldInvalid("targetPort", sp.TargetPort, portRangeErrorMsg))
+		}
+	}
+
+	return allErrs
+}
+
 // ValidateServiceUpdate tests if required fields in the service are set during an update
 func ValidateServiceUpdate(oldService, service *api.Service) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
@@ -833,6 +952,7 @@ func ValidateServiceUpdate(oldService, service *api.Service) errs.ValidationErro
 		allErrs = append(allErrs, errs.NewFieldInvalid("spec.portalIP", service.Spec.PortalIP, "field is immutable"))
 	}
 
+	allErrs = append(allErrs, ValidateService(service)...)
 	return allErrs
 }
 
@@ -909,21 +1029,8 @@ func ValidateReadOnlyPersistentDisks(volumes []api.Volume) errs.ValidationErrorL
 func ValidateMinion(node *api.Node) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	allErrs = append(allErrs, ValidateObjectMeta(&node.ObjectMeta, false, ValidateNodeName).Prefix("metadata")...)
-	// Capacity is required. Within capacity, memory and cpu resources are required.
-	if len(node.Status.Capacity) == 0 {
-		allErrs = append(allErrs, errs.NewFieldRequired("status.Capacity"))
-	} else {
-		if val, ok := node.Status.Capacity[api.ResourceMemory]; !ok {
-			allErrs = append(allErrs, errs.NewFieldRequired("status.Capacity[memory]"))
-		} else if val.Value() < 0 {
-			allErrs = append(allErrs, errs.NewFieldInvalid("status.Capacity[memory]", val, "memory capacity cannot be negative"))
-		}
-		if val, ok := node.Status.Capacity[api.ResourceCPU]; !ok {
-			allErrs = append(allErrs, errs.NewFieldRequired("status.Capacity[cpu]"))
-		} else if val.Value() < 0 {
-			allErrs = append(allErrs, errs.NewFieldInvalid("status.Capacity[cpu]", val, "cpu capacity cannot be negative"))
-		}
-	}
+
+	// Only validate spec. All status fields are optional and can be updated later.
 
 	// external ID is required.
 	if len(node.Spec.ExternalID) == 0 {
@@ -1151,6 +1258,28 @@ func ValidateNamespaceFinalizeUpdate(newNamespace, oldNamespace *api.Namespace) 
 func ValidateEndpoints(endpoints *api.Endpoints) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	allErrs = append(allErrs, ValidateObjectMeta(&endpoints.ObjectMeta, true, ValidateEndpointsName).Prefix("metadata")...)
+	allErrs = append(allErrs, validateEndpointSubsets(endpoints.Subsets).Prefix("subsets")...)
+	return allErrs
+}
+
+func validateEndpointSubsets(subsets []api.EndpointSubset) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	for i := range subsets {
+		ss := &subsets[i]
+
+		ssErrs := errs.ValidationErrorList{}
+
+		if len(ss.Addresses) == 0 {
+			ssErrs = append(ssErrs, errs.NewFieldRequired("addresses"))
+		}
+		if len(ss.Ports) == 0 {
+			ssErrs = append(ssErrs, errs.NewFieldRequired("ports"))
+		}
+		// TODO: validate each address and port
+		allErrs = append(allErrs, ssErrs.PrefixIndex(i)...)
+	}
+
 	return allErrs
 }
 
@@ -1158,5 +1287,6 @@ func ValidateEndpoints(endpoints *api.Endpoints) errs.ValidationErrorList {
 func ValidateEndpointsUpdate(oldEndpoints *api.Endpoints, endpoints *api.Endpoints) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	allErrs = append(allErrs, ValidateObjectMetaUpdate(&oldEndpoints.ObjectMeta, &endpoints.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validateEndpointSubsets(endpoints.Subsets).Prefix("subsets")...)
 	return allErrs
 }

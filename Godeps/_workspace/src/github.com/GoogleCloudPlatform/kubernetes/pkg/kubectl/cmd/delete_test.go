@@ -22,6 +22,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/testapi"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 )
 
@@ -45,7 +47,7 @@ func TestDeleteObject(t *testing.T) {
 	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
-	cmd := f.NewCmdDelete(buf)
+	cmd := NewCmdDelete(f, buf)
 	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master-controller.json")
 	cmd.Run(cmd, []string{})
 
@@ -73,7 +75,7 @@ func TestDeleteObjectIgnoreNotFound(t *testing.T) {
 	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
-	cmd := f.NewCmdDelete(buf)
+	cmd := NewCmdDelete(f, buf)
 	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master-controller.json")
 	cmd.Run(cmd, []string{})
 
@@ -104,7 +106,7 @@ func TestDeleteMultipleObject(t *testing.T) {
 	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
-	cmd := f.NewCmdDelete(buf)
+	cmd := NewCmdDelete(f, buf)
 	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master-controller.json")
 	cmd.Flags().Set("filename", "../../../examples/guestbook/frontend-service.json")
 	cmd.Run(cmd, []string{})
@@ -136,7 +138,7 @@ func TestDeleteMultipleObjectIgnoreMissing(t *testing.T) {
 	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
-	cmd := f.NewCmdDelete(buf)
+	cmd := NewCmdDelete(f, buf)
 	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master-controller.json")
 	cmd.Flags().Set("filename", "../../../examples/guestbook/frontend-service.json")
 	cmd.Run(cmd, []string{})
@@ -168,7 +170,7 @@ func TestDeleteDirectory(t *testing.T) {
 	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
-	cmd := f.NewCmdDelete(buf)
+	cmd := NewCmdDelete(f, buf)
 	cmd.Flags().Set("filename", "../../../examples/guestbook")
 	cmd.Run(cmd, []string{})
 
@@ -187,12 +189,12 @@ func TestDeleteMultipleSelector(t *testing.T) {
 		Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
 			case p == "/namespaces/test/pods" && m == "GET":
-				if req.URL.Query().Get("labels") != "a=b" {
+				if req.URL.Query().Get(api.LabelSelectorQueryParam(testapi.Version())) != "a=b" {
 					t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
 				}
 				return &http.Response{StatusCode: 200, Body: objBody(codec, pods)}, nil
 			case p == "/namespaces/test/services" && m == "GET":
-				if req.URL.Query().Get("labels") != "a=b" {
+				if req.URL.Query().Get(api.LabelSelectorQueryParam(testapi.Version())) != "a=b" {
 					t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
 				}
 				return &http.Response{StatusCode: 200, Body: objBody(codec, svc)}, nil
@@ -209,7 +211,7 @@ func TestDeleteMultipleSelector(t *testing.T) {
 	tf.Namespace = "test"
 	buf := bytes.NewBuffer([]byte{})
 
-	cmd := f.NewCmdDelete(buf)
+	cmd := NewCmdDelete(f, buf)
 	cmd.Flags().Set("selector", "a=b")
 	cmd.Run(cmd, []string{"pods,services"})
 

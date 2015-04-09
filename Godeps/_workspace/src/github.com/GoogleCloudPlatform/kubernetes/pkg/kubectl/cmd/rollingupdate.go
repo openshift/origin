@@ -19,10 +19,11 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/spf13/cobra"
 )
@@ -31,27 +32,29 @@ const (
 	updatePeriod       = "1m0s"
 	timeout            = "5m0s"
 	pollInterval       = "3s"
-	rollingupdate_long = `Perform a rolling update of the given ReplicationController.
+	rollingUpdate_long = `Perform a rolling update of the given ReplicationController.
 
 Replaces the specified controller with new controller, updating one pod at a time to use the
 new PodTemplate. The new-controller.json must specify the same namespace as the
 existing controller and overwrite at least one (common) label in its replicaSelector.`
-	rollingupdate_example = `// Update pods of frontend-v1 using new controller data in frontend-v2.json.
-$ kubectl rollingupdate frontend-v1 -f frontend-v2.json
+	rollingUpdate_example = `// Update pods of frontend-v1 using new controller data in frontend-v2.json.
+$ kubectl rolling-update frontend-v1 -f frontend-v2.json
 
 // Update pods of frontend-v1 using JSON data passed into stdin.
-$ cat frontend-v2.json | kubectl rollingupdate frontend-v1 -f -`
+$ cat frontend-v2.json | kubectl rolling-update frontend-v1 -f -`
 )
 
-func (f *Factory) NewCmdRollingUpdate(out io.Writer) *cobra.Command {
+func NewCmdRollingUpdate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "rollingupdate OLD_CONTROLLER_NAME -f NEW_CONTROLLER_SPEC",
+		Use: "rolling-update OLD_CONTROLLER_NAME -f NEW_CONTROLLER_SPEC",
+		// rollingupdate is deprecated.
+		Aliases: []string{"rollingupdate"},
 		Short:   "Perform a rolling update of the given ReplicationController.",
-		Long:    rollingupdate_long,
-		Example: rollingupdate_example,
+		Long:    rollingUpdate_long,
+		Example: rollingUpdate_example,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunRollingUpdate(f, out, cmd, args)
-			util.CheckErr(err)
+			cmdutil.CheckErr(err)
 		},
 	}
 	cmd.Flags().String("update-period", updatePeriod, `Time to wait between updating pods. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
@@ -61,16 +64,20 @@ func (f *Factory) NewCmdRollingUpdate(out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func RunRollingUpdate(f *Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	filename := util.GetFlagString(cmd, "filename")
-	if len(filename) == 0 {
-		return util.UsageError(cmd, "Must specify filename for new controller")
+func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+	if os.Args[1] == "rollingupdate" {
+		printDeprecationWarning("rolling-update", "rollingupdate")
 	}
-	period := util.GetFlagDuration(cmd, "update-period")
-	interval := util.GetFlagDuration(cmd, "poll-interval")
-	timeout := util.GetFlagDuration(cmd, "timeout")
+
+	filename := cmdutil.GetFlagString(cmd, "filename")
+	if len(filename) == 0 {
+		return cmdutil.UsageError(cmd, "Must specify filename for new controller")
+	}
+	period := cmdutil.GetFlagDuration(cmd, "update-period")
+	interval := cmdutil.GetFlagDuration(cmd, "poll-interval")
+	timeout := cmdutil.GetFlagDuration(cmd, "timeout")
 	if len(args) != 1 {
-		return util.UsageError(cmd, "Must specify the controller to update")
+		return cmdutil.UsageError(cmd, "Must specify the controller to update")
 	}
 	oldName := args[0]
 
@@ -81,7 +88,7 @@ func RunRollingUpdate(f *Factory, out io.Writer, cmd *cobra.Command, args []stri
 
 	mapper, typer := f.Object()
 	// TODO: use resource.Builder instead
-	obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand(cmd)).
+	obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 		NamespaceParam(cmdNamespace).RequireNamespace().
 		FilenameParam(filename).
 		Do().
@@ -91,11 +98,11 @@ func RunRollingUpdate(f *Factory, out io.Writer, cmd *cobra.Command, args []stri
 	}
 	newRc, ok := obj.(*api.ReplicationController)
 	if !ok {
-		return util.UsageError(cmd, "%s does not specify a valid ReplicationController", filename)
+		return cmdutil.UsageError(cmd, "%s does not specify a valid ReplicationController", filename)
 	}
 	newName := newRc.Name
 	if oldName == newName {
-		return util.UsageError(cmd, "%s cannot have the same name as the existing ReplicationController %s",
+		return cmdutil.UsageError(cmd, "%s cannot have the same name as the existing ReplicationController %s",
 			filename, oldName)
 	}
 
@@ -120,7 +127,7 @@ func RunRollingUpdate(f *Factory, out io.Writer, cmd *cobra.Command, args []stri
 		}
 	}
 	if !hasLabel {
-		return util.UsageError(cmd, "%s must specify a matching key with non-equal value in Selector for %s",
+		return cmdutil.UsageError(cmd, "%s must specify a matching key with non-equal value in Selector for %s",
 			filename, oldName)
 	}
 	// TODO: handle resizes during rolling update

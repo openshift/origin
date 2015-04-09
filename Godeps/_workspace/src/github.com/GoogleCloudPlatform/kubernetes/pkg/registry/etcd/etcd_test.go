@@ -44,9 +44,9 @@ func NewTestEtcdRegistry(client tools.EtcdClient) *Registry {
 
 func NewTestEtcdRegistryWithPods(client tools.EtcdClient) *Registry {
 	helper := tools.NewEtcdHelper(client, latest.Codec)
-	podStorage, _, _ := podetcd.NewStorage(helper)
+	podStorage := podetcd.NewStorage(helper, nil)
 	endpointStorage := endpointetcd.NewStorage(helper)
-	registry := NewRegistry(helper, pod.NewRegistry(podStorage), endpoint.NewRegistry(endpointStorage))
+	registry := NewRegistry(helper, pod.NewRegistry(podStorage.Pod), endpoint.NewRegistry(endpointStorage))
 	return registry
 }
 
@@ -539,7 +539,7 @@ func TestEtcdDeleteService(t *testing.T) {
 	key, _ := makeServiceKey(ctx, "foo")
 	fakeClient.Set(key, runtime.EncodeOrDie(latest.Codec, &api.Service{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 	endpointsKey, _ := etcdgeneric.NamespaceKeyFunc(ctx, "/registry/services/endpoints", "foo")
-	fakeClient.Set(endpointsKey, runtime.EncodeOrDie(latest.Codec, &api.Endpoints{ObjectMeta: api.ObjectMeta{Name: "foo"}, Protocol: "TCP"}), 0)
+	fakeClient.Set(endpointsKey, runtime.EncodeOrDie(latest.Codec, &api.Endpoints{ObjectMeta: api.ObjectMeta{Name: "foo"}}), 0)
 
 	err := registry.DeleteService(ctx, "foo")
 	if err != nil {
@@ -576,7 +576,6 @@ func TestEtcdUpdateService(t *testing.T) {
 			Selector: map[string]string{
 				"baz": "bar",
 			},
-			Protocol:        "TCP",
 			SessionAffinity: "None",
 		},
 	}

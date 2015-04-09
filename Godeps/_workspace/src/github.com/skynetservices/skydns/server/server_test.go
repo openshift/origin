@@ -750,6 +750,11 @@ var dnsTestCases = []dnsTestCase{
 		Rcode: dns.RcodeServerFailure,
 		chaos: true,
 	},
+	// HINFO Test, should be nodata for the apex
+	{
+		Qname: "skydns.test.", Qtype: dns.TypeHINFO,
+		Ns: []dns.RR{newSOA("skydns.test. 3600 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0")},
+	},
 }
 
 func newA(rr string) *dns.A           { r, _ := dns.NewRR(rr); return r.(*dns.A) }

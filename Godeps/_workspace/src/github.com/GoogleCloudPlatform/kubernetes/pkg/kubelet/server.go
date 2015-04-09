@@ -38,6 +38,7 @@ import (
 	kubecontainer "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/container"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/flushwriter"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/httpstream"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/httpstream/spdy"
 	"github.com/golang/glog"
@@ -59,7 +60,7 @@ type TLSOptions struct {
 
 // ListenAndServeKubeletServer initializes a server to respond to HTTP network requests on the Kubelet.
 func ListenAndServeKubeletServer(host HostInterface, address net.IP, port uint, tlsOptions *TLSOptions, enableDebuggingHandlers bool) {
-	glog.V(1).Infof("Starting to listen on %s:%d", address, port)
+	glog.Infof("Starting to listen on %s:%d", address, port)
 	handler := NewServer(host, enableDebuggingHandlers)
 	s := &http.Server{
 		Addr:           net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10)),
@@ -74,6 +75,24 @@ func ListenAndServeKubeletServer(host HostInterface, address net.IP, port uint, 
 	} else {
 		glog.Fatal(s.ListenAndServe())
 	}
+}
+
+// ListenAndServeKubeletReadOnlyServer initializes a server to respond to HTTP network requests on the Kubelet.
+func ListenAndServeKubeletReadOnlyServer(host HostInterface, address net.IP, port uint) {
+	glog.V(1).Infof("Starting to listen read-only on %s:%d", address, port)
+	s := &Server{host, http.NewServeMux()}
+	healthz.InstallHandler(s.mux)
+	s.mux.HandleFunc("/stats/", s.handleStats)
+	s.mux.Handle("/metrics", prometheus.Handler())
+
+	server := &http.Server{
+		Addr:           net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10)),
+		Handler:        s,
+		ReadTimeout:    5 * time.Minute,
+		WriteTimeout:   5 * time.Minute,
+		MaxHeaderBytes: 1 << 20,
+	}
+	glog.Fatal(server.ListenAndServe())
 }
 
 // HostInterface contains all the kubelet methods required by the server.
@@ -244,15 +263,14 @@ func (s *Server) handleContainerLogs(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fw := FlushWriter{writer: w}
-	if flusher, ok := fw.writer.(http.Flusher); ok {
-		fw.flusher = flusher
-	} else {
-		s.error(w, fmt.Errorf("unable to convert %v into http.Flusher", fw))
+	if _, ok := w.(http.Flusher); !ok {
+		s.error(w, fmt.Errorf("unable to convert %v into http.Flusher", w))
+		return
 	}
+	fw := flushwriter.Wrap(w)
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusOK)
-	err = s.host.GetKubeletContainerLogs(kubecontainer.GetPodFullName(pod), containerName, tail, follow, &fw, &fw)
+	err = s.host.GetKubeletContainerLogs(kubecontainer.GetPodFullName(pod), containerName, tail, follow, fw, fw)
 	if err != nil {
 		s.error(w, err)
 		return

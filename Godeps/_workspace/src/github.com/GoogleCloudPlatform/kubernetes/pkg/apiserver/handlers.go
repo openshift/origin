@@ -43,6 +43,10 @@ var specialVerbs = map[string]bool{
 	"watch":    true,
 }
 
+// Constant for the retry-after interval on rate limiting.
+// TODO: maybe make this dynamic? or user-adjustable?
+const RetryAfter = "1"
+
 // IsReadOnlyReq() is true for any (or at least many) request which has no observable
 // side effects on state of apiserver (though there may be internal side effects like
 // caching and logging).
@@ -66,6 +70,27 @@ func ReadOnly(handler http.Handler) http.Handler {
 	})
 }
 
+// MaxInFlight limits the number of in-flight requests to buffer size of the passed in channel.
+func MaxInFlightLimit(c chan bool, longRunningRequestRE *regexp.Regexp, handler http.Handler) http.Handler {
+	if c == nil {
+		return handler
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if longRunningRequestRE.MatchString(r.URL.Path) {
+			// Skip tracking long running events.
+			handler.ServeHTTP(w, r)
+			return
+		}
+		select {
+		case c <- true:
+			defer func() { <-c }()
+			handler.ServeHTTP(w, r)
+		default:
+			tooManyRequests(w)
+		}
+	})
+}
+
 // RateLimit uses rl to rate limit accepting requests to 'handler'.
 func RateLimit(rl util.RateLimiter, handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -73,11 +98,15 @@ func RateLimit(rl util.RateLimiter, handler http.Handler) http.Handler {
 			handler.ServeHTTP(w, req)
 			return
 		}
-		// Return a 429 status indicating "Too Many Requests"
-		w.Header().Set("Retry-After", "1")
-		w.WriteHeader(errors.StatusTooManyRequests)
-		fmt.Fprintf(w, "Rate limit is 10 QPS or a burst of 200")
+		tooManyRequests(w)
 	})
+}
+
+func tooManyRequests(w http.ResponseWriter) {
+	// Return a 429 status indicating "Too Many Requests"
+	w.Header().Set("Retry-After", RetryAfter)
+	w.WriteHeader(errors.StatusTooManyRequests)
+	fmt.Fprintf(w, "Too many requests, please try again later.")
 }
 
 // RecoverPanics wraps an http Handler to recover and log panics.
@@ -211,8 +240,6 @@ type APIRequestInfo struct {
 	Namespace  string
 	// Resource is the name of the resource being requested.  This is not the kind.  For example: pods
 	Resource string
-	// Subresource is the name of the subresource being requested.  This is not the kind or the resource.  For example: status for a pods/pod-name/status
-	Subresource string
 	// Kind is the type of object being manipulated.  For example: Pod
 	Kind string
 	// Name is empty for some verbs, but if the request directly indicates a name (not in body content) then this field is filled in.
@@ -313,17 +340,22 @@ func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIReques
 
 	// URL forms: /namespaces/{namespace}/{kind}/*, where parts are adjusted to be relative to kind
 	if currentParts[0] == "namespaces" {
-		if len(currentParts) > 1 {
-			requestInfo.Namespace = currentParts[1]
-			if len(currentParts) > 2 {
-				currentParts = currentParts[2:]
+		if len(currentParts) < 3 {
+			requestInfo.Resource = "namespaces"
+			if len(currentParts) > 1 {
+				requestInfo.Namespace = currentParts[1]
 			}
+		} else {
+			requestInfo.Resource = currentParts[2]
+			requestInfo.Namespace = currentParts[1]
+			currentParts = currentParts[2:]
 		}
 	} else {
 		// URL forms: /{resource}/*
 		// URL forms: POST /{resource} is a legacy API convention to create in "default" namespace
 		// URL forms: /{resource}/{resourceName} use the "default" namespace if omitted from query param
 		// URL forms: /{resource} assume cross-namespace operation if omitted from query param
+		requestInfo.Resource = currentParts[0]
 		requestInfo.Namespace = req.URL.Query().Get("namespace")
 		if len(requestInfo.Namespace) == 0 {
 			if len(currentParts) > 1 || req.Method == "POST" {
@@ -339,16 +371,9 @@ func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIReques
 	// Raw should have everything not in Parts
 	requestInfo.Raw = requestInfo.Raw[:len(requestInfo.Raw)-len(currentParts)]
 
-	// parts look like: resource/resourceName/subresource/other/stuff/we/don't/interpret
-	switch {
-	case len(requestInfo.Parts) >= 3:
-		requestInfo.Subresource = requestInfo.Parts[2]
-		fallthrough
-	case len(requestInfo.Parts) == 2:
+	// if there's another part remaining after the kind, then that's the resource name
+	if len(requestInfo.Parts) >= 2 {
 		requestInfo.Name = requestInfo.Parts[1]
-		fallthrough
-	case len(requestInfo.Parts) == 1:
-		requestInfo.Resource = requestInfo.Parts[0]
 	}
 
 	// if there's no name on the request and we thought it was a get before, then the actual verb is a list
