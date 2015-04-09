@@ -245,6 +245,8 @@ openshift admin policy add-role-to-user view e2e-user --namespace=default
 
 # create test project so that this shows up in the console
 openshift admin new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
+openshift admin new-project docker --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
+openshift admin new-project custom --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
