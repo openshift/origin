@@ -205,6 +205,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 															},
 														},
 													},
+													InitialDelaySeconds: 10,
 												},
 											},
 										},
