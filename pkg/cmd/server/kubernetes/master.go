@@ -77,7 +77,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	return []string{
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta1),
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta2),
-		fmt.Sprintf("Started Kubernetes API at %%s%s (experimental)", KubeAPIPrefixV1Beta3),
+		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta3),
 	}
 }
 
