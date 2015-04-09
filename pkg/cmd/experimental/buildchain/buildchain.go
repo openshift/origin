@@ -232,7 +232,11 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 				// Explicitly allow multiple pairs of edges between
 				// the same pair of nodes
 				g.SetStrict(false)
-				fmt.Println(dotDump(root, g, graphName))
+				out, err := dotDump(root, g, graphName)
+				if err != nil {
+					return err
+				}
+				fmt.Println(out)
 			case "ast":
 				fmt.Println(root)
 			default:
