@@ -16,7 +16,7 @@ export OS_MASTER_PORT=$(go run ${OS_ROOT}/test/util/random_port/generate.go)
 export OS_DNS_PORT=$(go run ${OS_ROOT}/test/util/random_port/generate.go)
 export ETCD_PORT=$(go run ${OS_ROOT}/test/util/random_port/generate.go)
 
-DEFAULT_SERVER_IP=$(ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | awk '{print $2}')
+DEFAULT_SERVER_IP=$(ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}')
 
 export OS_MASTER_ADDR=${DEFAULT_SERVER_IP}:${OS_MASTER_PORT}
 export OS_DNS_ADDR=${DEFAULT_SERVER_IP}:${OS_DNS_PORT}
@@ -51,7 +51,7 @@ cleanup() {
 #       launcher.
 start_server() {
   mkdir -p ${BASETMPDIR}/volumes
-  ALL_IP_ADDRESSES=`ifconfig | grep "inet " | awk '{print $2}'`
+  ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
   SERVER_HOSTNAME_LIST="${DEFAULT_SERVER_IP},localhost"
   while read -r IP_ADDRESS; do
     SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"

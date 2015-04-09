@@ -51,7 +51,7 @@ ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
 mkdir -p $LOG_DIR
 mkdir -p $ARTIFACT_DIR
 
-DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | awk '{print $2}'`
+DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}'`
 API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
 API_PORT="${API_PORT:-8443}"
 API_SCHEME="${API_SCHEME:-https}"
@@ -183,7 +183,7 @@ echo "[INFO] Using images:              ${USE_IMAGES}"
 # Start All-in-one server and wait for health
 echo "[INFO] Create certificates for the OpenShift server"
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-ALL_IP_ADDRESSES=`ifconfig | grep "inet " | awk '{print $2}'`
+ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
 SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
 while read -r IP_ADDRESS
 do
