@@ -45,6 +45,7 @@ module.exports = function(config) {
       "bower_components/kubernetes-label-selector/labelFilter.js",
       'app/scripts/**/*.js',
       //'test/mock/**/*.js',
+      'test/spec/spec-helper.js',
       'test/spec/**/*.js'
     ],
 

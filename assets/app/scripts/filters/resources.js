@@ -3,6 +3,18 @@
 angular.module('openshiftConsole')
   .filter('annotation', function() {
     return function(resource, key) {
+      if (resource && resource.spec && resource.spec.tags && key.indexOf(".") !== -1){
+        var tagAndKey = key.split(".");
+        var tags = resource.spec.tags;
+        for(var i=0; i < tags.length; ++i){
+          var tag = tags[i];
+          var tagName = tagAndKey[0];
+          var tagKey = tagAndKey[1];
+          if(tagName === tag.name && tag.annotations){
+            return tag.annotations[tagKey];
+          }
+        }
+      }
       if (resource && resource.metadata && resource.metadata.annotations) {
         return resource.metadata.annotations[key];
       }
@@ -15,8 +27,9 @@ angular.module('openshiftConsole')
     };
   })
   .filter('tags', function(annotationFilter) {
-    return function(resource) {
-      var tags = annotationFilter(resource, "tags");
+    return function(resource, annotationKey) {
+      annotationKey = annotationKey || "tags";
+      var tags = annotationFilter(resource, annotationKey);
       if (!tags) {
         return [];
       }
@@ -43,12 +56,16 @@ angular.module('openshiftConsole')
     };
   })
   .filter('iconClass', function(annotationFilter) {
-    return function(resource, kind) {
-      var icon = annotationFilter(resource, "iconClass");
+    return function(resource, kind, annotationKey) {
+      annotationKey = annotationKey || "iconClass";
+      var icon = annotationFilter(resource, annotationKey);
       if (!icon) {
         if (kind === "template") {
           return "fa fa-bolt";
         }
+        if (kind === "image") {
+          return "fa fa-cube";
+        }        
         else {
           return "";
         }
@@ -81,6 +98,18 @@ angular.module('openshiftConsole')
       }
     };
   })
+  .filter('imageEnv', function() {
+    return function(image, envKey) {
+      var envVars = image.dockerImageMetadata.Config.Env;
+      for (var i = 0; i < envVars.length; i++) {
+        var keyValue = envVars[i].split("=");
+        if (keyValue[0] === envKey) {
+          return keyValue[1];
+        }
+      }
+      return null;
+    };
+  })  
   .filter('buildForImage', function() {
     return function(image, builds) {
       // TODO concerned that this gets called anytime any data is changed on the scope, whether its relevant changes or not

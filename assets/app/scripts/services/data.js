@@ -2,6 +2,7 @@
 
 angular.module('openshiftConsole')
 .factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger) {
+  
   function Data(array) {
     this._data = {};
     this._objectsByAttribute(array, "metadata.name", this._data);
@@ -89,7 +90,11 @@ angular.module('openshiftConsole')
     var self = this;
     $rootScope.$on( "$routeChangeStart", function(event, next, current) {
       self._watchWebsocketRetriesMap = {};
-    });    
+    });   
+    
+    this.osApiVersion = "v1beta1";
+    this.k8sApiVersion = "v1beta3";
+
   }
 
 // type:      API type (e.g. "pods")
@@ -221,6 +226,9 @@ angular.module('openshiftConsole')
 //            http - options to pass to the inner $http call
 //            errorNotification - will popup an error notification if the API request fails (default true)
   DataService.prototype.get = function(type, name, context, opts) {
+    if(this._objectType(type) !== undefined){
+      type = this._objectType(type);
+    }
     opts = opts || {};
 
     var force = !!opts.force;
@@ -669,6 +677,7 @@ angular.module('openshiftConsole')
     deploymentConfigs:         API_CFG.openshift,
     images:                    API_CFG.openshift,
     imageRepositories:         API_CFG.openshift, // DEPRECATED, leave here until removed from API
+    imageRepositoryTags:       API_CFG.openshift,
     imageStreams:              API_CFG.openshift,
     imageStreamImages:         API_CFG.openshift,
     imageStreamTags:           API_CFG.openshift,    

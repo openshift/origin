@@ -20,13 +20,13 @@
           </div>
           <div class="col-md-2" style="margin-top: 30px;">
             <span ng-if="project.status.phase == 'Active'">
-              <a href="project/{{projectName}}/catalog" class="btn btn-lg btn-primary">
+              <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
                 <span>Create</span>
                 <i class="fa fa-plus" />
               </a>
             </span>
             <span ng-if="project.status.phase != 'Active'">
-              <a href="project/{{projectName}}/catalog" class="btn btn-lg btn-primary" disabled="disabled">
+              <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary" disabled="disabled">
                 <span>Create</span>
                 <i class="fa fa-plus" />
               </a>
