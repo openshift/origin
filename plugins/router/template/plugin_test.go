@@ -119,7 +119,10 @@ func TestHandleEndpoints(t *testing.T) {
 					Namespace: "foo",
 					Name:      "test", //kapi.endpoints inherits the name of the service
 				},
-				Endpoints: []kapi.Endpoint{{IP: "1.1.1.1", Port: 345}}, //not specifying a port to force the port 80 assumption
+				Subsets: []kapi.EndpointSubset{{
+					Addresses: []kapi.EndpointAddress{{IP: "1.1.1.1"}},
+					Ports:     []kapi.EndpointPort{{Port: 345}},
+				}}, //not specifying a port to force the port 80 assumption
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name: "foo/test", //service name from kapi.endpoints object
@@ -140,7 +143,10 @@ func TestHandleEndpoints(t *testing.T) {
 					Namespace: "foo",
 					Name:      "test",
 				},
-				Endpoints: []kapi.Endpoint{{IP: "2.2.2.2", Port: 8080}},
+				Subsets: []kapi.EndpointSubset{{
+					Addresses: []kapi.EndpointAddress{{IP: "2.2.2.2"}},
+					Ports:     []kapi.EndpointPort{{Port: 8080}},
+				}},
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name: "foo/test",
@@ -161,7 +167,10 @@ func TestHandleEndpoints(t *testing.T) {
 					Namespace: "foo",
 					Name:      "test",
 				},
-				Endpoints: []kapi.Endpoint{{IP: "3.3.3.3", Port: 0}},
+				Subsets: []kapi.EndpointSubset{{
+					Addresses: []kapi.EndpointAddress{{IP: "3.3.3.3"}},
+					Ports:     []kapi.EndpointPort{{Port: 0}},
+				}},
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name:          "foo/test",

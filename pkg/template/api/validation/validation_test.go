@@ -171,7 +171,7 @@ func TestValidateTemplate(t *testing.T) {
 							GenerateName: "test",
 						},
 						Spec: kapi.ServiceSpec{
-							Port: 8080,
+							Ports: []kapi.ServicePort{{Port: 8080}},
 						},
 					},
 				},

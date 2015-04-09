@@ -69,8 +69,12 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 					Name: "test-service",
 				},
 				Spec: kapi.ServiceSpec{
-					Port:            80,
-					Protocol:        kapi.ProtocolTCP,
+					Ports: []kapi.ServicePort{
+						{
+							Port:     80,
+							Protocol: kapi.ProtocolTCP,
+						},
+					},
 					SessionAffinity: kapi.AffinityTypeNone,
 				},
 			},

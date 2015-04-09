@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/openshift/origin/pkg/client"
 
+	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -30,7 +30,7 @@ func TestDescribeFor(t *testing.T) {
 		"Route", "Project",
 	}
 	for _, o := range testTypesList {
-		_, ok := DescriberFor(o, c, &kclient.Fake{}, "")
+		_, ok := DescriberFor(o, c, &testclient.Fake{}, "")
 		if !ok {
 			t.Errorf("Unable to obtain describer for %s", o)
 		}
