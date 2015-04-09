@@ -578,6 +578,7 @@ func TestAddTagEventToImageStream(t *testing.T) {
 		nextImage      string
 		expectedTags   map[string]TagEventList
 		expectedUpdate bool
+		maxItems       string
 	}{
 		"nil entry for tag": {
 			tags:      map[string]TagEventList{},
@@ -719,11 +720,83 @@ func TestAddTagEventToImageStream(t *testing.T) {
 			},
 			expectedUpdate: true,
 		},
+		"limit items, default value 3": {
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "ref1", Image: "image1"},
+						{DockerImageReference: "ref2", Image: "image2"},
+						{DockerImageReference: "ref3", Image: "image3"},
+					},
+				},
+			},
+			nextRef:   "newref",
+			nextImage: "newimage",
+			expectedTags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "newref", Image: "newimage"},
+						{DockerImageReference: "ref1", Image: "image1"},
+						{DockerImageReference: "ref2", Image: "image2"},
+					},
+				},
+			},
+			expectedUpdate: true,
+		},
+		"limit items, env var 2": {
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "ref1", Image: "image1"},
+						{DockerImageReference: "ref2", Image: "image2"},
+					},
+				},
+			},
+			nextRef:   "newref",
+			nextImage: "newimage",
+			expectedTags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "newref", Image: "newimage"},
+						{DockerImageReference: "ref1", Image: "image1"},
+					},
+				},
+			},
+			expectedUpdate: true,
+			maxItems:       "2",
+		},
+		"limit items, error parsing env var, default value 3": {
+			tags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "ref1", Image: "image1"},
+						{DockerImageReference: "ref2", Image: "image2"},
+						{DockerImageReference: "ref3", Image: "image3"},
+					},
+				},
+			},
+			nextRef:   "newref",
+			nextImage: "newimage",
+			expectedTags: map[string]TagEventList{
+				"latest": {
+					Items: []TagEvent{
+						{DockerImageReference: "newref", Image: "newimage"},
+						{DockerImageReference: "ref1", Image: "image1"},
+						{DockerImageReference: "ref2", Image: "image2"},
+					},
+				},
+			},
+			expectedUpdate: true,
+			maxItems:       "abc",
+		},
 	}
 
 	for name, test := range tests {
 		stream := &ImageStream{}
 		stream.Status.Tags = test.tags
+		if len(test.maxItems) > 0 {
+			os.Setenv("OPENSHIFT_MAX_TAG_HISTORY_ITEMS", test.maxItems)
+		}
 		updated := AddTagEventToImageStream(stream, "latest", TagEvent{DockerImageReference: test.nextRef, Image: test.nextImage})
 		if e, a := test.expectedUpdate, updated; e != a {
 			t.Errorf("%s: expected updated=%t, got %t", name, e, a)
@@ -731,5 +804,6 @@ func TestAddTagEventToImageStream(t *testing.T) {
 		if e, a := test.expectedTags, stream.Status.Tags; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: expected tags=%v, got %v", name, e, a)
 		}
+		os.Setenv("OPENSHIFT_MAX_TAG_HISTORY_ITEMS", "")
 	}
 }
