@@ -43,6 +43,11 @@ var specialVerbs = map[string]bool{
 	"watch":    true,
 }
 
+// namespaceSubresouces is a set of all the subresources available on a namespace resource.  This is a special case because
+// URLs look like api/v1beta3/namspaces/<namespace name>/[subresource | resource].  We need to be able to distinguish the two
+// different cases.
+var namespaceSubresources = util.NewStringSet("status", "finalize")
+
 // Constant for the retry-after interval on rate limiting.
 // TODO: maybe make this dynamic? or user-adjustable?
 const RetryAfter = "1"
@@ -344,7 +349,10 @@ func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIReques
 	if currentParts[0] == "namespaces" {
 		if len(currentParts) > 1 {
 			requestInfo.Namespace = currentParts[1]
-			if len(currentParts) > 2 {
+
+			// if there is another step after the namespace name and it is not a known namespace subresource
+			// move currentParts to include it as a resource in its own right
+			if len(currentParts) > 2 && !namespaceSubresources.Has(currentParts[2]) {
 				currentParts = currentParts[2:]
 			}
 		}
