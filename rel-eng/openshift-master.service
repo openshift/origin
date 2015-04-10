@@ -13,6 +13,7 @@ Type=notify
 EnvironmentFile=-/etc/sysconfig/openshift-master
 ExecStart=/usr/bin/openshift start $ROLE --images=${IMAGES} $OPTIONS
 WorkingDirectory=/var/lib/openshift/
+SyslogIdentifier=openshift-master
 
 [Install]
 WantedBy=multi-user.target
