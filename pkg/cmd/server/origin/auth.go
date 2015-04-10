@@ -149,7 +149,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 		osOAuthClient.Transport = &transport
 	}
 
-	tokenRequestEndpoints := tokenrequest.NewEndpoints(osOAuthClient)
+	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, osOAuthClient)
 	tokenRequestEndpoints.Install(mux, OpenShiftOAuthAPIPrefix)
 
 	// glog.Infof("oauth server configured as: %#v", server)
