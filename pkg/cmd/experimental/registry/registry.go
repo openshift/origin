@@ -157,7 +157,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 				if len(cfg.Credentials) == 0 {
 					glog.Fatalf("You must specify a .kubeconfig file path containing credentials for connecting the registry to the master with --credentials")
 				}
-				clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{cfg.Credentials, []string{}}
+				clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{cfg.Credentials, []string{}, false}
 				credentials, err := clientConfigLoadingRules.Load()
 				if err != nil {
 					glog.Fatalf("The provided credentials %q could not be loaded: %v", cfg.Credentials, err)
