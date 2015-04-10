@@ -126,8 +126,12 @@ mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 
 ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
 
-mkdir -p %{buildroot}%{_libdir}/tuned/openshift-node
-install -m 0644 -t %{buildroot}%{_libdir}/tuned/openshift-node tuned/openshift-node/tuned.conf
+install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/openshift-node-{guest,host}
+install -m 0644 tuned/openshift-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/openshift-node-guest/
+install -m 0644 tuned/openshift-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/openshift-node-host/
+install -d -m 0755 %{buildroot}%{_mandir}/man7
+install -m 0644 tuned/man/tuned-profiles-openshift-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-openshift-node.7
+
 
 %files
 %defattr(-,root,root,-)
@@ -168,10 +172,17 @@ install -m 0644 -t %{buildroot}%{_libdir}/tuned/openshift-node tuned/openshift-n
 
 %files -n tuned-profiles-openshift-node
 %defattr(-,root,root,-)
-%{_libdir}/tuned/openshift-node
+%{_prefix}/lib/tuned/openshift-node-host
+%{_prefix}/lib/tuned/openshift-node-guest
+%{_mandir}/man7/tuned-profiles-openshift-node.7*
 
 %post -n tuned-profiles-openshift-node
-/usr/sbin/tuned-adm profile openshift-node > /dev/null 2>&1
+recommended=`/usr/sbin/tuned-adm recommend`
+if [[ "${recommended}" =~ guest ]] ; then
+  /usr/sbin/tuned-adm profile openshift-node-guest > /dev/null 2>&1
+else
+  /usr/sbin/tuned-adm profile openshift-node-host > /dev/null 2>&1
+fi
 
 %preun -n tuned-profiles-openshift-node
 # reset the tuned profile to the recommended profile
