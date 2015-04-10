@@ -38,20 +38,21 @@ type repository struct {
 
 // newRepository returns a new repository middleware.
 func newRepository(repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
-
-	registryClient, err := dockerregistry.NewRegistryOpenShiftClient()
-	if err != nil {
-		return nil, err
-	}
 	registryAddr := os.Getenv("REGISTRY_URL")
 	if len(registryAddr) == 0 {
 		return nil, errors.New("REGISTRY_URL is required")
 	}
 
+	registryClient, err := dockerregistry.NewRegistryOpenShiftClient()
+	if err != nil {
+		return nil, err
+	}
+
 	nameParts := strings.SplitN(repo.Name(), "/", 2)
 	if len(nameParts) != 2 {
-		return nil, errors.New("Incorrect image stream name")
+		return nil, fmt.Errorf("Invalid repository name %q: it must be of the format <project>/<name>", repo.Name())
 	}
+
 	return &repository{
 		Repository:     repo,
 		registryClient: registryClient,
@@ -124,14 +125,13 @@ func (r *repository) GetByTag(ctx context.Context, tag string) (*manifest.Signed
 		// <repo>:<hex portion of digest>, so once we verify we got a 404 from
 		// getImageStreamTag, we construct a digest and attempt to get the
 		// imageStreamImage using that digest.
-
-		// TODO replace with kerrors.IsStatusError when it's rebased in
 		if err, ok := err.(*kerrors.StatusError); !ok {
 			log.Errorf("GetByTag: getImageStreamTag returned error: %s", err)
 			return nil, err
 		} else if err.ErrStatus.Code != http.StatusNotFound {
 			log.Errorf("GetByTag: getImageStreamTag returned non-404: %s", err)
 		}
+
 		// let's try to get by id
 		dgst, dgstErr := digest.ParseDigest("sha256:" + tag)
 		if dgstErr != nil {
@@ -173,7 +173,7 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 	}
 
 	// Upload to openshift
-	irm := imageapi.ImageStreamMapping{
+	ism := imageapi.ImageStreamMapping{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: r.namespace,
 			Name:      r.name,
@@ -188,9 +188,42 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 		},
 	}
 
-	if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&irm); err != nil {
-		log.Errorf("Error creating ImageStreamMapping: %s", err)
-		return err
+	if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+		// if the error was that the image stream wasn't found, try to auto provision it
+		statusErr, ok := err.(*kerrors.StatusError)
+		if !ok {
+			log.Errorf("Error creating ImageStreamMapping: %s", err)
+			return err
+		}
+
+		status := statusErr.ErrStatus
+		if status.Code != http.StatusNotFound || status.Details.Kind != "imageStream" || status.Details.ID != r.name {
+			log.Errorf("Error creating ImageStreamMapping: %s", err)
+			return err
+		}
+
+		stream := imageapi.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: r.name,
+			},
+		}
+
+		client, err := getUserOpenShiftClient(ctx)
+		if err != nil {
+			log.Errorf("Error creating user client to auto provision image stream: %s", err)
+			return statusErr
+		}
+
+		if _, err := client.ImageStreams(r.namespace).Create(&stream); err != nil {
+			log.Errorf("Error auto provisioning image stream: %s", err)
+			return statusErr
+		}
+
+		// try to create the ISM again
+		if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+			log.Errorf("Error creating ImageStreamMapping: %s", err)
+			return err
+		}
 	}
 
 	// Grab each json signature and store them.
@@ -224,7 +257,8 @@ func (r *repository) getImageStream(ctx context.Context) (*imageapi.ImageStream,
 }
 
 // getImage retrieves the Image with digest `dgst`. This uses the registry's
-// credentials and should ONLY
+// credentials and should ONLY be called after verifying the user has access
+// to the image stream the imgae belongs to.
 func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 	return r.registryClient.Images().Get(dgst.String())
 }

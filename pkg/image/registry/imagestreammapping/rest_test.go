@@ -2,6 +2,7 @@ package imagestreammapping
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
@@ -142,7 +143,7 @@ func TestCreateErrorListingImageStreams(t *testing.T) {
 	}
 }
 
-func TestCreateImageStreamNotFound(t *testing.T) {
+func TestCreateImageStreamNotFoundWithDockerImageRepository(t *testing.T) {
 	fakeEtcdClient, _, storage := setup(t)
 	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
@@ -163,6 +164,32 @@ func TestCreateImageStreamNotFound(t *testing.T) {
 	}
 	if !errors.IsInvalid(err) {
 		t.Fatalf("Expected 'invalid' err, got: %#v", err)
+	}
+}
+
+func TestCreateImageStreamNotFoundWithName(t *testing.T) {
+	fakeEtcdClient, _, storage := setup(t)
+	fakeEtcdClient.ExpectNotFoundGet("/imageRepositories/default/somerepo")
+
+	obj, err := storage.Create(kapi.NewDefaultContext(), validNewMappingWithName())
+	if obj != nil {
+		t.Errorf("Unexpected non-nil obj %#v", obj)
+	}
+	if err == nil {
+		t.Fatal("Unexpected nil err")
+	}
+	e, ok := err.(*errors.StatusError)
+	if !ok {
+		t.Fatalf("expected StatusError, got %#v", err)
+	}
+	if e, a := http.StatusNotFound, e.ErrStatus.Code; e != a {
+		t.Errorf("error status code: expected %d, got %d", e, a)
+	}
+	if e, a := "imageStream", e.ErrStatus.Details.Kind; e != a {
+		t.Errorf("error status details kind: expected %s, got %s", e, a)
+	}
+	if e, a := "somerepo", e.ErrStatus.Details.ID; e != a {
+		t.Errorf("error status details name: expected %s, got %s", e, a)
 	}
 }
 
