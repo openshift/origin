@@ -71,8 +71,10 @@ func (d *DockerBuilder) Build() error {
 	}
 	tag := d.build.Parameters.Output.DockerImageReference
 	defer removeImage(d.dockerClient, tag)
-	if len(d.build.Parameters.Output.DockerImageReference) != 0 {
-		ref, err := image.ParseDockerImageReference(d.build.Parameters.Output.DockerImageReference)
+
+	dockerImageRef := d.build.Parameters.Output.DockerImageReference
+	if len(dockerImageRef) != 0 {
+		ref, err := image.ParseDockerImageReference(dockerImageRef)
 		if err != nil {
 			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
 		}
@@ -82,10 +84,15 @@ func (d *DockerBuilder) Build() error {
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
-			glog.Infof("Using provided Docker push secrets (%s)", pushAuthConfig.Email)
+			glog.V(3).Infof("Using Docker authentication provided")
 			d.auth = pushAuthConfig
 		}
-		return pushImage(d.dockerClient, tag, d.auth)
+		glog.Infof("Pushing %s image ...", dockerImageRef)
+		if err := pushImage(d.dockerClient, tag, d.auth); err != nil {
+			glog.Errorf("Failed to push image: %v", err)
+			return nil
+		}
+		glog.Infof("Successfully pushed %s", dockerImageRef)
 	}
 	return nil
 }

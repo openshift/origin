@@ -43,7 +43,7 @@ func (h *Helper) GetDockerAuth(registry, authType string) (docker.AuthConfigurat
 	var authCfg docker.AuthConfiguration
 	dockercfgPath := getDockercfgFile("")
 	if pathForAuthType := os.Getenv(authType); len(pathForAuthType) > 0 {
-		glog.Errorf("%s=%s", authType, pathForAuthType)
+		glog.V(3).Infof("%s=%s", authType, pathForAuthType)
 		dockercfgPath = getDockercfgFile(pathForAuthType)
 	}
 	if _, err := os.Stat(dockercfgPath); err != nil {
@@ -69,6 +69,7 @@ func (h *Helper) GetDockerAuth(registry, authType string) (docker.AuthConfigurat
 		glog.Errorf("Unable to get credentials: %v", err)
 		return authCfg, false
 	}
+	glog.V(5).Infof("Using '%s' user for Docker registry authentication", uname)
 	authCfg.Username = uname
 	authCfg.Password = pass
 	return authCfg, true
@@ -84,6 +85,7 @@ func getDockercfgFile(path string) string {
 	} else if currentUser, err := user.Current(); err == nil {
 		cfgPath = filepath.Join(currentUser.HomeDir, ".dockercfg")
 	}
+	glog.V(5).Infof("Found Docker authentication configuration in '%s'", cfgPath)
 	return cfgPath
 }
 
