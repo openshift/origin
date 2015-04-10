@@ -79,6 +79,8 @@ func (h *AccessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.Respon
 	}
 
 	if ok {
+		// Disable refresh_token generation
+		ar.GenerateRefresh = false
 		ar.Authorized = true
 		if info != nil {
 			ar.AccessData.UserData = info
