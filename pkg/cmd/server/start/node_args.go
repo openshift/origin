@@ -31,6 +31,8 @@ type NodeArgs struct {
 	ClusterDomain        string
 	ClusterDNS           net.IP
 
+	NetworkPluginName string
+
 	ListenArg          *ListenArg
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
@@ -42,6 +44,7 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
 	flags.StringVar(&args.VolumeDir, prefix+"volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	// TODO rename this node-name and recommend hostname -f
 	flags.StringVar(&args.NodeName, prefix+"hostname", args.NodeName, "The hostname to identify this node with the master.")
+	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
 }
 
 // NewDefaultNodeArgs creates NodeArgs with sub-objects created and default values set.
@@ -61,6 +64,8 @@ func NewDefaultNodeArgs() *NodeArgs {
 
 		ClusterDomain: cmdutil.Env("OPENSHIFT_DNS_DOMAIN", "local"),
 		ClusterDNS:    dnsIP,
+
+		NetworkPluginName: "",
 
 		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
@@ -99,6 +104,8 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 			Format: args.ImageFormatArgs.ImageTemplate.Format,
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
 		},
+
+		NetworkPluginName: args.NetworkPluginName,
 
 		VolumeDirectory:     args.VolumeDir,
 		AllowDisabledDocker: args.AllowDisabledDocker,
