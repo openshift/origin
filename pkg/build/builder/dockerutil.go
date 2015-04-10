@@ -3,8 +3,6 @@ package builder
 import (
 	"os"
 
-	"github.com/golang/glog"
-
 	"github.com/fsouza/go-dockerclient"
 	"github.com/openshift/source-to-image/pkg/tar"
 )
@@ -19,7 +17,6 @@ type DockerClient interface {
 
 // pushImage pushes a docker image to the registry specified in its tag
 func pushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
-	glog.Infof("Pushing %s ...", name)
 	repository, tag := docker.ParseRepositoryTag(name)
 	opts := docker.PushImageOptions{
 		Name: repository,
