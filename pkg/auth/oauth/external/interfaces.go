@@ -25,5 +25,5 @@ type Provider interface {
 // Examples: CSRF protection, post authentication redirection
 type State interface {
 	Generate(w http.ResponseWriter, req *http.Request) (string, error)
-	Check(state string, w http.ResponseWriter, req *http.Request) (bool, error)
+	Check(state string, req *http.Request) (bool, error)
 }

@@ -284,8 +284,6 @@ func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 }
 
 func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
-	successHandler := c.getAuthenticationSuccessHandler()
-
 	challengers := map[string]handlers.AuthenticationChallenger{}
 	redirectors := map[string]handlers.AuthenticationRedirector{}
 
@@ -299,8 +297,16 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 			}
 
 			if identityProvider.UseAsLogin {
+				// Password auth requires:
+				// 1. a session success handler (to remember you logged in)
+				// 2. a redirectSuccessHandler (to go back to the "then" param)
+				if c.SessionAuth == nil {
+					return nil, errors.New("SessionAuth is required for password-based login")
+				}
+				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
+
 				redirectors["login"] = &redirector{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
-				login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, successHandler}, login.DefaultLoginFormRenderer)
+				login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, login.DefaultLoginFormRenderer)
 				login.Install(mux, OpenShiftLoginPrefix)
 			}
 			if identityProvider.UseAsChallenger {
@@ -313,9 +319,22 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				return nil, err
 			}
 
-			state := external.DefaultState(getCSRF())
+			// Default state builder, combining CSRF and return URL handling
+			state := external.CSRFRedirectingState(getCSRF())
+
+			// OAuth auth requires
+			// 1. a session success handler (to remember you logged in)
+			// 2. a state success handler (to go back to the URL encoded in the state)
+			if c.SessionAuth == nil {
+				return nil, errors.New("SessionAuth is required for OAuth-based login")
+			}
+			oauthSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, state}
+
+			// If the specified errorHandler doesn't handle the login error, let the state error handler attempt to propagate specific errors back to the token requester
+			oauthErrorHandler := handlers.AuthenticationErrorHandlers{errorHandler, state}
+
 			callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, identityProvider.Name)
-			oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, successHandler, errorHandler, identityMapper)
+			oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, oauthSuccessHandler, oauthErrorHandler, identityMapper)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected error: %v", err)
 			}
@@ -413,32 +432,6 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		return nil, fmt.Errorf("No password auth found that matches %v.  The OAuth server cannot start!", identityProvider)
 	}
 
-}
-
-func (c *AuthConfig) getAuthenticationSuccessHandler() handlers.AuthenticationSuccessHandler {
-	successHandlers := handlers.AuthenticationSuccessHandlers{}
-
-	if c.SessionAuth != nil {
-		successHandlers = append(successHandlers, c.SessionAuth)
-	}
-
-	addedRedirectSuccessHandler := false
-	for _, identityProvider := range c.Options.IdentityProviders {
-		if !identityProvider.UseAsLogin {
-			continue
-		}
-
-		if configapi.IsOAuthIdentityProvider(identityProvider) {
-			successHandlers = append(successHandlers, external.DefaultState(getCSRF()).(handlers.AuthenticationSuccessHandler))
-		}
-
-		if !addedRedirectSuccessHandler && configapi.IsPasswordAuthenticator(identityProvider) {
-			successHandlers = append(successHandlers, redirectSuccessHandler{})
-			addedRedirectSuccessHandler = true
-		}
-	}
-
-	return successHandlers
 }
 
 func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, error) {
