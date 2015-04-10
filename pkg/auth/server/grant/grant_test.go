@@ -275,7 +275,7 @@ func TestGrant(t *testing.T) {
 			},
 
 			ExpectStatusCode: 302,
-			ExpectRedirect:   "/authorize?error=grant_denied",
+			ExpectRedirect:   "/authorize?error=access_denied",
 		},
 	}
 
