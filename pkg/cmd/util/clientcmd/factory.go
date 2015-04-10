@@ -134,6 +134,18 @@ func (e ShortcutExpander) VersionAndKindForResource(resource string) (defaultVer
 	return e.RESTMapper.VersionAndKindForResource(resource)
 }
 
+// AliasesForResource returns whether a resource has an alias or not
+func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
+	aliases := map[string][]string{
+		"all": latest.UserResources,
+	}
+
+	if res, ok := aliases[resource]; ok {
+		return res, true
+	}
+	return nil, false
+}
+
 // expandResourceShortcut will return the expanded version of resource
 // (something that a pkg/api/meta.RESTMapper can understand), if it is
 // indeed a shortcut. Otherwise, will return resource unmodified.

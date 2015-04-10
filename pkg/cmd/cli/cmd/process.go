@@ -8,7 +8,8 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	ctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
@@ -23,7 +24,7 @@ import (
 // injectUserVars injects user specified variables into the Template
 func injectUserVars(cmd *cobra.Command, t *api.Template) {
 	values := util.StringList{}
-	values.Set(cmdutil.GetFlagString(cmd, "value"))
+	values.Set(kcmdutil.GetFlagString(cmd, "value"))
 	for _, keypair := range values {
 		p := strings.SplitN(keypair, "=", 2)
 		if len(p) != 2 {
@@ -49,6 +50,9 @@ Examples:
 	# Convert template.json file into resource list
 	$ %[1]s process -f template.json
 
+	# Process template while passing a user-defined label
+	$ %[1]s process -f template.json -l name=mytemplate
+
 	# Convert stored template into resource list
 	$ %[1]s process foo
 
@@ -64,15 +68,16 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 		Long:  fmt.Sprintf(processLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunProcess(f, out, cmd, args)
-			cmdutil.CheckErr(err)
+			kcmdutil.CheckErr(err)
 		},
 	}
 
-	cmdutil.AddPrinterFlags(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to update the resource")
 	cmd.Flags().StringP("value", "v", "", "Specify a list of key-value pairs (eg. -v FOO=BAR,BAR=FOO) to set/override parameter values")
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
+	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
 	return cmd
 }
 
@@ -82,9 +87,9 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		storedTemplate = args[0]
 	}
 
-	filename := cmdutil.GetFlagString(cmd, "filename")
+	filename := kcmdutil.GetFlagString(cmd, "filename")
 	if len(storedTemplate) == 0 && len(filename) == 0 {
-		return cmdutil.UsageError(cmd, "Must pass a filename or name of stored template")
+		return kcmdutil.UsageError(cmd, "Must pass a filename or name of stored template")
 	}
 
 	namespace, err := f.DefaultNamespace()
@@ -158,12 +163,20 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 	// If 'parameters' flag is set it does not do processing but only print
 	// the template parameters to console for inspection.
-	if cmdutil.GetFlagBool(cmd, "parameters") == true {
+	if kcmdutil.GetFlagBool(cmd, "parameters") == true {
 		err = describe.PrintTemplateParameters(templateObj.Parameters, out)
 		if err != nil {
 			return err
 		}
 		return nil
+	}
+
+	label := kcmdutil.GetFlagString(cmd, "labels")
+	if len(label) != 0 {
+		lbl := ctl.ParseLabels(label)
+		for key, value := range lbl {
+			templateObj.ObjectLabels[key] = value
+		}
 	}
 
 	result, err := client.TemplateConfigs(namespace).Create(templateObj)

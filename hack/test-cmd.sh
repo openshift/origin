@@ -449,10 +449,18 @@ echo "ex registry: ok"
 [ "$(openshift ex build-chain --all -o dot | grep 'graph')" ]
 echo "ex build-chain: ok"
 
-osc get minions,pods
-
 osadm new-project example --admin="createuser"
 osc project example
 osc create -f test/fixtures/app-scenarios
 osc status
 echo "complex-scenarios: ok"
+
+# Clean-up everything before testing cleaning up everything...
+osc delete all -l template=application-template-stibuild
+osc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | osc create -f -
+osc delete all -l name=mytemplate
+osc new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
+osc delete all -l name=hello-world
+openshift ex generate https://github.com/openshift/ruby-hello-world -l name=hello-world | osc create -f -
+osc delete all -l name=hello-world
+echo "delete all: ok"
