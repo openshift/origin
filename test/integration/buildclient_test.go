@@ -158,11 +158,12 @@ func mockBuild() *buildapi.Build {
 }
 
 type testBuildOpenshift struct {
-	Client   *osclient.Client
-	server   *httptest.Server
-	whPrefix string
-	stop     chan struct{}
-	lock     sync.Mutex
+	KubeClient *kclient.Client
+	Client     *osclient.Client
+	server     *httptest.Server
+	whPrefix   string
+	stop       chan struct{}
+	lock       sync.Mutex
 }
 
 func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
@@ -182,6 +183,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	osClient := osclient.NewOrDie(&client.Config{Host: openshift.server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
+	openshift.KubeClient = kubeClient
 
 	kubeletClient, err := kclient.NewKubeletClient(&kclient.KubeletConfig{Port: 10250})
 	if err != nil {

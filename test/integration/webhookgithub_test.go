@@ -70,6 +70,11 @@ func TestWebhookGithubPushWithImageTag(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
 	// create imagerepo
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "imageStream"},
@@ -126,6 +131,11 @@ func TestWebhookGithubPushWithImageTagRef(t *testing.T) {
 	}
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -190,6 +200,11 @@ func TestWebhookGithubPushWithImageTagUnmatched(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
 	// create imagerepo
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "imageStream"},
@@ -249,6 +264,15 @@ func TestWebhookGithubPushWithNamespaceUnmatched(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, "unmatched")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
 	// create imagerepo
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "unmatched", Name: "imageStream"},
@@ -297,6 +321,10 @@ func TestWebhookGithubPing(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
+
+	openshift.KubeClient.Namespaces().Create(&kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
+	})
 
 	// create buildconfig
 	buildConfig := mockBuildConfigParms("originalImage", "imageStream", "validTag")

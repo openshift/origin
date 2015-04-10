@@ -29,7 +29,6 @@ import (
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
@@ -74,6 +73,7 @@ import (
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
 	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
 	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
@@ -250,8 +250,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		v1beta1Storage[strings.ToLower(k)] = v
 	}
 
-	admissionControl := admit.NewAlwaysAdmit()
-
 	version := &apiserver.APIGroupVersion{
 		Root:    OpenShiftAPIPrefix,
 		Version: OpenShiftAPIV1Beta1,
@@ -266,7 +264,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		Convertor: kapi.Scheme,
 		Linker:    latest.SelfLinker,
 
-		Admit:   admissionControl,
+		Admit:   c.AdmissionControl,
 		Context: c.getRequestContextMapper(),
 	}
 
@@ -459,8 +457,10 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	// Attempt to create the required policy rules now, and then stick in a forever loop to make sure they are always available
 	c.ensureComponentAuthorizationRules()
 	c.ensureMasterAuthorizationNamespace()
+	c.ensureOpenShiftSharedResourcesNamespace()
 	go util.Forever(func() {
 		c.ensureMasterAuthorizationNamespace()
+		c.ensureOpenShiftSharedResourcesNamespace()
 	}, 10*time.Second)
 }
 
@@ -478,7 +478,30 @@ func (c *MasterConfig) ensureMasterAuthorizationNamespace() {
 	// ensure that master namespace actually exists
 	namespace, err := c.KubeClient().Namespaces().Get(c.Options.PolicyConfig.MasterAuthorizationNamespace)
 	if err != nil {
-		namespace = &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.Options.PolicyConfig.MasterAuthorizationNamespace}}
+		namespace = &kapi.Namespace{
+			ObjectMeta: kapi.ObjectMeta{Name: c.Options.PolicyConfig.MasterAuthorizationNamespace},
+			Spec: kapi.NamespaceSpec{
+				Finalizers: []kapi.FinalizerName{projectapi.FinalizerProject},
+			},
+		}
+		kapi.FillObjectMetaSystemFields(api.NewContext(), &namespace.ObjectMeta)
+		_, err = c.KubeClient().Namespaces().Create(namespace)
+		if err != nil {
+			glog.Errorf("Error creating namespace: %v due to %v\n", namespace, err)
+		}
+	}
+}
+
+// ensureOpenShiftSharedResourcesNamespace is called as part of global policy initialization to ensure shared namespace exists
+func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
+	namespace, err := c.KubeClient().Namespaces().Get(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace)
+	if err != nil {
+		namespace = &kapi.Namespace{
+			ObjectMeta: kapi.ObjectMeta{Name: c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace},
+			Spec: kapi.NamespaceSpec{
+				Finalizers: []kapi.FinalizerName{projectapi.FinalizerProject},
+			},
+		}
 		kapi.FillObjectMetaSystemFields(api.NewContext(), &namespace.ObjectMeta)
 		_, err = c.KubeClient().Namespaces().Create(namespace)
 		if err != nil {
