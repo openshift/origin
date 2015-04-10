@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 )
@@ -12,23 +13,30 @@ const (
 	OpenShiftConfigFlagName        = "config"
 	OpenShiftConfigFileName        = ".openshiftconfig"
 	OpenShiftConfigHomeDir         = ".config/openshift"
-	OpenShiftConfigHomeFileName    = ".config"
+	OpenShiftConfigHomeFileName    = "config"
 	OpenShiftConfigHomeDirFileName = OpenShiftConfigHomeDir + "/" + OpenShiftConfigHomeFileName
 )
 
-// Set up the rules and priorities for loading config files.
-func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules {
-	return &clientcmd.ClientConfigLoadingRules{Precedence: OpenShiftClientConfigFilePriority()}
-}
+var OldRecommendedHomeFile = path.Join(os.Getenv("HOME"), ".config/openshift/.config")
+var RecommendedHomeFile = path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName)
 
 // File priority loading rules for OpenShift.
-// 1. OPENSHIFTCONFIG env var
-// 2. .openshiftconfig file in current directory
-// 3. ~/.config/openshift/.config file
-func OpenShiftClientConfigFilePriority() []string {
-	return []string{
-		os.Getenv(OpenShiftConfigPathEnvVar),
-		OpenShiftConfigFileName,
-		path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName),
+// 1. --config value
+// 2. if OPENSHIFTCONFIG env var has a value, use it. Otherwise, ~/.config/openshift/config file
+func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules {
+	chain := []string{OpenShiftConfigFileName}
+	migrationRules := map[string]string{}
+
+	envVarFile := os.Getenv(OpenShiftConfigPathEnvVar)
+	if len(envVarFile) != 0 {
+		chain = append(chain, filepath.SplitList(envVarFile)...)
+	} else {
+		chain = append(chain, RecommendedHomeFile)
+		migrationRules[RecommendedHomeFile] = OldRecommendedHomeFile
+	}
+
+	return &clientcmd.ClientConfigLoadingRules{
+		Precedence:     chain,
+		MigrationRules: migrationRules,
 	}
 }

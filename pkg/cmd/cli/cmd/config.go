@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path"
 
 	"github.com/spf13/cobra"
 
@@ -14,12 +13,11 @@ import (
 
 func NewCmdConfig(parentName, name string) *cobra.Command {
 	pathOptions := &config.PathOptions{
-		LocalFile:  cmdconfig.OpenShiftConfigFileName,
-		GlobalFile: path.Join(os.Getenv("HOME"), cmdconfig.OpenShiftConfigHomeDirFileName),
-		EnvVar:     cmdconfig.OpenShiftConfigPathEnvVar,
-		EnvVarFile: os.Getenv(cmdconfig.OpenShiftConfigPathEnvVar),
-
+		GlobalFile:       cmdconfig.RecommendedHomeFile,
+		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
 		ExplicitFileFlag: cmdconfig.OpenShiftConfigFlagName,
+
+		GlobalFileSubpath: cmdconfig.OpenShiftConfigHomeDirFileName,
 
 		LoadingRules: cmdconfig.NewOpenShiftClientConfigLoadingRules(),
 	}
