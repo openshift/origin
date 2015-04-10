@@ -400,6 +400,9 @@ osc describe build ${started} | grep openshift/ruby-20-centos7:success$
 osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
 
+[ "$(openshift ex generate https://github.com/openshift/ruby-hello-world.git | grep 'ruby-hello-world')" ]
+echo "ex generate: ok"
+
 openshift admin policy add-role-to-group cluster-admin system:unauthenticated
 openshift admin policy remove-role-from-group cluster-admin system:unauthenticated
 openshift admin policy remove-role-from-group-from-project system:unauthenticated
