@@ -60,8 +60,9 @@ func (s *STIBuilder) Build() error {
 	if _, err = builder.Build(request); err != nil {
 		return err
 	}
-	if len(s.build.Parameters.Output.DockerImageReference) != 0 {
-		ref, err := image.ParseDockerImageReference(s.build.Parameters.Output.DockerImageReference)
+	dockerImageRef := s.build.Parameters.Output.DockerImageReference
+	if len(dockerImageRef) != 0 {
+		ref, err := image.ParseDockerImageReference(dockerImageRef)
 		if err != nil {
 			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
 		}
@@ -71,10 +72,15 @@ func (s *STIBuilder) Build() error {
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
-			glog.Infof("Using provided Docker push secrets (%s)", pushAuthConfig.Email)
+			glog.V(3).Infof("Using Docker authentication provided")
 			s.auth = pushAuthConfig
 		}
-		return pushImage(s.dockerClient, tag, s.auth)
+		glog.Infof("Pushing %s image ...", dockerImageRef)
+		if err := pushImage(s.dockerClient, tag, s.auth); err != nil {
+			glog.Errorf("Failed to push image: %v", err)
+			return nil
+		}
+		glog.Infof("Successfully pushed %s", dockerImageRef)
 	}
 	return nil
 }
