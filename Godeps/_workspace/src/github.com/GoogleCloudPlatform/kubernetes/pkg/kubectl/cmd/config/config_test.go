@@ -621,7 +621,7 @@ func testConfigCommand(args []string, startingConfig clientcmdapi.Config) (strin
 	buf := bytes.NewBuffer([]byte{})
 	f := cmdutil.NewFactory(nil)
 
-	cmd := NewCmdConfig(f, buf)
+	cmd := NewCmdConfig(NewDefaultPathOptions(), buf)
 	cmd.SetArgs(argsToUse)
 	cmd.Execute()
 
@@ -636,6 +636,7 @@ func (test configCommandTest) run(t *testing.T) {
 
 	testSetNilMapsToEmpties(reflect.ValueOf(&test.expectedConfig))
 	testSetNilMapsToEmpties(reflect.ValueOf(&actualConfig))
+	testClearLocationOfOrigin(&actualConfig)
 
 	if !reflect.DeepEqual(test.expectedConfig, actualConfig) {
 		t.Errorf("diff: %v", util.ObjectDiff(test.expectedConfig, actualConfig))
@@ -646,6 +647,20 @@ func (test configCommandTest) run(t *testing.T) {
 		if !strings.Contains(out, expectedOutput) {
 			t.Errorf("expected '%s' in output, got '%s'", expectedOutput, out)
 		}
+	}
+}
+func testClearLocationOfOrigin(config *clientcmdapi.Config) {
+	for key, obj := range config.AuthInfos {
+		obj.LocationOfOrigin = ""
+		config.AuthInfos[key] = obj
+	}
+	for key, obj := range config.Clusters {
+		obj.LocationOfOrigin = ""
+		config.Clusters[key] = obj
+	}
+	for key, obj := range config.Contexts {
+		obj.LocationOfOrigin = ""
+		config.Contexts[key] = obj
 	}
 }
 func testSetNilMapsToEmpties(curr reflect.Value) {
