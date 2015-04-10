@@ -42,7 +42,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					Env: []kapi.EnvVar{
 						{Name: "BUILD", Value: string(data)},
 					},
-					Command: []string{"--loglevel=" + fmt.Sprintf("%d", cmdutil.GetLogLevel())},
+					Args: []string{"--loglevel=" + fmt.Sprintf("%d", cmdutil.GetLogLevel())},
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					Privileged: true,
 				},
