@@ -65,7 +65,7 @@ angular.module('openshiftConsole')
       var helpLinks = {};
       for (var attr in template.annotations) {
         var match = attr.match(helpLinkName);
-	var link;
+        var link;
         if (match) {
           link = helpLinks[match[1]] || {};
           link.title = template.annotations[attr];
@@ -133,7 +133,7 @@ angular.module('openshiftConsole')
             );
             return d.promise;
           });
-          $location.path("project/" + $scope.projectName + "/overview");
+          Navigate.toProjectOverview($scope.projectName);
         },
         function(result) { // failure
           $scope.alerts = [
@@ -155,7 +155,7 @@ angular.module('openshiftConsole')
     var namespace = $routeParams.namespace;
 
     if (!name) {
-      errorPage("Cannot create from template: a template name was not specified.");
+      Navigate.toErrorPage("Cannot create from template: a template name was not specified.");
       return;
     }
 
@@ -178,7 +178,7 @@ angular.module('openshiftConsole')
         template.labels = template.labels || {};
       },
       function() {
-        errorPage("Cannot create from template: the specified template could not be retrieved.");
+        Navigate.toErrorPage("Cannot create from template: the specified template could not be retrieved.");
       }
     );
   });

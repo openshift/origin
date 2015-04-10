@@ -1,0 +1,34 @@
+<div ng-controller="ProjectController">
+  <div ng-controller="CatalogImagesController">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <!-- TODO we don't need a breadcrumb yet
+           <ol class="breadcrumb">
+            <li><a href="#">Create</a></li>
+            <li>Step 2</li>
+          </ol> -->
+          <h1>Select a builder image</h1>
+        </div>
+      </div>
+      <div ng-if="!builders.length">There are no builder images to select from.  To add a builder to your project run <code>osc create -f &lt;image_repository_file&gt; -n {{projectName}}</code></div>
+      <div ng-if="builders.length">
+        <div class="row">
+          <catalog-image image-repo="builder.imageRepo" image-tag="builder.imageRepoTag" project="projectName" source-url="sourceURL" ng-repeat="builder in builders | orderBy : 'name'"></catalog-image>
+        </div>
+      </div>
+      <div click-to-reveal link-text="Don't see the image you are looking for?">
+        <h2>
+          <span>All images</span>
+          <span class="small pficon-layered" data-toggle="tooltip" data-placement="right" title="Some images in this list may not be able to build source. Use with caution." style="cursor: help;">
+            <span class="pficon pficon-warning-triangle"></span>
+            <span class="pficon pficon-warning-exclamation"></span>
+          </span>
+        </h2>
+        <div class="row">
+          <catalog-image image-repo="image.imageRepo" image-tag="image.imageRepoTag" project="projectName" source-url="sourceURL" ng-repeat="image in images | orderBy : 'name'"></catalog-image>
+        </div>
+      </div>      
+    </div>
+  </div>
+</div>

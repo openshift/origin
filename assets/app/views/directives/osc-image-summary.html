@@ -1,0 +1,6 @@
+<h1>{{ name || resource.metadata.name }}</h1>
+<div class="metadata">
+  <span ng-show="resource | annotation:'version'">Version {{ resource | annotation:'version' }}</span>
+  <span ng-show="resource | annotation:'provider'">Provided By: {{ resource | annotation:'provider' }}</span>
+</div>
+<div class="description gutter-bottom">{{ resource | description }}</div>
