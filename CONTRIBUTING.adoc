@@ -110,6 +110,10 @@ Follow these steps to ensure that virtual box interfaces are unmanaged:
 
 	$ ip link list | grep vboxnet  -A 1 | grep link/ether | awk '{print "mac:" $2}' |  paste -sd ";" -
 
+4. Reload the Network Manager configuration:
+
+    $ sudo nmcli con reload
+
 == Development: What's on the Menu?
 Right now you can see what's happening with OpenShift development at:
 
