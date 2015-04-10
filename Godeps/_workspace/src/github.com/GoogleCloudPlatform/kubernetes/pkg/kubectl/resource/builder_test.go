@@ -31,6 +31,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/testapi"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
@@ -173,7 +174,7 @@ func TestPathBuilder(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err != nil || !singular || len(test.Infos) != 1 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 
 	info := test.Infos[0]
@@ -225,7 +226,7 @@ func TestPathBuilderWithMultiple(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err != nil || singular || len(test.Infos) != 2 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 
 	info := test.Infos[1]
@@ -244,7 +245,7 @@ func TestDirectoryBuilder(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err != nil || singular || len(test.Infos) < 4 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 
 	found := false
@@ -274,7 +275,7 @@ func TestURLBuilder(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err != nil || !singular || len(test.Infos) != 1 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 	info := test.Infos[0]
 	if info.Name != "test" || info.Namespace != "foo" || info.Object == nil {
@@ -298,7 +299,7 @@ func TestURLBuilderRequireNamespace(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err == nil || !singular || len(test.Infos) != 0 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 }
 
@@ -320,7 +321,7 @@ func TestResourceByName(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err != nil || !singular || len(test.Infos) != 1 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 	if !reflect.DeepEqual(&pods.Items[0], test.Objects()[0]) {
 		t.Errorf("unexpected object: %#v", test.Objects())
@@ -347,7 +348,7 @@ func TestResourceByNameAndEmptySelector(t *testing.T) {
 	singular := false
 	infos, err := b.Do().IntoSingular(&singular).Infos()
 	if err != nil || !singular || len(infos) != 1 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, infos)
 	}
 	if !reflect.DeepEqual(&pods.Items[0], infos[0].Object) {
 		t.Errorf("unexpected object: %#v", infos[0])
@@ -364,9 +365,10 @@ func TestResourceByNameAndEmptySelector(t *testing.T) {
 
 func TestSelector(t *testing.T) {
 	pods, svc := testData()
+	labelKey := api.LabelSelectorQueryParam(testapi.Version())
 	b := NewBuilder(latest.RESTMapper, api.Scheme, fakeClientWith(t, map[string]string{
-		"/namespaces/test/pods?labels=a%3Db":     runtime.EncodeOrDie(latest.Codec, pods),
-		"/namespaces/test/services?labels=a%3Db": runtime.EncodeOrDie(latest.Codec, svc),
+		"/namespaces/test/pods?" + labelKey + "=a%3Db":     runtime.EncodeOrDie(latest.Codec, pods),
+		"/namespaces/test/services?" + labelKey + "=a%3Db": runtime.EncodeOrDie(latest.Codec, svc),
 	})).
 		SelectorParam("a=b").
 		NamespaceParam("test").
@@ -383,7 +385,7 @@ func TestSelector(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err != nil || singular || len(test.Infos) != 3 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 	if !api.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &svc.Items[0]}, test.Objects()) {
 		t.Errorf("unexpected visited objects: %#v", test.Objects())
@@ -493,7 +495,7 @@ func TestResourceTuple(t *testing.T) {
 			continue
 		}
 		if len(info) != len(testCase.args) {
-			t.Errorf("%s: unexpected number of infos returned: %#v", info)
+			t.Errorf("%s: unexpected number of infos returned: %#v", k, info)
 		}
 	}
 }
@@ -508,7 +510,7 @@ func TestStream(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err != nil || singular || len(test.Infos) != 3 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 	if !api.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &rc.Items[0]}, test.Objects()) {
 		t.Errorf("unexpected visited objects: %#v", test.Objects())
@@ -525,7 +527,7 @@ func TestYAMLStream(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err != nil || singular || len(test.Infos) != 3 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 	if !api.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &pods.Items[1], &rc.Items[0]}, test.Objects()) {
 		t.Errorf("unexpected visited objects: %#v", test.Objects())
@@ -576,8 +578,9 @@ func TestSingularObject(t *testing.T) {
 
 func TestListObject(t *testing.T) {
 	pods, _ := testData()
+	labelKey := api.LabelSelectorQueryParam(testapi.Version())
 	b := NewBuilder(latest.RESTMapper, api.Scheme, fakeClientWith(t, map[string]string{
-		"/namespaces/test/pods?labels=a%3Db": runtime.EncodeOrDie(latest.Codec, pods),
+		"/namespaces/test/pods?" + labelKey + "=a%3Db": runtime.EncodeOrDie(latest.Codec, pods),
 	})).
 		SelectorParam("a=b").
 		NamespaceParam("test").
@@ -608,9 +611,10 @@ func TestListObject(t *testing.T) {
 
 func TestListObjectWithDifferentVersions(t *testing.T) {
 	pods, svc := testData()
+	labelKey := api.LabelSelectorQueryParam(testapi.Version())
 	obj, err := NewBuilder(latest.RESTMapper, api.Scheme, fakeClientWith(t, map[string]string{
-		"/namespaces/test/pods?labels=a%3Db":     runtime.EncodeOrDie(latest.Codec, pods),
-		"/namespaces/test/services?labels=a%3Db": runtime.EncodeOrDie(latest.Codec, svc),
+		"/namespaces/test/pods?" + labelKey + "=a%3Db":     runtime.EncodeOrDie(latest.Codec, pods),
+		"/namespaces/test/services?" + labelKey + "=a%3Db": runtime.EncodeOrDie(latest.Codec, svc),
 	})).
 		SelectorParam("a=b").
 		NamespaceParam("test").
@@ -653,7 +657,7 @@ func TestWatch(t *testing.T) {
 	select {
 	case obj := <-ch:
 		if obj.Type != watch.Added {
-			t.Fatalf("unexpected watch event", obj)
+			t.Fatalf("unexpected watch event %#v", obj)
 		}
 		service, ok := obj.Object.(*api.Service)
 		if !ok {
@@ -734,7 +738,7 @@ func TestIgnoreStreamErrors(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err != nil || singular || len(test.Infos) != 2 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 
 	if !api.Semantic.DeepDerivative([]runtime.Object{&pods.Items[0], &svc.Items[0]}, test.Objects()) {
@@ -768,7 +772,7 @@ func TestReceiveMultipleErrors(t *testing.T) {
 
 	err := b.Do().IntoSingular(&singular).Visit(test.Handle)
 	if err == nil || singular || len(test.Infos) != 0 {
-		t.Fatalf("unexpected response: %v %f %#v", err, singular, test.Infos)
+		t.Fatalf("unexpected response: %v %t %#v", err, singular, test.Infos)
 	}
 
 	errs, ok := err.(errors.Aggregate)
@@ -776,6 +780,6 @@ func TestReceiveMultipleErrors(t *testing.T) {
 		t.Fatalf("unexpected error: %v", reflect.TypeOf(err))
 	}
 	if len(errs.Errors()) != 2 {
-		t.Errorf("unexpected errors", errs)
+		t.Errorf("unexpected errors %v", errs)
 	}
 }

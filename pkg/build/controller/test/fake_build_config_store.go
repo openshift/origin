@@ -30,6 +30,10 @@ func (s FakeBuildConfigStore) List() []interface{} {
 	return []interface{}{s.Build}
 }
 
+func (s FakeBuildConfigStore) ListKeys() []string {
+	return []string{"config"}
+}
+
 func (s FakeBuildConfigStore) ContainedIDs() util.StringSet {
 	return util.NewStringSet()
 }

@@ -2,16 +2,17 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package google provides support for making
-// OAuth2 authorized and authenticated HTTP requests
-// to Google APIs. It supports Web server, client-side,
-// service accounts, Google Compute Engine service accounts,
-// and Google App Engine service accounts authorization
-// and authentications flows:
+// Package google provides support for making OAuth2 authorized and
+// authenticated HTTP requests to Google APIs.
+// It supports the Web server flow, client-side credentials, service accounts,
+// Google Compute Engine service accounts, and Google App Engine service
+// accounts.
 //
 // For more information, please read
-// https://developers.google.com/accounts/docs/OAuth2.
-package google // import "golang.org/x/oauth2/google"
+// https://developers.google.com/accounts/docs/OAuth2
+// and
+// https://developers.google.com/accounts/docs/application-default-credentials.
+package google
 
 import (
 	"encoding/json"
@@ -34,7 +35,7 @@ var Endpoint = oauth2.Endpoint{
 // JWTTokenURL is Google's OAuth 2.0 token URL to use with the JWT flow.
 const JWTTokenURL = "https://accounts.google.com/o/oauth2/token"
 
-// JWTConfigFromJSON uses a Google Developers Console client_credentials.json
+// ConfigFromJSON uses a Google Developers Console client_credentials.json
 // file to construct a config.
 // client_credentials.json can be downloadable from https://console.developers.google.com,
 // under "APIs & Auth" > "Credentials". Download the Web application credentials in the

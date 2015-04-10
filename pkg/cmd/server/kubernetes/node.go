@@ -100,10 +100,11 @@ func (c *NodeConfig) RunKubelet() {
 	// TODO: clean this up and make it more formal (service named 'dns'?). Use multiple ports.
 	clusterDNS := c.ClusterDNS
 	if clusterDNS == nil {
-		if service, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil && len(service.Endpoints) > 0 {
-			firstIP := service.Endpoints[0].IP
-			if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", firstIP, 53), 50*time.Millisecond, 0, 2); err == nil {
-				clusterDNS = net.ParseIP(firstIP)
+		if service, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
+			if ip, ok := firstIP(service, 53); ok {
+				if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", ip, 53), 50*time.Millisecond, 0, 2); err == nil {
+					clusterDNS = net.ParseIP(ip)
+				}
 			}
 		}
 	}
@@ -122,7 +123,8 @@ func (c *NodeConfig) RunKubelet() {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	kubelet.SetupCapabilities(true, []string{})
-	recorder := record.FromSource(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
+	recorder := record.NewBroadcaster().NewRecorder(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
+
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates, recorder)
 	kconfig.NewSourceApiserver(c.Client, c.NodeHost, cfg.Channel("api"))
 	gcPolicy := kubelet.ContainerGCPolicy{
@@ -156,7 +158,9 @@ func (c *NodeConfig) RunKubelet() {
 		recorder,
 		cadvisorInterface,
 		imageGCPolicy,
-		nil)
+		nil,
+		15*time.Second,
+	)
 	if err != nil {
 		glog.Fatalf("Couldn't run kubelet: %s", err)
 	}
@@ -231,4 +235,27 @@ func (c *NodeConfig) RunProxy() {
 	serviceConfig.RegisterHandler(proxier)
 
 	glog.Infof("Started Kubernetes Proxy on %s", host)
+}
+
+// TODO: more generic location
+func includesPort(ports []kapi.EndpointPort, port int) bool {
+	for _, p := range ports {
+		if p.Port == port {
+			return true
+		}
+	}
+	return false
+}
+
+// TODO: more generic location
+func firstIP(endpoints *kapi.Endpoints, port int) (string, bool) {
+	for _, s := range endpoints.Subsets {
+		if !includesPort(s.Ports, port) {
+			continue
+		}
+		for _, a := range s.Addresses {
+			return a.IP, true
+		}
+	}
+	return "", false
 }

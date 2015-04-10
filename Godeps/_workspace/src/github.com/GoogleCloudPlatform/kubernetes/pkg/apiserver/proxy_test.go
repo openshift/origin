@@ -294,7 +294,7 @@ func TestProxy(t *testing.T) {
 			server           *httptest.Server
 			proxyTestPattern string
 		}{
-			{namespaceServer, "/api/version/proxy/namespaces/" + item.reqNamespace + "/foo/id" + item.path},
+			{namespaceServer, "/api/version2/proxy/namespaces/" + item.reqNamespace + "/foo/id" + item.path},
 			{legacyNamespaceServer, "/api/version/proxy/foo/id" + item.path + "?namespace=" + item.reqNamespace},
 		}
 
@@ -348,7 +348,7 @@ func TestProxyUpgrade(t *testing.T) {
 	server := httptest.NewServer(namespaceHandler)
 	defer server.Close()
 
-	ws, err := websocket.Dial("ws://"+server.Listener.Addr().String()+"/api/version/proxy/namespaces/myns/foo/123", "", "http://127.0.0.1/")
+	ws, err := websocket.Dial("ws://"+server.Listener.Addr().String()+"/api/version2/proxy/namespaces/myns/foo/123", "", "http://127.0.0.1/")
 	if err != nil {
 		t.Fatalf("websocket dial err: %s", err)
 	}
@@ -365,5 +365,61 @@ func TestProxyUpgrade(t *testing.T) {
 	}
 	if e, a := "hello world", string(response[0:n]); e != a {
 		t.Fatalf("expected '%#v', got '%#v'", e, a)
+	}
+}
+
+func TestRedirectOnMissingTrailingSlash(t *testing.T) {
+	table := []struct {
+		// The requested path
+		path string
+		// The path requested on the proxy server.
+		proxyServerPath string
+	}{
+		{"/trailing/slash/", "/trailing/slash/"},
+		{"/", "/"},
+		// "/" should be added at the end.
+		{"", "/"},
+		// "/" should not be added at a non-root path.
+		{"/some/path", "/some/path"},
+	}
+
+	for _, item := range table {
+		proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if req.URL.Path != item.proxyServerPath {
+				t.Errorf("Unexpected request on path: %s, expected path: %s, item: %v", req.URL.Path, item.proxyServerPath, item)
+			}
+		}))
+		defer proxyServer.Close()
+
+		serverURL, _ := url.Parse(proxyServer.URL)
+		simpleStorage := &SimpleRESTStorage{
+			errors:                    map[string]error{},
+			resourceLocation:          serverURL,
+			expectedResourceNamespace: "ns",
+		}
+
+		handler := handleNamespaced(map[string]rest.Storage{"foo": simpleStorage})
+		server := httptest.NewServer(handler)
+		defer server.Close()
+
+		proxyTestPattern := "/api/version2/proxy/namespaces/ns/foo/id" + item.path
+		req, err := http.NewRequest(
+			"GET",
+			server.URL+proxyTestPattern,
+			strings.NewReader(""),
+		)
+		if err != nil {
+			t.Errorf("unexpected error %v", err)
+			continue
+		}
+		// Note: We are using a default client here, that follows redirects.
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Errorf("unexpected error %v", err)
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("Unexpected errorCode: %v, expected: 200. Response: %v, item: %v", resp.StatusCode, resp, item)
+		}
 	}
 }

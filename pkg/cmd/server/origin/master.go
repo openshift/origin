@@ -261,9 +261,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		Mapper: latest.RESTMapper,
 
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  latest.SelfLinker,
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    latest.SelfLinker,
 
 		Admit:   admissionControl,
 		Context: c.getRequestContextMapper(),

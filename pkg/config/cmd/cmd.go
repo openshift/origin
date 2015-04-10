@@ -5,13 +5,13 @@ import (
 	"io"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 )
 
 // Bulk provides helpers for iterating over a list of items
 type Bulk struct {
-	Factory *kubecmd.Factory
+	Factory *cmdutil.Factory
 	After   func(*resource.Info, error)
 }
 

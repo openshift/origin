@@ -7,7 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/client"
 )
@@ -94,7 +94,7 @@ func TestSyncNamespace(t *testing.T) {
 			},
 		},
 	}
-	mockKubeClient := &kclient.Fake{NamespacesList: namespaceList}
+	mockKubeClient := testclient.NewSimpleFake(&namespaceList)
 	mockOriginClient := &client.Fake{}
 
 	reviewer := &mockReviewer{

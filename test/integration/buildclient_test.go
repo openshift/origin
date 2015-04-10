@@ -173,7 +173,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	openshift.lock.Lock()
 	defer openshift.lock.Unlock()
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
+	etcdHelper, _ := master.NewEtcdHelper(etcdClient, latest.Version)
 
 	osMux := http.NewServeMux()
 	openshift.server = httptest.NewServer(osMux)
@@ -240,9 +240,10 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 		Mapper: latest.RESTMapper,
 
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  interfaces.MetadataAccessor,
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    interfaces.MetadataAccessor,
 
 		Admit:   admit.NewAlwaysAdmit(),
 		Context: kapi.NewRequestContextMapper(),

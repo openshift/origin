@@ -19,6 +19,15 @@ import (
 	"google.golang.org/appengine/urlfetch"
 )
 
+func ExampleDefaultClient() {
+	client, err := google.DefaultClient(oauth2.NoContext,
+		"https://www.googleapis.com/auth/devstorage.full_control")
+	if err != nil {
+		log.Fatal(err)
+	}
+	client.Get("...")
+}
+
 func Example_webServer() {
 	// Your credentials should be obtained from the Google
 	// Developer Console (https://console.developers.google.com).

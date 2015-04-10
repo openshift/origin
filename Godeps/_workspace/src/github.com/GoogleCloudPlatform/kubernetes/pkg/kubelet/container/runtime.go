@@ -52,6 +52,14 @@ type Runtime interface {
 	// TODO(yifan): Pull/Remove images
 }
 
+// Container runner is a narrow interface to consume in the Kubelet
+// before there is a full implementation of Runtime.
+//
+// TODO: eventually include this interface in Runtime
+type ContainerRunner interface {
+	RunContainer(pod *api.Pod, container *api.Container, opts *RunContainerOptions) (string, error)
+}
+
 // Pod is a group of containers, with the status of the pod.
 type Pod struct {
 	// The ID of the pod, which can be used to retrieve a particular pod
@@ -116,9 +124,8 @@ type RunContainerOptions struct {
 
 type Pods []*Pod
 
-// FindPodByID returns a pod in the pod list by UID. It will return an empty pod
+// FindPodByID finds and returns a pod in the pod list by UID. It will return an empty pod
 // if not found.
-// TODO(yifan): Use a map?
 func (p Pods) FindPodByID(podUID types.UID) Pod {
 	for i := range p {
 		if p[i].ID == podUID {
@@ -126,6 +133,27 @@ func (p Pods) FindPodByID(podUID types.UID) Pod {
 		}
 	}
 	return Pod{}
+}
+
+// FindPodByFullName finds and returns a pod in the pod list by the full name.
+// It will return an empty pod if not found.
+func (p Pods) FindPodByFullName(podFullName string) Pod {
+	for i := range p {
+		if BuildPodFullName(p[i].Name, p[i].Namespace) == podFullName {
+			return *p[i]
+		}
+	}
+	return Pod{}
+}
+
+// FindPod combines FindPodByID and FindPodByFullName, it finds and returns a pod in the
+// pod list either by the full name or the pod ID. It will return an empty pod
+// if not found.
+func (p Pods) FindPod(podFullName string, podUID types.UID) Pod {
+	if len(podFullName) > 0 {
+		return p.FindPodByFullName(podFullName)
+	}
+	return p.FindPodByID(podUID)
 }
 
 // FindContainerByName returns a container in the pod with the given name.

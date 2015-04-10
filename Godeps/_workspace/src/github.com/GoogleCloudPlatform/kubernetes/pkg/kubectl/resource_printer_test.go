@@ -367,7 +367,7 @@ func TestTemplateStrings(t *testing.T) {
 			},
 			"false",
 		},
-		"oneValid": {
+		"barValid": {
 			api.Pod{
 				Status: api.PodStatus{
 					ContainerStatuses: []api.ContainerStatus{
@@ -413,26 +413,28 @@ func TestTemplateStrings(t *testing.T) {
 			"true",
 		},
 	}
-
 	// The point of this test is to verify that the below template works. If you change this
 	// template, you need to update hack/e2e-suite/update.sh.
-	tmpl :=
-		`{{and (exists . "currentState" "info" "foo" "state" "running") (exists . "currentState" "info" "bar" "state" "running")}}`
-	useThisToDebug := `
+	tmpl := ``
+	if api.PreV1Beta3(testapi.Version()) {
+		tmpl = `{{exists . "currentState" "info" "foo" "state" "running"}}`
+		useThisToDebug := `
 a: {{exists . "currentState"}}
 b: {{exists . "currentState" "info"}}
 c: {{exists . "currentState" "info" "foo"}}
 d: {{exists . "currentState" "info" "foo" "state"}}
 e: {{exists . "currentState" "info" "foo" "state" "running"}}
 f: {{exists . "currentState" "info" "foo" "state" "running" "startedAt"}}`
-	_ = useThisToDebug // don't complain about unused var
-
+		_ = useThisToDebug // don't complain about unused var
+	} else {
+		tmpl = `{{if (exists . "status" "containerStatuses")}}{{range .status.containerStatuses}}{{if (and (eq .name "foo") (exists . "state" "running"))}}true{{end}}{{end}}{{end}}`
+	}
 	p, err := NewTemplatePrinter([]byte(tmpl))
 	if err != nil {
 		t.Fatalf("tmpl fail: %v", err)
 	}
 
-	printer := NewVersionedPrinter(p, api.Scheme, "v1beta1")
+	printer := NewVersionedPrinter(p, api.Scheme, testapi.Version())
 
 	for name, item := range table {
 		buffer := &bytes.Buffer{}
@@ -441,8 +443,12 @@ f: {{exists . "currentState" "info" "foo" "state" "running" "startedAt"}}`
 			t.Errorf("%v: unexpected err: %v", name, err)
 			continue
 		}
-		if e, a := item.expect, buffer.String(); e != a {
-			t.Errorf("%v: expected %v, got %v", name, e, a)
+		actual := buffer.String()
+		if len(actual) == 0 {
+			actual = "false"
+		}
+		if e := item.expect; e != actual {
+			t.Errorf("%v: expected %v, got %v", name, e, actual)
 		}
 	}
 }
@@ -469,7 +475,11 @@ func TestPrinters(t *testing.T) {
 		"pod":             &api.Pod{ObjectMeta: om("pod")},
 		"emptyPodList":    &api.PodList{},
 		"nonEmptyPodList": &api.PodList{Items: []api.Pod{{}}},
-		"endpoints":       &api.Endpoints{Endpoints: []api.Endpoint{{IP: "127.0.0.1"}, {IP: "localhost", Port: 8080}}},
+		"endpoints": &api.Endpoints{
+			Subsets: []api.EndpointSubset{{
+				Addresses: []api.EndpointAddress{{IP: "127.0.0.1"}, {IP: "localhost"}},
+				Ports:     []api.EndpointPort{{Port: 8080}},
+			}}},
 	}
 	// map of printer name to set of objects it should fail on.
 	expectedErrors := map[string]util.StringSet{
@@ -547,15 +557,6 @@ func TestPrintMinionStatus(t *testing.T) {
 		},
 		{
 			minion: api.Node{
-				ObjectMeta: api.ObjectMeta{Name: "foo2"},
-				Status: api.NodeStatus{Conditions: []api.NodeCondition{
-					{Type: api.NodeReady, Status: api.ConditionTrue},
-					{Type: api.NodeReachable, Status: api.ConditionTrue}}},
-			},
-			status: "Ready,Reachable",
-		},
-		{
-			minion: api.Node{
 				ObjectMeta: api.ObjectMeta{Name: "foo3"},
 				Status: api.NodeStatus{Conditions: []api.NodeCondition{
 					{Type: api.NodeReady, Status: api.ConditionTrue},
@@ -584,26 +585,6 @@ func TestPrintMinionStatus(t *testing.T) {
 			},
 			status: "Unknown",
 		},
-		{
-			minion: api.Node{
-				ObjectMeta: api.ObjectMeta{Name: "foo7"},
-				Status: api.NodeStatus{Conditions: []api.NodeCondition{
-					{Type: api.NodeSchedulable, Status: api.ConditionTrue},
-					{Type: api.NodeReady, Status: api.ConditionTrue},
-					{Type: api.NodeReachable, Status: api.ConditionTrue}}},
-			},
-			status: "Schedulable,Ready,Reachable",
-		},
-		{
-			minion: api.Node{
-				ObjectMeta: api.ObjectMeta{Name: "foo8"},
-				Status: api.NodeStatus{Conditions: []api.NodeCondition{
-					{Type: api.NodeSchedulable, Status: api.ConditionFalse},
-					{Type: api.NodeReady, Status: api.ConditionFalse},
-					{Type: api.NodeReachable, Status: api.ConditionTrue}}},
-			},
-			status: "NotSchedulable,NotReady,Reachable",
-		},
 	}
 
 	for _, test := range table {
@@ -625,4 +606,120 @@ func contains(fields []string, field string) bool {
 		}
 	}
 	return false
+}
+
+func TestPrintHumanReadableService(t *testing.T) {
+	tests := []api.Service{
+		{
+			Spec: api.ServiceSpec{
+				PortalIP: "1.2.3.4",
+				PublicIPs: []string{
+					"2.3.4.5",
+					"3.4.5.6",
+				},
+				Ports: []api.ServicePort{
+					{
+						Port:     80,
+						Protocol: "TCP",
+					},
+				},
+			},
+		},
+		{
+			Spec: api.ServiceSpec{
+				PortalIP: "1.2.3.4",
+				Ports: []api.ServicePort{
+					{
+						Port:     80,
+						Protocol: "TCP",
+					},
+					{
+						Port:     8090,
+						Protocol: "UDP",
+					},
+					{
+						Port:     8000,
+						Protocol: "TCP",
+					},
+				},
+			},
+		},
+		{
+			Spec: api.ServiceSpec{
+				PortalIP: "1.2.3.4",
+				PublicIPs: []string{
+					"2.3.4.5",
+				},
+				Ports: []api.ServicePort{
+					{
+						Port:     80,
+						Protocol: "TCP",
+					},
+					{
+						Port:     8090,
+						Protocol: "UDP",
+					},
+					{
+						Port:     8000,
+						Protocol: "TCP",
+					},
+				},
+			},
+		},
+		{
+			Spec: api.ServiceSpec{
+				PortalIP: "1.2.3.4",
+				PublicIPs: []string{
+					"2.3.4.5",
+					"4.5.6.7",
+					"5.6.7.8",
+				},
+				Ports: []api.ServicePort{
+					{
+						Port:     80,
+						Protocol: "TCP",
+					},
+					{
+						Port:     8090,
+						Protocol: "UDP",
+					},
+					{
+						Port:     8000,
+						Protocol: "TCP",
+					},
+				},
+			},
+		},
+	}
+
+	for _, svc := range tests {
+		buff := bytes.Buffer{}
+		printService(&svc, &buff)
+		output := string(buff.Bytes())
+		ip := svc.Spec.PortalIP
+		if !strings.Contains(output, ip) {
+			t.Errorf("expected to contain portal ip %s, but doesn't: %s", ip, output)
+		}
+
+		for _, ip = range svc.Spec.PublicIPs {
+			if !strings.Contains(output, ip) {
+				t.Errorf("expected to contain public ip %s, but doesn't: %s", ip, output)
+			}
+		}
+
+		for _, port := range svc.Spec.Ports {
+			portSpec := fmt.Sprintf("%d/%s", port.Port, port.Protocol)
+			if !strings.Contains(output, portSpec) {
+				t.Errorf("expected to contain port: %s, but doesn't: %s", portSpec, output)
+			}
+		}
+		// Max of # ports and (# public ip + portal ip)
+		count := len(svc.Spec.Ports)
+		if len(svc.Spec.PublicIPs)+1 > count {
+			count = len(svc.Spec.PublicIPs) + 1
+		}
+		if count != strings.Count(output, "\n") {
+			t.Errorf("expected %d newlines, found %d", count, strings.Count(output, "\n"))
+		}
+	}
 }

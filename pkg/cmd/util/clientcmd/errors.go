@@ -1,11 +1,10 @@
 package clientcmd
 
 import (
-	"net/http"
 	"strings"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 )
 
 const (
@@ -47,13 +46,7 @@ func IsCertificateAuthorityUnknown(err error) bool {
 }
 
 func IsForbidden(err error) bool {
-	if kerrors.IsForbidden(err) {
-		return true
-	}
-	if e, ok := err.(*kclient.UnexpectedStatusError); ok {
-		return e.Response != nil && e.Response.StatusCode == http.StatusForbidden
-	}
-	return false
+	return kerrors.IsForbidden(err)
 }
 
 func detectReason(err error) int {
@@ -61,8 +54,7 @@ func detectReason(err error) int {
 		switch {
 		case strings.Contains(err.Error(), "certificate signed by unknown authority"):
 			return certificateAuthorityUnknownReason
-
-		case strings.Contains(err.Error(), "no server found for"):
+		case clientcmd.IsConfigurationInvalid(err), strings.Contains(err.Error(), "no server found for"):
 			return noServerFoundReason
 		}
 	}

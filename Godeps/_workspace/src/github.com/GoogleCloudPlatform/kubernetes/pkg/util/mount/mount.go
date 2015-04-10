@@ -24,20 +24,15 @@ package mount
 type Interface interface {
 	// Mount wraps syscall.Mount().
 	Mount(source string, target string, fstype string, flags uintptr, data string) error
-
 	// Umount wraps syscall.Mount().
 	Unmount(target string, flags int) error
-
 	// List returns a list of all mounted filesystems.  This can be large.
 	// On some platforms, reading mounts is not guaranteed consistent (i.e.
 	// it could change between chunked reads). This is guaranteed to be
 	// consistent.
 	List() ([]MountPoint, error)
-}
-
-// New returns a mount.Interface for the current system.
-func New() Interface {
-	return &Mounter{}
+	// IsMountPoint determines if a directory is a mountpoint.
+	IsMountPoint(file string) (bool, error)
 }
 
 // This represents a single line in /proc/mounts or /etc/fstab.
@@ -50,7 +45,12 @@ type MountPoint struct {
 	Pass   int
 }
 
-// Examines /proc/mounts to find all other references to the device referenced
+// New returns a mount.Interface for the current system.
+func New() Interface {
+	return &Mounter{}
+}
+
+// GetMountRefs finds all other references to the device referenced
 // by mountPath; returns a list of paths.
 func GetMountRefs(mounter Interface, mountPath string) ([]string, error) {
 	mps, err := mounter.List()
@@ -75,4 +75,32 @@ func GetMountRefs(mounter Interface, mountPath string) ([]string, error) {
 		}
 	}
 	return refs, nil
+}
+
+// GetDeviceNameFromMount: given a mnt point, find the device from /proc/mounts
+// returns the device name, reference count, and error code
+func GetDeviceNameFromMount(mounter Interface, mountPath string) (string, int, error) {
+	mps, err := mounter.List()
+	if err != nil {
+		return "", 0, err
+	}
+
+	// Find the device name.
+	// FIXME if multiple devices mounted on the same mount path, only the first one is returned
+	device := ""
+	for i := range mps {
+		if mps[i].Path == mountPath {
+			device = mps[i].Device
+			break
+		}
+	}
+
+	// Find all references to the device.
+	refCount := 0
+	for i := range mps {
+		if mps[i].Device == device {
+			refCount++
+		}
+	}
+	return device, refCount, nil
 }

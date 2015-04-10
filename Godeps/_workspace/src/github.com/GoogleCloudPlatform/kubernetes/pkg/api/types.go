@@ -18,6 +18,8 @@ package api
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -193,6 +195,11 @@ type VolumeSource struct {
 	Secret *SecretVolumeSource `json:"secret"`
 	// NFS represents an NFS mount on the host that shares a pod's lifetime
 	NFS *NFSVolumeSource `json:"nfs"`
+	// ISCSIVolumeSource represents an ISCSI Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	ISCSI *ISCSIVolumeSource `json:"iscsi"`
+	// Glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime
+	Glusterfs *GlusterfsVolumeSource `json:"glusterfs"`
 }
 
 // Similar to VolumeSource but meant for the administrator who creates PVs.
@@ -205,6 +212,8 @@ type PersistentVolumeSource struct {
 	// This is useful for development and testing only.
 	// on-host storage is not supported in any way
 	HostPath *HostPathVolumeSource `json:"hostPath"`
+	// Glusterfs represents a Glusterfs volume that is attached to a host and exposed to the pod
+	Glusterfs *GlusterfsVolumeSource `json:"glusterfs"`
 }
 
 type PersistentVolume struct {
@@ -222,8 +231,9 @@ type PersistentVolumeSpec struct {
 	// Resources represents the actual resources of the volume
 	Capacity ResourceList `json:"capacity`
 	// Source represents the location and type of a volume to mount.
-	// AccessModeTypes are inferred from the Source.
 	PersistentVolumeSource `json:",inline"`
+	// AccessModes contains all ways the volume can be mounted
+	AccessModes []AccessModeType `json:"accessModes,omitempty"`
 	// holds the binding reference to a PersistentVolumeClaim
 	ClaimRef *ObjectReference `json:"claimRef,omitempty"`
 }
@@ -365,6 +375,25 @@ type GCEPersistentDiskVolumeSource struct {
 	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
+// A ISCSI Disk can only be mounted as read/write once.
+type ISCSIVolumeSource struct {
+	// Required: iSCSI target portal
+	// the portal is either an IP or ip_addr:port if port is other than default (typically TCP ports 860 and 3260)
+	TargetPortal string `json:"targetPortal,omitempty"`
+	// Required:  target iSCSI Qualified Name
+	IQN string `json:"iqn,omitempty"`
+	// Required: iSCSI target lun number
+	Lun int `json:"lun,omitempty"`
+	// Required: Filesystem type to mount.
+	// Must be a filesystem type supported by the host operating system.
+	// Ex. "ext4", "xfs", "ntfs"
+	// TODO: how do we prevent errors in the filesystem from compromising the machine
+	FSType string `json:"fsType,omitempty"`
+	// Optional: Defaults to false (read/write). ReadOnly here will force
+	// the ReadOnly setting in VolumeMounts.
+	ReadOnly bool `json:"readOnly,omitempty"`
+}
+
 // GitRepoVolumeSource represents a volume that is pulled from git when the pod is created.
 type GitRepoVolumeSource struct {
 	// Repository URL
@@ -393,6 +422,19 @@ type NFSVolumeSource struct {
 
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the NFS export to be mounted with read-only permissions
+	ReadOnly bool `json:"readOnly,omitempty"`
+}
+
+// GlusterfsVolumeSource represents a Glusterfs Mount that lasts the lifetime of a pod
+type GlusterfsVolumeSource struct {
+	// Required: EndpointsName is the endpoint name that details Glusterfs topology
+	EndpointsName string `json:"endpoints"`
+
+	// Required: Path is the Glusterfs volume path
+	Path string `json:"path"`
+
+	// Optional: Defaults to false (read/write). ReadOnly here will force
+	// the Glusterfs to be mounted with read-only permissions
 	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
@@ -503,8 +545,10 @@ type Container struct {
 	Name string `json:"name"`
 	// Required.
 	Image string `json:"image"`
-	// Optional: Defaults to whatever is defined in the image.
+	// Optional: The docker image's entrypoint is used if this is not provided; cannot be updated.
 	Command []string `json:"command,omitempty"`
+	// Optional: The docker image's cmd is used if this is not provided; cannot be updated.
+	Args []string `json:"args,omitempty"`
 	// Optional: Defaults to Docker's default.
 	WorkingDir string          `json:"workingDir,omitempty"`
 	Ports      []ContainerPort `json:"ports,omitempty"`
@@ -606,8 +650,8 @@ type ContainerStatus struct {
 	RestartCount int `json:"restartCount"`
 	// TODO(dchen1107): Need to decide how to represent this in v1beta3
 	Image       string `json:"image"`
-	ImageID     string `json:"imageID" description:"ID of the container's image"`
-	ContainerID string `json:"containerID,omitempty" description:"container's ID in the format 'docker://<container_id>'"`
+	ImageID     string `json:"imageID"`
+	ContainerID string `json:"containerID,omitempty"`
 }
 
 // PodPhase is a label for the condition of a pod at the current time.
@@ -719,9 +763,6 @@ type PodStatus struct {
 	// A human readable message indicating details about why the pod is in this state.
 	Message string `json:"message,omitempty"`
 
-	// Host is the name of the node that this Pod is currently bound to, or empty if no
-	// assignment has been done.
-	Host   string `json:"host,omitempty"`
 	HostIP string `json:"hostIP,omitempty"`
 	PodIP  string `json:"podIP,omitempty"`
 
@@ -861,12 +902,8 @@ type ServiceStatus struct{}
 
 // ServiceSpec describes the attributes that a user creates on a service
 type ServiceSpec struct {
-	// Port is the TCP or UDP port that will be made available to each pod for connecting to the pods
-	// proxied by this service.
-	Port int `json:"port"`
-
-	// Required: Supports "TCP" and "UDP".
-	Protocol Protocol `json:"protocol,omitempty"`
+	// Required: The list of ports that are exposed by this service.
+	Ports []ServicePort `json:"ports"`
 
 	// This service will route traffic to pods having labels matching this selector. If empty or not present,
 	// the service is assumed to have endpoints set by an external process and Kubernetes will not modify
@@ -889,15 +926,30 @@ type ServiceSpec struct {
 	// For hostnames, the user will use a CNAME record (instead of using an A record with the IP)
 	PublicIPs []string `json:"publicIPs,omitempty"`
 
-	// TargetPort is the name or number of the port on the container to direct traffic to.
-	// This is useful if the containers the service points to have multiple open ports.
-	// Optional: If unspecified, the first port on the container will be used.
-	// As of v1beta3 this field will become required in the internal API,
-	// and the versioned APIs must provide a default value.
-	TargetPort util.IntOrString `json:"targetPort,omitempty"`
-
 	// Required: Supports "ClientIP" and "None".  Used to maintain session affinity.
 	SessionAffinity AffinityType `json:"sessionAffinity,omitempty"`
+}
+
+type ServicePort struct {
+	// Optional if only one ServicePort is defined on this service: The
+	// name of this port within the service.  This must be a DNS_LABEL.
+	// All ports within a ServiceSpec must have unique names.  This maps to
+	// the 'Name' field in EndpointPort objects.
+	Name string `json:"name"`
+
+	// The IP protocol for this port.  Supports "TCP" and "UDP".
+	Protocol Protocol `json:"protocol"`
+
+	// The port that will be exposed on the service.
+	Port int `json:"port"`
+
+	// Optional: The target port on pods selected by this service.  If this
+	// is a string, it will be looked up as a named port in the target
+	// Pod's container ports.  If this is not specified, the first port on
+	// the destination pod will be used.  This behavior is deprecated.  As
+	// of v1beta3 the default value is the sames as the Port field (an
+	// identity map).
+	TargetPort util.IntOrString `json:"targetPort"`
 }
 
 // Service is a named abstraction of software service (for example, mysql) consisting of local port
@@ -914,29 +966,62 @@ type Service struct {
 	Status ServiceStatus `json:"status,omitempty"`
 }
 
-// Endpoints is a collection of endpoints that implement the actual service, for example:
-// Name: "mysql", Endpoints: [{"ip": "10.10.1.1", "port": 1909}, {"ip": "10.10.2.2", "port": 8834}]
+// Endpoints is a collection of endpoints that implement the actual service.  Example:
+//   Name: "mysvc",
+//   Subsets: [
+//     {
+//       Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
+//       Ports: [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
+//     },
+//     {
+//       Addresses: [{"ip": "10.10.3.3"}],
+//       Ports: [{"name": "a", "port": 93}, {"name": "b", "port": 76}]
+//     },
+//  ]
 type Endpoints struct {
 	TypeMeta   `json:",inline"`
 	ObjectMeta `json:"metadata,omitempty"`
 
-	// Optional: The IP protocol for these endpoints. Supports "TCP" and
-	// "UDP".  Defaults to "TCP".
-	Protocol  Protocol   `json:"protocol,omitempty"`
-	Endpoints []Endpoint `json:"endpoints,omitempty"`
+	// The set of all endpoints is the union of all subsets.
+	Subsets []EndpointSubset
 }
 
-// Endpoint is a single IP endpoint of a service.
-type Endpoint struct {
-	// Required: The IP of this endpoint.
-	// TODO: This should allow hostname or IP, see #4447.
-	IP string `json:"ip"`
+// EndpointSubset is a group of addresses with a common set of ports.  The
+// expanded set of endpoints is the Cartesian product of Addresses x Ports.
+// For example, given:
+//   {
+//     Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
+//     Ports:     [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
+//   }
+// The resulting set of endpoints can be viewed as:
+//     a: [ 10.10.1.1:8675, 10.10.2.2:8675 ],
+//     b: [ 10.10.1.1:309, 10.10.2.2:309 ]
+type EndpointSubset struct {
+	Addresses []EndpointAddress
+	Ports     []EndpointPort
+}
 
-	// Required: The destination port to access.
-	Port int `json:"port"`
+// EndpointAddress is a tuple that describes single IP address.
+type EndpointAddress struct {
+	// The IP of this endpoint.
+	// TODO: This should allow hostname or IP, see #4447.
+	IP string
 
 	// Optional: The kubernetes object related to the entry point.
-	TargetRef *ObjectReference `json:"targetRef,omitempty"`
+	TargetRef *ObjectReference
+}
+
+// EndpointPort is a tuple that describes a single port.
+type EndpointPort struct {
+	// The name of this port (corresponds to ServicePort.Name).  Optional
+	// if only one port is defined.  Must be a DNS_LABEL.
+	Name string
+
+	// The port number.
+	Port int
+
+	// The IP protocol for this port.
+	Protocol Protocol
 }
 
 // EndpointsList is a list of endpoints.
@@ -968,6 +1053,16 @@ type NodeSystemInfo struct {
 	SystemUUID string `json:"systemUUID"`
 	// BootID is the boot-id reported by the node
 	BootID string `json:"bootID"`
+	// Kernel version reported by the node
+	KernelVersion string `json:"kernelVersion""`
+	// OS image used reported by the node
+	OsImage string `json:"osImage"`
+	// Container runtime version reported by the node
+	ContainerRuntimeVersion string `json:"containerRuntimeVersion"`
+	// Kubelet version reported by the node
+	KubeletVersion string `json:"kubeletVersion"`
+	// Kube-proxy version reported by the node
+	KubeProxyVersion string `json:"kubeProxyVersion"`
 }
 
 // NodeStatus is information about the current status of a node.
@@ -1009,20 +1104,16 @@ type NodeConditionType string
 
 // These are valid conditions of node. Currently, we don't have enough information to decide
 // node condition. In the future, we will add more. The proposed set of conditions are:
-// NodeReachable, NodeLive, NodeReady, NodeSchedulable, NodeRunnable.
+// NodeReady, NodeReachable
 const (
-	// NodeReachable means the node can be reached (in the sense of HTTP connection) from node controller.
-	NodeReachable NodeConditionType = "Reachable"
-	// NodeReady means the node returns StatusOK for HTTP health check.
+	// NodeReady means kubelet is healthy and ready to accept pods.
 	NodeReady NodeConditionType = "Ready"
-	// NodeSchedulable means the node is ready to accept new pods.
-	NodeSchedulable NodeConditionType = "Schedulable"
 )
 
 type NodeCondition struct {
 	Type               NodeConditionType `json:"type"`
 	Status             ConditionStatus   `json:"status"`
-	LastProbeTime      util.Time         `json:"lastProbeTime,omitempty"`
+	LastHeartbeatTime  util.Time         `json:"lastHeartbeatTime,omitempty"`
 	LastTransitionTime util.Time         `json:"lastTransitionTime,omitempty"`
 	Reason             string            `json:"reason,omitempty"`
 	Message            string            `json:"message,omitempty"`
@@ -1158,6 +1249,32 @@ type DeleteOptions struct {
 	GracePeriodSeconds *int64 `json:"gracePeriodSeconds"`
 }
 
+// ListOptions is the query options to a standard REST list call, and has future support for
+// watch calls.
+type ListOptions struct {
+	TypeMeta `json:",inline"`
+
+	// A selector based on labels
+	LabelSelector labels.Selector
+	// A selector based on fields
+	FieldSelector fields.Selector
+	// If true, watch for changes to this list
+	Watch bool
+	// The resource version to watch (no effect on list yet)
+	ResourceVersion string
+}
+
+// PodLogOptions is the query options for a Pod's logs REST call
+type PodLogOptions struct {
+	TypeMeta
+
+	// Container for which to return logs
+	Container string
+
+	// If true, follow the logs for the pod
+	Follow bool
+}
+
 // Status is a return value for calls that don't return other objects.
 // TODO: this could go in apiserver, but I'm including it here so clients needn't
 // import both.
@@ -1200,6 +1317,8 @@ type StatusDetails struct {
 	// The Causes array includes more details associated with the StatusReason
 	// failure. Not all StatusReasons may provide detailed causes.
 	Causes []StatusCause `json:"causes,omitempty"`
+	// If specified, the time in seconds before the operation should be retried.
+	RetryAfterSeconds int `json:"retryAfterSeconds,omitempty"`
 }
 
 // Values of Status.Status
@@ -1219,6 +1338,13 @@ const (
 	// The details field may contain other information about this error.
 	// Status code 500.
 	StatusReasonUnknown StatusReason = ""
+
+	// StatusReasonUnauthorized means the server can be reached and understood the request, but requires
+	// the user to present appropriate authorization credentials (identified by the WWW-Authenticate header)
+	// in order for the action to be completed. If the user has specified credentials on the request, the
+	// server considers them insufficient.
+	// Status code 401
+	StatusReasonUnauthorized StatusReason = "Unauthorized"
 
 	// StatusReasonForbidden means the server can be reached and understood the request, but refuses
 	// to take any further action.  It is the result of the server being configured to deny access for some reason
@@ -1276,12 +1402,17 @@ const (
 	// Details (optional):
 	//   "kind" string - the kind attribute of the resource being acted on.
 	//   "id"   string - the operation that is being attempted.
+	//   "retryAfterSeconds" int - the number of seconds before the operation should be retried
 	// Status code 500
 	StatusReasonServerTimeout StatusReason = "ServerTimeout"
 
 	// StatusReasonTimeout means that the request could not be completed within the given time.
-	// Clients can get this response only when they specified a timeout param in the request.
-	// The request might succeed with an increased value of timeout param.
+	// Clients can get this response only when they specified a timeout param in the request,
+	// or if the server cannot complete the operation within a reasonable amount of time.
+	// The request might succeed with an increased value of timeout param. The client *should*
+	// wait at least the number of seconds specified by the retryAfterSeconds field.
+	// Details (optional):
+	//   "retryAfterSeconds" int - the number of seconds before the operation should be retried
 	// Status code 504
 	StatusReasonTimeout StatusReason = "Timeout"
 
@@ -1346,6 +1477,10 @@ const (
 	// CauseTypeFieldValueNotSupported is used to report valid (as per formatting rules)
 	// values that can not be handled (e.g. an enumerated string).
 	CauseTypeFieldValueNotSupported CauseType = "FieldValueNotSupported"
+	// CauseTypeUnexpectedServerResponse is used to report when the server responded to the client
+	// without the expected return type. The presence of this cause indicates the error may be
+	// due to an intervening proxy or the server software malfunctioning.
+	CauseTypeUnexpectedServerResponse CauseType = "UnexpectedServerResponse"
 )
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
@@ -1433,7 +1568,8 @@ type ContainerManifest struct {
 	Containers    []Container   `json:"containers"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty"`
 	// Required: Set DNS policy.
-	DNSPolicy DNSPolicy `json:"dnsPolicy"`
+	DNSPolicy   DNSPolicy `json:"dnsPolicy"`
+	HostNetwork bool      `json:"hostNetwork,omitempty"`
 }
 
 // ContainerManifestList is used to communicate container manifests to kubelet.
@@ -1471,6 +1607,8 @@ type LimitRangeItem struct {
 	Max ResourceList `json:"max,omitempty"`
 	// Min usage constraints on this kind by resource name
 	Min ResourceList `json:"min,omitempty"`
+	// Default usage constraints on this kind by resource name
+	Default ResourceList `json:"default,omitempty"`
 }
 
 // LimitRangeSpec defines a min/max usage limit for resources that match on kind
@@ -1555,7 +1693,7 @@ type Secret struct {
 	// representing the arbitrary (possibly non-string) data value here.
 	Data map[string][]byte `json:"data,omitempty"`
 
-	// Used to facilitate programatic handling of secret data.
+	// Used to facilitate programmatic handling of secret data.
 	Type SecretType `json:"type,omitempty"`
 }
 
@@ -1601,6 +1739,17 @@ const (
 	StreamTypeError  = "error"
 
 	PortHeader = "port"
+)
+
+// Similarly to above, these are constants to support HTTP PATCH utilized by
+// both the client and server that didn't make sense for a whole package to be
+// dedicated to.
+type PatchType string
+
+const (
+	JSONPatchType           PatchType = "application/json-patch+json"
+	MergePatchType          PatchType = "application/merge-patch+json"
+	StrategicMergePatchType PatchType = "application/strategic-merge-patch+json"
 )
 
 // Appends the NodeAddresses to the passed-by-pointer slice, only if they do not already exist

@@ -48,8 +48,8 @@ func (c *imageStreams) List(label labels.Selector, field fields.Selector) (resul
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("imageStreams").
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Do().
 		Into(result)
 	return
@@ -96,7 +96,7 @@ func (c *imageStreams) Watch(label labels.Selector, field fields.Selector, resou
 		Namespace(c.ns).
 		Resource("imageStreams").
 		Param("resourceVersion", resourceVersion).
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Watch()
 }

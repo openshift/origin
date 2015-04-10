@@ -47,10 +47,13 @@ import (
 )
 
 func TestRequestWithErrorWontChange(t *testing.T) {
-	original := Request{err: errors.New("test")}
+	original := Request{
+		err:        errors.New("test"),
+		apiVersion: testapi.Version(),
+	}
 	r := original
 	changed := r.Param("foo", "bar").
-		LabelsSelectorParam(api.LabelSelectorQueryParam(testapi.Version()), labels.Set{"a": "b"}.AsSelector()).
+		LabelsSelectorParam(labels.Set{"a": "b"}.AsSelector()).
 		UintParam("uint", 1).
 		AbsPath("/abs").
 		Prefix("test").
@@ -222,6 +225,7 @@ func TestTransformResponse(t *testing.T) {
 		Data     []byte
 		Created  bool
 		Error    bool
+		ErrFn    func(err error) bool
 	}{
 		{Response: &http.Response{StatusCode: 200}, Data: []byte{}},
 		{Response: &http.Response{StatusCode: 201}, Data: []byte{}, Created: true},
@@ -230,6 +234,30 @@ func TestTransformResponse(t *testing.T) {
 		{Response: &http.Response{StatusCode: 422}, Error: true},
 		{Response: &http.Response{StatusCode: 409}, Error: true},
 		{Response: &http.Response{StatusCode: 404}, Error: true},
+		{Response: &http.Response{StatusCode: 401}, Error: true},
+		{
+			Response: &http.Response{
+				StatusCode: 401,
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body:       ioutil.NopCloser(bytes.NewReader(invalid)),
+			},
+			Error: true,
+			ErrFn: func(err error) bool {
+				return err.Error() != "aaaaa" && apierrors.IsUnauthorized(err)
+			},
+		},
+		{
+			Response: &http.Response{
+				StatusCode: 401,
+				Header:     http.Header{"Content-Type": []string{"text/any"}},
+				Body:       ioutil.NopCloser(bytes.NewReader(invalid)),
+			},
+			Error: true,
+			ErrFn: func(err error) bool {
+				return strings.Contains(err.Error(), "server has asked for the client to provide") && apierrors.IsUnauthorized(err)
+			},
+		},
+		{Response: &http.Response{StatusCode: 403}, Error: true},
 		{Response: &http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader(invalid))}, Data: invalid},
 		{Response: &http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader(invalid))}, Data: invalid},
 	}
@@ -242,10 +270,22 @@ func TestTransformResponse(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to read body of response: %v", err)
 		}
-		response, created, err := r.transformResponse(body, test.Response, &http.Request{})
+		response, created, err := r.transformResponse(test.Response, &http.Request{}, body)
 		hasErr := err != nil
 		if hasErr != test.Error {
 			t.Errorf("%d: unexpected error: %t %v", i, test.Error, err)
+		} else if hasErr && test.Response.StatusCode > 399 {
+			status, ok := err.(APIStatus)
+			if !ok {
+				t.Errorf("%d: response should have been transformable into APIStatus: %v", i, err)
+				continue
+			}
+			if status.Status().Code != test.Response.StatusCode {
+				t.Errorf("%d: status code did not match response: %#v", i, status.Status())
+			}
+		}
+		if test.ErrFn != nil && !test.ErrFn(err) {
+			t.Errorf("%d: error function did not match: %v", i, err)
 		}
 		if !(test.Data == nil && response == nil) && !api.Semantic.DeepDerivative(test.Data, response) {
 			t.Errorf("%d: unexpected response: %#v %#v", i, test.Data, response)
@@ -320,7 +360,7 @@ func TestTransformUnstructuredError(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to read body: %v", err)
 		}
-		_, _, err = r.transformResponse(body, testCase.Res, testCase.Req)
+		_, _, err = r.transformResponse(testCase.Res, testCase.Req, body)
 		if !testCase.ErrFn(err) {
 			t.Errorf("unexpected error: %v", err)
 			continue
@@ -344,6 +384,7 @@ func TestRequestWatch(t *testing.T) {
 	testCases := []struct {
 		Request *Request
 		Err     bool
+		ErrFn   func(error) bool
 		Empty   bool
 	}{
 		{
@@ -365,12 +406,48 @@ func TestRequestWatch(t *testing.T) {
 		},
 		{
 			Request: &Request{
+				codec: testapi.Codec(),
 				client: clientFunc(func(req *http.Request) (*http.Response, error) {
 					return &http.Response{StatusCode: http.StatusForbidden}, nil
 				}),
 				baseURL: &url.URL{},
 			},
 			Err: true,
+			ErrFn: func(err error) bool {
+				return apierrors.IsForbidden(err)
+			},
+		},
+		{
+			Request: &Request{
+				codec: testapi.Codec(),
+				client: clientFunc(func(req *http.Request) (*http.Response, error) {
+					return &http.Response{StatusCode: http.StatusUnauthorized}, nil
+				}),
+				baseURL: &url.URL{},
+			},
+			Err: true,
+			ErrFn: func(err error) bool {
+				return apierrors.IsUnauthorized(err)
+			},
+		},
+		{
+			Request: &Request{
+				codec: testapi.Codec(),
+				client: clientFunc(func(req *http.Request) (*http.Response, error) {
+					return &http.Response{
+						StatusCode: http.StatusUnauthorized,
+						Body: ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(testapi.Codec(), &api.Status{
+							Status: api.StatusFailure,
+							Reason: api.StatusReasonUnauthorized,
+						})))),
+					}, nil
+				}),
+				baseURL: &url.URL{},
+			},
+			Err: true,
+			ErrFn: func(err error) bool {
+				return apierrors.IsUnauthorized(err)
+			},
 		},
 		{
 			Request: &Request{
@@ -416,6 +493,9 @@ func TestRequestWatch(t *testing.T) {
 			t.Errorf("%d: expected %t, got %t: %v", i, testCase.Err, hasErr, err)
 			continue
 		}
+		if testCase.ErrFn != nil && !testCase.ErrFn(err) {
+			t.Errorf("%d: error not valid: %v", i, err)
+		}
 		if hasErr && watch != nil {
 			t.Errorf("%d: watch should be nil when error is returned", i)
 			continue
@@ -447,6 +527,22 @@ func TestRequestStream(t *testing.T) {
 				client: clientFunc(func(req *http.Request) (*http.Response, error) {
 					return nil, errors.New("err")
 				}),
+				baseURL: &url.URL{},
+			},
+			Err: true,
+		},
+		{
+			Request: &Request{
+				client: clientFunc(func(req *http.Request) (*http.Response, error) {
+					return &http.Response{
+						StatusCode: http.StatusUnauthorized,
+						Body: ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(testapi.Codec(), &api.Status{
+							Status: api.StatusFailure,
+							Reason: api.StatusReasonUnauthorized,
+						})))),
+					}, nil
+				}),
+				codec:   latest.Codec,
 				baseURL: &url.URL{},
 			},
 			Err: true,
@@ -567,11 +663,11 @@ func TestRequestUpgrade(t *testing.T) {
 		}
 
 		if testCase.AuthBasicHeader && !strings.Contains(rt.req.Header.Get("Authorization"), "Basic") {
-			t.Errorf("%d: expected basic auth header, got: %s", rt.req.Header.Get("Authorization"))
+			t.Errorf("%d: expected basic auth header, got: %s", i, rt.req.Header.Get("Authorization"))
 		}
 
 		if testCase.AuthBearerHeader && !strings.Contains(rt.req.Header.Get("Authorization"), "Bearer") {
-			t.Errorf("%d: expected bearer auth header, got: %s", rt.req.Header.Get("Authorization"))
+			t.Errorf("%d: expected bearer auth header, got: %s", i, rt.req.Header.Get("Authorization"))
 		}
 
 		if e, a := expectedConn, conn; e != a {
@@ -617,7 +713,11 @@ func TestRequestDo(t *testing.T) {
 
 func TestDoRequestNewWay(t *testing.T) {
 	reqBody := "request body"
-	expectedObj := &api.Service{Spec: api.ServiceSpec{Port: 12345}}
+	expectedObj := &api.Service{Spec: api.ServiceSpec{Ports: []api.ServicePort{{
+		Protocol:   "TCP",
+		Port:       12345,
+		TargetPort: util.NewIntOrStringFromInt(12345),
+	}}}}
 	expectedBody, _ := v1beta2.Codec.Encode(expectedObj)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   200,
@@ -651,7 +751,11 @@ func TestDoRequestNewWay(t *testing.T) {
 func TestDoRequestNewWayReader(t *testing.T) {
 	reqObj := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 	reqBodyExpected, _ := v1beta1.Codec.Encode(reqObj)
-	expectedObj := &api.Service{Spec: api.ServiceSpec{Port: 12345}}
+	expectedObj := &api.Service{Spec: api.ServiceSpec{Ports: []api.ServicePort{{
+		Protocol:   "TCP",
+		Port:       12345,
+		TargetPort: util.NewIntOrStringFromInt(12345),
+	}}}}
 	expectedBody, _ := v1beta1.Codec.Encode(expectedObj)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   200,
@@ -664,7 +768,7 @@ func TestDoRequestNewWayReader(t *testing.T) {
 		Resource("bar").
 		Name("baz").
 		Prefix("foo").
-		LabelsSelectorParam(api.LabelSelectorQueryParam(c.APIVersion()), labels.Set{"name": "foo"}.AsSelector()).
+		LabelsSelectorParam(labels.Set{"name": "foo"}.AsSelector()).
 		Timeout(time.Second).
 		Body(bytes.NewBuffer(reqBodyExpected)).
 		Do().Get()
@@ -687,7 +791,11 @@ func TestDoRequestNewWayReader(t *testing.T) {
 func TestDoRequestNewWayObj(t *testing.T) {
 	reqObj := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 	reqBodyExpected, _ := v1beta2.Codec.Encode(reqObj)
-	expectedObj := &api.Service{Spec: api.ServiceSpec{Port: 12345}}
+	expectedObj := &api.Service{Spec: api.ServiceSpec{Ports: []api.ServicePort{{
+		Protocol:   "TCP",
+		Port:       12345,
+		TargetPort: util.NewIntOrStringFromInt(12345),
+	}}}}
 	expectedBody, _ := v1beta2.Codec.Encode(expectedObj)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   200,
@@ -700,7 +808,7 @@ func TestDoRequestNewWayObj(t *testing.T) {
 		Suffix("baz").
 		Name("bar").
 		Resource("foo").
-		LabelsSelectorParam(api.LabelSelectorQueryParam(c.APIVersion()), labels.Set{"name": "foo"}.AsSelector()).
+		LabelsSelectorParam(labels.Set{"name": "foo"}.AsSelector()).
 		Timeout(time.Second).
 		Body(reqObj).
 		Do().Get()
@@ -737,7 +845,11 @@ func TestDoRequestNewWayFile(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	expectedObj := &api.Service{Spec: api.ServiceSpec{Port: 12345}}
+	expectedObj := &api.Service{Spec: api.ServiceSpec{Ports: []api.ServicePort{{
+		Protocol:   "TCP",
+		Port:       12345,
+		TargetPort: util.NewIntOrStringFromInt(12345),
+	}}}}
 	expectedBody, _ := v1beta1.Codec.Encode(expectedObj)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   200,
@@ -778,7 +890,11 @@ func TestWasCreated(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	expectedObj := &api.Service{Spec: api.ServiceSpec{Port: 12345}}
+	expectedObj := &api.Service{Spec: api.ServiceSpec{Ports: []api.ServicePort{{
+		Protocol:   "TCP",
+		Port:       12345,
+		TargetPort: util.NewIntOrStringFromInt(12345),
+	}}}}
 	expectedBody, _ := v1beta1.Codec.Encode(expectedObj)
 	fakeHandler := util.FakeHandler{
 		StatusCode:   201,

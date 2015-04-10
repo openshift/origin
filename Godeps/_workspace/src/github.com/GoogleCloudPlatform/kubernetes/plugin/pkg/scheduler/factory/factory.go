@@ -26,12 +26,13 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	algorithm "github.com/GoogleCloudPlatform/kubernetes/pkg/scheduler"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	schedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api"
+	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api/validation"
 
 	"github.com/golang/glog"
 )
@@ -87,6 +88,11 @@ func (f *ConfigFactory) CreateFromProvider(providerName string) (*scheduler.Conf
 // Creates a scheduler from the configuration file
 func (f *ConfigFactory) CreateFromConfig(policy schedulerapi.Policy) (*scheduler.Config, error) {
 	glog.V(2).Infof("creating scheduler from configuration: %v", policy)
+
+	// validate the policy configuration
+	if err := validation.ValidatePolicy(policy); err != nil {
+		return nil, err
+	}
 
 	predicateKeys := util.NewStringSet()
 	for _, predicate := range policy.Predicates {
@@ -194,15 +200,14 @@ func (f *ConfigFactory) CreateFromKeys(predicateKeys, priorityKeys util.StringSe
 			glog.V(2).Infof("About to try and schedule pod %v", pod.Name)
 			return pod
 		},
-		Error:    f.makeDefaultErrorFunc(&podBackoff, f.PodQueue),
-		Recorder: record.FromSource(api.EventSource{Component: "scheduler"}),
+		Error: f.makeDefaultErrorFunc(&podBackoff, f.PodQueue),
 	}, nil
 }
 
 // Returns a cache.ListWatch that finds all pods that need to be
 // scheduled.
 func (factory *ConfigFactory) createUnassignedPodLW() *cache.ListWatch {
-	return cache.NewListWatchFromClient(factory.Client, "pods", api.NamespaceAll, fields.Set{getHostFieldLabel(factory.Client.APIVersion()): ""}.AsSelector())
+	return cache.NewListWatchFromClient(factory.Client, "pods", api.NamespaceAll, fields.Set{client.PodHost: ""}.AsSelector())
 }
 
 func parseSelectorOrDie(s string) fields.Selector {
@@ -218,7 +223,7 @@ func parseSelectorOrDie(s string) fields.Selector {
 // TODO: return a ListerWatcher interface instead?
 func (factory *ConfigFactory) createAssignedPodLW() *cache.ListWatch {
 	return cache.NewListWatchFromClient(factory.Client, "pods", api.NamespaceAll,
-		parseSelectorOrDie(getHostFieldLabel(factory.Client.APIVersion())+"!="))
+		parseSelectorOrDie(client.PodHost+"!="))
 }
 
 // createMinionLW returns a cache.ListWatch that gets all changes to minions.
@@ -229,7 +234,7 @@ func (factory *ConfigFactory) createMinionLW() *cache.ListWatch {
 // Lists all minions and filter out unhealthy ones, then returns
 // an enumerator for cache.Poller.
 func (factory *ConfigFactory) pollMinions() (cache.Enumerator, error) {
-	allNodes, err := factory.Client.Nodes().List()
+	allNodes, err := factory.Client.Nodes().List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -243,23 +248,17 @@ func (factory *ConfigFactory) pollMinions() (cache.Enumerator, error) {
 			cond := node.Status.Conditions[i]
 			conditionMap[cond.Type] = &cond
 		}
-		if condition, ok := conditionMap[api.NodeSchedulable]; ok {
-			if condition.Status != api.ConditionTrue {
-				continue
-			}
+		if node.Spec.Unschedulable {
+			continue
 		}
 		if condition, ok := conditionMap[api.NodeReady]; ok {
 			if condition.Status == api.ConditionTrue {
 				nodes.Items = append(nodes.Items, node)
 			}
-		} else if condition, ok := conditionMap[api.NodeReachable]; ok {
-			if condition.Status == api.ConditionTrue {
-				nodes.Items = append(nodes.Items, node)
-			}
 		} else {
 			// If no condition is set, we get unknown node condition. In such cases,
-			// do not add the node
-			glog.V(2).Infof("Minion %s is not available.  Skipping", node.Name)
+			// do not add the node.
+			glog.V(2).Infof("Minion %s is not available. Skipping", node.Name)
 		}
 	}
 	return &nodeEnumerator{nodes}, nil
@@ -288,19 +287,10 @@ func (factory *ConfigFactory) makeDefaultErrorFunc(backoff *podBackoff, podQueue
 				glog.Errorf("Error getting pod %v for retry: %v; abandoning", podID, err)
 				return
 			}
-			if pod.Status.Host == "" {
+			if pod.Spec.Host == "" {
 				podQueue.Add(pod)
 			}
 		}()
-	}
-}
-
-func getHostFieldLabel(apiVersion string) string {
-	switch apiVersion {
-	case "v1beta1", "v1beta2":
-		return "DesiredState.Host"
-	default:
-		return "spec.host"
 	}
 }
 

@@ -55,11 +55,11 @@ $ kubectl delete pod 1234-56-7890-234234-456456
 $ kubectl delete pods --all`
 )
 
-func (f *Factory) NewCmdDelete(out io.Writer) *cobra.Command {
+func NewCmdDelete(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	var filenames util.StringList
 	cmd := &cobra.Command{
 		Use:     "delete ([-f FILENAME] | (RESOURCE [(ID | -l label | --all)]",
-		Short:   "Delete a resource by filename, stdin, or resource and ID.",
+		Short:   "Delete a resource by filename, stdin, resource and ID, or by resources and label selector.",
 		Long:    delete_long,
 		Example: delete_example,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -73,13 +73,13 @@ func (f *Factory) NewCmdDelete(out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func RunDelete(f *Factory, out io.Writer, cmd *cobra.Command, args []string, filenames util.StringList) error {
+func RunDelete(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, filenames util.StringList) error {
 	cmdNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 	mapper, typer := f.Object()
-	r := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand(cmd)).
+	r := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(filenames...).

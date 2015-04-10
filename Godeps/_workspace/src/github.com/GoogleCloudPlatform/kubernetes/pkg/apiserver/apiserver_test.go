@@ -37,6 +37,8 @@ import (
 	apierrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -53,11 +55,21 @@ func convert(obj runtime.Object) (runtime.Object, error) {
 	return obj, nil
 }
 
-// This creates a fake API version, similar to api/latest.go
+// This creates a fake API version, similar to api/latest.go for a v1beta1 equivalent api. It is distinct
+// from the Kubernetes API versions to allow clients to properly distinguish the two.
 const testVersion = "version"
 
-var versions = []string{testVersion}
-var codec = runtime.CodecFor(api.Scheme, testVersion)
+// The equivalent of the Kubernetes v1beta3 API.
+const testVersion2 = "version2"
+
+var versions = []string{testVersion, testVersion2}
+var legacyCodec = runtime.CodecFor(api.Scheme, testVersion)
+var codec = runtime.CodecFor(api.Scheme, testVersion2)
+
+// these codecs reflect ListOptions/DeleteOptions coming from the serverAPIversion
+var versionServerCodec = runtime.CodecFor(api.Scheme, "v1beta1")
+var version2ServerCodec = runtime.CodecFor(api.Scheme, "v1beta3")
+
 var accessor = meta.NewAccessor()
 var versioner runtime.ResourceVersioner = accessor
 var selfLinker runtime.SelfLinker = accessor
@@ -68,6 +80,12 @@ var requestContextMapper api.RequestContextMapper
 func interfacesFor(version string) (*meta.VersionInterfaces, error) {
 	switch version {
 	case testVersion:
+		return &meta.VersionInterfaces{
+			Codec:            legacyCodec,
+			ObjectConvertor:  api.Scheme,
+			MetadataAccessor: accessor,
+		}, nil
+	case testVersion2:
 		return &meta.VersionInterfaces{
 			Codec:            codec,
 			ObjectConvertor:  api.Scheme,
@@ -96,11 +114,17 @@ func init() {
 	// api.Status is returned in errors
 
 	// "internal" version
-	api.Scheme.AddKnownTypes("", &Simple{}, &SimpleList{},
-		&api.Status{})
+	api.Scheme.AddKnownTypes("", &Simple{}, &SimpleList{}, &api.Status{}, &api.ListOptions{}, &SimpleGetOptions{})
 	// "version" version
 	// TODO: Use versioned api objects?
-	api.Scheme.AddKnownTypes(testVersion, &Simple{}, &SimpleList{}, &api.DeleteOptions{}, &api.Status{})
+	api.Scheme.AddKnownTypes(testVersion, &Simple{}, &SimpleList{}, &v1beta1.Status{}, &SimpleGetOptions{})
+	// "version2" version
+	// TODO: Use versioned api objects?
+	api.Scheme.AddKnownTypes(testVersion2, &Simple{}, &SimpleList{}, &v1beta3.Status{}, &SimpleGetOptions{})
+
+	// Register SimpleGetOptions with the server versions to convert query params to it
+	api.Scheme.AddKnownTypes("v1beta1", &SimpleGetOptions{})
+	api.Scheme.AddKnownTypes("v1beta3", &SimpleGetOptions{})
 
 	nsMapper := newMapper()
 	legacyNsMapper := newMapper()
@@ -118,6 +142,18 @@ func init() {
 	namespaceMapper = nsMapper
 	admissionControl = admit.NewAlwaysAdmit()
 	requestContextMapper = api.NewRequestContextMapper()
+
+	//mapper.(*meta.DefaultRESTMapper).Add(meta.RESTScopeNamespaceLegacy, "Simple", testVersion, false)
+	api.Scheme.AddFieldLabelConversionFunc(testVersion, "Simple",
+		func(label, value string) (string, string, error) {
+			return label, value, nil
+		},
+	)
+	api.Scheme.AddFieldLabelConversionFunc(testVersion2, "Simple",
+		func(label, value string) (string, string, error) {
+			return label, value, nil
+		},
+	)
 }
 
 // defaultAPIServer exposes nested objects for testability.
@@ -129,45 +165,61 @@ type defaultAPIServer struct {
 
 // uses the default settings
 func handle(storage map[string]rest.Storage) http.Handler {
-	return handleInternal(storage, admissionControl, mapper, selfLinker)
+	return handleInternal(true, storage, admissionControl, selfLinker)
+}
+
+// uses the default settings for a v1beta3 compatible api
+func handleNew(storage map[string]rest.Storage) http.Handler {
+	return handleInternal(false, storage, admissionControl, selfLinker)
 }
 
 // tests with a deny admission controller
 func handleDeny(storage map[string]rest.Storage) http.Handler {
-	return handleInternal(storage, deny.NewAlwaysDeny(), mapper, selfLinker)
+	return handleInternal(true, storage, deny.NewAlwaysDeny(), selfLinker)
 }
 
 // tests using the new namespace scope mechanism
 func handleNamespaced(storage map[string]rest.Storage) http.Handler {
-	return handleInternal(storage, admissionControl, namespaceMapper, selfLinker)
+	return handleInternal(false, storage, admissionControl, selfLinker)
 }
 
 // tests using a custom self linker
 func handleLinker(storage map[string]rest.Storage, selfLinker runtime.SelfLinker) http.Handler {
-	return handleInternal(storage, admissionControl, mapper, selfLinker)
+	return handleInternal(true, storage, admissionControl, selfLinker)
 }
 
-func handleInternal(storage map[string]rest.Storage, admissionControl admission.Interface, mapper meta.RESTMapper, selfLinker runtime.SelfLinker) http.Handler {
+func handleInternal(legacy bool, storage map[string]rest.Storage, admissionControl admission.Interface, selfLinker runtime.SelfLinker) http.Handler {
 	group := &APIGroupVersion{
 		Storage: storage,
 
-		Mapper: mapper,
+		Root: "/api",
 
-		Root:    "/api",
-		Version: testVersion,
-
-		Creater: api.Scheme,
-		Typer:   api.Scheme,
-		Codec:   codec,
-		Linker:  selfLinker,
+		Creater:   api.Scheme,
+		Convertor: api.Scheme,
+		Typer:     api.Scheme,
+		Linker:    selfLinker,
 
 		Admit:   admissionControl,
 		Context: requestContextMapper,
 	}
+	if legacy {
+		group.Version = testVersion
+		group.ServerVersion = "v1beta1"
+		group.Codec = legacyCodec
+		group.Mapper = legacyNamespaceMapper
+	} else {
+		group.Version = testVersion2
+		group.ServerVersion = "v1beta3"
+		group.Codec = codec
+		group.Mapper = namespaceMapper
+	}
+
 	container := restful.NewContainer()
 	container.Router(restful.CurlyRouter{})
 	mux := container.ServeMux
-	group.InstallREST(container)
+	if err := group.InstallREST(container); err != nil {
+		panic(fmt.Sprintf("unable to install container %s: %v", group.Version, err))
+	}
 	ws := new(restful.WebService)
 	InstallSupport(mux, ws)
 	container.Add(ws)
@@ -183,6 +235,14 @@ type Simple struct {
 
 func (*Simple) IsAnAPIObject() {}
 
+type SimpleGetOptions struct {
+	api.TypeMeta `json:",inline"`
+	Param1       string `json:"param1"`
+	Param2       string `json:"param2"`
+}
+
+func (*SimpleGetOptions) IsAnAPIObject() {}
+
 type SimpleList struct {
 	api.TypeMeta `json:",inline"`
 	api.ListMeta `json:"metadata,inline"`
@@ -193,6 +253,21 @@ func (*SimpleList) IsAnAPIObject() {}
 
 func TestSimpleSetupRight(t *testing.T) {
 	s := &Simple{ObjectMeta: api.ObjectMeta{Name: "aName"}}
+	wire, err := codec.Encode(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s2, err := codec.Decode(wire)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(s, s2) {
+		t.Fatalf("encode/decode broken:\n%#v\n%#v\n", s, s2)
+	}
+}
+
+func TestSimpleOptionsSetupRight(t *testing.T) {
+	s := &SimpleGetOptions{}
 	wire, err := codec.Encode(s)
 	if err != nil {
 		t.Fatal(err)
@@ -244,6 +319,8 @@ func (storage *SimpleRESTStorage) List(ctx api.Context, label labels.Selector, f
 	result := &SimpleList{
 		Items: storage.list,
 	}
+	storage.requestedLabelSelector = label
+	storage.requestedFieldSelector = field
 	return result, storage.errors["list"]
 }
 
@@ -264,10 +341,10 @@ func (s *SimpleStream) Close() error {
 
 func (s *SimpleStream) IsAnAPIObject() {}
 
-func (s *SimpleStream) InputStream(version, accept string) (io.ReadCloser, string, error) {
+func (s *SimpleStream) InputStream(version, accept string) (io.ReadCloser, bool, string, error) {
 	s.version = version
 	s.accept = accept
-	return s, s.contentType, s.err
+	return s, false, s.contentType, s.err
 }
 
 func (storage *SimpleRESTStorage) Get(ctx api.Context, id string) (runtime.Object, error) {
@@ -380,6 +457,23 @@ type MetadataRESTStorage struct {
 
 func (m *MetadataRESTStorage) ProducesMIMETypes(method string) []string {
 	return m.types
+}
+
+type GetWithOptionsRESTStorage struct {
+	*SimpleRESTStorage
+	optionsReceived runtime.Object
+}
+
+func (r *GetWithOptionsRESTStorage) Get(ctx api.Context, name string, options runtime.Object) (runtime.Object, error) {
+	if _, ok := options.(*SimpleGetOptions); !ok {
+		return nil, fmt.Errorf("Unexpected options object: %#v", options)
+	}
+	r.optionsReceived = options
+	return r.SimpleRESTStorage.Get(ctx, name)
+}
+
+func (r *GetWithOptionsRESTStorage) NewGetOptions() runtime.Object {
+	return &SimpleGetOptions{}
 }
 
 func extractBody(response *http.Response, object runtime.Object) (string, error) {
@@ -522,15 +616,60 @@ func TestList(t *testing.T) {
 		namespace string
 		selfLink  string
 		legacy    bool
+		label     string
+		field     string
 	}{
-		{"/api/version/simple", "", "/api/version/simple?namespace=", true},
-		{"/api/version/simple?namespace=other", "other", "/api/version/simple?namespace=other", true},
+		{
+			url:       "/api/version/simple",
+			namespace: "",
+			selfLink:  "/api/version/simple?namespace=",
+			legacy:    true,
+		},
+		{
+			url:       "/api/version/simple?namespace=other",
+			namespace: "other",
+			selfLink:  "/api/version/simple?namespace=other",
+			legacy:    true,
+		},
+		{
+			url:       "/api/version/simple?namespace=other&labels=a%3Db&fields=c%3Dd",
+			namespace: "other",
+			selfLink:  "/api/version/simple?namespace=other",
+			legacy:    true,
+			label:     "a=b",
+			field:     "c=d",
+		},
 		// list items across all namespaces
-		{"/api/version/simple?namespace=", "", "/api/version/simple?namespace=", true},
-		{"/api/version/namespaces/default/simple", "default", "/api/version/namespaces/default/simple", false},
-		{"/api/version/namespaces/other/simple", "other", "/api/version/namespaces/other/simple", false},
+		{
+			url:       "/api/version/simple?namespace=",
+			namespace: "",
+			selfLink:  "/api/version/simple?namespace=",
+			legacy:    true,
+		},
+		// list items in a namespace, v1beta3+
+		{
+			url:       "/api/version2/namespaces/default/simple",
+			namespace: "default",
+			selfLink:  "/api/version2/namespaces/default/simple",
+		},
+		{
+			url:       "/api/version2/namespaces/other/simple",
+			namespace: "other",
+			selfLink:  "/api/version2/namespaces/other/simple",
+		},
+		{
+			url:       "/api/version2/namespaces/other/simple?labelSelector=a%3Db&fieldSelector=c%3Dd",
+			namespace: "other",
+			selfLink:  "/api/version2/namespaces/other/simple",
+			label:     "a=b",
+			field:     "c=d",
+		},
 		// list items across all namespaces
-		{"/api/version/simple", "", "/api/version/simple", false},
+		{
+			url:       "/api/version2/simple",
+			namespace: "",
+			selfLink:  "/api/version2/simple",
+		},
 	}
 	for i, testCase := range testCases {
 		storage := map[string]rest.Storage{}
@@ -545,7 +684,7 @@ func TestList(t *testing.T) {
 		if testCase.legacy {
 			handler = handleLinker(storage, selfLinker)
 		} else {
-			handler = handleInternal(storage, admissionControl, namespaceMapper, selfLinker)
+			handler = handleInternal(false, storage, admissionControl, selfLinker)
 		}
 		server := httptest.NewServer(handler)
 		defer server.Close()
@@ -557,6 +696,9 @@ func TestList(t *testing.T) {
 		}
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("%d: unexpected status: %d, Expected: %d, %#v", i, resp.StatusCode, http.StatusOK, resp)
+			body, _ := ioutil.ReadAll(resp.Body)
+			t.Logf("%d: body: %s", i, string(body))
+			continue
 		}
 		// TODO: future, restore get links
 		if !selfLinker.called {
@@ -566,6 +708,12 @@ func TestList(t *testing.T) {
 			t.Errorf("%d: namespace not set", i)
 		} else if simpleStorage.actualNamespace != testCase.namespace {
 			t.Errorf("%d: unexpected resource namespace: %s", i, simpleStorage.actualNamespace)
+		}
+		if simpleStorage.requestedLabelSelector == nil || simpleStorage.requestedLabelSelector.String() != testCase.label {
+			t.Errorf("%d: unexpected label selector: %v", i, simpleStorage.requestedLabelSelector)
+		}
+		if simpleStorage.requestedFieldSelector == nil || simpleStorage.requestedFieldSelector.String() != testCase.field {
+			t.Errorf("%d: unexpected field selector: %v", i, simpleStorage.requestedFieldSelector)
 		}
 	}
 }
@@ -774,6 +922,47 @@ func TestGetBinary(t *testing.T) {
 	}
 }
 
+func TestGetWithOptions(t *testing.T) {
+	storage := map[string]rest.Storage{}
+	simpleStorage := GetWithOptionsRESTStorage{
+		SimpleRESTStorage: &SimpleRESTStorage{
+			item: Simple{
+				Other: "foo",
+			},
+		},
+	}
+	storage["simple"] = &simpleStorage
+	handler := handle(storage)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/api/version/simple/id?param1=test1&param2=test2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected response: %#v", resp)
+	}
+	var itemOut Simple
+	body, err := extractBody(resp, &itemOut)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if itemOut.Name != simpleStorage.item.Name {
+		t.Errorf("Unexpected data: %#v, expected %#v (%s)", itemOut, simpleStorage.item, string(body))
+	}
+
+	opts, ok := simpleStorage.optionsReceived.(*SimpleGetOptions)
+	if !ok {
+		t.Errorf("Unexpected options object received: %#v", simpleStorage.optionsReceived)
+		return
+	}
+	if opts.Param1 != "test1" || opts.Param2 != "test2" {
+		t.Errorf("Did not receive expected options: %#v", opts)
+	}
+}
+
 func TestGetAlternateSelfLink(t *testing.T) {
 	storage := map[string]rest.Storage{}
 	simpleStorage := SimpleRESTStorage{
@@ -821,16 +1010,16 @@ func TestGetNamespaceSelfLink(t *testing.T) {
 	}
 	selfLinker := &setTestSelfLinker{
 		t:           t,
-		expectedSet: "/api/version/namespaces/foo/simple/id",
+		expectedSet: "/api/version2/namespaces/foo/simple/id",
 		name:        "id",
 		namespace:   "foo",
 	}
 	storage["simple"] = &simpleStorage
-	handler := handleInternal(storage, admissionControl, namespaceMapper, selfLinker)
+	handler := handleInternal(false, storage, admissionControl, selfLinker)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	resp, err := http.Get(server.URL + "/api/version/namespaces/foo/simple/id")
+	resp, err := http.Get(server.URL + "/api/version2/namespaces/foo/simple/id")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -905,7 +1094,7 @@ func TestDeleteWithOptions(t *testing.T) {
 	item := &api.DeleteOptions{
 		GracePeriodSeconds: &grace,
 	}
-	body, err := codec.Encode(item)
+	body, err := versionServerCodec.Encode(item)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -966,7 +1155,7 @@ func TestLegacyDeleteIgnoresOptions(t *testing.T) {
 	defer server.Close()
 
 	item := api.NewDeleteOptions(300)
-	body, err := codec.Encode(item)
+	body, err := versionServerCodec.Encode(item)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1055,6 +1244,7 @@ func TestPatch(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("PATCH", server.URL+"/api/version/simple/"+ID, bytes.NewReader([]byte(`{"labels":{"foo":"bar"}}`)))
+	request.Header.Set("Content-Type", "application/merge-patch+json")
 	_, err = client.Do(request)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1086,6 +1276,7 @@ func TestPatchRequiresMatchingName(t *testing.T) {
 
 	client := http.Client{}
 	request, err := http.NewRequest("PATCH", server.URL+"/api/version/simple/"+ID, bytes.NewReader([]byte(`{"metadata":{"name":"idbar"}}`)))
+	request.Header.Set("Content-Type", "application/merge-patch+json")
 	response, err := client.Do(request)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1575,7 +1766,7 @@ func TestCreateInvokesAdmissionControl(t *testing.T) {
 		namespace:   "other",
 		expectedSet: "/api/version/foo/bar?namespace=other",
 	}
-	handler := handleInternal(map[string]rest.Storage{"foo": &storage}, deny.NewAlwaysDeny(), mapper, selfLinker)
+	handler := handleInternal(true, map[string]rest.Storage{"foo": &storage}, deny.NewAlwaysDeny(), selfLinker)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	client := http.Client{}

@@ -47,7 +47,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	cmds.AddCommand(exrouter.NewCmdRouter(f, fullName, "router", out))
 	cmds.AddCommand(exregistry.NewCmdRegistry(f, fullName, "registry", out))
 	cmds.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
-	cmds.AddCommand(config.NewCmdConfig(fullName, "config"))
+	cmds.AddCommand(config.NewCmdConfig(f, fullName, "config"))
 
 	// TODO: these probably belong in a sub command
 	cmds.AddCommand(admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, out))

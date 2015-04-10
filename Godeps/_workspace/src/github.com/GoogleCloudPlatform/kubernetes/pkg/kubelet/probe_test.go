@@ -147,7 +147,7 @@ func (p fakeExecProber) Probe(_ exec.Cmd) (probe.Result, error) {
 
 func makeTestKubelet(result probe.Result, err error) *Kubelet {
 	return &Kubelet{
-		readiness: newReadinessStates(),
+		readinessManager: kubecontainer.NewReadinessManager(),
 		prober: probeHolder{
 			exec: fakeExecProber{
 				result: result,
@@ -256,26 +256,14 @@ func TestProbeContainer(t *testing.T) {
 			testContainer: api.Container{
 				ReadinessProbe: &api.Probe{InitialDelaySeconds: 100},
 			},
-			expectedResult:    probe.Failure,
+			expectedResult:    probe.Success,
 			expectedReadiness: false,
 		},
 		{
 			testContainer: api.Container{
 				ReadinessProbe: &api.Probe{InitialDelaySeconds: -100},
 			},
-			expectedResult:    probe.Unknown,
-			expectedReadiness: false,
-		},
-		{
-			testContainer: api.Container{
-				ReadinessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-			},
-			expectedResult:    probe.Failure,
+			expectedResult:    probe.Success,
 			expectedReadiness: false,
 		},
 		{
@@ -299,8 +287,8 @@ func TestProbeContainer(t *testing.T) {
 					},
 				},
 			},
-			expectedResult:    probe.Unknown,
-			expectedReadiness: false,
+			expectedResult:    probe.Success,
+			expectedReadiness: true,
 		},
 		{
 			testContainer: api.Container{
@@ -311,9 +299,21 @@ func TestProbeContainer(t *testing.T) {
 					},
 				},
 			},
-			expectError:       true,
-			expectedResult:    probe.Unknown,
-			expectedReadiness: false,
+			expectedResult:    probe.Success,
+			expectedReadiness: true,
+		},
+		{
+			testContainer: api.Container{
+				ReadinessProbe: &api.Probe{
+					InitialDelaySeconds: -100,
+					Handler: api.Handler{
+						Exec: &api.ExecAction{},
+					},
+				},
+			},
+			expectError:       false,
+			expectedResult:    probe.Success,
+			expectedReadiness: true,
 		},
 		// Both LivenessProbe and ReadinessProbe.
 		{
@@ -321,7 +321,7 @@ func TestProbeContainer(t *testing.T) {
 				LivenessProbe:  &api.Probe{InitialDelaySeconds: 100},
 				ReadinessProbe: &api.Probe{InitialDelaySeconds: 100},
 			},
-			expectedResult:    probe.Failure,
+			expectedResult:    probe.Success,
 			expectedReadiness: false,
 		},
 		{
@@ -329,7 +329,7 @@ func TestProbeContainer(t *testing.T) {
 				LivenessProbe:  &api.Probe{InitialDelaySeconds: 100},
 				ReadinessProbe: &api.Probe{InitialDelaySeconds: -100},
 			},
-			expectedResult:    probe.Unknown,
+			expectedResult:    probe.Success,
 			expectedReadiness: false,
 		},
 		{
@@ -412,8 +412,8 @@ func TestProbeContainer(t *testing.T) {
 		if test.expectedResult != result {
 			t.Errorf("Expected result was %v but probeContainer() returned %v", test.expectedResult, result)
 		}
-		if test.expectedReadiness != kl.readiness.get(dc.ID) {
-			t.Errorf("Expected readiness was %v but probeContainer() set %v", test.expectedReadiness, kl.readiness.get(dc.ID))
+		if test.expectedReadiness != kl.readinessManager.GetReadiness(dc.ID) {
+			t.Errorf("Expected readiness was %v but probeContainer() set %v", test.expectedReadiness, kl.readinessManager.GetReadiness(dc.ID))
 		}
 	}
 }

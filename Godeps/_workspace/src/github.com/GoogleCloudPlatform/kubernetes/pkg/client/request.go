@@ -20,17 +20,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"path"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/metrics"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -39,6 +31,15 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	watchjson "github.com/GoogleCloudPlatform/kubernetes/pkg/watch/json"
 	"github.com/golang/glog"
+	"io"
+	"io/ioutil"
+	"mime"
+	"net/http"
+	"net/url"
+	"path"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // specialParams lists parameters that are handled specially and which users of Request
@@ -48,25 +49,6 @@ var specialParams = util.NewStringSet("timeout")
 // HTTPClient is an interface for testing a request object.
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
-}
-
-// UnexpectedStatusError is returned as an error if a response's body and HTTP code don't
-// make sense together.
-type UnexpectedStatusError struct {
-	Request  *http.Request
-	Response *http.Response
-	Body     string
-}
-
-// Error returns a textual description of 'u'.
-func (u *UnexpectedStatusError) Error() string {
-	return fmt.Sprintf("request [%+v] failed (%d) %s: %s", u.Request, u.Response.StatusCode, u.Response.Status, u.Body)
-}
-
-// IsUnexpectedStatusError determines if err is due to an unexpected status from the server.
-func IsUnexpectedStatusError(err error) bool {
-	_, ok := err.(*UnexpectedStatusError)
-	return ok
 }
 
 // RequestConstructionError is returned when there's an error assembling a request.
@@ -100,6 +82,7 @@ type Request struct {
 	path    string
 	subpath string
 	params  url.Values
+	headers http.Header
 
 	// structural elements of the request that are part of the Kubernetes API conventions
 	namespace    string
@@ -124,11 +107,13 @@ type Request struct {
 // NewRequest creates a new request helper object for accessing runtime.Objects on a server.
 func NewRequest(client HTTPClient, verb string, baseURL *url.URL, apiVersion string,
 	codec runtime.Codec, namespaceInQuery bool, preserveResourceCase bool) *Request {
+	metrics.Register()
 	return &Request{
-		client:  client,
-		verb:    verb,
-		baseURL: baseURL,
-		path:    baseURL.Path,
+		client:     client,
+		verb:       verb,
+		baseURL:    baseURL,
+		path:       baseURL.Path,
+		apiVersion: apiVersion,
 
 		codec:                codec,
 		namespaceInQuery:     namespaceInQuery,
@@ -262,56 +247,113 @@ func (r *Request) RequestURI(uri string) *Request {
 	return r
 }
 
-// ParseSelectorParam parses the given string as a resource selector.
-// This is a convenience function so you don't have to first check that it's a
-// validly formatted selector.
-func (r *Request) ParseSelectorParam(paramName, item string) *Request {
+const (
+	// A constant that clients can use to refer in a field selector to the object name field.
+	// Will be automatically emitted as the correct name for the API version.
+	ObjectNameField = "metadata.name"
+	PodHost         = "spec.host"
+)
+
+type clientFieldNameToAPIVersionFieldName map[string]string
+
+func (c clientFieldNameToAPIVersionFieldName) filterField(field, value string) (newField, newValue string, err error) {
+	newFieldName, ok := c[field]
+	if !ok {
+		return "", "", fmt.Errorf("%v - %v - no field mapping defined", field, value)
+	}
+	return newFieldName, value, nil
+}
+
+type resourceTypeToFieldMapping map[string]clientFieldNameToAPIVersionFieldName
+
+func (r resourceTypeToFieldMapping) filterField(resourceType, field, value string) (newField, newValue string, err error) {
+	fMapping, ok := r[resourceType]
+	if !ok {
+		return "", "", fmt.Errorf("%v - %v - %v - no field mapping defined", resourceType, field, value)
+	}
+	return fMapping.filterField(field, value)
+}
+
+type versionToResourceToFieldMapping map[string]resourceTypeToFieldMapping
+
+func (v versionToResourceToFieldMapping) filterField(apiVersion, resourceType, field, value string) (newField, newValue string, err error) {
+	rMapping, ok := v[apiVersion]
+	if !ok {
+		glog.Warningf("field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
+		return field, value, nil
+	}
+	newField, newValue, err = rMapping.filterField(resourceType, field, value)
+	if err != nil {
+		// This is only a warning until we find and fix all of the client's usages.
+		glog.Warningf("field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
+		return field, value, nil
+	}
+	return newField, newValue, nil
+}
+
+var fieldMappings = versionToResourceToFieldMapping{
+	"v1beta1": resourceTypeToFieldMapping{
+		"nodes": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "name",
+		},
+		"minions": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "name",
+		},
+		"pods": clientFieldNameToAPIVersionFieldName{
+			PodHost: "DesiredState.Host",
+		},
+	},
+	"v1beta2": resourceTypeToFieldMapping{
+		"nodes": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "name",
+		},
+		"minions": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "name",
+		},
+		"pods": clientFieldNameToAPIVersionFieldName{
+			PodHost: "DesiredState.Host",
+		},
+	},
+	"v1beta3": resourceTypeToFieldMapping{
+		"nodes": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "metadata.name",
+		},
+		"minions": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "metadata.name",
+		},
+		"pods": clientFieldNameToAPIVersionFieldName{
+			PodHost: "spec.host",
+		},
+	},
+}
+
+// FieldsSelectorParam adds the given selector as a query parameter with the name paramName.
+func (r *Request) FieldsSelectorParam(s fields.Selector) *Request {
 	if r.err != nil {
 		return r
 	}
-	var selector string
-	var err error
-	switch paramName {
-	case "labels":
-		var lsel labels.Selector
-		if lsel, err = labels.Parse(item); err == nil {
-			selector = lsel.String()
-		}
-	case "fields":
-		var fsel fields.Selector
-		if fsel, err = fields.ParseSelector(item); err == nil {
-			selector = fsel.String()
-		}
-	default:
-		err = fmt.Errorf("unknown parameter name '%s'", paramName)
+	if s.Empty() {
+		return r
 	}
+	s2, err := s.Transform(func(field, value string) (newField, newValue string, err error) {
+		return fieldMappings.filterField(r.apiVersion, r.resource, field, value)
+	})
 	if err != nil {
 		r.err = err
 		return r
 	}
-	return r.setParam(paramName, selector)
-}
-
-// FieldsSelectorParam adds the given selector as a query parameter with the name paramName.
-func (r *Request) FieldsSelectorParam(paramName string, s fields.Selector) *Request {
-	if r.err != nil {
-		return r
-	}
-	if s.Empty() {
-		return r
-	}
-	return r.setParam(paramName, s.String())
+	return r.setParam(api.FieldSelectorQueryParam(r.apiVersion), s2.String())
 }
 
 // LabelsSelectorParam adds the given selector as a query parameter
-func (r *Request) LabelsSelectorParam(paramName string, s labels.Selector) *Request {
+func (r *Request) LabelsSelectorParam(s labels.Selector) *Request {
 	if r.err != nil {
 		return r
 	}
 	if s.Empty() {
 		return r
 	}
-	return r.setParam(paramName, s.String())
+	return r.setParam(api.LabelSelectorQueryParam(r.apiVersion), s.String())
 }
 
 // UintParam creates a query parameter with the given value.
@@ -339,6 +381,14 @@ func (r *Request) setParam(paramName, value string) *Request {
 		r.params = make(url.Values)
 	}
 	r.params[paramName] = append(r.params[paramName], value)
+	return r
+}
+
+func (r *Request) SetHeader(key, value string) *Request {
+	if r.headers == nil {
+		r.headers = http.Header{}
+	}
+	r.headers.Set(key, value)
 	return r
 }
 
@@ -404,7 +454,10 @@ func (r *Request) finalURL() string {
 		p = path.Join(p, r.resourceName, r.subresource, r.subpath)
 	}
 
-	finalURL := *r.baseURL
+	finalURL := url.URL{}
+	if r.baseURL != nil {
+		finalURL = *r.baseURL
+	}
 	finalURL.Path = p
 
 	query := url.Values{}
@@ -424,6 +477,15 @@ func (r *Request) finalURL() string {
 	}
 	finalURL.RawQuery = query.Encode()
 	return finalURL.String()
+}
+
+// Similar to finalURL(), but if the request contains name of an object
+// (e.g. GET for a specific Pod) it will be substited with "<name>".
+func (r Request) finalURLTemplate() string {
+	if len(r.resourceName) != 0 {
+		r.resourceName = "<name>"
+	}
+	return r.finalURL()
 }
 
 // Watch attempts to begin watching the requested location.
@@ -448,11 +510,10 @@ func (r *Request) Watch() (watch.Interface, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		var body []byte
-		if resp.Body != nil {
-			body, _ = ioutil.ReadAll(resp.Body)
+		if _, _, err := r.transformResponse(resp, req, nil); err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("for request '%+v', got status: %v\nbody: %v", req.URL, resp.StatusCode, string(body))
+		return nil, fmt.Errorf("for request '%+v', got status: %v", req.URL, resp.StatusCode)
 	}
 	return watch.NewStreamWatcher(watchjson.NewDecoder(resp.Body, r.codec)), nil
 }
@@ -478,6 +539,8 @@ func isProbableEOF(err error) bool {
 
 // Stream formats and executes the request, and offers streaming of the response.
 // Returns io.ReadCloser which could be used for streaming of the response, or an error
+// Any non-2xx http status code causes an error.  If we get a non-2xx code, we try to convert the body into an APIStatus object.
+// If we can, we return that as an error.  Otherwise, we create an error that lists the http status and the content of the response.
 func (r *Request) Stream() (io.ReadCloser, error) {
 	if r.err != nil {
 		return nil, r.err
@@ -585,6 +648,7 @@ func (r *Request) DoRaw() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		r.req.Header = r.headers
 		r.resp, err = client.Do(r.req)
 		if err != nil {
 			return nil, err
@@ -623,16 +687,26 @@ func (r *Request) DoRaw() ([]byte, error) {
 //  * If the status code and body don't make sense together: *UnexpectedStatusError
 //  * http.Client.Do errors are returned directly.
 func (r *Request) Do() Result {
+	start := time.Now()
+	defer func() {
+		metrics.RequestLatency.WithLabelValues(r.verb, r.finalURLTemplate()).Observe(metrics.SinceInMicroseconds(start))
+	}()
 	body, err := r.DoRaw()
 	if err != nil {
 		return Result{err: err}
 	}
-	respBody, created, err := r.transformResponse(body, r.resp, r.req)
+	respBody, created, err := r.transformResponse(r.resp, r.req, body)
 	return Result{respBody, created, err, r.codec}
 }
 
-// transformResponse converts an API response into a structured API object.
-func (r *Request) transformResponse(body []byte, resp *http.Response, req *http.Request) ([]byte, bool, error) {
+// transformResponse converts an API response into a structured API object. If body is nil, the response
+// body will be read to try and gather more response data.
+func (r *Request) transformResponse(resp *http.Response, req *http.Request, body []byte) ([]byte, bool, error) {
+	if body == nil && resp.Body != nil {
+		if data, err := ioutil.ReadAll(resp.Body); err == nil {
+			body = data
+		}
+	}
 	// Did the server give us a status response?
 	isStatusResponse := false
 	var status api.Status
@@ -645,26 +719,7 @@ func (r *Request) transformResponse(body []byte, resp *http.Response, req *http.
 		// no-op, we've been upgraded
 	case resp.StatusCode < http.StatusOK || resp.StatusCode > http.StatusPartialContent:
 		if !isStatusResponse {
-			var err error
-			err = &UnexpectedStatusError{
-				Request:  req,
-				Response: resp,
-				Body:     string(body),
-			}
-			// TODO: handle other error classes we know about
-			switch resp.StatusCode {
-			case http.StatusConflict:
-				if req.Method == "POST" {
-					err = errors.NewAlreadyExists(r.resource, r.resourceName)
-				} else {
-					err = errors.NewConflict(r.resource, r.resourceName, err)
-				}
-			case http.StatusNotFound:
-				err = errors.NewNotFound(r.resource, r.resourceName)
-			case http.StatusBadRequest:
-				err = errors.NewBadRequest(err.Error())
-			}
-			return nil, false, err
+			return nil, false, r.transformUnstructuredResponseError(resp, req, body)
 		}
 		return nil, false, errors.FromObject(&status)
 	}
@@ -679,6 +734,62 @@ func (r *Request) transformResponse(body []byte, resp *http.Response, req *http.
 
 	created := resp.StatusCode == http.StatusCreated
 	return body, created, nil
+}
+
+// transformUnstructuredResponseError handles an error from the server that is not in a structured form.
+// It is expected to transform any response that is not recognizable as a clear server sent error from the
+// K8S API using the information provided with the request. In practice, HTTP proxies and client libraries
+// introduce a level of uncertainty to the responses returned by servers that in common use result in
+// unexpected responses. The rough structure is:
+//
+// 1. Assume the server sends you something sane - JSON + well defined error objects + proper codes
+//    - this is the happy path
+//    - when you get this output, trust what the server sends
+// 2. Guard against empty fields / bodies in received JSON and attempt to cull sufficient info from them to
+//    generate a reasonable facsimile of the original failure.
+//    - Be sure to use a distinct error type or flag that allows a client to distinguish between this and error 1 above
+// 3. Handle true disconnect failures / completely malformed data by moving up to a more generic client error
+// 4. Distinguish between various connection failures like SSL certificates, timeouts, proxy errors, unexpected
+//    initial contact, the presence of mismatched body contents from posted content types
+//    - Give these a separate distinct error type and capture as much as possible of the original message
+//
+// TODO: introduce transformation of generic http.Client.Do() errors that separates 4.
+func (r *Request) transformUnstructuredResponseError(resp *http.Response, req *http.Request, body []byte) error {
+	if body == nil && resp.Body != nil {
+		if data, err := ioutil.ReadAll(resp.Body); err == nil {
+			body = data
+		}
+	}
+	message := "unknown"
+	if isTextResponse(resp) {
+		message = strings.TrimSpace(string(body))
+	}
+	retryAfter, _ := retryAfterSeconds(resp)
+	return errors.NewGenericServerResponse(resp.StatusCode, req.Method, r.resource, r.resourceName, message, retryAfter)
+}
+
+// isTextResponse returns true if the response appears to be a textual media type.
+func isTextResponse(resp *http.Response) bool {
+	contentType := resp.Header.Get("Content-Type")
+	if len(contentType) == 0 {
+		return true
+	}
+	media, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(media, "text/")
+}
+
+// retryAfterSeconds returns the value of the Retry-After header and true, or 0 and false if
+// the header was missing or not a valid number.
+func retryAfterSeconds(resp *http.Response) (int, bool) {
+	if h := resp.Header.Get("Retry-After"); len(h) > 0 {
+		if i, err := strconv.Atoi(h); err == nil {
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 // Result contains the result of calling Request.Do().

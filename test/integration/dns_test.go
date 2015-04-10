@@ -60,7 +60,7 @@ func TestDNS(t *testing.T) {
 		},
 		Spec: kapi.ServiceSpec{
 			PortalIP: kapi.PortalIPNone,
-			Port:     443,
+			Ports:    []kapi.ServicePort{{Port: 443}},
 		},
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -69,12 +69,10 @@ func TestDNS(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "headless",
 		},
-		Endpoints: []kapi.Endpoint{
-			{
-				IP:   "172.0.0.1",
-				Port: 2345,
-			},
-		},
+		Subsets: []kapi.EndpointSubset{{
+			Addresses: []kapi.EndpointAddress{{IP: "172.0.0.1"}},
+			Ports:     []kapi.EndpointPort{{Port: 2345}},
+		}},
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -84,6 +82,7 @@ func TestDNS(t *testing.T) {
 	tests := []struct {
 		dnsQuestionName   string
 		recursionExpected bool
+		retry             bool
 		expect            *net.IP
 	}{
 		{
@@ -99,6 +98,7 @@ func TestDNS(t *testing.T) {
 		{
 			dnsQuestionName:   "headless.default.local.",
 			recursionExpected: false,
+			retry:             true,
 			expect:            &headlessIP,
 		},
 		{
@@ -106,31 +106,41 @@ func TestDNS(t *testing.T) {
 			recursionExpected: true,
 		},
 	}
-	for _, tc := range tests {
-		m1 := &dns.Msg{
-			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
-			Question: []dns.Question{{tc.dnsQuestionName, dns.TypeA, dns.ClassINET}},
-		}
-		in, err := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !tc.recursionExpected && len(in.Answer) != 1 {
-			t.Fatalf("did not resolve or unexpected forward resolution: %#v", in)
-		} else if tc.recursionExpected && len(in.Answer) == 0 {
-			t.Fatalf("expected forward resolution: %#v", in)
-		}
-		if a, ok := in.Answer[0].(*dns.A); ok {
-			if a.A == nil {
-				t.Errorf("expected an A record with an IP: %#v", a)
-			} else {
-				if tc.expect != nil && tc.expect.String() != a.A.String() {
-					t.Errorf("A record has a different IP than the test case: %v / %v", a.A, *tc.expect)
-				}
+	for i, tc := range tests {
+		stop := make(chan struct{})
+		util.Until(func() {
+			m1 := &dns.Msg{
+				MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
+				Question: []dns.Question{{tc.dnsQuestionName, dns.TypeA, dns.ClassINET}},
 			}
-		} else {
-			t.Errorf("expected an A record: %#v", in)
-		}
-		t.Log(in)
+			in, err := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
+			if err != nil {
+				t.Errorf("%d: unexpected error: %v", i, err)
+				return
+			}
+			if !tc.recursionExpected && len(in.Answer) != 1 {
+				if !tc.retry {
+					close(stop)
+					t.Errorf("%d: did not resolve or unexpected forward resolution: %#v", i, in)
+				}
+				return
+			} else if tc.recursionExpected && len(in.Answer) == 0 {
+				t.Errorf("%d: expected forward resolution: %#v", i, in)
+				return
+			}
+			if a, ok := in.Answer[0].(*dns.A); ok {
+				if a.A == nil {
+					t.Errorf("expected an A record with an IP: %#v", a)
+				} else {
+					if tc.expect != nil && tc.expect.String() != a.A.String() {
+						t.Errorf("A record has a different IP than the test case: %v / %v", a.A, *tc.expect)
+					}
+				}
+			} else {
+				t.Errorf("expected an A record: %#v", in)
+			}
+			t.Log(in)
+			close(stop)
+		}, 50*time.Millisecond, stop)
 	}
 }

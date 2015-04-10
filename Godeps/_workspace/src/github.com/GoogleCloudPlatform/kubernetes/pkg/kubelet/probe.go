@@ -19,8 +19,6 @@ package kubelet
 import (
 	"fmt"
 	"strconv"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -45,12 +43,12 @@ func (kl *Kubelet) probeContainer(pod *api.Pod, status api.PodStatus, container 
 	live, err := kl.probeContainerLiveness(pod, status, container, createdAt)
 	if err != nil {
 		glog.V(1).Infof("Liveness probe errored: %v", err)
-		kl.readiness.set(containerID, false)
+		kl.readinessManager.SetReadiness(containerID, false)
 		return probe.Unknown, err
 	}
 	if live != probe.Success {
 		glog.V(1).Infof("Liveness probe unsuccessful: %v", live)
-		kl.readiness.set(containerID, false)
+		kl.readinessManager.SetReadiness(containerID, false)
 		return live, nil
 	}
 
@@ -58,20 +56,24 @@ func (kl *Kubelet) probeContainer(pod *api.Pod, status api.PodStatus, container 
 	ready, err := kl.probeContainerReadiness(pod, status, container, createdAt)
 	if err == nil && ready == probe.Success {
 		glog.V(3).Infof("Readiness probe successful: %v", ready)
-		kl.readiness.set(containerID, true)
+		kl.readinessManager.SetReadiness(containerID, true)
 		return probe.Success, nil
 	}
 
 	glog.V(1).Infof("Readiness probe failed/errored: %v, %v", ready, err)
-	kl.readiness.set(containerID, false)
+	kl.readinessManager.SetReadiness(containerID, false)
 
 	ref, ok := kl.containerRefManager.GetRef(containerID)
 	if !ok {
 		glog.Warningf("No ref for pod '%v' - '%v'", containerID, container.Name)
-	} else {
-		kl.recorder.Eventf(ref, "unhealthy", "Liveness Probe Failed %v - %v", containerID, container.Name)
+		return probe.Success, err
 	}
-	return ready, err
+
+	if ready != probe.Success {
+		kl.recorder.Eventf(ref, "unhealthy", "Readiness Probe Failed %v - %v", containerID, container.Name)
+	}
+
+	return probe.Success, nil
 }
 
 // probeContainerLiveness probes the liveness of a container.
@@ -87,7 +89,7 @@ func (kl *Kubelet) probeContainerLiveness(pod *api.Pod, status api.PodStatus, co
 	return kl.runProbeWithRetries(p, pod, status, container, maxProbeRetries)
 }
 
-// probeContainerLiveness probes the readiness of a container.
+// probeContainerReadiness probes the readiness of a container.
 // If the initial delay on the readiness probe has not passed the probe will return probe.Failure.
 func (kl *Kubelet) probeContainerReadiness(pod *api.Pod, status api.PodStatus, container api.Container, createdAt int64) (probe.Result, error) {
 	p := container.ReadinessProbe
@@ -117,6 +119,7 @@ func (kl *Kubelet) runProbeWithRetries(p *api.Probe, pod *api.Pod, status api.Po
 func (kl *Kubelet) runProbe(p *api.Probe, pod *api.Pod, status api.PodStatus, container api.Container) (probe.Result, error) {
 	timeout := time.Duration(p.TimeoutSeconds) * time.Second
 	if p.Exec != nil {
+		glog.V(4).Infof("Exec-Probe Pod: %v, Container: %v", pod, container)
 		return kl.prober.exec.Probe(kl.newExecInContainer(pod, container))
 	}
 	if p.HTTPGet != nil {
@@ -125,6 +128,7 @@ func (kl *Kubelet) runProbe(p *api.Probe, pod *api.Pod, status api.PodStatus, co
 			return probe.Unknown, err
 		}
 		host, port, path := extractGetParams(p.HTTPGet, status, port)
+		glog.V(4).Infof("HTTP-Probe Host: %v, Port: %v, Path: %v", host, port, path)
 		return kl.prober.http.Probe(host, port, path, timeout)
 	}
 	if p.TCPSocket != nil {
@@ -132,6 +136,7 @@ func (kl *Kubelet) runProbe(p *api.Probe, pod *api.Pod, status api.PodStatus, co
 		if err != nil {
 			return probe.Unknown, err
 		}
+		glog.V(4).Infof("TCP-Probe PodIP: %v, Port: %v, Timeout: %v", status.PodIP, port, timeout)
 		return kl.prober.tcp.Probe(status.PodIP, port, timeout)
 	}
 	glog.Warningf("Failed to find probe builder for %s %+v", container.Name, container.LivenessProbe)
@@ -202,44 +207,6 @@ func (eic execInContainer) CombinedOutput() ([]byte, error) {
 
 func (eic execInContainer) SetDir(dir string) {
 	//unimplemented
-}
-
-// This will eventually maintain info about probe results over time
-// to allow for implementation of health thresholds
-func newReadinessStates() *readinessStates {
-	return &readinessStates{states: make(map[string]bool)}
-}
-
-type readinessStates struct {
-	// guards states
-	sync.RWMutex
-	states map[string]bool
-}
-
-func (r *readinessStates) IsReady(c api.ContainerStatus) bool {
-	if c.State.Running == nil {
-		return false
-	}
-	return r.get(strings.TrimPrefix(c.ContainerID, "docker://"))
-}
-
-func (r *readinessStates) get(key string) bool {
-	r.RLock()
-	defer r.RUnlock()
-	state, found := r.states[key]
-	return state && found
-}
-
-func (r *readinessStates) set(key string, value bool) {
-	r.Lock()
-	defer r.Unlock()
-	r.states[key] = value
-}
-
-func (r *readinessStates) remove(key string) {
-	r.Lock()
-	defer r.Unlock()
-	delete(r.states, key)
 }
 
 func newProbeHolder() probeHolder {

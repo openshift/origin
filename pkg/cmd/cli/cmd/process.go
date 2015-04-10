@@ -120,7 +120,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 			}
 		}
 	} else {
-		obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand(cmd)).
+		obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 			NamespaceParam(namespace).RequireNamespace().
 			FilenameParam(filename).
 			Do().

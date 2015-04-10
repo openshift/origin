@@ -138,7 +138,7 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 #
 
 # test client not configured
-[ "$(osc get services 2>&1 | grep 'no server found')" ]
+[ "$(osc get services 2>&1 | grep 'Error in configuration')" ]
 
 # Set KUBERNETES_MASTER for osc from now on
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
