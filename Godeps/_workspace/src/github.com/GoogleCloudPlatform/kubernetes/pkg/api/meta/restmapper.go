@@ -226,3 +226,13 @@ func (m *DefaultRESTMapper) RESTMapping(kind string, versions ...string) (*RESTM
 		MetadataAccessor: interfaces.MetadataAccessor,
 	}, nil
 }
+
+// AliasesForResource returns whether a resource has an alias or not
+func (m *DefaultRESTMapper) AliasesForResource(resource string) ([]string, bool) {
+	aliases := map[string][]string{}
+
+	if res, ok := aliases[resource]; ok {
+		return res, true
+	}
+	return nil, false
+}
