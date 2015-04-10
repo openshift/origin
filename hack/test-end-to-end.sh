@@ -165,7 +165,10 @@ function wait_for_build() {
 	wait_for_command "osc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "osc get -n $1 builds | grep -i -e failed -e error"
 	BUILD_ID=`osc get -n $1 builds --output-version=v1beta1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} finished"
+  # TODO: fix
+  set +e
 	osc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
+  set -e
 }
 
 # Setup
