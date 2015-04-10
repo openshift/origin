@@ -1,3 +1,5 @@
+// build !cgo
+
 package procfs
 
 import (
@@ -6,9 +8,6 @@ import (
 	"io/ioutil"
 	"os"
 )
-
-// #include <unistd.h>
-import "C"
 
 // ProcStat provides status information about the process,
 // read from /proc/[pid]/stat.
@@ -158,8 +157,4 @@ func (s ProcStat) StartTime() (float64, error) {
 // CPUTime returns the total CPU user and system time in seconds.
 func (s ProcStat) CPUTime() float64 {
 	return float64(s.UTime+s.STime) / ticks()
-}
-
-func ticks() float64 {
-	return float64(C.sysconf(C._SC_CLK_TCK)) // most likely 100
 }
