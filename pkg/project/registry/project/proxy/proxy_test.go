@@ -8,9 +8,10 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+
 	"github.com/openshift/origin/pkg/project/api"
 )
 
@@ -31,9 +32,7 @@ func TestListProjects(t *testing.T) {
 			},
 		},
 	}
-	mockClient := &kclient.Fake{
-		NamespacesList: namespaceList,
-	}
+	mockClient := testclient.NewSimpleFake(&namespaceList)
 	storage := REST{
 		client: mockClient.Namespaces(),
 		lister: &mockLister{&namespaceList},
@@ -71,7 +70,7 @@ func TestCreateProjectBadObject(t *testing.T) {
 }
 
 func TestCreateInvalidProject(t *testing.T) {
-	mockClient := &kclient.Fake{}
+	mockClient := &testclient.Fake{}
 	storage := NewREST(mockClient.Namespaces(), &mockLister{})
 	_, err := storage.Create(nil, &api.Project{
 		DisplayName: "h\t\ni",
@@ -82,7 +81,7 @@ func TestCreateInvalidProject(t *testing.T) {
 }
 
 func TestCreateProjectOK(t *testing.T) {
-	mockClient := &kclient.Fake{}
+	mockClient := &testclient.Fake{}
 	storage := NewREST(mockClient.Namespaces(), &mockLister{})
 	_, err := storage.Create(kapi.NewContext(), &api.Project{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
@@ -99,7 +98,7 @@ func TestCreateProjectOK(t *testing.T) {
 }
 
 func TestGetProjectOK(t *testing.T) {
-	mockClient := &kclient.Fake{}
+	mockClient := testclient.NewSimpleFake(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
 	storage := NewREST(mockClient.Namespaces(), &mockLister{})
 	project, err := storage.Get(kapi.NewContext(), "foo")
 	if project == nil {
@@ -114,7 +113,7 @@ func TestGetProjectOK(t *testing.T) {
 }
 
 func TestDeleteProject(t *testing.T) {
-	mockClient := &kclient.Fake{}
+	mockClient := &testclient.Fake{}
 	storage := REST{
 		client: mockClient.Namespaces(),
 	}

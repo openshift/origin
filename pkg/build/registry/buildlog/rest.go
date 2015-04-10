@@ -65,7 +65,7 @@ func (r *REST) ResourceLocation(ctx kapi.Context, id string) (*url.URL, http.Rou
 		return nil, nil, fielderrors.NewFieldNotFound("Pod.Name", buildPodName)
 	}
 
-	buildPodHost := pod.Status.Host
+	buildPodHost := pod.Spec.Host
 	buildPodNamespace := pod.Namespace
 	// Build will take place only in one container
 	buildContainerName := pod.Spec.Containers[0].Name

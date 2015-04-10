@@ -201,6 +201,16 @@ func (eq *EventQueue) List() []interface{} {
 	return list
 }
 
+// ListKeys returns all enqueued keys.
+func (eq *EventQueue) ListKeys() []string {
+	eq.lock.RLock()
+	defer eq.lock.RUnlock()
+
+	list := make([]string, 0, len(eq.queue))
+	copy(list, eq.queue)
+	return list
+}
+
 // ContainedIDs returns a util.StringSet containing all IDs of the enqueued items.
 // This is a snapshot of a moment in time, and one should keep in mind that
 // other go routines can add or remove items after you call this.

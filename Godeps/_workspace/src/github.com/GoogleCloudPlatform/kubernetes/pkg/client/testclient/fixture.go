@@ -1,3 +1,19 @@
+/*
+Copyright 2015 Google Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package testclient
 
 import (
@@ -13,31 +29,49 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/yaml"
 )
 
+// ObjectRetriever abstracts the implementation for retrieving or setting generic
+// objects. It is intended to be used to fake calls to a server by returning
+// objects based on their kind and name.
 type ObjectRetriever interface {
+	// Kind should return a resource or a list of resources (depending on the provided kind and
+	// name). It should return an error if the caller should communicate an error to the server.
 	Kind(kind, name string) (runtime.Object, error)
+	// Add adds a runtime object for test purposes into this object.
 	Add(runtime.Object) error
 }
 
+// ObjectReaction returns a ReactionFunc that takes a generic action string of the form
+// <verb>-<resource> or <verb>-<subresource>-<resource> and attempts to return a runtime
+// Object or error that matches the requested action. For instance, list-replicationControllers
+// should attempt to return a list of replication controllers. This method delegates to the
+// ObjectRetriever interface to satisfy retrieval of lists or retrieval of single items.
+// TODO: add support for sub resources
 func ObjectReaction(o ObjectRetriever, mapper meta.RESTMapper) ReactionFunc {
 	return func(action FakeAction) (runtime.Object, error) {
-		segments := strings.SplitN(action.Action, "-", 2)
-		if len(segments) == 1 {
-			return nil, fmt.Errorf("unrecognized action, need two segments <verb>-<noun>: %s", action.Action)
+		segments := strings.Split(action.Action, "-")
+		var verb, resource string
+		switch len(segments) {
+		case 3:
+			verb, _, resource = segments[0], segments[1], segments[2]
+		case 2:
+			verb, resource = segments[0], segments[1]
+		default:
+			return nil, fmt.Errorf("unrecognized action, need two or three segments <verb>-<resource> or <verb>-<subresource>-<resource>: %s", action.Action)
 		}
-		verb, resource := segments[0], segments[1]
 		_, kind, err := mapper.VersionAndKindForResource(resource)
 		if err != nil {
 			return nil, fmt.Errorf("unrecognized action %s: %v", resource, err)
 		}
+		// TODO: have mapper return a Kind for a subresource?
 		switch verb {
-		case "list":
+		case "list", "search":
 			return o.Kind(kind+"List", "")
-		case "get":
+		case "get", "create", "update", "delete":
+			// TODO: handle sub resources
 			if s, ok := action.Value.(string); ok && action.Value != nil {
 				return o.Kind(kind, s)
 			}
 			return o.Kind(kind, "unknown")
-		case "create", "update", "delete":
 		default:
 			return nil, fmt.Errorf("no reaction implemented for %s", action.Action)
 		}
@@ -45,22 +79,8 @@ func ObjectReaction(o ObjectRetriever, mapper meta.RESTMapper) ReactionFunc {
 	}
 }
 
-type objects struct {
-	types   map[string][]runtime.Object
-	last    map[string]int
-	typer   runtime.ObjectTyper
-	creater runtime.ObjectCreater
-}
-
-func NewObjects(scheme *runtime.Scheme) ObjectRetriever {
-	return objects{
-		types:   make(map[string][]runtime.Object),
-		last:    make(map[string]int),
-		typer:   scheme,
-		creater: scheme,
-	}
-}
-
+// AddObjectsFromPath loads the JSON or YAML file containing Kubernetes API resources
+// and adds them to the provided ObjectRetriever.
 func AddObjectsFromPath(path string, o ObjectRetriever) error {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -78,6 +98,40 @@ func AddObjectsFromPath(path string, o ObjectRetriever) error {
 		return err
 	}
 	return nil
+}
+
+type objects struct {
+	types   map[string][]runtime.Object
+	last    map[string]int
+	typer   runtime.ObjectTyper
+	creater runtime.ObjectCreater
+	copier  copier
+}
+
+var _ ObjectRetriever = &objects{}
+
+type copier interface {
+	Copy(obj runtime.Object) (runtime.Object, error)
+}
+
+// NewObjects implements the ObjectRetriever interface by introspecting the
+// objects provided to Add() and returning them when the Kind method is invoked.
+// If an api.List object is provided to Add(), each child item is added. If an
+// object is added that is itself a list (PodList, ServiceList) then that is added
+// to the "PodList" kind. If no PodList is added, the retriever will take any loaded
+// Pods and return them in a list. If an api.Status is added, and the Details.Kind field
+// is set, that status will be returned instead (as an error if Status != Success, or
+// as a runtime.Object if Status == Success).  If multiple PodLists are provided, they
+// will be returned in order by the Kind call, and the last PodList will be reused for
+// subsequent calls.
+func NewObjects(scheme *runtime.Scheme) ObjectRetriever {
+	return objects{
+		types:   make(map[string][]runtime.Object),
+		last:    make(map[string]int),
+		typer:   scheme,
+		creater: scheme,
+		copier:  scheme,
+	}
 }
 
 func (o objects) Kind(kind, name string) (runtime.Object, error) {
@@ -99,6 +153,9 @@ func (o objects) Kind(kind, name string) (runtime.Object, error) {
 			if err := runtime.SetList(out, arr); err != nil {
 				return nilValue, err
 			}
+			if out, err = o.copier.Copy(out); err != nil {
+				return nilValue, err
+			}
 			return out, nil
 		}
 		return nilValue, errors.NewNotFound(kind, name)
@@ -111,7 +168,10 @@ func (o objects) Kind(kind, name string) (runtime.Object, error) {
 	if index < 0 {
 		return nilValue, errors.NewNotFound(kind, name)
 	}
-	out := arr[index]
+	out, err := o.copier.Copy(arr[index])
+	if err != nil {
+		return nilValue, err
+	}
 	o.last[kind] = index + 1
 
 	if status, ok := out.(*api.Status); ok {

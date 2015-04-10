@@ -6,11 +6,13 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := f.NewCmdGet(out)
+	cmd := cmd.NewCmdGet(f.Factory, out)
 	longDesc := `Display one or many resources.
 
 Possible resources include builds, buildConfigs, services, pods, etc.
@@ -34,7 +36,7 @@ Examples:
 }
 
 func NewCmdUpdate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := f.NewCmdUpdate(out)
+	cmd := cmd.NewCmdUpdate(f.Factory, out)
 	longDesc := `Update a resource by filename or stdin.
 
 JSON and YAML formats are accepted.
@@ -55,7 +57,7 @@ Examples:
 }
 
 func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := f.NewCmdDelete(out)
+	cmd := cmd.NewCmdDelete(f.Factory, out)
 	longDesc := `Delete a resource by filename, stdin, resource and ID, or by resources and label selector.
 
 JSON and YAML formats are accepted.
@@ -89,7 +91,7 @@ Examples:
 }
 
 func NewCmdLog(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := f.NewCmdLog(out)
+	cmd := cmd.NewCmdLog(f.Factory, out)
 	longDesc := `Print the logs for a container in a pod. If the pod has only one container, the container name is optional.
 
 Examples:
@@ -105,7 +107,7 @@ Examples:
 }
 
 func NewCmdCreate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := f.NewCmdCreate(out)
+	cmd := cmd.NewCmdCreate(f.Factory, out)
 	longDesc := `Create a resource by filename or stdin.
 
 JSON and YAML formats are accepted.
@@ -123,7 +125,7 @@ Examples:
 }
 
 func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
-	cmd := f.NewCmdExec(cmdIn, cmdOut, cmdErr)
+	cmd := cmd.NewCmdExec(f.Factory, cmdIn, cmdOut, cmdErr)
 	longDesc := `Execute a command in a container.
 
 Examples:
@@ -139,7 +141,7 @@ Examples:
 }
 
 func NewCmdPortForward(fullName string, f *clientcmd.Factory) *cobra.Command {
-	cmd := f.NewCmdPortForward()
+	cmd := cmd.NewCmdPortForward(f.Factory)
 	longDesc := `Forward 1 or more local ports to a pod.
 
 Examples:
@@ -161,7 +163,7 @@ Examples:
 }
 
 func NewCmdDescribe(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := f.NewCmdDescribe(out)
+	cmd := cmd.NewCmdDescribe(f.Factory, out)
 	longDesc := `Show details of a specific resource.
 
 This command joins many API calls together to form a detailed description of a
@@ -180,7 +182,7 @@ Examples:
 }
 
 func NewCmdProxy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := f.NewCmdProxy(out)
+	cmd := cmd.NewCmdProxy(f.Factory, out)
 	longDesc := `Run a proxy to the Kubernetes API server.
 
 Examples:

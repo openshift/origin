@@ -360,12 +360,7 @@ func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (strin
 func describeServiceInServiceGroup(svc graph.ServiceReference) []string {
 	spec := svc.Service.Spec
 	ip := spec.PortalIP
-	var port string
-	if spec.TargetPort.String() == "0" || ip == "None" {
-		port = fmt.Sprintf(" %d", spec.Port)
-	} else {
-		port = fmt.Sprintf(":%d -> %s", spec.Port, spec.TargetPort.String())
-	}
+	port := describeServicePorts(spec)
 	switch {
 	case ip == "None":
 		return []string{fmt.Sprintf("service %s (headless%s)", svc.Service.Name, port)}
@@ -373,5 +368,27 @@ func describeServiceInServiceGroup(svc graph.ServiceReference) []string {
 		return []string{fmt.Sprintf("service %s (<initializing>%s)", svc.Service.Name, port)}
 	default:
 		return []string{fmt.Sprintf("service %s (%s%s)", svc.Service.Name, ip, port)}
+	}
+}
+
+func describeServicePorts(spec kapi.ServiceSpec) string {
+	switch len(spec.Ports) {
+	case 0:
+		return " no ports"
+	case 1:
+		if spec.Ports[0].TargetPort.String() == "0" || spec.PortalIP == kapi.PortalIPNone {
+			return fmt.Sprintf(":%d", spec.Ports[0].Port)
+		}
+		return fmt.Sprintf(":%d -> %s", spec.Ports[0].Port, spec.Ports[0].TargetPort.String())
+	default:
+		pairs := []string{}
+		for _, port := range spec.Ports {
+			if port.TargetPort.String() == "0" || spec.PortalIP == kapi.PortalIPNone {
+				pairs = append(pairs, fmt.Sprintf("%d", port.Port))
+				continue
+			}
+			pairs = append(pairs, fmt.Sprintf("%d->%s", port.Port, port.TargetPort.String()))
+		}
+		return " " + strings.Join(pairs, ", ")
 	}
 }

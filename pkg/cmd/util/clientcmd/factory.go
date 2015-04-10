@@ -8,7 +8,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -40,7 +40,7 @@ func New(flags *pflag.FlagSet) *Factory {
 
 // Factory provides common options for OpenShift commands
 type Factory struct {
-	*kubecmd.Factory
+	*cmdutil.Factory
 	OpenShiftClientConfig kclientcmd.ClientConfig
 	clients               *clientCache
 }
@@ -55,7 +55,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 
 	w := &Factory{
-		Factory:               kubecmd.NewFactory(clientConfig),
+		Factory:               cmdutil.NewFactory(clientConfig),
 		OpenShiftClientConfig: clientConfig,
 		clients:               clients,
 	}

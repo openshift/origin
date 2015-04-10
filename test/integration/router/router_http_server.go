@@ -146,11 +146,14 @@ func (s *TestHttpService) Start() error {
 
 func (s *TestHttpService) startMaster() error {
 	masterServer := http.NewServeMux()
-	masterServer.HandleFunc("/api/v1beta1/endpoints", s.handleEndpointList)
-	masterServer.HandleFunc("/api/v1beta1/watch/endpoints", s.handleEndpointWatch)
+	apis := []string{"v1beta1", "v1beta2", "v1beta3"}
 
-	masterServer.HandleFunc("/osapi/v1beta1/routes", s.handleRouteList)
-	masterServer.HandleFunc("/osapi/v1beta1/watch/routes", s.handleRouteWatch)
+	for _, version := range apis {
+		masterServer.HandleFunc(fmt.Sprintf("/api/%s/endpoints", version), s.handleEndpointList)
+		masterServer.HandleFunc(fmt.Sprintf("/api/%s/watch/endpoints", version), s.handleEndpointWatch)
+		masterServer.HandleFunc(fmt.Sprintf("/osapi/%s/routes", version), s.handleRouteList)
+		masterServer.HandleFunc(fmt.Sprintf("/osapi/%s/watch/routes", version), s.handleRouteWatch)
+	}
 
 	masterServer.HandleFunc("/", s.handleHelloMaster)
 

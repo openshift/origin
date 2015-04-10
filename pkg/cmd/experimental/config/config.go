@@ -6,10 +6,12 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	"github.com/spf13/cobra"
+
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-func NewCmdConfig(parentName, name string) *cobra.Command {
-	cmd := config.NewCmdConfig(os.Stdout)
+func NewCmdConfig(f *clientcmd.Factory, parentName, name string) *cobra.Command {
+	cmd := config.NewCmdConfig(f.Factory, os.Stdout)
 	cmd.Short = "Change configuration files for the client"
 	cmd.Long = fmt.Sprintf(`Manages the OpenShift config files using subcommands like:
 

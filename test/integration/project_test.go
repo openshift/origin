@@ -59,9 +59,10 @@ func TestProjectIsNamespace(t *testing.T) {
 
 		Mapper: klatest.RESTMapper,
 
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  kubeInterfaces.MetadataAccessor,
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    kubeInterfaces.MetadataAccessor,
 
 		Admit:   admit.NewAlwaysAdmit(),
 		Context: kapi.NewRequestContextMapper(),
@@ -70,7 +71,7 @@ func TestProjectIsNamespace(t *testing.T) {
 		t.Fatalf("unable to install REST: %v", err)
 	}
 
-	kubeClient, err := kclient.New(&kclient.Config{Host: server.URL})
+	kubeClient, err := kclient.New(&kclient.Config{Host: server.URL, Version: "v1beta1"})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -89,9 +90,10 @@ func TestProjectIsNamespace(t *testing.T) {
 
 		Mapper: latest.RESTMapper,
 
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  originInterfaces.MetadataAccessor,
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    originInterfaces.MetadataAccessor,
 
 		Admit:   admit.NewAlwaysAdmit(),
 		Context: kapi.NewRequestContextMapper(),

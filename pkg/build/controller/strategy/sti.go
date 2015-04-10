@@ -67,7 +67,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					Privileged: true,
-					Command:    []string{"--loglevel=" + getContainerVerbosity(containerEnv)},
+					Args:       []string{"--loglevel=" + getContainerVerbosity(containerEnv)},
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,

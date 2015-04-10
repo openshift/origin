@@ -44,7 +44,7 @@ $ kubectl stop -f service.json
 $ kubectl stop -f path/to/resources`
 )
 
-func (f *Factory) NewCmdStop(out io.Writer) *cobra.Command {
+func NewCmdStop(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	flags := &struct {
 		Filenames util.StringList
 	}{}
@@ -57,7 +57,7 @@ func (f *Factory) NewCmdStop(out io.Writer) *cobra.Command {
 			cmdNamespace, err := f.DefaultNamespace()
 			cmdutil.CheckErr(err)
 			mapper, typer := f.Object()
-			r := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand(cmd)).
+			r := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 				ContinueOnError().
 				NamespaceParam(cmdNamespace).RequireNamespace().
 				ResourceTypeOrNameArgs(false, args...).

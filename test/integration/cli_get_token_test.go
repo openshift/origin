@@ -11,10 +11,10 @@ import (
 
 	"github.com/spf13/pflag"
 
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 
 	// for osinserver setup.
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/allowanypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
@@ -44,7 +44,7 @@ func TestGetToken(t *testing.T) {
 
 	// setup
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, _ := master.NewEtcdHelper(etcdClient, klatest.Version)
+	etcdHelper, _ := master.NewEtcdHelper(etcdClient, latest.Version)
 	oauthEtcd := oauthetcd.New(etcdHelper)
 
 	userStorage := useretcd.NewREST(etcdHelper)

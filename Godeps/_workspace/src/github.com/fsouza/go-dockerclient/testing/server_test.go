@@ -1110,6 +1110,41 @@ func TestPrepareFailure(t *testing.T) {
 	}
 }
 
+func TestPrepareMultiFailures(t *testing.T) {
+	server := DockerServer{multiFailures: []map[string]string{}}
+	server.buildMuxer()
+	errorID := "multi error"
+	server.PrepareMultiFailures(errorID, "containers/json")
+	server.PrepareMultiFailures(errorID, "containers/json")
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/containers/json?all=1", nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("PrepareFailure: wrong status. Want %d. Got %d.", http.StatusBadRequest, recorder.Code)
+	}
+	if recorder.Body.String() != errorID+"\n" {
+		t.Errorf("PrepareFailure: wrong message. Want %s. Got %s.", errorID, recorder.Body.String())
+	}
+	recorder = httptest.NewRecorder()
+	request, _ = http.NewRequest("GET", "/containers/json?all=1", nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("PrepareFailure: wrong status. Want %d. Got %d.", http.StatusBadRequest, recorder.Code)
+	}
+	if recorder.Body.String() != errorID+"\n" {
+		t.Errorf("PrepareFailure: wrong message. Want %s. Got %s.", errorID, recorder.Body.String())
+	}
+	recorder = httptest.NewRecorder()
+	request, _ = http.NewRequest("GET", "/containers/json?all=1", nil)
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Errorf("PrepareFailure: wrong status. Want %d. Got %d.", http.StatusOK, recorder.Code)
+	}
+	if recorder.Body.String() == errorID+"\n" {
+		t.Errorf("PrepareFailure: wrong message. Want %s. Got %s.", errorID, recorder.Body.String())
+	}
+}
+
 func TestRemoveFailure(t *testing.T) {
 	server := DockerServer{failures: make(map[string]string)}
 	server.buildMuxer()
@@ -1127,6 +1162,21 @@ func TestRemoveFailure(t *testing.T) {
 	server.ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusOK {
 		t.Errorf("RemoveFailure: wrong status. Want %d. Got %d.", http.StatusOK, recorder.Code)
+	}
+}
+
+func TestResetMultiFailures(t *testing.T) {
+	server := DockerServer{multiFailures: []map[string]string{}}
+	server.buildMuxer()
+	errorID := "multi error"
+	server.PrepareMultiFailures(errorID, "containers/json")
+	server.PrepareMultiFailures(errorID, "containers/json")
+	if len(server.multiFailures) != 2 {
+		t.Errorf("PrepareMultiFailures: error adding multi failures.")
+	}
+	server.ResetMultiFailures()
+	if len(server.multiFailures) != 0 {
+		t.Errorf("ResetMultiFailures: error reseting multi failures.")
 	}
 }
 

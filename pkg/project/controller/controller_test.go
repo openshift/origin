@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/project/api"
 )
 
 func TestSyncNamespaceThatIsTerminating(t *testing.T) {
-	mockKubeClient := &kclient.Fake{}
+	mockKubeClient := &testclient.Fake{}
 	mockOriginClient := &osclient.Fake{}
 	nm := NamespaceController{
 		KubeClient: mockKubeClient,
@@ -61,7 +61,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 }
 
 func TestSyncNamespaceThatIsActive(t *testing.T) {
-	mockKubeClient := &kclient.Fake{}
+	mockKubeClient := &testclient.Fake{}
 	mockOriginClient := &osclient.Fake{}
 	nm := NamespaceController{
 		KubeClient: mockKubeClient,

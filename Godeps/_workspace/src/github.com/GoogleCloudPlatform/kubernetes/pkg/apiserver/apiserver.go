@@ -36,6 +36,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/flushwriter"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 
 	"github.com/emicklei/go-restful"
@@ -102,12 +103,19 @@ type APIGroupVersion struct {
 	Root    string
 	Version string
 
+	// ServerVersion controls the Kubernetes APIVersion used for common objects in the apiserver
+	// schema like api.Status, api.DeleteOptions, and api.ListOptions. Other implementors may
+	// define a version "v1beta1" but want to use the Kubernetes "v1beta3" internal objects. If
+	// empty, defaults to Version.
+	ServerVersion string
+
 	Mapper meta.RESTMapper
 
-	Codec   runtime.Codec
-	Typer   runtime.ObjectTyper
-	Creater runtime.ObjectCreater
-	Linker  runtime.SelfLinker
+	Codec     runtime.Codec
+	Typer     runtime.ObjectTyper
+	Creater   runtime.ObjectCreater
+	Convertor runtime.ObjectConvertor
+	Linker    runtime.SelfLinker
 
 	Admit   admission.Interface
 	Context api.RequestContextMapper
@@ -132,14 +140,7 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container) error {
 
 // TODO: Convert to go-restful
 func InstallValidator(mux Mux, servers func() map[string]Server) {
-	validator, err := NewValidator(servers)
-	if err != nil {
-		glog.Errorf("failed to set up validator: %v", err)
-		return
-	}
-	if validator != nil {
-		mux.Handle("/validate", validator)
-	}
+	mux.Handle("/validate", NewValidator(servers))
 }
 
 // TODO: document all handlers
@@ -197,12 +198,21 @@ func APIVersionHandler(versions ...string) restful.RouteFunction {
 	}
 }
 
-// write renders a returned runtime.Object to the response as a stream or an encoded object.
+// write renders a returned runtime.Object to the response as a stream or an encoded object. If the object
+// returned by the response implements rest.ResourceStreamer that interface will be used to render the
+// response. The Accept header and current API version will be passed in, and the output will be copied
+// directly to the response body. If content type is returned it is used, otherwise the content type will
+// be "application/octet-stream". All other objects are sent to standard JSON serialization.
 func write(statusCode int, apiVersion string, codec runtime.Codec, object runtime.Object, w http.ResponseWriter, req *http.Request) {
 	if stream, ok := object.(rest.ResourceStreamer); ok {
-		out, contentType, err := stream.InputStream(apiVersion, req.Header.Get("Accept"))
+		out, flush, contentType, err := stream.InputStream(apiVersion, req.Header.Get("Accept"))
 		if err != nil {
 			errorJSONFatal(err, codec, w)
+			return
+		}
+		if out == nil {
+			// No output provided - return StatusNoContent
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		defer out.Close()
@@ -211,7 +221,11 @@ func write(statusCode int, apiVersion string, codec runtime.Codec, object runtim
 		}
 		w.Header().Set("Content-Type", contentType)
 		w.WriteHeader(statusCode)
-		io.Copy(w, out)
+		writer := w.(io.Writer)
+		if flush {
+			writer = flushwriter.Wrap(w)
+		}
+		io.Copy(writer, out)
 		return
 	}
 	writeJSON(statusCode, codec, object, w)

@@ -1,8 +1,9 @@
 package webhook
 
 import (
-	"github.com/openshift/origin/pkg/build/api"
 	"strings"
+
+	"github.com/openshift/origin/pkg/build/api"
 )
 
 // GitRefMatches determines if the ref from a webhook event matches a build configuration

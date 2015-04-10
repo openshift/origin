@@ -44,8 +44,8 @@ func (c *buildConfigs) List(label labels.Selector, field fields.Selector) (resul
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("buildConfigs").
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Do().
 		Into(result)
 	return
@@ -84,8 +84,8 @@ func (c *buildConfigs) Watch(label labels.Selector, field fields.Selector, resou
 		Namespace(c.ns).
 		Resource("buildConfigs").
 		Param("resourceVersion", resourceVersion).
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Watch()
 }
 

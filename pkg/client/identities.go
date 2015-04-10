@@ -37,8 +37,8 @@ func (c *identities) List(label labels.Selector, field fields.Selector) (result 
 	result = &userapi.IdentityList{}
 	err = c.r.Get().
 		Resource("identities").
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Do().
 		Into(result)
 	return

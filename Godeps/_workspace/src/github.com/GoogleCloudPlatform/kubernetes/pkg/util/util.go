@@ -88,9 +88,13 @@ func logError(err error) {
 }
 
 // Forever loops forever running f every period.  Catches any panics, and keeps going.
+// Deprecated. Please use Until and pass NeverStop as the stopCh.
 func Forever(f func(), period time.Duration) {
 	Until(f, period, nil)
 }
+
+// NeverStop may be passed to Until to make it never stop.
+var NeverStop <-chan struct{} = make(chan struct{})
 
 // Until loops until stop channel is closed, running f every period.
 // Catches any panics, and keeps going. f may not be invoked if
@@ -407,12 +411,12 @@ func chooseHostInterfaceNativeGo() (net.IP, error) {
 	if i == len(intfs) {
 		return nil, err
 	}
-	glog.V(2).Infof("Choosing interface %s for from-host portals", intfs[i].Name)
+	glog.V(4).Infof("Choosing interface %s for from-host portals", intfs[i].Name)
 	addrs, err := intfs[i].Addrs()
 	if err != nil {
 		return nil, err
 	}
-	glog.V(2).Infof("Interface %s = %s", intfs[i].Name, addrs[0].String())
+	glog.V(4).Infof("Interface %s = %s", intfs[i].Name, addrs[0].String())
 	ip, _, err := net.ParseCIDR(addrs[0].String())
 	if err != nil {
 		return nil, err

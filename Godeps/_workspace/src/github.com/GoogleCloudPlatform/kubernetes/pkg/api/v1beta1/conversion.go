@@ -192,7 +192,6 @@ func init() {
 				return err
 			}
 			out.Message = in.Message
-			out.Host = in.Host
 			out.HostIP = in.HostIP
 			out.PodIP = in.PodIP
 			return nil
@@ -209,7 +208,6 @@ func init() {
 			}
 
 			out.Message = in.Message
-			out.Host = in.Host
 			out.HostIP = in.HostIP
 			out.PodIP = in.PodIP
 			return nil
@@ -368,6 +366,7 @@ func init() {
 				return err
 			}
 			out.DesiredState.Host = in.Spec.Host
+			out.CurrentState.Host = in.Spec.Host
 			if err := s.Convert(&in.Status, &out.CurrentState, 0); err != nil {
 				return err
 			}
@@ -532,7 +531,10 @@ func init() {
 			if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Command, &out.Command, 0); err != nil {
+			if err := s.Convert(&in.Command, &out.Entrypoint, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Args, &out.Command, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.WorkingDir, &out.WorkingDir, 0); err != nil {
@@ -615,7 +617,10 @@ func init() {
 			if err := s.Convert(&in.Image, &out.Image, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Command, &out.Command, 0); err != nil {
+			if err := s.Convert(&in.Command, &out.Args, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Entrypoint, &out.Command, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.WorkingDir, &out.WorkingDir, 0); err != nil {
@@ -703,14 +708,29 @@ func init() {
 				return err
 			}
 
-			out.Port = in.Spec.Port
-			out.Protocol = Protocol(in.Spec.Protocol)
+			// Produce legacy fields.
+			out.Protocol = ProtocolTCP
+			if len(in.Spec.Ports) > 0 {
+				out.PortName = in.Spec.Ports[0].Name
+				out.Port = in.Spec.Ports[0].Port
+				out.Protocol = Protocol(in.Spec.Ports[0].Protocol)
+				out.ContainerPort = in.Spec.Ports[0].TargetPort
+			}
+			// Copy modern fields.
+			for i := range in.Spec.Ports {
+				out.Ports = append(out.Ports, ServicePort{
+					Name:          in.Spec.Ports[i].Name,
+					Port:          in.Spec.Ports[i].Port,
+					Protocol:      Protocol(in.Spec.Ports[i].Protocol),
+					ContainerPort: in.Spec.Ports[i].TargetPort,
+				})
+			}
+
 			if err := s.Convert(&in.Spec.Selector, &out.Selector, 0); err != nil {
 				return err
 			}
 			out.CreateExternalLoadBalancer = in.Spec.CreateExternalLoadBalancer
 			out.PublicIPs = in.Spec.PublicIPs
-			out.ContainerPort = in.Spec.TargetPort
 			out.PortalIP = in.Spec.PortalIP
 			if err := s.Convert(&in.Spec.SessionAffinity, &out.SessionAffinity, 0); err != nil {
 				return err
@@ -729,14 +749,31 @@ func init() {
 				return err
 			}
 
-			out.Spec.Port = in.Port
-			out.Spec.Protocol = newer.Protocol(in.Protocol)
+			if len(in.Ports) == 0 && in.Port != 0 {
+				// Use legacy fields to produce modern fields.
+				out.Spec.Ports = append(out.Spec.Ports, newer.ServicePort{
+					Name:       in.PortName,
+					Port:       in.Port,
+					Protocol:   newer.Protocol(in.Protocol),
+					TargetPort: in.ContainerPort,
+				})
+			} else {
+				// Use modern fields, ignore legacy.
+				for i := range in.Ports {
+					out.Spec.Ports = append(out.Spec.Ports, newer.ServicePort{
+						Name:       in.Ports[i].Name,
+						Port:       in.Ports[i].Port,
+						Protocol:   newer.Protocol(in.Ports[i].Protocol),
+						TargetPort: in.Ports[i].ContainerPort,
+					})
+				}
+			}
+
 			if err := s.Convert(&in.Selector, &out.Spec.Selector, 0); err != nil {
 				return err
 			}
 			out.Spec.CreateExternalLoadBalancer = in.CreateExternalLoadBalancer
 			out.Spec.PublicIPs = in.PublicIPs
-			out.Spec.TargetPort = in.ContainerPort
 			out.Spec.PortalIP = in.PortalIP
 			if err := s.Convert(&in.SessionAffinity, &out.Spec.SessionAffinity, 0); err != nil {
 				return err
@@ -885,6 +922,9 @@ func init() {
 			if err := s.Convert(&in.Min, &out.Min, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.Default, &out.Default, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 		func(in *LimitRangeItem, out *newer.LimitRangeItem, s conversion.Scope) error {
@@ -894,6 +934,9 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.Min, &out.Min, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Default, &out.Default, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1124,6 +1167,9 @@ func init() {
 			if err := s.Convert(&in.GCEPersistentDisk, &out.GCEPersistentDisk, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.ISCSI, &out.ISCSI, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.HostPath, &out.HostDir, 0); err != nil {
 				return err
 			}
@@ -1131,6 +1177,9 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.NFS, &out.NFS, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Glusterfs, &out.Glusterfs, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1145,6 +1194,9 @@ func init() {
 			if err := s.Convert(&in.GCEPersistentDisk, &out.GCEPersistentDisk, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.ISCSI, &out.ISCSI, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.HostDir, &out.HostPath, 0); err != nil {
 				return err
 			}
@@ -1152,6 +1204,9 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.NFS, &out.NFS, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Glusterfs, &out.Glusterfs, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1253,21 +1308,42 @@ func init() {
 			if err := s.Convert(&in.ObjectMeta, &out.TypeMeta, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Protocol, &out.Protocol, 0); err != nil {
+			if err := s.Convert(&in.Subsets, &out.Subsets, 0); err != nil {
 				return err
 			}
-			for i := range in.Endpoints {
-				ep := &in.Endpoints[i]
-				hostPort := net.JoinHostPort(ep.IP, strconv.Itoa(ep.Port))
-				out.Endpoints = append(out.Endpoints, hostPort)
-				if ep.TargetRef != nil {
-					target := EndpointObjectReference{
-						Endpoint: hostPort,
-					}
-					if err := s.Convert(ep.TargetRef, &target.ObjectReference, 0); err != nil {
+			// Produce back-compat fields.
+			firstPortName := ""
+			if len(in.Subsets) > 0 {
+				if len(in.Subsets[0].Ports) > 0 {
+					if err := s.Convert(&in.Subsets[0].Ports[0].Protocol, &out.Protocol, 0); err != nil {
 						return err
 					}
-					out.TargetRefs = append(out.TargetRefs, target)
+					firstPortName = in.Subsets[0].Ports[0].Name
+				}
+			} else {
+				out.Protocol = ProtocolTCP
+			}
+			for i := range in.Subsets {
+				ss := &in.Subsets[i]
+				for j := range ss.Ports {
+					ssp := &ss.Ports[j]
+					if ssp.Name != firstPortName {
+						continue
+					}
+					for k := range ss.Addresses {
+						ssa := &ss.Addresses[k]
+						hostPort := net.JoinHostPort(ssa.IP, strconv.Itoa(ssp.Port))
+						out.Endpoints = append(out.Endpoints, hostPort)
+						if ssa.TargetRef != nil {
+							target := EndpointObjectReference{
+								Endpoint: hostPort,
+							}
+							if err := s.Convert(ssa.TargetRef, &target.ObjectReference, 0); err != nil {
+								return err
+							}
+							out.TargetRefs = append(out.TargetRefs, target)
+						}
+					}
 				}
 			}
 			return nil
@@ -1279,32 +1355,10 @@ func init() {
 			if err := s.Convert(&in.TypeMeta, &out.ObjectMeta, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Protocol, &out.Protocol, 0); err != nil {
+			if err := s.Convert(&in.Subsets, &out.Subsets, 0); err != nil {
 				return err
 			}
-			for i := range in.Endpoints {
-				out.Endpoints = append(out.Endpoints, newer.Endpoint{})
-				ep := &out.Endpoints[i]
-				host, port, err := net.SplitHostPort(in.Endpoints[i])
-				if err != nil {
-					return err
-				}
-				ep.IP = host
-				pn, err := strconv.Atoi(port)
-				if err != nil {
-					return err
-				}
-				ep.Port = pn
-				for j := range in.TargetRefs {
-					if in.TargetRefs[j].Endpoint != in.Endpoints[i] {
-						continue
-					}
-					ep.TargetRef = &newer.ObjectReference{}
-					if err := s.Convert(&in.TargetRefs[j].ObjectReference, ep.TargetRef, 0); err != nil {
-						return err
-					}
-				}
-			}
+			// Back-compat fields are handled in the defaulting phase.
 			return nil
 		},
 
@@ -1315,7 +1369,7 @@ func init() {
 			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.LastProbeTime, &out.LastProbeTime, 0); err != nil {
+			if err := s.Convert(&in.LastHeartbeatTime, &out.LastProbeTime, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.LastTransitionTime, &out.LastTransitionTime, 0); err != nil {
@@ -1336,7 +1390,7 @@ func init() {
 			if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.LastProbeTime, &out.LastProbeTime, 0); err != nil {
+			if err := s.Convert(&in.LastProbeTime, &out.LastHeartbeatTime, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.LastTransitionTime, &out.LastTransitionTime, 0); err != nil {
@@ -1353,9 +1407,6 @@ func init() {
 
 		func(in *newer.NodeConditionType, out *NodeConditionKind, s conversion.Scope) error {
 			switch *in {
-			case newer.NodeReachable:
-				*out = NodeReachable
-				break
 			case newer.NodeReady:
 				*out = NodeReady
 				break
@@ -1369,9 +1420,6 @@ func init() {
 		},
 		func(in *NodeConditionKind, out *newer.NodeConditionType, s conversion.Scope) error {
 			switch *in {
-			case NodeReachable:
-				*out = newer.NodeReachable
-				break
 			case NodeReady:
 				*out = newer.NodeReady
 				break
@@ -1494,11 +1542,11 @@ func init() {
 	}
 
 	// Add field conversion funcs.
-	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "pods",
+	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "Pod",
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "name":
-				return "name", value, nil
+				return "metadata.name", value, nil
 			case "DesiredState.Host":
 				return "spec.host", value, nil
 			case "DesiredState.Status":
@@ -1514,11 +1562,24 @@ func init() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "replicationControllers",
+	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "Node",
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "name":
-				return "name", value, nil
+				return "metadata.name", value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
+			}
+		})
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "ReplicationController",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "name":
+				return "metadata.name", value, nil
 			case "currentState.replicas":
 				return "status.replicas", value, nil
 			default:
@@ -1529,7 +1590,7 @@ func init() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "events",
+	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "Event",
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "involvedObject.kind",
@@ -1551,7 +1612,7 @@ func init() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "namespaces",
+	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "Namespace",
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "status.phase":

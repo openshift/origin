@@ -25,8 +25,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 )
 
-var apiVersionToUse = "v1beta1"
-
 const kubectlAnnotationPrefix = "kubectl.kubernetes.io/"
 
 type NamespaceInfo struct {
@@ -107,6 +105,8 @@ func expandResourceShortcut(resource string) string {
 		"ev":     "events",
 		"limits": "limitRanges",
 		"quota":  "resourceQuotas",
+		"pv":     "persistentVolumes",
+		"pvc":    "persistentVolumeClaims",
 	}
 	if expanded, ok := shortForms[resource]; ok {
 		return expanded

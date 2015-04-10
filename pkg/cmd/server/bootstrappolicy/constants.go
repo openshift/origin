@@ -1,7 +1,5 @@
 package bootstrappolicy
 
-import ()
-
 // known namespaces
 const (
 	DefaultMasterAuthorizationNamespace      = "master"

@@ -43,8 +43,8 @@ func (c *routes) List(label labels.Selector, field fields.Selector) (result *rou
 	err = c.r.Get().
 		Namespace(c.ns).
 		Resource("routes").
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Do().
 		Into(result)
 	return
@@ -83,7 +83,7 @@ func (c *routes) Watch(label labels.Selector, field fields.Selector, resourceVer
 		Namespace(c.ns).
 		Resource("routes").
 		Param("resourceVersion", resourceVersion).
-		LabelsSelectorParam("labels", label).
-		FieldsSelectorParam("fields", field).
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
 		Watch()
 }

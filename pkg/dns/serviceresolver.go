@@ -71,29 +71,33 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 			if err != nil {
 				return nil, err
 			}
-			services := make([]msg.Service, 0, len(endpoints.Endpoints))
-			for _, e := range endpoints.Endpoints {
-				services = append(services, msg.Service{
-					Host: e.IP,
-					Port: e.Port,
+			services := make([]msg.Service, 0, len(endpoints.Subsets)*4)
+			for _, s := range endpoints.Subsets {
+				for _, a := range s.Addresses {
+					for _, p := range s.Ports {
+						services = append(services, msg.Service{
+							Host: a.IP,
+							Port: p.Port,
 
-					Priority: 10,
-					Weight:   10,
-					Ttl:      30,
+							Priority: 10,
+							Weight:   10,
+							Ttl:      30,
 
-					Text: "",
-					Key:  msg.Path(name),
-				})
+							Text: "",
+							Key:  msg.Path(name),
+						})
+					}
+				}
 			}
 			return services, nil
 		}
-		if len(svc.Spec.PortalIP) == 0 {
+		if len(svc.Spec.PortalIP) == 0 || len(svc.Spec.Ports) == 0 {
 			return nil, nil
 		}
 		return []msg.Service{
 			{
 				Host: svc.Spec.PortalIP,
-				Port: svc.Spec.Port,
+				Port: svc.Spec.Ports[0].Port,
 
 				Priority: 10,
 				Weight:   10,
@@ -119,9 +123,13 @@ func (b *ServiceResolver) ReverseRecord(name string) (*msg.Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	port := 0
+	if len(svc.Spec.Ports) > 0 {
+		port = svc.Spec.Ports[0].Port
+	}
 	return &msg.Service{
 		Host: fmt.Sprintf("%s.%s.%s", svc.Name, svc.Namespace, b.base),
-		Port: svc.Spec.Port,
+		Port: port,
 
 		Priority: 10,
 		Weight:   10,
