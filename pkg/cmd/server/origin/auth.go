@@ -23,6 +23,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
+	"github.com/openshift/origin/pkg/auth/authenticator/challenger/placeholderchallenger"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/allowanypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/basicauthpassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/denypassword"
@@ -183,6 +184,9 @@ func OpenShiftOAuthAuthorizeURL(masterAddr string) string {
 func OpenShiftOAuthTokenURL(masterAddr string) string {
 	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, osinserver.TokenPath)
 }
+func OpenShiftOAuthTokenRequestURL(masterAddr string) string {
+	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.RequestTokenEndpoint)
+}
 
 func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry oauthclient.Registry) {
 	clientsToEnsure := []*oauthapi.OAuthClient{
@@ -328,6 +332,11 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				return nil, errors.New("oauth identity providers cannot issue challenges")
 			}
 		}
+	}
+
+	if len(redirectors) > 0 && len(challengers) == 0 {
+		// Add a default challenger that will warn and give a link to the web browser token-granting location
+		challengers["placeholder"] = placeholderchallenger.New(OpenShiftOAuthTokenRequestURL(c.Options.MasterPublicURL))
 	}
 
 	authHandler := handlers.NewUnionAuthenticationHandler(challengers, redirectors, errorHandler)
