@@ -675,7 +675,6 @@ angular.module('openshiftConsole')
     buildConfigs:              API_CFG.openshift,
     buildConfigHooks:          API_CFG.openshift,
     deploymentConfigs:         API_CFG.openshift,
-    images:                    API_CFG.openshift,
     imageRepositories:         API_CFG.openshift, // DEPRECATED, leave here until removed from API
     imageRepositoryTags:       API_CFG.openshift,
     imageStreams:              API_CFG.openshift,
@@ -772,7 +771,6 @@ angular.module('openshiftConsole')
     Build:                    "builds",
     BuildConfig:              "buildConfigs",
     DeploymentConfig:         "deploymentConfigs",
-    Image:                    "images",
     ImageRepository:          "imageRepositories", // DEPRECATED, leave here until removed from API
     ImageStream:              "imageStreams",
     OAuthAccessToken:         "oAuthAccessTokens",
