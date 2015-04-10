@@ -64,6 +64,7 @@
           <th>Resource type</th>
           <th>Min</th>
           <th>Max</th>
+          <th>Default</th>
         </thead>
         <tbody ng-repeat="limitRange in limitRanges">
           <tr ng-repeat-start="limit in limitRange.spec.limits"></tr>
@@ -72,6 +73,7 @@
             <td>{{limit.type}} {{type}}</td>
             <td>{{(min | usageWithUnits : type) || "&mdash;"}}</td>
             <td>{{(limit.max[type] | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{(limit["default"][type] | usageWithUnits : type) || "&mdash;"}}</td>
           </tr>
           <tr ng-repeat-end></tr>
         </tbody>
