@@ -82,7 +82,7 @@ func TestRouter(t *testing.T) {
 	testCases := []struct {
 		name              string
 		serviceName       string
-		endpoints         []kapi.Endpoint
+		endpoints         []kapi.EndpointSubset
 		routeAlias        string
 		routePath         string
 		endpointEventType watch.EventType
@@ -95,7 +95,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "non-secure",
 			serviceName:       "example",
-			endpoints:         []kapi.Endpoint{httpEndpoint},
+			endpoints:         []kapi.EndpointSubset{httpEndpoint},
 			routeAlias:        "www.example-unsecure.com",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -107,7 +107,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "non-secure-path",
 			serviceName:       "example",
-			endpoints:         []kapi.Endpoint{httpEndpoint},
+			endpoints:         []kapi.EndpointSubset{httpEndpoint},
 			routeAlias:        "www.example-unsecure.com",
 			routePath:         "/test",
 			endpointEventType: watch.Added,
@@ -120,7 +120,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "edge termination",
 			serviceName:       "example-edge",
-			endpoints:         []kapi.Endpoint{httpEndpoint},
+			endpoints:         []kapi.EndpointSubset{httpEndpoint},
 			routeAlias:        "www.example.com",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -137,7 +137,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "edge termination path",
 			serviceName:       "example-edge",
-			endpoints:         []kapi.Endpoint{httpEndpoint},
+			endpoints:         []kapi.EndpointSubset{httpEndpoint},
 			routeAlias:        "www.example.com",
 			routePath:         "/test",
 			endpointEventType: watch.Added,
@@ -155,7 +155,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "passthrough termination",
 			serviceName:       "example-passthrough",
-			endpoints:         []kapi.Endpoint{httpsEndpoint},
+			endpoints:         []kapi.EndpointSubset{httpsEndpoint},
 			routeAlias:        "www.example2.com",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -169,7 +169,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "websocket unsecure",
 			serviceName:       "websocket-unsecure",
-			endpoints:         []kapi.Endpoint{httpEndpoint},
+			endpoints:         []kapi.EndpointSubset{httpEndpoint},
 			routeAlias:        "0.0.0.0:80",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -180,7 +180,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "ws edge termination",
 			serviceName:       "websocket-edge",
-			endpoints:         []kapi.Endpoint{httpEndpoint},
+			endpoints:         []kapi.EndpointSubset{httpEndpoint},
 			routeAlias:        "0.0.0.0:443",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -197,7 +197,7 @@ func TestRouter(t *testing.T) {
 		{
 			name:              "ws passthrough termination",
 			serviceName:       "websocket-passthrough",
-			endpoints:         []kapi.Endpoint{httpsEndpoint},
+			endpoints:         []kapi.EndpointSubset{httpsEndpoint},
 			routeAlias:        "0.0.0.0:443",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -223,7 +223,7 @@ func TestRouter(t *testing.T) {
 					Kind:       "Endpoints",
 					APIVersion: "v1beta3",
 				},
-				Endpoints: tc.endpoints,
+				Subsets: tc.endpoints,
 			},
 		}
 
@@ -330,7 +330,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Kind:       "Endpoints",
 				APIVersion: "v1beta3",
 			},
-			Endpoints: []kapi.Endpoint{httpEndpoint},
+			Subsets: []kapi.EndpointSubset{httpEndpoint},
 		},
 	}
 	routeEvent := &watch.Event{
@@ -414,16 +414,16 @@ func validateRoute(url, host, scheme, expected string, t *testing.T) {
 	}
 }
 
-func getEndpoint(hostport string) (kapi.Endpoint, error) {
+func getEndpoint(hostport string) (kapi.EndpointSubset, error) {
 	host, port, err := net.SplitHostPort(hostport)
 	if err != nil {
-		return kapi.Endpoint{}, err
+		return kapi.EndpointSubset{}, err
 	}
 	portNum, err := strconv.Atoi(port)
 	if err != nil {
-		return kapi.Endpoint{}, err
+		return kapi.EndpointSubset{}, err
 	}
-	return kapi.Endpoint{IP: host, Port: portNum}, nil
+	return kapi.EndpointSubset{Addresses: []kapi.EndpointAddress{{IP: host}}, Ports: []kapi.EndpointPort{{Port: portNum}}}, nil
 }
 
 // getRoute is a utility function for making the web request to a route.  Protocol is either http or https.  If the
