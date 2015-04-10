@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CatalogController', function ($scope, DataService, $filter, LabelFilter, Logger) {
+  .controller('CatalogTemplatesController', function ($scope, DataService, $filter, LabelFilter, Logger) {
     $scope.projectTemplates = {};
     $scope.openshiftTemplates = {};
 

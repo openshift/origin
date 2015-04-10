@@ -355,6 +355,15 @@ select:invalid {
     opacity: 1;
   }
 }
+.modal-backdrop {
+  &.fade {
+    transition: opacity 0.15s linear 0s;  
+
+    &.in {
+      opacity: 0.5;
+    }
+  }
+}
 .collapse {
   display: none;
   &.in {
