@@ -139,8 +139,11 @@ func (e ShortcutExpander) VersionAndKindForResource(resource string) (defaultVer
 // indeed a shortcut. Otherwise, will return resource unmodified.
 func expandResourceShortcut(resource string) string {
 	shortForms := map[string]string{
-		"dc": "deploymentConfigs",
-		"bc": "buildConfigs",
+		"dc":      "deploymentConfigs",
+		"bc":      "buildConfigs",
+		"is":      "imageStreams",
+		"istag":   "imageStreamTags",
+		"isimage": "imageStreamImages",
 	}
 	if expanded, ok := shortForms[resource]; ok {
 		return expanded
