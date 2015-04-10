@@ -3,12 +3,12 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %{!?commit:
-%global commit 8aabf9c0b23bb02861ca9b2c691569cd79e1d003
+%global commit 40d490faddf1d013d83ef41245a7c9e3067d4cde
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.2.5-39-g8aabf9c -X github.com/openshift/origin/pkg/version.commitFromGit 8aabf9c -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 8d94c43 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.13.1-dev-641-gf057a25
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.3.0-69-g40d490f -X github.com/openshift/origin/pkg/version.commitFromGit 40d490f -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit b12d75d -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.14.1-582-gb12d75d
 }
 # String used for --images flag
 # If you're setting docker_registry make sure it ends in a trailing /
@@ -23,7 +23,7 @@
 %global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.4.3.0
+Version:        0.4.3.1
 Release:        1%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
@@ -193,6 +193,106 @@ fi
 
 
 %changelog
+* Fri Apr 10 2015 Scott Dodson <sdodson@redhat.com> 0.4.3.1
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- Merge pull request #1697 from jwforres/fix_create_from_template
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1676 from derekwaynecarr/block_origin_admission
+  (dmcphers+openshiftbot@redhat.com)
+- Create from template fails with JS error (jforrest@redhat.com)
+- Merge pull request #1668 from deads2k/deads-upstream-6585
+  (dmcphers+openshiftbot@redhat.com)
+- Enforce admission control of Origin resources in terminating namespaces
+  (decarr@redhat.com)
+- Merge pull request #1671 from deads2k/deads-fix-namespace-subresources
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1691 from jwforres/bug_1210659_template_library_fixes
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1681 from rajatchopra/master
+  (dmcphers+openshiftbot@redhat.com)
+- update osc config to use the same files as osc get (deads@redhat.com)
+- UPSTREAM: make kubectl config behave more expectedly #6585 (deads@redhat.com)
+- UPSTREAM: make APIInfoResolve work against subresources (deads@redhat.com)
+- Merge pull request #1659 from smarterclayton/rebase_kube
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1404 from ncdc/auto-provision-image-repo
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1687 from mfojtik/cleanup_builder
+  (dmcphers+openshiftbot@redhat.com)
+- fix simulator urls (pweil@redhat.com)
+- Merge pull request #1537 from kargakis/delete-all-by-label
+  (dmcphers+openshiftbot@redhat.com)
+- Provide easy delete of resources for new-app and generate
+  (kargakis@users.noreply.github.com)
+- Merge pull request #1016 from sdodson/BZ1190654
+  (dmcphers+openshiftbot@redhat.com)
+- Bug 1210659 - create from template fixes (jforrest@redhat.com)
+- Merge pull request #1664 from kargakis/aliases
+  (dmcphers+openshiftbot@redhat.com)
+- Cleanup the STI and Docker build output (mfojtik@redhat.com)
+- UPSTREAM: Support setting up aliases for groups of resources
+  (kargakis@users.noreply.github.com)
+- Instructions to reload Network Manager (jliggitt@redhat.com)
+- Update router integration test (ccoleman@redhat.com)
+- TEMPORARY: osc build-logs failing in other namespace (ccoleman@redhat.com)
+- Version lock e2e output tests (ccoleman@redhat.com)
+- Master should send convertor, v1beta3 not experimental (ccoleman@redhat.com)
+- Fix bug in error output (ccoleman@redhat.com)
+- Refactor tests with port, command, testclient changes (ccoleman@redhat.com)
+- Use Args instead of Command for OpenShift (ccoleman@redhat.com)
+- Event recording has changed upstream, and changes to master/node args
+  (ccoleman@redhat.com)
+- Handle multi-port services in part (ccoleman@redhat.com)
+- Update commands to handle change to cmd.Factory upstream
+  (ccoleman@redhat.com)
+- Refactor from upstream (ccoleman@redhat.com)
+- UPSTREAM: Pass mapping version to printer always (ccoleman@redhat.com)
+- UPSTREAM: entrypoint has wrong serialization flags in JSON
+  (ccoleman@redhat.com)
+- UPSTREAM: Ensure no namespace on create/update root scope types
+  (jliggitt@redhat.com)
+- UPSTREAM: add context to ManifestService methods (rpenta@redhat.com)
+- UPSTREAM: Handle missing resolv.conf (ccoleman@redhat.com)
+- UPSTREAM: Disable UI for Kubernetes (ccoleman@redhat.com)
+- UPSTREAM: Disable systemd activation for DNS (ccoleman@redhat.com)
+- UPSTREAM: Encode binary assets in ASCII only (jliggitt@redhat.com)
+- UPSTREAM: support subresources in api info resolver (deads@redhat.com)
+- UPSTREAM: Don't use command pipes for exec/port forward (agoldste@redhat.com)
+- UPSTREAM: Prometheus can't be cross-compiled safely (ccoleman@redhat.com)
+- bump(github.com/GoogleCloudPlatform/kubernetes):b12d75d0eeeadda1282f5738663bf
+  e38717ebaf4 (ccoleman@redhat.com)
+- [DEVEXP-457] Create application from source. Includes changes from jwforres,
+  cewong, sgoodwin (jcantril@redhat.com)
+- NetworkPlugin option in node config (rchopra@redhat.com)
+- [RPMs]: tuned profiles get installed into /usr/lib not /usr/lib64
+  (sdodson@redhat.com)
+- Merge pull request #1672 from jwforres/image_streams
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1673 from jwforres/stop_polling_pods
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1658 from pweil-/router-probe-delay
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1675 from jwforres/stop_login_on_zero_error
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1669 from brenton/master
+  (dmcphers+openshiftbot@redhat.com)
+- Now that we have better error handling, dont attempt login when we get a 0
+  status code (jforrest@redhat.com)
+- Update Browse->Images to be Image Streams in console (jforrest@redhat.com)
+- Stop polling for pods in the console and open a websocket instead
+  (jforrest@redhat.com)
+- Adding some more notes on probing containers (bleanhar@redhat.com)
+- Merge pull request #1627 from sg00dwin/messenger-and-iefix
+  (dmcphers+openshiftbot@redhat.com)
+- Auto provision image repo on push (agoldste@redhat.com)
+- Setup aliases for imageStream* (kargakis@users.noreply.github.com)
+- Remove admission/resourcedefaults (ccoleman@redhat.com)
+- Update rebase-kube (ccoleman@redhat.com)
+- probe delay (pweil@redhat.com)
+- Customize messenger styling fix bug Bug 1203949 to correct sidebar display in
+  ie and resized logo to fix ie issue (sgoodwin@redhat.com)
+- Provide both a host and guest profile (sdodson@redhat.com)
+
 * Thu Apr 09 2015 Scott Dodson <sdodson@redhat.com> 0.4.3.0
 - Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
 - Merge pull request #1631 from liggitt/openid
