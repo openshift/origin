@@ -41,6 +41,8 @@ import (
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
+	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 )
 
 const (
@@ -181,12 +183,12 @@ func newAuthenticator(servingInfo configapi.ServingInfo, etcdHelper tools.EtcdHe
 	// Allow token as access_token param for WebSockets
 	// TODO: make the param name configurable
 	// TODO: limit this authenticator to watch methods, if possible
-	// TODO: prevent access_token param from getting logged, if possible
 	authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
 
 	if configapi.UseTLS(servingInfo) {
 		// build cert authenticator
-		// TODO: add cert users to etcd?
+		// TODO: add "system:" prefix in authenticator, limit cert to username
+		// TODO: add "system:" prefix to groups in authenticator, limit cert to group name
 		opts := x509request.DefaultVerifyOptions()
 		opts.Roots = apiClientCAs
 		certauth := x509request.New(opts, x509request.SubjectToUserConversion)
@@ -240,7 +242,11 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 func getEtcdTokenAuthenticator(etcdHelper tools.EtcdHelper) authenticator.Token {
 	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-	return authnregistry.NewTokenAuthenticator(accessTokenRegistry)
+
+	userStorage := useretcd.NewREST(etcdHelper)
+	userRegistry := userregistry.NewRegistry(userStorage)
+
+	return authnregistry.NewTokenAuthenticator(accessTokenRegistry, userRegistry)
 }
 
 // KubeClient returns the kubernetes client object
