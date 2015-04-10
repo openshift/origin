@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -17,14 +18,10 @@ func NewCmdRequestToken(f *clientcmd.Factory) *cobra.Command {
 		Long:  `request an access token`,
 		Run: func(cmd *cobra.Command, args []string) {
 			clientCfg, err := f.OpenShiftClientConfig.ClientConfig()
-			if err != nil {
-				fmt.Errorf("%v\n", err)
-			}
+			util.CheckErr(err)
 
 			accessToken, err := tokencmd.RequestToken(clientCfg, os.Stdin, "", "")
-			if err != nil {
-				fmt.Errorf("%v\n", err)
-			}
+			util.CheckErr(err)
 
 			fmt.Printf("%v\n", string(accessToken))
 		},

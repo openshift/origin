@@ -2,6 +2,7 @@ package tokens
 
 import (
 	"os"
+	"path"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
@@ -44,5 +45,5 @@ func getFlagString(cmd *cobra.Command, flag string) string {
 }
 
 func getRequestTokenURL(clientCfg *client.Config) string {
-	return clientCfg.Host + origin.OpenShiftLoginPrefix + tokenrequest.RequestTokenEndpoint
+	return clientCfg.Host + path.Join(origin.OpenShiftOAuthAPIPrefix, tokenrequest.RequestTokenEndpoint)
 }

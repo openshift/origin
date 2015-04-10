@@ -3,10 +3,13 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -37,7 +40,23 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 		Long:  longDescription,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunLogin(cmd, options)
-			cmdutil.CheckErr(err)
+
+			if errors.IsUnauthorized(err) {
+				fmt.Fprintln(out, "Login failed (401 Unauthorized)")
+
+				if err, isStatusErr := err.(*errors.StatusError); isStatusErr {
+					if details := err.Status().Details; details != nil {
+						for _, cause := range details.Causes {
+							fmt.Fprintln(out, cause.Message)
+						}
+					}
+				}
+
+				os.Exit(1)
+
+			} else {
+				cmdutil.CheckErr(err)
+			}
 		},
 	}
 

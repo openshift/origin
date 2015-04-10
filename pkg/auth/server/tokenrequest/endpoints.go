@@ -20,6 +20,7 @@ const (
 )
 
 type endpointDetails struct {
+	publicMasterURL   string
 	originOAuthClient *osincli.Client
 }
 
@@ -27,8 +28,8 @@ type Endpoints interface {
 	Install(mux login.Mux, paths ...string)
 }
 
-func NewEndpoints(originOAuthClient *osincli.Client) Endpoints {
-	return &endpointDetails{originOAuthClient}
+func NewEndpoints(publicMasterURL string, originOAuthClient *osincli.Client) Endpoints {
+	return &endpointDetails{publicMasterURL, originOAuthClient}
 }
 
 // Install registers the request token endpoints into a mux. It is expected that the
@@ -50,7 +51,7 @@ func (endpoints *endpointDetails) requestToken(w http.ResponseWriter, req *http.
 
 func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	data := tokenData{RequestURL: "request"}
+	data := tokenData{RequestURL: "request", PublicMasterURL: endpoints.publicMasterURL}
 
 	authorizeReq := endpoints.originOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	authorizeData, err := authorizeReq.HandleRequest(req)
@@ -90,10 +91,11 @@ func renderToken(w io.Writer, data tokenData) {
 }
 
 type tokenData struct {
-	Error       string
-	OAuthJSON   string
-	AccessToken string
-	RequestURL  string
+	Error           string
+	OAuthJSON       string
+	AccessToken     string
+	RequestURL      string
+	PublicMasterURL string
 }
 
 // TODO: allow template to be read from an external file
@@ -112,7 +114,7 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
   <pre>{{.OAuthJSON}}</pre>
   
   <h3>How do I use this token?</h3>
-  <pre>osc --token={{.AccessToken}} &hellip;</pre>
+  <pre>osc login --token={{.AccessToken}} --server={{.PublicMasterURL}}</pre>
   <pre>curl -H "Authorization: Bearer {{.AccessToken}}" &hellip;</pre>
   
   <h3>How do I delete this token when I'm done?</h3>
