@@ -3,6 +3,8 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
@@ -32,6 +34,40 @@ func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationCh
 	return &unionAuthenticationHandler{challengers, redirectors, errorHandler}
 }
 
+const (
+	// WarningHeaderMiscCode is the code for "Miscellaneous warning", which may be displayed to human users
+	WarningHeaderMiscCode = "199"
+	// The name of the agent adding the warning header
+	WarningHeaderOpenShiftSource = "OpenShift"
+
+	warningHeaderCodeIndex  = 1
+	warningHeaderAgentIndex = 2
+	warningHeaderTextIndex  = 3
+	warningHeaderDateIndex  = 4
+)
+
+var (
+	// http://tools.ietf.org/html/rfc2616#section-14.46
+	warningRegex = regexp.MustCompile(strings.Join([]string{
+		// Beginning of the string
+		`^`,
+		// Exactly 3 digits (captured in group 1)
+		`([0-9]{3})`,
+		// A single space
+		` `,
+		// 1+ non-space characters (captured in group 2)
+		`([^ ]+)`,
+		// A single space
+		` `,
+		// quoted-string (value inside quotes is captured in group 3)
+		`"((?:[^"\\]|\\.)*)"`,
+		// Optionally followed by quoted HTTP-Date
+		`(?: "([^"]+)")?`,
+		// End of the string
+		`$`,
+	}, ""))
+)
+
 // AuthenticationNeeded looks at the oauth Client to determine whether it wants try to authenticate with challenges or using a redirect path
 // If the client wants a challenge path, it muxes together all the different challenges from the challenge handlers
 // If (the client wants a redirect path) and ((there is one redirect handler) or (a redirect handler was requested via the "useRedirectHandler" parameter),
@@ -60,6 +96,17 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 		if len(headers) > 0 {
 			mergeHeaders(w.Header(), headers)
 			w.WriteHeader(http.StatusUnauthorized)
+
+			// Print Misc Warning headers (code 199) to the body
+			if warnings, hasWarnings := w.Header()[http.CanonicalHeaderKey("Warning")]; hasWarnings {
+				for _, warning := range warnings {
+					warningParts := warningRegex.FindStringSubmatch(warning)
+					if len(warningParts) != 0 && warningParts[warningHeaderCodeIndex] == WarningHeaderMiscCode {
+						fmt.Fprintln(w, warningParts[warningHeaderTextIndex])
+					}
+				}
+			}
+
 			return true, nil
 
 		}
