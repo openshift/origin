@@ -3,9 +3,11 @@
 package integration
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
@@ -66,25 +68,27 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// TODO restore this once we have detection for whether the cache is up to date.
 	// wait for the project authorization cache to catch the change.  It is on a one second period
-	// time.Sleep(5 * time.Second)
+	waitForProject(t, haroldClient, "hammer-project", 5*time.Second, 10)
+	waitForProject(t, markClient, "mallet-project", 5*time.Second, 10)
+}
 
-	// haroldProjects, err := haroldClient.Projects().List(labels.Everything(), fields.Everything())
-	// if err != nil {
-	// 	t.Errorf("unexpected error: %v", err)
-	// }
-	// if !((len(haroldProjects.Items) == 1) && (haroldProjects.Items[0].Name == "hammer-project")) {
-	// 	t.Errorf("expected hammer-project, got %#v", haroldProjects.Items)
-	// }
-
-	// markProjects, err := markClient.Projects().List(labels.Everything(), fields.Everything())
-	// if err != nil {
-	// 	t.Errorf("unexpected error: %v", err)
-	// }
-	// if !((len(markProjects.Items) == 1) && (markProjects.Items[0].Name == "mallet-project")) {
-	// 	t.Errorf("expected mallet-project, got %#v", markProjects.Items)
-	// }
+// waitForProject will execute a client list of projects looking for the project with specified name
+// if not found, it will retry up to numRetries at the specified delayInterval
+func waitForProject(t *testing.T, client client.Interface, projectName string, delayInterval time.Duration, numRetries int) {
+	for i := 0; i <= numRetries; i++ {
+		projects, err := client.Projects().List(labels.Everything(), fields.Everything())
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if (len(projects.Items) == 1) && (projects.Items[0].Name == projectName) {
+			fmt.Printf("Waited %v times with interval %v\n", i, delayInterval)
+			return
+		} else {
+			time.Sleep(delayInterval)
+		}
+	}
+	t.Errorf("expected project %v not found", projectName)
 }
 
 func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
