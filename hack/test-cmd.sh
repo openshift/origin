@@ -370,6 +370,10 @@ osc status
 [ "$(osc status | grep frontend-service)" ]
 echo "template+config: ok"
 
+[ "$(OSC_EDITOR='cat' osc edit svc/kubernetes 2>&1 | grep 'Edit cancelled')" ]
+[ "$(OSC_EDITOR='cat' osc edit svc/kubernetes | grep 'provider: kubernetes')" ]
+echo "edit: ok"
+
 openshift kube resize --replicas=2 rc guestbook
 osc get pods
 echo "resize: ok"
