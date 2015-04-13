@@ -343,12 +343,12 @@ func (d *ImageStreamTagDescriber) Describe(namespace, name string) (string, erro
 		// TODO use repo's preferred default, when that's coded
 		tag = "latest"
 	}
-	image, err := c.Get(repo, tag)
+	imageStreamTag, err := c.Get(repo, tag)
 	if err != nil {
 		return "", err
 	}
 
-	return describeImage(image)
+	return describeImage(&imageStreamTag.Image)
 }
 
 // ImageStreamImageDescriber generates information about a ImageStreamImage (Image).
@@ -359,12 +359,12 @@ type ImageStreamImageDescriber struct {
 func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, error) {
 	c := d.ImageStreamImages(namespace)
 	repo, id := parsers.ParseRepositoryTag(name)
-	image, err := c.Get(repo, id)
+	imageStreamImage, err := c.Get(repo, id)
 	if err != nil {
 		return "", err
 	}
 
-	return describeImage(image)
+	return describeImage(&imageStreamImage.Image)
 }
 
 // ImageStreamDescriber generates information about a ImageStream

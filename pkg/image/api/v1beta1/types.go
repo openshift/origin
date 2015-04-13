@@ -166,17 +166,17 @@ type ImageStreamMapping struct {
 //
 // ImageRepositoryTag is DEPRECATED; use ImageStreamTag instead.
 type ImageRepositoryTag struct {
-	Image
+	Image `json:",inline"`
 }
 
 // ImageStreamTag exists to allow calls to `osc get imageStreamTag ...` to function.
 type ImageStreamTag struct {
-	Image
+	Image `json:",inline"`
 }
 
 // ImageStreamImage exists to allow calls to `osc get imageStreamImage ...` to function.
 type ImageStreamImage struct {
-	Image
+	Image `json:",inline"`
 }
 
 // DockerImageReference points to a Docker image.

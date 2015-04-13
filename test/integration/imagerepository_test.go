@@ -194,7 +194,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "image1" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newer" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
@@ -202,7 +202,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "image2" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newest" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
@@ -229,7 +229,7 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "image1" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newer" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
@@ -237,14 +237,14 @@ func TestImageRepositoryMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "image2" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newest" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 	fromTag, err = clusterAdminClient.ImageRepositoryTags(testutil.Namespace()).Get(repo.Name, "anothertag")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "image2" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:anothertag" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 

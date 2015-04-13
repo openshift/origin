@@ -12,6 +12,7 @@ Type=notify
 EnvironmentFile=-/etc/sysconfig/openshift-node
 ExecStart=/usr/bin/openshift start $ROLE --images=${IMAGES} --kubeconfig=${KUBECONFIG} $OPTIONS
 WorkingDirectory=/var/lib/openshift/
+SyslogIdentifier=openshift-node
 
 [Install]
 WantedBy=multi-user.target

@@ -27,7 +27,7 @@ func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Regis
 
 // New is only implemented to make REST implement RESTStorage
 func (r *REST) New() runtime.Object {
-	return &api.Image{}
+	return &api.ImageStreamImage{}
 }
 
 // nameAndID splits a string into its name component and ID component, and returns an error
@@ -71,7 +71,14 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 				if err != nil {
 					return nil, err
 				}
-				return api.ImageWithMetadata(*image)
+				imageWithMetadata, err := api.ImageWithMetadata(*image)
+				if err != nil {
+					return nil, err
+				}
+				isi := api.ImageStreamImage{Image: *imageWithMetadata}
+				isi.Namespace = kapi.NamespaceValue(ctx)
+				isi.Name = id
+				return &isi, nil
 			}
 		}
 	}

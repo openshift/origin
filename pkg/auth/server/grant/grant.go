@@ -9,7 +9,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
-	ohandlers "github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
@@ -170,7 +169,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 			return
 		}
 		q := url.Query()
-		q["error"] = []string{ohandlers.GrantDeniedError}
+		q.Set("error", "access_denied")
 		url.RawQuery = q.Encode()
 		http.Redirect(w, req, url.String(), http.StatusFound)
 		return

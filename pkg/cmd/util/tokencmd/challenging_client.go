@@ -12,6 +12,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 )
 
+// CSRFTokenHeader is a marker header that indicates we are not a browser that got tricked into requesting basic auth
+// Corresponds to the header expected by basic-auth challenging authenticators
+const CSRFTokenHeader = "X-CSRF-Token"
+
 // challengingClient conforms the kclient.HTTPClient interface.  It introspects responses for auth challenges and
 // tries to response to those challenges in order to get a token back.
 type challengingClient struct {
@@ -27,6 +31,12 @@ var basicAuthRegex = regexp.MustCompile(basicAuthPattern)
 
 // Do watches for unauthorized challenges.  If we know to respond, we respond to the challenge
 func (client *challengingClient) Do(req *http.Request) (*http.Response, error) {
+	// Set custom header required by server to avoid CSRF attacks on browsers using basic auth
+	if req.Header == nil {
+		req.Header = http.Header{}
+	}
+	req.Header.Set(CSRFTokenHeader, "1")
+
 	resp, err := client.delegate.Do(req)
 	if err != nil {
 		return nil, err

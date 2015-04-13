@@ -59,15 +59,32 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	defer resp.Close()
 
 	if ar := s.server.HandleAuthorizeRequest(resp, r); ar != nil {
-		handled, err := s.authorize.HandleAuthorize(ar, w)
-		if err != nil {
-			s.errorHandler.HandleError(err, w, r)
-			return
+
+		if errorCode := r.FormValue("error"); len(errorCode) != 0 {
+
+			// The request already has an error parameter, return directly to the user
+			resp.SetErrorUri(
+				r.FormValue("error"),
+				r.FormValue("error_description"),
+				r.FormValue("error_uri"),
+				r.FormValue("state"),
+			)
+			// force redirect response
+			resp.SetRedirect(ar.RedirectUri)
+
+		} else {
+
+			handled, err := s.authorize.HandleAuthorize(ar, w)
+			if err != nil {
+				s.errorHandler.HandleError(err, w, r)
+				return
+			}
+			if handled {
+				return
+			}
+			s.server.FinishAuthorizeRequest(resp, r, ar)
+
 		}
-		if handled {
-			return
-		}
-		s.server.FinishAuthorizeRequest(resp, r, ar)
 	}
 
 	if resp.IsError && resp.InternalError != nil {

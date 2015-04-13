@@ -28,7 +28,7 @@ type AuthenticationRedirector interface {
 // AuthenticationErrorHandler reacts to authentication errors
 type AuthenticationErrorHandler interface {
 	// AuthenticationNeeded reacts to authentication errors, returns true if the response was written,
-	// and returns any unhandled error (which could be the original error)
+	// and returns any unhandled error (which should be the original error in most cases)
 	AuthenticationError(error, http.ResponseWriter, *http.Request) (handled bool, err error)
 }
 
@@ -72,4 +72,20 @@ func (all AuthenticationSuccessHandlers) AuthenticationSucceeded(user user.Info,
 		}
 	}
 	return false, nil
+}
+
+// AuthenticationErrorHandlers combines multiple AuthenticationErrorHandler objects into a chain.
+// Each handler is called in turn. If any handler writes the response, the chain is aborted.
+// Otherwise, the next handler is called with the error returned from the previous handler.
+type AuthenticationErrorHandlers []AuthenticationErrorHandler
+
+func (all AuthenticationErrorHandlers) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
+	handled := false
+	for _, h := range all {
+		// Each handler gets a chance to handle or transform the error
+		if handled, err = h.AuthenticationError(err, w, req); handled {
+			return handled, err
+		}
+	}
+	return handled, err
 }

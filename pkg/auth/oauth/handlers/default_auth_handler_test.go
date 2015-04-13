@@ -185,3 +185,75 @@ func (w *badTestClient) GetRedirectUri() string {
 func (w *badTestClient) GetUserData() interface{} {
 	return "w.client"
 }
+
+func TestWarningRegex(t *testing.T) {
+	testcases := map[string]struct {
+		Header string
+		Match  bool
+		Parts  []string
+	}{
+		// Empty
+		"empty": {},
+
+		// Invalid code segment
+		"code 2 numbers":   {Header: `19 OpenShift "Message goes here"`},
+		"code 4 numbers":   {Header: `1999 OpenShift "Message goes here"`},
+		"code non-numbers": {Header: `ABC OpenShift "Message goes here"`},
+
+		// Invalid agent segment
+		"agent missing": {Header: `199  "Message goes here"`},
+		"agent spaces":  {Header: `199 Open Shift "Message goes here"`},
+
+		// Invalid text segment
+		"text missing":       {Header: `199 OpenShift`},
+		"text unquoted":      {Header: `199 OpenShift Message`},
+		"text single quotes": {Header: `199 OpenShift 'Message'`},
+		"text bad quotes":    {Header: `199 OpenShift "Mes"sage"`},
+		"text bad escape":    {Header: `199 OpenShift "Mes\\"sage"`},
+
+		// Invalid date segment
+		"date unquoted":      {Header: `199 OpenShift "Message" Date`},
+		"date single quoted": {Header: `199 OpenShift "Message" 'Date'`},
+		"date empty":         {Header: `199 OpenShift "Message" ""`},
+
+		// Valid segments
+		"valid no date": {
+			Header: `199 OpenShift "Message goes here"`,
+			Match:  true,
+			Parts:  []string{"199", "OpenShift", "Message goes here", ""},
+		},
+
+		"valid with date": {
+			Header: `199 OpenShift "Message goes here" "date"`,
+			Match:  true,
+			Parts:  []string{"199", "OpenShift", "Message goes here", "date"},
+		},
+
+		"valid with escaped quote": {
+			Header: `199 OpenShift "Message \" goes here" "date"`,
+			Match:  true,
+			Parts:  []string{"199", "OpenShift", `Message \" goes here`, "date"},
+		},
+
+		"valid with escaped quote and slash": {
+			Header: `199 OpenShift "Message \\\" goes here" "date"`,
+			Match:  true,
+			Parts:  []string{"199", "OpenShift", `Message \\\" goes here`, "date"},
+		},
+	}
+
+	for k, tc := range testcases {
+		parts := warningRegex.FindStringSubmatch(tc.Header)
+		match := len(parts) > 0
+		if match != tc.Match {
+			t.Errorf("%s: Expected match %v, got %v", k, tc.Match, match)
+			continue
+		}
+		if !match {
+			continue
+		}
+		if !reflect.DeepEqual(parts[1:], tc.Parts) {
+			t.Errorf("%s: Expected\n\t%#v\n\tgot\n\t%#v", k, tc.Parts, parts[1:])
+		}
+	}
+}
