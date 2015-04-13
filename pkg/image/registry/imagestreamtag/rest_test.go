@@ -129,6 +129,10 @@ func TestGetImageStreamTag(t *testing.T) {
 		"happy path": {
 			image: &api.Image{ObjectMeta: kapi.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
 			repo: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
 				Spec: api.ImageStreamSpec{
 					Tags: map[string]api.TagReference{
 						"latest": {
@@ -227,12 +231,15 @@ func TestGetImageStreamTag(t *testing.T) {
 				t.Errorf("%s: unexpected status: %#v", name, status)
 			}
 		} else {
-			actual := obj.(*api.Image)
-			if e, a := testCase.image.Name, actual.Name; e != a {
-				t.Errorf("%s: image name: expected %v, got %v", name, e, a)
+			actual := obj.(*api.ImageStreamTag)
+			if e, a := "default", actual.Namespace; e != a {
+				t.Errorf("%s: namespace: expected %v, got %v", name, e, a)
+			}
+			if e, a := "test:latest", actual.Name; e != a {
+				t.Errorf("%s: name: expected %v, got %v", name, e, a)
 			}
 			if e, a := map[string]string{"size": "large", "color": "blue"}, actual.Annotations; !reflect.DeepEqual(e, a) {
-				t.Errorf("%s: image annotations: expected %v, got %v", name, e, a)
+				t.Errorf("%s: annotations: expected %v, got %v", name, e, a)
 			}
 		}
 	}

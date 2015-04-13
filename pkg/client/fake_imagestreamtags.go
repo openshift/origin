@@ -16,9 +16,9 @@ type FakeImageStreamTags struct {
 
 var _ ImageStreamTagInterface = &FakeImageStreamTags{}
 
-func (c *FakeImageStreamTags) Get(name, tag string) (result *imageapi.Image, err error) {
+func (c *FakeImageStreamTags) Get(name, tag string) (result *imageapi.ImageStreamTag, err error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-imagestream-tag", Value: fmt.Sprintf("%s:%s", name, tag)})
-	return &imageapi.Image{}, nil
+	return &imageapi.ImageStreamTag{}, nil
 }
 
 func (c *FakeImageStreamTags) Delete(name, tag string) error {

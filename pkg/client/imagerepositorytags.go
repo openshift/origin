@@ -13,7 +13,7 @@ type ImageRepositoryTagsNamespacer interface {
 
 // ImageRepositoryTagInterface exposes methods on ImageRepositoryTag resources.
 type ImageRepositoryTagInterface interface {
-	Get(name, tag string) (*api.Image, error)
+	Get(name, tag string) (*api.ImageRepositoryTag, error)
 	Delete(name, tag string) error
 }
 
@@ -32,8 +32,8 @@ func newImageRepositoryTags(c *Client, namespace string) *imageRepositoryTags {
 }
 
 // Get finds the specified image by name of an image repository and tag.
-func (c *imageRepositoryTags) Get(name, tag string) (result *api.Image, err error) {
-	result = &api.Image{}
+func (c *imageRepositoryTags) Get(name, tag string) (result *api.ImageRepositoryTag, err error) {
+	result = &api.ImageRepositoryTag{}
 	err = c.r.Get().Namespace(c.ns).Resource("imageRepositoryTags").Name(fmt.Sprintf("%s:%s", name, tag)).Do().Into(result)
 	return
 }

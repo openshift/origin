@@ -147,6 +147,10 @@ func TestGet(t *testing.T) {
 		"happy path": {
 			input: "repo@id",
 			repo: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "ns",
+					Name:      "repo",
+				},
 				Status: api.ImageStreamStatus{
 					Tags: map[string]api.TagEventList{
 						"latest": {
@@ -269,15 +273,18 @@ func TestGet(t *testing.T) {
 			continue
 		}
 
-		image := obj.(*api.Image)
+		imageStreamImage := obj.(*api.ImageStreamImage)
 		// validate a couple of the fields
-		if e, a := test.image.Name, image.Name; e != a {
+		if e, a := test.repo.Namespace, "ns"; e != a {
+			t.Errorf("%s: namespace: expected %q, got %q", name, e, a)
+		}
+		if e, a := test.input, imageStreamImage.Name; e != a {
 			t.Errorf("%s: name: expected %q, got %q", name, e, a)
 		}
-		if e, a := "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7", image.DockerImageMetadata.ID; e != a {
+		if e, a := "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7", imageStreamImage.DockerImageMetadata.ID; e != a {
 			t.Errorf("%s: id: expected %q, got %q", name, e, a)
 		}
-		if e, a := "43bd710ec89a", image.DockerImageMetadata.ContainerConfig.Hostname; e != a {
+		if e, a := "43bd710ec89a", imageStreamImage.DockerImageMetadata.ContainerConfig.Hostname; e != a {
 			t.Errorf("%s: container config hostname: expected %q, got %q", name, e, a)
 		}
 	}

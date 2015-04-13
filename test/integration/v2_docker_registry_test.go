@@ -181,7 +181,7 @@ middleware:
 	if err != nil {
 		t.Fatalf("error getting imageStreamImage: %s", err)
 	}
-	if e, a := dgst.String(), image.Name; e != a {
+	if e, a := fmt.Sprintf("test@%s", dgst.String()), image.Name; e != a {
 		t.Errorf("image name: expected %q, got %q", e, a)
 	}
 	if e, a := fmt.Sprintf("127.0.0.1:5000/%s/%s@%s", testutil.Namespace(), stream.Name, dgst.String()), image.DockerImageReference; e != a {

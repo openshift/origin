@@ -26,7 +26,15 @@ func (r *REST) New() runtime.Object {
 // Get retrieves an image that has been tagged by repo and tag. `id` is of the format
 // <repo name>:<tag>.
 func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	return r.imageStreamTagRegistry.GetImageStreamTag(ctx, id)
+	ist, err := r.imageStreamTagRegistry.GetImageStreamTag(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	irt := api.ImageRepositoryTag{}
+	if err := kapi.Scheme.Convert(ist, &irt); err != nil {
+		return nil, err
+	}
+	return &irt, nil
 }
 
 // Delete removes a tag from a repo. `id` is of the format <repo name>:<tag>.

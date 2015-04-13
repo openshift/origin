@@ -16,9 +16,9 @@ type FakeImageRepositoryTags struct {
 
 var _ ImageRepositoryTagInterface = &FakeImageRepositoryTags{}
 
-func (c *FakeImageRepositoryTags) Get(name, tag string) (result *imageapi.Image, err error) {
+func (c *FakeImageRepositoryTags) Get(name, tag string) (result *imageapi.ImageRepositoryTag, err error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-imagerepository-tag", Value: fmt.Sprintf("%s:%s", name, tag)})
-	return &imageapi.Image{}, nil
+	return &imageapi.ImageRepositoryTag{}, nil
 }
 
 func (c *FakeImageRepositoryTags) Delete(name, tag string) error {
