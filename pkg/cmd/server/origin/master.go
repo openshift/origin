@@ -403,6 +403,8 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		WebServices: append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
 		ApiPath:     swaggerAPIPrefix,
 	}
+	// log nothing from swagger
+	swagger.LogInfo = func(format string, v ...interface{}) {}
 	swagger.RegisterSwaggerService(swaggerConfig, open)
 	extra = append(extra, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerAPIPrefix))
 
