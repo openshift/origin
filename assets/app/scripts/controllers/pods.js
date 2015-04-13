@@ -8,11 +8,12 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('PodsController', function ($scope, DataService, $filter, LabelFilter, Logger) {
+  .controller('PodsController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver) {
     $scope.pods = {};
     $scope.unfilteredPods = {};
-    $scope.images = {};
+    $scope.imageStreams = {};
     $scope.imagesByDockerReference = {};
+    $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
     $scope.builds = {};    
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
@@ -21,6 +22,7 @@ angular.module('openshiftConsole')
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.unfilteredPods = pods.by("metadata.name");
+      ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredPods, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
       $scope.pods = LabelFilter.getLabelSelector().select($scope.unfilteredPods);
@@ -29,13 +31,13 @@ angular.module('openshiftConsole')
       Logger.log("pods (subscribe)", $scope.unfilteredPods);
     }));    
 
-    // Also load images and builds to fill out details in the pod template
-    watches.push(DataService.watch("images", $scope, function(images) {
-      $scope.images = images.by("metadata.name");
-      $scope.imagesByDockerReference = images.by("dockerImageReference");
-      Logger.log("images (subscribe)", $scope.images);
-      Logger.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
-    }));    
+    // Sets up subscription for imageStreams
+    watches.push(DataService.watch("imageStreams", $scope, function(imageStreams) {
+      $scope.imageStreams = imageStreams.by("metadata.name");
+      ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
+      ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
+      Logger.log("imageStreams (subscribe)", $scope.imageStreams);
+    })); 
 
     watches.push(DataService.watch("builds", $scope, function(builds) {
       $scope.builds = builds.by("metadata.name");

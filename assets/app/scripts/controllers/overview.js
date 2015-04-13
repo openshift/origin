@@ -8,15 +8,16 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter, Logger) {
+  .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver) {
     $scope.pods = {};
     $scope.services = {};
     $scope.unfilteredServices = {};
     $scope.deployments = {};
     $scope.deploymentConfigs = {};
     $scope.builds = {};
-    $scope.images = {};
+    $scope.imageStreams = {};
     $scope.imagesByDockerReference = {};
+    $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream    
 
     // All pods under a service (no "" service key)
     $scope.podsByService = {};
@@ -45,6 +46,7 @@ angular.module('openshiftConsole')
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.pods = pods.by("metadata.name");
       podRelationships();
+      ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
       Logger.log("pods", $scope.pods);
     }));
 
@@ -231,14 +233,13 @@ angular.module('openshiftConsole')
       Logger.log("deployments (subscribe)", $scope.deployments);
     }));
 
-    // Sets up subscription for images and imagesByDockerReference
-    watches.push(DataService.watch("images", $scope, function(images) {
-      $scope.images = images.by("metadata.name");
-      $scope.imagesByDockerReference = images.by("dockerImageReference");
-      Logger.log("images (subscribe)", $scope.images);
-      Logger.log("imagesByDockerReference (subscribe)", $scope.imagesByDockerReference);
+    // Sets up subscription for imageStreams
+    watches.push(DataService.watch("imageStreams", $scope, function(imageStreams) {
+      $scope.imageStreams = imageStreams.by("metadata.name");
+      ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
+      ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
+      Logger.log("imageStreams (subscribe)", $scope.imageStreams);
     }));
-
 
     var associateDeploymentConfigTriggersToBuild = function(deploymentConfig, build) {
       // Make sure we have both a deploymentConfig and a build
