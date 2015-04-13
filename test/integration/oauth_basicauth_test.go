@@ -199,7 +199,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(fmt.Sprintf(`{"id":"%s"}`, expectedUsername)))
+		w.Write([]byte(fmt.Sprintf(`{"sub":"%s"}`, expectedUsername)))
 	})
 
 	// Start remote server
