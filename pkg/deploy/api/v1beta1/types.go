@@ -82,11 +82,11 @@ type CustomDeploymentStrategyParams struct {
 type RecreateDeploymentStrategyParams struct {
 	// Pre is a lifecycle hook which is executed before the strategy manipulates
 	// the deployment. All LifecycleHookFailurePolicy values are supported.
-	Pre *LifecycleHook `json:"pre"`
+	Pre *LifecycleHook `json:"pre,omitempty"`
 	// Post is a lifecycle hook which is executed after the strategy has
 	// finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
 	// is NOT supported.
-	Post *LifecycleHook `json:"post"`
+	Post *LifecycleHook `json:"post,omitempty"`
 }
 
 // Handler defines a specific deployment lifecycle action.
