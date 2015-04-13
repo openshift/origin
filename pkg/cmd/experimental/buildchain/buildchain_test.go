@@ -222,21 +222,21 @@ func TestSplit(t *testing.T) {
 		expectedErr       error
 	}{
 		{
-			name:              "1st join test",
+			name:              "1st split test",
 			input:             "default/centos",
 			expectedNamespace: "default",
 			expectedName:      "centos",
 			expectedErr:       nil,
 		},
 		{
-			name:              "2nd join test",
+			name:              "2nd split test",
 			input:             "testing/playground",
 			expectedNamespace: "testing",
 			expectedName:      "playground",
 			expectedErr:       nil,
 		},
 		{
-			name:              "3rd join test",
+			name:              "3rd split test",
 			input:             "other/another/yay",
 			expectedNamespace: "",
 			expectedName:      "",
