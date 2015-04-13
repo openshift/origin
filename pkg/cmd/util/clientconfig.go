@@ -13,7 +13,9 @@ func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 
 	overrides := &clientcmd.ConfigOverrides{}
 	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
-	overrideFlags.ContextOverrideFlags.NamespaceShort = "n"
+	overrideFlags.ContextOverrideFlags.Namespace.ShortName = "n"
+	overrideFlags.AuthOverrideFlags.Username.LongName = ""
+	overrideFlags.AuthOverrideFlags.Password.LongName = ""
 	clientcmd.BindOverrideFlags(overrides, flags, overrideFlags)
 
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)

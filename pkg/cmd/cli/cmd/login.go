@@ -60,8 +60,7 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 		},
 	}
 
-	// TODO flags below should be DE-REGISTERED from the persistent flags and kept only here.
-	// Login is the only command that can negotiate a session token against the auth server.
+	// Login is the only command that can negotiate a session token against the auth server using basic auth
 	cmds.Flags().StringVarP(&options.Username, "username", "u", "", "Username, will prompt if not provided")
 	cmds.Flags().StringVarP(&options.Password, "password", "p", "", "Password, will prompt if not provided")
 
