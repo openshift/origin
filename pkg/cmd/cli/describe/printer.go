@@ -57,6 +57,9 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(buildConfigColumns, printBuildConfig)
 	p.Handler(buildConfigColumns, printBuildConfigList)
 	p.Handler(imageColumns, printImage)
+	p.Handler(imageColumns, printImageStreamTag)
+	p.Handler(imageColumns, printImageRepositoryTag)
+	p.Handler(imageColumns, printImageStreamImage)
 	p.Handler(imageColumns, printImageList)
 	p.Handler(imageStreamColumns, printImageRepository)
 	p.Handler(imageStreamColumns, printImageRepositoryList)
@@ -197,6 +200,18 @@ func printBuildConfigList(buildList *buildapi.BuildConfigList, w io.Writer) erro
 func printImage(image *imageapi.Image, w io.Writer) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\n", image.Name, image.DockerImageReference)
 	return err
+}
+
+func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer) error {
+	return printImage(&ist.Image, w)
+}
+
+func printImageRepositoryTag(irt *imageapi.ImageRepositoryTag, w io.Writer) error {
+	return printImage(&irt.Image, w)
+}
+
+func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer) error {
+	return printImage(&isi.Image, w)
 }
 
 func printImageList(images *imageapi.ImageList, w io.Writer) error {

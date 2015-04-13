@@ -117,8 +117,10 @@ func (r *repository) Get(ctx context.Context, dgst digest.Digest) (*manifest.Sig
 
 // Get retrieves the named manifest, if it exists.
 func (r *repository) GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error) {
-	image, err := r.getImageStreamTag(ctx, tag)
-	if err != nil {
+	var image *imageapi.Image
+	if imageStreamTag, err := r.getImageStreamTag(ctx, tag); err == nil {
+		image = &imageStreamTag.Image
+	} else {
 		// TODO remove when docker 1.6 is out
 		// Since docker 1.5 doesn't support pull by id, we're simulating pull by id
 		// against the v2 registry by using a pull spec of the form
@@ -138,11 +140,12 @@ func (r *repository) GetByTag(ctx context.Context, tag string) (*manifest.Signed
 			log.Errorf("GetByTag: unable to parse digest: %s", dgstErr)
 			return nil, err
 		}
-		image, err = r.getImageStreamImage(ctx, dgst)
+		imageStreamImage, err := r.getImageStreamImage(ctx, dgst)
 		if err != nil {
 			log.Errorf("GetByTag: getImageStreamImage returned error: %s", err)
 			return nil, err
 		}
+		image = &imageStreamImage.Image
 	}
 
 	dgst, err := digest.ParseDigest(image.Name)
@@ -265,7 +268,7 @@ func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 
 // getImageStreamTag retrieves the Image with tag `tag` for the ImageStream
 // associated with r.
-func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imageapi.Image, error) {
+func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imageapi.ImageStreamTag, error) {
 	client, err := getUserOpenShiftClient(ctx)
 	if err != nil {
 		return nil, err
@@ -275,7 +278,7 @@ func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imagea
 
 // getImageStreamImage retrieves the Image with digest `dgst` for the ImageStream
 // associated with r. This ensures the user has access to the image.
-func (r *repository) getImageStreamImage(ctx context.Context, dgst digest.Digest) (*imageapi.Image, error) {
+func (r *repository) getImageStreamImage(ctx context.Context, dgst digest.Digest) (*imageapi.ImageStreamImage, error) {
 	client, err := getUserOpenShiftClient(ctx)
 	if err != nil {
 		return nil, err
