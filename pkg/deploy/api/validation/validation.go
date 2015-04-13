@@ -1,6 +1,7 @@
 package validation
 
 import (
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
@@ -77,6 +78,10 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) fielderr
 	}
 
 	switch strategy.Type {
+	case deployapi.DeploymentStrategyTypeRecreate:
+		if strategy.RecreateParams != nil {
+			errs = append(errs, validateRecreateParams(strategy.RecreateParams).Prefix("recreateParams")...)
+		}
 	case deployapi.DeploymentStrategyTypeCustom:
 		if strategy.CustomParams == nil {
 			errs = append(errs, fielderrors.NewFieldRequired("customParams"))
@@ -96,6 +101,69 @@ func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams) fiel
 	}
 
 	return errs
+}
+
+func validateRecreateParams(params *deployapi.RecreateDeploymentStrategyParams) fielderrors.ValidationErrorList {
+	errs := fielderrors.ValidationErrorList{}
+
+	if params.Pre != nil {
+		errs = append(errs, validateLifecycleHook(params.Pre).Prefix("pre")...)
+	}
+	if params.Post != nil {
+		errs = append(errs, validateLifecycleHook(params.Post).Prefix("post")...)
+	}
+
+	return errs
+}
+
+func validateLifecycleHook(hook *deployapi.LifecycleHook) fielderrors.ValidationErrorList {
+	errs := fielderrors.ValidationErrorList{}
+
+	if len(hook.FailurePolicy) == 0 {
+		errs = append(errs, fielderrors.NewFieldRequired("failurePolicy"))
+	}
+
+	if hook.ExecNewPod == nil {
+		errs = append(errs, fielderrors.NewFieldRequired("execNewPod"))
+	} else {
+		errs = append(errs, validateExecNewPod(hook.ExecNewPod).Prefix("execNewPod")...)
+	}
+
+	return errs
+}
+
+func validateExecNewPod(hook *deployapi.ExecNewPodHook) fielderrors.ValidationErrorList {
+	errs := fielderrors.ValidationErrorList{}
+
+	if len(hook.Command) == 0 {
+		errs = append(errs, fielderrors.NewFieldRequired("command"))
+	}
+
+	if len(hook.ContainerName) == 0 {
+		errs = append(errs, fielderrors.NewFieldRequired("containerName"))
+	}
+
+	if len(hook.Env) > 0 {
+		errs = append(errs, validateEnv(hook.Env).Prefix("env")...)
+	}
+
+	return errs
+}
+
+func validateEnv(vars []kapi.EnvVar) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	for i, ev := range vars {
+		vErrs := fielderrors.ValidationErrorList{}
+		if len(ev.Name) == 0 {
+			vErrs = append(vErrs, fielderrors.NewFieldRequired("name"))
+		}
+		if !util.IsCIdentifier(ev.Name) {
+			vErrs = append(vErrs, fielderrors.NewFieldInvalid("name", ev.Name, "must match regex "+util.CIdentifierFmt))
+		}
+		allErrs = append(allErrs, vErrs.PrefixIndex(i)...)
+	}
+	return allErrs
 }
 
 func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) fielderrors.ValidationErrorList {
