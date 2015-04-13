@@ -316,8 +316,8 @@ func (s Strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fiel
 // Decorate decorates stream.Status.DockerImageRepository using the logic from
 // dockerImageRepository().
 func (s Strategy) Decorate(obj runtime.Object) error {
-	ir := obj.(*api.ImageStream)
-	ir.Status.DockerImageRepository = s.dockerImageRepository(ir)
+	stream := obj.(*api.ImageStream)
+	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
 	return nil
 }
 
@@ -341,22 +341,25 @@ func (StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) 
 
 // MatchImageStream returns a generic matcher for a given label and field selector.
 func MatchImageStream(label labels.Selector, field fields.Selector) generic.Matcher {
-	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		ir, ok := obj.(*api.ImageStream)
-		if !ok {
-			return false, fmt.Errorf("not an image stream")
-		}
-		fields := ImageStreamToSelectableFields(ir)
-		return label.Matches(labels.Set(ir.Labels)) && field.Matches(fields), nil
-	})
+	return &generic.SelectionPredicate{
+		Label: label,
+		Field: field,
+		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
+			stream, ok := obj.(*api.ImageStream)
+			if !ok {
+				return nil, nil, fmt.Errorf("not an image stream")
+			}
+			return labels.Set(stream.Labels), ImageStreamToSelectableFields(stream), nil
+		},
+	}
 }
 
 // ImageStreamToSelectableFields returns a label set that represents the object.
-func ImageStreamToSelectableFields(ir *api.ImageStream) labels.Set {
-	return labels.Set{
-		"name": ir.Name,
-		"spec.dockerImageRepository":   ir.Spec.DockerImageRepository,
-		"status.dockerImageRepository": ir.Status.DockerImageRepository,
+func ImageStreamToSelectableFields(stream *api.ImageStream) fields.Set {
+	return fields.Set{
+		"name": stream.Name,
+		"spec.dockerImageRepository":   stream.Spec.DockerImageRepository,
+		"status.dockerImageRepository": stream.Status.DockerImageRepository,
 	}
 }
 
