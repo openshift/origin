@@ -102,6 +102,8 @@ type TagEvent struct {
 	Created util.Time
 	// The string that can be used to pull this image
 	DockerImageReference string
+	// The name of the ImageStreamImage (if any) corresponding to this event
+	ImageStreamImage string
 	// The image
 	Image string
 }

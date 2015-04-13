@@ -351,11 +351,32 @@ func (s Strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fiel
 	return errs
 }
 
+// ImageStreamImageName constructs an ImageStreamImage name from an imageStream and imageID
+// Corresponds to the parsing done in imagestreamimage.nameAndID()
+func ImageStreamImageName(imageStream, imageID string) string {
+	if len(imageID) == 0 {
+		return ""
+	}
+	if len(imageStream) == 0 {
+		return ""
+	}
+	return imageStream + "@" + imageID
+}
+
 // Decorate decorates stream.Status.DockerImageRepository using the logic from
-// dockerImageRepository().
+// dockerImageRepository(), and sets ImageStreamImage on the stream.Status.Tags.Items
+// using the logic from imageStreamImageName()
 func (s Strategy) Decorate(obj runtime.Object) error {
 	ir := obj.(*api.ImageStream)
 	ir.Status.DockerImageRepository = s.dockerImageRepository(ir)
+
+	// Compute ImageStreamImage names
+	for tagIndex, tag := range ir.Status.Tags {
+		for tagEventIndex, tagEvent := range tag.Items {
+			ir.Status.Tags[tagIndex].Items[tagEventIndex].ImageStreamImage = ImageStreamImageName(ir.Name, tagEvent.Image)
+		}
+	}
+
 	return nil
 }
 

@@ -87,6 +87,8 @@ type TagEvent struct {
 	Created util.Time `json:"created"`
 	// The string that can be used to pull this image
 	DockerImageReference string `json:"dockerImageReference"`
+	// The name of the ImageStreamImage (if any) corresponding to this event
+	ImageStreamImage string `json:"imageStreamImage"`
 	// The image
 	Image string `json:"image"`
 }

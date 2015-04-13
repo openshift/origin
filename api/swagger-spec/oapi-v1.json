@@ -16056,6 +16056,7 @@
     "required": [
      "created",
      "dockerImageReference",
+     "imageStreamImage",
      "image"
     ],
     "properties": {
@@ -16067,6 +16068,10 @@
      "dockerImageReference": {
       "type": "string",
       "description": "the string that can be used to pull this image"
+     },
+     "imageStreamImage": {
+      "type": "string",
+      "description": "the name of the ImageStreamImage (if any) corresponding to this event"
      },
      "image": {
       "type": "string",

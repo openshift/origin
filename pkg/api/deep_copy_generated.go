@@ -1788,6 +1788,7 @@ func deepCopy_api_TagEvent(in imageapi.TagEvent, out *imageapi.TagEvent, c *conv
 		out.Created = newVal.(util.Time)
 	}
 	out.DockerImageReference = in.DockerImageReference
+	out.ImageStreamImage = in.ImageStreamImage
 	out.Image = in.Image
 	return nil
 }
