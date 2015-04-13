@@ -2,13 +2,15 @@
 %global debug_package %{nil}
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
+# %commit and %ldflags are intended to be set by tito custom builders provided
+# in the rel-eng directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 21fb40637c4e3507cca1fcab6c4d56b06950a149
+%global commit 86b5e46426ba828f49195af21c56f7c6674b48f7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 2+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.2.2-134-gc9e7c25aaf0e61-dirty -X github.com/openshift/origin/pkg/version.commitFromGit c9e7c25 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 72ad4f1 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.10.0-46-g72ad4f1
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.0.1 -X github.com/openshift/origin/pkg/version.commitFromGit 86b5e46 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 6241a21 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.11.0-330-g6241a21
 }
 # String used for --images flag
 # If you're setting docker_registry make sure it ends in a trailing /
@@ -23,9 +25,10 @@
 %global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
-Version:        0.2.2
-#Release:        1git%{shortcommit}%{?dist}
-Release:        4%{?dist}
+# Version is not kept up to date and is intended to be set by tito custom
+# builders provided in the rel-eng directory of this project
+Version:        0.0.1
+Release:        0%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -194,9 +197,6 @@ fi
 
 
 %changelog
-* Fri Feb 06 2015 Scott Dodson <sdodson@redhat.com>
-- new package built with tito
-
 * Mon Jan 26 2015 Scott Dodson <sdodson@redhat.com> 0.2-3
 - Update to 21fb40637c4e3507cca1fcab6c4d56b06950a149
 - Split packaging of openshift-master and openshift-node

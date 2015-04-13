@@ -2,7 +2,7 @@
 Code for building Openshift v3
 """
 
-from tito.common import get_latest_commit, run_command, get_script_path
+from tito.common import get_latest_commit, get_latest_tagged_version, check_tag_exists, run_command, get_script_path
 from tito.builder import Builder
 
 class OpenshiftBuilder(Builder):
@@ -54,3 +54,26 @@ class OpenshiftBuilder(Builder):
           self.build_version += ".git." + str(self.commit_count) + "." + str(self.git_commit_id[:7])
           self.ran_setup_test_specfile = True
 
+  def _get_build_version(self):
+      """
+      Figure out the git tag and version-release we're building.
+      """
+      # Determine which package version we should build:
+      build_version = None
+      if self.build_tag:
+          build_version = self.build_tag[len(self.project_name + "-"):]
+      else:
+          build_version = get_latest_tagged_version(self.project_name)
+          if build_version is None:
+              if not self.test:
+                  error_out(["Unable to lookup latest package info.",
+                          "Perhaps you need to tag first?"])
+              sys.stderr.write("WARNING: unable to lookup latest package "
+                  "tag, building untagged test project\n")
+              build_version = get_spec_version_and_release(self.start_dir,
+                  find_spec_file(in_dir=self.start_dir))
+          self.build_tag = "v%s" % (build_version)
+
+      if not self.test:
+          check_tag_exists(self.build_tag, offline=self.offline)
+      return build_version
