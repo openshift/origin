@@ -27,7 +27,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	utilerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
@@ -838,19 +837,6 @@ func (c *MasterConfig) ensureCORSAllowedOrigins() []*regexp.Regexp {
 		glog.Fatalf("Invalid --cors-allowed-origins: %v", err)
 	}
 	return allowedOriginRegexps
-}
-
-// NewEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version
-// is incorrect.
-func NewEtcdHelper(version string, client *etcdclient.Client) (helper tools.EtcdHelper, err error) {
-	if len(version) == 0 {
-		version = latest.Version
-	}
-	interfaces, err := latest.InterfacesFor(version)
-	if err != nil {
-		return helper, err
-	}
-	return tools.NewEtcdHelper(client, interfaces.Codec), nil
 }
 
 // env returns an environment variable, or the defaultValue if it is not set.

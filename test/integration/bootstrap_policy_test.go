@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -94,7 +95,12 @@ func TestOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(masterConfig.EtcdClientInfo)
+	etcdClient, err := etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	etcdHelper, err := origin.NewEtcdHelper(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

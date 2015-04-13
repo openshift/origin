@@ -56,6 +56,7 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 		// Validate the etcdClientInfo by itself
 		allErrs = append(allErrs, ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil).Prefix("etcdClientInfo")...)
 	}
+	allErrs = append(allErrs, ValidateEtcdStorageConfig(config.EtcdStorageConfig).Prefix("etcdStorageConfig")...)
 
 	allErrs = append(allErrs, ValidateImageConfig(config.ImageConfig).Prefix("imageConfig")...)
 
@@ -75,6 +76,19 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 	}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+
+	return allErrs
+}
+
+func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(config.KubernetesStorageVersion) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("kubernetesStorageVersion"))
+	}
+	if len(config.OpenShiftStorageVersion) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("openShiftStorageVersion"))
+	}
 
 	return allErrs
 }

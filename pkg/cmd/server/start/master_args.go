@@ -205,7 +205,17 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		}
 	}
 
-	return config, nil
+	// Roundtrip the config to v1 and back to ensure proper defaults are set.
+	ext, err := configapi.Scheme.ConvertToVersion(config, "v1")
+	if err != nil {
+		return nil, err
+	}
+	internal, err := configapi.Scheme.ConvertToVersion(ext, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return internal.(*configapi.MasterConfig), nil
 }
 
 func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, error) {
