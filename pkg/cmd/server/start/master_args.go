@@ -234,13 +234,13 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 
 		SessionConfig: &configapi.SessionConfig{
 			SessionSecretsFile:   "",
-			SessionMaxAgeSeconds: 300,
+			SessionMaxAgeSeconds: 5 * 60, // 5 minutes
 			SessionName:          "ssn",
 		},
 
 		TokenConfig: configapi.TokenConfig{
-			AuthorizeTokenMaxAgeSeconds: 300,
-			AccessTokenMaxAgeSeconds:    3600,
+			AuthorizeTokenMaxAgeSeconds: 5 * 60,       // 5 minutes
+			AccessTokenMaxAgeSeconds:    24 * 60 * 60, // 1 day
 		},
 	}
 
