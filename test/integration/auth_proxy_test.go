@@ -20,8 +20,14 @@ import (
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	oauthclient "github.com/openshift/origin/pkg/oauth/registry/client"
-	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
+	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
+	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
+	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
+	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
+	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
+	clientauthregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
+	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
@@ -49,7 +55,15 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	// setup
 	etcdClient := testutil.NewEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, latest.Version)
-	oauthEtcd := oauthetcd.New(etcdHelper)
+
+	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
+	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
+	authorizeTokenStorage := authorizetokenetcd.NewREST(etcdHelper)
+	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
+	clientStorage := clientetcd.NewREST(etcdHelper)
+	clientRegistry := clientregistry.NewRegistry(clientStorage)
+	clientAuthStorage := clientauthetcd.NewREST(etcdHelper)
+	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
 
 	userStorage := useretcd.NewREST(etcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)
@@ -62,10 +76,10 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	authRequestHandler := headerrequest.NewAuthenticator("front-proxy-test", headerrequest.NewDefaultConfig(), identityMapper)
 	authHandler := &oauthhandlers.EmptyAuth{}
 
-	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, oauthregistry.NewUserConversion())
+	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, oauthregistry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
 
-	grantChecker := oauthregistry.NewClientAuthorizationGrantChecker(oauthEtcd)
+	grantChecker := oauthregistry.NewClientAuthorizationGrantChecker(clientAuthRegistry)
 	grantHandler := oauthhandlers.NewAutoGrant()
 
 	server := osinserver.New(
@@ -102,7 +116,7 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	t.Logf("proxy server is on %v\n", proxyServer.URL)
 
 	// need to prime clients so that we can get back a code.  the client must be valid
-	createClient(t, oauthEtcd, &oauthapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{oauthServer.URL}})
+	createClient(t, clientRegistry, &oauthapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{oauthServer.URL}})
 
 	// our simple URL to get back a code.  We want to go through the front proxy
 	rawAuthorizeRequest := proxyServer.URL + origin.OpenShiftOAuthAPIPrefix + "/authorize?response_type=code&client_id=test"
@@ -146,8 +160,8 @@ func TestFrontProxyOnAuthorize(t *testing.T) {
 	}
 }
 
-func createClient(t *testing.T, oauthEtcd oauthclient.Registry, client *oauthapi.OAuthClient) {
-	if err := oauthEtcd.CreateClient(client); err != nil {
+func createClient(t *testing.T, clientRegistry clientregistry.Registry, client *oauthapi.OAuthClient) {
+	if _, err := clientRegistry.CreateClient(kapi.NewContext(), client); err != nil {
 		t.Errorf("Error creating client: %v due to %v\n", client, err)
 	}
 }

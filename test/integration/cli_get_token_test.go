@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/pflag"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 
 	// for osinserver setup.
@@ -22,7 +23,14 @@ import (
 	oauthregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
-	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
+	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
+	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
+	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
+	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
+	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
+	clientauthregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
+	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
@@ -45,7 +53,15 @@ func TestGetToken(t *testing.T) {
 	// setup
 	etcdClient := testutil.NewEtcdClient()
 	etcdHelper, _ := master.NewEtcdHelper(etcdClient, latest.Version)
-	oauthEtcd := oauthetcd.New(etcdHelper)
+
+	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
+	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
+	authorizeTokenStorage := authorizetokenetcd.NewREST(etcdHelper)
+	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
+	clientStorage := clientetcd.NewREST(etcdHelper)
+	clientRegistry := clientregistry.NewRegistry(clientStorage)
+	clientAuthStorage := clientauthetcd.NewREST(etcdHelper)
+	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
 
 	userStorage := useretcd.NewREST(etcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)
@@ -58,10 +74,10 @@ func TestGetToken(t *testing.T) {
 	authHandler := oauthhandlers.NewUnionAuthenticationHandler(
 		map[string]oauthhandlers.AuthenticationChallenger{"login": passwordchallenger.NewBasicAuthChallenger("openshift")}, nil, nil)
 
-	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, oauthregistry.NewUserConversion())
+	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, oauthregistry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
 
-	grantChecker := oauthregistry.NewClientAuthorizationGrantChecker(oauthEtcd)
+	grantChecker := oauthregistry.NewClientAuthorizationGrantChecker(clientAuthRegistry)
 	grantHandler := oauthhandlers.NewAutoGrant()
 
 	server := osinserver.New(
@@ -91,7 +107,7 @@ func TestGetToken(t *testing.T) {
 	t.Logf("oauth server is on %v\n", oauthServer.URL)
 
 	// create the default oauth clients with redirects to our server
-	origin.CreateOrUpdateDefaultOAuthClients(oauthServer.URL, []string{oauthServer.URL}, oauthEtcd)
+	origin.CreateOrUpdateDefaultOAuthClients(oauthServer.URL, []string{oauthServer.URL}, clientRegistry)
 
 	flags := pflag.NewFlagSet("test-flags", pflag.ContinueOnError)
 	clientCfg := clientcmd.NewConfig()
@@ -110,7 +126,7 @@ func TestGetToken(t *testing.T) {
 	}
 
 	// lets see if this access token is any good
-	token, err := oauthEtcd.GetAccessToken(accessToken)
+	token, err := accessTokenRegistry.GetAccessToken(kapi.NewContext(), accessToken)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

@@ -9,12 +9,11 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strings"
 
 	"code.google.com/p/go-uuid/uuid"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
@@ -32,14 +31,12 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
-	"github.com/openshift/origin/pkg/auth/authenticator/token/filetoken"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
 	"github.com/openshift/origin/pkg/auth/oauth/external/openid"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/oauth/registry"
-	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	"github.com/openshift/origin/pkg/auth/server/grant"
 	"github.com/openshift/origin/pkg/auth/server/login"
@@ -48,10 +45,14 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
-	oauthclient "github.com/openshift/origin/pkg/oauth/registry/client"
-	"github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
-	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
+	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
+	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
+	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
+	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
+	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
+	clientauthregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
+	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 )
@@ -69,20 +70,20 @@ var (
 		ObjectMeta: kapi.ObjectMeta{
 			Name: OpenShiftWebConsoleClientID,
 		},
-		Secret: uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.
+		Secret: uuid.New(), // random secret so no one knows what it is ahead of time.
 	}
 	// OSBrowserClientBase is used as a skeleton for building a Client.  We can't set the allowed redirecturis because we don't yet know the host:port of the auth server
 	OSBrowserClientBase = oauthapi.OAuthClient{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "openshift-browser-client",
 		},
-		Secret: uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
+		Secret: uuid.New(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
 	}
 	OSCliClientBase = oauthapi.OAuthClient{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "openshift-challenging-client",
 		},
-		Secret:                uuid.NewUUID().String(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
+		Secret:                uuid.New(), // random secret so no one knows what it is ahead of time.  This still allows us to loop back for /requestToken
 		RespondWithChallenges: true,
 	}
 )
@@ -94,14 +95,21 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	// TODO: register into container
 	mux := container.ServeMux
 
-	oauthEtcd := oauthetcd.New(c.EtcdHelper)
+	accessTokenStorage := accesstokenetcd.NewREST(c.EtcdHelper)
+	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
+	authorizeTokenStorage := authorizetokenetcd.NewREST(c.EtcdHelper)
+	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
+	clientStorage := clientetcd.NewREST(c.EtcdHelper)
+	clientRegistry := clientregistry.NewRegistry(clientStorage)
+	clientAuthStorage := clientauthetcd.NewREST(c.EtcdHelper)
+	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
 
 	authRequestHandler, authHandler, authFinalizer, err := c.getAuthorizeAuthenticationHandlers(mux)
 	if err != nil {
 		glog.Fatal(err)
 	}
 
-	storage := registrystorage.New(oauthEtcd, oauthEtcd, oauthEtcd, registry.NewUserConversion())
+	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
 	if c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds > 0 {
 		config.AuthorizationExpiration = c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds
@@ -110,8 +118,8 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 		config.AccessExpiration = c.Options.TokenConfig.AccessTokenMaxAgeSeconds
 	}
 
-	grantChecker := registry.NewClientAuthorizationGrantChecker(oauthEtcd)
-	grantHandler := c.getGrantHandler(mux, authRequestHandler, oauthEtcd, oauthEtcd)
+	grantChecker := registry.NewClientAuthorizationGrantChecker(clientAuthRegistry)
+	grantHandler := c.getGrantHandler(mux, authRequestHandler, clientRegistry, clientAuthRegistry)
 
 	server := osinserver.New(
 		config,
@@ -136,7 +144,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	)
 	server.Install(mux, OpenShiftOAuthAPIPrefix)
 
-	CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, oauthEtcd)
+	CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, clientRegistry)
 	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(&OSBrowserClientBase)
 	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
 
@@ -188,7 +196,7 @@ func OpenShiftOAuthTokenRequestURL(masterAddr string) string {
 	return masterAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.RequestTokenEndpoint)
 }
 
-func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry oauthclient.Registry) {
+func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry clientregistry.Registry) {
 	clientsToEnsure := []*oauthapi.OAuthClient{
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -216,17 +224,32 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 		},
 	}
 
+	ctx := kapi.NewContext()
 	for _, currClient := range clientsToEnsure {
-		if existing, err := clientRegistry.GetClient(currClient.Name); err == nil || strings.Contains(err.Error(), " not found") {
-			if existing != nil {
-				clientRegistry.DeleteClient(currClient.Name)
+		existing, err := clientRegistry.GetClient(ctx, currClient.Name)
+		if err == nil {
+			// Update the existing resource version
+			currClient.ResourceVersion = existing.ResourceVersion
+
+			// Add in any redirects from the existing one
+			// This preserves any additional customized redirects in the default clients
+			redirects := util.NewStringSet(currClient.RedirectURIs...)
+			for _, redirect := range existing.RedirectURIs {
+				if !redirects.Has(redirect) {
+					currClient.RedirectURIs = append(currClient.RedirectURIs, redirect)
+					redirects.Insert(redirect)
+				}
 			}
-			if err = clientRegistry.CreateClient(currClient); err != nil {
-				glog.Errorf("Error creating client: %v due to %v\n", currClient, err)
+
+			if _, err := clientRegistry.UpdateClient(ctx, currClient); err != nil {
+				glog.Errorf("Error updating OAuthClient %v: %v", currClient.Name, err)
+			}
+		} else if kerrs.IsNotFound(err) {
+			if _, err = clientRegistry.CreateClient(ctx, currClient); err != nil {
+				glog.Errorf("Error creating OAuthClient %v: %v", currClient.Name, err)
 			}
 		} else {
-			glog.Errorf("Error getting client: %v due to %v\n", currClient, err)
-
+			glog.Errorf("Error getting OAuthClient %v: %v", currClient.Name, err)
 		}
 	}
 }
@@ -251,7 +274,7 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authen
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
-func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Registry, authregistry clientauthorization.Registry) handlers.GrantHandler {
+func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Registry, authregistry clientauthregistry.Registry) handlers.GrantHandler {
 	switch c.Options.GrantConfig.Method {
 	case configapi.GrantHandlerDeny:
 		return handlers.NewEmptyGrant()
@@ -492,15 +515,6 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 
 	authRequestHandler := unionrequest.NewUnionAuthentication(authRequestHandlers...)
 	return authRequestHandler, nil
-}
-
-func GetEtcdTokenAuthenticator(etcdHelper tools.EtcdHelper) (authenticator.Token, error) {
-	oauthRegistry := oauthetcd.New(etcdHelper)
-	return authnregistry.NewTokenAuthenticator(oauthRegistry), nil
-}
-
-func GetCSVTokenAuthenticator(path string) (authenticator.Token, error) {
-	return filetoken.NewTokenAuthenticator(path)
 }
 
 // Captures the original request url as a "then" param in a redirect to a login flow

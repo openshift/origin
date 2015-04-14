@@ -4,24 +4,25 @@ import (
 	"errors"
 	"time"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/openshift/origin/pkg/oauth/registry/accesstoken"
+	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 )
 
 type TokenAuthenticator struct {
-	registry accesstoken.Registry
+	registry oauthaccesstoken.Registry
 }
 
 var ErrExpired = errors.New("Token is expired")
 
-func NewTokenAuthenticator(registry accesstoken.Registry) *TokenAuthenticator {
+func NewTokenAuthenticator(registry oauthaccesstoken.Registry) *TokenAuthenticator {
 	return &TokenAuthenticator{
 		registry: registry,
 	}
 }
 
 func (a *TokenAuthenticator) AuthenticateToken(value string) (user.Info, bool, error) {
-	token, err := a.registry.GetAccessToken(value)
+	token, err := a.registry.GetAccessToken(api.NewContext(), value)
 	if err != nil {
 		return nil, false, err
 	}
