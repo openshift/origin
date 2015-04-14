@@ -46,3 +46,19 @@ ip route add 11.11.0.0/16 via 192.168.2.2 dev p3p1
 sysctl -w net.ipv4.ip_forward=1
 ```
 
+Router setup
+---------------------------------------------------------------
+The steps below assume a linux box with multiple NICs as a router.
+They would have to be modified to use the syntax for the particular router.
+
+* Enable IP forwarding on the router.
+```
+sysctl -w net.ipv4.ip_forward=1
+```
+* Add a route per node added to the cluster.
+```
+ip route add 11.11.1.0/24 via 192.168.2.1 dev p3p1 
+ip route add 11.11.2.0/24 via 192.168.3.3 dev p3p2 
+ip route add 11.11.3.0/24 via 192.168.3.4 dev p3p2 
+```
+
