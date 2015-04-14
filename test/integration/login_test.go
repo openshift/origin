@@ -157,7 +157,7 @@ func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {
 
 	overrides := &clientcmd.ConfigOverrides{}
 	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
-	overrideFlags.ContextOverrideFlags.NamespaceShort = "n"
+	overrideFlags.ContextOverrideFlags.Namespace.ShortName = "n"
 	clientcmd.BindOverrideFlags(overrides, flags, overrideFlags)
 
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
