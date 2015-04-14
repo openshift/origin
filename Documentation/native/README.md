@@ -23,3 +23,26 @@ Network Overview
 * Router has routes for each node, so it can direct to the right node.
 * Nodes don't need any changes when new nodes are added unless the network topology is modified.
 * IP forwarding is enabled on each node.
+
+
+Node setup
+-----------------------------------------------------------
+* Assign an unused 11.11.x.0/24 subnet ip address to the linux bridge on the node.
+```
+brctl addbr lbr0
+ip addr add 11.11.1.1/24 dev lbr0
+ip link set dev lbr0 up
+```
+* Modify docker startup script to use the new bridge (/etc/sysconfig/docker on Fedora).
+```
+docker -d -b lbr0 --other-options
+```
+* Add a route for the 11.11.0.0/16 network to the router.
+```
+ip route add 11.11.0.0/16 via 192.168.2.2 dev p3p1
+```
+* Enable IP forwarding on the node.
+```
+sysctl -w net.ipv4.ip_forward=1
+```
+
