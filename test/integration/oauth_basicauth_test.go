@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -203,7 +202,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 	})
 
 	// Start remote server
-	remoteAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
+	remoteAddr := testutil.FindAvailableBindAddress()
 	remoteServer := &http.Server{
 		Addr:           remoteAddr,
 		Handler:        remoteHandler,

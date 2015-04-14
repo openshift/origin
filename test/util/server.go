@@ -2,7 +2,7 @@ package util
 
 import (
 	"fmt"
-	"net/http/httptest"
+	"net"
 	"net/url"
 	"os"
 	"path"
@@ -41,6 +41,15 @@ func GetBaseDir() string {
 	return cmdutil.Env("BASETMPDIR", path.Join(os.TempDir(), "openshift-"+Namespace()))
 }
 
+func FindAvailableBindAddress() string {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		panic(err)
+	}
+	defer l.Close()
+	return l.Addr().String()
+}
+
 func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs, *start.CertArgs) {
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs, certArgs := start.GetAllInOneArgs()
 
@@ -52,8 +61,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	certArgs.CertDir = path.Join(basedir, "cert")
 
 	// don't wait for nodes to come up
-
-	masterAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
+	masterAddr := FindAvailableBindAddress()
 	if len(os.Getenv("OS_MASTER_ADDR")) > 0 {
 		masterAddr = os.Getenv("OS_MASTER_ADDR")
 	}
@@ -63,7 +71,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	listenArg.ListenAddr.Set(masterAddr)
 	masterArgs.EtcdAddr.Set(GetEtcdURL())
 
-	dnsAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
+	dnsAddr := FindAvailableBindAddress()
 	if len(os.Getenv("OS_DNS_ADDR")) > 0 {
 		dnsAddr = os.Getenv("OS_DNS_ADDR")
 	}
