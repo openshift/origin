@@ -126,7 +126,7 @@ func TestUserInitialization(t *testing.T) {
 			ExpectedUserName: "bob",
 		},
 		"provision missing identity and user with preferred username and display name": {
-			Identity: makeIdentityInfo("idp", "bob", map[string]string{"name": "Bob, Sr.", "login": "admin"}),
+			Identity: makeIdentityInfo("idp", "bob", map[string]string{authapi.IdentityDisplayNameKey: "Bob, Sr.", authapi.IdentityPreferredUsernameKey: "admin"}),
 			Mapper:   provisioner,
 
 			ExpectedUserName: "admin",
@@ -149,7 +149,7 @@ func TestUserInitialization(t *testing.T) {
 			ExpectedUserName: "bob2",
 		},
 		"provision missing identity with conflicting user and preferred username": {
-			Identity: makeIdentityInfo("idp", "bob", map[string]string{"login": "admin"}),
+			Identity: makeIdentityInfo("idp", "bob", map[string]string{authapi.IdentityPreferredUsernameKey: "admin"}),
 			Mapper:   provisioner,
 
 			CreateUser: makeUser("admin"),

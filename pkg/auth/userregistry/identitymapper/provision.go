@@ -188,7 +188,7 @@ func (p *provisioningIdentityMapper) getMapping(ctx kapi.Context, identity *user
 }
 
 func getPreferredUserName(identity *userapi.Identity) string {
-	if login, ok := identity.Extra[authapi.IdentityLoginKey]; ok && len(login) > 0 {
+	if login, ok := identity.Extra[authapi.IdentityPreferredUsernameKey]; ok && len(login) > 0 {
 		return login
 	}
 	return identity.ProviderUserName
