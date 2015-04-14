@@ -9,8 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/spf13/pflag"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -24,6 +26,9 @@ import (
 type NodeArgs struct {
 	NodeName string
 
+	MasterCertDir string
+	ConfigDir     util.StringFlag
+
 	AllowDisabledDocker bool
 	VolumeDir           string
 
@@ -36,7 +41,6 @@ type NodeArgs struct {
 	ListenArg          *ListenArg
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
-	CertArgs           *CertArgs
 }
 
 // BindNodeArgs binds the options to the flags with prefix + default flag names
@@ -59,8 +63,10 @@ func NewDefaultNodeArgs() *NodeArgs {
 		dnsIP = net.ParseIP(clusterDNS)
 	}
 
-	return &NodeArgs{
+	config := &NodeArgs{
 		NodeName: hostname,
+
+		MasterCertDir: "openshift.local.config/master/certificates",
 
 		ClusterDomain: cmdutil.Env("OPENSHIFT_DNS_DOMAIN", "local"),
 		ClusterDNS:    dnsIP,
@@ -70,8 +76,10 @@ func NewDefaultNodeArgs() *NodeArgs {
 		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
-		CertArgs:           NewDefaultCertArgs(),
 	}
+	config.ConfigDir.Default("openshift.local.config/node")
+
+	return config
 }
 
 func (args NodeArgs) Validate() error {
@@ -113,14 +121,14 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		DNSDomain: args.ClusterDomain,
 		DNSIP:     dnsIP,
 
-		MasterKubeConfig: admin.DefaultNodeKubeConfigFile(args.CertArgs.CertDir, args.NodeName),
+		MasterKubeConfig: admin.DefaultNodeKubeConfigFile(args.ConfigDir.Value()),
 
 		PodManifestConfig: nil,
 	}
 
 	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = admin.DefaultNodeServingCertInfo(args.CertArgs.CertDir, args.NodeName)
-		config.ServingInfo.ClientCA = admin.DefaultKubeletClientCAFile(args.CertArgs.CertDir)
+		config.ServingInfo.ServerCert = admin.DefaultNodeServingCertInfo(args.ConfigDir.Value())
+		config.ServingInfo.ClientCA = admin.DefaultKubeletClientCAFile(args.MasterCertDir)
 	}
 
 	// Roundtrip the config to v1 and back to ensure proper defaults are set.

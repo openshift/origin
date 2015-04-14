@@ -22,8 +22,6 @@ type KubeConnectionArgs struct {
 	// ClientConfigLoadingRules is the ruleset used to load the client config.
 	// Only the CommandLinePath is expected to be used.
 	ClientConfigLoadingRules clientcmd.ClientConfigLoadingRules
-
-	CertArgs *CertArgs
 }
 
 func BindKubeConnectionArgs(args *KubeConnectionArgs, flags *pflag.FlagSet, prefix string) {
@@ -37,7 +35,6 @@ func NewDefaultKubeConnectionArgs() *KubeConnectionArgs {
 
 	config.KubernetesAddr = flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default()
 	config.ClientConfig = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&config.ClientConfigLoadingRules, &clientcmd.ConfigOverrides{})
-	config.CertArgs = NewDefaultCertArgs()
 
 	return config
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"path"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -34,17 +35,16 @@ type MasterArgs struct {
 	// DNSBindAddr exposed for integration tests to set
 	DNSBindAddr flagtypes.Addr
 
-	EtcdDir string
+	EtcdDir   string
+	ConfigDir *util.StringFlag
 
 	NodeList util.StringList
 
 	CORSAllowedOrigins util.StringList
 
 	ListenArg          *ListenArg
-	PolicyArgs         *PolicyArgs
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
-	CertArgs           *CertArgs
 
 	SchedulerConfigFile string
 }
@@ -71,14 +71,21 @@ func NewDefaultMasterArgs() *MasterArgs {
 		MasterPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "http", DefaultPort: 53, AllowPrefix: true}.Default(),
 
+		ConfigDir: &util.StringFlag{},
+
 		ListenArg:          NewDefaultListenArg(),
-		PolicyArgs:         NewDefaultPolicyArgs(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
-		CertArgs:           NewDefaultCertArgs(),
 	}
 
 	return config
+}
+
+func (args MasterArgs) GetPolicyFile() string {
+	return path.Join(args.ConfigDir.Value(), "policy.json")
+}
+func (args MasterArgs) GetConfigFileToWrite() string {
+	return path.Join(args.ConfigDir.Value(), "master-config.yaml")
 }
 
 // BuildSerializeableMasterConfig takes the MasterArgs (partially complete config) and uses them along with defaulting behavior to create the fully specified
@@ -131,9 +138,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		return nil, err
 	}
 
-	kubeletClientInfo := admin.DefaultMasterKubeletClientCertInfo(args.CertArgs.CertDir)
+	kubeletClientInfo := admin.DefaultMasterKubeletClientCertInfo(args.ConfigDir.Value())
 
-	etcdClientInfo := admin.DefaultMasterEtcdClientCertInfo(args.CertArgs.CertDir)
+	etcdClientInfo := admin.DefaultMasterEtcdClientCertInfo(args.ConfigDir.Value())
 
 	config := &configapi.MasterConfig{
 		ServingInfo: configapi.ServingInfo{
@@ -162,9 +169,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		MasterClients: configapi.MasterClients{
-			DeployerKubeConfig:          admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-deployer"),
-			OpenShiftLoopbackKubeConfig: admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "openshift-client"),
-			KubernetesKubeConfig:        admin.DefaultKubeConfigFilename(args.CertArgs.CertDir, "kube-client"),
+			DeployerKubeConfig:          admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), "openshift-deployer"),
+			OpenShiftLoopbackKubeConfig: admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), "openshift-client"),
+			KubernetesKubeConfig:        admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), "kube-client"),
 		},
 
 		EtcdClientInfo: configapi.EtcdConnectionInfo{
@@ -176,7 +183,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		PolicyConfig: configapi.PolicyConfig{
-			BootstrapPolicyFile:               args.PolicyArgs.PolicyFile,
+			BootstrapPolicyFile:               args.GetPolicyFile(),
 			MasterAuthorizationNamespace:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
 			OpenShiftSharedResourcesNamespace: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace,
 		},
@@ -188,20 +195,20 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	}
 
 	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.CertArgs.CertDir)
-		config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.CertArgs.CertDir)
+		config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.ConfigDir.Value())
+		config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.ConfigDir.Value())
 
-		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.CertArgs.CertDir)
+		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.ConfigDir.Value())
 
 		// Only set up ca/cert info for kubelet connections if we're self-hosting Kubernetes
 		if builtInKubernetes {
-			config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
+			config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
 			config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
 		}
 
 		// Only set up ca/cert info for etcd connections if we're self-hosting etcd
 		if builtInEtcd {
-			config.EtcdClientInfo.CA = admin.DefaultRootCAFile(args.CertArgs.CertDir)
+			config.EtcdClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
 			config.EtcdClientInfo.ClientCert = etcdClientInfo.CertLocation
 		}
 	}
@@ -321,11 +328,11 @@ func (args MasterArgs) BuildSerializeableEtcdConfig() (*configapi.EtcdConfig, er
 	}
 
 	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.CertArgs.CertDir)
-		config.ServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.CertArgs.CertDir)
+		config.ServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.ConfigDir.Value())
+		config.ServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.ConfigDir.Value())
 
-		config.PeerServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.CertArgs.CertDir)
-		config.PeerServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.CertArgs.CertDir)
+		config.PeerServingInfo.ServerCert = admin.DefaultEtcdServingCertInfo(args.ConfigDir.Value())
+		config.PeerServingInfo.ClientCA = admin.DefaultEtcdClientCAFile(args.ConfigDir.Value())
 	}
 
 	return config, nil

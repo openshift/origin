@@ -29,11 +29,13 @@ export BASETMPDIR="${TMPDIR}/openshift-extended-tests"
 rm -rf ${BASETMPDIR} && mkdir -p ${BASETMPDIR}
 
 # Setup directories and certificates for 'curl'
-export CERT_DIR="${BASETMPDIR}/cert"
-export CURL_CA_BUNDLE="${CERT_DIR}/ca/cert.crt"
-export CURL_CERT="${CERT_DIR}/admin/cert.crt"
-export CURL_KEY="${CERT_DIR}/admin/key.key"
-export OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig"
+export SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
+export MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
+export NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-127.0.0.1"
+export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
+export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
+export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
+export OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 export OPENSHIFT_ON_PANIC=crash
 
 cleanup() {
@@ -60,7 +62,7 @@ start_server() {
   echo "[INFO] Create certificates for the OpenShift master"
   env "PATH=${PATH}" openshift admin create-master-certs \
     --overwrite=false \
-    --cert-dir="${CERT_DIR}" \
+    --cert-dir="${MASTER_CONFIG_DIR}" \
     --hostnames="${SERVER_HOSTNAME_LIST}" \
     --master="https://${OS_MASTER_ADDR}" \
     --public-master="https://${OS_MASTER_ADDR}"
@@ -68,27 +70,34 @@ start_server() {
   echo "[INFO] Create certificates for the OpenShift node"
   env "PATH=${PATH}" openshift admin create-node-config \
     --listen="https://0.0.0.0:10250" \
-    --node-dir="${CERT_DIR}/node-127.0.0.1" \
+    --node-dir="${NODE_CONFIG_DIR}" \
     --node="127.0.0.1" \
     --hostnames="${SERVER_HOSTNAME_LIST}" \
     --master="https://${OS_MASTER_ADDR}" \
-    --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
-    --certificate-authority="${CERT_DIR}/ca/cert.crt" \
-    --signer-cert="${CERT_DIR}/ca/cert.crt" \
-    --signer-key="${CERT_DIR}/ca/key.key" \
-    --signer-serial="${CERT_DIR}/ca/serial.txt"
+    --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+    --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+    --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
+    --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
+    --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
 
-  echo "[INFO] Starting OpenShift ..."
-  sudo env "PATH=${PATH}" openshift start \
+osadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
+
+  # create openshift config
+  openshift start \
+    --write-config=${SERVER_CONFIG_DIR} \
+    --create-certs=false \
     --listen="https://0.0.0.0:${OS_MASTER_PORT}" \
     --public-master="https://${OS_MASTER_ADDR}" \
     --etcd="http://127.0.0.1:${ETCD_PORT}" \
     --hostname="127.0.0.1" \
-    --create-certs=false \
-    --cert-dir="${CERT_DIR}" \
     --volume-dir="${BASETMPDIR}/volumes" \
     --master="https://${OS_MASTER_ADDR}" \
-    --latest-images \
+    --latest-images 
+
+  echo "[INFO] Starting OpenShift ..."
+  sudo env "PATH=${PATH}" openshift start \
+    --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+    --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
     --loglevel=${VERBOSE:-3} &> ${BASETMPDIR}/server.log &
   echo -n $! > ${BASETMPDIR}/server.pid
 }

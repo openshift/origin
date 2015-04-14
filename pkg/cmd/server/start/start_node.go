@@ -3,10 +3,7 @@ package start
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -20,15 +17,13 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 )
 
 type NodeOptions struct {
 	NodeArgs *NodeArgs
 
-	WriteConfigOnly bool
-	ConfigFile      string
+	ConfigFile string
 }
 
 const longNodeCommandDesc = `
@@ -80,18 +75,14 @@ func NewCommandStartNode() (*cobra.Command, *NodeOptions) {
 
 	flags := cmd.Flags()
 
-	flags.BoolVar(&options.WriteConfigOnly, "write-config", false, "Indicates that the command should build the configuration from command-line arguments, write it to the location specified by --config, and exit.")
-	flags.StringVar(&options.ConfigFile, "config", "", "Location of the node configuration file to run from, or write to (when used with --write-config). When running from a configuration file, all other command-line arguments are ignored.")
+	flags.StringVar(&options.ConfigFile, "config", "", "Location of the node configuration file to run from. When running from a configuration file, all other command-line arguments are ignored.")
 
 	options.NodeArgs = NewDefaultNodeArgs()
-	// make sure that KubeConnectionArgs and NodeArgs use the same CertArgs for this command
-	options.NodeArgs.KubeConnectionArgs.CertArgs = options.NodeArgs.CertArgs
 
 	BindNodeArgs(options.NodeArgs, flags, "")
 	BindListenArg(options.NodeArgs.ListenArg, flags, "")
 	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
-	BindCertArgs(options.NodeArgs.CertArgs, flags, "")
 
 	return cmd, options
 }
@@ -100,14 +91,15 @@ func (o NodeOptions) Validate(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments are supported for start node")
 	}
-	if o.WriteConfigOnly {
-		if len(o.ConfigFile) == 0 {
-			return errors.New("--config is required if --write-config is true")
+
+	if o.IsWriteConfigOnly() {
+		if o.IsRunFromConfig() {
+			return errors.New("--config may not be set if you're only writing the config")
 		}
 	}
 
 	// if we are not starting up using a config file, run the argument validation
-	if o.WriteConfigOnly || len(o.ConfigFile) == 0 {
+	if !o.IsRunFromConfig() {
 		if err := o.NodeArgs.Validate(); err != nil {
 			return err
 		}
@@ -128,7 +120,7 @@ func (o NodeOptions) StartNode() error {
 		return err
 	}
 
-	if o.WriteConfigOnly {
+	if o.IsWriteConfigOnly() {
 		return nil
 	}
 
@@ -143,53 +135,25 @@ func (o NodeOptions) StartNode() error {
 // 3.  Writes the fully specified node config and exits if needed
 // 4.  Starts the node based on the fully specified config
 func (o NodeOptions) RunNode() error {
-	startUsingConfigFile := !o.WriteConfigOnly && (len(o.ConfigFile) > 0)
-	mintCerts := o.NodeArgs.CertArgs.CreateCerts && !startUsingConfigFile
-
-	if mintCerts {
-		if err := o.CreateCerts(); err != nil {
+	if !o.IsRunFromConfig() || o.IsWriteConfigOnly() {
+		if err := o.CreateNodeConfig(); err != nil {
 			return err
 		}
 	}
 
+	if o.IsWriteConfigOnly() {
+		return nil
+	}
+
 	var nodeConfig *configapi.NodeConfig
 	var err error
-	if startUsingConfigFile {
+	if o.IsRunFromConfig() {
 		nodeConfig, err = configapilatest.ReadAndResolveNodeConfig(o.ConfigFile)
 	} else {
 		nodeConfig, err = o.NodeArgs.BuildSerializeableNodeConfig()
 	}
 	if err != nil {
 		return err
-	}
-
-	if o.WriteConfigOnly {
-		// Resolve relative to CWD
-		cwd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		if err := configapi.ResolveNodeConfigPaths(nodeConfig, cwd); err != nil {
-			return err
-		}
-
-		// Relativize to config file dir
-		base, err := cmdutil.MakeAbs(filepath.Dir(o.ConfigFile), cwd)
-		if err != nil {
-			return err
-		}
-		if err := configapi.RelativizeNodeConfigPaths(nodeConfig, base); err != nil {
-			return err
-		}
-
-		content, err := configapilatest.WriteYAML(nodeConfig)
-		if err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(o.ConfigFile, content, 0644); err != nil {
-			return err
-		}
-		return nil
 	}
 
 	errs := validation.ValidateNodeConfig(nodeConfig)
@@ -210,23 +174,11 @@ func (o NodeOptions) RunNode() error {
 	return nil
 }
 
-func (o NodeOptions) CreateCerts() error {
-	signerOptions := &admin.CreateSignerCertOptions{
-		CertFile:   admin.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		Name:       admin.DefaultSignerName(),
-	}
-	if err := signerOptions.Validate(nil); err != nil {
-		return err
-	}
-	if _, err := signerOptions.CreateSignerCert(); err != nil {
-		return err
-	}
+func (o NodeOptions) CreateNodeConfig() error {
 	getSignerOptions := &admin.GetSignerCertOptions{
-		CertFile:   admin.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
+		CertFile:   admin.DefaultCertFilename(o.NodeArgs.MasterCertDir, "ca"),
+		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.MasterCertDir, "ca"),
+		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.MasterCertDir, "ca"),
 	}
 
 	var dnsIP string
@@ -239,7 +191,7 @@ func (o NodeOptions) CreateCerts() error {
 		return err
 	}
 
-	nodeConfigDir := path.Join(o.NodeArgs.CertArgs.CertDir, admin.DefaultNodeDir(o.NodeArgs.NodeName))
+	nodeConfigDir := o.NodeArgs.ConfigDir.Value()
 	createNodeConfigOptions := admin.CreateNodeConfigOptions{
 		GetSignerCertOptions: getSignerOptions,
 
@@ -283,4 +235,12 @@ func StartNode(config configapi.NodeConfig) error {
 	go daemon.SdNotify("READY=1")
 
 	return nil
+}
+
+func (o NodeOptions) IsWriteConfigOnly() bool {
+	return o.NodeArgs.ConfigDir.Provided()
+}
+
+func (o NodeOptions) IsRunFromConfig() bool {
+	return (len(o.ConfigFile) > 0)
 }

@@ -35,7 +35,7 @@ Steps
 
     1. Go back to your browser, refresh and select the rubyJob build job.
     2. Choose `Configure`.
-    3. Locate the KUBECONFIG_CREDENTIALS parameter, and replace the default value with the contents of the `openshift.local.certificates/openshift-client/.kubeconfig` file.
+    3. Locate the KUBECONFIG_CREDENTIALS parameter, and replace the default value with the contents of the `openshift.local.config/master/openshift-client.kubeconfig` file.
     4. Click `Save`.
 
 6. Run the Jenkins build

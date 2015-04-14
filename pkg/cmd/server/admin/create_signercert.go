@@ -25,9 +25,9 @@ type CreateSignerCertOptions struct {
 }
 
 func BindSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.FlagSet, prefix string) {
-	flags.StringVar(&options.CertFile, prefix+"cert", "openshift.local.certificates/ca/cert.crt", "The certificate file.")
-	flags.StringVar(&options.KeyFile, prefix+"key", "openshift.local.certificates/ca/key.key", "The key file.")
-	flags.StringVar(&options.SerialFile, prefix+"serial", "openshift.local.certificates/ca/serial.txt", "The serial file that keeps track of how many certs have been signed.")
+	flags.StringVar(&options.CertFile, prefix+"cert", "openshift.local.config/master/ca.crt", "The certificate file.")
+	flags.StringVar(&options.KeyFile, prefix+"key", "openshift.local.config/master/ca.key", "The key file.")
+	flags.StringVar(&options.SerialFile, prefix+"serial", "openshift.local.config/master/ca.serial.txt", "The serial file that keeps track of how many certs have been signed.")
 	flags.StringVar(&options.Name, prefix+"name", DefaultSignerName(), "The name of the signer.")
 	flags.BoolVar(&options.Overwrite, prefix+"overwrite", options.Overwrite, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 }
