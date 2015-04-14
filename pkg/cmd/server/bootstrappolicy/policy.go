@@ -27,7 +27,7 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Ro
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     util.NewStringSet("get", "list"),
-					Resources: util.NewStringSet("templates", "imagerepositories", "imagerepositorytags"),
+					Resources: util.NewStringSet("templates", authorizationapi.ImageGroupName),
 				},
 			},
 		},

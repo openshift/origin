@@ -74,10 +74,18 @@ func PromptForStringWithDefault(r io.Reader, def string, format string, a ...int
 
 func readInput(r io.Reader) string {
 	if IsTerminal(r) {
-		reader := bufio.NewReader(r)
-		result, _ := reader.ReadString('\n')
-		return strings.TrimSuffix(result, "\n")
+		return readInputFromTerminal(r)
 	}
+	return readInputFromReader(r)
+}
+
+func readInputFromTerminal(r io.Reader) string {
+	reader := bufio.NewReader(r)
+	result, _ := reader.ReadString('\n')
+	return strings.TrimRight(result, "\r\n")
+}
+
+func readInputFromReader(r io.Reader) string {
 	var result string
 	fmt.Fscan(r, &result)
 	return result
