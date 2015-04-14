@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -67,6 +68,31 @@ func subjectRecordKeyFn(obj interface{}) (string, error) {
 	return subjectRecord.subject, nil
 }
 
+type skipSynchronizer interface {
+	// SkipSynchronize returns true if if its safe to skip synchronization of the cache based on provided token from previous observation
+	SkipSynchronize(prevState string) (skip bool, currentState string)
+}
+
+type reflectorSkipSynchronizer struct {
+	reflectors []*cache.Reflector
+}
+
+func (rs *reflectorSkipSynchronizer) SkipSynchronize(prevState string) (skip bool, currentState string) {
+	resourceVersions := make([]string, len(rs.reflectors))
+	for i := range rs.reflectors {
+		resourceVersions = append(resourceVersions, rs.reflectors[i].LastSyncResourceVersion())
+	}
+	currentState = strings.Join(resourceVersions, ",")
+	skip = currentState == prevState
+	return skip, currentState
+}
+
+type neverSkipSynchronizer struct{}
+
+func (s *neverSkipSynchronizer) SkipSynchronize(prevState string) (bool, string) {
+	return false, ""
+}
+
 // AuthorizationCache maintains a cache on the set of namespaces a user or group can access.
 type AuthorizationCache struct {
 	namespaceStore          cache.Store
@@ -79,6 +105,9 @@ type AuthorizationCache struct {
 	masterNamespace              string
 	masterBindingResourceVersion string
 	masterPolicyResourceVersion  string
+
+	skip      skipSynchronizer
+	lastState string
 
 	reviewer Reviewer
 
@@ -105,6 +134,7 @@ func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kclient.Namespa
 		policyBindingsNamespacer:     policyBindingsNamespacer,
 		policiesNamespacer:           policiesNamespacer,
 		reviewer:                     reviewer,
+		skip:                         &neverSkipSynchronizer{},
 	}
 	result.syncHandler = result.syncRequest
 	return result
@@ -157,6 +187,9 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 		2*time.Minute,
 	)
 	policyReflector.Run()
+
+	reflectors := []*cache.Reflector{namespaceReflector, policyReflector, policyBindingReflector}
+	ac.skip = &reflectorSkipSynchronizer{reflectors: reflectors}
 
 	go util.Forever(func() { ac.synchronize() }, period)
 }
@@ -254,8 +287,8 @@ func (ac *AuthorizationCache) invalidateCache() bool {
 
 // synchronize runs a a full synchronization over the cache data.  it must be run in a single-writer model, it's not thread-safe by design.
 func (ac *AuthorizationCache) synchronize() {
-	// TODO: upstream cache object should support a high-water mark, if there was no change in any of our caches, then we should be able to return quickly
-	skip := false
+	// if none of our internal reflectors changed, then we can skip reviewing the cache
+	skip, currentState := ac.skip.SkipSynchronize(ac.lastState)
 	if skip {
 		return
 	}
@@ -286,6 +319,8 @@ func (ac *AuthorizationCache) synchronize() {
 		ac.reviewRecordStore = reviewRecordStore
 	}
 
+	// we were able to update our cache since this last observation period
+	ac.lastState = currentState
 }
 
 // syncRequest takes a reviewRequest and determines if it should update the caches supplied, it is not thread-safe
