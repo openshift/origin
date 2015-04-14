@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -442,7 +443,9 @@ func printOAuthClientAuthorizationList(list *oauthapi.OAuthClientAuthorizationLi
 }
 
 func printOAuthAccessToken(token *oauthapi.OAuthAccessToken, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\t%s\n", token.Name, token.UserName, token.ClientName, token.CreationTimestamp, token.ExpiresIn, token.RedirectURI, strings.Join(token.Scopes, ","))
+	created := token.CreationTimestamp
+	expires := created.Add(time.Duration(token.ExpiresIn) * time.Second)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", token.Name, token.UserName, token.ClientName, created, expires, token.RedirectURI, strings.Join(token.Scopes, ","))
 	return err
 }
 func printOAuthAccessTokenList(list *oauthapi.OAuthAccessTokenList, w io.Writer) error {
@@ -455,7 +458,9 @@ func printOAuthAccessTokenList(list *oauthapi.OAuthAccessTokenList, w io.Writer)
 }
 
 func printOAuthAuthorizeToken(token *oauthapi.OAuthAuthorizeToken, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\t%s\n", token.Name, token.UserName, token.ClientName, token.CreationTimestamp, token.ExpiresIn, token.RedirectURI, strings.Join(token.Scopes, ","))
+	created := token.CreationTimestamp
+	expires := created.Add(time.Duration(token.ExpiresIn) * time.Second)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", token.Name, token.UserName, token.ClientName, created, expires, token.RedirectURI, strings.Join(token.Scopes, ","))
 	return err
 }
 func printOAuthAuthorizeTokenList(list *oauthapi.OAuthAuthorizeTokenList, w io.Writer) error {

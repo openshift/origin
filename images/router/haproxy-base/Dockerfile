@@ -9,7 +9,7 @@ FROM openshift3_beta/ose-base
 RUN yum -y install haproxy && \
     mkdir -p /var/lib/containers/router/{certs,cacerts} && \
     mkdir -p /var/lib/haproxy/{conf,run,bin,log} && \
-    touch /var/lib/haproxy/conf/{{os_http_be,os_tcp_be,os_sni_passthrough,os_reencrypt}.map,haproxy.config} && \
+    touch /var/lib/haproxy/conf/{{os_http_be,os_edge_http_be,os_tcp_be,os_sni_passthrough,os_reencrypt}.map,haproxy.config} && \
     yum clean all
 
 ADD conf/ /var/lib/haproxy/conf/

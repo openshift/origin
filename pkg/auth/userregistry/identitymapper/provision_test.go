@@ -20,7 +20,7 @@ func TestGetPreferredUsername(t *testing.T) {
 		t.Errorf("Expected %s, got %s", "foo", preferred)
 	}
 
-	identity.Extra = map[string]string{authapi.IdentityLoginKey: "bar"}
+	identity.Extra = map[string]string{authapi.IdentityPreferredUsernameKey: "bar"}
 	if preferred := getPreferredUserName(identity); preferred != "bar" {
 		t.Errorf("Expected %s, got %s", "bar", preferred)
 	}

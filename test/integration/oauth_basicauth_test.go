@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -199,11 +198,11 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(fmt.Sprintf(`{"id":"%s"}`, expectedUsername)))
+		w.Write([]byte(fmt.Sprintf(`{"sub":"%s"}`, expectedUsername)))
 	})
 
 	// Start remote server
-	remoteAddr := httptest.NewUnstartedServer(nil).Listener.Addr().String()
+	remoteAddr := testutil.FindAvailableBindAddress()
 	remoteServer := &http.Server{
 		Addr:           remoteAddr,
 		Handler:        remoteHandler,

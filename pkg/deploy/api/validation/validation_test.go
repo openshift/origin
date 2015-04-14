@@ -227,6 +227,87 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			fielderrors.ValidationErrorTypeRequired,
 			"template.strategy.customParams.image",
 		},
+		"missing template.strategy.recreateParams.pre.failurePolicy": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Template: api.DeploymentTemplate{
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Pre: &api.LifecycleHook{
+								ExecNewPod: &api.ExecNewPodHook{
+									Command:       []string{"cmd"},
+									ContainerName: "container",
+								},
+							},
+						},
+					},
+					ControllerTemplate: test.OkControllerTemplate(),
+				},
+			},
+			fielderrors.ValidationErrorTypeRequired,
+			"template.strategy.recreateParams.pre.failurePolicy",
+		},
+		"missing template.strategy.recreateParams.pre.execNewPod": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Template: api.DeploymentTemplate{
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Pre: &api.LifecycleHook{
+								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+							},
+						},
+					},
+					ControllerTemplate: test.OkControllerTemplate(),
+				},
+			},
+			fielderrors.ValidationErrorTypeRequired,
+			"template.strategy.recreateParams.pre.execNewPod",
+		},
+		"missing template.strategy.recreateParams.pre.execNewPod.command": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Template: api.DeploymentTemplate{
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Pre: &api.LifecycleHook{
+								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+								ExecNewPod: &api.ExecNewPodHook{
+									ContainerName: "container",
+								},
+							},
+						},
+					},
+					ControllerTemplate: test.OkControllerTemplate(),
+				},
+			},
+			fielderrors.ValidationErrorTypeRequired,
+			"template.strategy.recreateParams.pre.execNewPod.command",
+		},
+		"missing template.strategy.recreateParams.pre.execNewPod.containerName": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Template: api.DeploymentTemplate{
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Pre: &api.LifecycleHook{
+								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+								ExecNewPod: &api.ExecNewPodHook{
+									Command: []string{"cmd"},
+								},
+							},
+						},
+					},
+					ControllerTemplate: test.OkControllerTemplate(),
+				},
+			},
+			fielderrors.ValidationErrorTypeRequired,
+			"template.strategy.recreateParams.pre.execNewPod.containerName",
+		},
 	}
 
 	for k, v := range errorCases {

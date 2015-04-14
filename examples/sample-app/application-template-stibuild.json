@@ -154,7 +154,39 @@
           "replicas": 1
         },
         "strategy": {
-          "type": "Recreate"
+          "type": "Recreate",
+          "recreateParams": {
+            "pre": {
+              "failurePolicy": "Abort",
+              "execNewPod": {
+                "containerName": "ruby-helloworld",
+                "command": [
+                  "/bin/true"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR1",
+                    "value": "custom_value1"
+                  }
+                ]
+              }
+            },
+            "post": {
+              "failurePolicy": "Ignore",
+              "execNewPod": {
+                "containerName": "ruby-helloworld",
+                "command": [
+                  "/bin/false"
+                ],
+                "env": [
+                  {
+                    "name": "CUSTOM_VAR2",
+                    "value": "custom_value2"
+                  }
+                ]
+              }
+            }
+          }
         }
       },
       "triggers": [

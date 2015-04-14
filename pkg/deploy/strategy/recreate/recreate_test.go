@@ -8,11 +8,12 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
 	api "github.com/openshift/origin/pkg/api/latest"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-func TestFirstDeployment(t *testing.T) {
+func TestRecreate_initialDeployment(t *testing.T) {
 	var updatedController *kapi.ReplicationController
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 
@@ -27,6 +28,11 @@ func TestFirstDeployment(t *testing.T) {
 			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				updatedController = ctrl
 				return ctrl, nil
+			},
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return nil
 			},
 		},
 	}
@@ -46,7 +52,7 @@ func TestFirstDeployment(t *testing.T) {
 	}
 }
 
-func TestSecondDeploymentSuccessfulRetries(t *testing.T) {
+func TestRecreate_secondDeploymentWithSuccessfulRetries(t *testing.T) {
 	updatedControllers := make(map[string]*kapi.ReplicationController)
 	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 	newConfig := deploytest.OkDeploymentConfig(2)
@@ -79,6 +85,11 @@ func TestSecondDeploymentSuccessfulRetries(t *testing.T) {
 				return ctrl, nil
 			},
 		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return nil
+			},
+		},
 	}
 
 	err := strategy.Deploy(newDeployment, []kapi.ObjectReference{
@@ -101,7 +112,7 @@ func TestSecondDeploymentSuccessfulRetries(t *testing.T) {
 	}
 }
 
-func TestSecondDeploymentFailedInitialRetries(t *testing.T) {
+func TestRecreate_secondDeploymentScaleUpRetries(t *testing.T) {
 	updatedControllers := make(map[string]*kapi.ReplicationController)
 	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 	newConfig := deploytest.OkDeploymentConfig(2)
@@ -127,6 +138,11 @@ func TestSecondDeploymentFailedInitialRetries(t *testing.T) {
 				return nil, fmt.Errorf("update failure")
 			},
 		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return nil
+			},
+		},
 	}
 
 	err := strategy.Deploy(newDeployment, []kapi.ObjectReference{
@@ -145,7 +161,7 @@ func TestSecondDeploymentFailedInitialRetries(t *testing.T) {
 	}
 }
 
-func TestSecondDeploymentFailedDisableRetries(t *testing.T) {
+func TestRecreate_secondDeploymentScaleDownRetries(t *testing.T) {
 	updatedControllers := make(map[string]*kapi.ReplicationController)
 	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 	newConfig := deploytest.OkDeploymentConfig(2)
@@ -179,6 +195,11 @@ func TestSecondDeploymentFailedDisableRetries(t *testing.T) {
 				}
 			},
 		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return nil
+			},
+		},
 	}
 
 	err := strategy.Deploy(newDeployment, []kapi.ObjectReference{
@@ -189,11 +210,363 @@ func TestSecondDeploymentFailedDisableRetries(t *testing.T) {
 	})
 
 	if err == nil {
-		t.Fatalf("expcted a deploy error: %#v", err)
+		t.Fatalf("expected a deploy error: %#v", err)
 	}
 
 	if len(updatedControllers) > 0 {
 		t.Fatalf("unexpected controller updates: %v", updatedControllers)
+	}
+}
+
+func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
+	var updatedController *kapi.ReplicationController
+	config := deploytest.OkDeploymentConfig(1)
+	config.Template.Strategy.RecreateParams = recreateParams(deployapi.LifecycleHookFailurePolicyAbort, "")
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployment, nil
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedController = ctrl
+				return ctrl, nil
+			},
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return nil
+			},
+		},
+	}
+
+	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if updatedController == nil {
+		t.Fatalf("expected a ReplicationController")
+	}
+
+	if e, a := 1, updatedController.Spec.Replicas; e != a {
+		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
+	}
+}
+
+func TestRecreate_deploymentPreHookFailAbort(t *testing.T) {
+	config := deploytest.OkDeploymentConfig(1)
+	config.Template.Strategy.RecreateParams = recreateParams(deployapi.LifecycleHookFailurePolicyAbort, "")
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected call to getReplicationController")
+				return deployment, nil
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected call to updateReplicationController")
+				return ctrl, nil
+			},
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return fmt.Errorf("hook execution failure")
+			},
+		},
+	}
+
+	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+	if err == nil {
+		t.Fatalf("expected a deploy error")
+	}
+	t.Logf("got expected error: %s", err)
+}
+
+func TestRecreate_deploymentPreHookFailureIgnored(t *testing.T) {
+	var updatedController *kapi.ReplicationController
+	config := deploytest.OkDeploymentConfig(1)
+	config.Template.Strategy.RecreateParams = recreateParams(deployapi.LifecycleHookFailurePolicyIgnore, "")
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployment, nil
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedController = ctrl
+				return ctrl, nil
+			},
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return fmt.Errorf("hook execution failure")
+			},
+		},
+	}
+
+	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if updatedController == nil {
+		t.Fatalf("expected a ReplicationController")
+	}
+
+	if e, a := 1, updatedController.Spec.Replicas; e != a {
+		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
+	}
+}
+
+func TestRecreate_deploymentPreHookFailureRetried(t *testing.T) {
+	var updatedController *kapi.ReplicationController
+	config := deploytest.OkDeploymentConfig(1)
+	config.Template.Strategy.RecreateParams = recreateParams(deployapi.LifecycleHookFailurePolicyRetry, "")
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+	errorCount := 2
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployment, nil
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedController = ctrl
+				return ctrl, nil
+			},
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				if errorCount == 0 {
+					return nil
+				}
+				errorCount--
+				return fmt.Errorf("hook execution failure")
+			},
+		},
+	}
+
+	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if updatedController == nil {
+		t.Fatalf("expected a ReplicationController")
+	}
+
+	if e, a := 1, updatedController.Spec.Replicas; e != a {
+		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
+	}
+}
+
+func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
+	var updatedController *kapi.ReplicationController
+	config := deploytest.OkDeploymentConfig(1)
+	config.Template.Strategy.RecreateParams = recreateParams("", deployapi.LifecycleHookFailurePolicyAbort)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployment, nil
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedController = ctrl
+				return ctrl, nil
+			},
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return nil
+			},
+		},
+	}
+
+	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if updatedController == nil {
+		t.Fatalf("expected a ReplicationController")
+	}
+
+	if e, a := 1, updatedController.Spec.Replicas; e != a {
+		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
+	}
+}
+
+func TestRecreate_deploymentPostHookAbortUnsupported(t *testing.T) {
+	var updatedController *kapi.ReplicationController
+	config := deploytest.OkDeploymentConfig(1)
+	config.Template.Strategy.RecreateParams = recreateParams("", deployapi.LifecycleHookFailurePolicyAbort)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployment, nil
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedController = ctrl
+				return ctrl, nil
+			},
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return fmt.Errorf("hook execution failure")
+			},
+		},
+	}
+
+	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if updatedController == nil {
+		t.Fatalf("expected a ReplicationController")
+	}
+
+	if e, a := 1, updatedController.Spec.Replicas; e != a {
+		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
+	}
+}
+
+func TestRecreate_deploymentPostHookFailIgnore(t *testing.T) {
+	var updatedController *kapi.ReplicationController
+	config := deploytest.OkDeploymentConfig(1)
+	config.Template.Strategy.RecreateParams = recreateParams("", deployapi.LifecycleHookFailurePolicyIgnore)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployment, nil
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedController = ctrl
+				return ctrl, nil
+			},
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return fmt.Errorf("hook execution failure")
+			},
+		},
+	}
+
+	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if updatedController == nil {
+		t.Fatalf("expected a ReplicationController")
+	}
+
+	if e, a := 1, updatedController.Spec.Replicas; e != a {
+		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
+	}
+}
+
+func TestRecreate_deploymentPostHookFailureRetried(t *testing.T) {
+	var updatedController *kapi.ReplicationController
+	config := deploytest.OkDeploymentConfig(1)
+	config.Template.Strategy.RecreateParams = recreateParams("", deployapi.LifecycleHookFailurePolicyRetry)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+	errorCount := 2
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployment, nil
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedController = ctrl
+				return ctrl, nil
+			},
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				if errorCount == 0 {
+					return nil
+				}
+				errorCount--
+				return fmt.Errorf("hook execution failure")
+			},
+		},
+	}
+
+	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if updatedController == nil {
+		t.Fatalf("expected a ReplicationController")
+	}
+
+	if e, a := 1, updatedController.Spec.Replicas; e != a {
+		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
+	}
+}
+
+func recreateParams(preFailurePolicy, postFailurePolicy deployapi.LifecycleHookFailurePolicy) *deployapi.RecreateDeploymentStrategyParams {
+	var pre *deployapi.LifecycleHook
+	var post *deployapi.LifecycleHook
+
+	if len(preFailurePolicy) > 0 {
+		pre = &deployapi.LifecycleHook{
+			FailurePolicy: preFailurePolicy,
+			ExecNewPod:    &deployapi.ExecNewPodHook{},
+		}
+	}
+	if len(postFailurePolicy) > 0 {
+		post = &deployapi.LifecycleHook{
+			FailurePolicy: postFailurePolicy,
+			ExecNewPod:    &deployapi.ExecNewPodHook{},
+		}
+	}
+	return &deployapi.RecreateDeploymentStrategyParams{
+		Pre:  pre,
+		Post: post,
 	}
 }
 

@@ -185,7 +185,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, id)
 
 	if preferredUsername, _ := getClaimValue(claims, p.PreferredUsernameClaims); len(preferredUsername) != 0 {
-		identity.Extra[authapi.IdentityLoginKey] = preferredUsername
+		identity.Extra[authapi.IdentityPreferredUsernameKey] = preferredUsername
 	}
 
 	if email, _ := getClaimValue(claims, p.EmailClaims); len(email) != 0 {
