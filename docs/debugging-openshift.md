@@ -57,7 +57,7 @@ Most of the v3 flows today assume you are running a docker registry pod.  You sh
 
 If it's not running, you can launch it via:
 
-    $ osc create -f examples/sample-app/docker-registry-config.json
+    $ openshift ex registry --create --credentials="openshift.local.certificates/openshift-client/.kubeconfig"
 
 In addition, confirm the IP and Port reported in the services list matches the registry references in your configuration json (e.g. any image tags that contain a registry hostname).  
 

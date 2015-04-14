@@ -52,9 +52,6 @@ bits that are used in the sample app.
     $ cd /var/lib/openshift
     $ mkdir -p examples/sample-app
     $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/docker-registry-template.json \
-    -O examples/sample-app/docker-registry-template.json
-    $ wget \
     https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json \
     -O examples/sample-app/application-template-stibuild.json
 
