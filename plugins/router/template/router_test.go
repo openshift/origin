@@ -1,6 +1,7 @@
 package templaterouter
 
 import (
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	"testing"
 )
@@ -122,21 +123,16 @@ func TestDeleteEndpoints(t *testing.T) {
 func TestRouteKey(t *testing.T) {
 	router := emptyRouter()
 	route := &routeapi.Route{
-		Host: "test",
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "foo",
+			Name:      "bar",
+		},
 	}
 
 	key := router.routeKey(route)
 
-	if key != "test-" {
-		t.Errorf("Expected key 'test' but got: %s", key)
-	}
-
-	route.Path = "test2"
-
-	key = router.routeKey(route)
-
-	if key != "test-test2" {
-		t.Errorf("Expected key 'test' but got: %s", key)
+	if key != "foo/bar" {
+		t.Errorf("Expected key 'foo/bar' but got: %s", key)
 	}
 }
 
@@ -144,6 +140,10 @@ func TestRouteKey(t *testing.T) {
 func TestAddRoute(t *testing.T) {
 	router := emptyRouter()
 	route := &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "foo",
+			Name:      "bar",
+		},
 		Host: "host",
 		Path: "path",
 		TLS: &routeapi.TLSConfig{
@@ -214,36 +214,45 @@ func findCert(cert string, certs map[string]Certificate, isPrivateKey bool, t *t
 func TestRemoveRoute(t *testing.T) {
 	router := emptyRouter()
 	route := &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "foo",
+			Name:      "bar",
+		},
+		Host: "host",
+	}
+	route2 := &routeapi.Route{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "foo",
+			Name:      "bar2",
+		},
 		Host: "host",
 	}
 	suKey := "test"
-	router.CreateServiceUnit(suKey)
 
+	router.CreateServiceUnit(suKey)
 	router.AddRoute(suKey, route)
+	router.AddRoute(suKey, route2)
 
 	su, ok := router.FindServiceUnit(suKey)
-
 	if !ok {
-		t.Errorf("Unable to find created service unit %s", suKey)
-	} else {
-		routeKey := router.routeKey(route)
-		saCfg, ok := su.ServiceAliasConfigs[routeKey]
+		t.Fatalf("Unable to find created service unit %s", suKey)
+	}
 
-		if !ok {
-			t.Errorf("Unable to find created serivce alias config for route %s", routeKey)
-		} else {
-			if saCfg.Host != route.Host || saCfg.Path != route.Path {
-				t.Errorf("Route %v did not match serivce alias config %v", route, saCfg)
-			} else {
-				router.RemoveRoute(suKey, route)
+	routeKey := router.routeKey(route)
+	saCfg, ok := su.ServiceAliasConfigs[routeKey]
+	if !ok {
+		t.Fatalf("Unable to find created serivce alias config for route %s", routeKey)
+	}
+	if saCfg.Host != route.Host || saCfg.Path != route.Path {
+		t.Fatalf("Route %v did not match serivce alias config %v", route, saCfg)
+	}
 
-				su, _ := router.FindServiceUnit(suKey)
-				_, ok := su.ServiceAliasConfigs[routeKey]
-
-				if ok {
-					t.Errorf("Route %v was expected to be deleted but was still found", route)
-				}
-			}
-		}
+	router.RemoveRoute(suKey, route)
+	su, _ = router.FindServiceUnit(suKey)
+	if _, ok := su.ServiceAliasConfigs[routeKey]; ok {
+		t.Errorf("Route %v was expected to be deleted but was still found", route)
+	}
+	if _, ok := su.ServiceAliasConfigs[router.routeKey(route2)]; !ok {
+		t.Errorf("Route %v was expected to exist but was not found", route2)
 	}
 }

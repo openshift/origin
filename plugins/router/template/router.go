@@ -2,6 +2,7 @@ package templaterouter
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -166,9 +167,9 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 	r.state[id] = service
 }
 
-// routeKey generates route key in form of Host-Path
+// routeKey generates route key in form of Namespace/Name
 func (r *templateRouter) routeKey(route *routeapi.Route) string {
-	return route.Host + "-" + route.Path
+	return fmt.Sprintf("%s/%s", route.Namespace, route.Name)
 }
 
 // AddRoute adds a route for the given id

@@ -81,10 +81,10 @@ frontend fe_sni
   use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
 
   # map to http backend
-  use_backend be_http_%[base,map_beg(/var/lib/haproxy/conf/os_http_be.map)]
+  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)]
 
   # if a specific path based lookup was not found then revert to a host header lookup
-  use_backend be_http_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
+  use_backend be_edge_http_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)] if TRUE
 
   default_backend openshift_default
 
@@ -112,7 +112,7 @@ frontend fe_no_sni
   use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
 
   # regular http
-  use_backend be_http_%[hdr(host),map(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
+  use_backend be_edge_http_%[hdr(host),map(/var/lib/haproxy/conf/os_edge_http_be.map)] if TRUE
 
   default_backend openshift_default
 
@@ -139,10 +139,10 @@ backend openshift_default
 {{ range $id, $serviceUnit := . }}
         {{ range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
             {{ if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
-                {{ if eq $cfg.Path "" }}
-backend be_http_{{$serviceUnit.TemplateSafeName}}
-                {{ else }}
+                {{ if (eq $cfg.TLSTermination "") }}
 backend be_http_{{$serviceUnit.TemplateSafeName}}{{$cfg.TemplateSafePath}}
+                {{ else }}
+backend be_edge_http_{{$serviceUnit.TemplateSafeName}}{{$cfg.TemplateSafePath}}
                 {{ end }}
   mode http
   balance leastconn
@@ -183,12 +183,26 @@ backend be_secure_{{$serviceUnit.TemplateSafeName}}
 {{ define "/var/lib/haproxy/conf/os_http_be.map" }}
 {{   range $id, $serviceUnit := . }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-{{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge"))}}
+{{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "")}}
 {{$cfg.Host}}{{$cfg.Path}} {{$serviceUnit.TemplateSafeName}}{{$cfg.TemplateSafePath}}
 {{       end }}
 {{     end }}
 {{   end }}
 {{ end }}{{/* end http host map template */}}
+
+{{/*
+    os_edge_http_be.map: same as os_http_be.map but allows us to separate tls from non-tls routes to ensure we don't expose
+                            a tls only route on the unsecure port
+*/}}
+{{ define "/var/lib/haproxy/conf/os_edge_http_be.map" }}
+{{   range $id, $serviceUnit := . }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "edge")}}
+{{$cfg.Host}}{{$cfg.Path}} {{$serviceUnit.TemplateSafeName}}{{$cfg.TemplateSafePath}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end edge http host map template */}}
 
 
 {{/*
