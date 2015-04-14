@@ -72,6 +72,13 @@ Requires:       %{name} = %{version}-%{release}
 %description -n tuned-profiles-openshift-node
 %{summary}
 
+%package pod
+Summary:        OpenShift Pod
+Requires:       openshift = %{version}-%{release}
+
+%description pod
+%{summary}
+
 
 %prep
 %setup -q
@@ -107,6 +114,11 @@ done
 # set the IMAGES
 sed -i 's|IMAGES=.*|IMAGES=%{docker_images}|' rel-eng/openshift-{master,node}.sysconfig
 
+#Build our pod
+pushd images/pod/
+    go build -ldflags "%{ldflags}" pod.go
+popd
+
 %install
 
 install -d %{buildroot}%{_bindir}
@@ -115,6 +127,8 @@ do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 ${bin} %{buildroot}%{_bindir}/${bin}
 done
+#Install our pod
+install -p -m 755 images/pod/pod %{buildroot}%{_bindir}/
 
 install -d -m 0755 %{buildroot}/etc/%{name}
 install -d -m 0755 %{buildroot}%{_unitdir}
@@ -194,6 +208,10 @@ if [ "$1" = 0 ]; then
   recommended=`/usr/sbin/tuned-adm recommend`
   /usr/sbin/tuned-adm profile $recommended > /dev/null 2>&1
 fi
+
+%files pod
+%defattr(-,root,root,-)
+%{_bindir}/pod
 
 
 %changelog
