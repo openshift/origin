@@ -72,6 +72,17 @@ Requires:       %{name} = %{version}-%{release}
 %description -n tuned-profiles-openshift-node
 %{summary}
 
+%package -n osc-macosx-amd64
+Summary:      Openshift Client Packages for Mac OSX
+BuildRequires: golang-pkg-darwin-amd64
+%description -n osc-macosx-amd64
+%{summary}
+
+%package -n osc-windows-386
+Summary:      OpenShift Client Packages for Windows
+BuildRequires: golang-pkg-windows-386
+%description -n osc-windows-386
+%{summary}
 
 %prep
 %setup -q
@@ -97,12 +108,20 @@ pushd _thirdpartyhacks
             src
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
-
 # Default to building all of the components
-for cmd in openshift
+for OS in linux darwin windows
 do
-    #go build %{import_path}/cmd/${cmd}
-    go build -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
+    export GOOS=${OS}
+    for cmd in openshift
+    do
+        if [ $GOOS == 'windows' ]
+        then
+            export GOARCH='386'
+        else
+            export GOARCH='amd64'
+        fi
+        go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
+    done
 done
 # set the IMAGES
 sed -i 's|IMAGES=.*|IMAGES=%{docker_images}|' rel-eng/openshift-{master,node}.sysconfig
@@ -110,10 +129,15 @@ sed -i 's|IMAGES=.*|IMAGES=%{docker_images}|' rel-eng/openshift-{master,node}.sy
 %install
 
 install -d %{buildroot}%{_bindir}
+install -d %{buildroot}%{_datadir}/%{name}/macosx
+install -d %{buildroot}%{_datadir}/%{name}/windows
+
 for bin in openshift
 do
   echo "+++ INSTALLING ${bin}"
-  install -p -m 755 ${bin} %{buildroot}%{_bindir}/${bin}
+  install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
+  install -p -m 755 _build/bin/darwin_amd64/${bin} %{buildroot}%{_datadir}/%{name}/macosx/osc
+  install -p -m 755 _build/bin/windows_386/${bin}.exe %{buildroot}%{_datadir}/%{name}/windows/osc.exe
 done
 
 install -d -m 0755 %{buildroot}/etc/%{name}
@@ -194,6 +218,12 @@ if [ "$1" = 0 ]; then
   recommended=`/usr/sbin/tuned-adm recommend`
   /usr/sbin/tuned-adm profile $recommended > /dev/null 2>&1
 fi
+
+%files -n osc-macosx-amd64
+%{_datadir}/%{name}/macosx/osc
+
+%files -n osc-windows-386
+%{_datadir}/%{name}/windows/osc.exe
 
 
 %changelog
