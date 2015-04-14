@@ -93,8 +93,10 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 			formatString(out, "Latest Version", strconv.Itoa(deploymentConfig.LatestVersion))
 		}
 
-		printStrategy(deploymentConfig.Template.Strategy, out)
 		printTriggers(deploymentConfig.Triggers, out)
+
+		formatString(out, "Strategy", deploymentConfig.Template.Strategy.Type)
+		printStrategy(deploymentConfig.Template.Strategy, out)
 		printReplicationControllerSpec(deploymentConfig.Template.ControllerTemplate, out)
 
 		deploymentName := deployutil.LatestDeploymentNameForConfig(deploymentConfig)
@@ -113,53 +115,64 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 	})
 }
 
-func printStrategy(strategy deployapi.DeploymentStrategy, w io.Writer) {
-	fmt.Fprintf(w, "Strategy:\t%s\n", strategy.Type)
+func printStrategy(strategy deployapi.DeploymentStrategy, w *tabwriter.Writer) {
 	switch strategy.Type {
 	case deployapi.DeploymentStrategyTypeRecreate:
+		if strategy.RecreateParams != nil {
+			pre := strategy.RecreateParams.Pre
+			post := strategy.RecreateParams.Post
+			if pre != nil {
+				printHook("Pre-deployment", pre, w)
+			}
+			if post != nil {
+				printHook("Post-deployment", post, w)
+			}
+		}
 	case deployapi.DeploymentStrategyTypeCustom:
-		fmt.Fprintf(w, "\t- Image:\t%s\n", strategy.CustomParams.Image)
+		fmt.Fprintf(w, "\t  Image:\t%s\n", strategy.CustomParams.Image)
 
 		if len(strategy.CustomParams.Environment) > 0 {
-			fmt.Fprintf(w, "\t- Environment:\t%s\n", formatLabels(convertEnv(strategy.CustomParams.Environment)))
+			fmt.Fprintf(w, "\t  Environment:\t%s\n", formatLabels(convertEnv(strategy.CustomParams.Environment)))
 		}
 
 		if len(strategy.CustomParams.Command) > 0 {
-			fmt.Fprintf(w, "\t- Command:\t%v\n", strings.Join(strategy.CustomParams.Command, " "))
+			fmt.Fprintf(w, "\t  Command:\t%v\n", strings.Join(strategy.CustomParams.Command, " "))
 		}
 	}
 }
 
-func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w io.Writer) {
+func printHook(prefix string, hook *deployapi.LifecycleHook, w io.Writer) {
+	if hook.ExecNewPod != nil {
+		fmt.Fprintf(w, "\t  %s hook (pod type, failure policy: %s)\n", prefix, hook.FailurePolicy)
+		fmt.Fprintf(w, "\t    Container:\t%s\n", hook.ExecNewPod.ContainerName)
+		fmt.Fprintf(w, "\t    Command:\t%v\n", strings.Join(hook.ExecNewPod.Command, " "))
+		fmt.Fprintf(w, "\t    Env:\t%s\n", formatLabels(convertEnv(hook.ExecNewPod.Env)))
+	}
+}
+
+func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w *tabwriter.Writer) {
 	if len(triggers) == 0 {
-		fmt.Fprint(w, "Triggers:\t<none>\n")
+		formatString(w, "Triggers", "<none>")
 		return
 	}
 
-	fmt.Fprint(w, "Triggers:\n")
+	labels := []string{}
+
 	for _, t := range triggers {
-		fmt.Fprintf(w, "\t- %s\n", t.Type)
 		switch t.Type {
 		case deployapi.DeploymentTriggerOnConfigChange:
-			fmt.Fprintf(w, "\t\t<no options>\n")
+			labels = append(labels, "Config")
 		case deployapi.DeploymentTriggerOnImageChange:
 			if len(t.ImageChangeParams.RepositoryName) > 0 {
-				fmt.Fprintf(w, "\t\tAutomatic:\t%v\n\t\tRepository:\t%s\n\t\tTag:\t%s\n",
-					t.ImageChangeParams.Automatic,
-					t.ImageChangeParams.RepositoryName,
-					t.ImageChangeParams.Tag,
-				)
+				labels = append(labels, fmt.Sprintf("Image(%s@%s, auto=%v)", t.ImageChangeParams.RepositoryName, t.ImageChangeParams.Tag, t.ImageChangeParams.Automatic))
 			} else if len(t.ImageChangeParams.From.Name) > 0 {
-				fmt.Fprintf(w, "\t\tAutomatic:\t%v\n\t\tImage Repository:\t%s\n\t\tTag:\t%s\n",
-					t.ImageChangeParams.Automatic,
-					t.ImageChangeParams.From.Name,
-					t.ImageChangeParams.Tag,
-				)
+				labels = append(labels, fmt.Sprintf("Image(%s@%s, auto=%v)", t.ImageChangeParams.From.Name, t.ImageChangeParams.Tag, t.ImageChangeParams.Automatic))
 			}
-		default:
-			fmt.Fprint(w, "unknown\n")
 		}
 	}
+
+	desc := strings.Join(labels, ", ")
+	formatString(w, "Triggers", desc)
 }
 
 func printReplicationControllerSpec(spec kapi.ReplicationControllerSpec, w io.Writer) error {
