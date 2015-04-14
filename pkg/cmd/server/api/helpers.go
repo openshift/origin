@@ -111,6 +111,10 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 
 	refs = append(refs, &config.VolumeDirectory)
 
+	if config.PodManifestConfig != nil {
+		refs = append(refs, &config.PodManifestConfig.Path)
+	}
+
 	return refs
 }
 

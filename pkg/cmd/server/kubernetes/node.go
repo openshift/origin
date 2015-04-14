@@ -126,7 +126,20 @@ func (c *NodeConfig) RunKubelet() {
 	recorder := record.NewBroadcaster().NewRecorder(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
 
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates, recorder)
-	kconfig.NewSourceApiserver(c.Client, c.NodeHost, cfg.Channel("api"))
+	kconfig.NewSourceApiserver(c.Client, c.NodeHost, cfg.Channel(kubelet.ApiserverSource))
+	// define manifest file source for pods, if specified
+	if len(c.PodManifestPath) > 0 {
+		_, err = os.Stat(c.PodManifestPath)
+		if err == nil {
+			glog.Infof("Adding pod manifest file/dir: %v", c.PodManifestPath)
+			kconfig.NewSourceFile(c.PodManifestPath, c.NodeHost,
+				time.Duration(c.PodManifestCheckIntervalSeconds)*time.Second,
+				cfg.Channel(kubelet.FileSource))
+		} else {
+			glog.Errorf("WARNING: PodManifestPath specified is not a valid file/directory: %v", err)
+		}
+	}
+
 	gcPolicy := kubelet.ContainerGCPolicy{
 		MinAge:             10 * time.Second,
 		MaxPerPodContainer: 5,
