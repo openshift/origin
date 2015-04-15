@@ -16,7 +16,7 @@
         <div class="row">
           <div class="col-md-12">
             <div class="tile">
-              <h2 class="service" ng-init="numPorts = service.spec.ports.length">{{serviceId}}
+              <h2 class="service" ng-init="numPorts = service.spec.ports.length" osc-object kind="Service" resource="service">{{serviceId}}
                 <span class="small"> - routing traffic on {{service.spec.portalIP}} -</span>
                 <span class="small" ng-repeat="portMapping in service.spec.ports | orderBy:port | limitTo:2">
                   port {{portMapping.port}} &#8594; {{portMapping.targetPort}} ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span>
