@@ -82,6 +82,12 @@ BuildRequires: golang-pkg-darwin-amd64
 Summary:      OpenShift Client Packages for Windows
 BuildRequires: golang-pkg-windows-386
 %description -n osc-windows-386
+
+%package dockerregistry
+Summary:        Docker Registry v2 for OpenShift
+Requires:       %{name} = %{version}-%{release}
+
+%description dockerregistry
 %{summary}
 
 %prep
@@ -112,7 +118,7 @@ export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopa
 for OS in linux darwin windows
 do
     export GOOS=${OS}
-    for cmd in openshift
+    for cmd in openshift dockerregistry
     do
         if [ $GOOS == 'windows' ]
         then
@@ -132,7 +138,7 @@ install -d %{buildroot}%{_bindir}
 install -d %{buildroot}%{_datadir}/%{name}/macosx
 install -d %{buildroot}%{_datadir}/%{name}/windows
 
-for bin in openshift
+for bin in openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
@@ -152,6 +158,7 @@ install -m 0644 rel-eng/openshift-node.sysconfig %{buildroot}%{_sysconfdir}/sysc
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 
 ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
+ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osadm
 
 install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/openshift-node-{guest,host}
 install -m 0644 tuned/openshift-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/openshift-node-guest/
@@ -165,6 +172,7 @@ install -m 0644 tuned/man/tuned-profiles-openshift-node.7 %{buildroot}%{_mandir}
 %doc README.md LICENSE
 %{_bindir}/openshift
 %{_bindir}/osc
+%{_bindir}/osadm
 %{_sharedstatedir}/%{name}
 /etc/%{name}
 
@@ -225,6 +233,9 @@ fi
 %files -n osc-windows-386
 %{_datadir}/%{name}/windows/osc.exe
 
+%files dockerregistry
+%defattr(-,root,root,-)
+%{_bindir}/dockerregistry
 
 %changelog
 * Mon Apr 13 2015 Scott Dodson <sdodson@redhat.com> 0.4.3.2
