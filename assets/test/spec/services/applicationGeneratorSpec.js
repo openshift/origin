@@ -238,9 +238,11 @@ describe("ApplicationGenerator", function(){
                 }
             },
             "spec": {
-                "port": 80,
-                "containerPort" : 80,
-                "protocol": "tcp",
+                "ports": [{
+                  "port": 80,
+                  "targetPort" : 80,
+                  "protocol": "tcp"
+                }],
                 "selector": {
                     "deploymentconfig": "ruby-hello-world"
                 }
