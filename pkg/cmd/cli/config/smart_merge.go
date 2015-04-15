@@ -7,19 +7,64 @@ import (
 	"reflect"
 	"regexp"
 
+	"github.com/golang/glog"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/golang/glog"
+
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
 )
 
 var invalidSafeStringSep = regexp.MustCompile(`[.:/]`)
 
-// MergeConfig takes a haystack to look for existing stanzas in (probably the merged config), a config object to modify (probably
-// either the local or envvar config), and the new additions to merge in.  It tries to find equivalents for the addition inside of the
+// CreatePartialConfig takes a clientCfg and builds a config (kubeconfig style) from it.
+func CreateConfig(credentialsName string, namespace string, clientCfg *client.Config) clientcmdapi.Config {
+	config := clientcmdapi.NewConfig()
+
+	credentials := clientcmdapi.NewAuthInfo()
+	credentials.Token = clientCfg.BearerToken
+	credentials.ClientCertificate = clientCfg.TLSClientConfig.CertFile
+	if len(credentials.ClientCertificate) == 0 {
+		credentials.ClientCertificateData = clientCfg.TLSClientConfig.CertData
+	}
+	credentials.ClientKey = clientCfg.TLSClientConfig.KeyFile
+	if len(credentials.ClientKey) == 0 {
+		credentials.ClientKeyData = clientCfg.TLSClientConfig.KeyData
+	}
+	if len(credentialsName) == 0 {
+		credentialsName = "osc-login"
+	}
+	config.AuthInfos[credentialsName] = *credentials
+
+	serverAddr := flagtypes.Addr{Value: clientCfg.Host}.Default()
+	clusterName := fmt.Sprintf("%v:%v", serverAddr.Host, serverAddr.Port)
+	cluster := clientcmdapi.NewCluster()
+	cluster.Server = clientCfg.Host
+	cluster.CertificateAuthority = clientCfg.CAFile
+	if len(cluster.CertificateAuthority) == 0 {
+		cluster.CertificateAuthorityData = clientCfg.CAData
+	}
+	cluster.InsecureSkipTLSVerify = clientCfg.Insecure
+	config.Clusters[clusterName] = *cluster
+
+	contextName := clusterName + "-" + credentialsName
+	context := clientcmdapi.NewContext()
+	context.Cluster = clusterName
+	context.AuthInfo = credentialsName
+	context.Namespace = namespace
+	config.Contexts[contextName] = *context
+	config.CurrentContext = contextName
+
+	return *config
+}
+
+// MergeConfig takes a haystack to look for existing stanzas in (probably the merged config) and the new additions to merge in.
+// It tries to find equivalents for the addition inside of the
 // haystack and uses the mapping to avoid creating additional stanzas with duplicate information.  It either locates or original
 // stanzas or creates new ones for clusters and users.  Then it uses the mapped names to build the correct contexts
-func MergeConfig(haystack, toModify, addition clientcmdapi.Config) (*clientcmdapi.Config, error) {
-	ret := toModify
+func MergeConfig(haystack, addition clientcmdapi.Config) (*clientcmdapi.Config, error) {
+	ret := haystack
 
 	requestedClusterNamesToActualClusterNames := map[string]string{}
 	existingClusterNames, err := getMapKeys(reflect.ValueOf(haystack.Clusters))
@@ -98,6 +143,7 @@ func MergeConfig(haystack, toModify, addition clientcmdapi.Config) (*clientcmdap
 // FindExistingClusterName finds the nickname for the passed cluster config
 func FindExistingClusterName(haystack clientcmdapi.Config, needle clientcmdapi.Cluster) string {
 	for key, cluster := range haystack.Clusters {
+		cluster.LocationOfOrigin = ""
 		if reflect.DeepEqual(cluster, needle) {
 			return key
 		}
@@ -109,6 +155,7 @@ func FindExistingClusterName(haystack clientcmdapi.Config, needle clientcmdapi.C
 // FindExistingAuthInfoName finds the nickname for the passed auth info
 func FindExistingAuthInfoName(haystack clientcmdapi.Config, needle clientcmdapi.AuthInfo) string {
 	for key, authInfo := range haystack.AuthInfos {
+		authInfo.LocationOfOrigin = ""
 		if reflect.DeepEqual(authInfo, needle) {
 			return key
 		}
@@ -120,6 +167,7 @@ func FindExistingAuthInfoName(haystack clientcmdapi.Config, needle clientcmdapi.
 // FindExistingContextName finds the nickname for the passed context
 func FindExistingContextName(haystack clientcmdapi.Config, needle clientcmdapi.Context) string {
 	for key, context := range haystack.Contexts {
+		context.LocationOfOrigin = ""
 		if reflect.DeepEqual(context, needle) {
 			return key
 		}

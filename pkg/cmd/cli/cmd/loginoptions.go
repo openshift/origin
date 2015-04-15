@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"sort"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -11,6 +12,7 @@ import (
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	kubecmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
@@ -271,34 +273,56 @@ To be added as an admin to an existing project, run
 // file path can be provided, if not use the established conventions about config
 // loading rules. Will create a new config file if one can't be found at all. Will only
 // succeed if all required info is present.
-func (o *LoginOptions) SaveConfig() (created bool, err error) {
+func (o *LoginOptions) SaveConfig() (bool, error) {
 	if len(o.Username) == 0 {
 		return false, fmt.Errorf("Insufficient data to merge configuration.")
 	}
 
-	var configStore *config.ConfigStore
+	pathOptions := &kubecmdconfig.PathOptions{
+		LocalFile:  config.OpenShiftConfigFileName,
+		GlobalFile: path.Join(os.Getenv("HOME"), config.OpenShiftConfigHomeDirFileName),
+		EnvVarFile: os.Getenv(config.OpenShiftConfigPathEnvVar),
 
-	if len(o.PathToSaveConfig) > 0 {
-		configStore, err = config.LoadFrom(o.PathToSaveConfig)
-		if err != nil {
-			return created, err
-		}
-	} else {
-		configStore, err = config.LoadWithLoadingRules()
-		if err != nil {
-			configStore, err = config.CreateEmpty()
-			if err != nil {
-				return created, err
-			}
-			created = true
-		}
+		EnvVar:           config.OpenShiftConfigPathEnvVar,
+		ExplicitFileFlag: config.OpenShiftConfigFlagName,
+
+		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
+			ExplicitPath: o.PathToSaveConfig,
+		},
 	}
 
-	rawCfg, err := o.ClientConfig.RawConfig()
+	globalExistedBefore := true
+	if _, err := os.Stat(pathOptions.GlobalFile); os.IsNotExist(err) {
+		globalExistedBefore = false
+	}
+	envVarExistedBefore := true
+	if _, err := os.Stat(pathOptions.EnvVarFile); os.IsNotExist(err) {
+		envVarExistedBefore = false
+	}
+
+	rawConfig, err := o.ClientConfig.RawConfig()
 	if err != nil {
-		return created, err
+		return false, err
 	}
-	return created, configStore.SaveToFile(o.Username, o.Project, o.Config, rawCfg)
+	newConfig := config.CreateConfig(o.Username, o.Project, o.Config)
+	configToWrite, err := config.MergeConfig(rawConfig, newConfig)
+	if err != nil {
+		return false, err
+	}
+
+	if err := pathOptions.ModifyConfig(*configToWrite); err != nil {
+		return false, err
+	}
+
+	created := false
+	if _, err := os.Stat(pathOptions.GlobalFile); err == nil {
+		created = created || !globalExistedBefore
+	}
+	if _, err := os.Stat(pathOptions.EnvVarFile); err == nil {
+		created = created || !envVarExistedBefore
+	}
+
+	return created, nil
 }
 
 func (o *LoginOptions) whoAmI() (*api.User, error) {

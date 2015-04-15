@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	kubecmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -46,7 +48,7 @@ func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		return cmdutil.UsageError(cmd, "Only one argument is supported (project name).")
 	}
 
-	rawCfg, err := f.OpenShiftClientConfig.RawConfig()
+	config, err := f.OpenShiftClientConfig.RawConfig()
 	if err != nil {
 		return err
 	}
@@ -63,7 +65,7 @@ func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 	// No argument provided, we will just print info
 	if argsLength == 0 {
-		currentContext := rawCfg.Contexts[rawCfg.CurrentContext]
+		currentContext := config.Contexts[config.CurrentContext]
 		currentProject := currentContext.Namespace
 
 		if len(currentProject) > 0 {
@@ -78,11 +80,11 @@ func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 				return err
 			}
 
-			if rawCfg.CurrentContext != currentProject {
+			if config.CurrentContext != currentProject {
 				if len(currentProject) > 0 {
-					fmt.Fprintf(out, "Using project %q from context named %q on server %q.\n", currentProject, rawCfg.CurrentContext, clientCfg.Host)
+					fmt.Fprintf(out, "Using project %q from context named %q on server %q.\n", currentProject, config.CurrentContext, clientCfg.Host)
 				} else {
-					fmt.Fprintf(out, "Using context named %q on server %q.\n", rawCfg.CurrentContext, clientCfg.Host)
+					fmt.Fprintf(out, "Using context named %q on server %q.\n", config.CurrentContext, clientCfg.Host)
 				}
 			} else {
 				fmt.Fprintf(out, "Using project %q on server %q.\n", currentProject, clientCfg.Host)
@@ -96,12 +98,6 @@ func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 	// We have an argument that can be either a context or project
 	argument := args[0]
-
-	configStore, err := loadConfigStore(cmd)
-	if err != nil {
-		return err
-	}
-	config := configStore.Config
 
 	contextInUse := ""
 	namespaceInUse := ""
@@ -163,16 +159,16 @@ func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 		// Otherwise create a new context, reusing the cluster and auth info
 		if !exists {
-			currentCtx := rawCfg.CurrentContext
+			currentCtx := config.CurrentContext
 
 			newCtx := clientcmdapi.NewContext()
 			newCtx.Namespace = project.Name
 
-			newCtx.AuthInfo = rawCfg.Contexts[currentCtx].AuthInfo
-			newCtx.Cluster = rawCfg.Contexts[currentCtx].Cluster
+			newCtx.AuthInfo = config.Contexts[currentCtx].AuthInfo
+			newCtx.Cluster = config.Contexts[currentCtx].Cluster
 
 			existingContexIdentifiers := &util.StringSet{}
-			for key := range rawCfg.Contexts {
+			for key := range config.Contexts {
 				existingContexIdentifiers.Insert(key)
 			}
 
@@ -186,7 +182,20 @@ func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		}
 	}
 
-	if err := kclientcmd.WriteToFile(*config, configStore.Path); err != nil {
+	pathOptions := &kubecmdconfig.PathOptions{
+		LocalFile:  cliconfig.OpenShiftConfigFileName,
+		GlobalFile: path.Join(os.Getenv("HOME"), cliconfig.OpenShiftConfigHomeDirFileName),
+		EnvVarFile: os.Getenv(cliconfig.OpenShiftConfigPathEnvVar),
+
+		EnvVar:           cliconfig.OpenShiftConfigPathEnvVar,
+		ExplicitFileFlag: cliconfig.OpenShiftConfigFlagName,
+
+		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
+			ExplicitPath: cmdutil.GetFlagString(cmd, cliconfig.OpenShiftConfigFlagName),
+		},
+	}
+
+	if err := pathOptions.ModifyConfig(config); err != nil {
 		return err
 	}
 
@@ -210,20 +219,6 @@ func getProjects(oClient *client.Client) ([]api.Project, error) {
 	return projects.Items, nil
 }
 
-func loadConfigStore(cmd *cobra.Command) (*cliconfig.ConfigStore, error) {
-	pathFromFlag := cmdutil.GetFlagString(cmd, cliconfig.OpenShiftConfigFlagName)
-
-	configStore, err := cliconfig.LoadFrom(pathFromFlag)
-	if err != nil {
-		configStore, err = cliconfig.LoadWithLoadingRules()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return configStore, err
-}
-
 func clusterAndAuthEquality(clientCfg *kclient.Config, cluster clientcmdapi.Cluster, authInfo clientcmdapi.AuthInfo) bool {
 	return cluster.Server == clientCfg.Host &&
 		cluster.InsecureSkipTLSVerify == clientCfg.Insecure &&
@@ -237,7 +232,7 @@ func clusterAndAuthEquality(clientCfg *kclient.Config, cluster clientcmdapi.Clus
 }
 
 // TODO these kind of funcs could be moved to some kind of clientcmd util
-func hasMultipleServers(config *clientcmdapi.Config) bool {
+func hasMultipleServers(config clientcmdapi.Config) bool {
 	server := ""
 	for _, cluster := range config.Clusters {
 		if len(server) == 0 {
