@@ -16,7 +16,7 @@
         <div class="row">
           <div class="col-md-12">
             <div class="tile">
-              <h2 class="service" ng-init="numPorts = service.spec.ports.length">{{serviceId}}
+              <h2 class="service osc-object" ng-init="numPorts = service.spec.ports.length" kind="Service" resource="service">{{serviceId}}
                 <span class="small" ng-if="service.spec.portalIP != 'None'">
                   - routing traffic on {{service.spec.portalIP}}
                 </span>
@@ -48,7 +48,8 @@
                 <triggers triggers="deploymentConfig.triggers"></triggers>                
               </div>
               <!-- Now go through all deployments for this service grouped by deployment config (or lack thereof) -->
-              <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]">
+              <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]" class="osc-object" kind="DeploymentConfig" resource="deploymentConfigs[deploymentConfigId]">
+                <div>
                 <!-- deploymentConfig could be null when we have any deployments that were not generated from a deploymentConfig -->
                 <!-- As long as pods created from the deployments created from this deployment config will be routed
                      to by this service, then we will show things related to triggers that are about to create stuff, like builds.
@@ -61,29 +62,27 @@
                   exists="deploymentConfigs[deploymentConfigId]"
                   different-service="!deploymentConfigsByService[serviceId][deploymentConfigId]">
                 </deployment-config-metadata>
-                <div ng-repeat="deployment in deployments | orderObjectsByDate : true" style="margin-top: 10px; text-align: center;">
+                <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by uid(deployment)" style="margin-top: 10px; text-align: center;" class="osc-object" kind="ReplicationController" resource="deployment" ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
                   <!-- TODO right now we ONLY show deployments / RCs if they have pods, but we may also want to show 
                        them if they are idled down to zero for example.
                   -->
-                  <div ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
-                    <div class="small muted" ng-if="deployment" style="margin-bottom: 10px;">
-                      <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
-                      <span ng-if="deployment.details && deployment.details.causes && deployment.details.causes.length > 0">
-                        <span>, triggered by 
-                          <span class="deployment-trigger" ng-repeat="cause in deployment.details.causes">
-                            <span ng-switch="cause.type">
-                              <span ng-switch-when="ImageChange">new image for {{cause.imageTrigger.repositoryName | imageStreamName}}:{{cause.imageTrigger.tag}}</span>
-                              <span ng-switch-when="ConfigChange">deployment configuration change</span>
-                            </span>
+                  <div class="small muted" ng-if="deployment" style="margin-bottom: 10px;">
+                    <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
+                    <span ng-if="deployment.details && deployment.details.causes && deployment.details.causes.length > 0">
+                      <span>, triggered by 
+                        <span class="deployment-trigger" ng-repeat="cause in deployment.details.causes">
+                          <span ng-switch="cause.type">
+                            <span ng-switch-when="ImageChange">new image for {{cause.imageTrigger.repositoryName | imageStreamName}}:{{cause.imageTrigger.tag}}</span>
+                            <span ng-switch-when="ConfigChange">deployment configuration change</span>
                           </span>
                         </span>
                       </span>
-                    </div>
-                    <div style="display: inline-block;">
-                      <!-- TODO figure out why podTemplate can't be done the same way as pods -->
-                      <pod-template ng-init="podTemplate = deployment.spec.template"></pod-template>
-                      <pods pods="podsByDeployment[deployment.metadata.name]"></pods>
-                    </div>
+                    </span>
+                  </div>
+                  <div style="display: inline-block;">
+                    <!-- TODO figure out why podTemplate can't be done the same way as pods -->
+                    <pod-template ng-init="podTemplate = deployment.spec.template"></pod-template>
+                    <pods pods="podsByDeployment[deployment.metadata.name]"></pods>
                   </div>
                 </div>
               </div>

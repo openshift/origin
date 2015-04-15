@@ -16,6 +16,7 @@ angular
     'ngRoute',
     'ngSanitize',
     'ngTouch',
+    'openshiftUI',
     'kubernetesUI'
   ])
   .constant("mainNavTabs", [])  // even though its not really a "constant", it has to be created as a constant and not a value
@@ -190,6 +191,17 @@ angular
         return durationFilter($(this).attr("data-timestamp")) || existing;
       });      
     }, 1000);
+  })
+  .run(function($rootScope){
+    // register our common track by for ngRepeats on API objects
+    $rootScope.uid = function(obj) {
+      if (obj && obj.metadata && obj.metadata.uid) {
+        return obj.metadata.uid;
+      }
+      else {
+        return obj;
+      }
+    }    
   });
 
 hawtioPluginLoader.addModule('openshiftConsole');
