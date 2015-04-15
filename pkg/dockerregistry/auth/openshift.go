@@ -98,27 +98,34 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	}
 	basicToken := authParts[1]
 
-	bearerToken := ""
+	payload, err := base64.StdEncoding.DecodeString(basicToken)
+	if err != nil {
+		log.Errorf("Basic token decode failed: %s", err)
+		challenge.err = ErrTokenInvalid
+		return nil, challenge
+	}
+	osAuthParts := strings.SplitN(string(payload), ":", 2)
+	if len(osAuthParts) != 2 {
+		challenge.err = ErrOpenShiftTokenRequired
+		return nil, challenge
+	}
+	user := osAuthParts[0]
+	bearerToken := osAuthParts[1]
+
+	// In case of docker login, hits endpoint /v2
+	if len(accessRecords) == 0 {
+		err = VerifyOpenShiftUser(user, bearerToken)
+		if err != nil {
+			challenge.err = err
+			return nil, challenge
+		}
+	}
+
 	for _, access := range accessRecords {
 		log.Debugf("%s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
 
 		if access.Resource.Type != "repository" {
 			continue
-		}
-
-		if len(bearerToken) == 0 {
-			payload, err := base64.StdEncoding.DecodeString(basicToken)
-			if err != nil {
-				log.Errorf("Basic token decode failed: %s", err)
-				challenge.err = ErrTokenInvalid
-				return nil, challenge
-			}
-			authParts = strings.SplitN(string(payload), ":", 2)
-			if len(authParts) != 2 {
-				challenge.err = ErrOpenShiftTokenRequired
-				return nil, challenge
-			}
-			bearerToken = authParts[1]
 		}
 
 		repoParts := strings.SplitN(access.Resource.Name, "/", 2)
@@ -145,6 +152,23 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		}
 	}
 	return WithBearerToken(ctx, bearerToken), nil
+}
+
+func VerifyOpenShiftUser(user, bearerToken string) error {
+	client, err := dockerregistry.NewUserOpenShiftClient(bearerToken)
+	if err != nil {
+		return err
+	}
+	userObj, err := client.Users().Get("~")
+	if err != nil {
+		log.Errorf("Get user failed with error: %s", err)
+		return ErrOpenShiftAccessDenied
+	}
+	if user != userObj.ObjectMeta.Name {
+		log.Errorf("Token valid but user name mismatch")
+		return ErrOpenShiftAccessDenied
+	}
+	return nil
 }
 
 func VerifyOpenShiftAccess(namespace, imageRepo, verb, bearerToken string) error {

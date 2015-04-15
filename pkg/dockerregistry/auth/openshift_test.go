@@ -65,6 +65,7 @@ func TestAccessController(t *testing.T) {
 
 	tests := []struct {
 		access              auth.Access
+		skipAccess          bool
 		skipBasicToken      bool
 		basicToken          string
 		openshiftStatusCode int
@@ -77,12 +78,6 @@ func TestAccessController(t *testing.T) {
 			skipBasicToken: true,
 			basicToken:     "",
 			expectedError:  ErrTokenRequired,
-		},
-		{
-			// Test request with registry token but does not involve any repository operation.
-			access:        auth.Access{},
-			basicToken:    "abcdefgh",
-			expectedError: nil,
 		},
 		{
 			// Test request with invalid registry token.
@@ -111,6 +106,27 @@ func TestAccessController(t *testing.T) {
 			},
 			basicToken:    "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			expectedError: ErrNamespaceRequired,
+		},
+		{
+			// Test request with registry token but does not involve any repository operation.
+			access:        auth.Access{},
+			basicToken:    "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			expectedError: nil,
+		},
+		{
+			// Test request that simulates docker login with invalid openshift creds.
+			skipAccess:          true,
+			basicToken:          "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			openshiftStatusCode: 404,
+			expectedError:       ErrOpenShiftAccessDenied,
+		},
+		{
+			// Test request that simulates docker login with valid openshift creds.
+			skipAccess:          true,
+			basicToken:          "dXNyMTphd2Vzb21l",
+			openshiftStatusCode: 200,
+			openshiftResponse:   `{"name":"usr1","selfLink":"/osapi/v1beta1/users/usr1","Identities":["anypassword:usr1"]}`,
+			expectedError:       nil,
 		},
 		{
 			// Test request with valid openshift token but token not scoped for the given repo operation.
@@ -149,11 +165,16 @@ func TestAccessController(t *testing.T) {
 			req.Header.Set("Authorization", fmt.Sprintf("Basic %s", test.basicToken))
 		}
 		ctx := context.WithValue(nil, "http.request", req)
-		if len(test.openshiftResponse) != 0 {
+		if test.openshiftStatusCode != 0 || len(test.openshiftResponse) != 0 {
 			server := simulateOpenShiftMaster(test.openshiftStatusCode, test.openshiftResponse)
 			defer server.Close()
 		}
-		authCtx, err := accessController.Authorized(ctx, test.access)
+		var authCtx context.Context
+		if !test.skipAccess {
+			authCtx, err = accessController.Authorized(ctx, test.access)
+		} else {
+			authCtx, err = accessController.Authorized(ctx)
+		}
 		if err == nil || test.expectedError == nil {
 			if err != test.expectedError {
 				t.Fatalf("accessController did not get expected error - got %s - expected %s", err, test.expectedError)
