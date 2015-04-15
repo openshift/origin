@@ -1,4 +1,4 @@
-package generator
+package app
 
 import (
 	"testing"
@@ -26,7 +26,7 @@ func TestFromName(t *testing.T) {
 	}
 }
 
-func TestFromRepository(t *testing.T) {
+func TestFromStream(t *testing.T) {
 	g := NewImageRefGenerator()
 	repo := image.ImageStream{
 		Status: image.ImageStreamStatus{

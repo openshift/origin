@@ -144,12 +144,12 @@ type BuildStrategyRef struct {
 }
 
 // BuildStrategy builds an OpenShift BuildStrategy from a BuildStrategyRef
-func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.BuildTriggerPolicy) {
+func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.BuildTriggerPolicy, error) {
+	triggers, err := s.Base.BuildTriggers()
 	if s.IsDockerBuild {
-		strategy := &buildapi.BuildStrategy{
+		return &buildapi.BuildStrategy{
 			Type: buildapi.DockerBuildStrategyType,
-		}
-		return strategy, s.Base.BuildTriggers()
+		}, triggers, err
 	}
 
 	return &buildapi.BuildStrategy{
@@ -157,7 +157,7 @@ func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.
 		STIStrategy: &buildapi.STIBuildStrategy{
 			Image: s.Base.String(),
 		},
-	}, nil
+	}, triggers, err
 }
 
 // ImageRef is a reference to an image
@@ -184,6 +184,7 @@ func (r *ImageRef) NameReference() string {
 }
 */
 
+// RepoName returns the name of the image in namespace/name format
 func (r *ImageRef) RepoName() string {
 	name := r.Namespace
 	if len(name) > 0 {
@@ -193,6 +194,7 @@ func (r *ImageRef) RepoName() string {
 	return name
 }
 
+// SuggestName suggests a name for an image reference
 func (r *ImageRef) SuggestName() (string, bool) {
 	if r == nil || len(r.Name) == 0 {
 		return "", false
@@ -200,6 +202,7 @@ func (r *ImageRef) SuggestName() (string, bool) {
 	return r.Name, true
 }
 
+// BuildOutput returns the BuildOutput of an image reference
 func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 	if r == nil {
 		return &buildapi.BuildOutput{}, nil
@@ -212,14 +215,36 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 		To: &kapi.ObjectReference{
 			Name: imageRepo.Name,
 		},
+		Tag: r.Tag,
 	}, nil
 }
 
-func (r *ImageRef) BuildTriggers() []buildapi.BuildTriggerPolicy {
-	// TODO return triggers when image build triggers are available
-	return []buildapi.BuildTriggerPolicy{}
+// BuildTriggers sets up build triggers for the base image
+func (r *ImageRef) BuildTriggers() ([]buildapi.BuildTriggerPolicy, error) {
+	if r == nil {
+		return []buildapi.BuildTriggerPolicy{}, nil
+	}
+
+	name, ok := r.SuggestName()
+	if !ok {
+		return nil, fmt.Errorf("unable to suggest an image stream name for %q", r.String())
+	}
+
+	return []buildapi.BuildTriggerPolicy{
+		{
+			Type: buildapi.ImageChangeBuildTriggerType,
+			ImageChange: &buildapi.ImageChangeTrigger{
+				Image: r.String(),
+				From: kapi.ObjectReference{
+					Name: name,
+				},
+				Tag: r.Tag,
+			},
+		},
+	}, nil
 }
 
+// ImageStream returns an ImageStream from an image reference
 func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 	if r.Stream != nil {
 		return r.Stream, nil
@@ -227,7 +252,7 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 
 	name, ok := r.SuggestName()
 	if !ok {
-		return nil, fmt.Errorf("unable to suggest an image repository name for %q", r.String())
+		return nil, fmt.Errorf("unable to suggest an image stream name for %q", r.String())
 	}
 
 	repo := &imageapi.ImageStream{
@@ -242,6 +267,7 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 	return repo, nil
 }
 
+// DeployableContainer sets up a container for the image ready for deployment
 func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []deployapi.DeploymentTriggerPolicy, err error) {
 	name, ok := r.SuggestName()
 	if !ok {
@@ -299,6 +325,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 
 }
 
+// BuildRef is a reference to a build configuration
 type BuildRef struct {
 	Source   *SourceRef
 	Input    *ImageRef
@@ -306,6 +333,7 @@ type BuildRef struct {
 	Output   *ImageRef
 }
 
+// BuildConfig creates a buildConfig resource from the build configuration reference
 func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	name, ok := NameSuggestions{r.Source, r.Output}.SuggestName()
 	if !ok {
@@ -318,8 +346,12 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	}
 	strategy := &buildapi.BuildStrategy{}
 	strategyTriggers := []buildapi.BuildTriggerPolicy{}
+	var err error
 	if r.Strategy != nil {
-		strategy, strategyTriggers = r.Strategy.BuildStrategy()
+		strategy, strategyTriggers, err = r.Strategy.BuildStrategy()
+		if err != nil {
+			return nil, err
+		}
 	}
 	output, err := r.Output.BuildOutput()
 	if err != nil {
@@ -338,24 +370,31 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	}, nil
 }
 
+// DeploymentConfigRef is a reference to a deployment configuration
 type DeploymentConfigRef struct {
+	Name   string
 	Images []*ImageRef
 	Env    Environment
 }
 
+// DeploymentConfig creates a deploymentConfig resource from the deployment configuration reference
+//
 // TODO: take a pod template spec as argument
 func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, error) {
-	suggestions := NameSuggestions{}
-	for i := range r.Images {
-		suggestions = append(suggestions, r.Images[i])
-	}
-	name, ok := suggestions.SuggestName()
-	if !ok {
-		return nil, fmt.Errorf("unable to suggest a name for this deployment config")
+	if len(r.Name) == 0 {
+		suggestions := NameSuggestions{}
+		for i := range r.Images {
+			suggestions = append(suggestions, r.Images[i])
+		}
+		name, ok := suggestions.SuggestName()
+		if !ok {
+			return nil, fmt.Errorf("unable to suggest a name for this deployment config")
+		}
+		r.Name = name
 	}
 
 	selector := map[string]string{
-		"deploymentconfig": name,
+		"deploymentconfig": r.Name,
 	}
 
 	triggers := []deployapi.DeploymentTriggerPolicy{
@@ -382,7 +421,7 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 
 	return &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: name,
+			Name: r.Name,
 		},
 		Template: deployapi.DeploymentTemplate{
 			Strategy: deployapi.DeploymentStrategy{

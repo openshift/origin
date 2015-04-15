@@ -23,6 +23,8 @@ func IsComponentReference(s string) bool {
 	return err == nil
 }
 
+// componentWithSource parses the provided string and returns an image component
+// and optionally a repository on success
 func componentWithSource(s string) (component, repo string, builder bool, err error) {
 	if strings.Contains(s, "~") {
 		segs := strings.SplitN(s, "~", 2)
@@ -42,22 +44,27 @@ func componentWithSource(s string) (component, repo string, builder bool, err er
 	} else {
 		component = s
 	}
-	// TODO: component must be of the form compatible with a pull spec *or* <namespace>/<name>
+	// component must be of the form compatible with a pull spec *or* <namespace>/<name>
 	if _, err := imageapi.ParseDockerImageReference(component); err != nil {
 		return "", "", false, fmt.Errorf("%q is not a valid Docker pull specification: %s", component, err)
 	}
 	return
 }
 
+// ComponentReference defines an interface for components
 type ComponentReference interface {
+	// Input contains the input of the component
 	Input() *ComponentInput
-	// Sets Input.Match or returns an error
+	// Resolve sets the match in input
 	Resolve() error
+	// NeedsSource indicates if the component needs source code
 	NeedsSource() bool
 }
 
+// ComponentReferences is a set of components
 type ComponentReferences []ComponentReference
 
+// NeedsSource returns all the components that need source code in order to build
 func (r ComponentReferences) NeedsSource() (refs ComponentReferences) {
 	for _, ref := range r {
 		if ref.NeedsSource() {
@@ -67,29 +74,42 @@ func (r ComponentReferences) NeedsSource() (refs ComponentReferences) {
 	return
 }
 
+func (r ComponentReferences) String() string {
+	components := []string{}
+	for _, ref := range r {
+		components = append(components, ref.Input().Value)
+	}
+
+	return strings.Join(components, ",")
+}
+
+// GroupedComponentReferences is a set of components that can be grouped
+// by their group id
 type GroupedComponentReferences ComponentReferences
 
 func (m GroupedComponentReferences) Len() int      { return len(m) }
 func (m GroupedComponentReferences) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m GroupedComponentReferences) Less(i, j int) bool {
-	return m[i].Input().Group < m[j].Input().Group
+	return m[i].Input().GroupID < m[j].Input().GroupID
 }
 
+// Group groups components based on their group ids
 func (r ComponentReferences) Group() (refs []ComponentReferences) {
 	sorted := make(GroupedComponentReferences, len(r))
 	copy(sorted, r)
 	sort.Sort(sorted)
-	group := -1
+	groupID := -1
 	for _, ref := range sorted {
-		if ref.Input().Group != group {
+		if ref.Input().GroupID != groupID {
 			refs = append(refs, ComponentReferences{})
 		}
-		group = ref.Input().Group
+		groupID = ref.Input().GroupID
 		refs[len(refs)-1] = append(refs[len(refs)-1], ref)
 	}
 	return
 }
 
+// ComponentMatch is a match to a provided component
 type ComponentMatch struct {
 	Value       string
 	Argument    string
@@ -108,27 +128,34 @@ func (m *ComponentMatch) String() string {
 	return m.Argument
 }
 
+// IsImage returns whether or not the component match is an
+// image or image stream
 func (m *ComponentMatch) IsImage() bool {
 	return m.Image != nil || m.ImageStream != nil
 }
 
+// IsTemplate returns whether or not the component match is
+// a template
 func (m *ComponentMatch) IsTemplate() bool {
 	return m.Template != nil
 }
 
+// Resolver is an interface for resolving provided input to component matches.
+// A Resolver should return ErrMultipleMatches when more than one result can
+// be constructed as a match. It should also set the score to 0.0 if this is a
+// perfect match, and to higher values the less adequate the match is.
 type Resolver interface {
-	// resolvers should return ErrMultipleMatches when more than one result could
-	// be construed as a match. Resolvers should set the score to 0.0 if this is a
-	// perfect match, and to higher values the less adequate the match is.
 	Resolve(value string) (*ComponentMatch, error)
 }
 
+// ScoredComponentMatches is a set of component matches grouped by score
 type ScoredComponentMatches []*ComponentMatch
 
 func (m ScoredComponentMatches) Len() int           { return len(m) }
 func (m ScoredComponentMatches) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
 func (m ScoredComponentMatches) Less(i, j int) bool { return m[i].Score < m[j].Score }
 
+// Exact returns all the exact component matches
 func (m ScoredComponentMatches) Exact() []*ComponentMatch {
 	out := []*ComponentMatch{}
 	for _, match := range m {
@@ -139,6 +166,7 @@ func (m ScoredComponentMatches) Exact() []*ComponentMatch {
 	return out
 }
 
+// WeightedResolver is a resolver identified as exact or not, depending on its weight
 type WeightedResolver struct {
 	Resolver
 	Weight float32
@@ -151,6 +179,7 @@ type WeightedResolver struct {
 // (no perfect match) but with only one candidate.
 type PerfectMatchWeightedResolver []WeightedResolver
 
+// Resolve resolves the provided input and returns only exact matches
 func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, error) {
 	imperfect := []*ComponentMatch{}
 	group := []WeightedResolver{}
@@ -161,22 +190,22 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 				continue
 			}
 		}
-		match, other, err := resolveExact(WeightedResolvers(group), value)
+		exact, inexact, err := resolveExact(WeightedResolvers(group), value)
 		switch {
-		case match != nil:
-			if match.Score == 0.0 {
-				return match, nil
+		case exact != nil:
+			if exact.Score == 0.0 {
+				return exact, nil
 			}
 			if resolver.Weight != 0.0 {
-				match.Score = resolver.Weight * match.Score
+				exact.Score = resolver.Weight * exact.Score
 			}
-			imperfect = append(imperfect, match)
-		case len(other) > 0:
-			sort.Sort(ScoredComponentMatches(other))
-			if other[0].Score == 0.0 && (len(other) == 1 || other[1].Score != 0.0) {
-				return other[0], nil
+			imperfect = append(imperfect, exact)
+		case len(inexact) > 0:
+			sort.Sort(ScoredComponentMatches(inexact))
+			if inexact[0].Score == 0.0 && (len(inexact) == 1 || inexact[1].Score != 0.0) {
+				return inexact[0], nil
 			}
-			for _, m := range other {
+			for _, m := range inexact {
 				if resolver.Weight != 0.0 {
 					m.Score = resolver.Weight * m.Score
 				}
@@ -212,18 +241,20 @@ func resolveExact(resolver Resolver, value string) (exact *ComponentMatch, inexa
 	return match, nil, nil
 }
 
+// WeightedResolvers is a set of weighted resolvers
 type WeightedResolvers []WeightedResolver
 
+// Resolve resolves the provided input and returns both exact and inexact matches
 func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
 	candidates := []*ComponentMatch{}
 	errs := []error{}
 	for _, resolver := range r {
-		match, other, err := resolveExact(resolver.Resolver, value)
+		exact, inexact, err := resolveExact(resolver.Resolver, value)
 		switch {
-		case match != nil:
-			candidates = append(candidates, match)
-		case len(other) > 0:
-			candidates = append(candidates, other...)
+		case exact != nil:
+			candidates = append(candidates, exact)
+		case len(inexact) > 0:
+			candidates = append(candidates, inexact...)
 		case err != nil:
 			errs = append(errs, err)
 		}
@@ -241,13 +272,16 @@ func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
 	}
 }
 
+// ReferenceBuilder is used for building all the necessary object references
+// for an application
 type ReferenceBuilder struct {
-	refs  ComponentReferences
-	repos []*SourceRepository
-	errs  []error
-	group int
+	refs    ComponentReferences
+	repos   []*SourceRepository
+	errs    []error
+	groupID int
 }
 
+// AddComponents turns all provided component inputs into component references
 func (r *ReferenceBuilder) AddComponents(inputs []string, fn func(*ComponentInput) ComponentReference) {
 	for _, s := range inputs {
 		for _, s := range strings.Split(s, "+") {
@@ -256,7 +290,7 @@ func (r *ReferenceBuilder) AddComponents(inputs []string, fn func(*ComponentInpu
 				r.errs = append(r.errs, err)
 				continue
 			}
-			input.Group = r.group
+			input.GroupID = r.groupID
 			ref := fn(input)
 			if len(repo) != 0 {
 				repository, ok := r.AddSourceRepository(repo)
@@ -268,10 +302,11 @@ func (r *ReferenceBuilder) AddComponents(inputs []string, fn func(*ComponentInpu
 			}
 			r.refs = append(r.refs, ref)
 		}
-		r.group++
+		r.groupID++
 	}
 }
 
+// AddGroups adds group ids to groups of components
 func (r *ReferenceBuilder) AddGroups(inputs []string) {
 	for _, s := range inputs {
 		groups := strings.Split(s, "+")
@@ -293,14 +328,15 @@ func (r *ReferenceBuilder) AddGroups(inputs []string) {
 				break
 			}
 			if to == -1 {
-				to = match.Input().Group
+				to = match.Input().GroupID
 			} else {
-				match.Input().Group = to
+				match.Input().GroupID = to
 			}
 		}
 	}
 }
 
+// AddSourceRepository resolves the input to an actual source repository
 func (r *ReferenceBuilder) AddSourceRepository(input string) (*SourceRepository, bool) {
 	for _, existing := range r.repos {
 		if input == existing.location {
@@ -316,12 +352,14 @@ func (r *ReferenceBuilder) AddSourceRepository(input string) (*SourceRepository,
 	return source, true
 }
 
+// Result returns the result of the config conversion to object references
 func (r *ReferenceBuilder) Result() (ComponentReferences, []*SourceRepository, []error) {
 	return r.refs, r.repos, r.errs
 }
 
+// NewComponentInput returns a new ComponentInput by checking for image using [image]~
+// (to indicate builder) or [image]~[code] (builder plus code)
 func NewComponentInput(input string) (*ComponentInput, string, error) {
-	// check for image using [image]~ (to indicate builder) or [image]~[code] (builder plus code)
 	component, repo, builder, err := componentWithSource(input)
 	if err != nil {
 		return nil, "", err
@@ -334,8 +372,9 @@ func NewComponentInput(input string) (*ComponentInput, string, error) {
 	}, repo, nil
 }
 
+// ComponentInput is the necessary input for creating a component
 type ComponentInput struct {
-	Group         int
+	GroupID       int
 	From          string
 	Argument      string
 	Value         string
@@ -347,14 +386,17 @@ type ComponentInput struct {
 	Resolver
 }
 
+// Input returns the component input
 func (i *ComponentInput) Input() *ComponentInput {
 	return i
 }
 
+// NeedsSource indicates if the component input needs source code
 func (i *ComponentInput) NeedsSource() bool {
 	return i.ExpectToBuild && i.Uses == nil
 }
 
+// Resolve sets the match in input
 func (i *ComponentInput) Resolve() error {
 	if i.Resolver == nil {
 		return ErrNoMatch{value: i.Value, qualifier: "no resolver defined"}
@@ -374,6 +416,8 @@ func (i *ComponentInput) String() string {
 	return i.Value
 }
 
+// Use adds the provided source repository as the used one
+// by the component input
 func (i *ComponentInput) Use(repo *SourceRepository) {
 	i.Uses = repo
 }

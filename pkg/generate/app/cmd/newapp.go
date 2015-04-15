@@ -35,6 +35,7 @@ type AppConfig struct {
 	Groups             util.StringList
 	Environment        util.StringList
 
+	Name        string
 	TypeOfBuild string
 
 	dockerResolver      app.Resolver
@@ -203,16 +204,28 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 // ensureHasSource ensure every builder component has source code associated with it
 func (c *AppConfig) ensureHasSource(components app.ComponentReferences, repositories []*app.SourceRepository) error {
 	requiresSource := components.NeedsSource()
+	notUsed := []string{}
 	if len(requiresSource) > 0 {
+		for _, repo := range repositories {
+			if !repo.InUse() {
+				notUsed = append(notUsed, repo.String())
+			}
+		}
+
 		switch {
 		case len(repositories) > 1:
-			// TODO: harder problem - need to match repos up
 			if len(requiresSource) == 1 {
-				// TODO: print all suggestions
-				return fmt.Errorf("there are multiple code locations provided - use '%s~<repo>' to declare which code goes with the image", requiresSource[0])
+				component := requiresSource[0]
+				suggestions := ""
+
+				for _, repo := range repositories {
+					suggestions += fmt.Sprintf("%s~%s\n", component, repo)
+				}
+				return fmt.Errorf("there are multiple code locations provided - use one of the following suggestions to declare which code goes with the image:\n%s", suggestions)
 			}
-			// TODO: indicate which args don't match, and which repos don't match
-			return fmt.Errorf("there are multiple code locations provided - use '[image]~[repo]' to declare which code goes with which image")
+			reposNotUsed := strings.Join(notUsed, ",")
+			return fmt.Errorf("the following images require source code: %s\n"+
+				" and the following repositories are not used: %s\nUse '[image]~[repo]' to declare which code goes with which image", requiresSource, reposNotUsed)
 		case len(repositories) == 1:
 			glog.Infof("Using %q as the source for build", repositories[0])
 			for _, component := range requiresSource {
@@ -223,8 +236,7 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 			if len(requiresSource) == 1 {
 				return fmt.Errorf("the image %q will build source code, so you must specify a repository via --code", requiresSource[0])
 			}
-			// TODO: array of pointers won't print correctly
-			return fmt.Errorf("you must provide at least one source code repository with --code for the images: %v", requiresSource)
+			return fmt.Errorf("you must provide at least one source code repository with --code for the images: %s", requiresSource)
 		}
 	}
 	return nil
@@ -329,6 +341,10 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
+				// Override resource names from the cli
+				if len(c.Name) > 0 {
+					source.Name = c.Name
+				}
 				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, strategy, source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
@@ -342,7 +358,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
 			}
-			if err := pipeline.NeedsDeployment(environment); err != nil {
+			if err := pipeline.NeedsDeployment(environment, c.Name); err != nil {
 				return nil, fmt.Errorf("can't set up a deployment for %q: %v", ref.Input(), err)
 			}
 			common = append(common, pipeline)

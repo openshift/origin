@@ -1,4 +1,4 @@
-package generator
+package app
 
 import (
 	"io"
@@ -8,9 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/openshift/origin/pkg/generate/app"
+	"github.com/openshift/origin/pkg/generate/app/test"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
-	"github.com/openshift/origin/pkg/generate/generator/test"
 	"github.com/openshift/origin/pkg/generate/source"
 )
 
@@ -85,7 +84,7 @@ func TestFromSourceRefAndDockerContext(t *testing.T) {
 		t.Fatalf("Unable to create temp file: %v", err)
 	}
 	f.Close()
-	srcRef := app.SourceRef{
+	srcRef := SourceRef{
 		URL: url,
 		Dir: tmp,
 		Ref: "master",
@@ -120,7 +119,7 @@ func TestFromSourceRefDocker(t *testing.T) {
 		t.Fatalf("Unable to create temp file: %v", err)
 	}
 	f.Close()
-	srcRef := app.SourceRef{
+	srcRef := SourceRef{
 		URL: url,
 		Dir: tmp,
 		Ref: "master",
@@ -146,7 +145,7 @@ func TestFromSourceRefSTI(t *testing.T) {
 		imageRefGenerator: NewImageRefGenerator(),
 	}
 	url, _ := url.Parse("https://test.repository.com/test.git")
-	srcRef := app.SourceRef{
+	srcRef := SourceRef{
 		URL: url,
 		Dir: "/tmp/dir",
 		Ref: "master",

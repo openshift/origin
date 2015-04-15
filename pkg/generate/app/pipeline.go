@@ -11,9 +11,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/golang/glog"
 
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
+	route "github.com/openshift/origin/pkg/route/api"
 )
 
 type Pipeline struct {
@@ -25,6 +27,8 @@ type Pipeline struct {
 	Deployment *DeploymentConfigRef
 }
 
+// NewImagePipeline creates a new pipeline with components that are not
+// expected to be built
 func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
 	return &Pipeline{
 		From:  from,
@@ -32,9 +36,9 @@ func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
 	}, nil
 }
 
+// NewBuildPipeline creates a new pipeline with components that are
+// expected to be built
 func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, source *SourceRef) (*Pipeline, error) {
-	strategy.Base = input
-
 	name, ok := NameSuggestions{source, input}.SuggestName()
 	if !ok {
 		name = fmt.Sprintf("app%d", rand.Intn(10000))
@@ -69,11 +73,13 @@ func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, 
 	}, nil
 }
 
-func (p *Pipeline) NeedsDeployment(env Environment) error {
+// NeedsDeployment sets the pipeline for deployment
+func (p *Pipeline) NeedsDeployment(env Environment, name string) error {
 	if p.Deployment != nil {
 		return nil
 	}
 	p.Deployment = &DeploymentConfigRef{
+		Name: name,
 		Images: []*ImageRef{
 			p.Image,
 		},
@@ -82,6 +88,7 @@ func (p *Pipeline) NeedsDeployment(env Environment) error {
 	return nil
 }
 
+// Objects converts all the components in the pipeline into runtime objects
 func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 	objects := Objects{}
 	if p.InputImage != nil && p.InputImage.AsImageStream && accept.Accept(p.InputImage) {
@@ -123,8 +130,10 @@ func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 	return objects, nil
 }
 
+// PipelineGroup is a group of Pipelines
 type PipelineGroup []*Pipeline
 
+// Reduce squashes all common components from the pipelines
 func (g PipelineGroup) Reduce() error {
 	var deployment *DeploymentConfigRef
 	for _, p := range g {
@@ -180,41 +189,63 @@ func (s sortablePorts) Swap(i, j int) {
 	s[j] = p
 }
 
+// AddServices sets up services for the provided objects
 func AddServices(objects Objects) Objects {
 	svcs := []runtime.Object{}
 	for _, o := range objects {
 		switch t := o.(type) {
 		case *deploy.DeploymentConfig:
+			name, generateName := makeValidServiceName(t.Name)
+			svc := &kapi.Service{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:         name,
+					GenerateName: generateName,
+					Labels:       t.Labels,
+				},
+				Spec: kapi.ServiceSpec{
+					Selector: t.Template.ControllerTemplate.Selector,
+				},
+			}
+
 			for _, container := range t.Template.ControllerTemplate.Template.Spec.Containers {
 				ports := sortablePorts(container.Ports)
 				sort.Sort(&ports)
 				for _, p := range ports {
-					name, generateName := makeValidServiceName(t.Name)
-					svcs = append(svcs, &kapi.Service{
-						ObjectMeta: kapi.ObjectMeta{
-							Name:         name,
-							GenerateName: generateName,
-							Labels:       t.Labels,
-						},
-						Spec: kapi.ServiceSpec{
-							Selector: t.Template.ControllerTemplate.Selector,
-							Ports: []kapi.ServicePort{
-								{
-									Name:       p.Name,
-									Port:       p.ContainerPort,
-									Protocol:   p.Protocol,
-									TargetPort: kutil.NewIntOrStringFromInt(p.ContainerPort),
-								},
-							},
-						},
+					svc.Spec.Ports = append(svc.Spec.Ports, kapi.ServicePort{
+						Name:       p.Name,
+						Port:       p.ContainerPort,
+						Protocol:   p.Protocol,
+						TargetPort: kutil.NewIntOrStringFromInt(p.ContainerPort),
 					})
 					break
 				}
-				break
 			}
+			if len(svc.Spec.Ports) == 0 {
+				glog.Warningf("DeploymentConfig %q: Cannot create a service with no ports", t.Name)
+				continue
+			}
+			svcs = append(svcs, svc)
 		}
 	}
-	return append(svcs, objects...)
+	return append(objects, svcs...)
+}
+
+// AddRoutes sets up routes for the provided objects
+func AddRoutes(objects Objects) Objects {
+	routes := []runtime.Object{}
+	for _, o := range objects {
+		switch t := o.(type) {
+		case *kapi.Service:
+			routes = append(routes, &route.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:   t.Name,
+					Labels: t.Labels,
+				},
+				ServiceName: t.Name,
+			})
+		}
+	}
+	return append(objects, routes...)
 }
 
 type acceptNew struct{}
@@ -222,6 +253,7 @@ type acceptNew struct{}
 // AcceptNew only accepts runtime.Objects with an empty resource version.
 var AcceptNew Acceptor = acceptNew{}
 
+// Accept accepts any kind of object
 func (acceptNew) Accept(from interface{}) bool {
 	_, meta, err := objectMetaData(from)
 	if err != nil {
@@ -238,6 +270,7 @@ type acceptUnique struct {
 	objects map[string]struct{}
 }
 
+// Accept accepts any kind of object it hasn't accepted before
 func (a *acceptUnique) Accept(from interface{}) bool {
 	obj, meta, err := objectMetaData(from)
 	if err != nil {
@@ -297,12 +330,15 @@ type acceptAll struct{}
 // AcceptAll accepts all objects
 var AcceptAll Acceptor = acceptAll{}
 
+// Accept accepts everything
 func (acceptAll) Accept(_ interface{}) bool {
 	return true
 }
 
+// Objects is a set of runtime objects
 type Objects []runtime.Object
 
+// Acceptor is an interface for accepting objects
 type Acceptor interface {
 	Accept(from interface{}) bool
 }
@@ -311,10 +347,12 @@ type acceptFirst struct {
 	handled map[interface{}]struct{}
 }
 
+// NewAcceptFirst returns a new Acceptor
 func NewAcceptFirst() Acceptor {
 	return &acceptFirst{make(map[interface{}]struct{})}
 }
 
+// Accept accepts any object it hasn't accepted before
 func (s *acceptFirst) Accept(from interface{}) bool {
 	if _, ok := s.handled[from]; ok {
 		return false

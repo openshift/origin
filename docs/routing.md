@@ -1,7 +1,7 @@
 ## Description
 
 The `openshift/origin-haproxy-router` is an [HAProxy](http://www.haproxy.org/) router that is used as an external to internal
-interface to OpenShift [services](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/DESIGN.md#the-kubernetes-node).
+interface to OpenShift [services](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md).
 
 The router is meant to run as a pod.  When running the router you must ensure that the router can expose port 80 on the host (minion)
 in order to forward traffic.  In a deployed environment the router minion should also have external ip addressess

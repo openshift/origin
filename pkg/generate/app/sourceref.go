@@ -1,18 +1,17 @@
-package generator
+package app
 
 import (
 	"fmt"
 	"net/url"
 
-	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/git"
 )
 
+// SourceRefGenerator generates new SourceRefs either from a URL or a Directory
+//
 // Generators for SourceRef
 // - Git URL        -> SourceRef
 // - Directory      -> SourceRef
-
-// SourceRefGenerator generates new SourceRefs either from a URL or a Directory
 type SourceRefGenerator struct {
 	repository git.Repository
 }
@@ -27,7 +26,7 @@ func NewSourceRefGenerator() *SourceRefGenerator {
 // SourceRefForGitURL creates a SourceRef from a Git URL.
 // If the URL includes a hash, it is used for the SourceRef's branch
 // reference. Otherwise, 'master' is assumed
-func (g *SourceRefGenerator) FromGitURL(location string) (*app.SourceRef, error) {
+func (g *SourceRefGenerator) FromGitURL(location string) (*SourceRef, error) {
 	url, err := url.Parse(location)
 	if err != nil {
 		return nil, err
@@ -38,13 +37,13 @@ func (g *SourceRefGenerator) FromGitURL(location string) (*app.SourceRef, error)
 	if len(ref) == 0 {
 		ref = "master"
 	}
-	return &app.SourceRef{URL: url, Ref: ref}, nil
+	return &SourceRef{URL: url, Ref: ref}, nil
 }
 
 // SourceRefForDirectory creates a SourceRef from a directory that contains
 // a git repository. The URL is obtained from the origin remote branch, and
 // the reference is taken from the currently checked out branch.
-func (g *SourceRefGenerator) FromDirectory(directory string) (*app.SourceRef, error) {
+func (g *SourceRefGenerator) FromDirectory(directory string) (*SourceRef, error) {
 	// Make sure that this is a git directory
 	gitRoot, err := g.repository.GetRootDir(directory)
 	if err != nil {

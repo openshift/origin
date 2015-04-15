@@ -1,9 +1,9 @@
-package generator
+package app
 
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/generate/generator/test"
+	"github.com/openshift/origin/pkg/generate/app/test"
 )
 
 func TestFromGitURL(t *testing.T) {

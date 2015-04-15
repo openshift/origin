@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	ctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
@@ -64,7 +65,6 @@ ALPHA: This command is under active development - feedback is appreciated.
 func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	_, typer := f.Object()
 	config := newcmd.NewAppConfig(typer)
-	helper := dockerutil.NewHelper()
 
 	cmd := &cobra.Command{
 		Use:   "new-app <components> [--code=<path|url>]",
@@ -72,7 +72,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 		Long:  fmt.Sprintf(newAppLongDesc, fullName),
 
 		Run: func(c *cobra.Command, args []string) {
-			err := RunNewApplication(f, out, c, args, config, helper)
+			err := RunNewApplication(f, out, c, args, config)
 			if err == errExit {
 				os.Exit(1)
 			}
@@ -87,6 +87,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().VarP(&config.TemplateParameters, "param", "p", "Specify a list of key value pairs (eg. -p FOO=BAR,BAR=FOO) to set/override parameter values in the template.")
 	cmd.Flags().Var(&config.Groups, "group", "Indicate components that should be grouped together as <comp1>+<comp2>.")
 	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into each container.")
+	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
 	cmd.Flags().StringVar(&config.TypeOfBuild, "build", "", "Specify the type of build to use if you don't want to detect (docker|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
 
@@ -102,19 +103,20 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 }
 
 // RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
-func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig, helper *dockerutil.Helper) error {
+func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	namespace, err := f.DefaultNamespace()
-
 	if err != nil {
 		return err
 	}
 
-	if dockerClient, _, err := helper.GetClient(); err == nil {
-		if err := dockerClient.Ping(); err == nil {
+	dockerClient, _, err := dockerutil.NewHelper().GetClient()
+	if err == nil {
+		if err = dockerClient.Ping(); err == nil {
 			config.SetDockerClient(dockerClient)
-		} else {
-			glog.V(2).Infof("No local Docker daemon detected: %v", err)
 		}
+	}
+	if err != nil {
+		glog.V(2).Infof("No local Docker daemon detected: %v", err)
 	}
 
 	osclient, _, err := f.Clients()
@@ -157,6 +159,7 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 		return f.Factory.PrintObject(c, result.List, out)
 	}
 
+	// TODO: Validate everything before building
 	bulk := configcmd.Bulk{
 		Factory: f.Factory,
 		After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
@@ -169,8 +172,11 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *kapi.Service:
-			// TODO: handle multi-port created services
-			fmt.Fprintf(c.Out(), "Service %q created at %s:%d to talk to pods over port %d.\n", t.Name, t.Spec.PortalIP, t.Spec.Ports[0].Port, t.Spec.Ports[0].TargetPort.IntVal)
+			portMappings := "."
+			if len(t.Spec.Ports) > 0 {
+				portMappings = fmt.Sprintf(" with port mappings %s.", describeServicePorts(t.Spec))
+			}
+			fmt.Fprintf(c.Out(), "Service %q created at %s%s\n", t.Name, t.Spec.PortalIP, portMappings)
 		case *buildapi.BuildConfig:
 			fmt.Fprintf(c.Out(), "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
 		case *imageapi.ImageStream:
@@ -184,4 +190,24 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 		}
 	}
 	return nil
+}
+
+func describeServicePorts(spec kapi.ServiceSpec) string {
+	switch len(spec.Ports) {
+	case 1:
+		if spec.Ports[0].TargetPort.String() == "0" || spec.PortalIP == kapi.PortalIPNone || spec.Ports[0].Port == spec.Ports[0].TargetPort.IntVal {
+			return fmt.Sprintf("%d", spec.Ports[0].Port)
+		}
+		return fmt.Sprintf("%d->%s", spec.Ports[0].Port, spec.Ports[0].TargetPort.String())
+	default:
+		pairs := []string{}
+		for _, port := range spec.Ports {
+			if port.TargetPort.String() == "0" || spec.PortalIP == kapi.PortalIPNone {
+				pairs = append(pairs, fmt.Sprintf("%d", port.Port))
+				continue
+			}
+			pairs = append(pairs, fmt.Sprintf("%d->%s", port.Port, port.TargetPort.String()))
+		}
+		return strings.Join(pairs, ", ")
+	}
 }

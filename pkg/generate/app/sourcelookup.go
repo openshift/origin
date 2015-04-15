@@ -20,10 +20,12 @@ var (
 	argumentPath        = regexp.MustCompile("^\\.|^\\/[^/]+")
 )
 
+// IsPossibleSourceRepository checks whether the provided string is a source repository or not
 func IsPossibleSourceRepository(s string) bool {
-	return argumentGit.MatchString(s) || argumentGitProtocol.MatchString(s) || argumentPath.MatchString(s)
+	return IsRemoteRepository(s) || argumentPath.MatchString(s)
 }
 
+// IsRemoteRepository checks whether the provided string is a remote repository or not
 func IsRemoteRepository(s string) bool {
 	return argumentGit.MatchString(s) || argumentGitProtocol.MatchString(s)
 }
@@ -84,22 +86,27 @@ func NewSourceRepository(s string) (*SourceRepository, error) {
 	}, nil
 }
 
+// UsedBy sets up which component uses the source repository
 func (r *SourceRepository) UsedBy(ref ComponentReference) {
 	r.usedBy = append(r.usedBy, ref)
 }
 
+// Remote checks whether the source repository is remote
 func (r *SourceRepository) Remote() bool {
 	return r.url.Scheme != "file"
 }
 
+// InUse checks if the source repository is in use
 func (r *SourceRepository) InUse() bool {
 	return len(r.usedBy) > 0
 }
 
+// BuildWithDocker specifies that the source repository was built with Docker
 func (r *SourceRepository) BuildWithDocker() {
 	r.buildWithDocker = true
 }
 
+// IsDockerBuild checks if the source repository was built with Docker
 func (r *SourceRepository) IsDockerBuild() bool {
 	return r.buildWithDocker
 }
@@ -108,6 +115,7 @@ func (r *SourceRepository) String() string {
 	return r.location
 }
 
+// LocalPath returns the local path of the source repository
 func (r *SourceRepository) LocalPath() (string, error) {
 	if len(r.localDir) > 0 {
 		return r.localDir, nil
@@ -136,6 +144,7 @@ func (r *SourceRepository) LocalPath() (string, error) {
 	return r.localDir, nil
 }
 
+// RemoteURL returns the remote URL of the source repository
 func (r *SourceRepository) RemoteURL() (*url.URL, error) {
 	if r.remoteURL != nil {
 		return r.remoteURL, nil
@@ -160,12 +169,15 @@ func (r *SourceRepository) RemoteURL() (*url.URL, error) {
 	return r.remoteURL, nil
 }
 
+// SourceRepositoryInfo contains info about a source repository
 type SourceRepositoryInfo struct {
 	Path       string
 	Types      []SourceLanguageType
 	Dockerfile dockerfile.Dockerfile
 }
 
+// Terms returns which languages the source repository was
+// built with
 func (info *SourceRepositoryInfo) Terms() []string {
 	terms := []string{}
 	for i := range info.Types {
@@ -174,20 +186,26 @@ func (info *SourceRepositoryInfo) Terms() []string {
 	return terms
 }
 
+// SourceLanguageType contains info about the type of the language
+// a source repository is built in
 type SourceLanguageType struct {
 	Platform string
 	Version  string
 }
 
+// Detector is an interface for detecting information about a
+// source repository
 type Detector interface {
 	Detect(dir string) (*SourceRepositoryInfo, error)
 }
 
+// SourceRepositoryEnumerator implements the Detector interface
 type SourceRepositoryEnumerator struct {
 	Detectors source.Detectors
 	Tester    dockerfile.Tester
 }
 
+// Detect extracts source code information about the provided source repository
 func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, error) {
 	info := &SourceRepositoryInfo{
 		Path: dir,
@@ -215,18 +233,16 @@ func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, e
 	return info, nil
 }
 
+// StrategyAndSourceForRepository returns the build strategy and source code reference
+// of the provided source repository
 func StrategyAndSourceForRepository(repo *SourceRepository) (*BuildStrategyRef, *SourceRef, error) {
-	remoteUrl, err := repo.RemoteURL()
+	srcRef, err := NewSourceRefGenerator().FromGitURL(repo.location)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s", repo.location)
+		return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s: %v", repo.location, err)
 	}
-	strategy := &BuildStrategyRef{
-		IsDockerBuild: repo.IsDockerBuild(),
+	strategy, err := NewBuildStrategyRefGenerator(source.DefaultDetectors).FromSourceRef(srcRef)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot generate strategy for repository at %s: %v", repo.location, err)
 	}
-	source := &SourceRef{
-		URL:        remoteUrl,
-		Ref:        remoteUrl.Fragment,
-		ContextDir: "",
-	}
-	return strategy, source, nil
+	return strategy, srcRef, nil
 }
