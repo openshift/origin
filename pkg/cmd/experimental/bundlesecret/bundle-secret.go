@@ -1,101 +1,168 @@
 package bundlesecret
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
-	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/spf13/cobra"
 )
 
+type CreateSecretOptions struct {
+	// Name of the resulting secret
+	Name string
+	// Files/Directories to read from.
+	// Directory sources are listed and any direct file children included (but subfolders are not traversed)
+	Sources util.StringList
+	// Writer to write warnings to
+	Stderr io.Writer
+	// Controls whether to output warnings
+	Quiet bool
+}
+
 func NewCmdBundleSecret(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
-	var sourceList util.StringList
+
+	options := NewDefaultOptions()
+
 	cmd := &cobra.Command{
-		Use:   "bundle-secret NAME -f SOURCENAME",
-		Short: "bundle data from a source list to load kubernetes secret",
-		Long:  "bundle data from a source list to load kubernetes secret",
-		Run: func(cmd *cobra.Command, args []string) {
+		Use:   fmt.Sprintf("%s <secret-name> <source> [<source>...]", name),
+		Short: "Bundle files (or files within directories) into a Kubernetes secret",
+		Long: fmt.Sprintf(`Bundle files (or files within directories) into a Kubernetes secret.
 
-			if len(args) == 0 {
-				glog.Fatalf("Must specify NAME as an argument")
-			}
-			objName := args[0]
+    $ %s %s <secret-name> <source> [<source>...]
+		`, parentName, name),
+		Run: func(c *cobra.Command, args []string) {
+			options.Complete(args)
 
-			if len(sourceList) == 0 {
-				glog.Fatalf("Must specify files and/or directories to gather data from.")
-			}
-
-			secretData := make(map[string][]byte)
-
-			for _, sourceItem := range sourceList {
-				sourceItem = strings.TrimSuffix(sourceItem, "/")
-				info, err := os.Stat(sourceItem)
-				checkErr(err)
-
-				if info.IsDir() {
-					fileList, err := ioutil.ReadDir(sourceItem)
-					checkErr(err)
-
-					for _, item := range fileList {
-						if !item.IsDir() {
-							file := fmt.Sprint(sourceItem, "/", item.Name())
-							err := readFile(file, secretData)
-							checkErr(err)
-						}
-					}
-				} else {
-					err := readFile(sourceItem, secretData)
-					checkErr(err)
-				}
+			err := options.Validate()
+			if err != nil {
+				fmt.Fprintf(c.Out(), "Error: %v\n\n", err.Error())
+				c.Help()
+				return
 			}
 
-			secretObj := kapi.Secret{
-				ObjectMeta: kapi.ObjectMeta{Name: objName},
-				Data:       secretData,
+			secret, err := options.CreateSecret()
+			if err != nil {
+				cmdutil.CheckErr(err)
 			}
 
-			setDefaultPrinter(cmd)
-			f.Factory.PrintObject(cmd, &secretObj, out)
+			err = f.Factory.PrintObject(c, secret, out)
+			if err != nil {
+				cmdutil.CheckErr(err)
+			}
 		},
 	}
 
-	cmd.Flags().VarP(&sourceList, "source", "f", "List of filenames, directories to use as source of Kubernetes Secret.Data")
-	kcmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", options.Quiet, "Suppress warnings")
+	cmd.Flags().VarP(&options.Sources, "source", "f", "List of filenames or directories to use as sources of Kubernetes Secret.Data")
+	cmdutil.AddPrinterFlags(cmd)
+
+	// Default to JSON
+	if flag := cmd.Flags().Lookup("output"); flag != nil {
+		flag.Value.Set("json")
+	}
+
 	return cmd
 }
 
-func checkErr(err error) {
-	if err != nil {
-		glog.Fatal(err)
+func NewDefaultOptions() *CreateSecretOptions {
+	return &CreateSecretOptions{
+		Stderr:  os.Stderr,
+		Sources: util.StringList{},
 	}
 }
 
-func setDefaultPrinter(c *cobra.Command) {
-	flag := c.Flags().Lookup("output")
-	if len(flag.Value.String()) == 0 {
-		flag.Value.Set("json")
+func (o *CreateSecretOptions) Complete(args []string) {
+	// Fill name from args[0]
+	if len(args) > 0 {
+		o.Name = args[0]
 	}
+
+	// Add sources from args[1:...] in addition to -f
+	if len(args) > 1 {
+		o.Sources = append(o.Sources, args[1:]...)
+	}
+}
+
+func (o *CreateSecretOptions) Validate() error {
+	if len(o.Name) == 0 {
+		return errors.New("Secret name is required")
+	}
+	if len(o.Sources) == 0 {
+		return errors.New("At least one source file or directory must be specified")
+	}
+	return nil
+}
+
+func (o *CreateSecretOptions) CreateSecret() (*kapi.Secret, error) {
+	secretData := make(map[string][]byte)
+
+	for _, source := range o.Sources {
+		info, err := os.Stat(source)
+		if err != nil {
+			switch err := err.(type) {
+			case *os.PathError:
+				return nil, fmt.Errorf("Error reading %s: %v", source, err.Err)
+			default:
+				return nil, fmt.Errorf("Error reading %s: %v", source, err)
+			}
+		}
+
+		if info.IsDir() {
+			fileList, err := ioutil.ReadDir(source)
+			if err != nil {
+				return nil, fmt.Errorf("Error listing files in %s: %v", source, err)
+			}
+
+			for _, item := range fileList {
+				itemPath := path.Join(source, item.Name())
+				if item.IsDir() {
+					if o.Stderr != nil && o.Quiet != true {
+						fmt.Fprintf(o.Stderr, "Skipping subdirectory %s\n", itemPath)
+					}
+				} else {
+					if err := readFile(itemPath, secretData); err != nil {
+						return nil, err
+					}
+				}
+			}
+		} else if err := readFile(source, secretData); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(secretData) == 0 {
+		return nil, errors.New("No files selected")
+	}
+
+	secret := &kapi.Secret{
+		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+		Data:       secretData,
+	}
+
+	return secret, nil
 }
 
 func readFile(filePath string, dataMap map[string][]byte) error {
-	var err error
 	fileName := path.Base(filePath)
 	if !util.IsDNS1123Subdomain(fileName) {
-		err := fmt.Errorf("%v is not a valid DNS Subdomain.\n", filePath)
-		return err
+		return fmt.Errorf("%s cannot be used as a key in a secret", filePath)
+	}
+	if _, exists := dataMap[fileName]; exists {
+		return fmt.Errorf("Multiple files with the same name (%s) cannot be included a secret", fileName)
 	}
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
-	dataMap[fileName] = []byte(data)
+	dataMap[fileName] = data
 	return nil
 }
