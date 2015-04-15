@@ -1,16 +1,10 @@
-#
-# This is the official OpenShift Origin Docker Registry image.
-#
-# The standard name for this image is openshift3_beta/ose-docker-registry
-#
-FROM openshift3_beta/ose-base
+FROM openshift/origin-base
 
 ADD config.yml /config.yml
-RUN yum install -y openshift-dockerregistry && \
-    yum clean all
+ADD bin/dockerregistry /dockerregistry
 
 ENV REGISTRY_CONFIGURATION_PATH=/config.yml
 
 EXPOSE 5000
 VOLUME /registry
-CMD REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} /usr/bin/dockerregistry /config.yml
+CMD REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} /dockerregistry /config.yml
