@@ -81,9 +81,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdExec(fullName, f, os.Stdin, out, os.Stderr))
 	cmds.AddCommand(cmd.NewCmdPortForward(fullName, f))
 	cmds.AddCommand(cmd.NewCmdProxy(fullName, f, out))
-	if name == fullName {
-		cmds.AddCommand(version.NewVersionCommand(fullName))
-	}
+	cmds.AddCommand(version.NewVersionCommand(fullName))
 	cmds.AddCommand(cmd.NewCmdConfig(fullName, "config"))
 	cmds.AddCommand(cmd.NewCmdOptions(f, out))
 
