@@ -68,7 +68,7 @@ step #3.
 
 ## Deploy the private docker registry
 
-    $ openshift ex registry --create --credentials="${KUBECONFIG}"
+    $ openshift ex registry --create --credentials="${OPENSHIFTCONFIG}"
     $ cd examples/sample-app
 
 For more information on this step, see [Application Build, Deploy, and Update
