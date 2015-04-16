@@ -338,10 +338,13 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 		masterIP = ip.String()
 	}
 
+	staticNodeList := util.NewStringSet(args.NodeList...)
+	staticNodeList.Delete("")
+
 	config := &configapi.KubernetesMasterConfig{
 		MasterIP:            masterIP,
 		ServicesSubnet:      servicesSubnet.String(),
-		StaticNodeNames:     args.NodeList,
+		StaticNodeNames:     staticNodeList.List(),
 		SchedulerConfigFile: args.SchedulerConfigFile,
 	}
 
