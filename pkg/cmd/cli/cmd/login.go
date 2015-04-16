@@ -81,13 +81,11 @@ func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
 	if keyFile := cmdutil.GetFlagString(cmd, "client-key"); len(keyFile) > 0 {
 		options.KeyFile = keyFile
 	}
+	options.PathToSaveConfig = cmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName)
 
 	if err := options.GatherInfo(); err != nil {
 		return err
 	}
-
-	forcePath := cmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName)
-	options.PathToSaveConfig = forcePath
 
 	newFileCreated, err := options.SaveConfig()
 	if err != nil {

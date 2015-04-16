@@ -33,7 +33,7 @@ export CERT_DIR="${BASETMPDIR}/cert"
 export CURL_CA_BUNDLE="${CERT_DIR}/ca/cert.crt"
 export CURL_CERT="${CERT_DIR}/admin/cert.crt"
 export CURL_KEY="${CERT_DIR}/admin/key.key"
-export KUBECONFIG="${CERT_DIR}/admin/.kubeconfig"
+export OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig"
 export OPENSHIFT_ON_PANIC=crash
 
 cleanup() {
@@ -96,11 +96,11 @@ start_server() {
 start_docker_registry() {
   mkdir -p ${BASETMPDIR}/.registry
   echo "[INFO] Creating Router ..."
-  openshift ex router --create --credentials="${KUBECONFIG}" \
+  openshift ex router --create --credentials="${OPENSHIFTCONFIG}" \
     --images='openshift/origin-${component}:latest' &>/dev/null
 
   echo "[INFO] Creating Registry ..."
-  openshift ex registry --create --credentials="${KUBECONFIG}" \
+  openshift ex registry --create --credentials="${OPENSHIFTCONFIG}" \
     --mount-host="${BASETMPDIR}/.registry" \
     --images='openshift/origin-${component}:latest' &>/dev/null
 }

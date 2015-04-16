@@ -32,7 +32,6 @@ trap "cleanup" EXIT
 set -e
 
 # Prevent user environment from colliding with the test setup
-unset KUBECONFIG
 unset OPENSHIFTCONFIG
 
 USE_LOCAL_IMAGES=${USE_LOCAL_IMAGES:-true}
@@ -157,23 +156,17 @@ osc get services --config="${CERT_DIR}/admin/.kubeconfig"
 
 # test config files from env vars
 OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig" osc get services
-KUBECONFIG="${CERT_DIR}/admin/.kubeconfig" osc get services
 
 # test config files in the current directory
 TEMP_PWD=`pwd` 
 pushd ${CONFIG_DIR} >/dev/null
     cp ${CERT_DIR}/admin/.kubeconfig .openshiftconfig
     ${TEMP_PWD}/${GO_OUT}/osc get services
-    mv .openshiftconfig .kubeconfig 
-    ${TEMP_PWD}/${GO_OUT}/osc get services
 popd 
 
 # test config files in the home directory
-mv ${CONFIG_DIR} ${HOME}/.kube
-osc get services
-mkdir -p ${HOME}/.config
-mv ${HOME}/.kube ${HOME}/.config/openshift
-mv ${HOME}/.config/openshift/.kubeconfig ${HOME}/.config/openshift/.config
+mkdir -p ${HOME}/.config/openshift
+mv ${CONFIG_DIR}/.openshiftconfig ${HOME}/.config/openshift/.config
 osc get services
 echo "config files: ok"
 export OPENSHIFTCONFIG="${HOME}/.config/openshift/.config"
