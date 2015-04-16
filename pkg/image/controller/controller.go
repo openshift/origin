@@ -178,7 +178,7 @@ func (c *ImportController) Next(repo *api.ImageStream) error {
 	return c.done(repo, "")
 }
 
-// ignore marks the repository as being processed due to an error or failure condition
+// done marks the repository as being processed due to an error or failure condition
 func (c *ImportController) done(repo *api.ImageStream, reason string) error {
 	if len(reason) == 0 {
 		reason = util.Now().UTC().Format(time.RFC3339)

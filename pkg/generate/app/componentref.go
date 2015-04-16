@@ -11,7 +11,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
-// isComponentReference returns true if the provided string appears to be a reference to a source repository
+// IsComponentReference returns true if the provided string appears to be a reference to a source repository
 // on disk, at a URL, a docker image name (which might be on a Docker registry or an OpenShift image stream),
 // or a template.
 func IsComponentReference(s string) bool {

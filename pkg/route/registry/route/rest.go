@@ -23,6 +23,7 @@ type REST struct {
 	allocator route.RouteAllocator
 }
 
+// NewREST returns a RESTStorage object that will work against routes.
 func NewREST(registry Registry, allocator route.RouteAllocator) *REST {
 	return &REST{
 		registry:  registry,
@@ -30,10 +31,12 @@ func NewREST(registry Registry, allocator route.RouteAllocator) *REST {
 	}
 }
 
+// New returns a new Route
 func (rs *REST) New() runtime.Object {
 	return &api.Route{}
 }
 
+// NewList returns a new list of Routes
 func (*REST) NewList() runtime.Object {
 	return &api.Route{}
 }

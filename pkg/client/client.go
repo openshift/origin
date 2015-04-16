@@ -178,6 +178,7 @@ func (c *Client) SubjectAccessReviews(namespace string) SubjectAccessReviewInter
 	return newSubjectAccessReviews(c, namespace)
 }
 
+// RootSubjectAccessReviews provides a REST client for RootSubjectAccessReviews
 func (c *Client) RootSubjectAccessReviews() SubjectAccessReviewInterface {
 	return newRootSubjectAccessReviews(c)
 }

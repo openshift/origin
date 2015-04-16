@@ -27,6 +27,7 @@ the server details, can be provided through flags. If not provided, the command 
 prompt for user input as needed.
 `
 
+// NewCmdLogin implements the OpenShift cli login command
 func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
 	options := &LoginOptions{
 		Reader:       reader,
@@ -74,6 +75,7 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 	return cmds
 }
 
+// RunLogin contains all the necessary functionality for the OpenShift cli login command
 func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
 	if certFile := cmdutil.GetFlagString(cmd, "client-certificate"); len(certFile) > 0 {
 		options.CertFile = certFile

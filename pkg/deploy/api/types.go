@@ -4,7 +4,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
-// A deployment represents a single configuration of a pod deployed into the cluster, and may
+// Deployment represents a single configuration of a pod deployed into the cluster, and may
 // represent both a current deployment or a historical deployment.
 //
 // DEPRECATED: This type longer drives any system behavior. Deployments are now represented directly
@@ -66,7 +66,7 @@ const (
 	DeploymentStrategyTypeCustom DeploymentStrategyType = "Custom"
 )
 
-// CustomParams are the input to the Custom deployment strategy.
+// CustomDeploymentStrategyParams are the input to the Custom deployment strategy.
 type CustomDeploymentStrategyParams struct {
 	// Image specifies a Docker image which can carry out a deployment.
 	Image string `json:"image,omitempty"`
@@ -88,7 +88,7 @@ type RecreateDeploymentStrategyParams struct {
 	Post *LifecycleHook `json:"post,omitempty"`
 }
 
-// Handler defines a specific deployment lifecycle action.
+// LifecycleHook defines a specific deployment lifecycle action.
 type LifecycleHook struct {
 	// FailurePolicy specifies what action to take if the hook fails.
 	FailurePolicy LifecycleHookFailurePolicy `json:"failurePolicy"`
@@ -96,7 +96,7 @@ type LifecycleHook struct {
 	ExecNewPod *ExecNewPodHook `json:"execNewPod,omitempty"`
 }
 
-// HandlerFailurePolicy describes possibles actions to take if a hook fails.
+// LifecycleHookFailurePolicy describes possibles actions to take if a hook fails.
 type LifecycleHookFailurePolicy string
 
 const (
@@ -121,7 +121,7 @@ type ExecNewPodHook struct {
 	ContainerName string `json:"containerName"`
 }
 
-// A DeploymentList is a collection of deployments.
+// DeploymentList is a collection of deployments.
 // DEPRECATED: Like Deployment, this is no longer used.
 type DeploymentList struct {
 	kapi.TypeMeta `json:",inline"`
@@ -177,7 +177,7 @@ type DeploymentConfig struct {
 	// LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig
 	// is out of sync.
 	LatestVersion int `json:"latestVersion,omitempty"`
-	// The reasons for the update to this deployment config.
+	// Details are the reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails `json:"details,omitempty"`
 }
@@ -243,12 +243,13 @@ type DeploymentDetails struct {
 
 // DeploymentCause captures information about a particular cause of a deployment.
 type DeploymentCause struct {
-	// The type of the trigger that resulted in the creation of a new deployment
+	// Type is the type of the trigger that resulted in the creation of a new deployment
 	Type DeploymentTriggerType `json:"type"`
-	// The image trigger details, if this trigger was fired based on an image change
+	// ImageTrigger contains the image trigger details, if this trigger was fired based on an image change
 	ImageTrigger *DeploymentCauseImageTrigger `json:"imageTrigger,omitempty"`
 }
 
+// DeploymentCauseImageTrigger contains information about a deployment caused by an image trigger
 type DeploymentCauseImageTrigger struct {
 	// RepositoryName is the identifier for a Docker image repository that was updated.
 	RepositoryName string `json:"repositoryName,omitempty"`
@@ -256,7 +257,7 @@ type DeploymentCauseImageTrigger struct {
 	Tag string `json:"tag,omitempty"`
 }
 
-// A DeploymentConfigList is a collection of deployment configs.
+// DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`

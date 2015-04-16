@@ -37,6 +37,7 @@ func (templateStrategy) NamespaceScoped() bool {
 	return true
 }
 
+// PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (templateStrategy) PrepareForUpdate(obj, old runtime.Object) {}
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
@@ -78,10 +79,12 @@ func NewREST() *REST {
 	return &REST{}
 }
 
+// New returns a new Template
 func (s *REST) New() runtime.Object {
 	return &api.Template{}
 }
 
+// Create processes a Template and creates a new list of objects
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	tpl, ok := obj.(*api.Template)
 	if !ok {

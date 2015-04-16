@@ -223,7 +223,7 @@ func getUniqueName(basename string, existingNames *util.StringSet) string {
 	return string(util.NewUUID())
 }
 
-// Generates the best context identifier possible based on the information it gets.
+// GenerateContextIdentifier generates the best context identifier possible based on the information it gets.
 func GenerateContextIdentifier(namespace string, cluster string, authInfo string, existingContextIdentifiers *util.StringSet) string {
 	ctx := ""
 

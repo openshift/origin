@@ -84,7 +84,7 @@ func NewEdge(fullname, to string) *Edge {
 	}
 }
 
-// NewCmdBuildChain implements all the necessary functionality for the build-chain module
+// NewCmdBuildChain implements the OpenShift experimental build-chain command
 func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s [image-repository]:[tag]", name),
@@ -102,6 +102,8 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 	return cmd
 }
 
+// RunBuildChain contains all the necessary functionality for the OpenShift
+// experimental build-chain command
 func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	all := cmdutil.GetFlagBool(cmd, "all")
 	allTags := cmdutil.GetFlagBool(cmd, "all-tags")

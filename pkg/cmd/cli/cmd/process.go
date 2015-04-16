@@ -60,7 +60,7 @@ Examples:
 	$ cat template.json | %[1]s process -f -
 `
 
-// NewCmdProcess returns a 'process' command
+// NewCmdProcess implements the OpenShift cli process command
 func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "process -f filename",
@@ -81,6 +81,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 	return cmd
 }
 
+// RunProject contains all the necessary functionality for the OpenShift cli process command
 func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	storedTemplate := ""
 	if len(args) > 0 {
