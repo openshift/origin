@@ -51,11 +51,16 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 				continue
 			}
 			change := trigger.ImageChange
+
+			changeNamespace := change.From.Namespace
+			if len(changeNamespace) == 0 {
+				changeNamespace = config.Namespace
+			}
+
 			// only trigger a build if this image repo matches the name and namespace of the ref in the build trigger
 			// also do not trigger if the imagerepo does not have a valid DockerImageRepository value for us to pull
 			// the image from
-			if len(repo.Status.DockerImageRepository) == 0 || change.From.Name != repo.Name ||
-				(len(change.From.Namespace) != 0 && change.From.Namespace != repo.Namespace) {
+			if len(repo.Status.DockerImageRepository) == 0 || change.From.Name != repo.Name || changeNamespace != repo.Namespace {
 				continue
 			}
 			latest, err := imageapi.LatestTaggedImage(repo, change.Tag)

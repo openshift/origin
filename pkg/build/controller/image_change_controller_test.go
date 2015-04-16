@@ -269,6 +269,28 @@ func TestNewDifferentImageUpdate(t *testing.T) {
 	}
 }
 
+func TestSameStreamNameDifferentNamespaces(t *testing.T) {
+	// this buildconfig references an image stream with the same name as the one that was just updated,
+	// but the namespaces differ
+	buildcfg := mockBuildConfig("registry.com/namespace/imagename1", "registry.com/namespace/imagename1", "testImageRepo1", "testTag1")
+	imageStream := mockImageStream("testImageRepo1", "registry.com/namespace/imagename2", map[string]string{"testTag1": "newImageID123"})
+	imageStream.Namespace = "othernamespace"
+	controller := mockImageChangeController(buildcfg, imageStream)
+	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
+	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+
+	err := controller.HandleImageRepo(imageStream)
+	if err != nil {
+		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+	}
+	if len(bcInstantiator.name) != 0 {
+		t.Error("New build generated when a different repository was updated!")
+	}
+	if bcUpdater.buildcfg != nil {
+		t.Error("BuildConfig was updated when a different repository was updated!")
+	}
+}
+
 func TestMultipleTriggers(t *testing.T) {
 	// this buildconfig references multiple images
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename1", "registry.com/namespace/imagename1", "testImageRepo1", "testTag1")
