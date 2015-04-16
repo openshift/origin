@@ -38,7 +38,9 @@ angular.module("openshiftConsole")
         envVars : {
         }
       };
-      scope.routing = true;
+      scope.routing = {
+        include: true
+      };
       scope.labels = {};
       scope.scaling = {
         replicas: 1

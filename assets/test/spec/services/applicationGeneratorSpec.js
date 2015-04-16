@@ -21,7 +21,9 @@ describe("ApplicationGenerator", function(){
 
     input = {
       name: "ruby-hello-world",
-      routing: true,
+      routing: {
+        include: true
+      },
       buildConfig: {
         sourceUrl: "https://github.com/openshift/ruby-hello-world.git",
         buildOnSourceChange: true,
@@ -112,7 +114,7 @@ describe("ApplicationGenerator", function(){
   describe("#_generateRoute", function(){
     
     it("should generate nothing if routing is not required", function(){
-      input.routing = false;
+      input.routing.include = false;
       expect(ApplicationGenerator._generateRoute(input, input.name, "theServiceName")).toBe(null);
     });
     
