@@ -33,6 +33,20 @@ angular.module('openshiftConsole')
           }
         });
 
+        $(elem).on("mousemove.oscobject", function() {
+          if (scope.resource) {
+            $(".osc-object-active").removeClass("osc-object-active");
+            $(this).addClass("osc-object-active");
+            return false;
+          }
+        });
+
+        $(elem).on("mouseleave.oscobject", function() {
+          if (scope.resource) {
+            $(this).removeClass("osc-object-active");
+          }
+        });        
+
         scope.$watch('resource', function(newValue, oldValue) {
           if (ObjectDescriber.getSource() === scope) {
             ObjectDescriber.setObject(scope.resource, scope.kind || scope.resource.kind, {source: scope});

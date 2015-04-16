@@ -41,6 +41,8 @@ angular.module('openshiftConsole')
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
+    $scope.renderOptions = $scope.renderOptions || {};
+    $scope.renderOptions.showSidebarRight = true;
     var watches = [];
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
