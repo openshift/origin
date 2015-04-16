@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/docker/distribution/digest"
@@ -100,31 +99,8 @@ func (r DockerImageReference) Minimal() DockerImageReference {
 	return r
 }
 
-var dockerPullSpecGenerator pullSpecGenerator
-
 // String converts a DockerImageReference to a Docker pull spec.
 func (r DockerImageReference) String() string {
-	if dockerPullSpecGenerator == nil {
-		if len(os.Getenv("OPENSHIFT_REAL_PULL_BY_ID")) > 0 {
-			dockerPullSpecGenerator = &realByIdPullSpecGenerator{}
-		} else {
-			dockerPullSpecGenerator = &simulatedByIdPullSpecGenerator{}
-		}
-	}
-	return dockerPullSpecGenerator.pullSpec(r)
-}
-
-// pullSpecGenerator converts a DockerImageReference to a Docker pull spec.
-type pullSpecGenerator interface {
-	pullSpec(ref DockerImageReference) string
-}
-
-// simulatedByIdPullSpecGenerator simulates pull by ID against a v2 registry
-// by generating a pull spec where the "tag" is the hex portion of the
-// DockerImageReference's ID.
-type simulatedByIdPullSpecGenerator struct{}
-
-func (f *simulatedByIdPullSpecGenerator) pullSpec(r DockerImageReference) string {
 	registry := r.Registry
 	if len(registry) > 0 {
 		registry += "/"
@@ -139,38 +115,13 @@ func (f *simulatedByIdPullSpecGenerator) pullSpec(r DockerImageReference) string
 	if len(r.Tag) > 0 {
 		ref = ":" + r.Tag
 	} else if len(r.ID) > 0 {
-		if d, err := digest.ParseDigest(r.ID); err == nil {
-			// if it parses as a digest, treat it like a by-id tag without the algorithm
-			ref = ":" + d.Hex()
+		if _, err := digest.ParseDigest(r.ID); err == nil {
+			// if it parses as a digest, it's v2 pull by id
+			ref = "@" + r.ID
 		} else {
-			// if it doesn't parse, it's presumably a v1 registry by-id tag
+			// if it doesn't parse as a digest, it's presumably a v1 registry by-id tag
 			ref = ":" + r.ID
 		}
-	}
-
-	return fmt.Sprintf("%s%s%s%s", registry, r.Namespace, r.Name, ref)
-}
-
-// realByIdPullSpecGenerator generates real pull by ID pull specs against
-// a v2 registry using the <stream>@<algo:digest> format.
-type realByIdPullSpecGenerator struct{}
-
-func (*realByIdPullSpecGenerator) pullSpec(r DockerImageReference) string {
-	registry := r.Registry
-	if len(registry) > 0 {
-		registry += "/"
-	}
-
-	if len(r.Namespace) == 0 {
-		r.Namespace = DockerDefaultNamespace
-	}
-	r.Namespace += "/"
-
-	var ref string
-	if len(r.Tag) > 0 {
-		ref = ":" + r.Tag
-	} else if len(r.ID) > 0 {
-		ref = "@" + r.ID
 	}
 
 	return fmt.Sprintf("%s%s%s%s", registry, r.Namespace, r.Name, ref)

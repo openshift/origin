@@ -1,4 +1,4 @@
-package repository
+package server
 
 import (
 	"encoding/json"
@@ -17,8 +17,6 @@ import (
 	repomw "github.com/docker/distribution/registry/middleware/repository"
 	"github.com/docker/libtrust"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/dockerregistry"
-	"github.com/openshift/origin/pkg/dockerregistry/auth"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"golang.org/x/net/context"
 )
@@ -43,7 +41,7 @@ func newRepository(repo distribution.Repository, options map[string]interface{})
 		return nil, errors.New("REGISTRY_URL is required")
 	}
 
-	registryClient, err := dockerregistry.NewRegistryOpenShiftClient()
+	registryClient, err := NewRegistryOpenShiftClient()
 	if err != nil {
 		return nil, err
 	}
@@ -117,44 +115,22 @@ func (r *repository) Get(ctx context.Context, dgst digest.Digest) (*manifest.Sig
 
 // Get retrieves the named manifest, if it exists.
 func (r *repository) GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error) {
-	var image *imageapi.Image
-	if imageStreamTag, err := r.getImageStreamTag(ctx, tag); err == nil {
-		image = &imageStreamTag.Image
-	} else {
-		// TODO remove when docker 1.6 is out
-		// Since docker 1.5 doesn't support pull by id, we're simulating pull by id
-		// against the v2 registry by using a pull spec of the form
-		// <repo>:<hex portion of digest>, so once we verify we got a 404 from
-		// getImageStreamTag, we construct a digest and attempt to get the
-		// imageStreamImage using that digest.
-		if err, ok := err.(*kerrors.StatusError); !ok {
-			log.Errorf("GetByTag: getImageStreamTag returned error: %s", err)
-			return nil, err
-		} else if err.ErrStatus.Code != http.StatusNotFound {
-			log.Errorf("GetByTag: getImageStreamTag returned non-404: %s", err)
-		}
-
-		// let's try to get by id
-		dgst, dgstErr := digest.ParseDigest("sha256:" + tag)
-		if dgstErr != nil {
-			log.Errorf("GetByTag: unable to parse digest: %s", dgstErr)
-			return nil, err
-		}
-		imageStreamImage, err := r.getImageStreamImage(ctx, dgst)
-		if err != nil {
-			log.Errorf("GetByTag: getImageStreamImage returned error: %s", err)
-			return nil, err
-		}
-		image = &imageStreamImage.Image
-	}
-
-	dgst, err := digest.ParseDigest(image.Name)
+	imageStreamTag, err := r.getImageStreamTag(ctx, tag)
 	if err != nil {
+		log.Errorf("Error getting ImageStreamTag %q: %v", tag, err)
+		return nil, err
+	}
+	image := &imageStreamTag.Image
+
+	dgst, err := digest.ParseDigest(imageStreamTag.ImageName)
+	if err != nil {
+		log.Errorf("Error parsing digest %q: %v", imageStreamTag.ImageName, err)
 		return nil, err
 	}
 
 	image, err = r.getImage(dgst)
 	if err != nil {
+		log.Errorf("Error getting image %q: %v", dgst.String(), err)
 		return nil, err
 	}
 
@@ -211,9 +187,9 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 			},
 		}
 
-		client, err := getUserOpenShiftClient(ctx)
-		if err != nil {
-			log.Errorf("Error creating user client to auto provision image stream: %s", err)
+		client, ok := UserClientFrom(ctx)
+		if !ok {
+			log.Errorf("Error creating user client to auto provision image stream: OpenShift user client unavailable")
 			return statusErr
 		}
 
@@ -252,9 +228,9 @@ func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
 
 // getImageStream retrieves the ImageStream for r.
 func (r *repository) getImageStream(ctx context.Context) (*imageapi.ImageStream, error) {
-	client, err := getUserOpenShiftClient(ctx)
-	if err != nil {
-		return nil, err
+	client, ok := UserClientFrom(ctx)
+	if !ok {
+		return nil, fmt.Errorf("Error retrieving image stream: OpenShift user client unavailable")
 	}
 	return client.ImageStreams(r.namespace).Get(r.name)
 }
@@ -269,9 +245,9 @@ func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 // getImageStreamTag retrieves the Image with tag `tag` for the ImageStream
 // associated with r.
 func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imageapi.ImageStreamTag, error) {
-	client, err := getUserOpenShiftClient(ctx)
-	if err != nil {
-		return nil, err
+	client, ok := UserClientFrom(ctx)
+	if !ok {
+		return nil, fmt.Errorf("Error retrieving image stream tag: OpenShift user client unavailable")
 	}
 	return client.ImageStreamTags(r.namespace).Get(r.name, tag)
 }
@@ -279,9 +255,9 @@ func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imagea
 // getImageStreamImage retrieves the Image with digest `dgst` for the ImageStream
 // associated with r. This ensures the user has access to the image.
 func (r *repository) getImageStreamImage(ctx context.Context, dgst digest.Digest) (*imageapi.ImageStreamImage, error) {
-	client, err := getUserOpenShiftClient(ctx)
-	if err != nil {
-		return nil, err
+	client, ok := UserClientFrom(ctx)
+	if !ok {
+		return nil, fmt.Errorf("Error retrieving image stream image: OpenShift user client unavailable")
 	}
 	return client.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
@@ -315,12 +291,4 @@ func (r *repository) manifestFromImage(image *imageapi.Image) (*manifest.SignedM
 		return nil, err
 	}
 	return &sm, err
-}
-
-func getUserOpenShiftClient(ctx context.Context) (*client.Client, error) {
-	bearerToken, ok := auth.BearerTokenFrom(ctx)
-	if !ok {
-		return nil, errors.New("unable to create user OpenShift client: bearer token missing")
-	}
-	return dockerregistry.NewUserOpenShiftClient(bearerToken)
 }

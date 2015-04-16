@@ -1,4 +1,4 @@
-package dockerregistry
+package server
 
 import (
 	"errors"

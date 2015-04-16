@@ -1,17 +1,18 @@
-package auth
+package server
 
 import (
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	ctxu "github.com/docker/distribution/context"
 	registryauth "github.com/docker/distribution/registry/auth"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/dockerregistry"
+	"github.com/openshift/origin/pkg/client"
 	"golang.org/x/net/context"
 )
 
@@ -21,15 +22,15 @@ func init() {
 
 type contextKey int
 
-var bearerTokenKey contextKey = 0
+var userClientKey contextKey = 0
 
-func WithBearerToken(parent context.Context, bearerToken string) context.Context {
-	return context.WithValue(parent, bearerTokenKey, bearerToken)
+func WithUserClient(parent context.Context, userClient *client.Client) context.Context {
+	return context.WithValue(parent, userClientKey, userClient)
 }
 
-func BearerTokenFrom(ctx context.Context) (string, bool) {
-	bearerToken, ok := ctx.Value(bearerTokenKey).(string)
-	return bearerToken, ok
+func UserClientFrom(ctx context.Context) (*client.Client, bool) {
+	userClient, ok := ctx.Value(userClientKey).(*client.Client)
+	return userClient, ok
 }
 
 type AccessController struct {
@@ -55,7 +56,7 @@ var (
 )
 
 func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
-	fmt.Println("Using OpenShift Auth handler")
+	log.Info("Using OpenShift Auth handler")
 	realm, ok := options["realm"].(string)
 	if !ok {
 		// Default to openshift if not present
@@ -85,39 +86,57 @@ func (ac *authChallenge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Authorized handles checking whether the given request is authorized
 // for actions on resources allowed by openshift.
 func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...registryauth.Access) (context.Context, error) {
-	req, err := ctxu.GetRequest(ctx)
-	if err != nil {
-		return nil, err
-	}
+	var (
+		client *client.Client
+		err    error
+	)
+
 	challenge := &authChallenge{realm: ac.realm}
 
-	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
-	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
-		challenge.err = ErrTokenRequired
-		return nil, challenge
-	}
-	basicToken := authParts[1]
-
-	payload, err := base64.StdEncoding.DecodeString(basicToken)
-	if err != nil {
-		log.Errorf("Basic token decode failed: %s", err)
-		challenge.err = ErrTokenInvalid
-		return nil, challenge
-	}
-	osAuthParts := strings.SplitN(string(payload), ":", 2)
-	if len(osAuthParts) != 2 {
-		challenge.err = ErrOpenShiftTokenRequired
-		return nil, challenge
-	}
-	user := osAuthParts[0]
-	bearerToken := osAuthParts[1]
-
-	// In case of docker login, hits endpoint /v2
-	if len(accessRecords) == 0 {
-		err = VerifyOpenShiftUser(user, bearerToken)
+	if os.Getenv("DISABLE_USER_AUTH") == "true" {
+		client, err = NewRegistryOpenShiftClient()
 		if err != nil {
-			challenge.err = err
+			return nil, err
+		}
+	} else {
+		req, err := ctxu.GetRequest(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
+		if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
+			challenge.err = ErrTokenRequired
 			return nil, challenge
+		}
+		basicToken := authParts[1]
+
+		payload, err := base64.StdEncoding.DecodeString(basicToken)
+		if err != nil {
+			log.Errorf("Basic token decode failed: %s", err)
+			challenge.err = ErrTokenInvalid
+			return nil, challenge
+		}
+		osAuthParts := strings.SplitN(string(payload), ":", 2)
+		if len(osAuthParts) != 2 {
+			challenge.err = ErrOpenShiftTokenRequired
+			return nil, challenge
+		}
+		user := osAuthParts[0]
+		bearerToken := osAuthParts[1]
+
+		client, err = NewUserOpenShiftClient(bearerToken)
+		if err != nil {
+			return nil, err
+		}
+
+		// In case of docker login, hits endpoint /v2
+		if len(accessRecords) == 0 {
+			err = VerifyOpenShiftUser(user, client)
+			if err != nil {
+				challenge.err = err
+				return nil, challenge
+			}
 		}
 	}
 
@@ -137,45 +156,37 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		verb := ""
 		switch access.Action {
 		case "push":
-			verb = "create"
+			verb = "update"
 		case "pull":
 			verb = "get"
 		default:
-			challenge.err = fmt.Errorf("Unkown action: %s", access.Action)
+			challenge.err = fmt.Errorf("Unknown action: %s", access.Action)
 			return nil, challenge
 		}
 
-		err = VerifyOpenShiftAccess(repoParts[0], repoParts[1], verb, bearerToken)
+		err = VerifyOpenShiftAccess(repoParts[0], repoParts[1], verb, client)
 		if err != nil {
 			challenge.err = err
 			return nil, challenge
 		}
 	}
-	return WithBearerToken(ctx, bearerToken), nil
+	return WithUserClient(ctx, client), nil
 }
 
-func VerifyOpenShiftUser(user, bearerToken string) error {
-	client, err := dockerregistry.NewUserOpenShiftClient(bearerToken)
-	if err != nil {
-		return err
-	}
+func VerifyOpenShiftUser(user string, client *client.Client) error {
 	userObj, err := client.Users().Get("~")
 	if err != nil {
 		log.Errorf("Get user failed with error: %s", err)
 		return ErrOpenShiftAccessDenied
 	}
-	if user != userObj.ObjectMeta.Name {
+	if user != userObj.Name {
 		log.Errorf("Token valid but user name mismatch")
 		return ErrOpenShiftAccessDenied
 	}
 	return nil
 }
 
-func VerifyOpenShiftAccess(namespace, imageRepo, verb, bearerToken string) error {
-	client, err := dockerregistry.NewUserOpenShiftClient(bearerToken)
-	if err != nil {
-		return err
-	}
+func VerifyOpenShiftAccess(namespace, imageRepo, verb string, client *client.Client) error {
 	sar := authorizationapi.SubjectAccessReview{
 		Verb:         verb,
 		Resource:     "imageStreams",

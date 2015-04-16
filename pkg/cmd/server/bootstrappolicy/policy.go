@@ -187,8 +187,16 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 					Resources: util.NewStringSet("images"),
 				},
 				{
+					Verbs:     util.NewStringSet("get"),
+					Resources: util.NewStringSet("imagestreamimages", "imagestreamtags", "imagestreams"),
+				},
+				{
+					Verbs:     util.NewStringSet("update"),
+					Resources: util.NewStringSet("imagestreams"),
+				},
+				{
 					Verbs:     util.NewStringSet("create"),
-					Resources: util.NewStringSet("imagerepositorymappings"),
+					Resources: util.NewStringSet("imagerepositorymappings", "imagestreammappings"),
 				},
 			},
 		},

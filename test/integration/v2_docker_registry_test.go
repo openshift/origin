@@ -151,7 +151,8 @@ middleware:
 		t.Fatalf("expected latest, got %q", tags[0])
 	}
 
-	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), stream.Name, dgst.String())
+	// test get by tag
+	url := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), stream.Name, imageapi.DefaultImageTag)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		t.Fatalf("error creating request: %v", err)
@@ -167,6 +168,32 @@ middleware:
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	var retrievedManifest manifest.Manifest
+	if err := json.Unmarshal(body, &retrievedManifest); err != nil {
+		t.Fatalf("error unmarshaling retrieved manifest")
+	}
+	if retrievedManifest.Name != fmt.Sprintf("%s/%s", testutil.Namespace(), stream.Name) {
+		t.Fatalf("unexpected manifest name: %s", retrievedManifest.Name)
+	}
+	if retrievedManifest.Tag != imageapi.DefaultImageTag {
+		t.Fatalf("unexpected manifest tag: %s", retrievedManifest.Tag)
+	}
+
+	// test get by digest
+	url = fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), stream.Name, dgst.String())
+	req, err = http.NewRequest("GET", url, nil)
+	if err != nil {
+		t.Fatalf("error creating request: %v", err)
+	}
+	req.SetBasicAuth(user, token)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("error retrieving manifest from registry: %s", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status code: %d", resp.StatusCode)
+	}
+	body, err = ioutil.ReadAll(resp.Body)
 	if err := json.Unmarshal(body, &retrievedManifest); err != nil {
 		t.Fatalf("error unmarshaling retrieved manifest")
 	}

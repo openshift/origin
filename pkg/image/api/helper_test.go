@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -161,103 +160,12 @@ func TestDockerImageReferenceString(t *testing.T) {
 		{
 			Name:     "foo",
 			ID:       "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected: "library/foo:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-		},
-		{
-			Namespace: "bar",
-			Name:      "foo",
-			Expected:  "bar/foo",
-		},
-		{
-			Namespace: "bar",
-			Name:      "foo",
-			Tag:       "tag",
-			Expected:  "bar/foo:tag",
-		},
-		{
-			Namespace: "bar",
-			Name:      "foo",
-			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected:  "bar/foo:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-		},
-		{
-			Registry:  "bar",
-			Namespace: "foo",
-			Name:      "baz",
-			Expected:  "bar/foo/baz",
-		},
-		{
-			Registry:  "bar",
-			Namespace: "foo",
-			Name:      "baz",
-			Tag:       "tag",
-			Expected:  "bar/foo/baz:tag",
-		},
-		{
-			Registry:  "bar",
-			Namespace: "foo",
-			Name:      "baz",
-			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected:  "bar/foo/baz:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-		},
-		{
-			Registry:  "bar:5000",
-			Namespace: "foo",
-			Name:      "baz",
-			Expected:  "bar:5000/foo/baz",
-		},
-		{
-			Registry:  "bar:5000",
-			Namespace: "foo",
-			Name:      "baz",
-			Tag:       "tag",
-			Expected:  "bar:5000/foo/baz:tag",
-		},
-		{
-			Registry:  "bar:5000",
-			Namespace: "foo",
-			Name:      "baz",
-			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-			Expected:  "bar:5000/foo/baz:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
-		},
-	}
-
-	for i, testCase := range testCases {
-		ref := DockerImageReference{
-			Registry:  testCase.Registry,
-			Namespace: testCase.Namespace,
-			Name:      testCase.Name,
-			Tag:       testCase.Tag,
-			ID:        testCase.ID,
-		}
-		actual := ref.String()
-		if e, a := testCase.Expected, actual; e != a {
-			t.Errorf("%d: expected %q, got %q", i, e, a)
-		}
-	}
-}
-
-func TestDockerImageReferenceStringWithRealPullByID(t *testing.T) {
-	os.Setenv("OPENSHIFT_REAL_PULL_BY_ID", "1")
-	dockerPullSpecGenerator = nil
-
-	testCases := []struct {
-		Registry, Namespace, Name, Tag, ID string
-		Expected                           string
-	}{
-		{
-			Name:     "foo",
-			Expected: "library/foo",
-		},
-		{
-			Name:     "foo",
-			Tag:      "tag",
-			Expected: "library/foo:tag",
-		},
-		{
-			Name:     "foo",
-			ID:       "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 			Expected: "library/foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+		},
+		{
+			Name:     "foo",
+			ID:       "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected: "library/foo:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
 			Namespace: "bar",

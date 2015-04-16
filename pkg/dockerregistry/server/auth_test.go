@@ -1,4 +1,4 @@
-package auth
+package server
 
 import (
 	"fmt"
@@ -40,7 +40,11 @@ func TestVerifyOpenShiftAccess(t *testing.T) {
 	}
 	for _, test := range tests {
 		server := simulateOpenShiftMaster(test.openshiftStatusCode, test.openshiftResponse)
-		err := VerifyOpenShiftAccess("foo", "bar", "create", "magic bearer token")
+		client, err := NewUserOpenShiftClient("magic bearer token")
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = VerifyOpenShiftAccess("foo", "bar", "create", client)
 		if err == nil || test.expectedError == nil {
 			if err != test.expectedError {
 				t.Fatal("VerifyOpenShiftAccess did not get expected error - got %s - expected %s", err, test.expectedError)
