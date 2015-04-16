@@ -26,6 +26,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 		NewFunc:     func() runtime.Object { return &api.Identity{} },
 		NewListFunc: func() runtime.Object { return &api.IdentityList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
+			// TODO: JTL: switch to NoNamespaceKeyRootFunc after rebase
 			return EtcdPrefix
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {

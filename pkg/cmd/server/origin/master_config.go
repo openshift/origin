@@ -27,7 +27,8 @@ import (
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
+	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
+	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
@@ -224,8 +225,9 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 }
 
 func getEtcdTokenAuthenticator(etcdHelper tools.EtcdHelper) authenticator.Token {
-	oauthRegistry := oauthetcd.New(etcdHelper)
-	return authnregistry.NewTokenAuthenticator(oauthRegistry)
+	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
+	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
+	return authnregistry.NewTokenAuthenticator(accessTokenRegistry)
 }
 
 // KubeClient returns the kubernetes client object

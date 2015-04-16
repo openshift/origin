@@ -257,9 +257,11 @@ angular.module("openshiftConsole")
       if(port === 'None'){
         service.spec.portalIP = 'None';
       }else{
-        service.spec.port = port.containerPort;
-        service.spec.containerPort = port.containerPort;
-        service.spec.protocol =  port.protocol;
+        service.spec.ports = [{
+          port: port.containerPort,
+          targetPort: port.containerPort,
+          protocol: port.protocol
+        }];
       }
       return service;
     };

@@ -343,36 +343,3 @@ select:invalid {
 .input-number {
   width: 60px;
 }
-
-
-//
-// Component animations
-// --------------------------------------------------
-.fade {
-  opacity: 0;
-  .transition(opacity 0.2s ease 0s);
-  &.in {
-    opacity: 1;
-  }
-}
-.modal-backdrop {
-  &.fade {
-    transition: opacity 0.15s linear 0s;  
-
-    &.in {
-      opacity: 0.5;
-    }
-  }
-}
-.collapse {
-  display: none;
-  &.in {
-    display: block;
-  }
-}
-.collapsing {
-  position: relative;
-  height: 0;
-  overflow: hidden;
-  .transition(height .10s ease);
-}

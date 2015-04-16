@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin"
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
+	"github.com/openshift/origin/pkg/cmd/experimental/bundlesecret"
 	"github.com/openshift/origin/pkg/cmd/experimental/generate"
 	"github.com/openshift/origin/pkg/cmd/experimental/policy"
 	"github.com/openshift/origin/pkg/cmd/experimental/project"
@@ -133,5 +134,6 @@ func newExperimentalCommand(parentName, name string) *cobra.Command {
 	experimental.AddCommand(exrouter.NewCmdRouter(f, subName, "router", os.Stdout))
 	experimental.AddCommand(exregistry.NewCmdRegistry(f, subName, "registry", os.Stdout))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(f, subName, "build-chain"))
+	experimental.AddCommand(bundlesecret.NewCmdBundleSecret(f, subName, "bundle-secret", os.Stdout))
 	return experimental
 }

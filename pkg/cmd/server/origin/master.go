@@ -68,11 +68,10 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
-	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/accesstoken"
-	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/authorizetoken"
-	clientregistry "github.com/openshift/origin/pkg/oauth/registry/client"
-	clientauthorizationregistry "github.com/openshift/origin/pkg/oauth/registry/clientauthorization"
-	oauthetcd "github.com/openshift/origin/pkg/oauth/registry/etcd"
+	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
+	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
+	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
+	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
@@ -140,7 +139,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
-	oauthEtcd := oauthetcd.New(c.EtcdHelper)
 	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
 
 	userStorage := useretcd.NewREST(c.EtcdHelper)
@@ -230,10 +228,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"identities":           identityStorage,
 		"userIdentityMappings": userIdentityMappingStorage,
 
-		"oAuthAuthorizeTokens":      authorizetokenregistry.NewREST(oauthEtcd),
-		"oAuthAccessTokens":         accesstokenregistry.NewREST(oauthEtcd),
-		"oAuthClients":              clientregistry.NewREST(oauthEtcd),
-		"oAuthClientAuthorizations": clientauthorizationregistry.NewREST(oauthEtcd),
+		"oAuthAuthorizeTokens":      authorizetokenetcd.NewREST(c.EtcdHelper),
+		"oAuthAccessTokens":         accesstokenetcd.NewREST(c.EtcdHelper),
+		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
+		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
 
 		"policies":              policyregistry.NewREST(authorizationEtcd),
 		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),

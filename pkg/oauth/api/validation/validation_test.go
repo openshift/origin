@@ -10,7 +10,7 @@ import (
 
 func TestValidateClientAuthorization(t *testing.T) {
 	errs := ValidateClientAuthorization(&oapi.OAuthClientAuthorization{
-		ObjectMeta: api.ObjectMeta{Name: "authName"},
+		ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
 		ClientName: "myclientname",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
@@ -31,17 +31,27 @@ func TestValidateClientAuthorization(t *testing.T) {
 				UserUID:    "myuseruid",
 			},
 			T: fielderrors.ValidationErrorTypeRequired,
-			F: "name",
+			F: "metadata.name",
 		},
-		"disallowed namespace": {
+		"invalid name": {
 			A: oapi.OAuthClientAuthorization{
-				ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "anotheruser:anotherclient"},
 				ClientName: "myclientname",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
 			T: fielderrors.ValidationErrorTypeInvalid,
-			F: "namespace",
+			F: "metadata.name",
+		},
+		"disallowed namespace": {
+			A: oapi.OAuthClientAuthorization{
+				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname", Namespace: "foo"},
+				ClientName: "myclientname",
+				UserName:   "myusername",
+				UserUID:    "myuseruid",
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "metadata.namespace",
 		},
 	}
 	for k, v := range errorCases {
@@ -63,7 +73,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 
 func TestValidateClient(t *testing.T) {
 	errs := ValidateClient(&oapi.OAuthClient{
-		ObjectMeta: api.ObjectMeta{Name: "clientName"},
+		ObjectMeta: api.ObjectMeta{Name: "client-name"},
 	})
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
@@ -77,12 +87,12 @@ func TestValidateClient(t *testing.T) {
 		"zero-length name": {
 			Client: oapi.OAuthClient{},
 			T:      fielderrors.ValidationErrorTypeRequired,
-			F:      "name",
+			F:      "metadata.name",
 		},
 		"disallowed namespace": {
 			Client: oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"}},
 			T:      fielderrors.ValidationErrorTypeInvalid,
-			F:      "namespace",
+			F:      "metadata.namespace",
 		},
 	}
 	for k, v := range errorCases {
@@ -104,7 +114,7 @@ func TestValidateClient(t *testing.T) {
 
 func TestValidateAccessTokens(t *testing.T) {
 	errs := ValidateAccessToken(&oapi.OAuthAccessToken{
-		ObjectMeta: api.ObjectMeta{Name: "accessTokenName"},
+		ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
 		ClientName: "myclient",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
@@ -125,17 +135,17 @@ func TestValidateAccessTokens(t *testing.T) {
 				UserUID:    "myuseruid",
 			},
 			T: fielderrors.ValidationErrorTypeRequired,
-			F: "name",
+			F: "metadata.name",
 		},
 		"disallowed namespace": {
 			Token: oapi.OAuthAccessToken{
-				ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength", Namespace: "foo"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
 			T: fielderrors.ValidationErrorTypeInvalid,
-			F: "namespace",
+			F: "metadata.namespace",
 		},
 	}
 	for k, v := range errorCases {
@@ -157,7 +167,7 @@ func TestValidateAccessTokens(t *testing.T) {
 
 func TestValidateAuthorizeTokens(t *testing.T) {
 	errs := ValidateAuthorizeToken(&oapi.OAuthAuthorizeToken{
-		ObjectMeta: api.ObjectMeta{Name: "authorizeTokenName"},
+		ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 		ClientName: "myclient",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
@@ -178,44 +188,44 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 				UserUID:    "myuseruid",
 			},
 			T: fielderrors.ValidationErrorTypeRequired,
-			F: "name",
+			F: "metadata.name",
 		},
 		"zero-length client name": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenName"},
+				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
 			T: fielderrors.ValidationErrorTypeRequired,
-			F: "clientname",
+			F: "clientName",
 		},
 		"zero-length user name": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenName"},
+				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
 				UserUID:    "myuseruid",
 			},
 			T: fielderrors.ValidationErrorTypeRequired,
-			F: "username",
+			F: "userName",
 		},
 		"zero-length user uid": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenName"},
+				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 			},
 			T: fielderrors.ValidationErrorTypeRequired,
-			F: "useruid",
+			F: "userUID",
 		},
 		"disallowed namespace": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"},
+				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength", Namespace: "foo"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
 			T: fielderrors.ValidationErrorTypeInvalid,
-			F: "namespace",
+			F: "metadata.namespace",
 		},
 	}
 	for k, v := range errorCases {
