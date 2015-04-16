@@ -19,17 +19,31 @@ angular.module('openshiftConsole')
   })
   .directive('oscObject', function(ObjectDescriber) {
     return {
-      restrict: 'A',
+      restrict: 'AC',
       scope: {
         resource: '=',
         kind: '@'
       },
       link: function(scope, elem, attrs) {
-        if (scope.resource) {
-          $(elem).click(function() {
-            ObjectDescriber.setObject(scope.resource, scope.kind || scope.resource.kind);
-          });
-        }
+        $(elem).on("click.oscobject", function() {
+          if (scope.resource) {
+            ObjectDescriber.setObject(scope.resource, scope.kind || scope.resource.kind, {source: scope});
+            // Have to stop event propagation or nested resources will fire parent handlers
+            return false;
+          }
+        });
+
+        scope.$watch('resource', function(newValue, oldValue) {
+          if (ObjectDescriber.getSource() === scope) {
+            ObjectDescriber.setObject(scope.resource, scope.kind || scope.resource.kind, {source: scope});
+          }
+        });
+
+        scope.$on('$destroy', function() {
+          if (ObjectDescriber.getSource() === scope) {
+            ObjectDescriber.clearObject();
+          }
+        });        
       }
     };
   })  
@@ -37,12 +51,15 @@ angular.module('openshiftConsole')
     function ObjectDescriber() {
       this.resource = null;
       this.kind = null;
+      this.source = null;
       this.callbacks = $.Callbacks();
     }
 
-    ObjectDescriber.prototype.setObject = function(resource, kind) {
+    ObjectDescriber.prototype.setObject = function(resource, kind, opts) {
       this.resource = resource;
       this.kind = kind;
+      opts = opts || {};
+      this.source = opts.source || null;
       var self = this;
       // queue this up to run after the current digest loop finishes
       $timeout(function(){      
@@ -53,6 +70,10 @@ angular.module('openshiftConsole')
     ObjectDescriber.prototype.clearObject = function() {
       this.setObject(null, null);
     };    
+
+    ObjectDescriber.prototype.getSource = function() {
+      return this.source;
+    };        
 
     // Callback will never be called within the current digest loop
     ObjectDescriber.prototype.onResourceChanged = function(callback) {

@@ -3,7 +3,7 @@
   pods - a hash of pod objects by id
 -->
 <div class="flex-row">
-  <span class="animate-repeat pod pod-{{pod.status.phase.toLowerCase()}} flex"  ng-repeat="pod in pods" osc-object kind="Pod" resource="pod">
+  <span class="animate-repeat pod pod-{{pod.status.phase.toLowerCase()}} flex osc-object"  ng-repeat="pod in pods track by uid(pod)" kind="Pod" resource="pod">
     <strong>{{pod.status.phase}}</strong><div ng-if="pod.status.podIP" class="small muted">{{pod.status.podIP}}</div><div ng-if="!pod.status.podIP" class="small muted">allocating IP...</div>
   </span>
 </div>

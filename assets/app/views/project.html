@@ -16,7 +16,7 @@
         <div class="row">
           <div class="col-md-12">
             <div class="tile">
-              <h2 class="service" ng-init="numPorts = service.spec.ports.length" osc-object kind="Service" resource="service">{{serviceId}}
+              <h2 class="service osc-object" ng-init="numPorts = service.spec.ports.length" kind="Service" resource="service">{{serviceId}}
                 <span class="small"> - routing traffic on {{service.spec.portalIP}} -</span>
                 <span class="small" ng-repeat="portMapping in service.spec.ports | orderBy:port | limitTo:2">
                   port {{portMapping.port}} &#8594; {{portMapping.targetPort}} ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span>
@@ -49,12 +49,14 @@
                 <div ng-if="deploymentConfigsByService[serviceId][deploymentConfigId]">
                   <triggers triggers="deploymentConfigsByService[serviceId][deploymentConfigId].triggers"></triggers>
                 </div>
-                <deployment-config-metadata
-                  deployment-config-id="deploymentConfigId"
-                  exists="deploymentConfigs[deploymentConfigId]"
-                  different-service="!deploymentConfigsByService[serviceId][deploymentConfigId]">
-                </deployment-config-metadata>
-                <div ng-repeat="deployment in deployments | orderObjectsByDate : true" style="margin-top: 10px; text-align: center;">
+                <div class="osc-object" kind="DeploymentConfig" resource="deploymentConfigs[deploymentConfigId]">
+                  <deployment-config-metadata
+                    deployment-config-id="deploymentConfigId"
+                    exists="deploymentConfigs[deploymentConfigId]"
+                    different-service="!deploymentConfigsByService[serviceId][deploymentConfigId]">
+                  </deployment-config-metadata>
+                </div>
+                <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by uid(deployment)" style="margin-top: 10px; text-align: center;" class="osc-object" kind="ReplicationController" resource="deployment">
                   <!-- TODO right now we ONLY show deployments / RCs if they have pods, but we may also want to show 
                        them if they are idled down to zero for example.
                   -->
