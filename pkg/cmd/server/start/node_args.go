@@ -121,7 +121,17 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		config.ServingInfo.ClientCA = admin.DefaultKubeletClientCAFile(args.CertArgs.CertDir)
 	}
 
-	return config, nil
+	// Roundtrip the config to v1 and back to ensure proper defaults are set.
+	ext, err := configapi.Scheme.ConvertToVersion(config, "v1")
+	if err != nil {
+		return nil, err
+	}
+	internal, err := configapi.Scheme.ConvertToVersion(ext, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return internal.(*configapi.NodeConfig), nil
 }
 
 // defaultHostname returns the default hostname for this system.

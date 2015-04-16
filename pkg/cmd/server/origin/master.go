@@ -27,11 +27,12 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	utilerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
+	"github.com/openshift/origin/pkg/api/v1beta2"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -104,7 +105,9 @@ const (
 	OpenShiftAPIPrefix        = "/osapi" // TODO: make configurable
 	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
 	OpenShiftAPIV1Beta1       = "v1beta1"
+	OpenShiftAPIV1Beta2       = "v1beta2"
 	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
+	OpenShiftAPIPrefixV1Beta2 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta2
 	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
@@ -247,6 +250,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		v1beta1Storage[k] = v
 		v1beta1Storage[strings.ToLower(k)] = v
 	}
+	v1beta2Storage := map[string]rest.Storage{}
+	for k, v := range storage {
+		v1beta2Storage[strings.ToLower(k)] = v
+	}
 
 	version := &apiserver.APIGroupVersion{
 		Root:    OpenShiftAPIPrefix,
@@ -267,7 +274,33 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 
 	if err := version.InstallREST(container); err != nil {
-		glog.Fatalf("Unable to initialize API: %v", err)
+		glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
+	}
+
+	version2 := &apiserver.APIGroupVersion{
+		Root:    OpenShiftAPIPrefix,
+		Version: OpenShiftAPIV1Beta2,
+
+		Storage: v1beta2Storage,
+		Codec:   v1beta2.Codec,
+
+		Mapper: latest.RESTMapper,
+
+		Creater: kapi.Scheme,
+		Typer:   kapi.Scheme,
+		Linker:  latest.SelfLinker,
+
+		Admit:   c.AdmissionControl,
+		Context: c.getRequestContextMapper(),
+	}
+
+	if err := version2.InstallREST(container); err != nil {
+		// TODO: remove this check once v1beta2 is complete
+		if utilerrs.FilterOut(err, func(err error) bool {
+			return strings.Contains(err.Error(), "is registered for version")
+		}) != nil {
+			glog.Fatalf("Unable to initialize v1beta2 API: %v", err)
+		}
 	}
 
 	var root *restful.WebService
@@ -277,16 +310,19 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			root = svc
 		case OpenShiftAPIPrefixV1Beta1:
 			svc.Doc("OpenShift REST API, version v1beta1").ApiVersion("v1beta1")
+		case OpenShiftAPIPrefixV1Beta2:
+			svc.Doc("OpenShift REST API, version v1beta2").ApiVersion("v1beta2")
 		}
 	}
 	if root == nil {
 		root = new(restful.WebService)
 		container.Add(root)
 	}
-	initAPIVersionRoute(root, "v1beta1")
+	initAPIVersionRoute(root, "v1beta1", "v1beta2")
 
 	return []string{
 		fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta1),
+		fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1Beta2),
 	}
 }
 
@@ -310,8 +346,8 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 }
 
 //initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
-func initAPIVersionRoute(root *restful.WebService, version string) {
-	versionHandler := apiserver.APIVersionHandler(version)
+func initAPIVersionRoute(root *restful.WebService, versions ...string) {
+	versionHandler := apiserver.APIVersionHandler(versions...)
 	root.Route(root.GET(OpenShiftAPIPrefix).To(versionHandler).
 		Doc("list supported server API versions").
 		Produces(restful.MIME_JSON).
@@ -801,19 +837,6 @@ func (c *MasterConfig) ensureCORSAllowedOrigins() []*regexp.Regexp {
 		glog.Fatalf("Invalid --cors-allowed-origins: %v", err)
 	}
 	return allowedOriginRegexps
-}
-
-// NewEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version
-// is incorrect.
-func NewEtcdHelper(version string, client *etcdclient.Client) (helper tools.EtcdHelper, err error) {
-	if len(version) == 0 {
-		version = latest.Version
-	}
-	interfaces, err := latest.InterfacesFor(version)
-	if err != nil {
-		return helper, err
-	}
-	return tools.NewEtcdHelper(client, interfaces.Codec), nil
 }
 
 // env returns an environment variable, or the defaultValue if it is not set.

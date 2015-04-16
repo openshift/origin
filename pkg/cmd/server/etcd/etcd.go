@@ -9,7 +9,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
@@ -68,9 +67,9 @@ func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 	}()
 }
 
-// GetAndTestEtcdClient creates an etcd client based on the provided config and waits
-// until etcd server is reachable. It errors out and exits if the server cannot
-// be reached for a certain amount of time.
+// GetAndTestEtcdClient creates an etcd client based on the provided config. It will attempt to
+// connect to the etcd server and block until the server responds at least once, or return an
+// error if the server never responded.
 func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
 	var etcdClient *etcdclient.Client
 
@@ -96,7 +95,6 @@ func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdcli
 	}
 
 	for i := 0; ; i++ {
-		// TODO: make sure this works with etcd2 (root key may not exist)
 		_, err := etcdClient.Get("/", false, false)
 		if err == nil || tools.IsEtcdNotFound(err) {
 			break
@@ -108,21 +106,4 @@ func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdcli
 	}
 
 	return etcdClient, nil
-}
-
-// NewOpenShiftEtcdHelper returns an EtcdHelper for the provided arguments or an error if the version
-// is incorrect.
-func NewOpenShiftEtcdHelper(etcdClientInfo configapi.EtcdConnectionInfo) (helper tools.EtcdHelper, err error) {
-	// Connect and setup etcd interfaces
-	client, err := GetAndTestEtcdClient(etcdClientInfo)
-	if err != nil {
-		return tools.EtcdHelper{}, err
-	}
-
-	version := latest.Version
-	interfaces, err := latest.InterfacesFor(version)
-	if err != nil {
-		return helper, err
-	}
-	return tools.NewEtcdHelper(client, interfaces.Codec), nil
 }

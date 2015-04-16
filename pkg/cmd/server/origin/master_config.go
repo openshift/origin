@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	etcdclient "github.com/coreos/go-etcd/etcd"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
@@ -27,12 +29,11 @@ import (
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
-
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
 const (
@@ -92,8 +93,11 @@ type MasterConfig struct {
 }
 
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
-
-	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(options.EtcdClientInfo)
+	client, err := etcd.GetAndTestEtcdClient(options.EtcdClientInfo)
+	if err != nil {
+		return nil, err
+	}
+	etcdHelper, err := NewEtcdHelper(client, options.EtcdStorageConfig.OpenShiftStorageVersion)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}
@@ -307,4 +311,13 @@ func (c *MasterConfig) DeploymentImageChangeControllerClient() *osclient.Client 
 // The kubernetes client object must have authority to execute a finalize request on a namespace
 func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.OSClient, c.KubernetesClient
+}
+
+// NewEtcdHelper returns an EtcdHelper for the provided storage version.
+func NewEtcdHelper(client *etcdclient.Client, version string) (oshelper tools.EtcdHelper, err error) {
+	interfaces, err := latest.InterfacesFor(version)
+	if err != nil {
+		return tools.EtcdHelper{}, err
+	}
+	return tools.NewEtcdHelper(client, interfaces.Codec), nil
 }

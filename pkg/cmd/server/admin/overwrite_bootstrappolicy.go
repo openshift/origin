@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -92,7 +93,12 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 		return utilerrors.NewAggregate(err)
 	}
 
-	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(masterConfig.EtcdClientInfo)
+	// Connect and setup etcd interfaces
+	etcdClient, err := etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
+	if err != nil {
+		return err
+	}
+	etcdHelper, err := newEtcdHelper(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion)
 	if err != nil {
 		return err
 	}
@@ -168,4 +174,13 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 		}
 		return nil
 	})
+}
+
+// newEtcdHelper returns an EtcdHelper for the provided storage version.
+func newEtcdHelper(client *etcdclient.Client, version string) (oshelper tools.EtcdHelper, err error) {
+	interfaces, err := latest.InterfacesFor(version)
+	if err != nil {
+		return tools.EtcdHelper{}, err
+	}
+	return tools.NewEtcdHelper(client, interfaces.Codec), nil
 }
