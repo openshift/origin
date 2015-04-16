@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"net"
 	"net/url"
 	"strings"
@@ -142,6 +143,12 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) fielderr
 
 	if len(config.SchedulerConfigFile) > 0 {
 		allErrs = append(allErrs, ValidateFile(config.SchedulerConfigFile, "schedulerConfigFile")...)
+	}
+
+	for i, nodeName := range config.StaticNodeNames {
+		if len(nodeName) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("staticNodeName[%d]", i), nodeName, "may not be empty"))
+		}
 	}
 
 	return allErrs
