@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/openshift/origin",
-	"GoVersion": "go1.3.3",
+	"GoVersion": "go1.4.2",
 	"Packages": [
 		"./..."
 	],
@@ -585,11 +585,6 @@
 			"Rev": "ed6685369740035b0af9675bf9add52d0af7657b"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/pkg/symlink",
-			"Comment": "v1.4.1-1714-ged66853",
-			"Rev": "ed6685369740035b0af9675bf9add52d0af7657b"
-		},
-		{
 			"ImportPath": "github.com/docker/docker/pkg/system",
 			"Comment": "v1.4.1-1714-ged66853",
 			"Rev": "ed6685369740035b0af9675bf9add52d0af7657b"
@@ -616,8 +611,8 @@
 		},
 		{
 			"ImportPath": "github.com/docker/libcontainer",
-			"Comment": "v1.4.0-52-gd7dea0e",
-			"Rev": "d7dea0e925315bab640115053204c16718839b1e"
+			"Comment": "v1.4.0-446-gae812bd",
+			"Rev": "ae812bdca78084dc322037225d170e1883521d87"
 		},
 		{
 			"ImportPath": "github.com/docker/libtrust",
@@ -677,83 +672,83 @@
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/api",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/container",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/events",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/fs",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/healthz",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/http",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/info/v1",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/info/v2",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/manager",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/metrics",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/pages",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/storage",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/summary",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/utils",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/validate",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/version",
-			"Comment": "0.11.0",
-			"Rev": "318252a107983f9d9fc109cc97f8140c37ec8233"
+			"Comment": "0.11.0-26-g417cd5e",
+			"Rev": "417cd5ead23d33eff717a41d3be80ea73bf307cd"
 		},
 		{
 			"ImportPath": "github.com/google/gofuzz",
@@ -917,6 +912,10 @@
 		{
 			"ImportPath": "github.com/stretchr/testify/mock",
 			"Rev": "e4ec8152c15fc46bd5056ce65997a07c7d415325"
+		},
+		{
+			"ImportPath": "github.com/syndtr/gocapability/capability",
+			"Rev": "8e4cdcb3c22b40d5e330ade0b68cb2e2a3cf6f98"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
