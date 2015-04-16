@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -199,4 +200,52 @@ func (r *Result) Watch(resourceVersion string) (watch.Interface, error) {
 		return info[0].Watch(resourceVersion)
 	}
 	return w.Watch(resourceVersion)
+}
+
+// AsVersionedObject converts a list of infos into a single object - either a List containing
+// the objects as children, or if only a single Object is present, as that object. The provided
+// version will be preferred as the conversion target, but the Object's mapping version will be
+// used if that version is not present.
+func AsVersionedObject(infos []*Info, version string) (runtime.Object, error) {
+	objects := []runtime.Object{}
+	for _, info := range infos {
+		if info.Object == nil {
+			continue
+		}
+		converted, err := tryConvert(info.Mapping.ObjectConvertor, info.Object, version, info.Mapping.APIVersion)
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, converted)
+	}
+	var object runtime.Object
+	if len(objects) == 1 {
+		object = objects[0]
+	} else {
+		object = &api.List{Items: objects}
+		converted, err := tryConvert(api.Scheme, object, version, latest.Version)
+		if err != nil {
+			return nil, err
+		}
+		object = converted
+	}
+	return object, nil
+}
+
+// tryConvert attempts to convert the given object to the provided versions in order. This function assumes
+// the object is in internal version.
+func tryConvert(convertor runtime.ObjectConvertor, object runtime.Object, versions ...string) (runtime.Object, error) {
+	var last error
+	for _, version := range versions {
+		if len(version) == 0 {
+			return object, nil
+		}
+		obj, err := convertor.ConvertToVersion(object, version)
+		if err != nil {
+			last = err
+			continue
+		}
+		return obj, nil
+	}
+	return nil, last
 }
