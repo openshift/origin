@@ -4,11 +4,7 @@
 
 .console-os {
   .wrap {
-    height: 100%;
-    .flex-display(@display: flex);
-    .flex-direction(@direction: column);
-    .flex(@columns: 1 0 auto);
-    min-height: 100%; // required for flex to extend on short content pages
+    // height: 100%; Removing this so angular content changes don't bork flex height, dunno why???
     .sidebar-left {
       background: @sidebar-os-bg;
       position:relative;
@@ -94,17 +90,38 @@
         }
       }
     }
+    .sidebar-right {
+      display: none;
+    }
+    &.show-sidebar-right {
+      .sidebar-right {
+        .sidebar-header {
+        }
+        h3 {
+          border-top: 1px solid darken(@page-header-border-color, 2%);
+          padding-top: @line-height-computed;
+          &:last-child {
+            border-top: 0;
+            padding-top: 0;
+          }
+        }
+        .dl-horizontal {
+          margin: 0 0 @line-height-computed;
+          dt {
+            text-align: left;
+          }
+          dd {
+            word-break: break-word;
+          }
+        }
+      }
+    }
   }
   &.show-drawer .wrap {
     .sidebar-left .navbar-sidebar ul.nav-sidenav > li .sidenav-secondary {
     }
     .sidebar-left .sidebar-drawer {
       background-color: @sidebar-os-drawer;
-    }
-  }
-  &.show-sidebar-right .wrap {
-    .sidebar-right {
-      
     }
   }
 }
@@ -114,7 +131,10 @@
 @media (min-width: @screen-sm-min) {
   .console-os {
     .wrap {
+      .flex-display(@display: flex);
+      .flex(@columns: 1 0 auto);
       .flex-direction(@direction: row);
+      min-height: 100%; // required for flex to extend on short content pages
       .sidebar-left {
         transition:@sidebar-os-transition;
         .flex(@columns: 0 0 @sidebar-left-width-sm);
@@ -176,10 +196,11 @@
           }
         }
       }
-      .sidebar-right {
-        //display: none;
-        .dl-horizontal dt {
-          text-align: left;
+      &.show-sidebar-right {
+        .sidebar-right {
+          display: block;
+          border-left: 1px solid @navbar-os-project-border-color;
+          .flex(@columns: 0 0 @sidebar-right-width-sm);
         }
       }
     }
@@ -213,11 +234,17 @@
         }
       }
     }
-    &.show-sidebar-right .wrap {
-      .sidebar-right {
-        display: block;
-        border-left: 1px solid @navbar-os-project-border-color;
-        .flex(@columns: 0 0 @sidebar-right-width-sm);
+  }
+}
+
+@media (min-width: @screen-sm-min) and (max-width: @screen-md-max) {
+  .sidebar-right {
+    .dl-horizontal {
+      dt {
+        float: none;
+      }
+      dd {
+        margin-left: 0;
       }
     }
   }
@@ -243,6 +270,11 @@
           }
         }
       }
+      &.show-sidebar-right {
+        .sidebar-right {
+          .flex(@columns: 0 0 @sidebar-right-width-md);
+        }
+      }
     }
     &.show-drawer .wrap {
       .sidebar-left {
@@ -255,11 +287,6 @@
       }
       .sidebar-left .sidebar-drawer {
         width: @sidebar-left-width-open-md;
-      }
-    }
-    &.show-sidebar-right .wrap {
-      .sidebar-right {
-        .flex(@columns: 0 0 @sidebar-right-width-md);
       }
     }
   }
@@ -292,6 +319,11 @@
           }
         }
       }
+      &.show-sidebar-right {
+        .sidebar-right {
+          .flex(@columns: 0 0 @sidebar-right-width-lg);
+        }
+      }
     }
     &.show-drawer .wrap {
       .sidebar-left {
@@ -303,11 +335,6 @@
       }
       .sidebar-left .sidebar-drawer {
         width: @sidebar-left-width-open-lg;
-      }
-    }
-    &.show-sidebar-right .wrap {
-      .sidebar-right {
-        .flex(@columns: 0 0 @sidebar-right-width-lg);
       }
     }
   }
