@@ -2,11 +2,14 @@ package dockerfile
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"regexp"
 	"strings"
 	"unicode"
+
+	dparser "github.com/docker/docker/builder/parser"
 )
 
 type dockerfile [][]string
@@ -30,6 +33,17 @@ type Dockerfile interface {
 
 // Parse parses an input Dockerfile
 func (_ *parser) Parse(input io.Reader) (Dockerfile, error) {
+	buf := bufio.NewReader(input)
+	bts, err := buf.Peek(buf.Buffered())
+	if err != nil {
+		return nil, err
+	}
+	parsedByDocker := bytes.NewBuffer(bts)
+	// Add one more level of validation by using the Docker parser
+	if _, err := dparser.Parse(parsedByDocker); err != nil {
+		return nil, fmt.Errorf("cannot parse Dockerfile: %v", err)
+	}
+
 	d := dockerfile{}
 	scanner := bufio.NewScanner(input)
 	for {
