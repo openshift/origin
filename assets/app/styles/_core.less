@@ -138,11 +138,6 @@ html, body {
   }
 }
 
-.dl-horizontal.left dt {
-  text-align: left;
-  font-weight: normal;
-}
-
 
 // Create App
 // --------------------------------------------------
@@ -273,15 +268,28 @@ html, body {
     margin-right: 5px;
   }
 }
+
 .btn-xs {
   padding: 0 4px;
 }
 .btn-lg, .btn-group-lg > .btn {
   line-height: 1.334; // needed to make same height as inputs 
 }
+
 code {
   white-space: normal;
 }
+
+.dl-horizontal.left dt {
+  text-align: left;
+  font-weight: normal;
+}
+.dl-horizontal {
+  dd {
+    &:extend(.clearfix all); // Including this here because it's not being set even though it's in /bootstrap/less/type.less dunno why?
+  }
+}
+
 .gutter-top-bottom {
   padding: @grid-gutter-width / 2 0;
   &.gutter-top-bottom-2x {
@@ -300,14 +308,17 @@ code {
     padding-bottom: @grid-gutter-width;
   }
 }
+
 select:invalid {
     box-shadow: none;
 }
+
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .well > {
   h1, h2, h3, h4, h5 {
     &:first-child {

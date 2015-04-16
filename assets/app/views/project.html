@@ -2,8 +2,10 @@
   <project-page>
     <div ng-controller="OverviewController">
       <tasks></tasks>
-      <h1>Project {{project.displayName || project.metadata.name}}</h1>
-      <div class="small muted" style="margin-top: -5px; margin-bottom: 20px" ng-if="project | description">{{project | description}}</div>
+      <div class="page-header page-header-bleed-right">
+        <h1>Project {{project.displayName || project.metadata.name}}</h1>
+        <div class="small muted" style="margin-top: -5px; margin-bottom: 20px" ng-if="project | description">{{project | description}}</div>
+      </div>
       <!-- TODO handle things that don't live under services -->
       <alerts alerts="alerts"></alerts>
       <div ng-if="(services | hashSize) == 0">
