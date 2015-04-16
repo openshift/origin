@@ -275,6 +275,9 @@ type GoogleIdentityProvider struct {
 	ClientID string `json:"clientID"`
 	// ClientSecret is the oauth client secret
 	ClientSecret string `json:"clientSecret"`
+
+	// HostedDomain is the optional Google App domain (e.g. "mycompany.com") to restrict logins to
+	HostedDomain string `json:"hostedDomain"`
 }
 
 type OpenIDIdentityProvider struct {
@@ -291,6 +294,9 @@ type OpenIDIdentityProvider struct {
 
 	// ExtraScopes are any scopes to request in addition to the standard "openid" scope.
 	ExtraScopes []string `json:"extraScopes"`
+
+	// ExtraAuthorizeParameters are any custom parameters to add to the authorize request.
+	ExtraAuthorizeParameters map[string]string `json:"extraAuthorizeParameters"`
 
 	// URLs to use to authenticate
 	URLs OpenIDURLs `json:"urls"`

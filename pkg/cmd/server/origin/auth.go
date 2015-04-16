@@ -391,7 +391,7 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 		return github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret), nil
 
 	case (*configapi.GoogleIdentityProvider):
-		return google.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret)
+		return google.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret, provider.HostedDomain)
 
 	case (*configapi.OpenIDIdentityProvider):
 		transport, err := cmdutil.TransportFor(provider.CA, "", "")
@@ -409,6 +409,8 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 			ClientSecret: provider.ClientSecret,
 
 			Scopes: scopes.List(),
+
+			ExtraAuthorizeParameters: provider.ExtraAuthorizeParameters,
 
 			AuthorizeURL: provider.URLs.Authorize,
 			TokenURL:     provider.URLs.Token,
