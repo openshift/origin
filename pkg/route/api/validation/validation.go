@@ -7,6 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
+	"fmt"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
@@ -49,8 +50,9 @@ func validateTLS(tls *routeapi.TLSConfig) fielderrors.ValidationErrorList {
 		return nil
 	}
 
+	switch tls.Termination {
 	//reencrypt must specify cert, key, cacert, and destination ca cert
-	if tls.Termination == routeapi.TLSTerminationReencrypt {
+	case routeapi.TLSTerminationReencrypt:
 		if len(tls.Certificate) == 0 {
 			result = append(result, fielderrors.NewFieldRequired("certificate"))
 		}
@@ -66,10 +68,8 @@ func validateTLS(tls *routeapi.TLSConfig) fielderrors.ValidationErrorList {
 		if len(tls.DestinationCACertificate) == 0 {
 			result = append(result, fielderrors.NewFieldRequired("destinationCACertificate"))
 		}
-	}
-
 	//passthrough term should not specify any cert
-	if tls.Termination == routeapi.TLSTerminationPassthrough {
+	case routeapi.TLSTerminationPassthrough:
 		if len(tls.Certificate) > 0 {
 			result = append(result, fielderrors.NewFieldInvalid("certificate", tls.Certificate, "passthrough termination does not support certificates"))
 		}
@@ -85,10 +85,8 @@ func validateTLS(tls *routeapi.TLSConfig) fielderrors.ValidationErrorList {
 		if len(tls.DestinationCACertificate) > 0 {
 			result = append(result, fielderrors.NewFieldInvalid("destinationCACertificate", tls.DestinationCACertificate, "passthrough termination does not support certificates"))
 		}
-	}
-
 	//edge cert should specify cert, key, and cacert
-	if tls.Termination == routeapi.TLSTerminationEdge {
+	case routeapi.TLSTerminationEdge:
 		if len(tls.Certificate) == 0 {
 			result = append(result, fielderrors.NewFieldRequired("certificate"))
 		}
@@ -104,7 +102,9 @@ func validateTLS(tls *routeapi.TLSConfig) fielderrors.ValidationErrorList {
 		if len(tls.DestinationCACertificate) > 0 {
 			result = append(result, fielderrors.NewFieldInvalid("destinationCACertificate", tls.DestinationCACertificate, "edge termination does not support destination certificates"))
 		}
+	default:
+		msg := fmt.Sprintf("invalid value for termination, acceptable values are %s, %s, %s, or emtpy (no tls specified)", routeapi.TLSTerminationEdge, routeapi.TLSTerminationPassthrough, routeapi.TLSTerminationReencrypt)
+		result = append(result, fielderrors.NewFieldInvalid("termination", tls.Termination, msg))
 	}
-
 	return result
 }
