@@ -14,6 +14,10 @@ import (
 func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
+	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
+		allErrs = append(allErrs, urlErrs...)
+	}
+
 	if config.AssetConfig != nil {
 		allErrs = append(allErrs, ValidateAssetConfig(config.AssetConfig).Prefix("assetConfig")...)
 		colocated := config.AssetConfig.ServingInfo.BindAddress == config.ServingInfo.BindAddress
@@ -113,6 +117,10 @@ func ValidateAssetConfig(config *api.AssetConfig) fielderrors.ValidationErrorLis
 		if !strings.HasSuffix(urlObj.Path, "/") {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("publicURL", config.PublicURL, "must have a trailing slash in path"))
 		}
+	}
+
+	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
+		allErrs = append(allErrs, urlErrs...)
 	}
 
 	return allErrs

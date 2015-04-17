@@ -51,10 +51,14 @@ type MasterConfig struct {
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string
 
+	// MasterPublicURL is how clients can access the OpenShift API server
+	MasterPublicURL string
+
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the
 	// backing store for the cluster.
 	EtcdStorageConfig EtcdStorageConfig
+
 	// EtcdClientInfo contains information about how to connect to etcd
 	EtcdClientInfo EtcdConnectionInfo
 

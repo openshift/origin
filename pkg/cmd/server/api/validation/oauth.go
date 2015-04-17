@@ -18,8 +18,8 @@ func ValidateOAuthConfig(config *api.OAuthConfig) fielderrors.ValidationErrorLis
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("masterURL"))
 	}
 
-	if len(config.MasterPublicURL) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("masterPublicURL"))
+	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
+		allErrs = append(allErrs, urlErrs...)
 	}
 
 	if len(config.AssetPublicURL) == 0 {
