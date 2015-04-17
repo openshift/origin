@@ -243,6 +243,9 @@ echo "templates: ok"
 [ "$(openshift cli get 2>&1 | grep 'you must provide one or more resources')" ]
 [ "$(openshift kubectl get 2>&1 | grep 'you must provide one or more resources')" ]
 
+# commands that expect file paths must validate and error out correctly
+[ "$(osc login --certificate-authority=/path/to/invalid 2>&1 | grep 'no such file or directory')" ]
+
 osc get pods --match-server-version
 osc create -f examples/hello-openshift/hello-pod.json
 osc describe pod hello-openshift

@@ -91,14 +91,12 @@ func (o *LoginOptions) gatherServerInfo() error {
 	}
 
 	// we know the server we are expected to use
-
 	clientCfg, err := o.ClientConfig.ClientConfig()
 	if err != nil {
 		return err
 	}
 
 	// ping to check if server is reachable
-
 	osClient, err := client.New(clientCfg)
 	if err != nil {
 		return err
@@ -117,6 +115,8 @@ func (o *LoginOptions) gatherServerInfo() error {
 				return fmt.Errorf(clientcmd.GetPrettyMessageFor(result.Error()))
 			}
 			fmt.Println()
+		} else {
+			return result.Error()
 		}
 	}
 
