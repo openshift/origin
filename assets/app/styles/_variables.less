@@ -4,6 +4,7 @@
 
 // Patternfly overrides
 @navbar-pf-bg-color: @navbar-os-bg-color;
+@sidebar-pf-bg: @body-bg;
 
 
 // OpenShift Console specific
@@ -15,7 +16,7 @@
 @font-size-base: 13px;
 @navbar-os-bg-color: #34383c;
 @navbar-os-label-filter-bg: @navbar-os-project-menu-bg;
-@navbar-os-project-bg: #f1f1f1;
+@navbar-os-project-bg: #eee;
 @navbar-os-project-border-color: darken(@navbar-os-project-bg, 8%);
 @navbar-project-label-color: lighten(@navbar-os-project-menu-color, 10%);
 @navbar-os-project-menu-bg: #fff;
@@ -50,7 +51,8 @@
 
 
 // Bootstrap overrides
-@body-bg: #f8f8f8;
+@body-bg: #f6f6f6;
+@page-header-border-color: lighten(@navbar-os-project-border-color, 6%);
 
 @font-size-h1: ceil(@font-size-base * 1.84); // ~24px
 @font-size-h2: ceil(@font-size-base * 1.4); // ~19px

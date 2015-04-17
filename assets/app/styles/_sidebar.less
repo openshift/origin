@@ -96,6 +96,7 @@
     &.show-sidebar-right {
       .sidebar-right {
         .sidebar-header {
+          border-color: @page-header-border-color;
         }
         h3 {
           border-top: 1px solid darken(@page-header-border-color, 2%);
@@ -111,7 +112,7 @@
             text-align: left;
           }
           dd {
-            word-break: break-word;
+            .word-break();
           }
         }
       }
@@ -238,13 +239,20 @@
 }
 
 @media (min-width: @screen-sm-min) and (max-width: @screen-md-max) {
-  .sidebar-right {
-    .dl-horizontal {
-      dt {
-        float: none;
-      }
-      dd {
-        margin-left: 0;
+  .console-os {
+    .wrap {
+      &.show-sidebar-right {
+        .sidebar-right {
+          .dl-horizontal {
+            dt {
+              float: none;
+            }
+            dd {
+              margin-left: 0;
+              margin-bottom: (@line-height-computed / 2);
+            }
+          }
+        }
       }
     }
   }
