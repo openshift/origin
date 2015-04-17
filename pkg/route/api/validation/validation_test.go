@@ -228,3 +228,13 @@ func TestValidateReencryptTermInvalid(t *testing.T) {
 		t.Errorf("Unexpected error list encountered: %#v.  Expected 4 errors, got %v", errs, len(errs))
 	}
 }
+
+func TestValidateTLSInvalidTermination(t *testing.T) {
+	errs := validateTLS(&api.TLSConfig{
+		Termination: "invalid",
+	})
+
+	if len(errs) != 1 {
+		t.Errorf("Unexpected error list encountered: %#v.  Expected 1 errors, got %v", errs, len(errs))
+	}
+}

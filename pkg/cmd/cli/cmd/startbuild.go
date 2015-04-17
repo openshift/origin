@@ -31,6 +31,7 @@ Examples:
 	$ %[1]s start-build 3bd2ug53b --follow
 `
 
+// NewCmdStartBuild implements the OpenShift cli start-build command
 func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start-build (<buildConfig>|--from-build=<build>)",
@@ -46,6 +47,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	return cmd
 }
 
+// RunStartBuild contains all the necessary functionality for the OpenShift cli start-build command
 func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	buildName := cmdutil.GetFlagString(cmd, "from-build")
 	follow := cmdutil.GetFlagBool(cmd, "follow")

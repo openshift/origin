@@ -22,6 +22,7 @@ type NamespaceController struct {
 // fatalError is an error which can't be retried.
 type fatalError string
 
+// Error implements the interface for errors
 func (e fatalError) Error() string { return "fatal error handling namespace: " + string(e) }
 
 // Handle processes a namespace and deletes content in origin if its terminating

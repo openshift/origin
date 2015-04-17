@@ -46,6 +46,8 @@ func (c *genericDeploymentDescriberClient) listPods(namespace string, selector l
 	return c.listPodsFunc(namespace, selector)
 }
 
+// NewDeploymentConfigDescriberForConfig returns a new DeploymentConfigDescriber
+// for a DeploymentConfig
 func NewDeploymentConfigDescriberForConfig(config *deployapi.DeploymentConfig) *DeploymentConfigDescriber {
 	return &DeploymentConfigDescriber{
 		client: &genericDeploymentDescriberClient{
@@ -62,6 +64,7 @@ func NewDeploymentConfigDescriberForConfig(config *deployapi.DeploymentConfig) *
 	}
 }
 
+// NewDeploymentConfigDescriber returns a new DeploymentConfigDescriber
 func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Interface) *DeploymentConfigDescriber {
 	return &DeploymentConfigDescriber{
 		client: &genericDeploymentDescriberClient{
@@ -78,6 +81,7 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 	}
 }
 
+// Describe returns a description of a DeploymentConfigDescriber
 func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, error) {
 	deploymentConfig, err := d.client.getDeploymentConfig(namespace, name)
 	if err != nil {
@@ -235,6 +239,7 @@ type DeploymentDescriber struct {
 	client.Interface
 }
 
+// Describe returns a description of a DeploymentDescriber
 func (d *DeploymentDescriber) Describe(namespace, name string) (string, error) {
 	c := d.Deployments(namespace)
 	deployment, err := c.Get(name)

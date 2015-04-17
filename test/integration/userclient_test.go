@@ -14,6 +14,7 @@ import (
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/user/api"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
@@ -78,9 +79,14 @@ func TestUserInitialization(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(masterConfig.EtcdClientInfo)
+	etcdClient, err := etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	etcdHelper, err := origin.NewEtcdHelper(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	userRegistry := userregistry.NewRegistry(useretcd.NewREST(etcdHelper))

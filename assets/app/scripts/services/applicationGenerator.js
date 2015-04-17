@@ -93,10 +93,7 @@ angular.module("openshiftConsole")
           name: name,
           labels: input.labels
         },
-        serviceName: serviceName,
-        tls: {
-          termination: "unsecure"
-        }
+        serviceName: serviceName
       };
     };
     

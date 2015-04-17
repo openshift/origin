@@ -12,6 +12,7 @@ import (
 	_ "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/api/v1beta1"
+	"github.com/openshift/origin/pkg/api/v1beta2"
 )
 
 // Version is the string that represents the current external default version.
@@ -25,7 +26,7 @@ const OldestVersion = "v1beta1"
 // may be assumed to be least feature rich to most feature rich, and clients may
 // choose to prefer the latter items in the list over the former items when presented
 // with a set of versions to choose.
-var Versions = []string{"v1beta1"}
+var Versions = []string{"v1beta1", "v1beta2"}
 
 // Codec is the default codec for serializing output that should use
 // the latest supported version.  Use this Codec when writing to
@@ -58,6 +59,12 @@ func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 	case "v1beta1":
 		return &kmeta.VersionInterfaces{
 			Codec:            v1beta1.Codec,
+			ObjectConvertor:  api.Scheme,
+			MetadataAccessor: accessor,
+		}, nil
+	case "v1beta2":
+		return &kmeta.VersionInterfaces{
+			Codec:            v1beta2.Codec,
 			ObjectConvertor:  api.Scheme,
 			MetadataAccessor: accessor,
 		}, nil
@@ -117,6 +124,7 @@ func init() {
 	// backwards compatibility, prior to v1beta2, we identified the namespace as a query parameter
 	versionToNamespaceScope := map[string]kmeta.RESTScope{
 		"v1beta1": kmeta.RESTScopeNamespaceLegacy,
+		"v1beta2": kmeta.RESTScopeNamespace,
 	}
 
 	// the list of kinds that are scoped at the root of the api hierarchy
@@ -141,7 +149,10 @@ func init() {
 			if !found {
 				mixedCase = false
 			}
-			scope := versionToNamespaceScope[version]
+			scope, found := versionToNamespaceScope[version]
+			if !found {
+				panic(fmt.Sprintf("no scope defined for %s", version))
+			}
 			_, found = kindToRootScope[kind]
 			if found {
 				scope = kmeta.RESTScopeRoot

@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
+// ServiceRetriever is an interface for retrieving services
 type ServiceRetriever interface {
 	Get(name string) (*api.Service, error)
 }
@@ -19,14 +20,17 @@ type serviceEntry struct {
 	port string
 }
 
+// ResolverCacheFunc is used for resolving names to services
 type ResolverCacheFunc func(name string) (*api.Service, error)
 
+// ServiceResolverCache is a cache used for resolving names to services
 type ServiceResolverCache struct {
 	fill  ResolverCacheFunc
 	cache map[string]serviceEntry
 	lock  sync.RWMutex
 }
 
+// NewServiceResolverCache returns a new ServiceResolverCache
 func NewServiceResolverCache(fill ResolverCacheFunc) *ServiceResolverCache {
 	return &ServiceResolverCache{
 		cache: make(map[string]serviceEntry),

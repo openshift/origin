@@ -46,6 +46,10 @@ type MasterConfig struct {
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string `json:"corsAllowedOrigins"`
 
+	// EtcdStorageConfig contains information about how API resources are
+	// stored in Etcd. These values are only relevant when etcd is the
+	// backing store for the cluster.
+	EtcdStorageConfig EtcdStorageConfig `json:"etcdStorageConfig"`
 	// EtcdClientInfo contains information about how to connect to etcd
 	EtcdClientInfo EtcdConnectionInfo `json:"etcdClientInfo"`
 	// KubeletClientInfo contains information about how to connect to kubelets
@@ -57,7 +61,7 @@ type MasterConfig struct {
 	EtcdConfig *EtcdConfig `json:"etcdConfig"`
 	// OAuthConfig, if present start the /oauth endpoint in this process
 	OAuthConfig *OAuthConfig `json:"oauthConfig"`
-	// AssetConfig, if present start the asset serverin this process
+	// AssetConfig, if present start the asset server in this process
 	AssetConfig *AssetConfig `json:"assetConfig"`
 	// DNSConfig, if present start the DNS server in this process
 	DNSConfig *DNSConfig `json:"dnsConfig"`
@@ -113,6 +117,17 @@ type EtcdConnectionInfo struct {
 	// CertInfo is the TLS client cert information for securing communication to etcd
 	// this is anonymous so that we can inline it for serialization
 	CertInfo `json:",inline"`
+}
+
+type EtcdStorageConfig struct {
+	// KubernetesStorageVersion is the API version that Kube resources in etcd should be
+	// serialized to. This value should *not* be advanced until all clients in the
+	// cluster that read from etcd have code that allows them to read the new version.
+	KubernetesStorageVersion string `json:"kubernetesStorageVersion"`
+	// OpenShiftStorageVersion is the API version that OS resources in etcd should be
+	// serialized to. This value should *not* be advanced until all clients in the
+	// cluster that read from etcd have code that allows them to read the new version.
+	OpenShiftStorageVersion string `json:"openShiftStorageVersion"`
 }
 
 type ServingInfo struct {

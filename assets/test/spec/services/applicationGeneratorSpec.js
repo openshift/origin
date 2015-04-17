@@ -128,10 +128,7 @@ describe("ApplicationGenerator", function(){
             "abc" : "xyz"
           }
         },
-        serviceName: "theServiceName",
-        tls: {
-          termination: "unsecure"
-        }
+        serviceName: "theServiceName"
       });
     });
   });

@@ -14,15 +14,11 @@ const (
 	OpenShiftConfigHomeDir         = ".config/openshift"
 	OpenShiftConfigHomeFileName    = ".config"
 	OpenShiftConfigHomeDirFileName = OpenShiftConfigHomeDir + "/" + OpenShiftConfigHomeFileName
-
-	KubeConfigPathEnvVar = clientcmd.RecommendedConfigPathEnvVar
-	KubeConfigFileName   = ".kubeconfig"
-	KubeConfigHomeDir    = ".kube"
 )
 
 // Set up the rules and priorities for loading config files.
 func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules {
-	return &clientcmd.ClientConfigLoadingRules{Precedence: FullClientConfigFilePriority()}
+	return &clientcmd.ClientConfigLoadingRules{Precedence: OpenShiftClientConfigFilePriority()}
 }
 
 // File priority loading rules for OpenShift.
@@ -35,20 +31,4 @@ func OpenShiftClientConfigFilePriority() []string {
 		OpenShiftConfigFileName,
 		path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName),
 	}
-}
-
-// File priority loading rules for Kube.
-// 1. KUBECONFIG env var
-// 2. .kubeconfig file in current directory
-// 3. ~/.kube/.kubeconfig file
-func KubeClientConfigFilePriority() []string {
-	return []string{
-		os.Getenv(KubeConfigPathEnvVar),
-		KubeConfigFileName,
-		path.Join(os.Getenv("HOME"), KubeConfigHomeDir, KubeConfigFileName),
-	}
-}
-
-func FullClientConfigFilePriority() []string {
-	return append(OpenShiftClientConfigFilePriority(), KubeClientConfigFilePriority()...)
 }

@@ -151,7 +151,7 @@ func (r *templateRouter) FindServiceUnit(id string) (v ServiceUnit, ok bool) {
 	return
 }
 
-// DeleteFrontend deletes the service with the given id.
+// DeleteServiceUnit deletes the service with the given id.
 func (r *templateRouter) DeleteServiceUnit(id string) {
 	delete(r.state, id)
 }

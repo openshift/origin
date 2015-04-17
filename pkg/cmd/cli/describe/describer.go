@@ -28,6 +28,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
+// DescriberFor returns a describer for a given kind of resource
 func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
 	switch kind {
 	case "Build":
@@ -77,6 +78,7 @@ type BuildDescriber struct {
 	client.Interface
 }
 
+// DescribeUser formats the description of a user
 func (d *BuildDescriber) DescribeUser(out *tabwriter.Writer, label string, u buildapi.SourceControlUser) {
 	if len(u.Name) > 0 && len(u.Email) > 0 {
 		formatString(out, label, fmt.Sprintf("%s <%s>", u.Name, u.Email))
@@ -91,6 +93,7 @@ func (d *BuildDescriber) DescribeUser(out *tabwriter.Writer, label string, u bui
 	}
 }
 
+// Describe returns the description of a build
 func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 	c := d.Builds(namespace)
 	build, err := c.Get(name)
@@ -258,6 +261,7 @@ func (s sortableBuilds) Swap(i, j int) {
 	s[j] = t
 }
 
+// Describe returns the description of a buildConfig
 func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) {
 	c := d.BuildConfigs(namespace)
 	buildConfig, err := c.Get(name)
@@ -304,6 +308,7 @@ type BuildLogDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of a buildLog
 func (d *BuildLogDescriber) Describe(namespace, name string) (string, error) {
 	return fmt.Sprintf("Name: %s/%s, Labels:", namespace, name), nil
 }
@@ -313,6 +318,7 @@ type ImageDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of an image
 func (d *ImageDescriber) Describe(namespace, name string) (string, error) {
 	c := d.Images()
 	image, err := c.Get(name)
@@ -336,6 +342,7 @@ type ImageStreamTagDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of an imageStreamTag
 func (d *ImageStreamTagDescriber) Describe(namespace, name string) (string, error) {
 	c := d.ImageStreamTags(namespace)
 	repo, tag := parsers.ParseRepositoryTag(name)
@@ -356,6 +363,7 @@ type ImageStreamImageDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of an imageStreamImage
 func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, error) {
 	c := d.ImageStreamImages(namespace)
 	repo, id := parsers.ParseRepositoryTag(name)
@@ -372,6 +380,7 @@ type ImageStreamDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of an imageStream
 func (d *ImageStreamDescriber) Describe(namespace, name string) (string, error) {
 	c := d.ImageStreams(namespace)
 	imageStream, err := c.Get(name)
@@ -392,6 +401,7 @@ type RouteDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of a route
 func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 	c := d.Routes(namespace)
 	route, err := c.Get(name)
@@ -413,6 +423,7 @@ type ProjectDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of a project
 func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 	c := d.Projects()
 	project, err := c.Get(name)
@@ -433,6 +444,7 @@ type PolicyDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of a policy
 // TODO make something a lot prettier
 func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
 	c := d.Policies(namespace)
@@ -484,6 +496,7 @@ type RoleDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of a role
 func (d *RoleDescriber) Describe(namespace, name string) (string, error) {
 	c := d.Roles(namespace)
 	role, err := c.Get(name)
@@ -509,6 +522,7 @@ type PolicyBindingDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of a policyBinding
 func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error) {
 	c := d.PolicyBindings(namespace)
 	policyBinding, err := c.Get(name)
@@ -539,6 +553,7 @@ type RoleBindingDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of a roleBinding
 func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) {
 	c := d.RoleBindings(namespace)
 	roleBinding, err := c.Get(name)
@@ -599,6 +614,7 @@ type TemplateDescriber struct {
 	DescribeObject func(obj runtime.Object, out *tabwriter.Writer) (bool, error)
 }
 
+// DescribeParameters prints out information about the parameters of a template
 func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, out *tabwriter.Writer) {
 	formatString(out, "Parameters", " ")
 	indent := "    "
@@ -621,6 +637,7 @@ func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, o
 	}
 }
 
+// DescribeObjects prints out information about the objects of a template
 func (d *TemplateDescriber) DescribeObjects(objects []runtime.Object, out *tabwriter.Writer) {
 	formatString(out, "Objects", " ")
 	indent := "    "
@@ -645,6 +662,7 @@ func (d *TemplateDescriber) DescribeObjects(objects []runtime.Object, out *tabwr
 	}
 }
 
+// Describe returns the description of a template
 func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
 	c := d.Templates(namespace)
 	template, err := c.Get(name)
@@ -671,6 +689,7 @@ type IdentityDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of an identity
 func (d *IdentityDescriber) Describe(namespace, name string) (string, error) {
 	userClient := d.Users()
 	identityClient := d.Identities()
@@ -718,6 +737,7 @@ type UserIdentityMappingDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of a userIdentity
 func (d *UserIdentityMappingDescriber) Describe(namespace, name string) (string, error) {
 	c := d.UserIdentityMappings()
 
@@ -740,6 +760,7 @@ type UserDescriber struct {
 	client.Interface
 }
 
+// Describe returns the description of a user
 func (d *UserDescriber) Describe(namespace, name string) (string, error) {
 	userClient := d.Users()
 	identityClient := d.Identities()

@@ -2,11 +2,26 @@ package v1
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+
 	newer "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 func init() {
-	err := newer.Scheme.AddConversionFuncs(
+	err := newer.Scheme.AddDefaultingFuncs(
+		func(obj *EtcdStorageConfig) {
+			if len(obj.KubernetesStorageVersion) == 0 {
+				obj.KubernetesStorageVersion = "v1beta3"
+			}
+			if len(obj.OpenShiftStorageVersion) == 0 {
+				obj.OpenShiftStorageVersion = "v1beta1"
+			}
+		},
+	)
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+	err = newer.Scheme.AddConversionFuncs(
 		func(in *ServingInfo, out *newer.ServingInfo, s conversion.Scope) error {
 			out.BindAddress = in.BindAddress
 			out.ClientCA = in.ClientCA

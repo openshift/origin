@@ -22,6 +22,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+// AppConfig contains all the necessary configuration for an application
 type AppConfig struct {
 	SourceRepositories util.StringList
 
@@ -42,6 +43,7 @@ type AppConfig struct {
 	typer runtime.ObjectTyper
 }
 
+// UsageError is an interface for printing usage errors
 type UsageError interface {
 	UsageError(commandName string) string
 }
@@ -51,6 +53,7 @@ type errlist interface {
 	Errors() []error
 }
 
+// NewAppConfig returns a new AppConfig
 func NewAppConfig(typer runtime.ObjectTyper) *AppConfig {
 	dockerResolver := app.DockerRegistryResolver{dockerregistry.NewClient()}
 	return &AppConfig{
@@ -64,6 +67,7 @@ func NewAppConfig(typer runtime.ObjectTyper) *AppConfig {
 	}
 }
 
+// SetDockerClient sets the passed Docker client in the application configuration
 func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 	c.dockerResolver = app.DockerClientResolver{
 		Client: dockerclient,
@@ -72,6 +76,7 @@ func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 	}
 }
 
+// SetOpenShiftClient sets the passed OpenShift client in the application configuration
 func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespace string) {
 	c.imageStreamResolver = app.ImageStreamResolver{
 		Client:            osclient,
@@ -80,7 +85,7 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespac
 	}
 }
 
-// addArguments converts command line arguments into the appropriate bucket based on what they look like
+// AddArguments converts command line arguments into the appropriate bucket based on what they look like
 func (c *AppConfig) AddArguments(args []string) []string {
 	unknown := []string{}
 	for _, s := range args {
@@ -319,8 +324,10 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 	return pipelines, nil
 }
 
+// ErrNoInputs is returned when no inputs are specified
 var ErrNoInputs = fmt.Errorf("no inputs provided")
 
+// AppResult contains the results of an application
 type AppResult struct {
 	List *kapi.List
 
@@ -417,6 +424,8 @@ func (s *simpleSearcher) Search(terms []string) ([]*app.ComponentMatch, error) {
 
 type mockSearcher struct{}
 
+// Search takes the first term if it exists and tries to match it to one
+// of the known builder images. This is a mock function.
 func (mockSearcher) Search(terms []string) ([]*app.ComponentMatch, error) {
 	for _, term := range terms {
 		term = strings.ToLower(term)

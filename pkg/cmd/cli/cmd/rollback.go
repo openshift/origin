@@ -42,6 +42,7 @@ Examples:
 	$ %[1]s rollback deployment-1 --output=json | %[1]s update deploymentConfigs deployment -f -
 `
 
+// NewCmdRollback implements the OpenShift cli rollback command
 func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	rollback := &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
@@ -69,6 +70,7 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	return cmd
 }
 
+// RunRollback contains all the necessary functionality for OpenShift cli rollback command
 func RunRollback(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, rollback *deployapi.DeploymentConfigRollback) error {
 	if len(args) == 0 || len(args[0]) == 0 {
 		return cmdutil.UsageError(cmd, "A deployment name is required.")

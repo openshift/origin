@@ -34,7 +34,11 @@ type AuthConfig struct {
 }
 
 func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
-	etcdHelper, err := etcd.NewOpenShiftEtcdHelper(options.EtcdClientInfo)
+	client, err := etcd.GetAndTestEtcdClient(options.EtcdClientInfo)
+	if err != nil {
+		return nil, err
+	}
+	etcdHelper, err := NewEtcdHelper(client, options.EtcdStorageConfig.OpenShiftStorageVersion)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}

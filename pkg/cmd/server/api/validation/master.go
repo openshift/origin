@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"net"
 	"net/url"
 	"strings"
@@ -55,6 +56,7 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 		// Validate the etcdClientInfo by itself
 		allErrs = append(allErrs, ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil).Prefix("etcdClientInfo")...)
 	}
+	allErrs = append(allErrs, ValidateEtcdStorageConfig(config.EtcdStorageConfig).Prefix("etcdStorageConfig")...)
 
 	allErrs = append(allErrs, ValidateImageConfig(config.ImageConfig).Prefix("imageConfig")...)
 
@@ -74,6 +76,19 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 	}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+
+	return allErrs
+}
+
+func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(config.KubernetesStorageVersion) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("kubernetesStorageVersion"))
+	}
+	if len(config.OpenShiftStorageVersion) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("openShiftStorageVersion"))
+	}
 
 	return allErrs
 }
@@ -142,6 +157,12 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) fielderr
 
 	if len(config.SchedulerConfigFile) > 0 {
 		allErrs = append(allErrs, ValidateFile(config.SchedulerConfigFile, "schedulerConfigFile")...)
+	}
+
+	for i, nodeName := range config.StaticNodeNames {
+		if len(nodeName) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("staticNodeName[%d]", i), nodeName, "may not be empty"))
+		}
 	}
 
 	return allErrs
