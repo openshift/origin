@@ -1,4 +1,4 @@
-package util
+package clientcmd
 
 import (
 	"github.com/spf13/pflag"
