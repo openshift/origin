@@ -72,7 +72,7 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
         $ vagrant ssh
 
-6.  Run a build (ssh puts you into the correct origin directory):
+6.  Run a build:
 
         $ cd /data/src/github.com/openshift/origin
         $ hack/build-go.sh
