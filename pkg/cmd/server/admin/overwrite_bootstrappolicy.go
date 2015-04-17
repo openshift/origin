@@ -23,7 +23,8 @@ import (
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
-	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
+	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
+	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	configvalidation "github.com/openshift/origin/pkg/cmd/server/api/validation"
@@ -131,8 +132,8 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 
 	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(etcdHelper))
 	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(etcdHelper))
-	roleRegistry := roleregistry.NewVirtualRegistry(policyRegistry)
-	roleBindingRegistry := rolebindingregistry.NewVirtualRegistry(policyBindingRegistry, policyRegistry, masterNamespace)
+	roleRegistry := roleregistry.NewRegistry(rolestorage.NewVirtualStorage(policyRegistry))
+	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyRegistry, policyBindingRegistry, masterNamespace)
 
 	return r.Visit(func(info *resource.Info) error {
 		template, ok := info.Object.(*templateapi.Template)
@@ -146,7 +147,7 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
 				if change {
 					roleRegistry.DeleteRole(ctx, t.Name)
-					if err := roleRegistry.CreateRole(ctx, t); err != nil {
+					if _, err := roleRegistry.CreateRole(ctx, t); err != nil {
 						return err
 					}
 				} else {
@@ -158,8 +159,8 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 			case *authorizationapi.RoleBinding:
 				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
 				if change {
-					roleBindingRegistry.DeleteRoleBinding(ctx, t.Name)
-					if err := roleBindingRegistry.CreateRoleBinding(ctx, t, true); err != nil {
+					roleBindingStorage.Delete(ctx, t.Name, nil)
+					if _, err := roleBindingStorage.CreateRoleBindingWithEscalation(ctx, t); err != nil {
 						return err
 					}
 				} else {
