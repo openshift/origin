@@ -170,7 +170,7 @@ Management Console
 
 The OpenShift API server also hosts the web-based management console. You can try out the management console at [http://localhost:8443/console](http://localhost:8443/console).
 
-For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/using_openshift/console.html).
+For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/dev_guide/console.html).
 
 ![Management console overview](docs/screenshots/console_overview.png?raw=true)
 
