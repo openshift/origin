@@ -363,3 +363,16 @@ type BuildRequest struct {
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty"`
 }
+
+// BuildLogOptions is the REST options for a build log
+type BuildLogOptions struct {
+	kapi.TypeMeta
+
+	// Follow if true indicates that the build log should be streamed until
+	// the build terminates.
+	Follow bool `json:"follow,omitempty" description:"if true indicates that the log should be streamed; defaults to false"`
+
+	// NoWait if true causes the call to return immediately even if the build
+	// is not available yet. Otherwise the server will wait until the build has started.
+	NoWait bool `json:"nowait,omitempty" description:"if true indicates that the server should not wait for a log to be available before returning; defaults to false"`
+}

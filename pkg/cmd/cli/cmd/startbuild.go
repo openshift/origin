@@ -7,9 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -83,50 +81,22 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 			return err
 		}
 	}
+	fmt.Fprintf(out, "%s\n", newBuild.Name)
 
 	if follow {
-		set := labels.Set(newBuild.Labels)
-		selector := labels.SelectorFromSet(set)
-
-		// Add a watcher for the build about to start
-		watcher, err := client.Builds(namespace).Watch(selector, fields.Everything(), newBuild.ResourceVersion)
-		if err != nil {
-			return err
+		opts := buildapi.BuildLogOptions{
+			Follow: true,
+			NoWait: false,
 		}
-		defer watcher.Stop()
-
-		for event := range watcher.ResultChan() {
-			build, ok := event.Object.(*buildapi.Build)
-			if !ok {
-				return fmt.Errorf("cannot convert input to Build")
-			}
-
-			// Iterate over watcher's results and search for
-			// the build we just started. Also make sure that
-			// the build is running, complete, or has failed
-			if build.Name == newBuild.Name {
-				switch build.Status {
-				case buildapi.BuildStatusRunning, buildapi.BuildStatusComplete, buildapi.BuildStatusFailed:
-					rd, err := client.BuildLogs(namespace).Get(newBuild.Name).Stream()
-					if err != nil {
-						return err
-					}
-					defer rd.Close()
-
-					_, err = io.Copy(out, rd)
-					if err != nil {
-						return err
-					}
-					break
-				}
-
-				if build.Status == buildapi.BuildStatusComplete || build.Status == buildapi.BuildStatusFailed {
-					break
-				}
-			}
+		rd, err := client.BuildLogs(namespace).Get(newBuild.Name, opts).Stream()
+		if err != nil {
+			return fmt.Errorf("error getting logs: %v", err)
+		}
+		defer rd.Close()
+		_, err = io.Copy(out, rd)
+		if err != nil {
+			return fmt.Errorf("error streaming logs: %v", err)
 		}
 	}
-
-	fmt.Fprintf(out, "%s\n", newBuild.Name)
 	return nil
 }

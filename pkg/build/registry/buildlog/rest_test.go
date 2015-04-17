@@ -3,21 +3,28 @@ package buildlog
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	genericrest "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/rest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/test"
 )
 
-type podControl struct{}
+type testPodGetter struct{}
 
-func (p *podControl) getPod(namespace, podName string) (*kapi.Pod, error) {
+func (p *testPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	pod := &kapi.Pod{}
-	switch podName {
+	switch name {
 	case "pending":
 		pod = mockPod(kapi.PodPending)
 	case "running":
@@ -40,7 +47,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 	expectedLocations := map[api.BuildStatus]string{
 		api.BuildStatusComplete:  fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running/foo-container", kapi.NamespaceDefault),
 		api.BuildStatusFailed:    fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running/foo-container", kapi.NamespaceDefault),
-		api.BuildStatusRunning:   fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running/foo-container?follow=1", kapi.NamespaceDefault),
+		api.BuildStatusRunning:   fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running/foo-container", kapi.NamespaceDefault),
 		api.BuildStatusNew:       "",
 		api.BuildStatusPending:   "",
 		api.BuildStatusError:     "",
@@ -52,7 +59,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 	for buildStatus, expectedLocation := range expectedLocations {
 		location, err := resourceLocationHelper(buildStatus, "running", ctx)
 		switch buildStatus {
-		case api.BuildStatusNew, api.BuildStatusPending, api.BuildStatusError, api.BuildStatusCancelled:
+		case api.BuildStatusError, api.BuildStatusCancelled:
 			if err == nil {
 				t.Errorf("Expected error when Build is in %s state, got nothing", buildStatus)
 			}
@@ -63,52 +70,153 @@ func TestRegistryResourceLocation(t *testing.T) {
 		}
 
 		if location != expectedLocation {
-			t.Errorf("Expected: %s, Got %s", expectedLocation, location)
+			t.Errorf("Status: %s Expected Location: %s, Got %s", buildStatus, expectedLocation, location)
 		}
 	}
 }
 
-// TestRegistryResourceLocationPodPhases tests if ResourceLocation methods
-// returns error, based on pod phase
-// Note: For this test, the mocked build is set to "Running" state, so the test
-// is evaluating the outcome based only on pod phase.
-func TestRegistryResourceLocationPodPhases(t *testing.T) {
-	expectedPodPhases := map[string]bool{
-		"pending":   true,
-		"running":   false,
-		"succeeded": false,
-		"failed":    false,
-		"unknown":   true,
+func TestWaitForBuild(t *testing.T) {
+	ctx := kapi.NewDefaultContext()
+	tests := []struct {
+		name        string
+		status      []api.BuildStatus
+		expectError bool
+	}{
+		{
+			name:        "New -> Running",
+			status:      []api.BuildStatus{api.BuildStatusNew, api.BuildStatusRunning},
+			expectError: false,
+		},
+		{
+			name:        "New -> Pending -> Complete",
+			status:      []api.BuildStatus{api.BuildStatusNew, api.BuildStatusPending, api.BuildStatusComplete},
+			expectError: false,
+		},
+		{
+			name:        "New -> Pending -> Failed",
+			status:      []api.BuildStatus{api.BuildStatusNew, api.BuildStatusPending, api.BuildStatusFailed},
+			expectError: false,
+		},
+		{
+			name:        "New -> Pending -> Error",
+			status:      []api.BuildStatus{api.BuildStatusNew, api.BuildStatusPending, api.BuildStatusError},
+			expectError: true,
+		},
+		{
+			name:        "Pending -> Cancelled",
+			status:      []api.BuildStatus{api.BuildStatusPending, api.BuildStatusCancelled},
+			expectError: true,
+		},
+		{
+			name:        "Error",
+			status:      []api.BuildStatus{api.BuildStatusError},
+			expectError: true,
+		},
 	}
 
-	ctx := kapi.NewDefaultContext()
-
-	for podPhase, expectedError := range expectedPodPhases {
-		_, err := resourceLocationHelper(api.BuildStatusRunning, podPhase, ctx)
-		switch expectedError {
-		case true:
-			if err == nil {
-				t.Errorf("Expected error when Pod is in %s phase, got nothing", podPhase)
+	for _, tt := range tests {
+		build := mockBuild(api.BuildStatusPending, "running")
+		ch := make(chan watch.Event)
+		registry := &buildRegistryWithWatch{
+			BuildRegistry: &test.BuildRegistry{},
+			Watch: &fakeWatch{
+				Channel: ch,
+			},
+		}
+		storage := REST{
+			BuildRegistry: registry,
+			Timeout:       defaultTimeout,
+		}
+		go func() {
+			for _, status := range tt.status {
+				ch <- watch.Event{
+					Type:   watch.Modified,
+					Object: mockBuild(status, "running"),
+				}
 			}
-		default:
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-			}
+		}()
+		err := storage.waitForBuild(ctx, build)
+		if tt.expectError && err == nil {
+			t.Errorf("%s: Expected an error but got nil from waitFromBuild", tt.name)
+		}
+		if !tt.expectError && err != nil {
+			t.Errorf("%s: Unexpected error from watchBuild: %v", tt.name, err)
 		}
 	}
+}
+
+func TestWaitForBuildTimeout(t *testing.T) {
+	ctx := kapi.NewDefaultContext()
+	build := mockBuild(api.BuildStatusPending, "running")
+	ch := make(chan watch.Event)
+	registry := &buildRegistryWithWatch{
+		BuildRegistry: &test.BuildRegistry{},
+		Watch: &fakeWatch{
+			Channel: ch,
+		},
+	}
+	storage := REST{
+		BuildRegistry: registry,
+		Timeout:       100 * time.Millisecond,
+	}
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		ch <- watch.Event{
+			Type:   watch.Modified,
+			Object: mockBuild(api.BuildStatusRunning, "running"),
+		}
+	}()
+	err := storage.waitForBuild(ctx, build)
+	if err == nil || !strings.Contains(err.Error(), "timed out") {
+		t.Errorf("Unexpected error result from waitForBuild: %v\n", err)
+	}
+}
+
+type buildRegistryWithWatch struct {
+	*test.BuildRegistry
+	Watch watch.Interface
+}
+
+func (r *buildRegistryWithWatch) WatchBuilds(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.Watch, r.Err
+}
+
+type fakeWatch struct {
+	Channel chan watch.Event
+}
+
+func (w *fakeWatch) Stop() {
+	close(w.Channel)
+}
+
+func (w *fakeWatch) ResultChan() <-chan watch.Event {
+	return w.Channel
 }
 
 func resourceLocationHelper(buildStatus api.BuildStatus, podPhase string, ctx kapi.Context) (string, error) {
 	expectedBuild := mockBuild(buildStatus, podPhase)
 	buildRegistry := test.BuildRegistry{Build: expectedBuild}
 
-	storage := REST{&buildRegistry, &podControl{}, &kclient.HTTPKubeletClient{EnableHttps: true, Port: 12345, Client: &http.Client{}}}
-	redirector := rest.Redirector(&storage)
-	location, _, err := redirector.ResourceLocation(ctx, "foo-build")
+	storage := REST{
+		BuildRegistry:  &buildRegistry,
+		PodGetter:      &testPodGetter{},
+		ConnectionInfo: &kclient.HTTPKubeletClient{EnableHttps: true, Port: 12345, Client: &http.Client{}},
+		Timeout:        defaultTimeout,
+	}
+	getter := rest.GetterWithOptions(&storage)
+	obj, err := getter.Get(ctx, "foo-build", &api.BuildLogOptions{NoWait: true})
 	if err != nil {
 		return "", err
 	}
-	return location.String(), err
+	streamer, ok := obj.(*genericrest.LocationStreamer)
+	if !ok {
+		return "", fmt.Errorf("Result of get not LocationStreamer")
+	}
+	if streamer.Location != nil {
+		return streamer.Location.String(), nil
+	}
+	return "", nil
+
 }
 
 func mockPod(podPhase kapi.PodPhase) *kapi.Pod {

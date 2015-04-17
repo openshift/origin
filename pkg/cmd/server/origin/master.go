@@ -115,7 +115,7 @@ const (
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
-var excludedV1Beta3Types = util.NewStringSet("templateConfigs", "deployments")
+var excludedV1Beta3Types = util.NewStringSet("templateConfigs", "deployments", "buildLogs")
 
 // APIInstaller installs additional API components into this server
 type APIInstaller interface {
@@ -217,6 +217,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
 		"buildConfigs/instantiate": buildConfigInstantiate,
 		"buildLogs":                buildlogregistry.NewREST(buildEtcd, c.BuildLogClient(), kubeletClient),
+		"builds/log":               buildlogregistry.NewREST(buildEtcd, c.BuildLogClient(), kubeletClient),
 
 		"images":                   imageStorage,
 		"imageStreams":             imageStreamStorage,
