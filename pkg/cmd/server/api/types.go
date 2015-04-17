@@ -36,6 +36,10 @@ type NodeConfig struct {
 
 	// AllowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.
 	AllowDisabledDocker bool
+
+	// PodManifestConfig holds the configuration for enabling the Kubelet to
+	// create pods based from a manifest file(s) placed locally on the node
+	PodManifestConfig *PodManifestConfig
 }
 
 type MasterConfig struct {
@@ -47,10 +51,14 @@ type MasterConfig struct {
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string
 
+	// MasterPublicURL is how clients can access the OpenShift API server
+	MasterPublicURL string
+
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the
 	// backing store for the cluster.
 	EtcdStorageConfig EtcdStorageConfig
+
 	// EtcdClientInfo contains information about how to connect to etcd
 	EtcdClientInfo EtcdConnectionInfo
 
@@ -284,6 +292,9 @@ type GoogleIdentityProvider struct {
 	ClientID string
 	// ClientSecret is the oauth client secret
 	ClientSecret string
+
+	// HostedDomain is the optional Google App domain (e.g. "mycompany.com") to restrict logins to
+	HostedDomain string
 }
 
 type OpenIDIdentityProvider struct {
@@ -300,6 +311,9 @@ type OpenIDIdentityProvider struct {
 
 	// ExtraScopes are any scopes to request in addition to the standard "openid" scope.
 	ExtraScopes []string
+
+	// ExtraAuthorizeParameters are any custom parameters to add to the authorize request.
+	ExtraAuthorizeParameters map[string]string
 
 	// URLs to use to authenticate
 	URLs OpenIDURLs
@@ -381,4 +395,14 @@ type CertInfo struct {
 	CertFile string
 	// KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile
 	KeyFile string
+}
+
+type PodManifestConfig struct {
+	// Path specifies the path for the pod manifest file or directory
+	// If its a directory, its expected to contain on or more manifest files
+	// This is used by the Kubelet to create pods on the node
+	Path string
+	// FileCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data
+	// The interval needs to be a positive value
+	FileCheckIntervalSeconds int64
 }

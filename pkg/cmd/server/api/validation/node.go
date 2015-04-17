@@ -22,5 +22,9 @@ func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList 
 
 	allErrs = append(allErrs, ValidateImageConfig(config.ImageConfig).Prefix("imageConfig")...)
 
+	if config.PodManifestConfig != nil {
+		allErrs = append(allErrs, ValidatePodManifestConfig(config.PodManifestConfig).Prefix("podManifestConfig")...)
+	}
+
 	return allErrs
 }

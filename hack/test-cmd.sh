@@ -270,7 +270,7 @@ osc create -f examples/sample-app/docker-registry-config.json
 osc delete -f examples/sample-app/docker-registry-config.json
 osc delete imageStreams test
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc create -f examples/image-streams/image-streams.json
+osc create -f examples/image-streams/image-streams-centos7.json
 [ -n "$(osc get imageStreams ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(osc get imageStreams nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(osc get imageStreams wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]

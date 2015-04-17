@@ -114,6 +114,8 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		DNSIP:     dnsIP,
 
 		MasterKubeConfig: admin.DefaultNodeKubeConfigFile(args.CertArgs.CertDir, args.NodeName),
+
+		PodManifestConfig: nil,
 	}
 
 	if args.ListenArg.UseTLS() {

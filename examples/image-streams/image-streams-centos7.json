@@ -48,6 +48,48 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
+        "name": "perl-516-centos7"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/perl-516-centos7",
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Build and run Perl 5.16 applications",
+              "iconClass": "icon-perl",
+              "tags": "builder,perl",
+              "version": "5.16"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "python-33-centos7"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/python-33-centos7",
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Build and run Python 3.3 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "version": "3.3"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
         "name": "wildfly-8-centos"
       },
       "spec": {

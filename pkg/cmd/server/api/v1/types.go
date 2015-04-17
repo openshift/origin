@@ -25,7 +25,7 @@ type NodeConfig struct {
 	DNSIP string `json:"dnsIP"`
 
 	// NetworkPluginName is a string specifying the networking plugin
-	NetworkPluginName string
+	NetworkPluginName string `json:"networkPluginName"`
 
 	// VolumeDir is the directory that volumes will be stored under
 	VolumeDirectory string `json:"volumeDirectory"`
@@ -35,6 +35,10 @@ type NodeConfig struct {
 
 	// AllowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.
 	AllowDisabledDocker bool `json:"allowDisabledDocker"`
+
+	// PodManifestConfig holds the configuration for enabling the Kubelet to
+	// create pods based from a manifest file(s) placed locally on the node
+	PodManifestConfig *PodManifestConfig `json:"podManifestConfig"`
 }
 
 type MasterConfig struct {
@@ -46,10 +50,14 @@ type MasterConfig struct {
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string `json:"corsAllowedOrigins"`
 
+	// MasterPublicURL is how clients can access the OpenShift API server
+	MasterPublicURL string `json:"masterPublicURL"`
+
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the
 	// backing store for the cluster.
 	EtcdStorageConfig EtcdStorageConfig `json:"etcdStorageConfig"`
+
 	// EtcdClientInfo contains information about how to connect to etcd
 	EtcdClientInfo EtcdConnectionInfo `json:"etcdClientInfo"`
 	// KubeletClientInfo contains information about how to connect to kubelets
@@ -275,6 +283,9 @@ type GoogleIdentityProvider struct {
 	ClientID string `json:"clientID"`
 	// ClientSecret is the oauth client secret
 	ClientSecret string `json:"clientSecret"`
+
+	// HostedDomain is the optional Google App domain (e.g. "mycompany.com") to restrict logins to
+	HostedDomain string `json:"hostedDomain"`
 }
 
 type OpenIDIdentityProvider struct {
@@ -291,6 +302,9 @@ type OpenIDIdentityProvider struct {
 
 	// ExtraScopes are any scopes to request in addition to the standard "openid" scope.
 	ExtraScopes []string `json:"extraScopes"`
+
+	// ExtraAuthorizeParameters are any custom parameters to add to the authorize request.
+	ExtraAuthorizeParameters map[string]string `json:"extraAuthorizeParameters"`
 
 	// URLs to use to authenticate
 	URLs OpenIDURLs `json:"urls"`
@@ -364,4 +378,14 @@ type KubernetesMasterConfig struct {
 type CertInfo struct {
 	CertFile string `json:"certFile"`
 	KeyFile  string `json:"keyFile"`
+}
+
+type PodManifestConfig struct {
+	// Path specifies the path for the pod manifest file or directory
+	// If its a directory, its expected to contain on or more manifest files
+	// This is used by the Kubelet to create pods on the node
+	Path string `json:"path"`
+	// FileCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data
+	// The interval needs to be a positive value
+	FileCheckIntervalSeconds int64 `json:"fileCheckIntervalSeconds"`
 }

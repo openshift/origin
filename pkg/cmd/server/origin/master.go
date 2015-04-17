@@ -434,8 +434,9 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 
 	// install swagger
 	swaggerConfig := swagger.Config{
-		WebServices: append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
-		ApiPath:     swaggerAPIPrefix,
+		WebServicesUrl: c.Options.MasterPublicURL,
+		WebServices:    append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
+		ApiPath:        swaggerAPIPrefix,
 	}
 	// log nothing from swagger
 	swagger.LogInfo = func(format string, v ...interface{}) {}

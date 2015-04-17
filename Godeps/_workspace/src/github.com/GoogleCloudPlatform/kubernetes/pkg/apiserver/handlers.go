@@ -19,7 +19,6 @@ package apiserver
 import (
 	"fmt"
 	"net/http"
-	"path"
 	"regexp"
 	"runtime/debug"
 	"strings"
@@ -42,11 +41,6 @@ var specialVerbs = map[string]bool{
 	"redirect": true,
 	"watch":    true,
 }
-
-// namespaceSubresouces is a set of all the subresources available on a namespace resource.  This is a special case because
-// URLs look like api/v1beta3/namspaces/<namespace name>/[subresource | resource].  We need to be able to distinguish the two
-// different cases.
-var namespaceSubresources = util.NewStringSet("status", "finalize")
 
 // Constant for the retry-after interval on rate limiting.
 // TODO: maybe make this dynamic? or user-adjustable?
@@ -245,7 +239,9 @@ type APIRequestInfo struct {
 	Namespace  string
 	// Resource is the name of the resource being requested.  This is not the kind.  For example: pods
 	Resource string
-	// Subresource is the name of the subresource being requested.  This is not the kind or the resource.  For example: status for a pods/pod-name/status
+	// Subresource is the name of the subresource being requested.  This is a different resource, scoped to the parent resource, but it may have a different kind.
+	// For instance, /pods has the resource "pods" and the kind "Pod", while /pods/foo/status has the resource "pods", the sub resource "status", and the kind "Pod"
+	// (because status operates on pods). The binding resource for a pod though may be /pods/foo/binding, which has resource "pods", subresource "binding", and kind "Binding".
 	Subresource string
 	// Kind is the type of object being manipulated.  For example: Pod
 	Kind string
@@ -258,22 +254,12 @@ type APIRequestInfo struct {
 	Raw []string
 }
 
-// URLPath returns the URL path for this request, including /{resource}/{name} if present but nothing
-// following that.
-func (info APIRequestInfo) URLPath() string {
-	p := info.Parts
-	if n := len(p); n > 2 {
-		// Only take resource and name
-		p = p[:2]
-	}
-	return path.Join("/", path.Join(info.Raw...), path.Join(p...))
-}
-
 type APIRequestInfoResolver struct {
 	APIPrefixes util.StringSet
 	RestMapper  meta.RESTMapper
 }
 
+// TODO write an integration test against the swagger doc to test the APIRequestInfo and match up behavior to responses
 // GetAPIRequestInfo returns the information from the http request.  If error is not nil, APIRequestInfo holds the information as best it is known before the failure
 // Valid Inputs:
 // Storage paths
@@ -352,7 +338,7 @@ func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIReques
 
 			// if there is another step after the namespace name and it is not a known namespace subresource
 			// move currentParts to include it as a resource in its own right
-			if len(currentParts) > 2 && !namespaceSubresources.Has(currentParts[2]) {
+			if len(currentParts) > 2 {
 				currentParts = currentParts[2:]
 			}
 		}

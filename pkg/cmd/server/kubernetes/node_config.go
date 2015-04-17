@@ -54,6 +54,14 @@ type NodeConfig struct {
 	Client *client.Client
 	// A client to connect to Docker
 	DockerClient dockertools.DockerInterface
+
+	// PodManifestPath specifies the path for the pod manifest file(s)
+	// The path could point to a single file or a directory that contains multiple manifest files
+	// This is used by the Kubelet to create pods on the node
+	PodManifestPath string
+	// PodManifestCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data
+	// The interval needs to be a positive value
+	PodManifestCheckIntervalSeconds int64
 }
 
 func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error) {
@@ -83,6 +91,13 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
 
+	var path string
+	var fileCheckInterval int64
+	if options.PodManifestConfig != nil {
+		path = options.PodManifestConfig.Path
+		fileCheckInterval = options.PodManifestConfig.FileCheckIntervalSeconds
+	}
+
 	config := &NodeConfig{
 		NodeHost:    options.NodeName,
 		BindAddress: options.ServingInfo.BindAddress,
@@ -101,6 +116,9 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		ImageFor:            imageTemplate.ExpandOrDie,
 		AllowDisabledDocker: options.AllowDisabledDocker,
 		Client:              kubeClient,
+
+		PodManifestPath:                 path,
+		PodManifestCheckIntervalSeconds: fileCheckInterval,
 	}
 
 	return config, nil
