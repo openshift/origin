@@ -10,7 +10,7 @@ LOG_DIR="${LOG_DIR:-$(mktemp -d ${TMPDIR}/openshift.assets.logs.XXXX)}"
 
 function cmd() {
   local cmd="$1"
-  local log_file=$(mktemp ${LOG_DIR}/install-assets.XXXX)}
+  local log_file=$(mktemp ${LOG_DIR}/install-assets.XXXX)
   echo "[install-assets] ${cmd}"
   rc="0"
   $cmd &> ${log_file} || rc=$?
