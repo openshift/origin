@@ -12,6 +12,8 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+var resourceVersion = 1
+
 type PolicyRegistry struct {
 	// Policies is a of namespace->name->Policy
 	Policies map[string]map[string]authorizationapi.Policy
@@ -140,6 +142,9 @@ func (r *PolicyRegistry) WatchPolicies(ctx kapi.Context, label labels.Selector, 
 }
 
 func addPolicy(policies map[string]map[string]authorizationapi.Policy, policy authorizationapi.Policy) {
+	resourceVersion += 1
+	policy.ResourceVersion = fmt.Sprintf("%d", resourceVersion)
+
 	namespacedPolicies, ok := policies[policy.Namespace]
 	if !ok {
 		namespacedPolicies = make(map[string]authorizationapi.Policy)

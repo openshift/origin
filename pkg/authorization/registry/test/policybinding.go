@@ -140,6 +140,9 @@ func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, label labe
 }
 
 func addPolicyBinding(bindings map[string]map[string]authorizationapi.PolicyBinding, binding authorizationapi.PolicyBinding) {
+	resourceVersion += 1
+	binding.ResourceVersion = fmt.Sprintf("%d", resourceVersion)
+
 	namespacedBindings, ok := bindings[binding.Namespace]
 	if !ok {
 		namespacedBindings = make(map[string]authorizationapi.PolicyBinding)

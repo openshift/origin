@@ -1,8 +1,9 @@
-package rolebinding
+package policybased
 
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -11,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/authorization/registry/test"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
@@ -53,11 +55,11 @@ func testNewBasePolicies() []authorizationapi.Policy {
 	}
 }
 
-func makeTestStorage() *REST {
+func makeTestStorage() rolebindingregistry.Storage {
 	bindingRegistry := test.NewPolicyBindingRegistry(testNewBaseBindings(), nil)
 	policyRegistry := test.NewPolicyRegistry(testNewBasePolicies(), nil)
 
-	return &REST{NewVirtualRegistry(bindingRegistry, policyRegistry, bootstrappolicy.DefaultMasterAuthorizationNamespace)}
+	return NewVirtualStorage(policyRegistry, bindingRegistry, bootstrappolicy.DefaultMasterAuthorizationNamespace)
 }
 
 func TestCreateValidationError(t *testing.T) {
@@ -98,9 +100,6 @@ func TestCreateValid(t *testing.T) {
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
-	storage.Create(ctx, &authorizationapi.PolicyBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.DefaultMasterAuthorizationNamespace, Namespace: "unittest"},
-	})
 
 	roleBinding := &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
@@ -126,13 +125,14 @@ func TestUpdate(t *testing.T) {
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
-	storage.Create(ctx, &authorizationapi.RoleBinding{
+	obj, _ := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	})
+	original := obj.(*authorizationapi.RoleBinding)
 
 	roleBinding := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
+		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding", ResourceVersion: original.ResourceVersion},
 		RoleRef:    kapi.ObjectReference{Name: "admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	}
 
@@ -159,13 +159,14 @@ func TestUpdateError(t *testing.T) {
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
-	storage.Create(ctx, &authorizationapi.RoleBinding{
+	obj, _ := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-different"},
 		RoleRef:    kapi.ObjectReference{Name: "admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	})
+	original := obj.(*authorizationapi.RoleBinding)
 
 	roleBinding := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
+		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding", ResourceVersion: original.ResourceVersion},
 		RoleRef:    kapi.ObjectReference{Name: "admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	}
 
@@ -183,13 +184,14 @@ func TestUpdateCannotChangeRoleRefError(t *testing.T) {
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
-	storage.Create(ctx, &authorizationapi.RoleBinding{
+	obj, _ := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-different"},
 		RoleRef:    kapi.ObjectReference{Name: "admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	})
+	original := obj.(*authorizationapi.RoleBinding)
 
 	roleBinding := &authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-different"},
+		ObjectMeta: kapi.ObjectMeta{Name: "my-different", ResourceVersion: original.ResourceVersion},
 		RoleRef:    kapi.ObjectReference{Name: "cluster-admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	}
 
@@ -198,9 +200,9 @@ func TestUpdateCannotChangeRoleRefError(t *testing.T) {
 		t.Errorf("Missing expected error")
 		return
 	}
-	expectedErr := "roleBinding.RoleRef may not be modified"
-	if err.Error() != expectedErr {
-		t.Errorf("Expected %v, got %v", expectedErr, err)
+	expectedErr := "cannot change roleRef"
+	if !strings.Contains(err.Error(), expectedErr) {
+		t.Errorf("Expected %v, got %v", expectedErr, err.Error())
 	}
 }
 
@@ -209,10 +211,10 @@ func TestDeleteError(t *testing.T) {
 
 	registry.Err = errors.New("Sample Error")
 	policyRegistry := &test.PolicyRegistry{}
-	storage := &REST{NewVirtualRegistry(registry, policyRegistry, bootstrappolicy.DefaultMasterAuthorizationNamespace)}
+	storage := NewVirtualStorage(policyRegistry, registry, bootstrappolicy.DefaultMasterAuthorizationNamespace)
 
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
-	_, err := storage.Delete(ctx, "foo")
+	_, err := storage.Delete(ctx, "foo", nil)
 	if err != registry.Err {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -222,7 +224,7 @@ func TestDeleteValid(t *testing.T) {
 	storage := makeTestStorage()
 
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), bootstrappolicy.DefaultMasterAuthorizationNamespace), &user.DefaultInfo{Name: "system:admin"})
-	obj, err := storage.Delete(ctx, "cluster-admins")
+	obj, err := storage.Delete(ctx, "cluster-admins", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

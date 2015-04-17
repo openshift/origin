@@ -69,7 +69,7 @@ func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.Valid
 
 // ValidateUpdate is the default update validation for an end user.
 func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidatePolicyBindingUpdate(old.(*authorizationapi.PolicyBinding), obj.(*authorizationapi.PolicyBinding))
+	return validation.ValidatePolicyBindingUpdate(obj.(*authorizationapi.PolicyBinding), old.(*authorizationapi.PolicyBinding))
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

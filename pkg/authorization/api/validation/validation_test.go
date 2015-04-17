@@ -227,10 +227,10 @@ func TestValidateRoleBindingUpdate(t *testing.T) {
 		RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 	}
 
-	errs := ValidateRoleBindingUpdate(old, &authorizationapi.RoleBinding{
+	errs := ValidateRoleBindingUpdate(&authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master", ResourceVersion: "1"},
 		RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
-	})
+	}, old)
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
@@ -250,7 +250,7 @@ func TestValidateRoleBindingUpdate(t *testing.T) {
 		},
 	}
 	for k, v := range errorCases {
-		errs := ValidateRoleBindingUpdate(old, &v.A)
+		errs := ValidateRoleBindingUpdate(&v.A, old)
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.A)
 			continue

@@ -1,4 +1,4 @@
-package role
+package policybased
 
 import (
 	"reflect"
@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	"github.com/openshift/origin/pkg/authorization/registry/test"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
@@ -35,10 +36,10 @@ func testNewBasePolicies() []authorizationapi.Policy {
 	}
 }
 
-func makeTestStorage() *REST {
+func makeTestStorage() roleregistry.Storage {
 	policyRegistry := test.NewPolicyRegistry(testNewBasePolicies(), nil)
 
-	return &REST{NewVirtualRegistry(policyRegistry)}
+	return NewVirtualStorage(policyRegistry)
 }
 
 func TestCreateValidationError(t *testing.T) {
@@ -79,12 +80,13 @@ func TestCreateValid(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	storage := makeTestStorage()
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	storage.Create(ctx, &authorizationapi.Role{
+	realizedRoleObj, _ := storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
 	})
+	realizedRole := realizedRoleObj.(*authorizationapi.Role)
 
 	role := &authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
+		ObjectMeta: kapi.ObjectMeta{Name: "my-role", ResourceVersion: realizedRole.ResourceVersion},
 	}
 
 	obj, created, err := storage.Update(ctx, role)
@@ -128,7 +130,7 @@ func TestDeleteError(t *testing.T) {
 	storage := makeTestStorage()
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
-	_, err := storage.Delete(ctx, "foo")
+	_, err := storage.Delete(ctx, "foo", nil)
 
 	if err == nil {
 		t.Errorf("expected error")
@@ -145,7 +147,7 @@ func TestDeleteValid(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
 	})
 
-	obj, err := storage.Delete(ctx, "my-role")
+	obj, err := storage.Delete(ctx, "my-role", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

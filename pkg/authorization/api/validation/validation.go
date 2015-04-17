@@ -33,7 +33,7 @@ func ValidatePolicy(policy *authorizationapi.Policy) fielderrors.ValidationError
 	return allErrs
 }
 
-func ValidatePolicyUpdate(oldPolicy *authorizationapi.Policy, policy *authorizationapi.Policy) fielderrors.ValidationErrorList {
+func ValidatePolicyUpdate(policy *authorizationapi.Policy, oldPolicy *authorizationapi.Policy) fielderrors.ValidationErrorList {
 	allErrs := ValidatePolicy(policy)
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldPolicy.ObjectMeta, &policy.ObjectMeta).Prefix("metadata")...)
 
@@ -74,7 +74,7 @@ func ValidatePolicyBinding(policyBinding *authorizationapi.PolicyBinding) fielde
 	return allErrs
 }
 
-func ValidatePolicyBindingUpdate(oldPolicyBinding *authorizationapi.PolicyBinding, policyBinding *authorizationapi.PolicyBinding) fielderrors.ValidationErrorList {
+func ValidatePolicyBindingUpdate(policyBinding *authorizationapi.PolicyBinding, oldPolicyBinding *authorizationapi.PolicyBinding) fielderrors.ValidationErrorList {
 	allErrs := ValidatePolicyBinding(policyBinding)
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldPolicyBinding.ObjectMeta, &policyBinding.ObjectMeta).Prefix("metadata")...)
 
@@ -99,6 +99,13 @@ func ValidateRoleName(name string, prefix bool) (bool, string) {
 func ValidateRole(role *authorizationapi.Role) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&role.ObjectMeta, true, ValidateRoleName).Prefix("metadata")...)
+
+	return allErrs
+}
+
+func ValidateRoleUpdate(role *authorizationapi.Role, oldRole *authorizationapi.Role) fielderrors.ValidationErrorList {
+	allErrs := ValidateRole(role)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldRole.ObjectMeta, &role.ObjectMeta).Prefix("metadata")...)
 
 	return allErrs
 }
@@ -135,7 +142,7 @@ func ValidateRoleBinding(roleBinding *authorizationapi.RoleBinding) fielderrors.
 	return allErrs
 }
 
-func ValidateRoleBindingUpdate(oldRoleBinding *authorizationapi.RoleBinding, roleBinding *authorizationapi.RoleBinding) fielderrors.ValidationErrorList {
+func ValidateRoleBindingUpdate(roleBinding *authorizationapi.RoleBinding, oldRoleBinding *authorizationapi.RoleBinding) fielderrors.ValidationErrorList {
 	allErrs := ValidateRoleBinding(roleBinding)
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldRoleBinding.ObjectMeta, &roleBinding.ObjectMeta).Prefix("metadata")...)
 
