@@ -25,7 +25,7 @@ type NodeConfig struct {
 	DNSIP string `json:"dnsIP"`
 
 	// NetworkPluginName is a string specifying the networking plugin
-	NetworkPluginName string
+	NetworkPluginName string `json:"networkPluginName"`
 
 	// VolumeDir is the directory that volumes will be stored under
 	VolumeDirectory string `json:"volumeDirectory"`
