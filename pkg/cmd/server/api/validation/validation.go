@@ -93,6 +93,18 @@ func ValidateRemoteConnectionInfo(remoteConnectionInfo api.RemoteConnectionInfo)
 	return allErrs
 }
 
+func ValidatePodManifestConfig(podManifestConfig *api.PodManifestConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	// the Path can be a file or a directory
+	allErrs = append(allErrs, ValidateFile(podManifestConfig.Path, "path")...)
+	if podManifestConfig.FileCheckIntervalSeconds < 1 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("fileCheckIntervalSeconds", podManifestConfig.FileCheckIntervalSeconds, "interval has to be positive"))
+	}
+
+	return allErrs
+}
+
 func ValidateSpecifiedIP(ipString string, field string) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 

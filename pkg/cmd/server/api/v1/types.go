@@ -35,6 +35,10 @@ type NodeConfig struct {
 
 	// AllowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.
 	AllowDisabledDocker bool `json:"allowDisabledDocker"`
+
+	// PodManifestConfig holds the configuration for enabling the Kubelet to
+	// create pods based from a manifest file(s) placed locally on the node
+	PodManifestConfig *PodManifestConfig `json:"podManifestConfig"`
 }
 
 type MasterConfig struct {
@@ -364,4 +368,14 @@ type KubernetesMasterConfig struct {
 type CertInfo struct {
 	CertFile string `json:"certFile"`
 	KeyFile  string `json:"keyFile"`
+}
+
+type PodManifestConfig struct {
+	// Path specifies the path for the pod manifest file or directory
+	// If its a directory, its expected to contain on or more manifest files
+	// This is used by the Kubelet to create pods on the node
+	Path string `json:"path"`
+	// FileCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data
+	// The interval needs to be a positive value
+	FileCheckIntervalSeconds int64 `json:"fileCheckIntervalSeconds"`
 }
