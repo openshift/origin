@@ -4,7 +4,7 @@
     {
       "apiVersion": "v1beta1",
       "containerPort": 8080,
-      "id": "frontend",
+      "name": "frontend",
       "kind": "Service",
       "port": 5432,
       "selector": {
@@ -14,7 +14,7 @@
     {
       "apiVersion": "v1beta1",
       "host": "www.example.com",
-      "id": "sample-app-secure",
+      "name": "sample-app-secure",
       "kind": "Route",
       "metadata": {
         "name": "route-edge"
@@ -208,7 +208,7 @@
     {
       "apiVersion": "v1beta1",
       "containerPort": 3306,
-      "id": "database",
+      "name": "database",
       "kind": "Service",
       "port": 5434,
       "selector": {
