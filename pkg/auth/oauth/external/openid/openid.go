@@ -26,11 +26,15 @@ const (
 	NameClaim              = "name"
 )
 
+type TokenValidator func(map[string]interface{}) error
+
 type Config struct {
 	ClientID     string
 	ClientSecret string
 
 	Scopes []string
+
+	ExtraAuthorizeParameters map[string]string
 
 	AuthorizeURL string
 	TokenURL     string
@@ -40,6 +44,8 @@ type Config struct {
 	PreferredUsernameClaims []string
 	EmailClaims             []string
 	NameClaims              []string
+
+	IDTokenValidator TokenValidator
 }
 
 type provider struct {
@@ -121,6 +127,9 @@ func (p provider) GetTransport() (http.RoundTripper, error) {
 
 // AddCustomParameters implements external/interfaces/Provider.AddCustomParameters
 func (p provider) AddCustomParameters(req *osincli.AuthorizeRequest) {
+	for k, v := range p.ExtraAuthorizeParameters {
+		req.CustomParameters[k] = v
+	}
 }
 
 // GetUserIdentity implements external/interfaces/Provider.GetUserIdentity
@@ -136,6 +145,12 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	idTokenClaims, err := decodeJWT(idToken)
 	if err != nil {
 		return nil, false, err
+	}
+
+	if p.IDTokenValidator != nil {
+		if err := p.IDTokenValidator(idTokenClaims); err != nil {
+			return nil, false, err
+		}
 	}
 
 	// TODO: validate JWT
