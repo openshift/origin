@@ -140,6 +140,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			BindAddress: args.ListenArg.ListenAddr.URL.Host,
 		},
 		CORSAllowedOrigins: corsAllowedOrigins.List(),
+		MasterPublicURL:    masterPublicAddr.String(),
 
 		KubernetesMasterConfig: kubernetesMasterConfig,
 		EtcdConfig:             etcdConfig,

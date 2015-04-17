@@ -168,7 +168,7 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 
 	return []string{
 		fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix),
-		fmt.Sprintf("Started login server at %%s%s", OpenShiftLoginPrefix),
+		fmt.Sprintf("Started Login endpoint at %%s%s", OpenShiftLoginPrefix),
 	}
 }
 
