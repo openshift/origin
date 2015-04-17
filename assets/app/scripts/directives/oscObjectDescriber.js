@@ -35,17 +35,27 @@ angular.module('openshiftConsole')
 
         $(elem).on("mousemove.oscobject", function() {
           if (scope.resource) {
-            $(".osc-object-active").removeClass("osc-object-active");
-            $(this).addClass("osc-object-active");
+            $(".osc-object-hover").removeClass("osc-object-hover");
+            $(this).addClass("osc-object-hover");
             return false;
           }
         });
 
         $(elem).on("mouseleave.oscobject", function() {
           if (scope.resource) {
-            $(this).removeClass("osc-object-active");
+            $(this).removeClass("osc-object-hover");
           }
-        });        
+        }); 
+
+        // TODO can we be more efficient about this to reduce the number of listeners
+        var resourceChangeCallback = ObjectDescriber.onResourceChanged(function(resource, kind) {
+          if (resource && resource.metadata && scope.resource && scope.resource.metadata && resource.metadata.uid == scope.resource.metadata.uid) {
+            $(elem).addClass("osc-object-active");
+          }
+          else {
+            $(elem).removeClass("osc-object-active");
+          }
+        });
 
         scope.$watch('resource', function(newValue, oldValue) {
           if (ObjectDescriber.getSource() === scope) {
@@ -54,6 +64,8 @@ angular.module('openshiftConsole')
         });
 
         scope.$on('$destroy', function() {
+          ObjectDescriber.removeResourceChangedCallback(resourceChangeCallback);
+
           if (ObjectDescriber.getSource() === scope) {
             ObjectDescriber.clearObject();
           }
