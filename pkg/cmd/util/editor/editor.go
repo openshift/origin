@@ -97,7 +97,7 @@ func (e Editor) Launch(path string) error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	glog.V(5).Infof("Opening file with editor %v", args)
-	if err := withSafeTTYAndInterrupts(os.Stdin, cmd.Run); err != nil {
+	if err := withSafeTTYAndInterrupts(cmd.Run); err != nil {
 		if err, ok := err.(*exec.Error); ok {
 			if err.Err == exec.ErrNotFound {
 				return fmt.Errorf("unable to launch the editor %q", strings.Join(e.Args, " "))
@@ -134,27 +134,32 @@ func (e Editor) LaunchTempFile(dir, prefix string, r io.Reader) ([]byte, string,
 // state has been stored, and then on any error or termination attempts to
 // restore the terminal state to its prior behavior. It also eats signals
 // for the duration of the function.
-func withSafeTTYAndInterrupts(r io.Reader, fn func() error) error {
+func withSafeTTYAndInterrupts(fn func() error) error {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, childSignals...)
 	defer signal.Stop(ch)
 
-	if file, ok := r.(*os.File); ok {
-		inFd := file.Fd()
-		if term.IsTerminal(inFd) {
-			state, err := term.SaveState(inFd)
-			if err != nil {
-				return err
-			}
-			go func() {
-				if _, ok := <-ch; !ok {
-					return
-				}
-				term.RestoreTerminal(inFd, state)
-			}()
-			defer term.RestoreTerminal(inFd, state)
-			return fn()
+	inFd := os.Stdin.Fd()
+	if !term.IsTerminal(inFd) {
+		if f, err := os.Open("/dev/tty"); err == nil {
+			defer f.Close()
+			inFd = f.Fd()
 		}
+	}
+
+	if term.IsTerminal(inFd) {
+		state, err := term.SaveState(inFd)
+		if err != nil {
+			return err
+		}
+		go func() {
+			if _, ok := <-ch; !ok {
+				return
+			}
+			term.RestoreTerminal(inFd, state)
+		}()
+		defer term.RestoreTerminal(inFd, state)
+		return fn()
 	}
 	return fn()
 }
