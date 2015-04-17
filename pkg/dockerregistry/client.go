@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 )
 
 // Client includes methods for accessing a Docker registry by name.
@@ -156,6 +157,7 @@ func (c connection) getCachedRepository(name string) (*repository, error) {
 }
 
 func (c connection) getRepository(name string) (*repository, error) {
+	glog.V(4).Infof("Getting repository %s from %s", name, c.host)
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/v1/repositories/%s/images", c.host, name), nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)

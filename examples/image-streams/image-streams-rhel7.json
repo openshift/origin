@@ -1,0 +1,120 @@
+{
+  "apiVersion": "v1beta1",
+  "kind": "ImageStreamList",
+  "items": [
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "ruby-20-rhel7"
+      },
+      "spec": {
+        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/ruby-20-rhel7",
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Build and run Ruby 2.0 applications",
+              "iconClass": "icon-ruby",
+              "tags": "builder,ruby",
+              "version": "2.0"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "nodejs-010-rhel7"
+      },
+      "spec": {
+        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/nodejs-010-rhel7",
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description" : "Build and run NodeJS 0.10 applications",
+              "iconClass" : "icon-nodejs",
+              "tags" : "builder,nodejs",
+              "version" : "0.10"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "perl-516-rhel7"
+      },
+      "spec": {
+        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/perl-516-rhel7",
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Build and run Perl 5.16 applications",
+              "iconClass": "icon-perl",
+              "tags": "builder,perl",
+              "version": "5.16"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "python-33-rhel7"
+      },
+      "spec": {
+        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/python-33-rhel7",
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Build and run Python 3.3 applications",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "version": "3.3"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "mysql-55-rhel7"
+      },
+      "spec": {
+        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/mysql-55-rhel7"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "postgresql-92-rhel7"
+      },
+      "spec": {
+        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/postgresql-92-rhel7"
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "mongodb-24-rhel7"
+      },
+      "spec": {
+        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/mongodb-24-rhel7"
+      }
+    }
+  ]
+}
