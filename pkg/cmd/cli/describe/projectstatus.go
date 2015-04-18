@@ -377,7 +377,7 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 	case 0:
 		return " no ports"
 	case 1:
-		if spec.Ports[0].TargetPort.String() == "0" || spec.PortalIP == kapi.PortalIPNone {
+		if spec.Ports[0].TargetPort.String() == "0" || spec.PortalIP == kapi.PortalIPNone || spec.Ports[0].Port == spec.Ports[0].TargetPort.IntVal {
 			return fmt.Sprintf(":%d", spec.Ports[0].Port)
 		}
 		return fmt.Sprintf(":%d -> %s", spec.Ports[0].Port, spec.Ports[0].TargetPort.String())
