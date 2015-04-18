@@ -163,7 +163,7 @@ var skipStandardVersions = map[string][]string{
 }
 var skipV1beta1 = map[string]struct{}{}
 var skipV1beta2 = map[string]struct{}{
-	"ImageRepository": struct{}{},
+	"ImageRepository": {},
 }
 
 const fuzzIters = 20

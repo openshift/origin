@@ -114,7 +114,7 @@ func AddConfigLabels(c *configapi.Config, labels labels.Set) fielderrors.Validat
 			ReportError(&itemErrors, i, *fielderrors.NewFieldInvalid("labels", err, fmt.Sprintf("error applying labels %v to %v", labels, in)))
 		}
 	}
-	return itemErrors.Prefix("Config")
+	return itemErrors.Prefix("objects")
 }
 
 // MergeInto merges items from a src map into a dst map.

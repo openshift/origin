@@ -220,8 +220,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
 
-		"templateConfigs": templateregistry.NewREST(),
-		"templates":       templateetcd.NewREST(c.EtcdHelper),
+		"processedTemplates": templateregistry.NewREST(false),
+		"templates":          templateetcd.NewREST(c.EtcdHelper),
+		// DEPRECATED: remove with v1beta1
+		"templateConfigs": templateregistry.NewREST(true),
 
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
@@ -252,6 +254,9 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 	v1beta3Storage := map[string]rest.Storage{}
 	for k, v := range storage {
+		if k == "templateConfigs" {
+			continue
+		}
 		v1beta3Storage[strings.ToLower(k)] = v
 	}
 

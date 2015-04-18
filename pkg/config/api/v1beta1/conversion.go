@@ -18,5 +18,15 @@ func init() {
 			out.ListMeta.SelfLink = in.SelfLink
 			return s.Convert(&in.Items, &out.Items, conversion.DestFromSource)
 		},
+		func(in *api.List, out *Config, s conversion.Scope) error {
+			out.ResourceVersion = in.ListMeta.ResourceVersion
+			out.SelfLink = in.ListMeta.SelfLink
+			return s.Convert(&in.Items, &out.Items, conversion.DestFromSource)
+		},
+		func(in *Config, out *api.List, s conversion.Scope) error {
+			out.ListMeta.ResourceVersion = in.ResourceVersion
+			out.ListMeta.SelfLink = in.SelfLink
+			return s.Convert(&in.Items, &out.Items, conversion.DestFromSource)
+		},
 	)
 }

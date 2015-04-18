@@ -78,7 +78,7 @@ var originTypes = []string{
 	"Build", "BuildConfig", "BuildLog",
 	"Deployment", "DeploymentConfig",
 	"Image", "ImageRepository", "ImageStream", "ImageRepositoryMapping", "ImageStreamMapping", "ImageRepositoryTag", "ImageStreamTag", "ImageStreamImage",
-	"Template", "TemplateConfig",
+	"Template", "TemplateConfig", "ProcessedTemplate",
 	"Route",
 	"Project",
 	"User", "Identity", "UserIdentityMapping",

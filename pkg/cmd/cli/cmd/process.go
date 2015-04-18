@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -11,12 +12,14 @@ import (
 	ctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	configapi "github.com/openshift/origin/pkg/config/api"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
 )
@@ -139,7 +142,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		var ok bool
 		templateObj, ok = obj.(*api.Template)
 		if !ok {
-			return fmt.Errorf("cannot convert input to Template")
+			return fmt.Errorf("cannot convert input to Template: ", reflect.TypeOf(obj))
 		}
 
 		version, kind, err := kapi.Scheme.ObjectVersionAndKind(templateObj)
@@ -180,9 +183,20 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		}
 	}
 
-	result, err := client.TemplateConfigs(namespace).Create(templateObj)
+	// TODO: use AsVersionedObjects to generate the runtime.Objects, because
+	// some objects may not exist in the destination version but they should
+	// still be transformed.
+	obj, err := client.TemplateConfigs(namespace).Create(templateObj)
 	if err != nil {
 		return err
+	}
+	var result runtime.Object = obj
+	// legacy support - when using older api versions, output a Config
+	if kapi.PreV1Beta3(mapping.APIVersion) {
+		result = &configapi.Config{
+			ListMeta: obj.ListMeta,
+			Items:    obj.Items,
+		}
 	}
 
 	// We need to override the default output format to JSON so we can return

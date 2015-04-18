@@ -10,6 +10,7 @@ func init() {
 		&TemplateList{},
 	)
 	api.Scheme.AddKnownTypeWithName("v1beta3", "TemplateConfig", &Template{})
+	api.Scheme.AddKnownTypeWithName("v1beta3", "ProcessedTemplate", &Template{})
 }
 
 func (*Template) IsAnAPIObject()     {}

@@ -152,6 +152,7 @@ type ImageStreamMapping struct {
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// The Docker image repository the specified image is located in
+	// DEPRECATED: remove once v1beta1 support is dropped
 	DockerImageRepository string `json:"dockerImageRepository"`
 	// A Docker image.
 	Image Image `json:"image"`
