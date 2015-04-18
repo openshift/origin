@@ -1,4 +1,4 @@
-package v1beta2
+package v1beta3
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"

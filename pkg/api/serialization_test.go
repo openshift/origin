@@ -18,7 +18,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
-	"github.com/openshift/origin/pkg/api/v1beta2"
+	"github.com/openshift/origin/pkg/api/v1beta3"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	build "github.com/openshift/origin/pkg/build/api"
 	config "github.com/openshift/origin/pkg/config/api"
@@ -52,13 +52,13 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *image.ImageRepositoryMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion == "v1beta2" {
+			if forVersion == "v1beta3" {
 				j.DockerImageRepository = ""
 			}
 		},
 		func(j *image.ImageStreamMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion == "v1beta2" {
+			if forVersion == "v1beta3" {
 				j.DockerImageRepository = ""
 			}
 		},
@@ -183,7 +183,7 @@ func TestSpecificKind(t *testing.T) {
 	fuzzInternalObject(t, "", item, seed)
 	roundTrip(t, osapi.Codec, item)
 	roundTrip(t, v1beta1.Codec, item)
-	roundTrip(t, v1beta2.Codec, item)
+	roundTrip(t, v1beta3.Codec, item)
 }
 
 func TestTypes(t *testing.T) {
@@ -218,8 +218,8 @@ func TestTypes(t *testing.T) {
 				roundTrip(t, v1beta1.Codec, item)
 			}
 			if _, ok := skipV1beta2[kind]; !ok {
-				fuzzInternalObject(t, "v1beta2", item, seed)
-				roundTrip(t, v1beta2.Codec, item)
+				fuzzInternalObject(t, "v1beta3", item, seed)
+				roundTrip(t, v1beta3.Codec, item)
 			}
 		}
 	}

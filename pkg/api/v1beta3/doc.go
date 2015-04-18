@@ -1,2 +1,2 @@
-// Package v1beta2 is the v1beta2 version of the API.
-package v1beta2
+// Package v1beta3 is the v1beta3 version of the API.
+package v1beta3
