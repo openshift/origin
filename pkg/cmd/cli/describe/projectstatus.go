@@ -260,15 +260,52 @@ func describeBuildStatus(build *buildapi.Build, t *util.Time, parentName string)
 	if strings.HasPrefix(name, prefix) {
 		name = name[len(prefix):]
 	}
+	revision := describeSourceRevision(build.Parameters.Revision)
+	if len(revision) != 0 {
+		revision = fmt.Sprintf(" - %s", revision)
+	}
 	switch build.Status {
 	case buildapi.BuildStatusComplete:
-		return fmt.Sprintf("build %s succeeded %s", name, time)
+		return fmt.Sprintf("build %s succeeded %s%s", name, time, revision)
 	case buildapi.BuildStatusError:
-		return fmt.Sprintf("build %s stopped with an error %s", name, time)
+		return fmt.Sprintf("build %s stopped with an error %s%s", name, time, revision)
 	default:
 		status := strings.ToLower(string(build.Status))
-		return fmt.Sprintf("build %s %s for %s", name, status, time)
+		return fmt.Sprintf("build %s %s for %s%s", name, status, time, revision)
 	}
+}
+
+func describeSourceRevision(rev *buildapi.SourceRevision) string {
+	if rev == nil {
+		return ""
+	}
+	switch {
+	case rev.Git != nil:
+		author := describeSourceControlUser(rev.Git.Author)
+		if len(author) == 0 {
+			author = describeSourceControlUser(rev.Git.Committer)
+		}
+		if len(author) != 0 {
+			author = fmt.Sprintf(" (%s)", author)
+		}
+		commit := rev.Git.Commit
+		if len(commit) > 7 {
+			commit = commit[:7]
+		}
+		return fmt.Sprintf("%s: %s%s", commit, rev.Git.Message, author)
+	default:
+		return ""
+	}
+}
+
+func describeSourceControlUser(user buildapi.SourceControlUser) string {
+	if len(user.Name) == 0 {
+		return user.Email
+	}
+	if len(user.Email) == 0 {
+		return user.Name
+	}
+	return fmt.Sprintf("%s <%s>", user.Name, user.Email)
 }
 
 func buildTimestamp(build *buildapi.Build) util.Time {
