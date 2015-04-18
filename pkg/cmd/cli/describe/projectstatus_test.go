@@ -70,7 +70,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project example\n",
-				"service sinatra-example-2 (172.30.17.48:8080 -> 8080)",
+				"service sinatra-example-2 (172.30.17.48:8080)",
 				"builds git://github.com",
 				"with docker.io/openshift/ruby-20-centos7:latest",
 				"not built yet",
@@ -88,7 +88,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project example\n",
-				"service sinatra-example-1 (172.30.17.47:8080 -> 8080)",
+				"service sinatra-example-1 (172.30.17.47:8080)",
 				"builds git://github.com",
 				"with docker.io/openshift/ruby-20-centos7:latest",
 				"build 1 running for about a minute",
@@ -107,7 +107,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project example\n",
-				"service sinatra-app-example (172.30.17.49:8080 -> 8080)",
+				"service sinatra-app-example (172.30.17.49:8080)",
 				"sinatra-app-example-a deploys",
 				"sinatra-app-example-b deploys",
 				"with docker.io/openshift/ruby-20-centos7:latest",
