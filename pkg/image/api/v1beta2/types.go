@@ -65,18 +65,6 @@ type NamedTagReference struct {
 	From        *kapi.ObjectReference `json:"from,omitempty"`
 }
 
-// ImageRepositoryStatus contains information about the state of this image repository.
-//
-// ImageRepositoryStatus is DEPRECATED; use ImageStreamStatus instead.
-type ImageRepositoryStatus struct {
-	// Represents the effective location this repository may be accessed at. May be empty until the server
-	// determines where the repository is located
-	DockerImageRepository string `json:"dockerImageRepository"`
-	// A historical record of images associated with each tag. The first entry in the TagEvent array is
-	// the currently tagged image.
-	Tags []NamedTagEventList `json:"tags,omitempty"`
-}
-
 // ImageStreamStatus contains information about the state of this image stream.
 type ImageStreamStatus struct {
 	// Represents the effective location this stream may be accessed at. May be empty until the server
@@ -109,8 +97,6 @@ type ImageStreamMapping struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
-	// The Docker image repository the specified image is located in
-	DockerImageRepository string `json:"dockerImageRepository"`
 	// A Docker image.
 	Image Image `json:"image"`
 	// A string value this image can be located with inside the repository.
