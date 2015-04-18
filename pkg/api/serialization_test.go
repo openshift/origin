@@ -10,14 +10,17 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	apitesting "github.com/GoogleCloudPlatform/kubernetes/pkg/api/testing"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/google/gofuzz"
 
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
-	//"github.com/openshift/origin/pkg/api/v1beta1"
+	"github.com/openshift/origin/pkg/api/v1beta1"
+	"github.com/openshift/origin/pkg/api/v1beta2"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	build "github.com/openshift/origin/pkg/build/api"
 	config "github.com/openshift/origin/pkg/config/api"
 	image "github.com/openshift/origin/pkg/image/api"
 	template "github.com/openshift/origin/pkg/template/api"
@@ -47,13 +50,45 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.DockerImageMetadataVersion = []string{"pre012", "1.0"}[c.Rand.Intn(2)]
 			j.DockerImageReference = c.RandString()
 		},
-		func(j *runtime.EmbeddedObject, c fuzz.Continue) {
-			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.
+		func(j *image.ImageRepositoryMapping, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta2" {
+				j.DockerImageRepository = ""
+			}
+		},
+		func(j *image.ImageStreamMapping, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if forVersion == "v1beta2" {
+				j.DockerImageRepository = ""
+			}
+		},
+		func(j *image.TagReference, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.DockerImageReference = ""
+			if j.From != nil {
+				specs := []string{"", "ImageStreamTag", "ImageStreamImage"}
+				j.From.Kind = specs[c.Intn(len(specs))]
+			}
+		},
+		func(j *build.STIBuildStrategy, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.From.Kind = "ImageStream"
+			j.From.APIVersion = ""
+			j.From.ResourceVersion = ""
+			j.From.FieldPath = ""
+		},
+		func(j *build.BuildOutput, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			specs := []string{"", "a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
+			j.DockerImageReference = specs[c.Intn(len(specs))]
 		},
 		func(j *config.Config, c fuzz.Continue) {
 			c.Fuzz(&j.ListMeta)
 			// TODO: replace with structured type definition
 			j.Items = []runtime.Object{}
+		},
+		func(j *runtime.EmbeddedObject, c fuzz.Continue) {
+			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.
 		},
 		func(t *time.Time, c fuzz.Continue) {
 			// This is necessary because the standard fuzzed time.Time object is
@@ -85,6 +120,10 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 	name := reflect.TypeOf(item).Elem().Name()
 	data, err := codec.Encode(item)
 	if err != nil {
+		if conversion.IsNotRegisteredError(err) {
+			t.Logf("%v is not registered", name)
+			return
+		}
 		t.Errorf("%v: %v (%#v)", name, err, item)
 		return
 	}
@@ -94,8 +133,16 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		t.Errorf("0: %v: %v\nCodec: %v\nData: %s\nSource: %#v", name, err, codec, string(data), item)
 		return
 	}
+	if reflect.TypeOf(item) != reflect.TypeOf(obj2) {
+		obj2conv := reflect.New(reflect.TypeOf(item).Elem()).Interface().(runtime.Object)
+		if err := api.Scheme.Convert(obj2, obj2conv); err != nil {
+			t.Errorf("0X: no conversion from %v to %v: %v", reflect.TypeOf(item), reflect.TypeOf(obj2), err)
+			return
+		}
+		obj2 = obj2conv
+	}
 	if !api.Semantic.DeepEqual(item, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %#v\nFinal: %#v", name, util.ObjectGoPrintDiff(item, obj2), codec, string(data), item, obj2)
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %#v\nFinal: %#v", name, util.ObjectDiff(item, obj2), codec, string(data), item, obj2)
 		return
 	}
 
@@ -114,6 +161,10 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 var skipStandardVersions = map[string][]string{
 	"DockerImage": {"pre012", "1.0"},
 }
+var skipV1beta1 = map[string]struct{}{}
+var skipV1beta2 = map[string]struct{}{
+	"ImageRepository": struct{}{},
+}
 
 const fuzzIters = 20
 
@@ -122,7 +173,7 @@ func TestSpecificKind(t *testing.T) {
 	api.Scheme.Log(t)
 	defer api.Scheme.Log(nil)
 
-	kind := "Role"
+	kind := "ImageRepositoryList"
 	item, err := api.Scheme.New("", kind)
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)
@@ -131,6 +182,8 @@ func TestSpecificKind(t *testing.T) {
 	seed := int64(2703387474910584091) //rand.Int63()
 	fuzzInternalObject(t, "", item, seed)
 	roundTrip(t, osapi.Codec, item)
+	roundTrip(t, v1beta1.Codec, item)
+	roundTrip(t, v1beta2.Codec, item)
 }
 
 func TestTypes(t *testing.T) {
@@ -160,8 +213,14 @@ func TestTypes(t *testing.T) {
 			}
 			fuzzInternalObject(t, "", item, seed)
 			roundTrip(t, osapi.Codec, item)
-			//fuzzInternalObject(t, "", item, seed)
-			//roundTrip(t, v1beta1.Codec, item)
+			if _, ok := skipV1beta1[kind]; !ok {
+				fuzzInternalObject(t, "v1beta1", item, seed)
+				roundTrip(t, v1beta1.Codec, item)
+			}
+			if _, ok := skipV1beta2[kind]; !ok {
+				fuzzInternalObject(t, "v1beta2", item, seed)
+				roundTrip(t, v1beta2.Codec, item)
+			}
 		}
 	}
 }
