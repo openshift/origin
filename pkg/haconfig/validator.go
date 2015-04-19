@@ -1,15 +1,16 @@
 package haconfig
 
 import (
-	 "fmt"
-	 "net"
-	 "strconv"
-	 "strings"
+	"fmt"
+	"net"
+	"strconv"
+	"strings"
 )
 
 //  Validate IP address.
 func ValidateIPAddress(ip string) error {
-	if net.ParseIP(ip) == nil {
+	ipaddr := strings.TrimSpace(ip)
+	if net.ParseIP(ipaddr) == nil {
 		return fmt.Errorf("Invalid IP address: %s", ip)
 	}
 
@@ -18,6 +19,7 @@ func ValidateIPAddress(ip string) error {
 
 // Validate an IP address range or single IP address.
 func ValidateIPAddressRange(iprange string) error {
+	iprange = strings.TrimSpace(iprange)
 	if strings.Count(iprange, "-") < 1 {
 		return ValidateIPAddress(iprange)
 	}
@@ -59,9 +61,13 @@ func ValidateIPAddressRange(iprange string) error {
 
 //  Validate virtual IP range/addresses.
 func ValidateVirtualIPs(vips string) error {
-	for _, ip := range strings.Split(vips, ",") {
-		iprange := strings.TrimSpace(ip)
-		if err := ValidateIPAddressRange(iprange); err != nil {
+	virtualIPs := strings.TrimSpace(vips)
+	if len(virtualIPs) < 1 {
+		return nil
+	}
+
+	for _, ip := range strings.Split(virtualIPs, ",") {
+		if err := ValidateIPAddressRange(ip); err != nil {
 			return err
 		}
 	}
@@ -71,7 +77,7 @@ func ValidateVirtualIPs(vips string) error {
 
 // Validate command line operations.
 func ValidateCmdOptions(options *HAConfigCmdOptions, c *Configurator) error {
-	service := c.GetService()
+	service := c.Plugin.GetService()
 
 	//  If deleting service, check service exists.
 	if options.Delete && nil == service {
@@ -85,4 +91,3 @@ func ValidateCmdOptions(options *HAConfigCmdOptions, c *Configurator) error {
 
 	return ValidateVirtualIPs(options.VirtualIPs)
 }
-

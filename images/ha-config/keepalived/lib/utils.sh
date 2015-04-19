@@ -115,18 +115,3 @@ function get_device_ip_address() {
   local dev=${1:-"$(get_network_device)"}
   ifconfig "$dev" | awk '/inet / { print $2 }'
 }
-
-
-#
-#  Get matching node count.
-#
-#  Examples:
-#      get_matching_node_count
-#
-function get_matching_node_count() {
-  local bindir=$(cd -P -- "$LIB_DIR/../bin/" && pwd)
-
-  $bindir/openshift kube get nodes  -l "$1" --no-headers 2> /dev/null |  \
-      wc -l
-}
-

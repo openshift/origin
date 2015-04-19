@@ -32,6 +32,9 @@ NETWORK_INTERFACE=${OPENSHIFT_HA_NETWORK_INTERFACE:-""}  # "enp0s8"
 #  Service port to monitor for failover.
 HA_MONITOR_PORT=${OPENSHIFT_HA_MONITOR_PORT:-"80"}
 
+#  Number of initial replicas.
+HA_REPLICA_COUNT=${OPENSHIFT_HA_REPLICA_COUNT:-"1"}
+
 
 
 #  ========================================================================

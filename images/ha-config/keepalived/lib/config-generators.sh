@@ -242,9 +242,7 @@ $(generate_vrrp_sync_groups "$HA_CONFIG_NAME" "$vips")
   local ipkey=$(echo "$ipaddr" | cut -f 4 -d '.')
   local ipslot=$((ipkey % 128))
 
-  local nodecount=$(get_matching_node_count "$HA_SELECTOR")
-  nodecount=$(($nodecount > 0 ? $nodecount : 1))
-
+  local nodecount=$(($HA_REPLICA_COUNT > 0 ? $HA_REPLICA_COUNT : 1))
   local idx=$((ipslot % $nodecount))
   idx=$((idx + 1))
 

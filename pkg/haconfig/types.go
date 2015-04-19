@@ -7,12 +7,19 @@ import (
 const (
 	// Default ha-config resource name.
 	DefaultName = "ha-config"
+
 	// Default ha-config type.
 	DefaultType = "keepalived"
+
+	// Default service port.
+	DefaultServicePort = 1985
+
 	// Default ha-config watched port number.
 	DefaultWatchPort = 80
+
 	// Default resource selector.
 	DefaultSelector = "ha-config=<name>"
+
 	// Default network interface.
 	DefaultInterface = "eth0"
 )
@@ -21,8 +28,9 @@ const (
 type HAConfigCmdOptions struct {
 	Type          string
 	ImageTemplate variable.ImageTemplate
-	Selector      string
 	Credentials   string
+	ServicePort   int
+	Selector      string
 
 	//  Create/delete configuration.
 	Create bool
@@ -30,7 +38,7 @@ type HAConfigCmdOptions struct {
 
 	VirtualIPs       string
 	NetworkInterface string
-	WatchPort        string
+	WatchPort        int
 	Replicas         int
 
 	//  For the future - currently unused.
