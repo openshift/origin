@@ -83,7 +83,8 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		for _, group := range groups {
 			if len(group.Builds) != 0 {
 				for _, build := range group.Builds {
-					printLines(out, indent, 0, describeImageInPipeline(build, namespace))
+					fmt.Fprintln(out)
+					printLines(out, indent, 0, describeStandaloneBuildGroup(build, namespace)...)
 					printLines(out, indent, 1, describeAdditionalBuildDetail(build.Build, true)...)
 				}
 				continue
@@ -145,6 +146,21 @@ func describeDeploymentInServiceGroup(deploy graph.DeploymentFlow) []string {
 		lines = append(lines, describeDeployments(deploy.Deployment, 3)...)
 	}
 	return lines
+}
+
+func describeStandaloneBuildGroup(pipeline graph.ImagePipeline, namespace string) []string {
+	switch {
+	case pipeline.Build != nil:
+		lines := []string{fmt.Sprintf("%s %s", pipeline.Build.BuildConfig.Name, describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))}
+		if pipeline.Image != nil {
+			lines = append(lines, fmt.Sprintf("pushes to %s", describeImageTagInPipeline(pipeline.Image, namespace)))
+		}
+		return lines
+	case pipeline.Image != nil:
+		return []string{describeImageTagInPipeline(pipeline.Image, namespace)}
+	default:
+		return []string{"<unknown>"}
+	}
 }
 
 func describeImageInPipeline(pipeline graph.ImagePipeline, namespace string) string {
@@ -266,9 +282,9 @@ func describeBuildStatus(build *buildapi.Build, t *util.Time, parentName string)
 	}
 	switch build.Status {
 	case buildapi.BuildStatusComplete:
-		return fmt.Sprintf("build %s succeeded %s%s", name, time, revision)
+		return fmt.Sprintf("build %s succeeded %s ago%s", name, time, revision)
 	case buildapi.BuildStatusError:
-		return fmt.Sprintf("build %s stopped with an error %s%s", name, time, revision)
+		return fmt.Sprintf("build %s stopped with an error %s ago%s", name, time, revision)
 	default:
 		status := strings.ToLower(string(build.Status))
 		return fmt.Sprintf("build %s %s for %s%s", name, status, time, revision)
