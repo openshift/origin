@@ -1,4 +1,4 @@
-package haconfig
+package keepalived
 
 import (
 	"fmt"
@@ -11,14 +11,15 @@ import (
 
 	dapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
+	"github.com/openshift/origin/pkg/haconfig"
 )
 
 const defaultInterface = "eth0"
 const libModulesVolumeName = "lib-modules"
 const libModulesPath = "/lib/modules"
 
-// Get kube client configuration from a file containing credentials for
-// connecting to the master.
+//  Get kube client configuration from a file containing credentials for
+//  connecting to the master.
 func getClientConfig(path string) *kclient.Config {
 	if 0 == len(path) {
 		glog.Fatalf("You must specify a .kubeconfig file path containing credentials for connecting to the master with --credentials")
@@ -42,7 +43,10 @@ func getClientConfig(path string) *kclient.Config {
 	return config
 }
 
-func generateEnvEntries(name string, options *HAConfigCmdOptions, kconfig *kclient.Config) app.Environment {
+//  Generate the HA failover monitor (keepalived) container environment entries.
+func generateEnvEntries(name string, options *haconfig.HAConfigCmdOptions, kconfig *kclient.Config) app.Environment {
+	watchPort := strconv.Itoa(options.WatchPort)
+	replicas := strconv.Itoa(options.Replicas)
 	insecureStr := strconv.FormatBool(kconfig.Insecure)
 	unicastStr := strconv.FormatBool(options.UseUnicast)
 
@@ -56,17 +60,25 @@ func generateEnvEntries(name string, options *HAConfigCmdOptions, kconfig *kclie
 		"OPENSHIFT_HA_CONFIG_NAME":       name,
 		"OPENSHIFT_HA_VIRTUAL_IPS":       options.VirtualIPs,
 		"OPENSHIFT_HA_NETWORK_INTERFACE": options.NetworkInterface,
-		"OPENSHIFT_HA_MONITOR_PORT":      options.WatchPort,
+		"OPENSHIFT_HA_MONITOR_PORT":      watchPort,
+		"OPENSHIFT_HA_REPLICA_COUNT":     replicas,
 		"OPENSHIFT_HA_USE_UNICAST":       unicastStr,
 		// "OPENSHIFT_HA_UNICAST_PEERS":     "127.0.0.1",
 	}
 }
 
-func generateFailoverMonitorContainerConfig(name string, options *HAConfigCmdOptions, env app.Environment) *kapi.Container {
+//  Generate the HA failover monitor (keepalived) container configuration.
+func generateFailoverMonitorContainerConfig(name string, options *haconfig.HAConfigCmdOptions, env app.Environment) *kapi.Container {
 	containerName := fmt.Sprintf("%s-%s", name, options.Type)
 
-	imageName := fmt.Sprintf("%s-%s", options.Type, DefaultName)
+	imageName := fmt.Sprintf("%s-%s", options.Type, haconfig.DefaultName)
 	image := options.ImageTemplate.ExpandOrDie(imageName)
+
+	ports := make([]kapi.ContainerPort, 1)
+	ports[0] = kapi.ContainerPort{
+		ContainerPort: options.ServicePort,
+		HostPort:      options.ServicePort,
+	}
 
 	mounts := make([]kapi.VolumeMount, 1)
 	mounts[0] = kapi.VolumeMount{
@@ -78,6 +90,7 @@ func generateFailoverMonitorContainerConfig(name string, options *HAConfigCmdOpt
 	return &kapi.Container{
 		Name:            containerName,
 		Image:           image,
+		Ports:           ports,
 		Privileged:      true,
 		ImagePullPolicy: kapi.PullIfNotPresent,
 		VolumeMounts:    mounts,
@@ -85,7 +98,8 @@ func generateFailoverMonitorContainerConfig(name string, options *HAConfigCmdOpt
 	}
 }
 
-func generateContainerConfig(name string, options *HAConfigCmdOptions) []kapi.Container {
+//  Generate the HA failover monitor (keepalived) container configuration.
+func generateContainerConfig(name string, options *haconfig.HAConfigCmdOptions) []kapi.Container {
 	containers := make([]kapi.Container, 0)
 
 	if len(options.VirtualIPs) < 1 {
@@ -103,6 +117,7 @@ func generateContainerConfig(name string, options *HAConfigCmdOptions) []kapi.Co
 	return containers
 }
 
+//  Generate the HA failover monitor (keepalived) container volume config.
 func generateVolumeConfig() []kapi.Volume {
 	hostPath := &kapi.HostPathVolumeSource{Path: libModulesPath}
 	src := kapi.VolumeSource{HostPath: hostPath}
@@ -111,7 +126,8 @@ func generateVolumeConfig() []kapi.Volume {
 	return []kapi.Volume{vol}
 }
 
-func generateDeploymentTemplate(name string, options *HAConfigCmdOptions, selector map[string]string) dapi.DeploymentTemplate {
+//  Generate the HA deployment template.
+func generateDeploymentTemplate(name string, options *haconfig.HAConfigCmdOptions, selector map[string]string) dapi.DeploymentTemplate {
 	podTemplate := &kapi.PodTemplateSpec{
 		ObjectMeta: kapi.ObjectMeta{Labels: selector},
 		Spec: kapi.PodSpec{
@@ -140,7 +156,8 @@ func generateDeploymentTemplate(name string, options *HAConfigCmdOptions, select
 	}
 }
 
-func GenerateDeploymentConfig(name string, options *HAConfigCmdOptions, selector map[string]string) *dapi.DeploymentConfig {
+//  Generate the HA deployment configuration.
+func GenerateDeploymentConfig(name string, options *haconfig.HAConfigCmdOptions, selector map[string]string) *dapi.DeploymentConfig {
 
 	return &dapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{

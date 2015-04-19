@@ -3,7 +3,6 @@ package haconfig
 import (
 	"fmt"
 	"io"
-	"strconv"
 
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/golang/glog"
@@ -11,6 +10,8 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	hac "github.com/openshift/origin/pkg/haconfig"
+	"github.com/openshift/origin/plugins/haconfig/keepalived"
 )
 
 const shortDesc = "Configure or view High Availability configuration"
@@ -66,11 +67,12 @@ ALPHA: This command is currently being actively developed. It is intended
 `
 
 func NewCmdHAConfig(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
-	options := &HAConfigCmdOptions{
+	options := &hac.HAConfigCmdOptions{
 		ImageTemplate:    variable.NewDefaultImageTemplate(),
-		Selector:         DefaultSelector,
-		WatchPort:        strconv.Itoa(DefaultWatchPort),
-		NetworkInterface: DefaultInterface,
+		Selector:         hac.DefaultSelector,
+		ServicePort:      hac.DefaultServicePort,
+		WatchPort:        hac.DefaultWatchPort,
+		NetworkInterface: hac.DefaultInterface,
 		Replicas:         1,
 	}
 
@@ -83,8 +85,8 @@ func NewCmdHAConfig(f *clientcmd.Factory, parentName, name string, out io.Writer
 		},
 	}
 
-	cmd.Flags().StringVar(&options.Type, "type", DefaultType, "The type of HA configurator to use - if you specify --images, this flag may be ignored.")
-	cmd.Flags().StringVar(&options.ImageTemplate.Format, "images", options.ImageTemplate.Format, "The image to base this HA configurator on - ${component} will be replaced with --type followed by ha-config.")
+	cmd.Flags().StringVar(&options.Type, "type", hac.DefaultType, "The type of HA configurator to use.")
+	cmd.Flags().StringVar(&options.ImageTemplate.Format, "images", options.ImageTemplate.Format, "The image to base this HA configurator on - ${component} will be replaced based on --type.")
 	cmd.Flags().BoolVar(&options.ImageTemplate.Latest, "latest-images", options.ImageTemplate.Latest, "If true, attempt to use the latest images instead of the current release")
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter nodes on.")
 	cmd.Flags().StringVar(&options.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
@@ -98,15 +100,48 @@ func NewCmdHAConfig(f *clientcmd.Factory, parentName, name string, out io.Writer
 	// unicastHelp := `Send VRRP adverts using unicast instead of over the VRRP multicast group. This is useful in environments where multicast is not supported. Use with caution as this can get slow if the list of peers is large - it is recommended running this with the label option to select a set of nodes.`
 	// cmd.Flags().StringVarP(&options.UseUnicast, "unicast", "u", options.UseUnicast, unicastHelp)
 
-	cmd.Flags().StringVarP(&options.WatchPort, "watch-port", "w", "", "Port to monitor or watch for resource availability.")
-
-	cmd.Flags().IntVar(&options.Replicas, "replicas", options.Replicas,"The replication factor of the HA configuration; commonly 2 when high availability is desired.")
+	cmd.Flags().IntVarP(&options.WatchPort, "watch-port", "w", hac.DefaultWatchPort, "Port to monitor or watch for resource availability.")
+	cmd.Flags().IntVarP(&options.Replicas, "replicas", "r", options.Replicas, "The replication factor of the HA configuration; commonly 2 when high availability is desired.")
 
 	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
-func previewConfiguration(c *Configurator, cmd *cobra.Command, out io.Writer) bool {
+func getConfigurationName(args []string) string {
+	name := hac.DefaultName
+
+	switch len(args) {
+	case 0:
+		// Do nothing - use default name.
+	case 1:
+		name = args[0]
+	default:
+		glog.Fatalf("Please pass zero or one arguments to provide a name for this configuration.")
+	}
+
+	return name
+}
+
+func getConfigurator(name string, f *clientcmd.Factory, options *hac.HAConfigCmdOptions, out io.Writer) *hac.Configurator {
+	//  Currently, the only supported plugin is keepalived (default).
+	plugin, err := keepalived.NewHAConfiguratorPlugin(name, f, options)
+
+	switch options.Type {
+	case hac.DefaultType:
+		//  Default.
+	// case <new-type>:  plugin, err = makeNewTypePlugin()
+	default:
+		glog.Fatalf("No plugins available to handle type %q", options.Type)
+	}
+
+	if err != nil {
+		glog.Fatalf("HAConfigurator %q plugin error: %v", options.Type, err)
+	}
+
+	return hac.NewConfigurator(name, plugin, out)
+}
+
+func previewConfiguration(c *hac.Configurator, cmd *cobra.Command, out io.Writer) bool {
 	p, output, err := cmdutil.PrinterForCommand(cmd)
 	if err != nil {
 		glog.Fatalf("Error configuring printer: %v", err)
@@ -124,11 +159,12 @@ func previewConfiguration(c *Configurator, cmd *cobra.Command, out io.Writer) bo
 	return true
 }
 
-func processCommand(f *clientcmd.Factory, options *HAConfigCmdOptions, cmd *cobra.Command, args []string, out io.Writer) {
-	c := NewConfigurator(f, options, args, out)
+func processCommand(f *clientcmd.Factory, options *hac.HAConfigCmdOptions, cmd *cobra.Command, args []string, out io.Writer) {
+	name := getConfigurationName(args)
+	c := getConfigurator(name, f, options, out)
 
 	//  First up, validate all the command line options.
-	if err := ValidateCmdOptions(options, c); err != nil {
+	if err := hac.ValidateCmdOptions(options, c); err != nil {
 		glog.Fatal(err)
 	}
 
