@@ -108,6 +108,14 @@ func (m *ComponentMatch) String() string {
 	return m.Argument
 }
 
+func (m *ComponentMatch) IsImage() bool {
+	return m.Image != nil || m.ImageStream != nil
+}
+
+func (m *ComponentMatch) IsTemplate() bool {
+	return m.Template != nil
+}
+
 type Resolver interface {
 	// resolvers should return ErrMultipleMatches when more than one result could
 	// be construed as a match. Resolvers should set the score to 0.0 if this is a
@@ -240,7 +248,7 @@ type ReferenceBuilder struct {
 	group int
 }
 
-func (r *ReferenceBuilder) AddImages(inputs []string, fn func(*ComponentInput) ComponentReference) {
+func (r *ReferenceBuilder) AddComponents(inputs []string, fn func(*ComponentInput) ComponentReference) {
 	for _, s := range inputs {
 		for _, s := range strings.Split(s, "+") {
 			input, repo, err := NewComponentInput(s)

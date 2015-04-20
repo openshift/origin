@@ -30,9 +30,9 @@ var errExit = fmt.Errorf("exit directly")
 const newAppLongDesc = `
 Create a new application in OpenShift by specifying source code, templates, and/or images.
 
-This command will try to build up the components of an application using images or code
-located on your system. It will lookup the images on the local Docker installation (if
-available), a Docker registry, or an OpenShift image stream. If you specify a source
+This command will try to build up the components of an application using images, templates, 
+or code located on your system. It will lookup the images on the local Docker installation 
+(if available), a Docker registry, or an OpenShift image stream. If you specify a source
 code URL, it will set up a build that takes your source code and converts it into an
 image that can run inside of a pod. The images will be deployed via a deployment
 configuration, and a service will be hooked up to the first public port of the app.
@@ -50,6 +50,9 @@ Examples:
 
 	# Create an application from the remote repository using the specified label
 	$ %[1]s new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
+
+	# Create an application based on a stored template, explicitly setting a parameter value
+	$ %[1]s new-app ruby-helloworld-sample --env=MYSQL_USER=admin
 
 If you specify source code, you may need to run a build with 'start-build' after the
 application is created.
@@ -80,12 +83,20 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().Var(&config.SourceRepositories, "code", "Source code to use to build this application.")
 	cmd.Flags().VarP(&config.ImageStreams, "image", "i", "Name of an OpenShift image stream to use in the app.")
 	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to include in the app.")
+	cmd.Flags().Var(&config.Templates, "template", "Name of an OpenShift stored template to use in the app.")
+	cmd.Flags().VarP(&config.TemplateParameters, "param", "p", "Specify a list of key value pairs (eg. -p FOO=BAR,BAR=FOO) to set/override parameter values in the template.")
 	cmd.Flags().Var(&config.Groups, "group", "Indicate components that should be grouped together as <comp1>+<comp2>.")
 	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into each container.")
-	cmd.Flags().StringVar(&config.TypeOfBuild, "build", "", "Specify the type of build to use if you don't want to detect (docker|source)")
-	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application")
+	cmd.Flags().StringVar(&config.TypeOfBuild, "build", "", "Specify the type of build to use if you don't want to detect (docker|source).")
+	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
 
-	cmdutil.AddPrinterFlags(cmd)
+	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
+	// Need a better solution.
+	// cmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().StringP("output", "o", "", "Output format. One of: json|yaml|template|templatefile.")
+	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
+	cmd.Flags().Bool("no-headers", false, "When using the default output, don't print headers.")
+	cmd.Flags().String("output-template", "", "Template string or path to template file to use when -o=template or -o=templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
 
 	return cmd
 }
@@ -126,7 +137,7 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 		}
 		if err == newcmd.ErrNoInputs {
 			// TODO: suggest things to the user
-			return cmdutil.UsageError(c, "You must specify one or more images, image streams, or source code locations to create an application.")
+			return cmdutil.UsageError(c, "You must specify one or more images, image streams, templates or source code locations to create an application.")
 		}
 		return err
 	}
