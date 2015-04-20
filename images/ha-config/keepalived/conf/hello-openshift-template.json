@@ -10,7 +10,7 @@
             "id": "hello-openshift-service",
             "kind": "Service",
             "apiVersion": "v1beta1",
-            "port": 6061,
+            "port": 8080,
             "selector": {
                 "name": "hello-openshift-label"
             }
@@ -29,7 +29,9 @@
                                 "name": "hello-openshift-container",
                                 "image": "openshift/hello-openshift",
                                 "ports": [{
-                                    "containerPort": 8080
+                                    "hostPort": 6061,
+                                    "containerPort": 8080,
+                                    "protocol": "TCP"
                                 }]
                             }],
                             "dnsPolicy": "ClusterFirst",
@@ -46,7 +48,7 @@
                 "replicaSelector": {
                     "name": "hello-openshift-label"
                 },
-                "replicas": 2
+                "replicas": 1
             }
         },
         {
