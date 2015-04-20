@@ -63,8 +63,8 @@ var (
 		OpenshiftStatusGroupName:    {"imagerepositories/status"},
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
-		KubeInternalsGroupName: {"endpoints", "minions", "nodes", "bindings", "events", "namespaces"},
-		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services"},
+		KubeInternalsGroupName: {"minions", "nodes", "bindings", "events", "namespaces"},
+		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services", "endpoints"},
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
 		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status"},
 	}
