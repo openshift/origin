@@ -304,25 +304,13 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		return false, fmt.Errorf("Insufficient data to merge configuration.")
 	}
 
-	pathOptions := &kubecmdconfig.PathOptions{
-		GlobalFile:       config.RecommendedHomeFile,
-		EnvVar:           config.OpenShiftConfigPathEnvVar,
-		ExplicitFileFlag: config.OpenShiftConfigFlagName,
-
-		GlobalFileSubpath: config.OpenShiftConfigHomeDirFileName,
-
-		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
-			ExplicitPath: o.PathToSaveConfig,
-		},
-	}
-
 	globalExistedBefore := true
-	if _, err := os.Stat(pathOptions.GlobalFile); os.IsNotExist(err) {
+	if _, err := os.Stat(o.PathOptions.GlobalFile); os.IsNotExist(err) {
 		globalExistedBefore = false
 	}
 
 	newConfig := config.CreateConfig(o.Username, o.Project, o.Config)
-	baseDir := filepath.Dir(pathOptions.GetDefaultFilename())
+	baseDir := filepath.Dir(o.PathOptions.GetDefaultFilename())
 	if err := config.RelativizeClientConfigPaths(&newConfig, baseDir); err != nil {
 		return false, err
 	}
@@ -332,12 +320,12 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		return false, err
 	}
 
-	if err := kubecmdconfig.ModifyConfig(pathOptions, *configToWrite); err != nil {
+	if err := kubecmdconfig.ModifyConfig(o.PathOptions, *configToWrite); err != nil {
 		return false, err
 	}
 
 	created := false
-	if _, err := os.Stat(pathOptions.GlobalFile); err == nil {
+	if _, err := os.Stat(o.PathOptions.GlobalFile); err == nil {
 		created = created || !globalExistedBefore
 	}
 
