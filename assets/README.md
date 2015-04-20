@@ -100,6 +100,7 @@ For more details on the expected scope arguments, see the source under [app/scri
 * select-on-focus (attribute) - when the element is focused, all text within it will be selected
 * tile-click (attribute or class) - for use with the `.tile` class, when anything on the tile is clicked, a simulated click to the `a.tile-target` link will be fired.  Recommended use is by adding the `.tile-click` class to get the correct styles on hover.
 * click-to-reveal (attribute) - the element will be hidden and a link to show the element will appear instead, link text is customizable
+* osc-object (attribute or class) - When the element is clicked it will be shown in the details sidebar.  Using as a class is preferred to pick up hover/active styles
 
 ##### Filters
 
