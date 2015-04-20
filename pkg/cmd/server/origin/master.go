@@ -76,6 +76,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
+	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
@@ -154,7 +155,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
 	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
 	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
-
+	roleBindingRegistry := rolebindingregistry.NewVirtualRegistry(policyBindingRegistry, policyRegistry, c.Options.PolicyConfig.MasterAuthorizationNamespace)
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
 
@@ -201,6 +202,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		GRFn: deployRollback.GenerateRollback,
 	}
 
+	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache)
+
 	// initialize OpenShift API
 	storage := map[string]rest.Storage{
 		"builds":                   buildregistry.NewREST(buildEtcd),
@@ -232,7 +235,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
-		"projects": projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
+		"projects":        projectStorage,
+		"projectRequests": projectrequeststorage.NewREST(c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingRegistry, *projectStorage),
 
 		"users":                userStorage,
 		"identities":           identityStorage,
@@ -246,7 +250,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"policies":              policyStorage,
 		"policyBindings":        policyBindingStorage,
 		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(policyRegistry)),
-		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(policyBindingRegistry, policyRegistry, c.Options.PolicyConfig.MasterAuthorizationNamespace)),
+		"roleBindings":          rolebindingregistry.NewREST(roleBindingRegistry),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectAccessReviewStorage,
 	}

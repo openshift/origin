@@ -37,3 +37,10 @@ type Project struct {
 	Spec        ProjectSpec
 	Status      ProjectStatus
 }
+
+type ProjectRequest struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	DisplayName string
+}

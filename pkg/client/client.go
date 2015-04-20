@@ -33,6 +33,7 @@ type Interface interface {
 	UsersInterface
 	UserIdentityMappingsInterface
 	ProjectsInterface
+	ProjectRequestsInterface
 	PoliciesNamespacer
 	RolesNamespacer
 	RoleBindingsNamespacer
@@ -132,6 +133,11 @@ func (c *Client) UserIdentityMappings() UserIdentityMappingInterface {
 // Projects provides a REST client for Projects
 func (c *Client) Projects() ProjectInterface {
 	return newProjects(c)
+}
+
+// ProjectRequests provides a REST client for Projects
+func (c *Client) ProjectRequests() ProjectRequestInterface {
+	return newProjectRequests(c)
 }
 
 // TemplateConfigs provides a REST client for TemplateConfig

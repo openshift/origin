@@ -39,3 +39,11 @@ func ValidateProjectUpdate(newProject *api.Project, oldProject *api.Project) fie
 	newProject.Status = oldProject.Status
 	return allErrs
 }
+
+func ValidateProjectRequest(request *api.ProjectRequest) fielderrors.ValidationErrorList {
+	project := &api.Project{}
+	project.ObjectMeta = request.ObjectMeta
+	project.DisplayName = request.DisplayName
+
+	return ValidateProject(project)
+}

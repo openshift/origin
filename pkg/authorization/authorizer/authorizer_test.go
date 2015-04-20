@@ -440,7 +440,7 @@ func newDefaultGlobalBinding() []authorizationapi.PolicyBinding {
 			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		},
 		RoleBindings: map[string]authorizationapi.RoleBinding{
-			"cluster-admins": {
+			"extra-cluster-admins": {
 				ObjectMeta: kapi.ObjectMeta{
 					Name:      "cluster-admins",
 					Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
