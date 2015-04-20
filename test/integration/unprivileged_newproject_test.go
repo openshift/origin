@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -50,6 +51,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 		Description: "the special description",
 
 		Client: valerieOpenshiftClient,
+		Out:    ioutil.Discard,
 	}
 
 	if err := requestProject.Run(); err != nil {
