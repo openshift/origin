@@ -89,7 +89,19 @@ func TestParseDockerImageReference(t *testing.T) {
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
 		{
+			From: "https://bar:5000/foo/baz",
+			Err:  true,
+		},
+		{
+			From: "http://bar:5000/foo/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Err:  true,
+		},
+		{
 			From: "bar/foo/baz/biz",
+			Err:  true,
+		},
+		{
+			From: "ftp://baz/baz/biz",
 			Err:  true,
 		},
 		{
