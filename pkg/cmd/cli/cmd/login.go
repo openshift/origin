@@ -11,6 +11,7 @@ import (
 	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
+	kcmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -47,8 +48,7 @@ type LoginOptions struct {
 	KeyFile     string
 	InsecureTLS bool
 
-	// Optional, if provided will only try to save in it
-	PathToSaveConfig string
+	PathOptions *kcmdconfig.PathOptions
 }
 
 const longDescription = `Logs in to the OpenShift server and saves a config file that
@@ -148,12 +148,13 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 	if keyFile := kcmdutil.GetFlagString(cmd, "client-key"); len(keyFile) > 0 {
 		o.KeyFile = keyFile
 	}
-	o.PathToSaveConfig = kcmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName)
 
 	o.CAFile = kcmdutil.GetFlagString(cmd, "certificate-authority")
 	o.InsecureTLS = kcmdutil.GetFlagBool(cmd, "insecure-skip-tls-verify")
 
 	o.DefaultNamespace, _ = f.OpenShiftClientConfig.Namespace()
+
+	o.PathOptions = config.NewPathOptions(cmd)
 
 	return nil
 }

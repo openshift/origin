@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	kubecmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
@@ -24,14 +24,30 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type ProjectOptions struct {
+	Config       clientcmdapi.Config
+	Client       *client.Client
+	ClientConfig *kclient.Config
+	Out          io.Writer
+	PathOptions  *kubecmdconfig.PathOptions
+
+	ProjectName string
+	ProjectOnly bool
+}
+
 // NewCmdProject implements the OpenShift cli rollback command
 func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	options := &ProjectOptions{}
+
 	cmd := &cobra.Command{
 		Use:   "project <project-name>",
 		Short: "switch to another project",
 		Long:  `Switch to another project and make it the default in your configuration.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunProject(f, out, cmd, args)
+			options.PathOptions = cliconfig.NewPathOptions(cmd)
+			options.Complete(f, args, out)
+
+			err := options.RunProject()
 			if err == errExit {
 				os.Exit(1)
 			}
@@ -41,38 +57,55 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-// RunProject contains all the necessary functionality for the OpenShift cli project command
-func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+	var err error
+
 	argsLength := len(args)
-
-	if argsLength > 1 {
-		return cmdutil.UsageError(cmd, "Only one argument is supported (project name).")
+	switch {
+	case argsLength > 1:
+		return errors.New("Only one argument is supported (project name).")
+	case argsLength == 1:
+		o.ProjectName = args[0]
 	}
 
-	config, err := f.OpenShiftClientConfig.RawConfig()
+	o.Config, err = f.OpenShiftClientConfig.RawConfig()
 	if err != nil {
 		return err
 	}
 
-	clientCfg, err := f.OpenShiftClientConfig.ClientConfig()
+	o.ClientConfig, err = f.OpenShiftClientConfig.ClientConfig()
 	if err != nil {
 		return err
 	}
 
-	oClient, _, err := f.Clients()
+	o.Client, _, err = f.Clients()
 	if err != nil {
 		return err
 	}
+
+	o.Out = out
+
+	return nil
+}
+func (o ProjectOptions) Validate() error {
+	return nil
+}
+
+// RunProject contains all the necessary functionality for the OpenShift cli project command
+func (o ProjectOptions) RunProject() error {
+	config := o.Config
+	clientCfg := o.ClientConfig
+	out := o.Out
 
 	// No argument provided, we will just print info
-	if argsLength == 0 {
+	if len(o.ProjectName) == 0 {
 		currentContext := config.Contexts[config.CurrentContext]
 		currentProject := currentContext.Namespace
 
 		if len(currentProject) > 0 {
-			_, err := oClient.Projects().Get(currentProject)
+			_, err := o.Client.Projects().Get(currentProject)
 			if err != nil {
-				if errors.IsNotFound(err) {
+				if kapierrors.IsNotFound(err) {
 					return fmt.Errorf("the project %q specified in your config does not exist.", currentProject)
 				}
 				if clientcmd.IsForbidden(err) {
@@ -98,23 +131,23 @@ func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	}
 
 	// We have an argument that can be either a context or project
-	argument := args[0]
+	argument := o.ProjectName
 
 	contextInUse := ""
 	namespaceInUse := ""
 
 	// Check if argument is an existing context, if so just set it as the context in use.
 	// If not a context then we will try to handle it as a project.
-	if context, ok := config.Contexts[argument]; ok && len(context.Namespace) > 0 {
+	if context, ok := config.Contexts[argument]; !o.ProjectOnly && (ok && len(context.Namespace) > 0) {
 		contextInUse = argument
 		namespaceInUse = context.Namespace
 
 		config.CurrentContext = argument
 
 	} else {
-		project, err := oClient.Projects().Get(argument)
+		project, err := o.Client.Projects().Get(argument)
 		if err != nil {
-			if isNotFound, isForbidden := errors.IsNotFound(err), clientcmd.IsForbidden(err); isNotFound || isForbidden {
+			if isNotFound, isForbidden := kapierrors.IsNotFound(err), clientcmd.IsForbidden(err); isNotFound || isForbidden {
 				msg := ""
 
 				if isNotFound {
@@ -123,7 +156,7 @@ func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 					msg = fmt.Sprintf("You do not have rights to view project %q on server %q.", argument, clientCfg.Host)
 				}
 
-				projects, err := getProjects(oClient)
+				projects, err := getProjects(o.Client)
 				if err == nil {
 					msg += "\nYour projects are:"
 					for _, project := range projects {
@@ -183,19 +216,7 @@ func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		}
 	}
 
-	pathOptions := &kubecmdconfig.PathOptions{
-		GlobalFile:       cliconfig.RecommendedHomeFile,
-		EnvVar:           cliconfig.OpenShiftConfigPathEnvVar,
-		ExplicitFileFlag: cliconfig.OpenShiftConfigFlagName,
-
-		GlobalFileSubpath: cliconfig.OpenShiftConfigHomeDirFileName,
-
-		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
-			ExplicitPath: cmdutil.GetFlagString(cmd, cliconfig.OpenShiftConfigFlagName),
-		},
-	}
-
-	if err := kubecmdconfig.ModifyConfig(pathOptions, config); err != nil {
+	if err := kubecmdconfig.ModifyConfig(o.PathOptions, config); err != nil {
 		return err
 	}
 
