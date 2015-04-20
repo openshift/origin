@@ -5,16 +5,15 @@ import (
 	"regexp"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	configapi "github.com/openshift/origin/pkg/config/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
 	"github.com/openshift/origin/pkg/util"
+	"github.com/openshift/origin/pkg/util/stringreplace"
 )
 
 var parameterExp = regexp.MustCompile(`\$\{([a-zA-Z0-9\_]+)\}`)
@@ -85,7 +84,6 @@ func GetParameterByName(t *api.Template, name string) *api.Parameter {
 // Example of Parameter expression:
 //   - ${PARAMETER_NAME}
 //
-// TODO: Implement substitution for more types and fields.
 func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Object) (runtime.Object, error) {
 	// Make searching for given parameter name/value more effective
 	paramMap := make(map[string]string, len(params))
@@ -93,43 +91,18 @@ func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Ob
 		paramMap[param.Name] = param.Value
 	}
 
-	switch obj := item.(type) {
-	case *kapi.ReplicationController:
-		p.substituteParametersInManifest(obj.Spec.Template.Spec.Containers, paramMap)
-		return obj, nil
-	case *kapi.Pod:
-		p.substituteParametersInManifest(obj.Spec.Containers, paramMap)
-		return obj, nil
-	case *deployapi.Deployment:
-		p.substituteParametersInManifest(obj.ControllerTemplate.Template.Spec.Containers, paramMap)
-		return obj, nil
-	case *deployapi.DeploymentConfig:
-		p.substituteParametersInManifest(obj.Template.ControllerTemplate.Template.Spec.Containers, paramMap)
-		return obj, nil
-	default:
-		return obj, nil
-	}
-
-}
-
-// substituteParametersInManifest is a helper function that iterates
-// over the given manifest and substitutes all Parameter expression
-// occurrences with their corresponding values.
-func (p *Processor) substituteParametersInManifest(containers []kapi.Container, paramMap map[string]string) {
-	for i := range containers {
-		for e := range containers[i].Env {
-			envValue := &containers[i].Env[e].Value
-			// Match all parameter expressions found in the given env var
-			for _, match := range parameterExp.FindAllStringSubmatch(*envValue, -1) {
-				// Substitute expression with its value, if corresponding parameter found
-				if len(match) > 1 {
-					if paramValue, found := paramMap[match[1]]; found {
-						*envValue = strings.Replace(*envValue, match[0], paramValue, 1)
-					}
+	stringreplace.VisitObjectStrings(item, func(in string) string {
+		for _, match := range parameterExp.FindAllStringSubmatch(in, -1) {
+			if len(match) > 1 {
+				if paramValue, found := paramMap[match[1]]; found {
+					in = strings.Replace(in, match[0], paramValue, 1)
 				}
 			}
 		}
-	}
+		return in
+	})
+
+	return item, nil
 }
 
 // GenerateParameterValues generates Value for each Parameter of the given
