@@ -43,6 +43,30 @@ For more information on the security of containers, see these articles:
 Running untrusted containers will become less scary as improvements are made upstream to Docker and Kubernetes, but until then please be conscious of the images you run.  Consider using images from trusted parties, building them yourself on OpenShift, or only running containers that run as non-root users.
 
 
+Docker 1.6
+----------
+OpenShift now requires at least Docker 1.6. Here's how to get it:
+
+### Fedora 21
+RPMs for Docker 1.6 are available for Fedora 21 in the updates-testing yum repository. This is disabled by default, so you'll need to run the following command to install Docker 1.6:
+
+    sudo yum --enablerepo=updates-testing install docker-io
+
+If you're updating, replace `install` with `update` above.
+
+### CentOS 7
+Docker 1.6 is not yet available in the CentOS 7 Extras yum repository yet. In the meantime, you will need to install it from https://mirror.openshift.com/pub/openshift-v3/dependencies/centos7/x86_64/. Create `/etc/yum.repos.d/openshift-v3-dependencies.repo` with these contents
+
+    [openshift-v3-dependencies]
+    name=OpenShift V3 Dependencies
+    baseurl=https://mirror.openshift.com/pub/openshift-v3/dependencies/centos7/x86_64/
+    enabled=1
+    metadata_expire=7d
+    gpgcheck=0
+
+You will now be able to `yum install` or `yum update` Docker to 1.6.
+
+
 Getting Started
 ---------------
 The simplest way to run OpenShift Origin is in a Docker container:
