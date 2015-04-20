@@ -166,10 +166,11 @@ popd
 
 # test config files in the home directory
 mkdir -p ${HOME}/.config/openshift
-mv ${CONFIG_DIR}/.openshiftconfig ${HOME}/.config/openshift/.config
+mv ${CONFIG_DIR}/.openshiftconfig ${HOME}/.config/openshift/config
 osc get services
+mv ${HOME}/.config/openshift/config ${HOME}/.config/openshift/non-default-config
 echo "config files: ok"
-export OPENSHIFTCONFIG="${HOME}/.config/openshift/.config"
+export OPENSHIFTCONFIG="${HOME}/.config/openshift/non-default-config"
 
 # from this point every command will use config from the OPENSHIFTCONFIG env var
 
