@@ -33,7 +33,7 @@ func TestFormatImageStreamTags(t *testing.T) {
 		},
 		Status: imageapi.ImageStreamStatus{
 			Tags: map[string]imageapi.TagEventList{
-				"latest": {
+				imageapi.DefaultImageTag: {
 					Items: []imageapi.TagEvent{
 						{
 							Created:              util.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),

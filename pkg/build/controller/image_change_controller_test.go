@@ -163,7 +163,7 @@ func TestNewImageID(t *testing.T) {
 func TestNewImageIDDefaultTag(t *testing.T) {
 	// valid configuration using default tag, new build should be triggered.
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageStream", "")
-	imageStream := mockImageStream("testImageStream", "registry.com/namespace/imagename", map[string]string{buildapi.DefaultImageTag: "newImageID123"})
+	imageStream := mockImageStream("testImageStream", "registry.com/namespace/imagename", map[string]string{imageapi.DefaultImageTag: "newImageID123"})
 	controller := mockImageChangeController(buildcfg, imageStream)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)

@@ -171,6 +171,9 @@ type ImageStreamTag struct {
 	Image `json:",inline"`
 }
 
+// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
+const DefaultImageTag = "latest"
+
 // ImageStreamImage exists to allow calls to `osc get imageStreamImage ...` to function.
 type ImageStreamImage struct {
 	Image `json:",inline"`

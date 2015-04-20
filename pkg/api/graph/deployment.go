@@ -425,7 +425,7 @@ func DeploymentConfigHasTrigger(config *deploy.DeploymentConfig) TriggeredByFunc
 					}
 					tag := params.Tag
 					if len(tag) == 0 {
-						tag = "latest"
+						tag = image.DefaultImageTag
 					}
 					from := params.From
 					if len(from.Namespace) == 0 {

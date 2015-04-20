@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // invalidRepoTagErr is returned when an invalid image repository and tag
@@ -16,10 +18,10 @@ func parseTag(input string) (string, string, error) {
 	args := strings.Split(input, ":")
 	switch len(args) {
 	case 1:
-		return args[0], "latest", nil
+		return args[0], imageapi.DefaultImageTag, nil
 	case 2:
 		if strings.TrimSpace(args[1]) == "" {
-			return args[0], "latest", nil
+			return args[0], imageapi.DefaultImageTag, nil
 		}
 		return args[0], args[1], nil
 	default:

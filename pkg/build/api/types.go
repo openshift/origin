@@ -177,9 +177,6 @@ const (
 	// CustomBuildStrategyBaseImageKey is the environment variable that indicates the base image to be used when
 	// performing a custom build, if needed.
 	CustomBuildStrategyBaseImageKey = "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE"
-
-	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
-	DefaultImageTag string = "latest"
 )
 
 // CustomBuildStrategy defines input parameters specific to Custom build.

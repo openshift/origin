@@ -43,7 +43,7 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 		Spec: imageapi.ImageStreamSpec{
 			DockerImageRepository: "registry:8080/openshift/test-image-trigger",
 			Tags: map[string]imageapi.TagReference{
-				"latest": {
+				imageapi.DefaultImageTag: {
 					DockerImageReference: "registry:8080/openshift/test-image-trigger:latest",
 				},
 			},
@@ -114,7 +114,7 @@ func TestSimpleImageChangeBuildTrigger(t *testing.T) {
 			Namespace: testutil.Namespace(),
 			Name:      imageStream.Name,
 		},
-		Tag: "latest",
+		Tag: imageapi.DefaultImageTag,
 		Image: imageapi.Image{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "ref-2-random",
@@ -180,7 +180,7 @@ func TestSimpleImageChangeBuildTriggerFromRef(t *testing.T) {
 		Spec: imageapi.ImageStreamSpec{
 			DockerImageRepository: "registry:8080/openshift/test-image-trigger",
 			Tags: map[string]imageapi.TagReference{
-				"latest": {
+				imageapi.DefaultImageTag: {
 					DockerImageReference: "registry:8080/openshift/test-image-trigger:latest",
 				},
 			},
@@ -251,7 +251,7 @@ func TestSimpleImageChangeBuildTriggerFromRef(t *testing.T) {
 			Namespace: testutil.Namespace(),
 			Name:      imageStream.Name,
 		},
-		Tag: "latest",
+		Tag: imageapi.DefaultImageTag,
 		Image: imageapi.Image{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "ref-2-random",
@@ -329,7 +329,7 @@ func imageChangeBuildConfig() *buildapi.BuildConfig {
 					From: kapi.ObjectReference{
 						Name: "test-image-trigger-repo",
 					},
-					Tag: "latest",
+					Tag: imageapi.DefaultImageTag,
 				},
 			},
 		},
@@ -374,7 +374,7 @@ func imageChangeBuildConfigFromRef() *buildapi.BuildConfig {
 					From: kapi.ObjectReference{
 						Name: "test-image-trigger-repo",
 					},
-					Tag: "latest",
+					Tag: imageapi.DefaultImageTag,
 				},
 			},
 		},

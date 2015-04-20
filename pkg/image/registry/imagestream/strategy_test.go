@@ -107,7 +107,7 @@ func TestTagVerifier(t *testing.T) {
 		"old nil, no tags": {},
 		"old nil, all tags are new": {
 			newTags: map[string]api.TagReference{
-				"latest": {
+				api.DefaultImageTag: {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -120,7 +120,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"nil from": {
 			newTags: map[string]api.TagReference{
-				"latest": {
+				api.DefaultImageTag: {
 					DockerImageReference: "registry/old/stream:latest",
 				},
 			},
@@ -139,7 +139,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"ref unchanged": {
 			oldTags: map[string]api.TagReference{
-				"latest": {
+				api.DefaultImageTag: {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -148,7 +148,7 @@ func TestTagVerifier(t *testing.T) {
 				},
 			},
 			newTags: map[string]api.TagReference{
-				"latest": {
+				api.DefaultImageTag: {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -160,7 +160,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"invalid from name": {
 			newTags: map[string]api.TagReference{
-				"latest": {
+				api.DefaultImageTag: {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -174,7 +174,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"sar error": {
 			newTags: map[string]api.TagReference{
-				"latest": {
+				api.DefaultImageTag: {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -190,7 +190,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"sar denied": {
 			newTags: map[string]api.TagReference{
-				"latest": {
+				api.DefaultImageTag: {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -206,7 +206,7 @@ func TestTagVerifier(t *testing.T) {
 		},
 		"ref changed": {
 			oldTags: map[string]api.TagReference{
-				"latest": {
+				api.DefaultImageTag: {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
@@ -215,7 +215,7 @@ func TestTagVerifier(t *testing.T) {
 				},
 			},
 			newTags: map[string]api.TagReference{
-				"latest": {
+				api.DefaultImageTag: {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",

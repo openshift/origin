@@ -124,7 +124,7 @@ func (g *imageRefGenerator) FromStream(stream *imageapi.ImageStream, tag string)
 	}
 
 	if len(tag) == 0 && len(ref.Tag) == 0 {
-		ref.Tag = "latest"
+		ref.Tag = imageapi.DefaultImageTag
 	}
 
 	return &app.ImageRef{

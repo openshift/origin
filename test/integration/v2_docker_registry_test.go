@@ -38,7 +38,7 @@ func signedManifest(name string) ([]byte, digest.Digest, error) {
 			SchemaVersion: 1,
 		},
 		Name:         name,
-		Tag:          "latest",
+		Tag:          imageapi.DefaultImageTag,
 		Architecture: "amd64",
 		History: []manifest.History{
 			{
@@ -147,7 +147,7 @@ middleware:
 	if len(tags) != 1 {
 		t.Fatalf("expected 1 tag, got %d: %v", len(tags), tags)
 	}
-	if tags[0] != "latest" {
+	if tags[0] != imageapi.DefaultImageTag {
 		t.Fatalf("expected latest, got %q", tags[0])
 	}
 
@@ -173,7 +173,7 @@ middleware:
 	if retrievedManifest.Name != fmt.Sprintf("%s/%s", testutil.Namespace(), stream.Name) {
 		t.Fatalf("unexpected manifest name: %s", retrievedManifest.Name)
 	}
-	if retrievedManifest.Tag != "latest" {
+	if retrievedManifest.Tag != imageapi.DefaultImageTag {
 		t.Fatalf("unexpected manifest tag: %s", retrievedManifest.Tag)
 	}
 
@@ -213,7 +213,7 @@ middleware:
 	if len(otherStream.Status.Tags) != 1 {
 		t.Errorf("expected 1 tag, got %#v", otherStream.Status.Tags)
 	}
-	history, ok := otherStream.Status.Tags["latest"]
+	history, ok := otherStream.Status.Tags[imageapi.DefaultImageTag]
 	if !ok {
 		t.Fatal("unable to find 'latest' tag")
 	}
@@ -226,7 +226,7 @@ middleware:
 }
 
 func putManifest(name, user, token string) (digest.Digest, error) {
-	putUrl := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), name, "latest")
+	putUrl := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), name, imageapi.DefaultImageTag)
 	signedManifest, dgst, err := signedManifest(fmt.Sprintf("%s/%s", testutil.Namespace(), name))
 	if err != nil {
 		return "", err

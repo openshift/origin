@@ -177,7 +177,7 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 			DockerImageReference: imageapi.DockerImageReference{
 				Namespace: "test",
 				Name:      "image",
-				Tag:       "latest",
+				Tag:       imageapi.DefaultImageTag,
 			},
 			Info: &imageapi.DockerImage{
 				Config: imageapi.DockerConfig{

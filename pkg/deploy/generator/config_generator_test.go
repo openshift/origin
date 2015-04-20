@@ -46,7 +46,7 @@ func TestGenerate_fromConfigWithoutTagChange(t *testing.T) {
 			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					"test-image-stream",
-					"latest",
+					imageapi.DefaultImageTag,
 					"registry:8080/repo1:ref1",
 					"00000000000000000000000000000001",
 				)
@@ -82,7 +82,7 @@ func TestGenerate_deprecatedFromConfigWithoutTagChange(t *testing.T) {
 			LISFn: func(ctx kapi.Context) (*imageapi.ImageStreamList, error) {
 				stream := makeStream(
 					"test-image-stream",
-					"latest",
+					imageapi.DefaultImageTag,
 					"registry:8080/repo1:ref1",
 					"00000000000000000000000000000001",
 				)
@@ -118,7 +118,7 @@ func TestGenerate_fromZeroConfigWithoutTagChange(t *testing.T) {
 			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					"test-image-stream",
-					"latest",
+					imageapi.DefaultImageTag,
 					"registry:8080/repo1:ref1",
 					"00000000000000000000000000000001",
 				)
@@ -155,7 +155,7 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					"test-image-stream",
-					"latest",
+					imageapi.DefaultImageTag,
 					newRepoName,
 					newImageID,
 				)
@@ -187,7 +187,7 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 		t.Fatalf("Expected LastTriggeredImage %s, got %s", e, a)
 	}
 
-	if e, a := config.Details.Causes[0].ImageTrigger.Tag, "latest"; e != a {
+	if e, a := config.Details.Causes[0].ImageTrigger.Tag, imageapi.DefaultImageTag; e != a {
 		t.Fatalf("Expected cause tag %s, got %s", e, a)
 	}
 	if e, a := config.Details.Causes[0].ImageTrigger.RepositoryName, newRepoName; e != a {

@@ -77,8 +77,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	image := mapping.Image
 	tag := mapping.Tag
 	if len(tag) == 0 {
-		// TODO: redirect this to the stable tag
-		tag = "latest"
+		tag = api.DefaultImageTag
 	}
 
 	if err := s.imageRegistry.CreateImage(ctx, &image); err != nil && !errors.IsAlreadyExists(err) {
