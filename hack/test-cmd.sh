@@ -123,7 +123,7 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 fi
 
 # set the home directory so we don't pick up the users .config
-export HOME="${CERT_DIR}/admin"
+export HOME="${TEMP_DIR}/home"
 
 wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
@@ -146,10 +146,13 @@ export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 if [[ "${API_SCHEME}" == "https" ]]; then
     # test bad certificate
     [ "$(osc get services 2>&1 | grep 'certificate signed by unknown authority')" ]
-
-    # ignore anything in the running user's $HOME dir
-    export HOME="${CERT_DIR}/admin"
 fi
+
+
+osc login --server=${KUBERNETES_MASTER} --certificate-authority="${CERT_DIR}/ca/cert.crt" -u test-user -p anything
+osc new-project project-foo --display-name="my project" --description="boring project description"
+[ "$(osc project | grep 'Using project "project-foo"')" ]
+
 
 # test config files from the --config flag
 osc get services --config="${CERT_DIR}/admin/.kubeconfig"
