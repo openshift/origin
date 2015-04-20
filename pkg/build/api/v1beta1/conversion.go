@@ -28,6 +28,9 @@ func init() {
 			if err := s.Convert(&in.Revision, &out.Revision, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 		func(in *BuildParameters, out *newer.BuildParameters, s conversion.Scope) error {
@@ -45,6 +48,9 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.Revision, &out.Revision, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
 				return err
 			}
 			return nil

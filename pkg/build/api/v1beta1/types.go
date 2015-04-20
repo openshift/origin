@@ -55,6 +55,9 @@ type BuildParameters struct {
 
 	// Output describes the Docker image the Strategy should produce.
 	Output BuildOutput `json:"output,omitempty"`
+
+	// Compute resource requirements to execute the build
+	Resources kapi.ResourceRequirements `json:"resources,omitempty" description:"the desired compute resources the build should have"`
 }
 
 // BuildStatus represents the status of a build at a point in time.

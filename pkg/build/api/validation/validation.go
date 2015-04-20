@@ -78,6 +78,7 @@ func validateBuildParameters(params *buildapi.BuildParameters) fielderrors.Valid
 	allErrs = append(allErrs, validateOutput(&params.Output).Prefix("output")...)
 	allErrs = append(allErrs, validateStrategy(&params.Strategy).Prefix("strategy")...)
 
+	// TODO: validate resource requirements (prereq: https://github.com/GoogleCloudPlatform/kubernetes/pull/7059)
 	return allErrs
 }
 

@@ -73,6 +73,8 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+	pod.Spec.Containers[0].Resources = build.Parameters.Resources
+
 	if strategy.ExposeDockerSocket {
 		setupDockerSocket(pod)
 		setupDockerSecrets(pod, build.Parameters.Output.PushSecretName)

@@ -74,6 +74,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 		},
 	}
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+	pod.Spec.Containers[0].Resources = build.Parameters.Resources
 
 	setupDockerSocket(pod)
 	setupDockerSecrets(pod, build.Parameters.Output.PushSecretName)
