@@ -42,10 +42,11 @@ func TestDescribeFor(t *testing.T) {
 
 func TestDescribers(t *testing.T) {
 	fake := &client.Fake{}
+	fakeKube := &testclient.Fake{}
 	c := &describeClient{T: t, Namespace: "foo", Fake: fake}
 
 	testDescriberList := []kubectl.Describer{
-		&BuildDescriber{c},
+		&BuildDescriber{c, fakeKube},
 		&BuildConfigDescriber{c, ""},
 		&BuildLogDescriber{c},
 		&DeploymentDescriber{c},

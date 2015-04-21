@@ -9,6 +9,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -49,6 +50,9 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, queue, 2*time.Minute).Run()
 
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildController := &buildcontroller.BuildController{
 		BuildUpdater:      factory.BuildUpdater,
@@ -59,6 +63,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 			STIBuildStrategy:    factory.STIBuildStrategy,
 			CustomBuildStrategy: factory.CustomBuildStrategy,
 		},
+		Recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-controller"}),
 	}
 
 	return &controller.RetryController{

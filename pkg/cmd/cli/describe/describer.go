@@ -32,7 +32,7 @@ import (
 func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
 	switch kind {
 	case "Build":
-		return &BuildDescriber{c}, true
+		return &BuildDescriber{c, kclient}, true
 	case "BuildConfig":
 		return &BuildConfigDescriber{c, host}, true
 	case "BuildLog":
@@ -75,7 +75,8 @@ func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host
 
 // BuildDescriber generates information about a build
 type BuildDescriber struct {
-	client.Interface
+	osClient   client.Interface
+	kubeClient kclient.Interface
 }
 
 // DescribeUser formats the description of a user
@@ -95,11 +96,12 @@ func (d *BuildDescriber) DescribeUser(out *tabwriter.Writer, label string, u bui
 
 // Describe returns the description of a build
 func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Builds(namespace)
+	c := d.osClient.Builds(namespace)
 	build, err := c.Get(name)
 	if err != nil {
 		return "", err
 	}
+	events, _ := d.kubeClient.Events(namespace).Search(build)
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
 		formatString(out, "BuildConfig", build.Labels[buildapi.BuildConfigLabel])
@@ -115,6 +117,10 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "Duration", describeBuildDuration(build))
 		formatString(out, "Build Pod", buildutil.GetBuildPodName(build))
 		describeBuildParameters(build.Parameters, out)
+		if events != nil {
+			kctl.DescribeEvents(events, out)
+		}
+
 		return nil
 	})
 }
