@@ -32,7 +32,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
-	"github.com/openshift/origin/pkg/api/v1beta2"
+	"github.com/openshift/origin/pkg/api/v1beta3"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -89,9 +89,10 @@ import (
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
+	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
@@ -106,9 +107,9 @@ const (
 	OpenShiftAPIPrefix        = "/osapi" // TODO: make configurable
 	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
 	OpenShiftAPIV1Beta1       = "v1beta1"
-	OpenShiftAPIV1Beta2       = "v1beta2"
+	OpenShiftAPIV1Beta3       = "v1beta3"
 	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
-	OpenShiftAPIPrefixV1Beta2 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta2
+	OpenShiftAPIPrefixV1Beta3 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
 	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
@@ -143,13 +144,17 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
-	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
 
 	userStorage := useretcd.NewREST(c.EtcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)
 	identityStorage := identityetcd.NewREST(c.EtcdHelper)
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
+
+	policyStorage := policyetcd.NewStorage(c.EtcdHelper)
+	policyRegistry := policyregistry.NewRegistry(policyStorage)
+	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
+	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
 
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
@@ -221,8 +226,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
 
-		"templateConfigs": templateregistry.NewREST(),
-		"templates":       templateetcd.NewREST(c.EtcdHelper),
+		"processedTemplates": templateregistry.NewREST(false),
+		"templates":          templateetcd.NewREST(c.EtcdHelper),
+		// DEPRECATED: remove with v1beta1
+		"templateConfigs": templateregistry.NewREST(true),
 
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
@@ -237,10 +244,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
 		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
 
-		"policies":              policyregistry.NewREST(authorizationEtcd),
-		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
-		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(authorizationEtcd)),
-		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.Options.PolicyConfig.MasterAuthorizationNamespace)),
+		"policies":              policyStorage,
+		"policyBindings":        policyBindingStorage,
+		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(policyRegistry)),
+		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(policyBindingRegistry, policyRegistry, c.Options.PolicyConfig.MasterAuthorizationNamespace)),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectAccessReviewStorage,
 	}
@@ -251,9 +258,12 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		v1beta1Storage[k] = v
 		v1beta1Storage[strings.ToLower(k)] = v
 	}
-	v1beta2Storage := map[string]rest.Storage{}
+	v1beta3Storage := map[string]rest.Storage{}
 	for k, v := range storage {
-		v1beta2Storage[strings.ToLower(k)] = v
+		if k == "templateConfigs" {
+			continue
+		}
+		v1beta3Storage[strings.ToLower(k)] = v
 	}
 
 	version := &apiserver.APIGroupVersion{
@@ -280,10 +290,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	version2 := &apiserver.APIGroupVersion{
 		Root:    OpenShiftAPIPrefix,
-		Version: OpenShiftAPIV1Beta2,
+		Version: OpenShiftAPIV1Beta3,
 
-		Storage: v1beta2Storage,
-		Codec:   v1beta2.Codec,
+		Storage: v1beta3Storage,
+		Codec:   v1beta3.Codec,
 
 		Mapper: latest.RESTMapper,
 
@@ -296,11 +306,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 
 	if err := version2.InstallREST(container); err != nil {
-		// TODO: remove this check once v1beta2 is complete
+		// TODO: remove this check once v1beta3 is complete
 		if utilerrs.FilterOut(err, func(err error) bool {
 			return strings.Contains(err.Error(), "is registered for version")
 		}) != nil {
-			glog.Fatalf("Unable to initialize v1beta2 API: %v", err)
+			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
 		}
 	}
 
@@ -311,19 +321,19 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			root = svc
 		case OpenShiftAPIPrefixV1Beta1:
 			svc.Doc("OpenShift REST API, version v1beta1").ApiVersion("v1beta1")
-		case OpenShiftAPIPrefixV1Beta2:
-			svc.Doc("OpenShift REST API, version v1beta2").ApiVersion("v1beta2")
+		case OpenShiftAPIPrefixV1Beta3:
+			svc.Doc("OpenShift REST API, version v1beta3").ApiVersion("v1beta3")
 		}
 	}
 	if root == nil {
 		root = new(restful.WebService)
 		container.Add(root)
 	}
-	initAPIVersionRoute(root, "v1beta1", "v1beta2")
+	initAPIVersionRoute(root, "v1beta1", "v1beta3")
 
 	return []string{
 		fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta1),
-		fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1Beta2),
+		fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1Beta3),
 	}
 }
 
@@ -378,7 +388,7 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 			object := api.RootPaths{Paths: []string{
 				"/api",
 				"/api/v1beta1",
-				"/api/v1beta2",
+				"/api/v1beta3",
 				"/api/v1beta3",
 				"/healthz",
 				"/healthz/ping",
@@ -551,10 +561,10 @@ func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
 
 // ensureComponentAuthorizationRules initializes the global policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
-	registry := authorizationetcd.New(c.EtcdHelper)
+	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(c.EtcdHelper))
 	ctx := kapi.WithNamespace(kapi.NewContext(), c.Options.PolicyConfig.MasterAuthorizationNamespace)
 
-	if _, err := registry.GetPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
+	if _, err := policyRegistry.GetPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
 		glog.Infof("No master policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
 		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.MasterAuthorizationNamespace, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {

@@ -1,4 +1,4 @@
-package v1beta2_test
+package v1beta3_test
 
 import (
 	"reflect"
@@ -26,7 +26,7 @@ func TestRoundTripVersionedObject(t *testing.T) {
 		DockerImageReference: "foo/bar/baz",
 	}
 
-	data, err := kapi.Scheme.EncodeToVersion(i, "v1beta2")
+	data, err := kapi.Scheme.EncodeToVersion(i, "v1beta3")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

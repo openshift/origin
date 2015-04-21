@@ -58,7 +58,11 @@ func init() {
 				out.Tags = make(map[string]string)
 			}
 			for tag, tagRef := range in.Spec.Tags {
-				out.Tags[tag] = tagRef.DockerImageReference
+				value := tagRef.DockerImageReference
+				if len(value) == 0 && tagRef.From != nil && len(tagRef.From.Kind) == 0 {
+					value = tagRef.From.Name
+				}
+				out.Tags[tag] = value
 			}
 
 			return s.Convert(&in.Status, &out.Status, 0)
@@ -87,6 +91,18 @@ func init() {
 			out.DockerImageRepository = in.DockerImageRepository
 			out.Tags = in.Tags
 			return nil
+		},
+		func(in *ImageStreamMapping, out *ImageRepositoryMapping, s conversion.Scope) error {
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames)
+		},
+		func(in *ImageRepositoryMapping, out *ImageStreamMapping, s conversion.Scope) error {
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames)
+		},
+		func(in *ImageStreamTag, out *ImageRepositoryTag, s conversion.Scope) error {
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames)
+		},
+		func(in *ImageRepositoryTag, out *ImageStreamTag, s conversion.Scope) error {
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames)
 		},
 	)
 	if err != nil {

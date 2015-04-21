@@ -291,7 +291,7 @@ type ImageChangeTrigger struct {
 	// immutable image id supplied by the ImageStream when this trigger fires.
 	Image string `json:"image"`
 	// From is a reference to an image stream to watch for changes. This field takes
-	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta2. The
+	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta3. The
 	// Kind may be left blank, in which case it defaults to "ImageStream". The "Name" is
 	// the only required subfield - if Namespace is blank, the namespace of the current build
 	// trigger will be used.

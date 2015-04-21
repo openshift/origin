@@ -4,62 +4,309 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
-func TestRoleValidationSuccess(t *testing.T) {
-	role := &authorizationapi.Role{}
-	role.Name = "my-name"
-	role.Namespace = kapi.NamespaceDefault
+func TestValidatePolicy(t *testing.T) {
+	errs := ValidatePolicy(&authorizationapi.Policy{
+		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+	})
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
 
-	if result := ValidateRole(role); len(result) > 0 {
-		t.Errorf("Unexpected validation error returned %v", result)
+	errorCases := map[string]struct {
+		A authorizationapi.Policy
+		T fielderrors.ValidationErrorType
+		F string
+	}{
+		"zero-length namespace": {
+			A: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "metadata.namespace",
+		},
+		"zero-length name": {
+			A: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "metadata.name",
+		},
+		"invalid name": {
+			A: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "name"},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "metadata.name",
+		},
+		"mismatched name": {
+			A: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Roles: map[string]authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any"},
+					},
+				},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "roles.any1.metadata.name",
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidatePolicy(&v.A)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v", k, v.A)
+			continue
+		}
+		for i := range errs {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
 	}
 }
 
-func TestRoleValidationFailure(t *testing.T) {
-	role := &authorizationapi.Role{}
-	role.Namespace = kapi.NamespaceDefault
-	if result := ValidateRole(role); len(result) != 1 {
-		t.Errorf("Unexpected validation result: %v", result)
+func TestValidatePolicyBinding(t *testing.T) {
+	errs := ValidatePolicyBinding(&authorizationapi.PolicyBinding{
+		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
+	})
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
+
+	errorCases := map[string]struct {
+		A authorizationapi.PolicyBinding
+		T fielderrors.ValidationErrorType
+		F string
+	}{
+		"zero-length namespace": {
+			A: authorizationapi.PolicyBinding{
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "metadata.namespace",
+		},
+		"zero-length name": {
+			A: authorizationapi.PolicyBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
+				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "metadata.name",
+		},
+		"invalid name": {
+			A: authorizationapi.PolicyBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "name"},
+				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "metadata.name",
+		},
+		"bad role": {
+			A: authorizationapi.PolicyBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
+				RoleBindings: map[string]authorizationapi.RoleBinding{
+					"any": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any"},
+						RoleRef:    kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
+					},
+				},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "roleBindings.any.roleRef.name",
+		},
+		"mismatched name": {
+			A: authorizationapi.PolicyBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
+				RoleBindings: map[string]authorizationapi.RoleBinding{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any"},
+						RoleRef:    kapi.ObjectReference{Namespace: authorizationapi.PolicyName, Name: "valid"},
+					},
+				},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "roleBindings.any1.metadata.name",
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidatePolicyBinding(&v.A)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v", k, v.A)
+			continue
+		}
+		for i := range errs {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
 	}
 }
 
-func TestRoleBindingValidationSuccess(t *testing.T) {
-	roleBinding := &authorizationapi.RoleBinding{}
-	roleBinding.Name = "my-name"
-	roleBinding.Namespace = kapi.NamespaceDefault
-	roleBinding.RoleRef.Namespace = kapi.NamespaceDefault
+func TestValidateRoleBinding(t *testing.T) {
+	errs := ValidateRoleBinding(&authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+		RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+	})
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
 
-	if result := ValidateRoleBinding(roleBinding); len(result) > 0 {
-		t.Errorf("Unexpected validation error returned %v", result)
+	errorCases := map[string]struct {
+		A authorizationapi.RoleBinding
+		T fielderrors.ValidationErrorType
+		F string
+	}{
+		"zero-length namespace": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "metadata.namespace",
+		},
+		"zero-length name": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
+				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "metadata.name",
+		},
+		"invalid ref": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "name"},
+				RoleRef:    kapi.ObjectReference{Name: "valid"},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "roleRef.namespace",
+		},
+		"bad role": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				RoleRef:    kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "roleRef.name",
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidateRoleBinding(&v.A)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v", k, v.A)
+			continue
+		}
+		for i := range errs {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
 	}
 }
 
-func TestRoleBindingValidationFailure(t *testing.T) {
-	roleBinding := &authorizationapi.RoleBinding{}
-	roleBinding.Namespace = kapi.NamespaceDefault
-	if result := ValidateRoleBinding(roleBinding); len(result) != 2 {
-		t.Errorf("Unexpected validation result: %v", result)
+func TestValidateRoleBindingUpdate(t *testing.T) {
+	old := &authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master", ResourceVersion: "1"},
+		RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+	}
+
+	errs := ValidateRoleBindingUpdate(old, &authorizationapi.RoleBinding{
+		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master", ResourceVersion: "1"},
+		RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+	})
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
+
+	errorCases := map[string]struct {
+		A authorizationapi.RoleBinding
+		T fielderrors.ValidationErrorType
+		F string
+	}{
+		"changedRef": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master", ResourceVersion: "1"},
+				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "changed"},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "roleRef",
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidateRoleBindingUpdate(old, &v.A)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v", k, v.A)
+			continue
+		}
+		for i := range errs {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
 	}
 }
 
-func TestPolicyBindingValidationSuccess(t *testing.T) {
-	policyBinding := &authorizationapi.PolicyBinding{}
-	policyBinding.Name = "my-name"
-	policyBinding.Namespace = kapi.NamespaceDefault
-	policyBinding.PolicyRef.Namespace = "my-name"
-
-	if result := ValidatePolicyBinding(policyBinding); len(result) > 0 {
-		t.Errorf("Unexpected validation error returned %v", result)
+func TestValidateRole(t *testing.T) {
+	errs := ValidateRole(&authorizationapi.Role{
+		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+	})
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
 	}
-}
 
-func TestPolicyBindingValidationFailure(t *testing.T) {
-	policyBinding := &authorizationapi.PolicyBinding{}
-	policyBinding.Namespace = kapi.NamespaceDefault
-	if result := ValidatePolicyBinding(policyBinding); len(result) != 2 {
-		t.Errorf("Unexpected validation result: %v", result)
+	errorCases := map[string]struct {
+		A authorizationapi.Role
+		T fielderrors.ValidationErrorType
+		F string
+	}{
+		"zero-length namespace": {
+			A: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "metadata.namespace",
+		},
+		"zero-length name": {
+			A: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "metadata.name",
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidateRole(&v.A)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v", k, v.A)
+			continue
+		}
+		for i := range errs {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
 	}
 }

@@ -201,7 +201,7 @@ type DockerBuildStrategy struct {
 	// BaseImage is optional and indicates the image that the dockerfile for this
 	// build should "FROM".  If present, the build process will substitute this value
 	// into the FROM line of the dockerfile.
-	// Deprecated: will be removed in v1beta2, use Image.
+	// Deprecated: will be removed in v1beta3, use Image.
 	BaseImage string `json:"baseImage,omitempty"`
 
 	// Image is optional and indicates the image that the dockerfile for this
@@ -213,7 +213,7 @@ type DockerBuildStrategy struct {
 // STIBuildStrategy defines input parameters specific to an STI build.
 type STIBuildStrategy struct {
 	// BuilderImage is the image used to execute the build.
-	// Deprecated: will be removed in v1beta2, use Image.
+	// Deprecated: will be removed in v1beta3, use Image.
 	BuilderImage string `json:"builderImage,omitempty"`
 
 	// Image is the image used to execute the build.
@@ -235,7 +235,7 @@ type STIBuildStrategy struct {
 	Scripts string `json:"scripts,omitempty"`
 
 	// Clean flag forces the STI build to not do incremental builds if true.
-	// Deprecated: in v1beta2 it will be replaced by Incremental.
+	// Deprecated: in v1beta3 it will be replaced by Incremental.
 	Clean bool `json:"clean,omitempty"`
 }
 
@@ -308,7 +308,7 @@ type ImageChangeTrigger struct {
 	Image          string `json:"image"`
 	RepositoryName string `json:"repositoryName,omitempty"`
 	// From is a reference to an image stream to watch for changes. This field takes
-	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta2. The
+	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta3. The
 	// Kind may be left blank, in which case it defaults to "ImageStream". The "Name" is
 	// the only required subfield - if Namespace is blank, the namespace of the current build
 	// trigger will be used.

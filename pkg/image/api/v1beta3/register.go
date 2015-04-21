@@ -1,4 +1,4 @@
-package v1beta2
+package v1beta3
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	api.Scheme.AddKnownTypes("v1beta2",
+	api.Scheme.AddKnownTypes("v1beta3",
 		&Image{},
 		&ImageList{},
 		&ImageStream{},
@@ -18,11 +18,11 @@ func init() {
 		&ImageStreamImage{},
 	)
 	// Legacy names are supported
-	api.Scheme.AddKnownTypeWithName("v1beta2", "ImageRepository", &ImageStream{})
-	api.Scheme.AddKnownTypeWithName("v1beta2", "ImageRepositoryList", &ImageStreamList{})
-	api.Scheme.AddKnownTypeWithName("v1beta2", "ImageRepositoryMapping", &ImageStreamMapping{})
-	api.Scheme.AddKnownTypeWithName("v1beta2", "ImageRepositoryTag", &ImageStreamTag{})
-	api.Scheme.AddKnownTypeWithName("v1beta2", "ImageRepositoryImage", &ImageStreamImage{})
+	api.Scheme.AddKnownTypeWithName("v1beta3", "ImageRepository", &ImageStream{})
+	api.Scheme.AddKnownTypeWithName("v1beta3", "ImageRepositoryList", &ImageStreamList{})
+	api.Scheme.AddKnownTypeWithName("v1beta3", "ImageRepositoryMapping", &ImageStreamMapping{})
+	api.Scheme.AddKnownTypeWithName("v1beta3", "ImageRepositoryTag", &ImageStreamTag{})
+	api.Scheme.AddKnownTypeWithName("v1beta3", "ImageRepositoryImage", &ImageStreamImage{})
 }
 
 func (*Image) IsAnAPIObject()              {}

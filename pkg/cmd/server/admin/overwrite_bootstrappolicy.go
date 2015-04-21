@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
@@ -18,7 +18,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
+	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
+	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
+	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -112,7 +115,7 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 	}
 
 	mapper := cmdclientcmd.ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
-	typer := api.Scheme
+	typer := kapi.Scheme
 	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 		return nil, nil
 	})
@@ -126,9 +129,10 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 		return r.Err()
 	}
 
-	registry := authorizationetcd.New(etcdHelper)
-	roleRegistry := roleregistry.NewVirtualRegistry(registry)
-	roleBindingRegistry := rolebindingregistry.NewVirtualRegistry(registry, registry, masterNamespace)
+	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(etcdHelper))
+	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(etcdHelper))
+	roleRegistry := roleregistry.NewVirtualRegistry(policyRegistry)
+	roleBindingRegistry := rolebindingregistry.NewVirtualRegistry(policyBindingRegistry, policyRegistry, masterNamespace)
 
 	return r.Visit(func(info *resource.Info) error {
 		template, ok := info.Object.(*templateapi.Template)
@@ -139,7 +143,7 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 		for _, item := range template.Objects {
 			switch t := item.(type) {
 			case *authorizationapi.Role:
-				ctx := api.WithNamespace(api.NewContext(), t.Namespace)
+				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
 				if change {
 					roleRegistry.DeleteRole(ctx, t.Name)
 					if err := roleRegistry.CreateRole(ctx, t); err != nil {
@@ -152,7 +156,7 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 					}
 				}
 			case *authorizationapi.RoleBinding:
-				ctx := api.WithNamespace(api.NewContext(), t.Namespace)
+				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
 				if change {
 					roleBindingRegistry.DeleteRoleBinding(ctx, t.Name)
 					if err := roleBindingRegistry.CreateRoleBinding(ctx, t, true); err != nil {

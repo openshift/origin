@@ -72,14 +72,21 @@ func MatchTemplate(label labels.Selector, field fields.Selector) generic.Matcher
 }
 
 // REST implements RESTStorage interface for processing Template objects.
-type REST struct{}
+type REST struct {
+	legacyReturn bool
+}
 
-// NewREST creates new RESTStorage interface for processing Template objects.
-func NewREST() *REST {
-	return &REST{}
+// NewREST creates new RESTStorage interface for processing Template objects. If
+// legacyReturn is used, a Config object is returned. Otherwise, a List is returned
+// TODO: remove support for Config when v1beta1 is removed.
+func NewREST(legacyReturn bool) *REST {
+	return &REST{legacyReturn}
 }
 
 // New returns a new Template
+// TODO: this is the input, but not the output. pkg/api/rest should probably allow
+// a rest.Storage object to vary its output or input types (not sure whether New()
+// should be input or output... probably input).
 func (s *REST) New() runtime.Object {
 	return &api.Template{}
 }
@@ -106,10 +113,12 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if tpl.ObjectLabels != nil {
 		objectLabels := labels.Set(tpl.ObjectLabels)
 		if err := util.AddConfigLabels(cfg, objectLabels); len(err) > 0 {
-			// TODO: We don't report the processing errors to users as there is no
-			// good way how to do it for just some items.
-			glog.V(1).Infof(utilerr.NewAggregate(err).Error())
+			// TODO: config labels should overwrite, not fail on invalid keys
+			glog.V(1).Infof("Template config labels lost: %v", utilerr.NewAggregate(err))
 		}
 	}
-	return cfg, nil
+	if s.legacyReturn {
+		return cfg, nil
+	}
+	return &kapi.List{Items: cfg.Items}, nil
 }
