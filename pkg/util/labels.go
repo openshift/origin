@@ -33,17 +33,15 @@ func addReplicationControllerNestedLabels(obj *kapi.ReplicationController, label
 	if obj.Spec.Template.Labels == nil {
 		obj.Spec.Template.Labels = make(map[string]string)
 	}
-	if err := MergeInto(obj.Spec.Template.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+	if err := MergeInto(obj.Spec.Template.Labels, labels, OverwriteExistingDstKey); err != nil {
 		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Template: %v", err)
 	}
-	if err := MergeInto(obj.Spec.Template.Labels, obj.Spec.Selector, ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Template: %v", err)
-	}
-	// Selector and Spec.Template.Labels must be equal
 	if obj.Spec.Selector == nil {
 		obj.Spec.Selector = make(map[string]string)
+	} else if err := MergeInto(obj.Spec.Selector, labels, OverwriteExistingDstKey); err != nil {
+		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Template: %v", err)
 	}
-	if err := MergeInto(obj.Spec.Selector, obj.Spec.Template.Labels, ErrorOnDifferentDstKeyValue); err != nil {
+	if err := MergeInto(obj.Spec.Selector, obj.Spec.Template.Labels, OverwriteExistingDstKey); err != nil {
 		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Selector: %v", err)
 	}
 	return nil
@@ -54,7 +52,7 @@ func addDeploymentNestedLabels(obj *deployapi.Deployment, labels labels.Set) err
 	if obj.ControllerTemplate.Template.Labels == nil {
 		obj.ControllerTemplate.Template.Labels = make(map[string]string)
 	}
-	if err := MergeInto(obj.ControllerTemplate.Template.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+	if err := MergeInto(obj.ControllerTemplate.Template.Labels, labels, OverwriteExistingDstKey); err != nil {
 		return fmt.Errorf("unable to add labels to Template.Deployment.ControllerTemplate.Template: %v", err)
 	}
 	return nil
@@ -65,7 +63,7 @@ func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels lab
 	if obj.Template.ControllerTemplate.Template.Labels == nil {
 		obj.Template.ControllerTemplate.Template.Labels = make(map[string]string)
 	}
-	if err := MergeInto(obj.Template.ControllerTemplate.Template.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+	if err := MergeInto(obj.Template.ControllerTemplate.Template.Labels, labels, OverwriteExistingDstKey); err != nil {
 		return fmt.Errorf("unable to add labels to Template.DeploymentConfig.Template.ControllerTemplate.Template: %v", err)
 	}
 	return nil
@@ -88,7 +86,7 @@ func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
 		metaLabels = make(map[string]string)
 	}
 
-	if err := MergeInto(metaLabels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+	if err := MergeInto(metaLabels, labels, OverwriteExistingDstKey); err != nil {
 		return fmt.Errorf("unable to add labels to Template.%s: %v", accessor.Kind(), err)
 	}
 	accessor.SetLabels(metaLabels)

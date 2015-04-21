@@ -461,10 +461,10 @@ echo "complex-scenarios: ok"
 
 # Clean-up everything before testing cleaning up everything...
 osc delete all -l template=application-template-stibuild
-osc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | osc create -f -
-osc delete all -l name=mytemplate
-osc new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
-osc delete all -l name=hello-world
-openshift ex generate https://github.com/openshift/ruby-hello-world -l name=hello-world | osc create -f -
-osc delete all -l name=hello-world
+osc process -f examples/sample-app/application-template-stibuild.json -l template=mytemplate | osc create -f -
+osc delete all -l template=mytemplate
+osc new-app https://github.com/openshift/ruby-hello-world -l template=hello-world
+osc delete all -l template=hello-world
+openshift ex generate https://github.com/openshift/ruby-hello-world -l template=hello-world | osc create -f -
+osc delete all -l template=hello-world
 echo "delete all: ok"
