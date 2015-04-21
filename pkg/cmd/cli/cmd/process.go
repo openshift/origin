@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
+	osutil "github.com/openshift/origin/pkg/util"
 )
 
 // injectUserVars injects user specified variables into the Template
@@ -172,18 +173,13 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		return nil
 	}
 
-	label := kcmdutil.GetFlagString(cmd, "labels")
-	if len(label) != 0 {
-		lbl := ctl.ParseLabels(label)
-		for key, value := range lbl {
-			templateObj.ObjectLabels[key] = value
-		}
-	}
-
 	result, err := client.TemplateConfigs(namespace).Create(templateObj)
 	if err != nil {
 		return err
 	}
+
+	label := kcmdutil.GetFlagString(cmd, "labels")
+	osutil.AddConfigLabels(result, ctl.ParseLabels(label))
 
 	// We need to override the default output format to JSON so we can return
 	// processed template. Users might still be able to change the output
