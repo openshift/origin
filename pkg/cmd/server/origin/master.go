@@ -89,9 +89,10 @@ import (
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
+	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
@@ -142,13 +143,17 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
-	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
 
 	userStorage := useretcd.NewREST(c.EtcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)
 	identityStorage := identityetcd.NewREST(c.EtcdHelper)
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
+
+	policyStorage := policyetcd.NewStorage(c.EtcdHelper)
+	policyRegistry := policyregistry.NewRegistry(policyStorage)
+	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
+	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
 
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
@@ -236,10 +241,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
 		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
 
-		"policies":              policyregistry.NewREST(authorizationEtcd),
-		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
-		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(authorizationEtcd)),
-		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.Options.PolicyConfig.MasterAuthorizationNamespace)),
+		"policies":              policyStorage,
+		"policyBindings":        policyBindingStorage,
+		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(policyRegistry)),
+		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(policyBindingRegistry, policyRegistry, c.Options.PolicyConfig.MasterAuthorizationNamespace)),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectAccessReviewStorage,
 	}
@@ -549,10 +554,10 @@ func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
 
 // ensureComponentAuthorizationRules initializes the global policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
-	registry := authorizationetcd.New(c.EtcdHelper)
+	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(c.EtcdHelper))
 	ctx := kapi.WithNamespace(kapi.NewContext(), c.Options.PolicyConfig.MasterAuthorizationNamespace)
 
-	if _, err := registry.GetPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
+	if _, err := policyRegistry.GetPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
 		glog.Infof("No master policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
 		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.MasterAuthorizationNamespace, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
