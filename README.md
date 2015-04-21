@@ -49,7 +49,6 @@ The simplest way to run OpenShift Origin is in a Docker container:
 
     $ docker run -d --name "openshift-origin" --net=host --privileged \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        -v /tmp/openshift:/tmp/openshift \
         openshift/origin start
 
 (you'll need to create the /tmp/openshift directory the first time).
