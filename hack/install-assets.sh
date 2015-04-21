@@ -56,6 +56,10 @@ pushd ${OS_ROOT}/assets > /dev/null
   # In case upstream components change things without incrementing versions
   cmd "bower cache clean --allow-root"
   cmd "bower install --allow-root"
+  
+  cmd "rm -rf openshift-jvm"
+  cmd "mkdir -p openshift-jvm"
+  wget https://github.com/hawtio/openshift-jvm/archive/v1.0.7-build.tar.gz -O - | tar -xz -C openshift-jvm --strip-components=1
 popd > /dev/null
 
 pushd ${OS_ROOT}/Godeps/_workspace > /dev/null
