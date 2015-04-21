@@ -167,9 +167,11 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 	r.state[id] = service
 }
 
-// routeKey generates route key in form of Namespace/Name
+// routeKey generates route key in form of Namespace-Name.  This is NOT the normal key structure of ns/name because
+// it is not safe to use / in names of router config files.  This allows templates to use this key without having
+// to create (or provide) a separate method
 func (r *templateRouter) routeKey(route *routeapi.Route) string {
-	return fmt.Sprintf("%s/%s", route.Namespace, route.Name)
+	return fmt.Sprintf("%s-%s", route.Namespace, route.Name)
 }
 
 // AddRoute adds a route for the given id

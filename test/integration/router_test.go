@@ -404,13 +404,117 @@ func TestRouterPathSpecificity(t *testing.T) {
 	validateRoute("0.0.0.0", "www.example.com", "http", tr.HelloPod, t)
 }
 
-func validateRoute(url, host, scheme, expected string, t *testing.T) {
+// TestRouterDuplications ensures that the router implementation is keying correctly and resolving routes that may be
+// using the same services with different hosts
+func TestRouterDuplications(t *testing.T) {
+	fakeMasterAndPod := tr.NewTestHttpService()
+	err := fakeMasterAndPod.Start()
+	if err != nil {
+		t.Fatalf("Unable to start http server: %v", err)
+	}
+	defer fakeMasterAndPod.Stop()
+
+	validateServer(fakeMasterAndPod, t)
+
+	dockerCli, err := testutil.NewDockerClient()
+	if err != nil {
+		t.Fatalf("Unable to get docker client: %v", err)
+	}
+
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr)
+	if err != nil {
+		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
+	}
+	defer cleanUp(dockerCli, routerId)
+
+	httpEndpoint, err := getEndpoint(fakeMasterAndPod.PodHttpAddr)
+	if err != nil {
+		t.Fatalf("Couldn't get http endpoint: %v", err)
+	}
+
+	//create routes
+	endpointEvent := &watch.Event{
+		Type: watch.Added,
+		Object: &kapi.Endpoints{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      "myService",
+				Namespace: "default",
+			},
+			TypeMeta: kapi.TypeMeta{
+				Kind:       "Endpoints",
+				APIVersion: "v1beta3",
+			},
+			Subsets: []kapi.EndpointSubset{httpEndpoint},
+		},
+	}
+	exampleRouteEvent := &watch.Event{
+		Type: watch.Added,
+		Object: &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      "example",
+				Namespace: "default",
+			},
+			TypeMeta: kapi.TypeMeta{
+				Kind:       "Route",
+				APIVersion: "v1beta1",
+			},
+			Host:        "www.example.com",
+			ServiceName: "myService",
+		},
+	}
+	example2RouteEvent := &watch.Event{
+		Type: watch.Added,
+		Object: &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      "example2",
+				Namespace: "default",
+			},
+			TypeMeta: kapi.TypeMeta{
+				Kind:       "Route",
+				APIVersion: "v1beta1",
+			},
+			Host:        "www.example2.com",
+			ServiceName: "myService",
+		},
+	}
+
+	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
+	fakeMasterAndPod.RouteChannel <- eventString(exampleRouteEvent)
+	fakeMasterAndPod.RouteChannel <- eventString(example2RouteEvent)
+
+	var examplePass, example2Pass bool
+	var exampleResp, example2Resp string
+	for i := 0; i < tcRetries; i++ {
+		//ensure you can curl both
+		examplePass, exampleResp = isValidRoute("0.0.0.0", "www.example.com", "http", tr.HelloPod)
+		example2Pass, example2Resp = isValidRoute("0.0.0.0", "www.example2.com", "http", tr.HelloPod)
+
+		if examplePass && example2Pass {
+			break
+		}
+		//not valid yet, give it some more time before failing
+		time.Sleep(time.Second * tcWaitSeconds)
+	}
+
+	if !examplePass || !example2Pass {
+		t.Errorf("Unable to validate both routes in a duplicate service scenario.  Resp 1: %s, Resp 2: %s", exampleResp, example2Resp)
+	}
+}
+
+// isValidRoute ensures that the route can be retrieved and matches the expected output
+func isValidRoute(url, host, scheme, expected string) (valid bool, response string) {
 	resp, err := getRoute(url, host, scheme, expected)
 	if err != nil {
-		t.Fatalf("Unable to verify response: %v", err)
+		return false, err.Error()
 	}
-	if resp != expected {
-		t.Errorf("Unexepected response, wanted: %s but got: %s", expected, resp)
+	return resp == expected, resp
+}
+
+// validateRoute is a helper that will set the unit test error.  It delegates to isValidRoute which can be used
+// if you need to check the response/status manually
+func validateRoute(url, host, scheme, expected string, t *testing.T) {
+	if valid, response := isValidRoute(url, host, scheme, expected); !valid {
+		t.Errorf("Unexepected response, wanted: %s but got: %s", expected, response)
 	}
 }
 
