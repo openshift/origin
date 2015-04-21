@@ -30,5 +30,5 @@ func (c *Configurator) Create() {
 
 func (c *Configurator) Delete() {
 	glog.V(4).Infof("Deleting haconfig configuration: %s", c.Name)
-	c.Plugin.Delete()
+	c.Plugin.Delete(c.Writer)
 }

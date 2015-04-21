@@ -84,58 +84,6 @@ func TestValidateVirtualIPs(t *testing.T) {
 	}
 }
 
-/*
-type MockPlugin struct {
-	Name      string
-	Factory   *clientcmd.Factory
-	Options   *HAConfigCmdOptions
-	Service   *kapi.Service
-	CallCount map[string]int
-}
-
-func (p *MockPlugin) IncrementCallCount(name string) {
-	value, ok := p.CallCount[name]
-	if !ok {
-		value = 0
-	}
-	value += 1
-	p.CallCount[name] = value
-}
-
-func (p *MockPlugin) GetWatchPort() int {
-	p.IncrementCallCount("GetWatchPort")
-	return p.Options.WatchPort
-}
-
-func (p *MockPlugin) GetSelector() map[string]string {
-	p.IncrementCallCount("GetSelector")
-	return map[string]string{DefaultName: p.Name}
-}
-
-func (p *MockPlugin) GetNamespace() string {
-	p.IncrementCallCount("GetNamespace")
-	return "mock"
-}
-
-func (p *MockPlugin) GetService() *kapi.Service {
-	p.IncrementCallCount("GetService")
-	return p.Service
-}
-
-func (p *MockPlugin) Generate() *kapi.List {
-	p.IncrementCallCount("Generate")
-	return &kapi.List{}
-}
-
-func (p *MockPlugin) Create(out io.Writer) {
-	p.IncrementCallCount("Create")
-}
-
-func (p *MockPlugin) Delete() {
-	p.IncrementCallCount("Delete")
-}
-*/
-
 func getMockConfigurator(options *HAConfigCmdOptions, service *kapi.Service) *Configurator {
 	p := &MockPlugin{
 		Name:      "mock",
