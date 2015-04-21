@@ -183,7 +183,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 8. Confirm the registry is accessible (you may need to run this more than once):
 
-        $ curl `osc get service docker-registry --template="{{ .portalIP }}:{{ .port }}"`
+        $ curl `osc get service docker-registry --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}"`
 
     You should see:
 

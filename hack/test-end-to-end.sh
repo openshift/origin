@@ -271,7 +271,7 @@ echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_command '[[ "$(osc get endpoints docker-registry --output-version=v1beta1 -t "{{ if .endpoints }}{{ len .endpoints }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 # services can end up on any IP.	Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY=$(osc get --output-version=v1beta1 --template="{{ .portalIP }}:{{ .port }}" service docker-registry)
+DOCKER_REGISTRY=$(osc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
 wait_for_url_timed "http://${DOCKER_REGISTRY}" "[INFO] Docker registry says: " $((2*TIME_MIN))
