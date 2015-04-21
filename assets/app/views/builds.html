@@ -74,6 +74,14 @@
           </div>
           <div>
             <h3>Triggers:</h3>
+                <dl class="dl-horizontal">
+                  <dt>Manual:</dt>
+                  <dd>
+                    <span>
+                      <button class="btn btn-primary" ng-click="startBuild(buildConfigName)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Start Build</button>
+                    <span>
+                  </dd>
+                </dl>
               <div ng-repeat="trigger in buildConfig.triggers">
                 <span ng-switch="trigger.type">
                   <span ng-switch-when="github">
@@ -104,9 +112,18 @@
                   <span ng-switch-default>{{trigger.type}}</span>
                 </span>
               </div>
+
                 <dl class="dl-horizontal">
-                  <dt>Manual:</dt>
-                  <dd><code>osc start-build {{buildConfigName}} -n {{project.metadata.name}}</code></dd>
+                  <dt>Manual (CLI):
+                    <a href="{{'start-build' | helpLink}}" target="_blank">
+                      <span class="learn-more-block">Learn more <i class="fa fa-external-link"> </i></span>
+                    </a>
+                  </dt>
+                  <dd>
+                    <code>osc start-build {{buildConfigName}} -n {{project.metadata.name}}</code>
+                    <copy-to-clipboard-button clipboard-text="'osc start-build ' + buildConfigName + ' -n ' + project.metadata.name"></copy-to-clipboard-button>
+                  </dd>
+                </dl>
           </div>
         </div>
         <div class="well" style="margin-bottom: 10px;" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true">
@@ -169,6 +186,9 @@
             <div ng-if="!build.parameters.output.to && build.parameters.output.dockerImageReference && buildConfig.parameters.output.dockerImageReference != build.parameters.output.dockerImageReference">
               Output image: {{build.parameters.output.dockerImageReference}}
             </div>            
+          </div>
+          <div>
+            <button class="btn btn-default icon-restart" ng-click="cloneBuild(build.metadata.name)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Rebuild</button>
           </div>
         </div>
       </div>

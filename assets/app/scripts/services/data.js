@@ -153,11 +153,13 @@ angular.module('openshiftConsole')
   };
 
 // type:      API type (e.g. "pods")
+// name:      API name, the unique name for the object.
+//            In case the name of the Object is provided, expected format of 'type' parameter is 'type/subresource', eg: 'buildConfigs/instantiate'.
 // object:    API object data(eg. { kind: "Build", parameters: { ... } } )
 // context:   API context (e.g. {project: "..."})
 // opts:      http - options to pass to the inner $http call
 // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
-  DataService.prototype.create = function(type, object, context, opts) {
+  DataService.prototype.create = function(type, name, object, context, opts) {
     opts = opts || {};
     var deferred = $q.defer();
     var self = this;
@@ -165,7 +167,7 @@ angular.module('openshiftConsole')
       $http(angular.extend({
         method: 'POST',
         data: object,
-        url: self._urlForType(type, null, context, false, ns)
+        url: self._urlForType(type, name, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
         deferred.resolve(data);
@@ -181,7 +183,6 @@ angular.module('openshiftConsole')
     });
     return deferred.promise;
   };
-
 
   // objects:   Array of API object data(eg. [{ kind: "Build", parameters: { ... } }] )
   // context:   API context (e.g. {project: "..."})
@@ -653,9 +654,11 @@ angular.module('openshiftConsole')
   var URL_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/{type}{?q*}";
   var URL_GET_LIST = URL_ROOT_TEMPLATE + "{type}{?q*}";
   var URL_GET_OBJECT = URL_ROOT_TEMPLATE + "{type}/{id}{?q*}";
+  var URL_OBJECT_SUBRESOURCE = URL_ROOT_TEMPLATE + "{type}/{id}/{subresource}{?q*}";
   var URL_NAMESPACED_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/namespaces/{namespace}/{type}{?q*}";
   var URL_NAMESPACED_GET_LIST = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}{?q*}";
   var URL_NAMESPACED_GET_OBJECT = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}/{id}{?q*}";
+  var URL_NAMESPACED_OBJECT_SUBRESOURCE = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}/{id}/{subresource}{?q*}";
   // TODO is there a better way to get this template instead of building it, introspection?
   var BUILD_HOOKS_URL = URL_ROOT_TEMPLATE + "{type}/{id}/{secret}/{hookType}{?q*}";
 
@@ -702,6 +705,14 @@ angular.module('openshiftConsole')
   };
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {
+
+    // Parse the type parameter for type itself and subresource. Example: 'buildConfigs/instantiate'
+    if(type.indexOf('/') !== -1){
+      var typeWithSubresource = type.split("/");
+      var type = typeWithSubresource[0];
+      var subresource = typeWithSubresource[1];
+    }
+
     var protocol;
     params = params || {};
     if (isWebsocket) {
@@ -743,6 +754,10 @@ angular.module('openshiftConsole')
         delete params.secret;
         delete params.hookType;
         template = BUILD_HOOKS_URL;
+      }
+      else if (subresource) {
+        templateOptions.subresource = subresource;
+        template = namespaceInPath ? URL_NAMESPACED_OBJECT_SUBRESOURCE : URL_OBJECT_SUBRESOURCE;
       }
       else
       {
