@@ -11,7 +11,7 @@ import (
 
 	dapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
-	"github.com/openshift/origin/pkg/haconfig"
+	"github.com/openshift/origin/pkg/ipfailover"
 )
 
 const defaultInterface = "eth0"
@@ -43,8 +43,8 @@ func getClientConfig(path string) *kclient.Config {
 	return config
 }
 
-//  Generate the HA failover monitor (keepalived) container environment entries.
-func generateEnvEntries(name string, options *haconfig.HAConfigCmdOptions, kconfig *kclient.Config) app.Environment {
+//  Generate the IP failover monitor (keepalived) container environment entries.
+func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOptions, kconfig *kclient.Config) app.Environment {
 	watchPort := strconv.Itoa(options.WatchPort)
 	replicas := strconv.Itoa(options.Replicas)
 	insecureStr := strconv.FormatBool(kconfig.Insecure)
@@ -67,13 +67,14 @@ func generateEnvEntries(name string, options *haconfig.HAConfigCmdOptions, kconf
 	}
 }
 
-//  Generate the HA failover monitor (keepalived) container configuration.
-func generateFailoverMonitorContainerConfig(name string, options *haconfig.HAConfigCmdOptions, env app.Environment) *kapi.Container {
+//  Generate the IP failover monitor (keepalived) container configuration.
+func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPFailoverConfigCmdOptions, env app.Environment) *kapi.Container {
 	containerName := fmt.Sprintf("%s-%s", name, options.Type)
 
-	imageName := fmt.Sprintf("%s-%s", options.Type, haconfig.DefaultName)
+	imageName := fmt.Sprintf("%s-%s", options.Type, ipfailover.DefaultName)
 	image := options.ImageTemplate.ExpandOrDie(imageName)
 
+	//  Container port to expose the service interconnects between keepaliveds.
 	ports := make([]kapi.ContainerPort, 1)
 	ports[0] = kapi.ContainerPort{
 		ContainerPort: options.ServicePort,
@@ -98,8 +99,8 @@ func generateFailoverMonitorContainerConfig(name string, options *haconfig.HACon
 	}
 }
 
-//  Generate the HA failover monitor (keepalived) container configuration.
-func generateContainerConfig(name string, options *haconfig.HAConfigCmdOptions) []kapi.Container {
+//  Generate the IP failover monitor (keepalived) container configuration.
+func generateContainerConfig(name string, options *ipfailover.IPFailoverConfigCmdOptions) []kapi.Container {
 	containers := make([]kapi.Container, 0)
 
 	if len(options.VirtualIPs) < 1 {
@@ -117,8 +118,10 @@ func generateContainerConfig(name string, options *haconfig.HAConfigCmdOptions) 
 	return containers
 }
 
-//  Generate the HA failover monitor (keepalived) container volume config.
+//  Generate the IP failover monitor (keepalived) container volume config.
 func generateVolumeConfig() []kapi.Volume {
+	//  The keepalived container needs access to the kernel modules
+	//  directory in order to load the module.
 	hostPath := &kapi.HostPathVolumeSource{Path: libModulesPath}
 	src := kapi.VolumeSource{HostPath: hostPath}
 
@@ -126,8 +129,8 @@ func generateVolumeConfig() []kapi.Volume {
 	return []kapi.Volume{vol}
 }
 
-//  Generate the HA deployment template.
-func generateDeploymentTemplate(name string, options *haconfig.HAConfigCmdOptions, selector map[string]string) dapi.DeploymentTemplate {
+//  Generate the IP Failover deployment configuration.
+func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigCmdOptions, selector map[string]string) *dapi.DeploymentConfig {
 	podTemplate := &kapi.PodTemplateSpec{
 		ObjectMeta: kapi.ObjectMeta{Labels: selector},
 		Spec: kapi.PodSpec{
@@ -137,28 +140,6 @@ func generateDeploymentTemplate(name string, options *haconfig.HAConfigCmdOption
 		},
 	}
 
-	return dapi.DeploymentTemplate{
-		Strategy: dapi.DeploymentStrategy{
-			Type: dapi.DeploymentStrategyTypeRecreate,
-		},
-		ControllerTemplate: kapi.ReplicationControllerSpec{
-			// TODO: v0.1 requires a manual resize to the
-			//       replicas to match current cluster state.
-			//       v0.1+ could do this with either a watcher
-			//       that updates the replica count or better
-			//       yet, some way to kubernetes to say run
-			//       pods on each and every node that matches
-			//       the selector.
-			Replicas: options.Replicas,
-			Selector: selector,
-			Template: podTemplate,
-		},
-	}
-}
-
-//  Generate the HA deployment configuration.
-func GenerateDeploymentConfig(name string, options *haconfig.HAConfigCmdOptions, selector map[string]string) *dapi.DeploymentConfig {
-
 	return &dapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:   name,
@@ -167,6 +148,21 @@ func GenerateDeploymentConfig(name string, options *haconfig.HAConfigCmdOptions,
 		Triggers: []dapi.DeploymentTriggerPolicy{
 			{Type: dapi.DeploymentTriggerOnConfigChange},
 		},
-		Template: generateDeploymentTemplate(name, options, selector),
+		Template: dapi.DeploymentTemplate{
+			Strategy: dapi.DeploymentStrategy{
+				Type: dapi.DeploymentStrategyTypeRecreate,
+			},
+
+			// TODO: v0.1 requires a manual resize to the
+			//       replicas to match current cluster state.
+			//       In the future, the PerNodeController in
+			//       kubernetes would remove the need for this
+			//       manual intervention.
+			ControllerTemplate: kapi.ReplicationControllerSpec{
+				Replicas: options.Replicas,
+				Selector: selector,
+				Template: podTemplate,
+			},
+		},
 	}
 }

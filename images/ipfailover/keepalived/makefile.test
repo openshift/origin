@@ -1,5 +1,5 @@
 
-IMAGE_NAME="openshift/origin-keepalived-ha-config"
+IMAGE_NAME="openshift/origin-keepalived-ipfailover"
 
 
 all:	image
