@@ -82,8 +82,8 @@ func TestAddConfigLabels(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{"foo": "first value"}},
 			},
 			addLabels:      map[string]string{"foo": "second value"},
-			err:            true,
-			expectedLabels: map[string]string{"foo": "first value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "second value"},
 		},
 		{ // [8] Test conflicting keys with the same value in ReplicationController nested labels
 			obj: &kapi.ReplicationController{
@@ -135,8 +135,8 @@ func TestAddConfigLabels(t *testing.T) {
 				},
 			},
 			addLabels:      map[string]string{"foo": "second value"},
-			err:            true,
-			expectedLabels: map[string]string{"foo": "first value"},
+			err:            false,
+			expectedLabels: map[string]string{"foo": "second value"},
 		},
 		{ // [11] Test adding labels to a Deployment object
 			obj: &deployapi.Deployment{
@@ -189,7 +189,7 @@ func TestAddConfigLabels(t *testing.T) {
 		if err != nil && !test.err {
 			t.Errorf("Unexpected error while setting labels on testCase[%v]: %v.", i, err)
 		} else if err == nil && test.err {
-			t.Errorf("Unexpected non-error while setting labels on testCase[%v].", i)
+			t.Errorf("Unexpected non-error while setting labels on testCase[%v]: %v.", i, test.err)
 		}
 
 		accessor, err := kmeta.Accessor(test.obj)
@@ -205,10 +205,10 @@ func TestAddConfigLabels(t *testing.T) {
 		switch objType := test.obj.(type) {
 		case *kapi.ReplicationController:
 			if e, a := test.expectedLabels, objType.Spec.Template.Labels; !reflect.DeepEqual(e, a) {
-				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
+				t.Errorf("Unexpected Spec.Template.Labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
 			if e, a := test.expectedLabels, objType.Spec.Selector; !reflect.DeepEqual(e, a) {
-				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
+				t.Errorf("Unexpected Spec.Selector.Labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
 		case *deployapi.Deployment:
 			if e, a := test.expectedLabels, objType.ControllerTemplate.Template.Labels; !reflect.DeepEqual(e, a) {
