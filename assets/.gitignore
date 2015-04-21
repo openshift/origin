@@ -5,3 +5,4 @@ dist
 .bundle
 bower_components
 phantomjsdriver.log
+openshift-jvm

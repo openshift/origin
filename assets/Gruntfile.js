@@ -405,6 +405,12 @@ module.exports = function (grunt) {
           cwd: 'bower_components/zeroclipboard/dist',
           src: 'ZeroClipboard.swf',
           dest: '<%= yeoman.dist %>/scripts'
+        }, 
+        {
+          expand: true,
+          cwd: 'openshift-jvm',
+          src: '**/*',
+          dest: '<%= yeoman.dist %>/java'
         }]
       },
       styles: {

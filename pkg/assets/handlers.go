@@ -107,14 +107,17 @@ func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h htt
 		if err != nil {
 			return nil, err
 		}
-		b = bytes.Replace(b, []byte(`<base href="/">`), []byte(fmt.Sprintf(`<base href="%s">`, path.Join(contextRoot, subcontext))), 1)
+		base := path.Join(contextRoot, subcontext)
+		// Make sure the base always ends in a trailing slash but don't end up with a double trailing slash
+		if !strings.HasSuffix(base, "/") {
+			base += "/"
+		}
+		b = bytes.Replace(b, []byte(`<base href="/">`), []byte(fmt.Sprintf(`<base href="%s">`, base)), 1)
 		subcontextData[subcontext] = b
 		subcontexts = append(subcontexts, subcontext)
 	}
 
-	// Sort alphabetically
-	sort.Strings(subcontexts)
-	// Then sort by length
+	// Sort by length, longest first
 	sort.Sort(LongestToShortest(subcontexts))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +125,11 @@ func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h htt
 		if _, err := Asset(urlPath); err != nil {
 			// find the index we want to serve instead
 			for _, subcontext := range subcontexts {
-				if urlPath == subcontext || strings.HasPrefix(urlPath, subcontext+"/") {
+				prefix := subcontext
+				if subcontext != "" {
+					prefix += "/"
+				}
+				if urlPath == subcontext || strings.HasPrefix(urlPath, prefix) {
 					w.Write(subcontextData[subcontext])
 					return
 				}
