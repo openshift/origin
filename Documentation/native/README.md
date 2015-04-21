@@ -14,6 +14,8 @@ Network Layout
 The diagram below shows the setup used in the document. It has one Linux node with two network interface
 cards serving as a router, two switches and three nodes connected to these switches. 
 
+![network diagram](./network_diagram.png "Network Diagram")
+
 
 Network Overview
 ----------------------------------------------------------
