@@ -9,7 +9,7 @@
         "name": "ruby-20-rhel7"
       },
       "spec": {
-        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/ruby-20-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/ruby-20-rhel7",
         "tags": [
           {
             "name": "latest",
@@ -30,7 +30,7 @@
         "name": "nodejs-010-rhel7"
       },
       "spec": {
-        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/nodejs-010-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/nodejs-010-rhel7",
         "tags": [
           {
             "name": "latest",
@@ -51,7 +51,7 @@
         "name": "perl-516-rhel7"
       },
       "spec": {
-        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/perl-516-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/perl-516-rhel7",
         "tags": [
           {
             "name": "latest",
@@ -72,7 +72,7 @@
         "name": "python-33-rhel7"
       },
       "spec": {
-        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/python-33-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/python-33-rhel7",
         "tags": [
           {
             "name": "latest",
@@ -93,7 +93,7 @@
         "name": "mysql-55-rhel7"
       },
       "spec": {
-        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/mysql-55-rhel7"
+        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/mysql-55-rhel7"
       }
     },
     {
@@ -103,7 +103,7 @@
         "name": "postgresql-92-rhel7"
       },
       "spec": {
-        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/postgresql-92-rhel7"
+        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/postgresql-92-rhel7"
       }
     },
     {
@@ -113,7 +113,7 @@
         "name": "mongodb-24-rhel7"
       },
       "spec": {
-        "dockerImageRepository": "docker-buildvm-rhose.usersys.redhat.com:5000/openshift/mongodb-24-rhel7"
+        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/mongodb-24-rhel7"
       }
     }
   ]
