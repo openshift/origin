@@ -108,6 +108,10 @@ func (c *Fake) Projects() ProjectInterface {
 	return &FakeProjects{Fake: c}
 }
 
+func (c *Fake) ProjectRequests() ProjectRequestInterface {
+	return &FakeProjectRequests{Fake: c}
+}
+
 func (c *Fake) Policies(namespace string) PolicyInterface {
 	return &FakePolicies{Fake: c}
 }

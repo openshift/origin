@@ -102,8 +102,18 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{Verbs: util.NewStringSet("get"), Resources: util.NewStringSet("users"), ResourceNames: util.NewStringSet("~")},
+				{Verbs: util.NewStringSet("get"), Resources: util.NewStringSet("projectrequests")},
 				{Verbs: util.NewStringSet("list"), Resources: util.NewStringSet("projects")},
 				{Verbs: util.NewStringSet("create"), Resources: util.NewStringSet("subjectaccessreviews"), AttributeRestrictions: runtime.EmbeddedObject{&authorizationapi.IsPersonalSubjectAccessReview{}}},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      SelfProvisionerRoleName,
+				Namespace: masterNamespace,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{Verbs: util.NewStringSet("create"), Resources: util.NewStringSet("projectrequests")},
 			},
 		},
 		{
@@ -252,6 +262,17 @@ func GetBootstrapMasterRoleBindings(masterNamespace string) []authorizationapi.R
 			},
 			RoleRef: kapi.ObjectReference{
 				Name:      BasicUserRoleName,
+				Namespace: masterNamespace,
+			},
+			Groups: util.NewStringSet(AuthenticatedGroup),
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      SelfProvisionerRoleBindingName,
+				Namespace: masterNamespace,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name:      SelfProvisionerRoleName,
 				Namespace: masterNamespace,
 			},
 			Groups: util.NewStringSet(AuthenticatedGroup),

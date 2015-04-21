@@ -8,8 +8,10 @@ func init() {
 	api.Scheme.AddKnownTypes("v1beta1",
 		&Project{},
 		&ProjectList{},
+		&ProjectRequest{},
 	)
 }
 
-func (*Project) IsAnAPIObject()     {}
-func (*ProjectList) IsAnAPIObject() {}
+func (*ProjectRequest) IsAnAPIObject() {}
+func (*Project) IsAnAPIObject()        {}
+func (*ProjectList) IsAnAPIObject()    {}

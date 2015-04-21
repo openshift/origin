@@ -80,7 +80,7 @@ var originTypes = []string{
 	"Image", "ImageRepository", "ImageStream", "ImageRepositoryMapping", "ImageStreamMapping", "ImageRepositoryTag", "ImageStreamTag", "ImageStreamImage",
 	"Template", "TemplateConfig", "ProcessedTemplate",
 	"Route",
-	"Project",
+	"Project", "ProjectRequest",
 	"User", "Identity", "UserIdentityMapping",
 	"OAuthClient", "OAuthClientAuthorization", "OAuthAccessToken", "OAuthAuthorizeToken",
 	"Role", "RoleBinding", "Policy", "PolicyBinding", "ResourceAccessReview", "SubjectAccessReview",
@@ -130,7 +130,8 @@ func init() {
 	// the list of kinds that are scoped at the root of the api hierarchy
 	// if a kind is not enumerated here, it is assumed to have a namespace scope
 	kindToRootScope := map[string]bool{
-		"Project": true,
+		"Project":        true,
+		"ProjectRequest": true,
 
 		"User":                true,
 		"Identity":            true,

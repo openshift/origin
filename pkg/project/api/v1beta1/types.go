@@ -39,3 +39,9 @@ type Project struct {
 	// Status describes the current status of a Namespace
 	Status ProjectStatus `json:"status,omitempty" description:"status describes the current status of a Project; read-only"`
 }
+
+type ProjectRequest struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+	DisplayName     string `json:"displayName,omitempty"`
+}

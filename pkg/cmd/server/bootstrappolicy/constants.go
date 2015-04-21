@@ -36,6 +36,7 @@ const (
 	AdminRoleName             = "admin"
 	EditRoleName              = "edit"
 	ViewRoleName              = "view"
+	SelfProvisionerRoleName   = "self-provisioner"
 	BasicUserRoleName         = "basic-user"
 	StatusCheckerRoleName     = "cluster-status"
 	DeployerRoleName          = "system:deployer"
@@ -49,14 +50,15 @@ const (
 
 // RoleBindings
 const (
-	InternalComponentRoleBindingName = InternalComponentRoleName + "-binding"
-	DeployerRoleBindingName          = DeployerRoleName + "-binding"
-	ClusterAdminRoleBindingName      = ClusterAdminRoleName + "-binding"
-	BasicUserRoleBindingName         = BasicUserRoleName + "-binding"
+	SelfProvisionerRoleBindingName   = SelfProvisionerRoleName + "s"
+	InternalComponentRoleBindingName = InternalComponentRoleName + "s"
+	DeployerRoleBindingName          = DeployerRoleName + "s"
+	ClusterAdminRoleBindingName      = ClusterAdminRoleName + "s"
+	BasicUserRoleBindingName         = BasicUserRoleName + "s"
 	DeleteTokensRoleBindingName      = DeleteTokensRoleName + "-binding"
 	StatusCheckerRoleBindingName     = StatusCheckerRoleName + "-binding"
-	RouterRoleBindingName            = RouterRoleName + "-binding"
-	RegistryRoleBindingName          = RegistryRoleName + "-binding"
+	RouterRoleBindingName            = RouterRoleName + "s"
+	RegistryRoleBindingName          = RegistryRoleName + "s"
 
-	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "-binding"
+	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
 )
