@@ -1,6 +1,7 @@
 package keepalived
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -130,21 +131,17 @@ func (p *KeepAlivedPlugin) Create(out io.Writer) {
 }
 
 //  Delete the config and services associated with this HA configuration.
-func (p *KeepAlivedPlugin) Delete() {
+func (p *KeepAlivedPlugin) Delete(out io.Writer) {
 	namespace := p.GetNamespace()
+	selector := p.GetSelector()
 
-	_, kClient, err := p.Factory.Clients()
-	if err != nil {
-		glog.Fatalf("Error getting client: %v", err)
-	}
+	CleanupDeployment(p.Name, namespace, selector, p.Factory, func(name string, err error) {
+		if nil == err {
+			fmt.Fprintf(out, "%s\n", name)
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
+	})
 
-	serviceInterface := kClient.Services(namespace)
-
-	err = serviceInterface.Delete(p.Name)
-	if err != nil {
-		glog.Fatalf("Error deleting service %q: %v", p.Name, err)
-	}
-
-	// TODO(ramr): remove deployment config as well.
-	glog.Infof("Deleted KeepAlived HA config: %q", p.Name)
+	glog.V(4).Infof("Deleted KeepAlived HA config: %q", p.Name)
 }

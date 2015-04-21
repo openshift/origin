@@ -147,8 +147,8 @@ func generateDeploymentTemplate(name string, options *haconfig.HAConfigCmdOption
 			//       v0.1+ could do this with either a watcher
 			//       that updates the replica count or better
 			//       yet, some way to kubernetes to say run
-			//       this ReplicationController on each and
-			//       every node that matches the selector.
+			//       pods on each and every node that matches
+			//       the selector.
 			Replicas: options.Replicas,
 			Selector: selector,
 			Template: podTemplate,

@@ -55,7 +55,7 @@ func (p *MockPlugin) Create(out io.Writer) {
 	p.IncrementCallCount("Create")
 }
 
-func (p *MockPlugin) Delete() {
+func (p *MockPlugin) Delete(out io.Writer) {
 	p.IncrementCallCount("Delete")
 }
 

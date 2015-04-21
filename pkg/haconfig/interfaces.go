@@ -13,5 +13,5 @@ type HAConfiguratorPlugin interface {
 	GetService() *kapi.Service
 	Generate() *kapi.List
 	Create(out io.Writer)
-	Delete()
+	Delete(out io.Writer)
 }
