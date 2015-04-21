@@ -143,7 +143,7 @@ func (r DockerRegistryResolver) Resolve(value string) (*ComponentMatch, error) {
 		return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("can't connect to %q: %v", ref.Registry, err)}
 	}
 	if len(ref.Tag) == 0 {
-		ref.Tag = "latest"
+		ref.Tag = imageapi.DefaultImageTag
 	}
 	glog.V(4).Infof("found image: %#v", image)
 	dockerImage := &imageapi.DockerImage{}
@@ -204,7 +204,7 @@ func partialScorer(a, b string, prefix bool, partial, none float32) (bool, float
 
 func matchTag(image docker.APIImages, value, registry, namespace, name, tag string) []*ComponentMatch {
 	if len(tag) == 0 {
-		tag = "latest"
+		tag = imageapi.DefaultImageTag
 	}
 	matches := []*ComponentMatch{}
 	for _, s := range image.RepoTags {
@@ -220,7 +220,7 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 			continue
 		}
 		if len(iRef.Tag) == 0 {
-			iRef.Tag = "latest"
+			iRef.Tag = imageapi.DefaultImageTag
 		}
 		match := &ComponentMatch{}
 		ok, score := partialScorer(name, iRef.Name, true, 0.5, 1.0)
@@ -273,7 +273,7 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 		ref.Namespace = namespace
 		searchTag := ref.Tag
 		if len(searchTag) == 0 {
-			searchTag = "latest"
+			searchTag = imageapi.DefaultImageTag
 		}
 		latest, err := imageapi.LatestTaggedImage(repo, searchTag)
 		if err != nil {

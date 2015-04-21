@@ -178,7 +178,7 @@ func DockerRepository(g MutableUniqueGraph, name, tag string) graph.Node {
 			ref.Tag = tag
 		}
 		if len(ref.Tag) == 0 {
-			ref.Tag = "latest"
+			ref.Tag = image.DefaultImageTag
 		}
 		if len(ref.Registry) == 0 {
 			ref.Registry = "docker.io"
@@ -220,7 +220,7 @@ func SourceRepository(g MutableUniqueGraph, source build.BuildSource) (graph.Nod
 // does not already exist.
 func ImageStreamTag(g MutableUniqueGraph, namespace, name, tag string) graph.Node {
 	if len(tag) == 0 {
-		tag = "latest"
+		tag = image.DefaultImageTag
 	}
 	return EnsureUnique(g,
 		UniqueName(fmt.Sprintf("%d|%s/%s:%s", ImageStreamGraphKind, namespace, name, tag)),

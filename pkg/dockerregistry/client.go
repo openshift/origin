@@ -12,6 +12,8 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // Client includes methods for accessing a Docker registry by name.
@@ -175,7 +177,7 @@ func (c *connection) ImageByTag(namespace, name, tag string) (*docker.Image, err
 	}
 	searchTag := tag
 	if len(searchTag) == 0 {
-		searchTag = "latest"
+		searchTag = imageapi.DefaultImageTag
 	}
 
 	repo, err := c.getCachedRepository(fmt.Sprintf("%s/%s", namespace, name))

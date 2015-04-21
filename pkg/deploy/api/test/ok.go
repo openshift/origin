@@ -4,6 +4,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func OkStrategy() deployapi.DeploymentStrategy {
@@ -99,7 +100,7 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 				Kind: "ImageRepository",
 				Name: "test-image-repo",
 			},
-			Tag: "latest",
+			Tag: imageapi.DefaultImageTag,
 		},
 	}
 }
@@ -113,7 +114,7 @@ func OkImageChangeTriggerDeprecated() deployapi.DeploymentTriggerPolicy {
 				"container1",
 			},
 			RepositoryName: "registry:8080/repo1:ref1",
-			Tag:            "latest",
+			Tag:            imageapi.DefaultImageTag,
 		},
 	}
 }

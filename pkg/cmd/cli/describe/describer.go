@@ -174,7 +174,7 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 		}
 	}
 	if p.Output.To != nil {
-		tag := buildapi.DefaultImageTag
+		tag := imageapi.DefaultImageTag
 		if len(p.Output.Tag) != 0 {
 			tag = p.Output.Tag
 		}

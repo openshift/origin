@@ -43,7 +43,7 @@ func (f *fakeDockerRegistryClient) ImageTags(namespace, name string) (map[string
 
 func (f *fakeDockerRegistryClient) ImageByTag(namespace, name, tag string) (*docker.Image, error) {
 	if len(tag) == 0 {
-		tag = "latest"
+		tag = api.DefaultImageTag
 	}
 	f.Namespace, f.Name, f.Tag = namespace, name, tag
 	for _, t := range f.Images {
@@ -153,7 +153,7 @@ func TestControllerRepoTagsAlreadySet(t *testing.T) {
 */
 
 func TestControllerImageNotFoundError(t *testing.T) {
-	cli, fake := &fakeDockerRegistryClient{Tags: map[string]string{"latest": "not_found"}}, &client.Fake{}
+	cli, fake := &fakeDockerRegistryClient{Tags: map[string]string{api.DefaultImageTag: "not_found"}}, &client.Fake{}
 	c := ImportController{client: cli, repositories: fake, mappings: fake}
 	repo := api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
@@ -174,7 +174,7 @@ func TestControllerImageNotFoundError(t *testing.T) {
 
 func TestControllerImageWithGenericError(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{
-		Tags: map[string]string{"latest": "found"},
+		Tags: map[string]string{api.DefaultImageTag: "found"},
 		Images: []expectedImage{
 			{
 				ID:  "found",
@@ -202,7 +202,7 @@ func TestControllerImageWithGenericError(t *testing.T) {
 
 func TestControllerWithImage(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{
-		Tags: map[string]string{"latest": "found"},
+		Tags: map[string]string{api.DefaultImageTag: "found"},
 		Images: []expectedImage{
 			{
 				ID: "found",
@@ -234,7 +234,7 @@ func TestControllerWithImage(t *testing.T) {
 /*
 func TestControllerWithEmptyTag(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{
-		Tags: map[string]string{"latest": "found"},
+		Tags: map[string]string{api.DefaultImageTag: "found"},
 		Images: []expectedImage{
 			{
 				ID: "found",
@@ -250,7 +250,7 @@ func TestControllerWithEmptyTag(t *testing.T) {
 		ObjectMeta:            kapi.ObjectMeta{Name: "test", Namespace: "other"},
 		//DockerImageRepository: "foo/bar",
 		Tags: map[string]string{
-			"latest": "",
+			api.DefaultImageTag: "",
 		},
 	}
 	if err := c.Next(&repo); err != nil {

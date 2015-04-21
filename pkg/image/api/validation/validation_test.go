@@ -68,7 +68,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 				},
-				Tag: "latest",
+				Tag: api.DefaultImageTag,
 				Image: api.Image{
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "foo",
@@ -85,7 +85,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "default",
 				},
-				Tag: "latest",
+				Tag: api.DefaultImageTag,
 				Image: api.Image{
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "foo",
@@ -120,7 +120,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 					Namespace: "default",
 				},
 				DockerImageRepository: "openshift/ruby-19-centos",
-				Tag: "latest",
+				Tag: api.DefaultImageTag,
 				Image: api.Image{
 					ObjectMeta: kapi.ObjectMeta{
 						Namespace: "default",
@@ -137,7 +137,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 					Namespace: "default",
 				},
 				DockerImageRepository: "registry/extra/openshift/ruby-19-centos",
-				Tag: "latest",
+				Tag: api.DefaultImageTag,
 				Image: api.Image{
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "foo",
