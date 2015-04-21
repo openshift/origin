@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#  TODO: This follows the initial demo pieces and uses a bash script to
+#        generate the keepalived config - rework this into a template
+#        similar to how it is done for the haproxy configuration.
 
 #  Includes.
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
@@ -31,7 +34,7 @@ function generate_global_config() {
 
   echo "   }"
   echo ""
-  echo "   notification_email_from ${EMAIL_FROM:-"ha-config@openshift.local"}"
+  echo "   notification_email_from ${EMAIL_FROM:-"ipfailover@openshift.local"}"
   echo "   smtp_server ${SMTP_SERVER:-"127.0.0.1"}"
   echo "   smtp_connect_timeout ${SMTP_CONNECT_TIMEOUT:-"30"}"
   echo "   router_id $routername"
@@ -127,7 +130,7 @@ function generate_mucast_options() {
 #  Generate VRRP sync groups section.
 #
 #  Examples:
-#      generate_vrrp_sync_groups "ha-1" "10.1.1.1 10.1.2.2"
+#      generate_vrrp_sync_groups "ipf-1" "10.1.1.1 10.1.2.2"
 #
 #      generate_vrrp_sync_groups "arparp" "10.42.42.42-45, 10.9.1.1"
 #
@@ -183,7 +186,7 @@ function generate_vip_section() {
 #
 #      generate_vrrpd_instance_config arp 1 "10.1.2.3" enp0s8 "3" "slave"
 #
-#      generate_vrrpd_instance_config ha-1 4 "10.1.2.3-4" enp0s8 "7"
+#      generate_vrrpd_instance_config ipf-1 4 "10.1.2.3-4" enp0s8 "7"
 #
 function generate_vrrpd_instance_config() {
   local servicename=$1

@@ -11,5 +11,5 @@ setup_failover
 
 start_failover_services
 
-echo "`basename $0`: OpenShift HA-Config failover service terminated."
+echo "`basename $0`: OpenShift IP Failover service terminated."
 

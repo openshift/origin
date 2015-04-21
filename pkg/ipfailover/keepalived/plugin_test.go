@@ -3,63 +3,63 @@ package keepalived
 import (
 	"testing"
 
-	haconfig "github.com/openshift/origin/pkg/haconfig"
+	"github.com/openshift/origin/pkg/ipfailover"
 )
 
-func TestNewHAConfiguratorPlugin(t *testing.T) {
+func TestNewIPFailoverConfiguratorPlugin(t *testing.T) {
 	tests := []struct {
 		Name             string
-		Options          *haconfig.HAConfigCmdOptions
+		Options          *ipfailover.IPFailoverConfigCmdOptions
 		ErrorExpectation bool
 	}{
 		{
 			Name:             "selector",
-			Options:          &haconfig.HAConfigCmdOptions{Selector: "haconfig=test-nodes"},
+			Options:          &ipfailover.IPFailoverConfigCmdOptions{Selector: "ipfailover=test-nodes"},
 			ErrorExpectation: false,
 		},
 		{
 			Name:             "empty-selector",
-			Options:          &haconfig.HAConfigCmdOptions{Selector: ""},
+			Options:          &ipfailover.IPFailoverConfigCmdOptions{Selector: ""},
 			ErrorExpectation: false,
 		},
 		{
 			Name: "vips",
-			Options: &haconfig.HAConfigCmdOptions{
+			Options: &ipfailover.IPFailoverConfigCmdOptions{
 				VirtualIPs: "1.2.3.4,5.6.7.8-10,11.0.0.12",
 			},
 			ErrorExpectation: false,
 		},
 		{
 			Name:             "empty-vips",
-			Options:          &haconfig.HAConfigCmdOptions{VirtualIPs: ""},
+			Options:          &ipfailover.IPFailoverConfigCmdOptions{VirtualIPs: ""},
 			ErrorExpectation: false,
 		},
 		{
 			Name:             "interface",
-			Options:          &haconfig.HAConfigCmdOptions{NetworkInterface: "eth0"},
+			Options:          &ipfailover.IPFailoverConfigCmdOptions{NetworkInterface: "eth0"},
 			ErrorExpectation: false,
 		},
 		{
 			Name:             "empty-interface",
-			Options:          &haconfig.HAConfigCmdOptions{NetworkInterface: ""},
+			Options:          &ipfailover.IPFailoverConfigCmdOptions{NetworkInterface: ""},
 			ErrorExpectation: false,
 		},
 		{
 			Name:             "watch-port",
-			Options:          &haconfig.HAConfigCmdOptions{WatchPort: 999},
+			Options:          &ipfailover.IPFailoverConfigCmdOptions{WatchPort: 999},
 			ErrorExpectation: false,
 		},
 		{
 			Name:             "replicas",
-			Options:          &haconfig.HAConfigCmdOptions{Replicas: 2},
+			Options:          &ipfailover.IPFailoverConfigCmdOptions{Replicas: 2},
 			ErrorExpectation: false,
 		},
 		{
 			Name: "all-options",
-			Options: &haconfig.HAConfigCmdOptions{
-				Selector:         "hac=v1",
+			Options: &ipfailover.IPFailoverConfigCmdOptions{
+				Selector:         "ipf=v1",
 				VirtualIPs:       "9.8.7.6,5.4.3.2-5",
-				NetworkInterface: "ha0",
+				NetworkInterface: "ipf0",
 				WatchPort:        12345,
 				Replicas:         1,
 			},
@@ -67,18 +67,18 @@ func TestNewHAConfiguratorPlugin(t *testing.T) {
 		},
 		{
 			Name:             "no-options",
-			Options:          &haconfig.HAConfigCmdOptions{},
+			Options:          &ipfailover.IPFailoverConfigCmdOptions{},
 			ErrorExpectation: false,
 		},
 		{
 			Name:             "", // empty
-			Options:          &haconfig.HAConfigCmdOptions{},
+			Options:          &ipfailover.IPFailoverConfigCmdOptions{},
 			ErrorExpectation: false,
 		},
 	}
 
 	for _, tc := range tests {
-		p, err := NewHAConfiguratorPlugin(tc.Name, nil, tc.Options)
+		p, err := NewIPFailoverConfiguratorPlugin(tc.Name, nil, tc.Options)
 		if err != nil && !tc.ErrorExpectation {
 			t.Errorf("Test case for %s got an error where none was expected", tc.Name)
 		}
@@ -123,10 +123,10 @@ func TestPluginGetWatchPort(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		options := &haconfig.HAConfigCmdOptions{WatchPort: tc.WatchPort}
-		p, err := NewHAConfiguratorPlugin(tc.Name, nil, options)
+		options := &ipfailover.IPFailoverConfigCmdOptions{WatchPort: tc.WatchPort}
+		p, err := NewIPFailoverConfiguratorPlugin(tc.Name, nil, options)
 		if err != nil {
-			t.Errorf("Error creating HAConfigurator plugin - test=%q, error: %v", tc.Name, err)
+			t.Errorf("Error creating IPFailoverConfigurator plugin - test=%q, error: %v", tc.Name, err)
 		}
 
 		port := p.GetWatchPort()
@@ -146,8 +146,8 @@ func TestPluginGetSelector(t *testing.T) {
 	}{
 		{
 			Name:        "router",
-			Selector:    "hac=router",
-			ExpectedKey: "hac",
+			Selector:    "ipf=router",
+			ExpectedKey: "ipf",
 		},
 		{
 			Name:        "service1",
@@ -156,16 +156,16 @@ func TestPluginGetSelector(t *testing.T) {
 		},
 		{
 			Name:        "default-selector",
-			Selector:    haconfig.DefaultSelector,
-			ExpectedKey: haconfig.DefaultName,
+			Selector:    ipfailover.DefaultSelector,
+			ExpectedKey: ipfailover.DefaultName,
 		},
 	}
 
 	for _, tc := range tests {
-		options := &haconfig.HAConfigCmdOptions{Selector: tc.Selector}
-		p, err := NewHAConfiguratorPlugin(tc.Name, nil, options)
+		options := &ipfailover.IPFailoverConfigCmdOptions{Selector: tc.Selector}
+		p, err := NewIPFailoverConfiguratorPlugin(tc.Name, nil, options)
 		if err != nil {
-			t.Errorf("Error creating HAConfigurator plugin - test=%q, error: %v", tc.Name, err)
+			t.Errorf("Error creating IPFailoverConfigurator plugin - test=%q, error: %v", tc.Name, err)
 		}
 
 		selector := p.GetSelector()
@@ -178,4 +178,4 @@ func TestPluginGetSelector(t *testing.T) {
 	}
 }
 
-// TODO: tests for Delete, Create, Generate, GetService, GetNamespace.
+// TODO: tests for Create, Generate, GetService, GetNamespace.

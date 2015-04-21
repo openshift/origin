@@ -57,7 +57,6 @@ ability to setup a high availability configuration on a selection of nodes.
             <options> = One or more of:
                 --type=keepalived  #  For now, always keepalived.
                 --create
-                --delete
                 --credentials=<credentials>
                 --no-headers=<headers>
                 -o|--output=<format>
@@ -122,9 +121,6 @@ Examples:
                                    --virtual-ips="54.192.0.42-43"       \
                                    --watch-port=80  --create
 
-       $ # Delete a previously created HA configuration.
-       $ openshift admin ha-config ha-amzn --delete
-
 
 ## Under-the-hood
 Under the hood, the HA configuration creates and starts up an HA sidecar
@@ -154,6 +150,10 @@ This allows us to the cover:
   1. When a cluster is resized - nodes shrink or grow.
   1. When a cluster is modified - really node labels are modified.
   1. Failure cases when a node or watched service or network fails.
+
+Note: The PerNodeController in the future will remove the need to watch
+      the nodes when a cluster is resized or modified, as the keepalived
+      sidecar pod would be directly run on the given set of nodes.
 
 
 ## Usage

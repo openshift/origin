@@ -1,4 +1,4 @@
-package haconfig
+package ipfailover
 
 import (
 	"fmt"
@@ -76,17 +76,12 @@ func ValidateVirtualIPs(vips string) error {
 }
 
 // Validate command line operations.
-func ValidateCmdOptions(options *HAConfigCmdOptions, c *Configurator) error {
+func ValidateCmdOptions(options *IPFailoverConfigCmdOptions, c *Configurator) error {
 	service := c.Plugin.GetService()
-
-	//  If deleting service, check service exists.
-	if options.Delete && nil == service {
-		return fmt.Errorf("No HA Config %q exists\n", c.Name)
-	}
 
 	//  If creating service, check service doesn't exist.
 	if options.Create && service != nil {
-		return fmt.Errorf("HA Config %q exists\n", c.Name)
+		return fmt.Errorf("IP Failover config %q exists\n", c.Name)
 	}
 
 	return ValidateVirtualIPs(options.VirtualIPs)

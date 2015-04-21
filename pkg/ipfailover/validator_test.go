@@ -1,4 +1,4 @@
-package haconfig
+package ipfailover
 
 import (
 	"testing"
@@ -84,7 +84,7 @@ func TestValidateVirtualIPs(t *testing.T) {
 	}
 }
 
-func getMockConfigurator(options *HAConfigCmdOptions, service *kapi.Service) *Configurator {
+func getMockConfigurator(options *IPFailoverConfigCmdOptions, service *kapi.Service) *Configurator {
 	p := &MockPlugin{
 		Name:      "mock",
 		Options:   options,
@@ -124,57 +124,7 @@ func TestValidateCmdOptionsForCreate(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		options := &HAConfigCmdOptions{Create: tc.Create}
-		plugin := &MockPlugin{
-			Name:      "mock",
-			Options:   options,
-			Service:   tc.Service,
-			CallCount: make(map[string]int, 0),
-		}
-		c := NewConfigurator(tc.Name, plugin, nil)
-
-		err := ValidateCmdOptions(options, c)
-		if err != nil && !tc.ErrorExpectation {
-			t.Errorf("Test case %q got an error: %v where none was expected.",
-				tc.Name, err)
-		}
-		if nil == err && tc.ErrorExpectation {
-			t.Errorf("Test case %q got no error - expected an error.", tc.Name)
-		}
-	}
-}
-
-func TestValidateCmdOptionsForDelete(t *testing.T) {
-	tests := []struct {
-		Name             string
-		Delete           bool
-		Service          *kapi.Service
-		ErrorExpectation bool
-	}{
-		{
-			Name:             "delete-with-service",
-			Delete:           true,
-			Service:          &kapi.Service{},
-			ErrorExpectation: false,
-		},
-		{
-			Name:             "delete-with-no-service",
-			Delete:           true,
-			ErrorExpectation: true,
-		},
-		{
-			Name:             "no-delete-option-and-service",
-			ErrorExpectation: false,
-		},
-		{
-			Name:             "no-delete-option-with-service",
-			Service:          &kapi.Service{},
-			ErrorExpectation: false,
-		},
-	}
-
-	for _, tc := range tests {
-		options := &HAConfigCmdOptions{Delete: tc.Delete}
+		options := &IPFailoverConfigCmdOptions{Create: tc.Create}
 		plugin := &MockPlugin{
 			Name:      "mock",
 			Options:   options,
@@ -203,7 +153,7 @@ func TestValidateCmdOptionsVIPs(t *testing.T) {
 	}
 
 	for _, vips := range validVIPs {
-		options := &HAConfigCmdOptions{VirtualIPs: vips}
+		options := &IPFailoverConfigCmdOptions{VirtualIPs: vips}
 		c := getMockConfigurator(options, nil)
 		if err := ValidateCmdOptions(options, c); err != nil {
 			t.Errorf("Test command options valid vips=%q got error %s expected: no error.",
@@ -220,7 +170,7 @@ func TestValidateCmdOptionsVIPs(t *testing.T) {
 	}
 
 	for _, vips := range invalidVIPs {
-		options := &HAConfigCmdOptions{VirtualIPs: vips}
+		options := &IPFailoverConfigCmdOptions{VirtualIPs: vips}
 		c := getMockConfigurator(options, nil)
 		if err := ValidateCmdOptions(options, c); err == nil {
 			t.Errorf("Test command options invalid vips=%q got no error expected: error.", vips)

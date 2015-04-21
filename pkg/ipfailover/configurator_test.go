@@ -1,4 +1,4 @@
-package haconfig
+package ipfailover
 
 import (
 	"io"
@@ -12,7 +12,7 @@ import (
 type MockPlugin struct {
 	Name      string
 	Factory   *clientcmd.Factory
-	Options   *HAConfigCmdOptions
+	Options   *IPFailoverConfigCmdOptions
 	Service   *kapi.Service
 	CallCount map[string]int
 }
@@ -55,10 +55,6 @@ func (p *MockPlugin) Create(out io.Writer) {
 	p.IncrementCallCount("Create")
 }
 
-func (p *MockPlugin) Delete(out io.Writer) {
-	p.IncrementCallCount("Delete")
-}
-
 func TestNewConfigurator(t *testing.T) {
 	plugin := &MockPlugin{}
 	c := NewConfigurator("test-configurator", plugin, nil)
@@ -70,7 +66,7 @@ func TestNewConfigurator(t *testing.T) {
 func makeMockPlugin(name string) *MockPlugin {
 	return &MockPlugin{
 		Name:      name,
-		Options:   &HAConfigCmdOptions{},
+		Options:   &IPFailoverConfigCmdOptions{},
 		Service:   &kapi.Service{},
 		CallCount: make(map[string]int, 0),
 	}
@@ -97,11 +93,5 @@ func TestConfiguratorGenerate(t *testing.T) {
 func TestConfiguratorCreate(t *testing.T) {
 	runCallCountTest(t, "Create", 1, func(n string, c *Configurator) {
 		c.Create()
-	})
-}
-
-func TestConfiguratorDelete(t *testing.T) {
-	runCallCountTest(t, "Delete", 1, func(n string, c *Configurator) {
-		c.Delete()
 	})
 }

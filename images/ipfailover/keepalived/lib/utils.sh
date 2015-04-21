@@ -11,8 +11,8 @@ VBOX_INTERFACES="enp0s3 enp0s8"
 #  underscore and replacing dashes with underscores.
 #
 #  Examples:
-#      scrub "config\!@#@$%$^&*()-+=1_{}|[]\\:;'<>?,./ha-failover"
-#         # -> config_1_ha_failover
+#      scrub "config\!@#@$%$^&*()-+=1_{}|[]\\:;'<>?,./ipfailover"
+#         # -> config_1_ipfailover
 #
 #      scrub "ha-1"  # -> ha_1
 #

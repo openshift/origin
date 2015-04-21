@@ -5,10 +5,10 @@
 #  Settings passed by the failover coordinator on OpenShift Origin.
 #  ========================================================================
 
-#  Name of this HA config instance.
-HA_CONFIG_NAME=${OPENSHIFT_HA_CONFIG_NAME:-"OpenShift-HA-Config"}
+#  Name of this IP Failover config instance.
+HA_CONFIG_NAME=${OPENSHIFT_HA_CONFIG_NAME:-"OpenShift-IPFailover"}
 
-#  HA config selector.
+#  IP Failover config selector.
 HA_SELECTOR=${OPENSHIFT_HA_SELECTOR:-""}
 
 
@@ -54,7 +54,7 @@ UNICAST_PEERS=${OPENSHIFT_HA_UNICAST_PEERS:-""}
 ADMIN_EMAILS=(${OPENSHIFT_HA_ADMIN_EMAILS:-"root@localhost"})
 
 #  Email sender - the from address in the email headers.
-EMAIL_FROM="ha-config@openshift.local"
+EMAIL_FROM="ipfailover@openshift.local"
 
 #  IP address of the SMTP server.
 SMTP_SERVER=${OPENSHIFT_HA_SMTP_SERVER:-"127.0.0.1"}
