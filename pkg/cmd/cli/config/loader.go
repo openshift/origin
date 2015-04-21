@@ -11,7 +11,6 @@ import (
 const (
 	OpenShiftConfigPathEnvVar      = "OPENSHIFTCONFIG"
 	OpenShiftConfigFlagName        = "config"
-	OpenShiftConfigFileName        = ".openshiftconfig"
 	OpenShiftConfigHomeDir         = ".config/openshift"
 	OpenShiftConfigHomeFileName    = "config"
 	OpenShiftConfigHomeDirFileName = OpenShiftConfigHomeDir + "/" + OpenShiftConfigHomeFileName
@@ -24,7 +23,7 @@ var RecommendedHomeFile = path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFil
 // 1. --config value
 // 2. if OPENSHIFTCONFIG env var has a value, use it. Otherwise, ~/.config/openshift/config file
 func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules {
-	chain := []string{OpenShiftConfigFileName}
+	chain := []string{}
 	migrationRules := map[string]string{}
 
 	envVarFile := os.Getenv(OpenShiftConfigPathEnvVar)

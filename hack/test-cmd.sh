@@ -157,16 +157,9 @@ osc get services --config="${CERT_DIR}/admin/.kubeconfig"
 # test config files from env vars
 OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig" osc get services
 
-# test config files in the current directory
-TEMP_PWD=`pwd` 
-pushd ${CONFIG_DIR} >/dev/null
-    cp ${CERT_DIR}/admin/.kubeconfig .openshiftconfig
-    ${TEMP_PWD}/${GO_OUT}/osc get services
-popd 
-
 # test config files in the home directory
 mkdir -p ${HOME}/.config/openshift
-mv ${CONFIG_DIR}/.openshiftconfig ${HOME}/.config/openshift/config
+mv ${CERT_DIR}/admin/.kubeconfig ${HOME}/.config/openshift/config
 osc get services
 mv ${HOME}/.config/openshift/config ${HOME}/.config/openshift/non-default-config
 echo "config files: ok"
