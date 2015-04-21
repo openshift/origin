@@ -1,6 +1,7 @@
 package login
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
+	"github.com/openshift/origin/pkg/version"
 )
 
 type PasswordAuthenticator interface {
@@ -32,6 +34,7 @@ type LoginFormValues struct {
 	CSRF     string
 	Username string
 	Password string
+	Version  string
 }
 
 type Login struct {
@@ -101,6 +104,7 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 		glog.Errorf("Unable to generate CSRF token: %v", err)
 	}
 	form.Values.CSRF = csrf
+	form.Values.Version = fmt.Sprintf("%s.%s", version.Get().Major, version.Get().Minor)
 
 	l.render.Render(form, w, req)
 }
@@ -210,7 +214,7 @@ var loginTemplate = template.Must(template.New("loginForm").Parse(`<!DOCTYPE htm
           </form>
         </div><!--/.col-*-->
         <div class="col-sm-5 col-md-6 col-lg-7 details">
-          <p><strong>Welcome to OpenShift Origin.</strong>
+          <p><strong>Welcome to OpenShift Origin {{ .Values.Version }}.</strong>
           </p>
         </div><!--/.col-*-->
       </div><!--/.row-->
