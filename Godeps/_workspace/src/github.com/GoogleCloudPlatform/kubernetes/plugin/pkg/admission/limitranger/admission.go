@@ -153,6 +153,12 @@ func defaultContainerResourceRequirements(limitRange *api.LimitRange) api.Resour
 func mergePodResourceRequirements(pod *api.Pod, defaultRequirements *api.ResourceRequirements) {
 	for i := range pod.Spec.Containers {
 		container := pod.Spec.Containers[i]
+		if container.Resources.Limits == nil {
+			container.Resources.Limits = api.ResourceList{}
+		}
+		if container.Resources.Requests == nil {
+			container.Resources.Requests = api.ResourceList{}
+		}
 		for k, v := range defaultRequirements.Limits {
 			_, found := container.Resources.Limits[k]
 			if !found {
