@@ -356,8 +356,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 
 	existingImage := &api.Image{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      imageID,
-			Namespace: "default",
+			Name: imageID,
 		},
 		DockerImageReference: "localhost:5000/someproject/somerepo:" + imageID,
 		DockerImageMetadata: api.DockerImage{
@@ -483,8 +482,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 
 	existingImage := &api.Image{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      "existingImage",
-			Namespace: "default",
+			Name: "existingImage",
 		},
 		DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
 		DockerImageMetadata: api.DockerImage{

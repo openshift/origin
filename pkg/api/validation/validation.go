@@ -43,6 +43,7 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 		errors = validation.ValidateMinion(t)
 
 	case *imageapi.Image:
+		t.Namespace = ""
 		errors = imagev.ValidateImage(t)
 	case *imageapi.ImageRepository:
 		s := &imageapi.ImageStream{}
