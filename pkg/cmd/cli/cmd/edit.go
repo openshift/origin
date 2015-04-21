@@ -80,11 +80,14 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 
 func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, filenames util.StringList) error {
 	var printer kubectl.ResourcePrinter
+	var ext string
 	switch format := cmdutil.GetFlagString(cmd, "output"); format {
 	case "json":
 		printer = &kubectl.JSONPrinter{}
+		ext = ".json"
 	case "yaml":
 		printer = &kubectl.YAMLPrinter{}
+		ext = ".yaml"
 	default:
 		return cmdutil.UsageError(cmd, "The flag 'output' must be one of yaml|json")
 	}
@@ -145,7 +148,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 
 		// launch the editor
 		edit := editor.NewDefaultEditor()
-		edited, file, err := edit.LaunchTempFile("", "osc-edit-", buf)
+		edited, file, err := edit.LaunchTempFile("osc-edit-", ext, buf)
 		if err != nil {
 			return preservedFile(err, results.file, cmd.Out())
 		}

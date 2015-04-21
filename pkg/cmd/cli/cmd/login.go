@@ -20,7 +20,7 @@ will be used by subsequent commands.
 
 First-time users of the OpenShift client must run this command to configure the server,
 establish a session against it, and save it to a configuration file. The default
-configuration will be in your home directory under ".config/openshift/.config".
+configuration will be in your home directory under ".config/openshift/config".
 
 The information required to login, like username and password, a session token, or
 the server details, can be provided through flags. If not provided, the command will

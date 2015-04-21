@@ -1,16 +1,20 @@
 package cmd
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/generate/app"
 )
 
 func TestAddArguments(t *testing.T) {
 	tests := map[string]struct {
 		args       []string
 		env        util.StringList
+		parms      util.StringList
 		repos      util.StringList
 		components util.StringList
 		unknown    []string
@@ -31,9 +35,9 @@ func TestAddArguments(t *testing.T) {
 			unknown: []string{},
 		},
 		"mix 1": {
-			args:       []string{"git://server/repo.git", "mysql+ruby~git@test.server/repo.git", "env1=test"},
+			args:       []string{"git://server/repo.git", "mysql+ruby~git@test.server/repo.git", "env1=test", "ruby-helloworld-sample"},
 			repos:      util.StringList{"git://server/repo.git"},
-			components: util.StringList{"mysql+ruby~git@test.server/repo.git"},
+			components: util.StringList{"mysql+ruby~git@test.server/repo.git", "ruby-helloworld-sample"},
 			env:        util.StringList{"env1=test"},
 			unknown:    []string{},
 		},
@@ -64,6 +68,7 @@ func TestValidate(t *testing.T) {
 		componentValues     []string
 		sourceRepoLocations []string
 		env                 map[string]string
+		parms               map[string]string
 	}{
 		"components": {
 			cfg: AppConfig{
@@ -72,6 +77,7 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{"one", "two", "three/four"},
 			sourceRepoLocations: []string{},
 			env:                 map[string]string{},
+			parms:               map[string]string{},
 		},
 		"sourcerepos": {
 			cfg: AppConfig{
@@ -80,6 +86,7 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{},
 			sourceRepoLocations: []string{".", "/test/var/src", "https://server/repo.git"},
 			env:                 map[string]string{},
+			parms:               map[string]string{},
 		},
 		"envs": {
 			cfg: AppConfig{
@@ -88,6 +95,7 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{},
 			sourceRepoLocations: []string{},
 			env:                 map[string]string{"one": "first", "two": "second", "three": "third"},
+			parms:               map[string]string{},
 		},
 		"component+source": {
 			cfg: AppConfig{
@@ -96,6 +104,7 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{"one"},
 			sourceRepoLocations: []string{"https://server/repo.git"},
 			env:                 map[string]string{},
+			parms:               map[string]string{},
 		},
 		"components+source": {
 			cfg: AppConfig{
@@ -104,15 +113,17 @@ func TestValidate(t *testing.T) {
 			componentValues:     []string{"mysql", "ruby"},
 			sourceRepoLocations: []string{"git://github.com/namespace/repo.git"},
 			env:                 map[string]string{},
+			parms:               map[string]string{},
 		},
-		"components+env": {
+		"components+parms": {
 			cfg: AppConfig{
-				Components:  util.StringList{"mysql+php"},
-				Environment: util.StringList{"one=first", "two=second"},
+				Components:         util.StringList{"ruby-helloworld-sample"},
+				TemplateParameters: util.StringList{"one=first", "two=second"},
 			},
-			componentValues:     []string{"mysql", "php"},
+			componentValues:     []string{"ruby-helloworld-sample"},
 			sourceRepoLocations: []string{},
-			env: map[string]string{
+			env:                 map[string]string{},
+			parms: map[string]string{
 				"one": "first",
 				"two": "second",
 			},
@@ -120,7 +131,7 @@ func TestValidate(t *testing.T) {
 	}
 
 	for n, c := range tests {
-		cr, repos, env, err := c.cfg.validate()
+		cr, repos, env, parms, err := c.cfg.validate()
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 		}
@@ -145,6 +156,70 @@ func TestValidate(t *testing.T) {
 			if c.env[e] != v {
 				t.Errorf("%s: Environment variables don't match. Expected: %v, Got: %v", n, c.env, env)
 				break
+			}
+		}
+		if len(parms) != len(c.parms) {
+			t.Errorf("%s: Template parameters don't match. Expected: %v, Got: %v", n, c.parms, parms)
+		}
+		for p, v := range parms {
+			if c.parms[p] != v {
+				t.Errorf("%s: Template parameters don't match. Expected: %v, Got: %v", n, c.parms, parms)
+				break
+			}
+		}
+	}
+}
+
+func TestBuildTemplates(t *testing.T) {
+	tests := map[string]struct {
+		templateName string
+		namespace    string
+		parms        map[string]string
+	}{
+		"simple": {
+			templateName: "first-stored-template",
+			namespace:    "default",
+			parms:        map[string]string{},
+		},
+	}
+
+	for n, c := range tests {
+		appCfg := AppConfig{}
+		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace)
+		appCfg.AddArguments([]string{c.templateName})
+		appCfg.TemplateParameters = util.StringList{}
+		for k, v := range c.parms {
+			appCfg.TemplateParameters.Set(fmt.Sprintf("%v=%v", k, v))
+		}
+
+		components, _, _, parms, err := appCfg.validate()
+		if err != nil {
+			t.Errorf("%s: Unexpected error: %v", n, err)
+		}
+		err = appCfg.resolve(components)
+		if err != nil {
+			t.Errorf("%s: Unexpected error: %v", n, err)
+		}
+		_, err = appCfg.buildTemplates(components, app.Environment(parms))
+		if err != nil {
+			t.Errorf("%s: Unexpected error: %v", n, err)
+		}
+		for _, component := range components {
+			match := component.Input().Match
+			if !match.IsTemplate() {
+				t.Errorf("%s: Expected template match, got: %v", n, match)
+			}
+			if c.templateName != match.Name {
+				t.Errorf("%s: Expected template name %q, got: %q", n, c.templateName, match.Name)
+			}
+			if len(parms) != len(c.parms) {
+				t.Errorf("%s: Template parameters don't match. Expected: %v, Got: %v", n, c.parms, parms)
+			}
+			for p, v := range parms {
+				if c.parms[p] != v {
+					t.Errorf("%s: Template parameters don't match. Expected: %v, Got: %v", n, c.parms, parms)
+					break
+				}
 			}
 		}
 	}

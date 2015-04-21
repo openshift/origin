@@ -2,6 +2,7 @@ package policy
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -69,8 +70,17 @@ func (o *whoCanOptions) run() error {
 		return err
 	}
 
-	fmt.Printf("Users: %v\n", resourceAccessReviewResponse.Users)
-	fmt.Printf("Groups: %v\n", resourceAccessReviewResponse.Groups)
+	if len(resourceAccessReviewResponse.Users) == 0 {
+		fmt.Printf("Users:  none\n\n")
+	} else {
+		fmt.Printf("Users:  %s\n\n", strings.Join(resourceAccessReviewResponse.Users.List(), "\n        "))
+	}
+
+	if len(resourceAccessReviewResponse.Groups) == 0 {
+		fmt.Printf("Groups: none\n\n")
+	} else {
+		fmt.Printf("Groups: %s\n\n", strings.Join(resourceAccessReviewResponse.Groups.List(), "\n        "))
+	}
 
 	return nil
 }

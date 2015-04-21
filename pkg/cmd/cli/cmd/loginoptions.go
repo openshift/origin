@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"sort"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -279,12 +278,11 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	}
 
 	pathOptions := &kubecmdconfig.PathOptions{
-		LocalFile:  config.OpenShiftConfigFileName,
-		GlobalFile: path.Join(os.Getenv("HOME"), config.OpenShiftConfigHomeDirFileName),
-		EnvVarFile: os.Getenv(config.OpenShiftConfigPathEnvVar),
-
+		GlobalFile:       config.RecommendedHomeFile,
 		EnvVar:           config.OpenShiftConfigPathEnvVar,
 		ExplicitFileFlag: config.OpenShiftConfigFlagName,
+
+		GlobalFileSubpath: config.OpenShiftConfigHomeDirFileName,
 
 		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
 			ExplicitPath: o.PathToSaveConfig,
@@ -294,10 +292,6 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	globalExistedBefore := true
 	if _, err := os.Stat(pathOptions.GlobalFile); os.IsNotExist(err) {
 		globalExistedBefore = false
-	}
-	envVarExistedBefore := true
-	if _, err := os.Stat(pathOptions.EnvVarFile); os.IsNotExist(err) {
-		envVarExistedBefore = false
 	}
 
 	rawConfig, err := o.ClientConfig.RawConfig()
@@ -310,16 +304,13 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		return false, err
 	}
 
-	if err := pathOptions.ModifyConfig(*configToWrite); err != nil {
+	if err := kubecmdconfig.ModifyConfig(pathOptions, *configToWrite); err != nil {
 		return false, err
 	}
 
 	created := false
 	if _, err := os.Stat(pathOptions.GlobalFile); err == nil {
 		created = created || !globalExistedBefore
-	}
-	if _, err := os.Stat(pathOptions.EnvVarFile); err == nil {
-		created = created || !envVarExistedBefore
 	}
 
 	return created, nil

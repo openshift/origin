@@ -166,10 +166,11 @@ popd
 
 # test config files in the home directory
 mkdir -p ${HOME}/.config/openshift
-mv ${CONFIG_DIR}/.openshiftconfig ${HOME}/.config/openshift/.config
+mv ${CONFIG_DIR}/.openshiftconfig ${HOME}/.config/openshift/config
 osc get services
+mv ${HOME}/.config/openshift/config ${HOME}/.config/openshift/non-default-config
 echo "config files: ok"
-export OPENSHIFTCONFIG="${HOME}/.config/openshift/.config"
+export OPENSHIFTCONFIG="${HOME}/.config/openshift/non-default-config"
 
 # from this point every command will use config from the OPENSHIFTCONFIG env var
 
@@ -346,6 +347,16 @@ echo "imageRepositoryMappings: ok"
 # the local image repository takes precedence over the Docker Hub "mysql" image
 [ "$(osc new-app mysql -o yaml | grep mysql-55-centos7)" ]
 osc new-app php mysql
+# check if we can create from a stored template
+osc create -f examples/sample-app/application-template-stibuild.json
+osc get template ruby-helloworld-sample
+[ "$(osc new-app ruby-helloworld-sample -o yaml | grep MYSQL_USER)" ]
+[ "$(osc new-app ruby-helloworld-sample -o yaml | grep MYSQL_PASSWORD)" ]
+[ "$(osc new-app ruby-helloworld-sample -o yaml | grep ADMIN_USERNAME)" ]
+[ "$(osc new-app ruby-helloworld-sample -o yaml | grep ADMIN_PASSWORD)" ]
+# create from template with code explicitly set is not supported
+[ ! "$(osc new-app ruby-helloworld-sample~git@github.com/mfojtik/sinatra-app-example)" ]
+osc delete template ruby-helloworld-sample
 echo "new-app: ok"
 
 osc get routes

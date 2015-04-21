@@ -150,7 +150,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     util.NewStringSet("delete"),
-					Resources: util.NewStringSet("oauthaccesstoken", "oauthauthorizetoken"),
+					Resources: util.NewStringSet("oauthaccesstokens", "oauthauthorizetokens"),
 				},
 			},
 		},

@@ -24,5 +24,11 @@ func getBuildEnvVars(build *buildapi.Build) map[string]string {
 		build.Parameters.Revision.Git.Commit != "" {
 		envVars["OPENSHIFT_BUILD_COMMIT"] = build.Parameters.Revision.Git.Commit
 	}
+	if build.Parameters.Strategy.Type == buildapi.STIBuildStrategyType {
+		userEnv := build.Parameters.Strategy.STIStrategy.Env
+		for _, v := range userEnv {
+			envVars[v.Name] = v.Value
+		}
+	}
 	return envVars
 }
