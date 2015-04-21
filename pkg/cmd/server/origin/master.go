@@ -578,27 +578,27 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := c.AuthorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {
-			forbidden(err.Error(), w, req)
+			forbidden(err.Error(), "", w, req)
 			return
 		}
 		if attributes == nil {
-			forbidden("No attributes", w, req)
+			forbidden("No attributes", "", w, req)
 			return
 		}
 
 		ctx, exists := c.RequestContextMapper.Get(req)
 		if !exists {
-			forbidden("context not found", w, req)
+			forbidden("context not found", attributes.GetAPIVersion(), w, req)
 			return
 		}
 
 		allowed, reason, err := c.Authorizer.Authorize(ctx, attributes)
 		if err != nil {
-			forbidden(err.Error(), w, req)
+			forbidden(err.Error(), attributes.GetAPIVersion(), w, req)
 			return
 		}
 		if !allowed {
-			forbidden(reason, w, req)
+			forbidden(reason, attributes.GetAPIVersion(), w, req)
 			return
 		}
 
@@ -607,7 +607,15 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 }
 
 // forbidden renders a simple forbidden error
-func forbidden(reason string, w http.ResponseWriter, req *http.Request) {
+func forbidden(reason, apiVersion string, w http.ResponseWriter, req *http.Request) {
+	// the api version can be empty for two basic reasons:
+	// 1. malformed API request
+	// 2. not an API request at all
+	// In these cases, just assume the latest version that will work better than nothing
+	if len(apiVersion) == 0 {
+		apiVersion = klatest.Version
+	}
+
 	// Reason is an opaque string that describes why access is allowed or forbidden (forbidden by the time we reach here).
 	// We don't have direct access to kind or name (not that those apply either in the general case)
 	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
@@ -615,12 +623,15 @@ func forbidden(reason string, w http.ResponseWriter, req *http.Request) {
 	forbiddenError, _ := kapierror.NewForbidden("", "", errors.New("")).(*kapierror.StatusError)
 	forbiddenError.ErrStatus.Message = fmt.Sprintf("%q is forbidden because %s", req.RequestURI, reason)
 
-	// TODO: this serialization is broken in the general case.  It chooses the latest, but
-	// it should choose the serialization based on the codec for the uri requested.  What is coded here
-	// is better than not returning a status object at all, but needs to be fixed once authorization is
-	// tied into the APIInstaller itself.  Then we'll only have the wrong codec for non-resource requests
+	// Not all API versions in valid API requests will have a matching codec in kubernetes.  If we can't find one,
+	// just default to the latest kube codec.
+	codec := klatest.Codec
+	if requestedCodec, err := klatest.InterfacesFor(apiVersion); err == nil {
+		codec = requestedCodec
+	}
+
 	formatted := &bytes.Buffer{}
-	output, err := klatest.Codec.Encode(&forbiddenError.ErrStatus)
+	output, err := codec.Encode(&forbiddenError.ErrStatus)
 	if err != nil {
 		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
 	} else {
