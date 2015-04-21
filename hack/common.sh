@@ -21,6 +21,9 @@ OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
 OS_LOCAL_BINPATH="${OS_ROOT}/_output/local/go/bin"
 OS_LOCAL_RELEASEPATH="${OS_ROOT}/_output/local/releases"
 
+# Omit the symbol table and DWARF debugging info - ~20% savings.
+readonly OS_LDFLAGS="-s -w"
+
 readonly OS_GO_PACKAGE=github.com/openshift/origin
 readonly OS_GOPATH="${OS_OUTPUT}/go"
 
@@ -124,7 +127,7 @@ os::build::build_binaries() {
       os::build::set_platform_envs "${platform}"
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
       go install "${goflags[@]:+${goflags[@]}}" \
-          -ldflags "${version_ldflags}" \
+          -ldflags "${OS_LDFLAGS} ${version_ldflags}" \
           "${binaries[@]}"
       os::build::unset_platform_envs "${platform}"
     done
