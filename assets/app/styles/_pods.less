@@ -1,50 +1,64 @@
-
-.pod {
-  padding: 10px;  
-  border-radius: 10px;
-  margin-bottom: 5px;
-  display: inline-block;  
-  background-color: rgba(204, 204, 204, 0.15);
-  border: 1px solid rgba(170, 170, 170, 0.15);
-
-  &.pod-running {
-    background-color: rgba(117, 198, 247, 0.15);
-    border: 1px solid rgba(66, 147, 196, 0.15);
-  }
-}
-.pod + .pod {
-  margin-left: 5px;
-}
-
-.tile .service {
-  padding: 5px 0 5px 10px;
-  background-color: rgba(204, 204, 204, 0.15);
-  border: 1px solid rgba(170, 170, 170, 0.15);
-  border-radius: 3px;
-  margin-bottom: 20px;
-  margin-top: 10px;
-  position: relative;  
-}
-
 .pod-template {
   text-align: left;
   padding: 5px 10px;
+  margin: 0 10px;
   border: solid 1px #ddd;
   display: inline-block;
-  border-radius: 10px; 
-  margin-bottom: 10px;
-
+  border-radius: @border-radius-md; 
   .pod-template-container {
-    display: inline-block;
-    margin-top: 10px;
-  }
-
-  .pod-template-image {
-    border: 1px dashed #ddd;
-    border-radius: 3px;
-    padding: 0px 10px 5px;
+    .flex-display(@display: flex);
+    .flex-direction(@direction: row);
+    .flex(@columns: 1 0 auto);
+    .pod-template-image {
+      border: 1px dashed #ddd;
+      border-radius: 3px;
+      padding: 0px 10px 5px;
+    }
+    .pod-template-ports {
+      margin: 10px 10px 10px 20px;
+      .port-number {
+        position: relative;
+      }
+    }
   }
 }
+.pod-block {
+  display: inline-block;
+  .pod-container {
+    .flex-display(@display: flex);
+    .flex-direction(@direction: row);
+    .flex(@columns: 1 0 auto);
+    .flex-wrap(@wrap: wrap);
+    align-items: center;
+    justify-content: center;
+    margin: 10px 0 -5px;
+    &.pod-container-lg {
+      .pod {
+        width: 70px;
+        height: 70px;
+      }
+    }
+    .pod {
+      cursor: pointer;
+      .flex(@columns: 1 0 auto);
+      border-radius: @border-radius-md;
+      box-shadow: @osc-object-box-shadow;
+      padding: 10px;
+      margin: 0 10px 10px;
+      text-align: center;
+      background-color: rgba(204, 204, 204, 0.15);
+      &.pod-running {
+        background-color: rgba(117, 198, 247, 0.15);
+      }
+      .pod-text {
+        font-size: 11px;
+      }
+      &:hover {
+      }
+    }
+  }
+}
+
 
 .connector {
   position: absolute;
@@ -55,21 +69,19 @@
     .connector-line {
       width: 1px;
       top: 0;
-      left: 3px; 
+      left: 6px; 
     }
 
     .connector-endpoint-top {
-      top: -3px;
+      top: -2px;
     }
   }
 
   &.connector-horizontal {
     height: 7px;
-
     .connector-endpoint {
-      top: -3px;
+      top: -2px;
     }
-
     .connector-line {
       height: 1px;
     }
@@ -77,37 +89,29 @@
 
   .connector-line {
     position: absolute;
-    background-color: #ddd;
+    background-color: @connector-color;
   }
 
   .connector-endpoint {
     position: absolute;
-    width: 7px;
-    height: 7px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
-    background-color: #ddd;
+    background-color: @connector-color;
   }
 }
 
 .tile .separator {
-  border-top: 1px solid #ddd;
+  border-top: 1px solid @connector-color;
   margin-left: -20px;
   margin-right: -20px;
+  margin-bottom: 10px;
 }
 
 .timestamp {
   cursor: help;
 }
 
-.flex-row {
-  .flex-display(@display: flex);
-  .flex-direction(@direction: row);
-}
-
-.flex {
-  // flex: 1 1 auto;
-  .flex(@columns: 1 0 auto);
-}
 
 /* TODO fix the spinner to be valid less syntax
   @-webkit-keyframes clockwise {

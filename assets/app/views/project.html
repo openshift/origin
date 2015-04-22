@@ -1,9 +1,9 @@
 <div ng-controller="ProjectController" class="content">
-  <project-page>
+  <project-page class="project-overview-page">
     <div ng-controller="OverviewController">
       <tasks></tasks>
       <div class="page-header page-header-bleed-right">
-        <h1>Project {{project | displayName || project.metadata.name}}</h1>
+        <h1>Project {{(project | displayName) || project.metadata.name}}</h1>
       </div>
       <!-- TODO handle things that don't live under services -->
       <alerts alerts="alerts"></alerts>
@@ -32,11 +32,6 @@
                     and {{numRemaining}} {{numRemaining == 1 ? "other" : "others"}}
                   </span>
                 </span>
-                <span class="connector connector-vertical" style="left: 50%; top: 31px; height: 21px;">
-                  <span class="connector-endpoint connector-endpoint-top"></span>
-                  <span class="connector-line" style="height: 21px;"></span>
-                  <span class="connector-endpoint" style="top: 18px; "></span>
-                </span>
               </h2>
               <div class="separator"></div>
               <!-- Iterate over deployment configs for this service and look for ones that don't have any deployments for this
@@ -49,7 +44,7 @@
                 <triggers triggers="deploymentConfig.triggers"></triggers>                
               </div>
               <!-- Now go through all deployments for this service grouped by deployment config (or lack thereof) -->
-              <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]" class="osc-object" kind="DeploymentConfig" resource="deploymentConfigs[deploymentConfigId]">
+              <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]" class="osc-object tile-container deployments" kind="DeploymentConfig" resource="deploymentConfigs[deploymentConfigId]">
                 <div>
                 <!-- deploymentConfig could be null when we have any deployments that were not generated from a deploymentConfig -->
                 <!-- As long as pods created from the deployments created from this deployment config will be routed
@@ -66,8 +61,8 @@
                 <!-- TODO right now we ONLY show deployments / RCs if they have pods, but we may also want to show 
                      them if they are idled down to zero for example.
                 -->
-                <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)" style="margin-top: 10px; text-align: center;" class="osc-object" kind="ReplicationController" resource="deployment" ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
-                  <div class="small muted" ng-if="deployment" style="margin-bottom: 10px;">
+                <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)" class="osc-object replication-controller" kind="ReplicationController" resource="deployment" ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
+                  <div class="metadata" ng-if="deployment">
                     <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
                     <span ng-if="deployment.details && deployment.details.causes && deployment.details.causes.length > 0">
                       <span>, triggered by 
@@ -80,31 +75,33 @@
                       </span>
                     </span>
                   </div>
-                  <div style="display: inline-block;">
+                  <div class="pod-block">
                     <!-- TODO figure out why podTemplate can't be done the same way as pods -->
                     <pod-template ng-init="podTemplate = deployment.spec.template"></pod-template>
                     <pods pods="podsByDeployment[deployment.metadata.name]"></pods>
                   </div>
                 </div>
               </div>
-              <!-- Now go through any of the pods that are routed to by the service but not part of a deployment -->
+            </div>
+            <!-- Now go through any of the pods that are routed to by the service but not part of a deployment -->
               <div ng-repeat="(podName, pod) in monopodsByService[serviceId]">
-                <div class="ng-scope" style="margin-top: 10px; text-align: center;">
-                  <div class="small muted" style="margin-bottom: 10px;">
+                <div class="ng-scope tile-container">
+                  <div class="metadata">
                     <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp>
                   </div>                
-                  <div style="display: inline-block;">
+                  <div class="pod-block">
                     <pod-template ng-init="podTemplate = pod"></pod-template>
                     <pods pods="[pod]"></pods>
                   </div>
                 </div>
               </div>
+              <!-- TODO implement filters for empty and present to return booleans for cases like this -->
+            <div ng-if="(podsByService[serviceId] | hashSize) == 0" class="osc-object tile-container deployments">
+              <span style="margin-left: 20px;">There are currently no pods for this service.</span>
+            </div>
             </div>
 
-            <!-- TODO implement filters for empty and present to return booleans for cases like this -->
-            <div ng-if="(podsByService[serviceId] | hashSize) == 0" style="margin-top: 10px;">
-              <span style="margin-left: 20px;">There are currently no pods for this service.</span>
-            </div>            
+                        
           </div>
         </div>
       </section>
@@ -135,8 +132,8 @@
                     exists="deploymentConfigs[deploymentConfigId]"
                     different-service="!deploymentConfigsByService[''][deploymentConfigId]">
                   </deployment-config-metadata>                
-                  <div class="osc-object" style="margin-top: 10px; text-align: center;" kind="ReplicationController" resource="deployment">
-                    <div class="small muted" style="margin-bottom: 10px;">
+                  <div class="osc-object tile-container replication-controller" kind="ReplicationController" resource="deployment">
+                    <div class="metadata">
                       <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
                       <span ng-if="deployment.details && deployment.details.causes && deployment.details.causes.length > 0">
                         <span>, triggered by 
@@ -149,7 +146,7 @@
                         </span>
                       </span>                    
                     </div>                
-                    <div style="display: inline-block;">
+                    <div class="pod-block">
                       <pod-template ng-init="podTemplate = deployment.spec.template"></pod-template>
                       <pods pods="podsByDeployment[deployment.metadata.name]"></pods>
                     </div>
@@ -166,13 +163,13 @@
             <div class="tile">
               <h2 class="service">
                 <em>There is no service for this pod.</em>
-              </h2>      
-              <div class="separator"></div>
-              <div class="ng-scope" style="margin-top: 10px; text-align: center;">
+              </h2> 
+              <div class="separator"></div>     
+              <div class="ng-scope tile-container" style="margin-top: 10px;">
                 <div class="small muted" style="margin-bottom: 10px;">
                   <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp>
                 </div>                
-                <div style="display: inline-block;">
+                <div class="pod-block">
                   <pod-template ng-init="podTemplate = pod"></pod-template>
                   <pods pods="[pod]"></pods>
                 </div>

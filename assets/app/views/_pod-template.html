@@ -5,74 +5,68 @@
  -->
 <div class="pod-template">
   <div class="pod-template-container" ng-repeat="container in podTemplate.spec.containers">
-    <table>
-      <tbody>
-        <tr>
-          <td>
-            <div class="pod-template-image">                              
-              <h4>{{container.name}}</h4>
-              <div>
-                <span class="fa fa-cube" aria-hidden="true"></span>
-                <span>Image: {{container.image | imageStreamName}} </span>
-              </div>
-              <div ng-if="imagesByDockerReference && (image = imagesByDockerReference[container.image])">
-                <div ng-if="build = (image | buildForImage : builds)">
-                  <div>
-                    <span class="fa fa-refresh" aria-hidden="true"></span>
-                    <span>Build: {{build.metadata.labels.buildconfig}} (<span class="small" title="{{build.metadata.name}}">{{build.metadata.name}}</span>)</span>
-                  </div>
-                  <div ng-if="build.parameters.source">
-                    <span class="fa fa-code" aria-hidden="true"></span>
-                    <span>Source:
-                      <span ng-switch="build.parameters.source.type">
-                        <span ng-switch-when="Git">
-                          <span ng-if="build.parameters.revision">
-                            {{build.parameters.revision.git.message}}
-                            <span ng-if="build.parameters.revision.git.commit">
-                              (<span title="{{build.parameters.revision.git.commit}}" class="small">{{build.parameters.revision.git.commit.substr(0, 10)}}</span>)
-                            </span>
-                            <span ng-if="build.parameters.revision.git.author">
-                              authored by {{build.parameters.revision.git.author.name}}
-                            </span>
-                          </span>
-                          <span ng-if="!build.parameters.revision">
-                            <a href="{{build.parameters.source.git.uri}}" target="_blank" data-toggle="tooltip" data-placement="right" title="This is a Git URL that can be used with `git clone`">Git</a>
-                          </span>
-                        </span>
-                        <span ng-switch-default>
-                          {{build.parameters.source.type || 'Unknown'}}
-                        </span>
-                      </span>
+    <div class="pod-template-image">                              
+      <h4>{{container.name}}</h4>
+      <div>
+        <span class="fa fa-cube" aria-hidden="true"></span>
+        <span>Image: {{container.image | imageStreamName}}
+          <span ng-if="imagesByDockerReference[container.image]"> (<span class="small" title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name.substr(0, 10)}}</span>)</span>
+        </span>
+      </div>
+      <div ng-if="imagesByDockerReference && (image = imagesByDockerReference[container.image])">
+        <div ng-if="build = (image | buildForImage : builds)">
+          <div>
+            <span class="fa fa-refresh" aria-hidden="true"></span>
+            <span>Build: {{build.metadata.labels.buildconfig}} (<span class="small" title="{{build.metadata.name}}">{{build.metadata.name}}</span>)</span>
+          </div>
+          <div ng-if="build.parameters.source">
+            <span class="fa fa-code" aria-hidden="true"></span>
+            <span>Source:
+              <span ng-switch="build.parameters.source.type">
+                <span ng-switch-when="Git">
+                  <span ng-if="build.parameters.revision">
+                    {{build.parameters.revision.git.message}}
+                    <span ng-if="build.parameters.revision.git.commit">
+                      (<span title="{{build.parameters.revision.git.commit}}" class="small">{{build.parameters.revision.git.commit.substr(0, 10)}}</span>)
                     </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </td>
-          <td>
-            <div ng-if="container.ports.length > 0" style="margin: 10px 10px 10px 20px;">
-              <div class="font-icon-block" style="margin-right: 5px;">
-                <!-- TODO figure out why the font-icon-block does not align correctly when the class names are used instead
-                     of the data-icons
-                 -->
-                <span data-icon="" aria-hidden="true" class="font-icon"></span>
-                <span data-icon="" aria-hidden="true" class="font-icon"></span>
-              </div>Ports:
-              <div ng-repeat="port in container.ports" style="position: relative;">
-                <span>{{port.containerPort}} ({{port.protocol}})<span ng-if="port.hostPort"> <span style="color: #ddd;">&#10230;</span> {{port.hostPort}}</span></span>
-                <span class="connector connector-horizontal" style="left: -21px; top: 50%; width: 21px;">
-                  <span class="connector-endpoint" style="left: -3px;"></span>
-                  <span class="connector-line" style="top: 0px; left: 3px;width: 17px;"></span>
+                    <span ng-if="build.parameters.revision.git.author">
+                      authored by {{build.parameters.revision.git.author.name}}
+                    </span>
+                  </span>
+                  <span ng-if="!build.parameters.revision">
+                    <a href="{{build.parameters.source.git.uri}}" target="_blank" data-toggle="tooltip" data-placement="right" title="This is a Git URL that can be used with `git clone`">Git</a>
+                  </span>
                 </span>
-                <span class="connector connector-horizontal" style="right: -21px; top: 50%; width: 21px; height: 7px;">
-                  <span class="connector-line" style="top: 0px; left: 3px; width: 17px;"></span>
-                  <span class="connector-endpoint" style="left: 17px;"></span>
+                <span ng-switch-default>
+                  {{build.parameters.source.type || 'Unknown'}}
                 </span>
-              </div>
-            </div>                              
-          </td>
-        </tr>
-      </tbody>
-    </table>
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div ng-if="container.ports.length > 0" class="pod-template-ports">
+      <div class="font-icon-block" style="margin-right: 5px;">
+        <!-- TODO figure out why the font-icon-block does not align correctly when the class names are used instead
+             of the data-icons
+         -->
+        <span data-icon="" aria-hidden="true" class="font-icon"></span>
+        <span data-icon="" aria-hidden="true" class="font-icon"></span>
+      </div>Ports:
+      <div ng-repeat="port in container.ports" class="port-number">
+        <span>{{port.containerPort}} ({{port.protocol}})<span ng-if="port.hostPort"> <span class="port-icon">&#10230;</span> {{port.hostPort}}</span></span>
+        <span class="connector connector-horizontal" style="left: -21px; top: 50%; width: 21px;">
+          <span class="connector-endpoint" style="left: -2px;"></span>
+          <span class="connector-line" style="top: 0px; left: 3px;width: 18px;"></span>
+        </span>
+        <span class="connector connector-horizontal" style="right: -21px; top: 50%; width: 21px; height: 7px;">
+          <span class="connector-line" style="top: 0px; left: 3px; width: 18px;"></span>
+          <span class="connector-endpoint" style="left: 18px;"></span>
+        </span>
+      </div>
+    </div>                              
+
   </div>
 </div>

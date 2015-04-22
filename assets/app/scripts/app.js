@@ -139,7 +139,7 @@ angular
         templateUrl: 'views/newfromtemplate.html'
       })
       .when('/project/:project/create/fromimage', {
-    	  templateUrl: 'views/create/fromimage.html'
+        templateUrl: 'views/create/fromimage.html'
       })
       .when('/oauth', {
         templateUrl: 'views/util/oauth.html',
