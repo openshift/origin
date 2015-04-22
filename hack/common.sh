@@ -35,6 +35,7 @@ readonly OS_IMAGE_COMPILE_TARGETS=(
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
   examples/hello-openshift
   examples/deployment
+  images/test/mock-app
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS[@]##*/}")
 

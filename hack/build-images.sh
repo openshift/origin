@@ -47,6 +47,7 @@ cp -f "${imagedir}/hello-openshift" examples/hello-openshift/bin
 cp -f "${imagedir}/deployment"      examples/deployment/bin
 cp -f "${imagedir}/gitserver"       examples/gitserver/bin
 cp -f "${imagedir}/dockerregistry"  images/dockerregistry/bin
+cp -f "${imagedir}/mock-app" images/test/mock-app/bin
 
 # builds an image and tags it two ways - with latest, and with the release tag
 function image {
@@ -67,6 +68,7 @@ image openshift/origin-deployer              images/deployer
 image openshift/origin-docker-builder        images/builder/docker/docker-builder
 image openshift/origin-gitserver             examples/gitserver
 image openshift/origin-sti-builder           images/builder/docker/sti-builder
+image openshift/mock-app                     images/test/mock-app
 # unpublished images
 image openshift/origin-custom-docker-builder images/builder/docker/custom-docker-builder
 image openshift/sti-image-builder            images/builder/docker/sti-image-builder
