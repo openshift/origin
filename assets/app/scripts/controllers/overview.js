@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver, ObjectDescriber) {
+  .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver, ObjectDescriber, $rootScope) {
     $scope.pods = {};
     $scope.services = {};
     $scope.unfilteredServices = {};
@@ -43,6 +43,8 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     $scope.renderOptions = $scope.renderOptions || {};
     $scope.renderOptions.showSidebarRight = true;
+    $scope.uid = $rootScope.uid;
+
     var watches = [];
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
