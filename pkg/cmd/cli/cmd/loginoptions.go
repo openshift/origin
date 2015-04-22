@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -13,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	kubecmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -138,6 +138,7 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	if me, err := o.whoAmI(); err == nil && (!o.usernameProvided() || (o.usernameProvided() && o.Username == me.Name)) {
 		o.Username = me.Name
 		fmt.Printf("Already logged into %q as %q.\n", o.Config.Host, o.Username)
+		fmt.Println()
 
 	} else {
 		// if not, we need to log in again
@@ -158,7 +159,8 @@ func (o *LoginOptions) gatherAuthInfo() error {
 			return err
 		}
 		o.Username = me.Name
-		fmt.Println("Login successful.\n")
+		fmt.Printf("Login successful.\n")
+		fmt.Println()
 	}
 
 	// TODO investigate about the safety and intent of the proposal below
@@ -227,13 +229,12 @@ To be added as an admin to an existing project, run
 
 	case 1:
 		o.Project = projectsItems[0].Name
-		fmt.Printf("Using project %q\n", o.Project)
+		fmt.Printf("Using project %q.\n", o.Project)
 
 	default:
-		projects := []string{}
-
+		projects := kutil.StringSet{}
 		for _, project := range projectsItems {
-			projects = append(projects, project.Name)
+			projects.Insert(project.Name)
 		}
 
 		namespace, err := o.ClientConfig.Namespace()
@@ -241,20 +242,23 @@ To be added as an admin to an existing project, run
 			return err
 		}
 
-		current, err := oClient.Projects().Get(namespace)
-		if err == nil {
-			o.Project = current.Name
-			fmt.Printf("Using project %q\n", o.Project)
-			o.gatheredProjectInfo = true
-			return nil
+		if !projects.Has(namespace) {
+			if def := "default"; namespace != def && projects.Has(def) {
+				namespace = def
+			} else {
+				namespace = projects.List()[0]
+			}
 		}
-		if !kerrors.IsNotFound(err) && !clientcmd.IsForbidden(err) {
+
+		if current, err := oClient.Projects().Get(namespace); err == nil {
+			o.Project = current.Name
+			fmt.Printf("Using project %q.\n", o.Project)
+		} else if !kerrors.IsNotFound(err) && !clientcmd.IsForbidden(err) {
 			return err
 		}
 
-		sort.StringSlice(projects).Sort()
-		fmt.Printf("You have access to the following projects and can switch between them with 'osc project <projectname>':\n\n")
-		for _, p := range projects {
+		fmt.Printf("\nYou have access to the following projects and can switch between them with 'osc project <projectname>':\n\n")
+		for _, p := range projects.List() {
 			if o.Project == p {
 				fmt.Printf("  * %s (current)\n", p)
 			} else {
