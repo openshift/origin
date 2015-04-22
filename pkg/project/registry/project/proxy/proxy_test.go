@@ -73,7 +73,9 @@ func TestCreateInvalidProject(t *testing.T) {
 	mockClient := &testclient.Fake{}
 	storage := NewREST(mockClient.Namespaces(), &mockLister{})
 	_, err := storage.Create(nil, &api.Project{
-		DisplayName: "h\t\ni",
+		ObjectMeta: kapi.ObjectMeta{
+			Annotations: map[string]string{"displayName": "h\t\ni"},
+		},
 	})
 	if !errors.IsInvalid(err) {
 		t.Errorf("Expected 'invalid' error, got %v", err)

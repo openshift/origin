@@ -26,6 +26,11 @@ angular.module('openshiftConsole')
       return annotationFilter(resource, "description");
     };
   })
+  .filter('displayName', function(annotationFilter) {
+    return function(resource) {
+      return annotationFilter(resource, "displayName");
+    };
+  })
   .filter('tags', function(annotationFilter) {
     return function(resource, annotationKey) {
       annotationKey = annotationKey || "tags";

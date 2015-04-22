@@ -42,7 +42,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	project := &projectapi.Project{}
 	project.ObjectMeta = projectRequest.ObjectMeta
-	project.DisplayName = projectRequest.DisplayName
+	project.Annotations["displayName"] = projectRequest.DisplayName
 
 	projectObj, err := r.projectStorage.Create(ctx, project)
 	if err != nil {

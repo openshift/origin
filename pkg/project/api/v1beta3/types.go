@@ -31,7 +31,6 @@ type ProjectStatus struct {
 type Project struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
-	DisplayName     string `json:"displayName,omitempty"`
 
 	// Spec defines the behavior of the Namespace.
 	Spec ProjectSpec `json:"spec,omitempty" description:"spec defines the behavior of the Project"`

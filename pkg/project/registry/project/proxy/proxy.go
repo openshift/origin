@@ -49,10 +49,8 @@ func (*REST) NewList() runtime.Object {
 
 // convertNamespace transforms a Namespace into a Project
 func convertNamespace(namespace *kapi.Namespace) *api.Project {
-	displayName := namespace.Annotations["displayname"]
 	return &api.Project{
-		ObjectMeta:  namespace.ObjectMeta,
-		DisplayName: displayName,
+		ObjectMeta: namespace.ObjectMeta,
 		Spec: api.ProjectSpec{
 			Finalizers: namespace.Spec.Finalizers,
 		},
@@ -76,7 +74,7 @@ func convertProject(project *api.Project) *kapi.Namespace {
 	if namespace.Annotations == nil {
 		namespace.Annotations = map[string]string{}
 	}
-	namespace.Annotations["displayname"] = project.DisplayName
+	namespace.Annotations["displayName"] = project.Annotations["displayName"]
 	return namespace
 }
 
