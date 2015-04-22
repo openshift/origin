@@ -53,7 +53,9 @@ image openshift/origin-pod                   images/pod
 # images that depend on openshift/origin-base
 image openshift/origin                       images/origin
 image openshift/origin-haproxy-router        images/router/haproxy
-image openshift/origin-docker-registry       images/dockerregistry
+# For now, don't build the v2 registry image
+# To be reenabled when we actually switch to the v2 registry
+#image openshift/origin-docker-registry       images/dockerregistry
 # images that depend on openshift/origin
 image openshift/origin-deployer              images/deployer
 image openshift/origin-docker-builder        images/builder/docker/docker-builder
