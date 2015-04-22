@@ -10,7 +10,7 @@ GO_VERSION=($(go version))
 
 GO_VERSION=($(go version))
 
-if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.2|go1.3') ]]; then
+if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.2|go1.3|go1.4') ]]; then
   echo "Unknown go version '${GO_VERSION}', skipping gofmt."
   exit 0
 fi
@@ -35,10 +35,11 @@ find_files() {
     \) -name '*.go'
 }
 
-bad_files=$(find_files | xargs gofmt -s -l)
+GOFMT="gofmt -s"
+bad_files=$(find_files | xargs ${GOFMT} -l)
 if [[ -n "${bad_files}" ]]; then
-  echo "!!! gofmt needs to be run on the following files: "
+  echo "!!! '${GOFMT}' needs to be run on the following files: "
   echo "${bad_files}"
-  echo "Try running 'gofmt -s -d [path]'"
+  echo "Try running '${GOFMT} -d [path]'"
   exit 1
 fi
