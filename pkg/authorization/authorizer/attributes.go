@@ -12,6 +12,7 @@ import (
 
 type DefaultAuthorizationAttributes struct {
 	Verb              string
+	APIVersion        string
 	Resource          string
 	ResourceName      string
 	RequestAttributes interface{}
@@ -103,6 +104,10 @@ func splitPath(thePath string) []string {
 		return []string{}
 	}
 	return strings.Split(thePath, "/")
+}
+
+func (a DefaultAuthorizationAttributes) GetAPIVersion() string {
+	return a.APIVersion
 }
 
 func (a DefaultAuthorizationAttributes) GetResource() string {
