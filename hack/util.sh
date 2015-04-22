@@ -234,6 +234,7 @@ function start_etcd {
 
   wait_for_url "http://${host}:${port}/version" "etcd: " 0.25 80
   curl -X PUT  "http://${host}:${port}/v2/keys/_test"
+  echo
 }
 
 # stop_openshift_server utility function to terminate an
