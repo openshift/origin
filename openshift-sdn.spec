@@ -2,6 +2,7 @@
 %global debug_package %{nil}
 %global gopath      %{_datadir}/gocode
 %global osdn_gopath _output/local/go
+%global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
 %global gopkg_base  github.com/openshift
 %global import_path %{gopkg_base}/openshift-sdn
 %global commit      2d06ba8340dc3e6543a762294f97935220f52cc0
@@ -61,15 +62,20 @@ export GOPATH=$(pwd)/%{osdn_gopath}:$(pwd)/Godeps/_workspace:%{buildroot}%{gopat
 
 # Default to building all of the components
 go build %{import_path}
-cp $(pwd)/ovs-simple/bin/openshift-sdn-simple-setup-node.sh $(pwd)/openshift-sdn-simple-setup-node.sh
+cp $(pwd)/ovssubnet/bin/openshift-sdn-simple-setup-node.sh $(pwd)/openshift-sdn-simple-setup-node.sh
+cp $(pwd)/ovssubnet/bin/openshift-sdn-kube-subnet-setup.sh $(pwd)/openshift-sdn-kube-subnet-setup.sh
+cp $(pwd)/ovssubnet/bin/openshift-ovs-subnet $(pwd)/openshift-ovs-subnet
 
 %install
 
 install -d %{buildroot}%{_bindir}
-for bin in openshift-sdn openshift-sdn-simple-setup-node.sh
+for bin in openshift-sdn openshift-sdn-simple-setup-node.sh openshift-sdn-kube-subnet-setup.sh openshift-ovs-subnet
 do
   install -p -m 755 ${bin} %{buildroot}%{_bindir}/${bin}
 done
+
+mkdir -p %{kube_plugin_path}
+install -p -m 755 openshift-ovs-subnet %{kube_plugin_path}/openshift-ovs-subnet
 
 install -d -m 0755 %{buildroot}%{_unitdir}
 install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift-sdn-master.service
@@ -86,6 +92,8 @@ install -m 0644 rel-eng/openshift-sdn-node.sysconfig %{buildroot}%{_sysconfdir}/
 %doc README.md
 %{_bindir}/openshift-sdn
 %{_bindir}/openshift-sdn-simple-setup-node.sh
+%{_bindir}/openshift-sdn-kube-subnet-setup.sh
+%{_bindir}/openshift-ovs-subnet
 
 %files master
 %defattr(-,root,root,-)
