@@ -58,6 +58,7 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
 )
 readonly OPENSHIFT_BINARY_COPY=(
   osc
+  osadm
 )
 
 # os::build::binaries_from_targets take a list of build targets and return the
