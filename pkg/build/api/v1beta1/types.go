@@ -1,6 +1,8 @@
 package v1beta1
 
 import (
+	"time"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -36,6 +38,9 @@ type Build struct {
 	// the Pod running the Build terminated.
 	// It is represented in RFC3339 form and is in UTC.
 	CompletionTimestamp *util.Time `json:"completionTimestamp,omitempty"`
+
+	// Duration contains time.Duration object describing build time.
+	Duration time.Duration `json:"duration",omitempty"`
 
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference `json:"config,omitempty"`

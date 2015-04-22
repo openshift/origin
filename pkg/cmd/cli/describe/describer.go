@@ -112,28 +112,26 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		}
 		// Create the time object with second-level precision so we don't get
 		// output like "duration: 1.2724395728934s"
-		t := util.Now().Rfc3339Copy()
-		if build.StartTimestamp != nil && build.CompletionTimestamp != nil {
-			// time a build ran from pod creation to build finish or cancel
-			formatString(out, "Duration", build.CompletionTimestamp.Sub(build.StartTimestamp.Rfc3339Copy().Time))
-		} else if build.CompletionTimestamp != nil && build.Status == buildapi.BuildStatusCancelled {
-			// time a build waited for its pod before ultimately being canceled before that pod was created
-			formatString(out, "Duration", fmt.Sprintf("waited for %s", build.CompletionTimestamp.Sub(build.CreationTimestamp.Rfc3339Copy().Time)))
-		} else if build.CompletionTimestamp != nil && build.Status != buildapi.BuildStatusCancelled {
-			// for some reason we never saw the pod enter the running state, so we don't know when it
-			// "started", so instead print out the time from creation to completion.
-			formatString(out, "Duration", build.CompletionTimestamp.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
-		} else if build.StartTimestamp == nil && build.Status != buildapi.BuildStatusCancelled {
-			// time a new build has been waiting for its pod to be created so it can run
-			formatString(out, "Duration", fmt.Sprintf("waiting for %s", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time)))
-		} else if build.CompletionTimestamp == nil {
-			// time a still running build has been running in a pod
-			formatString(out, "Duration", fmt.Sprintf("running for %s", t.Sub(build.StartTimestamp.Rfc3339Copy().Time)))
-		}
+		formatString(out, "Duration", describeBuildDuration(build))
 		formatString(out, "Build Pod", buildutil.GetBuildPodName(build))
 		describeBuildParameters(build.Parameters, out)
 		return nil
 	})
+}
+
+func describeBuildDuration(build *buildapi.Build) string {
+	t := util.Now().Rfc3339Copy()
+	if build.StartTimestamp == nil && build.Status == buildapi.BuildStatusCancelled {
+		// time a build waited for its pod before ultimately being canceled before that pod was created
+		return fmt.Sprintf("waited for %s", build.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
+	} else if build.StartTimestamp == nil && build.Status != buildapi.BuildStatusCancelled {
+		// time a new build has been waiting for its pod to be created so it can run
+		return fmt.Sprintf("waiting for %v", t.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
+	} else if build.StartTimestamp != nil && build.CompletionTimestamp == nil {
+		// time a still running build has been running in a pod
+		return fmt.Sprintf("running for %v", build.Duration)
+	}
+	return fmt.Sprintf("%v", build.Duration)
 }
 
 // BuildConfigDescriber generates information about a buildConfig
@@ -285,17 +283,19 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		if len(builds.Items) == 0 {
 			return nil
 		}
-		fmt.Fprintf(out, "Builds(Name,Status,Creation Time)\n")
+		fmt.Fprintf(out, "Builds:\n  Name\tStatus\tDuration\tCreation Time\n")
 		sortedBuilds := sortableBuilds(builds.Items)
 		sort.Sort(sortedBuilds)
-		c := 0
 		for i := range sortedBuilds {
 			// iterate backwards so we're printing the newest items first
 			build := sortedBuilds[len(sortedBuilds)-1-i]
-			fmt.Fprintf(out, fmt.Sprintf("- %s %s %v\n", build.Name, build.Status, build.CreationTimestamp.Rfc3339Copy().Time))
-			c++
+			fmt.Fprintf(out, "  %s \t%s \t%v \t%v\n",
+				build.Name,
+				strings.ToLower(string(build.Status)),
+				describeBuildDuration(&build),
+				build.CreationTimestamp.Rfc3339Copy().Time)
 			// only print the 10 most recent builds.
-			if c > 10 {
+			if i == 9 {
 				break
 			}
 		}

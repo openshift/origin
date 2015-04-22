@@ -3,13 +3,16 @@ package describe
 import (
 	"strings"
 	"testing"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/client"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -138,6 +141,104 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 		},
 	}
 	describe()
+}
+
+func TestDescribeBuildDuration(t *testing.T) {
+	type testBuild struct {
+		build  *buildapi.Build
+		output string
+	}
+
+	creation := kutil.Date(2015, time.April, 9, 6, 0, 0, 0, time.Local)
+	// now a minute ago
+	minuteAgo := kutil.Unix(kutil.Now().Rfc3339Copy().Time.Unix()-60, 0)
+	start := kutil.Date(2015, time.April, 9, 6, 1, 0, 0, time.Local)
+	completion := kutil.Date(2015, time.April, 9, 6, 2, 0, 0, time.Local)
+	duration := completion.Rfc3339Copy().Time.Sub(start.Rfc3339Copy().Time)
+	zeroDuration := time.Duration(0)
+
+	tests := []testBuild{
+		{ // 0 - build new
+			&buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: minuteAgo},
+				Status:     buildapi.BuildStatusNew,
+				Duration:   zeroDuration,
+			},
+			"waiting for 1m0s",
+		},
+		{ // 1 - build pending
+			&buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: minuteAgo},
+				Status:     buildapi.BuildStatusPending,
+				Duration:   zeroDuration,
+			},
+			"waiting for 1m0s",
+		},
+		{ // 2 - build running
+			&buildapi.Build{
+				ObjectMeta:     kapi.ObjectMeta{CreationTimestamp: creation},
+				StartTimestamp: &start,
+				Status:         buildapi.BuildStatusRunning,
+				Duration:       duration,
+			},
+			"running for 1m0s",
+		},
+		{ // 3 - build completed
+			&buildapi.Build{
+				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
+				StartTimestamp:      &start,
+				CompletionTimestamp: &completion,
+				Status:              buildapi.BuildStatusComplete,
+				Duration:            duration,
+			},
+			"1m0s",
+		},
+		{ // 4 - build failed
+			&buildapi.Build{
+				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
+				StartTimestamp:      &start,
+				CompletionTimestamp: &completion,
+				Status:              buildapi.BuildStatusFailed,
+				Duration:            duration,
+			},
+			"1m0s",
+		},
+		{ // 5 - build error
+			&buildapi.Build{
+				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
+				StartTimestamp:      &start,
+				CompletionTimestamp: &completion,
+				Status:              buildapi.BuildStatusError,
+				Duration:            duration,
+			},
+			"1m0s",
+		},
+		{ // 5 - build cancelled before running, start time wasn't set yet
+			&buildapi.Build{
+				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
+				CompletionTimestamp: &completion,
+				Status:              buildapi.BuildStatusCancelled,
+				Duration:            duration,
+			},
+			"waited for 2m0s",
+		},
+		{ // 5 - build cancelled while running, start time is set already
+			&buildapi.Build{
+				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
+				StartTimestamp:      &start,
+				CompletionTimestamp: &completion,
+				Status:              buildapi.BuildStatusCancelled,
+				Duration:            duration,
+			},
+			"1m0s",
+		},
+	}
+
+	for i, tc := range tests {
+		if actual, expected := describeBuildDuration(tc.build), tc.output; actual != expected {
+			t.Errorf("(%d) expected duration output %s, got %s", i, expected, actual)
+		}
+	}
 }
 
 func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {

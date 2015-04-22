@@ -1,17 +1,20 @@
 package etcd
 
 import (
+	"time"
+
 	"github.com/golang/glog"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	etcderr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
 	"github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -53,6 +56,7 @@ func (r *Etcd) ListBuilds(ctx kapi.Context, selector labels.Selector) (*api.Buil
 	filtered := []api.Build{}
 	for _, build := range allBuilds.Items {
 		if selector.Matches(labels.Set(build.Labels)) {
+			setDuration(&build)
 			filtered = append(filtered, build)
 		}
 	}
@@ -69,6 +73,7 @@ func (r *Etcd) WatchBuilds(ctx kapi.Context, label labels.Selector, field fields
 
 	return r.WatchList(makeBuildListKey(ctx), version, func(obj runtime.Object) bool {
 		build, ok := obj.(*api.Build)
+		setDuration(build)
 		if !ok {
 			glog.Errorf("Unexpected object during build watch: %#v", obj)
 			return false
@@ -93,6 +98,7 @@ func (r *Etcd) GetBuild(ctx kapi.Context, id string) (*api.Build, error) {
 	if err != nil {
 		return nil, etcderr.InterpretGetError(err, "build", id)
 	}
+	setDuration(&build)
 	return &build, nil
 }
 
@@ -213,4 +219,17 @@ func (r *Etcd) WatchBuildConfigs(ctx kapi.Context, label labels.Selector, field 
 		}
 		return label.Matches(labels.Set(buildConfig.Labels)) && field.Matches(fields)
 	})
+}
+
+func setDuration(build *api.Build) {
+	if build.StartTimestamp == nil {
+		build.Duration = time.Duration(0)
+	} else {
+		completionTimestamp := build.CompletionTimestamp
+		if completionTimestamp == nil {
+			dummy := util.Now()
+			completionTimestamp = &dummy
+		}
+		build.Duration = completionTimestamp.Rfc3339Copy().Time.Sub(build.StartTimestamp.Rfc3339Copy().Time)
+	}
 }
