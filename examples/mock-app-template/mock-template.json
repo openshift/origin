@@ -1,0 +1,99 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1beta3",
+    "metadata": {
+        "name": "mock-app-sample" , 
+        "description": "Example of using mock-app"
+    } ,
+    "objects": [
+        {
+            "apiVersion": "v1beta3",
+            "kind": "Service",
+            "metadata": {
+                "creationTimestamp": null,
+                "name": "mock-service"
+            },
+            
+            "spec": {
+                "ports": [
+                    {
+                        "nodePort": 0,
+                        "port": 5018,
+                        "protocol": "TCP",
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "name": "mock-app-pod"
+                },
+                "sessionAffinity": "None",
+                "type":"ClusterIP"
+                
+            }
+        },
+        
+        {
+            "apiVersion": "v1beta3",
+            "kind": "ReplicationController",
+            "id": "mock-rc",
+            
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "mock-app-pod"
+                },
+                "name": "mock-rc"
+            },
+            
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "name": "mock-app-pod"
+                },
+                "template" : {
+                    "metadata": {
+                        "labels": {
+                            "name" : "mock-app-pod"
+                        }
+                    } ,
+                    "spec": {
+                        "containers": [
+                            {
+                                "capabilities": {},
+                                "env": [
+                                    {
+                                        "name": "MOCK_NAME",
+                                        "value": "${MOCK_NAME}"
+                                    }
+                                ],
+                                "image": "openshift/mock-app",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "mock-app",
+                                "ports": [
+                                    {
+                                        "containerPort": 8080,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "resources": {},
+                                "securityContext": {
+                                    "capabilities": {},
+                                    "privileged": false
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ] ,
+    
+    "parameters": [
+        {
+            "name": "MOCK_NAME",
+            "description": "The name of mock",
+            "value": "mock1"
+        }
+    ]
+    
+}

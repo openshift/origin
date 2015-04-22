@@ -61,8 +61,7 @@ function cleanup()
 	else
 		echo "[INFO] Test Succeeded"
 	fi
-	echo
-
+	        
 	set +e
 	dump_container_logs
 
@@ -193,6 +192,14 @@ start_os_server
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift admin policy add-role-to-user view e2e-user --namespace=default
+
+source "${OS_ROOT}/hack/mock-based-tests.sh"
+echo " =========================== ============== ==========================="
+echo " =========================== end mock tests ==========================="
+echo " =========================== ============== ==========================="
+
+# switching back to default project
+osc project default
 
 # pre-load some image streams and templates
 oc create -f examples/image-streams/image-streams-centos7.json --namespace=openshift
