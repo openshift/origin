@@ -1,19 +1,55 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/spf13/cobra"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
+
+// Helper for the login and setup process, gathers all information required for a
+// successful login and eventual update of config files.
+// Depending on the Reader present it can be interactive, asking for terminal input in
+// case of any missing information.
+// Notice that some methods mutate this object so it should not be reused. The Config
+// provided as a pointer will also mutate (handle new auth tokens, etc).
+type LoginOptions struct {
+	Server string
+
+	// flags and printing helpers
+	Username string
+	Password string
+	Project  string
+
+	// infra
+	StartingKubeConfig *kclientcmdapi.Config
+	DefaultNamespace   string
+	Config             *kclient.Config
+	Reader             io.Reader
+	Out                io.Writer
+
+	// cert data to be used when authenticating
+	CAFile      string
+	CertFile    string
+	KeyFile     string
+	InsecureTLS bool
+
+	// Optional, if provided will only try to save in it
+	PathToSaveConfig string
+}
 
 const longDescription = `Logs in to the OpenShift server and saves a config file that
 will be used by subsequent commands.
@@ -30,22 +66,27 @@ prompt for user input as needed.
 // NewCmdLogin implements the OpenShift cli login command
 func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
 	options := &LoginOptions{
-		Reader:       reader,
-		Out:          out,
-		ClientConfig: f.OpenShiftClientConfig,
+		Reader: reader,
+		Out:    out,
 	}
 
 	cmds := &cobra.Command{
-		Use:   "login [--username=<username>] [--password=<password>] [--server=<server>] [--context=<context>] [--certificate-authority=<path>]",
+		Use:   "login [server URL] [--username=<username>] [--password=<password>] [--certificate-authority=<path>]",
 		Short: "Logs in and save the configuration",
 		Long:  longDescription,
 		Run: func(cmd *cobra.Command, args []string) {
+			options.Complete(f, cmd, args)
+
+			if err := options.Validate(args, kcmdutil.GetFlagString(cmd, "server")); err != nil {
+				kcmdutil.CheckErr(err)
+			}
+
 			err := RunLogin(cmd, options)
 
-			if errors.IsUnauthorized(err) {
+			if kapierrors.IsUnauthorized(err) {
 				fmt.Fprintln(out, "Login failed (401 Unauthorized)")
 
-				if err, isStatusErr := err.(*errors.StatusError); isStatusErr {
+				if err, isStatusErr := err.(*kapierrors.StatusError); isStatusErr {
 					if details := err.Status().Details; details != nil {
 						for _, cause := range details.Causes {
 							fmt.Fprintln(out, cause.Message)
@@ -56,7 +97,7 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 				os.Exit(1)
 
 			} else {
-				cmdutil.CheckErr(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
@@ -67,7 +108,7 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 
 	templater := templates.Templater{
 		UsageTemplate: templates.MainUsageTemplate(),
-		Exposed:       []string{"server", "certificate-authority", "insecure-skip-tls-verify", "context"},
+		Exposed:       []string{"certificate-authority", "insecure-skip-tls-verify"},
 	}
 	cmds.SetUsageFunc(templater.UsageFunc())
 	cmds.SetHelpTemplate(templates.MainHelpTemplate())
@@ -75,16 +116,66 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 	return cmds
 }
 
+func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args []string) error {
+	kubeconfig, err := f.OpenShiftClientConfig.RawConfig()
+	if err != nil {
+		return err
+	}
+	o.StartingKubeConfig = &kubeconfig
+
+	if serverFlag := kcmdutil.GetFlagString(cmd, "server"); len(serverFlag) > 0 {
+		o.Server = serverFlag
+
+	} else if len(args) == 1 {
+		addr := flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default()
+		if err := addr.Set(args[0]); err != nil {
+			return err
+		}
+		o.Server = addr.String()
+
+	} else if len(o.Server) == 0 {
+		if defaultContext, defaultContextExists := o.StartingKubeConfig.Contexts[o.StartingKubeConfig.CurrentContext]; defaultContextExists {
+			if cluster, exists := o.StartingKubeConfig.Clusters[defaultContext.Cluster]; exists {
+				o.Server = cluster.Server
+			}
+		}
+
+	}
+
+	if certFile := kcmdutil.GetFlagString(cmd, "client-certificate"); len(certFile) > 0 {
+		o.CertFile = certFile
+	}
+	if keyFile := kcmdutil.GetFlagString(cmd, "client-key"); len(keyFile) > 0 {
+		o.KeyFile = keyFile
+	}
+	o.PathToSaveConfig = kcmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName)
+
+	o.CAFile = kcmdutil.GetFlagString(cmd, "certificate-authority")
+	o.InsecureTLS = kcmdutil.GetFlagBool(cmd, "insecure-skip-tls-verify")
+
+	o.DefaultNamespace, _ = f.OpenShiftClientConfig.Namespace()
+
+	return nil
+}
+
+func (o LoginOptions) Validate(args []string, serverFlag string) error {
+	if len(args) > 1 {
+		return errors.New("Only the server URL may be specified as an argument")
+	}
+
+	if (len(serverFlag) > 0) && (len(args) == 1) {
+		return errors.New("--server and passing the server URL as an argument are mutually exclusive")
+	}
+
+	if (len(o.Server) == 0) && !cmdutil.IsTerminal(o.Reader) {
+		return errors.New("A server URL must be specified")
+	}
+
+	return nil
+}
+
 // RunLogin contains all the necessary functionality for the OpenShift cli login command
 func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
-	if certFile := cmdutil.GetFlagString(cmd, "client-certificate"); len(certFile) > 0 {
-		options.CertFile = certFile
-	}
-	if keyFile := cmdutil.GetFlagString(cmd, "client-key"); len(keyFile) > 0 {
-		options.KeyFile = keyFile
-	}
-	options.PathToSaveConfig = cmdutil.GetFlagString(cmd, config.OpenShiftConfigFlagName)
-
 	if err := options.GatherInfo(); err != nil {
 		return err
 	}

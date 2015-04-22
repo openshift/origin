@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
@@ -13,11 +14,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	kubecmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
-	"github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	"github.com/openshift/origin/pkg/user/api"
@@ -25,44 +26,8 @@ import (
 
 const defaultClusterURL = "https://localhost:8443"
 
-// Helper for the login and setup process, gathers all information required for a
-// successful login and eventual update of config files.
-// Depending on the Reader present it can be interactive, asking for terminal input in
-// case of any missing information.
-// Notice that some methods mutate this object so it should not be reused. The Config
-// provided as a pointer will also mutate (handle new auth tokens, etc).
-type LoginOptions struct {
-	// flags and printing helpers
-	Username string
-	Password string
-	Project  string
-
-	// infra
-	ClientConfig kclientcmd.ClientConfig
-	Config       *kclient.Config
-	Reader       io.Reader
-	Out          io.Writer
-
-	// cert data to be used when authenticating
-	CertFile string
-	CertData []byte
-	KeyFile  string
-	KeyData  []byte
-
-	// flow controllers
-	gatheredServerInfo  bool
-	gatheredAuthInfo    bool
-	gatheredProjectInfo bool
-
-	// Optional, if provided will only try to save in it
-	PathToSaveConfig string
-}
-
 // Gather all required information in a comprehensive order.
 func (o *LoginOptions) GatherInfo() error {
-	if err := o.gatherServerInfo(); err != nil {
-		return err
-	}
 	if err := o.gatherAuthInfo(); err != nil {
 		return err
 	}
@@ -72,124 +37,181 @@ func (o *LoginOptions) GatherInfo() error {
 	return nil
 }
 
-// Makes sure it has all the needed information about the server we are connecting to,
-// particularly the host address and certificate information. For every information not
-// present ask for interactive user input. Will also ping the server to make sure we can
-// connect to it, and if any problem is found (e.g. certificate issues), ask the user about
-// connecting insecurely.
-func (o *LoginOptions) gatherServerInfo() error {
-	// we need to have a server to talk to
+// getClientConfig returns back the current clientConfig as we know it.  If there is no clientConfig, it builds one with enough information
+// to talk to a server.  This may involve user prompts.  This method is not threadsafe.
+func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
+	if o.Config != nil {
+		return o.Config, nil
+	}
 
-	if util.IsTerminal(o.Reader) {
-		for !o.serverProvided() {
-			defaultServer := defaultClusterURL
-			promptMsg := fmt.Sprintf("OpenShift server [%s]: ", defaultServer)
+	clientConfig := &kclient.Config{}
 
-			server := util.PromptForStringWithDefault(o.Reader, defaultServer, promptMsg)
-			kclientcmd.DefaultCluster = clientcmdapi.Cluster{Server: server}
+	// if someone specified a server, use it as the default
+	if len(o.Server) > 0 {
+		clientConfig.Host = o.Server
+
+	} else {
+		// we need to have a server to talk to
+		if cmdutil.IsTerminal(o.Reader) {
+			for !o.serverProvided() {
+				defaultServer := defaultClusterURL
+				promptMsg := fmt.Sprintf("OpenShift server [%s]: ", defaultServer)
+
+				o.Server = cmdutil.PromptForStringWithDefault(o.Reader, defaultServer, promptMsg)
+				clientConfig.Host = o.Server
+			}
 		}
 	}
 
-	// we know the server we are expected to use
-	clientCfg, err := o.ClientConfig.ClientConfig()
-	if err != nil {
-		return err
+	if len(o.CAFile) > 0 {
+		clientConfig.CAFile = o.CAFile
+
+	} else {
+		// check all cluster stanzas to see if we already have one with this URL that contains a client cert
+		for _, cluster := range o.StartingKubeConfig.Clusters {
+			if cluster.Server == clientConfig.Host {
+				if len(cluster.CertificateAuthority) > 0 {
+					clientConfig.CAFile = cluster.CertificateAuthority
+					break
+				}
+
+				if len(cluster.CertificateAuthorityData) > 0 {
+					clientConfig.CAData = cluster.CertificateAuthorityData
+					break
+				}
+			}
+		}
+
 	}
 
 	// ping to check if server is reachable
-	osClient, err := client.New(clientCfg)
+	osClient, err := client.New(clientConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	result := osClient.Get().AbsPath("/osapi").Do()
 	if result.Error() != nil {
+		switch {
+		case o.InsecureTLS:
+			clientConfig.Insecure = true
+
 		// certificate issue, prompt user for insecure connection
+		case clientcmd.IsCertificateAuthorityUnknown(result.Error()):
+			// check to see if we already have a cluster stanza that tells us to use --insecure for this particular server.  If we don't, then prompt
+			clientConfigToTest := *clientConfig
+			clientConfigToTest.Insecure = true
+			matchingClusters := getMatchingClusters(clientConfigToTest, *o.StartingKubeConfig)
 
-		if clientcmd.IsCertificateAuthorityUnknown(result.Error()) {
-			fmt.Println("The server uses a certificate signed by an unknown authority.")
-			fmt.Println("You can bypass the certificate check, but any data you send to the server could be intercepted by others.")
+			if len(matchingClusters) > 0 {
+				clientConfig.Insecure = true
 
-			clientCfg.Insecure = util.PromptForBool(os.Stdin, "Use insecure connections? (y/n): ")
-			if !clientCfg.Insecure {
-				return fmt.Errorf(clientcmd.GetPrettyMessageFor(result.Error()))
+			} else if cmdutil.IsTerminal(o.Reader) {
+				fmt.Fprintln(o.Out, "The server uses a certificate signed by an unknown authority.")
+				fmt.Fprintln(o.Out, "You can bypass the certificate check, but any data you send to the server could be intercepted by others.")
+
+				clientConfig.Insecure = cmdutil.PromptForBool(os.Stdin, "Use insecure connections? (y/n): ")
+				if !clientConfig.Insecure {
+					return nil, fmt.Errorf(clientcmd.GetPrettyMessageFor(result.Error()))
+				}
+				fmt.Fprintln(o.Out)
 			}
-			fmt.Println()
-		} else {
-			return result.Error()
+
+		default:
+			return nil, result.Error()
 		}
 	}
 
-	// we have all info we need, now we can have a proper Config
+	o.Config = clientConfig
+	return o.Config, nil
+}
 
-	o.Config = clientCfg
+// getMatchingClusters examines the kubeconfig for all clusters that point to the same server
+func getMatchingClusters(clientConfig kclient.Config, kubeconfig clientcmdapi.Config) util.StringSet {
+	ret := util.StringSet{}
 
-	o.gatheredServerInfo = true
-	return nil
+	for key, cluster := range kubeconfig.Clusters {
+		if (cluster.Server == clientConfig.Host) && (cluster.InsecureSkipTLSVerify == clientConfig.Insecure) && (cluster.CertificateAuthority == clientConfig.CAFile) && (bytes.Compare(cluster.CertificateAuthorityData, clientConfig.CAData) == 0) {
+			ret.Insert(key)
+		}
+	}
+
+	return ret
 }
 
 // Negotiate a bearer token with the auth server, or try to reuse one based on the
 // information already present. In case of any missing information, ask for user input
 // (usually username and password, interactive depending on the Reader).
 func (o *LoginOptions) gatherAuthInfo() error {
-	if err := o.assertGatheredServerInfo(); err != nil {
+	directClientConfig, err := o.getClientConfig()
+	if err != nil {
 		return err
 	}
 
-	if me, err := o.whoAmI(); err == nil && (!o.usernameProvided() || (o.usernameProvided() && o.Username == me.Name)) {
-		o.Username = me.Name
-		fmt.Printf("Already logged into %q as %q.\n", o.Config.Host, o.Username)
-		fmt.Println()
+	// make a copy and use it to avoid mutating the original
+	t := *directClientConfig
+	clientConfig := &t
 
-	} else {
-		// if not, we need to log in again
-
-		o.Config.BearerToken = ""
-		o.Config.CertFile = o.CertFile
-		o.Config.CertData = o.CertData
-		o.Config.KeyFile = o.KeyFile
-		o.Config.KeyData = o.KeyData
-		token, err := tokencmd.RequestToken(o.Config, o.Reader, o.Username, o.Password)
-		if err != nil {
-			return err
+	// make sure we have a username before continuing
+	if !o.usernameProvided() {
+		if cmdutil.IsTerminal(o.Reader) {
+			for !o.usernameProvided() {
+				o.Username = cmdutil.PromptForString(o.Reader, "Username: ")
+			}
 		}
-		o.Config.BearerToken = token
-
-		me, err := o.whoAmI()
-		if err != nil {
-			return err
-		}
-		o.Username = me.Name
-		fmt.Printf("Login successful.\n")
-		fmt.Println()
 	}
 
-	// TODO investigate about the safety and intent of the proposal below
-	// if trying to log in an user that's not the currently logged in, try to reuse an existing token
+	// search all valid contexts with matching server stanzas to see if we have a matching user stanza
+	kubeconfig := *o.StartingKubeConfig
+	matchingClusters := getMatchingClusters(*clientConfig, kubeconfig)
 
-	// if o.usernameProvided() {
-	// 	glog.V(5).Infof("Checking existing authentication info for '%v'...\n", o.Username)
+	for key, context := range o.StartingKubeConfig.Contexts {
+		if matchingClusters.Has(context.Cluster) {
+			clientcmdConfig := kclientcmd.NewDefaultClientConfig(kubeconfig, &kclientcmd.ConfigOverrides{CurrentContext: key})
+			if kubeconfigClientConfig, err := clientcmdConfig.ClientConfig(); err == nil {
+				if osClient, err := client.New(kubeconfigClientConfig); err == nil {
+					if me, err := whoAmI(osClient); err == nil && (o.Username == me.Name) {
+						o.Config.BearerToken = kubeconfigClientConfig.BearerToken
+						o.Config.CertFile = kubeconfigClientConfig.CertFile
+						o.Config.CertData = kubeconfigClientConfig.CertData
+						o.Config.KeyFile = kubeconfigClientConfig.KeyFile
+						o.Config.KeyData = kubeconfigClientConfig.KeyData
 
-	// 	for _, ctx := range rawCfg.Contexts {
-	// 		authInfo := rawCfg.AuthInfos[ctx.AuthInfo]
-	// 		clusterInfo := rawCfg.Clusters[ctx.Cluster]
+						if key == o.StartingKubeConfig.CurrentContext {
+							fmt.Fprintf(o.Out, "Already logged into %q as %q.\n", o.Config.Host, o.Username)
+						}
+						return nil
+					}
+				}
+			}
+		}
+	}
 
-	// 		if ctx.AuthInfo == o.Username && clusterInfo.Server == o.Server && len(authInfo.Token) > 0 { // only token for now
-	// 			glog.V(5).Infof("Authentication exists for '%v' on '%v', trying to use it...\n", o.Server, o.Username)
+	// if kubeconfig doesn't already have a matching user stanza...
+	clientConfig.BearerToken = ""
+	clientConfig.CertData = []byte{}
+	clientConfig.KeyData = []byte{}
+	clientConfig.CertFile = o.CertFile
+	clientConfig.KeyFile = o.KeyFile
+	token, err := tokencmd.RequestToken(o.Config, o.Reader, o.Username, o.Password)
+	if err != nil {
+		return err
+	}
+	clientConfig.BearerToken = token
 
-	// 			o.Config.BearerToken = authInfo.Token
+	osClient, err := client.New(clientConfig)
+	if err != nil {
+		return err
+	}
 
-	// 			if me, err := whoami(o.Config); err == nil && usernameFromUser(me) == o.Username {
-	// 				o.Username = usernameFromUser(me)
-	// 				return nil
-	// 			}
+	me, err := whoAmI(osClient)
+	if err != nil {
+		return err
+	}
+	o.Username = me.Name
+	o.Config = clientConfig
+	fmt.Fprintln(o.Out, "Login successful.\n")
 
-	// 			glog.V(5).Infof("Token %v no longer valid for '%v', can't use it\n", authInfo.Token, o.Username)
-	// 		}
-	// 	}
-	// }
-
-	o.gatheredAuthInfo = true
 	return nil
 }
 
@@ -198,8 +220,13 @@ func (o *LoginOptions) gatherAuthInfo() error {
 // multiple projects.
 // Requires o.Username to be set.
 func (o *LoginOptions) gatherProjectInfo() error {
-	if err := o.assertGatheredAuthInfo(); err != nil {
+	me, err := o.whoAmI()
+	if err != nil {
 		return err
+	}
+
+	if o.Username != me.Name {
+		return fmt.Errorf("current user, %v, does not match expected user %v", me.Name, o.Username)
 	}
 
 	oClient, err := client.New(o.Config)
@@ -218,7 +245,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 	case 0:
 		// TODO most users will not be allowed to run the suggested commands below, so we should check it and/or
 		// have a server endpoint that allows an admin to describe to users how to request projects
-		fmt.Printf(`You don't have any projects. If you have access to create a new project, run
+		fmt.Fprintf(o.Out, `You don't have any projects. If you have access to create a new project, run
 
     $ openshift ex new-project <projectname> --admin=%q
 
@@ -230,22 +257,18 @@ To be added as an admin to an existing project, run
 
 	case 1:
 		o.Project = projectsItems[0].Name
-		fmt.Printf("Using project %q.\n", o.Project)
+		fmt.Fprintf(o.Out, "Using project %q.\n", o.Project)
 
 	default:
-		projects := kutil.StringSet{}
+		projects := util.StringSet{}
 		for _, project := range projectsItems {
 			projects.Insert(project.Name)
 		}
 
-		namespace, err := o.ClientConfig.Namespace()
-		if err != nil {
-			return err
-		}
-
+		namespace := o.DefaultNamespace
 		if !projects.Has(namespace) {
-			if def := "default"; namespace != def && projects.Has(def) {
-				namespace = def
+			if namespace != kapi.NamespaceDefault && projects.Has(kapi.NamespaceDefault) {
+				namespace = kapi.NamespaceDefault
 			} else {
 				namespace = projects.List()[0]
 			}
@@ -253,23 +276,22 @@ To be added as an admin to an existing project, run
 
 		if current, err := oClient.Projects().Get(namespace); err == nil {
 			o.Project = current.Name
-			fmt.Printf("Using project %q.\n", o.Project)
+			fmt.Fprintf(o.Out, "Using project %q.\n", o.Project)
 		} else if !kerrors.IsNotFound(err) && !clientcmd.IsForbidden(err) {
 			return err
 		}
 
-		fmt.Printf("\nYou have access to the following projects and can switch between them with 'osc project <projectname>':\n\n")
+		fmt.Fprintf(o.Out, "\nYou have access to the following projects and can switch between them with 'osc project <projectname>':\n\n")
 		for _, p := range projects.List() {
 			if o.Project == p {
-				fmt.Printf("  * %s (current)\n", p)
+				fmt.Fprintf(o.Out, "  * %s (current)\n", p)
 			} else {
-				fmt.Printf("  * %s\n", p)
+				fmt.Fprintf(o.Out, "  * %s\n", p)
 			}
 		}
-		fmt.Println()
+		fmt.Fprintln(o.Out)
 	}
 
-	o.gatheredProjectInfo = true
 	return nil
 }
 
@@ -299,19 +321,13 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		globalExistedBefore = false
 	}
 
-	rawConfig, err := o.ClientConfig.RawConfig()
-	if err != nil {
-		return false, err
-	}
-
 	newConfig := config.CreateConfig(o.Username, o.Project, o.Config)
-
 	baseDir := filepath.Dir(pathOptions.GetDefaultFilename())
 	if err := config.RelativizeClientConfigPaths(&newConfig, baseDir); err != nil {
 		return false, err
 	}
 
-	configToWrite, err := config.MergeConfig(rawConfig, newConfig)
+	configToWrite, err := config.MergeConfig(*o.StartingKubeConfig, newConfig)
 	if err != nil {
 		return false, err
 	}
@@ -328,13 +344,8 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	return created, nil
 }
 
-func (o *LoginOptions) whoAmI() (*api.User, error) {
-	oClient, err := client.New(o.Config)
-	if err != nil {
-		return nil, err
-	}
-
-	me, err := oClient.Users().Get("~")
+func whoAmI(client *client.Client) (*api.User, error) {
+	me, err := client.Users().Get("~")
 	if err != nil {
 		return nil, err
 	}
@@ -342,36 +353,19 @@ func (o *LoginOptions) whoAmI() (*api.User, error) {
 	return me, nil
 }
 
-func (o *LoginOptions) assertGatheredServerInfo() error {
-	if !o.gatheredServerInfo {
-		return fmt.Errorf("Must gather server info first.")
+func (o LoginOptions) whoAmI() (*api.User, error) {
+	client, err := client.New(o.Config)
+	if err != nil {
+		return nil, err
 	}
-	return nil
-}
 
-func (o *LoginOptions) assertGatheredAuthInfo() error {
-	if !o.gatheredAuthInfo {
-		return fmt.Errorf("Must gather auth info first.")
-	}
-	return nil
-}
-
-func (o *LoginOptions) assertGatheredProjectInfo() error {
-	if !o.gatheredProjectInfo {
-		return fmt.Errorf("Must gather project info first.")
-	}
-	return nil
+	return whoAmI(client)
 }
 
 func (o *LoginOptions) usernameProvided() bool {
 	return len(o.Username) > 0
 }
 
-func (o *LoginOptions) passwordProvided() bool {
-	return len(o.Password) > 0
-}
-
 func (o *LoginOptions) serverProvided() bool {
-	_, err := o.ClientConfig.ClientConfig()
-	return err == nil || !clientcmd.IsNoServerFound(err)
+	return (len(o.Server) > 0)
 }
