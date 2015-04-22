@@ -20,7 +20,6 @@ func main() {
 		}
 	}()
 
-
 	go func() {
 		fmt.Println("serving on 8888")
 		err := http.ListenAndServe(":8888", nil)
@@ -28,5 +27,5 @@ func main() {
 			panic("ListenAndServe: " + err.Error())
 		}
 	}()
-	select{}
+	select {}
 }
