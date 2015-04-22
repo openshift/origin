@@ -27,17 +27,17 @@ func TestFromSTIBuilderImage(t *testing.T) {
 	}
 	imgRef, err := g.imageRefGenerator.FromName("test/image")
 	if err != nil {
-		t.Errorf("Unexpected error generating imageRef: %v", err)
+		t.Fatalf("Unexpected error generating imageRef: %v", err)
 	}
 	strategy, err := g.FromSTIBuilderImage(imgRef)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	if strategy.Base != imgRef {
-		t.Errorf("Unexpected image reference: %v", strategy.Base)
+		t.Fatalf("Unexpected image reference: %v", strategy.Base)
 	}
 	if strategy.IsDockerBuild {
-		t.Errorf("Expected IsDockerBuild to be false")
+		t.Fatalf("Expected IsDockerBuild to be false")
 	}
 }
 
@@ -51,25 +51,26 @@ func TestFromDockerContextAndParent(t *testing.T) {
 	}
 	imgRef, err := g.imageRefGenerator.FromName("test/parentImage")
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	strategy, err := g.FromDockerContextAndParent(imgRef)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	if strategy.Base.Name != "parentImage" {
-		t.Errorf("Unexpected base image: %#v", strategy.Base)
+		t.Fatalf("Unexpected base image: %#v", strategy.Base)
 	}
 	if !strategy.IsDockerBuild {
-		t.Errorf("Expected IsDockerBuild to be true")
+		t.Fatalf("Expected IsDockerBuild to be true")
 	}
 }
 
 func TestFromSourceRefAndDockerContext(t *testing.T) {
+	exposedPort := "8080"
 	g := &BuildStrategyRefGenerator{
 		gitRepository:     &test.FakeGit{},
 		dockerfileFinder:  &fakeFinder{},
-		dockerfileParser:  &fakeParser{dfile{"FROM": []string{"test/parentImage"}}},
+		dockerfileParser:  &fakeParser{dfile{"FROM": []string{"test/parentImage"}, "EXPOSE": []string{exposedPort}}},
 		sourceDetectors:   sourceDetectors,
 		imageRefGenerator: NewImageRefGenerator(),
 	}
@@ -91,20 +92,24 @@ func TestFromSourceRefAndDockerContext(t *testing.T) {
 	}
 	strategy, err := g.FromSourceRefAndDockerContext(&srcRef, ".")
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	if strategy.Base.Name != "parentImage" {
-		t.Errorf("Unexpected base image: %#v", strategy.Base)
+		t.Fatalf("Unexpected base image: %#v", strategy.Base)
 	}
 	if !strategy.IsDockerBuild {
-		t.Errorf("Expected IsDockerBuild to be true")
+		t.Fatalf("Expected IsDockerBuild to be true")
+	}
+	if _, ok := strategy.Base.Info.Config.ExposedPorts[exposedPort]; !ok {
+		t.Fatalf("Expected port %s not found", exposedPort)
 	}
 }
 func TestFromSourceRefDocker(t *testing.T) {
+	exposedPort := "8080"
 	g := &BuildStrategyRefGenerator{
 		gitRepository:     &test.FakeGit{},
 		dockerfileFinder:  &fakeFinder{result: []string{"Dockerfile"}},
-		dockerfileParser:  &fakeParser{dfile{"FROM": []string{"test/parentImage"}}},
+		dockerfileParser:  &fakeParser{dfile{"FROM": []string{"test/parentImage"}, "EXPOSE": []string{exposedPort}}},
 		sourceDetectors:   sourceDetectors,
 		imageRefGenerator: NewImageRefGenerator(),
 	}
@@ -126,13 +131,16 @@ func TestFromSourceRefDocker(t *testing.T) {
 	}
 	strategy, err := g.FromSourceRef(&srcRef)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	if strategy.Base.Name != "parentImage" {
-		t.Errorf("Unexpected base image: %#v", strategy.Base)
+		t.Fatalf("Unexpected base image: %#v", strategy.Base)
 	}
 	if !strategy.IsDockerBuild {
-		t.Errorf("Expected IsDockerBuild to be true")
+		t.Fatalf("Expected IsDockerBuild to be true")
+	}
+	if _, ok := strategy.Base.Info.Config.ExposedPorts[exposedPort]; !ok {
+		t.Fatalf("Expected port %s not found", exposedPort)
 	}
 }
 
@@ -152,13 +160,13 @@ func TestFromSourceRefSTI(t *testing.T) {
 	}
 	strategy, err := g.FromSourceRef(&srcRef)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 	if strategy.Base.Name != "wildfly-8-centos" {
-		t.Errorf("Unexpected base image: %#v", strategy.Base)
+		t.Fatalf("Unexpected base image: %#v", strategy.Base)
 	}
 	if strategy.IsDockerBuild {
-		t.Errorf("Expected IsDockerBuild to be false")
+		t.Fatalf("Expected IsDockerBuild to be false")
 	}
 }
 

@@ -246,3 +246,24 @@ func StrategyAndSourceForRepository(repo *SourceRepository) (*BuildStrategyRef, 
 	}
 	return strategy, srcRef, nil
 }
+
+// MockSourceRepositories is a set of mocked source repositories
+// used for testing
+func MockSourceRepositories() []*SourceRepository {
+	return []*SourceRepository{
+		{
+			location: "some/location.git",
+		},
+		{
+			location: "https://github.com/openshift/ruby-hello-world.git",
+			url: url.URL{
+				Scheme: "https",
+				Host:   "github.com",
+				Path:   "/openshift/ruby-hello-world.git",
+			},
+		},
+		{
+			location: "another/location.git",
+		},
+	}
+}
