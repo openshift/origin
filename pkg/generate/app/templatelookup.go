@@ -28,7 +28,7 @@ func (r TemplateResolver) Resolve(value string) (*ComponentMatch, error) {
 		glog.V(4).Infof("checking template %s/%s", namespace, value)
 		repo, err := r.Client.Templates(namespace).Get(value)
 		if err != nil {
-			if errors.IsNotFound(err) {
+			if errors.IsNotFound(err) || errors.IsForbidden(err) {
 				continue
 			}
 			return nil, err

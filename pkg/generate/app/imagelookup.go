@@ -265,7 +265,7 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 		glog.V(4).Infof("checking image stream %s/%s with ref %q", namespace, ref.Name, ref.Tag)
 		repo, err := r.Client.ImageStreams(namespace).Get(ref.Name)
 		if err != nil {
-			if errors.IsNotFound(err) {
+			if errors.IsNotFound(err) || errors.IsForbidden(err) {
 				continue
 			}
 			return nil, err
