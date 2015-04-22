@@ -43,6 +43,8 @@ images=(
   openshift/origin-pod
   openshift/origin-deployer
   openshift/origin-docker-builder
+  openshift/origin-docker-registry
+  openshift/origin-keepalived-ipfailover
   openshift/origin-sti-builder
   openshift/origin-haproxy-router
   openshift/hello-openshift
