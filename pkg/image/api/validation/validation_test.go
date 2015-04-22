@@ -36,6 +36,11 @@ func TestValidateImageMissingFields(t *testing.T) {
 			fielderrors.ValidationErrorTypeInvalid,
 			"metadata.name",
 		},
+		"no percent in Name": {
+			api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo%%bar"}},
+			fielderrors.ValidationErrorTypeInvalid,
+			"metadata.name",
+		},
 		"missing DockerImageReference": {
 			api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo"}},
 			fielderrors.ValidationErrorTypeRequired,
@@ -186,6 +191,20 @@ func TestValidateImageStream(t *testing.T) {
 			name:      "",
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldRequired("metadata.name"),
+			},
+		},
+		"no slash in Name": {
+			namespace: "foo",
+			name:      "foo/bar",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("metadata.name", "foo/bar", `may not contain "/"`),
+			},
+		},
+		"no percent in Name": {
+			namespace: "foo",
+			name:      "foo%%bar",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("metadata.name", "foo%%bar", `may not contain "%"`),
 			},
 		},
 		"missing namespace": {
