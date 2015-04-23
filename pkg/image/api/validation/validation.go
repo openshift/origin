@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -10,13 +11,21 @@ import (
 	"github.com/openshift/origin/pkg/image/api"
 )
 
+func MinimalNameValidation(name string, prefix bool) (bool, string) {
+	for _, illegal := range []string{"%", "/"} {
+		if strings.Contains(name, illegal) {
+			return false, fmt.Sprintf(`may not contain "%s"`, illegal)
+		}
+	}
+	return true, ""
+}
+
 // ValidateImage tests required fields for an Image.
 func ValidateImage(image *api.Image) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 
-	if len(image.Name) == 0 {
-		result = append(result, fielderrors.NewFieldRequired("name"))
-	}
+	result = append(result, validation.ValidateObjectMeta(&image.ObjectMeta, false, MinimalNameValidation).Prefix("metadata")...)
+
 	if len(image.DockerImageReference) == 0 {
 		result = append(result, fielderrors.NewFieldRequired("dockerImageReference"))
 	} else {
@@ -32,15 +41,12 @@ func ValidateImage(image *api.Image) fielderrors.ValidationErrorList {
 func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 
+	result = append(result, validation.ValidateObjectMeta(&stream.ObjectMeta, true, MinimalNameValidation).Prefix("metadata")...)
+
 	if stream.Spec.Tags == nil {
 		stream.Spec.Tags = make(map[string]api.TagReference)
 	}
-	if len(stream.Name) == 0 {
-		result = append(result, fielderrors.NewFieldRequired("name"))
-	}
-	if !util.IsDNS1123Subdomain(stream.Namespace) {
-		result = append(result, fielderrors.NewFieldInvalid("namespace", stream.Namespace, ""))
-	}
+
 	if len(stream.Spec.DockerImageRepository) != 0 {
 		if _, err := api.ParseDockerImageReference(stream.Spec.DockerImageRepository); err != nil {
 			result = append(result, fielderrors.NewFieldInvalid("spec.dockerImageRepository", stream.Spec.DockerImageRepository, err.Error()))

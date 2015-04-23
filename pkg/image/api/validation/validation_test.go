@@ -12,7 +12,7 @@ import (
 
 func TestValidateImageOK(t *testing.T) {
 	errs := ValidateImage(&api.Image{
-		ObjectMeta:           kapi.ObjectMeta{Name: "foo", Namespace: "default"},
+		ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
 	})
 	if len(errs) > 0 {
@@ -29,7 +29,17 @@ func TestValidateImageMissingFields(t *testing.T) {
 		"missing Name": {
 			api.Image{DockerImageReference: "ref"},
 			fielderrors.ValidationErrorTypeRequired,
-			"name",
+			"metadata.name",
+		},
+		"no slash in Name": {
+			api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo/bar"}},
+			fielderrors.ValidationErrorTypeInvalid,
+			"metadata.name",
+		},
+		"no percent in Name": {
+			api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo%%bar"}},
+			fielderrors.ValidationErrorTypeInvalid,
+			"metadata.name",
 		},
 		"missing DockerImageReference": {
 			api.Image{ObjectMeta: kapi.ObjectMeta{Name: "foo"}},
@@ -122,14 +132,11 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 				DockerImageRepository: "openshift/ruby-19-centos",
 				Tag: api.DefaultImageTag,
 				Image: api.Image{
-					ObjectMeta: kapi.ObjectMeta{
-						Namespace: "default",
-					},
 					DockerImageReference: "openshift/ruby-19-centos",
 				},
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"image.name",
+			"image.metadata.name",
 		},
 		"invalid repository pull spec": {
 			api.ImageStreamMapping{
@@ -183,21 +190,35 @@ func TestValidateImageStream(t *testing.T) {
 			namespace: "foo",
 			name:      "",
 			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldRequired("name"),
+				fielderrors.NewFieldRequired("metadata.name"),
+			},
+		},
+		"no slash in Name": {
+			namespace: "foo",
+			name:      "foo/bar",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("metadata.name", "foo/bar", `may not contain "/"`),
+			},
+		},
+		"no percent in Name": {
+			namespace: "foo",
+			name:      "foo%%bar",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("metadata.name", "foo%%bar", `may not contain "%"`),
 			},
 		},
 		"missing namespace": {
 			namespace: "",
 			name:      "foo",
 			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldInvalid("namespace", "", ""),
+				fielderrors.NewFieldRequired("metadata.namespace"),
 			},
 		},
 		"invalid namespace": {
 			namespace: "!$",
 			name:      "foo",
 			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldInvalid("namespace", "!$", ""),
+				fielderrors.NewFieldInvalid("metadata.namespace", "!$", `must have at most 253 characters and match regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*`),
 			},
 		},
 		"invalid dockerImageRepository": {
