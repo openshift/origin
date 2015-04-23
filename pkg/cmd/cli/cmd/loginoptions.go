@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -302,7 +303,14 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	newConfig := config.CreateConfig(o.Username, o.Project, o.Config)
+
+	baseDir := filepath.Dir(pathOptions.GetDefaultFilename())
+	if err := config.RelativizeClientConfigPaths(&newConfig, baseDir); err != nil {
+		return false, err
+	}
+
 	configToWrite, err := config.MergeConfig(rawConfig, newConfig)
 	if err != nil {
 		return false, err
