@@ -41,6 +41,15 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 	repoParts := strings.Split(stream, "/")
 	switch len(repoParts) {
 	case 2:
+		if strings.Contains(repoParts[0], ":") {
+			// registry/name
+			ref.Registry = repoParts[0]
+			ref.Namespace = "library"
+			ref.Name = repoParts[1]
+			ref.Tag = tag
+			ref.ID = id
+			return ref, nil
+		}
 		// namespace/name
 		ref.Namespace = repoParts[0]
 		ref.Name = repoParts[1]

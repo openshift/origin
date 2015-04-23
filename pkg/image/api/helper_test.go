@@ -75,6 +75,12 @@ func TestParseDockerImageReference(t *testing.T) {
 			Name:      "baz",
 		},
 		{
+			From:      "bar:5000/baz",
+			Registry:  "bar:5000",
+			Namespace: "library",
+			Name:      "baz",
+		},
+		{
 			From:      "bar:5000/foo/baz:tag",
 			Registry:  "bar:5000",
 			Namespace: "foo",
