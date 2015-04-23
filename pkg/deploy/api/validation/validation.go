@@ -189,10 +189,10 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 
 	if len(params.From.Name) != 0 {
 		if len(params.From.Kind) == 0 {
-			params.From.Kind = "ImageRepository"
+			params.From.Kind = "ImageStream"
 		}
-		if params.From.Kind != "ImageRepository" {
-			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, "only 'ImageRepository' is allowed"))
+		if params.From.Kind != "ImageRepository" && params.From.Kind != "ImageStream" {
+			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, "kind must be 'ImageStream' or 'ImageRepository'"))
 		}
 
 		if !util.IsDNS1123Subdomain(params.From.Name) {
