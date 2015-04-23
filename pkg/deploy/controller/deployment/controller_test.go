@@ -6,6 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 
 	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -41,6 +42,7 @@ func TestHandle_createPodOk(t *testing.T) {
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return expectedContainer, nil
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	// Verify new -> pending
@@ -124,6 +126,7 @@ func TestHandle_makeContainerFail(t *testing.T) {
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return nil, fmt.Errorf("couldn't make container")
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
@@ -163,6 +166,7 @@ func TestHandle_createPodFail(t *testing.T) {
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return okContainer(), nil
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
@@ -201,6 +205,7 @@ func TestHandle_createPodAlreadyExists(t *testing.T) {
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return okContainer(), nil
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	// Verify no-op
@@ -238,6 +243,7 @@ func TestHandle_noop(t *testing.T) {
 			t.Fatalf("unexpected call to make container")
 			return nil, nil
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	// Verify no-op
@@ -291,6 +297,7 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 			t.Fatalf("unexpected call to make container")
 			return nil, nil
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	// Verify successful cleanup
@@ -339,6 +346,7 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 			t.Fatalf("unexpected call to make container")
 			return nil, nil
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	// Verify no-op
@@ -379,6 +387,7 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 			t.Fatalf("unexpected call to make container")
 			return nil, nil
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	// Verify error

@@ -6,6 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 
 	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -30,6 +31,7 @@ func TestHandle_initialOk(t *testing.T) {
 				return nil, nil
 			},
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	err := controller.Handle(deploytest.OkDeploymentConfig(0))
@@ -58,6 +60,7 @@ func TestHandle_updateOk(t *testing.T) {
 				return deployment, nil
 			},
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	err := controller.Handle(deploymentConfig)
@@ -142,6 +145,7 @@ func TestHandle_nonfatalCreateError(t *testing.T) {
 				return nil, kerrors.NewInternalError(fmt.Errorf("test error"))
 			},
 		},
+		recorder: &record.FakeRecorder{},
 	}
 
 	err := configController.Handle(deploytest.OkDeploymentConfig(1))

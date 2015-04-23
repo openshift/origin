@@ -10,6 +10,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
@@ -26,12 +27,14 @@ type deploymentDescriberClient interface {
 	getDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
 	getDeployment(namespace, name string) (*kapi.ReplicationController, error)
 	listPods(namespace string, selector labels.Selector) (*kapi.PodList, error)
+	listEvents(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error)
 }
 
 type genericDeploymentDescriberClient struct {
 	getDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
 	getDeploymentFunc       func(namespace, name string) (*kapi.ReplicationController, error)
 	listPodsFunc            func(namespace string, selector labels.Selector) (*kapi.PodList, error)
+	listEventsFunc          func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error)
 }
 
 func (c *genericDeploymentDescriberClient) getDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error) {
@@ -44,6 +47,10 @@ func (c *genericDeploymentDescriberClient) getDeployment(namespace, name string)
 
 func (c *genericDeploymentDescriberClient) listPods(namespace string, selector labels.Selector) (*kapi.PodList, error) {
 	return c.listPodsFunc(namespace, selector)
+}
+
+func (c *genericDeploymentDescriberClient) listEvents(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
+	return c.listEventsFunc(deploymentConfig)
 }
 
 // NewDeploymentConfigDescriberForConfig returns a new DeploymentConfigDescriber
@@ -77,6 +84,9 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
 				return kclient.Pods(namespace).List(selector)
 			},
+			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
+				return kclient.Events(deploymentConfig.Namespace).Search(deploymentConfig)
+			},
 		},
 	}
 }
@@ -84,6 +94,10 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 // Describe returns a description of a DeploymentConfigDescriber
 func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, error) {
 	deploymentConfig, err := d.client.getDeploymentConfig(namespace, name)
+	if err != nil {
+		return "", err
+	}
+	events, err := d.client.listEvents(deploymentConfig)
 	if err != nil {
 		return "", err
 	}
@@ -115,6 +129,9 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 			printDeploymentRc(deployment, d.client, out)
 		}
 
+		if events != nil {
+			kctl.DescribeEvents(events, out)
+		}
 		return nil
 	})
 }
