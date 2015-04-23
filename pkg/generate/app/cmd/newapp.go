@@ -62,7 +62,9 @@ type errlist interface {
 
 // NewAppConfig returns a new AppConfig
 func NewAppConfig(typer runtime.ObjectTyper) *AppConfig {
-	dockerResolver := app.DockerRegistryResolver{dockerregistry.NewClient()}
+	dockerResolver := app.DockerRegistryResolver{
+		Client: dockerregistry.NewClient(),
+	}
 	return &AppConfig{
 		detector: app.SourceRepositoryEnumerator{
 			Detectors: source.DefaultDetectors,

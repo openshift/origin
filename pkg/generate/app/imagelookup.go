@@ -120,6 +120,8 @@ func (r DockerClientResolver) lookup(value string) (*ComponentMatch, error) {
 
 type DockerRegistryResolver struct {
 	Client dockerregistry.Client
+
+	AllowInsecure bool
 }
 
 func (r DockerRegistryResolver) Resolve(value string) (*ComponentMatch, error) {
@@ -128,7 +130,7 @@ func (r DockerRegistryResolver) Resolve(value string) (*ComponentMatch, error) {
 		return nil, err
 	}
 	glog.V(4).Infof("checking Docker registry for %q", ref.String())
-	connection, err := r.Client.Connect(ref.Registry)
+	connection, err := r.Client.Connect(ref.Registry, r.AllowInsecure)
 	if err != nil {
 		if dockerregistry.IsRegistryNotFound(err) {
 			return nil, ErrNoMatch{value: value}

@@ -1,6 +1,7 @@
 package dockerregistry
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -19,7 +20,7 @@ import (
 // Client includes methods for accessing a Docker registry by name.
 type Client interface {
 	// Connect to a Docker registry by name. Pass "" for the Docker Hub
-	Connect(registry string) (Connection, error)
+	Connect(registry string, allowInsecure bool) (Connection, error)
 }
 
 // Connection allows you to retrieve data from a Docker V1 registry.
@@ -52,16 +53,16 @@ type client struct {
 // Connect accepts the name of a registry in the common form Docker provides and will
 // create a connection to the registry. Callers may provide a host, a host:port, or
 // a fully qualified URL. When not providing a URL, the default scheme will be "https"
-func (c *client) Connect(name string) (Connection, error) {
+func (c *client) Connect(name string, allowInsecure bool) (Connection, error) {
 	target, err := normalizeRegistryName(name)
 	if err != nil {
 		return nil, err
 	}
 	prefix := target.String()
-	if conn, ok := c.connections[prefix]; ok {
+	if conn, ok := c.connections[prefix]; ok && conn.allowInsecure == allowInsecure {
 		return conn, nil
 	}
-	conn := newConnection(*target)
+	conn := newConnection(*target, allowInsecure)
 	c.connections[prefix] = conn
 	return conn, nil
 }
@@ -117,13 +118,22 @@ type connection struct {
 	client *http.Client
 	url    url.URL
 	cached map[string]*repository
+
+	allowInsecure bool
 }
 
-func newConnection(url url.URL) *connection {
+func newConnection(url url.URL, allowInsecure bool) *connection {
+	client := http.DefaultClient
+	if allowInsecure {
+		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+		client = &http.Client{Transport: tr}
+	}
 	return &connection{
 		url:    url,
-		client: http.DefaultClient,
+		client: client,
 		cached: make(map[string]*repository),
+
+		allowInsecure: allowInsecure,
 	}
 }
 
@@ -217,7 +227,7 @@ func (c *connection) getRepository(name string) (*repository, error) {
 	resp, err := c.client.Do(req)
 	if err != nil {
 		// if we tried https and were rejected, try http
-		if c.url.Scheme == "https" {
+		if c.url.Scheme == "https" && c.allowInsecure {
 			glog.V(4).Infof("Failed to get https, trying http: %v", err)
 			c.url.Scheme = "http"
 			return c.getRepository(name)
