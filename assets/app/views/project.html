@@ -16,8 +16,14 @@
         <div class="row">
           <div class="col-md-12">
             <div class="tile">
-              <h2 class="service">{{serviceId}}
-                <span class="small"> - routing {{service.spec.protocol}} traffic on {{service.spec.portalIP}}:{{service.spec.port}} to port {{service.spec.containerPort}}</span>
+              <h2 class="service" ng-init="numPorts = service.spec.ports.length">{{serviceId}}
+                <span class="small"> - routing traffic on {{service.spec.portalIP}} -</span>
+                <span class="small" ng-repeat="portMapping in service.spec.ports | orderBy:port | limitTo:2">
+                  port {{portMapping.port}} &#8594; {{portMapping.targetPort}} ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span>
+                </span>
+                <span class="small" ng-if="numPorts > 2" ng-init="numRemaining = numPorts - 2">
+                  and {{numRemaining}} {{numRemaining == 1 ? "other" : "others"}}
+                </span>
                 <span class="connector connector-vertical" style="left: 50%; top: 31px; height: 21px;">
                   <span class="connector-endpoint connector-endpoint-top"></span>
                   <span class="connector-line" style="height: 21px;"></span>
