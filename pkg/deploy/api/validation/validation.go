@@ -82,6 +82,12 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) fielderr
 		if strategy.RecreateParams != nil {
 			errs = append(errs, validateRecreateParams(strategy.RecreateParams).Prefix("recreateParams")...)
 		}
+	case deployapi.DeploymentStrategyTypeRolling:
+		if strategy.RollingParams == nil {
+			errs = append(errs, fielderrors.NewFieldRequired("rollingParams"))
+		} else {
+			errs = append(errs, validateRollingParams(strategy.RollingParams).Prefix("rollingParams")...)
+		}
 	case deployapi.DeploymentStrategyTypeCustom:
 		if strategy.CustomParams == nil {
 			errs = append(errs, fielderrors.NewFieldRequired("customParams"))
@@ -166,6 +172,24 @@ func validateEnv(vars []kapi.EnvVar) fielderrors.ValidationErrorList {
 		allErrs = append(allErrs, vErrs.PrefixIndex(i)...)
 	}
 	return allErrs
+}
+
+func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams) fielderrors.ValidationErrorList {
+	errs := fielderrors.ValidationErrorList{}
+
+	if params.IntervalSeconds != nil && *params.IntervalSeconds < 1 {
+		errs = append(errs, fielderrors.NewFieldInvalid("intervalSeconds", *params.IntervalSeconds, "must be >0"))
+	}
+
+	if params.UpdatePeriodSeconds != nil && *params.UpdatePeriodSeconds < 1 {
+		errs = append(errs, fielderrors.NewFieldInvalid("updatePeriodSeconds", *params.UpdatePeriodSeconds, "must be >0"))
+	}
+
+	if params.TimeoutSeconds != nil && *params.TimeoutSeconds < 1 {
+		errs = append(errs, fielderrors.NewFieldInvalid("timeoutSeconds", *params.TimeoutSeconds, "must be >0"))
+	}
+
+	return errs
 }
 
 func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) fielderrors.ValidationErrorList {
