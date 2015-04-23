@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	krecord "github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -45,8 +46,14 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 	currentStatus := statusFor(deployment)
 	nextStatus := currentStatus
 
+	deploymentConfig, err := c.decodeConfig(deployment)
+	if err != nil {
+		return fatalError(fmt.Sprintf("couldn't decode deploymentConfig for %v, %v", labelForDeployment(deployment), err))
+	}
+
 	switch currentStatus {
 	case deployapi.DeploymentStatusNew:
+		// TODO: makeDeployerPod uses the deploymentConfig; should we pass it in?
 		podTemplate, err := c.makeDeployerPod(deployment)
 		if err != nil {
 			return fatalError(fmt.Sprintf("couldn't make deployer pod for %s: %v", labelForDeployment(deployment), err))
@@ -57,10 +64,12 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			// If the pod already exists, it's possible that a previous CreatePod succeeded but
 			// the deployment state update failed and now we're re-entering.
 			if !kerrors.IsAlreadyExists(err) {
+				// TODO: create event?
 				return fmt.Errorf("couldn't create deployer pod for %s: %v", labelForDeployment(deployment), err)
 			}
 		} else {
 			glog.V(2).Infof("Created pod %s for deployment %s", deploymentPod.Name, labelForDeployment(deployment))
+			krecord.Eventf(referenceTo(deploymentConfig), "podcreated", "created deployment pod")
 		}
 
 		deployment.Annotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
@@ -76,12 +85,15 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		podName := deployment.Annotations[deployapi.DeploymentPodAnnotation]
 		if err := c.podClient.deletePod(deployment.Namespace, podName); err != nil {
 			if !kerrors.IsNotFound(err) {
+				// TODO: create event?
 				return fmt.Errorf("couldn't delete completed deployer pod %s/%s for deployment %s: %v", deployment.Namespace, podName, labelForDeployment(deployment), err)
 			}
 			// Already deleted
 		} else {
 			glog.V(4).Infof("Deleted completed deployer pod %s/%s for deployment %s", deployment.Namespace, podName, labelForDeployment(deployment))
 		}
+
+		krecord.Eventf(referenceTo(deploymentConfig), "complete", "deployment completed")
 	}
 
 	if currentStatus != nextStatus {
@@ -190,4 +202,12 @@ func (i *podClientImpl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, e
 
 func (i *podClientImpl) deletePod(namespace, name string) error {
 	return i.deletePodFunc(namespace, name)
+}
+
+func referenceTo(deploymentConfig *deployapi.DeploymentConfig) *kapi.ObjectReference {
+	return &kapi.ObjectReference{
+		Kind:      "DeploymentConfig",
+		Name:      deploymentConfig.Name,
+		Namespace: deploymentConfig.Namespace,
+	}
 }
