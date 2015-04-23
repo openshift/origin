@@ -41,6 +41,9 @@ func TestHandle_createPodOk(t *testing.T) {
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return expectedContainer, nil
 		},
+		makeVolumes: func(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error) {
+			return nil, nil
+		},
 	}
 
 	// Verify new -> pending
@@ -124,6 +127,9 @@ func TestHandle_makeContainerFail(t *testing.T) {
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return nil, fmt.Errorf("couldn't make container")
 		},
+		makeVolumes: func(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error) {
+			return nil, nil
+		},
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
@@ -163,6 +169,9 @@ func TestHandle_createPodFail(t *testing.T) {
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return okContainer(), nil
 		},
+		makeVolumes: func(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error) {
+			return nil, nil
+		},
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
@@ -201,6 +210,9 @@ func TestHandle_createPodAlreadyExists(t *testing.T) {
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return okContainer(), nil
 		},
+		makeVolumes: func(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error) {
+			return nil, nil
+		},
 	}
 
 	// Verify no-op
@@ -236,6 +248,10 @@ func TestHandle_noop(t *testing.T) {
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			t.Fatalf("unexpected call to make container")
+			return nil, nil
+		},
+		makeVolumes: func(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error) {
+			t.Fatalf("unexpected call to make volumes")
 			return nil, nil
 		},
 	}
@@ -291,6 +307,10 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 			t.Fatalf("unexpected call to make container")
 			return nil, nil
 		},
+		makeVolumes: func(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error) {
+			t.Fatalf("unexpected call to make volumes")
+			return nil, nil
+		},
 	}
 
 	// Verify successful cleanup
@@ -339,6 +359,10 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 			t.Fatalf("unexpected call to make container")
 			return nil, nil
 		},
+		makeVolumes: func(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error) {
+			t.Fatalf("unexpected call to make volumes")
+			return nil, nil
+		},
 	}
 
 	// Verify no-op
@@ -377,6 +401,10 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			t.Fatalf("unexpected call to make container")
+			return nil, nil
+		},
+		makeVolumes: func(strategy *deployapi.DeploymentStrategy) ([]kapi.Volume, error) {
+			t.Fatalf("unexpected call to make volumes")
 			return nil, nil
 		},
 	}

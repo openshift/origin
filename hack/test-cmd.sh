@@ -260,11 +260,19 @@ osc delete images test
 echo "images: ok"
 
 osc get imageStreams
+# Create a new ImageStream, verify it has no dockerImageRepository
 osc create -f test/integration/fixtures/test-image-stream.json
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc create -f examples/sample-app/docker-registry-config.json
+# Create a docker registry, verify it populates the image stream's dockerImageRepository
+openshift ex registry --create --credentials=${CERT_DIR}/openshift-registry/.kubeconfig
 [ -n "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc delete -f examples/sample-app/docker-registry-config.json
+# Clean up the docker registry
+osc delete replicationcontrollers docker-registry-1
+osc delete pods -l deployment=docker-registry-1
+osc delete service docker-registry
+osc delete deploymentconfig docker-registry
+osc delete secret docker-registry
+# Clean up the ImageStream
 osc delete imageStreams test
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 osc create -f examples/image-streams/image-streams-centos7.json
