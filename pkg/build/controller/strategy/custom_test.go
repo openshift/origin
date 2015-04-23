@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -58,6 +59,10 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if container.VolumeMounts[1].MountPath != dockerPushSecretMountPath {
 		t.Fatalf("Expected %s in first VolumeMount, got %s", dockerPushSecretMountPath, container.VolumeMounts[1].MountPath)
 	}
+	if !kapi.Semantic.DeepEqual(container.Resources, expected.Parameters.Resources) {
+		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
+	}
+
 	if len(actual.Spec.Volumes) != 2 {
 		t.Fatalf("Expected 2 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
@@ -116,6 +121,12 @@ func mockCustomBuild() *buildapi.Build {
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "docker-registry/repository/customBuild",
 				PushSecretName:       "foo",
+			},
+			Resources: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+				},
 			},
 		},
 		Status: buildapi.BuildStatusNew,
