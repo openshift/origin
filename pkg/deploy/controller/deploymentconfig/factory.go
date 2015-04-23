@@ -6,6 +6,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -42,6 +43,9 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(deploymentConfigLW, &deployapi.DeploymentConfig{}, queue, 2*time.Minute).Run()
 
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
+
 	configController := &DeploymentConfigController{
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
@@ -54,6 +58,7 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
 			return deployutil.MakeDeployment(config, factory.Codec)
 		},
+		recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployer"}),
 	}
 
 	return &controller.RetryController{

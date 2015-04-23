@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -32,6 +33,7 @@ type DeploymentController struct {
 	makeContainer func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error)
 	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
 	decodeConfig func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error)
+	recorder     record.EventRecorder
 }
 
 // fatalError is an error which can't be retried.
@@ -57,6 +59,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			// If the pod already exists, it's possible that a previous CreatePod succeeded but
 			// the deployment state update failed and now we're re-entering.
 			if !kerrors.IsAlreadyExists(err) {
+				c.recorder.Eventf(deployment, "failedCreate", "Error creating deployer pod for %s: %v", labelForDeployment(deployment), err)
 				return fmt.Errorf("couldn't create deployer pod for %s: %v", labelForDeployment(deployment), err)
 			}
 		} else {
