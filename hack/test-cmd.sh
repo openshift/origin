@@ -480,6 +480,4 @@ osc process -f examples/sample-app/application-template-stibuild.json -l name=my
 osc delete all -l name=mytemplate
 osc new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
 osc delete all -l name=hello-world
-openshift ex generate https://github.com/openshift/ruby-hello-world -l name=hello-world | osc create -f -
-osc delete all -l name=hello-world
 echo "delete all: ok"
