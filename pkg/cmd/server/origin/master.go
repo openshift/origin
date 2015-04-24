@@ -14,6 +14,9 @@ import (
 	"strings"
 	"time"
 
+	kui "github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
+
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	restful "github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
@@ -112,6 +115,7 @@ const (
 	OpenShiftAPIPrefixV1Beta3 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
 	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
+	swaggerUIPrefix           = "/swagger-ui/"
 )
 
 // APIInstaller installs additional API components into this server
@@ -399,7 +403,8 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 				"/metrics",
 				"/osapi",
 				"/osapi/v1beta1",
-				"/swaggerapi/",
+				swaggerAPIPrefix,
+				swaggerUIPrefix,
 			}}
 			// TODO it would be nice if apiserver.writeRawJSON was not private
 			output, err := json.MarshalIndent(object, "", "  ")
@@ -447,15 +452,22 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	open.Handle("/", handler)
 
 	// install swagger
+	// Expose files in third_party/swagger-ui/ on <host>/swagger-ui
+	fileServer := http.FileServer(&assetfs.AssetFS{Asset: kui.Asset, AssetDir: kui.AssetDir, Prefix: "third_party/swagger-ui"})
+	open.Handle(swaggerUIPrefix, http.StripPrefix(swaggerUIPrefix, fileServer))
+
 	swaggerConfig := swagger.Config{
-		WebServicesUrl: c.Options.MasterPublicURL,
-		WebServices:    append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
-		ApiPath:        swaggerAPIPrefix,
+		WebServicesUrl:  c.Options.MasterPublicURL,
+		WebServices:     append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
+		ApiPath:         swaggerAPIPrefix,
+		SwaggerPath:     "/swaggerui/",
+		SwaggerFilePath: swaggerUIPrefix,
 	}
 	// log nothing from swagger
 	swagger.LogInfo = func(format string, v ...interface{}) {}
 	swagger.RegisterSwaggerService(swaggerConfig, open)
 	extra = append(extra, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerAPIPrefix))
+	extra = append(extra, fmt.Sprintf("Started Swagger UI at %%s%s", swaggerUIPrefix))
 
 	handler = open
 
