@@ -2,7 +2,7 @@
   <div class="tile tile-image tile-click label-tags" id="" title="">
     <div class="tile-table">
       <div class="tile-table-cell image-icon">
-        <span aria-hidden="true" class="font-icon {{imageRepo | iconClass : 'image' : (imageTag + '.iconClass')}}" title="{{imageRepo.metadata.name}}:{{imageTag}}"></span>
+        <custom-icon resource="imageRepo" kind="image" tag="imageTag" title="{{imageRepo.metadata.name}}:{{imageTag}}"></custom-icon>
       </div>
       <div class="tile-table-cell">
         <h3>
@@ -24,7 +24,7 @@
         <div class="modal-body label-tags">
           <div class="row">
             <div class="image-icon col-xs-4 col-sm-4 col-md-4">
-              <span class="{{imageRepo | iconClass : 'image' : (imageTag + '.iconClass')}}"></span>
+              <custom-icon resource="imageRepo" kind="image" tag="imageTag" title="{{imageRepo.metadata.name}}:{{imageTag}}"></custom-icon>
             </div>
             <div class="col-xs-8 col-sm-8 col-md-8">
               <p ng-if="imageRepo | annotation : (imageTag + '.description')">{{imageRepo | annotation : (imageTag + '.description')}}</p>
@@ -41,7 +41,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-block btn-primary btn-lg select-image">Select image...</button>
+          <button type="button" class="btn btn-block btn-primary btn-lg select-image">Select image</button>
         </div>
       </div>
     </div>
