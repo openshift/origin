@@ -237,7 +237,9 @@ func getResolver(namespace string, osClient osclient.Interface, dockerClient *do
 		resolver = append(resolver, genapp.WeightedResolver{Resolver: imageStreamResolver, Weight: 0.0})
 	}
 
-	dockerRegistryResolver := &genapp.DockerRegistryResolver{dockerregistry.NewClient()}
+	dockerRegistryResolver := &genapp.DockerRegistryResolver{
+		Client: dockerregistry.NewClient(),
+	}
 	resolver = append(resolver, genapp.WeightedResolver{Resolver: dockerRegistryResolver, Weight: 0.0})
 
 	return resolver

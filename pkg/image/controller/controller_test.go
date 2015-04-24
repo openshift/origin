@@ -24,6 +24,7 @@ type expectedImage struct {
 type fakeDockerRegistryClient struct {
 	Registry                 string
 	Namespace, Name, Tag, ID string
+	Insecure                 bool
 
 	Tags map[string]string
 	Err  error
@@ -31,8 +32,9 @@ type fakeDockerRegistryClient struct {
 	Images []expectedImage
 }
 
-func (f *fakeDockerRegistryClient) Connect(registry string) (dockerregistry.Connection, error) {
+func (f *fakeDockerRegistryClient) Connect(registry string, insecure bool) (dockerregistry.Connection, error) {
 	f.Registry = registry
+	f.Insecure = insecure
 	return f, nil
 }
 
@@ -119,6 +121,36 @@ func TestControllerTagRetrievalFails(t *testing.T) {
 	}
 	if err := c.Next(&repo); err != cli.Err {
 		t.Errorf("unexpected error: %v", err)
+	}
+	if len(repo.Annotations["openshift.io/image.dockerRepositoryCheck"]) != 0 {
+		t.Errorf("should not set annotation: %#v", repo)
+	}
+	if len(fake.Actions) != 0 {
+		t.Error("expected no actions on fake client")
+	}
+}
+
+func TestControllerRetrievesInsecure(t *testing.T) {
+	cli, fake := &fakeDockerRegistryClient{Err: fmt.Errorf("test error")}, &client.Fake{}
+	c := ImportController{client: cli, repositories: fake, mappings: fake}
+
+	repo := api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "test",
+			Namespace: "other",
+			Annotations: map[string]string{
+				"openshift.io/image.insecureRepository": "true",
+			},
+		},
+		Spec: api.ImageStreamSpec{
+			DockerImageRepository: "foo/bar",
+		},
+	}
+	if err := c.Next(&repo); err != cli.Err {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !cli.Insecure {
+		t.Errorf("expected insecure call: %#v", cli)
 	}
 	if len(repo.Annotations["openshift.io/image.dockerRepositoryCheck"]) != 0 {
 		t.Errorf("should not set annotation: %#v", repo)
