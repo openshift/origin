@@ -43,7 +43,6 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     $scope.renderOptions = $scope.renderOptions || {};
     $scope.renderOptions.showSidebarRight = true;
-    $scope.uid = $rootScope.uid;
 
     var watches = [];
 

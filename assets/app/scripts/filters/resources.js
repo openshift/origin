@@ -1,6 +1,16 @@
 'use strict';
 
 angular.module('openshiftConsole')
+  .filter('uid', function() {
+    return function(resource) {
+      if (resource && resource.metadata && resource.metadata.uid) {
+        return resource.metadata.uid;
+      }
+      else {
+        return resource;
+      }
+    }
+  })
   .filter('annotation', function() {
     return function(resource, key) {
       if (resource && resource.spec && resource.spec.tags && key.indexOf(".") !== -1){

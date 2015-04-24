@@ -56,7 +56,7 @@
                   exists="deploymentConfigs[deploymentConfigId]"
                   different-service="!deploymentConfigsByService[serviceId][deploymentConfigId]">
                 </deployment-config-metadata>
-                <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by uid(deployment)" style="margin-top: 10px; text-align: center;" class="osc-object" kind="ReplicationController" resource="deployment" ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
+                <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)" style="margin-top: 10px; text-align: center;" class="osc-object" kind="ReplicationController" resource="deployment" ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
                   <!-- TODO right now we ONLY show deployments / RCs if they have pods, but we may also want to show 
                        them if they are idled down to zero for example.
                   -->

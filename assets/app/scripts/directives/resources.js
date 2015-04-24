@@ -13,9 +13,6 @@ angular.module('openshiftConsole')
       scope: {
         pods: '='
       },
-      controller: function($scope) {
-        $scope.uid = $rootScope.uid;
-      },
       templateUrl: 'views/_pods.html'
     };
   })
