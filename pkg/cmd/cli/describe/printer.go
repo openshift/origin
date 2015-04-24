@@ -3,6 +3,7 @@ package describe
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -270,7 +271,22 @@ func printProject(project *projectapi.Project, w io.Writer) error {
 	return err
 }
 
+type SortableProjects []projectapi.Project
+
+func (list SortableProjects) Len() int {
+	return len(list)
+}
+
+func (list SortableProjects) Swap(i, j int) {
+	list[i], list[j] = list[j], list[i]
+}
+
+func (list SortableProjects) Less(i, j int) bool {
+	return list[i].ObjectMeta.Name < list[j].ObjectMeta.Name
+}
+
 func printProjectList(projects *projectapi.ProjectList, w io.Writer) error {
+	sort.Sort(SortableProjects(projects.Items))
 	for _, project := range projects.Items {
 		if err := printProject(&project, w); err != nil {
 			return err
