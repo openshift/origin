@@ -25,6 +25,7 @@ angular.module('openshiftConsole')
         kind: '@'
       },
       link: function(scope, elem, attrs) {
+        // TODO need to make these elements selectable via the keyboard
         $(elem).on("click.oscobject", function() {
           if (scope.resource) {
             ObjectDescriber.setObject(scope.resource, scope.kind || scope.resource.kind, {source: scope});
@@ -101,7 +102,7 @@ angular.module('openshiftConsole')
       return this.source;
     };        
 
-    // Callback will never be called within the current digest loop
+    // Callback will never be called within a digest loop
     ObjectDescriber.prototype.onResourceChanged = function(callback) {
       this.callbacks.add(callback);
       var self = this;
