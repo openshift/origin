@@ -48,6 +48,8 @@ readonly OS_ALL_TARGETS=(
   "${OS_CROSS_COMPILE_TARGETS[@]}"
 )
 readonly OS_ALL_BINARIES=("${OS_ALL_TARGETS[@]##*/}")
+
+#If you update this list, be sure to get the images/origin/Dockerfile
 readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-router
   openshift-deploy
