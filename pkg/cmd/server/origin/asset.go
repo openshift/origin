@@ -120,7 +120,13 @@ func (c *AssetConfig) buildHandler() (http.Handler, error) {
 		},
 	)
 
-	handler, err = assets.HTML5ModeHandler(publicURL.Path, handler)
+	// Map of context roots (no leading or trailing slash) to the asset path to serve for requests to a missing asset
+	subcontextMap := map[string]string{
+		"":     "index.html",
+		"java": "java/index.html",
+	}
+
+	handler, err = assets.HTML5ModeHandler(publicURL.Path, subcontextMap, handler)
 	if err != nil {
 		return nil, err
 	}

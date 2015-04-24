@@ -8,7 +8,9 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"path"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/golang/glog"
@@ -77,21 +79,61 @@ func CacheControlHandler(version string, h http.Handler) http.Handler {
 	})
 }
 
+type LongestToShortest []string
+
+func (s LongestToShortest) Len() int {
+	return len(s)
+}
+func (s LongestToShortest) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s LongestToShortest) Less(i, j int) bool {
+	return len(s[i]) > len(s[j])
+}
+
 // HTML5ModeHandler will serve any static assets we know about, all other paths
 // are assumed to be HTML5 paths for the console application and index.html will
 // be served.
 // contextRoot must contain leading and trailing slashes, e.g. /console/
-func HTML5ModeHandler(contextRoot string, h http.Handler) (http.Handler, error) {
-	b, err := Asset("index.html")
-	if err != nil {
-		return nil, err
+//
+// subcontextMap is a map of keys (subcontexts, no leading or trailing slashes) to the asset path (no
+// leading slash) to serve for that subcontext if a resource that does not exist is requested
+func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h http.Handler) (http.Handler, error) {
+	subcontextData := map[string][]byte{}
+	subcontexts := []string{}
+
+	for subcontext, index := range subcontextMap {
+		b, err := Asset(index)
+		if err != nil {
+			return nil, err
+		}
+		base := path.Join(contextRoot, subcontext)
+		// Make sure the base always ends in a trailing slash but don't end up with a double trailing slash
+		if !strings.HasSuffix(base, "/") {
+			base += "/"
+		}
+		b = bytes.Replace(b, []byte(`<base href="/">`), []byte(fmt.Sprintf(`<base href="%s">`, base)), 1)
+		subcontextData[subcontext] = b
+		subcontexts = append(subcontexts, subcontext)
 	}
-	b = bytes.Replace(b, []byte(`<base href="/">`), []byte(fmt.Sprintf(`<base href="%s">`, contextRoot)), 1)
+
+	// Sort by length, longest first
+	sort.Sort(LongestToShortest(subcontexts))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, err := Asset(strings.TrimPrefix(r.URL.Path, "/")); err != nil {
-			w.Write(b)
-			return
+		urlPath := strings.TrimPrefix(r.URL.Path, "/")
+		if _, err := Asset(urlPath); err != nil {
+			// find the index we want to serve instead
+			for _, subcontext := range subcontexts {
+				prefix := subcontext
+				if subcontext != "" {
+					prefix += "/"
+				}
+				if urlPath == subcontext || strings.HasPrefix(urlPath, prefix) {
+					w.Write(subcontextData[subcontext])
+					return
+				}
+			}
 		}
 		h.ServeHTTP(w, r)
 	}), nil
