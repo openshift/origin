@@ -18,16 +18,17 @@ ovs-vsctl del-port br0 vxlan0 || true
 ovs-vsctl add-port br0 vxlan0 -- set Interface vxlan0 type=vxlan options:remote_ip="flow" options:key="flow" ofport_request=1
 ovs-vsctl add-port br0 ${TUN} -- set Interface ${TUN} type=internal ofport_request=2
 
-ip addr add ${tun_gateway}/32 dev ${TUN}
-ip link set ${TUN} up
-
 ## linux bridge
 ip link set lbr0 down || true
 brctl delbr lbr0 || true
 brctl addbr lbr0
 ip addr add ${subnet_gateway}/${subnet_mask_len} dev lbr0
 ip link set lbr0 up
-ip route add ${cluster_subnet} dev ${TUN} proto kernel scope link src ${tun_gateway}
+
+# setup tun address
+ip addr add ${tun_gateway}/${subnet_mask_len} dev ${TUN}
+ip link set ${TUN} up
+ip route add ${cluster_subnet} dev ${TUN} proto kernel scope link
 
 ## iptables
 iptables -t nat -D POSTROUTING -s ${cluster_subnet} ! -d ${cluster_subnet} -j MASQUERADE || true

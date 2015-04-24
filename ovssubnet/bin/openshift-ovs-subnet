@@ -28,17 +28,8 @@ Setup() {
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=0,cookie=0x${ovs_port},priority=100,ip,nw_dst=${new_ip},actions=output:${ovs_port}"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=0,cookie=0x${ovs_port},priority=100,arp,nw_dst=${new_ip},actions=output:${ovs_port}"
 
-    del_default_cmd="ip route del default via ${docker_gateway} dev eth0"
-    nsenter -n -t $pid -- $del_default_cmd
-
-    add_gateway_route="ip route add $tap_ip/32 dev eth0 proto kernel scope link src $ipaddr"
-    nsenter -n -t $pid -- $add_gateway_route
-
     add_subnet_route="ip route add ${cluster_subnet} dev eth0 proto kernel scope link src $ipaddr"
     nsenter -n -t $pid -- $add_subnet_route
-
-    add_default_cmd="ip route add default via $tap_ip"
-    nsenter -n -t $pid -- $add_default_cmd
 }
 
 Teardown() {
