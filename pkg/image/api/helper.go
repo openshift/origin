@@ -41,6 +41,15 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 	repoParts := strings.Split(stream, "/")
 	switch len(repoParts) {
 	case 2:
+		if strings.Contains(repoParts[0], ":") {
+			// registry/name
+			ref.Registry = repoParts[0]
+			ref.Namespace = "library"
+			ref.Name = repoParts[1]
+			ref.Tag = tag
+			ref.ID = id
+			return ref, nil
+		}
 		// namespace/name
 		ref.Namespace = repoParts[0]
 		ref.Name = repoParts[1]
@@ -78,14 +87,14 @@ func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
 		r.Registry = "docker.io"
 	}
 	if len(r.Tag) == 0 {
-		r.Tag = "latest"
+		r.Tag = DefaultImageTag
 	}
 	return r
 }
 
 // Minimal reduces a DockerImageReference to its minimalist form.
 func (r DockerImageReference) Minimal() DockerImageReference {
-	if r.Tag == "latest" {
+	if r.Tag == DefaultImageTag {
 		r.Tag = ""
 	}
 	return r
@@ -225,7 +234,7 @@ func DockerImageReferenceForStream(stream *ImageStream) (DockerImageReference, e
 // repository and tag. Will resolve lookups for the empty tag.
 func LatestTaggedImage(stream *ImageStream, tag string) (*TagEvent, error) {
 	if len(tag) == 0 {
-		tag = "latest"
+		tag = DefaultImageTag
 	}
 	// find the most recent tag event with an image reference
 	if stream.Status.Tags != nil {

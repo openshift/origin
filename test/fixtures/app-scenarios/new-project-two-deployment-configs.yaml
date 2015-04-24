@@ -68,6 +68,17 @@ items:
         clean: true
         image: openshift/ruby-20-centos7
       type: STI
+    revision:
+      type: git
+      git:
+        commit: 7a4f354721b0c9717e46f2e132b269b495d43e2b
+        message: Prepare v1beta3 Template types
+        commiter:
+          name: openshiftbot
+          email: openshiftbot@redhat.com
+        author:
+          name: Roy Programmer
+          email: someguy@outhere.com
   startTimestamp: 2015-04-06T21:19:03Z
   status: Running
 - apiVersion: v1beta1

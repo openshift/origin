@@ -25,7 +25,10 @@ import (
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	policycache "github.com/openshift/origin/pkg/authorization/cache"
-	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
+	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
+	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
+	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -214,8 +217,9 @@ func newProjectAuthorizationCache(masterAuthorizationNamespace string, openshift
 }
 
 func newPolicyCache(etcdHelper tools.EtcdHelper) *policycache.PolicyCache {
-	authorizationEtcd := authorizationetcd.New(etcdHelper)
-	return policycache.NewPolicyCache(authorizationEtcd, authorizationEtcd)
+	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(etcdHelper))
+	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(etcdHelper))
+	return policycache.NewPolicyCache(policyBindingRegistry, policyRegistry)
 }
 
 func newAuthorizer(policyCache *policycache.PolicyCache, masterAuthorizationNamespace string) authorizer.Authorizer {

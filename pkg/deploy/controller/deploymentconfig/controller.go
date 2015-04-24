@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -26,6 +27,7 @@ type DeploymentConfigController struct {
 	deploymentClient deploymentClient
 	// makeDeployment knows how to make a deployment from a config.
 	makeDeployment func(*deployapi.DeploymentConfig) (*kapi.ReplicationController, error)
+	recorder       record.EventRecorder
 }
 
 // fatalError is an error which can't be retried.
@@ -67,9 +69,13 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		// If the deployment was already created, just move on. The cache could be stale, or another
 		// process could have already handled this update.
 		if errors.IsAlreadyExists(err) {
+			c.recorder.Eventf(config, "alreadyExists", "Deployment already exists for config: %s", labelFor(config))
 			glog.V(4).Infof("Deployment already exists for config %s", labelFor(config))
 			return nil
 		}
+
+		// log an event if the deployment could not be created that the user can discover
+		c.recorder.Eventf(config, "failedCreate", "Error creating: %v", err)
 		return fmt.Errorf("couldn't create deployment for config %s: %v", labelFor(config), err)
 	}
 }

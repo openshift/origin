@@ -88,6 +88,10 @@ func (c *Fake) Templates(namespace string) TemplateInterface {
 	return &FakeTemplates{Fake: c}
 }
 
+func (c *Fake) TemplateConfigs(namespace string) TemplateConfigInterface {
+	return &FakeTemplateConfigs{Fake: c}
+}
+
 func (c *Fake) Identities() IdentityInterface {
 	return &FakeIdentities{Fake: c}
 }
@@ -102,6 +106,10 @@ func (c *Fake) UserIdentityMappings() UserIdentityMappingInterface {
 
 func (c *Fake) Projects() ProjectInterface {
 	return &FakeProjects{Fake: c}
+}
+
+func (c *Fake) ProjectRequests() ProjectRequestInterface {
+	return &FakeProjectRequests{Fake: c}
 }
 
 func (c *Fake) Policies(namespace string) PolicyInterface {

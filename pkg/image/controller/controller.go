@@ -15,6 +15,9 @@ import (
 
 const dockerImageRepositoryCheckAnnotation = "openshift.io/image.dockerRepositoryCheck"
 
+// insecureRepositoryAnnotation may be set true on an image stream to allow insecure access to pull content.
+const insecureRepositoryAnnotation = "openshift.io/image.insecureRepository"
+
 type ImportController struct {
 	repositories client.ImageStreamsNamespacer
 	mappings     client.ImageStreamMappingsNamespacer
@@ -62,7 +65,9 @@ func (c *ImportController) Next(repo *api.ImageStream) error {
 		return c.done(repo, err.Error())
 	}
 
-	conn, err := c.client.Connect(ref.Registry)
+	insecure := repo.Annotations != nil && repo.Annotations[insecureRepositoryAnnotation] == "true"
+
+	conn, err := c.client.Connect(ref.Registry, insecure)
 	if err != nil {
 		return err
 	}

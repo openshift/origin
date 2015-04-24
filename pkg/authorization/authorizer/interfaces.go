@@ -18,6 +18,7 @@ type AuthorizationAttributeBuilder interface {
 
 type AuthorizationAttributes interface {
 	GetVerb() string
+	GetAPIVersion() string
 	// GetResource returns the resource type.  If IsNonResourceURL() is true, then GetResource() is "".
 	GetResource() string
 	GetResourceName() string

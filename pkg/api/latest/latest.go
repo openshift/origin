@@ -12,7 +12,7 @@ import (
 	_ "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/api/v1beta1"
-	"github.com/openshift/origin/pkg/api/v1beta2"
+	"github.com/openshift/origin/pkg/api/v1beta3"
 )
 
 // Version is the string that represents the current external default version.
@@ -26,7 +26,7 @@ const OldestVersion = "v1beta1"
 // may be assumed to be least feature rich to most feature rich, and clients may
 // choose to prefer the latter items in the list over the former items when presented
 // with a set of versions to choose.
-var Versions = []string{"v1beta1", "v1beta2"}
+var Versions = []string{"v1beta1", "v1beta3"}
 
 // Codec is the default codec for serializing output that should use
 // the latest supported version.  Use this Codec when writing to
@@ -62,9 +62,9 @@ func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 			ObjectConvertor:  api.Scheme,
 			MetadataAccessor: accessor,
 		}, nil
-	case "v1beta2":
+	case "v1beta3":
 		return &kmeta.VersionInterfaces{
-			Codec:            v1beta2.Codec,
+			Codec:            v1beta3.Codec,
 			ObjectConvertor:  api.Scheme,
 			MetadataAccessor: accessor,
 		}, nil
@@ -78,16 +78,23 @@ var originTypes = []string{
 	"Build", "BuildConfig", "BuildLog",
 	"Deployment", "DeploymentConfig",
 	"Image", "ImageRepository", "ImageStream", "ImageRepositoryMapping", "ImageStreamMapping", "ImageRepositoryTag", "ImageStreamTag", "ImageStreamImage",
-	"Template", "TemplateConfig",
+	"Template", "TemplateConfig", "ProcessedTemplate",
 	"Route",
-	"Project",
+	"Project", "ProjectRequest",
 	"User", "Identity", "UserIdentityMapping",
 	"OAuthClient", "OAuthClientAuthorization", "OAuthAccessToken", "OAuthAuthorizeToken",
 	"Role", "RoleBinding", "Policy", "PolicyBinding", "ResourceAccessReview", "SubjectAccessReview",
 }
 
-// UserResources is a group of user-defined resources
-var UserResources = []string{"bc", "builds", "services", "imageStreams", "pods", "routes", "dc", "rc"}
+// UserResources are the resource names that apply to the primary, user facing resources used by
+// client tools. They are in deletion-first order - dependent resources should be last.
+var UserResources = []string{
+	"buildConfigs", "builds",
+	"imageStreams",
+	"deploymentConfigs", "replicationControllers",
+	"routes", "services",
+	"pods",
+}
 
 // OriginKind returns true if OpenShift owns the kind described in a given apiVersion.
 // TODO: make this based on scheme information or other behavior
@@ -121,16 +128,17 @@ func init() {
 		"v1beta1": true,
 	}
 
-	// backwards compatibility, prior to v1beta2, we identified the namespace as a query parameter
+	// backwards compatibility, prior to v1beta3, we identified the namespace as a query parameter
 	versionToNamespaceScope := map[string]kmeta.RESTScope{
 		"v1beta1": kmeta.RESTScopeNamespaceLegacy,
-		"v1beta2": kmeta.RESTScopeNamespace,
+		"v1beta3": kmeta.RESTScopeNamespace,
 	}
 
 	// the list of kinds that are scoped at the root of the api hierarchy
 	// if a kind is not enumerated here, it is assumed to have a namespace scope
 	kindToRootScope := map[string]bool{
-		"Project": true,
+		"Project":        true,
+		"ProjectRequest": true,
 
 		"User":                true,
 		"Identity":            true,

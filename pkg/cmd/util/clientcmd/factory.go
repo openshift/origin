@@ -15,7 +15,6 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
-	"github.com/openshift/origin/pkg/cmd/util"
 
 	"github.com/spf13/pflag"
 )
@@ -31,7 +30,7 @@ func New(flags *pflag.FlagSet) *Factory {
 	kclientcmd.DefaultCluster.Server = ""
 
 	// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
-	clientConfig := util.DefaultClientConfig(flags)
+	clientConfig := DefaultClientConfig(flags)
 	f := NewFactory(clientConfig)
 	f.BindFlags(flags)
 

@@ -41,7 +41,7 @@ func TestHandle_changeForNonAutomaticTag(t *testing.T) {
 	// verify no-op
 	tagUpdate := makeRepo(
 		"test-image-repo",
-		"latest",
+		imageapi.DefaultImageTag,
 		"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
 		"00000000000000000000000000000001",
 	)
@@ -94,21 +94,21 @@ func TestHandle_matchScenarios(t *testing.T) {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
 			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: "repoA"},
-			Tag:                "latest",
+			Tag:                imageapi.DefaultImageTag,
 			LastTriggeredImage: "",
 		},
 		"params.2": {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
 			From:               kapi.ObjectReference{Name: "repoA"},
-			Tag:                "latest",
+			Tag:                imageapi.DefaultImageTag,
 			LastTriggeredImage: "",
 		},
 		"params.3": {
 			Automatic:          false,
 			ContainerNames:     []string{"container-1"},
 			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: "repoA"},
-			Tag:                "latest",
+			Tag:                imageapi.DefaultImageTag,
 			LastTriggeredImage: "",
 		},
 		// This tests the deprecated RepositoryName reference
@@ -116,20 +116,20 @@ func TestHandle_matchScenarios(t *testing.T) {
 			Automatic:      true,
 			ContainerNames: []string{"container-1"},
 			RepositoryName: "registry:8080/openshift/test-image",
-			Tag:            "latest",
+			Tag:            imageapi.DefaultImageTag,
 		},
 		"params.5": {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
 			From:               kapi.ObjectReference{Name: "repoA"},
-			Tag:                "latest",
+			Tag:                imageapi.DefaultImageTag,
 			LastTriggeredImage: "registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
 		},
 		"params.6": {
 			Automatic:          true,
 			ContainerNames:     []string{"container-1"},
 			From:               kapi.ObjectReference{Namespace: kapi.NamespaceDefault, Name: "repoC"},
-			Tag:                "latest",
+			Tag:                imageapi.DefaultImageTag,
 			LastTriggeredImage: "",
 		},
 	}
@@ -152,7 +152,7 @@ func TestHandle_matchScenarios(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{Name: "repoA", Namespace: kapi.NamespaceDefault},
 			Status: imageapi.ImageStreamStatus{
 				Tags: tagHistoryFor(
-					"latest",
+					imageapi.DefaultImageTag,
 					"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
 					"00000000000000000000000000000001",
 				),
@@ -165,7 +165,7 @@ func TestHandle_matchScenarios(t *testing.T) {
 			Status: imageapi.ImageStreamStatus{
 				DockerImageRepository: "registry:8080/openshift/test-image",
 				Tags: tagHistoryFor(
-					"latest",
+					imageapi.DefaultImageTag,
 					"registry:8080/openshift/test-image@sha256:00000000000000000000000000000001",
 					"00000000000000000000000000000001",
 				),

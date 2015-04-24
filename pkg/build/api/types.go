@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -37,6 +39,9 @@ type Build struct {
 	// It is represented in RFC3339 form and is in UTC.
 	CompletionTimestamp *util.Time `json:"completionTimestamp,omitempty"`
 
+	// Duration contains time.Duration object describing build time.
+	Duration time.Duration `json:"duration",omitempty"`
+
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference `json:"config,omitempty"`
 }
@@ -55,6 +60,9 @@ type BuildParameters struct {
 
 	// Output describes the Docker image the Strategy should produce.
 	Output BuildOutput `json:"output,omitempty"`
+
+	// Compute resource requirements to execute the build
+	Resources kapi.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // BuildStatus represents the status of a build at a point in time.
@@ -177,9 +185,6 @@ const (
 	// CustomBuildStrategyBaseImageKey is the environment variable that indicates the base image to be used when
 	// performing a custom build, if needed.
 	CustomBuildStrategyBaseImageKey = "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE"
-
-	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
-	DefaultImageTag string = "latest"
 )
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
@@ -291,7 +296,7 @@ type ImageChangeTrigger struct {
 	// immutable image id supplied by the ImageStream when this trigger fires.
 	Image string `json:"image"`
 	// From is a reference to an image stream to watch for changes. This field takes
-	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta2. The
+	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta3. The
 	// Kind may be left blank, in which case it defaults to "ImageStream". The "Name" is
 	// the only required subfield - if Namespace is blank, the namespace of the current build
 	// trigger will be used.

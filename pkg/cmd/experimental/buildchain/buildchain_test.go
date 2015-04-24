@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func TestFindRepoDeps(t *testing.T) {
@@ -23,7 +24,7 @@ func TestFindRepoDeps(t *testing.T) {
 		{
 			name:                 "docker-image-references-test",
 			repo:                 "default/start",
-			tag:                  "latest",
+			tag:                  imageapi.DefaultImageTag,
 			all:                  false,
 			candidates:           dockerImageReferencesList(),
 			expectedTreeSize:     6,
@@ -89,7 +90,7 @@ func TestGetRepos(t *testing.T) {
 			configList: dockerImageReferencesList(),
 			expected: map[string][]string{
 				"default/another-repo": {"outputtag"},
-				"default/start":        {"latest"},
+				"default/start":        {imageapi.DefaultImageTag},
 				"default/test-repo":    {"atag"},
 			},
 		},
@@ -98,8 +99,8 @@ func TestGetRepos(t *testing.T) {
 			configList: singleNamespaceList(),
 			expected: map[string][]string{
 				"default/another-repo": {"outputtag"},
-				"default/start":        {"latest", "tip", "other"},
-				"default/test-repo":    {"atag", "release", "latest"},
+				"default/start":        {imageapi.DefaultImageTag, "tip", "other"},
+				"default/test-repo":    {"atag", "release", imageapi.DefaultImageTag},
 			},
 		},
 		{
@@ -138,7 +139,7 @@ func TestParseTag(t *testing.T) {
 			name:         "1st parseTag test",
 			input:        "centos",
 			expectedRest: "centos",
-			expectedTag:  "latest",
+			expectedTag:  imageapi.DefaultImageTag,
 			expectedErr:  nil,
 		},
 		{

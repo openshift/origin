@@ -24,6 +24,7 @@ type expectedImage struct {
 type fakeDockerRegistryClient struct {
 	Registry                 string
 	Namespace, Name, Tag, ID string
+	Insecure                 bool
 
 	Tags map[string]string
 	Err  error
@@ -31,8 +32,9 @@ type fakeDockerRegistryClient struct {
 	Images []expectedImage
 }
 
-func (f *fakeDockerRegistryClient) Connect(registry string) (dockerregistry.Connection, error) {
+func (f *fakeDockerRegistryClient) Connect(registry string, insecure bool) (dockerregistry.Connection, error) {
 	f.Registry = registry
+	f.Insecure = insecure
 	return f, nil
 }
 
@@ -43,7 +45,7 @@ func (f *fakeDockerRegistryClient) ImageTags(namespace, name string) (map[string
 
 func (f *fakeDockerRegistryClient) ImageByTag(namespace, name, tag string) (*docker.Image, error) {
 	if len(tag) == 0 {
-		tag = "latest"
+		tag = api.DefaultImageTag
 	}
 	f.Namespace, f.Name, f.Tag = namespace, name, tag
 	for _, t := range f.Images {
@@ -128,6 +130,36 @@ func TestControllerTagRetrievalFails(t *testing.T) {
 	}
 }
 
+func TestControllerRetrievesInsecure(t *testing.T) {
+	cli, fake := &fakeDockerRegistryClient{Err: fmt.Errorf("test error")}, &client.Fake{}
+	c := ImportController{client: cli, repositories: fake, mappings: fake}
+
+	repo := api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "test",
+			Namespace: "other",
+			Annotations: map[string]string{
+				"openshift.io/image.insecureRepository": "true",
+			},
+		},
+		Spec: api.ImageStreamSpec{
+			DockerImageRepository: "foo/bar",
+		},
+	}
+	if err := c.Next(&repo); err != cli.Err {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !cli.Insecure {
+		t.Errorf("expected insecure call: %#v", cli)
+	}
+	if len(repo.Annotations["openshift.io/image.dockerRepositoryCheck"]) != 0 {
+		t.Errorf("should not set annotation: %#v", repo)
+	}
+	if len(fake.Actions) != 0 {
+		t.Error("expected no actions on fake client")
+	}
+}
+
 /*
 func TestControllerRepoTagsAlreadySet(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{}, &client.Fake{}
@@ -153,7 +185,7 @@ func TestControllerRepoTagsAlreadySet(t *testing.T) {
 */
 
 func TestControllerImageNotFoundError(t *testing.T) {
-	cli, fake := &fakeDockerRegistryClient{Tags: map[string]string{"latest": "not_found"}}, &client.Fake{}
+	cli, fake := &fakeDockerRegistryClient{Tags: map[string]string{api.DefaultImageTag: "not_found"}}, &client.Fake{}
 	c := ImportController{client: cli, repositories: fake, mappings: fake}
 	repo := api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
@@ -174,7 +206,7 @@ func TestControllerImageNotFoundError(t *testing.T) {
 
 func TestControllerImageWithGenericError(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{
-		Tags: map[string]string{"latest": "found"},
+		Tags: map[string]string{api.DefaultImageTag: "found"},
 		Images: []expectedImage{
 			{
 				ID:  "found",
@@ -202,7 +234,7 @@ func TestControllerImageWithGenericError(t *testing.T) {
 
 func TestControllerWithImage(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{
-		Tags: map[string]string{"latest": "found"},
+		Tags: map[string]string{api.DefaultImageTag: "found"},
 		Images: []expectedImage{
 			{
 				ID: "found",
@@ -234,7 +266,7 @@ func TestControllerWithImage(t *testing.T) {
 /*
 func TestControllerWithEmptyTag(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{
-		Tags: map[string]string{"latest": "found"},
+		Tags: map[string]string{api.DefaultImageTag: "found"},
 		Images: []expectedImage{
 			{
 				ID: "found",
@@ -250,7 +282,7 @@ func TestControllerWithEmptyTag(t *testing.T) {
 		ObjectMeta:            kapi.ObjectMeta{Name: "test", Namespace: "other"},
 		//DockerImageRepository: "foo/bar",
 		Tags: map[string]string{
-			"latest": "",
+			api.DefaultImageTag: "",
 		},
 	}
 	if err := c.Next(&repo); err != nil {

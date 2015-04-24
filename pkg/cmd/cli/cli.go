@@ -64,6 +64,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 
 	cmds.AddCommand(cmd.NewCmdLogin(f, in, out))
 	cmds.AddCommand(cmd.NewCmdProject(f, out))
+	cmds.AddCommand(cmd.NewCmdRequestProject("new-project", fullName+" new-project", fullName+" login", fullName+" project", f, out))
 	cmds.AddCommand(cmd.NewCmdNewApplication(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdStatus(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdStartBuild(fullName, f, out))
@@ -96,19 +97,21 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 func NewCmdKubectl(name string) *cobra.Command {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	f := clientcmd.New(flags)
-	cmd := kubecmd.NewKubectlCommand(f.Factory, os.Stdin, os.Stdout, os.Stderr)
-	cmd.Aliases = []string{"kubectl"}
-	cmd.Use = name
-	cmd.Short = "Kubernetes cluster management via kubectl"
-	cmd.Long = cmd.Long + "\n\nThis command is provided for direct management of the Kubernetes cluster OpenShift runs on."
+	out := os.Stdout
+	cmds := kubecmd.NewKubectlCommand(f.Factory, os.Stdin, os.Stdout, os.Stderr)
+	cmds.Aliases = []string{"kubectl"}
+	cmds.Use = name
+	cmds.Short = "Kubernetes cluster management via kubectl"
+	cmds.Long = cmds.Long + "\n\nThis command is provided for direct management of the Kubernetes cluster OpenShift runs on."
 	flags.VisitAll(func(flag *pflag.Flag) {
-		if f := cmd.PersistentFlags().Lookup(flag.Name); f == nil {
-			cmd.PersistentFlags().AddFlag(flag)
+		if f := cmds.PersistentFlags().Lookup(flag.Name); f == nil {
+			cmds.PersistentFlags().AddFlag(flag)
 		} else {
 			glog.V(6).Infof("already registered flag %s", flag.Name)
 		}
 	})
-	return cmd
+	cmds.AddCommand(cmd.NewCmdOptions(f, out))
+	return cmds
 }
 
 // applyToCreate injects the deprecation notice about for 'apply' command into

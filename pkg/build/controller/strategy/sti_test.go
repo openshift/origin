@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -69,6 +70,9 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if len(actual.Spec.Volumes) != 2 {
 		t.Fatalf("Expected 2 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
+	if !kapi.Semantic.DeepEqual(container.Resources, expected.Parameters.Resources) {
+		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
+	}
 	found := false
 	for _, v := range container.Env {
 		if v.Name == "FOO" && v.Value == "bar" {
@@ -119,6 +123,12 @@ func mockSTIBuild() *buildapi.Build {
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "docker-registry/repository/stiBuild",
 				PushSecretName:       "foo",
+			},
+			Resources: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+				},
 			},
 		},
 		Status: buildapi.BuildStatusNew,

@@ -7,14 +7,17 @@
         <div>
           <em>{{emptyMessage}}</em>
         </div>
-      </div>      
+      </div>
       <div style="margin-bottom: 10px;" ng-repeat="service in services">
         <h3>{{service.metadata.name}}</h3>
         <div>Created: <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></div>
         <div>IP: {{service.spec.portalIP}}</div>
-        <div>Port: {{service.spec.port}}</div>
-        <div>Container port: {{service.spec.containerPort}}</div>
-        <div>Protocol: {{service.spec.protocol}}</div>
+        <div>Ports:</div>
+        <ul>
+          <li ng-repeat="portMapping in service.spec.ports | orderBy:port">
+            {{portMapping.port}} &#8594; {{portMapping.targetPort}} ({{portMapping.protocol}})
+          </li>
+        </ul>
         <div>Selectors: <span ng-if="!service.spec.selector"><em>none</em></span>
             <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector"> {{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>
         </div>

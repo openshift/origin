@@ -49,7 +49,6 @@ The simplest way to run OpenShift Origin is in a Docker container:
 
     $ docker run -d --name "openshift-origin" --net=host --privileged \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        -v /tmp/openshift:/tmp/openshift \
         openshift/origin start
 
 (you'll need to create the /tmp/openshift directory the first time).
@@ -170,7 +169,7 @@ Management Console
 
 The OpenShift API server also hosts the web-based management console. You can try out the management console at [http://localhost:8443/console](http://localhost:8443/console).
 
-For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/using_openshift/console.html).
+For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/dev_guide/console.html).
 
 ![Management console overview](docs/screenshots/console_overview.png?raw=true)
 

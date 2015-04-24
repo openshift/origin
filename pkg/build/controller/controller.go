@@ -8,6 +8,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	errors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -22,6 +23,7 @@ type BuildController struct {
 	PodManager        podManager
 	BuildStrategy     BuildStrategy
 	ImageStreamClient imageStreamClient
+	Recorder          record.EventRecorder
 }
 
 // BuildStrategy knows how to create a pod spec for a pod which can execute a build.
@@ -120,6 +122,8 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 			glog.V(4).Infof("Build pod already existed: %#v", podSpec)
 			return nil
 		}
+		// log an event if the pod is not created (most likely due to quota denial)
+		bc.Recorder.Eventf(build, "failedCreate", "Error creating: %v", err)
 		return fmt.Errorf("failed to create pod for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 

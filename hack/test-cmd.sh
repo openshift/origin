@@ -79,7 +79,7 @@ export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 # Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
 echo "[INFO] Create certificates for the OpenShift server to ${CERT_DIR}"
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-ALL_IP_ADDRESSES=`ifconfig | grep "inet " | awk '{print $2}'`
+ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
 SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
 while read -r IP_ADDRESS
 do
@@ -157,19 +157,13 @@ osc get services --config="${CERT_DIR}/admin/.kubeconfig"
 # test config files from env vars
 OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig" osc get services
 
-# test config files in the current directory
-TEMP_PWD=`pwd` 
-pushd ${CONFIG_DIR} >/dev/null
-    cp ${CERT_DIR}/admin/.kubeconfig .openshiftconfig
-    ${TEMP_PWD}/${GO_OUT}/osc get services
-popd 
-
 # test config files in the home directory
 mkdir -p ${HOME}/.config/openshift
-mv ${CONFIG_DIR}/.openshiftconfig ${HOME}/.config/openshift/.config
+mv ${CERT_DIR}/admin/.kubeconfig ${HOME}/.config/openshift/config
 osc get services
+mv ${HOME}/.config/openshift/config ${HOME}/.config/openshift/non-default-config
 echo "config files: ok"
-export OPENSHIFTCONFIG="${HOME}/.config/openshift/.config"
+export OPENSHIFTCONFIG="${HOME}/.config/openshift/non-default-config"
 
 # from this point every command will use config from the OPENSHIFTCONFIG env var
 
@@ -242,6 +236,9 @@ echo "templates: ok"
 [ "$(osc get 2>&1 | grep 'you must provide one or more resources')" ]
 [ "$(openshift cli get 2>&1 | grep 'you must provide one or more resources')" ]
 [ "$(openshift kubectl get 2>&1 | grep 'you must provide one or more resources')" ]
+
+# commands that expect file paths must validate and error out correctly
+[ "$(osc login --certificate-authority=/path/to/invalid 2>&1 | grep 'no such file or directory')" ]
 
 osc get pods --match-server-version
 osc create -f examples/hello-openshift/hello-pod.json
@@ -343,6 +340,16 @@ echo "imageRepositoryMappings: ok"
 # the local image repository takes precedence over the Docker Hub "mysql" image
 [ "$(osc new-app mysql -o yaml | grep mysql-55-centos7)" ]
 osc new-app php mysql
+# check if we can create from a stored template
+osc create -f examples/sample-app/application-template-stibuild.json
+osc get template ruby-helloworld-sample
+[ "$(osc new-app ruby-helloworld-sample -o yaml | grep MYSQL_USER)" ]
+[ "$(osc new-app ruby-helloworld-sample -o yaml | grep MYSQL_PASSWORD)" ]
+[ "$(osc new-app ruby-helloworld-sample -o yaml | grep ADMIN_USERNAME)" ]
+[ "$(osc new-app ruby-helloworld-sample -o yaml | grep ADMIN_PASSWORD)" ]
+# create from template with code explicitly set is not supported
+[ ! "$(osc new-app ruby-helloworld-sample~git@github.com/mfojtik/sinatra-app-example)" ]
+osc delete template ruby-helloworld-sample
 echo "new-app: ok"
 
 osc get routes

@@ -12,9 +12,9 @@ type ErrNoMatch struct {
 
 func (e ErrNoMatch) Error() string {
 	if len(e.qualifier) != 0 {
-		return fmt.Sprintf("no image matched %q: %s", e.value, e.qualifier)
+		return fmt.Sprintf("no image or template matched %q: %s", e.value, e.qualifier)
 	}
-	return fmt.Sprintf("no image matched %q", e.value)
+	return fmt.Sprintf("no image or template matched %q", e.value)
 }
 
 func (e ErrNoMatch) UsageError(commandName string) string {
@@ -34,14 +34,14 @@ type ErrMultipleMatches struct {
 }
 
 func (e ErrMultipleMatches) Error() string {
-	return fmt.Sprintf("multiple images matched %q: %d", e.Image, len(e.Matches))
+	return fmt.Sprintf("multiple images or templates matched %q: %d", e.Image, len(e.Matches))
 }
 
 func (e ErrMultipleMatches) UsageError(commandName string) string {
 	buf := &bytes.Buffer{}
 	for _, match := range e.Matches {
 		fmt.Fprintf(buf, "* %s %f\n", match.Description, match.Score)
-		fmt.Fprintf(buf, "  Use %[1]s to specify this image\n\n", match.Argument)
+		fmt.Fprintf(buf, "  Use %[1]s to specify this image or template\n\n", match.Argument)
 	}
 	return fmt.Sprintf(`
 The argument %[1]q could apply to the following Docker images or OpenShift image repositories:

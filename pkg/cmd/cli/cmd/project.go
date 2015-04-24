@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -185,19 +184,18 @@ func RunProject(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	}
 
 	pathOptions := &kubecmdconfig.PathOptions{
-		LocalFile:  cliconfig.OpenShiftConfigFileName,
-		GlobalFile: path.Join(os.Getenv("HOME"), cliconfig.OpenShiftConfigHomeDirFileName),
-		EnvVarFile: os.Getenv(cliconfig.OpenShiftConfigPathEnvVar),
-
+		GlobalFile:       cliconfig.RecommendedHomeFile,
 		EnvVar:           cliconfig.OpenShiftConfigPathEnvVar,
 		ExplicitFileFlag: cliconfig.OpenShiftConfigFlagName,
+
+		GlobalFileSubpath: cliconfig.OpenShiftConfigHomeDirFileName,
 
 		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
 			ExplicitPath: cmdutil.GetFlagString(cmd, cliconfig.OpenShiftConfigFlagName),
 		},
 	}
 
-	if err := pathOptions.ModifyConfig(config); err != nil {
+	if err := kubecmdconfig.ModifyConfig(pathOptions, config); err != nil {
 		return err
 	}
 

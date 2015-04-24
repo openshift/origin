@@ -74,7 +74,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		ImageTemplate: variable.NewDefaultImageTemplate(),
 
 		Labels:   defaultLabel,
-		Ports:    "80:80,443:443",
+		Ports:    "80:80,443:443,1936:1936",
 		Replicas: 1,
 	}
 

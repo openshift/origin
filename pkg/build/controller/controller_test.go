@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -128,6 +129,7 @@ func mockBuildController() *BuildController {
 		PodManager:        &okPodManager{},
 		BuildStrategy:     &okStrategy{},
 		ImageStreamClient: &okImageStreamClient{},
+		Recorder:          &record.FakeRecorder{},
 	}
 }
 

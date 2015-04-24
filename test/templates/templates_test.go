@@ -55,7 +55,8 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 	osClient := osclient.NewOrDie(&kclient.Config{Host: server.URL})
 
 	storage := map[string]rest.Storage{
-		"templateConfigs": templateregistry.NewREST(),
+		"templateConfigs":    templateregistry.NewREST(true),
+		"processedTemplates": templateregistry.NewREST(false),
 	}
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)

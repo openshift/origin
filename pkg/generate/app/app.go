@@ -250,7 +250,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 	if r.AsImageStream {
 		tag := r.Tag
 		if len(tag) == 0 {
-			tag = "latest"
+			tag = imageapi.DefaultImageTag
 		}
 		triggers = []deployapi.DeploymentTriggerPolicy{
 			{

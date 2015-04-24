@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -62,6 +63,9 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if len(container.Env) != 3 {
 		t.Fatalf("Expected 3 elements in Env table, got %d", len(container.Env))
 	}
+	if !kapi.Semantic.DeepEqual(container.Resources, expected.Parameters.Resources) {
+		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
+	}
 	buildJSON, _ := v1beta1.Codec.Encode(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
@@ -98,6 +102,12 @@ func mockDockerBuild() *buildapi.Build {
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "docker-registry/repository/dockerBuild",
 				PushSecretName:       "foo",
+			},
+			Resources: kapi.ResourceRequirements{
+				Limits: kapi.ResourceList{
+					kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+				},
 			},
 		},
 		Status: buildapi.BuildStatusNew,

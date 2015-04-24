@@ -32,7 +32,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
-	"github.com/openshift/origin/pkg/api/v1beta2"
+	"github.com/openshift/origin/pkg/api/v1beta3"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -76,6 +76,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
+	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
@@ -89,9 +90,10 @@ import (
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	authorizationetcd "github.com/openshift/origin/pkg/authorization/registry/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
+	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
@@ -105,9 +107,9 @@ const (
 	OpenShiftAPIPrefix        = "/osapi" // TODO: make configurable
 	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
 	OpenShiftAPIV1Beta1       = "v1beta1"
-	OpenShiftAPIV1Beta2       = "v1beta2"
+	OpenShiftAPIV1Beta3       = "v1beta3"
 	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
-	OpenShiftAPIPrefixV1Beta2 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta2
+	OpenShiftAPIPrefixV1Beta3 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
 	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
@@ -142,7 +144,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
-	authorizationEtcd := authorizationetcd.New(c.EtcdHelper)
 
 	userStorage := useretcd.NewREST(c.EtcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)
@@ -150,6 +151,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
 
+	policyStorage := policyetcd.NewStorage(c.EtcdHelper)
+	policyRegistry := policyregistry.NewRegistry(policyStorage)
+	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
+	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
+	roleBindingRegistry := rolebindingregistry.NewVirtualRegistry(policyBindingRegistry, policyRegistry, c.Options.PolicyConfig.MasterAuthorizationNamespace)
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
 
@@ -196,6 +202,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		GRFn: deployRollback.GenerateRollback,
 	}
 
+	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache)
+
 	// initialize OpenShift API
 	storage := map[string]rest.Storage{
 		"builds":                   buildregistry.NewREST(buildEtcd),
@@ -220,12 +228,15 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
 
-		"templateConfigs": templateregistry.NewREST(),
-		"templates":       templateetcd.NewREST(c.EtcdHelper),
+		"processedTemplates": templateregistry.NewREST(false),
+		"templates":          templateetcd.NewREST(c.EtcdHelper),
+		// DEPRECATED: remove with v1beta1
+		"templateConfigs": templateregistry.NewREST(true),
 
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
-		"projects": projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache),
+		"projects":        projectStorage,
+		"projectRequests": projectrequeststorage.NewREST(c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingRegistry, *projectStorage),
 
 		"users":                userStorage,
 		"identities":           identityStorage,
@@ -236,10 +247,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
 		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
 
-		"policies":              policyregistry.NewREST(authorizationEtcd),
-		"policyBindings":        policybindingregistry.NewREST(authorizationEtcd),
-		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(authorizationEtcd)),
-		"roleBindings":          rolebindingregistry.NewREST(rolebindingregistry.NewVirtualRegistry(authorizationEtcd, authorizationEtcd, c.Options.PolicyConfig.MasterAuthorizationNamespace)),
+		"policies":              policyStorage,
+		"policyBindings":        policyBindingStorage,
+		"roles":                 roleregistry.NewREST(roleregistry.NewVirtualRegistry(policyRegistry)),
+		"roleBindings":          rolebindingregistry.NewREST(roleBindingRegistry),
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectAccessReviewStorage,
 	}
@@ -250,9 +261,12 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		v1beta1Storage[k] = v
 		v1beta1Storage[strings.ToLower(k)] = v
 	}
-	v1beta2Storage := map[string]rest.Storage{}
+	v1beta3Storage := map[string]rest.Storage{}
 	for k, v := range storage {
-		v1beta2Storage[strings.ToLower(k)] = v
+		if k == "templateConfigs" {
+			continue
+		}
+		v1beta3Storage[strings.ToLower(k)] = v
 	}
 
 	version := &apiserver.APIGroupVersion{
@@ -279,10 +293,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	version2 := &apiserver.APIGroupVersion{
 		Root:    OpenShiftAPIPrefix,
-		Version: OpenShiftAPIV1Beta2,
+		Version: OpenShiftAPIV1Beta3,
 
-		Storage: v1beta2Storage,
-		Codec:   v1beta2.Codec,
+		Storage: v1beta3Storage,
+		Codec:   v1beta3.Codec,
 
 		Mapper: latest.RESTMapper,
 
@@ -295,11 +309,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 
 	if err := version2.InstallREST(container); err != nil {
-		// TODO: remove this check once v1beta2 is complete
+		// TODO: remove this check once v1beta3 is complete
 		if utilerrs.FilterOut(err, func(err error) bool {
 			return strings.Contains(err.Error(), "is registered for version")
 		}) != nil {
-			glog.Fatalf("Unable to initialize v1beta2 API: %v", err)
+			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
 		}
 	}
 
@@ -310,19 +324,19 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			root = svc
 		case OpenShiftAPIPrefixV1Beta1:
 			svc.Doc("OpenShift REST API, version v1beta1").ApiVersion("v1beta1")
-		case OpenShiftAPIPrefixV1Beta2:
-			svc.Doc("OpenShift REST API, version v1beta2").ApiVersion("v1beta2")
+		case OpenShiftAPIPrefixV1Beta3:
+			svc.Doc("OpenShift REST API, version v1beta3").ApiVersion("v1beta3")
 		}
 	}
 	if root == nil {
 		root = new(restful.WebService)
 		container.Add(root)
 	}
-	initAPIVersionRoute(root, "v1beta1", "v1beta2")
+	initAPIVersionRoute(root, "v1beta1", "v1beta3")
 
 	return []string{
 		fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta1),
-		fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1Beta2),
+		fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1Beta3),
 	}
 }
 
@@ -377,7 +391,7 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 			object := api.RootPaths{Paths: []string{
 				"/api",
 				"/api/v1beta1",
-				"/api/v1beta2",
+				"/api/v1beta3",
 				"/api/v1beta3",
 				"/healthz",
 				"/healthz/ping",
@@ -549,10 +563,10 @@ func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
 
 // ensureComponentAuthorizationRules initializes the global policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
-	registry := authorizationetcd.New(c.EtcdHelper)
+	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(c.EtcdHelper))
 	ctx := kapi.WithNamespace(kapi.NewContext(), c.Options.PolicyConfig.MasterAuthorizationNamespace)
 
-	if _, err := registry.GetPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
+	if _, err := policyRegistry.GetPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
 		glog.Infof("No master policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
 		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.MasterAuthorizationNamespace, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
@@ -568,27 +582,27 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := c.AuthorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {
-			forbidden(err.Error(), w, req)
+			forbidden(err.Error(), "", w, req)
 			return
 		}
 		if attributes == nil {
-			forbidden("No attributes", w, req)
+			forbidden("No attributes", "", w, req)
 			return
 		}
 
 		ctx, exists := c.RequestContextMapper.Get(req)
 		if !exists {
-			forbidden("context not found", w, req)
+			forbidden("context not found", attributes.GetAPIVersion(), w, req)
 			return
 		}
 
 		allowed, reason, err := c.Authorizer.Authorize(ctx, attributes)
 		if err != nil {
-			forbidden(err.Error(), w, req)
+			forbidden(err.Error(), attributes.GetAPIVersion(), w, req)
 			return
 		}
 		if !allowed {
-			forbidden(reason, w, req)
+			forbidden(reason, attributes.GetAPIVersion(), w, req)
 			return
 		}
 
@@ -597,7 +611,15 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 }
 
 // forbidden renders a simple forbidden error
-func forbidden(reason string, w http.ResponseWriter, req *http.Request) {
+func forbidden(reason, apiVersion string, w http.ResponseWriter, req *http.Request) {
+	// the api version can be empty for two basic reasons:
+	// 1. malformed API request
+	// 2. not an API request at all
+	// In these cases, just assume the latest version that will work better than nothing
+	if len(apiVersion) == 0 {
+		apiVersion = klatest.Version
+	}
+
 	// Reason is an opaque string that describes why access is allowed or forbidden (forbidden by the time we reach here).
 	// We don't have direct access to kind or name (not that those apply either in the general case)
 	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
@@ -605,12 +627,15 @@ func forbidden(reason string, w http.ResponseWriter, req *http.Request) {
 	forbiddenError, _ := kapierror.NewForbidden("", "", errors.New("")).(*kapierror.StatusError)
 	forbiddenError.ErrStatus.Message = fmt.Sprintf("%q is forbidden because %s", req.RequestURI, reason)
 
-	// TODO: this serialization is broken in the general case.  It chooses the latest, but
-	// it should choose the serialization based on the codec for the uri requested.  What is coded here
-	// is better than not returning a status object at all, but needs to be fixed once authorization is
-	// tied into the APIInstaller itself.  Then we'll only have the wrong codec for non-resource requests
+	// Not all API versions in valid API requests will have a matching codec in kubernetes.  If we can't find one,
+	// just default to the latest kube codec.
+	codec := klatest.Codec
+	if requestedCodec, err := klatest.InterfacesFor(apiVersion); err == nil {
+		codec = requestedCodec
+	}
+
 	formatted := &bytes.Buffer{}
-	output, err := klatest.Codec.Encode(&forbiddenError.ErrStatus)
+	output, err := codec.Encode(&forbiddenError.ErrStatus)
 	if err != nil {
 		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
 	} else {

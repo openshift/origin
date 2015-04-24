@@ -11,6 +11,7 @@ const (
 	unknownReason                     = 0
 	noServerFoundReason               = 1
 	certificateAuthorityUnknownReason = 2
+	configurationInvalidReason        = 3
 
 	certificateAuthorityUnknownMsg = "The server uses a certificate signed by unknown authority. You may need to use the --certificate-authority flag to provide the path to a certificate file for the certificate authority, or --insecure-skip-tls-verify to bypass the certificate check and use insecure connections."
 	notConfiguredMsg               = `OpenShift is not configured. You need to run the login command in order to create a default config for your server and credentials:
@@ -41,6 +42,10 @@ func IsNoServerFound(err error) bool {
 	return detectReason(err) == noServerFoundReason
 }
 
+func IsConfigurationInvalid(err error) bool {
+	return detectReason(err) == configurationInvalidReason
+}
+
 func IsCertificateAuthorityUnknown(err error) bool {
 	return detectReason(err) == certificateAuthorityUnknownReason
 }
@@ -54,8 +59,10 @@ func detectReason(err error) int {
 		switch {
 		case strings.Contains(err.Error(), "certificate signed by unknown authority"):
 			return certificateAuthorityUnknownReason
-		case clientcmd.IsConfigurationInvalid(err), strings.Contains(err.Error(), "no server found for"):
+		case strings.Contains(err.Error(), "no server defined"):
 			return noServerFoundReason
+		case clientcmd.IsConfigurationInvalid(err):
+			return configurationInvalidReason
 		}
 	}
 	return unknownReason

@@ -141,7 +141,7 @@ func (g *BuildGenerator) generateBuildUsingObjectReference(ctx kapi.Context, con
 	}
 	tag := config.Parameters.Strategy.STIStrategy.Tag
 	if len(tag) == 0 {
-		tag = buildapi.DefaultImageTag
+		tag = imageapi.DefaultImageTag
 	}
 
 	imageRepo, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), from.Name)

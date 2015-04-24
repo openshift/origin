@@ -31,11 +31,11 @@
     },
     {
       "apiVersion": "v1beta1",
-      "id": "redis-slave",
+      "id": "${SLAVE_SERVICE_NAME}",
       "kind": "Service",
       "port": 10001,
       "selector": {
-        "name": "redis-slave"
+        "name": "${SLAVE_SERVICE_NAME}"
       }
     },
     {
@@ -131,7 +131,7 @@
                       "value": "${REDIS_PASSWORD}"
                     }
                   ],
-                  "image": "brendanburns/redis-slave",
+                  "image": "brendanburns/${SLAVE_SERVICE_NAME}",
                   "name": "slave",
                   "ports": [
                     {
@@ -141,20 +141,20 @@
                   ]
                 }
               ],
-              "id": "redis-slave",
+              "id": "${SLAVE_SERVICE_NAME}",
               "version": "v1beta1"
             }
           },
           "labels": {
-            "name": "redis-slave"
+            "name": "${SLAVE_SERVICE_NAME}"
           }
         },
         "replicaSelector": {
-          "name": "redis-slave"
+          "name": "${SLAVE_SERVICE_NAME}"
         },
         "replicas": 2
       },
-      "id": "redis-slave",
+      "id": "${SLAVE_SERVICE_NAME}",
       "kind": "ReplicationController"
     }
   ],
@@ -183,6 +183,11 @@
       "from": "[a-zA-Z0-9]{8}",
       "generate": "expression",
       "name": "REDIS_PASSWORD"
+    },
+    {
+      "description": "Slave Service name",
+      "name": "SLAVE_SERVICE_NAME",
+      "value": "redis-slave"
     }
   ]
 }

@@ -16,7 +16,7 @@ func ImageFromName(name string, tag string) (*ImageRef, error) {
 		if len(ref.Tag) != 0 {
 			tag = ref.Tag
 		} else {
-			tag = "latest"
+			tag = image.DefaultImageTag
 		}
 	}
 
