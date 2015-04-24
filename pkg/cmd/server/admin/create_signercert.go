@@ -2,12 +2,13 @@ package admin
 
 import (
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -37,15 +38,13 @@ func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writ
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create signer certificate",
-		Run: func(c *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), err.Error())
-				c.Help()
-				return
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if _, err := options.CreateSignerCert(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}

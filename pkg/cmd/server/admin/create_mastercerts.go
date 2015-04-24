@@ -2,7 +2,6 @@ package admin
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"path"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -35,15 +35,13 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create all certificates for an OpenShift master.  To create node certificates, try openshift admin create-node-config",
-		Run: func(c *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), err.Error())
-				c.Help()
-				return
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if err := options.CreateMasterCerts(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}

@@ -1,9 +1,11 @@
 package policy
 
 import (
-	"github.com/golang/glog"
+	"errors"
+
 	"github.com/spf13/cobra"
 
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -25,23 +27,23 @@ func NewCmdAddUser(f *clientcmd.Factory) *cobra.Command {
 	options := &AddUserOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "add-role-to-user",
+		Use:   "add-role-to-user <role> <user> [user]...",
 		Short: "add users to a role",
 		Long:  `add users to a role`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !options.complete(cmd, args) {
-				glog.Fatalf("You must specify two arguments")
+			if err := options.complete(args); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			var err error
 			if options.Client, _, err = f.Clients(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if options.BindingNamespace, err = f.DefaultNamespace(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if err := options.Run(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
@@ -51,14 +53,14 @@ func NewCmdAddUser(f *clientcmd.Factory) *cobra.Command {
 	return cmd
 }
 
-func (o *AddUserOptions) complete(cmd *cobra.Command, args []string) bool {
+func (o *AddUserOptions) complete(args []string) error {
 	if len(args) < 2 {
-		return false
+		return errors.New("You must specify at least two arguments: <role> <user> [user]...")
 	}
 
 	o.RoleName = args[0]
 	o.Users = args[1:]
-	return true
+	return nil
 }
 
 func (o *AddUserOptions) Run() error {
