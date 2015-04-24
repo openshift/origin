@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver, ObjectDescriber, $rootScope) {
+  .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver) {
     $scope.pods = {};
     $scope.services = {};
     $scope.unfilteredServices = {};
