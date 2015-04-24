@@ -22,6 +22,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	build "github.com/openshift/origin/pkg/build/api"
 	config "github.com/openshift/origin/pkg/config/api"
+	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
 	template "github.com/openshift/origin/pkg/template/api"
 )
@@ -81,6 +82,35 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			c.FuzzNoCustom(j)
 			specs := []string{"", "a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.DockerImageReference = specs[c.Intn(len(specs))]
+		},
+		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			// TODO: we should not have to set defaults, instead we should be able to detect defaults were applied.
+			if len(j.Type) == 0 {
+				j.Type = deploy.DeploymentStrategyTypeRecreate
+			}
+		},
+		func(j *deploy.DeploymentCauseImageTrigger, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			specs := []string{"", "a/b", "a/b/c", "a:5000/b/c", "a/b", "a/b"}
+			tags := []string{"", "stuff", "other"}
+			j.RepositoryName = specs[c.Intn(len(specs))]
+			if len(j.RepositoryName) > 0 {
+				j.Tag = tags[c.Intn(len(tags))]
+			} else {
+				j.Tag = ""
+			}
+		},
+		func(j *deploy.DeploymentTriggerImageChangeParams, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			specs := []string{"a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
+			j.From.Kind = "DockerImage"
+			j.From.Name = specs[c.Intn(len(specs))]
+			if ref, err := image.ParseDockerImageReference(j.From.Name); err == nil {
+				j.Tag = ref.Tag
+				ref.Tag, ref.ID = "", ""
+				j.RepositoryName = ref.String()
+			}
 		},
 		func(j *config.Config, c fuzz.Continue) {
 			c.Fuzz(&j.ListMeta)
