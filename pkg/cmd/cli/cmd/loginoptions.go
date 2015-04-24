@@ -243,17 +243,11 @@ func (o *LoginOptions) gatherProjectInfo() error {
 
 	switch len(projectsItems) {
 	case 0:
-		// TODO most users will not be allowed to run the suggested commands below, so we should check it and/or
-		// have a server endpoint that allows an admin to describe to users how to request projects
-		fmt.Fprintf(o.Out, `You don't have any projects. If you have access to create a new project, run
+		fmt.Fprintf(o.Out, `You don't have any projects. You can try to create a new project, by running
 
-    $ openshift ex new-project <projectname> --admin=%q
+    $ osc new-project <projectname>
 
-To be added as an admin to an existing project, run
-
-    $ openshift ex policy add-role-to-user admin %q -n <projectname>
-
-`, o.Username, o.Username)
+`)
 
 	case 1:
 		o.Project = projectsItems[0].Name
@@ -304,25 +298,13 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		return false, fmt.Errorf("Insufficient data to merge configuration.")
 	}
 
-	pathOptions := &kubecmdconfig.PathOptions{
-		GlobalFile:       config.RecommendedHomeFile,
-		EnvVar:           config.OpenShiftConfigPathEnvVar,
-		ExplicitFileFlag: config.OpenShiftConfigFlagName,
-
-		GlobalFileSubpath: config.OpenShiftConfigHomeDirFileName,
-
-		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
-			ExplicitPath: o.PathToSaveConfig,
-		},
-	}
-
 	globalExistedBefore := true
-	if _, err := os.Stat(pathOptions.GlobalFile); os.IsNotExist(err) {
+	if _, err := os.Stat(o.PathOptions.GlobalFile); os.IsNotExist(err) {
 		globalExistedBefore = false
 	}
 
 	newConfig := config.CreateConfig(o.Username, o.Project, o.Config)
-	baseDir := filepath.Dir(pathOptions.GetDefaultFilename())
+	baseDir := filepath.Dir(o.PathOptions.GetDefaultFilename())
 	if err := config.RelativizeClientConfigPaths(&newConfig, baseDir); err != nil {
 		return false, err
 	}
@@ -332,12 +314,12 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		return false, err
 	}
 
-	if err := kubecmdconfig.ModifyConfig(pathOptions, *configToWrite); err != nil {
+	if err := kubecmdconfig.ModifyConfig(o.PathOptions, *configToWrite); err != nil {
 		return false, err
 	}
 
 	created := false
-	if _, err := os.Stat(pathOptions.GlobalFile); err == nil {
+	if _, err := os.Stat(o.PathOptions.GlobalFile); err == nil {
 		created = created || !globalExistedBefore
 	}
 

@@ -5,7 +5,12 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	kubecmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
+	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 )
 
 const (
@@ -37,5 +42,18 @@ func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules 
 	return &clientcmd.ClientConfigLoadingRules{
 		Precedence:     chain,
 		MigrationRules: migrationRules,
+	}
+}
+
+func NewPathOptions(cmd *cobra.Command) *kubecmdconfig.PathOptions {
+	return &kubecmdconfig.PathOptions{
+		GlobalFile: path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName),
+
+		EnvVar:           OpenShiftConfigPathEnvVar,
+		ExplicitFileFlag: OpenShiftConfigFlagName,
+
+		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
+			ExplicitPath: cmdutil.GetFlagString(cmd, OpenShiftConfigFlagName),
+		},
 	}
 }

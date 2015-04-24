@@ -122,24 +122,26 @@ This section covers how to perform all the steps of building, deploying, and upd
     need to accept the server certificates and present its own client
     certificate. These are generated as part of the `openshift start`
     command in whatever the current directory is at the time. You will
-    need to point osc and curl at the appropriate .kubeconfig in order
+    need to point osc and curl at the appropriate certificates in order
     to connect to OpenShift. Assuming you are running as a user other
     than root, you will also need to make the .kubeconfig readable by
     that user. (Note: this is just for example purposes; in a real
     installation, users would generate their own keys and not have access
     to the system keys.)
 
-        $ export OPENSHIFTCONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig
         $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/ca/cert.crt
-        $ sudo chmod a+rwX "$OPENSHIFTCONFIG"
+        $ sudo chmod a+rwX `pwd`/openshift.local.certificates/admin/.kubeconfig
 
 
 4. Bind a user names `test-admin` to the `view` role in the default namespace so you can observe progress in the web console
 
-        $ openshift ex policy add-role-to-user view test-admin
+        $ osadm policy add-role-to-user view test-admin --config=openshift.local.certificates/admin/.kubeconfig
+
+5. Login as `test-admin` using any password
+        $ osc login --certificate-authority=`pwd`/openshift.local.certificates/ca/cert.crt
 
 
-5. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
+6. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 
     * You will need to have the browser accept the certificate at
       `https://<host>:8443` before the console can consult the OpenShift
@@ -150,10 +152,10 @@ This section covers how to perform all the steps of building, deploying, and upd
       and run builds.
 
 
-6. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
+7. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
         $ sudo chmod +r ./openshift.local.certificates/openshift-registry/.kubeconfig
-        $ openshift ex registry --create --credentials=./openshift.local.certificates/openshift-registry/.kubeconfig
+        $ openshift ex registry --create --credentials=./openshift.local.certificates/openshift-registry/.kubeconfig --config=openshift.local.certificates/admin/.kubeconfig
           docker-registry # the service
           docker-registry # the deployment config
 
@@ -163,7 +165,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     of this tutorial.
 
 
-7. Confirm the registry is started (this can take a few minutes):
+8. Confirm the registry is started (this can take a few minutes):
 
         $ osc describe service docker-registry
 
@@ -181,7 +183,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     be added to the docker-registry service list so that it's reachable from other places.
 
 
-8. Confirm the registry is accessible (you may need to run this more than once):
+9. Confirm the registry is accessible (you may need to run this more than once):
 
         $ curl `osc get service docker-registry --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}"`
 
@@ -190,12 +192,12 @@ This section covers how to perform all the steps of building, deploying, and upd
         "docker-registry server (dev) (v0.9.0)"
 
 
-9. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
+10. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
 
-        $ openshift ex new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3" --admin=test-admin
+        $ osc new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3"
 
 
-10. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
+11. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 
     * You will need to have the browser accept the certificate at
       `https://<host>:8443` before the console can consult the OpenShift
@@ -206,7 +208,7 @@ This section covers how to perform all the steps of building, deploying, and upd
       and run builds.
 
 
-11. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
+12. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
     to an OpenShift-visible git account that you control, preferably
     somewhere that can also reach your OpenShift server with a webhook.
     A github.com account is an obvious place for this, but an in-house
@@ -220,7 +222,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     OpenShift's public repository, just not a changed build.
 
 
-12. *Optional:* Add the following webhook under the settings in your new GitHub repository:
+13. *Optional:* Add the following webhook under the settings in your new GitHub repository:
 
         $ https://<host>:8443/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github?namespace=test
 
@@ -230,18 +232,10 @@ This section covers how to perform all the steps of building, deploying, and upd
     instance as the certificate chain generated is not publicly verified.
 
 
-13. Edit application-template-stibuild.json which will define the sample application
+14. Edit application-template-stibuild.json which will define the sample application
 
  * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
    *Note:* You can skip this step if you did not create a forked repository.
-
-
-14. Log in with the "test-admin" user and switch to the "test" project which will be used by every command from now on. This
-    will update the file pointed by $OPENSHIFTCONFIG and will make it easy to switch betwen the "master" context and the
-    "test-admin" user:
-
-        $ osc login -u test-admin -p pass
-        $ osc project test
 
 
 15. Submit the application template for processing (generating shared parameters requested in the template)
@@ -379,23 +373,26 @@ the ip address shown below with the correct one for your environment.
             $ docker pull openshift/origin-haproxy-router
 
             $ sudo chmod +r `pwd`/openshift.local.certificates/openshift-router/.kubeconfig
-            $ openshift ex router --create --credentials="`pwd`/openshift.local.certificates/openshift-router/.kubeconfig"
+            $ openshift ex router --create --credentials="`pwd`/openshift.local.certificates/openshift-router/.kubeconfig" --config=openshift.local.certificates/admin/.kubeconfig
               router # the service
               router # the deployment config
 
 
-3.  Wait for the router to start.
+3.  Switch to the `default` project to watch for router to start
+            $ osc project default
+
+4.  Wait for the router to start.
 
             $ osc describe dc router
             # watch for the number of deployed pods to go to 1
 
 
-4.  *Optional:* View the logs of the router.
+5.  *Optional:* View the logs of the router.
 
             $ osc log router-1-<podrandom-suffix>
 
 
-5.  Curl the url, substituting the ip address shown for the correct value in your environment.
+6.  Curl the url, substituting the ip address shown for the correct value in your environment.
 
             $ curl -s -k --resolve www.example.com:443:10.0.2.15 https://www.example.com
                 ... removed for readability ...
@@ -403,7 +400,7 @@ the ip address shown below with the correct one for your environment.
                 ... removed for readability ...
 
 
-6. *Optional*: View the certificate being used for the secure route.
+7. *Optional*: View the certificate being used for the secure route.
 
             $ openssl s_client -servername www.example.com -connect 10.0.2.15:443
             ... removed for readability ...

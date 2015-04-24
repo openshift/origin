@@ -1,13 +1,16 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+
 	"github.com/openshift/origin/pkg/client"
+	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -18,6 +21,9 @@ type NewProjectOptions struct {
 	Description string
 
 	Client client.Interface
+
+	ProjectOptions *ProjectOptions
+	Out            io.Writer
 }
 
 const requestProjectLongDesc = `
@@ -40,22 +46,23 @@ After your project is created you can switch to it using %[3]s <project name>.
 
 func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
+	options.Out = out
 
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s <project-name> [--display-name=<your display name> --description=<your description]", name),
 		Short: "request a new project",
 		Long:  fmt.Sprintf(requestProjectLongDesc, fullName, oscLoginName, oscProjectName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if !options.complete(cmd) {
-				return
+			if err := options.complete(cmd, f); err != nil {
+				kcmdutil.CheckErr(err)
 			}
 
 			var err error
 			if options.Client, _, err = f.Clients(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if err := options.Run(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
@@ -67,16 +74,22 @@ func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f
 	return cmd
 }
 
-func (o *NewProjectOptions) complete(cmd *cobra.Command) bool {
+func (o *NewProjectOptions) complete(cmd *cobra.Command, f *clientcmd.Factory) error {
 	args := cmd.Flags().Args()
 	if len(args) != 1 {
 		cmd.Help()
-		return false
+		return errors.New("must have exactly one argument")
 	}
 
 	o.ProjectName = args[0]
 
-	return true
+	o.ProjectOptions = &ProjectOptions{}
+	o.ProjectOptions.PathOptions = cliconfig.NewPathOptions(cmd)
+	if err := o.ProjectOptions.Complete(f, []string{""}, o.Out); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (o *NewProjectOptions) Run() error {
@@ -85,8 +98,19 @@ func (o *NewProjectOptions) Run() error {
 	projectRequest.DisplayName = o.DisplayName
 	projectRequest.Annotations = make(map[string]string)
 	projectRequest.Annotations["description"] = o.Description
-	if _, err := o.Client.ProjectRequests().Create(projectRequest); err != nil {
+
+	project, err := o.Client.ProjectRequests().Create(projectRequest)
+	if err != nil {
 		return err
+	}
+
+	if o.ProjectOptions != nil {
+		o.ProjectOptions.ProjectName = project.Name
+		o.ProjectOptions.ProjectOnly = true
+
+		if err := o.ProjectOptions.RunProject(); err != nil {
+			return err
+		}
 	}
 
 	return nil
