@@ -6,12 +6,12 @@ import (
 	"io"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
@@ -50,15 +50,13 @@ func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, cre
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Reset the policy to the default values",
-		Run: func(c *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), err.Error())
-				c.Help()
-				return
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if err := options.OverwriteBootstrapPolicy(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}

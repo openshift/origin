@@ -1,10 +1,12 @@
 package policy
 
 import (
-	"github.com/golang/glog"
+	"errors"
+
 	"github.com/spf13/cobra"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
@@ -26,19 +28,19 @@ func NewCmdRemoveUserFromProject(f *clientcmd.Factory) *cobra.Command {
 		Short: "remove user from project",
 		Long:  `remove user from project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !options.complete(cmd) {
-				return
+			if err := options.complete(args); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			var err error
 			if options.client, _, err = f.Clients(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if options.bindingNamespace, err = f.DefaultNamespace(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if err := options.run(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
@@ -46,15 +48,13 @@ func NewCmdRemoveUserFromProject(f *clientcmd.Factory) *cobra.Command {
 	return cmd
 }
 
-func (o *removeUserFromProjectOptions) complete(cmd *cobra.Command) bool {
-	args := cmd.Flags().Args()
+func (o *removeUserFromProjectOptions) complete(args []string) error {
 	if len(args) < 1 {
-		cmd.Help()
-		return false
+		return errors.New("You must specify at least one argument: <user> [user]...")
 	}
 
 	o.users = args
-	return true
+	return nil
 }
 
 func (o *removeUserFromProjectOptions) run() error {
