@@ -20,7 +20,7 @@
           </span>
         </div>
         <div>
-          Node: {{pod.status.host || 'unknown'}} <span ng-if="pod.status.hostIP && pod.status.host != pod.status.hostIP">({{pod.status.hostIP}})</span>
+          Node: {{pod.spec.host || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.host != pod.status.hostIP">({{pod.status.hostIP}})</span>
         </div>
         <div>
           IP on node: {{pod.status.podIP || 'unknown'}}
