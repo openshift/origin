@@ -15,17 +15,17 @@ import (
 )
 
 type REST struct {
-	masterNamespace     string
-	roleBindingRegistry rolebinding.Registry
+	masterNamespace    string
+	roleBindingStorage rolebinding.Storage
 
 	projectStorage projectstorage.REST
 }
 
-func NewREST(masterNamespace string, roleBindingRegistry rolebinding.Registry, projectStorage projectstorage.REST) *REST {
+func NewREST(masterNamespace string, roleBindingStorage rolebinding.Storage, projectStorage projectstorage.REST) *REST {
 	return &REST{
-		masterNamespace:     masterNamespace,
-		roleBindingRegistry: roleBindingRegistry,
-		projectStorage:      projectStorage,
+		masterNamespace:    masterNamespace,
+		roleBindingStorage: roleBindingStorage,
+		projectStorage:     projectStorage,
 	}
 }
 
@@ -59,7 +59,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	projectContext := kapi.WithNamespace(ctx, realizedProject.Name)
-	if err := r.roleBindingRegistry.CreateRoleBinding(projectContext, adminBinding, true); err != nil {
+	if _, err := r.roleBindingStorage.CreateRoleBindingWithEscalation(projectContext, adminBinding); err != nil {
 		return nil, err
 	}
 
