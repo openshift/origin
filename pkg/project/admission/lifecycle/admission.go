@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/golang/glog"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -49,7 +51,8 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	}
 	defaultVersion, kind, err := latest.RESTMapper.VersionAndKindForResource(a.GetResource())
 	if err != nil {
-		return err
+		glog.V(4).Infof("Ignoring life-cycle enforcement for resource %v; no associated default version and kind could be found.", a.GetResource())
+		return nil
 	}
 	mapping, err := latest.RESTMapper.RESTMapping(kind, defaultVersion)
 	if err != nil {
