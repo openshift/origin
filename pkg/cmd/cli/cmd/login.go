@@ -75,7 +75,9 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 		Short: "Logs in and save the configuration",
 		Long:  longDescription,
 		Run: func(cmd *cobra.Command, args []string) {
-			options.Complete(f, cmd, args)
+			if err := options.Complete(f, cmd, args); err != nil {
+				kcmdutil.CheckErr(err)
+			}
 
 			if err := options.Validate(args, kcmdutil.GetFlagString(cmd, "server")); err != nil {
 				kcmdutil.CheckErr(err)
@@ -118,10 +120,14 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 
 func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args []string) error {
 	kubeconfig, err := f.OpenShiftClientConfig.RawConfig()
-	if err != nil {
-		return err
-	}
 	o.StartingKubeConfig = &kubeconfig
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		// build a valid object to use if we failed on a non-existent file
+		o.StartingKubeConfig = kclientcmdapi.NewConfig()
+	}
 
 	if serverFlag := kcmdutil.GetFlagString(cmd, "server"); len(serverFlag) > 0 {
 		o.Server = serverFlag
@@ -170,6 +176,10 @@ func (o LoginOptions) Validate(args []string, serverFlag string) error {
 
 	if (len(o.Server) == 0) && !cmdutil.IsTerminal(o.Reader) {
 		return errors.New("A server URL must be specified")
+	}
+
+	if o.StartingKubeConfig == nil {
+		return errors.New("Must have a config file already created")
 	}
 
 	return nil
