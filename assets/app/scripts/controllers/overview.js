@@ -344,6 +344,5 @@ angular.module('openshiftConsole')
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
-      ObjectDescriber.clearObject();
     });
   });
