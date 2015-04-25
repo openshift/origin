@@ -1,10 +1,12 @@
 package policy
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -28,19 +30,19 @@ func NewCmdRemoveUser(f *clientcmd.Factory) *cobra.Command {
 		Short: "remove user from role",
 		Long:  `remove user from role`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !options.complete(cmd) {
-				return
+			if err := options.complete(args); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			var err error
 			if options.client, _, err = f.Clients(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if options.bindingNamespace, err = f.DefaultNamespace(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if err := options.run(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
@@ -50,16 +52,14 @@ func NewCmdRemoveUser(f *clientcmd.Factory) *cobra.Command {
 	return cmd
 }
 
-func (o *removeUserOptions) complete(cmd *cobra.Command) bool {
-	args := cmd.Flags().Args()
+func (o *removeUserOptions) complete(args []string) error {
 	if len(args) < 2 {
-		cmd.Help()
-		return false
+		return errors.New("You must specify at least two arguments: <role> <user> [user]...")
 	}
 
 	o.roleName = args[0]
 	o.users = args[1:]
-	return true
+	return nil
 }
 
 func (o *removeUserOptions) run() error {

@@ -1,9 +1,11 @@
 package policy
 
 import (
-	"github.com/golang/glog"
+	"errors"
+
 	"github.com/spf13/cobra"
 
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -25,23 +27,23 @@ func NewCmdAddGroup(f *clientcmd.Factory) *cobra.Command {
 	options := &addGroupOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "add-role-to-group",
+		Use:   "add-role-to-group <role> <group> [group]...",
 		Short: "add groups to a role",
 		Long:  `add groups to a role`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !options.complete(cmd) {
-				return
+			if err := options.complete(args); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			var err error
 			if options.client, _, err = f.Clients(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if options.bindingNamespace, err = f.DefaultNamespace(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if err := options.run(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
@@ -51,16 +53,14 @@ func NewCmdAddGroup(f *clientcmd.Factory) *cobra.Command {
 	return cmd
 }
 
-func (o *addGroupOptions) complete(cmd *cobra.Command) bool {
-	args := cmd.Flags().Args()
+func (o *addGroupOptions) complete(args []string) error {
 	if len(args) < 2 {
-		cmd.Help()
-		return false
+		return errors.New("You must specify at least two arguments: <role> <group> [group]...")
 	}
 
 	o.roleName = args[0]
 	o.groups = args[1:]
-	return true
+	return nil
 }
 
 func (o *addGroupOptions) run() error {

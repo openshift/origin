@@ -3,17 +3,16 @@ package admin
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -39,15 +38,13 @@ func NewCommandCreateBootstrapPolicyFile(commandName string, fullName string, ou
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create bootstrap policy for OpenShift.",
-		Run: func(c *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), err.Error())
-				c.Help()
-				return
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if err := options.CreateBootstrapPolicyFile(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}

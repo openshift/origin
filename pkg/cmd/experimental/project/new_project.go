@@ -1,12 +1,13 @@
 package project
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/experimental/policy"
@@ -35,16 +36,16 @@ func NewCmdNewProject(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 		Short: "create a new project",
 		Long:  `create a new project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !options.complete(cmd) {
-				return
+			if err := options.complete(args); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			var err error
 			if options.Client, _, err = f.Clients(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if err := options.Run(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
@@ -59,16 +60,13 @@ func NewCmdNewProject(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 	return cmd
 }
 
-func (o *NewProjectOptions) complete(cmd *cobra.Command) bool {
-	args := cmd.Flags().Args()
+func (o *NewProjectOptions) complete(args []string) error {
 	if len(args) != 1 {
-		cmd.Help()
-		return false
+		return errors.New("You must specify one argument: <project-name>")
 	}
 
 	o.ProjectName = args[0]
-
-	return true
+	return nil
 }
 
 func (o *NewProjectOptions) Run() error {

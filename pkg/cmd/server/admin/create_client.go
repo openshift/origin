@@ -2,7 +2,6 @@ package admin
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"path"
@@ -11,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -36,15 +36,13 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a portable client folder containing a client certificate, a client key, a server certificate authority, and a .kubeconfig file.",
-		Run: func(c *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				fmt.Fprintln(c.Out(), err.Error())
-				c.Help()
-				return
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			if err := options.CreateClientFolder(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}

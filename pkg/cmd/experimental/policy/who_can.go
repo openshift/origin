@@ -1,11 +1,13 @@
 package policy
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -24,23 +26,23 @@ func NewCmdWhoCan(f *clientcmd.Factory) *cobra.Command {
 	options := &whoCanOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "who-can",
+		Use:   "who-can <verb> <resource>",
 		Short: "who-can <verb> <resource>",
 		Long:  `who-can <verb> <resource>`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !options.complete(cmd) {
-				return
+			if err := options.complete(args); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
 			var err error
 			if options.client, _, err = f.Clients(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if options.bindingNamespace, err = f.DefaultNamespace(); err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				kcmdutil.CheckErr(err)
 			}
 			if err := options.run(); err != nil {
-				glog.Fatal(err)
+				kcmdutil.CheckErr(err)
 			}
 		},
 	}
@@ -48,16 +50,14 @@ func NewCmdWhoCan(f *clientcmd.Factory) *cobra.Command {
 	return cmd
 }
 
-func (o *whoCanOptions) complete(cmd *cobra.Command) bool {
-	args := cmd.Flags().Args()
+func (o *whoCanOptions) complete(args []string) error {
 	if len(args) != 2 {
-		cmd.Help()
-		return false
+		return errors.New("You must specify two arguments: <verb> <resource>")
 	}
 
 	o.verb = args[0]
 	o.resource = args[1]
-	return true
+	return nil
 }
 
 func (o *whoCanOptions) run() error {
