@@ -16,6 +16,10 @@ const statusLongDesc = `
 Show a high level overview of the current project. Links components by their relationships.
 For more information about individual items, use the describe command (e.g. osc describe buildConfig,
 osc describe deploymentConfig, osc describe service).
+
+Examples:
+        # Show an overview of the current project
+        $ %[1]s status
 `
 
 // NewCmdStatus implements the OpenShift cli status command
