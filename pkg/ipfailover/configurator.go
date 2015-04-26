@@ -18,12 +18,12 @@ func NewConfigurator(name string, plugin IPFailoverConfiguratorPlugin, out io.Wr
 	return &Configurator{Name: name, Plugin: plugin, Writer: out}
 }
 
-func (c *Configurator) Generate() *kapi.List {
+func (c *Configurator) Generate() (*kapi.List, error) {
 	glog.V(4).Infof("Generating IP failover configuration: %s", c.Name)
 	return c.Plugin.Generate()
 }
 
-func (c *Configurator) Create() {
+func (c *Configurator) Create() error {
 	glog.V(4).Infof("Creating IP failover configuration: %s", c.Name)
-	c.Plugin.Create(c.Writer)
+	return c.Plugin.Create(c.Writer)
 }

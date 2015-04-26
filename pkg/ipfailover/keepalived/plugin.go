@@ -1,6 +1,7 @@
 package keepalived
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/ipfailover"
 )
@@ -37,7 +39,7 @@ func NewIPFailoverConfiguratorPlugin(name string, f *clientcmd.Factory, options 
 }
 
 //  Get the port to monitor for the IP Failover configuration.
-func (p *KeepalivedPlugin) GetWatchPort() int {
+func (p *KeepalivedPlugin) GetWatchPort() (int, error) {
 	port := p.Options.WatchPort
 	if port < 1 {
 		port = ipfailover.DefaultWatchPort
@@ -45,86 +47,110 @@ func (p *KeepalivedPlugin) GetWatchPort() int {
 
 	glog.V(4).Infof("KeepAlived IP Failover config: %q - WatchPort: %+v", p.Name, port)
 
-	return port
+	return port, nil
 }
 
 //  Get the selector associated with this IP Failover configurator plugin.
-func (p *KeepalivedPlugin) GetSelector() map[string]string {
+func (p *KeepalivedPlugin) GetSelector() (map[string]string, error) {
+	labels := make(map[string]string, 0)
+
 	if p.Options.Selector == ipfailover.DefaultSelector {
-		return map[string]string{ipfailover.DefaultName: p.Name}
+		return map[string]string{ipfailover.DefaultName: p.Name}, nil
 	}
 
 	labels, remove, err := app.LabelsFromSpec(strings.Split(p.Options.Selector, ","))
 	if err != nil {
-		glog.Fatal(err)
+		return labels, err
 	}
 
 	if len(remove) > 0 {
-		glog.Fatalf("You may not pass negative labels in %q", p.Options.Selector)
+		return labels, fmt.Errorf("You may not pass negative labels in %q", p.Options.Selector)
 	}
 
 	glog.V(4).Infof("KeepAlived IP Failover config: %q - selector: %+v", p.Name, labels)
 
-	return labels
+	return labels, nil
 }
 
 //  Get the namespace associated with this IP Failover configurator plugin.
-func (p *KeepalivedPlugin) GetNamespace() string {
+func (p *KeepalivedPlugin) GetNamespace() (string, error) {
 	namespace, err := p.Factory.OpenShiftClientConfig.Namespace()
 	if err != nil {
-		glog.Fatalf("Error get OS client config: %v", err)
+		return "", err
 	}
 
 	glog.V(4).Infof("KeepAlived IP Failover config: %q - namespace: %q", p.Name, namespace)
 
-	return namespace
+	return namespace, nil
 }
 
-//  Get the service associated with this IP Failover configurator plugin.
-func (p *KeepalivedPlugin) GetService() *kapi.Service {
-	_, kClient, err := p.Factory.Clients()
+//  Get the deployment config associated with this IP Failover configurator plugin.
+func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, error) {
+	osClient, _, err := p.Factory.Clients()
 	if err != nil {
-		glog.Fatalf("Error getting client: %v", err)
+		return nil, fmt.Errorf("Error getting client: %v", err)
 	}
 
-	namespace := p.GetNamespace()
-	service, err := kClient.Services(namespace).Get(p.Name)
+	namespace, err := p.GetNamespace()
+	if err != nil {
+		return nil, fmt.Errorf("Error getting namespace: %v", err)
+	}
+
+	dc, err := osClient.DeploymentConfigs(namespace).Get(p.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			glog.V(4).Infof("KeepAlived IP Failover config: %s - no service found", p.Name)
-			return nil
+			glog.V(4).Infof("KeepAlived IP Failover deployment config: %s not found", p.Name)
+			return nil, nil
 		}
-		glog.Fatalf("Error getting KeepAlived IP Failover config service %q: %v", p.Name, err)
+		return nil, fmt.Errorf("Error getting KeepAlived IP Failover deployment config %q: %v", p.Name, err)
 	}
 
-	glog.V(4).Infof("KeepAlived IP Failover config: %q service: %+v", p.Name, service)
+	glog.V(4).Infof("KeepAlived IP Failover deployment config: %q = %+v", p.Name, dc)
 
-	return service
+	return dc, nil
 }
 
 //  Generate the config and services for this IP Failover configuration plugin.
-func (p *KeepalivedPlugin) Generate() *kapi.List {
-	dc := GenerateDeploymentConfig(p.Name, p.Options, p.GetSelector())
-	objects := []runtime.Object{dc}
+func (p *KeepalivedPlugin) Generate() (*kapi.List, error) {
+	selector, err := p.GetSelector()
+	if err != nil {
+		return nil, fmt.Errorf("Error getting selector: %v", err)
+	}
 
-	services := &kapi.List{Items: app.AddServices(objects)}
-	glog.V(4).Infof("KeepAlived IP Failover config: %q - generated services: %+v", p.Name, services)
+	dc, err := GenerateDeploymentConfig(p.Name, p.Options, selector)
+	if err != nil {
+		return nil, fmt.Errorf("Error generating deployment config: %v", err)
+	}
 
-	return services
+	configList := &kapi.List{Items: []runtime.Object{dc}}
+
+	glog.V(4).Infof("KeepAlived IP Failover config: %q - generated config: %+v", p.Name, configList)
+
+	return configList, nil
 }
 
 //  Create the config and services associated with this IP Failover configuration.
-func (p *KeepalivedPlugin) Create(out io.Writer) {
-	namespace := p.GetNamespace()
+func (p *KeepalivedPlugin) Create(out io.Writer) error {
+	namespace, err := p.GetNamespace()
+	if err != nil {
+		return fmt.Errorf("Error getting Namespace: %v", err)
+	}
 
 	bulk := configcmd.Bulk{
 		Factory: p.Factory.Factory,
 		After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
 	}
 
-	if errs := bulk.Create(p.Generate(), namespace); len(errs) != 0 {
-		glog.Fatalf("Error creating config: %+v", errs)
+	configList, err := p.Generate()
+	if err != nil {
+		return fmt.Errorf("Error generating config: %v", err)
+	}
+
+	if errs := bulk.Create(configList, namespace); len(errs) != 0 {
+		return fmt.Errorf("Error creating config: %+v", errs)
 	}
 
 	glog.V(4).Infof("Created KeepAlived IP Failover config: %q", p.Name)
+
+	return nil
 }

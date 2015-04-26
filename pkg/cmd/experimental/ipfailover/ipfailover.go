@@ -5,12 +5,11 @@ import (
 	"io"
 
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	ipf "github.com/openshift/origin/pkg/ipfailover"
+	"github.com/openshift/origin/pkg/ipfailover"
 	"github.com/openshift/origin/pkg/ipfailover/keepalived"
 )
 
@@ -24,12 +23,11 @@ cluster or as would normally be the case on a subset of nodes (as defined
 via a labelled selector).
 
 If an IP failover configuration does not exist with the given name,
-the --create flag can be passed to create a deployment configuration and
-service that will provide IP failover capability. If you are running in
-production, it is recommended that the labelled selector for the nodes
-matches atleast 2 nodes to ensure you have failover protection and that
-you provide a --replicas=<n> value that matches the number of nodes for
-the given labelled selector.
+the --create flag can be passed to create a deployment configuration that
+will provide IP failover capability. If you are running in production, it is
+recommended that the labelled selector for the nodes matches atleast 2 nodes
+to ensure you have failover protection and that you provide a --replicas=<n>
+value that matches the number of nodes for the given labelled selector.
 
 
 Examples:
@@ -61,12 +59,12 @@ ALPHA: This command is currently being actively developed. It is intended
 `
 
 func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
-	options := &ipf.IPFailoverConfigCmdOptions{
+	options := &ipfailover.IPFailoverConfigCmdOptions{
 		ImageTemplate:    variable.NewDefaultImageTemplate(),
-		Selector:         ipf.DefaultSelector,
-		ServicePort:      ipf.DefaultServicePort,
-		WatchPort:        ipf.DefaultWatchPort,
-		NetworkInterface: ipf.DefaultInterface,
+		Selector:         ipfailover.DefaultSelector,
+		ServicePort:      ipfailover.DefaultServicePort,
+		WatchPort:        ipfailover.DefaultWatchPort,
+		NetworkInterface: ipfailover.DefaultInterface,
 		Replicas:         1,
 	}
 
@@ -75,11 +73,12 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out i
 		Short: shortDesc,
 		Long:  fmt.Sprintf(description, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
-			processCommand(f, options, cmd, args, out)
+			err := processCommand(f, options, cmd, args, out)
+			cmdutil.CheckErr(err)
 		},
 	}
 
-	cmd.Flags().StringVar(&options.Type, "type", ipf.DefaultType, "The type of IP failover configurator to use.")
+	cmd.Flags().StringVar(&options.Type, "type", ipfailover.DefaultType, "The type of IP failover configurator to use.")
 	cmd.Flags().StringVar(&options.ImageTemplate.Format, "images", options.ImageTemplate.Format, "The image to base this IP failover configurator on - ${component} will be replaced based on --type.")
 	cmd.Flags().BoolVar(&options.ImageTemplate.Latest, "latest-images", options.ImageTemplate.Latest, "If true, attempt to use the latest images instead of the current release")
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter nodes on.")
@@ -90,18 +89,16 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out i
 	cmd.Flags().StringVar(&options.VirtualIPs, "virtual-ips", "", "A set of virtual IP ranges and/or addresses that the routers bind and serve on and provide IP failover capability for.")
 	cmd.Flags().StringVarP(&options.NetworkInterface, "interface", "i", "", "Network interface bound by VRRP to use for the set of virtual IP ranges/addresses specified.")
 
-	// unicastHelp := `Send VRRP adverts using unicast instead of over the VRRP multicast group. This is useful in environments where multicast is not supported. Use with caution as this can get slow if the list of peers is large - it is recommended running this with the label option to select a set of nodes.`
-	// cmd.Flags().StringVarP(&options.UseUnicast, "unicast", "u", options.UseUnicast, unicastHelp)
-
-	cmd.Flags().IntVarP(&options.WatchPort, "watch-port", "w", ipf.DefaultWatchPort, "Port to monitor or watch for resource availability.")
-	cmd.Flags().IntVarP(&options.Replicas, "replicas", "r", options.Replicas, "The replication factor of this IP failover configuration; commonly 2 when high availability is desired.")
+	cmd.Flags().IntVarP(&options.WatchPort, "watch-port", "w", ipfailover.DefaultWatchPort, "Port to monitor or watch for resource availability.")
+	cmd.Flags().IntVarP(&options.Replicas, "replicas", "r", options.Replicas, "The replication factor of this IP failover configuration; commonly 2 when high availability is desired. Please ensure this matches the number of nodes that satisfy the selector (or default selector) specified.")
 
 	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
-func getConfigurationName(args []string) string {
-	name := ipf.DefaultName
+//  Get configuration name - argv[1].
+func getConfigurationName(args []string) (string, error) {
+	name := ipfailover.DefaultName
 
 	switch len(args) {
 	case 0:
@@ -109,65 +106,82 @@ func getConfigurationName(args []string) string {
 	case 1:
 		name = args[0]
 	default:
-		glog.Fatalf("Please pass zero or one arguments to provide a name for this configuration.")
+		return "", fmt.Errorf("Please pass zero or one arguments to provide a name for this configuration.")
 	}
 
-	return name
+	return name, nil
 }
 
-func getConfigurator(name string, f *clientcmd.Factory, options *ipf.IPFailoverConfigCmdOptions, out io.Writer) *ipf.Configurator {
+//  Get the configurator based on the ipfailover type.
+func getConfigurator(name string, f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, out io.Writer) (*ipfailover.Configurator, error) {
 	//  Currently, the only supported plugin is keepalived (default).
 	plugin, err := keepalived.NewIPFailoverConfiguratorPlugin(name, f, options)
 
 	switch options.Type {
-	case ipf.DefaultType:
+	case ipfailover.DefaultType:
 		//  Default.
 	// case <new-type>:  plugin, err = makeNewTypePlugin()
 	default:
-		glog.Fatalf("No plugins available to handle type %q", options.Type)
+		return nil, fmt.Errorf("No plugins available to handle type %q", options.Type)
 	}
 
 	if err != nil {
-		glog.Fatalf("IPFailoverConfigurator %q plugin error: %v", options.Type, err)
+		return nil, fmt.Errorf("IPFailoverConfigurator %q plugin error: %v", options.Type, err)
 	}
 
-	return ipf.NewConfigurator(name, plugin, out)
+	return ipfailover.NewConfigurator(name, plugin, out), nil
 }
 
-func previewConfiguration(c *ipf.Configurator, cmd *cobra.Command, out io.Writer) bool {
+//  Preview the configuration if required - returns true|false and errors.
+func previewConfiguration(c *ipfailover.Configurator, cmd *cobra.Command, out io.Writer) (bool, error) {
 	p, output, err := cmdutil.PrinterForCommand(cmd)
 	if err != nil {
-		glog.Fatalf("Error configuring printer: %v", err)
+		return true, fmt.Errorf("Error configuring printer: %v", err)
 	}
 
 	// Check if we are outputting info.
 	if !output {
-		return false
+		return false, nil
 	}
 
-	if err := p.PrintObj(c.Generate(), out); err != nil {
-		glog.Fatalf("Unable to print object: %v", err)
+	configList, err := c.Generate()
+	if err != nil {
+		return true, fmt.Errorf("Error generating config: %v", err)
 	}
 
-	return true
+	if err := p.PrintObj(configList, out); err != nil {
+		return true, fmt.Errorf("Unable to print object: %v", err)
+	}
+
+	return true, nil
 }
 
-func processCommand(f *clientcmd.Factory, options *ipf.IPFailoverConfigCmdOptions, cmd *cobra.Command, args []string, out io.Writer) {
-	name := getConfigurationName(args)
-	c := getConfigurator(name, f, options, out)
+//  Process the ipfailover command.
+func processCommand(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, cmd *cobra.Command, args []string, out io.Writer) error {
+	name, err := getConfigurationName(args)
+	if err != nil {
+		return err
+	}
+
+	c, err := getConfigurator(name, f, options, out)
+	if err != nil {
+		return err
+	}
 
 	//  First up, validate all the command line options.
-	if err := ipf.ValidateCmdOptions(options, c); err != nil {
-		glog.Fatal(err)
+	if err := ipfailover.ValidateCmdOptions(options, c); err != nil {
+		return err
 	}
 
 	//  Check if we are just previewing the config.
-	if previewConfiguration(c, cmd, out) {
-		return
+	previewFlag, err := previewConfiguration(c, cmd, out)
+	if previewFlag {
+		return err
 	}
 
 	if options.Create {
-		c.Create()
-		return
+		return c.Create()
 	}
+
+	return nil
 }

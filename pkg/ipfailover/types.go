@@ -38,7 +38,4 @@ type IPFailoverConfigCmdOptions struct {
 	NetworkInterface string
 	WatchPort        int
 	Replicas         int
-
-	//  For the future - currently unused.
-	UseUnicast bool
 }
