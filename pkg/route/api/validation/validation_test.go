@@ -120,121 +120,140 @@ func TestValidateRoute(t *testing.T) {
 	}
 }
 
-func TestValidateTLSNoTLSTermOk(t *testing.T) {
-	errs := validateTLS(&api.TLSConfig{
-		Termination: "",
-	})
-
-	if len(errs) > 0 {
-		t.Errorf("Unexpected non-empty error list: %#v", errs)
-	}
-}
-
-func TestValidateTLSPodTermoOK(t *testing.T) {
-	errs := validateTLS(&api.TLSConfig{
-		Termination: api.TLSTerminationPassthrough,
-	})
-
-	if len(errs) > 0 {
-		t.Errorf("Unexpected non-empty error list: %#v", errs)
-	}
-}
-
-func TestValidateTLSReencryptTermOKCert(t *testing.T) {
-	errs := validateTLS(&api.TLSConfig{
-		Termination:              api.TLSTerminationReencrypt,
-		DestinationCACertificate: "abc",
-		Certificate:              "def",
-		Key:                      "ghi",
-		CACertificate:            "jkl",
-	})
-
-	if len(errs) > 0 {
-		t.Errorf("Unexpected non-empty error list: %#v", errs)
-	}
-}
-
-func TestValidateTLSEdgeTermOKCerts(t *testing.T) {
-	errs := validateTLS(&api.TLSConfig{
-		Termination:   api.TLSTerminationEdge,
-		Certificate:   "abc",
-		Key:           "abc",
-		CACertificate: "abc",
-	})
-
-	if len(errs) > 0 {
-		t.Errorf("Unexpected non-empty error list: %#v", errs)
-	}
-}
-
-func TestValidateEdgeTermInvalid(t *testing.T) {
-	testCases := []struct {
-		name string
-		cfg  api.TLSConfig
+func TestValidateTLS(t *testing.T) {
+	tests := []struct {
+		name           string
+		route          *api.Route
+		expectedErrors int
 	}{
-		{"no cert", api.TLSConfig{
-			Termination:   api.TLSTerminationEdge,
-			Key:           "abc",
-			CACertificate: "abc",
-		}},
-		{"no key", api.TLSConfig{
-			Termination:   api.TLSTerminationEdge,
-			Certificate:   "abc",
-			CACertificate: "abc",
-		}},
-		{"no ca cert", api.TLSConfig{
-			Termination: api.TLSTerminationEdge,
-			Certificate: "abc",
-			Key:         "abc",
-		}},
+		{
+			name: "No TLS Termination",
+			route: &api.Route{
+				TLS: &api.TLSConfig{
+					Termination: "",
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Passthrough termination OK",
+			route: &api.Route{
+				TLS: &api.TLSConfig{
+					Termination: api.TLSTerminationPassthrough,
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Reencrypt termination OK with certs",
+			route: &api.Route{
+				TLS: &api.TLSConfig{
+					Termination:              api.TLSTerminationReencrypt,
+					Certificate:              "def",
+					Key:                      "ghi",
+					CACertificate:            "jkl",
+					DestinationCACertificate: "abc",
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Reencrypt termination OK without certs",
+			route: &api.Route{
+				TLS: &api.TLSConfig{
+					Termination:              api.TLSTerminationReencrypt,
+					DestinationCACertificate: "abc",
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Reencrypt termination no dest cert",
+			route: &api.Route{
+				TLS: &api.TLSConfig{
+					Termination:   api.TLSTerminationReencrypt,
+					Certificate:   "def",
+					Key:           "ghi",
+					CACertificate: "jkl",
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Edge termination OK with certs",
+			route: &api.Route{
+				TLS: &api.TLSConfig{
+					Termination:   api.TLSTerminationEdge,
+					Certificate:   "abc",
+					Key:           "abc",
+					CACertificate: "abc",
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Edge termination OK without certs",
+			route: &api.Route{
+				TLS: &api.TLSConfig{
+					Termination: api.TLSTerminationEdge,
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Edge termination, dest cert",
+			route: &api.Route{
+				TLS: &api.TLSConfig{
+					Termination:              api.TLSTerminationEdge,
+					DestinationCACertificate: "abc",
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Passthrough termination, cert",
+			route: &api.Route{
+				TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, Certificate: "test"},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Passthrough termination, key",
+			route: &api.Route{
+				TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, Key: "test"},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Passthrough termination, ca cert",
+			route: &api.Route{
+				TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, CACertificate: "test"},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Passthrough termination, dest ca cert",
+			route: &api.Route{
+				TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, DestinationCACertificate: "test"},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Invalid termination type",
+			route: &api.Route{
+				TLS: &api.TLSConfig{
+					Termination: "invalid",
+				},
+			},
+			expectedErrors: 1,
+		},
 	}
 
-	for _, tc := range testCases {
-		errs := validateTLS(&tc.cfg)
+	for _, tc := range tests {
+		errs := validateTLS(tc.route)
 
-		if len(errs) != 1 {
-			t.Errorf("Unexpected error list encountered for case %v: %#v.  Expected 1 error, got %v", tc.name, errs, len(errs))
+		if len(errs) != tc.expectedErrors {
+			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)
 		}
-	}
-}
-
-func TestValidatePodTermInvalid(t *testing.T) {
-	testCases := []struct {
-		name string
-		cfg  api.TLSConfig
-	}{
-		{"cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, Certificate: "test"}},
-		{"key", api.TLSConfig{Termination: api.TLSTerminationPassthrough, Key: "test"}},
-		{"ca cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, CACertificate: "test"}},
-		{"dest cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, DestinationCACertificate: "test"}},
-	}
-
-	for _, tc := range testCases {
-		errs := validateTLS(&tc.cfg)
-
-		if len(errs) != 1 {
-			t.Errorf("Unexpected error list encountered for test case %v: %#v.  Expected 1 error, got %v", tc.name, errs, len(errs))
-		}
-	}
-}
-
-// TestValidateReencryptTermInvalid ensures reencrypt must specify cert, key, cacert, and dest cert
-func TestValidateReencryptTermInvalid(t *testing.T) {
-	errs := validateTLS(&api.TLSConfig{
-		Termination: api.TLSTerminationReencrypt,
-	})
-
-	if len(errs) != 4 {
-		t.Errorf("Unexpected error list encountered: %#v.  Expected 4 errors, got %v", errs, len(errs))
-	}
-}
-
-func TestValidateTLSInvalidTermination(t *testing.T) {
-	errs := validateTLS(&api.TLSConfig{
-		Termination: "invalid",
-	})
-
-	if len(errs) != 1 {
-		t.Errorf("Unexpected error list encountered: %#v.  Expected 1 errors, got %v", errs, len(errs))
 	}
 }

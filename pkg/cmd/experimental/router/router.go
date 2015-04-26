@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -58,13 +59,14 @@ ALPHA: This command is currently being actively developed. It is intended to sim
 `
 
 type config struct {
-	Type          string
-	ImageTemplate variable.ImageTemplate
-	Ports         string
-	Replicas      int
-	Labels        string
-	Create        bool
-	Credentials   string
+	Type               string
+	ImageTemplate      variable.ImageTemplate
+	Ports              string
+	Replicas           int
+	Labels             string
+	Create             bool
+	Credentials        string
+	DefaultCertificate string
 }
 
 const defaultLabel = "router=<name>"
@@ -164,12 +166,19 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 				if config.Insecure {
 					insecure = "true"
 				}
+
+				defaultCert, err := loadDefaultCert(cfg.DefaultCertificate)
+				if err != nil {
+					glog.Fatalf("Error reading default certificate file", err)
+				}
+
 				env := app.Environment{
 					"OPENSHIFT_MASTER":    config.Host,
 					"OPENSHIFT_CA_DATA":   string(config.CAData),
 					"OPENSHIFT_KEY_DATA":  string(config.KeyData),
 					"OPENSHIFT_CERT_DATA": string(config.CertData),
 					"OPENSHIFT_INSECURE":  insecure,
+					"DEFAULT_CERTIFICATE": defaultCert,
 				}
 
 				objects := []runtime.Object{
@@ -207,6 +216,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 													},
 													InitialDelaySeconds: 10,
 												},
+												ImagePullPolicy: kapi.PullIfNotPresent,
 											},
 										},
 									},
@@ -248,10 +258,22 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
 	cmd.Flags().BoolVar(&cfg.Create, "create", cfg.Create, "Create the router if it does not exist.")
 	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
+	cmd.Flags().StringVar(&cfg.DefaultCertificate, "default-cert", cfg.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.")
 
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd
+}
+
+func loadDefaultCert(file string) (string, error) {
+	if len(file) == 0 {
+		return "", nil
+	}
+	bytes, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), err
 }
 
 /*
