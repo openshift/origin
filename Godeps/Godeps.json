@@ -44,6 +44,10 @@
 			"Rev": "98c78185197025f935947caac56a7b6d022f89d2"
 		},
 		{
+			"ImportPath": "github.com/AaronO/go-git-http",
+			"Rev": "0ebecedc64b67a3a8674c56724082660be48216e"
+		},
+		{
 			"ImportPath": "github.com/AdRoll/goamz/aws",
 			"Rev": "c73835dc8fc6958baf8df8656864ee4d6d04b130"
 		},
