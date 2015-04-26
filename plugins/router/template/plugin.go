@@ -45,7 +45,7 @@ type router interface {
 }
 
 // NewTemplatePlugin creates a new TemplatePlugin.
-func NewTemplatePlugin(templatePath, reloadScriptPath string) (*TemplatePlugin, error) {
+func NewTemplatePlugin(templatePath, reloadScriptPath, defaultCertificate string) (*TemplatePlugin, error) {
 	masterTemplate := template.Must(template.New("config").ParseFiles(templatePath))
 	templates := map[string]*template.Template{}
 
@@ -57,7 +57,7 @@ func NewTemplatePlugin(templatePath, reloadScriptPath string) (*TemplatePlugin, 
 		templates[template.Name()] = template
 	}
 
-	router, err := newTemplateRouter(templates, reloadScriptPath)
+	router, err := newTemplateRouter(templates, reloadScriptPath, defaultCertificate)
 	return &TemplatePlugin{router}, err
 }
 

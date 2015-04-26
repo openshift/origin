@@ -256,3 +256,102 @@ func TestRemoveRoute(t *testing.T) {
 		t.Errorf("Route %v was expected to exist but was not found", route2)
 	}
 }
+
+func TestShouldWriteCertificates(t *testing.T) {
+	testCases := []struct {
+		name             string
+		cfg              *ServiceAliasConfig
+		shouldWriteCerts bool
+	}{
+		{
+			name: "no termination",
+			cfg: &ServiceAliasConfig{
+				TLSTermination: "",
+			},
+			shouldWriteCerts: false,
+		},
+		{
+			name: "passthrough termination",
+			cfg: &ServiceAliasConfig{
+				TLSTermination: routeapi.TLSTerminationPassthrough,
+			},
+			shouldWriteCerts: false,
+		},
+		{
+			name: "edge termination true",
+			cfg: &ServiceAliasConfig{
+				Host:           "edgetermtrue",
+				TLSTermination: routeapi.TLSTerminationEdge,
+				Certificates:   makeCertMap("edgetermtrue", true),
+			},
+			shouldWriteCerts: true,
+		},
+		{
+			name: "edge termination false",
+			cfg: &ServiceAliasConfig{
+				Host:           "edgetermfalse",
+				TLSTermination: routeapi.TLSTerminationEdge,
+				Certificates:   makeCertMap("edgetermfalse", false),
+			},
+			shouldWriteCerts: false,
+		},
+		{
+			name: "reencrypt termination true",
+			cfg: &ServiceAliasConfig{
+				Host:           "reencrypttermtrue",
+				TLSTermination: routeapi.TLSTerminationReencrypt,
+				Certificates:   makeCertMap("reencrypttermtrue", true),
+			},
+			shouldWriteCerts: true,
+		},
+		{
+			name: "reencrypt termination false",
+			cfg: &ServiceAliasConfig{
+				Host:           "reencrypttermfalse",
+				TLSTermination: routeapi.TLSTerminationReencrypt,
+				Certificates:   makeCertMap("reencrypttermfalse", false),
+			},
+			shouldWriteCerts: false,
+		},
+	}
+
+	router := emptyRouter()
+	for _, tc := range testCases {
+		result := router.shouldWriteCerts(tc.cfg)
+		if result != tc.shouldWriteCerts {
+			t.Errorf("test case %s failed.  Expected shouldWriteCerts to return %t but found %t.  Cfg: %#v", tc.name, tc.shouldWriteCerts, result, tc.cfg)
+		}
+	}
+}
+
+func TestHasRequiredEdgeCerts(t *testing.T) {
+	validCertMap := makeCertMap("host", true)
+	cfg := &ServiceAliasConfig{
+		Host:         "host",
+		Certificates: validCertMap,
+	}
+	if !hasRequiredEdgeCerts(cfg) {
+		t.Errorf("expected %#v to return true for valid edge certs", cfg)
+	}
+
+	invalidCertMap := makeCertMap("host", false)
+	cfg.Certificates = invalidCertMap
+	if hasRequiredEdgeCerts(cfg) {
+		t.Errorf("expected %#v to return false for invalid edge certs", cfg)
+	}
+}
+
+func makeCertMap(host string, valid bool) map[string]Certificate {
+	privateKey := "private Key"
+	if !valid {
+		privateKey = ""
+	}
+	certMap := map[string]Certificate{
+		host: {
+			ID:         "host certificate",
+			Contents:   "certificate",
+			PrivateKey: privateKey,
+		},
+	}
+	return certMap
+}

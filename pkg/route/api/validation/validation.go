@@ -1,13 +1,13 @@
 package validation
 
 import (
+	"fmt"
 	"strings"
 
 	kval "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
-	"fmt"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
@@ -33,7 +33,7 @@ func ValidateRoute(route *routeapi.Route) fielderrors.ValidationErrorList {
 		result = append(result, fielderrors.NewFieldRequired("serviceName"))
 	}
 
-	if errs := validateTLS(route.TLS); len(errs) != 0 {
+	if errs := validateTLS(route); len(errs) != 0 {
 		result = append(result, errs.Prefix("tls")...)
 	}
 
@@ -42,8 +42,9 @@ func ValidateRoute(route *routeapi.Route) fielderrors.ValidationErrorList {
 
 // ValidateTLS tests fields for different types of TLS combinations are set.  Called
 // by ValidateRoute.
-func validateTLS(tls *routeapi.TLSConfig) fielderrors.ValidationErrorList {
+func validateTLS(route *routeapi.Route) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
+	tls := route.TLS
 
 	//no termination, ignore other settings
 	if tls == nil || tls.Termination == "" {
@@ -51,20 +52,9 @@ func validateTLS(tls *routeapi.TLSConfig) fielderrors.ValidationErrorList {
 	}
 
 	switch tls.Termination {
-	//reencrypt must specify cert, key, cacert, and destination ca cert
+	// reencrypt must specify destination ca cert
+	// cert, key, cacert may not be specified because the route may be a wildcard
 	case routeapi.TLSTerminationReencrypt:
-		if len(tls.Certificate) == 0 {
-			result = append(result, fielderrors.NewFieldRequired("certificate"))
-		}
-
-		if len(tls.Key) == 0 {
-			result = append(result, fielderrors.NewFieldRequired("key"))
-		}
-
-		if len(tls.CACertificate) == 0 {
-			result = append(result, fielderrors.NewFieldRequired("caCertificate"))
-		}
-
 		if len(tls.DestinationCACertificate) == 0 {
 			result = append(result, fielderrors.NewFieldRequired("destinationCACertificate"))
 		}
@@ -85,20 +75,9 @@ func validateTLS(tls *routeapi.TLSConfig) fielderrors.ValidationErrorList {
 		if len(tls.DestinationCACertificate) > 0 {
 			result = append(result, fielderrors.NewFieldInvalid("destinationCACertificate", tls.DestinationCACertificate, "passthrough termination does not support certificates"))
 		}
-	//edge cert should specify cert, key, and cacert
+	// edge cert should only specify cert, key, and cacert but those certs
+	// may not be specified if the route is a wildcard route
 	case routeapi.TLSTerminationEdge:
-		if len(tls.Certificate) == 0 {
-			result = append(result, fielderrors.NewFieldRequired("certificate"))
-		}
-
-		if len(tls.Key) == 0 {
-			result = append(result, fielderrors.NewFieldRequired("key"))
-		}
-
-		if len(tls.CACertificate) == 0 {
-			result = append(result, fielderrors.NewFieldRequired("caCertificate"))
-		}
-
 		if len(tls.DestinationCACertificate) > 0 {
 			result = append(result, fielderrors.NewFieldInvalid("destinationCACertificate", tls.DestinationCACertificate, "edge termination does not support destination certificates"))
 		}
