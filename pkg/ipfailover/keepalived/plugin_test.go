@@ -129,7 +129,11 @@ func TestPluginGetWatchPort(t *testing.T) {
 			t.Errorf("Error creating IPFailoverConfigurator plugin - test=%q, error: %v", tc.Name, err)
 		}
 
-		port := p.GetWatchPort()
+		port, err := p.GetWatchPort()
+		if err != nil {
+			t.Errorf("Error getting watch port - test=%q, error: %v", tc.Name, err)
+		}
+
 		if tc.Expected != port {
 			t.Errorf("Test case %q expected watch port = %d, got %d",
 				tc.Name, tc.Expected, port)
@@ -168,7 +172,11 @@ func TestPluginGetSelector(t *testing.T) {
 			t.Errorf("Error creating IPFailoverConfigurator plugin - test=%q, error: %v", tc.Name, err)
 		}
 
-		selector := p.GetSelector()
+		selector, err := p.GetSelector()
+		if err != nil {
+			t.Errorf("Error getting selector - test=%q, error: %v", tc.Name, err)
+		}
+
 		if len(tc.ExpectedKey) > 0 {
 			if _, ok := selector[tc.ExpectedKey]; !ok {
 				t.Errorf("Test case %q expected key %q was not found",

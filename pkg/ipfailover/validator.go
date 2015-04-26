@@ -77,10 +77,13 @@ func ValidateVirtualIPs(vips string) error {
 
 // Validate command line operations.
 func ValidateCmdOptions(options *IPFailoverConfigCmdOptions, c *Configurator) error {
-	service := c.Plugin.GetService()
+	dc, err := c.Plugin.GetDeploymentConfig()
+	if err != nil {
+		return err
+	}
 
-	//  If creating service, check service doesn't exist.
-	if options.Create && service != nil {
+	//  If creating deployment, check deployment config doesn't exist.
+	if options.Create && dc != nil {
 		return fmt.Errorf("IP Failover config %q exists\n", c.Name)
 	}
 

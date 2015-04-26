@@ -3,7 +3,7 @@ package ipfailover
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 func TestValidateIPAddress(t *testing.T) {
@@ -84,12 +84,11 @@ func TestValidateVirtualIPs(t *testing.T) {
 	}
 }
 
-func getMockConfigurator(options *IPFailoverConfigCmdOptions, service *kapi.Service) *Configurator {
+func getMockConfigurator(options *IPFailoverConfigCmdOptions, dc *deployapi.DeploymentConfig) *Configurator {
 	p := &MockPlugin{
-		Name:      "mock",
-		Options:   options,
-		Service:   service,
-		CallCount: make(map[string]int, 0),
+		Name:             "mock",
+		Options:          options,
+		DeploymentConfig: dc,
 	}
 	return NewConfigurator("mock-plugin", p, nil)
 }
@@ -98,7 +97,7 @@ func TestValidateCmdOptionsForCreate(t *testing.T) {
 	tests := []struct {
 		Name             string
 		Create           bool
-		Service          *kapi.Service
+		DeploymentConfig *deployapi.DeploymentConfig
 		ErrorExpectation bool
 	}{
 		{
@@ -109,7 +108,7 @@ func TestValidateCmdOptionsForCreate(t *testing.T) {
 		{
 			Name:             "create-with-service",
 			Create:           true,
-			Service:          &kapi.Service{},
+			DeploymentConfig: &deployapi.DeploymentConfig{},
 			ErrorExpectation: true,
 		},
 		{
@@ -118,7 +117,7 @@ func TestValidateCmdOptionsForCreate(t *testing.T) {
 		},
 		{
 			Name:             "no-create-option-with-service",
-			Service:          &kapi.Service{},
+			DeploymentConfig: &deployapi.DeploymentConfig{},
 			ErrorExpectation: false,
 		},
 	}
@@ -126,10 +125,9 @@ func TestValidateCmdOptionsForCreate(t *testing.T) {
 	for _, tc := range tests {
 		options := &IPFailoverConfigCmdOptions{Create: tc.Create}
 		plugin := &MockPlugin{
-			Name:      "mock",
-			Options:   options,
-			Service:   tc.Service,
-			CallCount: make(map[string]int, 0),
+			Name:             "mock",
+			Options:          options,
+			DeploymentConfig: tc.DeploymentConfig,
 		}
 		c := NewConfigurator(tc.Name, plugin, nil)
 
