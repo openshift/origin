@@ -119,10 +119,11 @@ func (c *NodeConfig) RunKubelet() {
 		cadvisorInterface = &cadvisor.Fake{}
 	}
 
+	hostNetworkCapabilities := []string{kubelet.ApiserverSource, kubelet.FileSource}
 	// initialize Kubelet
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-	kubelet.SetupCapabilities(true, []string{})
+	kubelet.SetupCapabilities(true, hostNetworkCapabilities)
 	recorder := record.NewBroadcaster().NewRecorder(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
 
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates, recorder)

@@ -35,6 +35,7 @@ tar xzf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
 # Copy primary binaries to the appropriate locations.
 cp -f "${imagedir}/openshift" images/origin/bin
 cp -f "${imagedir}/openshift" images/router/haproxy/bin
+cp -f "${imagedir}/openshift" images/ipfailover/keepalived/bin
 
 # Copy image binaries to the appropriate locations.
 cp -f "${imagedir}/pod" images/pod/bin
@@ -56,6 +57,7 @@ image openshift/origin-haproxy-router        images/router/haproxy
 # For now, don't build the v2 registry image
 # To be reenabled when we actually switch to the v2 registry
 #image openshift/origin-docker-registry       images/dockerregistry
+image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived
 # images that depend on openshift/origin
 image openshift/origin-deployer              images/deployer
 image openshift/origin-docker-builder        images/builder/docker/docker-builder

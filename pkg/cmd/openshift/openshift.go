@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	"github.com/openshift/origin/pkg/cmd/experimental/bundlesecret"
 	"github.com/openshift/origin/pkg/cmd/experimental/generate"
+	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
 	"github.com/openshift/origin/pkg/cmd/experimental/policy"
 	"github.com/openshift/origin/pkg/cmd/experimental/project"
 	exregistry "github.com/openshift/origin/pkg/cmd/experimental/registry"
@@ -132,6 +133,7 @@ func newExperimentalCommand(parentName, name string) *cobra.Command {
 	experimental.AddCommand(project.NewCmdNewProject(f, subName, "new-project"))
 	experimental.AddCommand(tokens.NewCmdTokens(f, subName, "tokens"))
 	experimental.AddCommand(policy.NewCommandPolicy(f, subName, "policy"))
+	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, subName, "ipfailover", os.Stdout))
 	experimental.AddCommand(generate.NewCmdGenerate(f, subName, "generate", os.Stdout))
 	experimental.AddCommand(exrouter.NewCmdRouter(f, subName, "router", os.Stdout))
 	experimental.AddCommand(exregistry.NewCmdRegistry(f, subName, "registry", os.Stdout))
