@@ -90,8 +90,8 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 * All commands assume the `osc` binary/symlink is in your path.
 * All commands assume that you are working from the `sample-app` directory in your local environment.
-    * If you are working from a local git repo, this might be `$GOPATH/src/gitghub.com/<username>/origin/examples/sample-app`
-    * **VAGRANT USERS**: `cd /data/src/gitghub.com/<username>/origin/examples/sample-app`
+    * If you are working from a local git repo, this might be `$GOPATH/src/github.com/<username>/origin/examples/sample-app`
+    * **VAGRANT USERS**: `cd /data/src/github.com/openshift/origin/examples/sample-app`
 
 - - -
 
