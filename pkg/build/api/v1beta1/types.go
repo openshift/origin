@@ -278,7 +278,7 @@ type BuildOutput struct {
 	// a Docker image repository to push to.
 	To *kapi.ObjectReference `json:"to,omitempty"`
 
-	// pushSecretName is the name of a Secret that would be used for setting
+	// PushSecretName is the name of a Secret that would be used for setting
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
 	PushSecretName string `json:"pushSecretName,omitempty"`
