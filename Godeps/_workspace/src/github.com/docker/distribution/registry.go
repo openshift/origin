@@ -108,6 +108,9 @@ type LayerService interface {
 	// Fetch the layer identifed by TarSum.
 	Fetch(digest digest.Digest) (Layer, error)
 
+	// Delete unlinks the layer from a Repository.
+	Delete(dgst digest.Digest) error
+
 	// Upload begins a layer upload to repository identified by name,
 	// returning a handle.
 	Upload() (LayerUpload, error)
