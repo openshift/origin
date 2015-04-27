@@ -2,6 +2,7 @@ package test
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -10,6 +11,12 @@ import (
 func OkStrategy() deployapi.DeploymentStrategy {
 	return deployapi.DeploymentStrategy{
 		Type: deployapi.DeploymentStrategyTypeRecreate,
+		Resources: kapi.ResourceRequirements{
+			Limits: kapi.ResourceList{
+				kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+				kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+			},
+		},
 	}
 }
 

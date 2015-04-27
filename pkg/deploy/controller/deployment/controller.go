@@ -129,11 +129,12 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
 				{
-					Name:    "deployment",
-					Command: container.Command,
-					Args:    container.Args,
-					Image:   container.Image,
-					Env:     envVars,
+					Name:      "deployment",
+					Command:   container.Command,
+					Args:      container.Args,
+					Image:     container.Image,
+					Env:       envVars,
+					Resources: deploymentConfig.Template.Strategy.Resources,
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
