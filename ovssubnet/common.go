@@ -9,14 +9,14 @@ import (
 
 	"github.com/openshift/openshift-sdn/ovssubnet/controller/kube"
 	"github.com/openshift/openshift-sdn/ovssubnet/controller/lbr"
+	"github.com/openshift/openshift-sdn/pkg/api"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	"github.com/openshift/openshift-sdn/pkg/registry"
 )
 
 type OvsController struct {
-	subnetRegistry  registry.SubnetRegistry
+	subnetRegistry  api.SubnetRegistry
 	localIP         string
-	localSubnet     *registry.Subnet
+	localSubnet     *api.Subnet
 	hostName        string
 	subnetAllocator *netutils.SubnetAllocator
 	sig             chan struct{}
@@ -29,7 +29,7 @@ type FlowController interface {
 	DelOFRules(minionIP, localIP string) error
 }
 
-func NewKubeController(sub registry.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
+func NewKubeController(sub api.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
 	kubeController, err := NewController(sub, hostname, selfIP)
 	if err == nil {
 		kubeController.flowController = kube.NewFlowController()
@@ -37,7 +37,7 @@ func NewKubeController(sub registry.SubnetRegistry, hostname string, selfIP stri
 	return kubeController, err
 }
 
-func NewDefaultController(sub registry.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
+func NewDefaultController(sub api.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
 	defaultController, err := NewController(sub, hostname, selfIP)
 	if err == nil {
 		defaultController.flowController = lbr.NewFlowController()
@@ -45,7 +45,7 @@ func NewDefaultController(sub registry.SubnetRegistry, hostname string, selfIP s
 	return defaultController, err
 }
 
-func NewController(sub registry.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
+func NewController(sub api.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
 	if selfIP == "" {
 		addrs, err := net.LookupIP(hostname)
 		if err != nil {
@@ -153,7 +153,7 @@ func (oc *OvsController) AddNode(minion string) error {
 	} else {
 		minionIP = ip.String()
 	}
-	sub := &registry.Subnet{
+	sub := &api.Subnet{
 		Minion: minionIP,
 		Sub:    sn.String(),
 	}
@@ -240,19 +240,19 @@ func (oc *OvsController) initSelfSubnet() error {
 func (oc *OvsController) watchMinions() {
 	// watch latest?
 	stop := make(chan bool)
-	minevent := make(chan *registry.MinionEvent)
+	minevent := make(chan *api.MinionEvent)
 	go oc.subnetRegistry.WatchMinions(0, minevent, stop)
 	for {
 		select {
 		case ev := <-minevent:
 			switch ev.Type {
-			case registry.Added:
+			case api.Added:
 				_, err := oc.subnetRegistry.GetSubnet(ev.Minion)
 				if err != nil {
 					// subnet does not exist already
 					oc.AddNode(ev.Minion)
 				}
-			case registry.Deleted:
+			case api.Deleted:
 				oc.DeleteNode(ev.Minion)
 			}
 		case <-oc.sig:
@@ -265,16 +265,16 @@ func (oc *OvsController) watchMinions() {
 
 func (oc *OvsController) watchCluster() {
 	stop := make(chan bool)
-	clusterEvent := make(chan *registry.SubnetEvent)
+	clusterEvent := make(chan *api.SubnetEvent)
 	go oc.subnetRegistry.WatchSubnets(0, clusterEvent, stop)
 	for {
 		select {
 		case ev := <-clusterEvent:
 			switch ev.Type {
-			case registry.Added:
+			case api.Added:
 				// add openflow rules
 				oc.flowController.AddOFRules(ev.Sub.Minion, ev.Sub.Sub, oc.localIP)
-			case registry.Deleted:
+			case api.Deleted:
 				// delete openflow rules meant for the minion
 				oc.flowController.DelOFRules(ev.Sub.Minion, oc.localIP)
 			}

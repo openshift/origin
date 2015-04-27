@@ -12,6 +12,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/openshift/openshift-sdn/ovssubnet"
+	"github.com/openshift/openshift-sdn/pkg/api"
 	"github.com/openshift/openshift-sdn/pkg/registry"
 )
 
@@ -83,7 +84,7 @@ func newNetworkManager() (NetworkManager, error) {
 	return ovssubnet.NewDefaultController(sub, string(host), opts.ip)
 }
 
-func newSubnetRegistry() (registry.SubnetRegistry, error) {
+func newSubnetRegistry() (api.SubnetRegistry, error) {
 	peers := strings.Split(opts.etcdEndpoints, ",")
 
 	subnetPath := path.Join(opts.etcdPath, "subnets")
