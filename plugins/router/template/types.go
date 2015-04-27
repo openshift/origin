@@ -29,8 +29,8 @@ type ServiceAliasConfig struct {
 	Certificates map[string]Certificate
 }
 
-// Certificate represents a pub/private key pair.  It is identified by ID which is set to indicate if this is
-// a client or ca certificate (see router.go).  A CA certificate will not have a PrivateKey set.
+// Certificate represents a pub/private key pair.  It is identified by ID which will become the file name.
+// A CA certificate will not have a PrivateKey set.
 type Certificate struct {
 	ID         string
 	Contents   string
@@ -42,6 +42,43 @@ type Endpoint struct {
 	ID   string
 	IP   string
 	Port string
+}
+
+// certificateManager provides the ability to write certificates for a ServiceAliasConfig
+type certificateManager interface {
+	// WriteCertificatesForConfig writes all certificates for all ServiceAliasConfigs in config
+	WriteCertificatesForConfig(config *ServiceAliasConfig) error
+	// DeleteCertificatesForConfig deletes all certificates for all ServiceAliasConfigs in config
+	DeleteCertificatesForConfig(config *ServiceAliasConfig) error
+	// CertificateWriter provides direct access to the underlying writer if required
+	CertificateWriter() certificateWriter
+}
+
+// certManagerConfig provides the configuration necessary for certmanager to manipulate certificates.
+type certificateManagerConfig struct {
+	// certKeyFunc is used to find the edge certificate (which also has the key) from the cert map
+	// of the ServiceAliasConfig
+	certKeyFunc certificateKeyFunc
+	// caCertKeyFunc is used to find the edge ca certificate from the cert map of the ServiceAliasConfig
+	caCertKeyFunc certificateKeyFunc
+	// destCertKeyFunc is used to find the ca certificate of a destination (pod) from the cert map
+	// of the ServiceAliasConfig
+	destCertKeyFunc certificateKeyFunc
+	// certDir is where the edge certificates will be written.
+	certDir string
+	// caCertDir is where the edge certificates will be written.  It must be different than certDir
+	caCertDir string
+}
+
+// certificateKeyFunc provides the certificateManager a way to create keys the same way the template
+// router creates them so it can retrieve the certificates from a ServiceAliasConfig correctly
+type certificateKeyFunc func(config *ServiceAliasConfig) string
+
+// certificateWriter is used by a certificateManager to perform the actual writing.  It is abstracteed
+// out in order to provide the ability to inject a test writer for unit testing
+type certificateWriter interface {
+	WriteCertificate(directory string, id string, cert []byte) error
+	DeleteCertificate(directory, id string) error
 }
 
 //TemplateSafeName provides a name that can be used in the template that does not contain restricted
