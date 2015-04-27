@@ -7,6 +7,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/openshift/origin/pkg/api/graph"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -248,6 +250,89 @@ func getPodStatusForDeployment(deployment *kapi.ReplicationController, client de
 		}
 	}
 	return
+}
+
+type LatestDeploymentDescriber struct {
+	client deploymentDescriberClient
+}
+
+func NewLatestDeploymentDescriber(client client.Interface, kclient kclient.Interface) *LatestDeploymentDescriber {
+	return &LatestDeploymentDescriber{
+		client: &genericDeploymentDescriberClient{
+			getDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
+				return client.DeploymentConfigs(namespace).Get(name)
+			},
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return kclient.ReplicationControllers(namespace).Get(name)
+			},
+			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
+				return kclient.Pods(namespace).List(selector)
+			},
+			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
+				return kclient.Events(deploymentConfig.Namespace).Search(deploymentConfig)
+			},
+		},
+	}
+}
+
+func (d *LatestDeploymentDescriber) Describe(namespace, name string) (string, error) {
+	config, err := d.client.getDeploymentConfig(namespace, name)
+	if err != nil {
+		return "", err
+	}
+
+	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
+	deployment, err := d.client.getDeployment(config.Namespace, deploymentName)
+	if err != nil && !kerrors.IsNotFound(err) {
+		return "", err
+	}
+
+	g := graph.New()
+	deploy := graph.DeploymentConfig(g, config)
+	if deployment != nil {
+		graph.JoinDeployments(deploy.(*graph.DeploymentConfigNode), []kapi.ReplicationController{*deployment})
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		indent := "  "
+		fmt.Fprintf(out, "Latest deployment for %s/%s:\n", name, namespace)
+		printLines(out, indent, 1, d.describeDeployment(deploy.(*graph.DeploymentConfigNode))...)
+		return nil
+	})
+}
+
+func (d *LatestDeploymentDescriber) describeDeployment(node *graph.DeploymentConfigNode) []string {
+	if node == nil {
+		return nil
+	}
+	out := []string{}
+
+	if node.ActiveDeployment == nil {
+		on, auto := describeDeploymentConfigTriggers(node.DeploymentConfig)
+		if node.DeploymentConfig.LatestVersion == 0 {
+			out = append(out, fmt.Sprintf("#1 waiting %s. Run osc deploy --latest to deploy now.", on))
+		} else if auto {
+			out = append(out, fmt.Sprintf("#%d pending %s. Run osc deploy --latest to deploy now.", node.DeploymentConfig.LatestVersion, on))
+		}
+		// TODO: detect new image available?
+	} else {
+		out = append(out, d.describeDeploymentStatus(node.ActiveDeployment))
+	}
+	return out
+}
+
+func (d *LatestDeploymentDescriber) describeDeploymentStatus(deploy *kapi.ReplicationController) string {
+	timeAt := strings.ToLower(formatRelativeTime(deploy.CreationTimestamp.Time))
+	switch s := deploy.Annotations[deployapi.DeploymentStatusAnnotation]; deployapi.DeploymentStatus(s) {
+	case deployapi.DeploymentStatusFailed:
+		// TODO: encode fail time in the rc
+		return fmt.Sprintf("#%s failed %s ago. You can restart this deployment with osc deploy --retry.", deploy.Annotations[deployapi.DeploymentVersionAnnotation], timeAt)
+	case deployapi.DeploymentStatusComplete:
+		// TODO: pod status output
+		return fmt.Sprintf("#%s deployed %s ago", deploy.Annotations[deployapi.DeploymentVersionAnnotation], timeAt)
+	default:
+		return fmt.Sprintf("#%s deployment %s %s ago", deploy.Annotations[deployapi.DeploymentVersionAnnotation], strings.ToLower(s), timeAt)
+	}
 }
 
 // DeploymentDescriber generates information about a deployment

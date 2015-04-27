@@ -70,6 +70,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdStartBuild(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdCancelBuild(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdBuildLogs(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdDeploy(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdRollback(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdGet(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdDescribe(fullName, f, out))
