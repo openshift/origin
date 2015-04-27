@@ -328,17 +328,12 @@ func stripFlags(args []string, c *Command) []string {
 	return commands
 }
 
-// argsMinusFirstX removes only the first x from args.  Otherwise, commands that look like
-// openshift admin policy add-role-to-user admin my-user, lose the admin argument (arg[4]).
-func argsMinusFirstX(args []string, x string) []string {
-	removedFirstX := false
+func argsMinusX(args []string, x string) []string {
 	newargs := []string{}
 
 	for _, y := range args {
-		if removedFirstX || (x != y) {
+		if x != y {
 			newargs = append(newargs, y)
-		} else {
-			removedFirstX = true
 		}
 	}
 	return newargs
@@ -364,7 +359,7 @@ func (c *Command) Find(arrs []string) (*Command, []string, error) {
 				matches := make([]*Command, 0)
 				for _, cmd := range c.commands {
 					if cmd.Name() == argsWOflags[0] || cmd.HasAlias(argsWOflags[0]) { // exact name or alias match
-						return innerfind(cmd, argsMinusFirstX(args, argsWOflags[0]))
+						return innerfind(cmd, argsMinusX(args, argsWOflags[0]))
 					} else if EnablePrefixMatching {
 						if strings.HasPrefix(cmd.Name(), argsWOflags[0]) { // prefix match
 							matches = append(matches, cmd)
@@ -379,7 +374,7 @@ func (c *Command) Find(arrs []string) (*Command, []string, error) {
 
 				// only accept a single prefix match - multiple matches would be ambiguous
 				if len(matches) == 1 {
-					return innerfind(matches[0], argsMinusFirstX(args, argsWOflags[0]))
+					return innerfind(matches[0], argsMinusX(args, argsWOflags[0]))
 				}
 			}
 		}
