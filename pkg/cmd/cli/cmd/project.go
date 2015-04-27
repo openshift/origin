@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -45,13 +44,14 @@ func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
 		Long:  `Switch to another project and make it the default in your configuration.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
-			options.Complete(f, args, out)
 
-			err := options.RunProject()
-			if err == errExit {
-				os.Exit(1)
+			if err := options.Complete(f, args, out); err != nil {
+				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
 			}
-			cmdutil.CheckErr(err)
+
+			if err := options.RunProject(); err != nil {
+				cmdutil.CheckErr(err)
+			}
 		},
 	}
 	return cmd
