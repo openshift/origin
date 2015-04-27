@@ -11,7 +11,8 @@ RUN yum install -y hg golang golang-pkg-darwin golang-pkg-windows && yum clean a
 ENV GOPATH /go
 
 # Get the code coverage tool and godep
-RUN go get code.google.com/p/go.tools/cmd/cover github.com/tools/godep github.com/golang/lint/golint
+RUN if ! go get code.google.com/p/go.tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
+RUN go get github.com/tools/godep github.com/golang/lint/golint
 
 # Mark this as a os-build container
 RUN touch /os-build-image
