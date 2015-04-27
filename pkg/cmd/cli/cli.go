@@ -107,7 +107,7 @@ func NewCmdKubectl(name string) *cobra.Command {
 		if f := cmds.PersistentFlags().Lookup(flag.Name); f == nil {
 			cmds.PersistentFlags().AddFlag(flag)
 		} else {
-			glog.V(6).Infof("already registered flag %s", flag.Name)
+			glog.V(5).Infof("already registered flag %s", flag.Name)
 		}
 	})
 	cmds.AddCommand(cmd.NewCmdOptions(f, out))
