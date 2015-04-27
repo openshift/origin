@@ -22,13 +22,13 @@ Steps
  
 4. Locate the Jenkins service endpoint and go to it in your browser:
 
-        $ osc get services -n test | grep jenkins | awk '{print $4":"$5}'
+        $ osc get services -n test jenkins --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}"
 
     Once it is available, proceed to the next step.
     
 5. Create the Jenkins job named rubyJob:
 
-        $ JENKINS_ENDPOINT=`osc get services -n test | grep jenkins | awk '{print $4":"$5}'`
+        $ JENKINS_ENDPOINT=`osc get services -n test jenkins --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}"`
         $ cat job.xml | curl -X POST -H "Content-Type: application/xml" -H "Expect: " --data-binary @- http://$JENKINS_ENDPOINT/createItem?name=rubyJob
 
 6. Add API credentials to the Jenkins build:
