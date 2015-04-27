@@ -16,8 +16,6 @@ import (
 type FlowController struct {
 }
 
-const ovs_gateway_addr = "11.11.254.254"
-
 func NewFlowController() *FlowController {
 	return &FlowController{}
 }
@@ -25,7 +23,8 @@ func NewFlowController() *FlowController {
 func (c *FlowController) Setup(localSubnet, containerNetwork string) error {
 	_, ipnet, err := net.ParseCIDR(localSubnet)
 	subnetMaskLength, _ := ipnet.Mask.Size()
-	out, err := exec.Command("openshift-sdn-kube-subnet-setup.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), containerNetwork, strconv.Itoa(subnetMaskLength), ovs_gateway_addr).CombinedOutput()
+	gateway := netutils.GenerateDefaultGateway(ipnet).String()
+	out, err := exec.Command("openshift-sdn-kube-subnet-setup.sh", gateway, ipnet.String(), containerNetwork, strconv.Itoa(subnetMaskLength), gateway).CombinedOutput()
 	log.Infof("Output of setup script:\n%s", out)
 	if err != nil {
 		log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
@@ -49,8 +48,7 @@ func (c *FlowController) manageLocalIpam(ipnet *net.IPNet) error {
 	if err != nil {
 		return err
 	}
-	//_, err = f.WriteString(fmt.Sprintf("OPENSHIFT_SDN_TAP1_ADDR=%s\nOPENSHIFT_SDN_IPAM_SERVER=http://%s:%s", netutils.GenerateDefaultGateway(ipnet), ipamHost, ipamPort))
-	_, err = f.WriteString(fmt.Sprintf("OPENSHIFT_SDN_TAP1_ADDR=%s\nOPENSHIFT_SDN_IPAM_SERVER=http://%s:%s", ovs_gateway_addr, ipamPort))
+	_, err = f.WriteString(fmt.Sprintf("OPENSHIFT_SDN_TAP1_ADDR=%s\nOPENSHIFT_SDN_IPAM_SERVER=http://%s:%s", netutils.GenerateDefaultGateway(ipnet), ipamHost, ipamPort))
 	if err != nil {
 		return err
 	}

@@ -22,15 +22,17 @@ const (
 
 type SubnetRegistry interface {
 	InitSubnets() error
-	InitMinions() error
 	GetSubnets() (*[]Subnet, error)
 	GetSubnet(minion string) (*Subnet, error)
 	DeleteSubnet(minion string) error
 	CreateSubnet(sn string, sub *Subnet) (*etcd.Response, error)
-	CreateMinion(minion string, data string) error
 	WatchSubnets(rev uint64, receiver chan *SubnetEvent, stop chan bool) error
+
+	InitMinions() error
 	GetMinions() (*[]string, error)
+	CreateMinion(minion string, data string) error
 	WatchMinions(rev uint64, receiver chan *MinionEvent, stop chan bool) error
+
 	WriteNetworkConfig(network string, subnetLength uint) error
 	GetContainerNetwork() (string, error)
 	GetSubnetLength() (uint64, error)
