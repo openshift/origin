@@ -114,9 +114,9 @@ function cleanup()
 		sudo kill ${pids}
 		sudo ps f
 		set +u
-		echo "[INFO] Stopping k8s docker containers"; docker ps | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'	| xargs -l -r docker stop
+		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
 		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk '{ print $NF " " $1 }' | grep ^k8s_ | awk '{print $2}'	| xargs -l -r docker rm
+			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
 		fi
 		set -u
 	fi

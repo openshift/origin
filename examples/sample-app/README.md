@@ -485,4 +485,6 @@ To clean up all of your environment, you can run the script:
 
         $ sudo ./cleanup.sh
 
-This will stop the `openshift` process, remove the etcd storage, and kill all Docker containers running on your host system.  The cleanup script needs root privileges to be able to remove all the directories OpenShift created.  (**Use with caution!**   Any Docker prefixed with "k8s_" will be killed by this script)
+This will stop the `openshift` process, remove files created by OpenShift and kill all Docker containers created by Kubernetes in your host system.  The cleanup script needs root privileges to be able to remove all the directories OpenShift created.
+
+**Use with caution!** Any Docker container prefixed with "k8s_" will be killed by this script.
