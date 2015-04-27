@@ -36,7 +36,7 @@ angular.module('openshiftConsole')
 
         $(elem).on("mousemove.oscobject", function() {
           if (scope.resource) {
-            $(".osc-object-hover").removeClass("osc-object-hover");
+            $(".osc-object-hover").not(this).removeClass("osc-object-hover");
             $(this).addClass("osc-object-hover");
             return false;
           }
