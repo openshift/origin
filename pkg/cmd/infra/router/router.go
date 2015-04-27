@@ -24,9 +24,10 @@ created by users and keeps a local router configuration up to date with those ch
 `
 
 type templateRouterConfig struct {
-	Config       *clientcmd.Config
-	TemplateFile string
-	ReloadScript string
+	Config             *clientcmd.Config
+	TemplateFile       string
+	ReloadScript       string
+	DefaultCertificate string
 }
 
 // NewCommndTemplateRouter provides CLI handler for the template router backend
@@ -40,6 +41,11 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 		Short: "Start an OpenShift router",
 		Long:  longCommandDesc,
 		Run: func(c *cobra.Command, args []string) {
+			defaultCert := util.Env("DEFAULT_CERTIFICATE", "")
+			if len(defaultCert) > 0 {
+				cfg.DefaultCertificate = defaultCert
+			}
+
 			plugin, err := makeTemplatePlugin(cfg)
 			if err != nil {
 				glog.Fatal(err)
@@ -70,7 +76,7 @@ func makeTemplatePlugin(cfg *templateRouterConfig) (*templateplugin.TemplatePlug
 		return nil, errors.New("Reload script must be specified")
 	}
 
-	return templateplugin.NewTemplatePlugin(cfg.TemplateFile, cfg.ReloadScript)
+	return templateplugin.NewTemplatePlugin(cfg.TemplateFile, cfg.ReloadScript, cfg.DefaultCertificate)
 }
 
 // start launches the load balancer.
