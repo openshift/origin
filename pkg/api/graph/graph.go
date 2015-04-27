@@ -9,7 +9,7 @@ import (
 )
 
 type Node struct {
-	concrete.Node
+	graph.Node
 	UniqueName
 }
 
@@ -21,6 +21,10 @@ func (n UniqueName) UniqueName() string {
 
 type uniqueNamer interface {
 	UniqueName() string
+}
+
+type NodeFinder interface {
+	Find(name UniqueName) graph.Node
 }
 
 // UniqueNodeInitializer is a graph that allows nodes with a unique name to be added without duplication.
@@ -44,6 +48,7 @@ type MutableUniqueGraph interface {
 	graph.Mutable
 	MutableDirectedEdge
 	UniqueNodeInitializer
+	NodeFinder
 }
 
 type Edge struct {
@@ -292,6 +297,13 @@ func (g uniqueNamedGraph) FindOrCreate(name UniqueName, fn NodeInitializerFunc) 
 	g.names[name] = node
 	g.AddNode(node)
 	return node, false
+}
+
+func (g uniqueNamedGraph) Find(name UniqueName) graph.Node {
+	if node, ok := g.names[name]; ok {
+		return node
+	}
+	return nil
 }
 
 type typedGraph struct{}

@@ -28,13 +28,13 @@ func (c *FakeImageStreams) Get(name string) (*imageapi.ImageStream, error) {
 	return obj.(*imageapi.ImageStream), err
 }
 
-func (c *FakeImageStreams) Create(repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (c *FakeImageStreams) Create(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	obj, err := c.Fake.Invokes(FakeAction{Action: "create-imagestream"}, &imageapi.ImageStream{})
 	return obj.(*imageapi.ImageStream), err
 }
 
-func (c *FakeImageStreams) Update(repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-imagestream"}, &imageapi.ImageStream{})
+func (c *FakeImageStreams) Update(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-imagestream", Value: stream}, stream)
 	return obj.(*imageapi.ImageStream), err
 }
 
@@ -46,4 +46,9 @@ func (c *FakeImageStreams) Delete(name string) error {
 func (c *FakeImageStreams) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-imagestreams"})
 	return nil, nil
+}
+
+func (c *FakeImageStreams) UpdateStatus(stream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-status-imagestream", Value: stream}, stream)
+	return obj.(*imageapi.ImageStream), err
 }

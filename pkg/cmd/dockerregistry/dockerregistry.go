@@ -3,6 +3,7 @@ package dockerregistry
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,24 +19,136 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/s3"
 	"github.com/docker/distribution/version"
 	gorillahandlers "github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 	_ "github.com/openshift/origin/pkg/dockerregistry/server"
 )
 
-type healthHandler struct {
-	delegate http.Handler
+func newOpenShiftHandler(app *handlers.App) http.Handler {
+	router := mux.NewRouter()
+	router.HandleFunc("/healthz", health.StatusHandler)
+	// TODO add https scheme
+	router.HandleFunc("/admin/layers", deleteLayerFunc(app)).Methods("DELETE")
+	//router.HandleFunc("/admin/manifests", deleteManifestFunc(app)).Methods("DELETE")
+	// delegate to the registry if it's not 1 of the OpenShift routes
+	router.NotFoundHandler = app
+
+	return router
 }
 
-func newHealthHandler(delegate http.Handler) http.Handler {
-	return &healthHandler{delegate}
-}
+// DeleteLayersRequest is a mapping from layers to the image repositories that
+// reference them. Below is a sample request:
+//
+// {
+//   "layer1": ["repo1", "repo2"],
+// 	 "layer2": ["repo1", "repo3"],
+// 	 ...
+// }
+type DeleteLayersRequest map[string][]string
 
-func (h *healthHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if req.URL.Path == "/healthz" {
-		health.StatusHandler(w, req)
-		return
+// AddLayer adds a layer to the request if it doesn't already exist.
+func (r DeleteLayersRequest) AddLayer(layer string) {
+	if _, ok := r[layer]; !ok {
+		r[layer] = []string{}
 	}
-	h.delegate.ServeHTTP(w, req)
 }
+
+// AddStream adds an image stream reference to the layer.
+func (r DeleteLayersRequest) AddStream(layer, stream string) {
+	r[layer] = append(r[layer], stream)
+}
+
+// deleteLayerFunc returns an http.HandlerFunc that is able to fully delete a
+// layer from storage.
+func deleteLayerFunc(app *handlers.App) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		defer req.Body.Close()
+		log.Infof("deleteLayerFunc invoked")
+
+		//TODO verify auth
+
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			//TODO
+			log.Errorf("Error reading body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		deletions := DeleteLayersRequest{}
+		err = json.Unmarshal(body, &deletions)
+		if err != nil {
+			//TODO
+			log.Errorf("Error unmarshaling body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		adminService := app.Registry().AdminService()
+		errs := []error{}
+		for layer, repos := range deletions {
+			log.Infof("Deleting layer=%q, repos=%v", layer, repos)
+			layerErrs := adminService.DeleteLayer(layer, repos)
+			errs = append(errs, layerErrs...)
+		}
+
+		log.Infof("errs=%v", errs)
+
+		//TODO write response
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+/*
+type DeleteManifestsRequest map[string][]string
+
+func (r *DeleteManifestsRequest) AddManifest(revision string) {
+	if _, ok := r[revision]; !ok {
+		r[revision] = []string{}
+	}
+}
+
+func (r *DeleteManifestsRequest) AddStream(revision, stream string) {
+	r[revision] = append(r[revision], stream)
+}
+
+func deleteManifestsFunc(app *handlers.App) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		defer req.Body.Close()
+
+		//TODO verify auth
+
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			//TODO
+			log.Errorf("Error reading body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		deletions := DeleteManifestsRequest{}
+		err = json.Unmarshal(body, &deletions)
+		if err != nil {
+			//TODO
+			log.Errorf("Error unmarshaling body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		adminService := app.Registry().AdminService()
+		errs := []error{}
+		for revision, repos := range deletions {
+			log.Infof("Deleting manifest revision=%q, repos=%v", revision, repos)
+			manifestErrs := adminService.DeleteManifest(revision, repos)
+			errs = append(errs, manifestErrs...)
+		}
+
+		log.Infof("errs=%v", errs)
+
+		//TODO write response
+		w.WriteHeader(http.StatusOK)
+	}
+}
+*/
 
 // Execute runs the Docker registry.
 func Execute(configFile io.Reader) {
@@ -55,7 +168,7 @@ func Execute(configFile io.Reader) {
 	ctx := context.Background()
 
 	app := handlers.NewApp(ctx, *config)
-	handler := newHealthHandler(app)
+	handler := newOpenShiftHandler(app)
 	handler = gorillahandlers.CombinedLoggingHandler(os.Stdout, handler)
 
 	if config.HTTP.TLS.Certificate == "" {

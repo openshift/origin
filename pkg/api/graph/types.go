@@ -20,12 +20,18 @@ import (
 
 const (
 	UnknownGraphKind = iota
-	ImageStreamGraphKind
+	ImageStreamTagGraphKind
 	DockerRepositoryGraphKind
 	BuildConfigGraphKind
 	DeploymentConfigGraphKind
 	SourceRepositoryGraphKind
 	ServiceGraphKind
+	ImageGraphKind
+	PodGraphKind
+	ImageStreamGraphKind
+	ReplicationControllerGraphKind
+	ImageLayerGraphKind
+	BuildGraphKind
 )
 const (
 	UnknownGraphEdgeKind = iota
@@ -36,6 +42,9 @@ const (
 	BuildOutputGraphEdgeKind
 	UsedInDeploymentGraphEdgeKind
 	ExposedThroughServiceGraphEdgeKind
+	ReferencedImageGraphEdgeKind
+	WeakReferencedImageGraphEdgeKind
+	ReferencedImageLayerGraphEdgeKind
 )
 
 type ServiceNode struct {
@@ -119,7 +128,7 @@ func (n ImageStreamTagNode) String() string {
 }
 
 func (*ImageStreamTagNode) Kind() int {
-	return ImageStreamGraphKind
+	return ImageStreamTagGraphKind
 }
 
 type DockerImageRepositoryNode struct {
@@ -157,6 +166,50 @@ func (n SourceRepositoryNode) String() string {
 
 func (SourceRepositoryNode) Kind() int {
 	return SourceRepositoryGraphKind
+}
+
+type ImageNode struct {
+	Node
+	Image *image.Image
+}
+
+func (n ImageNode) Object() interface{} {
+	return n.Image
+}
+
+func (n ImageNode) String() string {
+	return fmt.Sprintf("<image %s>", n.Image.Name)
+}
+
+func (*ImageNode) Kind() int {
+	return ImageGraphKind
+}
+
+func Image(g MutableUniqueGraph, img *image.Image) graph.Node {
+	return EnsureUnique(g,
+		UniqueName(fmt.Sprintf("%d|%s", ImageGraphKind, img.Name)),
+		func(node Node) graph.Node {
+			return &ImageNode{node, img}
+		},
+	)
+}
+
+func FindImage(g MutableUniqueGraph, imageName string) graph.Node {
+	return g.Find(UniqueName(fmt.Sprintf("%d|%s", ImageGraphKind, imageName)))
+}
+
+type PodNode struct {
+	Node
+	Pod *kapi.Pod
+}
+
+func Pod(g MutableUniqueGraph, pod *kapi.Pod) graph.Node {
+	return EnsureUnique(g,
+		UniqueName(fmt.Sprintf("%d|%s/%s", PodGraphKind, pod.Namespace, pod.Name)),
+		func(node Node) graph.Node {
+			return &PodNode{node, pod}
+		},
+	)
 }
 
 // Service adds the provided service to the graph if it does not already exist. It does not
@@ -218,7 +271,7 @@ func SourceRepository(g MutableUniqueGraph, source build.BuildSource) (graph.Nod
 	), true
 }
 
-// ImageStreamTag adds a graph node for the specific tag in an Image Repository if it
+// ImageStreamTag adds a graph node for the specific tag in an Image Stream if it
 // does not already exist.
 func ImageStreamTag(g MutableUniqueGraph, namespace, name, tag string) graph.Node {
 	if len(tag) == 0 {
@@ -227,7 +280,7 @@ func ImageStreamTag(g MutableUniqueGraph, namespace, name, tag string) graph.Nod
 	if strings.Contains(name, ":") {
 		panic(name)
 	}
-	uname := UniqueName(fmt.Sprintf("%d|%s/%s:%s", ImageStreamGraphKind, namespace, name, tag))
+	uname := UniqueName(fmt.Sprintf("%d|%s/%s:%s", ImageStreamTagGraphKind, namespace, name, tag))
 	return EnsureUnique(g,
 		uname,
 		func(node Node) graph.Node {
@@ -273,7 +326,7 @@ func BuildConfig(g MutableUniqueGraph, config *build.BuildConfig) graph.Node {
 		g.AddEdge(in, node, BuildInputGraphEdgeKind)
 	}
 
-	from := buildutil.GetImageStreamForStrategy(config)
+	from := buildutil.GetImageStreamForStrategy(config.Parameters.Strategy)
 	if from != nil {
 		switch from.Kind {
 		case "DockerImage":
@@ -432,4 +485,112 @@ func defaultNamespace(value, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+type ImageStreamNode struct {
+	Node
+	*image.ImageStream
+}
+
+func (n ImageStreamNode) Object() interface{} {
+	return n.ImageStream
+}
+
+func (n ImageStreamNode) String() string {
+	return fmt.Sprintf("<image stream %s/%s>", n.Namespace, n.Name)
+}
+
+func (*ImageStreamNode) Kind() int {
+	return ImageStreamGraphKind
+}
+
+// ImageStream adds a graph node for the Image Stream if it does not already exist.
+func ImageStream(g MutableUniqueGraph, stream *image.ImageStream) graph.Node {
+	return EnsureUnique(g,
+		UniqueName(fmt.Sprintf("%d|%s/%s", ImageStreamGraphKind, stream.Namespace, stream.Name)),
+		func(node Node) graph.Node {
+			return &ImageStreamNode{node, stream}
+		},
+	)
+}
+
+type ReplicationControllerNode struct {
+	Node
+	*kapi.ReplicationController
+}
+
+func (n ReplicationControllerNode) Object() interface{} {
+	return n.ReplicationController
+}
+
+func (n ReplicationControllerNode) String() string {
+	return fmt.Sprintf("<replication controller %s/%s>", n.Namespace, n.Name)
+}
+
+func (*ReplicationControllerNode) Kind() int {
+	return ReplicationControllerGraphKind
+}
+
+// ReplicationController adds a graph node for the ReplicationController if it does not already exist.
+func ReplicationController(g MutableUniqueGraph, rc *kapi.ReplicationController) graph.Node {
+	return EnsureUnique(g,
+		UniqueName(fmt.Sprintf("%d|%s/%s", ReplicationControllerGraphKind, rc.Namespace, rc.Name)),
+		func(node Node) graph.Node {
+			return &ReplicationControllerNode{node, rc}
+		},
+	)
+}
+
+type ImageLayerNode struct {
+	Node
+	Layer string
+}
+
+func (n ImageLayerNode) Object() interface{} {
+	return n.Layer
+}
+
+func (n ImageLayerNode) String() string {
+	return fmt.Sprintf("<image layer %s>", n.Layer)
+}
+
+func (*ImageLayerNode) Kind() int {
+	return ImageLayerGraphKind
+}
+
+// ImageLayer adds a graph node for the layer if it does not already exist.
+func ImageLayer(g MutableUniqueGraph, layer string) graph.Node {
+	return EnsureUnique(g,
+		UniqueName(fmt.Sprintf("%d|%s", ImageLayerGraphKind, layer)),
+		func(node Node) graph.Node {
+			return &ImageLayerNode{node, layer}
+		},
+	)
+}
+
+type BuildNode struct {
+	Node
+	Build *build.Build
+}
+
+func (n BuildNode) Object() interface{} {
+	return n.Build
+}
+
+func (n BuildNode) String() string {
+	return fmt.Sprintf("<build %s/%s>", n.Build.Namespace, n.Build.Name)
+}
+
+func (*BuildNode) Kind() int {
+	return BuildGraphKind
+}
+
+// Build adds a graph node for the build if it does not already exist.
+func Build(g MutableUniqueGraph, build *build.Build) graph.Node {
+	return EnsureUnique(g,
+		UniqueName(fmt.Sprintf("%d|%s/%s", BuildGraphKind, build.Namespace, build.Name)),
+		func(node Node) graph.Node {
+			return &BuildNode{node, build}
+		},
+	)
 }

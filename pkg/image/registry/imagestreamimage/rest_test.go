@@ -76,7 +76,7 @@ func TestNameAndID(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		repo, id, err := nameAndID(test.input)
+		repo, id, err := ParseNameAndID(test.input)
 		didError := err != nil
 		if e, a := test.expectError, didError; e != a {
 			t.Fatalf("%s: expected error=%t, got=%t: %s", name, e, a, err)
