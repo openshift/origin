@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"bitbucket.org/ww/goautoneg"
+
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	restful "github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
@@ -372,13 +374,17 @@ func initAPIVersionRoute(root *restful.WebService, versions ...string) {
 // and the Accept header supports text/html
 func assetServerRedirect(handler http.Handler, assetPublicURL string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		accept := req.Header.Get("Accept")
-		if req.URL.Path == "/" && strings.Contains(accept, "text/html") {
-			http.Redirect(w, req, assetPublicURL, http.StatusFound)
-		} else {
-			// Dispatch to the next handler
-			handler.ServeHTTP(w, req)
+		if req.URL.Path == "/" {
+			accepts := goautoneg.ParseAccept(req.Header.Get("Accept"))
+			for _, accept := range accepts {
+				if accept.Type == "text" && accept.SubType == "html" {
+					http.Redirect(w, req, assetPublicURL, http.StatusFound)
+					return
+				}
+			}
 		}
+		// Dispatch to the next handler
+		handler.ServeHTTP(w, req)
 	})
 }
 
