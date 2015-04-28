@@ -114,6 +114,9 @@ type Server interface {
 
 // EtcdServer is the production implementation of the Server interface
 type EtcdServer struct {
+	// Fixes alignment for 32-bit compilers
+	_ uint64
+
 	cfg *ServerConfig
 
 	r raftNode
