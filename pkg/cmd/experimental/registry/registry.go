@@ -12,7 +12,7 @@ import (
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/golang/glog"
+
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -99,12 +99,12 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 			case 0:
 				name = "docker-registry"
 			default:
-				glog.Fatalf("No arguments are allowed to this command")
+				fmt.Errorf("No arguments are allowed to this command")
 			}
 
 			ports, err := app.ContainerPortsFromString(cfg.Ports)
 			if err != nil {
-				glog.Fatal(err)
+				cmdutil.CheckErr(err)
 			}
 
 			label := map[string]string{
@@ -113,10 +113,10 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 			if cfg.Labels != defaultLabel {
 				valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Labels, ","))
 				if err != nil {
-					glog.Fatal(err)
+					cmdutil.CheckErr(err)
 				}
 				if len(remove) > 0 {
-					glog.Fatalf("You may not pass negative labels in %q", cfg.Labels)
+					fmt.Errorf("You may not pass negative labels in %q", cfg.Labels)
 				}
 				label = valid
 			}
@@ -125,16 +125,16 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 
 			namespace, err := f.OpenShiftClientConfig.Namespace()
 			if err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				fmt.Errorf("Error getting client: %v", err)
 			}
 			_, kClient, err := f.Clients()
 			if err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				fmt.Errorf("Error getting client: %v", err)
 			}
 
 			p, output, err := cmdutil.PrinterForCommand(cmd)
 			if err != nil {
-				glog.Fatalf("Unable to configure printer: %v", err)
+				fmt.Errorf("Unable to configure printer: %v", err)
 			}
 
 			generate := output
@@ -142,7 +142,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 				_, err = kClient.Services(namespace).Get(name)
 				if err != nil {
 					if !errors.IsNotFound(err) {
-						glog.Fatalf("Can't check for existing docker-registry %q: %v", name, err)
+						fmt.Errorf("Can't check for existing docker-registry %q: %v", name, err)
 					}
 					generate = true
 				}
@@ -150,24 +150,24 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 
 			if generate {
 				if !cfg.Create && !output {
-					glog.Fatalf("Docker-registry %q does not exist (no service). Pass --create to install.", name)
+					fmt.Errorf("Docker-registry %q does not exist (no service). Pass --create to install.", name)
 				}
 
 				// create new registry
 				if len(cfg.Credentials) == 0 {
-					glog.Fatalf("You must specify a .kubeconfig file path containing credentials for connecting the registry to the master with --credentials")
+					fmt.Errorf("You must specify a .kubeconfig file path containing credentials for connecting the registry to the master with --credentials")
 				}
 				clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: cfg.Credentials}
 				credentials, err := clientConfigLoadingRules.Load()
 				if err != nil {
-					glog.Fatalf("The provided credentials %q could not be loaded: %v", cfg.Credentials, err)
+					fmt.Errorf("The provided credentials %q could not be loaded: %v", cfg.Credentials, err)
 				}
 				config, err := kclientcmd.NewDefaultClientConfig(*credentials, &kclientcmd.ConfigOverrides{}).ClientConfig()
 				if err != nil {
-					glog.Fatalf("The provided credentials %q could not be used: %v", cfg.Credentials, err)
+					fmt.Errorf("The provided credentials %q could not be used: %v", cfg.Credentials, err)
 				}
 				if err := kclient.LoadTLSFiles(config); err != nil {
-					glog.Fatalf("The provided credentials %q could not load certificate info: %v", cfg.Credentials, err)
+					fmt.Errorf("The provided credentials %q could not load certificate info: %v", cfg.Credentials, err)
 				}
 				insecure := "false"
 				if config.Insecure {
@@ -241,7 +241,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 
 				if output {
 					if err := p.PrintObj(list, out); err != nil {
-						glog.Fatalf("Unable to print object: %v", err)
+						fmt.Errorf("Unable to print object: %v", err)
 					}
 					return
 				}

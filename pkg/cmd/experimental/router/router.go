@@ -14,7 +14,7 @@ import (
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/golang/glog"
+
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -93,22 +93,22 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 			case 1:
 				name = args[0]
 			default:
-				glog.Fatalf("You may pass zero or one arguments to provide a name for the router")
+				fmt.Errorf("You may pass zero or one arguments to provide a name for the router")
 			}
 
 			ports, err := app.ContainerPortsFromString(cfg.Ports)
 			if err != nil {
-				glog.Fatal(err)
+				cmdutil.CheckErr(err)
 			}
 
 			label := map[string]string{"router": name}
 			if cfg.Labels != defaultLabel {
 				valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Labels, ","))
 				if err != nil {
-					glog.Fatal(err)
+					cmdutil.CheckErr(err)
 				}
 				if len(remove) > 0 {
-					glog.Fatalf("You may not pass negative labels in %q", cfg.Labels)
+					fmt.Errorf("You may not pass negative labels in %q", cfg.Labels)
 				}
 				label = valid
 			}
@@ -117,16 +117,16 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 
 			namespace, err := f.OpenShiftClientConfig.Namespace()
 			if err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				fmt.Errorf("Error getting client: %v", err)
 			}
 			_, kClient, err := f.Clients()
 			if err != nil {
-				glog.Fatalf("Error getting client: %v", err)
+				fmt.Errorf("Error getting client: %v", err)
 			}
 
 			p, output, err := cmdutil.PrinterForCommand(cmd)
 			if err != nil {
-				glog.Fatalf("Unable to configure printer: %v", err)
+				fmt.Errorf("Unable to configure printer: %v", err)
 			}
 
 			generate := output
@@ -134,7 +134,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 				_, err = kClient.Services(namespace).Get(name)
 				if err != nil {
 					if !errors.IsNotFound(err) {
-						glog.Fatalf("Can't check for existing router %q: %v", name, err)
+						fmt.Errorf("Can't check for existing router %q: %v", name, err)
 					}
 					generate = true
 				}
@@ -142,25 +142,25 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 
 			if generate {
 				if !cfg.Create && !output {
-					glog.Fatalf("Router %q does not exist (no service). Pass --create to install.", name)
+					fmt.Errorf("Router %q does not exist (no service). Pass --create to install.", name)
 				}
 
 				// create new router
 				if len(cfg.Credentials) == 0 {
-					glog.Fatalf("You must specify a .kubeconfig file path containing credentials for connecting the router to the master with --credentials")
+					fmt.Errorf("You must specify a .kubeconfig file path containing credentials for connecting the router to the master with --credentials")
 				}
 
 				clientConfigLoadingRules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: cfg.Credentials, Precedence: []string{}}
 				credentials, err := clientConfigLoadingRules.Load()
 				if err != nil {
-					glog.Fatalf("The provided credentials %q could not be loaded: %v", cfg.Credentials, err)
+					fmt.Errorf("The provided credentials %q could not be loaded: %v", cfg.Credentials, err)
 				}
 				config, err := kclientcmd.NewDefaultClientConfig(*credentials, &kclientcmd.ConfigOverrides{}).ClientConfig()
 				if err != nil {
-					glog.Fatalf("The provided credentials %q could not be used: %v", cfg.Credentials, err)
+					fmt.Errorf("The provided credentials %q could not be used: %v", cfg.Credentials, err)
 				}
 				if err := kclient.LoadTLSFiles(config); err != nil {
-					glog.Fatalf("The provided credentials %q could not load certificate info: %v", cfg.Credentials, err)
+					fmt.Errorf("The provided credentials %q could not load certificate info: %v", cfg.Credentials, err)
 				}
 				insecure := "false"
 				if config.Insecure {
@@ -169,7 +169,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 
 				defaultCert, err := loadDefaultCert(cfg.DefaultCertificate)
 				if err != nil {
-					glog.Fatalf("Error reading default certificate file", err)
+					fmt.Errorf("Error reading default certificate file", err)
 				}
 
 				env := app.Environment{
@@ -231,7 +231,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 
 				if output {
 					if err := p.PrintObj(list, out); err != nil {
-						glog.Fatalf("Unable to print object: %v", err)
+						fmt.Errorf("Unable to print object: %v", err)
 					}
 					return
 				}
@@ -282,7 +282,7 @@ func loadDefaultCert(file string) (string, error) {
 
 registry, imageNamespace, imageName, tag, err := imageapi.SplitDockerPullSpec(image)
 if err != nil {
-	glog.Fatalf("The image value %q is not valid: %v", image, err)
+	fmt.Errorf("The image value %q is not valid: %v", image, err)
 }
 
 image := &app.ImageRef{
@@ -293,14 +293,14 @@ image := &app.ImageRef{
 }
 pipeline, err := app.NewImagePipeline(name, image)
 if err != nil {
-	glog.Fatalf("Unable to set up an image for the router: %v", err)
+	fmt.Errorf("Unable to set up an image for the router: %v", err)
 }
 if err := pipeline.NeedsDeployment(nil); err != nil {
-	glog.Fatalf("Unable to set up a deployment for the router: %v", err)
+	fmt.Errorf("Unable to set up a deployment for the router: %v", err)
 }
 objects, err := pipeline.Objects(app.NewAcceptFirst())
 if err != nil {
-	glog.Fatalf("Unable to configure objects for deployment: %v", err)
+	fmt.Errorf("Unable to configure objects for deployment: %v", err)
 }
 objects = app.AddServices(objects)
 */
