@@ -9,6 +9,11 @@ type SubjectAccessReviewsNamespacer interface {
 	SubjectAccessReviews(namespace string) SubjectAccessReviewInterface
 }
 
+// ClusterSubjectAccessReviews has methods to work with SubjectAccessReview resources in the cluster scope
+type ClusterSubjectAccessReviews interface {
+	ClusterSubjectAccessReviews() SubjectAccessReviewInterface
+}
+
 // SubjectAccessReviewInterface exposes methods on SubjectAccessReview resources.
 type SubjectAccessReviewInterface interface {
 	Create(policy *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error)
@@ -35,20 +40,20 @@ func (c *subjectAccessReviews) Create(policy *authorizationapi.SubjectAccessRevi
 	return
 }
 
-// rootSubjectAccessReviews implements RootSubjectAccessReviews interface
-type rootSubjectAccessReviews struct {
+// clusterSubjectAccessReviews implements ClusterSubjectAccessReviews interface
+type clusterSubjectAccessReviews struct {
 	r *Client
 }
 
-// newRootSubjectAccessReviews returns a rootSubjectAccessReviews
-func newRootSubjectAccessReviews(c *Client) *rootSubjectAccessReviews {
-	return &rootSubjectAccessReviews{
+// newClusterSubjectAccessReviews returns a clusterSubjectAccessReviews
+func newClusterSubjectAccessReviews(c *Client) *clusterSubjectAccessReviews {
+	return &clusterSubjectAccessReviews{
 		r: c,
 	}
 }
 
 // Create creates new policy. Returns the server's representation of the policy and error if one occurs.
-func (c *rootSubjectAccessReviews) Create(policy *authorizationapi.SubjectAccessReview) (result *authorizationapi.SubjectAccessReviewResponse, err error) {
+func (c *clusterSubjectAccessReviews) Create(policy *authorizationapi.SubjectAccessReview) (result *authorizationapi.SubjectAccessReviewResponse, err error) {
 	result = &authorizationapi.SubjectAccessReviewResponse{}
 	err = c.r.Post().Resource("subjectAccessReviews").Body(policy).Do().Into(result)
 	return

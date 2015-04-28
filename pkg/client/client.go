@@ -39,8 +39,9 @@ type Interface interface {
 	RoleBindingsNamespacer
 	PolicyBindingsNamespacer
 	ResourceAccessReviewsNamespacer
-	RootResourceAccessReviews
+	ClusterResourceAccessReviews
 	SubjectAccessReviewsNamespacer
+	ClusterSubjectAccessReviews
 	TemplatesNamespacer
 	TemplateConfigsNamespacer
 	OAuthAccessTokensInterface
@@ -176,9 +177,9 @@ func (c *Client) ResourceAccessReviews(namespace string) ResourceAccessReviewInt
 	return newResourceAccessReviews(c, namespace)
 }
 
-// RootResourceAccessReviews provides a REST client for RootResourceAccessReviews
-func (c *Client) RootResourceAccessReviews() ResourceAccessReviewInterface {
-	return newRootResourceAccessReviews(c)
+// ClusterResourceAccessReviews provides a REST client for ClusterResourceAccessReviews
+func (c *Client) ClusterResourceAccessReviews() ResourceAccessReviewInterface {
+	return newClusterResourceAccessReviews(c)
 }
 
 // SubjectAccessReviews provides a REST client for SubjectAccessReviews
@@ -186,9 +187,9 @@ func (c *Client) SubjectAccessReviews(namespace string) SubjectAccessReviewInter
 	return newSubjectAccessReviews(c, namespace)
 }
 
-// RootSubjectAccessReviews provides a REST client for RootSubjectAccessReviews
-func (c *Client) RootSubjectAccessReviews() SubjectAccessReviewInterface {
-	return newRootSubjectAccessReviews(c)
+// ClusterSubjectAccessReviews provides a REST client for SubjectAccessReviews
+func (c *Client) ClusterSubjectAccessReviews() SubjectAccessReviewInterface {
+	return newClusterSubjectAccessReviews(c)
 }
 
 // OAuthAccessTokens provides a REST client for OAuthAccessTokens

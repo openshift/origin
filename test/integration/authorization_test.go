@@ -246,7 +246,7 @@ func TestResourceAccessReview(t *testing.T) {
 	// mark should not be able to make global access review requests
 	{
 		test := resourceAccessReviewTest{
-			clientInterface: markClient.RootResourceAccessReviews(),
+			clientInterface: markClient.ClusterResourceAccessReviews(),
 			review:          requestWhoCanViewDeployments,
 			err:             "forbidden",
 		}
@@ -256,7 +256,7 @@ func TestResourceAccessReview(t *testing.T) {
 	// a cluster-admin should be able to make global access review requests
 	{
 		test := resourceAccessReviewTest{
-			clientInterface: clusterAdminClient.RootResourceAccessReviews(),
+			clientInterface: clusterAdminClient.ClusterResourceAccessReviews(),
 			review:          requestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
 				Users:  globalClusterAdminUsers,
@@ -391,7 +391,7 @@ func TestSubjectAccessReview(t *testing.T) {
 
 	askCanClusterAdminsCreateProject := &authorizationapi.SubjectAccessReview{Groups: util.NewStringSet("system:cluster-admins"), Verb: "create", Resource: "projects"}
 	subjectAccessReviewTest{
-		clientInterface: clusterAdminClient.RootSubjectAccessReviews(),
+		clientInterface: clusterAdminClient.ClusterSubjectAccessReviews(),
 		review:          askCanClusterAdminsCreateProject,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
@@ -400,7 +400,7 @@ func TestSubjectAccessReview(t *testing.T) {
 		},
 	}.run(t)
 	subjectAccessReviewTest{
-		clientInterface: haroldClient.RootSubjectAccessReviews(),
+		clientInterface: haroldClient.ClusterSubjectAccessReviews(),
 		review:          askCanClusterAdminsCreateProject,
 		err:             "forbidden",
 	}.run(t)
