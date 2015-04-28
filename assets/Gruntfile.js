@@ -81,13 +81,45 @@ module.exports = function (grunt) {
           open: true,
           middleware: function (connect) {
             return [
-              modRewrite(['!^/(config.js|favicon.ico|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
+              modRewrite(['!^/(config.js|favicon.ico|(bower_components|scripts|images|styles|views|console|console/java)(/.*)?)$ /index.html [L]']),
+              connect().use('/config.js', function(req, res, next) {
+                var KUBERNETES_HOST = process.env.KUBERNETES_HOST || 'localhost';
+                var KUBERNETES_PORT = process.env.KUBERNETES_PORT || '8443';
+                var KUBERNETES_PROXY_VERSION = process.env.KUBERNETES_PROXY_VERSION || 'v1beta3';
+
+                var answer = 'window.OPENSHIFT_CONFIG = {' +
+                  '  api: {' +
+                  '    openshift: {' +
+                  '      hostPort: "' + KUBERNETES_HOST + ':' + KUBERNETES_PORT + '",' +
+                  '      prefix: "/osapi"' +
+                  '    },' +
+                  '    k8s: {' +
+                  '      hostPort: "' + KUBERNETES_HOST + ':' + KUBERNETES_PORT + '",' +
+                  '      prefix: "/api",' +
+                  '      proxyVersion: "' + KUBERNETES_PROXY_VERSION + '"' +
+                  '    }' +
+                  '  },' +
+                  '  auth: {' +
+                  '  	oauth_authorize_uri: "https://' + KUBERNETES_HOST + ':' + KUBERNETES_PORT + '/oauth/authorize",' +
+                '  	oauth_redirect_base: "https://localhost:9000",' +
+                '  	oauth_client_id: "openshift-web-console",' +
+                  '  	logout_uri: ""' +
+                  '  },' +
+                  '};';
+
+                res.setHeader('Content-Type', 'application/javascript');
+                res.end(answer);
+              }),
+              connect().use(
+                '/console/java',
+                connect.static('./openshift-jvm')
+              ),
               connect.static('.tmp'),
               connect().use(
                 '/bower_components',
                 connect.static('./bower_components')
               ),
-              connect.static(appConfig.app)
+              connect.static(appConfig.app),
             ];
           }
         }
