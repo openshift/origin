@@ -116,21 +116,25 @@ pushd _thirdpartyhacks
             src
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
-# Default to building all of the components
-for OS in linux darwin windows
+# Build all linux components we care about
+for cmd in openshift dockerregistry
+do
+        go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
+done
+
+# Build only 'openshift' for other platforms
+for OS in darwin windows
 do
     export GOOS=${OS}
-    for cmd in openshift dockerregistry
-    do
-        if [ $GOOS == 'windows' ]
-        then
-            export GOARCH='386'
-        else
-            export GOARCH='amd64'
-        fi
-        go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
-    done
+    if [ $GOOS == 'windows' ]
+    then
+        export GOARCH='386'
+    else
+        export GOARCH='amd64'
+    fi
+    go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
 done
+
 # set the IMAGES
 sed -i 's|IMAGES=.*|IMAGES=%{docker_images}|' rel-eng/openshift-{master,node}.sysconfig
 
@@ -140,13 +144,16 @@ install -d %{buildroot}%{_bindir}
 install -d %{buildroot}%{_datadir}/%{name}/macosx
 install -d %{buildroot}%{_datadir}/%{name}/windows
 
+# Install linux components
 for bin in openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
-  install -p -m 755 _build/bin/darwin_amd64/${bin} %{buildroot}%{_datadir}/%{name}/macosx/osc
-  install -p -m 755 _build/bin/windows_386/${bin}.exe %{buildroot}%{_datadir}/%{name}/windows/osc.exe
 done
+# Install 'openshift' as client executable for windows and mac
+install -p -m 755 _build/bin/darwin_amd64/openshift %{buildroot}%{_datadir}/%{name}/macosx/osc
+install -p -m 755 _build/bin/windows_386/openshift.exe %{buildroot}%{_datadir}/%{name}/windows/osc.exe
+
 
 install -d -m 0755 %{buildroot}/etc/%{name}
 install -d -m 0755 %{buildroot}%{_unitdir}
