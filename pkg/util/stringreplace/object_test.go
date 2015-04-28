@@ -38,7 +38,7 @@ func TestVisitObjectStringsOnStruct(t *testing.T) {
 			},
 			{
 				MapInMap: map[string]map[string]string{
-					"foo": {"bar": "sample-test"},
+					"sample-foo": {"sample-bar": "sample-test"},
 				},
 			},
 		},
@@ -64,15 +64,15 @@ func TestVisitObjectStringsOnMap(t *testing.T) {
 	samples := [][]map[string]string{
 		{
 			{"foo": "bar"},
-			{"foo": "sample-bar"},
+			{"sample-foo": "sample-bar"},
 		},
 		{
 			{"empty": ""},
-			{"empty": "sample-"},
+			{"sample-empty": "sample-"},
 		},
 		{
 			{"": "invalid"},
-			{"": "sample-invalid"},
+			{"sample-": "sample-invalid"},
 		},
 	}
 

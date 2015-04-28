@@ -44,7 +44,18 @@ func VisitObjectStrings(obj interface{}, visitor func(string) string) {
 			c := reflect.New(v.MapIndex(k).Type()).Elem()
 			c.Set(v.MapIndex(k))
 			visitField(c)
-			v.SetMapIndex(k, c)
+
+			// we only want to substitute key when they are string keys
+			if k.Kind() == reflect.String {
+				s := k.String()
+				VisitObjectStrings(&s, visitor)
+				newKey := reflect.ValueOf(s)
+				v.SetMapIndex(newKey, c)
+				v.SetMapIndex(k, reflect.Value{})
+
+			} else {
+				v.SetMapIndex(k, c)
+			}
 		}
 	default:
 		glog.V(5).Infof("Unknown field type '%s': %v", v.Kind(), v)
