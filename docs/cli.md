@@ -132,6 +132,31 @@ information that's related to a given resource.
 $ osc describe service frontend
 ```
 
+osc label
+----------------
+
+This command adds labels to a provided resource. 
+It can also overwrite the existing labels by using the `--overwrite` flag.
+
+#### Examples
+
+```
+$ osc label service frontend foo=bar
+```
+
+osc stop
+----------------
+
+This command gracefully shuts down a resource by id or filename. 
+It attempts to shut down and delete a resource that supports graceful termination. 
+If the resource is resizable, it will be resized to 0 before deletion.
+
+#### Examples
+
+```
+$ osc stop service frontend
+```
+
 osc namespace
 -----------------
 

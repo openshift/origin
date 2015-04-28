@@ -409,6 +409,18 @@ osc resize rc ruby-hello-world-1 --current-replicas=1 --replicas=5
 osc delete all -l app=ruby
 echo "resize: ok"
 
+osc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | osc create -f -
+wait_for_command 'osc get rc/database-1' "${TIME_MIN}"
+osc get dc/database
+osc stop dc/database
+[ ! "$(osc get rc/database-1)" ]
+[ ! "$(osc get dc/database)" ]
+echo "stop: ok"
+osc label bc ruby-sample-build acustom=label
+[ "$(osc describe bc/ruby-sample-build | grep 'acustom=label')" ]
+osc delete all -l app=dockerbuild
+echo "label: ok"
+
 osc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | osc create -f -
 osc get buildConfigs
 osc get bc

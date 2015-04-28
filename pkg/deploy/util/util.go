@@ -65,7 +65,7 @@ func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
 	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
 }
 
-// HashPodSpecs hashes a PodSpec into a uint64.
+// HashPodSpec hashes a PodSpec into a uint64.
 // TODO: Resources are currently ignored due to the formats not surviving encoding/decoding
 // in a consistent manner (e.g. 0 is represented sometimes as 0.000)
 func HashPodSpec(t api.PodSpec) uint64 {
