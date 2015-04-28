@@ -106,10 +106,54 @@ func TestParameterGenerators(t *testing.T) {
 	}
 }
 
+func TestProcessValueEscape(t *testing.T) {
+	var template api.Template
+	if err := latest.Codec.DecodeInto([]byte(`{
+		"kind":"Template", "apiVersion":"v1beta1",
+		"items": [
+			{
+				"kind": "Service", "apiVersion": "v1beta3${VALUE}",
+				"metadata": {
+					"labels": {
+						"key1": "${VALUE}",
+						"key2": "$${VALUE}"
+					}
+				}
+			}
+		]
+	}`), &template); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	generators := map[string]generator.Generator{
+		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
+	}
+	processor := NewProcessor(generators)
+
+	// Define custom parameter for the transformation:
+	AddParameter(&template, makeParameter("VALUE", "1", ""))
+
+	// Transform the template config into the result config
+	config, errs := processor.Process(&template)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected error: %v", errs)
+	}
+	result, err := latest.Codec.Encode(config)
+	if err != nil {
+		t.Fatalf("unexpected error during encoding Config: %#v", err)
+	}
+	expect := `{"kind":"Config","apiVersion":"v1beta1","metadata":{"creationTimestamp":null},"items":[{"apiVersion":"v1beta31","kind":"Service","metadata":{"labels":{"key1":"1","key2":"$1"}}}]}`
+	if expect != string(result) {
+		t.Errorf("unexpected output: %s", util.StringDiff(expect, string(result)))
+	}
+}
+
 func TestProcessTemplateParameters(t *testing.T) {
 	var template api.Template
 	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
-	latest.Codec.DecodeInto(jsonData, &template)
+	if err := latest.Codec.DecodeInto(jsonData, &template); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	generators := map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
@@ -128,14 +172,7 @@ func TestProcessTemplateParameters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
-	expect := `
-{"kind":"Config","apiVersion":"v1beta1","metadata":{"creationTimestamp":null},"items":[{"kind":"Route","apiVersion":"v1beta1","metadata":{"name":"frontend-route","creationTimestamp":null},"host":"guestbook.example.com","serviceName":"frontend-service"},
-{"kind":"Service","id":"frontend-service","creationTimestamp":null,"apiVersion":"v1beta1","port":5432,"protocol":"TCP","containerPort":0,"selector":{"name":"frontend-service"},"sessionAffinity":"None","ports":[{"name":"","protocol":"TCP","port":5432,"containerPort":0}]},
-{"kind":"Service","id":"redis-master","creationTimestamp":null,"apiVersion":"v1beta1","port":10000,"protocol":"TCP","containerPort":0,"selector":{"name":"redis-master"},"sessionAffinity":"None","ports":[{"name":"","protocol":"TCP","port":10000,"containerPort":0}]},
-{"kind":"Service","id":"redis-slave","creationTimestamp":null,"apiVersion":"v1beta1","port":10001,"protocol":"TCP","containerPort":0,"selector":{"name":"redis-slave"},"sessionAffinity":"None","ports":[{"name":"","protocol":"TCP","port":10001,"containerPort":0}]},
-{"kind":"Pod","id":"redis-master","creationTimestamp":null,"apiVersion":"v1beta1","labels":{"name":"redis-master"},"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"master","image":"dockerfile/redis","ports":[{"containerPort":6379,"protocol":"TCP"}],"env":[{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"currentState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}},
-{"kind":"ReplicationController","id":"guestbook","creationTimestamp":null,"apiVersion":"v1beta1","desiredState":{"replicas":3,"replicaSelector":{"name":"frontend-service"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"php-redis","image":"brendanburns/php-redis","ports":[{"hostPort":8000,"containerPort":80,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminQ3H"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"dwNJiJwW"},{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend-service"}}},"currentState":{"replicas":0,"podTemplate":{"desiredState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}}}},
-{"kind":"ReplicationController","id":"redis-slave","creationTimestamp":null,"apiVersion":"v1beta1","desiredState":{"replicas":2,"replicaSelector":{"name":"redis-slave"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"slave","image":"brendanburns/redis-slave","ports":[{"hostPort":6380,"containerPort":6379,"protocol":"TCP"}],"env":[{"name":"REDIS_PASSWORD","key":"REDIS_PASSWORD","value":"P8vxbV4C"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"redis-slave"}}},"currentState":{"replicas":0,"podTemplate":{"desiredState":{"manifest":{"version":"","id":"","volumes":null,"containers":null,"restartPolicy":{}}}}}}]}`
+	expect := `{"kind":"Config","apiVersion":"v1beta1","metadata":{"creationTimestamp":null},"items":[{"apiVersion":"v1beta1","host":"guestbook.example.com","id":"frontend-route","kind":"Route","metadata":{"name":"frontend-route"},"serviceName":"frontend-service"},{"apiVersion":"v1beta1","id":"frontend-service","kind":"Service","port":5432,"selector":{"name":"frontend-service"}},{"apiVersion":"v1beta1","id":"redis-master","kind":"Service","port":10000,"selector":{"name":"redis-master"}},{"apiVersion":"v1beta1","id":"redis-slave","kind":"Service","port":10001,"selector":{"name":"redis-slave"}},{"apiVersion":"v1beta1","desiredState":{"manifest":{"containers":[{"env":[{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"dockerfile/redis","name":"master","ports":[{"containerPort":6379}]}],"name":"redis-master","version":"v1beta1"}},"id":"redis-master","kind":"Pod","labels":{"name":"redis-master"}},{"apiVersion":"v1beta1","desiredState":{"podTemplate":{"desiredState":{"manifest":{"containers":[{"env":[{"name":"ADMIN_USERNAME","value":"adminQ3H"},{"name":"ADMIN_PASSWORD","value":"dwNJiJwW"},{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"brendanburns/php-redis","name":"php-redis","ports":[{"containerPort":80,"hostPort":8000}]}],"name":"guestbook","version":"v1beta1"}},"labels":{"name":"frontend-service"}},"replicaSelector":{"name":"frontend-service"},"replicas":3},"id":"guestbook","kind":"ReplicationController"},{"apiVersion":"v1beta1","desiredState":{"podTemplate":{"desiredState":{"manifest":{"containers":[{"env":[{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"brendanburns/redis-slave","name":"slave","ports":[{"containerPort":6379,"hostPort":6380}]}],"id":"redis-slave","version":"v1beta1"}},"labels":{"name":"redis-slave"}},"replicaSelector":{"name":"redis-slave"},"replicas":2},"id":"redis-slave","kind":"ReplicationController"}]}`
 	expect = strings.Replace(expect, "\n", "", -1)
 	if string(result) != expect {
 		t.Errorf("unexpected output: %s", util.StringDiff(expect, string(result)))

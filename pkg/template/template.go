@@ -40,20 +40,48 @@ func (p *Processor) Process(template *api.Template) (*configapi.Config, fielderr
 	}
 
 	for i, item := range template.Objects {
+		if obj, ok := item.(*runtime.Unknown); ok {
+			// TODO: use runtime.DecodeList when it returns ValidationErrorList
+			obj, err := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
+			if err != nil {
+				util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("objects", err, "unable to handle object"))
+				continue
+			}
+			item = obj
+		}
+
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
 			util.ReportError(&templateErrors, i, *fielderrors.NewFieldNotSupported("parameters", err))
 		}
-		// Remove namespace from the item
-		itemMeta, err := meta.Accessor(newItem)
-		if err != nil {
-			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("namespace", err, "failed to remove the item namespace"))
-		}
-		itemMeta.SetNamespace("")
+		stripNamespace(newItem)
 		template.Objects[i] = newItem
 	}
 
-	return &configapi.Config{Items: template.Objects}, templateErrors.Prefix("Template")
+	return &configapi.Config{Items: template.Objects}, templateErrors
+}
+
+func stripNamespace(obj runtime.Object) {
+	// Remove namespace from the item
+	if itemMeta, err := meta.Accessor(obj); err == nil {
+		itemMeta.SetNamespace("")
+		return
+	}
+	// TODO: allow meta.Accessor to handle runtime.Unstructured
+	if unstruct, ok := obj.(*runtime.Unstructured); ok && unstruct.Object != nil {
+		if obj, ok := unstruct.Object["metadata"]; ok {
+			if m, ok := obj.(map[string]interface{}); ok {
+				if _, ok := m["namespace"]; ok {
+					m["namespace"] = ""
+				}
+			}
+			return
+		}
+		if _, ok := unstruct.Object["namespace"]; ok {
+			unstruct.Object["namespace"] = ""
+			return
+		}
+	}
 }
 
 // AddParameter adds new custom parameter to the Template. It overrides
