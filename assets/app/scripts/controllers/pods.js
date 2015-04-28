@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('PodsController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver) {
+  .controller('PodsController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver, ProxyPod) {
     $scope.pods = {};
     $scope.unfilteredPods = {};
     $scope.imageStreams = {};
@@ -20,8 +20,48 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
+    $scope.gotoContainerView = function(container, jolokiaUrl) {
+      // console.log("OPENSHIFT_CONFIG: ", OPENSHIFT_CONFIG);
+      // console.log("Clicked! container: ", container, " jolokiaUrl: ", jolokiaUrl);
+      var returnTo = window.location.href;
+      var title = Core.pathGet(container, ['name']) || 'Untitled Container';
+      var targetURI = new URI();
+      targetURI.path('/console/java/')
+               .query({
+                 jolokiaUrl: jolokiaUrl,
+                 title: title,
+                 returnTo: returnTo
+               });
+      // console.log("TargetURI: ", targetURI.toString());
+      window.location.href = targetURI.toString();
+    };
+
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.unfilteredPods = pods.by("metadata.name");
+      // Add a jolokia URL for any container that has a jolokia port
+      _.forIn($scope.unfilteredPods, function(pod, id) {
+        var namespace = Core.pathGet(pod, ['metadata', 'namespace']) || 'default';
+        var containers = Core.pathGet(pod, ['spec', 'containers']) || [];
+        _.forEach(containers, function(container, index) {
+          var containerState = Core.pathGet(pod, ["status", "containerStatuses", index]);
+          if (!containerState) {
+            return;
+          }
+          if (!Core.pathGet(containerState, ['state', 'running'])) {
+            return;
+          }
+          var ports = Core.pathGet(container, ['ports']);
+          if (ports && ports.length > 0) {
+            var jolokiaPort = _.find(ports, function(port) {
+              return port.name && port.name.toLowerCase() === 'jolokia';
+            });
+            if (jolokiaPort) {
+              container.jolokiaUrl = UrlHelpers.join(ProxyPod(namespace, id, jolokiaPort.containerPort), 'jolokia') + '/';
+            }
+          }
+        });
+      });
+
       ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredPods, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);

@@ -48,6 +48,13 @@
     </div>
 
     <div ng-if="container.ports.length > 0" class="pod-template-ports">
+      <div>
+        <span ng-show="container.jolokiaUrl" class="pull-right">
+          <a ng-click="gotoContainerView(container, container.jolokiaUrl)" href="">
+            <i class="fa fa-external-link"></i>
+          </a>
+        </span>
+      </div>
       <div class="font-icon-block" style="margin-right: 5px;">
         <!-- TODO figure out why the font-icon-block does not align correctly when the class names are used instead
              of the data-icons

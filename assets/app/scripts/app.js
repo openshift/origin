@@ -160,6 +160,23 @@ angular
   })
   .constant("API_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).api))
   .constant("AUTH_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).auth))
+  .factory("ProxyPod", function(API_CFG) {
+    return function(namespace, podId, port) {
+      var kubeProxyURI = new URI("https://" + OPENSHIFT_CONFIG.api.k8s.hostPort + API_CFG.k8s.prefix);
+      var apiVersion = API_CFG.k8s.proxyVersion || API_CFG.k8s.version || 'v1beta3';
+      if (port) {
+        podId = podId + ':' + port;
+      }
+      switch(apiVersion) {
+        case 'v1beta3':
+          kubeProxyURI.path(UrlHelpers.join(kubeProxyURI.path(), 'v1beta3/proxy/namespaces', namespace, 'pods', podId));
+          break;
+        default:
+          kubeProxyURI.path(UrlHelpers.join(kubeProxyURI.path(), 'v1beta2/proxy/pods', podId));
+      }
+      return kubeProxyURI.toString();
+    }
+  })
   .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider, AUTH_CFG, API_CFG) {
     $httpProvider.interceptors.push('AuthInterceptor');
 
