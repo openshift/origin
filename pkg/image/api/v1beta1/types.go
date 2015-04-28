@@ -171,7 +171,8 @@ type ImageRepositoryTag struct {
 
 // ImageStreamTag exists to allow calls to `osc get imageStreamTag ...` to function.
 type ImageStreamTag struct {
-	Image `json:",inline"`
+	Image     `json:",inline"`
+	ImageName string `json:"imageName"`
 }
 
 // ImageStreamImage exists to allow calls to `osc get imageStreamImage ...` to function.

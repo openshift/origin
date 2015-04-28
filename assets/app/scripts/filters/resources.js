@@ -76,12 +76,31 @@ angular.module('openshiftConsole')
     };
   })
   .filter('imageName', function() {
+    // takes an image name and strips off the leading <algorithm>: from it,
+    // if it exists.
+    return function(image) {
+      if (!image) {
+        return "";
+      }
+
+      if (!image.contains(":")) {
+        return image;
+      }
+
+      return image.split(":")[1];
+    }
+  })
+  .filter('imageStreamName', function() {
     return function(image) {
       if (!image) {
         return "";
       }
       // TODO move this parsing method into a utility method
-      var slashSplit = image.split("/");
+
+      // remove @sha256:....
+      var imageWithoutID = image.split("@")[0]
+
+      var slashSplit = imageWithoutID.split("/");
       var semiColonSplit;
       if (slashSplit.length === 3) {
         semiColonSplit = slashSplit[2].split(":");
@@ -90,10 +109,10 @@ angular.module('openshiftConsole')
       else if (slashSplit.length === 2) {
         // TODO umm tough... this could be registry/imageName or imageRepo/imageName
         // have to check if the first bit matches a registry pattern, will handle this later...
-        return image;
+        return imageWithoutID;
       }
       else if (slashSplit.length === 1) {
-        semiColonSplit = image.split(":");
+        semiColonSplit = imageWithoutID.split(":");
         return semiColonSplit[0];
       }
     };

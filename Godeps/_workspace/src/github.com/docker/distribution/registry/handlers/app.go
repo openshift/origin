@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"expvar"
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
+	"time"
 
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/configuration"
 	ctxu "github.com/docker/distribution/context"
@@ -16,9 +18,11 @@ import (
 	registrymiddleware "github.com/docker/distribution/registry/middleware/registry"
 	repositorymiddleware "github.com/docker/distribution/registry/middleware/repository"
 	"github.com/docker/distribution/registry/storage"
+	"github.com/docker/distribution/registry/storage/cache"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/factory"
 	storagemiddleware "github.com/docker/distribution/registry/storage/driver/middleware"
+	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
 )
@@ -28,15 +32,12 @@ import (
 // fields should be protected.
 type App struct {
 	context.Context
-	Config configuration.Configuration
 
-	// InstanceID is a unique id assigned to the application on each creation.
-	// Provides information in the logs and context to identify restarts.
-	InstanceID string
+	Config configuration.Configuration
 
 	router           *mux.Router                 // main application router, configured with dispatchers
 	driver           storagedriver.StorageDriver // driver maintains the app global storage driver instance.
-	registry         distribution.Registry       // registry is the primary registry backend for the app instance.
+	registry         distribution.Namespace      // registry is the primary registry backend for the app instance.
 	accessController auth.AccessController       // main access controller for application
 
 	// events contains notification related configuration.
@@ -44,17 +45,8 @@ type App struct {
 		sink   notifications.Sink
 		source notifications.SourceRecord
 	}
-}
 
-// Value intercepts calls context.Context.Value, returning the current app id,
-// if requested.
-func (app *App) Value(key interface{}) interface{} {
-	switch key {
-	case "app.id":
-		return app.InstanceID
-	}
-
-	return app.Context.Value(key)
+	redis *redis.Pool
 }
 
 // NewApp takes a configuration and returns a configured app, ready to serve
@@ -62,13 +54,12 @@ func (app *App) Value(key interface{}) interface{} {
 // handlers accordingly.
 func NewApp(ctx context.Context, configuration configuration.Configuration) *App {
 	app := &App{
-		Config:     configuration,
-		Context:    ctx,
-		InstanceID: uuid.New(),
-		router:     v2.RouterWithPrefix(configuration.HTTP.Prefix),
+		Config:  configuration,
+		Context: ctx,
+		router:  v2.RouterWithPrefix(configuration.HTTP.Prefix),
 	}
 
-	app.Context = ctxu.WithLogger(app.Context, ctxu.GetLogger(app, "app.id"))
+	app.Context = ctxu.WithLogger(app.Context, ctxu.GetLogger(app, "instance.id"))
 
 	// Register the handler dispatchers.
 	app.register(v2.RouteNameBase, func(ctx *Context, r *http.Request) http.Handler {
@@ -89,14 +80,41 @@ func NewApp(ctx context.Context, configuration configuration.Configuration) *App
 		// a health check.
 		panic(err)
 	}
+
+	startUploadPurger(app.driver, ctxu.GetLogger(app))
+
 	app.driver, err = applyStorageMiddleware(app.driver, configuration.Middleware["storage"])
 	if err != nil {
 		panic(err)
 	}
 
 	app.configureEvents(&configuration)
+	app.configureRedis(&configuration)
 
-	app.registry = storage.NewRegistryWithDriver(app.driver)
+	// configure storage caches
+	if cc, ok := configuration.Storage["cache"]; ok {
+		switch cc["layerinfo"] {
+		case "redis":
+			if app.redis == nil {
+				panic("redis configuration required to use for layerinfo cache")
+			}
+			app.registry = storage.NewRegistryWithDriver(app.driver, cache.NewRedisLayerInfoCache(app.redis))
+			ctxu.GetLogger(app).Infof("using redis layerinfo cache")
+		case "inmemory":
+			app.registry = storage.NewRegistryWithDriver(app.driver, cache.NewInMemoryLayerInfoCache())
+			ctxu.GetLogger(app).Infof("using inmemory layerinfo cache")
+		default:
+			if cc["layerinfo"] != "" {
+				ctxu.GetLogger(app).Warnf("unkown cache type %q, caching disabled", configuration.Storage["cache"])
+			}
+		}
+	}
+
+	if app.registry == nil {
+		// configure the registry if no cache section is available.
+		app.registry = storage.NewRegistryWithDriver(app.driver, nil)
+	}
+
 	app.registry, err = applyRegistryMiddleware(app.registry, configuration.Middleware["registry"])
 	if err != nil {
 		panic(err)
@@ -170,12 +188,109 @@ func (app *App) configureEvents(configuration *configuration.Configuration) {
 
 	app.events.source = notifications.SourceRecord{
 		Addr:       hostname,
-		InstanceID: app.InstanceID,
+		InstanceID: ctxu.GetStringValue(app, "instance.id"),
 	}
+}
+
+func (app *App) configureRedis(configuration *configuration.Configuration) {
+	if configuration.Redis.Addr == "" {
+		ctxu.GetLogger(app).Infof("redis not configured")
+		return
+	}
+
+	pool := &redis.Pool{
+		Dial: func() (redis.Conn, error) {
+			// TODO(stevvooe): Yet another use case for contextual timing.
+			ctx := context.WithValue(app, "redis.connect.startedat", time.Now())
+
+			done := func(err error) {
+				logger := ctxu.GetLoggerWithField(ctx, "redis.connect.duration",
+					ctxu.Since(ctx, "redis.connect.startedat"))
+				if err != nil {
+					logger.Errorf("redis: error connecting: %v", err)
+				} else {
+					logger.Infof("redis: connect %v", configuration.Redis.Addr)
+				}
+			}
+
+			conn, err := redis.DialTimeout("tcp",
+				configuration.Redis.Addr,
+				configuration.Redis.DialTimeout,
+				configuration.Redis.ReadTimeout,
+				configuration.Redis.WriteTimeout)
+			if err != nil {
+				ctxu.GetLogger(app).Errorf("error connecting to redis instance %s: %v",
+					configuration.Redis.Addr, err)
+				done(err)
+				return nil, err
+			}
+
+			// authorize the connection
+			if configuration.Redis.Password != "" {
+				if _, err = conn.Do("AUTH", configuration.Redis.Password); err != nil {
+					defer conn.Close()
+					done(err)
+					return nil, err
+				}
+			}
+
+			// select the database to use
+			if configuration.Redis.DB != 0 {
+				if _, err = conn.Do("SELECT", configuration.Redis.DB); err != nil {
+					defer conn.Close()
+					done(err)
+					return nil, err
+				}
+			}
+
+			done(nil)
+			return conn, nil
+		},
+		MaxIdle:     configuration.Redis.Pool.MaxIdle,
+		MaxActive:   configuration.Redis.Pool.MaxActive,
+		IdleTimeout: configuration.Redis.Pool.IdleTimeout,
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			// TODO(stevvooe): We can probably do something more interesting
+			// here with the health package.
+			_, err := c.Do("PING")
+			return err
+		},
+		Wait: false, // if a connection is not avialable, proceed without cache.
+	}
+
+	app.redis = pool
+
+	// setup expvar
+	registry := expvar.Get("registry")
+	if registry == nil {
+		registry = expvar.NewMap("registry")
+	}
+
+	registry.(*expvar.Map).Set("redis", expvar.Func(func() interface{} {
+		return map[string]interface{}{
+			"Config": configuration.Redis,
+			"Active": app.redis.ActiveCount(),
+		}
+	}))
 }
 
 func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // ensure that request body is always closed.
+
+	// Instantiate an http context here so we can track the error codes
+	// returned by the request router.
+	ctx := defaultContextManager.context(app, w, r)
+	defer func() {
+		ctxu.GetResponseLogger(ctx).Infof("response completed")
+	}()
+	defer defaultContextManager.release(ctx)
+
+	// NOTE(stevvooe): Total hack to get instrumented responsewriter from context.
+	var err error
+	w, err = ctxu.GetResponseWriter(ctx)
+	if err != nil {
+		ctxu.GetLogger(ctx).Warnf("response writer not found in context")
+	}
 
 	// Set a header with the Docker Distribution API Version for all responses.
 	w.Header().Add("Docker-Distribution-API-Version", "registry/2.0")
@@ -191,42 +306,19 @@ type dispatchFunc func(ctx *Context, r *http.Request) http.Handler
 // TODO(stevvooe): dispatchers should probably have some validation error
 // chain with proper error reporting.
 
-// singleStatusResponseWriter only allows the first status to be written to be
-// the valid request status. The current use case of this class should be
-// factored out.
-type singleStatusResponseWriter struct {
-	http.ResponseWriter
-	status int
-}
-
-func (ssrw *singleStatusResponseWriter) WriteHeader(status int) {
-	if ssrw.status != 0 {
-		return
-	}
-	ssrw.status = status
-	ssrw.ResponseWriter.WriteHeader(status)
-}
-
-func (ssrw *singleStatusResponseWriter) Flush() {
-	if flusher, ok := ssrw.ResponseWriter.(http.Flusher); ok {
-		flusher.Flush()
-	}
-}
-
 // dispatcher returns a handler that constructs a request specific context and
 // handler, using the dispatch factory function.
 func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		context := app.context(w, r)
 
-		defer func() {
-			ctxu.GetResponseLogger(context).Infof("response completed")
-		}()
-
 		if err := app.authorized(w, r, context); err != nil {
 			ctxu.GetLogger(context).Errorf("error authorizing context: %v", err)
 			return
 		}
+
+		// Add username to request logging
+		context.Context = ctxu.WithLogger(context.Context, ctxu.GetLogger(context.Context, "auth.user.name"))
 
 		if app.nameRequired(r) {
 			repository, err := app.registry.Repository(context, getName(context))
@@ -261,16 +353,16 @@ func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 			}
 		}
 
-		handler := dispatch(context, r)
-
-		ssrw := &singleStatusResponseWriter{ResponseWriter: w}
-		handler.ServeHTTP(ssrw, r)
+		dispatch(context, r).ServeHTTP(w, r)
 
 		// Automated error response handling here. Handlers may return their
 		// own errors if they need different behavior (such as range errors
 		// for layer upload).
 		if context.Errors.Len() > 0 {
-			if ssrw.status == 0 {
+			if context.Value("http.response.status") == 0 {
+				// TODO(stevvooe): Getting this value from the context is a
+				// bit of a hack. We can further address with some of our
+				// future refactoring.
 				w.WriteHeader(http.StatusBadRequest)
 			}
 			serveJSON(w, context.Errors)
@@ -281,10 +373,8 @@ func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 // context constructs the context object for the application. This only be
 // called once per request.
 func (app *App) context(w http.ResponseWriter, r *http.Request) *Context {
-	ctx := ctxu.WithRequest(app, r)
-	ctx, w = ctxu.WithResponseWriter(ctx, w)
+	ctx := defaultContextManager.context(app, w, r)
 	ctx = ctxu.WithVars(ctx, r)
-	ctx = ctxu.WithLogger(ctx, ctxu.GetRequestLogger(ctx))
 	ctx = ctxu.WithLogger(ctx, ctxu.GetLogger(ctx,
 		"vars.name",
 		"vars.reference",
@@ -360,7 +450,6 @@ func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Cont
 	// should be replaced by another, rather than replacing the context on a
 	// mutable object.
 	context.Context = ctx
-
 	return nil
 }
 
@@ -429,7 +518,7 @@ func appendAccessRecords(records []auth.Access, method string, repo string) []au
 }
 
 // applyRegistryMiddleware wraps a registry instance with the configured middlewares
-func applyRegistryMiddleware(registry distribution.Registry, middlewares []configuration.Middleware) (distribution.Registry, error) {
+func applyRegistryMiddleware(registry distribution.Namespace, middlewares []configuration.Middleware) (distribution.Namespace, error) {
 	for _, mw := range middlewares {
 		rmw, err := registrymiddleware.Get(mw.Name, mw.Options, registry)
 		if err != nil {
@@ -463,4 +552,28 @@ func applyStorageMiddleware(driver storagedriver.StorageDriver, middlewares []co
 		driver = smw
 	}
 	return driver, nil
+}
+
+// startUploadPurger schedules a goroutine which will periodically
+// check upload directories for old files and delete them
+func startUploadPurger(storageDriver storagedriver.StorageDriver, log ctxu.Logger) {
+	rand.Seed(time.Now().Unix())
+	jitter := time.Duration(rand.Int()%60) * time.Minute
+
+	// Start with reasonable defaults
+	// TODO:(richardscothern) make configurable
+	purgeAge := time.Duration(7 * 24 * time.Hour)
+	timeBetweenPurges := time.Duration(1 * 24 * time.Hour)
+
+	go func() {
+		log.Infof("Starting upload purge in %s", jitter)
+		time.Sleep(jitter)
+
+		for {
+			storage.PurgeUploads(storageDriver, time.Now().Add(-purgeAge), true)
+			log.Infof("Starting upload purge in %s", timeBetweenPurges)
+			time.Sleep(timeBetweenPurges)
+		}
+	}()
+
 }

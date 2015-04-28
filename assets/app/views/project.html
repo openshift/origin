@@ -65,7 +65,7 @@
                         <span>, triggered by 
                           <span class="deployment-trigger" ng-repeat="cause in deployment.details.causes">
                             <span ng-switch="cause.type">
-                              <span ng-switch-when="ImageChange">new image for {{cause.imageTrigger.repositoryName | imageName}}:{{cause.imageTrigger.tag}}</span>
+                              <span ng-switch-when="ImageChange">new image for {{cause.imageTrigger.repositoryName | imageStreamName}}:{{cause.imageTrigger.tag}}</span>
                               <span ng-switch-when="ConfigChange">deployment configuration change</span>
                             </span>
                           </span>
@@ -134,7 +134,7 @@
                       <span>, triggered by 
                         <span ng-repeat="cause in deployment.details.causes">
                           <span ng-switch="cause.type">
-                            <span ng-switch-when="ImageChange">new image for {{cause.imageTrigger.repositoryName | imageName}}:{{cause.imageTrigger.tag}}</span>
+                            <span ng-switch-when="ImageChange">new image for {{cause.imageTrigger.repositoryName | imageStreamName}}:{{cause.imageTrigger.tag}}</span>
                             <span ng-switch-when="ConfigChange">deployment configuration change</span>
                           </span>
                         </span>

@@ -356,8 +356,6 @@ func TestTagsChanged(t *testing.T) {
 				}},
 				"t2": {Items: []api.TagEvent{
 					{
-						//TODO use the line below when we're on Docker 1.6 with true pull by digest
-						//DockerImageReference: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 						DockerImageReference: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
 				}},
@@ -510,9 +508,7 @@ func TestTagsChanged(t *testing.T) {
 				"t1": {
 					Items: []api.TagEvent{
 						{
-							//TODO use the line below when we're on Docker 1.6 with true pull by digest
-							//DockerImageReference: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-							DockerImageReference: "registry:5000/ns/stream:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+							DockerImageReference: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 							Image:                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 						},
 					},

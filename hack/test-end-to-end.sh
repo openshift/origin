@@ -260,6 +260,7 @@ openshift admin policy add-role-to-user view e2e-user --namespace=default
 openshift admin new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 openshift admin new-project docker --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 openshift admin new-project custom --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
+openshift admin new-project cache --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
@@ -270,13 +271,10 @@ openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-ro
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
-# TODO: add --images="${USE_IMAGES}" when the Docker registry is built alongside OpenShift
-openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images='openshift/origin-${component}:latest'
+openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images="${USE_IMAGES}"
 
 echo "[INFO] Pre-pulling and pushing ruby-20-centos7"
 docker pull openshift/ruby-20-centos7:latest
-# TODO: remove after this becomes part of the build
-docker pull openshift/origin-docker-registry
 echo "[INFO] Pulled ruby-20-centos7"
 
 echo "[INFO] Waiting for Docker registry pod to start"
@@ -287,13 +285,29 @@ wait_for_command '[[ "$(osc get endpoints docker-registry --output-version=v1bet
 DOCKER_REGISTRY=$(osc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
-wait_for_url_timed "http://${DOCKER_REGISTRY}" "[INFO] Docker registry says: " $((2*TIME_MIN))
+wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 [ "$(dig @${API_HOST} "docker-registry.default.local." A)" ]
 
-docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/test/ruby-20-centos7:latest
-docker push ${DOCKER_REGISTRY}/test/ruby-20-centos7:latest
+# Client setup (log in as e2e-user and set 'test' as the default project)
+# This is required to be able to push to the registry!
+echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
+osc login -u e2e-user -p pass
+osc project cache
+token=$(osc config view --flatten -o template -t '{{range .users}}{{if eq .name "e2e-user"}}{{.user.token}}{{end}}{{end}}')
+[[ -n ${token} ]]
+
+# TODO reenable this once we've got docker push secrets 100% ready
+#docker login -u e2e-user -p ${token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}
+# TODO remove the following line once we've got docker push secrets 100% ready
+echo '{"apiVersion": "v1beta1", "kind": "ImageStream", "metadata": {"name": "ruby-20-centos7"}}' | osc create -f -
+
+docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
+docker push ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
 echo "[INFO] Pushed ruby-20-centos7"
+
+echo "[INFO] Back to 'master' context with 'admin' user..."
+osc project default
 
 # Process template and create
 echo "[INFO] Submitting application template json for processing..."
@@ -301,16 +315,14 @@ osc process -n test -f examples/sample-app/application-template-stibuild.json > 
 osc process -n docker -f examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
 osc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
 
-# Client setup (log in as e2e-user and set 'test' as the default project)
-echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
-osc login -u e2e-user -p pass
+echo "[INFO] Back to 'test' context with 'e2e-user' user"
 osc project test
 
 echo "[INFO] Applying STI application config"
 osc create -f "${STI_CONFIG_FILE}"
 
 
-# this needs to be done before waiting fo the build because right now only cluster-admins can see build logs, because that uses proxy
+# this needs to be done before waiting for the build because right now only cluster-admins can see build logs, because that uses proxy
 echo "[INFO] Back to 'master' context with 'admin' user..."
 osc project default
 
@@ -349,7 +361,7 @@ osc exec -p ${registry_pod} whoami | grep root
 # Port forwarding
 echo "[INFO] Validating port-forward"
 osc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
-wait_for_url_timed "http://localhost:5001/" "[INFO] Docker registry says: " $((10*TIME_SEC))
+wait_for_url_timed "http://localhost:5001/healthz" "[INFO] Docker registry says: " $((10*TIME_SEC))
 
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then

@@ -536,8 +536,8 @@
 		},
 		{
 			"ImportPath": "github.com/docker/distribution",
-			"Comment": "v2.0.0-alpha.3-30-g06fcf05",
-			"Rev": "06fcf053e7b45aa8608c6bf32e8d3227b31d3747"
+			"Comment": "v2.0.0",
+			"Rev": "62b70f951f30a711a8a81df1865d0afeeaaa0169"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/builder/command",
@@ -639,6 +639,14 @@
 			"ImportPath": "github.com/fsouza/go-dockerclient",
 			"Comment": "0.2.1-433-g5a070ba",
 			"Rev": "5a070ba03ad313e2f0183c9f9c369fd10161583a"
+		},
+		{
+			"ImportPath": "github.com/garyburd/redigo/internal",
+			"Rev": "535138d7bcd717d6531c701ef5933d98b1866257"
+		},
+		{
+			"ImportPath": "github.com/garyburd/redigo/redis",
+			"Rev": "535138d7bcd717d6531c701ef5933d98b1866257"
 		},
 		{
 			"ImportPath": "github.com/getsentry/raven-go",
@@ -782,6 +790,10 @@
 		{
 			"ImportPath": "github.com/inconshreveable/mousetrap",
 			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+		},
+		{
+			"ImportPath": "github.com/jlhawn/go-crypto",
+			"Rev": "cd738dde20f0b3782516181b0866c9bb9db47401"
 		},
 		{
 			"ImportPath": "github.com/jonboulle/clockwork",

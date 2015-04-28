@@ -169,7 +169,8 @@ type ImageRepositoryTag struct {
 
 // ImageStreamTag exists to allow calls to `osc get imageStreamTag ...` to function.
 type ImageStreamTag struct {
-	Image `json:",inline"`
+	Image     `json:",inline"`
+	ImageName string
 }
 
 // DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
