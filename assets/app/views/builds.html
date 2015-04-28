@@ -1,7 +1,9 @@
 <div ng-controller="ProjectController" class="content">
   <project-page>
     <div ng-controller="BuildsController">
-      <h1>Builds</h1>
+      <div class="page-header page-header-bleed-right">
+        <h1>Builds</h1>
+      </div>
       <alerts alerts="alerts"></alerts>
       <div ng-if="(builds | hashSize) == 0 && (buildConfigs | hashSize) == 0">
         <div>

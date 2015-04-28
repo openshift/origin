@@ -7,7 +7,7 @@ angular.module('openshiftConsole')
       templateUrl: 'views/_pod-template.html'
     };
   })
-  .directive('pods', function() {
+  .directive('pods', function($rootScope) {
     return {
       restrict: 'E',
       scope: {

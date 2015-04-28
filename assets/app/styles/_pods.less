@@ -100,14 +100,13 @@
 }
 
 .flex-row {
-  display: flex;
-  display: --webkit-flex;
-  flex-direction: row;
-  -webkit-flex-direction: row;
+  .flex-display(@display: flex);
+  .flex-direction(@direction: row);
 }
 
 .flex {
-  flex: 1 1 auto;
+  // flex: 1 1 auto;
+  .flex(@columns: 1 0 auto);
 }
 
 /* TODO fix the spinner to be valid less syntax
