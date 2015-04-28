@@ -271,7 +271,9 @@ func (sub *EtcdSubnetRegistry) CreateSubnet(minion string, subnet *api.Subnet) e
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) WatchMinions(rev uint64, receiver chan *api.MinionEvent, stop chan bool) error {
+func (sub *EtcdSubnetRegistry) WatchMinions(receiver chan *api.MinionEvent, stop chan bool) error {
+	var rev uint64
+	rev = 0
 	key := sub.etcdCfg.MinionPath
 	log.Infof("Watching %s for new minions.", key)
 	for {
@@ -314,8 +316,10 @@ func (sub *EtcdSubnetRegistry) watch(key string, rev uint64, stop chan bool) (*e
 	return rawResp.Unmarshal()
 }
 
-func (sub *EtcdSubnetRegistry) WatchSubnets(rev uint64, receiver chan *api.SubnetEvent, stop chan bool) error {
+func (sub *EtcdSubnetRegistry) WatchSubnets(receiver chan *api.SubnetEvent, stop chan bool) error {
 	for {
+		var rev uint64
+		rev = 0
 		key := sub.etcdCfg.SubnetPath
 		resp, err := sub.watch(key, rev, stop)
 		if resp == nil && err == nil {

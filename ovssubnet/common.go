@@ -241,7 +241,7 @@ func (oc *OvsController) watchMinions() {
 	// watch latest?
 	stop := make(chan bool)
 	minevent := make(chan *api.MinionEvent)
-	go oc.subnetRegistry.WatchMinions(0, minevent, stop)
+	go oc.subnetRegistry.WatchMinions(minevent, stop)
 	for {
 		select {
 		case ev := <-minevent:
@@ -266,7 +266,7 @@ func (oc *OvsController) watchMinions() {
 func (oc *OvsController) watchCluster() {
 	stop := make(chan bool)
 	clusterEvent := make(chan *api.SubnetEvent)
-	go oc.subnetRegistry.WatchSubnets(0, clusterEvent, stop)
+	go oc.subnetRegistry.WatchSubnets(clusterEvent, stop)
 	for {
 		select {
 		case ev := <-clusterEvent:

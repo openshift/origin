@@ -13,12 +13,12 @@ type SubnetRegistry interface {
 	GetSubnet(minion string) (*Subnet, error)
 	DeleteSubnet(minion string) error
 	CreateSubnet(sn string, sub *Subnet) error
-	WatchSubnets(rev uint64, receiver chan *SubnetEvent, stop chan bool) error
+	WatchSubnets(receiver chan *SubnetEvent, stop chan bool) error
 
 	InitMinions() error
 	GetMinions() (*[]string, error)
 	CreateMinion(minion string, data string) error
-	WatchMinions(rev uint64, receiver chan *MinionEvent, stop chan bool) error
+	WatchMinions(receiver chan *MinionEvent, stop chan bool) error
 
 	WriteNetworkConfig(network string, subnetLength uint) error
 	GetContainerNetwork() (string, error)
