@@ -45,7 +45,7 @@ if [[ -z "${BASETMPDIR-}" ]]; then
 fi
 ETCD_DATA_DIR="${BASETMPDIR}/etcd"
 VOLUME_DIR="${BASETMPDIR}/volumes"
-CERT_DIR="${BASETMPDIR}/certs"
+FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
 LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
 mkdir -p $LOG_DIR
@@ -60,6 +60,10 @@ PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
 KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
 KUBELET_HOST="${KUBELET_HOST:-127.0.0.1}"
 KUBELET_PORT="${KUBELET_PORT:-10250}"
+
+SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
+MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
+NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
 
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
 # this address is considered stable
@@ -177,7 +181,7 @@ echo "[INFO] `openshift version`"
 echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
 echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
 echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
-echo "[INFO] Certs dir is:              ${CERT_DIR}"
+echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
 echo "[INFO] Using images:              ${USE_IMAGES}"
 
 # Start All-in-one server and wait for health
@@ -191,48 +195,57 @@ do
 done <<< "${ALL_IP_ADDRESSES}"
 
 openshift admin create-master-certs \
-  --overwrite=false \
-  --cert-dir="${CERT_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
+	--overwrite=false \
+	--cert-dir="${MASTER_CONFIG_DIR}" \
+	--hostnames="${SERVER_HOSTNAME_LIST}" \
+	--master="${MASTER_ADDR}" \
+	--public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
 
 openshift admin create-node-config \
-  --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${CERT_DIR}/node-${KUBELET_HOST}" \
-  --node="${KUBELET_HOST}" \
-  --hostnames="${KUBELET_HOST}" \
-  --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --signer-cert="${CERT_DIR}/ca/cert.crt" \
-  --signer-key="${CERT_DIR}/ca/key.key" \
-  --signer-serial="${CERT_DIR}/ca/serial.txt"
+	--listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
+	--node-dir="${NODE_CONFIG_DIR}" \
+	--node="${KUBELET_HOST}" \
+	--hostnames="${KUBELET_HOST}" \
+	--master="${MASTER_ADDR}" \
+	--node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+	--certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+	--signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
+	--signer-key="${MASTER_CONFIG_DIR}/ca.key" \
+	--signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
+
+osadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
+
+# create openshift config
+openshift start \
+	--write-config=${SERVER_CONFIG_DIR} \
+	--create-certs=false \
+    --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
+    --master="${MASTER_ADDR}" \
+    --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
+    --hostname="${KUBELET_HOST}" \
+    --volume-dir="${VOLUME_DIR}" \
+    --etcd-dir="${ETCD_DATA_DIR}" \
+    --images="${USE_IMAGES}"
+
 
 echo "[INFO] Starting OpenShift server"
 sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
-     --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
-     --master="${MASTER_ADDR}" \
-     --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
-     --hostname="${KUBELET_HOST}" \
-     --volume-dir="${VOLUME_DIR}" \
-     --etcd-dir="${ETCD_DATA_DIR}" \
-     --cert-dir="${CERT_DIR}" \
-     --loglevel=4 \
-     --images="${USE_IMAGES}" \
-     --create-certs=false \
-     &> "${LOG_DIR}/openshift.log" &
+	--master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+	--node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+    --loglevel=4 \
+    &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
+	
+export HOME="${FAKE_HOME_DIR}"
 
 if [[ "${API_SCHEME}" == "https" ]]; then
-	export CURL_CA_BUNDLE="${CERT_DIR}/ca/cert.crt"
-	export CURL_CERT="${CERT_DIR}/admin/cert.crt"
-	export CURL_KEY="${CERT_DIR}/admin/key.key"
+	export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
+	export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
+	export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 
-	# Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
-	export HOME="${CERT_DIR}/admin"
-	sudo chmod -R a+rwX "${HOME}"
-	export OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig"
+	# Make osc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
+	export OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+	sudo chmod -R a+rwX "${OPENSHIFTCONFIG}"
 	echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
 fi
 
@@ -253,12 +266,12 @@ echo "Log in as 'e2e-user' to see the 'test' project."
 
 # install the router
 echo "[INFO] Installing the router"
-openshift admin router --create --credentials="${CERT_DIR}/openshift-router/.kubeconfig" --images="${USE_IMAGES}"
+openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}"
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
 # TODO: add --images="${USE_IMAGES}" when the Docker registry is built alongside OpenShift
-openshift admin registry --create --credentials="${CERT_DIR}/openshift-registry/.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images='openshift/origin-${component}:latest'
+openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images='openshift/origin-${component}:latest'
 
 echo "[INFO] Pre-pulling and pushing ruby-20-centos7"
 docker pull openshift/ruby-20-centos7:latest

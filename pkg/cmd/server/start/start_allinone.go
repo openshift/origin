@@ -7,6 +7,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -24,7 +25,8 @@ type AllInOneOptions struct {
 	MasterArgs *MasterArgs
 	NodeArgs   *NodeArgs
 
-	WriteConfigOnly  bool
+	CreateCerts      bool
+	ConfigDir        util.StringFlag
 	MasterConfigFile string
 	NodeConfigFile   string
 }
@@ -91,11 +93,12 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 
 	flags := cmd.Flags()
 
-	flags.BoolVar(&options.WriteConfigOnly, "write-config", false, "Indicates that the command should build the configuration from command-line arguments, write it to the locations specified by --master-config and --node-config, and exit.")
-	flags.StringVar(&options.MasterConfigFile, "master-config", "", "Location of the master configuration file to run from, or write to (when used with --write-config). When running from configuration files, all other command-line arguments are ignored.")
-	flags.StringVar(&options.NodeConfigFile, "node-config", "", "Location of the node configuration file to run from, or write to (when used with --write-config). When running from configuration files, all other command-line arguments are ignored.")
+	flags.Var(&options.ConfigDir, "write-config", "Directory to write an initial config into.  After writing, exit without starting the server.")
+	flags.StringVar(&options.MasterConfigFile, "master-config", "", "Location of the master configuration file to run from. When running from configuration files, all other command-line arguments are ignored.")
+	flags.StringVar(&options.NodeConfigFile, "node-config", "", "Location of the node configuration file to run from. When running from configuration files, all other command-line arguments are ignored.")
+	flags.BoolVar(&options.CreateCerts, "create-certs", true, "Indicates whether missing certs should be created")
 
-	masterArgs, nodeArgs, listenArg, imageFormatArgs, _, certArgs := GetAllInOneArgs()
+	masterArgs, nodeArgs, listenArg, imageFormatArgs, _ := GetAllInOneArgs()
 	options.MasterArgs, options.NodeArgs = masterArgs, nodeArgs
 	// by default, all-in-ones all disabled docker.  Set it here so that if we allow it to be bound later, bindings take precendence
 	options.NodeArgs.AllowDisabledDocker = true
@@ -103,9 +106,7 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 	BindMasterArgs(masterArgs, flags, "")
 	BindNodeArgs(nodeArgs, flags, "")
 	BindListenArg(listenArg, flags, "")
-	BindPolicyArgs(options.MasterArgs.PolicyArgs, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
-	BindCertArgs(certArgs, flags, "")
 
 	startMaster, _ := NewCommandStartMaster()
 	startNode, _ := NewCommandStartNode()
@@ -116,7 +117,7 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 }
 
 // GetAllInOneArgs makes sure that the node and master args that should be shared, are shared
-func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *KubeConnectionArgs, *CertArgs) {
+func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *KubeConnectionArgs) {
 	masterArgs := NewDefaultMasterArgs()
 	nodeArgs := NewDefaultNodeArgs()
 
@@ -132,29 +133,28 @@ func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *K
 	masterArgs.KubeConnectionArgs = kubeConnectionArgs
 	nodeArgs.KubeConnectionArgs = kubeConnectionArgs
 
-	certArgs := NewDefaultCertArgs()
-	masterArgs.CertArgs = certArgs
-	nodeArgs.CertArgs = certArgs
-	kubeConnectionArgs.CertArgs = certArgs
-
-	return masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs, certArgs
+	return masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs
 }
 
 func (o AllInOneOptions) Validate(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments are supported for start")
 	}
-	if o.WriteConfigOnly {
-		if len(o.MasterConfigFile) == 0 {
-			return errors.New("--master-config is required if --write-config is true")
-		}
-		if len(o.NodeConfigFile) == 0 {
-			return errors.New("--node-config is required if --write-config is true")
-		}
+
+	if (len(o.MasterConfigFile) == 0) != (len(o.NodeConfigFile) == 0) {
+		return errors.New("--master-config and --node-config must both be specified or both be unspecified")
+	}
+
+	if o.IsRunFromConfig() && o.IsWriteConfigOnly() {
+		return errors.New("--master-config and --node-config cannot be specified when --write-config is specified")
+	}
+
+	if len(o.ConfigDir.Value()) == 0 {
+		return errors.New("configDir must have a value")
 	}
 
 	// if we are not starting up using a config file, run the argument validation
-	if o.WriteConfigOnly || ((len(o.MasterConfigFile) == 0) && (len(o.NodeConfigFile) == 0)) {
+	if !o.IsRunFromConfig() {
 		if err := o.MasterArgs.Validate(); err != nil {
 			return err
 		}
@@ -172,7 +172,16 @@ func (o AllInOneOptions) Validate(args []string) error {
 	return nil
 }
 
-func (o AllInOneOptions) Complete() error {
+func (o *AllInOneOptions) Complete() error {
+	if o.ConfigDir.Provided() {
+		o.MasterArgs.ConfigDir.Set(path.Join(o.ConfigDir.Value(), "master"))
+		o.NodeArgs.ConfigDir.Set(path.Join(o.ConfigDir.Value(), admin.DefaultNodeDir(o.NodeArgs.NodeName)))
+	} else {
+		o.ConfigDir.Default("openshift.local.config")
+		o.MasterArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), "master"))
+		o.NodeArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), admin.DefaultNodeDir(o.NodeArgs.NodeName)))
+	}
+
 	nodeList := util.NewStringSet(strings.ToLower(o.NodeArgs.NodeName))
 	// take everything toLower
 	for _, s := range o.MasterArgs.NodeList {
@@ -187,6 +196,7 @@ func (o AllInOneOptions) Complete() error {
 	// in the all-in-one, default kubernetes URL to the master's address
 	o.NodeArgs.DefaultKubernetesURL = masterAddr
 	o.NodeArgs.NodeName = strings.ToLower(o.NodeArgs.NodeName)
+	o.NodeArgs.MasterCertDir = o.MasterArgs.ConfigDir.Value()
 
 	// in the all-in-one, default ClusterDNS to the master's address
 	if host, _, err := net.SplitHostPort(masterAddr.Host); err == nil {
@@ -205,38 +215,21 @@ func (o AllInOneOptions) Complete() error {
 // 4.  If only writing configs, it exits
 // 5.  Waits forever
 func (o AllInOneOptions) StartAllInOne() error {
-	if !o.WriteConfigOnly {
+	if !o.IsWriteConfigOnly() {
 		glog.Infof("Starting an OpenShift all-in-one")
 	}
 
-	// if either one of these wants to mint certs, make sure the signer is present BEFORE they start up to make sure they always share
-	if o.MasterArgs.CertArgs.CreateCerts || o.NodeArgs.CertArgs.CreateCerts {
-		signerOptions := &admin.CreateSignerCertOptions{
-			CertFile:   admin.DefaultCertFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-			KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-			SerialFile: admin.DefaultSerialFilename(o.NodeArgs.CertArgs.CertDir, "ca"),
-			Name:       admin.DefaultSignerName(),
-		}
-
-		if err := signerOptions.Validate(nil); err != nil {
-			return err
-		}
-		if _, err := signerOptions.CreateSignerCert(); err != nil {
-			return err
-		}
-	}
-
-	masterOptions := MasterOptions{o.MasterArgs, o.WriteConfigOnly, o.MasterConfigFile}
+	masterOptions := MasterOptions{o.MasterArgs, o.CreateCerts, o.MasterConfigFile}
 	if err := masterOptions.RunMaster(); err != nil {
 		return err
 	}
 
-	nodeOptions := NodeOptions{o.NodeArgs, o.WriteConfigOnly, o.NodeConfigFile}
+	nodeOptions := NodeOptions{o.NodeArgs, o.NodeConfigFile}
 	if err := nodeOptions.RunNode(); err != nil {
 		return err
 	}
 
-	if o.WriteConfigOnly {
+	if o.IsWriteConfigOnly() {
 		return nil
 	}
 
@@ -253,4 +246,12 @@ func startProfiler() {
 			glog.Fatal(http.ListenAndServe("127.0.0.1:6060", nil))
 		}()
 	}
+}
+
+func (o AllInOneOptions) IsWriteConfigOnly() bool {
+	return o.ConfigDir.Provided()
+}
+
+func (o AllInOneOptions) IsRunFromConfig() bool {
+	return (len(o.MasterConfigFile) > 0) && (len(o.NodeConfigFile) > 0)
 }

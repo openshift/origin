@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"path"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -59,7 +58,7 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
-	flags.StringVar(&options.APIServerCAFile, "certificate-authority", "openshift.local.certificates/ca/cert.crt", "Path to the API server's CA file.")
+	flags.StringVar(&options.APIServerCAFile, "certificate-authority", "openshift.local.config/master/ca.crt", "Path to the API server's CA file.")
 
 	return cmd
 }
@@ -94,10 +93,10 @@ func (o CreateClientOptions) Validate(args []string) error {
 func (o CreateClientOptions) CreateClientFolder() error {
 	glog.V(2).Infof("creating a .kubeconfig with: %#v", o)
 
-	clientCertFile := path.Join(o.ClientDir, "cert.crt")
-	clientKeyFile := path.Join(o.ClientDir, "key.key")
-	clientCopyOfCAFile := path.Join(o.ClientDir, "ca.crt")
-	kubeConfigFile := path.Join(o.ClientDir, ".kubeconfig")
+	clientCertFile := DefaultCertFilename(o.ClientDir, o.User)
+	clientKeyFile := DefaultKeyFilename(o.ClientDir, o.User)
+	clientCopyOfCAFile := DefaultCAFilename(o.ClientDir, o.User)
+	kubeConfigFile := DefaultKubeConfigFilename(o.ClientDir, o.User)
 
 	createClientCertOptions := CreateClientCertOptions{
 		GetSignerCertOptions: o.GetSignerCertOptions,

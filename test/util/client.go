@@ -1,17 +1,15 @@
 package util
 
 import (
-	"path"
 	"path/filepath"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/start"
 )
 
 func KubeConfigPath() string {
-	return filepath.Join(GetBaseDir(), "cert", "admin", ".kubeconfig")
+	return filepath.Join(GetBaseDir(), "openshift.local.config", "master", "admin.kubeconfig")
 }
 
 func GetClusterAdminKubeClient(adminKubeConfigFile string) (*kclient.Client, error) {
@@ -40,8 +38,4 @@ func GetClusterAdminClientConfig(adminKubeConfigFile string) (*kclient.Config, e
 		return nil, err
 	}
 	return conf, nil
-}
-
-func getAdminKubeConfigFile(certArgs start.CertArgs) string {
-	return path.Clean(path.Join(certArgs.CertDir, "admin/.kubeconfig"))
 }

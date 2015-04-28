@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -31,8 +32,8 @@ import (
 type MasterOptions struct {
 	MasterArgs *MasterArgs
 
-	WriteConfigOnly bool
-	ConfigFile      string
+	CreateCertificates bool
+	ConfigFile         string
 }
 
 const longMasterCommandDesc = `
@@ -101,21 +102,18 @@ func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
 		},
 	}
 
+	options.MasterArgs = NewDefaultMasterArgs()
+
 	flags := cmd.Flags()
 
-	flags.BoolVar(&options.WriteConfigOnly, "write-config", false, "Indicates that the command should build the configuration from command-line arguments, write it to the location specified by --config, and exit.")
-	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from, or write to (when used with --write-config). When running from a configuration file, all other command-line arguments are ignored.")
-
-	options.MasterArgs = NewDefaultMasterArgs()
-	// make sure that KubeConnectionArgs and MasterArgs use the same CertArgs for this command
-	options.MasterArgs.KubeConnectionArgs.CertArgs = options.MasterArgs.CertArgs
+	flags.Var(options.MasterArgs.ConfigDir, "write-config", "Directory to write an initial config into.  After writing, exit without starting the server.")
+	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from. When running from a configuration file, all other command-line arguments are ignored.")
+	flags.BoolVar(&options.CreateCertificates, "create-certs", true, "Indicates whether missing certs should be created")
 
 	BindMasterArgs(options.MasterArgs, flags, "")
 	BindListenArg(options.MasterArgs.ListenArg, flags, "")
-	BindPolicyArgs(options.MasterArgs.PolicyArgs, flags, "")
 	BindImageFormatArgs(options.MasterArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.MasterArgs.KubeConnectionArgs, flags, "")
-	BindCertArgs(options.MasterArgs.CertArgs, flags, "")
 
 	return cmd, options
 }
@@ -124,14 +122,18 @@ func (o MasterOptions) Validate(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments are supported for start master")
 	}
-	if o.WriteConfigOnly {
-		if len(o.ConfigFile) == 0 {
-			return errors.New("--config is required if --write-config is true")
+	if o.IsWriteConfigOnly() {
+		if o.IsRunFromConfig() {
+			return errors.New("--config may not be set if --write-config is set")
 		}
 	}
 
+	if len(o.MasterArgs.ConfigDir.Value()) == 0 {
+		return errors.New("configDir must have a value")
+	}
+
 	// if we are not starting up using a config file, run the argument validation
-	if o.WriteConfigOnly || len(o.ConfigFile) == 0 {
+	if !o.IsRunFromConfig() {
 		if err := o.MasterArgs.Validate(); err != nil {
 			return err
 		}
@@ -141,7 +143,11 @@ func (o MasterOptions) Validate(args []string) error {
 	return nil
 }
 
-func (o MasterOptions) Complete() error {
+func (o *MasterOptions) Complete() error {
+	if !o.MasterArgs.ConfigDir.Provided() {
+		o.MasterArgs.ConfigDir.Default("openshift.local.config/master")
+	}
+
 	nodeList := util.NewStringSet()
 	// take everything toLower
 	for _, s := range o.MasterArgs.NodeList {
@@ -159,7 +165,7 @@ func (o MasterOptions) StartMaster() error {
 		return err
 	}
 
-	if o.WriteConfigOnly {
+	if o.IsWriteConfigOnly() {
 		return nil
 	}
 
@@ -174,16 +180,12 @@ func (o MasterOptions) StartMaster() error {
 // 3.  Writes the fully specified master config and exits if needed
 // 4.  Starts the master based on the fully specified config
 func (o MasterOptions) RunMaster() error {
-	startUsingConfigFile := !o.WriteConfigOnly && (len(o.ConfigFile) > 0)
-	mintCerts := o.MasterArgs.CertArgs.CreateCerts && !startUsingConfigFile
-	writeBootstrapPolicy := o.MasterArgs.PolicyArgs.CreatePolicyFile && !startUsingConfigFile
+	startUsingConfigFile := !o.IsWriteConfigOnly() && o.IsRunFromConfig()
 
-	if mintCerts {
+	if !startUsingConfigFile && o.CreateCertificates {
 		if err := o.CreateCerts(); err != nil {
 			return err
 		}
-	}
-	if writeBootstrapPolicy {
 		if err := o.CreateBootstrapPolicy(); err != nil {
 			return err
 		}
@@ -200,7 +202,7 @@ func (o MasterOptions) RunMaster() error {
 		return err
 	}
 
-	if o.WriteConfigOnly {
+	if o.IsWriteConfigOnly() {
 		// Resolve relative to CWD
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -211,7 +213,7 @@ func (o MasterOptions) RunMaster() error {
 		}
 
 		// Relativize to config file dir
-		base, err := cmdutil.MakeAbs(filepath.Dir(o.ConfigFile), cwd)
+		base, err := cmdutil.MakeAbs(filepath.Dir(o.MasterArgs.GetConfigFileToWrite()), cwd)
 		if err != nil {
 			return err
 		}
@@ -223,9 +225,16 @@ func (o MasterOptions) RunMaster() error {
 		if err != nil {
 			return err
 		}
-		if err := ioutil.WriteFile(o.ConfigFile, content, 0644); err != nil {
+
+		if err := os.MkdirAll(path.Dir(o.MasterArgs.GetConfigFileToWrite()), os.FileMode(0755)); err != nil {
 			return err
 		}
+		if err := ioutil.WriteFile(o.MasterArgs.GetConfigFileToWrite(), content, 0644); err != nil {
+			return err
+		}
+
+		glog.Infof("Wrote master config to: %s", o.MasterArgs.GetConfigFileToWrite())
+
 		return nil
 	}
 
@@ -243,7 +252,7 @@ func (o MasterOptions) RunMaster() error {
 
 func (o MasterOptions) CreateBootstrapPolicy() error {
 	writeBootstrapPolicy := admin.CreateBootstrapPolicyFileOptions{
-		File: o.MasterArgs.PolicyArgs.PolicyFile,
+		File: o.MasterArgs.GetPolicyFile(),
 		MasterAuthorizationNamespace:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		OpenShiftSharedResourcesNamespace: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace,
 	}
@@ -267,7 +276,7 @@ func (o MasterOptions) CreateCerts() error {
 		return err
 	}
 	mintAllCertsOptions := admin.CreateMasterCertsOptions{
-		CertDir:            o.MasterArgs.CertArgs.CertDir,
+		CertDir:            o.MasterArgs.ConfigDir.Value(),
 		SignerName:         signerName,
 		Hostnames:          hostnames.List(),
 		APIServerURL:       masterAddr.String(),
@@ -385,4 +394,12 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	openshiftConfig.RunProjectAuthorizationCache()
 
 	return nil
+}
+
+func (o MasterOptions) IsWriteConfigOnly() bool {
+	return o.MasterArgs.ConfigDir.Provided()
+}
+
+func (o MasterOptions) IsRunFromConfig() bool {
+	return (len(o.ConfigFile) > 0)
 }

@@ -60,7 +60,7 @@ bits that are used in the sample app.
 
 ## Configure client security
 
-    $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/ca/cert.crt
+    $ export CURL_CA_BUNDLE=`pwd`/openshift.local.config/master/ca.crt
 
 For more information on this step, see [Application Build, Deploy, and Update
 Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),

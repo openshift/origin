@@ -50,9 +50,12 @@ KUBELET_PORT=${KUBELET_PORT:-10250}
 TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
 ETCD_DATA_DIR="${TEMP_DIR}/etcd"
 VOLUME_DIR="${TEMP_DIR}/volumes"
-CERT_DIR="${TEMP_DIR}/certs"
+FAKE_HOME_DIR="${TEMP_DIR}/openshift.local.home"
+SERVER_CONFIG_DIR="${TEMP_DIR}/openshift.local.config"
+MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
+NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
 CONFIG_DIR="${TEMP_DIR}/configs"
-mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${CERT_DIR}" "${CONFIG_DIR}"
+mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${CONFIG_DIR}"
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -77,7 +80,7 @@ echo openshift: $out
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
 # Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-echo "[INFO] Create certificates for the OpenShift server to ${CERT_DIR}"
+echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
 ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
 SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
@@ -88,42 +91,51 @@ done <<< "${ALL_IP_ADDRESSES}"
 
 openshift admin create-master-certs \
   --overwrite=false \
-  --cert-dir="${CERT_DIR}" \
+  --cert-dir="${MASTER_CONFIG_DIR}" \
   --hostnames="${SERVER_HOSTNAME_LIST}" \
   --master="${MASTER_ADDR}" \
   --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
 
 openshift admin create-node-config \
   --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${CERT_DIR}/node-${KUBELET_HOST}" \
+  --node-dir="${NODE_CONFIG_DIR}" \
   --node="${KUBELET_HOST}" \
   --hostnames="${KUBELET_HOST}" \
   --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --signer-cert="${CERT_DIR}/ca/cert.crt" \
-  --signer-key="${CERT_DIR}/ca/key.key" \
-  --signer-serial="${CERT_DIR}/ca/serial.txt"
+  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
+  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
+  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
 
-# Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start \
+osadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
+
+# create openshift config
+openshift start \
+  --write-config=${SERVER_CONFIG_DIR} \
+  --create-certs=false \
   --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
   --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
   --hostname="${KUBELET_HOST}" \
   --volume-dir="${VOLUME_DIR}" \
-  --cert-dir="${CERT_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --create-certs=false 1>&2 &
+  --etcd-dir="${ETCD_DATA_DIR}" 
+
+
+# Start openshift
+OPENSHIFT_ON_PANIC=crash openshift start \
+  --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+  --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+  1>&2 &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
-    export CURL_CA_BUNDLE="${CERT_DIR}/ca/cert.crt"
-    export CURL_CERT="${CERT_DIR}/admin/cert.crt"
-    export CURL_KEY="${CERT_DIR}/admin/key.key"
+    export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
+    export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
+    export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 fi
 
 # set the home directory so we don't pick up the users .config
-export HOME="${TEMP_DIR}/home"
+export HOME="${FAKE_HOME_DIR}"
 
 wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
@@ -149,20 +161,20 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 fi
 
 
-osc login --server=${KUBERNETES_MASTER} --certificate-authority="${CERT_DIR}/ca/cert.crt" -u test-user -p anything
+osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 osc new-project project-foo --display-name="my project" --description="boring project description"
 [ "$(osc project | grep 'Using project "project-foo"')" ]
 
 
 # test config files from the --config flag
-osc get services --config="${CERT_DIR}/admin/.kubeconfig"
+osc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 
 # test config files from env vars
-OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig" osc get services
+OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" osc get services
 
 # test config files in the home directory
 mkdir -p ${HOME}/.config/openshift
-mv ${CERT_DIR}/admin/.kubeconfig ${HOME}/.config/openshift/config
+cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.config/openshift/config
 osc get services
 mv ${HOME}/.config/openshift/config ${HOME}/.config/openshift/non-default-config
 echo "config files: ok"

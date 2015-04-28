@@ -46,8 +46,8 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 	flags := cmd.Flags()
 	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "")
 
-	flags.StringVar(&options.CertFile, "cert", "openshift.local.certificates/user/cert.crt", "The certificate file.")
-	flags.StringVar(&options.KeyFile, "key", "openshift.local.certificates/user/key.key", "The key file.")
+	flags.StringVar(&options.CertFile, "cert", "", "The certificate file.  The name should be changed to indicate what it is used for serving.")
+	flags.StringVar(&options.KeyFile, "key", "", "The key file.  The name should be changed to indicate what it is used for serving.")
 
 	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
 	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")

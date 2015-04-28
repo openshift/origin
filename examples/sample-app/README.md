@@ -129,13 +129,13 @@ This section covers how to perform all the steps of building, deploying, and upd
     installation, users would generate their own keys and not have access
     to the system keys.)
 
-        $ export CURL_CA_BUNDLE=`pwd`/openshift.local.certificates/ca/cert.crt
-        $ sudo chmod a+rwX `pwd`/openshift.local.certificates/admin/.kubeconfig
+        $ export CURL_CA_BUNDLE=`pwd`/openshift.local.config/master/ca.crt
+        $ sudo chmod a+rwX `pwd`/openshift.local.config/master/admin.kubeconfig
 
 
 4. Bind a user names `test-admin` to the `view` role in the default namespace so you can observe progress in the web console
 
-        $ osadm policy add-role-to-user view test-admin --config=openshift.local.certificates/admin/.kubeconfig
+        $ osadm policy add-role-to-user view test-admin --config=openshift.local.config/master/admin.kubeconfig
 
 5. Login as `test-admin` using any password
         $ osc login --certificate-authority=`pwd`/openshift.local.certificates/ca/cert.crt
@@ -154,8 +154,8 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 7. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
-        $ sudo chmod +r ./openshift.local.certificates/openshift-registry/.kubeconfig
-        $ openshift ex registry --create --credentials=./openshift.local.certificates/openshift-registry/.kubeconfig --config=openshift.local.certificates/admin/.kubeconfig
+        $ sudo chmod +r ./openshift.local.config/master/openshift-registry.kubeconfig
+        $ openshift ex registry --create --credentials=./openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
           docker-registry # the service
           docker-registry # the deployment config
 
@@ -372,8 +372,8 @@ the ip address shown below with the correct one for your environment.
             # take some time.  Your pod will stay in Pending state while the pull is completed
             $ docker pull openshift/origin-haproxy-router
 
-            $ sudo chmod +r `pwd`/openshift.local.certificates/openshift-router/.kubeconfig
-            $ openshift ex router --create --credentials="`pwd`/openshift.local.certificates/openshift-router/.kubeconfig" --config=openshift.local.certificates/admin/.kubeconfig
+            $ sudo chmod +r `pwd`/openshift.local.config/master/openshift-router.kubeconfig
+            $ openshift ex router --create --credentials="`pwd`/openshift.local.config/master/openshift-router.kubeconfig" --config=openshift.local.config/master/admin.kubeconfig
               router # the service
               router # the deployment config
 
