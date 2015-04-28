@@ -143,6 +143,14 @@ func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Select
 	forbiddenError, _ := kapierror.NewForbidden("ProjectRequest", "", errors.New("You may not request a new project via this API.")).(*kapierror.StatusError)
 	if len(r.message) > 0 {
 		forbiddenError.ErrStatus.Message = r.message
+		forbiddenError.ErrStatus.Details = &kapi.StatusDetails{
+			Kind: "ProjectRequest",
+			Causes: []kapi.StatusCause{
+				{Message: r.message},
+			},
+		}
+	} else {
+		forbiddenError.ErrStatus.Message = "You may not request a new project via this API."
 	}
 	return nil, forbiddenError
 }

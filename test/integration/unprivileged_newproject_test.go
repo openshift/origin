@@ -143,13 +143,12 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	}
 
 	// confirm that we have access to request the project
-	allowed, err := valerieOpenshiftClient.ProjectRequests().List(labels.Everything(), fields.Everything())
+	_, err = valerieOpenshiftClient.ProjectRequests().List(labels.Everything(), fields.Everything())
 	if err == nil {
 		t.Fatalf("expected error: %v", err)
 	}
-	expectedError := `ProjectRequest "" is forbidden: You may not request a new project via this API.`
+	expectedError := `You may not request a new project via this API.`
 	if (err != nil) && (err.Error() != expectedError) {
-		t.Fatalf("expected %v, got %v", expectedError, allowed.Status)
+		t.Fatalf("expected\n\t%v\ngot\n\t%v", expectedError, err.Error())
 	}
-
 }

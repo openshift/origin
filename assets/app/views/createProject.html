@@ -1,0 +1,66 @@
+<div ng-controller="CreateProjectController">
+  <div class="container">
+    <div class="col-md-12">
+      <h1>Create Project</h1>
+      <form name="createProjectForm">
+        <div class="form-group">
+          <label for="name">Name *</label>
+          <span ng-class="{'has-error': createProjectForm.name.$error.pattern || nameTaken}">
+            <input class="form-control input-lg"
+                name="name"
+                id="name"
+                placeholder="my-project"
+                type="text" autofocus
+                required
+                maxlength="63"
+                pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+                aria-describedby="nameHelp"
+                ng-model="name"
+                ng-model-options="{ updateOn: 'default blur' }"
+                ng-change="nameTaken = false"></input>
+          </span>
+          <div>
+            <span class="help-block">A unique name for the project.</span>
+          </div>
+          <div class="has-error">
+            <span id="nameHelp" class="help-block" ng-if="createProjectForm.name.$error.pattern">
+              Project names may only contain lower-case letters, numbers, and dashes.
+              They may not start or end with a dash.</span>
+          </div>
+          <div class="has-error">
+            <span class="help-block" ng-if="nameTaken">This name is already
+                in use. Please choose a different name.</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="displayName">Display Name</label>
+          <input class="form-control input-lg"
+              name="displayName"
+              id="displayName"
+              placeholder="My Project"
+              type="text"
+              ng-model="displayName"></input>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea class="form-control input-lg"
+              name="displayName"
+              id="description"
+              placeholder="A short description."
+              ng-model="description"></textarea>
+        </div>
+
+        <div class="button-group">
+          <button type="submit"
+              class="btn btn-primary btn-lg"
+              ng-click="createProject()"
+              ng-disabled="createProjectForm.$invalid || nameTaken"
+              value="">Create</button>
+          <a class="btn btn-default btn-lg" href="#" back>Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

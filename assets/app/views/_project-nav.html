@@ -4,7 +4,8 @@
       <div class="form-group">
         <label class="control-label" for="boostrapSelect">Projects</label>
         <!-- TODO add multiple attribute back to the select tag when we support selecting multiple -->
-        <select class="selectpicker form-control" data-selected-text-format="count>3" id="boostrapSelect"></select>
+        <!-- Use title="" to prevent "Nothing selected" from briefly flashing while the projects are still loading. -->
+        <select class="selectpicker form-control" data-selected-text-format="count>3" id="boostrapSelect" title=""></select>
       </div>
     </div>
     <div class="col-sm-5 filter">
