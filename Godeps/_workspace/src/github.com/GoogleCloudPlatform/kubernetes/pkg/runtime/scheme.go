@@ -17,6 +17,7 @@ limitations under the License.
 package runtime
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"net/url"
@@ -159,6 +160,12 @@ func (self *Scheme) runtimeObjectToRawExtensionArray(in *[]Object, out *[]RawExt
 		switch t := src[i].(type) {
 		case *Unknown:
 			dest[i].RawJSON = t.RawJSON
+		case *Unstructured:
+			data, err := json.Marshal(t.Object)
+			if err != nil {
+				return err
+			}
+			dest[i].RawJSON = data
 		default:
 			version := outVersion
 			// if the object exists
@@ -186,24 +193,17 @@ func (self *Scheme) rawExtensionToRuntimeObjectArray(in *[]RawExtension, out *[]
 
 	for i := range src {
 		data := src[i].RawJSON
-		obj, err := scheme.Decode(data)
+		version, kind, err := scheme.raw.DataVersionAndKind(data)
 		if err != nil {
-			if !IsNotRegisteredError(err) {
-				return err
-			}
-			version, kind, err := scheme.raw.DataVersionAndKind(data)
-			if err != nil {
-				return err
-			}
-			obj = &Unknown{
-				TypeMeta: TypeMeta{
-					APIVersion: version,
-					Kind:       kind,
-				},
-				RawJSON: data,
-			}
+			return err
 		}
-		dest[i] = obj
+		dest[i] = &Unknown{
+			TypeMeta: TypeMeta{
+				APIVersion: version,
+				Kind:       kind,
+			},
+			RawJSON: data,
+		}
 	}
 	*out = dest
 	return nil
@@ -325,6 +325,12 @@ func (s *Scheme) AddStructFieldConversion(srcFieldType interface{}, srcFieldName
 // comment for Converter.RegisterDefaultingFunction.
 func (s *Scheme) AddDefaultingFuncs(defaultingFuncs ...interface{}) error {
 	return s.raw.AddDefaultingFuncs(defaultingFuncs...)
+}
+
+// Recognizes returns true if the scheme is able to handle the provided version and kind
+// of an object.
+func (s *Scheme) Recognizes(version, kind string) bool {
+	return s.raw.Recognizes(version, kind)
 }
 
 // Convert will attempt to convert in into out. Both must be pointers.
