@@ -5,6 +5,11 @@
  -->
 <div class="pod-template">
   <div class="pod-template-container" ng-repeat="container in podTemplate.spec.containers">
+    <span ng-show="container.jolokiaUrl" class="pull-right">
+      <a ng-click="gotoContainerView(container, container.jolokiaUrl)" href="">
+        <i class="fa fa-external-link"></i>
+      </a>
+    </span>
     <table>
       <tbody>
         <tr>
