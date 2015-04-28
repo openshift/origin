@@ -365,6 +365,10 @@ osc get template ruby-helloworld-sample
 # create from template with code explicitly set is not supported
 [ ! "$(osc new-app ruby-helloworld-sample~git@github.com/mfojtik/sinatra-app-example)" ]
 osc delete template ruby-helloworld-sample
+# override component names
+[ "$(osc new-app mysql --name=db | grep db)" ]
+osc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
+osc delete all -l app=ruby
 echo "new-app: ok"
 
 osc get routes
@@ -479,7 +483,5 @@ osc delete all -l template=application-template-stibuild
 osc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | osc create -f -
 osc delete all -l name=mytemplate
 osc new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
-osc delete all -l name=hello-world
-openshift ex generate https://github.com/openshift/ruby-hello-world -l name=hello-world | osc create -f -
 osc delete all -l name=hello-world
 echo "delete all: ok"

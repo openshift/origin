@@ -2,12 +2,22 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"reflect"
+	"strings"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
+	deploy "github.com/openshift/origin/pkg/deploy/api"
+	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate/app"
+	"github.com/openshift/origin/pkg/generate/dockerfile"
+	"github.com/openshift/origin/pkg/generate/source"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func TestAddArguments(t *testing.T) {
@@ -220,6 +230,308 @@ func TestBuildTemplates(t *testing.T) {
 					t.Errorf("%s: Template parameters don't match. Expected: %v, Got: %v", n, c.parms, parms)
 					break
 				}
+			}
+		}
+	}
+}
+
+func TestEnsureHasSource(t *testing.T) {
+	tests := []struct {
+		name         string
+		cfg          AppConfig
+		components   app.ComponentReferences
+		repositories []*app.SourceRepository
+		expectedErr  string
+	}{
+		{
+			name: "One requiresSource, multiple repositories",
+			components: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					ExpectToBuild: true,
+				}),
+			},
+			repositories: app.MockSourceRepositories(),
+			expectedErr:  "there are multiple code locations provided - use one of the following suggestions",
+		},
+		{
+			name: "Multiple requiresSource, multiple repositories",
+			components: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					ExpectToBuild: true,
+				}),
+				app.ComponentReference(&app.ComponentInput{
+					ExpectToBuild: true,
+				}),
+			},
+			repositories: app.MockSourceRepositories(),
+			expectedErr:  "Use '[image]~[repo]' to declare which code goes with which image",
+		},
+		{
+			name: "One requiresSource, no repositories",
+			components: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					ExpectToBuild: true,
+				}),
+			},
+			repositories: []*app.SourceRepository{},
+			expectedErr:  "you must specify a repository via --code",
+		},
+		{
+			name: "Multiple requiresSource, no repositories",
+			components: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					ExpectToBuild: true,
+				}),
+				app.ComponentReference(&app.ComponentInput{
+					ExpectToBuild: true,
+				}),
+			},
+			repositories: []*app.SourceRepository{},
+			expectedErr:  "you must provide at least one source code repository",
+		},
+		{
+			name: "Successful - one repository",
+			components: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					ExpectToBuild: false,
+				}),
+			},
+			repositories: []*app.SourceRepository{app.MockSourceRepositories()[0]},
+			expectedErr:  "",
+		},
+		{
+			name: "Successful - no requiresSource",
+			components: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					ExpectToBuild: false,
+				}),
+			},
+			repositories: app.MockSourceRepositories(),
+			expectedErr:  "",
+		},
+	}
+
+	for _, test := range tests {
+		err := test.cfg.ensureHasSource(test.components, test.repositories)
+		if err != nil {
+			if !strings.Contains(err.Error(), test.expectedErr) {
+				t.Errorf("%s: Invalid error: Expected %s, got %v", test.name, test.expectedErr, err)
+			}
+		} else if len(test.expectedErr) != 0 {
+			t.Errorf("%s: Expected %s error but got none", test.name, test.expectedErr)
+		}
+	}
+}
+
+func TestResolve(t *testing.T) {
+	tests := []struct {
+		name        string
+		cfg         AppConfig
+		components  app.ComponentReferences
+		expectedErr string
+	}{
+		{
+			name: "Resolver error",
+			components: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					Value: "mysql:invalid",
+					Resolver: app.DockerRegistryResolver{
+						Client: dockerregistry.NewClient(),
+					},
+				})},
+			expectedErr: `tag "invalid" has not been set`,
+		},
+		{
+			name: "Successful mysql builder",
+			components: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					Value: "mysql",
+					Match: &app.ComponentMatch{
+						Builder: true,
+					},
+				})},
+			expectedErr: "",
+		},
+		{
+			name: "Unable to build source code",
+			components: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					Value:         "mysql",
+					ExpectToBuild: true,
+				})},
+			expectedErr: "no resolver",
+		},
+		{
+			name: "Successful docker build",
+			cfg: AppConfig{
+				TypeOfBuild: "docker",
+			},
+			components: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					Value:         "mysql",
+					ExpectToBuild: true,
+				})},
+			expectedErr: "",
+		},
+	}
+
+	for _, test := range tests {
+		err := test.cfg.resolve(test.components)
+		if err != nil {
+			if !strings.Contains(err.Error(), test.expectedErr) {
+				t.Errorf("%s: Invalid error: Expected %s, got %v", test.name, test.expectedErr, err)
+			}
+		} else if len(test.expectedErr) != 0 {
+			t.Errorf("%s: Expected %s error but got none", test.name, test.expectedErr)
+		}
+	}
+}
+
+func TestDetectSource(t *testing.T) {
+	dockerResolver := app.DockerRegistryResolver{
+		Client: dockerregistry.NewClient(),
+	}
+	tests := []struct {
+		name         string
+		cfg          *AppConfig
+		repositories []*app.SourceRepository
+		expectedRefs app.ComponentReferences
+		expectedErr  string
+	}{
+		{
+			name: "detect source - ruby",
+			cfg: &AppConfig{
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				dockerResolver: dockerResolver,
+				searcher:       &simpleSearcher{dockerResolver},
+			},
+			repositories: []*app.SourceRepository{app.MockSourceRepositories()[1]},
+			expectedRefs: app.ComponentReferences{
+				app.ComponentReference(&app.ComponentInput{
+					Match: &app.ComponentMatch{
+						Value: "openshift/ruby-20-centos7",
+						Image: &imageapi.DockerImage{
+							Config: imageapi.DockerConfig{
+								ExposedPorts: map[string]struct{}{"8080": {}},
+							}},
+					},
+					ExpectToBuild: true,
+					Uses:          app.MockSourceRepositories()[1],
+				},
+				)},
+			expectedErr: "",
+		},
+	}
+
+	for _, test := range tests {
+		refs, err := test.cfg.detectSource(test.repositories)
+		if err != nil {
+			if !strings.Contains(err.Error(), test.expectedErr) {
+				t.Errorf("%s: Invalid error: Expected %s, got %v", test.name, test.expectedErr, err)
+			}
+		} else if len(test.expectedErr) != 0 {
+			t.Errorf("%s: Expected %s error but got none", test.name, test.expectedErr)
+		}
+
+		if len(refs) != len(test.expectedRefs) {
+			t.Fatalf("%s: Refs amount doesn't match. Expected %d, got %d", test.name, len(test.expectedRefs), len(refs))
+		}
+		for i, ref := range refs {
+			if reflect.DeepEqual(ref, test.expectedRefs[i]) {
+				t.Errorf("%s: Refs don't match. Expected %v, got %v", test.name, test.expectedRefs[i], ref)
+			}
+		}
+	}
+}
+
+func TestRun(t *testing.T) {
+	dockerResolver := app.DockerRegistryResolver{
+		Client: dockerregistry.NewClient(),
+	}
+
+	tests := []struct {
+		name        string
+		config      *AppConfig
+		expectedRes map[string]string
+		expectedErr error
+	}{
+		{
+			name: "",
+			config: &AppConfig{
+				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
+
+				dockerResolver: dockerResolver,
+				imageStreamResolver: app.ImageStreamResolver{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateResolver: app.TemplateResolver{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				searcher:        &simpleSearcher{dockerResolver},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expectedRes: map[string]string{
+				"imageStream":      "ruby-hello-world",
+				"buildConfig":      "ruby-hello-world",
+				"deploymentConfig": "ruby-hello-world",
+				"service":          "ruby-hello-world"},
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		res, err := test.config.Run(os.Stdout)
+		if err != test.expectedErr {
+			t.Errorf("Error mismatch! Expected %v, got %v", test.expectedErr, err)
+			continue
+		}
+		var object, objectName string
+		for _, obj := range res.List.Items {
+			var unknown bool
+			switch tp := obj.(type) {
+			case *buildapi.BuildConfig:
+				object = "buildConfig"
+				objectName = tp.Name
+			case *kapi.Service:
+				object = "service"
+				objectName = tp.Name
+			case *imageapi.ImageStream:
+				object = "imageStream"
+				objectName = tp.Name
+			case *deploy.DeploymentConfig:
+				object = "deploymentConfig"
+				objectName = tp.Name
+			default:
+				t.Errorf("Unknown resource type")
+				unknown = true
+			}
+
+			if unknown {
+				continue
+			}
+
+			name, ok := test.expectedRes[object]
+			if !ok {
+				t.Errorf("Expected %s object, but didn't find one", object)
+				continue
+			}
+			if name != objectName {
+				t.Errorf("Expected object name %s, got %s", name, objectName)
+				continue
 			}
 		}
 	}

@@ -8,6 +8,8 @@ import (
 
 var stiEnvironmentNames = []string{"STI_LOCATION", "STI_SCRIPTS_URL", "STI_BUILDER"}
 
+// IsBuilderImage checks whether the provided Docker image is
+// a builder image or not
 func IsBuilderImage(image *imageapi.DockerImage) bool {
 	for _, env := range image.Config.Env {
 		for _, name := range stiEnvironmentNames {
@@ -19,6 +21,9 @@ func IsBuilderImage(image *imageapi.DockerImage) bool {
 	return false
 }
 
+// BuilderForPlatform expands the provided platform to
+// the respective OpenShift image
+//
 //TODO: Remove once a real image searcher is implemented
 func BuilderForPlatform(platform string) string {
 	switch strings.ToLower(platform) {

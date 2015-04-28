@@ -1,4 +1,4 @@
-package generator
+package app
 
 import (
 	"fmt"
@@ -6,43 +6,40 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/errors"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/generate/source"
 )
 
+// BuildStrategyRefGenerator generates BuildStrategyRef
+//
 // Flows for BuildStrategyRef
 // SourceRef -> BuildStrategyRef
 // SourceRef + Docker Context -> BuildStrategyRef
 // Docker Context + Parent Image -> BuildStrategyRef
 // STI Builder Image -> BuildStrategyRef
-
-// BuildStrategyRefGenerator generates BuildStrategyRef
 type BuildStrategyRefGenerator struct {
 	gitRepository     git.Repository
 	dockerfileFinder  dockerfile.Finder
 	dockerfileParser  dockerfile.Parser
 	sourceDetectors   source.Detectors
 	imageRefGenerator ImageRefGenerator
-	resolver          app.Resolver
 }
 
 // NewBuildStrategyRefGenerator creates a BuildStrategyRefGenerator
-func NewBuildStrategyRefGenerator(sourceDetectors source.Detectors, resolver app.Resolver) *BuildStrategyRefGenerator {
+func NewBuildStrategyRefGenerator(sourceDetectors source.Detectors) *BuildStrategyRefGenerator {
 	return &BuildStrategyRefGenerator{
 		gitRepository:     git.NewRepository(),
 		dockerfileFinder:  dockerfile.NewFinder(),
 		dockerfileParser:  dockerfile.NewParser(),
 		sourceDetectors:   sourceDetectors,
 		imageRefGenerator: NewImageRefGenerator(),
-		resolver:          resolver,
 	}
 }
 
 // FromSourceRef creates a build strategy from a source reference
-func (g *BuildStrategyRefGenerator) FromSourceRef(srcRef *app.SourceRef) (*app.BuildStrategyRef, error) {
+func (g *BuildStrategyRefGenerator) FromSourceRef(srcRef *SourceRef) (*BuildStrategyRef, error) {
 
 	// Download source locally first if not available
 	if len(srcRef.Dir) == 0 {
@@ -73,7 +70,7 @@ func (g *BuildStrategyRefGenerator) FromSourceRef(srcRef *app.SourceRef) (*app.B
 }
 
 // FromSourceRefAndDockerContext generates a BuildStrategyRef from a source ref and context path
-func (g *BuildStrategyRefGenerator) FromSourceRefAndDockerContext(srcRef *app.SourceRef, context string) (*app.BuildStrategyRef, error) {
+func (g *BuildStrategyRefGenerator) FromSourceRefAndDockerContext(srcRef *SourceRef, context string) (*BuildStrategyRef, error) {
 	// Download source locally first if not available
 	if len(srcRef.Dir) == 0 {
 		if err := g.getSource(srcRef); err != nil {
@@ -100,7 +97,7 @@ func (g *BuildStrategyRefGenerator) FromSourceRefAndDockerContext(srcRef *app.So
 	if !ok {
 		return nil, errors.InvalidDockerfile
 	}
-	ports, ok := dockerFile.GetDirective("EXPOSE")
+	ports, _ := dockerFile.GetDirective("EXPOSE")
 
 	parentRef, err := g.imageRefGenerator.FromNameAndPorts(parentImageName[0], ports)
 	if err != nil {
@@ -111,30 +108,27 @@ func (g *BuildStrategyRefGenerator) FromSourceRefAndDockerContext(srcRef *app.So
 
 }
 
-// FromContextAndParent generates a build strategy ref from a context path and parent image name
-func (g *BuildStrategyRefGenerator) FromDockerContextAndParent(parentRef *app.ImageRef) (*app.BuildStrategyRef, error) {
-	return &app.BuildStrategyRef{
+// FromDockerContextAndParent generates a build strategy ref from a context path and parent image name
+func (g *BuildStrategyRefGenerator) FromDockerContextAndParent(parentRef *ImageRef) (*BuildStrategyRef, error) {
+	return &BuildStrategyRef{
 		IsDockerBuild: true,
 		Base:          parentRef,
 	}, nil
 }
 
 // FromSTIBuilderImage generates a build strategy from a builder image ref
-func (g *BuildStrategyRefGenerator) FromSTIBuilderImage(image *app.ImageRef) (*app.BuildStrategyRef, error) {
-	return &app.BuildStrategyRef{
+func (g *BuildStrategyRefGenerator) FromSTIBuilderImage(image *ImageRef) (*BuildStrategyRef, error) {
+	return &BuildStrategyRef{
 		IsDockerBuild: false,
 		Base:          image,
 	}, nil
 }
 
-func (g *BuildStrategyRefGenerator) imageForSourceInfo(s *source.Info) (*app.ImageRef, error) {
+func (g *BuildStrategyRefGenerator) imageForSourceInfo(s *source.Info) (*ImageRef, error) {
 	// TODO: More sophisticated matching
-	imageName := app.BuilderForPlatform(s.Platform)
+	imageName := BuilderForPlatform(s.Platform)
 	if len(imageName) == 0 {
 		return nil, errors.NoBuilderFound
-	}
-	if g.resolver != nil {
-		return g.imageRefGenerator.FromNameAndResolver(imageName, g.resolver)
 	}
 	return g.imageRefGenerator.FromName(imageName)
 }
@@ -153,7 +147,7 @@ func (g *BuildStrategyRefGenerator) detectDockerFile(dir string) (contextDir str
 	return "", false, nil
 }
 
-func (g *BuildStrategyRefGenerator) getSource(srcRef *app.SourceRef) error {
+func (g *BuildStrategyRefGenerator) getSource(srcRef *SourceRef) error {
 	var err error
 	// Clone git repository into a local directory
 	if srcRef.Dir, err = ioutil.TempDir("", "gen"); err != nil {

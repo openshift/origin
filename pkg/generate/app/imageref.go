@@ -1,4 +1,4 @@
-package generator
+package app
 
 import (
 	"fmt"
@@ -6,22 +6,20 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+// ImageRefGenerator is an interface for generating ImageRefs
+//
 // Generators for ImageRef
 // - Name              -> ImageRef
 // - ImageRepo + tag   -> ImageRef
-
-// ImageRefGenerator generates ImageRefs
 type ImageRefGenerator interface {
-	FromName(name string) (*app.ImageRef, error)
-	FromNameAndPorts(name string, ports []string) (*app.ImageRef, error)
-	FromNameAndResolver(name string, resolver app.Resolver) (*app.ImageRef, error)
-	FromStream(repo *imageapi.ImageStream, tag string) (*app.ImageRef, error)
-	FromDockerfile(name string, dir string, context string) (*app.ImageRef, error)
+	FromName(name string) (*ImageRef, error)
+	FromNameAndPorts(name string, ports []string) (*ImageRef, error)
+	FromStream(repo *imageapi.ImageStream, tag string) (*ImageRef, error)
+	FromDockerfile(name string, dir string, context string) (*ImageRef, error)
 }
 
 type imageRefGenerator struct {
@@ -36,38 +34,19 @@ func NewImageRefGenerator() ImageRefGenerator {
 }
 
 // FromName generates an ImageRef from a given name
-func (g *imageRefGenerator) FromName(name string) (*app.ImageRef, error) {
+func (g *imageRefGenerator) FromName(name string) (*ImageRef, error) {
 	ref, err := imageapi.ParseDockerImageReference(name)
 	if err != nil {
 		return nil, err
 	}
-	return &app.ImageRef{
+	return &ImageRef{
 		DockerImageReference: ref,
 		AsImageStream:        true,
 	}, nil
 }
 
-func (g *imageRefGenerator) FromNameAndResolver(name string, resolver app.Resolver) (*app.ImageRef, error) {
-	imageRef, err := g.FromName(name)
-	if err != nil {
-		return nil, err
-	}
-	imageMatch, err := resolver.Resolve(imageRef.RepoName())
-	if multiple, ok := err.(app.ErrMultipleMatches); ok {
-		for _, m := range multiple.Matches {
-			if m.Image != nil {
-				imageMatch = m
-				break
-			}
-		}
-	}
-	if imageMatch != nil {
-		imageRef.Info = imageMatch.Image
-	}
-	return imageRef, nil
-}
-
-func (g *imageRefGenerator) FromNameAndPorts(name string, ports []string) (*app.ImageRef, error) {
+// FromNameAndPorts generates an ImageRef from a given name and ports
+func (g *imageRefGenerator) FromNameAndPorts(name string, ports []string) (*ImageRef, error) {
 	present := struct{}{}
 	imageRef, err := g.FromName(name)
 	if err != nil {
@@ -87,7 +66,10 @@ func (g *imageRefGenerator) FromNameAndPorts(name string, ports []string) (*app.
 	return imageRef, nil
 }
 
-func (g *imageRefGenerator) FromDockerfile(name string, dir string, context string) (*app.ImageRef, error) {
+// FromDockerfile generates an ImageRef from a given name, directory, and context path.
+// The directory and context path will be joined and the resulting path should be a
+// Dockerfile from where the image's ports will be extracted.
+func (g *imageRefGenerator) FromDockerfile(name string, dir string, context string) (*ImageRef, error) {
 	// Look for Dockerfile in repository
 	file, err := os.Open(filepath.Join(dir, context, "Dockerfile"))
 	if err != nil {
@@ -112,7 +94,7 @@ func (g *imageRefGenerator) FromDockerfile(name string, dir string, context stri
 }
 
 // FromStream generates an ImageRef from an OpenShift ImageStream
-func (g *imageRefGenerator) FromStream(stream *imageapi.ImageStream, tag string) (*app.ImageRef, error) {
+func (g *imageRefGenerator) FromStream(stream *imageapi.ImageStream, tag string) (*ImageRef, error) {
 	pullSpec := stream.Status.DockerImageRepository
 	if len(pullSpec) == 0 {
 		// need to know the default OpenShift registry
@@ -127,7 +109,7 @@ func (g *imageRefGenerator) FromStream(stream *imageapi.ImageStream, tag string)
 		ref.Tag = imageapi.DefaultImageTag
 	}
 
-	return &app.ImageRef{
+	return &ImageRef{
 		DockerImageReference: ref,
 		Stream:               stream,
 	}, nil
