@@ -58,7 +58,7 @@ In order to run the router in a deployed environment the following conditions mu
 
 To install the router pod you use the `openshift ex router` command line, passing the flags `--create` and `--credentials=<kubeconfig_file>`.
 The credentials flag controls the identity that the router will use to talk to the master (and the address of the master) so in most
-environments you can use the `${CERTS_DIR}/openshift-client/.kubeconfig` file. Once you run this command you can check the configuration
+environments you can use the `${CONFIG_DIR}/master/openshift-client.kubeconfig` file. Once you run this command you can check the configuration
 of the router by running `osc get dc router` to check the deployment status.
 
 `openshift ex router` offers other options for deploying routers - run `openshift help ex router` for more details.
