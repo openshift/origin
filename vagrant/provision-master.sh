@@ -55,11 +55,11 @@ pushd /vagrant
       --node="${minion}" \
       --hostnames="${minion},${ip}" \
       --master="https://${MASTER_IP}:8443" \
-      --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
-      --certificate-authority="${CERT_DIR}/ca/cert.crt" \
-      --signer-cert="${CERT_DIR}/ca/cert.crt" \
-      --signer-key="${CERT_DIR}/ca/key.key" \
-      --signer-serial="${CERT_DIR}/ca/serial.txt"
+      --node-client-certificate-authority="${CERT_DIR}/ca.crt" \
+      --certificate-authority="${CERT_DIR}/ca.crt" \
+      --signer-cert="${CERT_DIR}/ca.crt" \
+      --signer-key="${CERT_DIR}/ca.key" \
+      --signer-serial="${CERT_DIR}/ca.serial.txt"
   done
 
 popd
