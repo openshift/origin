@@ -43,6 +43,7 @@ type Interface interface {
 	SubjectAccessReviewsNamespacer
 	TemplatesNamespacer
 	TemplateConfigsNamespacer
+	OAuthAccessTokensInterface
 }
 
 // Builds provides a REST client for Builds
@@ -190,6 +191,11 @@ func (c *Client) RootSubjectAccessReviews() SubjectAccessReviewInterface {
 	return newRootSubjectAccessReviews(c)
 }
 
+// OAuthAccessTokens provides a REST client for OAuthAccessTokens
+func (c *Client) OAuthAccessTokens() OAuthAccessTokenInterface {
+	return newOAuthAccessTokens(c)
+}
+
 // Client is an OpenShift client object
 type Client struct {
 	*kclient.RESTClient
@@ -207,6 +213,7 @@ func New(c *kclient.Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Client{client}, nil
 }
 

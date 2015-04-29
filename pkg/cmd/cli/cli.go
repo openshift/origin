@@ -63,6 +63,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	out := os.Stdout
 
 	cmds.AddCommand(cmd.NewCmdLogin(f, in, out))
+	cmds.AddCommand(cmd.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out))
 	cmds.AddCommand(cmd.NewCmdProject(f, out))
 	cmds.AddCommand(cmd.NewCmdRequestProject("new-project", fullName+" new-project", fullName+" login", fullName+" project", f, out))
 	cmds.AddCommand(cmd.NewCmdNewApplication(fullName, f, out))
