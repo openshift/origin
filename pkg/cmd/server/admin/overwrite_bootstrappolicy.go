@@ -13,6 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
@@ -138,6 +139,7 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 		if !ok {
 			return errors.New("policy must be contained in a template.  One can be created with '" + createBootstrapPolicyCommand + "'.")
 		}
+		runtime.DecodeList(template.Objects, kapi.Scheme)
 
 		for _, item := range template.Objects {
 			switch t := item.(type) {
