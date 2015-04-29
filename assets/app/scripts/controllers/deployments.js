@@ -21,7 +21,7 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
-    var extractPodTemplates = function() {
+    function extractPodTemplates() {
       angular.forEach($scope.deployments, function(deployment, deploymentId){
         $scope.podTemplates[deploymentId] = deployment.spec.template;
       });
@@ -52,7 +52,7 @@ angular.module('openshiftConsole')
       Logger.log("builds (subscribe)", $scope.builds);
     }));
 
-    var updateFilterWarning = function() {
+    function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.deployments) && !$.isEmptyObject($scope.unfilteredDeployments)) {
         $scope.alerts["deployments"] = {
           type: "warning",

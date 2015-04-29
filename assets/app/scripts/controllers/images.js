@@ -27,7 +27,7 @@ angular.module('openshiftConsole')
       Logger.log("image streams (subscribe)", $scope.imageStreams);
     })); 
 
-    var updateFilterWarning = function() {
+    function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.imageStreams) && !$.isEmptyObject($scope.unfilteredImageStreams)) {
         $scope.alerts["imageStreams"] = {
           type: "warning",

@@ -241,7 +241,7 @@ angular.module('openshiftConsole')
 
     // If this is a cached type (immutable types only), ignore the force parameter
     if (this._isTypeCached(type) && existingData && existingData.by('metadata.name')[name]) {
-      return existingData.by('metadata.name')[name];
+      deferred.resolve(existingData.by('metadata.name')[name]);
     }
     else if (!force && this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
       var obj = existingData.by('metadata.name')[name];

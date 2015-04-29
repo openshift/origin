@@ -32,7 +32,7 @@ angular.module('openshiftConsole')
         Logger.log("routes (subscribe)", $scope.routesByService);
     }));
 
-    var routesByService = function(routes) {
+    function routesByService(routes) {
         var routeMap = {};
         angular.forEach(routes, function(route, routeName){
             routeMap[route.serviceName] = routeMap[route.serviceName] || {};
@@ -41,7 +41,7 @@ angular.module('openshiftConsole')
         return routeMap;
     };
 
-    var updateFilterWarning = function() {
+    function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services)  && !$.isEmptyObject($scope.unfilteredServices)) {
         $scope.alerts["services"] = {
           type: "warning",
