@@ -99,6 +99,9 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			c.FuzzNoCustom(j)
 			specs := []string{"", "a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.DockerImageReference = specs[c.Intn(len(specs))]
+			if forVersion == "v1beta3" {
+				j.Tag, j.DockerImageReference = "", ""
+			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
