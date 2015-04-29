@@ -90,15 +90,8 @@
 
           <div>
             <h3>Triggers:</h3>
-            <dl class="dl-horizontal">
-              <dt>Manual:</dt>
-              <dd>
-                <span>
-                  <button class="btn btn-primary" ng-click="startBuild(buildConfigName)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Start Build</button>
-                <span>
-              </dd>
-            </dl>
             <dl class="dl-horizontal left indent">
+
               <div ng-repeat="trigger in buildConfig.triggers">
                 <span ng-switch="trigger.type">
                   <span ng-switch-when="github">
@@ -164,7 +157,16 @@
               </div>
             </dl>
 
-            <dl class="dl-horizontal">
+            <dl class="dl-horizontal left indent">
+              <dt>Manual:</dt>
+              <dd>
+                <span>
+                  <button class="btn btn-primary" ng-click="startBuild(buildConfigName)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Start Build</button>
+                <span>
+              </dd>
+            </dl>
+
+            <dl class="dl-horizontal left indent">
               <dt>Manual (CLI):
                 <a href="{{'start-build' | helpLink}}" target="_blank">
                   <span class="learn-more-block">Learn more <i class="fa fa-external-link"> </i></span>
@@ -174,8 +176,8 @@
                 <code>osc start-build {{buildConfigName}} -n {{project.metadata.name}}</code>
                 <copy-to-clipboard-button clipboard-text="'osc start-build ' + buildConfigName + ' -n ' + project.metadata.name"></copy-to-clipboard-button>
               </dd>
-            </dl>
 
+            </dl>
           </div>
         </div>
         <div class="well" style="margin-bottom: 10px;" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true">
