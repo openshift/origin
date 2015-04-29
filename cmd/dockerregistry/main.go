@@ -4,12 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
 )
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
 
 	// TODO convert to flags instead of a config file?
