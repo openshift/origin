@@ -107,6 +107,9 @@
             "tag": "latest"
           },
           "type": "ImageChange"
+        },
+        {
+          "type": "ConfigChange"
         }
       ]
     }
