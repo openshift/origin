@@ -138,6 +138,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         $ osadm policy add-role-to-user view test-admin --config=openshift.local.config/master/admin.kubeconfig
 
 5. Login as `test-admin` using any password
+
         $ osc login --certificate-authority=`pwd`/openshift.local.config/master/ca.crt
 
 
