@@ -12,7 +12,6 @@ import (
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -199,16 +198,19 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 									},
 								},
 								Privileged: mountHost,
-								LivenessProbe: &kapi.Probe{
-									InitialDelaySeconds: 3,
-									TimeoutSeconds:      5,
-									Handler: kapi.Handler{
-										HTTPGet: &kapi.HTTPGetAction{
-											Path: "/healthz",
-											Port: util.NewIntOrStringFromInt(5000),
+								// TODO reenable the liveness probe when we no longer support the v1 registry.
+								/*
+									LivenessProbe: &kapi.Probe{
+										InitialDelaySeconds: 3,
+										TimeoutSeconds:      5,
+										Handler: kapi.Handler{
+											HTTPGet: &kapi.HTTPGetAction{
+												Path: "/healthz",
+												Port: util.NewIntOrStringFromInt(5000),
+											},
 										},
 									},
-								},
+								*/
 							},
 						},
 						Volumes: []kapi.Volume{
