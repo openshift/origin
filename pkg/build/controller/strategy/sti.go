@@ -50,7 +50,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 
 	strategy := build.Parameters.Strategy.STIStrategy
 	if len(strategy.Env) > 0 {
-		mergeEnvWithoutDuplicates(strategy.Env, &containerEnv)
+		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
 	}
 
 	pod := &kapi.Pod{
