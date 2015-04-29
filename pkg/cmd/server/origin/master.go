@@ -30,7 +30,6 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	utilerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
@@ -115,6 +114,8 @@ const (
 	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
+
+var excludedV1Beta3Types = util.NewStringSet("templateConfigs", "deployments")
 
 // APIInstaller installs additional API components into this server
 type APIInstaller interface {
@@ -268,7 +269,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 	v1beta3Storage := map[string]rest.Storage{}
 	for k, v := range storage {
-		if k == "templateConfigs" {
+		if excludedV1Beta3Types.Has(k) {
 			continue
 		}
 		v1beta3Storage[strings.ToLower(k)] = v
@@ -296,7 +297,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
 	}
 
-	version2 := &apiserver.APIGroupVersion{
+	version3 := &apiserver.APIGroupVersion{
 		Root:    OpenShiftAPIPrefix,
 		Version: OpenShiftAPIV1Beta3,
 
@@ -305,21 +306,22 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		Mapper: latest.RESTMapper,
 
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  latest.SelfLinker,
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    latest.SelfLinker,
 
 		Admit:   c.AdmissionControl,
 		Context: c.getRequestContextMapper(),
 	}
 
-	if err := version2.InstallREST(container); err != nil {
-		// TODO: remove this check once v1beta3 is complete
+	if err := version3.InstallREST(container); err != nil {
+		/*// TODO: remove this check once v1beta3 is complete
 		if utilerrs.FilterOut(err, func(err error) bool {
 			return strings.Contains(err.Error(), "is registered for version")
-		}) != nil {
-			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
-		}
+		}) != nil {*/
+		glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
+		//}
 	}
 
 	var root *restful.WebService
