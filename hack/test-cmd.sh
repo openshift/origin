@@ -296,24 +296,24 @@ osc delete pod $(osc get pod | grep docker-registry-1 | awk '{print $1}')
 osc delete imageStreams test
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 osc create -f examples/image-streams/image-streams-centos7.json
-[ -n "$(osc get imageStreams ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
-osc delete imageStreams ruby-20-centos7
-osc delete imageStreams nodejs-010-centos7
-osc delete imageStreams wildfly-8-centos
-osc delete imageStreams mysql-55-centos7
-osc delete imageStreams postgresql-92-centos7
-osc delete imageStreams mongodb-24-centos7
-[ -z "$(osc get imageStreams ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams ruby -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams nodejs -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams mysql -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
+osc delete imageStreams ruby
+osc delete imageStreams nodejs
+osc delete imageStreams wildfly
+osc delete imageStreams mysql
+osc delete imageStreams postgresql
+osc delete imageStreams mongodb
+[ -z "$(osc get imageStreams ruby -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams nodejs -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams mysql -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
 echo "imageStreams: ok"
 
 osc create -f test/integration/fixtures/test-image-stream.json

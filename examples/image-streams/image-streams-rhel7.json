@@ -6,7 +6,7 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "ruby-20-rhel7"
+        "name": "ruby"
       },
       "spec": {
         "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/ruby-20-rhel7",
@@ -27,7 +27,7 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "nodejs-010-rhel7"
+        "name": "nodejs"
       },
       "spec": {
         "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/nodejs-010-rhel7",
@@ -48,7 +48,7 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "perl-516-rhel7"
+        "name": "perl"
       },
       "spec": {
         "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/perl-516-rhel7",
@@ -69,7 +69,7 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "python-33-rhel7"
+        "name": "python"
       },
       "spec": {
         "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/python-33-rhel7",
@@ -90,30 +90,45 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "mysql-55-rhel7"
+        "name": "mysql"
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/mysql-55-rhel7"
+        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/mysql-55-rhel7",
+        "tags": [
+          {
+            "name":"latest"
+          }
+        ]
       }
     },
     {
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "postgresql-92-rhel7"
+        "name": "postgresql"
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/postgresql-92-rhel7"
+        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/postgresql-92-rhel7",
+        "tags": [
+          {
+            "name":"latest"
+          }
+        ]
       }
     },
     {
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "mongodb-24-rhel7"
+        "name": "mongodb"
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/mongodb-24-rhel7"
+        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/mongodb-24-rhel7",
+        "tags": [
+          {
+            "name":"latest"
+          }
+        ]
       }
     }
   ]

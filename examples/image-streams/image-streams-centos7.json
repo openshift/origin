@@ -6,7 +6,7 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "ruby-20-centos7"
+        "name": "ruby"
       },
       "spec": {
         "dockerImageRepository": "openshift/ruby-20-centos7",
@@ -27,7 +27,7 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "nodejs-010-centos7"
+        "name": "nodejs"
       },
       "spec": {
         "dockerImageRepository": "openshift/nodejs-010-centos7",
@@ -48,7 +48,7 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "perl-516-centos7"
+        "name": "perl"
       },
       "spec": {
         "dockerImageRepository": "openshift/perl-516-centos7",
@@ -69,7 +69,7 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "python-33-centos7"
+        "name": "python"
       },
       "spec": {
         "dockerImageRepository": "openshift/python-33-centos7",
@@ -90,7 +90,7 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "wildfly-8-centos"
+        "name": "wildfly"
       },
       "spec": {
         "dockerImageRepository": "openshift/wildfly-8-centos",
@@ -111,30 +111,45 @@
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "mysql-55-centos7"
+        "name": "mysql"
       },
       "spec": {
-        "dockerImageRepository": "openshift/mysql-55-centos7"
+        "dockerImageRepository": "openshift/mysql-55-centos7",
+        "tags": [
+          {
+            "name":"latest"
+          }
+        ]
       }
     },
     {
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "postgresql-92-centos7"
+        "name": "postgresql"
       },
       "spec": {
-        "dockerImageRepository": "openshift/postgresql-92-centos7"
+        "dockerImageRepository": "openshift/postgresql-92-centos7",
+        "tags": [
+          {
+            "name":"latest"
+          }
+        ]
       }
     },
     {
       "apiVersion": "v1beta1",
       "kind": "ImageStream",
       "metadata": {
-        "name": "mongodb-24-centos7"
+        "name": "mongodb"
       },
       "spec": {
-        "dockerImageRepository": "openshift/mongodb-24-centos7"
+        "dockerImageRepository": "openshift/mongodb-24-centos7",
+        "tags": [
+          {
+            "name":"latest"
+          }
+        ]
       }
     }
   ]

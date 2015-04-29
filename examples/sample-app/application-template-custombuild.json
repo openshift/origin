@@ -2,13 +2,23 @@
   "apiVersion": "v1beta1",
   "items": [
     {
-      "apiVersion": "v1beta1",
-      "containerPort": 8080,
-      "id": "frontend",
+      "apiVersion": "v1beta3",
       "kind": "Service",
-      "port": 5432,
-      "selector": {
+      "metadata": {
         "name": "frontend"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "port": 5432,
+            "protocol": "TCP",
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        }
       }
     },
     {
@@ -74,10 +84,9 @@
               }
             ],
             "exposeDockerSocket": true,
-            "customStrategy": {
-              "from": {
-                "name":"origin-custom-docker-builder"
-              }
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "origin-custom-docker-builder:latest"
             }
           },
           "type": "Custom"
@@ -179,13 +188,23 @@
       ]
     },
     {
-      "apiVersion": "v1beta1",
-      "containerPort": 3306,
-      "id": "database",
+      "apiVersion": "v1beta3",
       "kind": "Service",
-      "port": 5434,
-      "selector": {
+      "metadata": {
         "name": "database"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "db",
+            "port": 5434,
+            "protocol": "TCP",
+            "targetPort": 3306
+          }
+        ],
+        "selector": {
+          "name": "database"
+        }
       }
     },
     {
