@@ -41,13 +41,15 @@ func (strategy) GenerateName(base string) string {
 func (strategy) PrepareForCreate(obj runtime.Object) {
 	binding := obj.(*authorizationapi.PolicyBinding)
 
-	binding.Name = binding.PolicyRef.Namespace
 	scrubBindingRefs(binding)
+	// force a delimited name, just in case we someday allow a reference to a global object that won't have a namespace.  We'll end up with a name like ":default".
+	// ":" is not in the value space of namespaces, so no escaping is necessary
+	binding.Name = authorizationapi.GetPolicyBindingName(binding.PolicyRef.Namespace)
 }
 
 // scrubBindingRefs discards pieces of the object references that we don't respect to avoid confusion.
 func scrubBindingRefs(binding *authorizationapi.PolicyBinding) {
-	binding.PolicyRef = kapi.ObjectReference{Namespace: binding.PolicyRef.Namespace}
+	binding.PolicyRef = kapi.ObjectReference{Namespace: binding.PolicyRef.Namespace, Name: authorizationapi.PolicyName}
 
 	for roleBindingKey, roleBinding := range binding.RoleBindings {
 		roleBinding.RoleRef = kapi.ObjectReference{Namespace: binding.PolicyRef.Namespace, Name: roleBinding.RoleRef.Name}
@@ -95,9 +97,9 @@ func SelectableFields(policyBinding *authorizationapi.PolicyBinding) fields.Set 
 	}
 }
 
-func NewEmptyPolicyBinding(namespace, policyNamespace string) *authorizationapi.PolicyBinding {
+func NewEmptyPolicyBinding(namespace, policyNamespace, policyBindingName string) *authorizationapi.PolicyBinding {
 	binding := &authorizationapi.PolicyBinding{}
-	binding.Name = policyNamespace
+	binding.Name = policyBindingName
 	binding.Namespace = namespace
 	binding.CreationTimestamp = util.Now()
 	binding.LastModified = util.Now()
