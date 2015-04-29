@@ -6,13 +6,13 @@
       </div>
       <div class="tile-table-cell">
         <h3>
-        <a href="javascript:;" class="tile-target" data-toggle="modal" data-target="#{{template.metadata.namespace}}_{{template.metadata.name}}">{{template.metadata.name}}</a>
+        <a href="javascript:;" class="tile-target" data-toggle="modal" data-target="#{{template.metadata.uid}}">{{template.metadata.name}}</a>
         </h3>
         <p ng-if="template | description">{{template | description}}</p>
       </div>
     </div>
   </div>
-  <div class="modal modal-create fade" id="{{template.metadata.namespace}}_{{template.metadata.name}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal modal-create fade" id="{{template.metadata.uid}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
