@@ -30,7 +30,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	var retryDeploy bool
 
 	cmd := &cobra.Command{
-		Use:   "deploy <deploymentConfig>",
+		Use:   "deploy DEPLOYMENTCONFIG",
 		Short: "View, start and restart deployments.",
 		Long:  newCmdDeployDescription,
 		Run: func(cmd *cobra.Command, args []string) {

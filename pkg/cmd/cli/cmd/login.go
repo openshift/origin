@@ -71,7 +71,7 @@ func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra
 	}
 
 	cmds := &cobra.Command{
-		Use:   "login [server URL] [--username=<username>] [--password=<password>] [--certificate-authority=<path>]",
+		Use:   "login [URL]",
 		Short: "Logs in and save the configuration",
 		Long:  longDescription,
 		Run: func(cmd *cobra.Command, args []string) {

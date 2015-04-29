@@ -66,7 +66,7 @@ Examples:
 // NewCmdProcess implements the OpenShift cli process command
 func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "process -f filename",
+		Use:   "process (TEMPLATE | -f FILENAME) [-v=KEY=VALUE]",
 		Short: "Process template into list of resources",
 		Long:  fmt.Sprintf(processLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

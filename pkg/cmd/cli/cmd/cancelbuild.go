@@ -32,7 +32,7 @@ Examples:
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command
 func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "cancel-build <build>",
+		Use:   "cancel-build BUILD",
 		Short: "Cancel a pending or running build.",
 		Long:  fmt.Sprintf(cancelBuildLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

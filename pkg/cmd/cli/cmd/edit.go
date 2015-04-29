@@ -61,7 +61,7 @@ Examples:
 func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	var filenames util.StringList
 	cmd := &cobra.Command{
-		Use:   "edit -f FILENAME",
+		Use:   "edit (RESOURCE/NAME | -f FILENAME)",
 		Short: "Edit a resource on the server and apply the update.",
 		Long:  fmt.Sprintf(edit_long, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

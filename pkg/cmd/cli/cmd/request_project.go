@@ -51,7 +51,7 @@ func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f
 	options.Out = out
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s <project-name> [--display-name=<your display name> --description=<your description]", name),
+		Use:   fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
 		Short: "request a new project",
 		Long:  fmt.Sprintf(requestProjectLongDesc, fullName, oscLoginName, oscProjectName),
 		Run: func(cmd *cobra.Command, args []string) {

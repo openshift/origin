@@ -52,8 +52,8 @@ Examples:
 	# Create an application from the remote repository using the specified label
 	$ %[1]s new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
 
-	# Create an application based on a stored template, explicitly setting a parameter value
-	$ %[1]s new-app ruby-helloworld-sample --env=MYSQL_USER=admin
+  # Create an application based on a stored template, explicitly setting a parameter value
+  $ %[1]s new-app ruby-helloworld-sample --param=MYSQL_USER=admin
 
 If you specify source code, you may need to run a build with 'start-build' after the
 application is created.
@@ -67,7 +67,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	config := newcmd.NewAppConfig(typer)
 
 	cmd := &cobra.Command{
-		Use:   "new-app <components> [--code=<path|url>]",
+		Use:   "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
 		Short: "Create a new application",
 		Long:  fmt.Sprintf(newAppLongDesc, fullName),
 
