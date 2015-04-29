@@ -74,16 +74,19 @@ Requires:       %{name} = %{version}-%{release}
 %description -n tuned-profiles-openshift-node
 %{summary}
 
-%package -n osc-macosx-amd64
-Summary:      Openshift Client Packages for Mac OSX
+%package clients
+Summary:      Openshift Client binaries for Linux, Mac OSX, and Windows
 BuildRequires: golang-pkg-darwin-amd64
-%description -n osc-macosx-amd64
+BuildRequires: golang-pkg-windows-386
+
+%description clients
 %{summary}
 
-%package -n osc-windows-386
-Summary:      OpenShift Client Packages for Windows
-BuildRequires: golang-pkg-windows-386
-%description -n osc-windows-386
+%package dockerregistry
+Summary:        Docker Registry v2 for OpenShift
+Requires:       %{name} = %{version}-%{release}
+
+%description dockerregistry
 %{summary}
 
 %prep
@@ -110,37 +113,44 @@ pushd _thirdpartyhacks
             src
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
-# Default to building all of the components
-for OS in linux darwin windows
+# Build all linux components we care about
+for cmd in openshift dockerregistry
+do
+        go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
+done
+
+# Build only 'openshift' for other platforms
+for OS in darwin windows
 do
     export GOOS=${OS}
-    for cmd in openshift
-    do
-        if [ $GOOS == 'windows' ]
-        then
-            export GOARCH='386'
-        else
-            export GOARCH='amd64'
-        fi
-        go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
-    done
+    if [ $GOOS == 'windows' ]
+    then
+        export GOARCH='386'
+    else
+        export GOARCH='amd64'
+    fi
+    go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
 done
+
 # set the IMAGES
 sed -i 's|IMAGES=.*|IMAGES=%{docker_images}|' rel-eng/openshift-{master,node}.sysconfig
 
 %install
 
 install -d %{buildroot}%{_bindir}
-install -d %{buildroot}%{_datadir}/%{name}/macosx
-install -d %{buildroot}%{_datadir}/%{name}/windows
+install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
 
-for bin in openshift
+# Install linux components
+for bin in openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
-  install -p -m 755 _build/bin/darwin_amd64/${bin} %{buildroot}%{_datadir}/%{name}/macosx/osc
-  install -p -m 755 _build/bin/windows_386/${bin}.exe %{buildroot}%{_datadir}/%{name}/windows/osc.exe
 done
+# Install 'openshift' as client executable for windows and mac
+install -p -m 755 _build/bin/openshift %{buildroot}%{_datadir}/%{name}/linux/osc
+install -p -m 755 _build/bin/darwin_amd64/openshift %{buildroot}%{_datadir}/%{name}/macosx/osc
+install -p -m 755 _build/bin/windows_386/openshift.exe %{buildroot}%{_datadir}/%{name}/windows/osc.exe
+
 
 install -d -m 0755 %{buildroot}/etc/%{name}
 install -d -m 0755 %{buildroot}%{_unitdir}
@@ -154,6 +164,7 @@ install -m 0644 rel-eng/openshift-node.sysconfig %{buildroot}%{_sysconfdir}/sysc
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 
 ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
+ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osadm
 
 install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/openshift-node-{guest,host}
 install -m 0644 tuned/openshift-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/openshift-node-guest/
@@ -167,6 +178,7 @@ install -m 0644 tuned/man/tuned-profiles-openshift-node.7 %{buildroot}%{_mandir}
 %doc README.md LICENSE
 %{_bindir}/openshift
 %{_bindir}/osc
+%{_bindir}/osadm
 %{_sharedstatedir}/%{name}
 /etc/%{name}
 
@@ -221,12 +233,14 @@ if [ "$1" = 0 ]; then
   /usr/sbin/tuned-adm profile $recommended > /dev/null 2>&1
 fi
 
-%files -n osc-macosx-amd64
+%files clients
+%{_datadir}/%{name}/linux/osc
 %{_datadir}/%{name}/macosx/osc
-
-%files -n osc-windows-386
 %{_datadir}/%{name}/windows/osc.exe
 
+%files dockerregistry
+%defattr(-,root,root,-)
+%{_bindir}/dockerregistry
 
 %changelog
 * Mon Jan 26 2015 Scott Dodson <sdodson@redhat.com> 0.2-3
