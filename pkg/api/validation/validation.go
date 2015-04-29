@@ -79,6 +79,7 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 		errors = templatev.ValidateTemplate(t)
 	default:
 		if list, err := runtime.ExtractList(obj); err == nil {
+			runtime.DecodeList(list, kapi.Scheme)
 			for i := range list {
 				errs := ValidateObject(list[i])
 				errors = append(errors, errs...)

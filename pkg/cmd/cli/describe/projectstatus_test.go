@@ -148,9 +148,9 @@ func TestProjectStatus(t *testing.T) {
 			}
 			return time.Now()
 		}
-		o := ktestclient.NewObjects(kapi.Scheme)
+		o := ktestclient.NewObjects(kapi.Scheme, kapi.Scheme)
 		if len(test.Path) > 0 {
-			if err := ktestclient.AddObjectsFromPath(test.Path, o); err != nil {
+			if err := ktestclient.AddObjectsFromPath(test.Path, o, kapi.Scheme); err != nil {
 				t.Fatal(err)
 			}
 		}
