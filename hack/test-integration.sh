@@ -82,5 +82,5 @@ export childargs
 
 # run each test as its own process
 pushd "./${package}" 2>&1 >/dev/null
-time go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}" | grep -E "${1-Test}" | xargs -I {} -n 1 bash -c "exectest {} ${@:2}" # "${testexec}" -test.run="^{}$" "${@:2}"
+time go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}" | grep --color=never -E "${1-Test}" | xargs -I {} -n 1 bash -c "exectest {} ${@:2}" # "${testexec}" -test.run="^{}$" "${@:2}"
 popd 2>&1 >/dev/null
