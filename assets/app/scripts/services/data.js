@@ -204,7 +204,7 @@ angular.module('openshiftConsole')
     }
 
     objects.forEach(function(object) {
-      self.create(self._objectType(object.kind), object, context, opts).then(
+      self.create(self._objectType(object.kind), null, object, context, opts).then(
         function (data) {
           successResults.push(data);
           remaining--;
