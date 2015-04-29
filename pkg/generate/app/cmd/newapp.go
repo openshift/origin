@@ -400,7 +400,7 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 			return nil, fmt.Errorf("error processing template %s/%s: %v", c.originNamespace, tpl.Name, err)
 		}
 
-		objects = append(objects, result.Items...)
+		objects = append(objects, result.Objects...)
 	}
 	return objects, nil
 }

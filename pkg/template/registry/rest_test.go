@@ -139,11 +139,11 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	config, ok := obj.(*kapi.List)
+	config, ok := obj.(*template.Template)
 	if !ok {
 		t.Fatalf("unexpected return object: %#v", obj)
 	}
-	svc, ok := config.Items[0].(*kapi.Service)
+	svc, ok := config.Objects[0].(*kapi.Service)
 	if !ok {
 		t.Fatalf("Unexpected object in config: %#v", svc)
 	}

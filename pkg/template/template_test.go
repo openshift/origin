@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/api/v1beta3"
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/generator"
 )
@@ -134,17 +136,177 @@ func TestProcessValueEscape(t *testing.T) {
 	AddParameter(&template, makeParameter("VALUE", "1", ""))
 
 	// Transform the template config into the result config
-	config, errs := processor.Process(&template)
+	errs := processor.Process(&template)
 	if len(errs) > 0 {
 		t.Fatalf("unexpected error: %v", errs)
 	}
-	result, err := latest.Codec.Encode(config)
+	result, err := v1beta3.Codec.Encode(&template)
 	if err != nil {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
-	expect := `{"kind":"Config","apiVersion":"v1beta1","metadata":{"creationTimestamp":null},"items":[{"apiVersion":"v1beta31","kind":"Service","metadata":{"labels":{"key1":"1","key2":"$1"}}}]}`
+	expect := `{"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},"objects":[{"apiVersion":"v1beta31","kind":"Service","metadata":{"labels":{"key1":"1","key2":"$1"}}}],"parameters":[{"name":"VALUE","value":"1"}]}`
 	if expect != string(result) {
 		t.Errorf("unexpected output: %s", util.StringDiff(expect, string(result)))
+	}
+}
+
+var trailingWhitespace = regexp.MustCompile(`\n\s*`)
+
+func TestEvaluateLabels(t *testing.T) {
+	testCases := map[string]struct {
+		Input  string
+		Output string
+		Labels map[string]string
+	}{
+		"no labels": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1beta1",
+				"items": [
+					{
+						"kind": "Service", "apiVersion": "v1beta3",
+						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1beta3","kind":"Service","metadata":{
+						"labels":{"key1":"v1","key2":"v2"}}
+					}
+				]
+			}`,
+		},
+		"one different label": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1beta1",
+				"items": [
+					{
+						"kind": "Service", "apiVersion": "v1beta3",
+						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1beta3","kind":"Service","metadata":{
+						"labels":{"key1":"v1","key2":"v2","key3":"v3"}}
+					}
+				],
+				"labels":{"key3":"v3"}
+			}`,
+			Labels: map[string]string{"key3": "v3"},
+		},
+		"when the root object has labels and no metadata": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1beta1",
+				"items": [
+					{
+						"kind": "Service", "apiVersion": "v1beta1",
+						"labels": {
+							"key1": "v1",
+							"key2": "v2"
+						}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1beta1","kind":"Service",
+						"labels":{"key1":"v1","key2":"v2","key3":"v3"}
+					}
+				],
+				"labels":{"key3":"v3"}
+			}`,
+			Labels: map[string]string{"key3": "v3"},
+		},
+		"when the root object has labels and metadata": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1beta1",
+				"items": [
+					{
+						"kind": "Service", "apiVersion": "v1beta1",
+						"metadata": {},
+						"labels": {
+							"key1": "v1",
+							"key2": "v2"
+						}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1beta1","kind":"Service",
+						"labels":{"key1":"v1","key2":"v2"},
+						"metadata":{"labels":{"key3":"v3"}}
+					}
+				],
+				"labels":{"key3":"v3"}
+			}`,
+			Labels: map[string]string{"key3": "v3"},
+		},
+		"overwrites label": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1beta1",
+				"items": [
+					{
+						"kind": "Service", "apiVersion": "v1beta3",
+						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1beta3","kind":"Service","metadata":{
+						"labels":{"key1":"v1","key2":"v3"}}
+					}
+				],
+				"labels":{"key2":"v3"}
+			}`,
+			Labels: map[string]string{"key2": "v3"},
+		},
+	}
+
+	for k, testCase := range testCases {
+		var template api.Template
+		if err := latest.Codec.DecodeInto([]byte(testCase.Input), &template); err != nil {
+			t.Errorf("%s: unexpected error: %v", k, err)
+			continue
+		}
+
+		generators := map[string]generator.Generator{
+			"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(1337))),
+		}
+		processor := NewProcessor(generators)
+
+		template.ObjectLabels = testCase.Labels
+
+		// Transform the template config into the result config
+		errs := processor.Process(&template)
+		if len(errs) > 0 {
+			t.Errorf("%s: unexpected error: %v", k, errs)
+			continue
+		}
+		result, err := v1beta3.Codec.Encode(&template)
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", k, err)
+			continue
+		}
+		expect := testCase.Output
+		expect = trailingWhitespace.ReplaceAllString(expect, "")
+		if expect != string(result) {
+			t.Errorf("%s: unexpected output: %s", k, util.StringDiff(expect, string(result)))
+			continue
+		}
 	}
 }
 
@@ -164,15 +326,15 @@ func TestProcessTemplateParameters(t *testing.T) {
 	AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", ""))
 
 	// Transform the template config into the result config
-	config, errs := processor.Process(&template)
+	errs := processor.Process(&template)
 	if len(errs) > 0 {
 		t.Fatalf("unexpected error: %v", errs)
 	}
-	result, err := latest.Codec.Encode(config)
+	result, err := v1beta3.Codec.Encode(&template)
 	if err != nil {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
-	expect := `{"kind":"Config","apiVersion":"v1beta1","metadata":{"creationTimestamp":null},"items":[{"apiVersion":"v1beta1","host":"guestbook.example.com","id":"frontend-route","kind":"Route","metadata":{"name":"frontend-route"},"serviceName":"frontend-service"},{"apiVersion":"v1beta1","id":"frontend-service","kind":"Service","port":5432,"selector":{"name":"frontend-service"}},{"apiVersion":"v1beta1","id":"redis-master","kind":"Service","port":10000,"selector":{"name":"redis-master"}},{"apiVersion":"v1beta1","id":"redis-slave","kind":"Service","port":10001,"selector":{"name":"redis-slave"}},{"apiVersion":"v1beta1","desiredState":{"manifest":{"containers":[{"env":[{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"dockerfile/redis","name":"master","ports":[{"containerPort":6379}]}],"name":"redis-master","version":"v1beta1"}},"id":"redis-master","kind":"Pod","labels":{"name":"redis-master"}},{"apiVersion":"v1beta1","desiredState":{"podTemplate":{"desiredState":{"manifest":{"containers":[{"env":[{"name":"ADMIN_USERNAME","value":"adminQ3H"},{"name":"ADMIN_PASSWORD","value":"dwNJiJwW"},{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"brendanburns/php-redis","name":"php-redis","ports":[{"containerPort":80,"hostPort":8000}]}],"name":"guestbook","version":"v1beta1"}},"labels":{"name":"frontend-service"}},"replicaSelector":{"name":"frontend-service"},"replicas":3},"id":"guestbook","kind":"ReplicationController"},{"apiVersion":"v1beta1","desiredState":{"podTemplate":{"desiredState":{"manifest":{"containers":[{"env":[{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"brendanburns/redis-slave","name":"slave","ports":[{"containerPort":6379,"hostPort":6380}]}],"id":"redis-slave","version":"v1beta1"}},"labels":{"name":"redis-slave"}},"replicaSelector":{"name":"redis-slave"},"replicas":2},"id":"redis-slave","kind":"ReplicationController"}]}`
+	expect := `{"kind":"Template","apiVersion":"v1beta3","metadata":{"name":"guestbook-example","creationTimestamp":null,"annotations":{"description":"Example shows how to build a simple multi-tier application using Kubernetes and Docker"}},"objects":[{"apiVersion":"v1beta1","host":"guestbook.example.com","id":"frontend-route","kind":"Route","metadata":{"name":"frontend-route"},"serviceName":"frontend-service"},{"apiVersion":"v1beta1","id":"frontend-service","kind":"Service","port":5432,"selector":{"name":"frontend-service"}},{"apiVersion":"v1beta1","id":"redis-master","kind":"Service","port":10000,"selector":{"name":"redis-master"}},{"apiVersion":"v1beta1","id":"redis-slave","kind":"Service","port":10001,"selector":{"name":"redis-slave"}},{"apiVersion":"v1beta1","desiredState":{"manifest":{"containers":[{"env":[{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"dockerfile/redis","name":"master","ports":[{"containerPort":6379}]}],"name":"redis-master","version":"v1beta1"}},"id":"redis-master","kind":"Pod","labels":{"name":"redis-master"}},{"apiVersion":"v1beta1","desiredState":{"podTemplate":{"desiredState":{"manifest":{"containers":[{"env":[{"name":"ADMIN_USERNAME","value":"adminQ3H"},{"name":"ADMIN_PASSWORD","value":"dwNJiJwW"},{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"brendanburns/php-redis","name":"php-redis","ports":[{"containerPort":80,"hostPort":8000}]}],"name":"guestbook","version":"v1beta1"}},"labels":{"name":"frontend-service"}},"replicaSelector":{"name":"frontend-service"},"replicas":3},"id":"guestbook","kind":"ReplicationController"},{"apiVersion":"v1beta1","desiredState":{"podTemplate":{"desiredState":{"manifest":{"containers":[{"env":[{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"brendanburns/redis-slave","name":"slave","ports":[{"containerPort":6379,"hostPort":6380}]}],"id":"redis-slave","version":"v1beta1"}},"labels":{"name":"redis-slave"}},"replicaSelector":{"name":"redis-slave"},"replicas":2},"id":"redis-slave","kind":"ReplicationController"}],"parameters":[{"name":"ADMIN_USERNAME","description":"Guestbook administrator username","value":"adminQ3H","generate":"expression","from":"admin[A-Z0-9]{3}"},{"name":"ADMIN_PASSWORD","description":"Guestbook administrator password","value":"dwNJiJwW","generate":"expression","from":"[a-zA-Z0-9]{8}"},{"name":"REDIS_PASSWORD","description":"Redis password","value":"P8vxbV4C","generate":"expression","from":"[a-zA-Z0-9]{8}"},{"name":"SLAVE_SERVICE_NAME","description":"Slave Service name","value":"redis-slave"},{"name":"CUSTOM_PARAM1","value":"1"}]}`
 	expect = strings.Replace(expect, "\n", "", -1)
 	if string(result) != expect {
 		t.Errorf("unexpected output: %s", util.StringDiff(expect, string(result)))

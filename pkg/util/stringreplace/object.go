@@ -45,7 +45,9 @@ func visitValue(v reflect.Value, visitor func(string) string) {
 				s := visitor(existing.String())
 				val.Set(reflect.ValueOf(s))
 			default:
-				val.Set(existing)
+				if existing.IsValid() && existing.Kind() != reflect.Invalid {
+					val.Set(existing)
+				}
 				visitValue(val, visitor)
 			}
 			v.SetMapIndex(k, val)

@@ -15,11 +15,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/golang/glog"
 
+	config "github.com/openshift/origin/pkg/config/api"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
 	"github.com/openshift/origin/pkg/template/generator"
-	"github.com/openshift/origin/pkg/util"
 )
 
 // templateStrategy implements behavior for Templates
@@ -100,25 +100,18 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if errs := validation.ValidateProcessedTemplate(tpl); len(errs) > 0 {
 		return nil, errors.NewInvalid("template", tpl.Name, errs)
 	}
+
 	generators := map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	}
 	processor := template.NewProcessor(generators)
-	cfg, err := processor.Process(tpl)
-	if len(err) > 0 {
-		glog.V(1).Infof(utilerr.NewAggregate(err).Error())
-		return nil, errors.NewInvalid("template", tpl.Name, err)
+	if errs := processor.Process(tpl); len(errs) > 0 {
+		glog.V(1).Infof(utilerr.NewAggregate(errs).Error())
+		return nil, errors.NewInvalid("template", tpl.Name, errs)
 	}
 
-	if tpl.ObjectLabels != nil {
-		objectLabels := labels.Set(tpl.ObjectLabels)
-		if err := util.AddConfigLabels(cfg, objectLabels); len(err) > 0 {
-			// TODO: config labels should overwrite, not fail on invalid keys
-			glog.V(1).Infof("Template config labels lost: %v", utilerr.NewAggregate(err))
-		}
-	}
 	if s.legacyReturn {
-		return cfg, nil
+		return &config.Config{Items: tpl.Objects}, nil
 	}
-	return &kapi.List{Items: cfg.Items}, nil
+	return tpl, nil
 }
