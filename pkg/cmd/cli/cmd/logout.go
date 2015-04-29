@@ -29,8 +29,8 @@ const logoutLongDescription = `Logs out the current user by deleting the token a
 
 Examples:
 
-	# Logout:
-	$ %[1]s
+  # Logout:
+  $ %[1]s
 
 If you want to log back into the OpenShift server, try '%[2]s'.
 `

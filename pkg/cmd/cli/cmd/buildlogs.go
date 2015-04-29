@@ -18,8 +18,8 @@ NOTE: This command may be moved in the future.
 
 Examples:
 
-	# Stream logs from container to stdout
-	$ %[1]s build-logs 566bed879d2d
+  # Stream logs from container to stdout
+  $ %[1]s build-logs 566bed879d2d
 `
 
 // NewCmdBuildLogs implements the OpenShift cli build-logs command

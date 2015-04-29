@@ -24,18 +24,18 @@ tools to interact with each component of your system.
 To create a new application, you can use the example app source. Login to your server and then
 run new-app:
 
-    $ %[1]s login
-    $ %[1]s new-app openshift/ruby-20-centos7~git@github.com/mfojtik/sinatra-app-example
+  $ %[1]s login
+  $ %[1]s new-app openshift/ruby-20-centos7~git@github.com/mfojtik/sinatra-app-example
 
 This will create an application based on the Docker image 'openshift/ruby-20-centos7' that builds
 the source code at 'github.com/mfojtik/sinatra-app-example'. To start the build, run
 
-    $ %[1]s start-build sinatra-app-example
+  $ %[1]s start-build sinatra-app-example
 
 and watch the build logs and build status with:
 
-    $ %[1]s get builds
-    $ %[1]s build-logs <name_of_build>
+  $ %[1]s get builds
+  $ %[1]s build-logs <name_of_build>
 
 You'll be able to view the deployed application on the IP and port of the service that new-app
 created for you.

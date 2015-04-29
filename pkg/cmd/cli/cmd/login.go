@@ -51,8 +51,8 @@ type LoginOptions struct {
 	PathOptions *kcmdconfig.PathOptions
 }
 
-const longDescription = `Logs in to the OpenShift server and saves a config file that
-will be used by subsequent commands.
+const longDescription = `Logs in to the OpenShift server and saves a config file that will be used by 
+subsequent commands.
 
 First-time users of the OpenShift client must run this command to configure the server,
 establish a session against it, and save it to a configuration file. The default

@@ -38,20 +38,16 @@ pass --replicas=2 or higher to ensure you have failover protection. The default 
 uses a local volume and the data will be lost if you delete the running pod.
 
 Examples:
-  Check if default Docker registry ("docker-registry") has been created:
-
+  # Check if default Docker registry ("docker-registry") has been created:
   $ %[1]s %[2]s --dry-run
 
-  See what the registry would look like if created:
-
+  # See what the registry would look like if created:
   $ %[1]s %[2]s -o json
 
-  Create a registry if it does not exist with two replicas:
-
+  # Create a registry if it does not exist with two replicas:
   $ %[1]s %[2]s --replicas=2 --credentials=registry-user.kubeconfig
 
-  Use a different registry image and see the registry configuration:
-
+  # Use a different registry image and see the registry configuration:
   $ %[1]s %[2]s -o yaml --images=myrepo/docker-registry:mytag
 
 NOTE: This command is intended to simplify the tasks of setting up a Docker registry in a new

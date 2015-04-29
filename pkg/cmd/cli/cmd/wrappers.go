@@ -20,17 +20,17 @@ Possible resources include builds, buildConfigs, services, pods, etc.
 
 Examples:
 
-	# List all pods in ps output format.
-	$ %[1]s get pods
+  # List all pods in ps output format.
+  $ %[1]s get pods
 
-	# List a single replication controller with specified ID in ps output format.
-	$ %[1]s get replicationController 1234-56-7890-234234-456456
+  # List a single replication controller with specified ID in ps output format.
+  $ %[1]s get replicationController 1234-56-7890-234234-456456
 
-	# List a single pod in JSON output format.
-	$ %[1]s get -o json pod 1234-56-7890-234234-456456
+  # List a single pod in JSON output format.
+  $ %[1]s get -o json pod 1234-56-7890-234234-456456
 
-	# Return only the status value of the specified pod.
-	$ %[1]s get -o template pod 1234-56-7890-234234-456456 --template={{.currentState.status}}
+  # Return only the status value of the specified pod.
+  $ %[1]s get -o template pod 1234-56-7890-234234-456456 --template={{.currentState.status}}
 `
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd
@@ -45,14 +45,14 @@ JSON and YAML formats are accepted.
 
 Examples:
 
-	# Update a pod using the data in pod.json.
-	$ %[1]s update -f pod.json
+  # Update a pod using the data in pod.json.
+  $ %[1]s update -f pod.json
 
-	# Update a pod based on the JSON passed into stdin.
-	$ cat pod.json | %[1]s update -f -
+  # Update a pod based on the JSON passed into stdin.
+  $ cat pod.json | %[1]s update -f -
 
-	# Update a pod by downloading it, applying the patch, then updating. Requires apiVersion be specified.
-	$ %[1]s update pods my-pod --patch='{ "apiVersion": "v1beta1", "desiredState": { "manifest": [{ "cpu": 100 }]}}'
+  # Update a pod by downloading it, applying the patch, then updating. Requires apiVersion be specified.
+  $ %[1]s update pods my-pod --patch='{ "apiVersion": "v1beta1", "desiredState": { "manifest": [{ "cpu": 100 }]}}'
 `
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd
@@ -74,20 +74,20 @@ will be lost along with the rest of the resource.
 
 Examples:
 
-	# Delete a pod using the type and ID specified in pod.json.
-	$ %[1]s delete -f pod.json
+  # Delete a pod using the type and ID specified in pod.json.
+  $ %[1]s delete -f pod.json
 
-	# Delete a pod based on the type and ID in the JSON passed into stdin.
-	$ cat pod.json | %[1]s delete -f -
+  # Delete a pod based on the type and ID in the JSON passed into stdin.
+  $ cat pod.json | %[1]s delete -f -
 
-	# Delete pods and services with label name=myLabel.
-	$ %[1]s delete pods,services -l name=myLabel
+  # Delete pods and services with label name=myLabel.
+  $ %[1]s delete pods,services -l name=myLabel
 
-	# Delete a pod with ID 1234-56-7890-234234-456456.
-	$ %[1]s delete pod 1234-56-7890-234234-456456
+  # Delete a pod with ID 1234-56-7890-234234-456456.
+  $ %[1]s delete pod 1234-56-7890-234234-456456
 
-	# Delete all pods
-	$ %[1]s delete pods --all
+  # Delete all pods
+  $ %[1]s delete pods --all
 `
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd
@@ -100,11 +100,11 @@ func NewCmdLog(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 
 Examples:
 
-	# Returns snapshot of ruby-container logs from pod 123456-7890.
-	$ %[1]s log 123456-7890 ruby-container
+  # Returns snapshot of ruby-container logs from pod 123456-7890.
+  $ %[1]s log 123456-7890 ruby-container
 
-	# Starts streaming of ruby-container logs from pod 123456-7890.
-	$ %[1]s log -f 123456-7890 ruby-container
+  # Starts streaming of ruby-container logs from pod 123456-7890.
+  $ %[1]s log -f 123456-7890 ruby-container
 `
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd
@@ -119,11 +119,11 @@ JSON and YAML formats are accepted.
 
 Examples:
 
-	# Create a pod using the data in pod.json.
-	$ %[1]s create -f pod.json
+  # Create a pod using the data in pod.json.
+  $ %[1]s create -f pod.json
 
-	# Create a pod based on the JSON passed into stdin.
-	$ cat pod.json | %[1]s create -f -
+  # Create a pod based on the JSON passed into stdin.
+  $ cat pod.json | %[1]s create -f -
 `
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd
@@ -136,11 +136,11 @@ func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, 
 
 Examples:
 
-	# get output from running 'date' in ruby-container from pod 123456-7890
-	$ %[1]s exec -p 123456-7890 -c ruby-container date
+  # get output from running 'date' in ruby-container from pod 123456-7890
+  $ %[1]s exec -p 123456-7890 -c ruby-container date
 
-	# switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
-	$ %[1]s exec -p 123456-7890 -c ruby-container -i -t -- bash -il
+  # switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
+  $ %[1]s exec -p 123456-7890 -c ruby-container -i -t -- bash -il
 `
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd
@@ -153,17 +153,17 @@ func NewCmdPortForward(fullName string, f *clientcmd.Factory) *cobra.Command {
 
 Examples:
 
-	# listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
-	$ %[1]s port-forward -p mypod 5000 6000
+  # listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
+  $ %[1]s port-forward -p mypod 5000 6000
 
-	# listens on port 8888 locally, forwarding to 5000 in the pod
-	$ %[1]s port-forward -p mypod 8888:5000
+  # listens on port 8888 locally, forwarding to 5000 in the pod
+  $ %[1]s port-forward -p mypod 8888:5000
 
-	# listens on a random port locally, forwarding to 5000 in the pod
-	$ %[1]s port-forward -p mypod :5000
+  # listens on a random port locally, forwarding to 5000 in the pod
+  $ %[1]s port-forward -p mypod :5000
 
-	# listens on a random port locally, forwarding to 5000 in the pod
-	$ %[1]s port-forward -p mypod 0:5000
+  # listens on a random port locally, forwarding to 5000 in the pod
+  $ %[1]s port-forward -p mypod 0:5000
 `
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd
@@ -179,11 +179,11 @@ given resource.
 
 Examples:
 
-	# Provide details about the ruby-20-centos7 image repository
-	$ %[1]s describe imageRepository ruby-20-centos7
+  # Provide details about the ruby-20-centos7 image repository
+  $ %[1]s describe imageRepository ruby-20-centos7
 
-	# Provide details about the ruby-sample-build build configuration
-	$ %[1]s describe bc ruby-sample-build
+  # Provide details about the ruby-sample-build build configuration
+  $ %[1]s describe bc ruby-sample-build
 `
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd
@@ -196,12 +196,12 @@ func NewCmdProxy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 
 Examples:
 
-	# Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
-	$ %[1]s proxy --port=8011 --www=./local/www/
+  # Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
+  $ %[1]s proxy --port=8011 --www=./local/www/
 
-	# Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
-	# This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta1/pods/
-	$ %[1]s proxy --api-prefix=k8s-api
+  # Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
+  # This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta1/pods/
+  $ %[1]s proxy --api-prefix=k8s-api
 `
 	cmd.Long = fmt.Sprintf(longDesc, fullName)
 	return cmd

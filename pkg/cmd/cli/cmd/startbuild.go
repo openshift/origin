@@ -26,15 +26,15 @@ This command starts a build for the provided build configuration or re-runs an e
 
 Examples:
 
-	# Starts build from build configuration matching the name "3bd2ug53b"
-	$ %[1]s start-build 3bd2ug53b
+  # Starts build from build configuration matching the name "3bd2ug53b"
+  $ %[1]s start-build 3bd2ug53b
 
-	# Starts build from build matching the name "3bd2ug53b"
-	$ %[1]s start-build --from-build=3bd2ug53b
+  # Starts build from build matching the name "3bd2ug53b"
+  $ %[1]s start-build --from-build=3bd2ug53b
 
-	# Starts build from build configuration matching the name "3bd2ug53b" and watches the logs until the build
-	# completes or fails
-	$ %[1]s start-build 3bd2ug53b --follow
+  # Starts build from build configuration matching the name "3bd2ug53b" and watches the logs until the build
+  # completes or fails
+  $ %[1]s start-build 3bd2ug53b --follow
 `
 
 // NewCmdStartBuild implements the OpenShift cli start-build command

@@ -19,14 +19,14 @@ Cancels a pending or running build.
 
 Examples:
 
-	# Cancel the build with the given name
-	$ %[1]s cancel-build 1da32cvq
+  # Cancel the build with the given name
+  $ %[1]s cancel-build 1da32cvq
 
-	# Cancel the named build and print the build logs
-	$ %[1]s cancel-build 1da32cvq --dump-logs
+  # Cancel the named build and print the build logs
+  $ %[1]s cancel-build 1da32cvq --dump-logs
 
-	# Cancel the named build and create a new one with the same parameters
-	$ %[1]s cancel-build 1da32cvq --restart
+  # Cancel the named build and create a new one with the same parameters
+  $ %[1]s cancel-build 1da32cvq --restart
 `
 
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command

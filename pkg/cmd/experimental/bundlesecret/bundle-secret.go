@@ -33,11 +33,11 @@ func NewCmdBundleSecret(f *clientcmd.Factory, parentName, name string, out io.Wr
 	options := NewDefaultOptions()
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s <secret-name> <source> [<source>...]", name),
+		Use:   fmt.Sprintf("%s NAME SOURCE [SOURCE ...]", name),
 		Short: "Bundle files (or files within directories) into a Kubernetes secret",
 		Long: fmt.Sprintf(`Bundle files (or files within directories) into a Kubernetes secret.
 
-    $ %s %s <secret-name> <source> [<source>...]
+  $ %s %s <secret-name> <source> [<source>...]
 		`, parentName, name),
 		Run: func(c *cobra.Command, args []string) {
 			options.Complete(args)

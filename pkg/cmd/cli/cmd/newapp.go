@@ -40,17 +40,17 @@ configuration, and a service will be hooked up to the first public port of the a
 
 Examples:
 
-	# Try to create an application based on the source code in the current directory
-	$ %[1]s new-app .
+  # Try to create an application based on the source code in the current directory
+  $ %[1]s new-app .
 
-	$ Use the public Docker Hub MySQL image to create an app
-	$ %[1]s new-app mysql
+  # Use the public Docker Hub MySQL image to create an app
+  $ %[1]s new-app mysql
 
-	# Use a MySQL image in a private registry to create an app
-	$ %[1]s new-app myregistry.com/mycompany/mysql
+  # Use a MySQL image in a private registry to create an app
+  $ %[1]s new-app myregistry.com/mycompany/mysql
 
-	# Create an application from the remote repository using the specified label
-	$ %[1]s new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
+  # Create an application from the remote repository using the specified label
+  $ %[1]s new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
 
   # Create an application based on a stored template, explicitly setting a parameter value
   $ %[1]s new-app ruby-helloworld-sample --param=MYSQL_USER=admin

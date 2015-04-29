@@ -50,17 +50,17 @@ JSON and YAML formats are accepted.
 
 Examples:
 
-	# Convert template.json file into resource list
-	$ %[1]s process -f template.json
+  # Convert template.json file into resource list
+  $ %[1]s process -f template.json
 
-	# Process template while passing a user-defined label
-	$ %[1]s process -f template.json -l name=mytemplate
+  # Process template while passing a user-defined label
+  $ %[1]s process -f template.json -l name=mytemplate
 
-	# Convert stored template into resource list
-	$ %[1]s process foo
+  # Convert stored template into resource list
+  $ %[1]s process foo
 
-	# Convert template.json into resource list
-	$ cat template.json | %[1]s process -f -
+  # Convert template.json into resource list
+  $ cat template.json | %[1]s process -f -
 `
 
 // NewCmdProcess implements the OpenShift cli process command

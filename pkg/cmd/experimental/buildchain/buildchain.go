@@ -26,23 +26,23 @@ default namespace will be used respectively.
 
 Examples:
 
-    # Build dependency tree for the specified image repository and tag
-    $ openshift ex build-chain [image-repository]:[tag]
+  # Build dependency tree for the specified image repository and tag
+  $ openshift ex build-chain [image-repository]:[tag]
 
-    # Build dependency trees for all tags in the specified image repository
-    $ openshift ex build-chain [image-repository] --all-tags
+  # Build dependency trees for all tags in the specified image repository
+  $ openshift ex build-chain [image-repository] --all-tags
 
-    # Build the dependency tree using tag 'latest' in 'testing' namespace
-    $ openshift ex build-chain [image-repository] -n testing
+  # Build the dependency tree using tag 'latest' in 'testing' namespace
+  $ openshift ex build-chain [image-repository] -n testing
 
-    # Build the dependency tree and output it in DOT syntax
-    $ openshift ex build-chain [image-repository] -o dot
+  # Build the dependency tree and output it in DOT syntax
+  $ openshift ex build-chain [image-repository] -o dot
 
-    # Build dependency trees for all image repositories in the current namespace
-    $ openshift ex build-chain
+  # Build dependency trees for all image repositories in the current namespace
+  $ openshift ex build-chain
 
-    # Build dependency trees for all image repositories across all namespaces
-    $ openshift ex build-chain --all
+  # Build dependency trees for all image repositories across all namespaces
+  $ openshift ex build-chain --all
 `
 
 // ImageRepo is a representation of a node inside a tree
@@ -89,7 +89,7 @@ func NewEdge(fullname, to string) *Edge {
 // NewCmdBuildChain implements the OpenShift experimental build-chain command
 func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s [image-repository]:[tag]", name),
+		Use:   fmt.Sprintf("%s [IMAGEREPOSITORY:TAG | --all]", name),
 		Short: "Output build dependencies of a specific image repository",
 		Long:  longDescription,
 		Run: func(cmd *cobra.Command, args []string) {

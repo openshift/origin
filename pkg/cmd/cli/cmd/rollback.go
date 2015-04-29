@@ -32,14 +32,14 @@ will be.
 
 Examples:
 
-	# Perform a rollback
-	$ %[1]s rollback deployment-1
+  # Perform a rollback
+  $ %[1]s rollback deployment-1
 
-	# See what the rollback will look like, but don't perform the rollback
-	$ %[1]s rollback deployment-1 --dry-run
+  # See what the rollback will look like, but don't perform the rollback
+  $ %[1]s rollback deployment-1 --dry-run
 
-	# Perform the rollback manually by piping the JSON of the new config back to %[1]s
-	$ %[1]s rollback deployment-1 --output=json | %[1]s update deploymentConfigs deployment -f -
+  # Perform the rollback manually by piping the JSON of the new config back to %[1]s
+  $ %[1]s rollback deployment-1 --output=json | %[1]s update deploymentConfigs deployment -f -
 `
 
 // NewCmdRollback implements the OpenShift cli rollback command

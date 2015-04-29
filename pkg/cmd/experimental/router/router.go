@@ -39,20 +39,16 @@ running your router in production, you should pass --replicas=2 or higher to ens
 you have failover protection.
 
 Examples:
-  Check the default router ("router"):
 
   $ %[1]s %[2]s --dry-run
 
-  See what the router would look like if created:
-
+  # See what the router would look like if created:
   $ %[1]s %[2]s -o json
 
-  Create a router if it does not exist:
-
+  # Create a router if it does not exist:
   $ %[1]s %[2]s router-west --create --replicas=2
 
-  Use a different router image and see the router configuration:
-
+  # Use a different router image and see the router configuration:
   $ %[1]s %[2]s region-west -o yaml --images=myrepo/somerouter:mytag
 
 ALPHA: This command is currently being actively developed. It is intended to simplify

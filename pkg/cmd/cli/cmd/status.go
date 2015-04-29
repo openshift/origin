@@ -18,8 +18,9 @@ For more information about individual items, use the describe command (e.g. osc 
 osc describe deploymentConfig, osc describe service).
 
 Examples:
-        # Show an overview of the current project
-        $ %[1]s status
+
+  # Show an overview of the current project
+  $ %[1]s status
 `
 
 // NewCmdStatus implements the OpenShift cli status command

@@ -37,11 +37,11 @@ be logged in, so you might have to run %[2]s first.
 
 Examples:
 
-	$ Create a new project with minimal information
-	$ %[1]s web-team-dev
+  # Create a new project with minimal information
+  $ %[1]s web-team-dev
 
-	# Create a new project with a description
-	$ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."
+  # Create a new project with a description
+  $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."
 
 After your project is created you can switch to it using %[3]s <project name>.
 `

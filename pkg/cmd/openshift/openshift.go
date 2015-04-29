@@ -32,7 +32,7 @@ OpenShift Application Platform
 
 OpenShift helps you build, deploy, and manage your applications. To start an all-in-one server, run:
 
-    $ openshift start &
+  $ openshift start &
 
 OpenShift is built around Docker and the Kubernetes cluster container manager.  You must have
 Docker installed on this machine to start your server.
