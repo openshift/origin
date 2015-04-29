@@ -34,14 +34,26 @@ type ProjectOptions struct {
 	ProjectOnly bool
 }
 
+const projectLongDesc = `
+Switch to another project and make it the default in your configuration.
+
+Examples:
+
+        # Switch to my-app project
+        $ %[1]s myapp
+
+        # Display the project currently in use
+        $ %[1]s
+`
+
 // NewCmdProject implements the OpenShift cli rollback command
-func NewCmdProject(f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &ProjectOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "project <project-name>",
-		Short: "switch to another project",
-		Long:  `Switch to another project and make it the default in your configuration.`,
+		Short: "Switch to another project",
+		Long:  fmt.Sprintf(projectLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 
@@ -148,13 +160,7 @@ func (o ProjectOptions) RunProject() error {
 		project, err := o.Client.Projects().Get(argument)
 		if err != nil {
 			if isNotFound, isForbidden := kapierrors.IsNotFound(err), clientcmd.IsForbidden(err); isNotFound || isForbidden {
-				msg := ""
-
-				if isNotFound {
-					msg = fmt.Sprintf("A project named %q does not exist on server %q.", argument, clientCfg.Host)
-				} else {
-					msg = fmt.Sprintf("You do not have rights to view project %q on server %q.", argument, clientCfg.Host)
-				}
+				msg := fmt.Sprintf("A project named %q does not exist or you do not have rights to view project on server %q.", argument, clientCfg.Host)
 
 				projects, err := getProjects(o.Client)
 				if err == nil {
@@ -167,8 +173,7 @@ func (o ProjectOptions) RunProject() error {
 				if hasMultipleServers(config) {
 					msg += "\nTo see projects on another server, pass '--server=<server>'."
 				}
-				fmt.Fprintln(out, msg)
-				return errExit
+				return errors.New(msg)
 			}
 			return err
 		}
