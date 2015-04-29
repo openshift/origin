@@ -2,16 +2,21 @@ package policy
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/spf13/cobra"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
+
+var deleteBindingRule = authorizationapi.PolicyRule{Verbs: util.NewStringSet("delete"), Resources: util.NewStringSet("rolebindings")}
 
 type removeUserFromProjectOptions struct {
 	bindingNamespace string
@@ -62,9 +67,14 @@ func (o *removeUserFromProjectOptions) run() error {
 	if err != nil {
 		return err
 	}
+	sort.Sort(authorizationapi.PolicyBindingSorter(bindingList.Items))
 
-	for _, currBindings := range bindingList.Items {
-		for _, currBinding := range currBindings.RoleBindings {
+	for _, currPolicyBinding := range bindingList.Items {
+		for _, currBinding := range authorizationapi.SortRoleBindings(currPolicyBinding.RoleBindings, true) {
+			if !currBinding.Users.HasAny(o.users...) {
+				continue
+			}
+
 			currBinding.Users.Delete(o.users...)
 
 			_, err = o.client.RoleBindings(o.bindingNamespace).Update(&currBinding)
