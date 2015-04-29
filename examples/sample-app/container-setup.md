@@ -52,9 +52,6 @@ bits that are used in the sample app.
     $ cd /var/lib/openshift
     $ mkdir -p examples/sample-app
     $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/docker-registry-template.json \
-    -O examples/sample-app/docker-registry-template.json
-    $ wget \
     https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json \
     -O examples/sample-app/application-template-stibuild.json
 
@@ -68,7 +65,7 @@ step #3.
 
 ## Deploy the private docker registry
 
-    $ openshift ex registry --create --credentials="${OPENSHIFTCONFIG}"
+    $ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
     $ cd examples/sample-app
 
 For more information on this step, see [Application Build, Deploy, and Update
