@@ -164,6 +164,11 @@ fi
 osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 osc new-project project-foo --display-name="my project" --description="boring project description"
 [ "$(osc project | grep 'Using project "project-foo"')" ]
+osc logout
+[ -z "$(osc get pods | grep 'system:anonymous')" ]
+osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+[ "$(osc project | grep 'Using project "project-foo"')" ]
+ 
 
 
 # test config files from the --config flag

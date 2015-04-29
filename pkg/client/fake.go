@@ -139,3 +139,7 @@ func (c *Fake) RootResourceAccessReviews() ResourceAccessReviewInterface {
 func (c *Fake) SubjectAccessReviews(namespace string) SubjectAccessReviewInterface {
 	return &FakeSubjectAccessReviews{Fake: c}
 }
+
+func (c *Fake) OAuthAccessTokens() OAuthAccessTokenInterface {
+	return &FakeOAuthAccessTokens{Fake: c}
+}
