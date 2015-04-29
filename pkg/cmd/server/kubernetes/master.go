@@ -33,6 +33,7 @@ const (
 	KubeAPIPrefixV1Beta1 = "/api/v1beta1"
 	KubeAPIPrefixV1Beta2 = "/api/v1beta2"
 	KubeAPIPrefixV1Beta3 = "/api/v1beta3"
+	KubeAPIPrefixV1      = "/api/v1"
 )
 
 // TODO: Longer term we should read this from some config store, rather than a flag.
@@ -69,6 +70,8 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		KubeletClient:    kubeletClient,
 		APIPrefix:        KubeAPIPrefix,
 
+		EnableV1: true,
+
 		Authorizer:       c.Authorizer,
 		AdmissionControl: c.AdmissionControl,
 	}
@@ -78,6 +81,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta1),
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta3),
 		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta3),
+		fmt.Sprintf("Started Kubernetes API at %%s%s (experimental)", KubeAPIPrefixV1),
 	}
 }
 
