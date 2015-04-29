@@ -2,14 +2,15 @@ package policy
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/spf13/cobra"
 
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -64,9 +65,14 @@ func (o *removeGroupFromProjectOptions) run() error {
 	if err != nil {
 		return err
 	}
+	sort.Sort(authorizationapi.PolicyBindingSorter(bindingList.Items))
 
-	for _, currBindings := range bindingList.Items {
-		for _, currBinding := range currBindings.RoleBindings {
+	for _, currPolicyBinding := range bindingList.Items {
+		for _, currBinding := range authorizationapi.SortRoleBindings(currPolicyBinding.RoleBindings, true) {
+			if !currBinding.Groups.HasAny(o.groups...) {
+				continue
+			}
+
 			currBinding.Groups.Delete(o.groups...)
 
 			_, err = o.client.RoleBindings(o.bindingNamespace).Update(&currBinding)
