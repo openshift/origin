@@ -276,10 +276,18 @@ echo "images: ok"
 
 osc get imageStreams
 osc create -f test/integration/fixtures/test-image-stream.json
+# make sure stream.status.dockerImageRepository isn't set (no registry)
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc create -f examples/sample-app/docker-registry-config.json
+# create the registry
+osadm registry --create --credentials="${OPENSHIFTCONFIG}"
+# make sure stream.status.dockerImageRepository IS set
 [ -n "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc delete -f examples/sample-app/docker-registry-config.json
+# delete the registry resources
+osc delete dc docker-registry
+osc delete se docker-registry
+osc delete rc docker-registry-1
+osc delete pod $(osc get pod | grep docker-registry-1 | awk '{print $1}')
+# done deleting registry resources
 osc delete imageStreams test
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 osc create -f examples/image-streams/image-streams-centos7.json

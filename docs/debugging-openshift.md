@@ -53,13 +53,19 @@ Docker Registry
 
 Most of the v3 flows today assume you are running a docker registry pod.  You should ensure that this local registry is running:
 
-    $ osc get pods --selector="name=registrypod"
+    $ openshift admin registry
+
+If it's running, you should see this:
+
+    Docker registry "docker-registry" service exists
+
+If it's not running, you will instead see:
+
+    F0429 09:22:54.492990   25259 registry.go:154] Docker-registry "docker-registry" does not exist (no service). Pass --create to install.
 
 If it's not running, you can launch it via:
 
-    $ osc create -f examples/sample-app/docker-registry-config.json
-
-In addition, confirm the IP and Port reported in the services list matches the registry references in your configuration json (e.g. any image tags that contain a registry hostname).  
+    $ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 
 Probing Containers
 ------------------
