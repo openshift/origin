@@ -150,22 +150,11 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 	formatString(out, "Strategy", p.Strategy.Type)
 	switch p.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
-		if p.Strategy.DockerStrategy != nil && p.Strategy.DockerStrategy.NoCache {
-			formatString(out, "No Cache", "yes")
-		}
-		if p.Strategy.DockerStrategy != nil {
-			formatString(out, "Image", p.Strategy.DockerStrategy.Image)
-		}
+		describeDockerStrategy(p.Strategy.DockerStrategy, out)
 	case buildapi.STIBuildStrategyType:
 		describeSTIStrategy(p.Strategy.STIStrategy, out)
 	case buildapi.CustomBuildStrategyType:
-		formatString(out, "Image", p.Strategy.CustomStrategy.Image)
-		if p.Strategy.CustomStrategy.ExposeDockerSocket {
-			formatString(out, "Expose Docker Socket", "yes")
-		}
-		if len(p.Strategy.CustomStrategy.Env) != 0 {
-			formatString(out, "Environment", formatLabels(convertEnv(p.Strategy.CustomStrategy.Env)))
-		}
+		describeCustomStrategy(p.Strategy.CustomStrategy, out)
 	}
 	formatString(out, "Source Type", p.Source.Type)
 	if p.Source.Git != nil {
@@ -209,21 +198,45 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 func describeSTIStrategy(s *buildapi.STIBuildStrategy, out *tabwriter.Writer) {
 	if s.From != nil && len(s.From.Name) != 0 {
 		if len(s.From.Namespace) != 0 {
-			formatString(out, "Image Repository", fmt.Sprintf("%s/%s", s.From.Name, s.From.Namespace))
+			formatString(out, "Image Reference", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Name, s.From.Namespace))
 		} else {
-			formatString(out, "Image Repository", s.From.Name)
+			formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
 		}
-		if len(s.Tag) != 0 {
-			formatString(out, "Image Repository Tag", s.Tag)
-		}
-	} else {
-		formatString(out, "Builder Image", s.Image)
 	}
 	if len(s.Scripts) != 0 {
 		formatString(out, "Scripts", s.Scripts)
 	}
 	if s.Incremental {
 		formatString(out, "Incremental Build", "yes")
+	}
+}
+
+func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writer) {
+	if s.From != nil && len(s.From.Name) != 0 {
+		if len(s.From.Namespace) != 0 {
+			formatString(out, "Image Reference", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Name, s.From.Namespace))
+		} else {
+			formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
+		}
+	}
+	if s.NoCache {
+		formatString(out, "No Cache", "true")
+	}
+}
+
+func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writer) {
+	if s.From != nil && len(s.From.Name) != 0 {
+		if len(s.From.Namespace) != 0 {
+			formatString(out, "Image Reference", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Name, s.From.Namespace))
+		} else {
+			formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
+		}
+	}
+	if s.ExposeDockerSocket {
+		formatString(out, "Expose Docker Socket", "yes")
+	}
+	if len(s.Env) != 0 {
+		formatString(out, "Environment", formatLabels(convertEnv(s.Env)))
 	}
 }
 
@@ -238,13 +251,7 @@ func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, host s
 		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 			continue
 		}
-		if len(trigger.ImageChange.From.Namespace) != 0 {
-			formatString(out, "Image Repository Trigger", fmt.Sprintf("%s/%s", trigger.ImageChange.From.Namespace, trigger.ImageChange.From.Name))
-		} else {
-			formatString(out, "Image Repository Trigger", trigger.ImageChange.From.Name)
-		}
-		formatString(out, "- Tag", trigger.ImageChange.Tag)
-		formatString(out, "- Image", trigger.ImageChange.Image)
+		fmt.Fprintf(out, fmt.Sprintf("Image Repository Trigger\n"))
 		formatString(out, "- LastTriggeredImageID", trigger.ImageChange.LastTriggeredImageID)
 	}
 }
@@ -354,7 +361,7 @@ func (d *ImageStreamTagDescriber) Describe(namespace, name string) (string, erro
 	repo, tag := parsers.ParseRepositoryTag(name)
 	if tag == "" {
 		// TODO use repo's preferred default, when that's coded
-		tag = "latest"
+		tag = imageapi.DefaultImageTag
 	}
 	imageStreamTag, err := c.Get(repo, tag)
 	if err != nil {

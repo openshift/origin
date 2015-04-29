@@ -36,13 +36,7 @@ items:
       secret: secret101
     type: generic
   - imageChange:
-      from:
-        name: ruby-20-centos7
-      image: openshift/ruby-20-centos7
-      imageRepositoryRef:
-        name: ruby-20-centos7
       lastTriggeredImageID: openshift/ruby-20-centos7:latest
-      tag: latest
     type: imageChange
 - apiVersion: v1beta1
   completionTimestamp: 2015-04-07T04:13:01Z

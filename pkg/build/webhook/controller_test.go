@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -30,7 +32,10 @@ func (*okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error
 			Strategy: api.BuildStrategy{
 				Type: "STI",
 				STIStrategy: &api.STIBuildStrategy{
-					Image: "repository/builder-image",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/builder-image",
+					},
 				},
 			},
 		},
@@ -264,7 +269,10 @@ func TestInvokeWebhookOK(t *testing.T) {
 			Strategy: api.BuildStrategy{
 				Type: "STI",
 				STIStrategy: &api.STIBuildStrategy{
-					Image: "repository/builder-image",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/builder-image",
+					},
 				},
 			},
 		},

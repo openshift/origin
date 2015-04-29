@@ -3,6 +3,7 @@ package buildchain
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
@@ -13,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -114,7 +116,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		return cmdutil.UsageError(cmd, "Must pass nothing, an image repository name:tag combination, or specify the --all flag")
 	}
 
-	osc, kc, err := f.Clients()
+	osc, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -129,12 +131,13 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 	}
 	namespaces := make([]string, 0)
 	if all {
-		nsList, err := kc.Namespaces().List(labels.Everything(), fields.Everything())
+		projectList, err := osc.Projects().List(labels.Everything(), fields.Everything())
 		if err != nil {
 			return err
 		}
-		for _, ns := range nsList.Items {
-			namespaces = append(namespaces, ns.Name)
+		for _, project := range projectList.Items {
+			glog.V(4).Infof("Found namespace %s", project.Name)
+			namespaces = append(namespaces, project.Name)
 		}
 	}
 	if len(namespaces) == 0 {
@@ -160,7 +163,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		}
 
 		// Validate the specified image repository
-		imgRepo, err := osc.ImageRepositories(namespace).Get(name)
+		imgRepo, err := osc.ImageStreams(namespace).Get(name)
 		if err != nil {
 			return err
 		}
@@ -186,14 +189,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		// Set the specified repo as the only one to output dependencies for
 		repos[repo] = tags
 	} else {
-		// Get all image repositories from build configurations
 		repos = getRepos(buildConfigList)
-
-		// Make sure from now on that the --all flag is true
-		// since we are building dependency trees for every
-		// image repository available either in the current
-		// namespace or in every namespace
-		all = true
 	}
 
 	if len(repos) == 0 {
@@ -203,7 +199,8 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 	output := cmdutil.GetFlagString(cmd, "output")
 	for repo, tags := range repos {
 		for _, tag := range tags {
-			root, err := findRepoDeps(repo, tag, all, buildConfigList)
+			glog.V(4).Infof("Checking dependencies of repo %s tag %s", repo, tag)
+			root, err := findRepoDeps(repo, tag, buildConfigList)
 			if err != nil {
 				return err
 			}
@@ -253,24 +250,33 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 // and extracts all the image repositories which trigger a
 // build when the image repository is updated
 func getRepos(configs []buildapi.BuildConfig) map[string][]string {
+	glog.V(1).Infof("Scanning buildconfigs")
 	avoidDuplicates := make(map[string][]string)
 	for _, cfg := range configs {
+		glog.V(1).Infof("Scanning buildconfig %v", cfg)
 		for _, tr := range cfg.Triggers {
-			if tr.ImageChange != nil && tr.ImageChange.From.Name != "" {
-				var repo string
-				switch tr.ImageChange.From.Namespace {
-				case "":
-					repo = join(cfg.Namespace, tr.ImageChange.From.Name)
+			glog.V(1).Infof("Scanning trigger %v", tr)
+			from := buildutil.GetImageStreamForStrategy(&cfg)
+			glog.V(1).Infof("Strategy from= %v", from)
+			if tr.ImageChange != nil && from != nil && from.Name != "" {
+				glog.V(1).Infof("found ICT with from %s kind %s", from.Name, from.Kind)
+				var name, tag string
+				switch from.Kind {
+				case "ImageStreamTag":
+					bits := strings.Split(from.Name, ":")
+					name = bits[0]
+					tag = bits[1]
 				default:
-					repo = join(tr.ImageChange.From.Namespace, tr.ImageChange.From.Name)
+					// ImageStreamImage and DockerImage are never updated and so never
+					// trigger builds.
+					continue
 				}
-
-				var tag string
-				switch tr.ImageChange.Tag {
+				var repo string
+				switch from.Namespace {
 				case "":
-					tag = "latest"
+					repo = join(cfg.Namespace, name)
 				default:
-					tag = tr.ImageChange.Tag
+					repo = join(from.Namespace, name)
 				}
 
 				uniqueTag := true
@@ -280,6 +286,7 @@ func getRepos(configs []buildapi.BuildConfig) map[string][]string {
 						break
 					}
 				}
+				glog.V(1).Infof("checking unique tag %v %s", uniqueTag, tag)
 				if uniqueTag {
 					avoidDuplicates[repo] = append(avoidDuplicates[repo], tag)
 				}
@@ -293,7 +300,7 @@ func getRepos(configs []buildapi.BuildConfig) map[string][]string {
 // findRepoDeps accepts an image repository and a list of build
 // configurations and returns the dependency tree of the specified
 // image repository
-func findRepoDeps(repo, tag string, all bool, buildConfigList []buildapi.BuildConfig) (*ImageRepo, error) {
+func findRepoDeps(repo, tag string, buildConfigList []buildapi.BuildConfig) (*ImageRepo, error) {
 	root := &ImageRepo{
 		FullName: repo,
 		Tags:     []string{tag},
@@ -309,19 +316,17 @@ func findRepoDeps(repo, tag string, all bool, buildConfigList []buildapi.BuildCo
 	var childNamespace, childName, childTag string
 	for _, cfg := range buildConfigList {
 		for _, tr := range cfg.Triggers {
+			from := buildutil.GetImageStreamForStrategy(&cfg)
+			if from == nil || from.Kind != "ImageStreamTag" || tr.ImageChange == nil {
+				continue
+			}
 			// Setup zeroed fields to their default values
-			if tr.ImageChange != nil && tr.ImageChange.From.Namespace == "" {
-				tr.ImageChange.From.Namespace = cfg.Namespace
+			if from.Namespace == "" {
+				from.Namespace = cfg.Namespace
 			}
-			if tr.ImageChange != nil && tr.ImageChange.Tag == "" {
-				tr.ImageChange.Tag = "latest"
-			}
-
-			if tr.ImageChange != nil &&
-				namespace == tr.ImageChange.From.Namespace &&
-				name == tr.ImageChange.From.Name &&
-				tag == tr.ImageChange.Tag {
-
+			fromTag := strings.Split(from.Name, ":")[1]
+			parentRepo := namespace + "/" + name + ":" + tag
+			if buildutil.NameFromImageStream("", from, fromTag) == parentRepo {
 				// Either To & Tag or DockerImageReference will be used as output
 				if cfg.Parameters.Output.To != nil && cfg.Parameters.Output.To.Name != "" {
 					childName = cfg.Parameters.Output.To.Name
@@ -344,7 +349,7 @@ func findRepoDeps(repo, tag string, all bool, buildConfigList []buildapi.BuildCo
 				childRepo := join(childNamespace, childName)
 
 				// Build all children and their dependency trees recursively
-				child, err := findRepoDeps(childRepo, childTag, all, buildConfigList)
+				child, err := findRepoDeps(childRepo, childTag, buildConfigList)
 				if err != nil {
 					return nil, err
 				}
@@ -373,7 +378,6 @@ func findRepoDeps(repo, tag string, all bool, buildConfigList []buildapi.BuildCo
 			}
 		}
 	}
-
 	return root, nil
 }
 

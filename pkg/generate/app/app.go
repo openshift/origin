@@ -155,7 +155,10 @@ func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.
 	return &buildapi.BuildStrategy{
 		Type: buildapi.STIBuildStrategyType,
 		STIStrategy: &buildapi.STIBuildStrategy{
-			Image: s.Base.String(),
+			From: &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: s.Base.String(),
+			},
 		},
 	}, triggers, err
 }
@@ -224,22 +227,10 @@ func (r *ImageRef) BuildTriggers() ([]buildapi.BuildTriggerPolicy, error) {
 	if r == nil {
 		return []buildapi.BuildTriggerPolicy{}, nil
 	}
-
-	name, ok := r.SuggestName()
-	if !ok {
-		return nil, fmt.Errorf("unable to suggest an image stream name for %q", r.String())
-	}
-
 	return []buildapi.BuildTriggerPolicy{
 		{
-			Type: buildapi.ImageChangeBuildTriggerType,
-			ImageChange: &buildapi.ImageChangeTrigger{
-				Image: r.String(),
-				From: kapi.ObjectReference{
-					Name: name,
-				},
-				Tag: r.Tag,
-			},
+			Type:        buildapi.ImageChangeBuildTriggerType,
+			ImageChange: &buildapi.ImageChangeTrigger{},
 		},
 	}, nil
 }

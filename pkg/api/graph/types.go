@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
+	"github.com/golang/glog"
 	"github.com/gonum/graph"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	build "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
 )
@@ -222,8 +224,9 @@ func ImageStreamTag(g MutableUniqueGraph, namespace, name, tag string) graph.Nod
 	if len(tag) == 0 {
 		tag = image.DefaultImageTag
 	}
+	uname := UniqueName(fmt.Sprintf("%d|%s/%s:%s", ImageStreamGraphKind, namespace, name, tag))
 	return EnsureUnique(g,
-		UniqueName(fmt.Sprintf("%d|%s/%s:%s", ImageStreamGraphKind, namespace, name, tag)),
+		uname,
 		func(node Node) graph.Node {
 			return &ImageStreamTagNode{node, &image.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
@@ -267,43 +270,33 @@ func BuildConfig(g MutableUniqueGraph, config *build.BuildConfig) graph.Node {
 		g.AddEdge(in, node, BuildInputGraphEdgeKind)
 	}
 
-	// TODO: this belongs in a utility class, and the internal model needs to be simplified
-	covered := util.StringSet{}
-	for _, trigger := range config.Triggers {
-		if trigger.ImageChange != nil {
-			t := trigger.ImageChange
-			from := t.From
-			if len(from.Name) == 0 {
-				continue
+	from := buildutil.GetImageStreamForStrategy(config)
+	if from != nil {
+		for _, trigger := range config.Triggers {
+			if trigger.ImageChange != nil {
+				if len(from.Name) == 0 || from.Kind != "ImageStreamTag" {
+					continue
+				}
+				tag := strings.Split(from.Name, ":")[1]
+				in := ImageStreamTag(g, defaultNamespace(from.Namespace, config.Namespace), from.Name, tag)
+				g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
 			}
-			covered.Insert(t.Image)
-			in := ImageStreamTag(g, defaultNamespace(from.Namespace, config.Namespace), from.Name, t.Tag)
-			g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
 		}
-	}
-	var imageName, tag string
-	var from *kapi.ObjectReference
-	switch s := config.Parameters.Strategy; {
-	case s.DockerStrategy != nil:
-		imageName = s.DockerStrategy.Image
-	case s.DockerStrategy != nil:
-		imageName = s.CustomStrategy.Image
-	case s.STIStrategy != nil:
-		imageName, from, tag = s.STIStrategy.Image, s.STIStrategy.From, s.STIStrategy.Tag
-		if from != nil && len(from.Name) == 0 {
-			from = nil
-		}
-	}
-	switch {
-	case from != nil:
-		in := ImageStreamTag(g, defaultNamespace(from.Namespace, config.Namespace), from.Name, tag)
-		g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
-	case len(imageName) > 0 && !covered.Has(imageName):
-		if ref, err := image.ParseDockerImageReference(imageName); err == nil {
-			tag := ref.Tag
-			ref.Tag = ""
-			in := DockerRepository(g, ref.String(), tag)
+
+		switch from.Kind {
+		case "DockerImage":
+			if ref, err := image.ParseDockerImageReference(from.Name); err == nil {
+				tag := ref.Tag
+				ref.Tag = ""
+				in := DockerRepository(g, ref.String(), tag)
+				g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
+			}
+		case "ImageStreamTag":
+			tag := strings.Split(from.Name, ":")[1]
+			in := ImageStreamTag(g, defaultNamespace(from.Namespace, config.Namespace), from.Name, tag)
 			g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
+		case "ImageStreamImage":
+			glog.V(4).Infof("Ignoring ImageStreamImage reference in buildconfig %s/%s", config.Namespace, config.Name)
 		}
 	}
 	return node

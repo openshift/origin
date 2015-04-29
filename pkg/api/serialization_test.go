@@ -73,7 +73,24 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *build.STIBuildStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.From.Kind = "ImageStream"
+			j.From.Kind = "ImageStreamTag"
+			j.From.Name = "image:tag"
+			j.From.APIVersion = ""
+			j.From.ResourceVersion = ""
+			j.From.FieldPath = ""
+		},
+		func(j *build.CustomBuildStrategy, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.From.Kind = "ImageStreamTag"
+			j.From.Name = "image:tag"
+			j.From.APIVersion = ""
+			j.From.ResourceVersion = ""
+			j.From.FieldPath = ""
+		},
+		func(j *build.DockerBuildStrategy, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.From.Kind = "ImageStreamTag"
+			j.From.Name = "image:tag"
 			j.From.APIVersion = ""
 			j.From.ResourceVersion = ""
 			j.From.FieldPath = ""

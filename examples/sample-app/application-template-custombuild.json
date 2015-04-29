@@ -74,7 +74,11 @@
               }
             ],
             "exposeDockerSocket": true,
-            "image": "openshift/origin-custom-docker-builder"
+            "customStrategy": {
+              "from": {
+                "name":"origin-custom-docker-builder"
+              }
+            }
           },
           "type": "Custom"
         }
@@ -93,13 +97,7 @@
           "type": "generic"
         },
         {
-          "imageChange": {
-            "from": {
-              "name": "origin-custom-docker-builder"
-            },
-            "image": "openshift/origin-custom-docker-builder",
-            "tag": "latest"
-          },
+          "imageChange": {},
           "type": "imageChange"
         }
       ]

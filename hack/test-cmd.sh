@@ -401,6 +401,7 @@ osc process -f examples/sample-app/application-template-dockerbuild.json | osc c
 osc get buildConfigs
 osc get bc
 osc get builds
+
 [[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Github") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github" ]]
 [[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic" ]]
 echo "buildConfig: ok"
@@ -412,14 +413,6 @@ started=$(osc start-build ruby-sample-build-invalidtag)
 echo "start-build: ok"
 osc describe build ${started} | grep openshift/ruby-20-centos7$
 
-osc cancel-build "${started}" --dump-logs --restart
-# a build for which there is an upstream tag in the corresponding imagerepo, so
-# the build should use that specific tag of the image instead of the image field
-# as defined in the buildconfig
-started=$(osc start-build ruby-sample-build-validtag)
-osc describe imagestream ruby-20-centos7-buildcli
-osc describe build ${started}
-osc describe build ${started} | grep openshift/ruby-20-centos7:success$
 osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
 

@@ -113,7 +113,10 @@ func mockSTIBuild() *buildapi.Build {
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.STIBuildStrategyType,
 				STIStrategy: &buildapi.STIBuildStrategy{
-					Image:   "repository/sti-builder",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/sti-builder",
+					},
 					Scripts: "http://my.build.com/the/sti/scripts",
 					Env: []kapi.EnvVar{
 						{Name: "FOO", Value: "bar"},

@@ -245,7 +245,10 @@ func mockBuildConfig() *api.BuildConfig {
 			Strategy: api.BuildStrategy{
 				Type: api.STIBuildStrategyType,
 				STIStrategy: &api.STIBuildStrategy{
-					Image: "builder/image",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "builder/image",
+					},
 				},
 			},
 			Output: api.BuildOutput{
@@ -410,7 +413,10 @@ func TestBuildConfigRESTValidatesCreate(t *testing.T) {
 					Strategy: api.BuildStrategy{
 						Type: api.STIBuildStrategyType,
 						STIStrategy: &api.STIBuildStrategy{
-							Image: "builder/image",
+							From: &kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "builder/image",
+							},
 						},
 					},
 					Output: api.BuildOutput{
@@ -582,7 +588,10 @@ func TestBuildRESTValidatesUpdate(t *testing.T) {
 					Strategy: api.BuildStrategy{
 						Type: api.STIBuildStrategyType,
 						STIStrategy: &api.STIBuildStrategy{
-							Image: "builder/image",
+							From: &kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "builder/image",
+							},
 						},
 					},
 					Output: api.BuildOutput{

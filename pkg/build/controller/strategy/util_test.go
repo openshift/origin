@@ -82,7 +82,7 @@ func TestSetupBuildEnvFails(t *testing.T) {
 			Containers: []kapi.Container{
 				{
 					Name:  "custom-build",
-					Image: build.Parameters.Strategy.CustomStrategy.Image,
+					Image: build.Parameters.Strategy.CustomStrategy.From.Name,
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					Privileged: true,

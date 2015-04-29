@@ -57,7 +57,7 @@ func TestFindRepoDeps(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		root, err := findRepoDeps(test.repo, test.tag, test.all, test.candidates)
+		root, err := findRepoDeps(test.repo, test.tag, test.candidates)
 		if err != test.expectedErr {
 			t.Errorf("%s: Invalid error: Expected %v, got %v", test.name, test.expectedErr, err)
 		}

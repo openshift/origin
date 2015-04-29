@@ -170,6 +170,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
 
 	imageRepositoryStorage, imageRepositoryStatusStorage := imagerepository.NewREST(imageStreamRegistry)
 	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageStreamMappingRegistry)
@@ -179,11 +180,13 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc:    buildEtcd.GetBuildConfig,
-			UpdateBuildConfigFunc: buildEtcd.UpdateBuildConfig,
-			GetBuildFunc:          buildEtcd.GetBuild,
-			CreateBuildFunc:       buildEtcd.CreateBuild,
-			GetImageStreamFunc:    imageStreamRegistry.GetImageStream,
+			GetBuildConfigFunc:      buildEtcd.GetBuildConfig,
+			UpdateBuildConfigFunc:   buildEtcd.UpdateBuildConfig,
+			GetBuildFunc:            buildEtcd.GetBuild,
+			CreateBuildFunc:         buildEtcd.CreateBuild,
+			GetImageStreamFunc:      imageStreamRegistry.GetImageStream,
+			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
+			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
 	}
 	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)

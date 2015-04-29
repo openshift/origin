@@ -66,7 +66,12 @@
           "type": "Git"
         },
         "strategy": {
-          "type": "Docker"
+          "type": "Docker",
+          "dockerStrategy": {
+            "from": {
+              "name":"ruby-20-centos7"
+            }
+          }
         }
       },
       "triggers": [
@@ -83,13 +88,7 @@
           "type": "generic"
         },
         {
-          "imageChange": {
-            "from": {
-              "name": "ruby-20-centos7"
-            },
-            "image": "openshift/ruby-20-centos7",
-            "tag": "latest"
-          },
+          "imageChange": {},
           "type": "imageChange"
         }
       ]
