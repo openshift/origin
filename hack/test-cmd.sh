@@ -20,6 +20,14 @@ function cleanup()
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
     else
+        if path=$(go tool -n pprof 2>&1); then
+          echo
+          echo "pprof: top output"
+          echo
+          set +e
+          go tool pprof -text ./_output/local/go/bin/openshift cpu.pprof
+        fi
+
         echo
         echo "Complete"
     fi
@@ -118,11 +126,11 @@ openshift start \
   --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
   --hostname="${KUBELET_HOST}" \
   --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" 
+  --etcd-dir="${ETCD_DATA_DIR}"
 
 
 # Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start \
+OPENSHIFT_PROFILE=cpu OPENSHIFT_ON_PANIC=crash openshift start \
   --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
   --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
   1>&2 &
@@ -486,3 +494,10 @@ osc delete all -l name=mytemplate
 osc new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
 osc delete all -l name=hello-world
 echo "delete all: ok"
+
+echo
+echo
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80
+echo
+echo
+echo "test-cmd: ok"
