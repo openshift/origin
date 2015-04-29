@@ -90,6 +90,10 @@ import (
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/proxy"
+	clusterpolicybindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/proxy"
+	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
+	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -157,6 +161,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
 	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
 	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
+	roleStorage := rolestorage.NewVirtualStorage(policyRegistry)
 	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyRegistry, policyBindingRegistry, c.Options.PolicyConfig.MasterAuthorizationNamespace)
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
@@ -253,12 +258,18 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
 		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
 
-		"policies":              policyStorage,
-		"policyBindings":        policyBindingStorage,
-		"roles":                 rolestorage.NewVirtualStorage(policyRegistry),
-		"roleBindings":          roleBindingStorage,
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectAccessReviewStorage,
+
+		"policies":       policyStorage,
+		"policyBindings": policyBindingStorage,
+		"roles":          roleStorage,
+		"roleBindings":   roleBindingStorage,
+
+		"clusterPolicies":       clusterpolicystorage.NewClusterPolicyStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, policyStorage),
+		"clusterPolicyBindings": clusterpolicybindingstorage.NewClusterPolicyBindingStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, policyBindingStorage),
+		"clusterRoleBindings":   clusterrolebindingstorage.NewClusterRoleBindingStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingStorage),
+		"clusterRoles":          clusterrolestorage.NewClusterRoleStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, roleStorage),
 	}
 
 	// for v1beta1, we dual register camelCase and camelcase names

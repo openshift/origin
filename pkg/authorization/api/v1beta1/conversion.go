@@ -187,6 +187,110 @@ func init() {
 
 			return nil
 		},
+
+		// and now the globals
+		func(in *ClusterPolicy, out *newer.ClusterPolicy, s conversion.Scope) error {
+			out.LastModified = in.LastModified
+			out.Roles = make(map[string]newer.ClusterRole)
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+		},
+		func(in *newer.ClusterPolicy, out *ClusterPolicy, s conversion.Scope) error {
+			out.LastModified = in.LastModified
+			out.Roles = make([]NamedClusterRole, 0, 0)
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+		},
+		func(in *ClusterRoleBinding, out *newer.ClusterRoleBinding, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
+				return err
+			}
+
+			out.Users = util.NewStringSet(in.UserNames...)
+			out.Groups = util.NewStringSet(in.GroupNames...)
+
+			return nil
+		},
+		func(in *newer.ClusterRoleBinding, out *ClusterRoleBinding, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
+				return err
+			}
+
+			out.UserNames = in.Users.List()
+			out.GroupNames = in.Groups.List()
+
+			return nil
+		},
+		func(in *[]NamedClusterRole, out *map[string]newer.ClusterRole, s conversion.Scope) error {
+			for _, curr := range *in {
+				newRole := &newer.ClusterRole{}
+				if err := s.Convert(&curr.Role, newRole, 0); err != nil {
+					return err
+				}
+				(*out)[curr.Name] = *newRole
+			}
+
+			return nil
+		},
+		func(in *map[string]newer.ClusterRole, out *[]NamedClusterRole, s conversion.Scope) error {
+			allKeys := make([]string, 0, len(*in))
+			for key := range *in {
+				allKeys = append(allKeys, key)
+			}
+			sort.Strings(allKeys)
+
+			for _, key := range allKeys {
+				newRole := (*in)[key]
+				oldRole := &ClusterRole{}
+				if err := s.Convert(&newRole, oldRole, 0); err != nil {
+					return err
+				}
+
+				namedRole := NamedClusterRole{key, *oldRole}
+				*out = append(*out, namedRole)
+			}
+
+			return nil
+		},
+		func(in *ClusterPolicyBinding, out *newer.ClusterPolicyBinding, s conversion.Scope) error {
+			out.LastModified = in.LastModified
+			out.RoleBindings = make(map[string]newer.ClusterRoleBinding)
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+		},
+		func(in *newer.ClusterPolicyBinding, out *ClusterPolicyBinding, s conversion.Scope) error {
+			out.LastModified = in.LastModified
+			out.RoleBindings = make([]NamedClusterRoleBinding, 0, 0)
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+		},
+		func(in *[]NamedClusterRoleBinding, out *map[string]newer.ClusterRoleBinding, s conversion.Scope) error {
+			for _, curr := range *in {
+				newRoleBinding := &newer.ClusterRoleBinding{}
+				if err := s.Convert(&curr.RoleBinding, newRoleBinding, 0); err != nil {
+					return err
+				}
+				(*out)[curr.Name] = *newRoleBinding
+			}
+
+			return nil
+		},
+		func(in *map[string]newer.ClusterRoleBinding, out *[]NamedClusterRoleBinding, s conversion.Scope) error {
+			allKeys := make([]string, 0, len(*in))
+			for key := range *in {
+				allKeys = append(allKeys, key)
+			}
+			sort.Strings(allKeys)
+
+			for _, key := range allKeys {
+				newRoleBinding := (*in)[key]
+				oldRoleBinding := &ClusterRoleBinding{}
+				if err := s.Convert(&newRoleBinding, oldRoleBinding, 0); err != nil {
+					return err
+				}
+
+				namedRoleBinding := NamedClusterRoleBinding{key, *oldRoleBinding}
+				*out = append(*out, namedRoleBinding)
+			}
+
+			return nil
+		},
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

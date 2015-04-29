@@ -34,10 +34,6 @@ type Interface interface {
 	UserIdentityMappingsInterface
 	ProjectsInterface
 	ProjectRequestsInterface
-	PoliciesNamespacer
-	RolesNamespacer
-	RoleBindingsNamespacer
-	PolicyBindingsNamespacer
 	ResourceAccessReviewsNamespacer
 	ClusterResourceAccessReviews
 	SubjectAccessReviewsNamespacer
@@ -45,6 +41,14 @@ type Interface interface {
 	TemplatesNamespacer
 	TemplateConfigsNamespacer
 	OAuthAccessTokensInterface
+	PoliciesNamespacer
+	PolicyBindingsNamespacer
+	RolesNamespacer
+	RoleBindingsNamespacer
+	ClusterPoliciesInterface
+	ClusterPolicyBindingsInterface
+	ClusterRolesInterface
+	ClusterRoleBindingsInterface
 }
 
 // Builds provides a REST client for Builds
@@ -195,6 +199,22 @@ func (c *Client) ClusterSubjectAccessReviews() SubjectAccessReviewInterface {
 // OAuthAccessTokens provides a REST client for OAuthAccessTokens
 func (c *Client) OAuthAccessTokens() OAuthAccessTokenInterface {
 	return newOAuthAccessTokens(c)
+}
+
+func (c *Client) ClusterPolicies() ClusterPolicyInterface {
+	return newClusterPolicies(c)
+}
+
+func (c *Client) ClusterPolicyBindings() ClusterPolicyBindingInterface {
+	return newClusterPolicyBindings(c)
+}
+
+func (c *Client) ClusterRoles() ClusterRoleInterface {
+	return newClusterRoles(c)
+}
+
+func (c *Client) ClusterRoleBindings() ClusterRoleBindingInterface {
+	return newClusterRoleBindings(c)
 }
 
 // Client is an OpenShift client object

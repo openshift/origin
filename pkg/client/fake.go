@@ -146,4 +146,21 @@ func (c *Fake) OAuthAccessTokens() OAuthAccessTokenInterface {
 }
 func (c *Fake) ClusterSubjectAccessReviews() SubjectAccessReviewInterface {
 	return &FakeClusterSubjectAccessReviews{Fake: c}
+
+}
+
+func (c *Fake) ClusterPolicies() ClusterPolicyInterface {
+	return &FakeClusterPolicies{Fake: c}
+}
+
+func (c *Fake) ClusterPolicyBindings() ClusterPolicyBindingInterface {
+	return &FakeClusterPolicyBindings{Fake: c}
+}
+
+func (c *Fake) ClusterRoles() ClusterRoleInterface {
+	return &FakeClusterRoles{Fake: c}
+}
+
+func (c *Fake) ClusterRoleBindings() ClusterRoleBindingInterface {
+	return &FakeClusterRoleBindings{Fake: c}
 }

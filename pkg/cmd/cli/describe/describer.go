@@ -65,6 +65,14 @@ func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host
 		return &RoleBindingDescriber{c}, true
 	case "Role":
 		return &RoleDescriber{c}, true
+	case "ClusterPolicy":
+		return &ClusterPolicyDescriber{c}, true
+	case "ClusterPolicyBinding":
+		return &ClusterPolicyBindingDescriber{c}, true
+	case "ClusterRoleBinding":
+		return &ClusterRoleBindingDescriber{c}, true
+	case "ClusterRole":
+		return &ClusterRoleDescriber{c}, true
 	case "User":
 		return &UserDescriber{c}, true
 	case "UserIdentityMapping":
@@ -452,173 +460,6 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 	})
 }
 
-// PolicyDescriber generates information about a Project
-type PolicyDescriber struct {
-	client.Interface
-}
-
-// Describe returns the description of a policy
-// TODO make something a lot prettier
-func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Policies(namespace)
-	policy, err := c.Get(name)
-	if err != nil {
-		return "", err
-	}
-
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, policy.ObjectMeta)
-		formatString(out, "Last Modified", policy.LastModified)
-
-		// using .List() here because I always want the sorted order that it provides
-		for _, key := range util.KeySet(reflect.ValueOf(policy.Roles)).List() {
-			role := policy.Roles[key]
-			fmt.Fprint(out, key+"\t"+policyRuleHeadings+"\n")
-			for _, rule := range role.Rules {
-				describePolicyRule(out, rule, "\t")
-			}
-		}
-
-		return nil
-	})
-}
-
-const policyRuleHeadings = "Verbs\tResources\tResource Names\tExtension"
-
-func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
-	extensionString := ""
-	if rule.AttributeRestrictions != (runtime.EmbeddedObject{}) {
-		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions.Object)
-
-		buffer := new(bytes.Buffer)
-		printer := NewHumanReadablePrinter(true)
-		if err := printer.PrintObj(rule.AttributeRestrictions.Object, buffer); err == nil {
-			extensionString = strings.TrimSpace(buffer.String())
-		}
-	}
-
-	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\n",
-		rule.Verbs.List(),
-		rule.Resources.List(),
-		rule.ResourceNames.List(),
-		extensionString)
-}
-
-// RoleDescriber generates information about a Project
-type RoleDescriber struct {
-	client.Interface
-}
-
-// Describe returns the description of a role
-func (d *RoleDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Roles(namespace)
-	role, err := c.Get(name)
-	if err != nil {
-		return "", err
-	}
-
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, role.ObjectMeta)
-
-		fmt.Fprint(out, policyRuleHeadings+"\n")
-		for _, rule := range role.Rules {
-			describePolicyRule(out, rule, "")
-
-		}
-
-		return nil
-	})
-}
-
-// PolicyBindingDescriber generates information about a Project
-type PolicyBindingDescriber struct {
-	client.Interface
-}
-
-// Describe returns the description of a policyBinding
-func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error) {
-	c := d.PolicyBindings(namespace)
-	policyBinding, err := c.Get(name)
-	if err != nil {
-		return "", err
-	}
-
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, policyBinding.ObjectMeta)
-		formatString(out, "Last Modified", policyBinding.LastModified)
-		formatString(out, "Policy", policyBinding.PolicyRef.Namespace)
-
-		// using .List() here because I always want the sorted order that it provides
-		for _, key := range util.KeySet(reflect.ValueOf(policyBinding.RoleBindings)).List() {
-			roleBinding := policyBinding.RoleBindings[key]
-			formatString(out, "RoleBinding["+key+"]", " ")
-			formatString(out, "\tRole", roleBinding.RoleRef.Name)
-			formatString(out, "\tUsers", roleBinding.Users.List())
-			formatString(out, "\tGroups", roleBinding.Groups.List())
-		}
-
-		return nil
-	})
-}
-
-// RoleBindingDescriber generates information about a Project
-type RoleBindingDescriber struct {
-	client.Interface
-}
-
-// Describe returns the description of a roleBinding
-func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) {
-	c := d.RoleBindings(namespace)
-	roleBinding, err := c.Get(name)
-	if err != nil {
-		return "", err
-	}
-
-	role, err := d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name)
-	return DescribeRoleBinding(roleBinding, role, err)
-}
-
-// DescribeRoleBinding prints out information about a role binding and its associated role
-func DescribeRoleBinding(roleBinding *authorizationapi.RoleBinding, role *authorizationapi.Role, err error) (string, error) {
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, roleBinding.ObjectMeta)
-
-		formatString(out, "Role", roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name)
-		formatString(out, "Users", roleBinding.Users.List())
-		formatString(out, "Groups", roleBinding.Groups.List())
-
-		switch {
-		case err != nil:
-			formatString(out, "Policy Rules", fmt.Sprintf("error: %v", err))
-
-		case role != nil:
-			fmt.Fprint(out, policyRuleHeadings+"\n")
-			for _, rule := range role.Rules {
-				describePolicyRule(out, rule, "")
-			}
-
-		default:
-			formatString(out, "Policy Rules", "<none>")
-		}
-
-		return nil
-	})
-}
-
-// DescribeRole prints out information about a role
-func DescribeRole(role *authorizationapi.Role) (string, error) {
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, role.ObjectMeta)
-
-		fmt.Fprint(out, policyRuleHeadings+"\n")
-		for _, rule := range role.Rules {
-			describePolicyRule(out, rule, "")
-		}
-
-		return nil
-	})
-}
-
 // TemplateDescriber generates information about a template
 type TemplateDescriber struct {
 	client.Interface
@@ -815,4 +656,236 @@ func (d *UserDescriber) Describe(namespace, name string) (string, error) {
 		}
 		return nil
 	})
+}
+
+// policy describers
+
+// PolicyDescriber generates information about a Project
+type PolicyDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a policy
+// TODO make something a lot prettier
+func (d *PolicyDescriber) Describe(namespace, name string) (string, error) {
+	c := d.Policies(namespace)
+	policy, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return DescribePolicy(policy)
+}
+
+func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, policy.ObjectMeta)
+		formatString(out, "Last Modified", policy.LastModified)
+
+		// using .List() here because I always want the sorted order that it provides
+		for _, key := range util.KeySet(reflect.ValueOf(policy.Roles)).List() {
+			role := policy.Roles[key]
+			fmt.Fprint(out, key+"\t"+policyRuleHeadings+"\n")
+			for _, rule := range role.Rules {
+				describePolicyRule(out, rule, "\t")
+			}
+		}
+
+		return nil
+	})
+}
+
+const policyRuleHeadings = "Verbs\tResources\tResource Names\tExtension"
+
+func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
+	extensionString := ""
+	if rule.AttributeRestrictions != (runtime.EmbeddedObject{}) {
+		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions.Object)
+
+		buffer := new(bytes.Buffer)
+		printer := NewHumanReadablePrinter(true)
+		if err := printer.PrintObj(rule.AttributeRestrictions.Object, buffer); err == nil {
+			extensionString = strings.TrimSpace(buffer.String())
+		}
+	}
+
+	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\n",
+		rule.Verbs.List(),
+		rule.Resources.List(),
+		rule.ResourceNames.List(),
+		extensionString)
+}
+
+// RoleDescriber generates information about a Project
+type RoleDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a role
+func (d *RoleDescriber) Describe(namespace, name string) (string, error) {
+	c := d.Roles(namespace)
+	role, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return DescribeRole(role)
+}
+
+func DescribeRole(role *authorizationapi.Role) (string, error) {
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, role.ObjectMeta)
+
+		fmt.Fprint(out, policyRuleHeadings+"\n")
+		for _, rule := range role.Rules {
+			describePolicyRule(out, rule, "")
+
+		}
+
+		return nil
+	})
+}
+
+// PolicyBindingDescriber generates information about a Project
+type PolicyBindingDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a policyBinding
+func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error) {
+	c := d.PolicyBindings(namespace)
+	policyBinding, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return DescribePolicyBinding(policyBinding)
+}
+
+func DescribePolicyBinding(policyBinding *authorizationapi.PolicyBinding) (string, error) {
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, policyBinding.ObjectMeta)
+		formatString(out, "Last Modified", policyBinding.LastModified)
+		formatString(out, "Policy", policyBinding.PolicyRef.Namespace)
+
+		// using .List() here because I always want the sorted order that it provides
+		for _, key := range util.KeySet(reflect.ValueOf(policyBinding.RoleBindings)).List() {
+			roleBinding := policyBinding.RoleBindings[key]
+			formatString(out, "RoleBinding["+key+"]", " ")
+			formatString(out, "\tRole", roleBinding.RoleRef.Name)
+			formatString(out, "\tUsers", roleBinding.Users.List())
+			formatString(out, "\tGroups", roleBinding.Groups.List())
+		}
+
+		return nil
+	})
+}
+
+// RoleBindingDescriber generates information about a Project
+type RoleBindingDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a roleBinding
+func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) {
+	c := d.RoleBindings(namespace)
+	roleBinding, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	role, err := d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name)
+	return DescribeRoleBinding(roleBinding, role, err)
+}
+
+// DescribeRoleBinding prints out information about a role binding and its associated role
+func DescribeRoleBinding(roleBinding *authorizationapi.RoleBinding, role *authorizationapi.Role, err error) (string, error) {
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, roleBinding.ObjectMeta)
+
+		formatString(out, "Role", roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name)
+		formatString(out, "Users", roleBinding.Users.List())
+		formatString(out, "Groups", roleBinding.Groups.List())
+
+		switch {
+		case err != nil:
+			formatString(out, "Policy Rules", fmt.Sprintf("error: %v", err))
+
+		case role != nil:
+			fmt.Fprint(out, policyRuleHeadings+"\n")
+			for _, rule := range role.Rules {
+				describePolicyRule(out, rule, "")
+			}
+
+		default:
+			formatString(out, "Policy Rules", "<none>")
+		}
+
+		return nil
+	})
+}
+
+// ClusterPolicyDescriber generates information about a Project
+type ClusterPolicyDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a policy
+// TODO make something a lot prettier
+func (d *ClusterPolicyDescriber) Describe(namespace, name string) (string, error) {
+	c := d.ClusterPolicies()
+	policy, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return DescribePolicy(authorizationTypeConverter.ToPolicy(policy))
+}
+
+type ClusterRoleDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a role
+func (d *ClusterRoleDescriber) Describe(namespace, name string) (string, error) {
+	c := d.ClusterRoles()
+	role, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return DescribeRole(authorizationTypeConverter.ToRole(role))
+}
+
+// ClusterPolicyBindingDescriber generates information about a Project
+type ClusterPolicyBindingDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a policyBinding
+func (d *ClusterPolicyBindingDescriber) Describe(namespace, name string) (string, error) {
+	c := d.ClusterPolicyBindings()
+	policyBinding, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return DescribePolicyBinding(authorizationTypeConverter.ToPolicyBinding(policyBinding))
+}
+
+// ClusterRoleBindingDescriber generates information about a Project
+type ClusterRoleBindingDescriber struct {
+	client.Interface
+}
+
+// Describe returns the description of a roleBinding
+func (d *ClusterRoleBindingDescriber) Describe(namespace, name string) (string, error) {
+	c := d.ClusterRoleBindings()
+	roleBinding, err := c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	role, err := d.ClusterRoles().Get(roleBinding.RoleRef.Name)
+	return DescribeRoleBinding(authorizationTypeConverter.ToRoleBinding(roleBinding), authorizationTypeConverter.ToRole(role), err)
 }
