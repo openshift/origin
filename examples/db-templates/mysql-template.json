@@ -33,13 +33,23 @@
   },
   "items": [
     {
-      "apiVersion": "v1beta1",
-      "containerPort": 3306,
-      "id": "mysql",
+      "apiVersion": "v1beta3",
       "kind": "Service",
-      "port": 3306,
-      "selector": {
+      "metadata": {
         "name": "mysql"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "mysql",
+            "port": 3306,
+            "protocol": "TCP",
+            "targetPort": 3306
+          }
+        ],
+        "selector": {
+          "name": "mysql"
+        }
       }
     },
     {
@@ -102,11 +112,14 @@
               "mysql"
             ],
             "from": {
-              "name": "mysql-55-rhel7"
+              "name": "mysql"
             },
             "tag": "latest"
           },
           "type": "ImageChange"
+        },
+        {
+          "type": "ConfigChange"
         }
       ]
     }

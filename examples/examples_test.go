@@ -82,12 +82,9 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"image-streams-rhel7":   &imageapi.ImageStreamList{},
 		},
 		"../examples/db-templates": {
-			"mysql-rhel7-template":        &templateapi.Template{},
-			"postgresql-rhel7-template":   &templateapi.Template{},
-			"mongodb-rhel7-template":      &templateapi.Template{},
-			"mysql-centos7-template":      &templateapi.Template{},
-			"postgresql-centos7-template": &templateapi.Template{},
-			"mongodb-centos7-template":    &templateapi.Template{},
+			"mysql-template":      &templateapi.Template{},
+			"postgresql-template": &templateapi.Template{},
+			"mongodb-template":    &templateapi.Template{},
 		},
 		"../test/integration/fixtures": {
 			"test-deployment-config":        &deployapi.DeploymentConfig{},

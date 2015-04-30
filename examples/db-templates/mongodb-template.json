@@ -3,50 +3,60 @@
   "kind": "Template",
   "metadata": {
     "annotations": {
-      "description": "This template creates a basic PostgreSQL database service",
-      "tags": "database,postgresql",
-      "iconClass" : "icon-postgresql"
+      "description": "This template creates a basic MongoDB database service",
+      "tags": "database,mongodb",
+      "iconClass" : "icon-mongodb"
     },
-    "name": "postgresql"
+    "name": "mongodb"
   },
   "parameters": [
     {
       "description": "database username",
       "from": "user[A-Z0-9]{3}",
       "generate": "expression",
-      "name": "POSTGRESQL_USER"
+      "name": "MONGODB_USER"
     },
     {
       "description": "database password",
       "from": "[a-zA-Z0-9]{8}",
       "generate": "expression",
-      "name": "POSTGRESQL_PASSWORD"
+      "name": "MONGODB_PASSWORD"
     },
     {
       "description": "database name",
-      "name": "POSTGRESQL_DATABASE",
+      "name": "MONGODB_DATABASE",
       "value": "sampledb"
     }
   ],
   "labels": {
-    "template": "postgresql-template"
+    "template": "mongodb-template"
   },
   "items": [
     {
-      "apiVersion": "v1beta1",
-      "containerPort": 5432,
-      "id": "postgresql",
+      "apiVersion": "v1beta3",
       "kind": "Service",
-      "port": 5432,
-      "selector": {
-        "name": "postgresql"
+      "metadata": {
+        "name": "mongodb"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "mongo",
+            "port": 27017,
+            "protocol": "TCP",
+            "targetPort": 27017
+          }
+        ],
+        "selector": {
+          "name": "mongodb"
+        }
       }
     },
     {
       "apiVersion": "v1beta1",
       "kind": "DeploymentConfig",
       "metadata": {
-        "name": "postgresql"
+        "name": "mongodb"
       },
       "template": {
         "controllerTemplate": {
@@ -57,23 +67,23 @@
                   {
                     "env": [
                       {
-                        "name": "POSTGRESQL_USER",
-                        "value": "${POSTGRESQL_USER}"
+                        "name": "MONGODB_USER",
+                        "value": "${MONGODB_USER}"
                       },
                       {
-                        "name": "POSTGRESQL_PASSWORD",
-                        "value": "${POSTGRESQL_PASSWORD}"
+                        "name": "MONGODB_PASSWORD",
+                        "value": "${MONGODB_PASSWORD}"
                       },
                       {
-                        "name": "POSTGRESQL_DATABASE",
-                        "value": "${POSTGRESQL_DATABASE}"
+                        "name": "MONGODB_DATABASE",
+                        "value": "${MONGODB_DATABASE}"
                       }
                     ],
-                    "image": "postgresql",
-                    "name": "postgresql",
+                    "image": "mongodb",
+                    "name": "mongodb",
                     "ports": [
                       {
-                        "containerPort": 5432
+                        "containerPort": 27017
                       }
                     ]
                   }
@@ -82,11 +92,11 @@
               }
             },
             "labels": {
-              "name": "postgresql"
+              "name": "mongodb"
             }
           },
           "replicaSelector": {
-            "name": "postgresql"
+            "name": "mongodb"
           },
           "replicas": 1
         },
@@ -99,14 +109,17 @@
           "imageChangeParams": {
             "automatic": true,
             "containerNames": [
-              "postgresql"
+              "mongodb"
             ],
             "from": {
-              "name": "postgresql-92-centos7"
+              "name": "mongodb"
             },
             "tag": "latest"
           },
           "type": "ImageChange"
+        },
+        {
+          "type": "ConfigChange"
         }
       ]
     }
