@@ -113,6 +113,10 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 					Name:  "name",
 					Value: "value",
 				},
+				{
+					Name:  "ENV1",
+					Value: "overridden",
+				},
 			},
 		},
 	}
@@ -157,8 +161,30 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 		t.Fatalf("expected container command %s, got %s", e, a)
 	}
 
-	if e, a := "value", createdPod.Spec.Containers[0].Env[0].Value; e != a {
-		t.Fatalf("expected env value %s, got %s", e, a)
+	// Verify environment merging
+	expectedEnv := map[string]string{
+		"name": "value",
+		"ENV1": "overridden",
+	}
+
+	for k, v := range expectedEnv {
+		found := false
+		for _, env := range createdPod.Spec.Containers[0].Env {
+			if env.Name == k && env.Value == v {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected to find %s=%s in pod environment", k, v)
+		}
+	}
+
+	for _, env := range createdPod.Spec.Containers[0].Env {
+		val, found := expectedEnv[env.Name]
+		if !found || val != env.Value {
+			t.Errorf("container has unexpected environment entry %s=%s", env.Name, env.Value)
+		}
 	}
 
 	if e, a := kapi.RestartPolicyNever, createdPod.Spec.RestartPolicy; e != a {

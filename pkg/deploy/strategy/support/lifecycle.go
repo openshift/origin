@@ -32,18 +32,34 @@ func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.R
 // until the pod completes, and if the pod failed, an error is returned.
 func (e *HookExecutor) executeExecNewPod(hook *deployapi.ExecNewPodHook, deployment *kapi.ReplicationController) error {
 	// Build a pod spec from the hook config and deployment
-	var image string
+	var baseContainer *kapi.Container
 	for _, container := range deployment.Spec.Template.Spec.Containers {
-		if container.Name != hook.ContainerName {
-			continue
+		if container.Name == hook.ContainerName {
+			baseContainer = &container
+			break
 		}
-		image = container.Image
 	}
-	if len(image) == 0 {
+	if baseContainer == nil {
 		return fmt.Errorf("no container named '%s' found in deployment template", hook.ContainerName)
 	}
 
+	// Generate a name for the pod
 	podName := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("deployment-%s-hook-", deployment.Name))
+
+	// Build a merged environment; hook environment takes precedence over base
+	// container environment
+	envMap := map[string]string{}
+	mergedEnv := []kapi.EnvVar{}
+	for _, env := range baseContainer.Env {
+		envMap[env.Name] = env.Value
+	}
+	for _, env := range hook.Env {
+		envMap[env.Name] = env.Value
+	}
+	for k, v := range envMap {
+		mergedEnv = append(mergedEnv, kapi.EnvVar{Name: k, Value: v})
+	}
+
 	podSpec := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: podName,
@@ -55,9 +71,9 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.ExecNewPodHook, deploym
 			Containers: []kapi.Container{
 				{
 					Name:    "lifecycle",
-					Image:   image,
+					Image:   baseContainer.Image,
 					Command: hook.Command,
-					Env:     hook.Env,
+					Env:     mergedEnv,
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
