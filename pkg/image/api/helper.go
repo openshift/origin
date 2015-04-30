@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/digest"
+	"github.com/golang/glog"
 )
 
 // DockerDefaultNamespace is the value for namespace when a single segment name is provided.
@@ -182,19 +183,20 @@ func DockerImageReferenceForStream(stream *ImageStream) (DockerImageReference, e
 }
 
 // LatestTaggedImage returns the most recent TagEvent for the specified image
-// repository and tag. Will resolve lookups for the empty tag.
-func LatestTaggedImage(stream *ImageStream, tag string) (*TagEvent, error) {
+// repository and tag. Will resolve lookups for the empty tag. Returns nil
+// if tag isn't present in stream.status.tags.
+func LatestTaggedImage(stream *ImageStream, tag string) *TagEvent {
 	if len(tag) == 0 {
 		tag = DefaultImageTag
 	}
 	// find the most recent tag event with an image reference
 	if stream.Status.Tags != nil {
 		if history, ok := stream.Status.Tags[tag]; ok {
-			return &history.Items[0], nil
+			return &history.Items[0]
 		}
 	}
 
-	return nil, fmt.Errorf("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, tag)
+	return nil
 }
 
 // AddTagEventToImageStream attempts to update the given image stream with a tag event. It will
@@ -233,4 +235,73 @@ func AddTagEventToImageStream(stream *ImageStream, tag string, next TagEvent) bo
 	tags.Items = append([]TagEvent{next}, tags.Items...)
 	stream.Status.Tags[tag] = tags
 	return true
+}
+
+// UpdateTrackingTags sets updatedImage as the most recent TagEvent for all tags
+// in stream.spec.tags that have from.kind = "ImageStreamTag" and the tag in from.name
+// = updatedTag. from.name may be either <tag> or <stream name>:<tag>. For now, only
+// references to tags in the current stream are supported.
+//
+// For example, if stream.spec.tags[latest].from.name = 2.0, whenever an image is pushed
+// to this stream with the tag 2.0, status.tags[latest].items[0] will also be updated
+// to point at the same image that was just pushed for 2.0.
+func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage TagEvent) {
+	glog.V(5).Infof("UpdateTrackingTags: stream=%s/%s, updatedTag=%s, updatedImage.dockerImageReference=%s, updatedImage.image=%s", stream.Namespace, stream.Name, updatedTag, updatedImage.DockerImageReference, updatedImage.Image)
+	for specTag, tagRef := range stream.Spec.Tags {
+		glog.V(5).Infof("Examining spec tag %q, tagRef=%#v", specTag, tagRef)
+
+		// no from
+		if tagRef.From == nil {
+			glog.V(5).Infof("tagRef.From is nil, skipping")
+			continue
+		}
+
+		// wrong kind
+		if tagRef.From.Kind != "ImageStreamTag" {
+			glog.V(5).Infof("tagRef.Kind %q isn't ImageStreamTag, skipping", tagRef.From.Kind)
+			continue
+		}
+
+		tagRefNamespace := tagRef.From.Namespace
+		if len(tagRefNamespace) == 0 {
+			tagRefNamespace = stream.Namespace
+		}
+
+		// different namespace
+		if tagRefNamespace != stream.Namespace {
+			glog.V(5).Infof("tagRefNamespace %q doesn't match stream namespace %q - skipping", tagRefNamespace, stream.Namespace)
+			continue
+		}
+
+		tagRefName := tagRef.From.Name
+		parts := strings.Split(tagRefName, ":")
+		tag := ""
+		switch len(parts) {
+		case 2:
+			// <stream>:<tag>
+			tagRefName = parts[0]
+			tag = parts[1]
+		default:
+			// <tag> (this stream)
+			tag = tagRefName
+			tagRefName = stream.Name
+		}
+
+		glog.V(5).Infof("tagRefName=%q, tag=%q", tagRefName, tag)
+
+		// different stream
+		if tagRefName != stream.Name {
+			glog.V(5).Infof("tagRefName %q doesn't match stream name %q - skipping", tagRefName, stream.Name)
+			continue
+		}
+
+		// different tag
+		if tag != updatedTag {
+			glog.V(5).Infof("tag %q doesn't match updated tag %q - skipping", tag, updatedTag)
+			continue
+		}
+
+		updated := AddTagEventToImageStream(stream, specTag, updatedImage)
+		glog.V(5).Infof("stream updated? %t", updated)
+	}
 }

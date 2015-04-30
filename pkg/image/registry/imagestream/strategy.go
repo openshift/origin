@@ -2,7 +2,7 @@ package imagestream
 
 import (
 	"fmt"
-	"regexp"
+	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -19,8 +19,6 @@ import (
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
 )
-
-var streamRegex = regexp.MustCompile(`([^:@/]+)[:@](.+)`)
 
 type ResourceGetter interface {
 	Get(kapi.Context, string) (runtime.Object, error)
@@ -105,6 +103,34 @@ func (s Strategy) dockerImageRepository(stream *api.ImageStream) string {
 	return ref.String()
 }
 
+func parseFromReference(stream *api.ImageStream, from *kapi.ObjectReference) (string, string, error) {
+	splitChar := ""
+	refType := ""
+
+	switch from.Kind {
+	case "ImageStreamTag":
+		splitChar = ":"
+		refType = "tag"
+	case "ImageStreamImage":
+		splitChar = "@"
+		refType = "id"
+	default:
+		return "", "", fmt.Errorf("invalid from.kind %q - only ImageStreamTag and ImageStreamImage are allowed", from.Kind)
+	}
+
+	parts := strings.Split(from.Name, splitChar)
+	switch len(parts) {
+	case 1:
+		// <tag> or <id>
+		return stream.Name, from.Name, nil
+	case 2:
+		// <stream>:<tag> or <stream>@<id>
+		return parts[0], parts[1], nil
+	default:
+		return "", "", fmt.Errorf("invalid from.name %q - it must be of the form <%s> or <stream>%s<%s>", from.Name, refType, splitChar, refType)
+	}
+}
+
 // tagsChanged updates stream.Status.Tags based on the old and new image stream.
 // if the old stream is nil, all tags are considered additions.
 func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.ValidationErrorList {
@@ -133,15 +159,11 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 			continue
 		}
 
-		matches := streamRegex.FindStringSubmatch(tagRef.From.Name)
-
-		if len(matches) != 3 {
-			errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, "must be of the form <repo>:<tag> or <repo>@<id>"))
+		tagRefStreamName, tagOrID, err := parseFromReference(stream, tagRef.From)
+		if err != nil {
+			errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, "must be of the form <tag>, <repo>:<tag>, <id>, or <repo>@<id>"))
 			continue
 		}
-
-		tagRefStreamName := matches[1]
-		tagOrID := matches[2]
 
 		streamRef := stream
 		streamRefNamespace := tagRef.From.Namespace
@@ -161,6 +183,11 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 		event, err := tagReferenceToTagEvent(streamRef, tagRef, tagOrID)
 		if err != nil {
 			errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, fmt.Sprintf("error generating tag event: %v", err)))
+			continue
+		}
+
+		if event == nil {
+			glog.Errorf("unable to find tag event for %#v", tagRef.From)
 			continue
 		}
 
@@ -201,7 +228,7 @@ func tagReferenceToTagEvent(stream *api.ImageStream, tagRef api.TagReference, ta
 			Image:                ref.ID,
 		}, nil
 	case "ImageStreamTag":
-		return api.LatestTaggedImage(stream, tagOrID)
+		return api.LatestTaggedImage(stream, tagOrID), nil
 	default:
 		return nil, fmt.Errorf("Invalid from.kind %q: it must be ImageStreamImage or ImageStreamTag", tagRef.From.Kind)
 	}
@@ -264,13 +291,14 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user string) fielderr
 		if oldRef, ok := oldTags[tag]; ok && !tagRefChanged(oldRef, tagRef, stream.Namespace) {
 			continue
 		}
+
 		glog.Infof("validating access for %s to %v", user, tagRef.From)
-		matches := streamRegex.FindStringSubmatch(tagRef.From.Name)
-		if len(matches) != 3 {
-			errors = append(errors, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, "must be of the form <repo>:<tag> or <repo>@<id>"))
+		streamName, _, err := parseFromReference(stream, tagRef.From)
+		if err != nil {
+			errors = append(errors, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, "must be of the form <tag>, <repo>:<tag>, <id>, or <repo>@<id>"))
 			continue
 		}
-		streamName := matches[1]
+
 		subjectAccessReview := authorizationapi.SubjectAccessReview{
 			Verb:         "get",
 			Resource:     "imageStream",

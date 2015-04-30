@@ -80,9 +80,9 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			// This split is safe because ImageStreamTag names always have the form
 			// name:tag.
 			tag := strings.Split(from.Name, ":")[1]
-			latest, err := imageapi.LatestTaggedImage(repo, tag)
-			if err != nil {
-				util.HandleError(fmt.Errorf("unable to find tagged image: %v", err))
+			latest := imageapi.LatestTaggedImage(repo, tag)
+			if latest == nil {
+				util.HandleError(fmt.Errorf("unable to find tagged image: no image recorded for %s/%s:%s", repo.Namespace, repo.Name, tag))
 				continue
 			}
 
