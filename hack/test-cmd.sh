@@ -167,7 +167,8 @@ osc new-project project-foo --display-name="my project" --description="boring pr
 osc logout
 [ -z "$(osc get pods | grep 'system:anonymous')" ]
 osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
-[ "$(osc project | grep 'Using project "project-foo"')" ]
+osc get projects
+osc project project-foo
  
 
 
