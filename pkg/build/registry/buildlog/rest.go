@@ -2,17 +2,19 @@ package buildlog
 
 import (
 	"fmt"
-	"net"
-	"net/http"
-	"net/url"
-	"strconv"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	genericrest "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/rest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -21,21 +23,24 @@ import (
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
 	BuildRegistry  build.Registry
-	PodControl     PodControlInterface
+	PodGetter      pod.ResourceGetter
 	ConnectionInfo kclient.ConnectionInfoGetter
+	Timeout        time.Duration
 }
 
-type PodControlInterface interface {
-	getPod(namespace, name string) (*kapi.Pod, error)
+type podGetter struct {
+	podsNamespacer kclient.PodsNamespacer
 }
 
-type RealPodControl struct {
-	podsNamspacer kclient.PodsNamespacer
+func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+	ns, ok := kapi.NamespaceFrom(ctx)
+	if !ok {
+		return nil, errors.NewBadRequest("Namespace parameter required.")
+	}
+	return g.podsNamespacer.Pods(ns).Get(name)
 }
 
-func (r RealPodControl) getPod(namespace, name string) (*kapi.Pod, error) {
-	return r.podsNamspacer.Pods(namespace).Get(name)
-}
+const defaultTimeout time.Duration = 10 * time.Second
 
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get necessary attributes to assemble
@@ -43,62 +48,106 @@ func (r RealPodControl) getPod(namespace, name string) (*kapi.Pod, error) {
 func NewREST(b build.Registry, pn kclient.PodsNamespacer, connectionInfo kclient.ConnectionInfoGetter) *REST {
 	return &REST{
 		BuildRegistry:  b,
-		PodControl:     RealPodControl{pn},
+		PodGetter:      &podGetter{pn},
 		ConnectionInfo: connectionInfo,
+		Timeout:        defaultTimeout,
 	}
 }
 
-var _ = rest.Redirector(&REST{})
+var _ = rest.GetterWithOptions(&REST{})
 
-// Redirector implementation
-func (r *REST) ResourceLocation(ctx kapi.Context, id string) (*url.URL, http.RoundTripper, error) {
-	build, err := r.BuildRegistry.GetBuild(ctx, id)
+// Get returns a streamer resource with the contents of the build log
+func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.Object, error) {
+	buildLogOpts, ok := opts.(*api.BuildLogOptions)
+	if !ok {
+		return nil, errors.NewBadRequest("Did not get an expected options object.")
+	}
+	build, err := r.BuildRegistry.GetBuild(ctx, name)
 	if err != nil {
-		return nil, nil, fielderrors.NewFieldNotFound("Build", id)
+		return nil, errors.NewNotFound("Build", name)
 	}
-
-	// TODO: these must be status errors, not field errors
-	// TODO: choose a more appropriate "try again later" status code, like 202
-	buildPodName := buildutil.GetBuildPodName(build)
-	pod, err := r.PodControl.getPod(build.Namespace, buildPodName)
-	if err != nil {
-		return nil, nil, fielderrors.NewFieldNotFound("Pod.Name", buildPodName)
-	}
-
-	buildPodHost := pod.Spec.Host
-	buildPodNamespace := pod.Namespace
-	// Build will take place only in one container
-	buildContainerName := pod.Spec.Containers[0].Name
-
-	scheme, port, transport, err := r.ConnectionInfo.GetConnectionInfo(buildPodHost)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	location := &url.URL{
-		Scheme: scheme,
-		Host:   net.JoinHostPort(buildPodHost, strconv.FormatUint(uint64(port), 10)),
-		Path:   fmt.Sprintf("/containerLogs/%s/%s/%s", buildPodNamespace, buildPodName, buildContainerName),
-	}
-
-	// Pod in which build take place can't be in the Pending or Unknown phase,
-	// cause no containers are present in the Pod in those phases.
-	if pod.Status.Phase == kapi.PodPending || pod.Status.Phase == kapi.PodUnknown {
-		return nil, nil, fielderrors.NewFieldInvalid("Pod.Status", pod.Status.Phase, "must be Running, Succeeded or Failed")
-	}
-
 	switch build.Status {
-	case api.BuildStatusRunning:
-		location.RawQuery = "follow=1"
-	case api.BuildStatusComplete, api.BuildStatusFailed:
-		// Do not follow the Complete and Failed logs as the streaming already finished.
-	default:
-		return nil, nil, fielderrors.NewFieldInvalid("build.Status", build.Status, "must be Running, Complete or Failed")
-	}
+	// Build has not launched, wait til it runs
+	case api.BuildStatusNew, api.BuildStatusPending:
+		if buildLogOpts.NoWait {
+			// return empty content if not waiting for build
+			return &genericrest.LocationStreamer{}, nil
+		}
+		err := r.waitForBuild(ctx, build)
+		if err != nil {
+			return nil, err
+		}
 
-	return location, transport, nil
+	// The build was cancelled
+	case api.BuildStatusCancelled:
+		return nil, fmt.Errorf("build %s was cancelled", build.Name)
+
+	// An error occurred launching the build, return an error
+	case api.BuildStatusError:
+		return nil, fmt.Errorf("build %s is in an error state", build.Name)
+	}
+	// The container should be the default build container, so setting it to blank
+	buildPodName := buildutil.GetBuildPodName(build)
+	logOpts := &kapi.PodLogOptions{
+		Follow: buildLogOpts.Follow,
+	}
+	location, transport, err := pod.LogLocation(r.PodGetter, r.ConnectionInfo, ctx, buildPodName, logOpts)
+	if err != nil {
+		return nil, err
+	}
+	return &genericrest.LocationStreamer{
+		Location:    location,
+		Transport:   transport,
+		ContentType: "text/plain",
+		Flush:       buildLogOpts.Follow,
+	}, nil
 }
 
+func (r *REST) waitForBuild(ctx kapi.Context, build *api.Build) error {
+	fieldSelector := fields.Set{"metadata.name": build.Name}.AsSelector()
+	w, err := r.BuildRegistry.WatchBuilds(ctx, labels.Everything(), fieldSelector, build.ResourceVersion)
+	if err != nil {
+		return err
+	}
+	defer w.Stop()
+	done := make(chan struct{})
+	errchan := make(chan error)
+	go func(ch <-chan watch.Event) {
+		for event := range ch {
+			obj, ok := event.Object.(*api.Build)
+			if !ok {
+				errchan <- fmt.Errorf("event object is not a build: %#v", event.Object)
+				break
+			}
+			switch obj.Status {
+			case api.BuildStatusCancelled:
+				errchan <- fmt.Errorf("build %s was cancelled", build.Name)
+				break
+			case api.BuildStatusError:
+				errchan <- fmt.Errorf("build %s is in an error state", build.Name)
+				break
+			case api.BuildStatusRunning, api.BuildStatusComplete, api.BuildStatusFailed:
+				done <- struct{}{}
+				break
+			}
+		}
+	}(w.ResultChan())
+	select {
+	case err := <-errchan:
+		return err
+	case <-done:
+		return nil
+	case <-time.After(r.Timeout):
+		return fmt.Errorf("timed out waiting for build")
+	}
+}
+
+// NewGetOptions returns a new options object for build logs
+func (r *REST) NewGetOptions() runtime.Object {
+	return &api.BuildLogOptions{}
+}
+
+// New creates an empty BuildLog resource
 func (r *REST) New() runtime.Object {
 	return &api.BuildLog{}
 }

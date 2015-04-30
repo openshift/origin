@@ -2,6 +2,8 @@ package client
 
 import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+
+	"github.com/openshift/origin/pkg/build/api"
 )
 
 // FakeBuildLogs implements BuildLogsInterface. Meant to be embedded into a struct to get a default
@@ -12,7 +14,7 @@ type FakeBuildLogs struct {
 }
 
 // Get builds and returns a buildLog request
-func (c *FakeBuildLogs) Get(name string) *kclient.Request {
+func (c *FakeBuildLogs) Get(name string, opt api.BuildLogOptions) *kclient.Request {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "proxy"})
 	return &kclient.Request{}
 }
