@@ -458,14 +458,14 @@ osc describe policybinding master -n recreated-project | grep createuser2
 echo "ex new-project: ok"
 
 # Test running a router
-[ ! "$(osadm router | grep 'does not exist')" ]
+[ ! "$(osadm router --dry-run | grep 'does not exist')" ]
 [ "$(osadm router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
 osadm router --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(osadm router | grep 'service exists')" ]
 echo "ex router: ok"
 
 # Test running a registry
-[ ! "$(osadm registry | grep 'does not exist')"]
+[ ! "$(osadm registry --dry-run | grep 'does not exist')"]
 [ "$(osadm registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
 osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(osadm registry | grep 'service exists')" ]
