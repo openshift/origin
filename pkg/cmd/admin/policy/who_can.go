@@ -3,6 +3,7 @@ package policy
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -14,6 +15,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
+const WhoCanRecommendedName = "who-can"
+
 type whoCanOptions struct {
 	bindingNamespace string
 	client           client.Interface
@@ -22,13 +25,13 @@ type whoCanOptions struct {
 	resource string
 }
 
-func NewCmdWhoCan(f *clientcmd.Factory) *cobra.Command {
+func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &whoCanOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "who-can <verb> <resource>",
-		Short: "who-can <verb> <resource>",
-		Long:  `who-can <verb> <resource>`,
+		Use:   name + " <verb> <resource>",
+		Short: "Indicates which users can perform the action on the resource.",
+		Long:  `Indicates which users can perform the action on the resource.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.complete(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
