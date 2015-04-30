@@ -123,10 +123,13 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 // of the BuildConfig object
 func (c *ImageChangeController) updateConfig(config *buildapi.BuildConfig) error {
 	item, _, err := c.BuildConfigStore.Get(config)
-	newConfig := item.(*buildapi.BuildConfig)
 	if err != nil {
 		return err
 	}
+	if item == nil {
+		return fmt.Errorf("unable to retrieve build config %s/%s for updating", config.Namespace, config.Name)
+	}
+	newConfig := item.(*buildapi.BuildConfig)
 	for i, trigger := range newConfig.Triggers {
 		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 			continue
