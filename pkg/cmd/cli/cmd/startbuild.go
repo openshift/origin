@@ -11,11 +11,11 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -39,33 +39,51 @@ Examples:
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
 func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	webhooks := util.StringFlag{}
+	webhooks.Default("none")
+
 	cmd := &cobra.Command{
 		Use:   "start-build (<build_config>|--from-build=<build>)",
 		Short: "Starts a new build from existing build or build config",
 		Long:  fmt.Sprintf(startBuildLongDesc, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunStartBuild(f, out, cmd, args)
+			err := RunStartBuild(f, out, cmd, args, webhooks)
 			cmdutil.CheckErr(err)
 		},
 	}
 	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
 	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
+	cmd.Flags().Var(&webhooks, "list-webhooks", "List the webhooks for the specified build config or build; accepts 'all', 'generic', or 'github'")
 	cmd.Flags().String("from-webhook", "", "Specify a webhook URL for an existing build config to trigger")
 	cmd.Flags().String("git-post-receive", "", "The contents of the post-receive hook to trigger a build")
 	return cmd
 }
 
 // RunStartBuild contains all the necessary functionality for the OpenShift cli start-build command
-func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, webhooks util.StringFlag) error {
 	webhook := cmdutil.GetFlagString(cmd, "from-webhook")
-	if len(webhook) > 0 {
-		return RunStartBuildWebHook(f, out, webhook, cmdutil.GetFlagString(cmd, "git-post-receive"))
-	}
-
 	buildName := cmdutil.GetFlagString(cmd, "from-build")
 	follow := cmdutil.GetFlagBool(cmd, "follow")
-	if len(args) != 1 && len(buildName) == 0 {
-		return cmdutil.UsageError(cmd, "Must pass a name of build config or specify build name with '--from-build' flag")
+
+	switch {
+	case len(webhook) > 0:
+		if len(args) > 0 || len(buildName) > 0 {
+			return cmdutil.UsageError(cmd, "The '--from-webhook' flag is incompatible with arguments or '--from-build'")
+		}
+		return RunStartBuildWebHook(f, out, webhook, cmdutil.GetFlagString(cmd, "git-post-receive"))
+	case len(args) != 1 && len(buildName) == 0:
+		return cmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag")
+	}
+
+	name := buildName
+	isBuild := true
+	if len(name) == 0 {
+		name = args[0]
+		isBuild = false
+	}
+
+	if webhooks.Provided() {
+		return RunListBuildWebHooks(f, out, cmd.Out(), name, isBuild, webhooks.String())
 	}
 
 	client, _, err := f.Clients()
@@ -78,21 +96,16 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 		return err
 	}
 
+	request := &buildapi.BuildRequest{
+		ObjectMeta: kapi.ObjectMeta{Name: name},
+	}
 	var newBuild *buildapi.Build
-	if len(buildName) == 0 {
-		request := &buildapi.BuildRequest{
-			ObjectMeta: kapi.ObjectMeta{Name: args[0]},
-		}
-		newBuild, err = client.BuildConfigs(namespace).Instantiate(request)
-		if err != nil {
+	if isBuild {
+		if newBuild, err = client.Builds(namespace).Clone(request); err != nil {
 			return err
 		}
 	} else {
-		request := &buildapi.BuildRequest{
-			ObjectMeta: kapi.ObjectMeta{Name: buildName},
-		}
-		newBuild, err = client.Builds(namespace).Clone(request)
-		if err != nil {
+		if newBuild, err = client.BuildConfigs(namespace).Instantiate(request); err != nil {
 			return err
 		}
 	}
@@ -112,6 +125,75 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 		if err != nil {
 			return fmt.Errorf("error streaming logs: %v", err)
 		}
+	}
+	return nil
+}
+
+// RunListBuildWebHooks prints the webhooks for the provided build config.
+func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name string, isBuild bool, webhookFilter string) error {
+	generic, github := false, false
+	prefix := false
+	switch webhookFilter {
+	case "all":
+		generic, github = true, true
+		prefix = true
+	case "generic":
+		generic = true
+	case "github":
+		github = true
+	default:
+		return fmt.Errorf("--list-webhooks must be 'all', 'generic', or 'github'")
+	}
+	client, _, err := f.Clients()
+	if err != nil {
+		return err
+	}
+	namespace, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	if isBuild {
+		build, err := client.Builds(namespace).Get(name)
+		if err != nil {
+			return err
+		}
+		ref := build.Config
+		if ref == nil {
+			return fmt.Errorf("the provided build %q was not created from a build config and cannot have webhooks", name)
+		}
+		if len(ref.Namespace) > 0 {
+			namespace = ref.Namespace
+		}
+		name = ref.Name
+	}
+	config, err := client.BuildConfigs(namespace).Get(name)
+	if err != nil {
+		return err
+	}
+
+	for _, t := range config.Triggers {
+		hookType := ""
+		switch {
+		case t.GenericWebHook != nil && generic:
+			if prefix {
+				hookType = "generic "
+			}
+		case t.GithubWebHook != nil && github:
+			if prefix {
+				hookType = "github "
+			}
+		default:
+			continue
+		}
+		url, err := client.BuildConfigs(namespace).WebHookURL(name, &t)
+		if err != nil {
+			if err != osclient.ErrTriggerIsNotAWebHook {
+				fmt.Fprintf(errOut, "error: unable to get webhook for %s: %v", name, err)
+			}
+			continue
+		}
+		fmt.Fprintf(out, "%s%s\n", hookType, url.String())
 	}
 	return nil
 }
