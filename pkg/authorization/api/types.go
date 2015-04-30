@@ -51,7 +51,7 @@ const (
 
 var (
 	GroupsToResources = map[string][]string{
-		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate"},
+		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log"},
 		ImageGroupName:              {"images", "imagerepositories", "imagerepositorymappings", "imagerepositorytags", "imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
 		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
 		UserGroupName:               {"identities", "users", "useridentitymappings"},
@@ -64,7 +64,7 @@ var (
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
 		KubeInternalsGroupName: {"minions", "nodes", "bindings", "events", "namespaces"},
-		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services", "endpoints"},
+		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services", "endpoints", "pods/log"},
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
 		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status"},
 	}
