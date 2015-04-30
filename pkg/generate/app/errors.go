@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+// ErrNoMatch is an error returned to new-app users when no match
+// is found for a given component
 type ErrNoMatch struct {
 	value     string
 	qualifier string
@@ -17,6 +19,7 @@ func (e ErrNoMatch) Error() string {
 	return fmt.Sprintf("no image or template matched %q", e.value)
 }
 
+// UsageError is the usage error message returned when no match is found
 func (e ErrNoMatch) UsageError(commandName string) string {
 	return fmt.Sprintf("%[3]s - does a Docker image with that name exist?", e.value, commandName, e.Error())
 
@@ -28,6 +31,8 @@ func (e ErrNoMatch) UsageError(commandName string) string {
 	  `*/
 }
 
+// ErrMultipleMatches is an error returned to new-app users when multiple
+// matches are found for a given component
 type ErrMultipleMatches struct {
 	Image   string
 	Matches []*ComponentMatch
@@ -37,6 +42,7 @@ func (e ErrMultipleMatches) Error() string {
 	return fmt.Sprintf("multiple images or templates matched %q: %d", e.Image, len(e.Matches))
 }
 
+// UsageError is the usage error message returned when multiple matches are found
 func (e ErrMultipleMatches) UsageError(commandName string) string {
 	buf := &bytes.Buffer{}
 	for _, match := range e.Matches {

@@ -186,7 +186,10 @@ func TestEtcdCreateBuildUsingImage(t *testing.T) {
 			Strategy: api.BuildStrategy{
 				Type: api.STIBuildStrategyType,
 				STIStrategy: &api.STIBuildStrategy{
-					Image: "builder/image",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "builder/image",
+					},
 				},
 			},
 			Output: api.BuildOutput{
@@ -322,7 +325,7 @@ func TestEtcdListBuilds(t *testing.T) {
 func TestEtcdWatchBuilds(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	registry := NewTestEtcd(fakeClient)
-	filterFields := fields.SelectorFromSet(fields.Set{"name": "foo", "status": string(api.BuildStatusRunning), "podName": "foo"})
+	filterFields := fields.SelectorFromSet(fields.Set{"metadata.name": "foo", "status": string(api.BuildStatusRunning), "podName": "foo"})
 
 	watching, err := registry.WatchBuilds(kapi.NewContext(), labels.Everything(), filterFields, "1")
 	if err != nil {
@@ -470,7 +473,10 @@ func TestEtcdCreateBuildConfigUsingImage(t *testing.T) {
 			Strategy: api.BuildStrategy{
 				Type: api.STIBuildStrategyType,
 				STIStrategy: &api.STIBuildStrategy{
-					Image: "builder/image",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "builder/image",
+					},
 				},
 			},
 			Output: api.BuildOutput{

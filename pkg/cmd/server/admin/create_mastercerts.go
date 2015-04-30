@@ -3,7 +3,6 @@ package admin
 import (
 	"errors"
 	"io"
-	"path"
 	"path/filepath"
 
 	"github.com/golang/glog"
@@ -49,7 +48,7 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 
 	flags := cmd.Flags()
 
-	flags.StringVar(&options.CertDir, "cert-dir", "openshift.local.certificates", "The certificate data directory.")
+	flags.StringVar(&options.CertDir, "cert-dir", "openshift.local.config/master", "The certificate data directory.")
 	flags.StringVar(&options.SignerName, "signer-name", DefaultSignerName(), "The name to use for the generated signer.")
 
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
@@ -84,9 +83,9 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 	glog.V(2).Infof("Creating all certs with: %#v", o)
 
 	signerCertOptions := CreateSignerCertOptions{
-		CertFile:   DefaultCertFilename(o.CertDir, DefaultCADir),
-		KeyFile:    DefaultKeyFilename(o.CertDir, DefaultCADir),
-		SerialFile: DefaultSerialFilename(o.CertDir, DefaultCADir),
+		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),
+		KeyFile:    DefaultKeyFilename(o.CertDir, CAFilePrefix),
+		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
 		Name:       o.SignerName,
 		Overwrite:  o.Overwrite,
 	}
@@ -98,9 +97,9 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 	}
 	// once we've minted the signer, don't overwrite it
 	getSignerCertOptions := GetSignerCertOptions{
-		CertFile:   DefaultCertFilename(o.CertDir, DefaultCADir),
-		KeyFile:    DefaultKeyFilename(o.CertDir, DefaultCADir),
-		SerialFile: DefaultSerialFilename(o.CertDir, DefaultCADir),
+		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),
+		KeyFile:    DefaultKeyFilename(o.CertDir, CAFilePrefix),
+		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
 	}
 
 	if err := o.createServerCerts(&getSignerCertOptions); err != nil {
@@ -140,7 +139,7 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *GetSign
 
 			ContextNamespace: kapi.NamespaceDefault,
 
-			KubeConfigFile: path.Join(filepath.Dir(clientCertInfo.CertLocation.CertFile), ".kubeconfig"),
+			KubeConfigFile: DefaultKubeConfigFilename(filepath.Dir(clientCertInfo.CertLocation.CertFile), clientCertInfo.UnqualifiedUser),
 		}
 		if err := createKubeConfigOptions.Validate(nil); err != nil {
 			return err

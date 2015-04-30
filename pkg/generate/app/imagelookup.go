@@ -54,7 +54,6 @@ func (r DockerClientResolver) Resolve(value string) (*ComponentMatch, error) {
 			case ErrNoMatch:
 				// show our partial matches
 			case ErrMultipleMatches:
-				// TODO: add these matches to our local results
 				return nil, err
 			default:
 				return nil, err
@@ -277,9 +276,9 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 		if len(searchTag) == 0 {
 			searchTag = imageapi.DefaultImageTag
 		}
-		latest, err := imageapi.LatestTaggedImage(repo, searchTag)
-		if err != nil {
-			return nil, ErrNoMatch{value: value, qualifier: err.Error()}
+		latest := imageapi.LatestTaggedImage(repo, searchTag)
+		if latest == nil {
+			return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("no image recorded for %s/%s:%s", repo.Namespace, repo.Name, searchTag)}
 		}
 		imageData, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(ref.Name, latest.Image)
 		if err != nil {
@@ -310,10 +309,14 @@ type Searcher interface {
 	Search(terms []string) ([]*ComponentMatch, error)
 }
 
+// InputImageFromMatch returns an image reference from a component match.
+// The component match will either be an image stream or an image.
 func InputImageFromMatch(match *ComponentMatch) (*ImageRef, error) {
+	g := NewImageRefGenerator()
+
 	switch {
 	case match.ImageStream != nil:
-		input, err := ImageFromRepository(match.ImageStream, match.ImageTag)
+		input, err := g.FromStream(match.ImageStream, match.ImageTag)
 		if err != nil {
 			return nil, err
 		}
@@ -322,7 +325,7 @@ func InputImageFromMatch(match *ComponentMatch) (*ImageRef, error) {
 		return input, nil
 
 	case match.Image != nil:
-		input, err := ImageFromName(match.Value, match.ImageTag)
+		input, err := g.FromName(match.Value)
 		if err != nil {
 			return nil, err
 		}

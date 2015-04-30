@@ -1,7 +1,7 @@
 ## Description
 
 The `openshift/origin-haproxy-router` is an [HAProxy](http://www.haproxy.org/) router that is used as an external to internal
-interface to OpenShift [services](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/DESIGN.md#the-kubernetes-node).
+interface to OpenShift [services](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md).
 
 The router is meant to run as a pod.  When running the router you must ensure that the router can expose port 80 on the host (minion)
 in order to forward traffic.  In a deployed environment the router minion should also have external ip addressess
@@ -32,10 +32,10 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start &
 
     If running in https mode, ensure osc can authenticate to the master
-    [vagrant@openshiftdev origin]$ export OPENSHIFTCONFIG=/data/src/github.com/openshift/origin/openshift.local.certificates/admin/.kubeconfig
+    [vagrant@openshiftdev origin]$ export OPENSHIFTCONFIG=/data/src/github.com/openshift/origin/openshift.local.config/master/admin.kubeconfig
     [vagrant@openshiftdev origin]$ sudo chmod a+r "$OPENSHIFTCONFIG"
-    [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.certificates/openshift-router/.kubeconfig
-    [vagrant@openshiftdev origin]$ openshift ex router --create --credentials="openshift.local.certificates/openshift-router/.kubeconfig"
+    [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.config/master/openshift-router.kubeconfig
+    [vagrant@openshiftdev origin]$ openshift ex router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig"
     [vagrant@openshiftdev origin]$ osc get pods
 
 #### Clustered vagrant environment
@@ -58,7 +58,7 @@ In order to run the router in a deployed environment the following conditions mu
 
 To install the router pod you use the `openshift ex router` command line, passing the flags `--create` and `--credentials=<kubeconfig_file>`.
 The credentials flag controls the identity that the router will use to talk to the master (and the address of the master) so in most
-environments you can use the `${CERTS_DIR}/openshift-client/.kubeconfig` file. Once you run this command you can check the configuration
+environments you can use the `${CONFIG_DIR}/master/openshift-client.kubeconfig` file. Once you run this command you can check the configuration
 of the router by running `osc get dc router` to check the deployment status.
 
 `openshift ex router` offers other options for deploying routers - run `openshift help ex router` for more details.

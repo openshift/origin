@@ -100,8 +100,8 @@ func NewDefaultCreateNodeConfigOptions() *CreateNodeConfigOptions {
 	options.VolumeDir = "openshift.local.volumes"
 	options.DNSDomain = "local"
 	options.APIServerURL = "https://localhost:8443"
-	options.APIServerCAFile = "openshift.local.certificates/ca/cert.crt"
-	options.NodeClientCAFile = "openshift.local.certificates/ca/cert.crt"
+	options.APIServerCAFile = "openshift.local.config/master/ca.crt"
+	options.NodeClientCAFile = "openshift.local.config/master/ca.crt"
 
 	options.ImageTemplate = variable.NewDefaultImageTemplate()
 
@@ -189,15 +189,18 @@ func CopyFile(src, dest string, permissions os.FileMode) error {
 }
 
 func (o CreateNodeConfigOptions) CreateNodeFolder() error {
-	clientCertFile := path.Join(o.NodeConfigDir, "client.crt")
-	clientKeyFile := path.Join(o.NodeConfigDir, "client.key")
-	apiServerCAFile := path.Join(o.NodeConfigDir, "ca.crt")
+	servingCertInfo := DefaultNodeServingCertInfo(o.NodeConfigDir)
+	clientCertInfo := DefaultNodeClientCertInfo(o.NodeConfigDir)
 
-	serverCertFile := path.Join(o.NodeConfigDir, "server.crt")
-	serverKeyFile := path.Join(o.NodeConfigDir, "server.key")
-	nodeClientCAFile := path.Join(o.NodeConfigDir, "node-client-ca.crt")
+	clientCertFile := clientCertInfo.CertFile
+	clientKeyFile := clientCertInfo.KeyFile
+	apiServerCAFile := DefaultCAFilename(o.NodeConfigDir, CAFilePrefix)
 
-	kubeConfigFile := path.Join(o.NodeConfigDir, ".kubeconfig")
+	serverCertFile := servingCertInfo.CertFile
+	serverKeyFile := servingCertInfo.KeyFile
+	nodeClientCAFile := DefaultCAFilename(o.NodeConfigDir, "node-client-ca")
+
+	kubeConfigFile := DefaultNodeKubeConfigFile(o.NodeConfigDir)
 	nodeConfigFile := path.Join(o.NodeConfigDir, "node-config.yaml")
 	nodeJSONFile := path.Join(o.NodeConfigDir, "node-registration.json")
 

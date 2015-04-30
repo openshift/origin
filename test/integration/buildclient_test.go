@@ -33,8 +33,12 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/image/registry/image"
+	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
+	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	testutil "github.com/openshift/origin/test/util"
 )
 
@@ -204,6 +208,9 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	buildEtcd := buildetcd.New(etcdHelper)
 
+	imageStorage := imageetcd.NewREST(etcdHelper)
+	imageRegistry := image.NewRegistry(imageStorage)
+
 	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(
 		etcdHelper,
 		imagestream.DefaultRegistryFunc(func() (string, bool) {
@@ -213,13 +220,21 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
 
+	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
+
+	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
+
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc:    buildEtcd.GetBuildConfig,
-			UpdateBuildConfigFunc: buildEtcd.UpdateBuildConfig,
-			GetBuildFunc:          buildEtcd.GetBuild,
-			CreateBuildFunc:       buildEtcd.CreateBuild,
-			GetImageStreamFunc:    imageStreamRegistry.GetImageStream,
+			GetBuildConfigFunc:      buildEtcd.GetBuildConfig,
+			UpdateBuildConfigFunc:   buildEtcd.UpdateBuildConfig,
+			GetBuildFunc:            buildEtcd.GetBuild,
+			CreateBuildFunc:         buildEtcd.CreateBuild,
+			GetImageStreamFunc:      imageStreamRegistry.GetImageStream,
+			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
+			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
 	}
 	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
@@ -231,6 +246,8 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		"buildConfigs/instantiate": buildConfigInstantiate,
 		"imageStreams":             imageStreamStorage,
 		"imageStreams/status":      imageStreamStatus,
+		"imageStreamTags":          imageStreamTagStorage,
+		"imageStreamImages":        imageStreamImageStorage,
 	}
 
 	version := &apiserver.APIGroupVersion{

@@ -47,6 +47,8 @@ func (ce defaultCommandExecutor) Run(command string, args ...string) error {
 	return c.Run()
 }
 
+const minimumDockerAPIVersionWithPullByID = "1.18"
+
 // EnsureDocker attempts to connect to the Docker daemon defined by the helper,
 // and if it is unable to it will print a warning.
 func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
@@ -59,6 +61,27 @@ func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 		c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env{"apiversion=1.15"}}
 	} else {
 		glog.Infof("Connecting to Docker at %s", dockerAddr)
+
+		env, err := dockerClient.Version()
+		if err != nil {
+			glog.Fatalf("ERROR: Unable to check for Docker server version.\n%v", err)
+		}
+
+		serverVersionString := env.Get("ApiVersion")
+		serverVersion, err := dockerclient.NewAPIVersion(serverVersionString)
+		if err != nil {
+			glog.Fatalf("ERROR: Unable to determine Docker server version from %q.\n%v", serverVersionString, err)
+		}
+
+		minimumPullByIDVersion, err := dockerclient.NewAPIVersion(minimumDockerAPIVersionWithPullByID)
+		if err != nil {
+			glog.Fatalf("ERROR: Unable to check for Docker server version.\n%v", err)
+		}
+
+		if serverVersion.LessThan(minimumPullByIDVersion) {
+			glog.Fatal("ERROR: Docker 1.6 or later (server API version 1.18 or later) required.")
+		}
+
 		c.DockerClient = dockerClient
 	}
 }

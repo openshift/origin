@@ -92,7 +92,7 @@ angular.module('openshiftConsole')
     };
 
     $scope.createFromTemplate = function() {
-      DataService.create("templateConfigs", $scope.template, $scope).then(
+      DataService.create("templateConfigs", null, $scope.template, $scope).then(
         function(config) { // success
           var titles = {
             started: "Creating " + $scope.templateDisplayName() + " in project " + $scope.projectDisplayName(),

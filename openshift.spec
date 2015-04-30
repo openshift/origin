@@ -12,17 +12,6 @@
 %{!?ldflags:
 %global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.4-161-g0867235 -X github.com/openshift/origin/pkg/version.commitFromGit 0867235 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit b12d75d -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.14.1-582-gb12d75d
 }
-# String used for --images flag
-# If you're setting docker_registry make sure it ends in a trailing /
-%if "%{dist}" == ".el7ose"
-  %global docker_registry registry.access.redhat.com/
-  %global docker_namespace openshift3_beta
-  %global docker_prefix ose
-%else
-  %global docker_namespace openshift
-  %global docker_prefix origin
-%endif
-%global docker_images %{?docker_registry}%{docker_namespace}/%{docker_prefix}-${component}:${version}
 
 Name:           openshift
 # Version is not kept up to date and is intended to be set by tito custom
@@ -74,16 +63,13 @@ Requires:       %{name} = %{version}-%{release}
 %description -n tuned-profiles-openshift-node
 %{summary}
 
-%package -n osc-macosx-amd64
-Summary:      Openshift Client Packages for Mac OSX
+%package clients
+Summary:      Openshift Client binaries for Linux, Mac OSX, and Windows
 BuildRequires: golang-pkg-darwin-amd64
-%description -n osc-macosx-amd64
-%{summary}
-
-%package -n osc-windows-386
-Summary:      OpenShift Client Packages for Windows
 BuildRequires: golang-pkg-windows-386
-%description -n osc-windows-386
+
+%description clients
+%{summary}
 
 %package dockerregistry
 Summary:        Docker Registry v2 for OpenShift
@@ -135,14 +121,10 @@ do
     go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
 done
 
-# set the IMAGES
-sed -i 's|IMAGES=.*|IMAGES=%{docker_images}|' rel-eng/openshift-{master,node}.sysconfig
-
 %install
 
 install -d %{buildroot}%{_bindir}
-install -d %{buildroot}%{_datadir}/%{name}/macosx
-install -d %{buildroot}%{_datadir}/%{name}/windows
+install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
 
 # Install linux components
 for bin in openshift dockerregistry
@@ -151,11 +133,12 @@ do
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
 done
 # Install 'openshift' as client executable for windows and mac
+install -p -m 755 _build/bin/openshift %{buildroot}%{_datadir}/%{name}/linux/osc
 install -p -m 755 _build/bin/darwin_amd64/openshift %{buildroot}%{_datadir}/%{name}/macosx/osc
 install -p -m 755 _build/bin/windows_386/openshift.exe %{buildroot}%{_datadir}/%{name}/windows/osc.exe
 
 
-install -d -m 0755 %{buildroot}/etc/%{name}
+install -d -m 0755 %{buildroot}/etc/%{name}/{master,node}
 install -d -m 0755 %{buildroot}%{_unitdir}
 install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift-master.service
 install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift-node.service
@@ -183,12 +166,12 @@ install -m 0644 tuned/man/tuned-profiles-openshift-node.7 %{buildroot}%{_mandir}
 %{_bindir}/osc
 %{_bindir}/osadm
 %{_sharedstatedir}/%{name}
-/etc/%{name}
 
 %files master
 %defattr(-,root,root,-)
 %{_unitdir}/openshift-master.service
 %config(noreplace) %{_sysconfdir}/sysconfig/openshift-master
+%config(noreplace) /etc/%{name}/master
 
 %post master
 %systemd_post %{basename:openshift-master.service}
@@ -204,6 +187,7 @@ install -m 0644 tuned/man/tuned-profiles-openshift-node.7 %{buildroot}%{_mandir}
 %defattr(-,root,root,-)
 %{_unitdir}/openshift-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/openshift-node
+%config(noreplace) /etc/%{name}/node
 
 %post node
 %systemd_post %{basename:openshift-node.service}
@@ -236,10 +220,9 @@ if [ "$1" = 0 ]; then
   /usr/sbin/tuned-adm profile $recommended > /dev/null 2>&1
 fi
 
-%files -n osc-macosx-amd64
+%files clients
+%{_datadir}/%{name}/linux/osc
 %{_datadir}/%{name}/macosx/osc
-
-%files -n osc-windows-386
 %{_datadir}/%{name}/windows/osc.exe
 
 %files dockerregistry

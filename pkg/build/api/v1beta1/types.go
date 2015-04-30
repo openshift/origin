@@ -181,10 +181,11 @@ const (
 	CustomBuildStrategyType BuildStrategyType = "Custom"
 )
 
-// CustomBuildStrategy defines input parameter specific to Custom build.
+// CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategy struct {
 	// Image is the image required to execute the build. If not specified
 	// a validation error is returned.
+	// Only valid if From is not present.
 	Image string `json:"image"`
 
 	// Additional environment variables you want to pass into a builder container
@@ -194,11 +195,18 @@ type CustomBuildStrategy struct {
 	// inside the Docker container.
 	// TODO: Allow admins to enforce 'false' for this option
 	ExposeDockerSocket bool `json:"exposeDockerSocket,omitempty"`
+
+	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// the docker image should be pulled
+	From *kapi.ObjectReference `json:"from,omitempty"`
+
+	// Tag is the name of image stream tag to be used as the FROM image, it only
+	// applies when From is specified and the Kind of From is ImageStream.
+	Tag string `json:"tag,omitempty`
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
 type DockerBuildStrategy struct {
-
 	// DEPRECATED: See the BuildSource type
 	ContextDir string `json:"contextDir,omitempty"`
 
@@ -215,7 +223,17 @@ type DockerBuildStrategy struct {
 	// Image is optional and indicates the image that the dockerfile for this
 	// build should "FROM".  If present, the build process will substitute this value
 	// into the FROM line of the dockerfile.
+	// Only valid if From field is not present in the strategy definition.
 	Image string `json:"image,omitempty"`
+
+	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// the docker image should be pulled
+	// the resulting image will be used in the FROM line of the Dockerfile for this build.
+	From *kapi.ObjectReference `json:"from,omitempty"`
+
+	// Tag is the name of image stream tag to be used as the FROM image, it only
+	// applies when From is specified and the Kind of From is ImageStream.
+	Tag string `json:"tag,omitempty`
 }
 
 // STIBuildStrategy defines input parameters specific to an STI build.
@@ -225,16 +243,17 @@ type STIBuildStrategy struct {
 	BuilderImage string `json:"builderImage,omitempty"`
 
 	// Image is the image used to execute the build.
-	// For BuildConfigs, From takes precedence.
+	// Only valid if From is not present.
 	Image string `json:"image,omitempty"`
 
-	// Tag is the name of image stream tag to be used as the build image, it only
-	// applies when From is specified.
-	Tag string `json:"tag,omitempty"`
-
-	// From is reference to an image stream from where the docker image should be pulled
-	// Only allowed in BuildConfigs, Builds use the Image field exclusively.
+	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
+
+	// Tag is the name of image stream tag to be used as the FROM image, it only
+	// applies when From is specified and the Kind of From is ImageStream.
+	// TODO change this to "tag" instead of "Tag" in v1beta2
+	Tag string `json:"Tag,omitempty"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
@@ -405,4 +424,17 @@ type BuildRequest struct {
 
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty"`
+}
+
+// BuildLogOptions is the REST options for a build log
+type BuildLogOptions struct {
+	kapi.TypeMeta
+
+	// Follow if true indicates that the build log should be streamed until
+	// the build terminates.
+	Follow bool `json:"follow,omitempty" description:"if true indicates that the log should be streamed; defaults to false"`
+
+	// NoWait if true causes the call to return immediately even if the build
+	// is not available yet. Otherwise the server will wait until the build has started.
+	NoWait bool `json:"nowait,omitempty" description:"if true indicates that the server should not wait for a log to be available before returning; defaults to false"`
 }

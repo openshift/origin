@@ -60,8 +60,8 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		return nil, err
 	}
 
-	event, err := api.LatestTaggedImage(stream, tag)
-	if err != nil {
+	event := api.LatestTaggedImage(stream, tag)
+	if event == nil {
 		return nil, errors.NewNotFound("imageStreamTag", tag)
 	}
 
@@ -88,7 +88,8 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	ist := api.ImageStreamTag{
-		Image: *imageWithMetadata,
+		Image:     *imageWithMetadata,
+		ImageName: imageWithMetadata.Name,
 	}
 	ist.Namespace = kapi.NamespaceValue(ctx)
 	ist.Name = id

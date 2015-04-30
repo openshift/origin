@@ -132,10 +132,18 @@ func (c *Fake) ResourceAccessReviews(namespace string) ResourceAccessReviewInter
 	return &FakeResourceAccessReviews{Fake: c}
 }
 
-func (c *Fake) RootResourceAccessReviews() ResourceAccessReviewInterface {
-	return &FakeRootResourceAccessReviews{Fake: c}
+func (c *Fake) ClusterResourceAccessReviews() ResourceAccessReviewInterface {
+	return &FakeClusterResourceAccessReviews{Fake: c}
 }
 
 func (c *Fake) SubjectAccessReviews(namespace string) SubjectAccessReviewInterface {
 	return &FakeSubjectAccessReviews{Fake: c}
+}
+
+func (c *Fake) OAuthAccessTokens() OAuthAccessTokenInterface {
+	return &FakeOAuthAccessTokens{Fake: c}
+
+}
+func (c *Fake) ClusterSubjectAccessReviews() SubjectAccessReviewInterface {
+	return &FakeClusterSubjectAccessReviews{Fake: c}
 }

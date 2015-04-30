@@ -12,6 +12,7 @@ func init() {
 		&BuildConfigList{},
 		&BuildLog{},
 		&BuildRequest{},
+		&BuildLogOptions{},
 	)
 }
 
@@ -21,3 +22,4 @@ func (*BuildConfig) IsAnAPIObject()     {}
 func (*BuildConfigList) IsAnAPIObject() {}
 func (*BuildLog) IsAnAPIObject()        {}
 func (*BuildRequest) IsAnAPIObject()    {}
+func (*BuildLogOptions) IsAnAPIObject() {}

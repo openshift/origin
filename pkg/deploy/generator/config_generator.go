@@ -54,10 +54,10 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 		}
 
 		// Find the latest tag event for the trigger tag
-		latestEvent, err := imageapi.LatestTaggedImage(imageStream, params.Tag)
-		if err != nil {
+		latestEvent := imageapi.LatestTaggedImage(imageStream, params.Tag)
+		if latestEvent == nil {
 			f := fmt.Sprintf("triggers[%d].imageChange.tag", i)
-			errs = append(errs, fielderrors.NewFieldInvalid(f, params.Tag, err.Error()))
+			errs = append(errs, fielderrors.NewFieldInvalid(f, params.Tag, fmt.Sprintf("no image recorded for %s/%s:%s", imageStream.Namespace, imageStream.Name, params.Tag)))
 			continue
 		}
 

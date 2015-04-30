@@ -6,8 +6,11 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
+// Environment holds environment variables for new-app
 type Environment map[string]string
 
+// NewEnvironment returns a new set of environment variables based on all
+// the provided environment variables
 func NewEnvironment(envs ...map[string]string) Environment {
 	if len(envs) == 1 {
 		return envs[0]
@@ -21,6 +24,7 @@ func NewEnvironment(envs ...map[string]string) Environment {
 	return out
 }
 
+// List sorts and returns all the environment variables
 func (e Environment) List() []kapi.EnvVar {
 	env := []kapi.EnvVar{}
 	for k, v := range e {
@@ -39,6 +43,8 @@ func (m sortedEnvVar) Len() int           { return len(m) }
 func (m sortedEnvVar) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
 func (m sortedEnvVar) Less(i, j int) bool { return m[i].Name < m[j].Name }
 
+// JoinEnvironment joins two different sets of environment variables
+// into one, leaving out all the duplicates
 func JoinEnvironment(a, b []kapi.EnvVar) (out []kapi.EnvVar) {
 	out = a
 	for i := range b {

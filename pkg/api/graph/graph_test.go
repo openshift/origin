@@ -49,18 +49,16 @@ func TestGraph(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build1"},
 		Triggers: []build.BuildTriggerPolicy{
 			{
-				ImageChange: &build.ImageChangeTrigger{
-					From: kapi.ObjectReference{Name: "test"},
-					Tag:  "base-image",
-				},
-			},
-			{
-				ImageChange: &build.ImageChangeTrigger{
-					From: kapi.ObjectReference{},
-				},
+				ImageChange: &build.ImageChangeTrigger{},
 			},
 		},
 		Parameters: build.BuildParameters{
+			Strategy: build.BuildStrategy{
+				Type: build.STIBuildStrategyType,
+				STIStrategy: &build.STIBuildStrategy{
+					From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:base-image"},
+				},
+			},
 			Output: build.BuildOutput{
 				To:  &kapi.ObjectReference{Name: "other"},
 				Tag: "tag1",

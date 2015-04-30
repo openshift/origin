@@ -7,7 +7,7 @@ import (
 // MultiRESTMapper is a wrapper for multiple RESTMappers.
 type MultiRESTMapper []kmeta.RESTMapper
 
-// VersionAndKindForResource provides the Version and Kind  mappings for the
+// VersionAndKindForResource provides the Version and Kind mappings for the
 // REST resources. This implementation supports multiple REST schemas and return
 // the first match.
 func (m MultiRESTMapper) VersionAndKindForResource(resource string) (defaultVersion, kind string, err error) {

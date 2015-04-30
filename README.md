@@ -43,6 +43,26 @@ For more information on the security of containers, see these articles:
 Running untrusted containers will become less scary as improvements are made upstream to Docker and Kubernetes, but until then please be conscious of the images you run.  Consider using images from trusted parties, building them yourself on OpenShift, or only running containers that run as non-root users.
 
 
+Docker 1.6
+----------
+OpenShift now requires at least Docker 1.6. Here's how to get it:
+
+### Fedora 21
+RPMs for Docker 1.6 are available for Fedora 21 in the updates yum repository.
+
+### CentOS 7
+Docker 1.6 is not yet available in the CentOS 7 Extras yum repository yet. In the meantime, you will need to install it from https://mirror.openshift.com/pub/openshift-v3/dependencies/centos7/x86_64/. Create `/etc/yum.repos.d/openshift-v3-dependencies.repo` with these contents
+
+    [openshift-v3-dependencies]
+    name=OpenShift V3 Dependencies
+    baseurl=https://mirror.openshift.com/pub/openshift-v3/dependencies/centos7/x86_64/
+    enabled=1
+    metadata_expire=7d
+    gpgcheck=0
+
+You will now be able to `yum install` or `yum update` Docker to 1.6.
+
+
 Getting Started
 ---------------
 The simplest way to run OpenShift Origin is in a Docker container:
@@ -60,7 +80,7 @@ Once the container is started, you can jump into a console inside the container 
 
 If you just want to experiment with the API without worrying about security privileges, you can disable authorization checks by running this from the host system.  This command grants full access to anyone.
 
-    $ docker exec -it openshift-origin bash -c "openshift admin policy add-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.certificates/admin/.kubeconfig"
+    $ docker exec -it openshift-origin bash -c "openshift admin policy add-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.config/master/admin.kubeconfig"
 
 
 ### Start Developing
@@ -82,7 +102,7 @@ Once setup with a Go development environment and Docker, you can:
 3.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
-        $ export OPENSHIFTCONFIG=`pwd`/openshift.local.certificates/admin/.kubeconfig 
+        $ export OPENSHIFTCONFIG=`pwd`/openshift.local.config/master/admin.kubeconfig 
         $ _output/local/go/bin/osc create -f examples/hello-openshift/hello-pod.json
 
 In your browser, go to [http://localhost:6061](http://localhost:6061) and you should see 'Welcome to OpenShift'.

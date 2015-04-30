@@ -74,17 +74,15 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 
 	// Print build logs before cancelling build.
 	if cmdutil.GetFlagBool(cmd, "dump-logs") {
-		// in order to dump logs, you must have a pod assigned to the build.  Since build pod creation is asynchronous, it is possible to cancel a build without a pod being assigned.
-		if build.Status != buildapi.BuildStatusRunning {
-			glog.V(2).Infof("Build %v has not yet generated any logs.", buildName)
-
+		opts := buildapi.BuildLogOptions{
+			NoWait: true,
+			Follow: false,
+		}
+		response, err := client.BuildLogs(namespace).Get(buildName, opts).Do().Raw()
+		if err != nil {
+			glog.Errorf("Could not fetch build logs for %s: %v", buildName, err)
 		} else {
-			response, err := client.BuildLogs(namespace).Get(buildName).Do().Raw()
-			if err != nil {
-				glog.Errorf("Could not fetch build logs for %s: %v", buildName, err)
-			} else {
-				glog.V(2).Infof("Build logs for %s:\n%v", buildName, string(response))
-			}
+			glog.Infof("Build logs for %s:\n%v", buildName, string(response))
 		}
 	}
 

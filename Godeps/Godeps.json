@@ -25,11 +25,6 @@
 			"Rev": "bd8df7009305d6ada223ea3c95b94c0f38bfa119"
 		},
 		{
-			"ImportPath": "code.google.com/p/go.net/spdy",
-			"Comment": "null-240",
-			"Rev": "937a34c9de13c766c814510f76bca091dee06028"
-		},
-		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/proto",
 			"Rev": "7fd1620f09261338b6b1ca1289ace83aee0ec946"
 		},
@@ -536,8 +531,8 @@
 		},
 		{
 			"ImportPath": "github.com/docker/distribution",
-			"Comment": "v2.0.0-alpha.3-30-g06fcf05",
-			"Rev": "06fcf053e7b45aa8608c6bf32e8d3227b31d3747"
+			"Comment": "v2.0.0",
+			"Rev": "62b70f951f30a711a8a81df1865d0afeeaaa0169"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/builder/command",
@@ -620,7 +615,7 @@
 		},
 		{
 			"ImportPath": "github.com/docker/spdystream",
-			"Rev": "e731c8f9f19ffd7e51a469a2de1580c1dfbb4fae"
+			"Rev": "e372247595b2edd26f6d022288e97eed793d70a2"
 		},
 		{
 			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
@@ -639,6 +634,14 @@
 			"ImportPath": "github.com/fsouza/go-dockerclient",
 			"Comment": "0.2.1-433-g5a070ba",
 			"Rev": "5a070ba03ad313e2f0183c9f9c369fd10161583a"
+		},
+		{
+			"ImportPath": "github.com/garyburd/redigo/internal",
+			"Rev": "535138d7bcd717d6531c701ef5933d98b1866257"
+		},
+		{
+			"ImportPath": "github.com/garyburd/redigo/redis",
+			"Rev": "535138d7bcd717d6531c701ef5933d98b1866257"
 		},
 		{
 			"ImportPath": "github.com/getsentry/raven-go",
@@ -784,6 +787,10 @@
 			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
 		},
 		{
+			"ImportPath": "github.com/jlhawn/go-crypto",
+			"Rev": "cd738dde20f0b3782516181b0866c9bb9db47401"
+		},
+		{
 			"ImportPath": "github.com/jonboulle/clockwork",
 			"Rev": "72f9bd7c4e0c2a40055ab3d0f09654f730cce982"
 		},
@@ -895,11 +902,11 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "9cb5e8502924a8ff1cce18a9348b61995d7b4fde"
+			"Rev": "ebb2d55f56cfec37ad899ad410b823805cc38e3c"
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
-			"Rev": "18d831e92d67eafd1b0db8af9ffddbd04f7ae1f4"
+			"Rev": "60d4c375939ff7ba397a84117d5281256abb298f"
 		},
 		{
 			"ImportPath": "github.com/stretchr/objx",

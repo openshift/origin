@@ -194,8 +194,13 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	// legacy support - when using older api versions, output a Config
 	if kapi.PreV1Beta3(mapping.APIVersion) {
 		result = &configapi.Config{
-			ListMeta: obj.ListMeta,
-			Items:    obj.Items,
+			ListMeta: kapi.ListMeta{},
+			Items:    obj.Objects,
+		}
+	} else {
+		result = &kapi.List{
+			ListMeta: kapi.ListMeta{},
+			Items:    obj.Objects,
 		}
 	}
 

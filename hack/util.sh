@@ -120,7 +120,7 @@ function wait_for_url {
     out=$(${cmd})
     if [ $? -eq 0 ]; then
       set -e
-      echo ${prefix}${out}
+      echo "${prefix}${out}"
       return 0
     fi
     sleep $wait

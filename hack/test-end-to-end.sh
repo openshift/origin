@@ -45,7 +45,7 @@ if [[ -z "${BASETMPDIR-}" ]]; then
 fi
 ETCD_DATA_DIR="${BASETMPDIR}/etcd"
 VOLUME_DIR="${BASETMPDIR}/volumes"
-CERT_DIR="${BASETMPDIR}/certs"
+FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
 LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
 mkdir -p $LOG_DIR
@@ -60,6 +60,10 @@ PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
 KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
 KUBELET_HOST="${KUBELET_HOST:-127.0.0.1}"
 KUBELET_PORT="${KUBELET_PORT:-10250}"
+
+SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
+MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
+NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
 
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
 # this address is considered stable
@@ -177,7 +181,7 @@ echo "[INFO] `openshift version`"
 echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
 echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
 echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
-echo "[INFO] Certs dir is:              ${CERT_DIR}"
+echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
 echo "[INFO] Using images:              ${USE_IMAGES}"
 
 # Start All-in-one server and wait for health
@@ -191,48 +195,57 @@ do
 done <<< "${ALL_IP_ADDRESSES}"
 
 openshift admin create-master-certs \
-  --overwrite=false \
-  --cert-dir="${CERT_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
+	--overwrite=false \
+	--cert-dir="${MASTER_CONFIG_DIR}" \
+	--hostnames="${SERVER_HOSTNAME_LIST}" \
+	--master="${MASTER_ADDR}" \
+	--public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
 
 openshift admin create-node-config \
-  --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${CERT_DIR}/node-${KUBELET_HOST}" \
-  --node="${KUBELET_HOST}" \
-  --hostnames="${KUBELET_HOST}" \
-  --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --signer-cert="${CERT_DIR}/ca/cert.crt" \
-  --signer-key="${CERT_DIR}/ca/key.key" \
-  --signer-serial="${CERT_DIR}/ca/serial.txt"
+	--listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
+	--node-dir="${NODE_CONFIG_DIR}" \
+	--node="${KUBELET_HOST}" \
+	--hostnames="${KUBELET_HOST}" \
+	--master="${MASTER_ADDR}" \
+	--node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+	--certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+	--signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
+	--signer-key="${MASTER_CONFIG_DIR}/ca.key" \
+	--signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
+
+osadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
+
+# create openshift config
+openshift start \
+	--write-config=${SERVER_CONFIG_DIR} \
+	--create-certs=false \
+    --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
+    --master="${MASTER_ADDR}" \
+    --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
+    --hostname="${KUBELET_HOST}" \
+    --volume-dir="${VOLUME_DIR}" \
+    --etcd-dir="${ETCD_DATA_DIR}" \
+    --images="${USE_IMAGES}"
+
 
 echo "[INFO] Starting OpenShift server"
 sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
-     --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
-     --master="${MASTER_ADDR}" \
-     --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}" \
-     --hostname="${KUBELET_HOST}" \
-     --volume-dir="${VOLUME_DIR}" \
-     --etcd-dir="${ETCD_DATA_DIR}" \
-     --cert-dir="${CERT_DIR}" \
-     --loglevel=4 \
-     --images="${USE_IMAGES}" \
-     --create-certs=false \
-     &> "${LOG_DIR}/openshift.log" &
+	--master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+	--node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+    --loglevel=4 \
+    &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
+	
+export HOME="${FAKE_HOME_DIR}"
 
 if [[ "${API_SCHEME}" == "https" ]]; then
-	export CURL_CA_BUNDLE="${CERT_DIR}/ca/cert.crt"
-	export CURL_CERT="${CERT_DIR}/admin/cert.crt"
-	export CURL_KEY="${CERT_DIR}/admin/key.key"
+	export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
+	export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
+	export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 
-	# Make osc use ${CERT_DIR}/admin/.kubeconfig, and ignore anything in the running user's $HOME dir
-	export HOME="${CERT_DIR}/admin"
-	sudo chmod -R a+rwX "${HOME}"
-	export OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig"
+	# Make osc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
+	export OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+	sudo chmod -R a+rwX "${OPENSHIFTCONFIG}"
 	echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
 fi
 
@@ -247,23 +260,21 @@ openshift admin policy add-role-to-user view e2e-user --namespace=default
 openshift admin new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 openshift admin new-project docker --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 openshift admin new-project custom --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
+openshift admin new-project cache --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
 
 # install the router
 echo "[INFO] Installing the router"
-openshift admin router --create --credentials="${CERT_DIR}/openshift-router/.kubeconfig" --images="${USE_IMAGES}"
+openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}"
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
-# TODO: add --images="${USE_IMAGES}" when the Docker registry is built alongside OpenShift
-openshift admin registry --create --credentials="${CERT_DIR}/openshift-registry/.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images='openshift/origin-${component}:latest'
+openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images="${USE_IMAGES}"
 
 echo "[INFO] Pre-pulling and pushing ruby-20-centos7"
 docker pull openshift/ruby-20-centos7:latest
-# TODO: remove after this becomes part of the build
-docker pull openshift/origin-docker-registry
 echo "[INFO] Pulled ruby-20-centos7"
 
 echo "[INFO] Waiting for Docker registry pod to start"
@@ -274,13 +285,29 @@ wait_for_command '[[ "$(osc get endpoints docker-registry --output-version=v1bet
 DOCKER_REGISTRY=$(osc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
-wait_for_url_timed "http://${DOCKER_REGISTRY}" "[INFO] Docker registry says: " $((2*TIME_MIN))
+wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 [ "$(dig @${API_HOST} "docker-registry.default.local." A)" ]
 
-docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/test/ruby-20-centos7:latest
-docker push ${DOCKER_REGISTRY}/test/ruby-20-centos7:latest
+# Client setup (log in as e2e-user and set 'test' as the default project)
+# This is required to be able to push to the registry!
+echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
+osc login -u e2e-user -p pass
+osc project cache
+token=$(osc config view --flatten -o template -t '{{range .users}}{{if eq .name "e2e-user"}}{{.user.token}}{{end}}{{end}}')
+[[ -n ${token} ]]
+
+# TODO reenable this once we've got docker push secrets 100% ready
+#docker login -u e2e-user -p ${token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}
+# TODO remove the following line once we've got docker push secrets 100% ready
+echo '{"apiVersion": "v1beta1", "kind": "ImageStream", "metadata": {"name": "ruby-20-centos7"}}' | osc create -f -
+
+docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
+docker push ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
 echo "[INFO] Pushed ruby-20-centos7"
+
+echo "[INFO] Back to 'master' context with 'admin' user..."
+osc project default
 
 # Process template and create
 echo "[INFO] Submitting application template json for processing..."
@@ -288,16 +315,14 @@ osc process -n test -f examples/sample-app/application-template-stibuild.json > 
 osc process -n docker -f examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
 osc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
 
-# Client setup (log in as e2e-user and set 'test' as the default project)
-echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
-osc login -u e2e-user -p pass
+echo "[INFO] Back to 'test' context with 'e2e-user' user"
 osc project test
 
 echo "[INFO] Applying STI application config"
 osc create -f "${STI_CONFIG_FILE}"
 
 
-# this needs to be done before waiting fo the build because right now only cluster-admins can see build logs, because that uses proxy
+# this needs to be done before waiting for the build because right now only cluster-admins can see build logs, because that uses proxy
 echo "[INFO] Back to 'master' context with 'admin' user..."
 osc project default
 
@@ -336,7 +361,7 @@ osc exec -p ${registry_pod} whoami | grep root
 # Port forwarding
 echo "[INFO] Validating port-forward"
 osc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
-wait_for_url_timed "http://localhost:5001/" "[INFO] Docker registry says: " $((10*TIME_SEC))
+wait_for_url_timed "http://localhost:5001/healthz" "[INFO] Docker registry says: " $((10*TIME_SEC))
 
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then

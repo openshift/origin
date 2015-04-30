@@ -343,7 +343,10 @@ func mockBuild() *api.Build {
 			Strategy: api.BuildStrategy{
 				Type: api.STIBuildStrategyType,
 				STIStrategy: &api.STIBuildStrategy{
-					Image: "builder/image",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "builder/image",
+					},
 				},
 			},
 			Output: api.BuildOutput{

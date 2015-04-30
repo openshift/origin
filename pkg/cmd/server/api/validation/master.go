@@ -81,6 +81,8 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
+	allErrs = append(allErrs, ValidateProjectRequestConfig(config.ProjectRequestConfig).Prefix("projectRequestConfig")...)
+
 	return allErrs
 }
 
@@ -182,6 +184,13 @@ func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorLi
 	allErrs = append(allErrs, ValidateFile(config.BootstrapPolicyFile, "bootstrapPolicyFile")...)
 	allErrs = append(allErrs, ValidateNamespace(config.MasterAuthorizationNamespace, "masterAuthorizationNamespace")...)
 	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, "openShiftSharedResourcesNamespace")...)
+
+	return allErrs
+}
+
+// ValidateProjectRequestConfig is stub for now.  no validation is required.
+func ValidateProjectRequestConfig(config api.ProjectRequestConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
 
 	return allErrs
 }

@@ -15,9 +15,9 @@ type GetSignerCertOptions struct {
 }
 
 func BindGetSignerCertOptions(options *GetSignerCertOptions, flags *pflag.FlagSet, prefix string) {
-	flags.StringVar(&options.CertFile, prefix+"signer-cert", "openshift.local.certificates/ca/cert.crt", "The certificate file.")
-	flags.StringVar(&options.KeyFile, prefix+"signer-key", "openshift.local.certificates/ca/key.key", "The key file.")
-	flags.StringVar(&options.SerialFile, prefix+"signer-serial", "openshift.local.certificates/ca/serial.txt", "The serial file that keeps track of how many certs have been signed.")
+	flags.StringVar(&options.CertFile, prefix+"signer-cert", "openshift.local.config/master/ca.crt", "The certificate file.")
+	flags.StringVar(&options.KeyFile, prefix+"signer-key", "openshift.local.config/master/ca.key", "The key file.")
+	flags.StringVar(&options.SerialFile, prefix+"signer-serial", "openshift.local.config/master/ca.serial.txt", "The serial file that keeps track of how many certs have been signed.")
 }
 
 func (o GetSignerCertOptions) Validate() error {

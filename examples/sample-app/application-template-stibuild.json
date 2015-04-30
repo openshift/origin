@@ -67,7 +67,10 @@
         },
         "strategy": {
           "stiStrategy": {
-            "image": "openshift/ruby-20-centos7"
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "ruby-20-centos7:latest"
+            }
           },
           "type": "STI"
         }
@@ -86,13 +89,7 @@
           "type": "generic"
         },
         {
-          "imageChange": {
-            "from": {
-              "name": "ruby-20-centos7"
-            },
-            "image": "openshift/ruby-20-centos7",
-            "tag": "latest"
-          },
+          "imageChange": {},
           "type": "imageChange"
         }
       ]

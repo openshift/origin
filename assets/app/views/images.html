@@ -2,12 +2,12 @@
   <project-page>
     <div ng-controller="ImagesController">
       <h1>Image Streams</h1>
-      <alerts alerts="alerts"></alerts>      
+      <alerts alerts="alerts"></alerts>
       <div ng-if="(imageStreams | hashSize) == 0">
         <div>
           <em>{{emptyMessage}}</em>
         </div>
-      </div>      
+      </div>
       <div ng-repeat="imageStream in imageStreams">
         <div class="tile" ng-repeat="tag in imageStream.status.tags">
           <div>
@@ -15,9 +15,9 @@
             <span ng-if="!tag.items.length"> &mdash; <em>No images for this tag</em></span>
             <span ng-if="tag.items.length && tag.items[0].image">
               <span> &mdash; </span>
-              <short-id id="{{tag.items[0].image}}"></short-id>
+              <short-id id="{{tag.items[0].image | imageName}}"></short-id>
               <span> created </span>
-              <relative-timestamp timestamp="tag.items[0].created"></relative-timestamp>        
+              <relative-timestamp timestamp="tag.items[0].created"></relative-timestamp>
             </span>
           </div>
           <div class="muted small">
@@ -32,7 +32,7 @@
           <div ng-if="tag.items.length > 1">
             <div click-to-reveal link-text="Show older images...">
               <div ng-repeat="image in tag.items" ng-if="$index != 0">
-                <short-id ng-if="image.image" id="{{image.image}}"></short-id>
+                <short-id ng-if="image.image" id="{{image.image | imageName}}"></short-id>
                 <span ng-if="!image.image">{{image.dockerImageReference}}</span>
                 <span> created </span>
                 <relative-timestamp timestamp="image.created"></relative-timestamp>
@@ -40,7 +40,7 @@
             </div>
           </div>
         </div>
-      </div>      
+      </div>
     </div>
   </project-page>
 </div>

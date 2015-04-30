@@ -8,7 +8,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
-	configapi "github.com/openshift/origin/pkg/config/api"
 
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
@@ -32,28 +31,143 @@ func NewProcessor(generators map[string]Generator) *Processor {
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurrences with their corresponding
 // values (currently in the containers' Environment variables only).
-func (p *Processor) Process(template *api.Template) (*configapi.Config, fielderrors.ValidationErrorList) {
+func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorList {
 	templateErrors := fielderrors.ValidationErrorList{}
 
 	if err := p.GenerateParameterValues(template); err != nil {
-		return nil, append(templateErrors.Prefix("Template"), fielderrors.NewFieldInvalid("parameters", err, "failure to generate parameter value"))
+		return append(templateErrors.Prefix("Template"), fielderrors.NewFieldInvalid("parameters", err, "failure to generate parameter value"))
 	}
 
 	for i, item := range template.Objects {
+		if obj, ok := item.(*runtime.Unknown); ok {
+			// TODO: use runtime.DecodeList when it returns ValidationErrorList
+			obj, err := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
+			if err != nil {
+				util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("objects", err, "unable to handle object"))
+				continue
+			}
+			item = obj
+		}
+
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
 			util.ReportError(&templateErrors, i, *fielderrors.NewFieldNotSupported("parameters", err))
 		}
-		// Remove namespace from the item
-		itemMeta, err := meta.Accessor(newItem)
-		if err != nil {
-			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("namespace", err, "failed to remove the item namespace"))
+		stripNamespace(newItem)
+		if err := addLabels(newItem, template.ObjectLabels); err != nil {
+			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("labels", err, "label could not be applied"))
 		}
-		itemMeta.SetNamespace("")
 		template.Objects[i] = newItem
 	}
 
-	return &configapi.Config{Items: template.Objects}, templateErrors.Prefix("Template")
+	return templateErrors
+}
+
+func stripNamespace(obj runtime.Object) {
+	// Remove namespace from the item
+	if itemMeta, err := meta.Accessor(obj); err == nil {
+		itemMeta.SetNamespace("")
+		return
+	}
+	// TODO: allow meta.Accessor to handle runtime.Unstructured
+	if unstruct, ok := obj.(*runtime.Unstructured); ok && unstruct.Object != nil {
+		if obj, ok := unstruct.Object["metadata"]; ok {
+			if m, ok := obj.(map[string]interface{}); ok {
+				if _, ok := m["namespace"]; ok {
+					m["namespace"] = ""
+				}
+			}
+			return
+		}
+		if _, ok := unstruct.Object["namespace"]; ok {
+			unstruct.Object["namespace"] = ""
+			return
+		}
+	}
+}
+
+func addLabels(obj runtime.Object, labels map[string]string) error {
+	if labels == nil {
+		return nil
+	}
+
+	// Remove namespace from the item
+	if meta, err := meta.Accessor(obj); err == nil {
+		existing := meta.Labels()
+		if existing == nil {
+			existing = make(map[string]string)
+		}
+		if err := util.MergeInto(existing, labels, util.OverwriteExistingDstKey); err != nil {
+			return err
+		}
+		meta.SetLabels(existing)
+		return nil
+	}
+	// TODO: allow meta.Accessor to handle runtime.Unstructured
+	if unstruct, ok := obj.(*runtime.Unstructured); ok && unstruct.Object != nil {
+		// the presence of "metadata" is sufficient for us to apply the rules for Kube-like
+		// objects.
+		// TODO: add swagger detection to allow this to happen more effectively
+		if obj, ok := unstruct.Object["metadata"]; ok {
+			if m, ok := obj.(map[string]interface{}); ok {
+
+				existing := make(map[string]string)
+				if l, ok := m["labels"]; ok {
+					if found, ok := extractLabels(l); ok {
+						existing = found
+					}
+				}
+				if err := util.MergeInto(existing, labels, util.OverwriteExistingDstKey); err != nil {
+					return err
+				}
+				m["labels"] = mapToGeneric(existing)
+			}
+			return nil
+		}
+
+		// only attempt to set root labels if a root object called labels exists
+		// TODO: add swagger detection to allow this to happen more effectively
+		if obj, ok := unstruct.Object["labels"]; ok {
+			existing := make(map[string]string)
+			if found, ok := extractLabels(obj); ok {
+				existing = found
+			}
+			if err := util.MergeInto(existing, labels, util.OverwriteExistingDstKey); err != nil {
+				return err
+			}
+			unstruct.Object["labels"] = mapToGeneric(existing)
+			return nil
+		}
+	}
+	return nil
+}
+
+// extractLabels extracts a map[string]string from a map[string]interface{}
+func extractLabels(obj interface{}) (map[string]string, bool) {
+	lm, ok := obj.(map[string]interface{})
+	if !ok {
+		return nil, false
+	}
+	existing := make(map[string]string)
+	for k, v := range lm {
+		switch t := v.(type) {
+		case string:
+			existing[k] = t
+		}
+	}
+	return existing, true
+}
+
+// mapToGeneric converts a map[string]string into a map[string]interface{}
+func mapToGeneric(obj map[string]string) map[string]interface{} {
+	if obj == nil {
+		return nil
+	}
+	res := make(map[string]interface{})
+	for k, v := range obj {
+		res[k] = v
+	}
+	return res
 }
 
 // AddParameter adds new custom parameter to the Template. It overrides

@@ -12,8 +12,8 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	o := testclient.NewObjects(kapi.Scheme)
-	if err := testclient.AddObjectsFromPath("../../../test/integration/fixtures/test-deployment-config.json", o); err != nil {
+	o := testclient.NewObjects(kapi.Scheme, kapi.Scheme)
+	if err := testclient.AddObjectsFromPath("../../../test/integration/fixtures/test-deployment-config.json", o, kapi.Scheme); err != nil {
 		t.Fatal(err)
 	}
 	osc, _ := NewFixtureClients(o)
@@ -37,7 +37,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestErrors(t *testing.T) {
-	o := testclient.NewObjects(kapi.Scheme)
+	o := testclient.NewObjects(kapi.Scheme, kapi.Scheme)
 	o.Add(&kapi.List{
 		Items: []runtime.Object{
 			&(errors.NewNotFound("DeploymentConfigList", "").(*errors.StatusError).ErrStatus),

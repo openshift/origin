@@ -14,7 +14,7 @@ type TemplateConfigsNamespacer interface {
 
 // TemplateConfigInterface exposes methods on Image resources.
 type TemplateConfigInterface interface {
-	Create(t *templateapi.Template) (*kapi.List, error)
+	Create(t *templateapi.Template) (*templateapi.Template, error)
 }
 
 // templateConfigs implements TemplateConfigsNamespacer interface
@@ -40,10 +40,25 @@ func (c *templateConfigs) resourceName() string {
 	return "processedTemplates"
 }
 
-// Create process the Template and return Config/List object with substituted
-// parameters
-func (c *templateConfigs) Create(in *templateapi.Template) (*kapi.List, error) {
-	config := &kapi.List{}
-	err := c.r.Post().Namespace(c.ns).Resource(c.resourceName()).Body(in).Do().Into(config)
-	return config, err
+// Create process the Template and returns its current state
+func (c *templateConfigs) Create(in *templateapi.Template) (*templateapi.Template, error) {
+	if kapi.PreV1Beta3(c.r.APIVersion()) {
+		// TODO: path is deprecated, remove
+		config := &kapi.List{}
+		if err := c.r.Post().Namespace(c.ns).Resource(c.resourceName()).Body(in).Do().Into(config); err != nil {
+			return nil, err
+		}
+		// TODO: support copy instead of mutating the in, once we have a way to deep copy runtime.Object
+		// in upstream.
+		/*t, err := kapi.Scheme.Copy(in)
+		if err != nil {
+			return nil, err
+		}*/
+		template := in
+		template.Objects = config.Items
+		return template, nil
+	}
+	template := &templateapi.Template{}
+	err := c.r.Post().Namespace(c.ns).Resource(c.resourceName()).Body(in).Do().Into(template)
+	return template, err
 }

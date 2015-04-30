@@ -20,6 +20,14 @@ function cleanup()
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
     else
+        if path=$(go tool -n pprof 2>&1); then
+          echo
+          echo "pprof: top output"
+          echo
+          set +e
+          go tool pprof -text ./_output/local/go/bin/openshift cpu.pprof
+        fi
+
         echo
         echo "Complete"
     fi
@@ -50,9 +58,12 @@ KUBELET_PORT=${KUBELET_PORT:-10250}
 TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
 ETCD_DATA_DIR="${TEMP_DIR}/etcd"
 VOLUME_DIR="${TEMP_DIR}/volumes"
-CERT_DIR="${TEMP_DIR}/certs"
+FAKE_HOME_DIR="${TEMP_DIR}/openshift.local.home"
+SERVER_CONFIG_DIR="${TEMP_DIR}/openshift.local.config"
+MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
+NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
 CONFIG_DIR="${TEMP_DIR}/configs"
-mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${CERT_DIR}" "${CONFIG_DIR}"
+mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${CONFIG_DIR}"
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -77,7 +88,7 @@ echo openshift: $out
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
 # Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-echo "[INFO] Create certificates for the OpenShift server to ${CERT_DIR}"
+echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
 ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
 SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
@@ -88,42 +99,51 @@ done <<< "${ALL_IP_ADDRESSES}"
 
 openshift admin create-master-certs \
   --overwrite=false \
-  --cert-dir="${CERT_DIR}" \
+  --cert-dir="${MASTER_CONFIG_DIR}" \
   --hostnames="${SERVER_HOSTNAME_LIST}" \
   --master="${MASTER_ADDR}" \
   --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
 
 openshift admin create-node-config \
   --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${CERT_DIR}/node-${KUBELET_HOST}" \
+  --node-dir="${NODE_CONFIG_DIR}" \
   --node="${KUBELET_HOST}" \
   --hostnames="${KUBELET_HOST}" \
   --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --certificate-authority="${CERT_DIR}/ca/cert.crt" \
-  --signer-cert="${CERT_DIR}/ca/cert.crt" \
-  --signer-key="${CERT_DIR}/ca/key.key" \
-  --signer-serial="${CERT_DIR}/ca/serial.txt"
+  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
+  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
+  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
 
-# Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start \
+osadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
+
+# create openshift config
+openshift start \
+  --write-config=${SERVER_CONFIG_DIR} \
+  --create-certs=false \
   --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
   --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
   --hostname="${KUBELET_HOST}" \
   --volume-dir="${VOLUME_DIR}" \
-  --cert-dir="${CERT_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --create-certs=false 1>&2 &
+  --etcd-dir="${ETCD_DATA_DIR}"
+
+
+# Start openshift
+OPENSHIFT_PROFILE=cpu OPENSHIFT_ON_PANIC=crash openshift start \
+  --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+  --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+  1>&2 &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
-    export CURL_CA_BUNDLE="${CERT_DIR}/ca/cert.crt"
-    export CURL_CERT="${CERT_DIR}/admin/cert.crt"
-    export CURL_KEY="${CERT_DIR}/admin/key.key"
+    export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
+    export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
+    export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 fi
 
 # set the home directory so we don't pick up the users .config
-export HOME="${TEMP_DIR}/home"
+export HOME="${FAKE_HOME_DIR}"
 
 wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
@@ -149,20 +169,26 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 fi
 
 
-osc login --server=${KUBERNETES_MASTER} --certificate-authority="${CERT_DIR}/ca/cert.crt" -u test-user -p anything
+osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 osc new-project project-foo --display-name="my project" --description="boring project description"
 [ "$(osc project | grep 'Using project "project-foo"')" ]
+osc logout
+[ -z "$(osc get pods | grep 'system:anonymous')" ]
+osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+osc get projects
+osc project project-foo
+ 
 
 
 # test config files from the --config flag
-osc get services --config="${CERT_DIR}/admin/.kubeconfig"
+osc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 
 # test config files from env vars
-OPENSHIFTCONFIG="${CERT_DIR}/admin/.kubeconfig" osc get services
+OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" osc get services
 
 # test config files in the home directory
 mkdir -p ${HOME}/.config/openshift
-mv ${CERT_DIR}/admin/.kubeconfig ${HOME}/.config/openshift/config
+cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.config/openshift/config
 osc get services
 mv ${HOME}/.config/openshift/config ${HOME}/.config/openshift/non-default-config
 echo "config files: ok"
@@ -264,10 +290,18 @@ echo "images: ok"
 
 osc get imageStreams
 osc create -f test/integration/fixtures/test-image-stream.json
+# make sure stream.status.dockerImageRepository isn't set (no registry)
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc create -f examples/sample-app/docker-registry-config.json
+# create the registry
+osadm registry --create --credentials="${OPENSHIFTCONFIG}"
+# make sure stream.status.dockerImageRepository IS set
 [ -n "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc delete -f examples/sample-app/docker-registry-config.json
+# delete the registry resources
+osc delete dc docker-registry
+osc delete se docker-registry
+osc delete rc docker-registry-1
+osc delete pod $(osc get pod | grep docker-registry-1 | awk '{print $1}')
+# done deleting registry resources
 osc delete imageStreams test
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 osc create -f examples/image-streams/image-streams-centos7.json
@@ -353,6 +387,10 @@ osc get template ruby-helloworld-sample
 # create from template with code explicitly set is not supported
 [ ! "$(osc new-app ruby-helloworld-sample~git@github.com/mfojtik/sinatra-app-example)" ]
 osc delete template ruby-helloworld-sample
+# override component names
+[ "$(osc new-app mysql --name=db | grep db)" ]
+osc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
+osc delete all -l app=ruby
 echo "new-app: ok"
 
 osc get routes
@@ -364,6 +402,7 @@ osc get deploymentConfigs
 osc get dc
 osc create -f test/integration/fixtures/test-deployment-config.json
 osc describe deploymentConfigs test-deployment-config
+osc deploy test-deployment-config
 osc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
@@ -385,6 +424,7 @@ osc process -f examples/sample-app/application-template-dockerbuild.json | osc c
 osc get buildConfigs
 osc get bc
 osc get builds
+
 [[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Github") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github" ]]
 [[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic" ]]
 echo "buildConfig: ok"
@@ -396,14 +436,6 @@ started=$(osc start-build ruby-sample-build-invalidtag)
 echo "start-build: ok"
 osc describe build ${started} | grep openshift/ruby-20-centos7$
 
-osc cancel-build "${started}" --dump-logs --restart
-# a build for which there is an upstream tag in the corresponding imagerepo, so
-# the build should use that specific tag of the image instead of the image field
-# as defined in the buildconfig
-started=$(osc start-build ruby-sample-build-validtag)
-osc describe imagestream ruby-20-centos7-buildcli
-osc describe build ${started}
-osc describe build ${started} | grep openshift/ruby-20-centos7:success$
 osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
 
@@ -468,6 +500,11 @@ osc process -f examples/sample-app/application-template-stibuild.json -l name=my
 osc delete all -l name=mytemplate
 osc new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
 osc delete all -l name=hello-world
-openshift ex generate https://github.com/openshift/ruby-hello-world -l name=hello-world | osc create -f -
-osc delete all -l name=hello-world
 echo "delete all: ok"
+
+echo
+echo
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80
+echo
+echo
+echo "test-cmd: ok"

@@ -1,18 +1,18 @@
 <div class="col-md-4">
-  <div class="tile tile-template tile-click label-tags" id="" title="">
+  <div class="tile tile-template tile-click label-tags" id="" title="{{template.metadata.name}}">
     <div class="tile-table">
       <div class="tile-table-cell template-icon">
-        <span aria-hidden="true" class="font-icon {{template | iconClass : 'template'}}" title="{{template.metadata.name}}"></span>
+        <custom-icon resource="template" kind="template" ></custom-icon>
       </div>
       <div class="tile-table-cell">
         <h3>
-        <a href="javascript:;" class="tile-target" data-toggle="modal" data-target="#{{template.metadata.namespace}}_{{template.metadata.name}}">{{template.metadata.name}}</a>
+        <a href="javascript:;" class="tile-target" data-toggle="modal" data-target="#{{template.metadata.uid}}">{{template.metadata.name}}</a>
         </h3>
         <p ng-if="template | description">{{template | description}}</p>
       </div>
     </div>
   </div>
-  <div class="modal modal-create fade" id="{{template.metadata.namespace}}_{{template.metadata.name}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal modal-create fade" id="{{template.metadata.uid}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -24,7 +24,7 @@
         <div class="modal-body label-tags">
           <div class="row">
             <div class="template-icon col-xs-4 col-sm-4 col-md-4">
-              <span class="{{template | iconClass : 'template'}}"></span>
+              <custom-icon resource="template" kind="template" title="{{template.metadata.name}}"></custom-icon>
             </div>
             <div class="col-xs-8 col-sm-8 col-md-8">
               <p ng-if="template | description">{{template | description}}</p>
@@ -41,7 +41,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-block btn-primary btn-lg select-template">Select template...</button>
+          <button type="button" class="btn btn-block btn-primary btn-lg select-template">Select template</button>
         </div>
       </div>
     </div>

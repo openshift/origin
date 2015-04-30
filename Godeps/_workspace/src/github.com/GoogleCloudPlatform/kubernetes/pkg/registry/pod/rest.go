@@ -205,7 +205,7 @@ func LogLocation(getter ResourceGetter, connInfo client.ConnectionInfoGetter, ct
 			return nil, nil, fmt.Errorf("a container name must be specified for pod %s", name)
 		}
 	}
-	nodeHost := pod.Status.HostIP
+	nodeHost := pod.Spec.Host
 	if len(nodeHost) == 0 {
 		// If pod has not been assigned a host, return an empty location
 		return nil, nil, nil

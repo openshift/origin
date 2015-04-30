@@ -65,4 +65,23 @@ angular.module('openshiftConsole')
       },
       template: '<code class="short-id" title="{{id}}">{{id.substring(0, 6)}}</code>'
     }
+  })
+  .directive('customIcon', function() {
+    return {
+      restrict:'E',
+      scope: {
+        resource: '=',
+        kind: '@',
+        tag: '=?'
+      },
+      controller: function($scope, annotationFilter, iconClassFilter) {
+        var icon = $scope.icon = annotationFilter($scope.resource, $scope.tag ? $scope.tag + ".icon" : "icon");
+        $scope.isDataIcon = icon && icon.indexOf("data:") == 0;
+        if (!$scope.isDataIcon) {
+          // The icon class filter will at worst return the default icon for the given kind
+          $scope.icon = iconClassFilter($scope.resource, $scope.kind, $scope.tag ? $scope.tag + ".iconClass" : "iconClass");
+        }
+      },
+      templateUrl: 'views/directives/_custom-icon.html'
+    }
   });

@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"bitbucket.org/ww/goautoneg"
+
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	restful "github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
@@ -28,7 +30,6 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	utilerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta1"
@@ -114,6 +115,8 @@ const (
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
+var excludedV1Beta3Types = util.NewStringSet("templateConfigs", "deployments", "buildLogs")
+
 // APIInstaller installs additional API components into this server
 type APIInstaller interface {
 	// Returns an array of strings describing what was installed
@@ -168,6 +171,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
 
 	imageRepositoryStorage, imageRepositoryStatusStorage := imagerepository.NewREST(imageStreamRegistry)
 	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageStreamMappingRegistry)
@@ -177,11 +181,13 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc:    buildEtcd.GetBuildConfig,
-			UpdateBuildConfigFunc: buildEtcd.UpdateBuildConfig,
-			GetBuildFunc:          buildEtcd.GetBuild,
-			CreateBuildFunc:       buildEtcd.CreateBuild,
-			GetImageStreamFunc:    imageStreamRegistry.GetImageStream,
+			GetBuildConfigFunc:      buildEtcd.GetBuildConfig,
+			UpdateBuildConfigFunc:   buildEtcd.UpdateBuildConfig,
+			GetBuildFunc:            buildEtcd.GetBuild,
+			CreateBuildFunc:         buildEtcd.CreateBuild,
+			GetImageStreamFunc:      imageStreamRegistry.GetImageStream,
+			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
+			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
 	}
 	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
@@ -211,6 +217,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
 		"buildConfigs/instantiate": buildConfigInstantiate,
 		"buildLogs":                buildlogregistry.NewREST(buildEtcd, c.BuildLogClient(), kubeletClient),
+		"builds/log":               buildlogregistry.NewREST(buildEtcd, c.BuildLogClient(), kubeletClient),
 
 		"images":                   imageStorage,
 		"imageStreams":             imageStreamStorage,
@@ -236,7 +243,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
 		"projects":        projectStorage,
-		"projectRequests": projectrequeststorage.NewREST(c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingStorage, *projectStorage),
+		"projectRequests": projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingStorage, *projectStorage, c.PolicyClient()),
 
 		"users":                userStorage,
 		"identities":           identityStorage,
@@ -263,7 +270,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 	v1beta3Storage := map[string]rest.Storage{}
 	for k, v := range storage {
-		if k == "templateConfigs" {
+		if excludedV1Beta3Types.Has(k) {
 			continue
 		}
 		v1beta3Storage[strings.ToLower(k)] = v
@@ -291,7 +298,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
 	}
 
-	version2 := &apiserver.APIGroupVersion{
+	version3 := &apiserver.APIGroupVersion{
 		Root:    OpenShiftAPIPrefix,
 		Version: OpenShiftAPIV1Beta3,
 
@@ -300,21 +307,22 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		Mapper: latest.RESTMapper,
 
-		Creater: kapi.Scheme,
-		Typer:   kapi.Scheme,
-		Linker:  latest.SelfLinker,
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    latest.SelfLinker,
 
 		Admit:   c.AdmissionControl,
 		Context: c.getRequestContextMapper(),
 	}
 
-	if err := version2.InstallREST(container); err != nil {
-		// TODO: remove this check once v1beta3 is complete
+	if err := version3.InstallREST(container); err != nil {
+		/*// TODO: remove this check once v1beta3 is complete
 		if utilerrs.FilterOut(err, func(err error) bool {
 			return strings.Contains(err.Error(), "is registered for version")
-		}) != nil {
-			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
-		}
+		}) != nil {*/
+		glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
+		//}
 	}
 
 	var root *restful.WebService
@@ -372,13 +380,17 @@ func initAPIVersionRoute(root *restful.WebService, versions ...string) {
 // and the Accept header supports text/html
 func assetServerRedirect(handler http.Handler, assetPublicURL string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		accept := req.Header.Get("Accept")
-		if req.URL.Path == "/" && strings.Contains(accept, "text/html") {
-			http.Redirect(w, req, assetPublicURL, http.StatusFound)
-		} else {
-			// Dispatch to the next handler
-			handler.ServeHTTP(w, req)
+		if req.URL.Path == "/" {
+			accepts := goautoneg.ParseAccept(req.Header.Get("Accept"))
+			for _, accept := range accepts {
+				if accept.Type == "text" && accept.SubType == "html" {
+					http.Redirect(w, req, assetPublicURL, http.StatusFound)
+					return
+				}
+			}
 		}
+		// Dispatch to the next handler
+		handler.ServeHTTP(w, req)
 	})
 }
 

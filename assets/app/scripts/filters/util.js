@@ -124,6 +124,8 @@ angular.module('openshiftConsole')
       switch(type) {
         case "webhooks":
           return "http://docs.openshift.org/latest/dev_guide/builds.html#webhook-triggers";
+        case "start-build":
+          return "http://docs.openshift.org/latest/dev_guide/builds.html#starting-a-build";
         default:
           return "http://docs.openshift.org/latest/welcome/index.html";
       }

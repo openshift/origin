@@ -198,6 +198,19 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 									},
 								},
 								Privileged: mountHost,
+								// TODO reenable the liveness probe when we no longer support the v1 registry.
+								/*
+									LivenessProbe: &kapi.Probe{
+										InitialDelaySeconds: 3,
+										TimeoutSeconds:      5,
+										Handler: kapi.Handler{
+											HTTPGet: &kapi.HTTPGetAction{
+												Path: "/healthz",
+												Port: util.NewIntOrStringFromInt(5000),
+											},
+										},
+									},
+								*/
 							},
 						},
 						Volumes: []kapi.Volume{

@@ -164,12 +164,12 @@ func TestTagVerifier(t *testing.T) {
 					From: &kapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
-						Name:      "abc",
+						Name:      "a:b:c",
 					},
 				},
 			},
 			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldInvalid("spec.tags[latest].from.name", "abc", "must be of the form <repo>:<tag> or <repo>@<id>"),
+				fielderrors.NewFieldInvalid("spec.tags[latest].from.name", "a:b:c", "must be of the form <tag>, <repo>:<tag>, <id>, or <repo>@<id>"),
 			},
 		},
 		"sar error": {
@@ -356,8 +356,6 @@ func TestTagsChanged(t *testing.T) {
 				}},
 				"t2": {Items: []api.TagEvent{
 					{
-						//TODO use the line below when we're on Docker 1.6 with true pull by digest
-						//DockerImageReference: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 						DockerImageReference: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
 				}},
@@ -510,9 +508,7 @@ func TestTagsChanged(t *testing.T) {
 				"t1": {
 					Items: []api.TagEvent{
 						{
-							//TODO use the line below when we're on Docker 1.6 with true pull by digest
-							//DockerImageReference: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-							DockerImageReference: "registry:5000/ns/stream:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+							DockerImageReference: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 							Image:                "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 						},
 					},

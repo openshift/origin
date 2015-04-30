@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -50,7 +52,10 @@ func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, err
 var mockBuildStrategy api.BuildStrategy = api.BuildStrategy{
 	Type: "STI",
 	STIStrategy: &api.STIBuildStrategy{
-		Image: "repository/image",
+		From: &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: "repository/image",
+		},
 	},
 }
 

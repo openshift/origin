@@ -33,7 +33,10 @@ popd
 # Initialize certificates
 echo "Generating certs"
 pushd /vagrant
-  CERT_DIR=`pwd`/openshift.local.certificates
+  SERVER_CONFIG_DIR="`pwd`/openshift.local.config"
+  MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
+  NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${minion}"
+  CERT_DIR="${MASTER_CONFIG_DIR}"
 
   # Master certs
   /usr/bin/openshift admin create-master-certs \
@@ -48,15 +51,15 @@ pushd /vagrant
     ip=${minion_ip_array[$i]}
 
     /usr/bin/openshift admin create-node-config \
-      --node-dir="${CERT_DIR}/node-${minion}" \
+      --node-dir="${NODE_CONFIG_DIR}" \
       --node="${minion}" \
       --hostnames="${minion},${ip}" \
       --master="https://${MASTER_IP}:8443" \
-      --node-client-certificate-authority="${CERT_DIR}/ca/cert.crt" \
-      --certificate-authority="${CERT_DIR}/ca/cert.crt" \
-      --signer-cert="${CERT_DIR}/ca/cert.crt" \
-      --signer-key="${CERT_DIR}/ca/key.key" \
-      --signer-serial="${CERT_DIR}/ca/serial.txt"
+      --node-client-certificate-authority="${CERT_DIR}/ca.crt" \
+      --certificate-authority="${CERT_DIR}/ca.crt" \
+      --signer-cert="${CERT_DIR}/ca.crt" \
+      --signer-key="${CERT_DIR}/ca.key" \
+      --signer-serial="${CERT_DIR}/ca.serial.txt"
   done
 
 popd
@@ -86,12 +89,12 @@ systemctl start openshift-master.service
 
 # if SDN requires service on master, then set it up
 if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
-  export ETCD_CAFILE=/vagrant/openshift.local.certificates/ca/cert.crt
-  export ETCD_CERTFILE=/vagrant/openshift.local.certificates/master/etcd-client.crt
-  export ETCD_KEYFILE=/vagrant/openshift.local.certificates/master/etcd-client.key
+  export ETCD_CAFILE=/vagrant/openshift.local.config/master/ca.crt
+  export ETCD_CERTFILE=/vagrant/openshift.local.config/master/master.etcd-client.crt
+  export ETCD_KEYFILE=/vagrant/openshift.local.config/master/master.etcd-client.key
   $(dirname $0)/provision-master-sdn.sh $@
 fi
 
 # Set up the OPENSHIFTCONFIG environment variable for use by osc
-echo 'export OPENSHIFTCONFIG=/vagrant/openshift.local.certificates/admin/.kubeconfig' >> /root/.bash_profile
-echo 'export OPENSHIFTCONFIG=/vagrant/openshift.local.certificates/admin/.kubeconfig' >> /home/vagrant/.bash_profile
+echo 'export OPENSHIFTCONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /root/.bash_profile
+echo 'export OPENSHIFTCONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /home/vagrant/.bash_profile

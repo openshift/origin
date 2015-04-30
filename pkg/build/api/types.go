@@ -189,10 +189,6 @@ const (
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategy struct {
-	// Image is the image required to execute the build. If not specified
-	// a validation error is returned.
-	Image string `json:"image"`
-
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
 
@@ -200,6 +196,10 @@ type CustomBuildStrategy struct {
 	// inside the Docker container.
 	// TODO: Allow admins to enforce 'false' for this option
 	ExposeDockerSocket bool `json:"exposeDockerSocket,omitempty"`
+
+	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// the docker image should be pulled
+	From *kapi.ObjectReference `json:"from,omitempty"`
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -208,24 +208,17 @@ type DockerBuildStrategy struct {
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty"`
 
-	// Image is optional and indicates the image that the dockerfile for this
-	// build should "FROM".  If present, the build process will substitute this value
-	// into the FROM line of the dockerfile.
-	Image string `json:"image,omitempty"`
+	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// the docker image should be pulled
+	// the resulting image will be used in the FROM line of the Dockerfile for this build.
+	From *kapi.ObjectReference `json:"from,omitempty"`
 }
 
 // STIBuildStrategy defines input parameters specific to an STI build.
 type STIBuildStrategy struct {
-	// Image is the image used to execute the build.
-	// Only valid if From is not present.
-	Image string `json:"image,omitempty"`
-
-	// From is reference to an image stream from where the docker image should be pulled
+	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
-
-	// Tag is the name of image stream tag to be used as the build image, it only
-	// applies when From is specified.
-	Tag string `json:"tag,omitempty`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
@@ -292,17 +285,6 @@ type WebHookTrigger struct {
 
 // ImageChangeTrigger allows builds to be triggered when an ImageStream changes
 type ImageChangeTrigger struct {
-	// Image is used to specify the value in the BuildConfig to replace with the
-	// immutable image id supplied by the ImageStream when this trigger fires.
-	Image string `json:"image"`
-	// From is a reference to an image stream to watch for changes. This field takes
-	// precedence over ImageRepositoryRef, which is deprecated and will be removed in v1beta3. The
-	// Kind may be left blank, in which case it defaults to "ImageStream". The "Name" is
-	// the only required subfield - if Namespace is blank, the namespace of the current build
-	// trigger will be used.
-	From kapi.ObjectReference `json:"from"`
-	// Tag is the name of an image stream tag to watch for changes.
-	Tag string `json:"tag,omitempty"`
 	// LastTriggeredImageID is used internally by the ImageChangeController to save last
 	// used image ID for build
 	LastTriggeredImageID string `json:"lastTriggeredImageID,omitempty"`
@@ -382,4 +364,17 @@ type BuildRequest struct {
 
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty"`
+}
+
+// BuildLogOptions is the REST options for a build log
+type BuildLogOptions struct {
+	kapi.TypeMeta
+
+	// Follow if true indicates that the build log should be streamed until
+	// the build terminates.
+	Follow bool
+
+	// NoWait if true causes the call to return immediately even if the build
+	// is not available yet. Otherwise the server will wait until the build has started.
+	NoWait bool
 }
