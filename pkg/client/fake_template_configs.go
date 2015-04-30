@@ -1,8 +1,6 @@
 package client
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -13,7 +11,7 @@ type FakeTemplateConfigs struct {
 	Namespace string
 }
 
-func (c *FakeTemplateConfigs) Create(template *templateapi.Template) (*kapi.List, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-template-config", Value: template}, &kapi.List{})
-	return obj.(*kapi.List), err
+func (c *FakeTemplateConfigs) Create(template *templateapi.Template) (*templateapi.Template, error) {
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-template-config", Value: template}, &templateapi.Template{})
+	return obj.(*templateapi.Template), err
 }
