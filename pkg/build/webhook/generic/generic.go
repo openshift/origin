@@ -41,7 +41,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		return nil, true, nil
 	}
 
-	if req.Body != nil {
+	if req.Body != nil && req.Header.Get("Content-Type") == "application/json" {
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return nil, false, err
@@ -86,9 +86,6 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 func verifyRequest(req *http.Request) error {
 	if method := req.Method; method != "POST" {
 		return fmt.Errorf("Unsupported HTTP method %s", method)
-	}
-	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
-		return fmt.Errorf("Unsupported Content-Type %s", contentType)
 	}
 	return nil
 }
