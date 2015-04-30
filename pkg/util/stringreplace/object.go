@@ -22,8 +22,10 @@ func visitValue(v reflect.Value, visitor func(string) string) {
 		visitValue(reflect.ValueOf(v.Interface()), visitor)
 
 	case reflect.Slice, reflect.Array:
+		vt := v.Type().Elem()
 		for i := 0; i < v.Len(); i++ {
-			visitValue(v.Index(i), visitor)
+			val := visitUnsettableValues(vt, v.Index(i), visitor)
+			v.Index(i).Set(val)
 		}
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
@@ -33,29 +35,13 @@ func visitValue(v reflect.Value, visitor func(string) string) {
 	case reflect.Map:
 		vt := v.Type().Elem()
 		for _, k := range v.MapKeys() {
-			val := reflect.New(vt).Elem()
-			existing := v.MapIndex(k)
-			// if the map value type is interface, we must resolve it to a concrete
-			// value prior to setting it back.
-			if existing.CanInterface() {
-				existing = reflect.ValueOf(existing.Interface())
-			}
-			switch existing.Kind() {
-			case reflect.String:
-				s := visitor(existing.String())
-				val.Set(reflect.ValueOf(s))
-			default:
-				if existing.IsValid() && existing.Kind() != reflect.Invalid {
-					val.Set(existing)
-				}
-				visitValue(val, visitor)
-			}
+			val := visitUnsettableValues(vt, v.MapIndex(k), visitor)
 			v.SetMapIndex(k, val)
 		}
 
 	case reflect.String:
 		if !v.CanSet() {
-			glog.V(5).Infof("Unable to set String value '%v'", v)
+			glog.Infof("Unable to set String value '%v'", v)
 			return
 		}
 		v.SetString(visitor(v.String()))
@@ -63,4 +49,27 @@ func visitValue(v reflect.Value, visitor func(string) string) {
 	default:
 		glog.V(5).Infof("Unknown field type '%s': %v", v.Kind(), v)
 	}
+}
+
+// visitUnsettableValues creates a copy of the object you want to modify and returns the modified result
+func visitUnsettableValues(typeOf reflect.Type, original reflect.Value, visitor func(string) string) reflect.Value {
+	val := reflect.New(typeOf).Elem()
+	existing := original
+	// if the map value type is interface, we must resolve it to a concrete
+	// value prior to setting it back.
+	if existing.CanInterface() {
+		existing = reflect.ValueOf(existing.Interface())
+	}
+	switch existing.Kind() {
+	case reflect.String:
+		s := visitor(existing.String())
+		val.Set(reflect.ValueOf(s))
+	default:
+		if existing.IsValid() && existing.Kind() != reflect.Invalid {
+			val.Set(existing)
+		}
+		visitValue(val, visitor)
+	}
+
+	return val
 }
