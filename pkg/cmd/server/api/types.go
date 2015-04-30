@@ -84,6 +84,14 @@ type MasterConfig struct {
 
 	// PolicyConfig holds information about where to locate critical pieces of bootstrapping policy
 	PolicyConfig PolicyConfig
+
+	// ProjectRequestConfig holds information about how to handle new project requests
+	ProjectRequestConfig ProjectRequestConfig
+}
+
+type ProjectRequestConfig struct {
+	// ProjectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint
+	ProjectRequestMessage string
 }
 
 type PolicyConfig struct {

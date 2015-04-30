@@ -242,7 +242,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
 		"projects":        projectStorage,
-		"projectRequests": projectrequeststorage.NewREST(c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingStorage, *projectStorage),
+		"projectRequests": projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingStorage, *projectStorage, c.PolicyClient()),
 
 		"users":                userStorage,
 		"identities":           identityStorage,

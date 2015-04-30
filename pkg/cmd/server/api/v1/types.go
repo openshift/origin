@@ -80,6 +80,14 @@ type MasterConfig struct {
 	ImageConfig ImageConfig `json:"imageConfig"`
 
 	PolicyConfig PolicyConfig `json:"policyConfig"`
+
+	// ProjectRequestConfig holds information about how to handle new project requests
+	ProjectRequestConfig ProjectRequestConfig `json:"projectRequestConfig"`
+}
+
+type ProjectRequestConfig struct {
+	// ProjectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint
+	ProjectRequestMessage string `json:"projectRequestMessage"`
 }
 
 type PolicyConfig struct {

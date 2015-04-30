@@ -9,9 +9,9 @@ type ResourceAccessReviewsNamespacer interface {
 	ResourceAccessReviews(namespace string) ResourceAccessReviewInterface
 }
 
-// RootResourceAccessReviews has methods to work with ResourceAccessReview resources in the root scope
-type RootResourceAccessReviews interface {
-	RootResourceAccessReviews() ResourceAccessReviewInterface
+// ClusterResourceAccessReviews has methods to work with ResourceAccessReview resources in the cluster scope
+type ClusterResourceAccessReviews interface {
+	ClusterResourceAccessReviews() ResourceAccessReviewInterface
 }
 
 // ResourceAccessReviewInterface exposes methods on ResourceAccessReview resources.
@@ -40,20 +40,20 @@ func (c *resourceAccessReviews) Create(policy *authorizationapi.ResourceAccessRe
 	return
 }
 
-// rootResourceAccessReviews implements RootResourceAccessReviews interface
-type rootResourceAccessReviews struct {
+// clusterResourceAccessReviews implements ClusterResourceAccessReviews interface
+type clusterResourceAccessReviews struct {
 	r *Client
 }
 
-// newRootResourceAccessReviews returns a rootResourceAccessReviews
-func newRootResourceAccessReviews(c *Client) *rootResourceAccessReviews {
-	return &rootResourceAccessReviews{
+// newClusterResourceAccessReviews returns a clusterResourceAccessReviews
+func newClusterResourceAccessReviews(c *Client) *clusterResourceAccessReviews {
+	return &clusterResourceAccessReviews{
 		r: c,
 	}
 }
 
 // Create creates new policy. Returns the server's representation of the policy and error if one occurs.
-func (c *rootResourceAccessReviews) Create(policy *authorizationapi.ResourceAccessReview) (result *authorizationapi.ResourceAccessReviewResponse, err error) {
+func (c *clusterResourceAccessReviews) Create(policy *authorizationapi.ResourceAccessReview) (result *authorizationapi.ResourceAccessReviewResponse, err error) {
 	result = &authorizationapi.ResourceAccessReviewResponse{}
 	err = c.r.Post().Resource("resourceAccessReviews").Body(policy).Do().Into(result)
 	return

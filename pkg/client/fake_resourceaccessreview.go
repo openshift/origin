@@ -13,11 +13,11 @@ func (c *FakeResourceAccessReviews) Create(resourceAccessReview *authorizationap
 	return obj.(*authorizationapi.ResourceAccessReviewResponse), err
 }
 
-type FakeRootResourceAccessReviews struct {
+type FakeClusterResourceAccessReviews struct {
 	Fake *Fake
 }
 
-func (c *FakeRootResourceAccessReviews) Create(resourceAccessReview *authorizationapi.ResourceAccessReview) (*authorizationapi.ResourceAccessReviewResponse, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-root-resourceAccessReview", Value: resourceAccessReview}, &authorizationapi.ResourceAccessReviewResponse{})
+func (c *FakeClusterResourceAccessReviews) Create(resourceAccessReview *authorizationapi.ResourceAccessReview) (*authorizationapi.ResourceAccessReviewResponse, error) {
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-cluster-resourceAccessReview", Value: resourceAccessReview}, &authorizationapi.ResourceAccessReviewResponse{})
 	return obj.(*authorizationapi.ResourceAccessReviewResponse), err
 }
