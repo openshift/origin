@@ -25,11 +25,6 @@
 			"Rev": "bd8df7009305d6ada223ea3c95b94c0f38bfa119"
 		},
 		{
-			"ImportPath": "code.google.com/p/go.net/spdy",
-			"Comment": "null-240",
-			"Rev": "937a34c9de13c766c814510f76bca091dee06028"
-		},
-		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/proto",
 			"Rev": "7fd1620f09261338b6b1ca1289ace83aee0ec946"
 		},
@@ -620,7 +615,7 @@
 		},
 		{
 			"ImportPath": "github.com/docker/spdystream",
-			"Rev": "e731c8f9f19ffd7e51a469a2de1580c1dfbb4fae"
+			"Rev": "e372247595b2edd26f6d022288e97eed793d70a2"
 		},
 		{
 			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
