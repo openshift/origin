@@ -14,27 +14,26 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const cancelBuildLongDesc = `
-Cancels a pending or running build.
+const (
+	cancelBuild_long = `Cancels a pending or running build.`
 
-Examples:
-
-  # Cancel the build with the given name
+	cancelBuild_example = `  // Cancel the build with the given name
   $ %[1]s cancel-build 1da32cvq
 
-  # Cancel the named build and print the build logs
+  // Cancel the named build and print the build logs
   $ %[1]s cancel-build 1da32cvq --dump-logs
 
-  # Cancel the named build and create a new one with the same parameters
-  $ %[1]s cancel-build 1da32cvq --restart
-`
+  // Cancel the named build and create a new one with the same parameters
+  $ %[1]s cancel-build 1da32cvq --restart`
+)
 
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command
 func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "cancel-build BUILD",
-		Short: "Cancel a pending or running build.",
-		Long:  fmt.Sprintf(cancelBuildLongDesc, fullName),
+		Use:     "cancel-build BUILD",
+		Short:   "Cancel a pending or running build.",
+		Long:    cancelBuild_long,
+		Example: fmt.Sprintf(cancelBuild_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCancelBuild(f, out, cmd, args)
 			cmdutil.CheckErr(err)

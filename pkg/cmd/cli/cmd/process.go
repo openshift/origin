@@ -44,31 +44,31 @@ func injectUserVars(cmd *cobra.Command, t *api.Template) {
 	}
 }
 
-const processLongDesc = `Process template into a list of resources specified in filename or stdin
+const (
+	process_long = `Process template into a list of resources specified in filename or stdin
 
-JSON and YAML formats are accepted.
+JSON and YAML formats are accepted.`
 
-Examples:
-
-  # Convert template.json file into resource list
+	process_example = `  // Convert template.json file into resource list
   $ %[1]s process -f template.json
 
-  # Process template while passing a user-defined label
+  // Process template while passing a user-defined label
   $ %[1]s process -f template.json -l name=mytemplate
 
-  # Convert stored template into resource list
+  // Convert stored template into resource list
   $ %[1]s process foo
 
-  # Convert template.json into resource list
-  $ cat template.json | %[1]s process -f -
-`
+  // Convert template.json into resource list
+  $ cat template.json | %[1]s process -f -`
+)
 
 // NewCmdProcess implements the OpenShift cli process command
 func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "process (TEMPLATE | -f FILENAME) [-v=KEY=VALUE]",
-		Short: "Process template into list of resources",
-		Long:  fmt.Sprintf(processLongDesc, fullName),
+		Use:     "process (TEMPLATE | -f FILENAME) [-v=KEY=VALUE]",
+		Short:   "Process template into list of resources",
+		Long:    process_long,
+		Example: fmt.Sprintf(process_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunProcess(f, out, cmd, args)
 			kcmdutil.CheckErr(err)

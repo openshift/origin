@@ -28,32 +28,31 @@ type NewProjectOptions struct {
 	Out            io.Writer
 }
 
-const requestProjectLongDesc = `
-Create a new project for yourself in OpenShift with you as the project admin.
+const (
+	requestProject_long = `Create a new project for yourself in OpenShift with you as the project admin.
 
 Assuming your cluster admin has granted you permission, this command will 
 create a new project for you and assign you as the project admin.  You must 
-be logged in, so you might have to run %[2]s first.
+be logged in, so you might have to run %[1]s first.
 
-Examples:
+After your project is created you can switch to it using %[2]s <project name>.`
 
-  # Create a new project with minimal information
+	requestProject_example = `  // Create a new project with minimal information
   $ %[1]s web-team-dev
 
-  # Create a new project with a description
-  $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."
-
-After your project is created you can switch to it using %[3]s <project name>.
-`
+  // Create a new project with a description
+  $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
+)
 
 func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
 	options.Out = out
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
-		Short: "request a new project",
-		Long:  fmt.Sprintf(requestProjectLongDesc, fullName, oscLoginName, oscProjectName),
+		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
+		Short:   "Request a new project",
+		Long:    fmt.Sprintf(requestProject_long, oscLoginName, oscProjectName),
+		Example: fmt.Sprintf(requestProject_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.complete(cmd, f); err != nil {
 				kcmdutil.CheckErr(err)

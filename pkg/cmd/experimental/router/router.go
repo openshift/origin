@@ -24,8 +24,8 @@ import (
 	"github.com/openshift/origin/pkg/generate/app"
 )
 
-const longDesc = `
-Install or configure an OpenShift router
+const (
+	router_long = `Install or configure an OpenShift router
 
 This command helps to setup an OpenShift router to take edge traffic and balance it to
 your application. With no arguments, the command will check for an existing router
@@ -38,22 +38,21 @@ create a deployment configuration and service that will run the router. If you a
 running your router in production, you should pass --replicas=2 or higher to ensure
 you have failover protection.
 
-Examples:
+ALPHA: This command is currently being actively developed. It is intended to simplify
+  the tasks of setting up routers in a new installation. `
 
+	router_example = `  // Check the default router ("router")
   $ %[1]s %[2]s --dry-run
 
-  # See what the router would look like if created:
+  // See what the router would look like if created
   $ %[1]s %[2]s -o json
 
-  # Create a router if it does not exist:
+  // Create a router if it does not exist
   $ %[1]s %[2]s router-west --create --replicas=2
 
-  # Use a different router image and see the router configuration:
-  $ %[1]s %[2]s region-west -o yaml --images=myrepo/somerouter:mytag
-
-ALPHA: This command is currently being actively developed. It is intended to simplify
-  the tasks of setting up routers in a new installation.
-`
+  // Use a different router image and see the router configuration
+  $ %[1]s %[2]s region-west -o yaml --images=myrepo/somerouter:mytag`
+)
 
 type RouterConfig struct {
 	Type               string
@@ -80,9 +79,10 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	}
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s [<name>]", name),
-		Short: "Install and check OpenShift routers",
-		Long:  fmt.Sprintf(longDesc, parentName, name),
+		Use:     fmt.Sprintf("%s [NAME]", name),
+		Short:   "Install and check OpenShift routers",
+		Long:    router_long,
+		Example: fmt.Sprintf(router_example, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCmdRouter(f, cmd, out, cfg, args)
 			if err != errExit {

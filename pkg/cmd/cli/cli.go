@@ -15,8 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const longDesc = `
-OpenShift Client
+const cli_long = `OpenShift Client.
 
 The OpenShift client exposes commands for managing your applications, as well as lower level
 tools to interact with each component of your system.
@@ -43,15 +42,14 @@ created for you.
 You can easily switch between multiple projects using '%[1]s project <projectname>'.
 
 Note: This is a beta release of OpenShift and may change significantly.  See
-    https://github.com/openshift/origin for the latest information on OpenShift.
-`
+    https://github.com/openshift/origin for the latest information on OpenShift.`
 
 func NewCommandCLI(name, fullName string) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Client tools for OpenShift",
-		Long:  fmt.Sprintf(longDesc, fullName),
+		Long:  fmt.Sprintf(cli_long, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			c.SetOutput(os.Stdout)
 			c.Help()
@@ -62,7 +60,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	in := os.Stdin
 	out := os.Stdout
 
-	cmds.AddCommand(cmd.NewCmdLogin(f, in, out))
+	cmds.AddCommand(cmd.NewCmdLogin(fullName, f, in, out))
 	cmds.AddCommand(cmd.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out))
 	cmds.AddCommand(cmd.NewCmdProject(fullName+" project", f, out))
 	cmds.AddCommand(cmd.NewCmdRequestProject("new-project", fullName+" new-project", fullName+" login", fullName+" project", f, out))

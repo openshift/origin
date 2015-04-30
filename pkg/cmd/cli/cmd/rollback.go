@@ -15,8 +15,8 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-const rollbackLongDesc = `
-Revert part of an application back to a previous deployment.
+const (
+	rollback_long = `Revert part of an application back to a previous deployment.
 
 When you run this command your deployment configuration will be updated to match
 the provided deployment. By default only the pod and container configuration
@@ -28,19 +28,17 @@ deployment may not have the correct values.
 If you would like to review the outcome of the rollback, pass '--dry-run' to print
 a human-readable representation of the updated deployment configuration instead of
 executing the rollback. This is useful if you're not quite sure what the outcome
-will be.
+will be.`
 
-Examples:
-
-  # Perform a rollback
+	rollback_example = `  // Perform a rollback
   $ %[1]s rollback deployment-1
 
-  # See what the rollback will look like, but don't perform the rollback
+  // See what the rollback will look like, but don't perform the rollback
   $ %[1]s rollback deployment-1 --dry-run
 
-  # Perform the rollback manually by piping the JSON of the new config back to %[1]s
-  $ %[1]s rollback deployment-1 --output=json | %[1]s update deploymentConfigs deployment -f -
-`
+  // Perform the rollback manually by piping the JSON of the new config back to %[1]s
+  $ %[1]s rollback deployment-1 --output=json | %[1]s update deploymentConfigs deployment -f -`
+)
 
 // NewCmdRollback implements the OpenShift cli rollback command
 func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -51,9 +49,10 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	}
 
 	cmd := &cobra.Command{
-		Use:   "rollback DEPLOYMENT",
-		Short: "Revert part of an application back to a previous deployment.",
-		Long:  fmt.Sprintf(rollbackLongDesc, fullName),
+		Use:     "rollback DEPLOYMENT",
+		Short:   "Revert part of an application back to a previous deployment.",
+		Long:    rollback_long,
+		Example: fmt.Sprintf(rollback_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunRollback(f, out, cmd, args, rollback)
 			cmdutil.CheckErr(err)

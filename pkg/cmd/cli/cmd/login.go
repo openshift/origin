@@ -51,7 +51,8 @@ type LoginOptions struct {
 	PathOptions *kcmdconfig.PathOptions
 }
 
-const longDescription = `Logs in to the OpenShift server and saves a config file that will be used by 
+const (
+	login_long = `Logs in to the OpenShift server and saves a config file that will be used by 
 subsequent commands.
 
 First-time users of the OpenShift client must run this command to configure the server,
@@ -60,20 +61,30 @@ configuration will be in your home directory under ".config/openshift/config".
 
 The information required to login, like username and password, a session token, or
 the server details, can be provided through flags. If not provided, the command will
-prompt for user input as needed.
-`
+prompt for user input as needed.`
+
+	login_example = `  // Logs in interactively
+  $ %[1]s login
+
+  // Logs in to the given server with the given certificate authority file
+  $ %[1]s login localhost:8443 --certificate-authority=/path/to/cert.crt
+
+  // Logs in to the given server with the given credentials (will not prompt interactively)
+  $ %[1]s login localhost:8443 --username=myuser --password=mypass`
+)
 
 // NewCmdLogin implements the OpenShift cli login command
-func NewCmdLogin(f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
+func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
 	options := &LoginOptions{
 		Reader: reader,
 		Out:    out,
 	}
 
 	cmds := &cobra.Command{
-		Use:   "login [URL]",
-		Short: "Logs in and save the configuration",
-		Long:  longDescription,
+		Use:     "login [URL]",
+		Short:   "Logs in and save the configuration",
+		Long:    login_long,
+		Example: fmt.Sprintf(login_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args); err != nil {
 				kcmdutil.CheckErr(err)

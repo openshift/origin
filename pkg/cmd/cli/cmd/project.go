@@ -34,26 +34,26 @@ type ProjectOptions struct {
 	ProjectOnly bool
 }
 
-const projectLongDesc = `
-Switch to another project and make it the default in your configuration. If no project were specified, display information about the default.
+const (
+	project_long = `Switch to another project and make it the default in your configuration. If no project were 
+specified, display information about the default.`
 
-Examples:
-
-  # Switch to my-app project
+	project_example = `  // Switch to 'myapp' project
   $ %[1]s myapp
 
-  # Display the project currently in use
-  $ %[1]s
-`
+  // Display the project currently in use
+  $ %[1]s`
+)
 
 // NewCmdProject implements the OpenShift cli rollback command
 func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &ProjectOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "project [NAME]",
-		Short: "Switch to another project",
-		Long:  fmt.Sprintf(projectLongDesc, fullName),
+		Use:     "project [NAME]",
+		Short:   "Switch to another project",
+		Long:    project_long,
+		Example: fmt.Sprintf(project_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 

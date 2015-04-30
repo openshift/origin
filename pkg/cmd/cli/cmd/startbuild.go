@@ -19,23 +19,22 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const startBuildLongDesc = `Start a build
+const (
+	startBuild_long = `Start a build.
 
 This command starts a build for the provided build configuration or re-runs an existing build using
---from-build=<name>. You may pass the --follow flag to see output from the build.
+--from-build=<name>. You may pass the --follow flag to see output from the build.`
 
-Examples:
-
-  # Starts build from build configuration matching the name "3bd2ug53b"
+	startBuild_example = `  // Starts build from build configuration matching the name "3bd2ug53b"
   $ %[1]s start-build 3bd2ug53b
 
-  # Starts build from build matching the name "3bd2ug53b"
+  // Starts build from build matching the name "3bd2ug53b"
   $ %[1]s start-build --from-build=3bd2ug53b
 
-  # Starts build from build configuration matching the name "3bd2ug53b" and watches the logs until the build
-  # completes or fails
-  $ %[1]s start-build 3bd2ug53b --follow
-`
+  // Starts build from build configuration matching the name "3bd2ug53b" and watches the logs until the build
+  // completes or fails
+  $ %[1]s start-build 3bd2ug53b --follow`
+)
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
 func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -43,9 +42,10 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	webhooks.Default("none")
 
 	cmd := &cobra.Command{
-		Use:   "start-build (BUILDCONFIG | --from-build=BUILD)",
-		Short: "Starts a new build from existing build or buildConfig",
-		Long:  fmt.Sprintf(startBuildLongDesc, fullName),
+		Use:     "start-build (BUILDCONFIG | --from-build=BUILD)",
+		Short:   "Starts a new build from existing build or buildConfig",
+		Long:    startBuild_long,
+		Example: fmt.Sprintf(startBuild_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunStartBuild(f, out, cmd, args, webhooks)
 			cmdutil.CheckErr(err)

@@ -12,23 +12,22 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const statusLongDesc = `
-Show a high level overview of the current project. Links components by their relationships.
+const (
+	status_long = `Show a high level overview of the current project. Links components by their relationships.
 For more information about individual items, use the describe command (e.g. osc describe buildConfig,
-osc describe deploymentConfig, osc describe service).
+osc describe deploymentConfig, osc describe service).`
 
-Examples:
-
-  # Show an overview of the current project
-  $ %[1]s status
-`
+	status_example = `  // Show an overview of the current project
+  $ %[1]s status`
+)
 
 // NewCmdStatus implements the OpenShift cli status command
 func NewCmdStatus(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "status",
-		Short: "Show an overview of the current project",
-		Long:  fmt.Sprintf(statusLongDesc, fullName),
+		Use:     "status",
+		Short:   "Show an overview of the current project",
+		Long:    status_long,
+		Example: fmt.Sprintf(status_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunStatus(f, out)
 			cmdutil.CheckErr(err)

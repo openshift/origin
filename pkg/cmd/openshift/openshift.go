@@ -27,8 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const longDescription = `
-OpenShift Application Platform
+const openshift_long = `OpenShift Application Platform.
 
 OpenShift helps you build, deploy, and manage your applications. To start an all-in-one server, run:
 
@@ -38,8 +37,7 @@ OpenShift is built around Docker and the Kubernetes cluster container manager.  
 Docker installed on this machine to start your server.
 
 Note: This is a beta release of OpenShift and may change significantly.  See
-    https://github.com/openshift/origin for the latest information on OpenShift.
-`
+    https://github.com/openshift/origin for the latest information on OpenShift.`
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
@@ -80,7 +78,7 @@ func NewCommandOpenShift() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "openshift",
 		Short: "OpenShift helps you build, deploy, and manage your cloud applications",
-		Long:  longDescription,
+		Long:  openshift_long,
 		Run: func(c *cobra.Command, args []string) {
 			c.SetOutput(os.Stdout)
 			c.Help()

@@ -36,12 +36,11 @@ type MasterOptions struct {
 	ConfigFile         string
 }
 
-const longMasterCommandDesc = `
-Start an OpenShift master
+const master_long = `Start an OpenShift master.
 
 This command helps you launch an OpenShift master.  Running
 
-    $ openshift start master
+  $ openshift start master
 
 will start an OpenShift master listening on all interfaces, launch an etcd server to store 
 persistent data, and launch the Kubernetes system components. The server will run in the 
@@ -54,15 +53,13 @@ so if you have problems tell OpenShift what public address it will be via --mast
 You may also pass an optional argument to the start command to start OpenShift in one of the
 following roles:
 
-    $ openshift start master --nodes=<host1,host2,host3,...>
-
-      Launches the server and control plane for OpenShift. You may pass a list of the node
-      hostnames you want to use, or create nodes via the REST API or 'openshift kube'.
+  // Launches the server and control plane for OpenShift. You may pass a list of the node
+  // hostnames you want to use, or create nodes via the REST API or 'openshift kube'.
+  $ openshift start master --nodes=<host1,host2,host3,...>
 
 You may also pass --etcd=<address> to connect to an external etcd server.
 
-You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.
-`
+You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
 func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
@@ -71,7 +68,7 @@ func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
 	cmd := &cobra.Command{
 		Use:   "master",
 		Short: "Launch OpenShift master",
-		Long:  longMasterCommandDesc,
+		Long:  master_long,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
 				fmt.Println(err.Error())

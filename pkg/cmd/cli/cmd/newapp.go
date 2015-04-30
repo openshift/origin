@@ -28,8 +28,8 @@ type usage interface {
 
 var errExit = fmt.Errorf("exit directly")
 
-const newAppLongDesc = `
-Create a new application in OpenShift by specifying source code, templates, and/or images.
+const (
+	newApp_long = `Create a new application in OpenShift by specifying source code, templates, and/or images.
 
 This command will try to build up the components of an application using images, templates, 
 or code located on your system. It will lookup the images on the local Docker installation 
@@ -38,28 +38,26 @@ code URL, it will set up a build that takes your source code and converts it int
 image that can run inside of a pod. The images will be deployed via a deployment
 configuration, and a service will be hooked up to the first public port of the app.
 
-Examples:
-
-  # Try to create an application based on the source code in the current directory
-  $ %[1]s new-app .
-
-  # Use the public Docker Hub MySQL image to create an app
-  $ %[1]s new-app mysql
-
-  # Use a MySQL image in a private registry to create an app
-  $ %[1]s new-app myregistry.com/mycompany/mysql
-
-  # Create an application from the remote repository using the specified label
-  $ %[1]s new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
-
-  # Create an application based on a stored template, explicitly setting a parameter value
-  $ %[1]s new-app ruby-helloworld-sample --param=MYSQL_USER=admin
-
 If you specify source code, you may need to run a build with 'start-build' after the
 application is created.
 
-ALPHA: This command is under active development - feedback is appreciated.
-`
+ALPHA: This command is under active development - feedback is appreciated.`
+
+	newApp_example = `  // Try to create an application based on the source code in the current directory
+  $ %[1]s new-app .
+
+  // Use the public Docker Hub MySQL image to create an app
+  $ %[1]s new-app mysql
+
+  // Use a MySQL image in a private registry to create an app
+  $ %[1]s new-app myregistry.com/mycompany/mysql
+
+  // Create an application from the remote repository using the specified label
+  $ %[1]s new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
+
+  // Create an application based on a stored template, explicitly setting a parameter value
+  $ %[1]s new-app ruby-helloworld-sample --param=MYSQL_USER=admin`
+)
 
 // NewCmdNewApplication implements the OpenShift cli new-app command
 func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -67,10 +65,10 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	config := newcmd.NewAppConfig(typer)
 
 	cmd := &cobra.Command{
-		Use:   "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
-		Short: "Create a new application",
-		Long:  fmt.Sprintf(newAppLongDesc, fullName),
-
+		Use:     "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
+		Short:   "Create a new application",
+		Long:    newApp_long,
+		Example: fmt.Sprintf(newApp_example, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			err := RunNewApplication(f, out, c, args, config)
 			if err == errExit {

@@ -36,7 +36,10 @@ const (
 
 	mainUsageTemplate = vars + `{{ $cmd := . }}{{if and .Runnable (ne .UseLine "") (ne .UseLine $rootCmd)}}
 Usage: 
-  {{.UseLine}}{{if .HasFlags}} [options]{{end}}{{ if .HasRunnableSubCommands}}
+  {{.UseLine}}{{if .HasFlags}} [options]{{end}}{{if .HasExample}}
+
+Examples:
+{{ .Example }}{{end}}{{ if .HasRunnableSubCommands}}
 {{end}}{{end}}{{ if .HasRunnableSubCommands}}
 Available Commands: {{range .Commands}}{{if and .Runnable (ne .Name "options")}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}

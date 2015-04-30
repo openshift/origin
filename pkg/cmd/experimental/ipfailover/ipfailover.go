@@ -13,9 +13,8 @@ import (
 	"github.com/openshift/origin/pkg/ipfailover/keepalived"
 )
 
-const shortDesc = "Configure or view IP Failover configuration"
-const description = `
-Configure or view IP Failover configuration
+const (
+	ipFailover_long = `Configure or view IP Failover configuration
 
 This command helps to setup IP Failover configuration for an OpenShift
 environment. An administrator can configure IP failover on an entire
@@ -29,30 +28,27 @@ recommended that the labelled selector for the nodes matches atleast 2 nodes
 to ensure you have failover protection and that you provide a --replicas=<n>
 value that matches the number of nodes for the given labelled selector.
 
-
-Examples:
-
-  # Check the default IP failover configuration ("ipfailover"):
-  $ %[1]s %[2]s
-
-  # See what the IP failover configuration would look like if it is created:
-  $ %[1]s %[2]s -o json
-
-  # Create an IP failover configuration if it does not already exist:
-  $ %[1]s %[2]s ipf --virtual-ips="10.1.1.1-4" --create
-
-  # Create an IP failover configuration on a selection of nodes labelled
-  # "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
-  # listening on port 80 (aka the OpenShift router process).
-  $ %[1]s %[2]s ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
-
-  # Use a different IP failover config image and see the configuration:
-  $ %[1]s %[2]s ipf-alt --selector="jack=the-vipper" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag
-
 ALPHA: This command is currently being actively developed. It is intended
        to simplify the administrative tasks of setting up a highly
-       available failover configuration.
-`
+       available failover configuration.`
+
+	ipFailover_example = `  // Check the default IP failover configuration ("ipfailover"):
+  $ %[1]s %[2]s
+
+  // See what the IP failover configuration would look like if it is created:
+  $ %[1]s %[2]s -o json
+
+  // Create an IP failover configuration if it does not already exist:
+  $ %[1]s %[2]s ipf --virtual-ips="10.1.1.1-4" --create
+
+  // Create an IP failover configuration on a selection of nodes labelled
+  // "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
+  // listening on port 80 (aka the OpenShift router process).
+  $ %[1]s %[2]s ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
+
+  // Use a different IP failover config image and see the configuration:
+  $ %[1]s %[2]s ipf-alt --selector="jack=the-vipper" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag`
+)
 
 func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	options := &ipfailover.IPFailoverConfigCmdOptions{
@@ -65,9 +61,10 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out i
 	}
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s [NAME]", name),
-		Short: shortDesc,
-		Long:  fmt.Sprintf(description, parentName, name),
+		Use:     fmt.Sprintf("%s [NAME]", name),
+		Short:   "Configure or view IP Failover configuration",
+		Long:    ipFailover_long,
+		Example: fmt.Sprintf(ipFailover_example, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := processCommand(f, options, cmd, args, out)
 			cmdutil.CheckErr(err)
