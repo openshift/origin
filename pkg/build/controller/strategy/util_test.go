@@ -101,25 +101,32 @@ func TestSetupBuildEnvFails(t *testing.T) {
 	}
 }
 
-func TestMergeEnvWithoutDuplicates(t *testing.T) {
+func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
 	input := []kapi.EnvVar{
 		{Name: "foo", Value: "bar"},
 		{Name: "input", Value: "inputVal"},
+		{Name: "BUILD_LOGLEVEL", Value: "loglevel"},
 	}
 	output := []kapi.EnvVar{
 		{Name: "foo", Value: "test"},
 	}
 
-	mergeEnvWithoutDuplicates(input, &output)
+	mergeTrustedEnvWithoutDuplicates(input, &output)
 
 	if len(output) != 2 {
-		t.Errorf("Expected output to contain input items len!=2 (%d)", len(output))
+		t.Errorf("Expected output to contain input items len==2 (%d)", len(output))
 	}
 
 	if output[0].Name != "foo" {
 		t.Errorf("Expected output to have env 'foo', got %+v", output[0])
 	}
-	if output[0].Value != "bar" {
-		t.Errorf("Expected output env 'foo' to have value 'bar', got %+v", output[0])
+	if output[0].Value != "test" {
+		t.Errorf("Expected output env 'foo' to have value 'test', got %+v", output[0])
+	}
+	if output[1].Name != "BUILD_LOGLEVEL" {
+		t.Errorf("Expected output to have env 'BUILD_LOGLEVEL', got %+v", output[0])
+	}
+	if output[1].Value != "loglevel" {
+		t.Errorf("Expected output env 'foo' to have value 'loglevel', got %+v", output[0])
 	}
 }

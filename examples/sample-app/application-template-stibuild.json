@@ -68,7 +68,8 @@
         "strategy": {
           "stiStrategy": {
             "from": {
-              "name":"ruby-20-centos7"
+              "kind": "ImageStreamTag",
+              "name": "ruby-20-centos7:latest"
             }
           },
           "type": "STI"

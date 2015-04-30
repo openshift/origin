@@ -1,6 +1,8 @@
 package builder
 
 import (
+	"fmt"
+
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	image "github.com/openshift/origin/pkg/image/api"
@@ -78,9 +80,10 @@ func (s *STIBuilder) Build() error {
 		glog.Infof("Pushing %s image ...", dockerImageRef)
 		if err := pushImage(s.dockerClient, tag, s.auth); err != nil {
 			glog.Errorf("Failed to push image: %v", err)
-			return nil
+			return fmt.Errorf("Failed to push image: %v", err)
 		}
 		glog.Infof("Successfully pushed %s", dockerImageRef)
+		glog.Flush()
 	}
 	return nil
 }

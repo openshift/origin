@@ -19,6 +19,8 @@ const (
 	dockerPullSecretMountPath = dockerPushSecretMountPath
 )
 
+var whitelistEnvVarNames = []string{"BUILD_LOGLEVEL"}
+
 // setupDockerSocket configures the pod to support the host's Docker socket
 func setupDockerSocket(podSpec *kapi.Pod) {
 	dockerSocketVolume := kapi.Volume{
@@ -99,16 +101,36 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret string) {
 	}...)
 }
 
-// mergeEnvWithoutDuplicates merges two environment lists without having
-// duplicate items in the output list.
-func mergeEnvWithoutDuplicates(source []kapi.EnvVar, output *[]kapi.EnvVar) {
+// mergeTrustedEnvWithoutDuplicates merges two environment lists without having
+// duplicate items in the output list.  Only trusted environment variables
+// will be merged.
+func mergeTrustedEnvWithoutDuplicates(source []kapi.EnvVar, output *[]kapi.EnvVar) {
+
+	// filter out all environment variables except trusted/well known
+	// values, because we do not want random environment variables being
+	// fed into the privileged STI container via the BuildConfig definition.
+	filteredSource := []kapi.EnvVar{}
+	for _, env := range source {
+		trusted := false
+		for _, acceptable := range whitelistEnvVarNames {
+			if env.Name == acceptable {
+				trusted = true
+				break
+			}
+		}
+		if !trusted {
+			continue
+		}
+		filteredSource = append(filteredSource, env)
+	}
+
 	type sourceMapItem struct {
 		index int
 		value string
 	}
 	// Convert source to Map for faster access
 	sourceMap := make(map[string]sourceMapItem)
-	for i, env := range source {
+	for i, env := range filteredSource {
 		sourceMap[env.Name] = sourceMapItem{i, env.Value}
 	}
 	result := *output
@@ -117,10 +139,10 @@ func mergeEnvWithoutDuplicates(source []kapi.EnvVar, output *[]kapi.EnvVar) {
 		// from the source list
 		if v, found := sourceMap[env.Name]; found {
 			result[i].Value = v.value
-			source = append(source[:v.index], source[v.index+1:]...)
+			filteredSource = append(filteredSource[:v.index], filteredSource[v.index+1:]...)
 		}
 	}
-	*output = append(result, source...)
+	*output = append(result, filteredSource...)
 }
 
 // getContainerVerbosity returns the defined BUILD_LOGLEVEL value

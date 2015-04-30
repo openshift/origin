@@ -55,8 +55,10 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.Env) != 6 {
-		t.Fatalf("Expected 6 elements in Env table, got %d", len(container.Env))
+	// strategy ENV is not copied into the container environment, so only
+	// expect 5 not 6 values.
+	if len(container.Env) != 5 {
+		t.Fatalf("Expected 5 elements in Env table, got %d", len(container.Env))
 	}
 	if len(container.VolumeMounts) != 2 {
 		t.Fatalf("Expected 2 volumes in container, got %d", len(container.VolumeMounts))
@@ -75,12 +77,12 @@ func TestSTICreateBuildPod(t *testing.T) {
 	}
 	found := false
 	for _, v := range container.Env {
-		if v.Name == "FOO" && v.Value == "bar" {
+		if v.Name == "BUILD_LOGLEVEL" && v.Value == "bar" {
 			found = true
 		}
 	}
 	if !found {
-		t.Fatalf("Expected variable FOO be defined for the container")
+		t.Fatalf("Expected variable BUILD_LOGLEVEL be defined for the container")
 	}
 	buildJSON, _ := v1beta1.Codec.Encode(expected)
 	errorCases := map[int][]string{
@@ -119,7 +121,7 @@ func mockSTIBuild() *buildapi.Build {
 					},
 					Scripts: "http://my.build.com/the/sti/scripts",
 					Env: []kapi.EnvVar{
-						{Name: "FOO", Value: "bar"},
+						{Name: "BUILD_LOGLEVEL", Value: "bar"},
 					},
 				},
 			},
