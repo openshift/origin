@@ -20,9 +20,10 @@ import (
 const NewProjectRecommendedName = "new-project"
 
 type NewProjectOptions struct {
-	ProjectName string
-	DisplayName string
-	Description string
+	ProjectName  string
+	DisplayName  string
+	Description  string
+	NodeSelector string
 
 	Client client.Interface
 
@@ -56,6 +57,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 	cmd.Flags().StringVar(&options.AdminUser, "admin", "", "project admin username")
 	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "project display name")
 	cmd.Flags().StringVar(&options.Description, "description", "", "project description")
+	cmd.Flags().StringVar(&options.NodeSelector, "node-selector", "", "Restrict pods onto nodes matching given label selector. Format: '<key1>=<value1>, <key2>=<value2>...'")
 
 	return cmd
 }
@@ -83,6 +85,7 @@ func (o *NewProjectOptions) Run() error {
 	project.Annotations = make(map[string]string)
 	project.Annotations["description"] = o.Description
 	project.Annotations["displayName"] = o.DisplayName
+	project.Annotations["openshift.io/node-selector"] = o.NodeSelector
 	project, err := o.Client.Projects().Create(project)
 	if err != nil {
 		return err
