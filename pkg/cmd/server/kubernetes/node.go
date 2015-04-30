@@ -54,36 +54,45 @@ const minimumDockerAPIVersionWithPullByID = "1.18"
 func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 	dockerClient, dockerAddr := docker.GetClientOrExit()
 	if err := dockerClient.Ping(); err != nil {
-		if !c.AllowDisabledDocker {
-			glog.Fatalf("ERROR: Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err)
-		}
-		glog.Errorf("WARNING: Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err)
-		c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env{"apiversion=1.15"}}
-	} else {
-		glog.Infof("Connecting to Docker at %s", dockerAddr)
-
-		env, err := dockerClient.Version()
-		if err != nil {
-			glog.Fatalf("ERROR: Unable to check for Docker server version.\n%v", err)
-		}
-
-		serverVersionString := env.Get("ApiVersion")
-		serverVersion, err := dockerclient.NewAPIVersion(serverVersionString)
-		if err != nil {
-			glog.Fatalf("ERROR: Unable to determine Docker server version from %q.\n%v", serverVersionString, err)
-		}
-
-		minimumPullByIDVersion, err := dockerclient.NewAPIVersion(minimumDockerAPIVersionWithPullByID)
-		if err != nil {
-			glog.Fatalf("ERROR: Unable to check for Docker server version.\n%v", err)
-		}
-
-		if serverVersion.LessThan(minimumPullByIDVersion) {
-			glog.Fatal("ERROR: Docker 1.6 or later (server API version 1.18 or later) required.")
-		}
-
-		c.DockerClient = dockerClient
+		c.HandleDockerError(fmt.Sprintf("Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err))
+		return
 	}
+
+	glog.Infof("Connecting to Docker at %s", dockerAddr)
+
+	env, err := dockerClient.Version()
+	if err != nil {
+		c.HandleDockerError(fmt.Sprintf("Unable to check for Docker server version.\n%v", err))
+		return
+	}
+
+	serverVersionString := env.Get("ApiVersion")
+	serverVersion, err := dockerclient.NewAPIVersion(serverVersionString)
+	if err != nil {
+		c.HandleDockerError(fmt.Sprintf("Unable to determine Docker server version from %q.\n%v", serverVersionString, err))
+		return
+	}
+
+	minimumPullByIDVersion, err := dockerclient.NewAPIVersion(minimumDockerAPIVersionWithPullByID)
+	if err != nil {
+		c.HandleDockerError(fmt.Sprintf("Unable to check for Docker server version.\n%v", err))
+		return
+	}
+
+	if serverVersion.LessThan(minimumPullByIDVersion) {
+		c.HandleDockerError(fmt.Sprintf("Docker 1.6 or later (server API version 1.18 or later) required."))
+		return
+	}
+
+	c.DockerClient = dockerClient
+}
+
+func (c *NodeConfig) HandleDockerError(message string) {
+	if !c.AllowDisabledDocker {
+		glog.Fatalf("ERROR: %s", message)
+	}
+	glog.Errorf("WARNING: %s", message)
+	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env{"apiversion=1.15"}}
 }
 
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
