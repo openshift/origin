@@ -89,9 +89,14 @@ type MasterConfig struct {
 	ProjectRequestConfig ProjectRequestConfig
 }
 
+// ProjectRequestConfig holds information about how to handle new project requests
 type ProjectRequestConfig struct {
 	// ProjectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint
 	ProjectRequestMessage string
+
+	// ProjectRequestTemplate is the template to use for creating projects in response to projectrequest.  It is in the format namespace/template and it is optional.
+	// If it is not specified, then projectrequest will not work.  If the template does not exist, then a default will be created.
+	ProjectRequestTemplate string
 }
 
 type PolicyConfig struct {

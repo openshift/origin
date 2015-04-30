@@ -55,8 +55,7 @@ func visitValue(v reflect.Value, visitor func(string) string) {
 func visitUnsettableValues(typeOf reflect.Type, original reflect.Value, visitor func(string) string) reflect.Value {
 	val := reflect.New(typeOf).Elem()
 	existing := original
-	// if the map value type is interface, we must resolve it to a concrete
-	// value prior to setting it back.
+	// if the value type is interface, we must resolve it to a concrete value prior to setting it back.
 	if existing.CanInterface() {
 		existing = reflect.ValueOf(existing.Interface())
 	}

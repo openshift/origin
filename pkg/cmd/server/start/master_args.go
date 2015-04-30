@@ -192,6 +192,10 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			Format: args.ImageFormatArgs.ImageTemplate.Format,
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
 		},
+
+		ProjectRequestConfig: configapi.ProjectRequestConfig{
+			ProjectRequestTemplate: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace + "/project-request",
+		},
 	}
 
 	if args.ListenArg.UseTLS() {

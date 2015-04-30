@@ -209,6 +209,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache)
 
+	tokens := strings.Split(c.Options.ProjectRequestConfig.ProjectRequestTemplate, "/")
+	namespace := tokens[0]
+	templateName := tokens[1]
+	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, namespace, templateName, roleBindingStorage, *projectStorage, c.PrivilegedLoopbackOpenShiftClient)
+
 	// initialize OpenShift API
 	storage := map[string]rest.Storage{
 		"builds":                   buildregistry.NewREST(buildEtcd),
@@ -242,7 +247,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
 		"projects":        projectStorage,
-		"projectRequests": projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingStorage, *projectStorage, c.PolicyClient()),
+		"projectRequests": projectRequestStorage,
 
 		"users":                userStorage,
 		"identities":           identityStorage,
@@ -525,6 +530,8 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		c.ensureMasterAuthorizationNamespace()
 		c.ensureOpenShiftSharedResourcesNamespace()
 	}, 10*time.Second)
+
+	c.checkProjectRequestTemplate()
 }
 
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
@@ -533,6 +540,26 @@ func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
 		c.RequestContextMapper = kapi.NewRequestContextMapper()
 	}
 	return c.RequestContextMapper
+}
+
+// checkProjectRequestTemplate looks to see if there should be a projectrequest template.  If there should be one and it's not present
+func (c *MasterConfig) checkProjectRequestTemplate() {
+	if len(c.Options.ProjectRequestConfig.ProjectRequestTemplate) == 0 {
+		return
+	}
+
+	tokens := strings.Split(c.Options.ProjectRequestConfig.ProjectRequestTemplate, "/")
+	namespace := tokens[0]
+	templateName := tokens[1]
+
+	if _, err := c.PrivilegedLoopbackOpenShiftClient.Templates(namespace).Get(templateName); !kapierror.IsNotFound(err) {
+		return
+	}
+
+	template := projectrequeststorage.NewSampleTemplate(c.Options.PolicyConfig.MasterAuthorizationNamespace, namespace, templateName)
+	if _, err := c.PrivilegedLoopbackOpenShiftClient.Templates(namespace).Create(template); err != nil {
+		glog.Errorf("Error creating default project request template %v.  Unprivileged project requests will fail until a template is available.", c.Options.ProjectRequestConfig.ProjectRequestTemplate)
+	}
 }
 
 // ensureMasterAuthorizationNamespace is called as part of global policy initialization to ensure master namespace exists
