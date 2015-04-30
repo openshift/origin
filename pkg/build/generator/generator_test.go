@@ -666,7 +666,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 	generator := mockBuildGenerator()
 
 	tests := []resolveTest{
-		resolveTest{
+		{
 			streamRef: &kapi.ObjectReference{
 				Name: imageRepoName,
 			},
@@ -674,7 +674,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 			expectedSuccess:   false,
 			expectedDockerRef: dockerReference,
 		},
-		resolveTest{
+		{
 			streamRef: &kapi.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: imageRepoName + ":" + tagName,
@@ -682,7 +682,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 			expectedSuccess:   true,
 			expectedDockerRef: latestDockerReference,
 		},
-		resolveTest{
+		{
 			streamRef: &kapi.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: imageRepoName + "@myid",
@@ -863,14 +863,14 @@ func mockBuildGenerator() *BuildGenerator {
 				Status: imageapi.ImageStreamStatus{
 					DockerImageRepository: "repo/namespace/image",
 					Tags: map[string]imageapi.TagEventList{
-						tagName: imageapi.TagEventList{
+						tagName: {
 							Items: []imageapi.TagEvent{
-								imageapi.TagEvent{DockerImageReference: dockerReference},
+								{DockerImageReference: dockerReference},
 							},
 						},
-						imageapi.DefaultImageTag: imageapi.TagEventList{
+						imageapi.DefaultImageTag: {
 							Items: []imageapi.TagEvent{
-								imageapi.TagEvent{DockerImageReference: latestDockerReference},
+								{DockerImageReference: latestDockerReference},
 							},
 						},
 					},
