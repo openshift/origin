@@ -55,6 +55,8 @@ type DeploymentStrategy struct {
 	CustomParams *CustomDeploymentStrategyParams `json:"customParams,omitempty"`
 	// RecreateParams are the input to the Recreate deployment strategy.
 	RecreateParams *RecreateDeploymentStrategyParams `json:"recreateParams,omitempty"`
+	// Compute resource requirements to execute the deployment
+	Resources kapi.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
