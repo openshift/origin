@@ -276,9 +276,9 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 		if len(searchTag) == 0 {
 			searchTag = imageapi.DefaultImageTag
 		}
-		latest, err := imageapi.LatestTaggedImage(repo, searchTag)
-		if err != nil {
-			return nil, ErrNoMatch{value: value, qualifier: err.Error()}
+		latest := imageapi.LatestTaggedImage(repo, searchTag)
+		if latest == nil {
+			return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("no image recorded for %s/%s:%s", repo.Namespace, repo.Name, searchTag)}
 		}
 		imageData, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(ref.Name, latest.Image)
 		if err != nil {

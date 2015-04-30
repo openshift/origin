@@ -48,9 +48,9 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 			}
 
 			// Find the latest tag event for the trigger tag
-			latestEvent, err := imageapi.LatestTaggedImage(imageRepo, params.Tag)
-			if err != nil {
-				glog.V(4).Infof("Couldn't find latest tag event for tag %s in imageRepo %s: %s", params.Tag, labelForRepo(imageRepo), err)
+			latestEvent := imageapi.LatestTaggedImage(imageRepo, params.Tag)
+			if latestEvent == nil {
+				glog.V(4).Infof("Couldn't find latest tag event for tag %s in imageRepo %s", params.Tag, labelForRepo(imageRepo))
 				continue
 			}
 

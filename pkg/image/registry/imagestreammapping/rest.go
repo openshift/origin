@@ -89,10 +89,16 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		DockerImageReference: image.DockerImageReference,
 		Image:                image.Name,
 	}
-	if api.AddTagEventToImageStream(stream, tag, next) {
-		if _, err := s.imageStreamRegistry.UpdateImageStreamStatus(ctx, stream); err != nil {
-			return nil, err
-		}
+
+	if !api.AddTagEventToImageStream(stream, tag, next) {
+		// nothing actually changed
+		return &kapi.Status{Status: kapi.StatusSuccess}, nil
+	}
+
+	api.UpdateTrackingTags(stream, tag, next)
+
+	if _, err := s.imageStreamRegistry.UpdateImageStreamStatus(ctx, stream); err != nil {
+		return nil, err
 	}
 
 	return &kapi.Status{Status: kapi.StatusSuccess}, nil

@@ -450,9 +450,9 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
 
-	event, err := api.LatestTaggedImage(repo, "")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	event := api.LatestTaggedImage(repo, "")
+	if event == nil {
+		t.Fatalf("unexpected nil event")
 	}
 	if event.DockerImageReference != "localhost:5000/someproject/somerepo:"+imageID || event.Image != imageID {
 		t.Errorf("unexpected latest tagged image: %#v", event)

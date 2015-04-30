@@ -426,15 +426,15 @@ func TestImageWithMetadata(t *testing.T) {
 
 func TestLatestTaggedImage(t *testing.T) {
 	tests := []struct {
-		tag         string
-		tags        map[string]TagEventList
-		expected    string
-		shouldError bool
+		tag            string
+		tags           map[string]TagEventList
+		expected       string
+		expectNotFound bool
 	}{
 		{
-			tag:         "foo",
-			tags:        map[string]TagEventList{},
-			shouldError: true,
+			tag:            "foo",
+			tags:           map[string]TagEventList{},
+			expectNotFound: true,
 		},
 		{
 			tag: "foo",
@@ -446,7 +446,7 @@ func TestLatestTaggedImage(t *testing.T) {
 					},
 				},
 			},
-			shouldError: true,
+			expectNotFound: true,
 		},
 		{
 			tag: "",
@@ -484,10 +484,10 @@ func TestLatestTaggedImage(t *testing.T) {
 		stream := &ImageStream{}
 		stream.Status.Tags = test.tags
 
-		actual, err := LatestTaggedImage(stream, test.tag)
-		if err != nil {
-			if !test.shouldError {
-				t.Errorf("%d: unexpected error: %v", i, err)
+		actual := LatestTaggedImage(stream, test.tag)
+		if actual == nil {
+			if !test.expectNotFound {
+				t.Errorf("%d: unexpected nil result", i)
 			}
 			continue
 		}
@@ -656,6 +656,157 @@ func TestAddTagEventToImageStream(t *testing.T) {
 		}
 		if e, a := test.expectedTags, stream.Status.Tags; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: expected tags=%v, got %v", name, e, a)
+		}
+	}
+}
+
+func TestUpdateTrackingTags(t *testing.T) {
+	tests := map[string]struct {
+		fromNil               bool
+		fromKind              string
+		fromNamespace         string
+		fromName              string
+		trackingTags          []string
+		nonTrackingTags       []string
+		statusTags            []string
+		updatedImageReference string
+		updatedImage          string
+		expectedUpdates       []string
+	}{
+		"nil from": {
+			fromNil: true,
+		},
+		"from kind not ImageStreamTag": {
+			fromKind: "ImageStreamImage",
+		},
+		"from namespace different": {
+			fromNamespace: "other",
+		},
+		"from name different": {
+			trackingTags: []string{"otherstream:2.0"},
+		},
+		"no tracking": {
+			trackingTags: []string{},
+			statusTags:   []string{"2.0", "3.0"},
+		},
+		"stream name in from name": {
+			trackingTags:    []string{"latest"},
+			fromName:        "ruby:2.0",
+			statusTags:      []string{"2.0", "3.0"},
+			expectedUpdates: []string{"latest"},
+		},
+		"1 tracking, 1 not": {
+			trackingTags:    []string{"latest"},
+			nonTrackingTags: []string{"other"},
+			statusTags:      []string{"2.0", "3.0"},
+			expectedUpdates: []string{"latest"},
+		},
+		"multiple tracking, multiple not": {
+			trackingTags:    []string{"latest1", "latest2"},
+			nonTrackingTags: []string{"other1", "other2"},
+			statusTags:      []string{"2.0", "3.0"},
+			expectedUpdates: []string{"latest1", "latest2"},
+		},
+		"no change to tracked tag": {
+			trackingTags:          []string{"latest"},
+			statusTags:            []string{"2.0", "3.0"},
+			updatedImageReference: "ns/ruby@id",
+			updatedImage:          "id",
+		},
+	}
+
+	for name, test := range tests {
+		stream := &ImageStream{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace: "ns",
+				Name:      "ruby",
+			},
+			Spec: ImageStreamSpec{
+				Tags: map[string]TagReference{},
+			},
+			Status: ImageStreamStatus{
+				Tags: map[string]TagEventList{},
+			},
+		}
+
+		if len(test.fromNamespace) > 0 {
+			stream.Namespace = test.fromNamespace
+		}
+
+		fromName := test.fromName
+		if len(fromName) == 0 {
+			fromName = "2.0"
+		}
+
+		for _, tag := range test.trackingTags {
+			stream.Spec.Tags[tag] = TagReference{
+				From: &kapi.ObjectReference{
+					Kind: "ImageStreamTag",
+					Name: fromName,
+				},
+			}
+		}
+
+		for _, tag := range test.nonTrackingTags {
+			stream.Spec.Tags[tag] = TagReference{}
+		}
+
+		for _, tag := range test.statusTags {
+			stream.Status.Tags[tag] = TagEventList{
+				Items: []TagEvent{
+					{
+						DockerImageReference: "ns/ruby@id",
+						Image:                "id",
+					},
+				},
+			}
+		}
+
+		if test.fromNil {
+			stream.Spec.Tags = map[string]TagReference{
+				"latest": {},
+			}
+		}
+
+		if len(test.fromKind) > 0 {
+			stream.Spec.Tags = map[string]TagReference{
+				"latest": {
+					From: &kapi.ObjectReference{
+						Kind: test.fromKind,
+						Name: "asdf",
+					},
+				},
+			}
+		}
+
+		updatedImageReference := test.updatedImageReference
+		if len(updatedImageReference) == 0 {
+			updatedImageReference = "ns/ruby@newid"
+		}
+
+		updatedImage := test.updatedImage
+		if len(updatedImage) == 0 {
+			updatedImage = "newid"
+		}
+
+		newTagEvent := TagEvent{
+			DockerImageReference: updatedImageReference,
+			Image:                updatedImage,
+		}
+
+		UpdateTrackingTags(stream, "2.0", newTagEvent)
+		for _, tag := range test.expectedUpdates {
+			tagEventList, ok := stream.Status.Tags[tag]
+			if !ok {
+				t.Errorf("%s: expected update for tag %q", name, tag)
+				continue
+			}
+			if e, a := updatedImageReference, tagEventList.Items[0].DockerImageReference; e != a {
+				t.Errorf("%s: dockerImageReference: expected %q, got %q", name, e, a)
+			}
+			if e, a := updatedImage, tagEventList.Items[0].Image; e != a {
+				t.Errorf("%s: image: expected %q, got %q", name, e, a)
+			}
 		}
 	}
 }
