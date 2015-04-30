@@ -47,6 +47,7 @@ type MasterArgs struct {
 	KubeConnectionArgs *KubeConnectionArgs
 
 	SchedulerConfigFile string
+	ProjectNodeSelector string
 }
 
 // BindMasterArgs binds the options to the flags with prefix + default flag names
@@ -60,6 +61,7 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 
 	flags.Var(&args.NodeList, prefix+"nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
 	flags.Var(&args.CORSAllowedOrigins, prefix+"cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
+	flags.StringVar(&args.ProjectNodeSelector, prefix+"project-node-selector", "", "Default node label selector for the project if not explicitly specified.")
 }
 
 // NewDefaultMasterArgs creates MasterArgs with sub-objects created and default values set.
@@ -196,6 +198,10 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		ProjectRequestConfig: configapi.ProjectRequestConfig{
 			ProjectRequestTemplate: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace + "/project-request",
 		},
+	}
+
+	if len(args.ProjectNodeSelector) > 0 {
+		config.ProjectNodeSelector = args.ProjectNodeSelector
 	}
 
 	if args.ListenArg.UseTLS() {

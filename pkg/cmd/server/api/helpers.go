@@ -89,6 +89,8 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 	refs = append(refs, &config.PolicyConfig.BootstrapPolicyFile)
 
+	refs = append(refs, &config.ProjectNodeSelector)
+
 	return refs
 }
 

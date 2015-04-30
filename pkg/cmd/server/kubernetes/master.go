@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/namespace"
+	originscheduler "github.com/openshift/origin/pkg/scheduler"
 )
 
 const (
@@ -171,5 +172,5 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 	}
 
 	// if the config file isn't provided, use the default provider
-	return configFactory.CreateFromProvider(factory.DefaultProvider)
+	return configFactory.CreateFromProvider(originscheduler.DefaultProvider)
 }
