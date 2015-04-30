@@ -300,7 +300,8 @@ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 osc delete dc docker-registry
 osc delete se docker-registry
 osc delete rc docker-registry-1
-osc delete pod $(osc get pod | grep docker-registry-1 | awk '{print $1}')
+registrypod=$(osc get pod | grep docker-registry-1 | awk '{print $1}')
+[ -n "${registrypod}" ] && osc delete pod $registrypod
 # done deleting registry resources
 osc delete imageStreams test
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
