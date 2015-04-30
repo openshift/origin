@@ -36,8 +36,13 @@ func TestProjectStatus(t *testing.T) {
 		"empty project with display name": {
 			Extra: []runtime.Object{
 				&projectapi.Project{
-					ObjectMeta:  kapi.ObjectMeta{Name: "example", Namespace: ""},
-					DisplayName: "Test",
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "example",
+						Namespace: "",
+						Annotations: map[string]string{
+							"displayName": "Test",
+						},
+					},
 				},
 			},
 			ErrFn: func(err error) bool { return err == nil },

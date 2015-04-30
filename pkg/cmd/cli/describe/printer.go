@@ -267,7 +267,7 @@ func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer) error 
 }
 
 func printProject(project *projectapi.Project, w io.Writer) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", project.Name, project.DisplayName, project.Status.Phase)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", project.Name, project.Annotations["displayName"], project.Status.Phase)
 	return err
 }
 

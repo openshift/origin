@@ -32,7 +32,7 @@ angular.module('openshiftConsole')
             $('<option>')
               .attr("value", project.metadata.name)
               .attr("selected", project.metadata.name == $scope.projectName)
-              .text(project.displayName || project.metadata.name)
+              .text((project.metadata.annotations && project.metadata.annotations.displayName)|| project.metadata.name)
               .appendTo(select);
           });
           // TODO add back in when we support create project

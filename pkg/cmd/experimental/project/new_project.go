@@ -80,9 +80,9 @@ func (o *NewProjectOptions) Run() error {
 
 	project := &projectapi.Project{}
 	project.Name = o.ProjectName
-	project.DisplayName = o.DisplayName
 	project.Annotations = make(map[string]string)
 	project.Annotations["description"] = o.Description
+	project.Annotations["displayName"] = o.DisplayName
 	project, err := o.Client.Projects().Create(project)
 	if err != nil {
 		return err

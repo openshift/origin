@@ -2,7 +2,7 @@
   <h1>Projects</h1>
   <div class="tile tile-project tile-click" style="margin-bottom: 10px;" ng-repeat="project in projects">
     <h2 class="project">
-      <a class="tile-target" href="project/{{project.metadata.name}}">{{project.displayName || project.metadata.name}}</a>
+      <a class="tile-target" href="project/{{project.metadata.name}}">{{(project | displayName) || project.metadata.name}}</a>
       <span  ng-if="project.status.phase != 'Active'" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This project has been marked for deletion." style="cursor: help; vertical-align: top; margin-left: 5px;">
         <span class="pficon pficon-warning-triangle"></span>
         <span class="pficon pficon-warning-exclamation"></span>
