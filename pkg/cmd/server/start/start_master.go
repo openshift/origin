@@ -358,7 +358,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		kubeConfig.RunNamespaceController()
 
 	} else {
-		_, kubeConfig, err := configapi.GetKubeClient(openshiftMasterConfig.MasterClients.KubernetesKubeConfig)
+		_, kubeConfig, err := configapi.GetKubeClient(openshiftMasterConfig.MasterClients.ExternalKubernetesKubeConfig)
 		if err != nil {
 			return err
 		}

@@ -841,7 +841,7 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 // RouteAllocator returns a route allocation controller.
 func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocationController {
 	factory := routeallocationcontroller.RouteAllocationControllerFactory{
-		OSClient:   c.OSClient,
+		OSClient:   c.PrivilegedLoopbackOpenShiftClient,
 		KubeClient: c.KubeClient(),
 	}
 

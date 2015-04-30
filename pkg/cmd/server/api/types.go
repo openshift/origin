@@ -163,8 +163,8 @@ type MasterClients struct {
 	DeployerKubeConfig string
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string
-	// KubernetesKubeConfig is a .kubeconfig filename for system components to communicate to kubernetes for building the proxy
-	KubernetesKubeConfig string
+	// ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to kubernetes
+	ExternalKubernetesKubeConfig string
 }
 
 type DNSConfig struct {
