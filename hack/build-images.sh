@@ -59,6 +59,7 @@ image openshift/origin-docker-registry       images/dockerregistry
 # images that depend on openshift/origin
 image openshift/origin-deployer              images/deployer
 image openshift/origin-docker-builder        images/builder/docker/docker-builder
+image openshift/origin-gitserver             examples/gitserver
 image openshift/origin-sti-builder           images/builder/docker/sti-builder
 # extra images (not part of infrastructure)
 image openshift/hello-openshift              examples/hello-openshift

@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# detect-language returns a string indicating the image repository to use as a base
+# image for this source repository. Return "docker.io/*/*" for Docker images, a two
+# segment entry for a local image repository, or a single segment name to search
+# in the current namespace. Set a tag to qualify the version - e.g. "ruby:1.9.3",
+# "nodejs:0.10".
+#
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+function has {
+  [[ -n $(git ls-tree --full-name --name-only HEAD ${@:1}) ]]
+}
+function key {
+  git config --local --get "${1}"
+}
+
+prefix=${PREFIX:-openshift/}
+
+if has Gemfile; then
+  echo "${prefix}ruby"
+  exit 0
+fi
+
+if has requirements.txt; then
+  echo "${prefix}python"
+  exit 0
+fi
+
+if has package.json app.json; then
+  echo "${prefix}nodejs"
+  exit 0
+fi
+
+if has '*.go'; then
+  echo "${prefix}golang"
+  exit 0
+fi
+
+if has index.php; then
+  echo "${prefix}php"
+  exit 0
+fi
+
+exit 1
