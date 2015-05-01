@@ -16,6 +16,7 @@ angular
     'ngRoute',
     'ngSanitize',
     'ngTouch',
+    'openshiftUI',
     'kubernetesUI'
   ])
   .constant("mainNavTabs", [])  // even though its not really a "constant", it has to be created as a constant and not a value
@@ -138,7 +139,7 @@ angular
         templateUrl: 'views/newfromtemplate.html'
       })
       .when('/project/:project/create/fromimage', {
-    	  templateUrl: 'views/create/fromimage.html'
+        templateUrl: 'views/create/fromimage.html'
       })
       .when('/oauth', {
         templateUrl: 'views/util/oauth.html',

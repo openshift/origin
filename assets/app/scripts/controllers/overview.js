@@ -41,6 +41,9 @@ angular.module('openshiftConsole')
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
+    $scope.renderOptions = $scope.renderOptions || {};
+    $scope.renderOptions.showSidebarRight = true;
+
     var watches = [];
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
@@ -256,19 +259,19 @@ angular.module('openshiftConsole')
           var triggerImage = trigger.imageChangeParams.from.name;
           var buildImage = build.parameters.output.to.name;
           if (triggerImage !== buildImage) {
-          	continue;
+            continue;
           }
 
           var triggerNamespace = trigger.imageChangeParams.from.namespace || deploymentConfig.metadata.namespace;
           var buildNamespace = build.parameters.output.to.namespace || build.metadata.namespace;
           if (triggerNamespace !== buildNamespace) {
-          	continue;
+            continue;
           }
 
           var triggerTag = trigger.imageChangeParams.tag;
           var buildTag = build.parameters.output.tag || "latest";
           if (triggerTag !== buildTag) {
-          	continue;
+            continue;
           }
 
           trigger.builds = trigger.builds || {};

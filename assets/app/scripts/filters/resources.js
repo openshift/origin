@@ -1,6 +1,18 @@
 'use strict';
 
 angular.module('openshiftConsole')
+  // this filter is intended for use with the "track by" in an ng-repeat
+  // when uid is not defined it falls back to object identity for uniqueness
+  .filter('uid', function() {
+    return function(resource) {
+      if (resource && resource.metadata && resource.metadata.uid) {
+        return resource.metadata.uid;
+      }
+      else {
+        return resource;
+      }
+    }
+  })
   .filter('annotation', function() {
     return function(resource, key) {
       if (resource && resource.spec && resource.spec.tags && key.indexOf(".") !== -1){

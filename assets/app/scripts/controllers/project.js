@@ -16,7 +16,8 @@ angular.module('openshiftConsole')
     $scope.projects = {};
     $scope.alerts = {};
     $scope.renderOptions = {
-      hideFilterWidget: false
+      hideFilterWidget: false,
+      showSidebarRight: false
     };
 
     AuthService.withUser().then(function() {
