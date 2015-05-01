@@ -85,7 +85,7 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 	refs = append(refs, &config.MasterClients.DeployerKubeConfig)
 	refs = append(refs, &config.MasterClients.OpenShiftLoopbackKubeConfig)
-	refs = append(refs, &config.MasterClients.KubernetesKubeConfig)
+	refs = append(refs, &config.MasterClients.ExternalKubernetesKubeConfig)
 
 	refs = append(refs, &config.PolicyConfig.BootstrapPolicyFile)
 

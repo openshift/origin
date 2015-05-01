@@ -79,7 +79,6 @@ func DefaultAPIClientCerts(certDir string) []ClientCertInfo {
 	return []ClientCertInfo{
 		DefaultDeployerClientCertInfo(certDir),
 		DefaultOpenshiftLoopbackClientCertInfo(certDir),
-		DefaultKubeClientClientCertInfo(certDir),
 		DefaultClusterAdminClientCertInfo(certDir),
 		DefaultRouterClientCertInfo(certDir),
 		DefaultRegistryClientCertInfo(certDir),
@@ -130,17 +129,6 @@ func DefaultOpenshiftLoopbackClientCertInfo(certDir string) ClientCertInfo {
 		},
 		UnqualifiedUser: "openshift-client",
 		User:            "system:openshift-client",
-	}
-}
-
-func DefaultKubeClientClientCertInfo(certDir string) ClientCertInfo {
-	return ClientCertInfo{
-		CertLocation: configapi.CertInfo{
-			CertFile: DefaultCertFilename(certDir, "kube-client"),
-			KeyFile:  DefaultKeyFilename(certDir, "kube-client"),
-		},
-		UnqualifiedUser: "kube-client",
-		User:            "system:kube-client",
 	}
 }
 

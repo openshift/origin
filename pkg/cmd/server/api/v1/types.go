@@ -161,8 +161,8 @@ type MasterClients struct {
 	DeployerKubeConfig string `json:"deployerKubeConfig"`
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string `json:"openshiftLoopbackKubeConfig"`
-	// KubernetesKubeConfig is a .kubeconfig filename for system components to communicate to kubernetes for building the proxy
-	KubernetesKubeConfig string `json:"kubernetesKubeConfig"`
+	// ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to kubernetes
+	ExternalKubernetesKubeConfig string `json:"externalKubernetesKubeConfig"`
 }
 
 type DNSConfig struct {
