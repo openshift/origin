@@ -52,6 +52,10 @@ var (
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 )
 
+var (
+	authorizationTypeConverter = authorizationapi.TypeConverter{""}
+)
+
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
 func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p := kctl.NewHumanReadablePrinter(noHeaders)
@@ -78,6 +82,7 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(deploymentConfigColumns, printDeploymentConfigList)
 	p.Handler(templateColumns, printTemplate)
 	p.Handler(templateColumns, printTemplateList)
+
 	p.Handler(policyColumns, printPolicy)
 	p.Handler(policyColumns, printPolicyList)
 	p.Handler(policyBindingColumns, printPolicyBinding)
@@ -86,6 +91,15 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(roleBindingColumns, printRoleBindingList)
 	p.Handler(roleColumns, printRole)
 	p.Handler(roleColumns, printRoleList)
+
+	p.Handler(policyColumns, printClusterPolicy)
+	p.Handler(policyColumns, printClusterPolicyList)
+	p.Handler(policyBindingColumns, printClusterPolicyBinding)
+	p.Handler(policyBindingColumns, printClusterPolicyBindingList)
+	p.Handler(roleColumns, printClusterRole)
+	p.Handler(roleColumns, printClusterRoleList)
+	p.Handler(roleBindingColumns, printClusterRoleBinding)
+	p.Handler(roleBindingColumns, printClusterRoleBindingList)
 
 	p.Handler(oauthClientColumns, printOAuthClient)
 	p.Handler(oauthClientColumns, printOAuthClientList)
@@ -392,6 +406,38 @@ func printPolicyBindingList(list *authorizationapi.PolicyBindingList, w io.Write
 	}
 
 	return nil
+}
+
+func printClusterPolicy(policy *authorizationapi.ClusterPolicy, w io.Writer) error {
+	return printPolicy(authorizationTypeConverter.ToPolicy(policy), w)
+}
+
+func printClusterPolicyList(list *authorizationapi.ClusterPolicyList, w io.Writer) error {
+	return printPolicyList(authorizationTypeConverter.ToPolicyList(list), w)
+}
+
+func printClusterPolicyBinding(policyBinding *authorizationapi.ClusterPolicyBinding, w io.Writer) error {
+	return printPolicyBinding(authorizationTypeConverter.ToPolicyBinding(policyBinding), w)
+}
+
+func printClusterPolicyBindingList(list *authorizationapi.ClusterPolicyBindingList, w io.Writer) error {
+	return printPolicyBindingList(authorizationTypeConverter.ToPolicyBindingList(list), w)
+}
+
+func printClusterRole(role *authorizationapi.ClusterRole, w io.Writer) error {
+	return printRole(authorizationTypeConverter.ToRole(role), w)
+}
+
+func printClusterRoleList(list *authorizationapi.ClusterRoleList, w io.Writer) error {
+	return printRoleList(authorizationTypeConverter.ToRoleList(list), w)
+}
+
+func printClusterRoleBinding(roleBinding *authorizationapi.ClusterRoleBinding, w io.Writer) error {
+	return printRoleBinding(authorizationTypeConverter.ToRoleBinding(roleBinding), w)
+}
+
+func printClusterRoleBindingList(list *authorizationapi.ClusterRoleBindingList, w io.Writer) error {
+	return printRoleBindingList(authorizationTypeConverter.ToRoleBindingList(list), w)
 }
 
 func printIsPersonalSubjectAccessReview(a *authorizationapi.IsPersonalSubjectAccessReview, w io.Writer) error {

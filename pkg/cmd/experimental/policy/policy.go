@@ -64,7 +64,7 @@ func getUniqueName(basename string, existingNames *util.StringSet) string {
 }
 
 func getExistingRoleBindingsForRole(roleNamespace, role string, bindingInterface client.PolicyBindingInterface) ([]*authorizationapi.RoleBinding, error) {
-	existingBindings, err := bindingInterface.Get(roleNamespace)
+	existingBindings, err := bindingInterface.Get(authorizationapi.GetPolicyBindingName(roleNamespace))
 	if err != nil && !strings.Contains(err.Error(), " not found") {
 		return nil, err
 	}

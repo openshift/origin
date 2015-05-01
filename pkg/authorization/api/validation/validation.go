@@ -42,8 +42,8 @@ func ValidatePolicyUpdate(policy *authorizationapi.Policy, oldPolicy *authorizat
 
 func PolicyBindingNameValidator(policyRefNamespace string) validation.ValidateNameFunc {
 	return func(name string, prefix bool) (bool, string) {
-		if name != policyRefNamespace {
-			return false, "name must be " + policyRefNamespace
+		if name != authorizationapi.GetPolicyBindingName(policyRefNamespace) {
+			return false, "name must be " + authorizationapi.GetPolicyBindingName(policyRefNamespace)
 		}
 
 		return true, ""

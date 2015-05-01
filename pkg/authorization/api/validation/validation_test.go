@@ -75,7 +75,7 @@ func TestValidatePolicy(t *testing.T) {
 
 func TestValidatePolicyBinding(t *testing.T) {
 	errs := ValidatePolicyBinding(&authorizationapi.PolicyBinding{
-		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName("master")},
 		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
 	})
 	if len(errs) != 0 {
@@ -89,7 +89,7 @@ func TestValidatePolicyBinding(t *testing.T) {
 	}{
 		"zero-length namespace": {
 			A: authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.GetPolicyBindingName(authorizationapi.PolicyName)},
 				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
 			},
 			T: fielderrors.ValidationErrorTypeRequired,
@@ -113,7 +113,7 @@ func TestValidatePolicyBinding(t *testing.T) {
 		},
 		"bad role": {
 			A: authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName(authorizationapi.PolicyName)},
 				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
 				RoleBindings: map[string]authorizationapi.RoleBinding{
 					"any": {
@@ -127,7 +127,7 @@ func TestValidatePolicyBinding(t *testing.T) {
 		},
 		"mismatched name": {
 			A: authorizationapi.PolicyBinding{
-				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName(authorizationapi.PolicyName)},
 				PolicyRef:  kapi.ObjectReference{Namespace: authorizationapi.PolicyName},
 				RoleBindings: map[string]authorizationapi.RoleBinding{
 					"any1": {

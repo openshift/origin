@@ -83,7 +83,9 @@ var originTypes = []string{
 	"Project", "ProjectRequest",
 	"User", "Identity", "UserIdentityMapping",
 	"OAuthClient", "OAuthClientAuthorization", "OAuthAccessToken", "OAuthAuthorizeToken",
-	"Role", "RoleBinding", "Policy", "PolicyBinding", "ResourceAccessReview", "SubjectAccessReview",
+	"Role", "RoleBinding", "Policy", "PolicyBinding",
+	"ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding",
+	"ResourceAccessReview", "SubjectAccessReview",
 }
 
 // UserResources are the resource names that apply to the primary, user facing resources used by
@@ -148,6 +150,11 @@ func init() {
 		"OAuthAuthorizeToken":      true,
 		"OAuthClient":              true,
 		"OAuthClientAuthorization": true,
+
+		"ClusterRole":          true,
+		"ClusterRoleBinding":   true,
+		"ClusterPolicy":        true,
+		"ClusterPolicyBinding": true,
 	}
 
 	// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources

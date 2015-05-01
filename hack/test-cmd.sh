@@ -460,8 +460,8 @@ osadm policy add-role-to-user admin adduser -n ui-test-project
 # Make sure project can be listed by osc (after auth cache syncs)
 sleep 2 && [ "$(osc get projects | grep 'ui-test-project')" ]
 # Make sure users got added
-[ "$(osc describe policybinding master -n ui-test-project | grep createuser)" ]
-[ "$(osc describe policybinding master -n ui-test-project | grep adduser)" ]
+[ "$(osc describe policybinding master:default -n ui-test-project | grep createuser)" ]
+[ "$(osc describe policybinding master:default -n ui-test-project | grep adduser)" ]
 echo "ui-project-commands: ok"
 
 # Test deleting and recreating a project
@@ -469,7 +469,7 @@ osadm new-project recreated-project --admin="createuser1"
 osc delete project recreated-project
 osc delete project recreated-project
 osadm new-project recreated-project --admin="createuser2"
-osc describe policybinding master -n recreated-project | grep createuser2
+osc describe policybinding master:default -n recreated-project | grep createuser2
 echo "ex new-project: ok"
 
 # Test running a router

@@ -20,7 +20,7 @@ import (
 func testNewBaseBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.DefaultMasterAuthorizationNamespace, Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
+			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.GetPolicyBindingName(bootstrappolicy.DefaultMasterAuthorizationNamespace), Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 			PolicyRef:  kapi.ObjectReference{Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 			RoleBindings: map[string]authorizationapi.RoleBinding{
 				"cluster-admins": {
@@ -31,7 +31,7 @@ func testNewBaseBindings() []authorizationapi.PolicyBinding {
 			},
 		},
 		{
-			ObjectMeta:   kapi.ObjectMeta{Name: bootstrappolicy.DefaultMasterAuthorizationNamespace, Namespace: "unittest"},
+			ObjectMeta:   kapi.ObjectMeta{Name: authorizationapi.GetPolicyBindingName(bootstrappolicy.DefaultMasterAuthorizationNamespace), Namespace: "unittest"},
 			PolicyRef:    kapi.ObjectReference{Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 			RoleBindings: map[string]authorizationapi.RoleBinding{},
 		},
@@ -125,10 +125,14 @@ func TestUpdate(t *testing.T) {
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
-	obj, _ := storage.Create(ctx, &authorizationapi.RoleBinding{
+	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+		return
+	}
 	original := obj.(*authorizationapi.RoleBinding)
 
 	roleBinding := &authorizationapi.RoleBinding{
@@ -159,10 +163,14 @@ func TestUpdateError(t *testing.T) {
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
-	obj, _ := storage.Create(ctx, &authorizationapi.RoleBinding{
+	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-different"},
 		RoleRef:    kapi.ObjectReference{Name: "admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+		return
+	}
 	original := obj.(*authorizationapi.RoleBinding)
 
 	roleBinding := &authorizationapi.RoleBinding{
@@ -170,7 +178,7 @@ func TestUpdateError(t *testing.T) {
 		RoleRef:    kapi.ObjectReference{Name: "admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	}
 
-	_, _, err := storage.Update(ctx, roleBinding)
+	_, _, err = storage.Update(ctx, roleBinding)
 	if err == nil {
 		t.Errorf("Missing expected error")
 		return
@@ -184,10 +192,14 @@ func TestUpdateCannotChangeRoleRefError(t *testing.T) {
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 
 	storage := makeTestStorage()
-	obj, _ := storage.Create(ctx, &authorizationapi.RoleBinding{
+	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-different"},
 		RoleRef:    kapi.ObjectReference{Name: "admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+		return
+	}
 	original := obj.(*authorizationapi.RoleBinding)
 
 	roleBinding := &authorizationapi.RoleBinding{
@@ -195,7 +207,7 @@ func TestUpdateCannotChangeRoleRefError(t *testing.T) {
 		RoleRef:    kapi.ObjectReference{Name: "cluster-admin", Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
 	}
 
-	_, _, err := storage.Update(ctx, roleBinding)
+	_, _, err = storage.Update(ctx, roleBinding)
 	if err == nil {
 		t.Errorf("Missing expected error")
 		return
