@@ -195,7 +195,12 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		insecure := "false"
 		if config.Insecure {
 			insecure = "true"
+		} else {
+			if len(config.KeyData) == 0 || len(config.CertData) == 0 {
+				return fmt.Errorf("registry does not exist; the provided credentials %q are missing the client certificate and/or key", cfg.Credentials)
+			}
 		}
+
 		env := app.Environment{
 			"OPENSHIFT_MASTER":    config.Host,
 			"OPENSHIFT_CA_DATA":   string(config.CAData),
