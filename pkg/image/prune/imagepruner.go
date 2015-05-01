@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -28,21 +27,8 @@ import (
 // pruneAlgorithm contains the various settings to use when evaluating images
 // and layers for pruning.
 type pruneAlgorithm struct {
-	registryURLs               []string
 	minimumAgeInMinutesToPrune int
 	tagRevisionsToKeep         int
-}
-
-// externalImage returns true if the image belongs to an external Docker
-// registry; i.e., a registry not controlled by OpenShift.
-func (pa pruneAlgorithm) externalImage(image string) bool {
-	for _, url := range pa.registryURLs {
-		if strings.HasPrefix(image, url) {
-			return false
-		}
-	}
-
-	return true
 }
 
 // ImagePruneFunc is a function that is invoked for each image that is
@@ -71,9 +57,6 @@ var _ ImagePruner = &imagePruner{}
 /*
 NewImagePruner creates a new ImagePruner.
 
-registryURLs is a list of OpenShift registries. Only images with URLs
-belonging to this list are candidates for pruning.
-
 minimumAgeInMinutesToPrune is the minimum age, in minutes, that a resource
 must be in order for the image it references (or an image itself) to be a
 candidate for pruning. For example, if minimumAgeInMinutesToPrune is 60, and
@@ -87,9 +70,9 @@ than tagRevisionsToKeep is eligible for pruning.
 images, streams, pods, rcs, bcs, builds, and dcs are client interfaces for
 retrieving each respective resource type.
 
-The ImagePruner performs the following logic: remove any image belonging to the
-specified registry URL(s) that was created at least *n* minutes ago and is
-*not* currently referenced by:
+The ImagePruner performs the following logic: remove any image contaning the
+annotation openshift.io/image.managed=true that was created at least *n*
+minutes ago and is *not* currently referenced by:
 
 - any pod created less than *n* minutes ago
 - any image stream created less than *n* minutes ago
@@ -107,7 +90,7 @@ ImageStreams having a reference to the image in `status.tags`.
 Also automatically remove any image layer that is no longer referenced by any
 images.
 */
-func NewImagePruner(registryURLs []string, minimumAgeInMinutesToPrune int, tagRevisionsToKeep int, images client.ImagesInterfacer, streams client.ImageStreamsNamespacer, pods kclient.PodsNamespacer, rcs kclient.ReplicationControllersNamespacer, bcs client.BuildConfigsNamespacer, builds client.BuildsNamespacer, dcs client.DeploymentConfigsNamespacer) (ImagePruner, error) {
+func NewImagePruner(minimumAgeInMinutesToPrune int, tagRevisionsToKeep int, images client.ImagesInterfacer, streams client.ImageStreamsNamespacer, pods kclient.PodsNamespacer, rcs kclient.ReplicationControllersNamespacer, bcs client.BuildConfigsNamespacer, builds client.BuildsNamespacer, dcs client.DeploymentConfigsNamespacer) (ImagePruner, error) {
 	allImages, err := images.Images().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, fmt.Errorf("Error listing images: %v", err)
@@ -143,17 +126,16 @@ func NewImagePruner(registryURLs []string, minimumAgeInMinutesToPrune int, tagRe
 		return nil, fmt.Errorf("Error listing deployment configs: %v", err)
 	}
 
-	return newImagePruner(registryURLs, minimumAgeInMinutesToPrune, tagRevisionsToKeep, allImages, allStreams, allPods, allRCs, allBCs, allBuilds, allDCs), nil
+	return newImagePruner(minimumAgeInMinutesToPrune, tagRevisionsToKeep, allImages, allStreams, allPods, allRCs, allBCs, allBuilds, allDCs), nil
 }
 
 // newImagePruner creates a new ImagePruner.
-func newImagePruner(registryURLs []string, minimumAgeInMinutesToPrune int, tagRevisionsToKeep int, images *imageapi.ImageList, streams *imageapi.ImageStreamList, pods *kapi.PodList, rcs *kapi.ReplicationControllerList, bcs *buildapi.BuildConfigList, builds *buildapi.BuildList, dcs *deployapi.DeploymentConfigList) ImagePruner {
+func newImagePruner(minimumAgeInMinutesToPrune int, tagRevisionsToKeep int, images *imageapi.ImageList, streams *imageapi.ImageStreamList, pods *kapi.PodList, rcs *kapi.ReplicationControllerList, bcs *buildapi.BuildConfigList, builds *buildapi.BuildList, dcs *deployapi.DeploymentConfigList) ImagePruner {
 	g := graph.New()
 
-	glog.V(1).Infof("Creating image pruner with registryURLs=%v, minimumAgeInMinutesToPrune=%d, tagRevisionsToKeep=%d", registryURLs, minimumAgeInMinutesToPrune, tagRevisionsToKeep)
+	glog.V(1).Infof("Creating image pruner with minimumAgeInMinutesToPrune=%d, tagRevisionsToKeep=%d", minimumAgeInMinutesToPrune, tagRevisionsToKeep)
 
 	algorithm := pruneAlgorithm{
-		registryURLs:               registryURLs,
 		minimumAgeInMinutesToPrune: minimumAgeInMinutesToPrune,
 		tagRevisionsToKeep:         tagRevisionsToKeep,
 	}
@@ -161,10 +143,10 @@ func newImagePruner(registryURLs []string, minimumAgeInMinutesToPrune int, tagRe
 	addImagesToGraph(g, images, algorithm)
 	addImageStreamsToGraph(g, streams, algorithm)
 	addPodsToGraph(g, pods, algorithm)
-	addReplicationControllersToGraph(g, rcs, algorithm)
-	addBuildConfigsToGraph(g, bcs, algorithm)
-	addBuildsToGraph(g, builds, algorithm)
-	addDeploymentConfigsToGraph(g, dcs, algorithm)
+	addReplicationControllersToGraph(g, rcs)
+	addBuildConfigsToGraph(g, bcs)
+	addBuildsToGraph(g, builds)
+	addDeploymentConfigsToGraph(g, dcs)
 
 	return &imagePruner{
 		g:         g,
@@ -180,8 +162,14 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 	for i := range images.Items {
 		image := &images.Items[i]
 
-		if algorithm.externalImage(image.DockerImageReference) {
-			glog.V(4).Infof("Image %q belongs to an external registry - skipping", image.DockerImageReference)
+		glog.V(4).Infof("Examining image %q", image.Name)
+
+		if image.Annotations == nil {
+			glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping", image.Name, image.DockerImageReference)
+			continue
+		}
+		if value, ok := image.Annotations[imageapi.ManagedByOpenShiftAnnotation]; !ok || value != "true" {
+			glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping", image.Name, image.DockerImageReference)
 			continue
 		}
 
@@ -221,6 +209,8 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 	for i := range streams.Items {
 		stream := &streams.Items[i]
 
+		glog.V(4).Infof("Examining image stream %s/%s", stream.Namespace, stream.Name)
+
 		// use a weak reference for old image revisions by default
 		oldImageRevisionReferenceKind := graph.WeakReferencedImageGraphEdgeKind
 
@@ -237,14 +227,9 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 
 		for tag, history := range stream.Status.Tags {
 			for i := range history.Items {
-				if algorithm.externalImage(history.Items[i].DockerImageReference) {
-					glog.V(4).Infof("Tag %q revision %d points to %s which is part of an external registry; skipping", tag, i, history.Items[i].DockerImageReference)
-					continue
-				}
-
 				n := graph.FindImage(g, history.Items[i].Image)
 				if n == nil {
-					glog.V(1).Infof("Unable to find image %q in graph", history.Items[i].Image)
+					glog.V(1).Infof("Unable to find image %q in graph (from tag %q, revision %d, dockerImageReference %s)", history.Items[i].Image, tag, i, history.Items[i].DockerImageReference)
 					continue
 				}
 				imageNode := n.(*graph.ImageNode)
@@ -280,11 +265,12 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 // defined by algorithm.
 //
 // Edges are added to the graph from each pod to the images specified by that
-// pod's list of containers, as long as the image belongs to one of the
-// registries specified in algorithm.
+// pod's list of containers, as long as the image is managed by OpenShift.
 func addPodsToGraph(g graph.Graph, pods *kapi.PodList, algorithm pruneAlgorithm) {
 	for i := range pods.Items {
 		pod := &pods.Items[i]
+
+		glog.V(4).Infof("Examining pod %s/%s", pod.Namespace, pod.Name)
 
 		if pod.Status.Phase != kapi.PodRunning && pod.Status.Phase != kapi.PodPending {
 			age := util.Now().Sub(pod.CreationTimestamp.Time)
@@ -298,22 +284,18 @@ func addPodsToGraph(g graph.Graph, pods *kapi.PodList, algorithm pruneAlgorithm)
 		glog.V(4).Infof("Adding pod %s/%s to graph", pod.Namespace, pod.Name)
 		podNode := graph.Pod(g, pod)
 
-		addPodSpecToGraph(g, &pod.Spec, podNode, algorithm)
+		addPodSpecToGraph(g, &pod.Spec, podNode)
 	}
 }
 
 // Edges are added to the graph from each predecessor (pod or replication
 // controller) to the images specified by the pod spec's list of containers, as
-// long as the image belongs to one of the registries specified in algorithm.
-func addPodSpecToGraph(g graph.Graph, spec *kapi.PodSpec, predecessor gonum.Node, algorithm pruneAlgorithm) {
+// long as the image is managed by OpenShift.
+func addPodSpecToGraph(g graph.Graph, spec *kapi.PodSpec, predecessor gonum.Node) {
 	for j := range spec.Containers {
 		container := spec.Containers[j]
 
 		glog.V(4).Infof("Examining container image %q", container.Image)
-		if algorithm.externalImage(container.Image) {
-			glog.V(4).Infof("Image belongs to an external registry - skipping")
-			continue
-		}
 
 		ref, err := imageapi.ParseDockerImageReference(container.Image)
 		if err != nil {
@@ -322,13 +304,13 @@ func addPodSpecToGraph(g graph.Graph, spec *kapi.PodSpec, predecessor gonum.Node
 		}
 
 		if len(ref.ID) == 0 {
-			glog.Errorf("Missing image ID")
+			glog.V(4).Infof("%q has no image ID", container.Image)
 			continue
 		}
 
 		imageNode := graph.FindImage(g, ref.ID)
 		if imageNode == nil {
-			glog.Errorf("Expected to find image %q in the graph, but it was missing", ref.ID)
+			glog.Infof("Unable to find image %q in the graph", ref.ID)
 			continue
 		}
 
@@ -340,59 +322,68 @@ func addPodSpecToGraph(g graph.Graph, spec *kapi.PodSpec, predecessor gonum.Node
 // addReplicationControllersToGraph adds replication controllers to the graph.
 //
 // Edges are added to the graph from each replication controller to the images
-// specified by its pod spec's list of containers, as long as the image belongs
-// to one of the registries specified in algorithm.
-func addReplicationControllersToGraph(g graph.Graph, rcs *kapi.ReplicationControllerList, algorithm pruneAlgorithm) {
+// specified by its pod spec's list of containers, as long as the image is
+// managed by OpenShift.
+func addReplicationControllersToGraph(g graph.Graph, rcs *kapi.ReplicationControllerList) {
 	for i := range rcs.Items {
 		rc := &rcs.Items[i]
+		glog.V(4).Infof("Examining replication controller %s/%s", rc.Namespace, rc.Name)
 		rcNode := graph.ReplicationController(g, rc)
-		addPodSpecToGraph(g, &rc.Spec.Template.Spec, rcNode, algorithm)
+		addPodSpecToGraph(g, &rc.Spec.Template.Spec, rcNode)
 	}
 }
 
 // addDeploymentConfigsToGraph adds deployment configs to the graph.
 //
 // Edges are added to the graph from each deployment config to the images
-// specified by its pod spec's list of containers, as long as the image belongs
-// to one of the registries specified in algorithm.
-func addDeploymentConfigsToGraph(g graph.Graph, dcs *deployapi.DeploymentConfigList, algorithm pruneAlgorithm) {
+// specified by its pod spec's list of containers, as long as the image is
+// managed by OpenShift.
+func addDeploymentConfigsToGraph(g graph.Graph, dcs *deployapi.DeploymentConfigList) {
 	for i := range dcs.Items {
 		dc := &dcs.Items[i]
+		glog.V(4).Infof("Examining deployment config %s/%s", dc.Namespace, dc.Name)
 		dcNode := graph.DeploymentConfig(g, dc)
-		addPodSpecToGraph(g, &dc.Template.ControllerTemplate.Template.Spec, dcNode, algorithm)
+		addPodSpecToGraph(g, &dc.Template.ControllerTemplate.Template.Spec, dcNode)
 	}
 }
 
 // addBuildConfigsToGraph adds build configs to the graph.
 //
 // Edges are added to the graph from each build config to the image specified by its strategy.from.
-func addBuildConfigsToGraph(g graph.Graph, bcs *buildapi.BuildConfigList, algorithm pruneAlgorithm) {
+func addBuildConfigsToGraph(g graph.Graph, bcs *buildapi.BuildConfigList) {
 	for i := range bcs.Items {
 		bc := &bcs.Items[i]
+		glog.V(4).Infof("Examining build config %s/%s", bc.Namespace, bc.Name)
 		bcNode := graph.BuildConfig(g, bc)
-		addBuildStrategyImageReferencesToGraph(g, bc.Parameters.Strategy, bcNode, algorithm)
+		addBuildStrategyImageReferencesToGraph(g, bc.Parameters.Strategy, bcNode)
 	}
 }
 
 // addBuildsToGraph adds builds to the graph.
 //
 // Edges are added to the graph from each build to the image specified by its strategy.from.
-func addBuildsToGraph(g graph.Graph, builds *buildapi.BuildList, algorithm pruneAlgorithm) {
+func addBuildsToGraph(g graph.Graph, builds *buildapi.BuildList) {
 	for i := range builds.Items {
 		build := &builds.Items[i]
+		glog.V(4).Infof("Examining build %s/%s", build.Namespace, build.Name)
 		buildNode := graph.Build(g, build)
-		addBuildStrategyImageReferencesToGraph(g, build.Parameters.Strategy, buildNode, algorithm)
+		addBuildStrategyImageReferencesToGraph(g, build.Parameters.Strategy, buildNode)
 	}
 }
 
 // Edges are added to the graph from each predecessor (build or build config)
-// to the image specified by strategy.from, as long as the image belongs to one
-// of the registries specified in algorithm.
-func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.BuildStrategy, predecessor gonum.Node, algorithm pruneAlgorithm) {
+// to the image specified by strategy.from, as long as the image is managed by
+// OpenShift.
+func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.BuildStrategy, predecessor gonum.Node) {
+	glog.V(4).Infof("Examining build strategy with type %q", strategy.Type)
+
 	from := buildutil.GetImageStreamForStrategy(strategy)
 	if from == nil {
+		glog.V(4).Infof("Unable to determine 'from' reference - skipping")
 		return
 	}
+
+	glog.V(4).Infof("Examining build strategy with from: %#v", from)
 
 	var imageID string
 
@@ -400,15 +391,14 @@ func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.Bui
 	case "ImageStreamImage":
 		_, id, err := imagestreamimage.ParseNameAndID(from.Name)
 		if err != nil {
+			glog.V(4).Infof("Error parsing ImageStreamImage name %q: %v - skipping", from.Name, err)
 			return
 		}
 		imageID = id
 	case "DockerImage":
-		if algorithm.externalImage(from.Name) {
-			return
-		}
 		ref, err := imageapi.ParseDockerImageReference(from.Name)
 		if err != nil {
+			glog.V(4).Infof("Error parsing DockerImage name %q: %v - skipping", from.Name, err)
 			return
 		}
 		imageID = ref.ID
@@ -416,11 +406,14 @@ func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.Bui
 		return
 	}
 
+	glog.V(4).Infof("Looking for image %q in graph", imageID)
 	imageNode := graph.FindImage(g, imageID)
 	if imageNode == nil {
+		glog.V(4).Infof("Unable to find image %q in graph - skipping", imageID)
 		return
 	}
 
+	glog.V(4).Infof("Adding edge from %v to %v", predecessor, imageNode)
 	g.AddEdge(predecessor, imageNode, graph.ReferencedImageGraphEdgeKind)
 }
 
@@ -568,7 +561,7 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, layerPruneFu
 			ref, err := imageapi.DockerImageReferenceForStream(stream)
 			if err != nil {
 				//TODO
-				glog.Errorf("Error constructing DockerImageReference for %q", streamName)
+				glog.Errorf("Error constructing DockerImageReference for %q: %v", streamName, err)
 				continue
 			}
 

@@ -1,6 +1,7 @@
 package prune
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"reflect"
@@ -23,31 +24,13 @@ func imageList(images ...imageapi.Image) imageapi.ImageList {
 }
 
 func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
-	image := imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: id,
-		},
-		DockerImageReference: ref,
-		DockerImageManifest: `{
-			"fsLayers": [
-				{
-					"blobSum": "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-				},
-				{
-					"blobSum": "tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0"
-				},
-				{
-					"blobSum": "tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171"
-				},
-				{
-					"blobSum": "tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd"
-				},
-				{
-					"blobSum": "tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-				}
-			]
-		}`,
-	}
+	image := imageWithLayers(id, ref,
+		"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		"tarsum.dev+sha256:b194de3772ebbcdc8f244f663669799ac1cb141834b7cb8b69100285d357a2b0",
+		"tarsum.dev+sha256:c937c4bb1c1a21cc6d94340812262c6472092028972ae69b551b1a70d4276171",
+		"tarsum.dev+sha256:2aaacc362ac6be2b9e9ae8c6029f6f616bb50aec63746521858e47841b90fabd",
+		"tarsum.dev+sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+	)
 
 	if ageInMinutes >= 0 {
 		image.CreationTimestamp = util.NewTime(util.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
@@ -58,6 +41,35 @@ func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
 
 func image(id, ref string) imageapi.Image {
 	return agedImage(id, ref, -1)
+}
+
+func imageWithLayers(id, ref string, layers ...string) imageapi.Image {
+	image := imageapi.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: id,
+			Annotations: map[string]string{
+				imageapi.ManagedByOpenShiftAnnotation: "true",
+			},
+		},
+		DockerImageReference: ref,
+	}
+
+	manifest := imageapi.DockerImageManifest{
+		FSLayers: []imageapi.DockerFSLayer{},
+	}
+
+	for _, layer := range layers {
+		manifest.FSLayers = append(manifest.FSLayers, imageapi.DockerFSLayer{DockerBlobSum: layer})
+	}
+
+	manifestBytes, err := json.Marshal(&manifest)
+	if err != nil {
+		panic(err)
+	}
+
+	image.DockerImageManifest = string(manifestBytes)
+
+	return image
 }
 
 func podList(pods ...kapi.Pod) kapi.PodList {
@@ -108,17 +120,18 @@ func streamList(streams ...imageapi.ImageStream) imageapi.ImageStreamList {
 	}
 }
 
-func stream(namespace, name string, tags map[string]imageapi.TagEventList) imageapi.ImageStream {
-	return agedStream(namespace, name, -1, tags)
+func stream(registry, namespace, name string, tags map[string]imageapi.TagEventList) imageapi.ImageStream {
+	return agedStream(registry, namespace, name, -1, tags)
 }
 
-func agedStream(namespace, name string, ageInMinutes int64, tags map[string]imageapi.TagEventList) imageapi.ImageStream {
+func agedStream(registry, namespace, name string, ageInMinutes int64, tags map[string]imageapi.TagEventList) imageapi.ImageStream {
 	stream := imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
 		Status: imageapi.ImageStreamStatus{
+			DockerImageRepository: fmt.Sprintf("%s/%s/%s", registry, namespace, name),
 			Tags: tags,
 		},
 	}
@@ -130,8 +143,8 @@ func agedStream(namespace, name string, ageInMinutes int64, tags map[string]imag
 	return stream
 }
 
-func streamPtr(namespace, name string, tags map[string]imageapi.TagEventList) *imageapi.ImageStream {
-	s := stream(namespace, name, tags)
+func streamPtr(registry, namespace, name string, tags map[string]imageapi.TagEventList) *imageapi.ImageStream {
+	s := stream(registry, namespace, name, tags)
 	return &s
 }
 
@@ -276,7 +289,7 @@ func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromName
 
 var logLevel = flag.Int("loglevel", 0, "")
 
-func TestRun(t *testing.T) {
+func TestImagePruning(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
 	registryURL := "registry"
 
@@ -431,7 +444,7 @@ func TestRun(t *testing.T) {
 				image("id4", registryURL+"/foo/bar@id4"),
 			),
 			streams: streamList(
-				stream("foo", "bar", tags(
+				stream(registryURL, "foo", "bar", tags(
 					tag("latest",
 						tagEvent("id", registryURL+"/foo/bar@id"),
 						tagEvent("id2", registryURL+"/foo/bar@id2"),
@@ -449,7 +462,7 @@ func TestRun(t *testing.T) {
 				image("id2", registryURL+"/foo/bar@id2"),
 			),
 			streams: streamList(
-				agedStream("foo", "bar", 5, tags(
+				agedStream(registryURL, "foo", "bar", 5, tags(
 					tag("latest",
 						tagEvent("id", registryURL+"/foo/bar@id"),
 						tagEvent("id2", registryURL+"/foo/bar@id2"),
@@ -465,7 +478,7 @@ func TestRun(t *testing.T) {
 				image("id2", registryURL+"/foo/bar@id2"),
 			),
 			streams: streamList(
-				stream("foo", "bar", tags(
+				stream(registryURL, "foo", "bar", tags(
 					tag("latest",
 						tagEvent("id", registryURL+"/foo/bar@id"),
 						tagEvent("id2", registryURL+"/foo/bar@id2"),
@@ -483,11 +496,7 @@ func TestRun(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		registryURLs := []string{registryURL}
-		if len(test.registryURLs) > 0 {
-			registryURLs = test.registryURLs
-		}
-		p := newImagePruner(registryURLs, 60, 3, &test.images, &test.streams, &test.pods, &test.rcs, &test.bcs, &test.builds, &test.dcs)
+		p := newImagePruner(60, 3, &test.images, &test.streams, &test.pods, &test.rcs, &test.bcs, &test.builds, &test.dcs)
 		actualDeletions := util.NewStringSet()
 		actualUpdatedStreams := util.NewStringSet()
 
@@ -518,6 +527,8 @@ func TestRun(t *testing.T) {
 }
 
 func TestDefaultImagePruneFunc(t *testing.T) {
+	registryURL := "registry"
+
 	tests := map[string]struct {
 		referencedStreams []*imageapi.ImageStream
 		expectedUpdates   []*imageapi.ImageStream
@@ -528,7 +539,7 @@ func TestDefaultImagePruneFunc(t *testing.T) {
 		},
 		"1 tag, 1 image revision": {
 			referencedStreams: []*imageapi.ImageStream{
-				streamPtr("foo", "bar", tags(
+				streamPtr(registryURL, "foo", "bar", tags(
 					tag("latest",
 						tagEvent("id", "registry/foo/bar@id"),
 					),
@@ -538,7 +549,7 @@ func TestDefaultImagePruneFunc(t *testing.T) {
 		},
 		"1 tag, multiple image revisions": {
 			referencedStreams: []*imageapi.ImageStream{
-				streamPtr("foo", "bar", tags(
+				streamPtr(registryURL, "foo", "bar", tags(
 					tag("latest",
 						tagEvent("id", "registry/foo/bar@id"),
 						tagEvent("id2", "registry/foo/bar@id2"),
@@ -546,7 +557,7 @@ func TestDefaultImagePruneFunc(t *testing.T) {
 				)),
 			},
 			expectedUpdates: []*imageapi.ImageStream{
-				streamPtr("foo", "bar", tags(
+				streamPtr(registryURL, "foo", "bar", tags(
 					tag("latest",
 						tagEvent("id", "registry/foo/bar@id"),
 					),
@@ -578,5 +589,81 @@ func TestDefaultImagePruneFunc(t *testing.T) {
 				t.Errorf("%s: unexpected updated stream: %s", name, util.ObjectDiff(e, a))
 			}
 		}
+	}
+}
+
+func TestLayerPruning(t *testing.T) {
+	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	registryURL := "registry1"
+
+	tests := map[string]struct {
+		images                imageapi.ImageList
+		streams               imageapi.ImageStreamList
+		expectedDeletions     map[string]util.StringSet
+		expectedStreamUpdates map[string]util.StringSet
+	}{
+		"layers unique to id1 pruned": {
+			images: imageList(
+				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+						tagEvent("id1", registryURL+"/foo/bar@id1"),
+					),
+				)),
+			),
+			expectedDeletions: map[string]util.StringSet{
+				"registry1": util.NewStringSet("layer1", "layer2"),
+			},
+		},
+	}
+
+	for name, test := range tests {
+		actualDeletions := map[string]util.StringSet{}
+		actualUpdatedStreams := map[string]util.StringSet{}
+
+		imagePruneFunc := func(image *imageapi.Image, streams []*imageapi.ImageStream) []error {
+			return []error{}
+		}
+
+		layerPruneFunc := func(registryURL string, req dockerregistry.DeleteLayersRequest) []error {
+			registryDeletions, ok := actualDeletions[registryURL]
+			if !ok {
+				registryDeletions = util.NewStringSet()
+			}
+			streamUpdates, ok := actualUpdatedStreams[registryURL]
+			if !ok {
+				streamUpdates = util.NewStringSet()
+			}
+
+			for layer, streams := range req {
+				registryDeletions.Insert(layer)
+				streamUpdates.Insert(streams...)
+			}
+
+			actualDeletions[registryURL] = registryDeletions
+			actualUpdatedStreams[registryURL] = streamUpdates
+
+			return []error{}
+		}
+
+		p := newImagePruner(60, 1, &test.images, &test.streams, &kapi.PodList{}, &kapi.ReplicationControllerList{}, &buildapi.BuildConfigList{}, &buildapi.BuildList{}, &deployapi.DeploymentConfigList{})
+
+		p.Run(imagePruneFunc, layerPruneFunc)
+
+		if !reflect.DeepEqual(test.expectedDeletions, actualDeletions) {
+			t.Errorf("%s: expected layer deletions %#v, got %#v", name, test.expectedDeletions, actualDeletions)
+		}
+
+		/*
+			expectedUpdatedStreams := util.NewStringSet(test.expectedUpdatedStreams...)
+			if !reflect.DeepEqual(expectedUpdatedStreams, actualUpdatedStreams) {
+				t.Errorf("%s: expected stream updates %q, got %q", name, expectedUpdatedStreams.List(), actualUpdatedStreams.List())
+			}
+		*/
+
 	}
 }

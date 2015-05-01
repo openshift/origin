@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/golang/glog"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/prune"
@@ -18,32 +17,15 @@ import (
 const longDesc = `
 `
 
-type registryURLs []string
-
-func (u *registryURLs) Type() string {
-	return "string"
-}
-
-func (u *registryURLs) String() string {
-	return fmt.Sprintf("%v", *u)
-}
-
-func (u *registryURLs) Set(value string) error {
-	*u = append(*u, value)
-	return nil
-}
-
 type config struct {
 	DryRun                    bool
-	RegistryURLs              registryURLs
 	MinimumResourcePruningAge int
 	TagRevisionsToKeep        int
 }
 
 func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	cfg := &config{
-		DryRun:                    true,
-		RegistryURLs:              registryURLs{"docker-registry.default.local"},
+		DryRun: true,
 		MinimumResourcePruningAge: 60,
 		TagRevisionsToKeep:        3,
 	}
@@ -63,13 +45,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 				glog.Fatalf("Error getting client: %v", err)
 			}
 
-			if registryService, err := kClient.Services(kapi.NamespaceDefault).Get("docker-registry"); err != nil {
-				glog.Errorf("Error getting docker-registry service: %v", err)
-			} else {
-				cfg.RegistryURLs = append(cfg.RegistryURLs, fmt.Sprintf("%s:%d", registryService.Spec.PortalIP, registryService.Spec.Ports[0].Port))
-			}
-
-			pruner, err := prune.NewImagePruner(cfg.RegistryURLs, cfg.MinimumResourcePruningAge, cfg.TagRevisionsToKeep, osClient, osClient, kClient, kClient, osClient, osClient, osClient)
+			pruner, err := prune.NewImagePruner(cfg.MinimumResourcePruningAge, cfg.TagRevisionsToKeep, osClient, osClient, kClient, kClient, osClient, osClient, osClient)
 			if err != nil {
 				glog.Fatalf("Error creating image pruner: %v", err)
 			}
@@ -103,9 +79,8 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	}
 
 	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Perform an image pruning dry-run, displaying what would be deleted but not actually deleting anything (default=true).")
-	cmd.Flags().Var(&cfg.RegistryURLs, "registry-urls", "TODO")
-	cmd.Flags().IntVar(&cfg.MinimumResourcePruningAge, "older-than", cfg.MinimumResourcePruningAge, "TODO")
-	cmd.Flags().IntVar(&cfg.TagRevisionsToKeep, "keep-tag-revisions", cfg.TagRevisionsToKeep, "TODO")
+	cmd.Flags().IntVar(&cfg.MinimumResourcePruningAge, "older-than", cfg.MinimumResourcePruningAge, "Specify the minimum age for an image to be prunable, as well as the minimum age for an image stream or pod that references an image to be prunable.")
+	cmd.Flags().IntVar(&cfg.TagRevisionsToKeep, "keep-tag-revisions", cfg.TagRevisionsToKeep, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
 
 	return cmd
 }

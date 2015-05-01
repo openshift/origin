@@ -161,6 +161,9 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 		Image: imageapi.Image{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: dgst.String(),
+				Annotations: map[string]string{
+					imageapi.ManagedByOpenShiftAnnotation: "true",
+				},
 			},
 			DockerImageReference: fmt.Sprintf("%s/%s/%s@%s", r.registryAddr, r.namespace, r.name, dgst.String()),
 			DockerImageManifest:  string(payload),
