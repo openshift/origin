@@ -197,6 +197,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from *kap
 		namespace = defaultNamespace
 	}
 
+	glog.V(4).Infof("resolvingImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
 	switch from.Kind {
 	case "ImageStreamImage":
 		image, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), from.Name)
@@ -210,11 +211,13 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from *kap
 	case "ImageStreamTag":
 		image, err := g.Client.GetImageStreamTag(kapi.WithNamespace(ctx, namespace), from.Name)
 		if err != nil {
+			glog.V(4).Infof("Error resolving image stream reference %s: %v", from.Name, err)
 			if errors.IsNotFound(err) {
 				return "", err
 			}
 			return "", fatalError{err}
 		}
+		glog.V(4).Infof("resolved imagestreamtag %s to image %s with ref %s", from.Name, image.Name, image.DockerImageReference)
 		return image.DockerImageReference, nil
 	case "DockerImage":
 		return from.Name, nil
