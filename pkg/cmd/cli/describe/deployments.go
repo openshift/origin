@@ -295,7 +295,7 @@ func (d *LatestDeploymentDescriber) Describe(namespace, name string) (string, er
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
-		fmt.Fprintf(out, "Latest deployment for %s/%s:\n", name, namespace)
+		fmt.Fprintf(out, "Latest deployment for %s/%s:\n", namespace, name)
 		printLines(out, indent, 1, d.describeDeployment(deploy.(*graph.DeploymentConfigNode))...)
 		return nil
 	})
