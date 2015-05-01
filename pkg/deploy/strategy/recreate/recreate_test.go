@@ -37,7 +37,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+	err := strategy.Deploy(deployment, nil, []kapi.ObjectReference{})
 
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -52,9 +52,76 @@ func TestRecreate_initialDeployment(t *testing.T) {
 	}
 }
 
+func TestRecreate_secondDeploymentPreserveReplicas(t *testing.T) {
+	var lastDeployment *kapi.ReplicationController
+	oldDeployments := map[string]*kapi.ReplicationController{}
+
+	expectedUpdates := map[string]int{}
+	actualUpdates := map[string]int{}
+
+	for i := 1; i <= 5; i++ {
+		old, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(i), kapi.Codec)
+		old.Spec.Replicas = i
+		oldDeployments[old.Name] = old
+		lastDeployment = old
+		expectedUpdates[old.Name] = 0
+	}
+
+	newDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(6), kapi.Codec)
+	expectedUpdates[newDeployment.Name] = 5
+
+	strategy := &RecreateDeploymentStrategy{
+		codec:        api.Codec,
+		retryTimeout: 1 * time.Second,
+		retryPeriod:  1 * time.Millisecond,
+		client: &testControllerClient{
+			getReplicationControllerFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				if name == newDeployment.Name {
+					return newDeployment, nil
+				}
+				c, exists := oldDeployments[name]
+				if !exists {
+					t.Fatalf("unexpected call to getReplicationController: %s/%s", namespace, name)
+				}
+				return c, nil
+			},
+			updateReplicationControllerFunc: func(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				actualUpdates[ctrl.Name] = ctrl.Spec.Replicas
+				return ctrl, nil
+			},
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
+				return nil
+			},
+		},
+	}
+
+	old := []*kapi.ReplicationController{}
+	for _, d := range oldDeployments {
+		old = append(old, d)
+	}
+
+	err := strategy.Deploy(newDeployment, refFor(lastDeployment), refsFor(old...))
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	for name, expectedReplicas := range expectedUpdates {
+		actualReplicas, updated := actualUpdates[name]
+		if !updated {
+			t.Errorf("expected an update for %s", name)
+		}
+		if expectedReplicas != actualReplicas {
+			t.Errorf("expected replicas for %s: %d, got %d", name, expectedReplicas, actualReplicas)
+		}
+	}
+}
+
 func TestRecreate_secondDeploymentWithSuccessfulRetries(t *testing.T) {
 	updatedControllers := make(map[string]*kapi.ReplicationController)
 	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	oldDeployment.Spec.Replicas = 1
 	newConfig := deploytest.OkDeploymentConfig(2)
 	newDeployment, _ := deployutil.MakeDeployment(newConfig, kapi.Codec)
 
@@ -92,12 +159,7 @@ func TestRecreate_secondDeploymentWithSuccessfulRetries(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(newDeployment, []kapi.ObjectReference{
-		{
-			Namespace: oldDeployment.Namespace,
-			Name:      oldDeployment.Name,
-		},
-	})
+	err := strategy.Deploy(newDeployment, refFor(oldDeployment), refsFor(oldDeployment))
 
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -115,6 +177,7 @@ func TestRecreate_secondDeploymentWithSuccessfulRetries(t *testing.T) {
 func TestRecreate_secondDeploymentScaleUpRetries(t *testing.T) {
 	updatedControllers := make(map[string]*kapi.ReplicationController)
 	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	oldDeployment.Spec.Replicas = 1
 	newConfig := deploytest.OkDeploymentConfig(2)
 	newDeployment, _ := deployutil.MakeDeployment(newConfig, kapi.Codec)
 
@@ -145,12 +208,7 @@ func TestRecreate_secondDeploymentScaleUpRetries(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(newDeployment, []kapi.ObjectReference{
-		{
-			Namespace: oldDeployment.Namespace,
-			Name:      oldDeployment.Name,
-		},
-	})
+	err := strategy.Deploy(newDeployment, refFor(oldDeployment), refsFor(oldDeployment))
 
 	if err == nil {
 		t.Fatalf("expected a deploy error: %#v", err)
@@ -164,6 +222,7 @@ func TestRecreate_secondDeploymentScaleUpRetries(t *testing.T) {
 func TestRecreate_secondDeploymentScaleDownRetries(t *testing.T) {
 	updatedControllers := make(map[string]*kapi.ReplicationController)
 	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	oldDeployment.Spec.Replicas = 1
 	newConfig := deploytest.OkDeploymentConfig(2)
 	newDeployment, _ := deployutil.MakeDeployment(newConfig, kapi.Codec)
 
@@ -202,12 +261,7 @@ func TestRecreate_secondDeploymentScaleDownRetries(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(newDeployment, []kapi.ObjectReference{
-		{
-			Namespace: oldDeployment.Namespace,
-			Name:      oldDeployment.Name,
-		},
-	})
+	err := strategy.Deploy(newDeployment, refFor(oldDeployment), refsFor(oldDeployment))
 
 	if err == nil {
 		t.Fatalf("expected a deploy error: %#v", err)
@@ -244,7 +298,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+	err := strategy.Deploy(deployment, nil, []kapi.ObjectReference{})
 
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -285,7 +339,7 @@ func TestRecreate_deploymentPreHookFailAbort(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+	err := strategy.Deploy(deployment, nil, []kapi.ObjectReference{})
 	if err == nil {
 		t.Fatalf("expected a deploy error")
 	}
@@ -318,7 +372,7 @@ func TestRecreate_deploymentPreHookFailureIgnored(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+	err := strategy.Deploy(deployment, nil, []kapi.ObjectReference{})
 
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -364,7 +418,7 @@ func TestRecreate_deploymentPreHookFailureRetried(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+	err := strategy.Deploy(deployment, nil, []kapi.ObjectReference{})
 
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -405,7 +459,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+	err := strategy.Deploy(deployment, nil, []kapi.ObjectReference{})
 
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -446,7 +500,7 @@ func TestRecreate_deploymentPostHookAbortUnsupported(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+	err := strategy.Deploy(deployment, nil, []kapi.ObjectReference{})
 
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -487,7 +541,7 @@ func TestRecreate_deploymentPostHookFailIgnore(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+	err := strategy.Deploy(deployment, nil, []kapi.ObjectReference{})
 
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -533,7 +587,7 @@ func TestRecreate_deploymentPostHookFailureRetried(t *testing.T) {
 		},
 	}
 
-	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
+	err := strategy.Deploy(deployment, nil, []kapi.ObjectReference{})
 
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
@@ -581,4 +635,19 @@ func (t *testControllerClient) getReplicationController(namespace, name string) 
 
 func (t *testControllerClient) updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 	return t.updateReplicationControllerFunc(namespace, ctrl)
+}
+
+func refFor(deployment *kapi.ReplicationController) *kapi.ObjectReference {
+	return &kapi.ObjectReference{
+		Namespace: deployment.Namespace,
+		Name:      deployment.Name,
+	}
+}
+
+func refsFor(deployments ...*kapi.ReplicationController) []kapi.ObjectReference {
+	refs := []kapi.ObjectReference{}
+	for _, deployment := range deployments {
+		refs = append(refs, *refFor(deployment))
+	}
+	return refs
 }
