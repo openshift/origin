@@ -5,14 +5,17 @@ import (
 	"io"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
 // Bulk provides helpers for iterating over a list of items
 type Bulk struct {
-	Factory *cmdutil.Factory
-	After   func(*resource.Info, error)
+	Mapper            meta.RESTMapper
+	Typer             runtime.ObjectTyper
+	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
+	After             func(*resource.Info, error)
 }
 
 func NewPrintNameOrErrorAfter(out, errs io.Writer) func(*resource.Info, error) {
@@ -29,8 +32,7 @@ func NewPrintNameOrErrorAfter(out, errs io.Writer) func(*resource.Info, error) {
 // event a failure occurs. The contents of list will be updated to include the
 // version from the server.
 func (b *Bulk) Create(list *kapi.List, namespace string) []error {
-	mapper, typer := b.Factory.Object()
-	resourceMapper := &resource.Mapper{typer, mapper, resource.ClientMapperFunc(b.Factory.RESTClient)}
+	resourceMapper := &resource.Mapper{b.Typer, b.Mapper, resource.ClientMapperFunc(b.RESTClientFactory)}
 	after := b.After
 	if after == nil {
 		after = func(*resource.Info, error) {}

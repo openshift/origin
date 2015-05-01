@@ -5,19 +5,20 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
+	"github.com/openshift/origin/pkg/api/latest"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/client"
-
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectstorage "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
@@ -103,28 +104,15 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, err
 	}
 
-	for _, item := range list.Objects {
-		data, err := latest.Codec.Encode(item)
-		if err != nil {
-			return nil, err
-		}
-
-		// get the restmapping so that we can properly build up the URL with a RESTClient
-		externalObject, err := kapi.Scheme.ConvertToVersion(item, latest.Version)
-		if err != nil {
-			return nil, err
-		}
-		typeInterface, err := meta.TypeAccessor(externalObject)
-		if err != nil {
-			return nil, err
-		}
-		restMapping, err := latest.RESTMapper.RESTMapping(typeInterface.Kind(), typeInterface.APIVersion())
-		if err != nil {
-			return nil, err
-		}
-
-		scoped := restMapping.Scope.Name() != meta.RESTScopeNameRoot
-		r.openshiftClient.Post().NamespaceIfScoped(projectName, scoped).Resource(restMapping.Resource).Body(data).Do().Get()
+	bulk := configcmd.Bulk{
+		Mapper: latest.RESTMapper,
+		Typer:  kapi.Scheme,
+		RESTClientFactory: func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+			return r.openshiftClient, nil
+		},
+	}
+	if err := utilerrors.NewAggregate(bulk.Create(&kapi.List{Items: list.Objects}, projectName)); err != nil {
+		return nil, err
 	}
 
 	return r.openshiftClient.Projects().Get(projectName)
