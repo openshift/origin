@@ -349,6 +349,17 @@ type GenericWebHookEvent struct {
 type GitInfo struct {
 	GitBuildSource    `json:",inline"`
 	GitSourceRevision `json:",inline"`
+
+	// Refs is a list of GitRefs for the provided repo - generally sent
+	// when used from a post-receive hook. This field is optional and is
+	// used when sending multiple refs
+	Refs []GitRefInfo `json:"refs,omitempty"`
+}
+
+// GitRefInfo is a single ref
+type GitRefInfo struct {
+	GitBuildSource    `json:",inline"`
+	GitSourceRevision `json:",inline"`
 }
 
 // BuildLog is the (unused) resource associated with the build log redirector
