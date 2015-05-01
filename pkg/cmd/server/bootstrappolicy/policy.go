@@ -59,7 +59,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "delete"),
-					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects"),
+					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects", "secrets"),
 				},
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch"),
@@ -75,7 +75,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "delete"),
-					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName),
+					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName, "secrets"),
 				},
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch"),
