@@ -54,6 +54,10 @@ func (cm *simpleCertificateManager) WriteCertificatesForConfig(config *ServiceAl
 	if config == nil {
 		return nil
 	}
+	if config.Status == ServiceAliasConfigStatusSaved {
+		glog.V(4).Infof("skipping certificate write for %s%s since it's status is already %s", config.Host, config.Path, ServiceAliasConfigStatusSaved)
+		return nil
+	}
 	if len(config.Certificates) > 0 {
 		if config.TLSTermination == routeapi.TLSTerminationEdge || config.TLSTermination == routeapi.TLSTerminationReencrypt {
 			certKey := cm.cfg.certKeyFunc(config)
@@ -75,8 +79,7 @@ func (cm *simpleCertificateManager) WriteCertificatesForConfig(config *ServiceAl
 					buffer.Write([]byte(caCertObj.Contents))
 				}
 
-				err := cm.w.WriteCertificate(cm.cfg.certDir, certObj.ID, buffer.Bytes())
-				if err != nil {
+				if err := cm.w.WriteCertificate(cm.cfg.certDir, certObj.ID, buffer.Bytes()); err != nil {
 					return err
 				}
 			}
@@ -87,8 +90,7 @@ func (cm *simpleCertificateManager) WriteCertificatesForConfig(config *ServiceAl
 			destCert, ok := config.Certificates[destCertKey]
 
 			if ok {
-				err := cm.w.WriteCertificate(cm.cfg.caCertDir, destCert.ID, []byte(destCert.Contents))
-				if err != nil {
+				if err := cm.w.WriteCertificate(cm.cfg.caCertDir, destCert.ID, []byte(destCert.Contents)); err != nil {
 					return err
 				}
 			}

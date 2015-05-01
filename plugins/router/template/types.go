@@ -27,7 +27,19 @@ type ServiceAliasConfig struct {
 	TLSTermination routeapi.TLSTerminationType
 	// Certificates used for securing this backend.  Keyed by the cert id
 	Certificates map[string]Certificate
+	// Indicates the status of configuration that needs to be persisted.  Right now this only
+	// includes the certificates and is not an indicator of being written to the underlying
+	// router implementation
+	Status ServiceAliasConfigStatus
 }
+
+type ServiceAliasConfigStatus string
+
+const (
+	// ServiceAliasConfigStatusSaved indicates that the necessary files for this config have
+	// been persisted to disk.
+	ServiceAliasConfigStatusSaved ServiceAliasConfigStatus = "saved"
+)
 
 // Certificate represents a pub/private key pair.  It is identified by ID which will become the file name.
 // A CA certificate will not have a PrivateKey set.

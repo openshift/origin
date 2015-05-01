@@ -57,7 +57,7 @@ type templateData struct {
 
 func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath, defaultCertificate string) (*templateRouter, error) {
 	glog.Infof("Creating a new template router")
-	certManagerConfig := &certificateManagerConfig {
+	certManagerConfig := &certificateManagerConfig{
 		certKeyFunc:     generateCertKey,
 		caCertKeyFunc:   generateCACertKey,
 		destCertKeyFunc: generateDestCertKey,
@@ -68,7 +68,7 @@ func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath
 	if err != nil {
 		return nil, err
 	}
-	
+
 	router := &templateRouter{
 		templates:              templates,
 		reloadScriptPath:       reloadScriptPath,
@@ -154,12 +154,14 @@ func (r *templateRouter) writeState() error {
 func (r *templateRouter) writeConfig() error {
 	//write out any certificate files that don't exist
 	for _, serviceUnit := range r.state {
-		for _, cfg := range serviceUnit.ServiceAliasConfigs {
+		for k, cfg := range serviceUnit.ServiceAliasConfigs {
 			err := r.certManager.WriteCertificatesForConfig(&cfg)
 			if err != nil {
 				glog.Errorf("Error writing certificates for %s: %v", serviceUnit.Name, err)
 				return err
 			}
+			cfg.Status = ServiceAliasConfigStatusSaved
+			serviceUnit.ServiceAliasConfigs[k] = cfg
 		}
 	}
 
