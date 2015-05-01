@@ -337,7 +337,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
-				strategy, source, err := app.StrategyAndSourceForRepository(ref.Input().Uses)
+				strategy, source, err := app.StrategyAndSourceForRepository(ref.Input().Uses, input)
 				if err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
