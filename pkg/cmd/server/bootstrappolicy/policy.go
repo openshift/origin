@@ -191,7 +191,8 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 					Resources: util.NewStringSet("imagestreamimages", "imagestreamtags", "imagestreams"),
 				},
 				{
-					Verbs:     util.NewStringSet("update"),
+					// TODO: remove "create" once we re-enable user authentication in the registry
+					Verbs:     util.NewStringSet("create", "update"),
 					Resources: util.NewStringSet("imagestreams"),
 				},
 				{
