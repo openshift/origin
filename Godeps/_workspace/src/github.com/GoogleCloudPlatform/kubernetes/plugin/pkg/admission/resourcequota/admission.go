@@ -187,6 +187,9 @@ func IncrementUsage(a admission.Attributes, status *api.ResourceQuotaStatus, cli
 		hardMem, hardMemFound := status.Hard[api.ResourceMemory]
 		if hardMemFound {
 			used, usedFound := status.Used[api.ResourceMemory]
+			if set[api.ResourceMemory] && resourcequota.IsPodMemoryUnbounded(pod) {
+				return false, fmt.Errorf("Limited to %s memory, but pod has no specified memory limit", hardMem.String())
+			}
 			if !usedFound {
 				return false, apierrors.NewForbidden(resourceName, name, fmt.Errorf("Quota usage stats are not yet known, unable to admit resource until an accurate count is completed."))
 			}
@@ -199,6 +202,9 @@ func IncrementUsage(a admission.Attributes, status *api.ResourceQuotaStatus, cli
 		}
 		hardCPU, hardCPUFound := status.Hard[api.ResourceCPU]
 		if hardCPUFound {
+			if set[api.ResourceCPU] && resourcequota.IsPodCPUUnbounded(pod) {
+				return false, fmt.Errorf("Limited to %s CPU, but pod has no specified cpu limit", hardCPU.String())
+			}
 			used, usedFound := status.Used[api.ResourceCPU]
 			if !usedFound {
 				return false, apierrors.NewForbidden(resourceName, name, fmt.Errorf("Quota usage stats are not yet known, unable to admit resource until an accurate count is completed."))
