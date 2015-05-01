@@ -96,6 +96,16 @@ func TestGetImageRepositoryTag(t *testing.T) {
 				},
 			},
 		},
+		"image = ''": {
+			repo: &api.ImageStream{Status: api.ImageStreamStatus{
+				Tags: map[string]api.TagEventList{
+					"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: ""}}},
+				},
+			}},
+			expectError:     true,
+			errorTargetKind: "imageStreamTag",
+			errorTargetID:   "test:latest",
+		},
 		"missing image": {
 			repo: &api.ImageStream{Status: api.ImageStreamStatus{
 				Tags: map[string]api.TagEventList{
@@ -120,7 +130,7 @@ func TestGetImageRepositoryTag(t *testing.T) {
 			}},
 			expectError:     true,
 			errorTargetKind: "imageStreamTag",
-			errorTargetID:   "latest",
+			errorTargetID:   "test:latest",
 		},
 	}
 
