@@ -426,8 +426,13 @@ osc get buildConfigs
 osc get bc
 osc get builds
 
-[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Github") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github" ]]
-[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic" ]]
+[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Github"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github") ]]
+[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic") ]]
+osc start-build --list-webhooks='all' ruby-sample-build
+[[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "generic") ]]
+[[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "github") ]]
+[[ $(osc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101") ]]
+[ ! "$(osc start-build --list-webhooks='blah')" ]
 echo "buildConfig: ok"
 
 osc create -f test/integration/fixtures/test-buildcli.json

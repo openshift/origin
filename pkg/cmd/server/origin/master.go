@@ -45,7 +45,6 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
-	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
@@ -354,7 +353,6 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 	handler := webhook.NewController(
 		bcGetterUpdater,
 		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
-		bcClient.ImageStreams(kapi.NamespaceAll).(osclient.ImageStreamNamespaceGetter),
 		map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),
@@ -362,8 +360,10 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 
 	// TODO: go-restfulize this
 	prefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
-	handler = http.StripPrefix(prefix, handler)
-	container.Handle(prefix, handler)
+	container.Handle(prefix, http.StripPrefix(prefix, handler))
+	// TODO: broken
+	prefix = OpenShiftAPIPrefixV1Beta3 + "/buildconfighooks/"
+	container.Handle(prefix, http.StripPrefix(prefix, handler))
 	return []string{}
 }
 

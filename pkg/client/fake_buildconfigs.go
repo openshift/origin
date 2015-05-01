@@ -1,6 +1,9 @@
 package client
 
 import (
+	"fmt"
+	"net/url"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -23,6 +26,17 @@ func (c *FakeBuildConfigs) List(label labels.Selector, field fields.Selector) (*
 func (c *FakeBuildConfigs) Get(name string) (*buildapi.BuildConfig, error) {
 	obj, err := c.Fake.Invokes(FakeAction{Action: "get-buildconfig", Value: name}, &buildapi.BuildConfig{})
 	return obj.(*buildapi.BuildConfig), err
+}
+
+func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {
+	switch {
+	case trigger.GenericWebHook != nil:
+		return url.Parse(fmt.Sprintf("http://localhost/buildConfigHooks/%s/%s/generic", name, trigger.GenericWebHook.Secret))
+	case trigger.GithubWebHook != nil:
+		return url.Parse(fmt.Sprintf("http://localhost/buildConfigHooks/%s/%s/github", name, trigger.GithubWebHook.Secret))
+	default:
+		return nil, ErrTriggerIsNotAWebHook
+	}
 }
 
 func (c *FakeBuildConfigs) Create(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {

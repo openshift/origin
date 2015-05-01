@@ -12,8 +12,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -108,9 +108,9 @@ func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 }
 
 // webhookURL assembles map with of webhook type as key and webhook url and value
-func webhookURL(c *buildapi.BuildConfig, configHost string) map[string]string {
+func webhookURL(c *buildapi.BuildConfig, cli client.BuildConfigsNamespacer) map[string]string {
 	result := map[string]string{}
-	for i, trigger := range c.Triggers {
+	for _, trigger := range c.Triggers {
 		whTrigger := ""
 		switch trigger.Type {
 		case "github":
@@ -121,19 +121,14 @@ func webhookURL(c *buildapi.BuildConfig, configHost string) map[string]string {
 		if len(whTrigger) == 0 {
 			continue
 		}
-		apiVersion := latest.Version
-		host := "localhost"
-		if len(configHost) > 0 {
-			host = configHost
+		out := ""
+		url, err := cli.BuildConfigs(c.Namespace).WebHookURL(c.Name, &trigger)
+		if err != nil {
+			out = fmt.Sprintf("<error: %s>", err.Error())
+		} else {
+			out = url.String()
 		}
-		url := fmt.Sprintf("%s/osapi/%s/buildConfigHooks/%s/%s/%s",
-			host,
-			apiVersion,
-			c.Name,
-			whTrigger,
-			c.Triggers[i].Type,
-		)
-		result[string(trigger.Type)] = url
+		result[string(trigger.Type)] = out
 	}
 	return result
 }

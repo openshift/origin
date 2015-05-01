@@ -10,7 +10,6 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	osclient "github.com/openshift/origin/pkg/client"
 )
 
 // Plugin for Webhook verification is dependent on the sending side, it can be
@@ -28,7 +27,6 @@ type Plugin interface {
 type controller struct {
 	buildConfigInstantiator buildclient.BuildConfigInstantiator
 	buildConfigGetter       buildclient.BuildConfigGetter
-	imageRepoGetter         osclient.ImageStreamNamespaceGetter
 	plugins                 map[string]Plugin
 }
 
@@ -42,12 +40,11 @@ type urlVars struct {
 }
 
 // NewController creates new webhook controller and feed it with provided plugins.
-func NewController(buildConfigGetter buildclient.BuildConfigGetter, buildConfigInstantiator buildclient.BuildConfigInstantiator,
-	imageRepoGetter osclient.ImageStreamNamespaceGetter, plugins map[string]Plugin) http.Handler {
+func NewController(bcg buildclient.BuildConfigGetter,
+	bci buildclient.BuildConfigInstantiator, plugins map[string]Plugin) http.Handler {
 	return &controller{
-		buildConfigGetter:       buildConfigGetter,
-		buildConfigInstantiator: buildConfigInstantiator,
-		imageRepoGetter:         imageRepoGetter,
+		buildConfigGetter:       bcg,
+		buildConfigInstantiator: bci,
 		plugins:                 plugins,
 	}
 }

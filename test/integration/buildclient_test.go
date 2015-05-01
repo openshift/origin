@@ -275,7 +275,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	bcClient := buildclient.NewOSClientBuildConfigClient(osClient)
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
 		webhook.NewController(bcClient, buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
-			osClient.ImageStreams(kapi.NamespaceAll).(osclient.ImageStreamNamespaceGetter), map[string]webhook.Plugin{
+			map[string]webhook.Plugin{
 				"github": github.New(),
 			})))
 

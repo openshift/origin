@@ -241,8 +241,8 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 }
 
 // DescribeTriggers generates information about the triggers associated with a buildconfig
-func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, host string, out *tabwriter.Writer) {
-	webhooks := webhookURL(bc, host)
+func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, out *tabwriter.Writer) {
+	webhooks := webhookURL(bc, d.Interface)
 	for whType, whURL := range webhooks {
 		t := strings.Title(whType)
 		formatString(out, "Webhook "+t, whURL)
@@ -292,7 +292,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 			formatString(out, "Latest Version", strconv.Itoa(buildConfig.LastVersion))
 		}
 		describeBuildParameters(buildConfig.Parameters, out)
-		d.DescribeTriggers(buildConfig, d.host, out)
+		d.DescribeTriggers(buildConfig, out)
 		if len(builds.Items) == 0 {
 			return nil
 		}

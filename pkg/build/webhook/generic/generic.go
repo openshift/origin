@@ -48,6 +48,9 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 			glog.V(4).Infof("Error unmarshaling json %v, but continuing", err)
 			return nil, true, nil
 		}
+		if data.Git == nil {
+			return nil, true, nil
+		}
 		if !webhook.GitRefMatches(data.Git.Ref, buildCfg.Parameters.Source.Git.Ref) {
 			glog.V(2).Infof("Skipping build for '%s'.  Branch reference from '%s' does not match configuration", buildCfg, data)
 			return nil, false, nil
