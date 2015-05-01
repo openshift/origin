@@ -124,9 +124,9 @@ func (o *CreateSecretOptions) CreateSecret() (*kapi.Secret, error) {
 
 			for _, item := range fileList {
 				itemPath := path.Join(source, item.Name())
-				if item.IsDir() {
+				if !item.Mode().IsRegular() {
 					if o.Stderr != nil && o.Quiet != true {
-						fmt.Fprintf(o.Stderr, "Skipping subdirectory %s\n", itemPath)
+						fmt.Fprintf(o.Stderr, "Skipping resource %s\n", itemPath)
 					}
 				} else {
 					if err := readFile(itemPath, secretData); err != nil {
