@@ -160,7 +160,7 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 				Type: dapi.DeploymentStrategyTypeRecreate,
 			},
 
-			// TODO: v0.1 requires a manual resize to the
+			// TODO: v0.1 requires a manual resize of the
 			//       replicas to match current cluster state.
 			//       In the future, the PerNodeController in
 			//       kubernetes would remove the need for this

@@ -91,7 +91,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	} else {
 		// Our watch maybe latent, so we make a best effort to get the object, and only fail if not found
 		namespace, err = e.client.Namespaces().Get(a.GetNamespace())
-		// the namespace does not exit, so prevent create and update in that namespace
+		// the namespace does not exist, so prevent create and update in that namespace
 		if err != nil {
 			return apierrors.NewForbidden(kind, name, fmt.Errorf("Namespace %s does not exist", a.GetNamespace()))
 		}
