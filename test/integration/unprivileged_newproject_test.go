@@ -4,10 +4,12 @@ package integration
 
 import (
 	"io/ioutil"
+	"strings"
 	"testing"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
@@ -20,12 +22,16 @@ import (
 )
 
 func TestUnprivilegedNewProject(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -73,6 +79,22 @@ func TestUnprivilegedNewProject(t *testing.T) {
 	}
 
 	waitForProject(t, valerieOpenshiftClient, "new-project", 5*time.Second, 10)
+
+	// request the same one again.  This should fail during the bulk creation step
+	if err := requestProject.Run(); err == nil || !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("expected an already exists error, but got %v", err)
+	}
+
+	tokens := strings.Split(masterConfig.ProjectRequestConfig.ProjectRequestTemplate, "/")
+	if err := clusterAdminClient.Templates(tokens[0]).Delete(tokens[1]); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// This should fail during the template retrieve
+	if err := requestProject.Run(); !kapierrors.IsNotFound(err) {
+		t.Errorf("expected a not found error, but got %v", err)
+	}
+
 }
 
 func TestDeniedUnprivilegedNewProject(t *testing.T) {

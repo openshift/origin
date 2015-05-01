@@ -20,6 +20,7 @@ type sampleStruct struct {
 	MapInMap     map[string]map[string]string
 	ArrayInArray [][]string
 	Array        []string
+	ArrayInMap   map[string][]interface{}
 }
 
 func TestVisitObjectStringsOnStruct(t *testing.T) {
@@ -45,6 +46,10 @@ func TestVisitObjectStringsOnStruct(t *testing.T) {
 		{
 			{ArrayInArray: [][]string{{"foo", "bar"}}},
 			{ArrayInArray: [][]string{{"sample-foo", "sample-bar"}}},
+		},
+		{
+			{ArrayInMap: map[string][]interface{}{"key": {"foo", "bar"}}},
+			{ArrayInMap: map[string][]interface{}{"key": {"sample-foo", "sample-bar"}}},
 		},
 	}
 	for i := range samples {

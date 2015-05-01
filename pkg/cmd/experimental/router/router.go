@@ -273,9 +273,13 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			return nil
 		}
 
+		mapper, typer := f.Factory.Object()
 		bulk := configcmd.Bulk{
-			Factory: f.Factory,
-			After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
+			Mapper:            mapper,
+			Typer:             typer,
+			RESTClientFactory: f.Factory.RESTClient,
+
+			After: configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
 		}
 		if errs := bulk.Create(list, namespace); len(errs) != 0 {
 			return errExit
