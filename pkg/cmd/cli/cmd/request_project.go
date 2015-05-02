@@ -7,7 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
@@ -93,6 +95,12 @@ func (o *NewProjectOptions) complete(cmd *cobra.Command, f *clientcmd.Factory) e
 }
 
 func (o *NewProjectOptions) Run() error {
+	// TODO eliminate this when we get better forbidden messages
+	_, err := o.Client.ProjectRequests().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
 	projectRequest := &projectapi.ProjectRequest{}
 	projectRequest.Name = o.ProjectName
 	projectRequest.DisplayName = o.DisplayName
