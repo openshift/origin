@@ -83,7 +83,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, err
 	}
 
-	for i, _ := range template.Parameters {
+	for i := range template.Parameters {
 		switch template.Parameters[i].Name {
 		case ProjectAdminUserParam:
 			template.Parameters[i].Value = projectAdmin

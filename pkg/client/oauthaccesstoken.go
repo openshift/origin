@@ -1,7 +1,5 @@
 package client
 
-import ()
-
 type OAuthAccessTokensInterface interface {
 	OAuthAccessTokens() OAuthAccessTokenInterface
 }

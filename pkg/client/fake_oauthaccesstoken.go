@@ -1,7 +1,5 @@
 package client
 
-import ()
-
 type FakeOAuthAccessTokens struct {
 	Fake *Fake
 }
