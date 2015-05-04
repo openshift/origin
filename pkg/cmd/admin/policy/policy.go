@@ -2,6 +2,7 @@ package policy
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
@@ -16,7 +17,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-func NewCommandPolicy(f *clientcmd.Factory, parentName, name string) *cobra.Command {
+const PolicyRecommendedName = "policy"
+
+func NewCommandPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
@@ -25,13 +28,13 @@ func NewCommandPolicy(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 		Run:   runHelp,
 	}
 
-	cmds.AddCommand(NewCmdAddUser(f))
-	cmds.AddCommand(NewCmdRemoveUser(f))
-	cmds.AddCommand(NewCmdRemoveUserFromProject(f))
-	cmds.AddCommand(NewCmdAddGroup(f))
-	cmds.AddCommand(NewCmdRemoveGroup(f))
-	cmds.AddCommand(NewCmdRemoveGroupFromProject(f))
-	cmds.AddCommand(NewCmdWhoCan(f))
+	cmds.AddCommand(NewCmdAddRoleToUser(AddRoleToUserRecommendedName, fullName+" "+AddRoleToUserRecommendedName, f, out))
+	cmds.AddCommand(NewCmdRemoveRoleFromUser(RemoveRoleFromUserRecommendedName, fullName+" "+RemoveRoleFromUserRecommendedName, f, out))
+	cmds.AddCommand(NewCmdRemoveUserFromProject(RemoveUserRecommendedName, fullName+" "+RemoveUserRecommendedName, f, out))
+	cmds.AddCommand(NewCmdAddRoleToGroup(AddRoleToGroupRecommendedName, fullName+" "+AddRoleToGroupRecommendedName, f, out))
+	cmds.AddCommand(NewCmdRemoveRoleFromGroup(RemoveRoleFromGroupRecommendedName, fullName+" "+RemoveRoleFromGroupRecommendedName, f, out))
+	cmds.AddCommand(NewCmdRemoveGroupFromProject(RemoveGroupRecommendedName, fullName+" "+RemoveGroupRecommendedName, f, out))
+	cmds.AddCommand(NewCmdWhoCan(WhoCanRecommendedName, fullName+" "+WhoCanRecommendedName, f, out))
 
 	return cmds
 }

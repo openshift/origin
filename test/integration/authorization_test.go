@@ -17,7 +17,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
-	policy "github.com/openshift/origin/pkg/cmd/experimental/policy"
+	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
@@ -102,14 +102,14 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	addValerie := &policy.AddUserOptions{
+	addValerie := &policy.RoleModificationOptions{
 		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		RoleName:         bootstrappolicy.ViewRoleName,
 		BindingNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		Client:           clusterAdminClient,
 		Users:            []string{"valerie"},
 	}
-	if err := addValerie.Run(); err != nil {
+	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -117,19 +117,19 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	addEdgar := &policy.AddUserOptions{
+	addEdgar := &policy.RoleModificationOptions{
 		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		RoleName:         bootstrappolicy.EditRoleName,
 		BindingNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		Client:           clusterAdminClient,
 		Users:            []string{"edgar"},
 	}
-	if err := addEdgar.Run(); err != nil {
+	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// try to add Valerie to a non-existent role
-	if err := addValerie.Run(); err == nil || !kapierror.IsNotFound(err) {
+	if err := addValerie.AddRole(); !kapierror.IsNotFound(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -192,25 +192,25 @@ func TestResourceAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	addValerie := &policy.AddUserOptions{
+	addValerie := &policy.RoleModificationOptions{
 		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		RoleName:         bootstrappolicy.ViewRoleName,
 		BindingNamespace: "hammer-project",
 		Client:           haroldClient,
 		Users:            []string{"valerie"},
 	}
-	if err := addValerie.Run(); err != nil {
+	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	addEdgar := &policy.AddUserOptions{
+	addEdgar := &policy.RoleModificationOptions{
 		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		RoleName:         bootstrappolicy.EditRoleName,
 		BindingNamespace: "mallet-project",
 		Client:           markClient,
 		Users:            []string{"edgar"},
 	}
-	if err := addEdgar.Run(); err != nil {
+	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -320,25 +320,25 @@ func TestSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	addValerie := &policy.AddUserOptions{
+	addValerie := &policy.RoleModificationOptions{
 		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		RoleName:         bootstrappolicy.ViewRoleName,
 		BindingNamespace: "hammer-project",
 		Client:           haroldClient,
 		Users:            []string{"valerie"},
 	}
-	if err := addValerie.Run(); err != nil {
+	if err := addValerie.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	addEdgar := &policy.AddUserOptions{
+	addEdgar := &policy.RoleModificationOptions{
 		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		RoleName:         bootstrappolicy.EditRoleName,
 		BindingNamespace: "mallet-project",
 		Client:           markClient,
 		Users:            []string{"edgar"},
 	}
-	if err := addEdgar.Run(); err != nil {
+	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
