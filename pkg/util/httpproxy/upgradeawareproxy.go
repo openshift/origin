@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/third_party/golang/netutil"
+
 	"github.com/golang/glog"
 )
 
@@ -135,21 +137,23 @@ func (p *UpgradeAwareSingleHostReverseProxy) ServeHTTP(w http.ResponseWriter, re
 }
 
 func (p *UpgradeAwareSingleHostReverseProxy) dialBackend(req *http.Request) (net.Conn, error) {
+	dialAddr := netutil.CanonicalAddr(req.URL)
+
 	switch p.backendAddr.Scheme {
 	case "http":
-		return net.Dial("tcp", req.URL.Host)
+		return net.Dial("tcp", dialAddr)
 	case "https":
 		tlsConfig, err := kclient.TLSConfigFor(p.clientConfig)
 		if err != nil {
 			return nil, err
 		}
-		tlsConn, err := tls.Dial("tcp", req.URL.Host, tlsConfig)
+		tlsConn, err := tls.Dial("tcp", dialAddr, tlsConfig)
 		if err != nil {
 			return nil, err
 		}
-		hostToVerify := req.URL.Host
-		if index := strings.Index(hostToVerify, ":"); index > -1 {
-			hostToVerify = hostToVerify[0:index]
+		hostToVerify, _, err := net.SplitHostPort(dialAddr)
+		if err != nil {
+			return nil, err
 		}
 		err = tlsConn.VerifyHostname(hostToVerify)
 		return tlsConn, err
