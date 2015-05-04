@@ -1,9 +1,9 @@
 {
-  "apiVersion": "v1beta1",
+  "apiVersion": "v1beta3",
   "kind": "ImageStreamList",
   "items": [
     {
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta3",
       "kind": "ImageStream",
       "metadata": {
         "name": "ruby"
@@ -24,7 +24,7 @@
       }
     },
     {
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta3",
       "kind": "ImageStream",
       "metadata": {
         "name": "nodejs"
@@ -45,7 +45,7 @@
       }
     },
     {
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta3",
       "kind": "ImageStream",
       "metadata": {
         "name": "perl"
@@ -66,7 +66,28 @@
       }
     },
     {
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta3",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "php"
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/php-55-centos7",
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Build and run PHP 5.5 applications",
+              "iconClass": "icon-php",
+              "tags": "builder,php",
+              "version": "5.5"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1beta3",
       "kind": "ImageStream",
       "metadata": {
         "name": "python"
@@ -87,7 +108,7 @@
       }
     },
     {
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta3",
       "kind": "ImageStream",
       "metadata": {
         "name": "wildfly"
@@ -108,7 +129,7 @@
       }
     },
     {
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta3",
       "kind": "ImageStream",
       "metadata": {
         "name": "mysql"
@@ -123,7 +144,7 @@
       }
     },
     {
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta3",
       "kind": "ImageStream",
       "metadata": {
         "name": "postgresql"
@@ -138,7 +159,7 @@
       }
     },
     {
-      "apiVersion": "v1beta1",
+      "apiVersion": "v1beta3",
       "kind": "ImageStream",
       "metadata": {
         "name": "mongodb"

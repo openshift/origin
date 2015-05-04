@@ -371,13 +371,13 @@ osc delete imageRepositories test
 echo "imageRepositoryMappings: ok"
 
 [ -n "$(osc get imageRepositories mysql -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
-[ "$(osc new-app php mysql -o yaml | grep 3306)" ]
+[ "$(osc new-app library/php mysql -o yaml | grep 3306)" ]
 # verify we can generate a Docker image based component "mongodb" directly
 [ ! "$(osc new-app unknownhubimage -o yaml)" ]
 [ "$(osc new-app mongo -o yaml | grep library/mongo)" ]
 # the local image repository takes precedence over the Docker Hub "mysql" image
 [ "$(osc new-app mysql -o yaml | grep mysql-55-centos7)" ]
-osc new-app php mysql
+osc new-app library/php mysql
 # check if we can create from a stored template
 osc create -f examples/sample-app/application-template-stibuild.json
 osc get template ruby-helloworld-sample
