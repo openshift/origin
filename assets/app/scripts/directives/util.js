@@ -29,7 +29,7 @@ angular.module('openshiftConsole')
       transclude: true,
       scope: {
         linkText: "@"
-      },      
+      },
       templateUrl: 'views/directives/_click-to-reveal.html',
       link: function($scope, element, attrs) {
         $('.reveal-contents-link', element).click(function (evt) {
@@ -38,7 +38,7 @@ angular.module('openshiftConsole')
         });
       }
     };
-  })  
+  })
   .directive('copyToClipboardButton', function() {
     return {
       restrict: 'E',

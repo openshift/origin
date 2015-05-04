@@ -5,9 +5,9 @@ angular.module("openshiftConsole")
   .service("ApplicationGenerator", function(DataService){
     var osApiVersion = DataService.osApiVersion;
     var k8sApiVersion = DataService.k8sApiVersion;
-    
+
     var scope = {};
-    
+
     scope._generateSecret = function(){
         //http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
         function s4() {
@@ -21,7 +21,7 @@ angular.module("openshiftConsole")
     /**
     * Find the 'first' port of exposed ports.
     * @param            ports  list of ports (e.g {containerPort: 80, protocol: "tcp"})
-    * @return {integer} The port/protocol pair of the lowest conainer port
+    * @return {integer} The port/protocol pair of the lowest container port
     */
     scope._getFirstPort = function(ports){
       var first = "None";
@@ -37,7 +37,7 @@ angular.module("openshiftConsole")
       );
       return first;
     };
-    
+
     /**
      * Generate resource definitions to support the given input
      * @param {type} input
@@ -62,7 +62,7 @@ angular.module("openshiftConsole")
       //augment labels
       input.labels.name = input.name;
       input.labels.generatedby = "OpenShiftWebConsole";
-      
+
       var imageSpec;
       if(input.buildConfig.sourceUrl !== null){
         imageSpec = {
@@ -73,7 +73,7 @@ angular.module("openshiftConsole")
           }
         };
       }
-      
+
       var resources = {
         imageRepo: scope._generateImageRepo(input),
         buildConfig: scope._generateBuildConfig(input, imageSpec, input.labels),
@@ -83,7 +83,7 @@ angular.module("openshiftConsole")
       resources.route = scope._generateRoute(input, input.name, resources.service.metadata.name);
       return resources;
     };
-    
+
     scope._generateRoute = function(input, name, serviceName){
       if(!input.routing) return null;
       return {
@@ -96,7 +96,7 @@ angular.module("openshiftConsole")
         serviceName: serviceName
       };
     };
-    
+
     scope._generateDeploymentConfig = function(input, imageSpec, ports, labels){
       var env = [];
       angular.forEach(input.deploymentConfig.envVars, function(value, key){
@@ -104,7 +104,7 @@ angular.module("openshiftConsole")
       });
       labels = angular.copy(labels);
       labels.deploymentconfig = input.name;
-      
+
       var deploymentConfig = {
         apiVersion: osApiVersion,
         kind: "DeploymentConfig",
@@ -219,7 +219,7 @@ angular.module("openshiftConsole")
         triggers: triggers
       };
     };
-    
+
     scope._generateImageRepo = function(input){
       return {
         apiVersion: osApiVersion,
@@ -230,7 +230,7 @@ angular.module("openshiftConsole")
         }
       };
     };
-    
+
     scope._generateService  = function(input, serviceName, port){
       var service = {
         kind: "Service",
@@ -256,7 +256,7 @@ angular.module("openshiftConsole")
       }
       return service;
     };
-    
+
     return scope;
   }
 );

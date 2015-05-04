@@ -1,7 +1,7 @@
 // Logout strategies
 angular.module('openshiftConsole')
 .provider('DeleteTokenLogoutService', function() {
-  
+
   var debug = true;
 
   this.$get = function($q, $injector, Logger) {

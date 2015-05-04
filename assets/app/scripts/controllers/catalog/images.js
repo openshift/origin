@@ -39,7 +39,7 @@ angular.module('openshiftConsole')
               });
             }
           });
-          Logger.info("builders", $scope.builders);          
+          Logger.info("builders", $scope.builders);
         }
       });
     };
@@ -56,7 +56,7 @@ angular.module('openshiftConsole')
       imagesForRepos($scope.openshiftImageRepos, {namespace: "openshift"});
 
       Logger.info("openshift image repos", $scope.openshiftImageRepos);
-    });    
+    });
 
 
     var templatesByTag = function() {

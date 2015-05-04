@@ -61,10 +61,10 @@ angular.module('openshiftConsole')
     var _loginCallbacks = $.Callbacks();
     var _logoutCallbacks = $.Callbacks();
     var _userChangedCallbacks = $.Callbacks();
-  
+
     var _loginPromise = null;
     var _logoutPromise = null;
-  
+
     var userStore = loadService($injector, _userStore, "AuthServiceProvider.UserStore()");
     if (!userStore.available()) {
       Logger.error("AuthServiceProvider.$get user store " + _userStore + " not available");
@@ -90,7 +90,7 @@ angular.module('openshiftConsole')
           return this.startLogin();
         }
       },
-  
+
       setUser: function(user, token) {
         authLogger.log('AuthService.setUser()', user, token);
         var oldUser = userStore.getUser();
@@ -106,7 +106,7 @@ angular.module('openshiftConsole')
           _userChangedCallbacks.fire(user);
         }
       },
-  
+
       requestRequiresAuth: function(config) {
         // TODO: replace with real implementation
         var requiresAuth = config.url.toString().indexOf("api/") > 0;
@@ -127,7 +127,7 @@ angular.module('openshiftConsole')
           authLogger.log('AuthService.addAuthToRequest(), no token available');
           return false;
         }
-  
+
         // Handle web socket requests with a parameter
         if (config.method == 'WATCH') {
           config.url = URI(config.url).addQuery({access_token: token}).toString();
@@ -138,7 +138,7 @@ angular.module('openshiftConsole')
         }
         return true;
       },
-    
+
       startLogin: function() {
         if (_loginPromise) {
           authLogger.log("Login already in progress");
@@ -182,7 +182,7 @@ angular.module('openshiftConsole')
         });
         return _logoutPromise;
       },
-  
+
       // TODO: add a way to unregister once we start doing in-page logins
       onLogin: function(callback) {
         _loginCallbacks.add(callback);

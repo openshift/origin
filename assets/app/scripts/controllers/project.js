@@ -38,7 +38,7 @@ angular.module('openshiftConsole')
               "error_description": message,
               "error" : e.status == 403 ? 'access_denied' : 'not_found'
             }).toString();
-            $location.url(redirect);          
+            $location.url(redirect);
           }
           else {
             // Something spurious has happened, stay on the page and show an alert

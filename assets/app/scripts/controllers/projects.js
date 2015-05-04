@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectsController', function ($scope, $location, DataService, AuthService) {   
+  .controller('ProjectsController', function ($scope, $location, DataService, AuthService) {
     $scope.projects = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";

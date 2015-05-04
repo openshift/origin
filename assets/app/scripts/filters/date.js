@@ -42,7 +42,7 @@ angular.module('openshiftConsole')
       }
       if (seconds > 0) {
         humanizedDuration.push(seconds + (seconds == 1 ? " second" : " seconds"));
-      }      
+      }
 
       if (humanizedDuration.length == 0) {
         humanizedDuration.push("0 seconds");

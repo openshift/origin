@@ -65,7 +65,7 @@ angular.module("openshiftConsole")
     }
 
     initAndValidate($scope);
-    
+
     var ifResourcesDontExist = function(resources, namespace, scope){
       var result = $q.defer();
       var successResults = [];
@@ -100,7 +100,7 @@ angular.module("openshiftConsole")
       });
       return result.promise;
     }
-    
+
     var createResources = function(resources){
       var titles = {
         started: "Creating application " + $scope.name + " in project " + $scope.projectName,
@@ -154,11 +154,11 @@ angular.module("openshiftConsole")
         );
       Navigate.toProjectOverview($scope.projectName);
     };
-    
+
     var elseShowWarning = function(){
       $scope.nameTaken = true;
     };
-    
+
     $scope.createApp = function(){
       var resourceMap = ApplicationGenerator.generate($scope);
       //init tasks
@@ -169,15 +169,14 @@ angular.module("openshiftConsole")
           resources.push(value);
         }
       });
-      
+
       ifResourcesDontExist(resources, $scope.namespace, $scope).then(
           createResources,
           elseShowWarning
         );
-      
+
     };
-      
- 
+
   }
 );
 

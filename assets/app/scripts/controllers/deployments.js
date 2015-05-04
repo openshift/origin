@@ -17,7 +17,7 @@ angular.module('openshiftConsole')
     $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
     $scope.builds = {};
     $scope.labelSuggestions = {};
-    $scope.alerts = $scope.alerts || {};    
+    $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
@@ -37,7 +37,7 @@ angular.module('openshiftConsole')
       $scope.emptyMessage = "No deployments to show";
       updateFilterWarning();
       Logger.log("deployments (subscribe)", $scope.deployments);
-    }));    
+    }));
 
     // Sets up subscription for imageStreams
     watches.push(DataService.watch("imageStreams", $scope, function(imageStreams) {
@@ -45,12 +45,12 @@ angular.module('openshiftConsole')
       ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
       ImageStreamResolver.fetchReferencedImageStreamImages($scope.podTemplates, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
       Logger.log("imageStreams (subscribe)", $scope.imageStreams);
-    }));  
+    }));
 
     watches.push(DataService.watch("builds", $scope, function(builds) {
       $scope.builds = builds.by("metadata.name");
       Logger.log("builds (subscribe)", $scope.builds);
-    }));  
+    }));
 
     var updateFilterWarning = function() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.deployments) && !$.isEmptyObject($scope.unfilteredDeployments)) {
@@ -61,7 +61,7 @@ angular.module('openshiftConsole')
       }
       else {
         delete $scope.alerts["deployments"];
-      }      
+      }
     };
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
@@ -70,7 +70,7 @@ angular.module('openshiftConsole')
         $scope.deployments = labelSelector.select($scope.unfilteredDeployments);
         updateFilterWarning();
       });
-    });   
+    });
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
