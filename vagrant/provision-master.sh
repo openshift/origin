@@ -35,7 +35,6 @@ echo "Generating certs"
 pushd /vagrant
   SERVER_CONFIG_DIR="`pwd`/openshift.local.config"
   MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
-  NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${minion}"
   CERT_DIR="${MASTER_CONFIG_DIR}"
 
   # Master certs
@@ -51,7 +50,7 @@ pushd /vagrant
     ip=${minion_ip_array[$i]}
 
     /usr/bin/openshift admin create-node-config \
-      --node-dir="${NODE_CONFIG_DIR}" \
+      --node-dir="${SERVER_CONFIG_DIR}/node-${minion}" \
       --node="${minion}" \
       --hostnames="${minion},${ip}" \
       --master="https://${MASTER_IP}:8443" \
