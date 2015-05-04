@@ -5,18 +5,18 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the rel-eng directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 0867235910262aa32989223593bfbd3501017d1d
+%global commit e5b3574355930a7af9adf251c4afc3e119b2b041
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 4+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.4.4-161-g0867235 -X github.com/openshift/origin/pkg/version.commitFromGit 0867235 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit b12d75d -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.14.1-582-gb12d75d
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 5+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.5-183-ge5b3574 -X github.com/openshift/origin/pkg/version.commitFromGit e5b3574 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit b12d75d -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.14.1-582-gb12d75d
 }
 
 Name:           openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the rel-eng directory of this project
-Version:        0.4.4.0
+Version:        0.5.0.0
 Release:        0%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
@@ -230,6 +230,375 @@ fi
 %{_bindir}/dockerregistry
 
 %changelog
+* Mon May 04 2015 Scott Dodson <sdodson@redhat.com> 0.5.0.0
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- Merge pull request #2030 from deads2k/deads-move-policy-commands
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2055 from liggitt/proxy_default_port
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2047 from bparees/php_stream
+  (dmcphers+openshiftbot@redhat.com)
+- Use default port to proxy to backend (jliggitt@redhat.com)
+- add php stream to repo list (bparees@redhat.com)
+- Fix formatting and typos (dmcphers@redhat.com)
+- Merge pull request #1925 from rhcarvalho/improve-cleanup-script
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1952 from thom311/vagrant-config-paths
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1941 from kargakis/expose
+  (dmcphers+openshiftbot@redhat.com)
+- Remove trailing spaces (rhcarvalho@gmail.com)
+- Improve cleanup script (rhcarvalho@gmail.com)
+- Fix formatting in sample-app/README.md (rhcarvalho@gmail.com)
+- vagrant: fix creating minion config when provisioning master
+  (thaller@redhat.com)
+- Merge pull request #2042 from nak3/fix-gofmt
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2033 from deads2k/deads-make-new-project-show-nice-
+  message (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1967 from csrwng/hide_template_images
+  (dmcphers+openshiftbot@redhat.com)
+- Fix gofmt complaint (nakayamakenjiro@gmail.com)
+- Merge pull request #2040 from danmcp/master
+  (dmcphers+openshiftbot@redhat.com)
+- Fixing typos (dmcphers@redhat.com)
+- Merge pull request #2037 from derekwaynecarr/cherry_picks
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2034 from deads2k/deads-allow-access-to-secrets
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2035 from ncdc/allow-system-registry-to-create-image-
+  streams (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM Reject unbounded cpu and memory pods if quota is restricting it
+  #7003 (decarr@redhat.com)
+- Merge pull request #1792 from sallyom/bundle_secret
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2011 from deads2k/deads-request-project-template
+  (dmcphers+openshiftbot@redhat.com)
+- grant admin and edit access to secrets (deads@redhat.com)
+- Allow registry to auto-provision image streams (agoldste@redhat.com)
+- Bug 1214548 (somalley@redhat.com)
+- make the new-project cli display the correct message on denial
+  (deads@redhat.com)
+- refactor bulk to take the interfaces it needs, not factory (deads@redhat.com)
+- use a template for requested projects (deads@redhat.com)
+- fix template processing to handle slices (deads@redhat.com)
+- promote commands out of experimental (deads@redhat.com)
+- Merge pull request #2012 from csrwng/log_policy
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2028 from ironcladlou/deploy-cmd-output-fix
+  (dmcphers+openshiftbot@redhat.com)
+- Add pod logs and build logs to default policy constants (cewong@redhat.com)
+- Fix minor deploy cmd typo (ironcladlou@gmail.com)
+- Merge pull request #1972 from liggitt/details_sidebar
+  (dmcphers+openshiftbot@redhat.com)
+- Revert "Reverting the v2 registry switch" (sdodson@redhat.com)
+- object-describer 0.0.7, build bindata (jliggitt@redhat.com)
+- Restyle of overview elements (sgoodwin@redhat.com)
+- Object sidebar (jforrest@redhat.com)
+- Add word-break mixin (sgoodwin@redhat.com)
+- Highlight elements that are currently selected (jforrest@redhat.com)
+- Style changes (sgoodwin@redhat.com)
+- Object sidebar (jforrest@redhat.com)
+- change policy binding names (deads@redhat.com)
+- add cluster policy resources (deads@redhat.com)
+- Merge pull request #2022 from ncdc/ist-image-not-found
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1994 from smarterclayton/start-build-webhooks
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2023 from smarterclayton/new_app_doesnt_need_pull
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2015 from deads2k/deads-respect-remote-kubeconfig
+  (dmcphers+openshiftbot@redhat.com)
+- Generate webhook URLs from the client (ccoleman@redhat.com)
+- Expose (broken) webhooks to v1beta3 (ccoleman@redhat.com)
+- osc start-build should be able to trigger webhook (ccoleman@redhat.com)
+- UPSTREAM: Allow URL to be generated by request.go (ccoleman@redhat.com)
+- Merge pull request #2019 from smarterclayton/invert_router_registry_defaults
+  (dmcphers+openshiftbot@redhat.com)
+- osc new-app shouldn't pull when image is chained (ccoleman@redhat.com)
+- Improve ISTag image not found error response (agoldste@redhat.com)
+- Merge pull request #2020 from bparees/generator_logging
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1997 from bparees/update_templates
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2014 from ncdc/fix-test-cmd-delete-registry-pod-race
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2013 from ironcladlou/hook-resource-inheritance
+  (dmcphers+openshiftbot@redhat.com)
+- Invert the default behavior for osadm registry/router (ccoleman@redhat.com)
+- Merge pull request #1868 from sallyom/DisplayNameChange
+  (dmcphers+openshiftbot@redhat.com)
+- add tracing in resolvimagestreamreference (bparees@redhat.com)
+- Merge pull request #1934 from derekwaynecarr/resource_requirements_deployment
+  (dmcphers+openshiftbot@redhat.com)
+- properly handle external kube proxy case (deads@redhat.com)
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- freshen template syntax (bparees@redhat.com)
+- Merge pull request #2002 from deads2k/deads-allow-node-start
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1966 from kargakis/is-tag-fix
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2008 from ncdc/tag-tracking
+  (dmcphers+openshiftbot@redhat.com)
+- Use a safer delete of registry pod in test-cmd (agoldste@redhat.com)
+- Deployment hooks inherit resources and working dir (ironcladlou@gmail.com)
+- Merge pull request #2010 from ncdc/fix-build-imagechangecontroller-
+  updateConfig-panic (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2009 from ncdc/bump-spdystream
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2007 from ironcladlou/hook-environment-inheritance
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1971 from nak3/add-list-project
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1987 from smarterclayton/set_maxproces
+  (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: Handle conversion of boolean query parameters with a value of
+  'false' (cewong@redhat.com)
+- Allow 1 ImageStream tag to track another (agoldste@redhat.com)
+- Merge pull request #1886 from csrwng/build_log_subresource
+  (dmcphers+openshiftbot@redhat.com)
+- Fix build image change controller possible panic (agoldste@redhat.com)
+- Merge pull request #1948 from deads2k/deads-project-request-information
+  (dmcphers+openshiftbot@redhat.com)
+- bump(docker/spdystream):e372247595b2edd26f6d022288e97eed793d70a2
+  (agoldste@redhat.com)
+- Merge pull request #2004 from deads2k/deads-fix-test-cmd
+  (dmcphers+openshiftbot@redhat.com)
+- Make hook containers inherit environment (ironcladlou@gmail.com)
+- Add long help to osc project (nakayamakenjiro@gmail.com)
+- projectrequest get message (deads@redhat.com)
+- explicitly set the project to avoid depending on project cache refresh
+  (deads@redhat.com)
+- if AllowDisabledDocker, allow docker to be missing (deads@redhat.com)
+- gofmt fix (kargakis@users.noreply.github.com)
+- new-app: Add image tag in generated imageStream
+  (kargakis@users.noreply.github.com)
+- Merge pull request #1983 from bparees/sti_env
+  (dmcphers+openshiftbot@redhat.com)
+- Create build log subresource in the style of upstream pod log
+  (cewong@redhat.com)
+- Merge pull request #1979 from smarterclayton/return_template_from_process
+  (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: Use Pod.Spec.Host instead of Pod.Status.HostIP for pod subresources
+  (cewong@redhat.com)
+- Merge pull request #1935 from sdodson/only-use-nodeconfig
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1984 from smarterclayton/v1beta3_builds
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1982 from deads2k/deads-osc-logout
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1973 from deads2k/deads-make-remove-user-predictable
+  (dmcphers+openshiftbot@redhat.com)
+- Dump metrics and run a CPU profile in hack/test-cmd (ccoleman@redhat.com)
+- Set GOMAXPROCS by default (ccoleman@redhat.com)
+- Merge pull request #1947 from ironcladlou/deploy-command
+  (dmcphers+openshiftbot@redhat.com)
+- Return a template object from template process (ccoleman@redhat.com)
+- Merge pull request #1978 from csrwng/switch_pod_log
+  (dmcphers+openshiftbot@redhat.com)
+- only allow trusted env variables in sti builder container
+  (bparees@redhat.com)
+- Add v1beta3 cut of builds (ccoleman@redhat.com)
+- Cleanup sysconfig values as everything is now in a config file
+  (sdodson@redhat.com)
+- add logout command (deads@redhat.com)
+- Merge pull request #1970 from ncdc/remove-old-registry-configs
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1974 from sdodson/rpm-packaging-updates
+  (dmcphers+openshiftbot@redhat.com)
+- Force no color in grep (ccoleman@redhat.com)
+- Merge pull request #1693 from bparees/image_refs
+  (dmcphers+openshiftbot@redhat.com)
+- Add a deploy command (ironcladlou@gmail.com)
+- UPSTREAM: Switch kubelet log command to use pod log subresource
+  (cewong@redhat.com)
+- Merge pull request #1959 from smarterclayton/fix_templates
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1957 from spadgett/fix-templates
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1928 from spadgett/empty-ports-array
+  (dmcphers+openshiftbot@redhat.com)
+- [RPMs] Move clients to common package and add dockerregistry subpkg
+  (sdodson@redhat.com)
+- force predictable ordering of removing users from a project
+  (deads@redhat.com)
+- refactor ict to remove from/image parameters (bparees@redhat.com)
+- Replace docker-registry-*.json with osadm registry (agoldste@redhat.com)
+- Merge pull request #1969 from ncdc/disable-registry-probe
+  (dmcphers+openshiftbot@redhat.com)
+- Use true generic objects in templates (ccoleman@redhat.com)
+- Match changes to make []runtime.Object cleaner (ccoleman@redhat.com)
+- UPSTREAM: Support unknown types more cleanly (ccoleman@redhat.com)
+- UPSTREAM: add HasAny (deads@redhat.com)
+- Merge pull request #1929 from nak3/fixed-osc-project
+  (dmcphers+openshiftbot@redhat.com)
+- Hide images section when no images detected in template (cewong@redhat.com)
+- Disable registry liveness probe to support v1 & v2 (agoldste@redhat.com)
+- Web Console: Fix problems creating from templates (spadgett@redhat.com)
+- WIP: displayName annotation (somalley@redhat.com)
+- Fixed the sample-app readme (maszulik@redhat.com)
+- Fix error handling of osc project (nakayamakenjiro@gmail.com)
+- Update console for v2 image IDs (agoldste@redhat.com)
+- Enable building v2 registry image (agoldste@redhat.com)
+- Add info about Docker 1.6 to README (agoldste@redhat.com)
+- [RPMs] Require docker >= 1.6.0 (sdodson@redhat.com)
+- Require Docker 1.6 for node startup (agoldste@redhat.com)
+- v2 registry updates (agoldste@redhat.com)
+- UPSTREAM: add context to ManifestService methods (rpenta@redhat.com)
+- bump(docker/distribution):62b70f951f30a711a8a81df1865d0afeeaaa0169
+  (agoldste@redhat.com)
+- Merge pull request #1917 from jwhonce/wip/bootstrap
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1943 from deads2k/deads-fix-file-refs
+  (dmcphers+openshiftbot@redhat.com)
+- Pass --force to docker push if needed (agoldste@redhat.com)
+- Fix client builds for windows and macosx (sdodson@redhat.com)
+- Work around 64MB tmpfs limit (agoldste@redhat.com)
+- UPSTREAM: describe: Support resource type/name syntax
+  (kargakis@users.noreply.github.com)
+- Add Deployment to v1beta3 (ccoleman@redhat.com)
+- doc: fix instructions in example doc (mjisyang@gmail.com)
+- Fix typo (rhcarvalho@gmail.com)
+- Change available loglevel with openshift (nakayamakenjiro@gmail.com)
+- default certificate support (pweil@redhat.com)
+- Fixes as per @smarterclayton review comments. (smitram@gmail.com)
+- Rename from ha*config to ipfailover. Fixes and cleanup as per @smarterclayton
+  review comments. (smitram@gmail.com)
+- Complete --delete functionality. (smitram@gmail.com)
+- fix demo config (smitram@gmail.com)
+- Convert to plugin code, add tests and use replica count in the keepalived
+  config generator. (smitram@gmail.com)
+- Checkpoint ha-config work. Add HostNetwork capabilities. Add volume mount to
+  container. (smitram@gmail.com)
+- Add HA configuration proposal. (smitram@gmail.com)
+- Add new ha-config keepalived failover service container code, image and
+  scripts. (smitram@gmail.com)
+- Hide ugly output from osc status --help (nakayamakenjiro@gmail.com)
+- Use unminified css on login page (jliggitt@redhat.com)
+- sort projects (somalley@redhat.com)
+- use CheckErr for pretty messages (deads@redhat.com)
+- Add route to v1beta3 (ccoleman@redhat.com)
+- add osadm to docker image (deads@redhat.com)
+- Bug 1215014 - hostname for the node a pod is on is showing up as unknown due
+  to an api change (jforrest@redhat.com)
+- Embed the openshift-jvm console (jforrest@redhat.com)
+- Added Node.js simple example workflow (sspeiche@redhat.com)
+- migrate roles and bindings to new storage (deads@redhat.com)
+- UPSTREAM: cobra loses arguments with same value as subcommand
+  (deads@redhat.com)
+- allow login with file that doesn't exist yet (deads@redhat.com)
+- make request-project switch projects (deads@redhat.com)
+- make project delegatable (deads@redhat.com)
+- Initial work on multi-context html5 handling (jliggitt@redhat.com)
+- * Add support for local-source configuration (jhonce@redhat.com)
+- Merge pull request #1945 from soltysh/issue1480
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1747 from kargakis/new-app-fixes
+  (dmcphers+openshiftbot@redhat.com)
+- bad file references due to moved config (deads@redhat.com)
+- Issue 1480 - switched to using goautoneg package for parsing accept headers
+  (maszulik@redhat.com)
+- Merge pull request #1914 from jwforres/data_icons
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1932 from danmcp/master
+  (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: Fix getting services in expose cmd
+  (kargakis@users.noreply.github.com)
+- Tests for new-app (kargakis@users.noreply.github.com)
+- Rework new-app (kargakis@users.noreply.github.com)
+- Merge pull request #1835 from jhadvig/start_build_ui
+  (dmcphers+openshiftbot@redhat.com)
+- Remove experimental generate command (kargakis@users.noreply.github.com)
+- Merge pull request #1933 from deads2k/deads-change-policy
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1936 from fabianofranz/bump_cobra_and_pflag
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1737 from deads2k/deads-openshift-start-take-dir
+  (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: cobra loses arguments with same value as subcommand
+  (deads@redhat.com)
+- bump(github.com/spf13/cobra):ebb2d55f56cfec37ad899ad410b823805cc38e3c
+  (contact@fabianofranz.com)
+- bump(github.com/spf13/pflag):60d4c375939ff7ba397a84117d5281256abb298f
+  (contact@fabianofranz.com)
+- make openshift start --write-config take a dir (deads@redhat.com)
+- Merge pull request #1831 from mjisyang/doc-fix
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1779 from pweil-/router-wildcard-cert
+  (dmcphers+openshiftbot@redhat.com)
+- Add resource requirements to deployment strategy (decarr@redhat.com)
+- don't let editors delete a project (deads@redhat.com)
+- Show icons embedded as data uris in template and image catalogs in console
+  (jforrest@redhat.com)
+- Merge pull request #1881 from sspeiche/node-echo
+  (dmcphers+openshiftbot@redhat.com)
+- Fix formatting (dmcphers@redhat.com)
+- Handle portalIP 'None' and empty service.spec.ports (spadgett@redhat.com)
+- Start/Rerun a build from the console (j.hadvig@gmail.com)
+- Work around 64MB tmpfs limit (agoldste@redhat.com)
+- Merge pull request #1930 from kargakis/upstream-fix
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1915 from smarterclayton/add_deploy_to_v1beta3
+  (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: describe: Support resource type/name syntax
+  (kargakis@users.noreply.github.com)
+- Add Deployment to v1beta3 (ccoleman@redhat.com)
+- doc: fix instructions in example doc (mjisyang@gmail.com)
+- Merge pull request #1807 from ramr/haconfig
+  (dmcphers+openshiftbot@redhat.com)
+- Fix typo (rhcarvalho@gmail.com)
+- Change available loglevel with openshift (nakayamakenjiro@gmail.com)
+- default certificate support (pweil@redhat.com)
+- Fixes as per @smarterclayton review comments. (smitram@gmail.com)
+- Rename from ha*config to ipfailover. Fixes and cleanup as per @smarterclayton
+  review comments. (smitram@gmail.com)
+- Complete --delete functionality. (smitram@gmail.com)
+- fix demo config (smitram@gmail.com)
+- Convert to plugin code, add tests and use replica count in the keepalived
+  config generator. (smitram@gmail.com)
+- Checkpoint ha-config work. Add HostNetwork capabilities. Add volume mount to
+  container. (smitram@gmail.com)
+- Add HA configuration proposal. (smitram@gmail.com)
+- Add new ha-config keepalived failover service container code, image and
+  scripts. (smitram@gmail.com)
+- Hide ugly output from osc status --help (nakayamakenjiro@gmail.com)
+- Merge pull request #1907 from deads2k/deads-use-checkerr
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1916 from liggitt/login_html
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1911 from sallyom/listSortedProjects
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1906 from smarterclayton/add_route_v1beta3
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1904 from jwforres/bug_1215014_pod_node_hostname
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1838 from jwforres/subconsole_support
+  (dmcphers+openshiftbot@redhat.com)
+- Use unminified css on login page (jliggitt@redhat.com)
+- sort projects (somalley@redhat.com)
+- Merge pull request #1905 from deads2k/deads-osadm
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #1840 from deads2k/deads-switch-projects
+  (dmcphers+openshiftbot@redhat.com)
+- use CheckErr for pretty messages (deads@redhat.com)
+- Merge pull request #1901 from deads2k/deads-osadm-not-openshift-admin
+  (dmcphers+openshiftbot@redhat.com)
+- Add route to v1beta3 (ccoleman@redhat.com)
+- add osadm to docker image (deads@redhat.com)
+- Bug 1215014 - hostname for the node a pod is on is showing up as unknown due
+  to an api change (jforrest@redhat.com)
+- Merge pull request #1873 from deads2k/deads-migrate-roles-to-new-registry
+  (dmcphers+openshiftbot@redhat.com)
+- Embed the openshift-jvm console (jforrest@redhat.com)
+- Added Node.js simple example workflow (sspeiche@redhat.com)
+- migrate roles and bindings to new storage (deads@redhat.com)
+- UPSTREAM: cobra loses arguments with same value as subcommand
+  (deads@redhat.com)
+- allow login with file that doesn't exist yet (deads@redhat.com)
+- make request-project switch projects (deads@redhat.com)
+- make project delegatable (deads@redhat.com)
+- Initial work on multi-context html5 handling (jliggitt@redhat.com)
+
 * Fri Apr 24 2015 Scott Dodson <sdodson@redhat.com> 0.4.4.0
 - Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
 - Merge pull request #1898 from derekwaynecarr/cherry_picks
