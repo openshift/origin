@@ -87,7 +87,7 @@ angular.module('openshiftConsole')
       }
       else {
         delete $scope.alerts["builds"];
-      }      
+      }
     };
 
     // Function which will 'instantiate' new build from given buildConfigName
@@ -144,7 +144,7 @@ angular.module('openshiftConsole')
         $scope.builds = labelSelector.select($scope.unfilteredBuilds);
         updateFilterWarning();
       });
-    });   
+    });
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);

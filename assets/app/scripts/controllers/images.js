@@ -13,7 +13,7 @@ angular.module('openshiftConsole')
     $scope.unfilteredImageStreams = {};
     $scope.builds = {};
     $scope.labelSuggestions = {};
-    $scope.alerts = $scope.alerts || {};    
+    $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
@@ -36,7 +36,7 @@ angular.module('openshiftConsole')
       }
       else {
         delete $scope.alerts["imageStreams"];
-      }       
+      }
     };
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
@@ -49,5 +49,5 @@ angular.module('openshiftConsole')
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
-    });        
+    });
   });

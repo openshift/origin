@@ -26,7 +26,7 @@ angular.module("openshiftConsole")
       toProjectOverview: function(projectName){
         $location.path(this.projectOverviewURL(projectName));
       },
-      
+
       /**
        * Return the URL for the project overview
        * 

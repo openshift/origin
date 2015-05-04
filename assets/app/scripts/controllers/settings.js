@@ -41,18 +41,18 @@ angular.module('openshiftConsole')
           });
           angular.forEach(limit.min, function(value, type) {
             limit.max[type] = limit.max[type] || "";
-            limit["default"][type] = limit["default"][type] || "";            
+            limit["default"][type] = limit["default"][type] || "";
           });
           angular.forEach(limit["default"], function(value, type) {
             limit.max[type] = limit.max[type] || "";
-            limit.min[type] = limit.min[type] || "";    
+            limit.min[type] = limit.min[type] || "";
           });
         });
       });
       Logger.log("limitRanges", $scope.limitRanges);
-    });    
+    });
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
-    });      
+    });
   });

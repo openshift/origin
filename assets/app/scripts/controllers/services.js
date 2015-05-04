@@ -50,7 +50,7 @@ angular.module('openshiftConsole')
       }
       else {
         delete $scope.alerts["services"];
-      }       
+      }
     };
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
@@ -59,9 +59,9 @@ angular.module('openshiftConsole')
         $scope.services = labelSelector.select($scope.unfilteredServices);
         updateFilterWarning();
       });
-    });   
+    });
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
-    });      
+    });
   });

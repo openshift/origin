@@ -2,7 +2,7 @@
 
 angular.module('openshiftConsole')
 .factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger) {
-  
+
   function Data(array) {
     this._data = {};
     this._objectsByAttribute(array, "metadata.name", this._data);
@@ -90,8 +90,8 @@ angular.module('openshiftConsole')
     var self = this;
     $rootScope.$on( "$routeChangeStart", function(event, next, current) {
       self._watchWebsocketRetriesMap = {};
-    });   
-    
+    });
+
     this.osApiVersion = "v1beta1";
     this.k8sApiVersion = "v1beta3";
 

@@ -17,7 +17,7 @@ angular.module('openshiftConsole')
     $scope.builds = {};
     $scope.imageStreams = {};
     $scope.imagesByDockerReference = {};
-    $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream    
+    $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
 
     // All pods under a service (no "" service key)
     $scope.podsByService = {};

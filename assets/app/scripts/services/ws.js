@@ -62,7 +62,7 @@ angular.module('openshiftConsole')
       }
       return promise;
     };
-  
+
     // Implement $ws.available()
     $ws.available = function() {
       try {
@@ -72,7 +72,7 @@ angular.module('openshiftConsole')
         return false;
       }
     };
-  
+
     return $ws;
   };
 })

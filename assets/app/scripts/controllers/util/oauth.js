@@ -15,7 +15,7 @@ angular.module('openshiftConsole')
     .then(function(data) {
       var token = data.token;
       var then = data.then;
-      
+
       // Try to fetch the user
       var opts = {errorNotification: false, http: {auth: {token: token, triggerLogin: false}}};
       authLogger.log("OAuthController, got token, fetching user", opts);

@@ -82,7 +82,7 @@ angular.module('openshiftConsole')
         }
         if (kind === "image") {
           return "fa fa-cube";
-        }        
+        }
         else {
           return "";
         }

@@ -20,7 +20,7 @@ angular.module('openshiftConsole')
       },
       info: function() {
         OSLogger.info.apply(OSLogger, arguments);
-      },      
+      },
       debug: function() {
         OSLogger.debug.apply(OSLogger, arguments);
       },
@@ -37,7 +37,7 @@ angular.module('openshiftConsole')
     if (localStorage) {
       logLevel = localStorage['OpenShiftLogLevel.main'] || logLevel;
     }
-    OSLogger.setLevel(Logger[logLevel]);      
+    OSLogger.setLevel(Logger[logLevel]);
     return logger;
   };
 });

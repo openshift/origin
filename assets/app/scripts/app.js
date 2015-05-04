@@ -131,10 +131,10 @@ angular
       })
       .when('/project/:project/catalog/images', {
         templateUrl: 'views/catalog/images.html'
-      })      
+      })
       .when('/project/:project/create', {
         templateUrl: 'views/create.html'
-      })      
+      })
       .when('/project/:project/create/fromtemplate', {
         templateUrl: 'views/newfromtemplate.html'
       })
@@ -189,7 +189,7 @@ angular
     $interval(function() {
       $('.duration[data-timestamp]').text(function(i, existing) {
         return durationFilter($(this).attr("data-timestamp")) || existing;
-      });      
+      });
     }, 1000);
   });
 
