@@ -26,9 +26,8 @@ type NewProjectOptions struct {
 
 	Client client.Interface
 
-	AdminRole             string
-	MasterPolicyNamespace string
-	AdminUser             string
+	AdminRole string
+	AdminUser string
 }
 
 func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -92,16 +91,14 @@ func (o *NewProjectOptions) Run() error {
 
 	if len(o.AdminUser) != 0 {
 		adduser := &policy.RoleModificationOptions{
-			RoleNamespace:    o.MasterPolicyNamespace,
-			RoleName:         o.AdminRole,
-			BindingNamespace: project.Name,
-			Client:           o.Client,
-			Users:            []string{o.AdminUser},
+			RoleName:            o.AdminRole,
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(project.Name, o.Client),
+			Users:               []string{o.AdminUser},
 		}
 
 		if err := adduser.AddRole(); err != nil {
 			fmt.Printf("The project %v was created, but %v could not be added to the %v role.\n", o.ProjectName, o.AdminUser, o.AdminRole)
-			fmt.Printf("To add the user to the existing project, run\n\n\topenshift ex policy add-role-to-user --namespace=%v --role-namespace=%v %v %v\n", o.ProjectName, o.MasterPolicyNamespace, o.AdminRole, o.AdminUser)
+			fmt.Printf("To add the user to the existing project, run\n\n\topenshift ex policy add-role-to-user --namespace=%v %v %v\n", o.ProjectName, o.AdminRole, o.AdminUser)
 			return err
 		}
 	}
