@@ -1,0 +1,26 @@
+{
+  "apiVersion": "v1beta1",
+  "desiredState": {
+    "manifest": {
+      "containers": [
+        {
+          "image": "openshift/origin-registry-proxy",
+          "imagePullPolicy": "PullIfNotPresent",
+          "name": "origin-registry-proxy-1",
+          "ports": [
+            {
+              "containerPort": 5000,
+              "hostPort": 5000
+            }
+          ]
+        }
+      ],
+      "restartPolicy": {
+        "always": {}
+      },
+      "version": "v1beta2"
+    }
+  },
+  "id": "origin-registry-proxy-1",
+  "kind": "Pod"
+}
