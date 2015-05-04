@@ -155,7 +155,7 @@ function wait_for_app() {
 	wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
 
 	echo "[INFO] Waiting for app to start..."
-	wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))	
+	wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
 
 	echo "[INFO] Testing app"
 	wait_for_command '[[ "$(curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337)" = "Key created" ]]'
@@ -235,7 +235,7 @@ sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift
     --loglevel=4 \
     &> "${LOG_DIR}/openshift.log" &
 OS_PID=$!
-	
+
 export HOME="${FAKE_HOME_DIR}"
 
 if [[ "${API_SCHEME}" == "https" ]]; then
