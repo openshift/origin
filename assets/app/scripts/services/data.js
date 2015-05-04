@@ -697,6 +697,7 @@ angular.module('openshiftConsole')
     templateConfigs:           API_CFG.openshift,
     users:                     API_CFG.openshift,
 
+    events:                    API_CFG.k8s,
     pods:                      API_CFG.k8s,
     replicationcontrollers:    API_CFG.k8s,
     services:                  API_CFG.k8s,
