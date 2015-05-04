@@ -13,7 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
-	minioncontroller "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
+	minioncontroller "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/nodecontroller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
