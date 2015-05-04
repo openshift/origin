@@ -126,7 +126,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 	defaultVersion := cmdutil.OutputVersion(cmd, clientConfig.Version)
 	results := editResults{}
 	for {
-		obj, err := resource.AsVersionedObject(infos, defaultVersion)
+		obj, err := resource.AsVersionedObject(infos, false, defaultVersion)
 		if err != nil {
 			return preservedFile(err, results.file, cmd.Out())
 		}

@@ -12,16 +12,19 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/cadvisor"
 	kconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/config"
+	kubecontainer "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/container"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
 	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	kexec "github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/mount"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
@@ -92,7 +95,7 @@ func (c *NodeConfig) HandleDockerError(message string) {
 		glog.Fatalf("ERROR: %s", message)
 	}
 	glog.Errorf("WARNING: %s", message)
-	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env{"apiversion=1.15"}}
+	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env{"ApiVersion=1.18"}}
 }
 
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
@@ -155,7 +158,7 @@ func (c *NodeConfig) RunKubelet() {
 	// initialize Kubelet
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-	kubelet.SetupCapabilities(true, hostNetworkCapabilities)
+	capabilities.Setup(true, hostNetworkCapabilities)
 	recorder := record.NewBroadcaster().NewRecorder(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
 
 	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates, recorder)
@@ -206,6 +209,11 @@ func (c *NodeConfig) RunKubelet() {
 		imageGCPolicy,
 		nil,
 		15*time.Second,
+		"/kubelet",
+		kubecontainer.RealOS{},
+		"",
+		"docker",
+		mount.New(),
 	)
 	if err != nil {
 		glog.Fatalf("Couldn't run kubelet: %s", err)

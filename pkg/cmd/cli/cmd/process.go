@@ -177,7 +177,10 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 	label := kcmdutil.GetFlagString(cmd, "labels")
 	if len(label) != 0 {
-		lbl := ctl.ParseLabels(label)
+		lbl, err := ctl.ParseLabels(label)
+		if err != nil {
+			return err
+		}
 		for key, value := range lbl {
 			templateObj.ObjectLabels[key] = value
 		}

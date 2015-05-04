@@ -117,7 +117,7 @@ func (registry *Etcd) WatchRoutes(ctx kapi.Context, label labels.Selector, field
 		if err != nil {
 			return nil, err
 		}
-		return registry.Watch(key, version), nil
+		return registry.Watch(key, version, tools.Everything)
 	}
 
 	if field.Empty() {

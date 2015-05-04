@@ -119,7 +119,7 @@ func mockCustomBuild() *buildapi.Build {
 						Name: "builder-image",
 					},
 					Env: []kapi.EnvVar{
-						{"FOO", "BAR"},
+						{Name: "FOO", Value: "BAR"},
 					},
 					ExposeDockerSocket: true,
 				},

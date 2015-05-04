@@ -13,6 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -54,7 +55,7 @@ func makeTestDefaultDeploymentConfigListKey() string {
 }
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.NewEtcdHelper(client, latest.Codec))
+	return New(tools.NewEtcdHelper(client, latest.Codec, etcdtest.PathPrefix()))
 }
 
 func TestEtcdListEmptyDeployments(t *testing.T) {

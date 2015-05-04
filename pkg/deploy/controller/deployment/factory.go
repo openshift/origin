@@ -62,7 +62,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 				return factory.KubeClient.Pods(namespace).Create(pod)
 			},
 			deletePodFunc: func(namespace, name string) error {
-				return factory.KubeClient.Pods(namespace).Delete(name)
+				return factory.KubeClient.Pods(namespace).Delete(name, nil)
 			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {

@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -21,7 +22,7 @@ import (
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.NewEtcdHelper(client, latest.Codec))
+	return New(tools.NewEtcdHelper(client, latest.Codec, etcdtest.PathPrefix()))
 }
 
 // This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we

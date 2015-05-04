@@ -97,7 +97,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	etcdHelper, err := NewEtcdHelper(client, options.EtcdStorageConfig.OpenShiftStorageVersion)
+	etcdHelper, err := NewEtcdHelper(client, options.EtcdStorageConfig.OpenShiftStorageVersion, "openshift")
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}
@@ -314,10 +314,10 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kc
 }
 
 // NewEtcdHelper returns an EtcdHelper for the provided storage version.
-func NewEtcdHelper(client *etcdclient.Client, version string) (oshelper tools.EtcdHelper, err error) {
+func NewEtcdHelper(client *etcdclient.Client, version, prefix string) (oshelper tools.EtcdHelper, err error) {
 	interfaces, err := latest.InterfacesFor(version)
 	if err != nil {
 		return tools.EtcdHelper{}, err
 	}
-	return tools.NewEtcdHelper(client, interfaces.Codec), nil
+	return tools.NewEtcdHelper(client, interfaces.Codec, prefix), nil
 }
