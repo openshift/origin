@@ -36,7 +36,7 @@ type templateRouter struct {
 	templates        map[string]*template.Template
 	reloadScriptPath string
 	state            map[string]ServiceUnit
-	certManager      certManager
+	certManager      certificateManager
 	// defaultCertificate is a concatenated certificate(s), their keys, and their CAs that should be used by the underlying
 	// implementation as the default certificate if no certificate is resolved by the normal matching mechanisms.  This is
 	// usually a wildcard certificate for a cloud domain such as *.mypaas.com to allow applications to create app.mypaas.com
@@ -57,11 +57,23 @@ type templateData struct {
 
 func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath, defaultCertificate string) (*templateRouter, error) {
 	glog.Infof("Creating a new template router")
+	certManagerConfig := &certificateManagerConfig{
+		certKeyFunc:     generateCertKey,
+		caCertKeyFunc:   generateCACertKey,
+		destCertKeyFunc: generateDestCertKey,
+		certDir:         certDir,
+		caCertDir:       caCertDir,
+	}
+	certManager, err := newSimpleCertificateManager(certManagerConfig, newSimpleCertificateWriter())
+	if err != nil {
+		return nil, err
+	}
+
 	router := &templateRouter{
 		templates:              templates,
 		reloadScriptPath:       reloadScriptPath,
 		state:                  map[string]ServiceUnit{},
-		certManager:            certManager{},
+		certManager:            certManager,
 		defaultCertificate:     defaultCertificate,
 		defaultCertificatePath: "",
 	}
@@ -83,7 +95,7 @@ func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath
 func (r *templateRouter) writeDefaultCert() error {
 	if len(r.defaultCertificate) > 0 {
 		glog.Infof("Writing default certificate to %s", certDir)
-		err := r.certManager.writeCertificate(certDir, defaultCertName, []byte(r.defaultCertificate))
+		err := r.certManager.CertificateWriter().WriteCertificate(certDir, defaultCertName, []byte(r.defaultCertificate))
 		if err == nil {
 			r.defaultCertificatePath = fmt.Sprintf("%s%s.pem", certDir, defaultCertName)
 		}
@@ -142,12 +154,14 @@ func (r *templateRouter) writeState() error {
 func (r *templateRouter) writeConfig() error {
 	//write out any certificate files that don't exist
 	for _, serviceUnit := range r.state {
-		for _, cfg := range serviceUnit.ServiceAliasConfigs {
-			err := r.writeCertificates(&cfg)
+		for k, cfg := range serviceUnit.ServiceAliasConfigs {
+			err := r.certManager.WriteCertificatesForConfig(&cfg)
 			if err != nil {
 				glog.Errorf("Error writing certificates for %s: %v", serviceUnit.Name, err)
 				return err
 			}
+			cfg.Status = ServiceAliasConfigStatusSaved
+			serviceUnit.ServiceAliasConfigs[k] = cfg
 		}
 	}
 
@@ -175,7 +189,7 @@ func (r *templateRouter) writeConfig() error {
 func (r *templateRouter) writeCertificates(cfg *ServiceAliasConfig) error {
 	if r.shouldWriteCerts(cfg) {
 		//TODO: better way so this doesn't need to create lots of files every time state is written, probably too expensive
-		return r.certManager.writeCertificatesForConfig(cfg)
+		return r.certManager.WriteCertificatesForConfig(cfg)
 	}
 	return nil
 }
@@ -209,6 +223,14 @@ func (r *templateRouter) FindServiceUnit(id string) (v ServiceUnit, ok bool) {
 
 // DeleteServiceUnit deletes the service with the given id.
 func (r *templateRouter) DeleteServiceUnit(id string) {
+	svcUnit, ok := r.FindServiceUnit(id)
+	if !ok {
+		return
+	}
+
+	for _, cfg := range svcUnit.ServiceAliasConfigs {
+		r.cleanUpServiceAliasConfig(&cfg)
+	}
 	delete(r.state, id)
 }
 
@@ -249,30 +271,33 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route) {
 				config.Certificates = make(map[string]Certificate)
 			}
 
+			certKey := generateCertKey(&config)
 			cert := Certificate{
-				ID:         route.Host,
+				ID:         backendKey,
 				Contents:   route.TLS.Certificate,
 				PrivateKey: route.TLS.Key,
 			}
 
-			config.Certificates[cert.ID] = cert
+			config.Certificates[certKey] = cert
 
 			if len(route.TLS.CACertificate) > 0 {
+				caCertKey := generateCACertKey(&config)
 				caCert := Certificate{
-					ID:       route.Host + caCertPostfix,
+					ID:       backendKey,
 					Contents: route.TLS.CACertificate,
 				}
 
-				config.Certificates[caCert.ID] = caCert
+				config.Certificates[caCertKey] = caCert
 			}
 
 			if len(route.TLS.DestinationCACertificate) > 0 {
+				destCertKey := generateDestCertKey(&config)
 				destCert := Certificate{
-					ID:       route.Host + destCertPostfix,
+					ID:       backendKey,
 					Contents: route.TLS.DestinationCACertificate,
 				}
 
-				config.Certificates[destCert.ID] = destCert
+				config.Certificates[destCertKey] = destCert
 			}
 		}
 	}
@@ -284,13 +309,18 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route) {
 
 // RemoveRoute removes the given route for the given id.
 func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
-	_, ok := r.state[id]
-
+	serviceUnit, ok := r.state[id]
 	if !ok {
 		return
 	}
 
-	delete(r.state[id].ServiceAliasConfigs, r.routeKey(route))
+	routeKey := r.routeKey(route)
+	serviceAliasConfig, ok := serviceUnit.ServiceAliasConfigs[routeKey]
+	if !ok {
+		return
+	}
+	r.cleanUpServiceAliasConfig(&serviceAliasConfig)
+	delete(r.state[id].ServiceAliasConfigs, routeKey)
 }
 
 // AddEndpoints adds new Endpoints for the given id.
@@ -306,6 +336,15 @@ func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	}
 
 	r.state[id] = frontend
+}
+
+// cleanUpServiceAliasConfig performs any necessary steps to clean up a service alias config before deleting it from
+// the router.  Right now the only clean up step is to remove any of the certificates on disk.
+func (r *templateRouter) cleanUpServiceAliasConfig(cfg *ServiceAliasConfig) {
+	err := r.certManager.DeleteCertificatesForConfig(cfg)
+	if err != nil {
+		glog.Errorf("Error deleting certificates for route %s, the route will still be deleted but files may remain in the container: %v", cfg.Host, err)
+	}
 }
 
 func cmpStrSlices(first []string, second []string) bool {
@@ -365,4 +404,16 @@ func hasRequiredEdgeCerts(cfg *ServiceAliasConfig) bool {
 		return true
 	}
 	return false
+}
+
+func generateCertKey(config *ServiceAliasConfig) string {
+	return config.Host
+}
+
+func generateCACertKey(config *ServiceAliasConfig) string {
+	return config.Host + caCertPostfix
+}
+
+func generateDestCertKey(config *ServiceAliasConfig) string {
+	return config.Host + destCertPostfix
 }
