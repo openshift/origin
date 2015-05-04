@@ -3,8 +3,10 @@ package prune
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -186,6 +188,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 		manifest := imageapi.DockerImageManifest{}
 		if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
 			glog.Errorf("Unable to extract manifest from image: %v. This image's layers won't be pruned if the image is pruned now.", err)
+			continue
 		}
 
 		for _, layer := range manifest.FSLayers {
@@ -229,7 +232,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 			for i := range history.Items {
 				n := graph.FindImage(g, history.Items[i].Image)
 				if n == nil {
-					glog.V(1).Infof("Unable to find image %q in graph (from tag %q, revision %d, dockerImageReference %s)", history.Items[i].Image, tag, i, history.Items[i].DockerImageReference)
+					glog.V(1).Infof("Unable to find image %q in graph (from tag=%q, revision=%d, dockerImageReference=%s)", history.Items[i].Image, tag, i, history.Items[i].DockerImageReference)
 					continue
 				}
 				imageNode := n.(*graph.ImageNode)
@@ -473,7 +476,6 @@ func pruneImages(g graph.Graph, imageNodes []*graph.ImageNode, imagePruneFunc Im
 
 		streams := imageStreamPredecessors(g, imageNode)
 		if errs := imagePruneFunc(imageNode.Image, streams); len(errs) > 0 {
-			//TODO
 			glog.Errorf("Error pruning image %q: %v", imageNode.Image.Name, errs)
 		}
 
@@ -560,7 +562,6 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, layerPruneFu
 
 			ref, err := imageapi.DockerImageReferenceForStream(stream)
 			if err != nil {
-				//TODO
 				glog.Errorf("Error constructing DockerImageReference for %q: %v", streamName, err)
 				continue
 			}
@@ -619,9 +620,9 @@ func DeletingImagePruneFunc(images client.ImageInterface, streams client.ImageSt
 			glog.V(4).Infof("Checking if stream %s/%s has references to image in status.tags", stream.Namespace, stream.Name)
 			for tag, history := range stream.Status.Tags {
 				glog.V(4).Infof("Checking tag %q", tag)
-				newHistory := imageapi.TagEventList{Items: []imageapi.TagEvent{history.Items[0]}}
-				for i, tagEvent := range history.Items[1:] {
-					glog.V(4).Infof("Checking tag event %d with image %q", i+1, tagEvent.Image)
+				newHistory := imageapi.TagEventList{}
+				for i, tagEvent := range history.Items {
+					glog.V(4).Infof("Checking tag event %d with image %q", i, tagEvent.Image)
 					if tagEvent.Image != image.Name {
 						glog.V(4).Infof("Tag event doesn't match deleting image - keeping")
 						newHistory.Items = append(newHistory.Items, tagEvent)
@@ -672,6 +673,8 @@ func DescribingLayerPruneFunc(out io.Writer) LayerPruneFunc {
 // names referenced by the layer.
 func DeletingLayerPruneFunc(registryClient *http.Client) LayerPruneFunc {
 	return func(registryURL string, deletions dockerregistry.DeleteLayersRequest) []error {
+		errs := []error{}
+
 		glog.V(4).Infof("Starting pruning of layers from %q, req %#v", registryURL, deletions)
 		body, err := json.Marshal(&deletions)
 		if err != nil {
@@ -694,9 +697,28 @@ func DeletingLayerPruneFunc(registryClient *http.Client) LayerPruneFunc {
 		}
 		defer resp.Body.Close()
 
-		//TODO read response
+		buf, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			glog.Errorf("Error reading response body: %v", err)
+			return []error{fmt.Errorf("Error reading response body: %v", err)}
+		}
 
-		return []error{}
+		if resp.StatusCode != http.StatusOK {
+			glog.Errorf("Unexpected status code in response: %d", resp.StatusCode)
+			return []error{fmt.Errorf("Unexpected status code %d in response %s", resp.StatusCode, buf)}
+		}
+
+		var deleteResponse dockerregistry.DeleteLayersResponse
+		if err := json.Unmarshal(buf, &deleteResponse); err != nil {
+			glog.Errorf("Error unmarshaling response: %v", err)
+			return []error{fmt.Errorf("Error unmarshaling response: %v", err)}
+		}
+
+		for _, e := range deleteResponse.Errors {
+			errs = append(errs, errors.New(e))
+		}
+
+		return errs
 	}
 }
 

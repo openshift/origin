@@ -57,6 +57,11 @@ func (r DeleteLayersRequest) AddStream(layer, stream string) {
 	r[layer] = append(r[layer], stream)
 }
 
+type DeleteLayersResponse struct {
+	Result string
+	Errors []string
+}
+
 // deleteLayerFunc returns an http.HandlerFunc that is able to fully delete a
 // layer from storage.
 func deleteLayerFunc(app *handlers.App) http.HandlerFunc {
@@ -93,7 +98,30 @@ func deleteLayerFunc(app *handlers.App) http.HandlerFunc {
 
 		log.Infof("errs=%v", errs)
 
-		//TODO write response
+		var result string
+		switch len(errs) {
+		case 0:
+			result = "success"
+		default:
+			result = "failure"
+		}
+
+		response := DeleteLayersResponse{
+			Result: result,
+		}
+
+		for _, err := range errs {
+			response.Errors = append(response.Errors, err.Error())
+		}
+
+		buf, err := json.Marshal(&response)
+		if err != nil {
+			w.Write([]byte(fmt.Sprintf("Error marshaling response: %v", err)))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(buf)
 		w.WriteHeader(http.StatusOK)
 	}
 }

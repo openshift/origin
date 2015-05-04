@@ -33,5 +33,6 @@ func (c *FakeImages) Create(image *imageapi.Image) (*imageapi.Image, error) {
 
 func (c *FakeImages) Delete(name string) error {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-image", Value: name})
-	return nil
+	_, err := c.Fake.Invokes(FakeAction{Action: "delete-image", Value: name}, nil)
+	return err
 }

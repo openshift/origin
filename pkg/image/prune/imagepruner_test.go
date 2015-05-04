@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -69,6 +73,23 @@ func imageWithLayers(id, ref string, layers ...string) imageapi.Image {
 
 	image.DockerImageManifest = string(manifestBytes)
 
+	return image
+}
+
+func unmanagedImage(id, ref string, hasAnnotations bool, annotation, value string) imageapi.Image {
+	image := imageWithLayers(id, ref)
+	if !hasAnnotations {
+		image.Annotations = nil
+	} else {
+		delete(image.Annotations, imageapi.ManagedByOpenShiftAnnotation)
+		image.Annotations[annotation] = value
+	}
+	return image
+}
+
+func imageWithBadManifest(id, ref string) imageapi.Image {
+	image := image(id, ref)
+	image.DockerImageManifest = "asdf"
 	return image
 }
 
@@ -288,6 +309,7 @@ func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromName
 }
 
 var logLevel = flag.Int("loglevel", 0, "")
+var testCase = flag.String("testcase", "", "")
 
 func TestImagePruning(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
@@ -366,6 +388,27 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedDeletions: []string{"id"},
 		},
+		"pod container image not parsable": {
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			pods: podList(
+				pod("foo", "pod1", kapi.PodRunning, "a/b/c/d/e"),
+			),
+			expectedDeletions: []string{"id"},
+		},
+		"pod container image doesn't have an id": {
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			pods: podList(
+				pod("foo", "pod1", kapi.PodRunning, "foo/bar:latest"),
+			),
+			expectedDeletions: []string{"id"},
+		},
+		"pod refers to image not in graph": {
+			images: imageList(image("id", registryURL+"/foo/bar@id")),
+			pods: podList(
+				pod("foo", "pod1", kapi.PodRunning, registryURL+"/foo/bar@otherid"),
+			),
+			expectedDeletions: []string{"id"},
+		},
 		"referenced by rc - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
 			rcs:               rcList(rc("foo", "rc1", registryURL+"/foo/bar@id")),
@@ -438,7 +481,7 @@ func TestImagePruning(t *testing.T) {
 		},
 		"image stream - keep most recent n images": {
 			images: imageList(
-				image("id", registryURL+"/foo/bar@id"),
+				unmanagedImage("id", "otherregistry/foo/bar@id", false, "", ""),
 				image("id2", registryURL+"/foo/bar@id2"),
 				image("id3", registryURL+"/foo/bar@id3"),
 				image("id4", registryURL+"/foo/bar@id4"),
@@ -446,7 +489,7 @@ func TestImagePruning(t *testing.T) {
 			streams: streamList(
 				stream(registryURL, "foo", "bar", tags(
 					tag("latest",
-						tagEvent("id", registryURL+"/foo/bar@id"),
+						tagEvent("id", "otherregistry/foo/bar@id"),
 						tagEvent("id2", registryURL+"/foo/bar@id2"),
 						tagEvent("id3", registryURL+"/foo/bar@id3"),
 						tagEvent("id4", registryURL+"/foo/bar@id4"),
@@ -460,12 +503,16 @@ func TestImagePruning(t *testing.T) {
 			images: imageList(
 				image("id", registryURL+"/foo/bar@id"),
 				image("id2", registryURL+"/foo/bar@id2"),
+				image("id3", registryURL+"/foo/bar@id3"),
+				image("id4", registryURL+"/foo/bar@id4"),
 			),
 			streams: streamList(
 				agedStream(registryURL, "foo", "bar", 5, tags(
 					tag("latest",
 						tagEvent("id", registryURL+"/foo/bar@id"),
 						tagEvent("id2", registryURL+"/foo/bar@id2"),
+						tagEvent("id3", registryURL+"/foo/bar@id3"),
+						tagEvent("id4", registryURL+"/foo/bar@id4"),
 					),
 				)),
 			),
@@ -493,9 +540,46 @@ func TestImagePruning(t *testing.T) {
 			expectedDeletions:      []string{},
 			expectedUpdatedStreams: []string{},
 		},
+		"image with nil annotations": {
+			images: imageList(
+				unmanagedImage("id", "someregistry/foo/bar@id", false, "", ""),
+			),
+			expectedDeletions:      []string{},
+			expectedUpdatedStreams: []string{},
+		},
+		"image missing managed annotation": {
+			images: imageList(
+				unmanagedImage("id", "someregistry/foo/bar@id", true, "foo", "bar"),
+			),
+			expectedDeletions:      []string{},
+			expectedUpdatedStreams: []string{},
+		},
+		"image with managed annotation != true": {
+			images: imageList(
+				unmanagedImage("id", "someregistry/foo/bar@id", true, imageapi.ManagedByOpenShiftAnnotation, "false"),
+				unmanagedImage("id", "someregistry/foo/bar@id", true, imageapi.ManagedByOpenShiftAnnotation, "0"),
+				unmanagedImage("id", "someregistry/foo/bar@id", true, imageapi.ManagedByOpenShiftAnnotation, "1"),
+				unmanagedImage("id", "someregistry/foo/bar@id", true, imageapi.ManagedByOpenShiftAnnotation, "True"),
+				unmanagedImage("id", "someregistry/foo/bar@id", true, imageapi.ManagedByOpenShiftAnnotation, "yes"),
+				unmanagedImage("id", "someregistry/foo/bar@id", true, imageapi.ManagedByOpenShiftAnnotation, "Yes"),
+			),
+			expectedDeletions:      []string{},
+			expectedUpdatedStreams: []string{},
+		},
+		"image with bad manifest is pruned ok": {
+			images: imageList(
+				imageWithBadManifest("id", "someregistry/foo/bar@id"),
+			),
+			expectedDeletions:      []string{"id"},
+			expectedUpdatedStreams: []string{},
+		},
 	}
 
 	for name, test := range tests {
+		tcFilter := flag.Lookup("testcase").Value.String()
+		if len(tcFilter) > 0 && name != tcFilter {
+			continue
+		}
 		p := newImagePruner(60, 3, &test.images, &test.streams, &test.pods, &test.rcs, &test.bcs, &test.builds, &test.dcs)
 		actualDeletions := util.NewStringSet()
 		actualUpdatedStreams := util.NewStringSet()
@@ -526,12 +610,14 @@ func TestImagePruning(t *testing.T) {
 	}
 }
 
-func TestDefaultImagePruneFunc(t *testing.T) {
+func TestDeletingImagePruneFunc(t *testing.T) {
 	registryURL := "registry"
 
 	tests := map[string]struct {
-		referencedStreams []*imageapi.ImageStream
-		expectedUpdates   []*imageapi.ImageStream
+		referencedStreams  []*imageapi.ImageStream
+		expectedUpdates    []*imageapi.ImageStream
+		imageDeletionError error
+		streamUpdateError  error
 	}{
 		"no referenced streams": {
 			referencedStreams: []*imageapi.ImageStream{},
@@ -564,27 +650,79 @@ func TestDefaultImagePruneFunc(t *testing.T) {
 				)),
 			},
 		},
+		"image deletion error": {
+			referencedStreams: []*imageapi.ImageStream{
+				streamPtr(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id", "registry/foo/bar@id"),
+					),
+				)),
+			},
+			imageDeletionError: fmt.Errorf("foo"),
+		},
+		"stream update error": {
+			referencedStreams: []*imageapi.ImageStream{
+				streamPtr(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id", "registry/foo/bar@id"),
+					),
+				)),
+				streamPtr(registryURL, "bar", "baz", tags(
+					tag("latest",
+						tagEvent("id", "registry/foo/bar@id"),
+					),
+				)),
+			},
+			streamUpdateError: fmt.Errorf("foo"),
+		},
 	}
 
 	for name, test := range tests {
-		fakeClient := client.Fake{}
-		pruneFunc := DeletingImagePruneFunc(fakeClient.Images(), &fakeClient)
-		err := pruneFunc(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "id2"}}, test.referencedStreams)
-		_ = err
+		imageClient := client.Fake{
+			Err: test.imageDeletionError,
+		}
+		streamClient := client.Fake{
+			Err: test.streamUpdateError,
+		}
+		pruneFunc := DeletingImagePruneFunc(imageClient.Images(), &streamClient)
+		errs := pruneFunc(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "id2"}}, test.referencedStreams)
+		if test.imageDeletionError != nil {
+			if e, a := 1, len(errs); e != a {
+				t.Errorf("%s: # of errors: expected %v, got %v", name, e, a)
+				continue
+			}
+			if e, a := fmt.Sprintf("Error deleting image: %v", test.imageDeletionError), errs[0].Error(); e != a {
+				t.Errorf("%s: errs: expected %v, got %v", name, e, a)
+			}
+			continue
+		}
 
-		if len(fakeClient.Actions) < 1 {
+		if test.streamUpdateError != nil {
+			if e, a := len(test.referencedStreams), len(errs); e != a {
+				t.Errorf("%s: # of errors: expected %v, got %v", name, e, a)
+				continue
+			}
+			for i, stream := range test.referencedStreams {
+				if e, a := fmt.Sprintf("Unable to update image stream status %s/%s: %v", stream.Namespace, stream.Name, test.streamUpdateError), errs[i].Error(); e != a {
+					t.Errorf("%s: errs: expected %v, got %v", name, e, a)
+				}
+			}
+			continue
+		}
+
+		if len(imageClient.Actions) < 1 {
 			t.Fatalf("%s: expected image deletion", name)
 		}
 
-		if e, a := len(test.referencedStreams), len(fakeClient.Actions)-1; e != a {
+		if e, a := len(test.referencedStreams), len(streamClient.Actions); e != a {
 			t.Errorf("%s: expected %d stream updates, got %d", name, e, a)
 		}
 
 		for i := range test.expectedUpdates {
-			if e, a := "update-status-imagestream", fakeClient.Actions[i+1].Action; e != a {
+			if e, a := "update-status-imagestream", streamClient.Actions[i].Action; e != a {
 				t.Errorf("%s: unexpected action %q", name, a)
 			}
-			updatedStream := fakeClient.Actions[i+1].Value.(*imageapi.ImageStream)
+			updatedStream := streamClient.Actions[i].Value.(*imageapi.ImageStream)
 			if e, a := test.expectedUpdates[i], updatedStream; !reflect.DeepEqual(e, a) {
 				t.Errorf("%s: unexpected updated stream: %s", name, util.ObjectDiff(e, a))
 			}
@@ -614,10 +752,32 @@ func TestLayerPruning(t *testing.T) {
 						tagEvent("id1", registryURL+"/foo/bar@id1"),
 					),
 				)),
+				stream(registryURL, "foo", "other", tags(
+					tag("latest",
+						tagEvent("id2", registryURL+"/foo/other@id2"),
+					),
+				)),
 			),
 			expectedDeletions: map[string]util.StringSet{
 				"registry1": util.NewStringSet("layer1", "layer2"),
 			},
+			expectedStreamUpdates: map[string]util.StringSet{
+				"registry1": util.NewStringSet("foo/bar"),
+			},
+		},
+		"no pruning when no images are pruned": {
+			images: imageList(
+				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id1", registryURL+"/foo/bar@id1"),
+					),
+				)),
+			),
+			expectedDeletions:     map[string]util.StringSet{},
+			expectedStreamUpdates: map[string]util.StringSet{},
 		},
 	}
 
@@ -658,12 +818,113 @@ func TestLayerPruning(t *testing.T) {
 			t.Errorf("%s: expected layer deletions %#v, got %#v", name, test.expectedDeletions, actualDeletions)
 		}
 
-		/*
-			expectedUpdatedStreams := util.NewStringSet(test.expectedUpdatedStreams...)
-			if !reflect.DeepEqual(expectedUpdatedStreams, actualUpdatedStreams) {
-				t.Errorf("%s: expected stream updates %q, got %q", name, expectedUpdatedStreams.List(), actualUpdatedStreams.List())
-			}
-		*/
+		if !reflect.DeepEqual(test.expectedStreamUpdates, actualUpdatedStreams) {
+			t.Errorf("%s: expected stream updates %q, got %q", name, test.expectedStreamUpdates, actualUpdatedStreams)
+		}
+	}
+}
 
+func TestNewImagePruner(t *testing.T) {
+	osFake := &client.Fake{}
+
+	kFake := &testclient.Fake{}
+	p, err := NewImagePruner(60, 3, osFake, osFake, kFake, kFake, osFake, osFake, osFake)
+	if err != nil {
+		t.Fatalf("unexpected error creating image pruner: %v", err)
+	}
+	if p == nil {
+		t.Fatalf("unexpected nil pruner")
+	}
+
+	seen := util.NewStringSet()
+	for _, action := range osFake.Actions {
+		seen.Insert(action.Action)
+	}
+	for _, action := range kFake.Actions {
+		seen.Insert(action.Action)
+	}
+
+	expected := util.NewStringSet(
+		"list-images",
+		"list-imagestreams",
+		"list-pods",
+		"list-replicationControllers",
+		"list-buildconfig",
+		"list-builds",
+		"list-deploymentconfig",
+	)
+
+	if e, a := expected, seen; !reflect.DeepEqual(e, a) {
+		t.Errorf("Expected actions=%v, got: %v", e.List(), a.List())
+	}
+}
+
+func TestDeletingLayerPruneFunc(t *testing.T) {
+	tests := map[string]struct {
+		simulateClientError        bool
+		registryResponseStatusCode int
+		registryResponse           string
+		expectedErrors             []string
+	}{
+		"client error": {
+			simulateClientError: true,
+			expectedErrors:      []string{"Error sending request:"},
+		},
+		"non-200 response": {
+			registryResponseStatusCode: http.StatusInternalServerError,
+			expectedErrors:             []string{fmt.Sprintf("Unexpected status code %d in response", http.StatusInternalServerError)},
+			registryResponse:           "{}",
+		},
+		"error unmarshaling response body": {
+			registryResponseStatusCode: http.StatusOK,
+			registryResponse:           "foo",
+			expectedErrors:             []string{"Error unmarshaling response:"},
+		},
+		"happy path - no response errors": {
+			registryResponseStatusCode: http.StatusOK,
+			registryResponse:           `{"result":"success"}`,
+			expectedErrors:             []string{},
+		},
+		"happy path - with response errors": {
+			registryResponseStatusCode: http.StatusOK,
+			registryResponse:           `{"result":"failure","errors":["error1","error2","error3"]}`,
+			expectedErrors:             []string{"error1", "error2", "error3"},
+		},
+	}
+
+	for name, test := range tests {
+		client := http.DefaultClient
+
+		server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(test.registryResponseStatusCode)
+			w.Write([]byte(test.registryResponse))
+		}))
+		registry := server.Listener.Addr().String()
+
+		if !test.simulateClientError {
+			server.Start()
+			defer server.Close()
+		} else {
+			registry = "noregistryhere!"
+		}
+
+		pruneFunc := DeletingLayerPruneFunc(client)
+
+		deletions := dockerregistry.DeleteLayersRequest{
+			"layer1": {"aaa/stream1", "bbb/stream2"},
+		}
+
+		errs := pruneFunc(registry, deletions)
+
+		if e, a := len(test.expectedErrors), len(errs); e != a {
+			t.Errorf("%s: expected %d errors (%v), got %d (%v)", name, e, test.expectedErrors, a, errs)
+			continue
+		}
+		for i, e := range test.expectedErrors {
+			a := errs[i].Error()
+			if !strings.HasPrefix(a, e) {
+				t.Errorf("%s: expected error starting with %q, got %q", name, e, a)
+			}
+		}
 	}
 }
