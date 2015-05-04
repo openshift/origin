@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -8,13 +9,27 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
+
+type DeployOptions struct {
+	out             io.Writer
+	osClient        *client.Client
+	kubeClient      *kclient.Client
+	namespace       string
+	baseCommandName string
+
+	deploymentConfigName string
+	deployLatest         bool
+	retryDeploy          bool
+}
 
 const (
 	deploy_long = `View, start and restart deployments.
@@ -26,14 +41,18 @@ NOTE: This command is still under active development and is subject to change.`
 	deploy_example = `  // Display the latest deployment for the 'database' deployment config
   $ %[1]s deploy database
 
-  // Start a new deployment based on the 'frontend' deployment config
-  $ %[1]s deploy frontend --latest`
+  // Start a new deployment based on the 'database' deployment config
+  $ %[1]s deploy frontend --latest
+
+  // Retry the latest failed deployment based on the 'frontend' deployment config
+  $ %[1]s deploy frontend --retry`
 )
 
 // NewCmdDeploy creates a new `deploy` command.
 func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	var deployLatest bool
-	var retryDeploy bool
+	options := &DeployOptions{
+		baseCommandName: fullName,
+	}
 
 	cmd := &cobra.Command{
 		Use:     "deploy DEPLOYMENTCONFIG",
@@ -41,59 +60,95 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 		Long:    deploy_long,
 		Example: fmt.Sprintf(deploy_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 || len(args[0]) == 0 {
-				fmt.Println(cmdutil.UsageError(cmd, "A deploymentConfig name is required."))
-				return
-			}
-			if deployLatest && retryDeploy {
-				fmt.Println(cmdutil.UsageError(cmd, "Only one of --latest or --retry is allowed."))
-				return
-			}
-
-			configName := args[0]
-
-			osClient, kubeClient, err := f.Clients()
-			cmdutil.CheckErr(err)
-
-			namespace, err := f.DefaultNamespace()
-			cmdutil.CheckErr(err)
-
-			config, err := osClient.DeploymentConfigs(namespace).Get(configName)
-			cmdutil.CheckErr(err)
-
-			commandClient := &deployCommandClientImpl{
-				GetDeploymentFn: func(namespace, name string) (*kapi.ReplicationController, error) {
-					return kubeClient.ReplicationControllers(namespace).Get(name)
-				},
-				UpdateDeploymentConfigFn: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-					return osClient.DeploymentConfigs(config.Namespace).Update(config)
-				},
-				UpdateDeploymentFn: func(deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-					return kubeClient.ReplicationControllers(deployment.Namespace).Update(deployment)
-				},
-			}
-
-			switch {
-			case deployLatest:
-				c := &deployLatestCommand{client: commandClient}
-				err = c.deploy(config, out)
-			case retryDeploy:
-				c := &retryDeploymentCommand{client: commandClient}
-				err = c.retry(config, out)
-			default:
-				describer := describe.NewLatestDeploymentDescriber(osClient, kubeClient)
-				desc, err := describer.Describe(config.Namespace, config.Name)
+			if err := options.Complete(f, args, out); err != nil {
 				cmdutil.CheckErr(err)
-				fmt.Fprintln(out, desc)
 			}
-			cmdutil.CheckErr(err)
+
+			if err := options.Validate(args); err != nil {
+				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+			}
+
+			if err := options.RunDeploy(); err != nil {
+				cmdutil.CheckErr(err)
+			}
 		},
 	}
 
-	cmd.Flags().BoolVar(&deployLatest, "latest", false, "Start a new deployment now.")
-	cmd.Flags().BoolVar(&retryDeploy, "retry", false, "Retry the latest failed deployment.")
+	cmd.Flags().BoolVar(&options.deployLatest, "latest", false, "Start a new deployment now.")
+	cmd.Flags().BoolVar(&options.retryDeploy, "retry", false, "Retry the latest failed deployment.")
 
 	return cmd
+}
+
+func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+	var err error
+
+	o.osClient, o.kubeClient, err = f.Clients()
+	if err != nil {
+		return err
+	}
+	o.namespace, err = f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+
+	o.out = out
+
+	if len(args) > 0 {
+		o.deploymentConfigName = args[0]
+	}
+
+	return nil
+}
+
+func (o DeployOptions) Validate(args []string) error {
+	if len(args) == 0 || len(args[0]) == 0 {
+		return errors.New("A deploymentConfig name is required.")
+	}
+	if len(args) > 1 {
+		return errors.New("Only one deploymentConfig name is supported as argument.")
+	}
+	if o.deployLatest && o.retryDeploy {
+		return errors.New("Only one of --latest or --retry is allowed.")
+	}
+	return nil
+}
+
+func (o DeployOptions) RunDeploy() error {
+	config, err := o.osClient.DeploymentConfigs(o.namespace).Get(o.deploymentConfigName)
+	if err != nil {
+		return err
+	}
+
+	commandClient := &deployCommandClientImpl{
+		GetDeploymentFn: func(namespace, name string) (*kapi.ReplicationController, error) {
+			return o.kubeClient.ReplicationControllers(namespace).Get(name)
+		},
+		UpdateDeploymentConfigFn: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			return o.osClient.DeploymentConfigs(config.Namespace).Update(config)
+		},
+		UpdateDeploymentFn: func(deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+			return o.kubeClient.ReplicationControllers(deployment.Namespace).Update(deployment)
+		},
+	}
+
+	switch {
+	case o.deployLatest:
+		c := &deployLatestCommand{client: commandClient}
+		err = c.deploy(config, o.out)
+	case o.retryDeploy:
+		c := &retryDeploymentCommand{client: commandClient}
+		err = c.retry(config, o.out)
+	default:
+		describer := describe.NewLatestDeploymentsDescriber(o.osClient, o.kubeClient, -1)
+		desc, err := describer.Describe(config.Namespace, config.Name)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(o.out, desc)
+	}
+
+	return err
 }
 
 // deployCommandClient abstracts access to the API server.
