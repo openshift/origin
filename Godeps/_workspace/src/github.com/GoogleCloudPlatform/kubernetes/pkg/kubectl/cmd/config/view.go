@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ type ViewOptions struct {
 	Merge        util.BoolFlag
 	Flatten      bool
 	Minify       bool
+	RawByteData  bool
 }
 
 const (
@@ -83,6 +84,7 @@ func NewCmdConfigView(out io.Writer, ConfigAccess ConfigAccess) *cobra.Command {
 
 	options.Merge.Default(true)
 	cmd.Flags().Var(&options.Merge, "merge", "merge together the full hierarchy of kubeconfig files")
+	cmd.Flags().BoolVar(&options.RawByteData, "raw", false, "display raw byte data")
 	cmd.Flags().BoolVar(&options.Flatten, "flatten", false, "flatten the resulting kubeconfig file into self contained output (useful for creating portable kubeconfig files)")
 	cmd.Flags().BoolVar(&options.Minify, "minify", false, "remove all information not used by current-context from the output")
 	return cmd
@@ -104,6 +106,8 @@ func (o ViewOptions) Run(out io.Writer, printer kubectl.ResourcePrinter) error {
 		if err := clientcmdapi.FlattenConfig(config); err != nil {
 			return err
 		}
+	} else if !o.RawByteData {
+		clientcmdapi.ShortenConfig(config)
 	}
 
 	err = printer.PrintObj(config, out)

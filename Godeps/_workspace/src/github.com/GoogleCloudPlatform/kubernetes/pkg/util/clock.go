@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ func (r RealClock) Since(ts time.Time) time.Duration {
 	return time.Since(ts)
 }
 
-// FakeClock implements Clock, but returns an arbitary time.
+// FakeClock implements Clock, but returns an arbitrary time.
 type FakeClock struct {
 	Time time.Time
 }

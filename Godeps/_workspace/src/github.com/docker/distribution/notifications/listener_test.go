@@ -29,7 +29,7 @@ func TestListener(t *testing.T) {
 	repository = Listen(repository, tl)
 
 	// Now take the registry through a number of operations
-	checkExerciseRepository(t, ctx, repository)
+	checkExerciseRepository(t, repository)
 
 	expectedOps := map[string]int{
 		"manifest:push": 1,
@@ -83,7 +83,7 @@ func (tl *testListener) LayerDeleted(repo distribution.Repository, layer distrib
 
 // checkExerciseRegistry takes the registry through all of its operations,
 // carrying out generic checks.
-func checkExerciseRepository(t *testing.T, ctx context.Context, repository distribution.Repository) {
+func checkExerciseRepository(t *testing.T, repository distribution.Repository) {
 	// TODO(stevvooe): This would be a nice testutil function. Basically, it
 	// takes the registry through a common set of operations. This could be
 	// used to make cross-cutting updates by changing internals that affect
@@ -144,7 +144,7 @@ func checkExerciseRepository(t *testing.T, ctx context.Context, repository distr
 
 	manifests := repository.Manifests()
 
-	if err := manifests.Put(ctx, sm); err != nil {
+	if err := manifests.Put(sm); err != nil {
 		t.Fatalf("unexpected error putting the manifest: %v", err)
 	}
 
@@ -158,7 +158,7 @@ func checkExerciseRepository(t *testing.T, ctx context.Context, repository distr
 		t.Fatalf("unexpected error digesting manifest payload: %v", err)
 	}
 
-	fetchedByManifest, err := manifests.Get(ctx, dgst)
+	fetchedByManifest, err := manifests.Get(dgst)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}
@@ -167,7 +167,7 @@ func checkExerciseRepository(t *testing.T, ctx context.Context, repository distr
 		t.Fatalf("retrieved unexpected manifest: %v", err)
 	}
 
-	fetched, err := manifests.GetByTag(ctx, tag)
+	fetched, err := manifests.GetByTag(tag)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}

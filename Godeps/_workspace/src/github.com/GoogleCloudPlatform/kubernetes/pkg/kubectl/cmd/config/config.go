@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -186,7 +186,7 @@ func (o *PathOptions) GetExplicitFile() string {
 // ModifyConfig takes a Config object, iterates through Clusters, AuthInfos, and Contexts, uses the LocationOfOrigin if specified or
 // uses the default destination file to write the results into.  This results in multiple file reads, but it's very easy to follow.
 // Preferences and CurrentContext should always be set in the default destination file.  Since we can't distinguish between empty and missing values
-// (no nil strings), we're forced have separate handling for them.  In all the currently known cases, newConfig should have, at most, one difference,
+// (no nil strings), we're forced have separate handling for them.  In the kubeconfig cases, newConfig should have at most one difference,
 // that means that this code will only write into a single file.
 func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config) error {
 	startingConfig, err := configAccess.GetStartingConfig()
@@ -194,9 +194,8 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config) erro
 		return err
 	}
 
-	// at this point, config and startingConfig should have, at most, one difference.  We need to chase the difference until we find it
-	// then we'll build a partial config object to call write upon.  Special case the test for current context and preferences since those
-	// always write to the default file.
+	// We need to find all differences, locate their original files, read a partial config to modify only that stanza and write out the file.
+	// Special case the test for current context and preferences since those always write to the default file.
 	if reflect.DeepEqual(*startingConfig, newConfig) {
 		// nothing to do
 		return nil

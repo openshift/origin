@@ -7,7 +7,6 @@ package server
 import (
 	"fmt"
 	"net"
-	"os"
 	"strings"
 	"time"
 
@@ -64,6 +63,10 @@ type Config struct {
 	// some predefined string "constants"
 	localDomain string // "local.dns." + config.Domain
 	dnsDomain   string // "dns". + config.Domain
+
+	// Stub zones support. Pointer to a map that we refresh when we see
+	// an update. Map contains domainname -> nameserver:port
+	stub *map[string][]string
 }
 
 func SetDefaults(config *Config) error {
@@ -106,14 +109,7 @@ func SetDefaults(config *Config) error {
 
 	if len(config.Nameservers) == 0 {
 		c, err := dns.ClientConfigFromFile("/etc/resolv.conf")
-		if os.IsNotExist(err) {
-			c = &dns.ClientConfig{
-				Port:     "53",
-				Ndots:    1,
-				Timeout:  1,
-				Attempts: 2,
-			}
-		} else if err != nil {
+		if err != nil {
 			return err
 		}
 		for _, s := range c.Servers {
@@ -138,6 +134,8 @@ func SetDefaults(config *Config) error {
 	}
 	config.localDomain = appendDomain("local.dns", config.Domain)
 	config.dnsDomain = appendDomain("dns", config.Domain)
+	stubmap := make(map[string][]string)
+	config.stub = &stubmap
 	return nil
 }
 

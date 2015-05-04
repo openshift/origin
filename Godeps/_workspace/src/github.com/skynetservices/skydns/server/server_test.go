@@ -126,7 +126,7 @@ func TestDNSForward(t *testing.T) {
 		}
 	}
 	if len(resp.Answer) == 0 || resp.Rcode != dns.RcodeSuccess {
-		t.Fatal("Answer expected to have A records or rcode not equal to RcodeSuccess")
+		t.Fatal("answer expected to have A records or rcode not equal to RcodeSuccess")
 	}
 	// TCP
 	c.Net = "tcp"
@@ -135,9 +135,80 @@ func TestDNSForward(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(resp.Answer) == 0 || resp.Rcode != dns.RcodeSuccess {
-		t.Fatal("Answer expected to have A records or rcode not equal to RcodeSuccess")
+		t.Fatal("answer expected to have A records or rcode not equal to RcodeSuccess")
 	}
 }
+
+func TestDNSStubForward(t *testing.T) {
+	s := newTestServer(t, false)
+	defer s.Stop()
+
+	c := new(dns.Client)
+	m := new(dns.Msg)
+
+	stubEx := &msg.Service{
+		// IP address of a.iana-servers.net.
+		Host: "199.43.132.53", Key: "a.example.com.stub.dns.skydns.test.",
+	}
+	stubBroken := &msg.Service{
+		Host: "127.0.0.1", Port: 5454, Key: "b.example.org.stub.dns.skydns.test.",
+	}
+	stubLoop := &msg.Service{
+		Host: "127.0.0.1", Port: Port, Key: "b.example.net.stub.dns.skydns.test.",
+	}
+	addService(t, s, stubEx.Key, 0, stubEx)
+	defer delService(t, s, stubEx.Key)
+	addService(t, s, stubBroken.Key, 0, stubBroken)
+	defer delService(t, s, stubBroken.Key)
+	addService(t, s, stubLoop.Key, 0, stubLoop)
+	defer delService(t, s, stubLoop.Key)
+
+	s.UpdateStubZones()
+
+	m.SetQuestion("www.example.com.", dns.TypeA)
+	resp, _, err := c.Exchange(m, "127.0.0.1:"+StrPort)
+	if err != nil {
+		// try twice
+		resp, _, err = c.Exchange(m, "127.0.0.1:"+StrPort)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(resp.Answer) == 0 || resp.Rcode != dns.RcodeSuccess {
+		t.Fatal("answer expected to have A records or rcode not equal to RcodeSuccess")
+	}
+	// The main diff. here is that we expect the AA bit to be set, because we directly
+	// queried the authoritative servers.
+	if resp.Authoritative != true {
+		t.Fatal("answer expected to have AA bit set")
+	}
+
+	// This should fail.
+	m.SetQuestion("www.example.org.", dns.TypeA)
+	resp, _, err = c.Exchange(m, "127.0.0.1:"+StrPort)
+	if len(resp.Answer) != 0 || resp.Rcode != dns.RcodeServerFailure {
+		t.Fatal("answer expected to fail for example.org")
+	}
+
+	// This should really fail with a timeout.
+	m.SetQuestion("www.example.net.", dns.TypeA)
+	resp, _, err = c.Exchange(m, "127.0.0.1:"+StrPort)
+	if err == nil {
+		t.Fatal("answer expected to fail for example.net")
+	} else {
+		t.Logf("succesfully failing %s", err)
+	}
+
+	// Packet with EDNS0
+	m.SetEdns0(4096, true)
+	resp, _, err = c.Exchange(m, "127.0.0.1:"+StrPort)
+	if err == nil {
+		t.Fatal("answer expected to fail for example.net")
+	} else {
+		t.Logf("succesfully failing %s", err)
+	}
+}
+
 func TestDNSTtlRRset(t *testing.T) {
 	s := newTestServerDNSSEC(t, false)
 	defer s.Stop()
@@ -387,12 +458,22 @@ var services = []*msg.Service{
 	{Host: "server2", Weight: 80, Key: "101.server2.region5.skydns.test."},
 	{Host: "server3", Weight: 150, Key: "103.server3.region5.skydns.test."},
 	{Host: "server4", Priority: 30, Key: "104.server4.region5.skydns.test."},
+
+	// A name: bar.skydns.test with 2 ports open and points to one ip: 192.168.0.1
+	{Host: "192.168.0.1", Port: 80, Key: "x.bar.skydns.test.", TargetStrip: 1},
+	{Host: "bar.skydns.local", Port: 443, Key: "y.bar.skydns.test.", TargetStrip: 0},
+
 	// nameserver
 	{Host: "10.0.0.2", Key: "ns.dns.skydns.test."},
 	{Host: "10.0.0.3", Key: "ns2.dns.skydns.test."},
 	// txt
 	{Text: "abc", Key: "a1.txt.skydns.test."},
 	{Text: "abc abc", Key: "a2.txt.skydns.test."},
+	// duplicate ip address
+	{Host: "10.11.11.10", Key: "http.multiport.http.skydns.test.", Port: 80},
+	{Host: "10.11.11.10", Key: "https.multiport.http.skydns.test.", Port: 443},
+	// uppercase name
+	{Host: "127.0.0.1", Key: "upper.skydns.test.", Port: 443},
 }
 
 var dnsTestCases = []dnsTestCase{
@@ -755,6 +836,41 @@ var dnsTestCases = []dnsTestCase{
 		Qname: "skydns.test.", Qtype: dns.TypeHINFO,
 		Ns: []dns.RR{newSOA("skydns.test. 3600 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0")},
 	},
+	// One IP, two ports open, ask for the IP only.
+	{
+		Qname: "bar.skydns.test.", Qtype: dns.TypeA,
+		Answer: []dns.RR{
+			newA("bar.skydns.test. 3600 A 192.168.0.1"),
+		},
+	},
+	// Then ask for the SRV records.
+	{
+		Qname: "bar.skydns.test.", Qtype: dns.TypeSRV,
+		Answer: []dns.RR{
+			newSRV("bar.skydns.test. 3600 SRV 10 50 443 bar.skydns.local."),
+			// Issue 144 says x.bar.skydns.test should be bar.skydns.test
+			newSRV("bar.skydns.test. 3600 SRV 10 50 80 bar.skydns.test."),
+		},
+		Extra: []dns.RR{
+			newA("bar.skydns.test. 3600 A 192.168.0.1"),
+		},
+	},
+	// Duplicate IP address test
+	{
+		Qname: "multiport.http.skydns.test.", Qtype: dns.TypeA,
+		Answer: []dns.RR{newA("multiport.http.skydns.test. IN A 10.11.11.10")},
+	},
+
+	// Casing test
+	{
+		Qname: "uppeR.skydns.test.", Qtype: dns.TypeA,
+		Answer: []dns.RR{newA("uppeR.skydns.test. IN A 127.0.0.1")},
+	},
+	{
+		Qname: "upper.skydns.test.", Qtype: dns.TypeA,
+		Answer: []dns.RR{newA("upper.skydns.test. IN A 127.0.0.1")},
+	},
+
 }
 
 func newA(rr string) *dns.A           { r, _ := dns.NewRR(rr); return r.(*dns.A) }
@@ -768,6 +884,27 @@ func newRRSIG(rr string) *dns.RRSIG   { r, _ := dns.NewRR(rr); return r.(*dns.RR
 func newNSEC3(rr string) *dns.NSEC3   { r, _ := dns.NewRR(rr); return r.(*dns.NSEC3) }
 func newPTR(rr string) *dns.PTR       { r, _ := dns.NewRR(rr); return r.(*dns.PTR) }
 func newTXT(rr string) *dns.TXT       { r, _ := dns.NewRR(rr); return r.(*dns.TXT) }
+
+func TestDedup(t *testing.T) {
+	m := new(dns.Msg)
+	m.Answer = []dns.RR{
+		newA("svc.ns.kubernetes.local. IN A 3.3.3.3"),
+		newA("svc.ns.kubernetes.local. IN A 2.2.2.2"),
+		newA("svc.ns.kubernetes.local. IN A 3.3.3.3"),
+		newA("svc.ns.kubernetes.local. IN A 2.2.2.2"),
+		newA("svc.ns.kubernetes.local. IN A 1.1.1.1"),
+		newA("svc.ns.kubernetes.local. IN A 1.1.1.1"),
+	}
+	m = dedup(m)
+	sort.Sort(rrSet(m.Answer))
+	if len(m.Answer) != 3 {
+		t.Fatalf("failing dedup: should have collapsed it to 3 records")
+	}
+	if dns.Field(m.Answer[0], 1) != "1.1.1.1" || dns.Field(m.Answer[1], 1) != "2.2.2.2" ||
+		dns.Field(m.Answer[2], 1) != "3.3.3.3" {
+		t.Fatalf("failing dedup: %s", m)
+	}
+}
 
 func BenchmarkDNSSingleCache(b *testing.B) {
 	b.StopTimer()

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -164,7 +164,7 @@ func DecodeList(objects []Object, decoders ...ObjectDecoder) []error {
 				obj, err := decoder.Decode(t.RawJSON)
 				if err != nil {
 					errs = append(errs, err)
-					continue
+					break
 				}
 				objects[i] = obj
 				break
@@ -172,4 +172,38 @@ func DecodeList(objects []Object, decoders ...ObjectDecoder) []error {
 		}
 	}
 	return errs
+}
+
+// MultiObjectTyper returns the types of objects across multiple schemes in order.
+type MultiObjectTyper []ObjectTyper
+
+var _ ObjectTyper = MultiObjectTyper{}
+
+func (m MultiObjectTyper) DataVersionAndKind(data []byte) (version, kind string, err error) {
+	for _, t := range m {
+		version, kind, err = t.DataVersionAndKind(data)
+		if err == nil {
+			return
+		}
+	}
+	return
+}
+
+func (m MultiObjectTyper) ObjectVersionAndKind(obj Object) (version, kind string, err error) {
+	for _, t := range m {
+		version, kind, err = t.ObjectVersionAndKind(obj)
+		if err == nil {
+			return
+		}
+	}
+	return
+}
+
+func (m MultiObjectTyper) Recognizes(version, kind string) bool {
+	for _, t := range m {
+		if t.Recognizes(version, kind) {
+			return true
+		}
+	}
+	return false
 }

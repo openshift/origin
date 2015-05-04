@@ -155,6 +155,7 @@ func TestListContainersFailure(t *testing.T) {
 func TestInspectContainer(t *testing.T) {
 	jsonContainer := `{
              "Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2",
+             "AppArmorProfile": "Profile",
              "Created": "2013-05-07T14:51:42.087658+02:00",
              "Path": "date",
              "Args": [],
@@ -176,7 +177,10 @@ func TestInspectContainer(t *testing.T) {
                      ],
                      "Image": "base",
                      "Volumes": {},
-                     "VolumesFrom": ""
+                     "VolumesFrom": "",
+                     "SecurityOpt": [
+                         "label:user:USER"
+                      ]
              },
              "State": {
                      "Running": false,
@@ -225,7 +229,8 @@ func TestInspectContainer(t *testing.T) {
                  ]
                },
                "Links": null,
-               "PublishAllPorts": false
+               "PublishAllPorts": false,
+               "CgroupParent": "/mesos"
              }
 }`
 	var expected Container

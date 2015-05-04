@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -85,6 +86,7 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 	mapper := kubectl.ShortcutExpander{latest.RESTMapper}
 
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
+	flags.SetNormalizeFunc(util.WordSepNormalizeFunc)
 
 	clientConfig := optionalClientConfig
 	if optionalClientConfig == nil {
@@ -197,7 +199,7 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 			if err != nil {
 				return nil, err
 			}
-			return kubectl.ResizerFor(mapping.Kind, client)
+			return kubectl.ResizerFor(mapping.Kind, kubectl.NewResizerClient(client))
 		},
 		Reaper: func(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
 			client, err := clients.ClientForVersion(mapping.APIVersion)
@@ -225,7 +227,7 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 // BindFlags adds any flags that are common to all kubectl sub commands.
 func (f *Factory) BindFlags(flags *pflag.FlagSet) {
 	// any flags defined by external projects (not part of pflags)
-	util.AddAllFlagsToPFlagSet(flags)
+	util.AddFlagSetToPFlagSet(flag.CommandLine, flags)
 
 	// This is necessary as github.com/spf13/cobra doesn't support "global"
 	// pflags currently.  See https://github.com/spf13/cobra/issues/44.

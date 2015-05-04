@@ -97,7 +97,7 @@ func (s *server) Lookup(n string, t, bufsize uint16, dnssec bool) (*dns.Msg, err
 		return nil, fmt.Errorf("no nameservers configured can not lookup name")
 	}
 	if dns.CountLabel(n) < s.config.Ndots {
-		return nil, fmt.Errorf("name has fewer than three labels")
+		return nil, fmt.Errorf("name has fewer than %d labels", s.config.Ndots)
 	}
 	m := new(dns.Msg)
 	m.SetQuestion(n, t)

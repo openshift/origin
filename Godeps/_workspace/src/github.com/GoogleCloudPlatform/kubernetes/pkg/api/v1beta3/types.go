@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ type ListMeta struct {
 	// concurrency and change monitoring endpoints.  Clients must treat these values as opaque
 	// and values may only be valid for a particular resource or set of resources. Only servers
 	// will generate resource versions.
-	ResourceVersion string `json:"resourceVersion,omitempty" description:"string that identifies the internal version of this object that can be used by clients to determine when objects have changed; populated by the system, read-only; value must be treated as opaque by clients and passed unmodified back to the server: https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#concurrency-control-and-consistency"`
+	ResourceVersion string `json:"resourceVersion,omitempty" description:"string that identifies the internal version of this object that can be used by clients to determine when objects have changed; populated by the system, read-only; value must be treated as opaque by clients and passed unmodified back to the server: http://docs.k8s.io/api-conventions.md#concurrency-control-and-consistency"`
 }
 
 // ObjectMeta is metadata that all persisted resources must have, which includes all objects
@@ -113,7 +113,7 @@ type ObjectMeta struct {
 	// concurrency, change detection, and the watch operation on a resource or set of resources.
 	// Clients must treat these values as opaque and values may only be valid for a particular
 	// resource or set of resources. Only servers will generate resource versions.
-	ResourceVersion string `json:"resourceVersion,omitempty" description:"string that identifies the internal version of this object that can be used by clients to determine when objects have changed; populated by the system, read-only; value must be treated as opaque by clients and passed unmodified back to the server: https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#concurrency-control-and-consistency"`
+	ResourceVersion string `json:"resourceVersion,omitempty" description:"string that identifies the internal version of this object that can be used by clients to determine when objects have changed; populated by the system, read-only; value must be treated as opaque by clients and passed unmodified back to the server: http://docs.k8s.io/api-conventions.md#concurrency-control-and-consistency"`
 
 	// CreationTimestamp is a timestamp representing the server time when this object was
 	// created. It is not guaranteed to be set in happens-before order across separate operations.
@@ -206,6 +206,9 @@ type VolumeSource struct {
 	// GCEPersistentDisk represents a GCE Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
 	GCEPersistentDisk *GCEPersistentDiskVolumeSource `json:"gcePersistentDisk" description:"GCE disk resource attached to the host machine on demand"`
+	// AWSElasticBlockStore represents an AWS Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	AWSElasticBlockStore *AWSElasticBlockStoreVolumeSource `json:"awsElasticBlockStore" description:"AWS disk resource attached to the host machine on demand"`
 	// GitRepo represents a git repository at a particular revision.
 	GitRepo *GitRepoVolumeSource `json:"gitRepo" description:"git repository at a particular revision"`
 	// Secret represents a secret that should populate this volume.
@@ -217,6 +220,16 @@ type VolumeSource struct {
 	ISCSI *ISCSIVolumeSource `json:"iscsi" description:"iSCSI disk attached to host machine on demand"`
 	// Glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime
 	Glusterfs *GlusterfsVolumeSource `json:"glusterfs" description:"Glusterfs volume that will be mounted on the host machine "`
+	// PersistentVolumeClaimVolumeSource represents a reference to a PersistentVolumeClaim in the same namespace
+	PersistentVolumeClaimVolumeSource *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty" description:"a reference to a PersistentVolumeClaim in the same namespace"`
+}
+
+type PersistentVolumeClaimVolumeSource struct {
+	// ClaimName is the name of a PersistentVolumeClaim in the same namespace as the pod using this volume
+	ClaimName string `json:"claimName,omitempty" description:"the name of the claim in the same namespace to be mounted as a volume"`
+	// Optional: Defaults to false (read/write).  ReadOnly here
+	// will force the ReadOnly setting in VolumeMounts
+	ReadOnly bool `json:"readOnly,omitempty" description:"mount volume as read-only when true; default false"`
 }
 
 // Similar to VolumeSource but meant for the administrator who creates PVs.
@@ -225,6 +238,9 @@ type PersistentVolumeSource struct {
 	// GCEPersistentDisk represents a GCE Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
 	GCEPersistentDisk *GCEPersistentDiskVolumeSource `json:"gcePersistentDisk" description:"GCE disk resource provisioned by an admin"`
+	// AWSElasticBlockStore represents an AWS Disk resource that is attached to a
+	// kubelet's host machine and then exposed to the pod.
+	AWSElasticBlockStore *AWSElasticBlockStoreVolumeSource `json:"awsElasticBlockStore" description:"AWS disk resource provisioned by an admin"`
 	// HostPath represents a directory on the host.
 	// This is useful for development and testing only.
 	// on-host storage is not supported in any way.
@@ -235,7 +251,7 @@ type PersistentVolumeSource struct {
 
 type PersistentVolume struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	//Spec defines a persistent volume owned by the cluster
 	Spec PersistentVolumeSpec `json:"spec,omitempty" description:"specification of a persistent volume as provisioned by an administrator"`
@@ -262,14 +278,14 @@ type PersistentVolumeStatus struct {
 
 type PersistentVolumeList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#types-kinds`
 	Items    []PersistentVolume `json:"items,omitempty" description:"list of persistent volumes"`
 }
 
 // PersistentVolumeClaim is a user's request for and claim to a persistent volume
 type PersistentVolumeClaim struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Spec defines the volume requested by a pod author
 	Spec PersistentVolumeClaimSpec `json:"spec,omitempty" description: "the desired characteristics of a volume"`
@@ -280,7 +296,7 @@ type PersistentVolumeClaim struct {
 
 type PersistentVolumeClaimList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#types-kinds`
 	Items    []PersistentVolumeClaim `json:"items,omitempty" description: "a list of persistent volume claims"`
 }
 
@@ -318,6 +334,8 @@ const (
 type PersistentVolumePhase string
 
 const (
+	// used for PersistentVolumes that are not available
+	VolumePending PersistentVolumePhase = "Pending"
 	// used for PersistentVolumes that are not yet bound
 	VolumeAvailable PersistentVolumePhase = "Available"
 	// used for PersistentVolumes that are bound
@@ -400,6 +418,29 @@ type GCEPersistentDiskVolumeSource struct {
 	ReadOnly bool `json:"readOnly,omitempty" description:"read-only if true, read-write otherwise (false or unspecified)"`
 }
 
+// AWSElasticBlockStoreVolumeSource represents a Persistent Disk resource in AWS.
+//
+// An AWS PD must exist and be formatted before mounting to a container.
+// The disk must also be in the same AWS zone as the kubelet.
+// A AWS PD can only be mounted on a single machine.
+type AWSElasticBlockStoreVolumeSource struct {
+	// Unique id of the PD resource. Used to identify the disk in AWS
+	VolumeID string `json:"volumeID" description:"unique id of the PD resource in AWS"`
+	// Required: Filesystem type to mount.
+	// Must be a filesystem type supported by the host operating system.
+	// Ex. "ext4", "xfs", "ntfs"
+	// TODO: how do we prevent errors in the filesystem from compromising the machine
+	// TODO: why omitempty if required?
+	FSType string `json:"fsType,omitempty" description:"file system type to mount, such as ext4, xfs, ntfs"`
+	// Optional: Partition on the disk to mount.
+	// If omitted, kubelet will attempt to mount the device name.
+	// Ex. For /dev/sda1, this field is "1", for /dev/sda, this field 0 or empty.
+	Partition int `json:"partition,omitempty" description:"partition on the disk to mount (e.g., '1' for /dev/sda1); if omitted the plain device name (e.g., /dev/sda) will be mounted"`
+	// Optional: Defaults to false (read/write). ReadOnly here will force
+	// the ReadOnly setting in VolumeMounts.
+	ReadOnly bool `json:"readOnly,omitempty" description:"read-only if true, read-write otherwise (false or unspecified)"`
+}
+
 // GitRepoVolumeSource represents a volume that is pulled from git when the pod is created.
 type GitRepoVolumeSource struct {
 	// Repository URL
@@ -410,7 +451,7 @@ type GitRepoVolumeSource struct {
 
 // SecretVolumeSource adapts a Secret into a VolumeSource
 //
-// https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/design/secrets.md
+// http://docs.k8s.io/design/secrets.md
 type SecretVolumeSource struct {
 	// Name of the secret in the pod's namespace to use
 	SecretName string `json:"secretName" description:"secretName is the name of a secret in the pod's namespace"`
@@ -478,8 +519,25 @@ type VolumeMount struct {
 type EnvVar struct {
 	// Required: This must be a C_IDENTIFIER.
 	Name string `json:"name" description:"name of the environment variable; must be a C_IDENTIFIER"`
-	// Optional: defaults to "".
+	// Optional: No more than one of the following may be set.
+	// Optional: Defaults to ""
 	Value string `json:"value,omitempty" description:"value of the environment variable; defaults to empty string"`
+	// Optional: Specifies a source the value of this var should come from.
+	ValueFrom *EnvVarSource `json:"valueFrom,omitempty" description:"source for the environment variable's value; cannot be used if value is not empty"`
+}
+
+// EnvVarSource represents a source for the value of an EnvVar.
+type EnvVarSource struct {
+	// Required: Selects a field of the pod; only name and namespace are supported.
+	FieldPath *ObjectFieldSelector `json:"fieldPath" description:"selects a field of the pod; only name and namespace are supported"`
+}
+
+// ObjectFieldSelector selects an APIVersioned field of an object.
+type ObjectFieldSelector struct {
+	// Optional: Version of the schema the FieldPath is written in terms of, defaults to "v1beta3"
+	APIVersion string `json:"apiVersion,omitempty" description:"version of the schema that fieldPath is written in terms of; defaults to v1beta3"`
+	// Required: Path of the field to select in the specified API version
+	FieldPath string `json:"fieldPath" description:"path of the field to select in the specified API version"`
 }
 
 // HTTPGetAction describes an action based on HTTP Get requests.
@@ -702,9 +760,9 @@ const (
 // TODO: add LastTransitionTime, Reason, Message to match NodeCondition api.
 type PodCondition struct {
 	// Type is the type of the condition
-	Type PodConditionType `json:"type" description:"kind of the condition"`
+	Type PodConditionType `json:"type" description:"kind of the condition, currently only Ready"`
 	// Status is the status of the condition
-	Status ConditionStatus `json:"status" description:"status of the condition, one of Full, None, Unknown"`
+	Status ConditionStatus `json:"status" description:"status of the condition, one of True, False, Unknown"`
 }
 
 // RestartPolicy describes how the container should be restarted.
@@ -739,6 +797,13 @@ type PodSpec struct {
 	// Required: there must be at least one container in a pod.
 	Containers    []Container   `json:"containers" description:"list of containers belonging to the pod; cannot be updated; containers cannot currently be added or removed; there must be at least one container in a Pod" patchStrategy:"merge" patchMergeKey:"name"`
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" description:"restart policy for all containers within the pod; one of RestartPolicyAlways, RestartPolicyOnFailure, RestartPolicyNever"`
+	// Optional duration in seconds the pod needs to terminate gracefully. May be decreased in delete request.
+	// Value must be non-negative integer. The value zero indicates delete immediately.
+	// If this value is nil, the default grace period will be used instead.
+	// The grace period is the duration in seconds after the processes running in the pod are sent
+	// a termination signal and the time when the processes are forcibly halted with a kill signal.
+	// Set this value longer than the expected cleanup time for your process.
+	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty" description:"optional duration in seconds the pod needs to terminate gracefully; may be decreased in delete request; value must be non-negative integer; the value zero indicates delete immediately; if this value is not set, the default grace period will be used instead; the grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal; set this value longer than the expected cleanup time for your process"`
 	// Optional: Set DNS policy.  Defaults to "ClusterFirst"
 	DNSPolicy DNSPolicy `json:"dnsPolicy,omitempty" description:"DNS policy for containers within the pod; one of 'ClusterFirst' or 'Default'"`
 	// NodeSelector is a selector which must be true for the pod to fit on a node
@@ -773,30 +838,30 @@ type PodStatus struct {
 // PodStatusResult is a wrapper for PodStatus returned by kubelet that can be encode/decoded
 type PodStatusResult struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 	// Status represents the current information about a pod. This data may not be up
 	// to date.
-	Status PodStatus `json:"status,omitempty" description:"most recently observed status of the pod; populated by the system, read-only; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Status PodStatus `json:"status,omitempty" description:"most recently observed status of the pod; populated by the system, read-only; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 }
 
 // Pod is a collection of containers that can run on a host. This resource is created
 // by clients and scheduled onto hosts.
 type Pod struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Spec defines the behavior of a pod.
-	Spec PodSpec `json:"spec,omitempty" description:"specification of the desired behavior of the pod; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Spec PodSpec `json:"spec,omitempty" description:"specification of the desired behavior of the pod; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 
 	// Status represents the current information about a pod. This data may not be up
 	// to date.
-	Status PodStatus `json:"status,omitempty" description:"most recently observed status of the pod; populated by the system, read-only; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Status PodStatus `json:"status,omitempty" description:"most recently observed status of the pod; populated by the system, read-only; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 }
 
 // PodList is a list of Pods.
 type PodList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#types-kinds`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#types-kinds`
 
 	Items []Pod `json:"items" description:"list of pods"`
 }
@@ -804,25 +869,25 @@ type PodList struct {
 // PodTemplateSpec describes the data a pod should have when created from a template
 type PodTemplateSpec struct {
 	// Metadata of the pods created from this template.
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Spec defines the behavior of a pod.
-	Spec PodSpec `json:"spec,omitempty" description:"specification of the desired behavior of the pod; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Spec PodSpec `json:"spec,omitempty" description:"specification of the desired behavior of the pod; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 }
 
 // PodTemplate describes a template for creating copies of a predefined pod.
 type PodTemplate struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
-	// Spec defines the behavior of a pod.
-	Spec PodTemplateSpec `json:"spec,omitempty" description:"specification of the desired behavior of the pod; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	// Template defines the pods that will be created from this pod template
+	Template PodTemplateSpec `json:"template,omitempty" description:"the template of the desired behavior of the pod; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 }
 
 // PodTemplateList is a list of PodTemplates.
 type PodTemplateList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	Items []PodTemplate `json:"items" description:"list of pod templates"`
 }
@@ -833,7 +898,8 @@ type ReplicationControllerSpec struct {
 	Replicas int `json:"replicas" description:"number of replicas desired"`
 
 	// Selector is a label query over pods that should match the Replicas count.
-	Selector map[string]string `json:"selector,omitempty" description:"label keys and values that must match in order to be controlled by this replication controller"`
+	// If Selector is empty, it is defaulted to the labels present on the Pod template.
+	Selector map[string]string `json:"selector,omitempty" description:"label keys and values that must match in order to be controlled by this replication controller, if empty defaulted to labels on Pod template"`
 
 	// TemplateRef is a reference to an object that describes the pod that will be created if
 	// insufficient replicas are detected.
@@ -854,21 +920,22 @@ type ReplicationControllerStatus struct {
 
 // ReplicationController represents the configuration of a replication controller.
 type ReplicationController struct {
-	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	TypeMeta `json:",inline"`
+	// If the Labels of a ReplicationController are empty, they are defaulted to be the same as the Pod(s) that the replication controller manages.
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Spec defines the desired behavior of this replication controller.
-	Spec ReplicationControllerSpec `json:"spec,omitempty" description:"specification of the desired behavior of the replication controller; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Spec ReplicationControllerSpec `json:"spec,omitempty" description:"specification of the desired behavior of the replication controller; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 
 	// Status is the current status of this replication controller. This data may be
 	// out of date by some window of time.
-	Status ReplicationControllerStatus `json:"status,omitempty" description:"most recently observed status of the replication controller; populated by the system, read-only; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Status ReplicationControllerStatus `json:"status,omitempty" description:"most recently observed status of the replication controller; populated by the system, read-only; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 }
 
 // ReplicationControllerList is a collection of replication controllers.
 type ReplicationControllerList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	Items []ReplicationController `json:"items" description:"list of replication controllers"`
 }
@@ -939,13 +1006,13 @@ type ServicePort struct {
 // will answer requests sent through the proxy.
 type Service struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Spec defines the behavior of a service.
-	Spec ServiceSpec `json:"spec,omitempty" description:"specification of the desired behavior of the service; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Spec ServiceSpec `json:"spec,omitempty" description:"specification of the desired behavior of the service; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 
 	// Status represents the current status of a service.
-	Status ServiceStatus `json:"status,omitempty" description:"most recently observed status of the service; populated by the system, read-only; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Status ServiceStatus `json:"status,omitempty" description:"most recently observed status of the service; populated by the system, read-only; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 }
 
 const (
@@ -957,7 +1024,7 @@ const (
 // ServiceList holds a list of services.
 type ServiceList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	Items []Service `json:"items" description:"list of services"`
 }
@@ -976,7 +1043,7 @@ type ServiceList struct {
 //  ]
 type Endpoints struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// The set of all endpoints is the union of all subsets.
 	Subsets []EndpointSubset `json:"subsets" description:"sets of addresses and ports that comprise a service"`
@@ -1023,7 +1090,7 @@ type EndpointPort struct {
 // EndpointsList is a list of endpoints.
 type EndpointsList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	Items []Endpoints `json:"items" description:"list of endpoints"`
 }
@@ -1041,9 +1108,9 @@ type NodeSpec struct {
 // NodeSystemInfo is a set of ids/uuids to uniquely identify the node.
 type NodeSystemInfo struct {
 	// MachineID is the machine-id reported by the node
-	MachineID string `json:"machineID"`
+	MachineID string `json:"machineID" description:"machine-id reported by the node"`
 	// SystemUUID is the system-uuid reported by the node
-	SystemUUID string `json:"systemUUID"`
+	SystemUUID string `json:"systemUUID" description:"system-uuid reported by the node"`
 	// BootID is the boot-id reported by the node
 	BootID string `json:"bootID" description:"boot id is the boot-id reported by the node"`
 	// Kernel version reported by the node
@@ -1055,14 +1122,14 @@ type NodeSystemInfo struct {
 	// Kubelet version reported by the node
 	KubeletVersion string `json:"kubeletVersion" description:"Kubelet version reported by the node"`
 	// Kube-proxy version reported by the node
-	KubeProxyVersion string `json:"KubeProxyVersion" description:"Kube-proxy version reported by the node"`
+	KubeProxyVersion string `json:"kubeProxyVersion" description:"Kube-proxy version reported by the node"`
 }
 
 // NodeStatus is information about the current status of a node.
 type NodeStatus struct {
 	// Capacity represents the available resources of a node.
-	// see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/resources.md for more details.
-	Capacity ResourceList `json:"capacity,omitempty" description:"compute resource capacity of the node; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/resources.md"`
+	// see http://docs.k8s.io/resources.md for more details.
+	Capacity ResourceList `json:"capacity,omitempty" description:"compute resource capacity of the node; http://docs.k8s.io/resources.md"`
 	// NodePhase is the current lifecycle phase of the node.
 	Phase NodePhase `json:"phase,omitempty" description:"most recently observed lifecycle phase of the node"`
 	// Conditions is an array of current node conditions.
@@ -1070,16 +1137,7 @@ type NodeStatus struct {
 	// Queried from cloud provider, if available.
 	Addresses []NodeAddress `json:"addresses,omitempty" description:"list of addresses reachable to the node" patchStrategy:"merge" patchMergeKey:"type"`
 	// NodeSystemInfo is a set of ids/uuids to uniquely identify the node
-	NodeInfo NodeSystemInfo `json:"nodeInfo,omitempty"`
-}
-
-// NodeInfo is the information collected on the node.
-type NodeInfo struct {
-	TypeMeta `json:",inline"`
-	// Capacity represents the available resources of a node
-	Capacity ResourceList `json:"capacity,omitempty"`
-	// NodeSystemInfo is a set of ids/uuids to uniquely identify the node
-	NodeSystemInfo `json:",inline,omitempty"`
+	NodeInfo NodeSystemInfo `json:"nodeInfo,omitempty" description:"set of ids/uuids to uniquely identify the node"`
 }
 
 type NodePhase string
@@ -1105,8 +1163,8 @@ const (
 )
 
 type NodeCondition struct {
-	Type               NodeConditionType `json:"type" description:"type of node condition, one of Ready, Schedulable"`
-	Status             ConditionStatus   `json:"status" description:"status of the condition, one of Full, None, Unknown"`
+	Type               NodeConditionType `json:"type" description:"type of node condition, currently only Ready"`
+	Status             ConditionStatus   `json:"status" description:"status of the condition, one of True, False, Unknown"`
 	LastHeartbeatTime  util.Time         `json:"lastHeartbeatTime,omitempty" description:"last time we got an update on a given condition"`
 	LastTransitionTime util.Time         `json:"lastTransitionTime,omitempty" description:"last time the condition transit from one status to another"`
 	Reason             string            `json:"reason,omitempty" description:"(brief) reason for the condition's last transition"`
@@ -1123,8 +1181,8 @@ const (
 )
 
 type NodeAddress struct {
-	Type    NodeAddressType `json:"type"`
-	Address string          `json:"address"`
+	Type    NodeAddressType `json:"type" description:"node address type, one of Hostname, ExternalIP or InternalIP"`
+	Address string          `json:"address" description:"the node address"`
 }
 
 // ResourceName is the name identifying various resources in a ResourceList.
@@ -1146,19 +1204,19 @@ type ResourceList map[ResourceName]resource.Quantity
 // The name of the node according to etcd is in ID.
 type Node struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Spec defines the behavior of a node.
-	Spec NodeSpec `json:"spec,omitempty" description:"specification of a node; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Spec NodeSpec `json:"spec,omitempty" description:"specification of a node; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 
 	// Status describes the current status of a Node
-	Status NodeStatus `json:"status,omitempty" description:"most recently observed status of the node; populated by the system, read-only; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Status NodeStatus `json:"status,omitempty" description:"most recently observed status of the node; populated by the system, read-only; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 }
 
 // NodeList is a list of minions.
 type NodeList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	Items []Node `json:"items" description:"list of nodes"`
 }
@@ -1196,19 +1254,19 @@ const (
 // Use of multiple namespaces is optional
 type Namespace struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Spec defines the behavior of the Namespace.
-	Spec NamespaceSpec `json:"spec,omitempty" description:"spec defines the behavior of the Namespace; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Spec NamespaceSpec `json:"spec,omitempty" description:"spec defines the behavior of the Namespace; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 
 	// Status describes the current status of a Namespace
-	Status NamespaceStatus `json:"status,omitempty" description:"status describes the current status of a Namespace; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Status NamespaceStatus `json:"status,omitempty" description:"status describes the current status of a Namespace; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 }
 
 // NamespaceList is a list of Namespaces.
 type NamespaceList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Items is the list of Namespace objects in the list
 	Items []Namespace `json:"items"  description:"items is the list of Namespace objects in the list"`
@@ -1218,7 +1276,7 @@ type NamespaceList struct {
 type Binding struct {
 	TypeMeta `json:",inline"`
 	// ObjectMeta describes the object that is being bound.
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Target is the object to bind to.
 	Target ObjectReference `json:"target" description:"an object to bind to"`
@@ -1259,10 +1317,41 @@ type PodLogOptions struct {
 	Follow bool `json:"follow,omitempty" description:"follow the log stream of the pod; defaults to false"`
 }
 
+// PodExecOptions is the query options to a Pod's remote exec call
+type PodExecOptions struct {
+	TypeMeta `json:",inline"`
+
+	// Stdin if true indicates that stdin is to be redirected for the exec call
+	Stdin bool `json:"stdin,omitempty" description:"redirect the standard input stream of the pod for this call; defaults to false"`
+
+	// Stdout if true indicates that stdout is to be redirected for the exec call
+	Stdout bool `json:"stdout,omitempty" description:"redirect the standard output stream of the pod for this call; defaults to true"`
+
+	// Stderr if true indicates that stderr is to be redirected for the exec call
+	Stderr bool `json:"stderr,omitempty" description:"redirect the standard error stream of the pod for this call; defaults to true"`
+
+	// TTY if true indicates that a tty will be allocated for the exec call
+	TTY bool `json:"tty,omitempty" description:"allocate a terminal for this exec call; defaults to false"`
+
+	// Container in which to execute the command.
+	Container string `json:"container,omitempty" description:"the container in which to execute the command. Defaults to only container if there is only one container in the pod."`
+
+	// Command is the remote command to execute
+	Command string `json:"command" description:"the command to execute"`
+}
+
+// PodProxyOptions is the query options to a Pod's proxy call
+type PodProxyOptions struct {
+	TypeMeta `json:",inline"`
+
+	// Path is the URL path to use for the current proxy request
+	Path string `json:"path,omitempty" description:"URL path to use in proxy request to pod"`
+}
+
 // Status is a return value for calls that don't return other objects.
 type Status struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// One of: "Success" or "Failure"
 	Status string `json:"status,omitempty" description:"status of the operation; either Success, or Failure"`
@@ -1420,7 +1509,7 @@ type ObjectReference struct {
 	Name            string    `json:"name,omitempty" description:"name of the referent"`
 	UID             types.UID `json:"uid,omitempty" description:"uid of the referent"`
 	APIVersion      string    `json:"apiVersion,omitempty" description:"API version of the referent"`
-	ResourceVersion string    `json:"resourceVersion,omitempty" description:"specific resourceVersion to which this reference is made, if any: https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#concurrency-control-and-consistency"`
+	ResourceVersion string    `json:"resourceVersion,omitempty" description:"specific resourceVersion to which this reference is made, if any: http://docs.k8s.io/api-conventions.md#concurrency-control-and-consistency"`
 
 	// Optional. If referring to a piece of an object instead of an entire object, this string
 	// should contain information to identify the sub-object. For example, if the object
@@ -1444,7 +1533,7 @@ type EventSource struct {
 // TODO: Decide whether to store these separately or with the object they apply to.
 type Event struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Required. The object that this event is about.
 	InvolvedObject ObjectReference `json:"involvedObject,omitempty" description:"object this event is about"`
@@ -1474,7 +1563,7 @@ type Event struct {
 // EventList is a list of events.
 type EventList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	Items []Event `json:"items" description:"list of events"`
 }
@@ -1482,7 +1571,7 @@ type EventList struct {
 // List holds a list of objects, which may not be known by the server.
 type List struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	Items []runtime.RawExtension `json:"items" description:"list of objects"`
 }
@@ -1518,16 +1607,16 @@ type LimitRangeSpec struct {
 // LimitRange sets resource usage limits for each kind of resource in a Namespace
 type LimitRange struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Spec defines the limits enforced
-	Spec LimitRangeSpec `json:"spec,omitempty" description:"spec defines the limits enforced; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Spec LimitRangeSpec `json:"spec,omitempty" description:"spec defines the limits enforced; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 }
 
 // LimitRangeList is a list of LimitRange items.
 type LimitRangeList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Items is a list of LimitRange objects
 	Items []LimitRange `json:"items" description:"items is a list of LimitRange objects"`
@@ -1543,6 +1632,10 @@ const (
 	ResourceReplicationControllers ResourceName = "replicationcontrollers"
 	// ResourceQuotas, number
 	ResourceQuotas ResourceName = "resourcequotas"
+	// ResourceSecrets, number
+	ResourceSecrets ResourceName = "secrets"
+	// ResourcePersistentVolumeClaims, number
+	ResourcePersistentVolumeClaims ResourceName = "persistentvolumeclaims"
 )
 
 // ResourceQuotaSpec defines the desired hard limits to enforce for Quota
@@ -1562,19 +1655,19 @@ type ResourceQuotaStatus struct {
 // ResourceQuota sets aggregate quota restrictions enforced per namespace
 type ResourceQuota struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Spec defines the desired quota
-	Spec ResourceQuotaSpec `json:"spec,omitempty" description:"spec defines the desired quota; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Spec ResourceQuotaSpec `json:"spec,omitempty" description:"spec defines the desired quota; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 
 	// Status defines the actual enforced quota and its current usage
-	Status ResourceQuotaStatus `json:"status,omitempty" description:"status defines the actual enforced quota and current usage; https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#spec-and-status"`
+	Status ResourceQuotaStatus `json:"status,omitempty" description:"status defines the actual enforced quota and current usage; http://docs.k8s.io/api-conventions.md#spec-and-status"`
 }
 
 // ResourceQuotaList is a list of ResourceQuota items
 type ResourceQuotaList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Items is a list of ResourceQuota objects
 	Items []ResourceQuota `json:"items" description:"items is a list of ResourceQuota objects"`
@@ -1584,7 +1677,7 @@ type ResourceQuotaList struct {
 // the Data field must be less than MaxSecretSize bytes.
 type Secret struct {
 	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	// Data contains the secret data.  Each key must be a valid DNS_SUBDOMAIN.
 	// The serialized form of the secret data is a base64 encoded string,
@@ -1605,7 +1698,37 @@ const (
 
 type SecretList struct {
 	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api-conventions.md#metadata"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
 
 	Items []Secret `json:"items" description:"items is a list of secret objects"`
+}
+
+// Type and constants for component health validation.
+type ComponentConditionType string
+
+// These are the valid conditions for the component.
+const (
+	ComponentHealthy ComponentConditionType = "Healthy"
+)
+
+type ComponentCondition struct {
+	Type    ComponentConditionType `json:"type" description:"type of component condition, currently only Healthy"`
+	Status  ConditionStatus        `json:"status" description:"current status of this component condition, one of True, False, Unknown"`
+	Message string                 `json:"message,omitempty" description:"health check message received from the component"`
+	Error   string                 `json:"error,omitempty" description:"error code from health check attempt (if any)"`
+}
+
+// ComponentStatus (and ComponentStatusList) holds the cluster validation info.
+type ComponentStatus struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
+
+	Conditions []ComponentCondition `json:"conditions,omitempty" description:"list of component conditions observed" patchStrategy:"merge" patchMergeKey:"type"`
+}
+
+type ComponentStatusList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
+
+	Items []ComponentStatus `json:"items" description:"list of component status objects"`
 }
