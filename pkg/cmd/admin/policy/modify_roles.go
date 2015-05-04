@@ -11,7 +11,6 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -50,7 +49,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", bootstrappolicy.DefaultMasterAuthorizationNamespace, "namespace where the role is located.")
+	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located.")
 
 	return cmd
 }
@@ -73,7 +72,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", bootstrappolicy.DefaultMasterAuthorizationNamespace, "namespace where the role is located.")
+	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located.")
 
 	return cmd
 }
@@ -96,7 +95,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", bootstrappolicy.DefaultMasterAuthorizationNamespace, "namespace where the role is located.")
+	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located.")
 
 	return cmd
 }
@@ -119,7 +118,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", bootstrappolicy.DefaultMasterAuthorizationNamespace, "namespace where the role is located.")
+	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located.")
 
 	return cmd
 }

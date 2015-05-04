@@ -16,11 +16,9 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/client"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	projectstorage "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
 )
 
@@ -28,19 +26,15 @@ type REST struct {
 	message            string
 	openshiftNamespace string
 	templateName       string
-	roleBindingStorage rolebinding.Storage
 
-	projectStorage  projectstorage.REST
 	openshiftClient *client.Client
 }
 
-func NewREST(message, openshiftNamespace, templateName string, roleBindingStorage rolebinding.Storage, projectStorage projectstorage.REST, openshiftClient *client.Client) *REST {
+func NewREST(message, openshiftNamespace, templateName string, openshiftClient *client.Client) *REST {
 	return &REST{
 		message:            message,
 		openshiftNamespace: openshiftNamespace,
 		templateName:       templateName,
-		roleBindingStorage: roleBindingStorage,
-		projectStorage:     projectStorage,
 		openshiftClient:    openshiftClient,
 	}
 }

@@ -103,8 +103,6 @@ type PolicyConfig struct {
 	// BootstrapPolicyFile points to a template that contains roles and rolebindings that will be created if no policy object exists in the master namespace
 	BootstrapPolicyFile string
 
-	// MasterAuthorizationNamespace is the global namespace for Policy
-	MasterAuthorizationNamespace string
 	// OpenShiftSharedResourcesNamespace is the namespace where shared OpenShift resources live (like shared templates)
 	OpenShiftSharedResourcesNamespace string
 }

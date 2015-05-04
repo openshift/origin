@@ -52,10 +52,6 @@ var (
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 )
 
-var (
-	authorizationTypeConverter = authorizationapi.TypeConverter{""}
-)
-
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
 func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p := kctl.NewHumanReadablePrinter(noHeaders)
@@ -409,35 +405,35 @@ func printPolicyBindingList(list *authorizationapi.PolicyBindingList, w io.Write
 }
 
 func printClusterPolicy(policy *authorizationapi.ClusterPolicy, w io.Writer) error {
-	return printPolicy(authorizationTypeConverter.ToPolicy(policy), w)
+	return printPolicy(authorizationapi.ToPolicy(policy), w)
 }
 
 func printClusterPolicyList(list *authorizationapi.ClusterPolicyList, w io.Writer) error {
-	return printPolicyList(authorizationTypeConverter.ToPolicyList(list), w)
+	return printPolicyList(authorizationapi.ToPolicyList(list), w)
 }
 
 func printClusterPolicyBinding(policyBinding *authorizationapi.ClusterPolicyBinding, w io.Writer) error {
-	return printPolicyBinding(authorizationTypeConverter.ToPolicyBinding(policyBinding), w)
+	return printPolicyBinding(authorizationapi.ToPolicyBinding(policyBinding), w)
 }
 
 func printClusterPolicyBindingList(list *authorizationapi.ClusterPolicyBindingList, w io.Writer) error {
-	return printPolicyBindingList(authorizationTypeConverter.ToPolicyBindingList(list), w)
+	return printPolicyBindingList(authorizationapi.ToPolicyBindingList(list), w)
 }
 
 func printClusterRole(role *authorizationapi.ClusterRole, w io.Writer) error {
-	return printRole(authorizationTypeConverter.ToRole(role), w)
+	return printRole(authorizationapi.ToRole(role), w)
 }
 
 func printClusterRoleList(list *authorizationapi.ClusterRoleList, w io.Writer) error {
-	return printRoleList(authorizationTypeConverter.ToRoleList(list), w)
+	return printRoleList(authorizationapi.ToRoleList(list), w)
 }
 
 func printClusterRoleBinding(roleBinding *authorizationapi.ClusterRoleBinding, w io.Writer) error {
-	return printRoleBinding(authorizationTypeConverter.ToRoleBinding(roleBinding), w)
+	return printRoleBinding(authorizationapi.ToRoleBinding(roleBinding), w)
 }
 
 func printClusterRoleBindingList(list *authorizationapi.ClusterRoleBindingList, w io.Writer) error {
-	return printRoleBindingList(authorizationTypeConverter.ToRoleBindingList(list), w)
+	return printRoleBindingList(authorizationapi.ToRoleBindingList(list), w)
 }
 
 func printIsPersonalSubjectAccessReview(a *authorizationapi.IsPersonalSubjectAccessReview, w io.Writer) error {

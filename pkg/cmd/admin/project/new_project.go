@@ -54,7 +54,6 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 	}
 
 	// TODO remove once we have global policy objects
-	cmd.Flags().StringVar(&options.MasterPolicyNamespace, "master-policy-namespace", bootstrappolicy.DefaultMasterAuthorizationNamespace, "master policy namespace")
 	cmd.Flags().StringVar(&options.AdminRole, "admin-role", bootstrappolicy.AdminRoleName, "project admin role name in the master policy namespace")
 	cmd.Flags().StringVar(&options.AdminUser, "admin", "", "project admin username")
 	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "project display name")

@@ -13,6 +13,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
+	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
@@ -20,14 +22,26 @@ import (
 )
 
 type VirtualStorage struct {
-	policyRegistry               policyregistry.Registry
-	bindingRegistry              policybindingregistry.Registry
-	masterAuthorizationNamespace string
+	PolicyRegistry               policyregistry.Registry
+	BindingRegistry              policybindingregistry.Registry
+	ClusterPolicyRegistry        clusterpolicyregistry.Registry
+	ClusterPolicyBindingRegistry clusterpolicybindingregistry.Registry
+
+	CreateStrategy rest.RESTCreateStrategy
+	UpdateStrategy rest.RESTUpdateStrategy
 }
 
 // NewVirtualStorage creates a new REST for policies.
-func NewVirtualStorage(policyRegistry policyregistry.Registry, bindingRegistry policybindingregistry.Registry, masterAuthorizationNamespace string) rolebindingregistry.Storage {
-	return &VirtualStorage{policyRegistry, bindingRegistry, masterAuthorizationNamespace}
+func NewVirtualStorage(policyRegistry policyregistry.Registry, bindingRegistry policybindingregistry.Registry, clusterPolicyRegistry clusterpolicyregistry.Registry, clusterPolicyBindingRegistry clusterpolicybindingregistry.Registry) rolebindingregistry.Storage {
+	return &VirtualStorage{
+		PolicyRegistry:               policyRegistry,
+		BindingRegistry:              bindingRegistry,
+		ClusterPolicyRegistry:        clusterPolicyRegistry,
+		ClusterPolicyBindingRegistry: clusterPolicyBindingRegistry,
+
+		CreateStrategy: rolebindingregistry.LocalStrategy,
+		UpdateStrategy: rolebindingregistry.LocalStrategy,
+	}
 }
 
 func (m *VirtualStorage) New() runtime.Object {
@@ -39,7 +53,7 @@ func (m *VirtualStorage) NewList() runtime.Object {
 
 // TODO either add selector for fields ot eliminate the option
 func (m *VirtualStorage) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	policyBindingList, err := m.bindingRegistry.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
+	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +103,7 @@ func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.Del
 	delete(owningPolicyBinding.RoleBindings, name)
 	owningPolicyBinding.LastModified = util.Now()
 
-	if err := m.bindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding); err != nil {
+	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding); err != nil {
 		return nil, err
 	}
 
@@ -105,7 +119,7 @@ func (m *VirtualStorage) CreateRoleBindingWithEscalation(ctx kapi.Context, obj *
 }
 
 func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object, allowEscalation bool) (*authorizationapi.RoleBinding, error) {
-	if err := rest.BeforeCreate(rolebindingregistry.Strategy, ctx, obj); err != nil {
+	if err := rest.BeforeCreate(m.CreateStrategy, ctx, obj); err != nil {
 		return nil, err
 	}
 
@@ -122,6 +136,7 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 	policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowEscalation)
 	if err != nil {
+		fmt.Printf("#### 1\n")
 		return nil, err
 	}
 
@@ -134,7 +149,7 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 	policyBinding.RoleBindings[roleBinding.Name] = *roleBinding
 	policyBinding.LastModified = util.Now()
 
-	if err := m.bindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
+	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
 		return nil, err
 	}
 
@@ -159,7 +174,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object,
 		return nil, false, err
 	}
 
-	if err := rest.BeforeUpdate(rolebindingregistry.Strategy, ctx, obj, old); err != nil {
+	if err := rest.BeforeUpdate(m.UpdateStrategy, ctx, obj, old); err != nil {
 		return nil, false, err
 	}
 
@@ -189,7 +204,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object,
 	policyBinding.RoleBindings[roleBinding.Name] = *roleBinding
 	policyBinding.LastModified = util.Now()
 
-	if err := m.bindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
+	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
 		return nil, false, err
 	}
 	return roleBinding, false, nil
@@ -206,7 +221,17 @@ func (m *VirtualStorage) validateReferentialIntegrity(ctx kapi.Context, roleBind
 func (m *VirtualStorage) getReferencedRole(roleRef kapi.ObjectReference) (*authorizationapi.Role, error) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), roleRef.Namespace)
 
-	policy, err := m.policyRegistry.GetPolicy(ctx, authorizationapi.PolicyName)
+	var policy *authorizationapi.Policy
+	var err error
+	switch {
+	case len(roleRef.Namespace) == 0:
+		var clusterPolicy *authorizationapi.ClusterPolicy
+		clusterPolicy, err = m.ClusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName)
+		policy = authorizationapi.ToPolicy(clusterPolicy)
+	default:
+		policy, err = m.PolicyRegistry.GetPolicy(ctx, authorizationapi.PolicyName)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -225,12 +250,17 @@ func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *auth
 		return err
 	}
 
-	ruleResolver := rulevalidation.NewDefaultRuleResolver(m.policyRegistry, m.bindingRegistry)
+	ruleResolver := rulevalidation.NewDefaultRuleResolver(
+		m.PolicyRegistry,
+		m.BindingRegistry,
+		clusterpolicyregistry.NewSimulatedRegistry(m.ClusterPolicyRegistry),
+		clusterpolicybindingregistry.NewSimulatedRegistry(m.ClusterPolicyBindingRegistry),
+	)
 	ownerLocalRules, err := ruleResolver.GetEffectivePolicyRules(ctx)
 	if err != nil {
 		return err
 	}
-	masterContext := kapi.WithNamespace(ctx, m.masterAuthorizationNamespace)
+	masterContext := kapi.WithNamespace(ctx, "")
 	ownerGlobalRules, err := ruleResolver.GetEffectivePolicyRules(masterContext)
 	if err != nil {
 		return err
@@ -251,7 +281,7 @@ func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *auth
 
 // ensurePolicyBindingToMaster returns a PolicyBinding object that has a PolicyRef pointing to the Policy in the passed namespace.
 func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx kapi.Context, policyNamespace, policyBindingName string) (*authorizationapi.PolicyBinding, error) {
-	policyBinding, err := m.bindingRegistry.GetPolicyBinding(ctx, policyBindingName)
+	policyBinding, err := m.BindingRegistry.GetPolicyBinding(ctx, policyBindingName)
 	if err != nil {
 		if !kapierrors.IsNotFound(err) {
 			return nil, err
@@ -259,11 +289,11 @@ func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx kapi.Context, policyNam
 
 		// if we have no policyBinding, go ahead and make one.  creating one here collapses code paths below.  We only take this hit once
 		policyBinding = policybindingregistry.NewEmptyPolicyBinding(kapi.NamespaceValue(ctx), policyNamespace, policyBindingName)
-		if err := m.bindingRegistry.CreatePolicyBinding(ctx, policyBinding); err != nil {
+		if err := m.BindingRegistry.CreatePolicyBinding(ctx, policyBinding); err != nil {
 			return nil, err
 		}
 
-		policyBinding, err = m.bindingRegistry.GetPolicyBinding(ctx, policyBindingName)
+		policyBinding, err = m.BindingRegistry.GetPolicyBinding(ctx, policyBindingName)
 		if err != nil {
 			return nil, err
 		}
@@ -280,11 +310,11 @@ func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx kapi.Context, policyNam
 func (m *VirtualStorage) getPolicyBindingForPolicy(ctx kapi.Context, policyNamespace string, allowAutoProvision bool) (*authorizationapi.PolicyBinding, error) {
 	// we can autocreate a PolicyBinding object if the RoleBinding is for the master namespace OR if we've been explicity told to create the policying binding.
 	// the latter happens during priming
-	if (policyNamespace == m.masterAuthorizationNamespace) || allowAutoProvision {
+	if (policyNamespace == "") || allowAutoProvision {
 		return m.ensurePolicyBindingToMaster(ctx, policyNamespace, authorizationapi.GetPolicyBindingName(policyNamespace))
 	}
 
-	policyBinding, err := m.bindingRegistry.GetPolicyBinding(ctx, authorizationapi.GetPolicyBindingName(policyNamespace))
+	policyBinding, err := m.BindingRegistry.GetPolicyBinding(ctx, authorizationapi.GetPolicyBindingName(policyNamespace))
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +327,7 @@ func (m *VirtualStorage) getPolicyBindingForPolicy(ctx kapi.Context, policyNames
 }
 
 func (m *VirtualStorage) getPolicyBindingOwningRoleBinding(ctx kapi.Context, bindingName string) (*authorizationapi.PolicyBinding, error) {
-	policyBindingList, err := m.bindingRegistry.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
+	policyBindingList, err := m.BindingRegistry.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}

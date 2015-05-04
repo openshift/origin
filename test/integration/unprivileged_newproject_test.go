@@ -108,12 +108,14 @@ func TestDeniedUnprivilegedNewProject(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	role, err := clusterAdminClient.Roles("master").Get(bootstrappolicy.SelfProvisionerRoleName)
+	role, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.SelfProvisionerRoleName)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	role.Rules = []authorizationapi.PolicyRule{}
-	clusterAdminClient.Roles("master").Update(role)
+	if _, err := clusterAdminClient.ClusterRoles().Update(role); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
@@ -146,7 +148,7 @@ func TestDeniedUnprivilegedNewProject(t *testing.T) {
 		t.Errorf("expected error: %v", err)
 	}
 	expectedError := `ProjectRequest "" is forbidden: You may not request a new project via this API.`
-	if err.Error() != expectedError {
+	if (err != nil) && (err.Error() != expectedError) {
 		t.Errorf("expected %v, got %v", expectedError, allowed.Status)
 	}
 

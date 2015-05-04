@@ -25,6 +25,10 @@ import (
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	policycache "github.com/openshift/origin/pkg/authorization/cache"
+	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
+	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
+	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
+	clusterpolicybindingetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -141,11 +145,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Options: options,
 
 		Authenticator:                 newAuthenticator(options.ServingInfo, etcdHelper, apiClientCAs),
-		Authorizer:                    newAuthorizer(policyCache, options.PolicyConfig.MasterAuthorizationNamespace),
+		Authorizer:                    newAuthorizer(policyCache),
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		PolicyCache:               policyCache,
-		ProjectAuthorizationCache: newProjectAuthorizationCache(options.PolicyConfig.MasterAuthorizationNamespace, privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClient),
+		ProjectAuthorizationCache: newProjectAuthorizationCache(privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClient),
 
 		RequestContextMapper: requestContextMapper,
 
@@ -203,23 +207,26 @@ func newAuthenticator(servingInfo configapi.ServingInfo, etcdHelper tools.EtcdHe
 	return ret
 }
 
-func newProjectAuthorizationCache(masterAuthorizationNamespace string, openshiftClient *osclient.Client, kubeClient *kclient.Client) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(openshiftClient *osclient.Client, kubeClient *kclient.Client) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		projectauth.NewReviewer(openshiftClient),
 		kubeClient.Namespaces(),
 		openshiftClient,
 		openshiftClient,
-		masterAuthorizationNamespace)
+		"dead-value")
 }
 
 func newPolicyCache(etcdHelper tools.EtcdHelper) *policycache.PolicyCache {
 	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(etcdHelper))
 	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(etcdHelper))
-	return policycache.NewPolicyCache(policyBindingRegistry, policyRegistry)
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicyetcd.NewStorage(etcdHelper))
+	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterpolicybindingetcd.NewStorage(etcdHelper))
+
+	return policycache.NewPolicyCache(policyBindingRegistry, policyRegistry, clusterPolicyBindingRegistry, clusterPolicyRegistry)
 }
 
-func newAuthorizer(policyCache *policycache.PolicyCache, masterAuthorizationNamespace string) authorizer.Authorizer {
-	authorizer := authorizer.NewAuthorizer(masterAuthorizationNamespace, rulevalidation.NewDefaultRuleResolver(policyCache, policyCache))
+func newAuthorizer(policyCache *policycache.PolicyCache) authorizer.Authorizer {
+	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyCache, policyCache, policyCache, policyCache))
 	return authorizer
 }
 

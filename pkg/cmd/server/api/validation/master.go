@@ -191,7 +191,6 @@ func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorLi
 	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, ValidateFile(config.BootstrapPolicyFile, "bootstrapPolicyFile")...)
-	allErrs = append(allErrs, ValidateNamespace(config.MasterAuthorizationNamespace, "masterAuthorizationNamespace")...)
 	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, "openShiftSharedResourcesNamespace")...)
 
 	return allErrs

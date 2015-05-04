@@ -184,7 +184,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 		PolicyConfig: configapi.PolicyConfig{
 			BootstrapPolicyFile:               args.GetPolicyFile(),
-			MasterAuthorizationNamespace:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
 			OpenShiftSharedResourcesNamespace: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace,
 		},
 

@@ -14,6 +14,7 @@ type ClusterRoleBindingsInterface interface {
 type ClusterRoleBindingInterface interface {
 	List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterRoleBindingList, error)
 	Get(name string) (*authorizationapi.ClusterRoleBinding, error)
+	Update(roleBinding *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, error)
 	Create(roleBinding *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, error)
 	Delete(name string) error
 }
@@ -47,6 +48,13 @@ func (c *clusterRoleBindings) Get(name string) (result *authorizationapi.Cluster
 func (c *clusterRoleBindings) Create(roleBinding *authorizationapi.ClusterRoleBinding) (result *authorizationapi.ClusterRoleBinding, err error) {
 	result = &authorizationapi.ClusterRoleBinding{}
 	err = c.r.Post().Resource("clusterRoleBindings").Body(roleBinding).Do().Into(result)
+	return
+}
+
+// Update updates the roleBinding on server. Returns the server's representation of the roleBinding and error if one occurs.
+func (c *clusterRoleBindings) Update(roleBinding *authorizationapi.ClusterRoleBinding) (result *authorizationapi.ClusterRoleBinding, err error) {
+	result = &authorizationapi.ClusterRoleBinding{}
+	err = c.r.Put().Resource("clusterRoleBindings").Name(roleBinding.Name).Body(roleBinding).Do().Into(result)
 	return
 }
 
