@@ -169,9 +169,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		MasterClients: configapi.MasterClients{
-			DeployerKubeConfig:          admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), "openshift-deployer"),
-			OpenShiftLoopbackKubeConfig: admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), "openshift-client"),
-			KubernetesKubeConfig:        admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), "kube-client"),
+			DeployerKubeConfig:           admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), "openshift-deployer"),
+			OpenShiftLoopbackKubeConfig:  admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), "openshift-client"),
+			ExternalKubernetesKubeConfig: args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath,
 		},
 
 		EtcdClientInfo: configapi.EtcdConnectionInfo{
@@ -191,6 +191,10 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		ImageConfig: configapi.ImageConfig{
 			Format: args.ImageFormatArgs.ImageTemplate.Format,
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
+		},
+
+		ProjectRequestConfig: configapi.ProjectRequestConfig{
+			ProjectRequestTemplate: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace + "/project-request",
 		},
 	}
 

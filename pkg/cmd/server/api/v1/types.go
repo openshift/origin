@@ -88,6 +88,10 @@ type MasterConfig struct {
 type ProjectRequestConfig struct {
 	// ProjectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint
 	ProjectRequestMessage string `json:"projectRequestMessage"`
+
+	// ProjectRequestTemplate is the template to use for creating projects in response to projectrequest.  It is in the format namespace/template and it is optional.
+	// If it is not specified, then projectrequest will not work.  If the template does not exist, then a default will be created.
+	ProjectRequestTemplate string `json:"projectRequestTemplate"`
 }
 
 type PolicyConfig struct {
@@ -161,8 +165,8 @@ type MasterClients struct {
 	DeployerKubeConfig string `json:"deployerKubeConfig"`
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string `json:"openshiftLoopbackKubeConfig"`
-	// KubernetesKubeConfig is a .kubeconfig filename for system components to communicate to kubernetes for building the proxy
-	KubernetesKubeConfig string `json:"kubernetesKubeConfig"`
+	// ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to kubernetes
+	ExternalKubernetesKubeConfig string `json:"externalKubernetesKubeConfig"`
 }
 
 type DNSConfig struct {

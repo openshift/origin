@@ -50,7 +50,7 @@ angular.module("openshiftConsole")
      };
   })
   .directive("oscInputValidator", function(){
-    
+
     var validators = {
       always: function(modelValue, viewValue){
         return true;

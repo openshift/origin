@@ -45,7 +45,6 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
-	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
@@ -91,6 +90,10 @@ import (
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/proxy"
+	clusterpolicybindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/proxy"
+	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
+	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -158,6 +161,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
 	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
 	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
+	roleStorage := rolestorage.NewVirtualStorage(policyRegistry)
 	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyRegistry, policyBindingRegistry, c.Options.PolicyConfig.MasterAuthorizationNamespace)
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
@@ -210,6 +214,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache)
 
+	tokens := strings.Split(c.Options.ProjectRequestConfig.ProjectRequestTemplate, "/")
+	namespace := tokens[0]
+	templateName := tokens[1]
+	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, namespace, templateName, roleBindingStorage, *projectStorage, c.PrivilegedLoopbackOpenShiftClient)
+
 	// initialize OpenShift API
 	storage := map[string]rest.Storage{
 		"builds":                   buildregistry.NewREST(buildEtcd),
@@ -243,7 +252,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
 		"projects":        projectStorage,
-		"projectRequests": projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingStorage, *projectStorage, c.PolicyClient()),
+		"projectRequests": projectRequestStorage,
 
 		"users":                userStorage,
 		"identities":           identityStorage,
@@ -254,12 +263,18 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
 		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
 
-		"policies":              policyStorage,
-		"policyBindings":        policyBindingStorage,
-		"roles":                 rolestorage.NewVirtualStorage(policyRegistry),
-		"roleBindings":          roleBindingStorage,
 		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
 		"subjectAccessReviews":  subjectAccessReviewStorage,
+
+		"policies":       policyStorage,
+		"policyBindings": policyBindingStorage,
+		"roles":          roleStorage,
+		"roleBindings":   roleBindingStorage,
+
+		"clusterPolicies":       clusterpolicystorage.NewClusterPolicyStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, policyStorage),
+		"clusterPolicyBindings": clusterpolicybindingstorage.NewClusterPolicyBindingStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, policyBindingStorage),
+		"clusterRoleBindings":   clusterrolebindingstorage.NewClusterRoleBindingStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingStorage),
+		"clusterRoles":          clusterrolestorage.NewClusterRoleStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, roleStorage),
 	}
 
 	// for v1beta1, we dual register camelCase and camelcase names
@@ -354,7 +369,6 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 	handler := webhook.NewController(
 		bcGetterUpdater,
 		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
-		bcClient.ImageStreams(kapi.NamespaceAll).(osclient.ImageStreamNamespaceGetter),
 		map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),
@@ -362,8 +376,10 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 
 	// TODO: go-restfulize this
 	prefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
-	handler = http.StripPrefix(prefix, handler)
-	container.Handle(prefix, handler)
+	container.Handle(prefix, http.StripPrefix(prefix, handler))
+	// TODO: broken
+	prefix = OpenShiftAPIPrefixV1Beta3 + "/buildconfighooks/"
+	container.Handle(prefix, http.StripPrefix(prefix, handler))
 	return []string{}
 }
 
@@ -525,6 +541,8 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		c.ensureMasterAuthorizationNamespace()
 		c.ensureOpenShiftSharedResourcesNamespace()
 	}, 10*time.Second)
+
+	c.checkProjectRequestTemplate()
 }
 
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
@@ -533,6 +551,26 @@ func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
 		c.RequestContextMapper = kapi.NewRequestContextMapper()
 	}
 	return c.RequestContextMapper
+}
+
+// checkProjectRequestTemplate looks to see if there should be a projectrequest template.  If there should be one and it's not present
+func (c *MasterConfig) checkProjectRequestTemplate() {
+	if len(c.Options.ProjectRequestConfig.ProjectRequestTemplate) == 0 {
+		return
+	}
+
+	tokens := strings.Split(c.Options.ProjectRequestConfig.ProjectRequestTemplate, "/")
+	namespace := tokens[0]
+	templateName := tokens[1]
+
+	if _, err := c.PrivilegedLoopbackOpenShiftClient.Templates(namespace).Get(templateName); !kapierror.IsNotFound(err) {
+		return
+	}
+
+	template := projectrequeststorage.NewSampleTemplate(c.Options.PolicyConfig.MasterAuthorizationNamespace, namespace, templateName)
+	if _, err := c.PrivilegedLoopbackOpenShiftClient.Templates(namespace).Create(template); err != nil {
+		glog.Errorf("Error creating default project request template %v.  Unprivileged project requests will fail until a template is available.", c.Options.ProjectRequestConfig.ProjectRequestTemplate)
+	}
 }
 
 // ensureMasterAuthorizationNamespace is called as part of global policy initialization to ensure master namespace exists
@@ -841,7 +879,7 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 // RouteAllocator returns a route allocation controller.
 func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocationController {
 	factory := routeallocationcontroller.RouteAllocationControllerFactory{
-		OSClient:   c.OSClient,
+		OSClient:   c.PrivilegedLoopbackOpenShiftClient,
 		KubeClient: c.KubeClient(),
 	}
 

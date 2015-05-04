@@ -235,7 +235,26 @@ func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, e
 
 // StrategyAndSourceForRepository returns the build strategy and source code reference
 // of the provided source repository
-func StrategyAndSourceForRepository(repo *SourceRepository) (*BuildStrategyRef, *SourceRef, error) {
+// TODO: user should be able to choose whether to download a remote source ref for
+// more info
+func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*BuildStrategyRef, *SourceRef, error) {
+	if image != nil {
+		remoteUrl, err := repo.RemoteURL()
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s", repo.location)
+		}
+		strategy := &BuildStrategyRef{
+			Base:          image,
+			IsDockerBuild: repo.IsDockerBuild(),
+		}
+		source := &SourceRef{
+			URL:        remoteUrl,
+			Ref:        remoteUrl.Fragment,
+			ContextDir: "",
+		}
+		return strategy, source, nil
+	}
+
 	srcRef, err := NewSourceRefGenerator().FromGitURL(repo.location)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s: %v", repo.location, err)

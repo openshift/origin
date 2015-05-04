@@ -187,3 +187,96 @@ type RoleList struct {
 	kapi.ListMeta `json:"metadata,omitempty"`
 	Items         []Role `json:"items"`
 }
+
+// ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
+type ClusterRole struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	// Rules holds all the PolicyRules for this ClusterRole
+	Rules []PolicyRule `json:"rules"`
+}
+
+// ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace.
+// It adds who information via Users and Groups and namespace information by which namespace it exists in.  ClusterRoleBindings in a given
+// namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
+type ClusterRoleBinding struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	// UserNames holds all the usernames directly bound to the role
+	UserNames []string `json:"userNames"`
+	// GroupNames holds all the groups directly bound to the role
+	GroupNames []string `json:"groupNames"`
+
+	// Since Policy is a singleton, this is sufficient knowledge to locate a role
+	// ClusterRoleRefs can only reference the current namespace and the global namespace
+	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.
+	RoleRef kapi.ObjectReference `json:"roleRef"`
+}
+
+// ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
+// one ClusterPolicy document per namespace.
+type ClusterPolicy struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	// LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
+	LastModified kutil.Time `json:"lastModified"`
+
+	// ClusterRoles holds all the ClusterRoles held by this ClusterPolicy, mapped by ClusterRole.Name
+	Roles []NamedClusterRole `json:"roles"`
+}
+
+// ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
+// one ClusterPolicyBinding document per referenced ClusterPolicy namespace
+type ClusterPolicyBinding struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	// LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted
+	LastModified kutil.Time `json:"lastModified"`
+
+	// PolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
+	PolicyRef kapi.ObjectReference `json:"policyRef"`
+	// RoleBindings holds all the ClusterRoleBindings held by this ClusterPolicyBinding, mapped by ClusterRoleBinding.Name
+	RoleBindings []NamedClusterRoleBinding `json:"roleBindings"`
+}
+
+type NamedClusterRole struct {
+	Name string      `json:"name"`
+	Role ClusterRole `json:"role"`
+}
+
+type NamedClusterRoleBinding struct {
+	Name        string             `json:"name"`
+	RoleBinding ClusterRoleBinding `json:"roleBinding"`
+}
+
+// ClusterPolicyList is a collection of ClusterPolicies
+type ClusterPolicyList struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []ClusterPolicy `json:"items"`
+}
+
+// ClusterPolicyBindingList is a collection of ClusterPolicyBindings
+type ClusterPolicyBindingList struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []ClusterPolicyBinding `json:"items"`
+}
+
+// ClusterRoleBindingList is a collection of ClusterRoleBindings
+type ClusterRoleBindingList struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []ClusterRoleBinding `json:"items"`
+}
+
+// ClusterRoleList is a collection of ClusterRoles
+type ClusterRoleList struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []ClusterRole `json:"items"`
+}

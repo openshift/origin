@@ -5,16 +5,20 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/client"
-
+	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectstorage "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
@@ -22,17 +26,19 @@ import (
 
 type REST struct {
 	message            string
-	masterNamespace    string
+	openshiftNamespace string
+	templateName       string
 	roleBindingStorage rolebinding.Storage
 
 	projectStorage  projectstorage.REST
 	openshiftClient *client.Client
 }
 
-func NewREST(message, masterNamespace string, roleBindingStorage rolebinding.Storage, projectStorage projectstorage.REST, openshiftClient *client.Client) *REST {
+func NewREST(message, openshiftNamespace, templateName string, roleBindingStorage rolebinding.Storage, projectStorage projectstorage.REST, openshiftClient *client.Client) *REST {
 	return &REST{
 		message:            message,
-		masterNamespace:    masterNamespace,
+		openshiftNamespace: openshiftNamespace,
+		templateName:       templateName,
 		roleBindingStorage: roleBindingStorage,
 		projectStorage:     projectStorage,
 		openshiftClient:    openshiftClient,
@@ -48,36 +54,68 @@ func (r *REST) NewList() runtime.Object {
 }
 
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+	if len(r.openshiftNamespace) == 0 || len(r.templateName) == 0 {
+		return nil, errors.New("this endpoint is disabled")
+	}
+
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
 		return nil, err
 	}
-
 	projectRequest := obj.(*projectapi.ProjectRequest)
+	projectName := projectRequest.Name
+	projectDisplayName := projectName
+	projectDescription := projectDisplayName
+	projectAdmin := ""
 
-	project := &projectapi.Project{}
-	project.ObjectMeta = projectRequest.ObjectMeta
-	project.DisplayName = projectRequest.DisplayName
+	if len(projectRequest.DisplayName) > 0 {
+		projectDisplayName = projectRequest.DisplayName
+	}
 
-	projectObj, err := r.projectStorage.Create(ctx, project)
+	if len(projectRequest.Annotations["description"]) > 0 {
+		projectDescription = projectRequest.Annotations["description"]
+	}
+	if userInfo, exists := kapi.UserFrom(ctx); exists {
+		projectAdmin = userInfo.GetName()
+	}
+
+	template, err := r.openshiftClient.Templates(r.openshiftNamespace).Get(r.templateName)
 	if err != nil {
 		return nil, err
 	}
-	realizedProject := projectObj.(*projectapi.Project)
 
-	adminBinding := &authorizationapi.RoleBinding{}
-	adminBinding.Namespace = realizedProject.Name
-	adminBinding.Name = "admins"
-	adminBinding.RoleRef = kapi.ObjectReference{Namespace: r.masterNamespace, Name: "admin"}
-	if userInfo, exists := kapi.UserFrom(ctx); exists {
-		adminBinding.Users = util.NewStringSet(userInfo.GetName())
+	for i := range template.Parameters {
+		switch template.Parameters[i].Name {
+		case ProjectAdminUserParam:
+			template.Parameters[i].Value = projectAdmin
+		case ProjectDescriptionParam:
+			template.Parameters[i].Value = projectDescription
+		case ProjectDisplayNameParam:
+			template.Parameters[i].Value = projectDisplayName
+		case ProjectNameParam:
+			template.Parameters[i].Value = projectName
+		}
 	}
 
-	projectContext := kapi.WithNamespace(ctx, realizedProject.Name)
-	if _, err := r.roleBindingStorage.CreateRoleBindingWithEscalation(projectContext, adminBinding); err != nil {
+	list, err := r.openshiftClient.TemplateConfigs(r.openshiftNamespace).Create(template)
+	if err != nil {
+		return nil, err
+	}
+	if err := utilerrors.NewAggregate(runtime.DecodeList(list.Objects, kapi.Scheme)); err != nil {
 		return nil, err
 	}
 
-	return realizedProject, nil
+	bulk := configcmd.Bulk{
+		Mapper: latest.RESTMapper,
+		Typer:  kapi.Scheme,
+		RESTClientFactory: func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+			return r.openshiftClient, nil
+		},
+	}
+	if err := utilerrors.NewAggregate(bulk.Create(&kapi.List{Items: list.Objects}, projectName)); err != nil {
+		return nil, err
+	}
+
+	return r.openshiftClient.Projects().Get(projectName)
 }
 
 func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {

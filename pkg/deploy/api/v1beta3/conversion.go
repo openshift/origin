@@ -83,6 +83,36 @@ func init() {
 			}
 			return nil
 		},
+		func(in *DeploymentStrategy, out *newer.DeploymentStrategy, s conversion.Scope) error {
+			if err := s.Convert(&in.Type, &out.Type, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.CustomParams, &out.CustomParams, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.RecreateParams, &out.RecreateParams, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(in *newer.DeploymentStrategy, out *DeploymentStrategy, s conversion.Scope) error {
+			if err := s.Convert(&in.Type, &out.Type, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.CustomParams, &out.CustomParams, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.RecreateParams, &out.RecreateParams, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
+				return err
+			}
+			return nil
+		},
 		func(in *newer.DeploymentTemplate, out *DeploymentConfigSpec, s conversion.Scope) error {
 			out.Replicas = in.ControllerTemplate.Replicas
 			if in.ControllerTemplate.Selector != nil {

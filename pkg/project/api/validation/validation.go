@@ -20,8 +20,8 @@ func ValidateProject(project *api.Project) fielderrors.ValidationErrorList {
 	if len(project.Namespace) > 0 {
 		result = append(result, fielderrors.NewFieldInvalid("namespace", project.Namespace, "must be the empty-string"))
 	}
-	if !validateNoNewLineOrTab(project.DisplayName) {
-		result = append(result, fielderrors.NewFieldInvalid("displayName", project.DisplayName, "may not contain a new line or tab"))
+	if !validateNoNewLineOrTab(project.Annotations["displayName"]) {
+		result = append(result, fielderrors.NewFieldInvalid("displayName", project.Annotations["displayName"], "may not contain a new line or tab"))
 	}
 	return result
 }
@@ -43,7 +43,6 @@ func ValidateProjectUpdate(newProject *api.Project, oldProject *api.Project) fie
 func ValidateProjectRequest(request *api.ProjectRequest) fielderrors.ValidationErrorList {
 	project := &api.Project{}
 	project.ObjectMeta = request.ObjectMeta
-	project.DisplayName = request.DisplayName
 
 	return ValidateProject(project)
 }

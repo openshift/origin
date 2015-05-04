@@ -79,3 +79,7 @@ func (s RoleBindingSorter) Less(i, j int) bool {
 func (s RoleBindingSorter) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
+
+func GetPolicyBindingName(policyRefNamespace string) string {
+	return fmt.Sprintf("%s:%s", policyRefNamespace, PolicyName)
+}

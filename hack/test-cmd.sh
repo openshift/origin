@@ -300,29 +300,30 @@ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 osc delete dc docker-registry
 osc delete se docker-registry
 osc delete rc docker-registry-1
-osc delete pod $(osc get pod | grep docker-registry-1 | awk '{print $1}')
+registrypod=$(osc get pod | grep docker-registry-1 | awk '{print $1}')
+[ -n "${registrypod}" ] && osc delete pod $registrypod
 # done deleting registry resources
 osc delete imageStreams test
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 osc create -f examples/image-streams/image-streams-centos7.json
-[ -n "$(osc get imageStreams ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
-osc delete imageStreams ruby-20-centos7
-osc delete imageStreams nodejs-010-centos7
-osc delete imageStreams wildfly-8-centos
-osc delete imageStreams mysql-55-centos7
-osc delete imageStreams postgresql-92-centos7
-osc delete imageStreams mongodb-24-centos7
-[ -z "$(osc get imageStreams ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams ruby -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams nodejs -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams mysql -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(osc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
+osc delete imageStreams ruby
+osc delete imageStreams nodejs
+osc delete imageStreams wildfly
+osc delete imageStreams mysql
+osc delete imageStreams postgresql
+osc delete imageStreams mongodb
+[ -z "$(osc get imageStreams ruby -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams nodejs -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams mysql -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
 echo "imageStreams: ok"
 
 osc create -f test/integration/fixtures/test-image-stream.json
@@ -370,13 +371,13 @@ osc delete imageRepositories test
 echo "imageRepositoryMappings: ok"
 
 [ -n "$(osc get imageRepositories mysql -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
-[ "$(osc new-app php mysql -o yaml | grep 3306)" ]
+[ "$(osc new-app library/php mysql -o yaml | grep 3306)" ]
 # verify we can generate a Docker image based component "mongodb" directly
 [ ! "$(osc new-app unknownhubimage -o yaml)" ]
 [ "$(osc new-app mongo -o yaml | grep library/mongo)" ]
 # the local image repository takes precedence over the Docker Hub "mysql" image
 [ "$(osc new-app mysql -o yaml | grep mysql-55-centos7)" ]
-osc new-app php mysql
+osc new-app library/php mysql
 # check if we can create from a stored template
 osc create -f examples/sample-app/application-template-stibuild.json
 osc get template ruby-helloworld-sample
@@ -425,8 +426,13 @@ osc get buildConfigs
 osc get bc
 osc get builds
 
-[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Github") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github" ]]
-[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic") =~ "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic" ]]
+[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Github"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github") ]]
+[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic") ]]
+osc start-build --list-webhooks='all' ruby-sample-build
+[[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "generic") ]]
+[[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "github") ]]
+[[ $(osc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101") ]]
+[ ! "$(osc start-build --list-webhooks='blah')" ]
 echo "buildConfig: ok"
 
 osc create -f test/integration/fixtures/test-buildcli.json
@@ -454,8 +460,8 @@ osadm policy add-role-to-user admin adduser -n ui-test-project
 # Make sure project can be listed by osc (after auth cache syncs)
 sleep 2 && [ "$(osc get projects | grep 'ui-test-project')" ]
 # Make sure users got added
-[ "$(osc describe policybinding master -n ui-test-project | grep createuser)" ]
-[ "$(osc describe policybinding master -n ui-test-project | grep adduser)" ]
+[ "$(osc describe policybinding master:default -n ui-test-project | grep createuser)" ]
+[ "$(osc describe policybinding master:default -n ui-test-project | grep adduser)" ]
 echo "ui-project-commands: ok"
 
 # Test deleting and recreating a project
@@ -463,18 +469,18 @@ osadm new-project recreated-project --admin="createuser1"
 osc delete project recreated-project
 osc delete project recreated-project
 osadm new-project recreated-project --admin="createuser2"
-osc describe policybinding master -n recreated-project | grep createuser2
+osc describe policybinding master:default -n recreated-project | grep createuser2
 echo "ex new-project: ok"
 
 # Test running a router
-[ ! "$(osadm router | grep 'does not exist')" ]
+[ ! "$(osadm router --dry-run | grep 'does not exist')" ]
 [ "$(osadm router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
 osadm router --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(osadm router | grep 'service exists')" ]
 echo "ex router: ok"
 
 # Test running a registry
-[ ! "$(osadm registry | grep 'does not exist')"]
+[ ! "$(osadm registry --dry-run | grep 'does not exist')"]
 [ "$(osadm registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
 osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(osadm registry | grep 'service exists')" ]

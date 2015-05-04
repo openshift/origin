@@ -69,10 +69,19 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 	if config.KubernetesMasterConfig != nil {
 		allErrs = append(allErrs, ValidateKubernetesMasterConfig(config.KubernetesMasterConfig).Prefix("kubernetesMasterConfig")...)
 	}
+	if (config.KubernetesMasterConfig == nil) && (len(config.MasterClients.ExternalKubernetesKubeConfig) == 0) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("kubernetesMasterConfig", config.KubernetesMasterConfig, "either kubernetesMasterConfig or masterClients.externalKubernetesKubeConfig must have a value"))
+	}
+	if (config.KubernetesMasterConfig != nil) && (len(config.MasterClients.ExternalKubernetesKubeConfig) != 0) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("kubernetesMasterConfig", config.KubernetesMasterConfig, "kubernetesMasterConfig and masterClients.externalKubernetesKubeConfig are mutually exclusive"))
+	}
 
 	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.DeployerKubeConfig, "deployerKubeConfig").Prefix("masterClients")...)
 	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, "openShiftLoopbackKubeConfig").Prefix("masterClients")...)
-	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.KubernetesKubeConfig, "kubernetesKubeConfig").Prefix("masterClients")...)
+
+	if len(config.MasterClients.ExternalKubernetesKubeConfig) > 0 {
+		allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.ExternalKubernetesKubeConfig, "externalKubernetesKubeConfig").Prefix("masterClients")...)
+	}
 
 	allErrs = append(allErrs, ValidatePolicyConfig(config.PolicyConfig).Prefix("policyConfig")...)
 	if config.OAuthConfig != nil {
@@ -191,6 +200,13 @@ func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorLi
 // ValidateProjectRequestConfig is stub for now.  no validation is required.
 func ValidateProjectRequestConfig(config api.ProjectRequestConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(config.ProjectRequestTemplate) > 0 {
+		tokens := strings.Split(config.ProjectRequestTemplate, "/")
+		if len(tokens) != 2 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("projectRequestTemplate", config.ProjectRequestTemplate, "must be in the form: namespace/templateName"))
+		}
+	}
 
 	return allErrs
 }

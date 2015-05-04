@@ -76,23 +76,20 @@ type MasterConfig struct {
 	// APIClientCAs is used to verify client certificates presented for API auth
 	APIClientCAs *x509.CertPool
 
-	// KubeClientConfig is the client configuration used to call Kubernetes APIs from system components.
+	// PrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from system components
 	// To apply different access control to a system component, create a client config specifically for that component.
-	KubeClientConfig kclient.Config
-	// OSClientConfig is the client configuration used to call OpenShift APIs from system components
-	// To apply different access control to a system component, create a client config specifically for that component.
-	OSClientConfig kclient.Config
-	// DeployerOSClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
+	PrivilegedLoopbackClientConfig kclient.Config
+	// DeployerPrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
 	DeployerOSClientConfig kclient.Config
 
 	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
 	// It should only be accessed via the *Client() helper methods.
 	// To apply different access control to a system component, create a separate client/config specifically for that component.
-	KubernetesClient *kclient.Client
-	// osClient is the client used to call OpenShift APIs from system components, built from OSClientConfig.
+	PrivilegedLoopbackKubernetesClient *kclient.Client
+	// osClient is the client used to call OpenShift APIs from system components, built from PrivilegedLoopbackClientConfig.
 	// It should only be accessed via the *Client() helper methods.
 	// To apply different access control to a system component, create a separate client/config specifically for that component.
-	OSClient *osclient.Client
+	PrivilegedLoopbackOpenShiftClient *osclient.Client
 }
 
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
@@ -114,11 +111,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
-	kubeClient, kubeClientConfig, err := configapi.GetKubeClient(options.MasterClients.KubernetesKubeConfig)
+	privilegedLoopbackKubeClient, _, err := configapi.GetKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig)
 	if err != nil {
 		return nil, err
 	}
-	openshiftClient, osClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig)
+	privilegedLoopbackOpenShiftClient, privilegedLoopbackClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +135,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
 	admissionControlPluginNames := []string{"OriginNamespaceLifecycle"}
-	admissionController := admission.NewFromPlugins(kubeClient, admissionControlPluginNames, "")
+	admissionController := admission.NewFromPlugins(privilegedLoopbackKubeClient, admissionControlPluginNames, "")
 
 	config := &MasterConfig{
 		Options: options,
@@ -148,7 +145,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		PolicyCache:               policyCache,
-		ProjectAuthorizationCache: newProjectAuthorizationCache(options.PolicyConfig.MasterAuthorizationNamespace, openshiftClient, kubeClient),
+		ProjectAuthorizationCache: newProjectAuthorizationCache(options.PolicyConfig.MasterAuthorizationNamespace, privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClient),
 
 		RequestContextMapper: requestContextMapper,
 
@@ -163,11 +160,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ClientCAs:    clientCAs,
 		APIClientCAs: apiClientCAs,
 
-		KubeClientConfig:       *kubeClientConfig,
-		OSClientConfig:         *osClientConfig,
-		DeployerOSClientConfig: *deployerOSClientConfig,
-		OSClient:               openshiftClient,
-		KubernetesClient:       kubeClient,
+		DeployerOSClientConfig:             *deployerOSClientConfig,
+		PrivilegedLoopbackClientConfig:     *privilegedLoopbackClientConfig,
+		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,
+		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
 	}
 
 	return config, nil
@@ -240,7 +236,7 @@ func getEtcdTokenAuthenticator(etcdHelper tools.EtcdHelper) authenticator.Token 
 
 // KubeClient returns the kubernetes client object
 func (c *MasterConfig) KubeClient() *kclient.Client {
-	return c.KubernetesClient
+	return c.PrivilegedLoopbackKubernetesClient
 }
 
 // PolicyClient returns the policy client object
@@ -249,49 +245,49 @@ func (c *MasterConfig) KubeClient() *kclient.Client {
 //  list, watch all policies in all namespaces
 //  create resourceAccessReviews in all namespaces
 func (c *MasterConfig) PolicyClient() *osclient.Client {
-	return c.OSClient
+	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // DeploymentClient returns the deployment client object
 func (c *MasterConfig) DeploymentClient() *kclient.Client {
-	return c.KubernetesClient
+	return c.PrivilegedLoopbackKubernetesClient
 }
 
 // DNSServerClient returns the DNS server client object
 // It must have the following capabilities:
 //   list, watch all services in all namespaces
 func (c *MasterConfig) DNSServerClient() *kclient.Client {
-	return c.KubernetesClient
+	return c.PrivilegedLoopbackKubernetesClient
 }
 
 // BuildLogClient returns the build log client object
 func (c *MasterConfig) BuildLogClient() *kclient.Client {
-	return c.KubernetesClient
+	return c.PrivilegedLoopbackKubernetesClient
 }
 
 // WebHookClient returns the webhook client object
 func (c *MasterConfig) WebHookClient() *osclient.Client {
-	return c.OSClient
+	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // BuildControllerClients returns the build controller client objects
 func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.KubernetesClient
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // ImageChangeControllerClient returns the openshift client object
 func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
-	return c.OSClient
+	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // ImageImportControllerClient returns the deployment client object
 func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
-	return c.OSClient
+	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // DeploymentControllerClients returns the deployment controller client object
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.KubernetesClient
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // DeployerClientConfig returns the client configuration a Deployer instance launched in a pod
@@ -301,20 +297,20 @@ func (c *MasterConfig) DeployerClientConfig() *kclient.Config {
 }
 
 func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.KubernetesClient
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.KubernetesClient
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 func (c *MasterConfig) DeploymentImageChangeControllerClient() *osclient.Client {
-	return c.OSClient
+	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // OriginNamespaceControllerClients returns a client for openshift and kubernetes.
 // The openshift client object must have authority to delete openshift content in any namespace
 // The kubernetes client object must have authority to execute a finalize request on a namespace
 func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.OSClient, c.KubernetesClient
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // NewEtcdHelper returns an EtcdHelper for the provided storage version.

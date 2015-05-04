@@ -51,7 +51,7 @@ const (
 
 var (
 	GroupsToResources = map[string][]string{
-		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate"},
+		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log"},
 		ImageGroupName:              {"images", "imagerepositories", "imagerepositorymappings", "imagerepositorytags", "imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
 		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
 		UserGroupName:               {"identities", "users", "useridentitymappings"},
@@ -64,7 +64,7 @@ var (
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
 		KubeInternalsGroupName: {"minions", "nodes", "bindings", "events", "namespaces"},
-		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services", "endpoints"},
+		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services", "endpoints", "pods/log"},
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
 		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status"},
 	}
@@ -230,4 +230,87 @@ type RoleList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
 	Items []Role
+}
+
+// ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
+type ClusterRole struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	// Rules holds all the PolicyRules for this ClusterRole
+	Rules []PolicyRule
+}
+
+// ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace.
+// It adds who information via Users and Groups and namespace information by which namespace it exists in.  ClusterRoleBindings in a given
+// namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
+type ClusterRoleBinding struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	// UserNames holds all the usernames directly bound to the role
+	Users kutil.StringSet
+	// GroupNames holds all the groups directly bound to the role
+	Groups kutil.StringSet
+
+	// Since Policy is a singleton, this is sufficient knowledge to locate a role
+	// ClusterRoleRefs can only reference the current namespace and the global namespace
+	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.
+	RoleRef kapi.ObjectReference
+}
+
+// ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
+// one ClusterPolicy document per namespace.
+type ClusterPolicy struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	// LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
+	LastModified kutil.Time
+
+	// Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by Role.Name
+	Roles map[string]ClusterRole
+}
+
+// ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
+// one ClusterPolicyBinding document per referenced ClusterPolicy namespace
+type ClusterPolicyBinding struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	// LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted
+	LastModified kutil.Time
+
+	// ClusterPolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
+	PolicyRef kapi.ObjectReference
+	// RoleBindings holds all the RoleBindings held by this ClusterPolicyBinding, mapped by RoleBinding.Name
+	RoleBindings map[string]ClusterRoleBinding
+}
+
+// ClusterPolicyList is a collection of ClusterPolicies
+type ClusterPolicyList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []ClusterPolicy
+}
+
+// ClusterPolicyBindingList is a collection of ClusterPolicyBindings
+type ClusterPolicyBindingList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []ClusterPolicyBinding
+}
+
+// ClusterRoleBindingList is a collection of ClusterRoleBindings
+type ClusterRoleBindingList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []ClusterRoleBinding
+}
+
+// ClusterRoleList is a collection of ClusterRoles
+type ClusterRoleList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []ClusterRole
 }

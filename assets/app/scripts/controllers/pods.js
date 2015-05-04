@@ -14,7 +14,7 @@ angular.module('openshiftConsole')
     $scope.imageStreams = {};
     $scope.imagesByDockerReference = {};
     $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
-    $scope.builds = {};    
+    $scope.builds = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
@@ -29,7 +29,7 @@ angular.module('openshiftConsole')
       $scope.emptyMessage = "No pods to show";
       updateFilterWarning();
       Logger.log("pods (subscribe)", $scope.unfilteredPods);
-    }));    
+    }));
 
     // Sets up subscription for imageStreams
     watches.push(DataService.watch("imageStreams", $scope, function(imageStreams) {
@@ -42,7 +42,7 @@ angular.module('openshiftConsole')
     watches.push(DataService.watch("builds", $scope, function(builds) {
       $scope.builds = builds.by("metadata.name");
       Logger.log("builds (subscribe)", $scope.builds);
-    }));   
+    }));
 
     var updateFilterWarning = function() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.pods) && !$.isEmptyObject($scope.unfilteredPods)) {
@@ -53,7 +53,7 @@ angular.module('openshiftConsole')
       }
       else {
         delete $scope.alerts["pods"];
-      }       
+      }
     };
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
@@ -62,9 +62,9 @@ angular.module('openshiftConsole')
         $scope.pods = labelSelector.select($scope.unfilteredPods);
         updateFilterWarning();
       });
-    });   
+    });
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
-    });     
+    });
   });

@@ -160,9 +160,13 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 	}
 
 	// TODO: Validate everything before building
+	mapper, typer := f.Factory.Object()
 	bulk := configcmd.Bulk{
-		Factory: f.Factory,
-		After:   configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
+		Mapper:            mapper,
+		Typer:             typer,
+		RESTClientFactory: f.Factory.RESTClient,
+
+		After: configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
 	}
 	if errs := bulk.Create(result.List, namespace); len(errs) != 0 {
 		return errExit

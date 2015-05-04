@@ -16,6 +16,7 @@ angular
     'ngRoute',
     'ngSanitize',
     'ngTouch',
+    'openshiftUI',
     'kubernetesUI'
   ])
   .constant("mainNavTabs", [])  // even though its not really a "constant", it has to be created as a constant and not a value
@@ -130,15 +131,15 @@ angular
       })
       .when('/project/:project/catalog/images', {
         templateUrl: 'views/catalog/images.html'
-      })      
+      })
       .when('/project/:project/create', {
         templateUrl: 'views/create.html'
-      })      
+      })
       .when('/project/:project/create/fromtemplate', {
         templateUrl: 'views/newfromtemplate.html'
       })
       .when('/project/:project/create/fromimage', {
-    	  templateUrl: 'views/create/fromimage.html'
+        templateUrl: 'views/create/fromimage.html'
       })
       .when('/oauth', {
         templateUrl: 'views/util/oauth.html',
@@ -188,7 +189,7 @@ angular
     $interval(function() {
       $('.duration[data-timestamp]').text(function(i, existing) {
         return durationFilter($(this).attr("data-timestamp")) || existing;
-      });      
+      });
     }, 1000);
   });
 

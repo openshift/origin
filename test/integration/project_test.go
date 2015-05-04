@@ -128,8 +128,12 @@ func TestProjectIsNamespace(t *testing.T) {
 
 	// now create a project
 	project = &projectapi.Project{
-		ObjectMeta:  kapi.ObjectMeta{Name: "new-project"},
-		DisplayName: "Hello World",
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "new-project",
+			Annotations: map[string]string{
+				"displayName": "Hello World",
+			},
+		},
 	}
 	projectResult, err := originClient.Projects().Create(project)
 	if err != nil {
@@ -144,8 +148,8 @@ func TestProjectIsNamespace(t *testing.T) {
 	if project.Name != namespace.Name {
 		t.Fatalf("Project name did not match namespace name, project %v, namespace %v", project.Name, namespace.Name)
 	}
-	if project.DisplayName != namespace.Annotations["displayname"] {
-		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.DisplayName, namespace.Annotations["displayname"])
+	if project.Annotations["displayName"] != namespace.Annotations["displayName"] {
+		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations["displayName"], namespace.Annotations["displayName"])
 	}
 
 }

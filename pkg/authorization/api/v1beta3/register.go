@@ -20,8 +20,26 @@ func init() {
 		&RoleList{},
 
 		&IsPersonalSubjectAccessReview{},
+
+		&ClusterRole{},
+		&ClusterRoleBinding{},
+		&ClusterPolicy{},
+		&ClusterPolicyBinding{},
+		&ClusterPolicyList{},
+		&ClusterPolicyBindingList{},
+		&ClusterRoleBindingList{},
+		&ClusterRoleList{},
 	)
 }
+
+func (*ClusterRole) IsAnAPIObject()              {}
+func (*ClusterPolicy) IsAnAPIObject()            {}
+func (*ClusterPolicyBinding) IsAnAPIObject()     {}
+func (*ClusterRoleBinding) IsAnAPIObject()       {}
+func (*ClusterPolicyList) IsAnAPIObject()        {}
+func (*ClusterPolicyBindingList) IsAnAPIObject() {}
+func (*ClusterRoleBindingList) IsAnAPIObject()   {}
+func (*ClusterRoleList) IsAnAPIObject()          {}
 
 func (*Role) IsAnAPIObject()                         {}
 func (*Policy) IsAnAPIObject()                       {}

@@ -3,6 +3,7 @@ package project
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/spf13/cobra"
 
@@ -10,11 +11,13 @@ import (
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/experimental/policy"
+	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
+
+const NewProjectRecommendedName = "new-project"
 
 type NewProjectOptions struct {
 	ProjectName string
@@ -28,7 +31,7 @@ type NewProjectOptions struct {
 	AdminUser             string
 }
 
-func NewCmdNewProject(f *clientcmd.Factory, parentName, name string) *cobra.Command {
+func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
 
 	cmd := &cobra.Command{
@@ -80,16 +83,16 @@ func (o *NewProjectOptions) Run() error {
 
 	project := &projectapi.Project{}
 	project.Name = o.ProjectName
-	project.DisplayName = o.DisplayName
 	project.Annotations = make(map[string]string)
 	project.Annotations["description"] = o.Description
+	project.Annotations["displayName"] = o.DisplayName
 	project, err := o.Client.Projects().Create(project)
 	if err != nil {
 		return err
 	}
 
 	if len(o.AdminUser) != 0 {
-		adduser := &policy.AddUserOptions{
+		adduser := &policy.RoleModificationOptions{
 			RoleNamespace:    o.MasterPolicyNamespace,
 			RoleName:         o.AdminRole,
 			BindingNamespace: project.Name,
@@ -97,7 +100,7 @@ func (o *NewProjectOptions) Run() error {
 			Users:            []string{o.AdminUser},
 		}
 
-		if err := adduser.Run(); err != nil {
+		if err := adduser.AddRole(); err != nil {
 			fmt.Printf("The project %v was created, but %v could not be added to the %v role.\n", o.ProjectName, o.AdminUser, o.AdminRole)
 			fmt.Printf("To add the user to the existing project, run\n\n\topenshift ex policy add-role-to-user --namespace=%v --role-namespace=%v %v %v\n", o.ProjectName, o.MasterPolicyNamespace, o.AdminRole, o.AdminUser)
 			return err

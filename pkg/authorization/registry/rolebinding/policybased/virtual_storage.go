@@ -250,20 +250,20 @@ func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *auth
 }
 
 // ensurePolicyBindingToMaster returns a PolicyBinding object that has a PolicyRef pointing to the Policy in the passed namespace.
-func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx kapi.Context, policyNamespace string) (*authorizationapi.PolicyBinding, error) {
-	policyBinding, err := m.bindingRegistry.GetPolicyBinding(ctx, policyNamespace)
+func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx kapi.Context, policyNamespace, policyBindingName string) (*authorizationapi.PolicyBinding, error) {
+	policyBinding, err := m.bindingRegistry.GetPolicyBinding(ctx, policyBindingName)
 	if err != nil {
 		if !kapierrors.IsNotFound(err) {
 			return nil, err
 		}
 
 		// if we have no policyBinding, go ahead and make one.  creating one here collapses code paths below.  We only take this hit once
-		policyBinding = policybindingregistry.NewEmptyPolicyBinding(kapi.NamespaceValue(ctx), policyNamespace)
+		policyBinding = policybindingregistry.NewEmptyPolicyBinding(kapi.NamespaceValue(ctx), policyNamespace, policyBindingName)
 		if err := m.bindingRegistry.CreatePolicyBinding(ctx, policyBinding); err != nil {
 			return nil, err
 		}
 
-		policyBinding, err = m.bindingRegistry.GetPolicyBinding(ctx, policyNamespace)
+		policyBinding, err = m.bindingRegistry.GetPolicyBinding(ctx, policyBindingName)
 		if err != nil {
 			return nil, err
 		}
@@ -281,10 +281,10 @@ func (m *VirtualStorage) getPolicyBindingForPolicy(ctx kapi.Context, policyNames
 	// we can autocreate a PolicyBinding object if the RoleBinding is for the master namespace OR if we've been explicity told to create the policying binding.
 	// the latter happens during priming
 	if (policyNamespace == m.masterAuthorizationNamespace) || allowAutoProvision {
-		return m.ensurePolicyBindingToMaster(ctx, policyNamespace)
+		return m.ensurePolicyBindingToMaster(ctx, policyNamespace, authorizationapi.GetPolicyBindingName(policyNamespace))
 	}
 
-	policyBinding, err := m.bindingRegistry.GetPolicyBinding(ctx, policyNamespace)
+	policyBinding, err := m.bindingRegistry.GetPolicyBinding(ctx, authorizationapi.GetPolicyBindingName(policyNamespace))
 	if err != nil {
 		return nil, err
 	}

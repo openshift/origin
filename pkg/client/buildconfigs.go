@@ -1,12 +1,19 @@
 package client
 
 import (
+	"fmt"
+	"net/url"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
+
+// ErrTriggerIsNotAWebHook is returned when a webhook URL is requested for a trigger
+// that is not a webhook type.
+var ErrTriggerIsNotAWebHook = fmt.Errorf("the specified trigger is not a webhook")
 
 // BuildConfigsNamespacer has methods to work with BuildConfig resources in a namespace
 type BuildConfigsNamespacer interface {
@@ -22,6 +29,7 @@ type BuildConfigInterface interface {
 	Delete(name string) error
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 	Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error)
+	WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error)
 }
 
 // buildConfigs implements BuildConfigsNamespacer interface
@@ -56,6 +64,19 @@ func (c *buildConfigs) Get(name string) (result *buildapi.BuildConfig, err error
 	result = &buildapi.BuildConfig{}
 	err = c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).Do().Into(result)
 	return
+}
+
+// WebHookURL returns the URL for the provided build config name and trigger policy, or ErrTriggerIsNotAWebHook
+// if the trigger is not a webhook type.
+func (c *buildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {
+	switch {
+	case trigger.GenericWebHook != nil:
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigHooks").Name(name).Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
+	case trigger.GithubWebHook != nil:
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigHooks").Name(name).Suffix(trigger.GithubWebHook.Secret, "github").URL(), nil
+	default:
+		return nil, ErrTriggerIsNotAWebHook
+	}
 }
 
 // Create creates a new buildconfig. Returns the server's representation of the buildconfig and error if one occurs.

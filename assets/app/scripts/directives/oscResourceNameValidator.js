@@ -2,7 +2,7 @@
 
 angular.module("openshiftConsole")
   .directive("oscResourceNameValidator", function(){
-    
+
     //github.com/GoogleCloudPlatform/kubernetes/pkg/util/validation.go
     //limiting to valid service names as LCD
     var maxNameLength = 24;
@@ -22,11 +22,11 @@ angular.module("openshiftConsole")
             return false;
           }
           if(modelValue.length <= maxNameLength){
-            
+
             if(VALID_NAME_RE.test(viewValue) && viewValue.indexOf(" ") === -1){
               return true;
             }
-            
+
           }
           return false;
         };

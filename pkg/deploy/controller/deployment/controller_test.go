@@ -6,6 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 
 	api "github.com/openshift/origin/pkg/api/latest"
@@ -99,6 +100,10 @@ func TestHandle_createPodOk(t *testing.T) {
 
 	if e, a := expectedContainer.Env[0].Value, actualContainer.Env[0].Value; e != a {
 		t.Fatalf("expected container env value %s, got %s", expectedContainer.Env[0].Value, actualContainer.Env[0].Value)
+	}
+
+	if e, a := expectedContainer.Resources, actualContainer.Resources; !kapi.Semantic.DeepEqual(e, a) {
+		t.Fatalf("expected container resources %v, got %v", expectedContainer.Resources, actualContainer.Resources)
 	}
 }
 
@@ -410,6 +415,12 @@ func okContainer() *kapi.Container {
 			{
 				Name:  "env1",
 				Value: "val1",
+			},
+		},
+		Resources: kapi.ResourceRequirements{
+			Limits: kapi.ResourceList{
+				kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+				kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
 			},
 		},
 	}

@@ -15,7 +15,7 @@ angular.module('openshiftConsole')
     var self = this;
     $rootScope.$on( "$routeChangeStart", function(event, next, current) {
       self.clear();
-    });      
+    });
   }
 
   // Opts:

@@ -61,8 +61,8 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 	}
 
 	event := api.LatestTaggedImage(stream, tag)
-	if event == nil {
-		return nil, errors.NewNotFound("imageStreamTag", tag)
+	if event == nil || len(event.Image) == 0 {
+		return nil, errors.NewNotFound("imageStreamTag", id)
 	}
 
 	image, err := r.imageRegistry.GetImage(ctx, event.Image)

@@ -1,0 +1,6 @@
+<div>
+  <div ng-if="!resource">
+    Select an object to see more details.
+  </div>
+  <kubernetes-object-describer kind="{{kind}}" resource="resource" ng-if="resource"></kubernetes-object-describer>
+</div>

@@ -74,8 +74,8 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
-		if len(project.DisplayName) > 0 && project.DisplayName != namespace {
-			fmt.Fprintf(out, "In project %s (%s)\n", project.DisplayName, namespace)
+		if len(project.Annotations["displayName"]) > 0 && project.Annotations["displayName"] != namespace {
+			fmt.Fprintf(out, "In project %s (%s)\n", project.Annotations["displayName"], namespace)
 		} else {
 			fmt.Fprintf(out, "In project %s\n", namespace)
 		}
