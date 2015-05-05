@@ -37,20 +37,26 @@ type DeploymentConfigController struct {
 // fatalError is an error which can't be retried.
 type fatalError string
 
+// transientError is an error which should always be retried (indefinitely).
+type transientError string
+
 func (e fatalError) Error() string { return "fatal error handling deploymentConfig: " + string(e) }
+func (e transientError) Error() string {
+	return "transient error handling deploymentConfig: " + string(e)
+}
 
 // Handle processes config and creates a new deployment if necessary.
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
 	// Only deploy when the version has advanced past 0.
 	if config.LatestVersion == 0 {
-		glog.V(5).Infof("Waiting for first version of %s", labelFor(config))
+		glog.V(5).Infof("Waiting for first version of %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
-	// Find any existing deployment, and return if one already exists.
+	// Check if the latest deployment already exists
 	if deployment, err := c.deploymentClient.getDeployment(config.Namespace, deployutil.LatestDeploymentNameForConfig(config)); err != nil {
 		if !errors.IsNotFound(err) {
-			return fmt.Errorf("couldn't get deployment for config %s: %v", labelFor(config), err)
+			return fmt.Errorf("couldn't get deployment for config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 		}
 	} else {
 		// If there's an existing deployment, nothing needs to be done.
@@ -59,10 +65,29 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		}
 	}
 
+	// Check if any previous deployment is still running (any non-terminal state).
+	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
+	if err != nil {
+		return fmt.Errorf("couldn't list deployments for config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
+	}
+	for _, deployment := range existingDeployments.Items {
+		deploymentStatus := deployutil.StatusForDeployment(&deployment)
+		switch deploymentStatus {
+		case deployapi.DeploymentStatusFailed,
+			deployapi.DeploymentStatusComplete:
+			// Previous deployment in terminal state - can ignore
+			// Ignoring specific deployment states so that any new
+			// deployment state will not be ignored
+		default:
+			glog.V(4).Infof("Found previous deployment %s (status %s) - will requeue", deployutil.LabelForDeployment(&deployment), deploymentStatus)
+			return transientError(fmt.Sprintf("found previous deployment (state: %s) for %s - requeuing", deploymentStatus, deployutil.LabelForDeploymentConfig(config)))
+		}
+	}
+
 	// Try and build a deployment for the config.
 	deployment, err := c.makeDeployment(config)
 	if err != nil {
-		return fatalError(fmt.Sprintf("couldn't make deployment from (potentially invalid) config %s: %v", labelFor(config), err))
+		return fatalError(fmt.Sprintf("couldn't make deployment from (potentially invalid) config %s: %v", deployutil.LabelForDeploymentConfig(config), err))
 	}
 
 	// Compute the desired replicas for the deployment. The count should match
@@ -74,10 +99,6 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// If there are no existing deployments, use the replica count from the
 	// config template.
 	desiredReplicas := config.Template.ControllerTemplate.Replicas
-	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
-	if err != nil {
-		return fmt.Errorf("couldn't list deployments to compute desired replica count: %v", err)
-	}
 	if len(existingDeployments.Items) > 0 {
 		desiredReplicas = 0
 		for _, existing := range existingDeployments.Items {
@@ -88,26 +109,21 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 
 	// Create the deployment.
 	if _, err := c.deploymentClient.createDeployment(config.Namespace, deployment); err == nil {
-		glog.V(4).Infof("Created deployment for config %s", labelFor(config))
+		glog.V(4).Infof("Created deployment for config %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	} else {
 		// If the deployment was already created, just move on. The cache could be stale, or another
 		// process could have already handled this update.
 		if errors.IsAlreadyExists(err) {
-			c.recorder.Eventf(config, "alreadyExists", "Deployment already exists for config: %s", labelFor(config))
-			glog.V(4).Infof("Deployment already exists for config %s", labelFor(config))
+			c.recorder.Eventf(config, "alreadyExists", "Deployment already exists for config: %s", deployutil.LabelForDeploymentConfig(config))
+			glog.V(4).Infof("Deployment already exists for config %s", deployutil.LabelForDeploymentConfig(config))
 			return nil
 		}
 
 		// log an event if the deployment could not be created that the user can discover
 		c.recorder.Eventf(config, "failedCreate", "Error creating: %v", err)
-		return fmt.Errorf("couldn't create deployment for config %s: %v", labelFor(config), err)
+		return fmt.Errorf("couldn't create deployment for config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
-}
-
-// labelFor builds a string identifier for a DeploymentConfig.
-func labelFor(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
 }
 
 // deploymentClient abstracts access to deployments.

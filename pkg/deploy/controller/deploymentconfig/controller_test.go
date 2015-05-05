@@ -2,6 +2,7 @@ package deploymentconfig
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -104,6 +105,7 @@ func TestHandle_updateOk(t *testing.T) {
 		for _, e := range scenario.existing {
 			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), api.Codec)
 			d.Spec.Replicas = e.replicas
+			d.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}
 		err := controller.Handle(config)
@@ -243,5 +245,99 @@ func TestHandle_fatalError(t *testing.T) {
 	}
 	if _, isFatal := err.(fatalError); !isFatal {
 		t.Fatalf("expected a fatal error, got: %v", err)
+	}
+}
+
+// TestHandle_existingDeployments ensures that an attempt to create a
+// new deployment for a config that has existing deployments succeeds of fails
+// depending upon the state of the existing deployments
+func TestHandle_existingDeployments(t *testing.T) {
+	var (
+		config              *deployapi.DeploymentConfig
+		deployed            *kapi.ReplicationController
+		existingDeployments *kapi.ReplicationControllerList
+	)
+
+	controller := &DeploymentConfigController{
+		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
+			return deployutil.MakeDeployment(config, api.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return nil, kerrors.NewNotFound("ReplicationController", name)
+			},
+			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				deployed = deployment
+				return deployment, nil
+			},
+			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+				return existingDeployments, nil
+			},
+		},
+		recorder: &record.FakeRecorder{},
+	}
+
+	type existing struct {
+		version int
+		status  deployapi.DeploymentStatus
+	}
+
+	type scenario struct {
+		version   int
+		existing  []existing
+		errorType reflect.Type
+	}
+
+	transientErrorType := reflect.TypeOf(transientError(""))
+	scenarios := []scenario{
+		// No existing deployments
+		{1, []existing{}, nil},
+		// A single existing completed deployment
+		{2, []existing{{1, deployapi.DeploymentStatusComplete}}, nil},
+		// A single existing failed deployment
+		{2, []existing{{1, deployapi.DeploymentStatusFailed}}, nil},
+		// Multiple existing completed/failed deployments
+		{3, []existing{{2, deployapi.DeploymentStatusFailed}, {1, deployapi.DeploymentStatusComplete}}, nil},
+
+		// A single existing deployment in the default state
+		{2, []existing{{1, ""}}, transientErrorType},
+		// A single existing new deployment
+		{2, []existing{{1, deployapi.DeploymentStatusNew}}, transientErrorType},
+		// A single existing pending deployment
+		{2, []existing{{1, deployapi.DeploymentStatusPending}}, transientErrorType},
+		// A single existing running deployment
+		{2, []existing{{1, deployapi.DeploymentStatusRunning}}, transientErrorType},
+		// Multiple existing deployments with one in new/pending/running
+		{4, []existing{{3, deployapi.DeploymentStatusRunning}, {2, deployapi.DeploymentStatusComplete}, {1, deployapi.DeploymentStatusFailed}}, transientErrorType},
+	}
+
+	for _, scenario := range scenarios {
+		deployed = nil
+		config = deploytest.OkDeploymentConfig(scenario.version)
+		existingDeployments = &kapi.ReplicationControllerList{}
+		for _, e := range scenario.existing {
+			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), api.Codec)
+			if e.status != "" {
+				d.Annotations[deployapi.DeploymentStatusAnnotation] = string(e.status)
+			}
+			existingDeployments.Items = append(existingDeployments.Items, *d)
+		}
+		err := controller.Handle(config)
+
+		if scenario.errorType == nil {
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if deployed == nil {
+				t.Fatalf("expected a deployment")
+			}
+		} else {
+			if err == nil {
+				t.Fatalf("expected error")
+			}
+			if reflect.TypeOf(err) != scenario.errorType {
+				t.Fatalf("error expected: %s, got: %s", scenario.errorType, reflect.TypeOf(err))
+			}
+		}
 	}
 }

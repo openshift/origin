@@ -188,14 +188,6 @@ func TestTriggers_imageChange(t *testing.T) {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
-	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
-		t.Fatalf("Error generating config: %v", err)
-	}
-
-	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
-		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
-	}
-
 	var deployment *kapi.ReplicationController
 	// expecting a new RC
 	t.Log("Waiting for a new replication controller")
@@ -230,6 +222,22 @@ waitForPendingStatus:
 		t.Fatalf("expected deployment status %q, got %q", e, a)
 	}
 
+	// before we update the config, we need to update the state of the existing deployment
+	// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
+	// update the deployment
+	if _, err = kubeClusterAdminClient.ReplicationControllers(testutil.Namespace()).Update(deployment); err != nil {
+		t.Fatalf("Error updating existing deployment: %v", err)
+	}
+
+	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
+		t.Fatalf("Error generating config: %v", err)
+	}
+
+	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
+		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
+	}
+
 	createTagEvent("sha256:00000000000000000000000000000002")
 
 	var newDeployment *kapi.ReplicationController
@@ -239,8 +247,10 @@ waitForNewDeployment:
 	for {
 		select {
 		case event := <-watch.ResultChan():
-			newDeployment = event.Object.(*kapi.ReplicationController)
-			break waitForNewDeployment
+			if event.Type == watchapi.Added {
+				newDeployment = event.Object.(*kapi.ReplicationController)
+				break waitForNewDeployment
+			}
 		}
 	}
 
@@ -290,6 +300,19 @@ func TestTriggers_configChange(t *testing.T) {
 	}
 
 	config.Template.ControllerTemplate.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
+
+	// before we update the config, we need to update the state of the existing deployment
+	// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
+	// update the deployment
+	if _, err = openshift.KubeClient.ReplicationControllers(testutil.Namespace()).Update(deployment); err != nil {
+		t.Fatalf("Error updating existing deployment: %v", err)
+	}
+
+	event = <-watch.ResultChan()
+	if e, a := watchapi.Modified, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
 
 	if _, err := openshift.Client.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
 		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
