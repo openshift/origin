@@ -1,0 +1,265 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1beta1",
+  "labels": {
+    "template": "zookeeper"
+  },
+  "metadata": {
+    "annotations": {
+      "description": "Example of replicated Zookeeper 3.4.6 server",
+      "tags": "database,zookeeper",
+      "iconClass" : "icon-database"
+    },
+    "name": "zookeeper"
+  },
+  "parameters": [
+    {
+      "name": "ZOOKEEPER_IMAGE",
+      "description": "The name of Zookeeper Docker image to use",
+      "value": "openshift/zookeeper-346-fedora20"
+    }
+  ],
+  "items":[
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "zookeeper-346-jdk7"
+      },
+      "spec": {
+        "dockerImageRepository": "${ZOOKEEPER_IMAGE}",
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Provides Zookeeper 3.4.6 Server",
+              "iconClass": "icon-database",
+              "tags": "service,zookeeper",
+              "version": "3.4.6"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "zookeeper",
+        "labels": {
+          "name": "zookeeper"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "client",
+            "port": 2181,
+            "targetPort": 2181
+          }
+        ],
+        "selector": {
+          "name": "zookeeper"
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "zookeeper-1",
+        "labels": {
+          "name": "zookeeper-1"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "client",
+            "port": 2181,
+            "targetPort": 2181
+          },
+          {
+            "name": "followers",
+            "port": 2888,
+            "targetPort": 2888
+          },
+          {
+            "name": "election",
+            "port": 3888,
+            "targetPort": 3888
+          }
+        ],
+        "selector": {
+          "server-id": "1"
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "zookeeper-2",
+        "labels": {
+          "name": "zookeeper-2"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "client",
+            "port": 2181,
+            "targetPort": 2181
+          },
+          {
+            "name": "followers",
+            "port": 2888,
+            "targetPort": 2888
+          },
+          {
+            "name": "election",
+            "port": 3888,
+            "targetPort": 3888
+          }
+        ],
+        "selector": {
+          "server-id": "2"
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "zookeeper-3",
+        "labels": {
+          "name": "zookeeper-3"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "client",
+            "port": 2181,
+            "targetPort": 2181
+          },
+          {
+            "name": "followers",
+            "port": 2888,
+            "targetPort": 2888
+          },
+          {
+            "name": "election",
+            "port": 3888,
+            "targetPort": 3888
+          }
+        ],
+        "selector": {
+          "server-id": "3"
+        }
+      }
+    },
+    {
+      "kind": "Pod",
+      "id": "zookeeper-1",
+      "apiVersion": "v1beta1",
+      "labels": {
+        "name": "zookeeper",
+        "server-id": "1"
+      },
+      "desiredState": {
+        "manifest": {
+          "id": "zookeeper-1",
+          "containers": [
+            {
+              "name": "server",
+              "image": "${ZOOKEEPER_IMAGE}",
+              "env":[
+                { "name": "SERVER_ID", "value": "1" }
+              ],
+              "ports":[
+                {
+                  "containerPort": 2181
+                },
+                {
+                  "containerPort": 2888
+                },
+                {
+                  "containerPort": 3888
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "kind": "Pod",
+      "id": "zookeeper-2",
+      "apiVersion": "v1beta1",
+      "labels": {
+        "name": "zookeeper",
+        "server-id": "2"
+      },
+      "desiredState": {
+        "manifest": {
+          "id": "zookeeper-2",
+          "containers": [
+            {
+              "name": "server",
+              "image": "${ZOOKEEPER_IMAGE}",
+              "env":[
+                { "name": "SERVER_ID", "value": "2" }
+              ],
+              "ports":[
+                {
+                  "containerPort": 2181
+                },
+                {
+                  "containerPort": 2888
+                },
+                {
+                  "containerPort": 3888
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "kind": "Pod",
+      "id": "zookeeper-3",
+      "apiVersion": "v1beta1",
+      "labels": {
+        "name": "zookeeper",
+        "server-id": "3"
+      },
+      "desiredState": {
+        "manifest": {
+          "id": "zookeeper-3",
+          "containers": [
+            {
+              "name": "server",
+              "image": "${ZOOKEEPER_IMAGE}",
+              "env":[
+                { "name": "SERVER_ID", "value": "3" }
+              ],
+              "ports":[
+                {
+                  "containerPort": 2181
+                },
+                {
+                  "containerPort": 2888
+                },
+                {
+                  "containerPort": 3888
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
