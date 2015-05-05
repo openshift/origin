@@ -29,7 +29,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 	options := &whoCanOptions{}
 
 	cmd := &cobra.Command{
-		Use:   name + " <verb> <resource>",
+		Use:   "who-can VERB RESOURCE",
 		Short: "Indicates which users can perform the action on the resource.",
 		Long:  `Indicates which users can perform the action on the resource.`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -55,7 +55,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 
 func (o *whoCanOptions) complete(args []string) error {
 	if len(args) != 2 {
-		return errors.New("You must specify two arguments: <verb> <resource>")
+		return errors.New("You must specify two arguments: verb and resource")
 	}
 
 	o.verb = args[0]

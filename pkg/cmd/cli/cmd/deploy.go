@@ -16,13 +16,19 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-const newCmdDeployDescription = `
-View, start and restart deployments.
+const (
+	deploy_long = `View, start and restart deployments.
 
 If no options are given, view the latest deployment.
 
-NOTE: This command is still under active development and is subject to change.
-`
+NOTE: This command is still under active development and is subject to change.`
+
+	deploy_example = `  // Display the latest deployment for the 'database' deployment config
+  $ %[1]s deploy database
+
+  // Start a new deployment based on the 'frontend' deployment config
+  $ %[1]s deploy frontend --latest`
+)
 
 // NewCmdDeploy creates a new `deploy` command.
 func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -30,9 +36,10 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	var retryDeploy bool
 
 	cmd := &cobra.Command{
-		Use:   "deploy <deploymentConfig>",
-		Short: "View, start and restart deployments.",
-		Long:  newCmdDeployDescription,
+		Use:     "deploy DEPLOYMENTCONFIG",
+		Short:   "View, start and restart deployments.",
+		Long:    deploy_long,
+		Example: fmt.Sprintf(deploy_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 || len(args[0]) == 0 {
 				fmt.Println(cmdutil.UsageError(cmd, "A deploymentConfig name is required."))

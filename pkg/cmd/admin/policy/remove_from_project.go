@@ -33,9 +33,9 @@ func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, o
 	options := &RemoveFromProjectOptions{}
 
 	cmd := &cobra.Command{
-		Use:   name + " <group> [group]...",
-		Short: "remove group from the current project",
-		Long:  `remove group from the current project`,
+		Use:   name + " GROUP [GROUP ...]",
+		Short: "Remove group from the current project",
+		Long:  `Remove group from the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, &options.Groups, "group"); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -54,9 +54,9 @@ func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, ou
 	options := &RemoveFromProjectOptions{}
 
 	cmd := &cobra.Command{
-		Use:   name + " <user> [user]...",
-		Short: "remove user from the current project",
-		Long:  `remove user from the current project`,
+		Use:   name + " USER [USER ...]",
+		Short: "Remove user from the current project",
+		Long:  `Remove user from the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, &options.Users, "user"); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))

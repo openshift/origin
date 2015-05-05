@@ -12,23 +12,23 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const buildLogsLongDesc = `Retrieve logs from the containers where the build occured
+const (
+	buildLogs_long = `Retrieve logs from the containers where the build occured.
 
-NOTE: This command may be moved in the future.
+NOTE: This command may be moved in the future.`
 
-Examples:
-
-	# Stream logs from container to stdout
-	$ %[1]s build-logs 566bed879d2d
-`
+	buildLogs_example = `  // Stream logs from container to stdout
+  $ %[1]s build-logs 566bed879d2d`
+)
 
 // NewCmdBuildLogs implements the OpenShift cli build-logs command
 func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	opts := api.BuildLogOptions{}
 	cmd := &cobra.Command{
-		Use:   "build-logs <build>",
-		Short: "Show container logs from the build container",
-		Long:  fmt.Sprintf(buildLogsLongDesc, fullName),
+		Use:     "build-logs BUILD",
+		Short:   "Show container logs from the build container",
+		Long:    buildLogs_long,
+		Example: fmt.Sprintf(buildLogs_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunBuildLogs(f, out, cmd, opts, args)
 			cmdutil.CheckErr(err)
@@ -42,7 +42,7 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 // RunBuildLogs contains all the necessary functionality for the OpenShift cli build-logs command
 func RunBuildLogs(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, opts api.BuildLogOptions, args []string) error {
 	if len(args) != 1 {
-		return cmdutil.UsageError(cmd, "<build> is a required argument")
+		return cmdutil.UsageError(cmd, "A build name is required")
 	}
 
 	namespace, err := f.DefaultNamespace()

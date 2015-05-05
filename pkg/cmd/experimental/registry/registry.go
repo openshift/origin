@@ -21,8 +21,8 @@ import (
 	"github.com/openshift/origin/pkg/generate/app"
 )
 
-const longDesc = `
-Install or configure a Docker registry for OpenShift
+const (
+	registry_long = `Install or configure a Docker registry for OpenShift
 
 This command sets up a Docker registry integrated with OpenShift to provide notifications when
 images are pushed. With no arguments, the command will check for the existing registry service
@@ -37,27 +37,22 @@ that image for more on setting up alternative storage. Once you've made those ch
 pass --replicas=2 or higher to ensure you have failover protection. The default registry setup
 uses a local volume and the data will be lost if you delete the running pod.
 
-Examples:
-  Check if default Docker registry ("docker-registry") has been created:
-
-  $ %[1]s %[2]s --dry-run
-
-  See what the registry would look like if created:
-
-  $ %[1]s %[2]s -o json
-
-  Create a registry if it does not exist with two replicas:
-
-  $ %[1]s %[2]s --replicas=2 --credentials=registry-user.kubeconfig
-
-  Use a different registry image and see the registry configuration:
-
-  $ %[1]s %[2]s -o yaml --images=myrepo/docker-registry:mytag
-
 NOTE: This command is intended to simplify the tasks of setting up a Docker registry in a new
   installation. Some configuration beyond this command is still required to make
-  your registry persist data.
-`
+  your registry persist data.`
+
+	registry_example = `  // Check if default Docker registry ("docker-registry") has been created
+  $ %[1]s %[2]s --dry-run
+
+  // See what the registry would look like if created
+  $ %[1]s %[2]s -o json
+
+  // Create a registry if it does not exist with two replicas
+  $ %[1]s %[2]s --replicas=2 --credentials=registry-user.kubeconfig
+
+  // Use a different registry image and see the registry configuration
+  $ %[1]s %[2]s -o yaml --images=myrepo/docker-registry:mytag`
+)
 
 type RegistryConfig struct {
 	Type          string
@@ -88,9 +83,10 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	}
 
 	cmd := &cobra.Command{
-		Use:   name,
-		Short: "Install and check OpenShift Docker registry",
-		Long:  fmt.Sprintf(longDesc, parentName, name),
+		Use:     name,
+		Short:   "Install and check OpenShift Docker registry",
+		Long:    registry_long,
+		Example: fmt.Sprintf(registry_example, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCmdRegistry(f, cmd, out, cfg, args)
 			if err != errExit {

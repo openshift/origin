@@ -40,30 +40,28 @@ In the event an error occurs while updating, a temporary file will be created on
 that contains your unapplied changes. The most common error when updating a resource
 is another editor changing the resource on the server. When this occurs, you will have
 to apply your changes to the newer version of the resource, or update your temporary
-saved copy to include the latest resource version.
+saved copy to include the latest resource version.`
 
-Examples:
+	edit_example = `  // Edit the service named 'docker-registry':
+  $ %[1]s edit svc/docker-registry
 
-	# Edit the service named 'docker-registry':
-	$ %[1]s edit svc/docker-registry
+  // Edit the deployment config named 'my-deployment':
+  $ %[1]s edit dc/my-deployment
 
-	# Edit the deployment config named 'my-deployment':
-	$ %[1]s edit dc/my-deployment
+  // Use an alternative editor
+  $ OSC_EDITOR="nano" %[1]s edit dc/my-deployment
 
-	# Use an alternative editor
-	$ OSC_EDITOR="nano" %[1]s edit dc/my-deployment
-
-	# Edit the service 'docker-registry' in JSON using the v1beta3 API format:
-	$ %[1]s edit svc/docker-registry --output-version=v1beta3 -o json
-`
+  // Edit the service 'docker-registry' in JSON using the v1beta3 API format:
+  $ %[1]s edit svc/docker-registry --output-version=v1beta3 -o json`
 )
 
 func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	var filenames util.StringList
 	cmd := &cobra.Command{
-		Use:   "edit -f FILENAME",
-		Short: "Edit a resource on the server and apply the update.",
-		Long:  fmt.Sprintf(edit_long, fullName),
+		Use:     "edit (RESOURCE/NAME | -f FILENAME)",
+		Short:   "Edit a resource on the server and apply the update.",
+		Long:    edit_long,
+		Example: fmt.Sprintf(edit_example, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunEdit(fullName, f, out, cmd, args, filenames)
 			if err == errExit {
