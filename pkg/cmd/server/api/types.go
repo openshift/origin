@@ -85,6 +85,8 @@ type MasterConfig struct {
 	// PolicyConfig holds information about where to locate critical pieces of bootstrapping policy
 	PolicyConfig PolicyConfig
 
+	// ProjectNodeSelector holds default project node label selector
+	ProjectNodeSelector string `json:"projectNodeSelector,omitempty"`
 	// ProjectRequestConfig holds information about how to handle new project requests
 	ProjectRequestConfig ProjectRequestConfig
 }

@@ -18,9 +18,10 @@ import (
 )
 
 type NewProjectOptions struct {
-	ProjectName string
-	DisplayName string
-	Description string
+	ProjectName  string
+	DisplayName  string
+	Description  string
+	NodeSelector string
 
 	Client client.Interface
 
@@ -40,8 +41,8 @@ After your project is created you can switch to it using %[2]s <project name>.`
 	requestProject_example = `  // Create a new project with minimal information
   $ %[1]s web-team-dev
 
-  // Create a new project with a description
-  $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
+  // Create a new project with a description and node selector
+  $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team." --node-selector="env=dev"`
 )
 
 func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -49,7 +50,7 @@ func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f
 	options.Out = out
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
+		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION] [--node-selector=<label selector>]", name),
 		Short:   "Request a new project",
 		Long:    fmt.Sprintf(requestProject_long, oscLoginName, oscProjectName),
 		Example: fmt.Sprintf(requestProject_example, fullName),
@@ -71,6 +72,7 @@ func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f
 
 	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "project display name")
 	cmd.Flags().StringVar(&options.Description, "description", "", "project description")
+	cmd.Flags().StringVar(&options.NodeSelector, "node-selector", "", "Restrict pods onto nodes matching given label selector")
 
 	return cmd
 }
@@ -105,6 +107,7 @@ func (o *NewProjectOptions) Run() error {
 	projectRequest.DisplayName = o.DisplayName
 	projectRequest.Annotations = make(map[string]string)
 	projectRequest.Annotations["description"] = o.Description
+	projectRequest.Annotations["nodeSelector"] = o.NodeSelector
 
 	project, err := o.Client.ProjectRequests().Create(projectRequest)
 	if err != nil {

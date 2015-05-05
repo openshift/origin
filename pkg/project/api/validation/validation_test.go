@@ -97,6 +97,33 @@ func TestValidateProject(t *testing.T) {
 			// Should fail because the display name has \t \n
 			numErrs: 1,
 		},
+		{
+			name: "valid node selector",
+			project: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "foo",
+					Namespace: "",
+					Annotations: map[string]string{
+						"nodeSelector": "infra=true, env in (prod, qa)",
+					},
+				},
+			},
+			numErrs: 0,
+		},
+		{
+			name: "invalid node selector",
+			project: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "foo",
+					Namespace: "",
+					Annotations: map[string]string{
+						"nodeSelector": "infra:true,env",
+					},
+				},
+			},
+			// Should fail because infra:true is invalid format
+			numErrs: 1,
+		},
 	}
 
 	for _, tc := range testCases {

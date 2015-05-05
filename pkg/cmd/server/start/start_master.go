@@ -308,8 +308,9 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	if err != nil {
 		return err
 	}
-	//	 must start policy caching immediately
+	// Must start policy caching immediately
 	openshiftConfig.RunPolicyCache()
+	openshiftConfig.RunProjectCache()
 
 	unprotectedInstallers := []origin.APIInstaller{}
 

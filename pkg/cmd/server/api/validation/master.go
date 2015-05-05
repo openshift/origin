@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
@@ -88,6 +89,8 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 		allErrs = append(allErrs, ValidateOAuthConfig(config.OAuthConfig).Prefix("oauthConfig")...)
 	}
 
+	allErrs = append(allErrs, ValidateProjectNodeSelector(config.ProjectNodeSelector)...)
+
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
 	allErrs = append(allErrs, ValidateProjectRequestConfig(config.ProjectRequestConfig).Prefix("projectRequestConfig")...)
@@ -103,6 +106,19 @@ func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.Validat
 	}
 	if len(config.OpenShiftStorageVersion) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("openShiftStorageVersion"))
+	}
+
+	return allErrs
+}
+
+func ValidateProjectNodeSelector(nodeSelector string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(nodeSelector) > 0 {
+		_, err := labels.Parse(nodeSelector)
+		if err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("projectNodeSelector", nodeSelector, "must be a valid label selector"))
+		}
 	}
 
 	return allErrs
