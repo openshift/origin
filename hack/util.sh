@@ -256,7 +256,7 @@ function stop_openshift_server()
 # time_now return the time since the epoch in millis
 function time_now()
 {
-  echo $(($(date +'%s * 1000 + %-N / 1000000')))
+  echo $(date +%s000)
 }
 
 # Handler for when we exit automatically on an error.
