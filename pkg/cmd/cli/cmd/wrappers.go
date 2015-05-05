@@ -6,9 +6,8 @@ import (
 	"io"
 	"strings"
 
+	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/spf13/cobra"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -33,7 +32,7 @@ Possible resources include builds, buildConfigs, services, pods, etc.`
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := cmd.NewCmdGet(f.Factory, out)
+	cmd := kcmd.NewCmdGet(f.Factory, out)
 	cmd.Long = get_long
 	cmd.Example = fmt.Sprintf(get_example, fullName)
 	return cmd
@@ -56,7 +55,7 @@ JSON and YAML formats are accepted.`
 
 // NewCmdUpdate is a wrapper for the Kubernetes cli update command
 func NewCmdUpdate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := cmd.NewCmdUpdate(f.Factory, out)
+	cmd := kcmd.NewCmdUpdate(f.Factory, out)
 	cmd.Long = update_long
 	cmd.Example = fmt.Sprintf(update_example, fullName)
 	return cmd
@@ -92,7 +91,7 @@ will be lost along with the rest of the resource.`
 
 // NewCmdDelete is a wrapper for the Kubernetes cli delete command
 func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := cmd.NewCmdDelete(f.Factory, out)
+	cmd := kcmd.NewCmdDelete(f.Factory, out)
 	cmd.Long = delete_long
 	cmd.Example = fmt.Sprintf(delete_example, fullName)
 	return cmd
@@ -110,7 +109,7 @@ const (
 
 // NewCmdLog is a wrapper for the Kubernetes cli log command
 func NewCmdLog(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := cmd.NewCmdLog(f.Factory, out)
+	cmd := kcmd.NewCmdLog(f.Factory, out)
 	cmd.Long = log_long
 	cmd.Example = fmt.Sprintf(log_example, fullName)
 	return cmd
@@ -130,7 +129,7 @@ JSON and YAML formats are accepted.`
 
 // NewCmdCreate is a wrapper for the Kubernetes cli create command
 func NewCmdCreate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := cmd.NewCmdCreate(f.Factory, out)
+	cmd := kcmd.NewCmdCreate(f.Factory, out)
 	cmd.Long = create_long
 	cmd.Example = fmt.Sprintf(create_example, fullName)
 	return cmd
@@ -148,7 +147,7 @@ const (
 
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
 func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
-	cmd := cmd.NewCmdExec(f.Factory, cmdIn, cmdOut, cmdErr)
+	cmd := kcmd.NewCmdExec(f.Factory, cmdIn, cmdOut, cmdErr)
 	cmd.Long = exec_long
 	cmd.Example = fmt.Sprintf(exec_example, fullName)
 	return cmd
@@ -172,7 +171,7 @@ const (
 
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
 func NewCmdPortForward(fullName string, f *clientcmd.Factory) *cobra.Command {
-	cmd := cmd.NewCmdPortForward(f.Factory)
+	cmd := kcmd.NewCmdPortForward(f.Factory)
 	cmd.Long = portForward_long
 	cmd.Example = fmt.Sprintf(portForward_example, fullName)
 	return cmd
@@ -193,7 +192,7 @@ given resource.`
 
 // NewCmdDescribe is a wrapper for the Kubernetes cli describe command
 func NewCmdDescribe(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := cmd.NewCmdDescribe(f.Factory, out)
+	cmd := kcmd.NewCmdDescribe(f.Factory, out)
 	cmd.Long = describe_long
 	cmd.Example = fmt.Sprintf(describe_example, fullName)
 	return cmd
@@ -212,7 +211,7 @@ const (
 
 // NewCmdProxy is a wrapper for the Kubernetes cli proxy command
 func NewCmdProxy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := cmd.NewCmdProxy(f.Factory, out)
+	cmd := kcmd.NewCmdProxy(f.Factory, out)
 	cmd.Long = proxy_long
 	cmd.Example = fmt.Sprintf(proxy_example, fullName)
 	return cmd
