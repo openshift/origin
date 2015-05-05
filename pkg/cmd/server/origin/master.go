@@ -74,7 +74,6 @@ import (
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
@@ -754,12 +753,6 @@ func (c *MasterConfig) RunDNSServer() {
 	cmdutil.WaitForSuccessfulDial(false, "tcp", c.Options.DNSConfig.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
 	glog.Infof("OpenShift DNS listening at %s", c.Options.DNSConfig.BindAddress)
-}
-
-// RunProjectCache populates project cache, used by scheduler and project admission controller.
-func (c *MasterConfig) RunProjectCache() {
-	glog.Infof("Using default project node label selector: %s", c.Options.ProjectNodeSelector)
-	projectcache.RunProjectCache(c.PrivilegedLoopbackKubernetesClient, c.Options.ProjectNodeSelector)
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
