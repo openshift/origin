@@ -144,23 +144,22 @@ type BuildStrategyRef struct {
 }
 
 // BuildStrategy builds an OpenShift BuildStrategy from a BuildStrategyRef
-func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.BuildTriggerPolicy, error) {
-	triggers, err := s.Base.BuildTriggers()
+func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.BuildTriggerPolicy) {
 	if s.IsDockerBuild {
 		return &buildapi.BuildStrategy{
 			Type: buildapi.DockerBuildStrategyType,
-		}, triggers, err
+			DockerStrategy: &buildapi.DockerBuildStrategy{
+				From: s.Base.ObjectReference(),
+			},
+		}, s.Base.BuildTriggers()
 	}
 
 	return &buildapi.BuildStrategy{
 		Type: buildapi.STIBuildStrategyType,
 		STIStrategy: &buildapi.STIBuildStrategy{
-			From: &kapi.ObjectReference{
-				Kind: "DockerImage",
-				Name: s.Base.String(),
-			},
+			From: s.Base.ObjectReference(),
 		},
-	}, triggers, err
+	}, s.Base.BuildTriggers()
 }
 
 // ImageRef is a reference to an image
@@ -186,6 +185,15 @@ func (r *ImageRef) NameReference() string {
 	return r.pullSpec()
 }
 */
+
+// ObjectReference returns an object reference from the image reference
+func (r *ImageRef) ObjectReference() *kapi.ObjectReference {
+	return &kapi.ObjectReference{
+		Kind:      "ImageStreamTag",
+		Name:      r.Name + ":" + imageapi.DefaultImageTag,
+		Namespace: r.Namespace,
+	}
+}
 
 // RepoName returns the name of the image in namespace/name format
 func (r *ImageRef) RepoName() string {
@@ -223,16 +231,8 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 }
 
 // BuildTriggers sets up build triggers for the base image
-func (r *ImageRef) BuildTriggers() ([]buildapi.BuildTriggerPolicy, error) {
-	if r == nil {
-		return []buildapi.BuildTriggerPolicy{}, nil
-	}
-	return []buildapi.BuildTriggerPolicy{
-		{
-			Type:        buildapi.ImageChangeBuildTriggerType,
-			ImageChange: &buildapi.ImageChangeTrigger{},
-		},
-	}, nil
+func (r *ImageRef) BuildTriggers() []buildapi.BuildTriggerPolicy {
+	return []buildapi.BuildTriggerPolicy{}
 }
 
 // ImageStream returns an ImageStream from an image reference
@@ -340,12 +340,8 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	}
 	strategy := &buildapi.BuildStrategy{}
 	strategyTriggers := []buildapi.BuildTriggerPolicy{}
-	var err error
 	if r.Strategy != nil {
-		strategy, strategyTriggers, err = r.Strategy.BuildStrategy()
-		if err != nil {
-			return nil, err
-		}
+		strategy, strategyTriggers = r.Strategy.BuildStrategy()
 	}
 	output, err := r.Output.BuildOutput()
 	if err != nil {
