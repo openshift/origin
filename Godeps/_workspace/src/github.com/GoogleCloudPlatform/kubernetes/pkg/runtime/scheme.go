@@ -17,6 +17,7 @@ limitations under the License.
 package runtime
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -249,8 +250,26 @@ func (s *Scheme) AddKnownTypes(version string, types ...Object) {
 	interfaces := make([]interface{}, len(types))
 	for i := range types {
 		interfaces[i] = types[i]
+		// Register with gob so that DeepCopy can recognize all of our objects.  This is creating a static list, but it appears that gob itself wants a static list
+		gobName := getGobTypeName(reflect.TypeOf(types[i]))
+		gob.RegisterName(gobName, types[i])
 	}
 	s.raw.AddKnownTypes(version, interfaces...)
+}
+
+func getGobTypeName(typeOf reflect.Type) string {
+	isPointer := false
+	if typeOf.Kind() == reflect.Ptr {
+		typeOf = typeOf.Elem()
+		isPointer = true
+	}
+	name := ""
+	if isPointer {
+		name = "*"
+	}
+	name = name + typeOf.PkgPath() + "." + typeOf.Name()
+
+	return name
 }
 
 // AddKnownTypeWithName is like AddKnownTypes, but it lets you specify what this type should
