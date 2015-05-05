@@ -164,7 +164,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       config.vm.synced_folder ".", "/vagrant", disabled: true
 
-      unless vagrant_openshift_config['local_source']
+      unless vagrant_openshift_config['no_synced_folders']
         config.vm.synced_folder sync_from, sync_to, rsync__args: %w(--verbose --archive --delete)
       end
 
