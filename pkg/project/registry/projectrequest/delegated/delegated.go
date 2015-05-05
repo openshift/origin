@@ -61,7 +61,13 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
 		return nil, err
 	}
+
 	projectRequest := obj.(*projectapi.ProjectRequest)
+
+	if _, err := r.openshiftClient.Projects().Get(projectRequest.Name); err == nil {
+		return nil, kapierror.NewAlreadyExists("project", projectRequest.Name)
+	}
+
 	projectName := projectRequest.Name
 	projectDisplayName := projectName
 	projectDescription := projectDisplayName
