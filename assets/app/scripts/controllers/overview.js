@@ -70,7 +70,7 @@ angular.module('openshiftConsole')
     }));
 
     // Expects deploymentsByServiceByDeploymentConfig to be up to date
-    var podRelationships = function() {
+    function podRelationships() {
       $scope.monopodsByService = {"": {}};
       $scope.podsByService = {};
       $scope.podsByDeployment = {};
@@ -126,7 +126,7 @@ angular.module('openshiftConsole')
     };
 
     // Filter out monopods we know we don't want to see
-    var showMonopod = function(pod) {
+    function showMonopod(pod) {
       // Hide pods in the Succeeded or Terminated phase since these are run once pods
       // that are done
       if (pod.status.phase == 'Succeeded' || pod.status.phase == 'Terminated') {
@@ -149,7 +149,7 @@ angular.module('openshiftConsole')
       return true;
     };
 
-    var deploymentConfigsByService = function() {
+    function deploymentConfigsByService() {
       $scope.deploymentConfigsByService = {"": {}};
       angular.forEach($scope.deploymentConfigs, function(deploymentConfig, depName){
         var foundMatch = false;
@@ -170,7 +170,7 @@ angular.module('openshiftConsole')
       });
     };
 
-    var deploymentsByService = function() {
+    function deploymentsByService() {
       var bySvc = $scope.deploymentsByService = {"": {}};
       var bySvcByDepCfg = $scope.deploymentsByServiceByDeploymentConfig = {"": {}};
 
@@ -244,7 +244,7 @@ angular.module('openshiftConsole')
       Logger.log("imageStreams (subscribe)", $scope.imageStreams);
     }));
 
-    var associateDeploymentConfigTriggersToBuild = function(deploymentConfig, build) {
+    function associateDeploymentConfigTriggersToBuild(deploymentConfig, build) {
       // Make sure we have both a deploymentConfig and a build
       if (!deploymentConfig || !build) {
         return;
@@ -322,7 +322,7 @@ angular.module('openshiftConsole')
       Logger.log("builds (subscribe)", $scope.builds);
     }));
 
-    var updateFilterWarning = function() {
+    function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services) && !$.isEmptyObject($scope.unfilteredServices)) {
         $scope.alerts["services"] = {
           type: "warning",
