@@ -8,7 +8,7 @@ import (
 
 // Registry is an interface for things that know how to store ImageStreamImage objects.
 type Registry interface {
-	GetImageStreamImage(ctx kapi.Context, nameAndTag string) (*api.Image, error)
+	GetImageStreamImage(ctx kapi.Context, nameAndTag string) (*api.ImageStreamImage, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -27,10 +27,10 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) GetImageStreamImage(ctx kapi.Context, name string) (*api.Image, error) {
+func (s *storage) GetImageStreamImage(ctx kapi.Context, name string) (*api.ImageStreamImage, error) {
 	obj, err := s.Get(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.Image), nil
+	return obj.(*api.ImageStreamImage), nil
 }

@@ -81,7 +81,7 @@ func TestInstantiateGetBuildConfigError(t *testing.T) {
 		GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 			return nil, fmt.Errorf("get-error")
 		},
-		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.Image, error) {
+		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
 			return nil, fmt.Errorf("get-error")
 		},
 		GetImageStreamTagFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
@@ -305,10 +305,12 @@ func TestGenerateBuildWithImageTagForSTIStrategyImageRepository(t *testing.T) {
 				},
 			}, nil
 		},
-		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.Image, error) {
-			return &imageapi.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
-				DockerImageReference: originalImage + ":" + newTag,
+		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
+			return &imageapi.ImageStreamImage{
+				imageapi.Image{
+					ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
+					DockerImageReference: originalImage + ":" + newTag,
+				},
 			}, nil
 		},
 
@@ -374,10 +376,12 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 				},
 			}, nil
 		},
-		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.Image, error) {
-			return &imageapi.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
-				DockerImageReference: originalImage + ":" + newTag,
+		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
+			return &imageapi.ImageStreamImage{
+				imageapi.Image{
+					ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
+					DockerImageReference: originalImage + ":" + newTag,
+				},
 			}, nil
 		},
 		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
@@ -442,10 +446,12 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 				},
 			}, nil
 		},
-		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.Image, error) {
-			return &imageapi.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
-				DockerImageReference: originalImage + ":" + newTag,
+		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
+			return &imageapi.ImageStreamImage{
+				imageapi.Image{
+					ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
+					DockerImageReference: originalImage + ":" + newTag,
+				},
 			}, nil
 		},
 		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
@@ -886,10 +892,12 @@ func mockBuildGenerator() *BuildGenerator {
 				},
 			}, nil
 		},
-		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.Image, error) {
-			return &imageapi.Image{
-				ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
-				DockerImageReference: latestDockerReference,
+		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
+			return &imageapi.ImageStreamImage{
+				imageapi.Image{
+					ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":@id"},
+					DockerImageReference: latestDockerReference,
+				},
 			}, nil
 		},
 	}}
