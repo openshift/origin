@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ func (b *Builder) Path(paths ...string) *Builder {
 			visitor = &DirectoryVisitor{
 				Mapper:       b.mapper,
 				Path:         p,
-				Extensions:   []string{".json", ".yaml"},
+				Extensions:   []string{".json", ".yaml", ".yml"},
 				Recursive:    false,
 				IgnoreErrors: b.continueOnError,
 			}
@@ -606,8 +606,17 @@ func (b *Builder) Do() *Result {
 	return r
 }
 
+// SplitResourceArgument splits the argument with commas and returns unique
+// strings in the original order.
 func SplitResourceArgument(arg string) []string {
+	out := []string{}
 	set := util.NewStringSet()
-	set.Insert(strings.Split(arg, ",")...)
-	return set.List()
+	for _, s := range strings.Split(arg, ",") {
+		if set.Has(s) {
+			continue
+		}
+		set.Insert(s)
+		out = append(out, s)
+	}
+	return out
 }

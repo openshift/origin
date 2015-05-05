@@ -15,6 +15,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	namespaceetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace/etcd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -34,7 +35,7 @@ func init() {
 func TestProjectIsNamespace(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, err := master.NewEtcdHelper(etcdClient, "")
+	etcdHelper, err := master.NewEtcdHelper(etcdClient, "", etcdtest.PathPrefix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Google Inc. All rights reserved.
+Copyright 2015 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,6 +46,115 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 	return obj3
 }
 
+func TestSetDefaultReplicationController(t *testing.T) {
+	tests := []struct {
+		rc             *current.ReplicationController
+		expectLabels   bool
+		expectSelector bool
+	}{
+		{
+			rc: &current.ReplicationController{
+				Spec: current.ReplicationControllerSpec{
+					Template: &current.PodTemplateSpec{
+						ObjectMeta: current.ObjectMeta{
+							Labels: map[string]string{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+			expectLabels:   true,
+			expectSelector: true,
+		},
+		{
+			rc: &current.ReplicationController{
+				ObjectMeta: current.ObjectMeta{
+					Labels: map[string]string{
+						"bar": "foo",
+					},
+				},
+				Spec: current.ReplicationControllerSpec{
+					Template: &current.PodTemplateSpec{
+						ObjectMeta: current.ObjectMeta{
+							Labels: map[string]string{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+			expectLabels:   false,
+			expectSelector: true,
+		},
+		{
+			rc: &current.ReplicationController{
+				ObjectMeta: current.ObjectMeta{
+					Labels: map[string]string{
+						"bar": "foo",
+					},
+				},
+				Spec: current.ReplicationControllerSpec{
+					Selector: map[string]string{
+						"some": "other",
+					},
+					Template: &current.PodTemplateSpec{
+						ObjectMeta: current.ObjectMeta{
+							Labels: map[string]string{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+			expectLabels:   false,
+			expectSelector: false,
+		},
+		{
+			rc: &current.ReplicationController{
+				Spec: current.ReplicationControllerSpec{
+					Selector: map[string]string{
+						"some": "other",
+					},
+					Template: &current.PodTemplateSpec{
+						ObjectMeta: current.ObjectMeta{
+							Labels: map[string]string{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+			expectLabels:   true,
+			expectSelector: false,
+		},
+	}
+
+	for _, test := range tests {
+		rc := test.rc
+		obj2 := roundTrip(t, runtime.Object(rc))
+		rc2, ok := obj2.(*current.ReplicationController)
+		if !ok {
+			t.Errorf("unexpected object: %v", rc2)
+			t.FailNow()
+		}
+		if test.expectSelector != reflect.DeepEqual(rc2.Spec.Selector, rc2.Spec.Template.Labels) {
+			if test.expectSelector {
+				t.Errorf("expected: %v, got: %v", rc2.Spec.Template.Labels, rc2.Spec.Selector)
+			} else {
+				t.Errorf("unexpected equality: %v", rc.Spec.Selector)
+			}
+		}
+		if test.expectLabels != reflect.DeepEqual(rc2.Labels, rc2.Spec.Template.Labels) {
+			if test.expectLabels {
+				t.Errorf("expected: %v, got: %v", rc2.Spec.Template.Labels, rc2.Labels)
+			} else {
+				t.Errorf("unexpected equality: %v", rc.Labels)
+			}
+		}
+	}
+}
+
 func TestSetDefaultService(t *testing.T) {
 	svc := &current.Service{}
 	obj2 := roundTrip(t, runtime.Object(svc))
@@ -62,6 +171,26 @@ func TestSetDefaultSecret(t *testing.T) {
 
 	if s2.Type != current.SecretTypeOpaque {
 		t.Errorf("Expected secret type %v, got %v", current.SecretTypeOpaque, s2.Type)
+	}
+}
+
+func TestSetDefaultPersistentVolume(t *testing.T) {
+	pv := &current.PersistentVolume{}
+	obj2 := roundTrip(t, runtime.Object(pv))
+	pv2 := obj2.(*current.PersistentVolume)
+
+	if pv2.Status.Phase != current.VolumePending {
+		t.Errorf("Expected volume phase %v, got %v", current.VolumePending, pv2.Status.Phase)
+	}
+}
+
+func TestSetDefaultPersistentVolumeClaim(t *testing.T) {
+	pvc := &current.PersistentVolumeClaim{}
+	obj2 := roundTrip(t, runtime.Object(pvc))
+	pvc2 := obj2.(*current.PersistentVolumeClaim)
+
+	if pvc2.Status.Phase != current.ClaimPending {
+		t.Errorf("Expected claim phase %v, got %v", current.ClaimPending, pvc2.Status.Phase)
 	}
 }
 
@@ -191,5 +320,32 @@ func TestSetDefaultNodeExternalID(t *testing.T) {
 	n2 := obj2.(*current.Node)
 	if n2.Spec.ExternalID != name {
 		t.Errorf("Expected default External ID: %s, got: %s", name, n2.Spec.ExternalID)
+	}
+}
+
+func TestSetDefaultObjectFieldSelectorAPIVersion(t *testing.T) {
+	s := current.PodSpec{
+		Containers: []current.Container{
+			{
+				Env: []current.EnvVar{
+					{
+						ValueFrom: &current.EnvVarSource{
+							FieldPath: &current.ObjectFieldSelector{},
+						},
+					},
+				},
+			},
+		},
+	}
+	pod := &current.Pod{
+		Spec: s,
+	}
+	obj2 := roundTrip(t, runtime.Object(pod))
+	pod2 := obj2.(*current.Pod)
+	s2 := pod2.Spec
+
+	apiVersion := s2.Containers[0].Env[0].ValueFrom.FieldPath.APIVersion
+	if apiVersion != "v1beta3" {
+		t.Errorf("Expected default APIVersion v1beta3, got: %v", apiVersion)
 	}
 }

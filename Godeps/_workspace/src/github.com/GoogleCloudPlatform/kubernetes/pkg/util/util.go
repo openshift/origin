@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"path"
 	"reflect"
@@ -65,7 +66,7 @@ func logPanic(r interface{}) {
 		}
 		callers = callers + fmt.Sprintf("%v:%v\n", file, line)
 	}
-	glog.Infof("Recovered from panic: %#v (%v)\n%v", r, r, callers)
+	glog.Errorf("Recovered from panic: %#v (%v)\n%v", r, r, callers)
 }
 
 // ErrorHandlers is a list of functions which will be invoked when an unreturnable
@@ -490,4 +491,13 @@ func chooseHostInterfaceFromRoute(inFile io.Reader, nw networkInterfacer) (net.I
 		return nil, fmt.Errorf("Unable to select an IP.")
 	}
 	return nil, nil
+}
+
+func GetClient(req *http.Request) string {
+	if userAgent, ok := req.Header["User-Agent"]; ok {
+		if len(userAgent) > 0 {
+			return userAgent[0]
+		}
+	}
+	return "unknown"
 }

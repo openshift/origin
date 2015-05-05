@@ -297,7 +297,7 @@ func (c ControllerClient) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod,
 
 // DeletePod destroys a pod using the Kubernetes client.
 func (c ControllerClient) DeletePod(namespace string, pod *kapi.Pod) error {
-	return c.KubeClient.Pods(namespace).Delete(pod.Name)
+	return c.KubeClient.Pods(namespace).Delete(pod.Name, nil)
 }
 
 // GetImageStream retrieves an image repository by namespace and name

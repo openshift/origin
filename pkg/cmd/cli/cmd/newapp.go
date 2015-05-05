@@ -144,7 +144,10 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 
 	label := cmdutil.GetFlagString(c, "labels")
 	if len(label) != 0 {
-		lbl := ctl.ParseLabels(label)
+		lbl, err := ctl.ParseLabels(label)
+		if err != nil {
+			return err
+		}
 		for _, object := range result.List.Items {
 			err = util.AddObjectLabels(object, lbl)
 			if err != nil {

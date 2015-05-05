@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,6 +25,21 @@ import (
 
 func init() {
 	api.Scheme.AddDefaultingFuncs(
+		func(obj *ReplicationController) {
+			var labels map[string]string
+			if obj.Spec.Template != nil {
+				labels = obj.Spec.Template.Labels
+			}
+			// TODO: support templates defined elsewhere when we support them in the API
+			if labels != nil {
+				if len(obj.Spec.Selector) == 0 {
+					obj.Spec.Selector = labels
+				}
+				if len(obj.Labels) == 0 {
+					obj.Labels = labels
+				}
+			}
+		},
 		func(obj *Volume) {
 			if util.AllPtrFieldsNil(&obj.VolumeSource) {
 				obj.VolumeSource = VolumeSource{
@@ -87,6 +102,16 @@ func init() {
 				obj.Type = SecretTypeOpaque
 			}
 		},
+		func(obj *PersistentVolume) {
+			if obj.Status.Phase == "" {
+				obj.Status.Phase = VolumePending
+			}
+		},
+		func(obj *PersistentVolumeClaim) {
+			if obj.Status.Phase == "" {
+				obj.Status.Phase = ClaimPending
+			}
+		},
 		func(obj *Endpoints) {
 			for i := range obj.Subsets {
 				ss := &obj.Subsets[i]
@@ -111,6 +136,11 @@ func init() {
 		func(obj *Node) {
 			if obj.Spec.ExternalID == "" {
 				obj.Spec.ExternalID = obj.Name
+			}
+		},
+		func(obj *ObjectFieldSelector) {
+			if obj.APIVersion == "" {
+				obj.APIVersion = "v1beta3"
 			}
 		},
 	)

@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Google Inc. All rights reserved.
+Copyright 2015 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/testapi"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 )
 
@@ -41,7 +42,7 @@ func TestListMinions(t *testing.T) {
 		},
 		Response: Response{StatusCode: 200, Body: &api.NodeList{ListMeta: api.ListMeta{ResourceVersion: "1"}}},
 	}
-	response, err := c.Setup().Nodes().List(labels.Everything())
+	response, err := c.Setup().Nodes().List(labels.Everything(), fields.Everything())
 	c.Validate(t, response, err)
 }
 
@@ -72,7 +73,7 @@ func TestListMinionsLabels(t *testing.T) {
 	c.Setup()
 	c.QueryValidator[labelSelectorQueryParamName] = validateLabels
 	selector := labels.Set{"foo": "bar", "name": "baz"}.AsSelector()
-	receivedNodeList, err := c.Nodes().List(selector)
+	receivedNodeList, err := c.Nodes().List(selector, fields.Everything())
 	c.Validate(t, receivedNodeList, err)
 }
 

@@ -420,20 +420,3 @@ func TestConfigClientWithToken(t *testing.T) {
 		t.Error(err)
 	}
 }
-
-func Test_providerAuthHeaderWorks(t *testing.T) {
-	for _, p := range brokenAuthHeaderProviders {
-		if providerAuthHeaderWorks(p) {
-			t.Errorf("URL: %s not found in list", p)
-		}
-		p := fmt.Sprintf("%ssomesuffix", p)
-		if providerAuthHeaderWorks(p) {
-			t.Errorf("URL: %s not found in list", p)
-		}
-	}
-	p := "https://api.not-in-the-list-example.com/"
-	if !providerAuthHeaderWorks(p) {
-		t.Errorf("URL: %s found in list", p)
-	}
-
-}

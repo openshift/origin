@@ -101,7 +101,7 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 	if err != nil {
 		return err
 	}
-	etcdHelper, err := newEtcdHelper(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion)
+	etcdHelper, err := newEtcdHelper(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, "openshift")
 	if err != nil {
 		return err
 	}
@@ -182,10 +182,10 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 }
 
 // newEtcdHelper returns an EtcdHelper for the provided storage version.
-func newEtcdHelper(client *etcdclient.Client, version string) (oshelper tools.EtcdHelper, err error) {
+func newEtcdHelper(client *etcdclient.Client, version, prefix string) (oshelper tools.EtcdHelper, err error) {
 	interfaces, err := latest.InterfacesFor(version)
 	if err != nil {
 		return tools.EtcdHelper{}, err
 	}
-	return tools.NewEtcdHelper(client, interfaces.Codec), nil
+	return tools.NewEtcdHelper(client, interfaces.Codec, prefix), nil
 }

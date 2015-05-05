@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,6 +28,14 @@ import (
 
 func init() {
 	api.Scheme.AddDefaultingFuncs(
+		func(obj *ReplicationController) {
+			if len(obj.DesiredState.ReplicaSelector) == 0 {
+				obj.DesiredState.ReplicaSelector = obj.DesiredState.PodTemplate.Labels
+			}
+			if len(obj.Labels) == 0 {
+				obj.Labels = obj.DesiredState.PodTemplate.Labels
+			}
+		},
 		func(obj *Volume) {
 			if util.AllPtrFieldsNil(&obj.Source) {
 				obj.Source = VolumeSource{
@@ -103,6 +111,16 @@ func init() {
 				obj.Type = SecretTypeOpaque
 			}
 		},
+		func(obj *PersistentVolume) {
+			if obj.Status.Phase == "" {
+				obj.Status.Phase = VolumePending
+			}
+		},
+		func(obj *PersistentVolumeClaim) {
+			if obj.Status.Phase == "" {
+				obj.Status.Phase = ClaimPending
+			}
+		},
 		func(obj *Endpoints) {
 			if obj.Protocol == "" {
 				obj.Protocol = ProtocolTCP
@@ -156,6 +174,11 @@ func init() {
 		func(obj *Minion) {
 			if obj.ExternalID == "" {
 				obj.ExternalID = obj.ID
+			}
+		},
+		func(obj *ObjectFieldSelector) {
+			if obj.APIVersion == "" {
+				obj.APIVersion = "v1beta1"
 			}
 		},
 	)

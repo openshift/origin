@@ -9,20 +9,14 @@ package oauth2
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"mime"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"golang.org/x/net/context"
+	"golang.org/x/oauth2/internal"
 )
 
 // NoContext is the default context you should supply if not using
@@ -119,9 +113,9 @@ func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string {
 	v := url.Values{
 		"response_type": {"code"},
 		"client_id":     {c.ClientID},
-		"redirect_uri":  condVal(c.RedirectURL),
-		"scope":         condVal(strings.Join(c.Scopes, " ")),
-		"state":         condVal(state),
+		"redirect_uri":  internal.CondVal(c.RedirectURL),
+		"scope":         internal.CondVal(strings.Join(c.Scopes, " ")),
+		"state":         internal.CondVal(state),
 	}
 	for _, opt := range opts {
 		opt.setValue(v)
@@ -151,7 +145,7 @@ func (c *Config) PasswordCredentialsToken(ctx context.Context, username, passwor
 		"grant_type": {"password"},
 		"username":   {username},
 		"password":   {password},
-		"scope":      condVal(strings.Join(c.Scopes, " ")),
+		"scope":      internal.CondVal(strings.Join(c.Scopes, " ")),
 	})
 }
 
@@ -169,49 +163,9 @@ func (c *Config) Exchange(ctx context.Context, code string) (*Token, error) {
 	return retrieveToken(ctx, c, url.Values{
 		"grant_type":   {"authorization_code"},
 		"code":         {code},
-		"redirect_uri": condVal(c.RedirectURL),
-		"scope":        condVal(strings.Join(c.Scopes, " ")),
+		"redirect_uri": internal.CondVal(c.RedirectURL),
+		"scope":        internal.CondVal(strings.Join(c.Scopes, " ")),
 	})
-}
-
-// contextClientFunc is a func which tries to return an *http.Client
-// given a Context value. If it returns an error, the search stops
-// with that error.  If it returns (nil, nil), the search continues
-// down the list of registered funcs.
-type contextClientFunc func(context.Context) (*http.Client, error)
-
-var contextClientFuncs []contextClientFunc
-
-func registerContextClientFunc(fn contextClientFunc) {
-	contextClientFuncs = append(contextClientFuncs, fn)
-}
-
-func contextClient(ctx context.Context) (*http.Client, error) {
-	for _, fn := range contextClientFuncs {
-		c, err := fn(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if c != nil {
-			return c, nil
-		}
-	}
-	if hc, ok := ctx.Value(HTTPClient).(*http.Client); ok {
-		return hc, nil
-	}
-	return http.DefaultClient, nil
-}
-
-func contextTransport(ctx context.Context) http.RoundTripper {
-	hc, err := contextClient(ctx)
-	if err != nil {
-		// This is a rare error case (somebody using nil on App Engine),
-		// so I'd rather not everybody do an error check on this Client
-		// method. They can get the error that they're doing it wrong
-		// later, at client.Get/PostForm time.
-		return errorTransport{err}
-	}
-	return hc.Transport
 }
 
 // Client returns an HTTP client using the provided token.
@@ -299,177 +253,9 @@ func (s *reuseTokenSource) Token() (*Token, error) {
 	return t, nil
 }
 
-func retrieveToken(ctx context.Context, c *Config, v url.Values) (*Token, error) {
-	hc, err := contextClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-	v.Set("client_id", c.ClientID)
-	bustedAuth := !providerAuthHeaderWorks(c.Endpoint.TokenURL)
-	if bustedAuth && c.ClientSecret != "" {
-		v.Set("client_secret", c.ClientSecret)
-	}
-	req, err := http.NewRequest("POST", c.Endpoint.TokenURL, strings.NewReader(v.Encode()))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	if !bustedAuth {
-		req.SetBasicAuth(c.ClientID, c.ClientSecret)
-	}
-	r, err := hc.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1<<20))
-	if err != nil {
-		return nil, fmt.Errorf("oauth2: cannot fetch token: %v", err)
-	}
-	if code := r.StatusCode; code < 200 || code > 299 {
-		return nil, fmt.Errorf("oauth2: cannot fetch token: %v\nResponse: %s", r.Status, body)
-	}
-
-	var token *Token
-	content, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	switch content {
-	case "application/x-www-form-urlencoded", "text/plain":
-		vals, err := url.ParseQuery(string(body))
-		if err != nil {
-			return nil, err
-		}
-		token = &Token{
-			AccessToken:  vals.Get("access_token"),
-			TokenType:    vals.Get("token_type"),
-			RefreshToken: vals.Get("refresh_token"),
-			raw:          vals,
-		}
-		e := vals.Get("expires_in")
-		if e == "" {
-			// TODO(jbd): Facebook's OAuth2 implementation is broken and
-			// returns expires_in field in expires. Remove the fallback to expires,
-			// when Facebook fixes their implementation.
-			e = vals.Get("expires")
-		}
-		expires, _ := strconv.Atoi(e)
-		if expires != 0 {
-			token.Expiry = time.Now().Add(time.Duration(expires) * time.Second)
-		}
-	default:
-		var tj tokenJSON
-		if err = json.Unmarshal(body, &tj); err != nil {
-			return nil, err
-		}
-		token = &Token{
-			AccessToken:  tj.AccessToken,
-			TokenType:    tj.TokenType,
-			RefreshToken: tj.RefreshToken,
-			Expiry:       tj.expiry(),
-			raw:          make(map[string]interface{}),
-		}
-		json.Unmarshal(body, &token.raw) // no error checks for optional fields
-	}
-	// Don't overwrite `RefreshToken` with an empty value
-	// if this was a token refreshing request.
-	if token.RefreshToken == "" {
-		token.RefreshToken = v.Get("refresh_token")
-	}
-	return token, nil
-}
-
-// tokenJSON is the struct representing the HTTP response from OAuth2
-// providers returning a token in JSON form.
-type tokenJSON struct {
-	AccessToken  string         `json:"access_token"`
-	TokenType    string         `json:"token_type"`
-	RefreshToken string         `json:"refresh_token"`
-	ExpiresIn    expirationTime `json:"expires_in"` // at least PayPal returns string, while most return number
-	Expires      expirationTime `json:"expires"`    // broken Facebook spelling of expires_in
-}
-
-func (e *tokenJSON) expiry() (t time.Time) {
-	if v := e.ExpiresIn; v != 0 {
-		return time.Now().Add(time.Duration(v) * time.Second)
-	}
-	if v := e.Expires; v != 0 {
-		return time.Now().Add(time.Duration(v) * time.Second)
-	}
-	return
-}
-
-type expirationTime int32
-
-func (e *expirationTime) UnmarshalJSON(b []byte) error {
-	var n json.Number
-	err := json.Unmarshal(b, &n)
-	if err != nil {
-		return err
-	}
-	i, err := n.Int64()
-	if err != nil {
-		return err
-	}
-	*e = expirationTime(i)
-	return nil
-}
-
-func condVal(v string) []string {
-	if v == "" {
-		return nil
-	}
-	return []string{v}
-}
-
-var brokenAuthHeaderProviders = []string{
-	"https://accounts.google.com/",
-	"https://www.googleapis.com/",
-	"https://github.com/",
-	"https://api.instagram.com/",
-	"https://www.douban.com/",
-	"https://api.dropbox.com/",
-	"https://api.soundcloud.com/",
-	"https://www.linkedin.com/",
-	"https://api.twitch.tv/",
-	"https://oauth.vk.com/",
-	"https://api.odnoklassniki.ru/",
-	"https://connect.stripe.com/",
-	"https://api.pushbullet.com/",
-	"https://oauth.sandbox.trainingpeaks.com/",
-	"https://oauth.trainingpeaks.com/",
-	"https://www.strava.com/oauth/",
-}
-
-// providerAuthHeaderWorks reports whether the OAuth2 server identified by the tokenURL
-// implements the OAuth2 spec correctly
-// See https://code.google.com/p/goauth2/issues/detail?id=31 for background.
-// In summary:
-// - Reddit only accepts client secret in the Authorization header
-// - Dropbox accepts either it in URL param or Auth header, but not both.
-// - Google only accepts URL param (not spec compliant?), not Auth header
-// - Stripe only accepts client secret in Auth header with Bearer method, not Basic
-func providerAuthHeaderWorks(tokenURL string) bool {
-	for _, s := range brokenAuthHeaderProviders {
-		if strings.HasPrefix(tokenURL, s) {
-			// Some sites fail to implement the OAuth2 spec fully.
-			return false
-		}
-	}
-
-	// Assume the provider implements the spec properly
-	// otherwise. We can add more exceptions as they're
-	// discovered. We will _not_ be adding configurable hooks
-	// to this package to let users select server bugs.
-	return true
-}
-
 // HTTPClient is the context key to use with golang.org/x/net/context's
 // WithValue function to associate an *http.Client value with a context.
-var HTTPClient contextKey
-
-// contextKey is just an empty struct. It exists so HTTPClient can be
-// an immutable public variable with a unique type. It's immutable
-// because nobody else can create a contextKey, being unexported.
-type contextKey struct{}
+var HTTPClient internal.ContextKey
 
 // NewClient creates an *http.Client from a Context and TokenSource.
 // The returned client is not valid beyond the lifetime of the context.
@@ -479,15 +265,15 @@ type contextKey struct{}
 // packages.
 func NewClient(ctx context.Context, src TokenSource) *http.Client {
 	if src == nil {
-		c, err := contextClient(ctx)
+		c, err := internal.ContextClient(ctx)
 		if err != nil {
-			return &http.Client{Transport: errorTransport{err}}
+			return &http.Client{Transport: internal.ErrorTransport{err}}
 		}
 		return c
 	}
 	return &http.Client{
 		Transport: &Transport{
-			Base:   contextTransport(ctx),
+			Base:   internal.ContextTransport(ctx),
 			Source: ReuseTokenSource(nil, src),
 		},
 	}

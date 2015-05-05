@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Google Inc. All rights reserved.
+Copyright 2015 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -57,8 +57,9 @@ func (a *actionLocker) LockedAction(do func()) {
 
 // FakeModeler implements the SystemModeler interface.
 type FakeModeler struct {
-	AssumePodFunc func(pod *api.Pod)
-	ForgetPodFunc func(pod *api.Pod)
+	AssumePodFunc      func(pod *api.Pod)
+	ForgetPodFunc      func(pod *api.Pod)
+	ForgetPodByKeyFunc func(key string)
 	actionLocker
 }
 
@@ -73,6 +74,13 @@ func (f *FakeModeler) AssumePod(pod *api.Pod) {
 func (f *FakeModeler) ForgetPod(pod *api.Pod) {
 	if f.ForgetPodFunc != nil {
 		f.ForgetPodFunc(pod)
+	}
+}
+
+// ForgetPodByKey calls the function variable if it is not nil.
+func (f *FakeModeler) ForgetPodByKey(key string) {
+	if f.ForgetPodFunc != nil {
+		f.ForgetPodByKeyFunc(key)
 	}
 }
 
@@ -110,8 +118,12 @@ func (s *SimpleModeler) ForgetPod(pod *api.Pod) {
 	s.assumedPods.Delete(pod)
 }
 
+func (s *SimpleModeler) ForgetPodByKey(key string) {
+	s.assumedPods.Delete(cache.ExplicitKey(key))
+}
+
 // Extract names for readable logging.
-func podNames(pods []api.Pod) []string {
+func podNames(pods []*api.Pod) []string {
 	out := make([]string, len(pods))
 	for i := range pods {
 		out[i] = fmt.Sprintf("'%v/%v (%v)'", pods[i].Namespace, pods[i].Name, pods[i].UID)
@@ -119,7 +131,7 @@ func podNames(pods []api.Pod) []string {
 	return out
 }
 
-func (s *SimpleModeler) listPods(selector labels.Selector) (pods []api.Pod, err error) {
+func (s *SimpleModeler) listPods(selector labels.Selector) (pods []*api.Pod, err error) {
 	assumed, err := s.assumedPods.List(selector)
 	if err != nil {
 		return nil, err
@@ -128,20 +140,20 @@ func (s *SimpleModeler) listPods(selector labels.Selector) (pods []api.Pod, err 
 	// Goal here is to stop making assumptions about a pod once it shows
 	// up in one of these other lists.
 	for _, pod := range assumed {
-		qExist, err := s.queuedPods.Exists(&pod)
+		qExist, err := s.queuedPods.Exists(pod)
 		if err != nil {
 			return nil, err
 		}
 		if qExist {
-			s.assumedPods.Store.Delete(&pod)
+			s.assumedPods.Store.Delete(pod)
 			continue
 		}
-		sExist, err := s.scheduledPods.Exists(&pod)
+		sExist, err := s.scheduledPods.Exists(pod)
 		if err != nil {
 			return nil, err
 		}
 		if sExist {
-			s.assumedPods.Store.Delete(&pod)
+			s.assumedPods.Store.Delete(pod)
 			continue
 		}
 	}
@@ -178,6 +190,6 @@ type simpleModelerPods struct {
 }
 
 // List returns pods known and assumed to exist.
-func (s simpleModelerPods) List(selector labels.Selector) (pods []api.Pod, err error) {
+func (s simpleModelerPods) List(selector labels.Selector) (pods []*api.Pod, err error) {
 	return s.simpleModeler.listPods(selector)
 }

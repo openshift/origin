@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -55,7 +55,8 @@ type Getter interface {
 }
 
 // GetterWithOptions is an object that retrieve a named RESTful resource and takes
-// additional options on the get request
+// additional options on the get request. It allows a caller to also receive the
+// subpath of the GET request.
 type GetterWithOptions interface {
 	// Get finds a resource in the storage by name and returns it.
 	// Although it can return an arbitrary error value, IsNotFound(err) is true for the
@@ -65,8 +66,12 @@ type GetterWithOptions interface {
 	Get(ctx api.Context, name string, options runtime.Object) (runtime.Object, error)
 
 	// NewGetOptions returns an empty options object that will be used to pass
-	// options to the Get method.
-	NewGetOptions() runtime.Object
+	// options to the Get method. It may return a bool and a string, if true, the
+	// value of the request path below the object will be included as the named
+	// string in the serialization of the runtime object. E.g., returning "path"
+	// will convert the trailing request scheme value to "path" in the map[string][]string
+	// passed to the convertor.
+	NewGetOptions() (runtime.Object, bool, string)
 }
 
 // Deleter is an object that can delete a named RESTful resource.
@@ -164,6 +169,32 @@ type StandardStorage interface {
 type Redirector interface {
 	// ResourceLocation should return the remote location of the given resource, and an optional transport to use to request it, or an error.
 	ResourceLocation(ctx api.Context, id string) (remoteLocation *url.URL, transport http.RoundTripper, err error)
+}
+
+// ConnectHandler is a handler for HTTP connection requests. It extends the standard
+// http.Handler interface by adding a method that returns an error object if an error
+// occurred during the handling of the request.
+type ConnectHandler interface {
+	http.Handler
+
+	// RequestError returns an error if one occurred during handling of an HTTP request
+	RequestError() error
+}
+
+// Connecter is a storage object that responds to a connection request
+type Connecter interface {
+	// Connect returns a ConnectHandler that will handle the request/response for a request
+	Connect(ctx api.Context, id string, options runtime.Object) (ConnectHandler, error)
+
+	// NewConnectOptions returns an empty options object that will be used to pass
+	// options to the Connect method. If nil, then a nil options object is passed to
+	// Connect. It may return a bool and a string. If true, the value of the request
+	// path below the object will be included as the named string in the serialization
+	// of the runtime object.
+	NewConnectOptions() (runtime.Object, bool, string)
+
+	// ConnectMethods returns the list of HTTP methods handled by Connect
+	ConnectMethods() []string
 }
 
 // ResourceStreamer is an interface implemented by objects that prefer to be streamed from the server

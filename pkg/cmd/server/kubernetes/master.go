@@ -13,7 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
-	minioncontroller "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/controller"
+	minioncontroller "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/nodecontroller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
@@ -82,22 +82,22 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 }
 
 func (c *MasterConfig) RunNamespaceController() {
-	namespaceController := namespace.NewNamespaceManager(c.KubeClient)
-	namespaceController.Run(1 * time.Minute)
+	namespaceController := namespace.NewNamespaceManager(c.KubeClient, 5*time.Minute)
+	namespaceController.Run()
 	glog.Infof("Started Kubernetes Namespace Manager")
 }
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController() {
 	controllerManager := controller.NewReplicationManager(c.KubeClient)
-	controllerManager.Run(10 * time.Second)
+	go controllerManager.Run(5, util.NeverStop)
 	glog.Infof("Started Kubernetes Replication Manager")
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunEndpointController() {
 	endpoints := service.NewEndpointController(c.KubeClient)
-	go util.Forever(func() { endpoints.SyncServiceEndpoints() }, time.Second*10)
+	go endpoints.Run(5, util.NeverStop)
 
 	glog.Infof("Started Kubernetes Endpoint Controller")
 }
@@ -130,14 +130,9 @@ func (c *MasterConfig) RunMinionController() {
 		},
 	}
 
-	kubeletClient, err := kclient.NewKubeletClient(c.KubeletClientConfig)
-	if err != nil {
-		glog.Fatalf("Failure to create kubelet client: %v", err)
-	}
-
 	minionController := minioncontroller.NewNodeController(
 		nil, "", c.NodeHosts, nodeResources,
-		c.KubeClient, kubeletClient,
+		c.KubeClient,
 		10,            // registerRetryCount
 		5*time.Minute, // podEvictionTimeout
 
@@ -146,6 +141,7 @@ func (c *MasterConfig) RunMinionController() {
 		40*time.Second, // monitor grace
 		1*time.Minute,  // startup grace
 		10*time.Second, // monitor period
+		"openshift",
 	)
 	minionController.Run(10*time.Second, true)
 

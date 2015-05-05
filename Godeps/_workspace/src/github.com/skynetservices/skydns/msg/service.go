@@ -22,14 +22,34 @@ type Service struct {
 	Weight   int    `json:"weight,omitempty"`
 	Text     string `json:"text,omitempty"`
 	Ttl      uint32 `json:"ttl,omitempty"`
-	// etcd key where we found this service and ignore from json un-/marshalling
+
+	// When a SRV record with a "Host: IP-address" is added, we synthesize a srv.Target
+	// domain name.
+	// Normally we convert the full Key where the record lives to a DNS name and use
+	// this as the srv.Target.
+	// When TargetStrip > 0 we strip the left most TargetStrip labels from the DNS name.
+	TargetStrip int `json:"targetstrip",omitempty"`
+
+	// Etcd key where we found this service and ignored from json un-/marshalling
 	Key string `json:"-"`
 }
 
 // NewSRV returns a new SRV record based on the Service.
 func (s *Service) NewSRV(name string, weight uint16) *dns.SRV {
+	host := dns.Fqdn(s.Host)
+
+	offset, end := 0, false
+	for i := 0; i < s.TargetStrip; i++ {
+		offset, end = dns.NextLabel(host, offset)
+	}
+	if end {
+		// We overshot the name, use the orignal one.
+		offset = 0
+	}
+	host = host[offset:]
+
 	return &dns.SRV{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeSRV, Class: dns.ClassINET, Ttl: s.Ttl},
-		Priority: uint16(s.Priority), Weight: weight, Port: uint16(s.Port), Target: dns.Fqdn(s.Host)}
+		Priority: uint16(s.Priority), Weight: weight, Port: uint16(s.Port), Target: host}
 }
 
 // NewA returns a new A record based on the Service.
