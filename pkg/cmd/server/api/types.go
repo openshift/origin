@@ -148,10 +148,18 @@ type EtcdStorageConfig struct {
 	// serialized to. This value should *not* be advanced until all clients in the
 	// cluster that read from etcd have code that allows them to read the new version.
 	KubernetesStorageVersion string
+	// KubernetesStoragePrefix is the path within etcd that the Kubernetes resources will
+	// be rooted under. This value, if changed, will mean existing objects in etcd will
+	// no longer be located.
+	KubernetesStoragePrefix string
 	// OpenShiftStorageVersion is the API version that OS resources in etcd should be
 	// serialized to. This value should *not* be advanced until all clients in the
 	// cluster that read from etcd have code that allows them to read the new version.
 	OpenShiftStorageVersion string
+	// OpenShiftStoragePrefix is the path within etcd that the OpenShift resources will
+	// be rooted under. This value, if changed, will mean existing objects in etcd will
+	// no longer be located.
+	OpenShiftStoragePrefix string
 }
 
 type ServingInfo struct {

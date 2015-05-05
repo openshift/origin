@@ -38,7 +38,7 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	etcdHelper, err := NewEtcdHelper(client, options.EtcdStorageConfig.OpenShiftStorageVersion, "openshift")
+	etcdHelper, err := NewEtcdHelper(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}

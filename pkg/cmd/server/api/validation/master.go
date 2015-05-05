@@ -105,6 +105,13 @@ func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.Validat
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("openShiftStorageVersion"))
 	}
 
+	if strings.ContainsRune(config.KubernetesStoragePrefix, '%') {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("kubernetesStoragePrefix", config.KubernetesStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
+	}
+	if strings.ContainsRune(config.OpenShiftStoragePrefix, '%') {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("openShiftStoragePrefix", config.OpenShiftStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
+	}
+
 	return allErrs
 }
 
