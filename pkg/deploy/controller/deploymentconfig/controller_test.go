@@ -22,6 +22,9 @@ func TestHandle_initialOk(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
+			listDeploymentsFunc: func(namespace string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{}, nil
+			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call with name %s", name)
 				return nil, nil
@@ -52,6 +55,9 @@ func TestHandle_updateOk(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
+			listDeploymentsFunc: func(namespace string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{}, nil
+			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewNotFound("ReplicationController", name)
 			},
@@ -82,6 +88,9 @@ func TestHandle_nonfatalLookupError(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
+			listDeploymentsFunc: func(namespace string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{}, nil
+			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewInternalError(fmt.Errorf("fatal test error"))
 			},
@@ -112,6 +121,9 @@ func TestHandle_configAlreadyDeployed(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
+			listDeploymentsFunc: func(namespace string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{Items: []kapi.ReplicationController{}}, nil
+			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				deployment, _ := deployutil.MakeDeployment(deploymentConfig, kapi.Codec)
 				return deployment, nil
@@ -138,6 +150,9 @@ func TestHandle_nonfatalCreateError(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
+			listDeploymentsFunc: func(namespace string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{}, nil
+			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewNotFound("ReplicationController", name)
 			},
@@ -165,6 +180,9 @@ func TestHandle_fatalError(t *testing.T) {
 			return nil, fmt.Errorf("couldn't make deployment")
 		},
 		deploymentClient: &deploymentClientImpl{
+			listDeploymentsFunc: func(namespace string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{}, nil
+			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewNotFound("ReplicationController", name)
 			},
@@ -181,5 +199,84 @@ func TestHandle_fatalError(t *testing.T) {
 	}
 	if _, isFatal := err.(fatalError); !isFatal {
 		t.Fatalf("expected a fatal error, got: %v", err)
+	}
+}
+
+// TestHandle_previousPendingDeployment ensures that an attempt to create a
+// deployment for an updated config for which the deployment was already
+// created results in a no-op.
+func TestHandle_previousPendingDeployment(t *testing.T) {
+	deploymentConfig := deploytest.OkDeploymentConfig(1)
+	rc, _ := deployutil.MakeDeployment(deploymentConfig, api.Codec)
+	rcItems := []kapi.ReplicationController{}
+	rcItems = append(rcItems, *rc)
+
+	controller := &DeploymentConfigController{
+		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
+			return deployutil.MakeDeployment(config, api.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			listDeploymentsFunc: func(namespace string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{Items: rcItems}, nil
+			},
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return nil, kerrors.NewNotFound("ReplicationController", name)
+			},
+			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected call to to create deployment: %v", deployment)
+				return nil, nil
+			},
+		},
+	}
+
+	deploymentConfig.LatestVersion = 2
+	err := controller.Handle(deploymentConfig)
+
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if _, isTransient := err.(transientError); !isTransient {
+		t.Fatalf("expected a transient error, got: %v", err)
+	}
+}
+
+// TestHandle_previousCompletedDeployment ensures that an attempt to create a
+// deployment for an updated config for which the deployment was already
+// created results in a no-op.
+func TestHandle_previousCompletedDeployment(t *testing.T) {
+	var deployed *kapi.ReplicationController
+	deploymentConfig := deploytest.OkDeploymentConfig(1)
+	rc, _ := deployutil.MakeDeployment(deploymentConfig, api.Codec)
+	rc.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusFailed)
+	rcItems := []kapi.ReplicationController{}
+	rcItems = append(rcItems, *rc)
+
+	controller := &DeploymentConfigController{
+		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
+			return deployutil.MakeDeployment(config, api.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			listDeploymentsFunc: func(namespace string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{Items: rcItems}, nil
+			},
+			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return nil, kerrors.NewNotFound("ReplicationController", name)
+			},
+			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				deployed = deployment
+				return deployment, nil
+			},
+		},
+	}
+
+	deploymentConfig.LatestVersion = 2
+	err := controller.Handle(deploymentConfig)
+
+	if deployed == nil {
+		t.Fatalf("expected a deployment")
+	}
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

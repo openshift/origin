@@ -33,7 +33,13 @@ type DeploymentConfigController struct {
 // fatalError is an error which can't be retried.
 type fatalError string
 
+// transientError is an error which should always be retried (indefinitely).
+type transientError string
+
 func (e fatalError) Error() string { return "fatal error handling deploymentConfig: " + string(e) }
+func (e transientError) Error() string {
+	return "transient error handling deploymentConfig: " + string(e)
+}
 
 // Handle processes config and creates a new deployment if necessary.
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
@@ -43,7 +49,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		return nil
 	}
 
-	// Find any existing deployment, and return if one already exists.
+	// Check if the latest deployment already exists
 	if deployment, err := c.deploymentClient.getDeployment(config.Namespace, deployutil.LatestDeploymentNameForConfig(config)); err != nil {
 		if !errors.IsNotFound(err) {
 			return fmt.Errorf("couldn't get deployment for config %s: %v", labelFor(config), err)
@@ -52,6 +58,29 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		// If there's an existing deployment, nothing needs to be done.
 		if deployment != nil {
 			return nil
+		}
+	}
+
+	// Check if any previous deployment is still running (any non-terminal state).
+	if deployments, err := c.deploymentClient.listDeployments(config.Namespace); err != nil {
+		return fmt.Errorf("couldn't list deployments for config %s: %v", labelFor(config), err)
+	} else {
+		for _, deployment := range deployments.Items {
+			// consider only the deployments for this deployment config
+			if config.Name != deployment.Annotations[deployapi.DeploymentConfigAnnotation] {
+				continue
+			}
+			deploymentStatus := deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation])
+			switch deploymentStatus {
+			case deployapi.DeploymentStatusFailed,
+				deployapi.DeploymentStatusComplete:
+				// Previous deployment in terminal state - can ignore
+				// Ignoring specific deployment states so that any new 
+				// deployment state will not be ignored
+			default:
+				glog.V(4).Infof("Found previous deployment %s/%s (status %s) - will requeue", deployment.Namespace, deployment.Name, deploymentStatus)
+				return transientError(fmt.Sprintf("found previous deployment (state: %s) for %s - requeuing", deploymentStatus, labelFor(config)))
+			}
 		}
 	}
 
@@ -87,14 +116,20 @@ func labelFor(config *deployapi.DeploymentConfig) string {
 
 // deploymentClient abstracts access to deployments.
 type deploymentClient interface {
+	listDeployments(namespace string) (*kapi.ReplicationControllerList, error)
 	getDeployment(namespace, name string) (*kapi.ReplicationController, error)
 	createDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
 }
 
 // deploymentClientImpl is a pluggable deploymentClient.
 type deploymentClientImpl struct {
+	listDeploymentsFunc  func(namespace string) (*kapi.ReplicationControllerList, error)
 	getDeploymentFunc    func(namespace, name string) (*kapi.ReplicationController, error)
 	createDeploymentFunc func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
+}
+
+func (i *deploymentClientImpl) listDeployments(namespace string) (*kapi.ReplicationControllerList, error) {
+	return i.listDeploymentsFunc(namespace)
 }
 
 func (i *deploymentClientImpl) getDeployment(namespace, name string) (*kapi.ReplicationController, error) {
