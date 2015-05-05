@@ -7,9 +7,13 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/coreos/go-etcd/etcd"
+	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -408,4 +412,156 @@ func TestDeleteImageStreamTag(t *testing.T) {
 			t.Errorf("%s: tags: expected %v, got %v", name, e, a)
 		}
 	}
+}
+
+func TestWatch(t *testing.T) {
+	fakeEtcdClient, helper, storage := setup(t)
+
+	myImage := api.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "myimage",
+		},
+		DockerImageReference: "default/foo@myimage",
+	}
+
+	helper.SetObj("/images/myimage", &myImage, &myImage, 0)
+
+	myImage2 := api.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "myimage2",
+		},
+		DockerImageReference: "default/foo@myimage2",
+	}
+
+	helper.SetObj("/images/myimage2", &myImage2, &myImage2, 0)
+
+	stream := api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "default",
+			Name:      "foo",
+		},
+		Status: api.ImageStreamStatus{
+			Tags: map[string]api.TagEventList{
+				"latest": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "default/foo:latest",
+							Image:                "myimage",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	helper.SetObj("/imageRepositories/default/foo", &stream, &stream, 0)
+
+	watching, err := storage.Watch(kapi.NewDefaultContext(), labels.Everything(), fields.SelectorFromSet(fields.Set{"name": "foo:latest"}), "1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fakeEtcdClient.WaitForWatchCompletion()
+
+	// simulate watch event for default/foo
+	glog.Infof("Simulating watch event for default/foo")
+	fakeEtcdClient.WatchResponse <- &etcd.Response{
+		Action: "set",
+		Node: &etcd.Node{
+			Value: runtime.EncodeOrDie(latest.Codec, &stream),
+		},
+	}
+
+	expected := api.ImageStreamTag{
+		Image: api.Image{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace:       "default",
+				Name:            "foo:latest",
+				ResourceVersion: "1",
+			},
+			DockerImageReference:       "default/foo@myimage",
+			DockerImageMetadataVersion: "1.0",
+		},
+	}
+
+	// wait for watch event
+	glog.Infof("Waiting for watch event")
+	select {
+	case event, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+		if e, a := &expected, event.Object; !reflect.DeepEqual(e, a) {
+			t.Errorf("unexpected watch object, diff=%s", util.ObjectDiff(e, a))
+		}
+	}
+
+	// simulate watch event for default/foo, but no change to :latest
+	glog.Infof("Simulating watch event for default/foo, no change to :latest")
+	stream.Status.Tags["other"] = api.TagEventList{
+		Items: []api.TagEvent{
+			{
+				DockerImageReference: "default/foo@someimage",
+				Image:                "someimage",
+			},
+		},
+	}
+	helper.SetObj("/imageRepositories/default/foo", &stream, &stream, 0)
+	fakeEtcdClient.WatchResponse <- &etcd.Response{
+		Action: "set",
+		Node: &etcd.Node{
+			Value: runtime.EncodeOrDie(latest.Codec, &stream),
+		},
+	}
+
+	// wait for watch event
+	glog.Infof("Waiting for watch event")
+	select {
+	case event, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+		if e, a := &expected, event.Object; !reflect.DeepEqual(e, a) {
+			t.Errorf("unexpected watch object, diff=%s", util.ObjectDiff(e, a))
+		}
+	}
+
+	// simulate watch event for default/foo, but changing :latest
+	glog.Infof("Simulating watch event for default/foo, change :latest")
+	history := stream.Status.Tags["latest"]
+	event := &history.Items[0]
+	event.DockerImageReference = "default/foo@myimage2"
+	event.Image = "myimage2"
+	stream.Status.Tags["latest"] = history
+	helper.SetObj("/imageRepositories/default/foo", &stream, &stream, 0)
+	fakeEtcdClient.WatchResponse <- &etcd.Response{
+		Action: "set",
+		Node: &etcd.Node{
+			Value: runtime.EncodeOrDie(latest.Codec, &stream),
+		},
+	}
+
+	expected2 := api.ImageStreamTag{
+		Image: api.Image{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace:       "default",
+				Name:            "foo:latest",
+				ResourceVersion: "2",
+			},
+			DockerImageReference:       "default/foo@myimage2",
+			DockerImageMetadataVersion: "1.0",
+		},
+	}
+	// wait for watch event
+	glog.Infof("Waiting for watch event")
+	select {
+	case event, ok := <-watching.ResultChan():
+		if !ok {
+			t.Errorf("watching channel should be open")
+		}
+		if e, a := &expected2, event.Object; !reflect.DeepEqual(e, a) {
+			t.Errorf("unexpected watch object, diff=%s", util.ObjectDiff(e, a))
+		}
+	}
+
+	watching.Stop()
 }
