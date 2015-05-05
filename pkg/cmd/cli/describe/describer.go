@@ -451,18 +451,11 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	nodeSelector := ""
-	if len(project.ObjectMeta.Annotations) > 0 {
-		if ns, ok := project.ObjectMeta.Annotations["nodeSelector"]; ok {
-			nodeSelector = ns
-		}
-	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
 		formatString(out, "Display Name", project.Annotations["displayName"])
 		formatString(out, "Status", project.Status.Phase)
-		formatString(out, "Node Selector", nodeSelector)
 		return nil
 	})
 }
