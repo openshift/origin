@@ -416,6 +416,18 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 	}
 
 	allHostnames := util.NewStringSet("localhost", "127.0.0.1", "openshift.default.local", "kubernetes.default.local", "kubernetes-ro.default.local", masterAddr.Host, masterPublicAddr.Host, assetPublicAddr.Host)
+
+	listenIP := net.ParseIP(args.ListenArg.ListenAddr.Host)
+	// add the IPs that might be used based on the ListenAddr.
+	if listenIP != nil && listenIP.IsUnspecified() {
+		allAddresses, _ := cmdutil.AllLocalIP4()
+		for _, ip := range allAddresses {
+			allHostnames.Insert(ip.String())
+		}
+	} else {
+		allHostnames.Insert(args.ListenArg.ListenAddr.Host)
+	}
+
 	certHostnames := util.StringSet{}
 	for hostname := range allHostnames {
 		if host, _, err := net.SplitHostPort(hostname); err == nil {
