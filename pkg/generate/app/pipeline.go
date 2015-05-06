@@ -50,6 +50,7 @@ func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, 
 			Tag:  image.DefaultImageTag,
 		},
 
+		OutputImage:   true,
 		AsImageStream: true,
 	}
 	if input != nil {

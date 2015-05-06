@@ -41,7 +41,6 @@ func (g *imageRefGenerator) FromName(name string) (*ImageRef, error) {
 	}
 	return &ImageRef{
 		DockerImageReference: ref,
-		AsImageStream:        true,
 	}, nil
 }
 
