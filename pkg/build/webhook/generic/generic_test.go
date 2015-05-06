@@ -38,6 +38,18 @@ func GivenRequestWithPayload(t *testing.T) *http.Request {
 	return req
 }
 
+func GivenRequestWithRefsPayload(t *testing.T) *http.Request {
+	data, err := ioutil.ReadFile("fixtures/post-receive-git.json")
+	if err != nil {
+		t.Errorf("Error reading setup data: %v", err)
+		return nil
+	}
+	req, _ := http.NewRequest("POST", "http://someurl.com", bytes.NewReader(data))
+	req.Header.Add("User-Agent", "Some User Agent")
+	req.Header.Add("Content-Type", "application/json")
+	return req
+}
+
 func TestVerifyRequestForMethod(t *testing.T) {
 	req := GivenRequest("GET")
 	err := verifyRequest(req)
@@ -47,22 +59,25 @@ func TestVerifyRequestForMethod(t *testing.T) {
 }
 
 func TestVerifyRequestForUserAgent(t *testing.T) {
-	req := GivenRequest("POST")
+	req := &http.Request{
+		Header: http.Header{"Content-Type": {"application/json"}},
+		Method: "POST",
+	}
 	err := verifyRequest(req)
-	if err == nil || !strings.Contains(err.Error(), "User-Agent") {
-		t.Errorf("Exp. User-Agent to be required %v", err)
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
 	}
 
 	req.Header.Add("User-Agent", "")
 	err = verifyRequest(req)
-	if err == nil || !strings.Contains(err.Error(), "User-Agent") {
-		t.Errorf("Exp. User-Agent to not empty %v", err)
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
 	}
 
 	req.Header.Set("User-Agent", "foobar")
 	err = verifyRequest(req)
-	if err != nil && strings.Contains(err.Error(), "User-Agent") {
-		t.Errorf("Exp. non-empty User-Agent to be valid %v", err)
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
 	}
 
 }
@@ -73,8 +88,8 @@ func TestVerifyRequestForContentType(t *testing.T) {
 		Method: "POST",
 	}
 	err := verifyRequest(req)
-	if err != nil && strings.Contains(err.Error(), "Content-Type") {
-		t.Errorf("Exp. a valid request if no payload is posted")
+	if err != nil && !strings.Contains(err.Error(), "Content-Type") {
+		t.Errorf("Exp. a content type error")
 	}
 
 	req.Header.Add("Content-Length", "1")
@@ -200,6 +215,77 @@ func TestExtractWithGitPayload(t *testing.T) {
 	}
 	if revision == nil {
 		t.Error("Expected the 'revision' return value to not be nil")
+	}
+}
+
+func TestExtractWithGitRefsPayload(t *testing.T) {
+	req := GivenRequestWithRefsPayload(t)
+	buildConfig := &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GenericWebHookBuildTriggerType,
+				GenericWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					Ref: "master",
+				},
+			},
+			Strategy: mockBuildStrategy,
+		},
+	}
+	plugin := New()
+
+	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+
+	if err != nil {
+		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
+	}
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
+	}
+	if revision == nil {
+		t.Error("Expected the 'revision' return value to not be nil")
+	}
+}
+
+func TestExtractWithUnmatchedGitRefsPayload(t *testing.T) {
+	req := GivenRequestWithRefsPayload(t)
+	buildConfig := &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GenericWebHookBuildTriggerType,
+				GenericWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					Ref: "other",
+				},
+			},
+			Strategy: mockBuildStrategy,
+		},
+	}
+	plugin := New()
+	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+
+	if err != nil {
+		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
+	}
+	if proceed {
+		t.Error("Expected 'proceed' return value to be 'false'")
+	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
 	}
 }
 

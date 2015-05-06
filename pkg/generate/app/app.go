@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"path"
 	"reflect"
 	"strconv"
 	"strings"
@@ -19,6 +18,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -70,15 +70,10 @@ func (g *Generated) WithType(slicePtr interface{}) bool {
 
 func nameFromGitURL(url *url.URL) (string, bool) {
 	// from path
-	if len(url.Path) > 0 {
-		base := path.Base(url.Path)
-		if len(base) > 0 && base != "/" {
-			if ext := path.Ext(base); ext == ".git" {
-				base = base[:len(base)-4]
-			}
-			return base, true
-		}
+	if name, ok := git.NameFromRepositoryURL(url); ok {
+		return name, true
 	}
+	// TODO: path is questionable
 	if len(url.Host) > 0 {
 		// from host with port
 		if host, _, err := net.SplitHostPort(url.Host); err == nil {

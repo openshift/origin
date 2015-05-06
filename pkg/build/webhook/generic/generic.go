@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/golang/glog"
 
@@ -35,6 +34,13 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 	if err = verifyRequest(req); err != nil {
 		return
 	}
+
+	git := buildCfg.Parameters.Source.Git
+	if git == nil {
+		glog.V(4).Infof("No source defined for build config, but triggering anyway: %s", buildCfg.Name)
+		return nil, true, nil
+	}
+
 	if req.Body != nil {
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
@@ -51,18 +57,27 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		if data.Git == nil {
 			return nil, true, nil
 		}
-		if !webhook.GitRefMatches(data.Git.Ref, buildCfg.Parameters.Source.Git.Ref) {
-			glog.V(2).Infof("Skipping build for '%s'.  Branch reference from '%s' does not match configuration", buildCfg, data)
+
+		if data.Git.Refs != nil {
+			for _, ref := range data.Git.Refs {
+				if webhook.GitRefMatches(ref.Ref, git.Ref) {
+					revision = &api.SourceRevision{
+						Type: api.BuildSourceGit,
+						Git:  &ref.GitSourceRevision,
+					}
+					return revision, true, nil
+				}
+			}
+			glog.V(2).Infof("Skipping build for %q. None of the supplied refs matched %q", buildCfg, git.Ref)
+			return nil, false, nil
+		}
+		if !webhook.GitRefMatches(data.Git.Ref, git.Ref) {
+			glog.V(2).Infof("Skipping build for %q. Branch reference from %q does not match configuration", buildCfg.Name, data.Git.Ref)
 			return nil, false, nil
 		}
 		revision = &api.SourceRevision{
 			Type: api.BuildSourceGit,
-			Git: &api.GitSourceRevision{
-				Commit:    data.Git.Commit,
-				Message:   data.Git.Message,
-				Author:    data.Git.Author,
-				Committer: data.Git.Committer,
-			},
+			Git:  &data.Git.GitSourceRevision,
 		}
 	}
 	return revision, true, nil
@@ -72,13 +87,8 @@ func verifyRequest(req *http.Request) error {
 	if method := req.Method; method != "POST" {
 		return fmt.Errorf("Unsupported HTTP method %s", method)
 	}
-	if userAgent := req.Header.Get("User-Agent"); len(strings.TrimSpace(userAgent)) == 0 {
-		return fmt.Errorf("User-Agent must be populated with a non-empty value")
-	}
-	if contentLength := req.Header.Get("Content-Length"); strings.TrimSpace(contentLength) != "" {
-		if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
-			return fmt.Errorf("Unsupported Content-Type %s", contentType)
-		}
+	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
+		return fmt.Errorf("Unsupported Content-Type %s", contentType)
 	}
 	return nil
 }
