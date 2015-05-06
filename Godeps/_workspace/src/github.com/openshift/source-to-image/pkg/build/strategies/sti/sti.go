@@ -5,6 +5,7 @@ import (
 	"io"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
@@ -51,6 +52,7 @@ type STI struct {
 	optionalScripts  []string
 	externalScripts  map[string]bool
 	installedScripts map[string]bool
+	scriptsURL       map[string]string
 	incremental      bool
 
 	// Interfaces
@@ -67,7 +69,7 @@ type STI struct {
 // be used for the case that the base Docker image does not have 'tar' or 'bash'
 // installed.
 func New(req *api.Request) (*STI, error) {
-	docker, err := docker.New(req.DockerSocket)
+	docker, err := docker.New(req.DockerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +87,7 @@ func New(req *api.Request) (*STI, error) {
 		optionalScripts:  []string{api.SaveArtifacts},
 		externalScripts:  map[string]bool{},
 		installedScripts: map[string]bool{},
+		scriptsURL:       map[string]string{},
 	}
 
 	// The sources are downloaded using the GIT downloader.
@@ -134,6 +137,7 @@ func (b *STI) Build(request *api.Request) (*api.Result, error) {
 			if !isMissingRequirements(e.Output) {
 				return nil, err
 			}
+			glog.V(1).Info("Image is missing basic requirements (sh or tar), layered build will be performed")
 			return b.layered.Build(request)
 		default:
 			return nil, err
@@ -181,6 +185,7 @@ func (b *STI) Prepare(request *api.Request) error {
 			glog.V(1).Infof("Using %v from %s", r.Script, r.URL)
 			b.externalScripts[r.Script] = r.Downloaded
 			b.installedScripts[r.Script] = r.Installed
+			b.scriptsURL[r.Script] = r.URL
 		} else {
 			glog.Warningf("Error getting %v from %s: %v", r.Script, r.URL, r.Error)
 		}
@@ -197,7 +202,7 @@ func (b *STI) SetScripts(required, optional []string) {
 
 // PostExecute allows to execute post-build actions after the Docker build
 // finishes.
-func (b *STI) PostExecute(containerID string, location string) error {
+func (b *STI) PostExecute(containerID, location string) error {
 	var (
 		err             error
 		previousImageID string
@@ -216,8 +221,17 @@ func (b *STI) PostExecute(containerID string, location string) error {
 
 	buildEnv := append(scripts.ConvertEnvironment(env), b.generateConfigEnv()...)
 
+	runCmd := b.scriptsURL[api.Run]
+	if strings.HasPrefix(runCmd, "image://") {
+		// scripts from inside of the image, we need to strip the image part
+		runCmd = filepath.Join(strings.TrimPrefix(runCmd, "image://"), api.Run)
+	} else {
+		// external scripts, in which case we're taking the directory to which they
+		// were extracted and append scripts dir and name
+		runCmd = filepath.Join(location, "scripts", api.Run)
+	}
 	opts := docker.CommitContainerOptions{
-		Command:     append([]string{}, filepath.Join(location, api.Run)),
+		Command:     append([]string{}, runCmd),
 		Env:         buildEnv,
 		ContainerID: containerID,
 		Repository:  b.request.Tag,

@@ -6,8 +6,8 @@ type Request struct {
 	// BaseImage describes which image is used for building the result images.
 	BaseImage string
 
-	// DockerSocket describes how to access host docker daemon.
-	DockerSocket string
+	// DockerConfig describes how to access host docker daemon.
+	DockerConfig *DockerConfig
 
 	// PreserveWorkingDir describes if working directory should be left after processing.
 	PreserveWorkingDir bool
@@ -61,6 +61,21 @@ type Request struct {
 	// Specify a relative directory inside the application repository that should
 	// be used as a root directory for the application.
 	ContextDir string
+}
+
+// DockerConfig contains the configuration for a Docker connection
+type DockerConfig struct {
+	// Endpoint is the docker network endpoint or socket
+	Endpoint string
+
+	// CertFile is the certificate file path for a TLS connection
+	CertFile string
+
+	// KeyFile is the key file path for a TLS connection
+	KeyFile string
+
+	// CAFile is the certificate authority file path for a TLS connection
+	CAFile string
 }
 
 // Result structure contains information from build process.

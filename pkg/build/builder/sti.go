@@ -38,7 +38,7 @@ func (s *STIBuilder) Build() error {
 	tag := s.build.Parameters.Output.DockerImageReference
 	request := &stiapi.Request{
 		BaseImage:    s.build.Parameters.Strategy.STIStrategy.From.Name,
-		DockerSocket: s.dockerSocket,
+		DockerConfig: &stiapi.DockerConfig{Endpoint: s.dockerSocket},
 		Source:       s.build.Parameters.Source.Git.URI,
 		ContextDir:   s.build.Parameters.Source.ContextDir,
 		Tag:          tag,

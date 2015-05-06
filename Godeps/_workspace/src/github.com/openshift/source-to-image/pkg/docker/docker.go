@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
 	"github.com/openshift/source-to-image/pkg/api"
@@ -58,7 +58,7 @@ type stiDocker struct {
 }
 
 type PostExecutor interface {
-	PostExecute(containerID string, location string) error
+	PostExecute(containerID, location string) error
 }
 
 type PullResult struct {
@@ -98,8 +98,18 @@ type BuildImageOptions struct {
 }
 
 // New creates a new implementation of the STI Docker interface
-func New(endpoint string) (Docker, error) {
-	client, err := docker.NewClient(endpoint)
+func New(config *api.DockerConfig) (Docker, error) {
+	var client *docker.Client
+	var err error
+	if config.CertFile != "" && config.KeyFile != "" && config.CAFile != "" {
+		client, err = docker.NewTLSClient(
+			config.Endpoint,
+			config.CertFile,
+			config.KeyFile,
+			config.CAFile)
+	} else {
+		client, err = docker.NewClient(config.Endpoint)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +185,12 @@ func (d *stiDocker) PullImage(name string) (image *docker.Image, err error) {
 
 // RemoveContainer removes a container and its associated volumes.
 func (d *stiDocker) RemoveContainer(id string) error {
-	return d.client.RemoveContainer(docker.RemoveContainerOptions{id, true, true})
+	opts := docker.RemoveContainerOptions{
+		ID:            id,
+		RemoveVolumes: true,
+		Force:         true,
+	}
+	return d.client.RemoveContainer(opts)
 }
 
 // getVariable gets environment variable's value from the image metadata
@@ -352,7 +367,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	}
 	if opts.PostExec != nil {
 		glog.V(2).Infof("Invoking postExecution function")
-		if err = opts.PostExec.PostExecute(container.ID, commandBaseDir); err != nil {
+		if err = opts.PostExec.PostExecute(container.ID, tarDestination); err != nil {
 			return err
 		}
 	}
