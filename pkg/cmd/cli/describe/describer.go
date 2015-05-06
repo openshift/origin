@@ -28,53 +28,51 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
+func describerMap(c *client.Client, kclient kclient.Interface, host string) map[string]kctl.Describer {
+	m := map[string]kctl.Describer{
+		"Build":                &BuildDescriber{c, kclient},
+		"BuildConfig":          &BuildConfigDescriber{c, host},
+		"BuildLog":             &BuildLogDescriber{c},
+		"DeploymentConfig":     NewDeploymentConfigDescriber(c, kclient),
+		"Identity":             &IdentityDescriber{c},
+		"Image":                &ImageDescriber{c},
+		"ImageStream":          &ImageStreamDescriber{c},
+		"ImageStreamTag":       &ImageStreamTagDescriber{c},
+		"ImageStreamImage":     &ImageStreamImageDescriber{c},
+		"Route":                &RouteDescriber{c},
+		"Project":              &ProjectDescriber{c},
+		"Template":             &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
+		"Policy":               &PolicyDescriber{c},
+		"PolicyBinding":        &PolicyBindingDescriber{c},
+		"RoleBinding":          &RoleBindingDescriber{c},
+		"Role":                 &RoleDescriber{c},
+		"ClusterPolicy":        &ClusterPolicyDescriber{c},
+		"ClusterPolicyBinding": &ClusterPolicyBindingDescriber{c},
+		"ClusterRoleBinding":   &ClusterRoleBindingDescriber{c},
+		"ClusterRole":          &ClusterRoleDescriber{c},
+		"User":                 &UserDescriber{c},
+		"UserIdentityMapping":  &UserIdentityMappingDescriber{c},
+	}
+	return m
+}
+
+// List of all resource types we can describe
+func DescribableResources() []string {
+	// Include describable resources in kubernetes
+	keys := kctl.DescribableResources()
+
+	for k := range describerMap(nil, nil, "") {
+		resource := strings.ToLower(k)
+		keys = append(keys, resource)
+	}
+	return keys
+}
+
 // DescriberFor returns a describer for a given kind of resource
 func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
-	switch kind {
-	case "Build":
-		return &BuildDescriber{c, kclient}, true
-	case "BuildConfig":
-		return &BuildConfigDescriber{c, host}, true
-	case "BuildLog":
-		return &BuildLogDescriber{c}, true
-	case "DeploymentConfig":
-		return NewDeploymentConfigDescriber(c, kclient), true
-	case "Identity":
-		return &IdentityDescriber{c}, true
-	case "Image":
-		return &ImageDescriber{c}, true
-	case "ImageStream":
-		return &ImageStreamDescriber{c}, true
-	case "ImageStreamTag":
-		return &ImageStreamTagDescriber{c}, true
-	case "ImageStreamImage":
-		return &ImageStreamImageDescriber{c}, true
-	case "Route":
-		return &RouteDescriber{c}, true
-	case "Project":
-		return &ProjectDescriber{c}, true
-	case "Template":
-		return &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil}, true
-	case "Policy":
-		return &PolicyDescriber{c}, true
-	case "PolicyBinding":
-		return &PolicyBindingDescriber{c}, true
-	case "RoleBinding":
-		return &RoleBindingDescriber{c}, true
-	case "Role":
-		return &RoleDescriber{c}, true
-	case "ClusterPolicy":
-		return &ClusterPolicyDescriber{c}, true
-	case "ClusterPolicyBinding":
-		return &ClusterPolicyBindingDescriber{c}, true
-	case "ClusterRoleBinding":
-		return &ClusterRoleBindingDescriber{c}, true
-	case "ClusterRole":
-		return &ClusterRoleDescriber{c}, true
-	case "User":
-		return &UserDescriber{c}, true
-	case "UserIdentityMapping":
-		return &UserIdentityMappingDescriber{c}, true
+	f, ok := describerMap(c, kclient, host)[kind]
+	if ok {
+		return f, true
 	}
 	return nil, false
 }

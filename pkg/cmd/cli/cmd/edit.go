@@ -71,9 +71,10 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 			cmdutil.CheckErr(err)
 		},
 	}
+	usage := "Filename, directory, or URL to file to use to edit the resource"
+	kubectl.AddJsonFilenameFlag(cmd, &filenames, usage)
 	cmd.Flags().StringP("output", "o", "yaml", "Output format. One of: yaml|json.")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
-	cmd.Flags().VarP(&filenames, "filename", "f", "Filename, directory, or URL to file to use to edit the resource.")
 	return cmd
 }
 
