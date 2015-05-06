@@ -104,8 +104,8 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 				"container1",
 			},
 			From: kapi.ObjectReference{
-				Kind: "ImageStream",
-				Name: "test-image-stream",
+				Kind: "ImageRepository",
+				Name: "test-image-repo",
 			},
 			Tag: imageapi.DefaultImageTag,
 		},
