@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"path/filepath"
 
@@ -15,6 +16,49 @@ import (
 )
 
 const CreateMasterCertsCommandName = "create-master-certs"
+const master_cert_long = `
+This command creates keys and certs necessary to run a secure OpenShift master.
+It also creates keys, certificates, and configuration necessary for most
+related infrastructure components that are clients to the master.
+See the related "create-node-config" command for generating per-node config.
+
+All files are expected or created in standard locations under the cert-dir.
+
+    openshift.local.config/master/
+	    ca.{crt,key,serial.txt}
+	    master.server.{crt,key}
+		openshift-router.{crt,key,kubeconfig}
+		admin.{crt,key,kubeconfig}
+		...
+
+Note that the certificate authority (CA aka "signer") generated automatically
+is self-signed. In production usage, administrators are more likely to
+want to generate signed certificates separately rather than rely on an
+OpenShift-generated CA. Alternatively, start with an existing signed CA and
+have this command use it to generate valid certificates.
+
+This command would usually only be used once at installation. If you
+need to regenerate the master server cert, DO NOT use --overwrite as this
+would recreate ALL certs including the CA cert, invalidating any existing
+infrastructure or client configuration. Instead, delete/rename the existing
+server cert and run the command to fill it in:
+
+    $ mv openshift.local.config/master/master.server.crt{,.old}
+    $ %[1]s --cert-dir=... \
+	        --master=https://internal.master.fqdn:8443 \
+            --public-master=https://external.master.fqdn:8443 \
+            --hostnames=external.master.fqdn,internal.master.fqdn,localhost,127.0.0.1,172.17.42.1,kubernetes.default.local
+
+Alternatively, use the related "create-server-cert" command to explicitly
+create a certificate.
+
+Regardless of --overwrite, the master server key/cert will be updated 
+if --hostnames does not match the current certificate.
+Regardless of --overwrite, .kubeconfig files will be updated every time this
+command is run, so always specify --master (and if needed, --public-master).
+This is designed to match the behavior of "openshift start" which rewrites
+certs/confs for certain configuration changes.
+`
 
 type CreateMasterCertsOptions struct {
 	CertDir    string
@@ -33,7 +77,8 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create all certificates for an OpenShift master.  To create node certificates, try openshift admin create-node-config",
+		Short: "Create all certificates for an OpenShift master (signer/CA, server, common clients).",
+		Long:  fmt.Sprintf(master_cert_long, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -53,8 +98,8 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
-	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
-	flags.BoolVar(&options.Overwrite, "overwrite", false, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
+	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP that server certs should be valid for (comma-delimited list)")
+	flags.BoolVar(&options.Overwrite, "overwrite", false, "Overwrite all existing cert/key/config files (WARNING: includes signer/CA)")
 
 	return cmd
 }

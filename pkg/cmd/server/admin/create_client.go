@@ -29,12 +29,19 @@ type CreateClientOptions struct {
 	PublicAPIServerURL string
 }
 
+const create_client_long = `
+Create a portable client folder containing a client certificate, a client key,
+a server certificate authority, and a .kubeconfig file for connecting to the
+master as the specified user.
+`
+
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateClientOptions{GetSignerCertOptions: &GetSignerCertOptions{}}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create a portable client folder containing a client certificate, a client key, a server certificate authority, and a .kubeconfig file.",
+		Short: "Create a portable client folder with credentials for connecting to the master as given user",
+		Long:  create_client_long,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))

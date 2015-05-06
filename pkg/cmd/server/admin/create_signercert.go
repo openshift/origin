@@ -32,12 +32,22 @@ func BindSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.FlagSe
 	flags.BoolVar(&options.Overwrite, prefix+"overwrite", options.Overwrite, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 }
 
+const create_signer_long = `
+Create a self-signed CA key/cert for signing certificates used by
+OpenShift components.
+
+This is mainly intended for development/trial deployments as production
+deployments of OpenShift should utilize properly signed certificates
+(generated separately) or start with a properly signed CA.
+`
+
 func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateSignerCertOptions{Overwrite: true}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create signer certificate",
+		Short: "Create a signer (certificate authority/CA) certificate",
+		Long:  create_signer_long,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))

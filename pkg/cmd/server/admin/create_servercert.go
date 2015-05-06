@@ -25,12 +25,28 @@ type CreateServerCertOptions struct {
 	Overwrite bool
 }
 
+const create_server_long = `
+Create a key and server certificate valid for the specified hostnames,
+signed by the specified CA. These are useful for securing infrastructure
+components such as the router, authentication server, etc.
+
+Example: Creating a secure router certificate.
+
+    $ CA=openshift.local.config/master
+	$ %[1]s --signer-cert=$CA/ca.crt \
+	          --signer-key=$CA/ca.key --signer-serial=$CA/ca.serial.txt \
+	          --hostnames='*.cloudapps.example.com' \
+	          --cert=cloudapps.crt --key=cloudapps.key
+    $ cat cloudapps.crt cloudapps.key $CA/ca.crt > cloudapps.router.pem
+`
+
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateServerCertOptions{GetSignerCertOptions: &GetSignerCertOptions{}}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create server certificate",
+		Short: "Create a signed server certificate and key",
+		Long:  fmt.Sprintf(create_server_long, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -46,8 +62,8 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 	flags := cmd.Flags()
 	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "")
 
-	flags.StringVar(&options.CertFile, "cert", "", "The certificate file.  The name should be changed to indicate what it is used for serving.")
-	flags.StringVar(&options.KeyFile, "key", "", "The key file.  The name should be changed to indicate what it is used for serving.")
+	flags.StringVar(&options.CertFile, "cert", "", "The certificate file. Choose a name that indicates what the service is.")
+	flags.StringVar(&options.KeyFile, "key", "", "The key file. Choose a name that indicates what the service is.")
 
 	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
 	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
