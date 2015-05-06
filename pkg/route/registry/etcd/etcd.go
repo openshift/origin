@@ -16,7 +16,7 @@ import (
 
 const (
 	// RoutePath is the path to route image in etcd
-	RoutePath string = "/routes"
+	RoutePath string = "/registry/routes"
 )
 
 // Etcd implements route.Registry backed by etcd.
