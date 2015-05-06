@@ -246,6 +246,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       os.ssh_username = user = voc['ssh_user']|| creds['OSSshUser']  || "root"           # login for the VM instance
       os.server_name  = ENV['OS_HOSTNAME']    || vagrant_openshift_config['instance_name'] # name for the instance created
       full_provision(override.vm, user)
+
+      # floating ip usually needed for accessing machines
+      floating_ip     = creds['OSFloatingIP'] || ENV['OS_FLOATING_IP']
+      os.floating_ip  = floating_ip == ":auto" ? :auto : floating_ip
+      floating_ip_pool = creds['OSFloatingIPPool'] || ENV['OS_FLOATING_IP_POOL']
+      os.floating_ip_pool = floating_ip_pool == "false" ? false : floating_ip_pool
     end if vagrant_openshift_config['openstack']
 
 
