@@ -232,11 +232,22 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient)
 
+	bcClient, _ := c.BuildControllerClients()
+	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
+		buildEtcd,
+		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
+		map[string]webhook.Plugin{
+			"generic": generic.New(),
+			"github":  github.New(),
+		},
+	)
+
 	// initialize OpenShift API
 	storage := map[string]rest.Storage{
 		"builds":                   buildregistry.NewREST(buildEtcd),
 		"builds/clone":             buildClone,
 		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
+		"buildConfigs/webhooks":    buildConfigWebHooks,
 		"buildConfigs/instantiate": buildConfigInstantiate,
 		"buildLogs":                buildlogregistry.NewREST(buildEtcd, c.BuildLogClient(), kubeletClient),
 		"builds/log":               buildlogregistry.NewREST(buildEtcd, c.BuildLogClient(), kubeletClient),
@@ -387,11 +398,8 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 			"github":  github.New(),
 		})
 
-	// TODO: go-restfulize this
+	// TODO: deprecated, remove when v1beta1 is dropped
 	prefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
-	container.Handle(prefix, http.StripPrefix(prefix, handler))
-	// TODO: broken
-	prefix = OpenShiftAPIPrefixV1Beta3 + "/buildconfighooks/"
 	container.Handle(prefix, http.StripPrefix(prefix, handler))
 	return []string{}
 }

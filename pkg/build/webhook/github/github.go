@@ -38,11 +38,11 @@ type pushEvent struct {
 func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
 	trigger, ok := webhook.FindTriggerPolicy(api.GithubWebHookBuildTriggerType, buildCfg)
 	if !ok {
-		err = fmt.Errorf("BuildConfig %s does not support the Github webhook trigger type", buildCfg.Name)
+		err = webhook.ErrHookNotEnabled
 		return
 	}
 	if trigger.GithubWebHook.Secret != secret {
-		err = fmt.Errorf("Secret does not match for BuildConfig %s", buildCfg.Name)
+		err = webhook.ErrSecretMismatch
 		return
 	}
 	if err = verifyRequest(req); err != nil {
