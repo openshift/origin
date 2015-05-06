@@ -151,6 +151,15 @@ angular.module('openshiftConsole')
         return isSecure ? 'https://' : 'http://';
     };
   })
+  .filter('githubLink', function() {
+    return function(link) {
+      var m = link.match(/^(?:https?:\/\/|git:\/\/|git\+ssh:\/\/|git\+https:\/\/)?(?:[^@]+@)?github\.com[:\/]([^\/]+\/[^\/]+?)(?:\.git(#.*)?)?$/);
+      if (m) {
+        link = "https://github.com/" + m[1];
+      }
+      return link;
+    };
+  })
   .filter('yesNo', function() {
       return function(isTrue) {
           return isTrue ? 'Yes' : 'No';
