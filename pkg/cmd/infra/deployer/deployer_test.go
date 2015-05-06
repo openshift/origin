@@ -23,10 +23,14 @@ func TestGetDeploymentContextMissingDeployment(t *testing.T) {
 		},
 	}
 
-	newDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
+	newDeployment, lastDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
 
 	if newDeployment != nil {
 		t.Fatalf("unexpected newDeployment: %#v", newDeployment)
+	}
+
+	if lastDeployment != nil {
+		t.Fatalf("unexpected lastDeployment: %#v", lastDeployment)
 	}
 
 	if oldDeployments != nil {
@@ -48,10 +52,14 @@ func TestGetDeploymentContextInvalidEncodedConfig(t *testing.T) {
 		},
 	}
 
-	newDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
+	newDeployment, lastDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
 
 	if newDeployment != nil {
 		t.Fatalf("unexpected newDeployment: %#v", newDeployment)
+	}
+
+	if lastDeployment != nil {
+		t.Fatalf("unexpected lastDeployment: %#v", lastDeployment)
 	}
 
 	if oldDeployments != nil {
@@ -74,7 +82,7 @@ func TestGetDeploymentContextNoPriorDeployments(t *testing.T) {
 		},
 	}
 
-	newDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
+	newDeployment, lastDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -82,6 +90,10 @@ func TestGetDeploymentContextNoPriorDeployments(t *testing.T) {
 
 	if newDeployment == nil {
 		t.Fatal("expected deployment")
+	}
+
+	if lastDeployment != nil {
+		t.Fatalf("unexpected lastDeployment: %#v", lastDeployment)
 	}
 
 	if oldDeployments == nil {
@@ -94,6 +106,7 @@ func TestGetDeploymentContextNoPriorDeployments(t *testing.T) {
 }
 
 func TestGetDeploymentContextWithPriorDeployments(t *testing.T) {
+	var lastName string
 	getter := &testReplicationControllerGetter{
 		getFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 			deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), kapi.Codec)
@@ -105,6 +118,9 @@ func TestGetDeploymentContextWithPriorDeployments(t *testing.T) {
 			deployment3, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(3), kapi.Codec)
 			deployment4, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 			deployment4.Annotations[deployapi.DeploymentConfigAnnotation] = "another-config"
+
+			lastName = deployment1.Name
+
 			return &kapi.ReplicationControllerList{
 				Items: []kapi.ReplicationController{
 					*deployment1,
@@ -117,7 +133,7 @@ func TestGetDeploymentContextWithPriorDeployments(t *testing.T) {
 		},
 	}
 
-	newDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
+	newDeployment, lastDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -127,8 +143,20 @@ func TestGetDeploymentContextWithPriorDeployments(t *testing.T) {
 		t.Fatal("expected deployment")
 	}
 
+	if lastDeployment == nil {
+		t.Fatalf("expected non-nil lastDeployment")
+	}
+
+	if lastDeployment.Name != lastName {
+		t.Fatalf("expected %s to be identified as the last deployment, got %s", lastName, lastDeployment.Name)
+	}
+
 	if oldDeployments == nil {
 		t.Fatal("expected non-nil oldDeployments")
+	}
+
+	if lastDeployment == nil {
+		t.Fatalf("expected non-nil lastDeployment")
 	}
 
 	if e, a := 1, len(oldDeployments); e != a {
@@ -159,7 +187,7 @@ func TestGetDeploymentContextInvalidPriorDeployment(t *testing.T) {
 		},
 	}
 
-	newDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
+	newDeployment, _, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
 
 	if newDeployment != nil {
 		t.Fatalf("unexpected newDeployment: %#v", newDeployment)

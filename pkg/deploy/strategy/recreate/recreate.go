@@ -57,7 +57,7 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec
 }
 
 // Deploy makes deployment active and disables oldDeployments.
-func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationController, oldDeployments []kapi.ObjectReference) error {
+func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationController, lastDeployment *kapi.ObjectReference, oldDeployments []kapi.ObjectReference) error {
 	var err error
 	var deploymentConfig *deployapi.DeploymentConfig
 
@@ -90,8 +90,18 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		}
 	}
 
-	// Scale up the new deployment.
-	if err = s.updateReplicas(deployment.Namespace, deployment.Name, deploymentConfig.Template.ControllerTemplate.Replicas); err != nil {
+	// Scale up the new deployment. If a last deployment exists, preserve the
+	// exiting replica count; otherwise, use what's defined on the template.
+	desired := deploymentConfig.Template.ControllerTemplate.Replicas
+	if lastDeployment != nil {
+		if oldDeployment, err := s.client.getReplicationController(lastDeployment.Namespace, lastDeployment.Name); err != nil {
+			glog.Errorf("Couldn't get deployment %s/%s: %v", lastDeployment.Namespace, lastDeployment.Name, err)
+		} else {
+			desired = oldDeployment.Spec.Replicas
+			glog.Infof("Preserving replica count %d from last deployment %s/%s", desired, lastDeployment.Namespace, lastDeployment.Name)
+		}
+	}
+	if err = s.updateReplicas(deployment.Namespace, deployment.Name, desired); err != nil {
 		return err
 	}
 

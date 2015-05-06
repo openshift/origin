@@ -78,7 +78,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 
 // deploy executes a deployment strategy.
 func deploy(kClient kclient.Interface, namespace, deploymentName string) error {
-	newDeployment, oldDeployments, err := getDeployerContext(&realReplicationControllerGetter{kClient}, namespace, deploymentName)
+	newDeployment, lastDeployment, oldDeployments, err := getDeployerContext(&realReplicationControllerGetter{kClient}, namespace, deploymentName)
 
 	if err != nil {
 		return err
@@ -86,24 +86,24 @@ func deploy(kClient kclient.Interface, namespace, deploymentName string) error {
 
 	// TODO: Choose a strategy based on some input
 	strategy := strategy.NewRecreateDeploymentStrategy(kClient, latest.Codec)
-	return strategy.Deploy(newDeployment, oldDeployments)
+	return strategy.Deploy(newDeployment, lastDeployment, oldDeployments)
 }
 
 // getDeployerContext finds the target deployment and any deployments it considers to be prior to the
 // target deployment. Only deployments whose LatestVersion is less than the target deployment are
 // considered to be prior.
-func getDeployerContext(controllerGetter replicationControllerGetter, namespace, deploymentName string) (*kapi.ReplicationController, []kapi.ObjectReference, error) {
+func getDeployerContext(controllerGetter replicationControllerGetter, namespace, deploymentName string) (*kapi.ReplicationController, *kapi.ObjectReference, []kapi.ObjectReference, error) {
 	var err error
 	var newDeployment *kapi.ReplicationController
 	var newConfig *deployapi.DeploymentConfig
 
 	// Look up the new deployment and its associated config.
 	if newDeployment, err = controllerGetter.Get(namespace, deploymentName); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if newConfig, err = deployutil.DecodeDeploymentConfig(newDeployment, latest.Codec); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	glog.Infof("Found new deployment %s for config %s with latestVersion %d", newDeployment.Name, newConfig.Name, newConfig.LatestVersion)
@@ -112,13 +112,15 @@ func getDeployerContext(controllerGetter replicationControllerGetter, namespace,
 	// encoded DeploymentConfigs to the new one by LatestVersion. Treat a failure to interpret a given
 	// old deployment as a fatal error to prevent overlapping deployments.
 	var allControllers *kapi.ReplicationControllerList
+	var lastDeployment *kapi.ObjectReference
 	oldDeployments := []kapi.ObjectReference{}
 
 	if allControllers, err = controllerGetter.List(newDeployment.Namespace, labels.Everything()); err != nil {
-		return nil, nil, fmt.Errorf("Unable to get list replication controllers in deployment namespace %s: %v", newDeployment.Namespace, err)
+		return nil, nil, nil, fmt.Errorf("Unable to get list replication controllers in deployment namespace %s: %v", newDeployment.Namespace, err)
 	}
 
 	glog.Infof("Inspecting %d potential prior deployments", len(allControllers.Items))
+	lastVersion := 0
 	for _, controller := range allControllers.Items {
 		if configName, hasConfigName := controller.Annotations[deployapi.DeploymentConfigAnnotation]; !hasConfigName {
 			glog.Infof("Disregarding replicationController %s (not a deployment)", controller.Name)
@@ -128,23 +130,29 @@ func getDeployerContext(controllerGetter replicationControllerGetter, namespace,
 			continue
 		}
 
-		var oldVersion int
-		if oldVersion, err = strconv.Atoi(controller.Annotations[deployapi.DeploymentVersionAnnotation]); err != nil {
-			return nil, nil, fmt.Errorf("Couldn't determine version of deployment %s: %v", controller.Name, err)
+		var version int
+		if version, err = strconv.Atoi(controller.Annotations[deployapi.DeploymentVersionAnnotation]); err != nil {
+			return nil, nil, nil, fmt.Errorf("Couldn't determine version of deployment %s: %v", controller.Name, err)
 		}
 
-		if oldVersion < newConfig.LatestVersion {
+		if version < newConfig.LatestVersion {
 			glog.Infof("Marking deployment %s as a prior deployment", controller.Name)
-			oldDeployments = append(oldDeployments, kapi.ObjectReference{
+			ref := kapi.ObjectReference{
 				Namespace: controller.Namespace,
 				Name:      controller.Name,
-			})
+			}
+			oldDeployments = append(oldDeployments, ref)
+			if lastDeployment == nil || version > lastVersion {
+				lastDeployment = &ref
+			}
 		} else {
 			glog.Infof("Disregarding deployment %s (same as or newer than target)", controller.Name)
 		}
 	}
 
-	return newDeployment, oldDeployments, nil
+	glog.Infof("Marked deployment %s as the last deployment", lastDeployment.Name)
+
+	return newDeployment, lastDeployment, oldDeployments, nil
 }
 
 type realReplicationControllerGetter struct {
