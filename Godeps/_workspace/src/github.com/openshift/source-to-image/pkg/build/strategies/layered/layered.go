@@ -28,7 +28,7 @@ type Layered struct {
 }
 
 func New(request *api.Request, scripts build.ScriptsHandler) (*Layered, error) {
-	d, err := docker.New(request.DockerSocket)
+	d, err := docker.New(request.DockerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +141,6 @@ func (b *Layered) Build(request *api.Request) (*api.Result, error) {
 	b.request.BaseImage = newBaseImage
 	// the scripts are inside the image
 	b.request.ScriptsURL = "image://" + filepath.Join(getLocation(request), "scripts")
-	// the source is also inside the image
-	b.request.Location = filepath.Join(getLocation(request), "src")
 
 	glog.V(2).Infof("Building %s using sti-enabled image", b.request.Tag)
 	if err := b.scripts.Execute(api.Assemble, b.request); err != nil {
