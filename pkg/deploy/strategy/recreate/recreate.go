@@ -2,6 +2,7 @@ package recreate
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -90,8 +91,23 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		}
 	}
 
+	// Prefer to use an explicitly set desired replica count, falling back to
+	// the value defined on the config.
+	desiredReplicas := deploymentConfig.Template.ControllerTemplate.Replicas
+	if desired, hasDesired := deployment.Annotations[deployapi.DesiredReplicasAnnotation]; hasDesired {
+		val, err := strconv.Atoi(desired)
+		if err != nil {
+			glog.Errorf("Deployment has an invalid desired replica count '%s'; falling back to config value %d", desired, desiredReplicas)
+		} else {
+			glog.Infof("Deployment has an explicit desired replica count %d", val)
+			desiredReplicas = val
+		}
+	} else {
+		glog.Infof("Deployment has no explicit desired replica count; using the config value %d", desiredReplicas)
+	}
+
 	// Scale up the new deployment.
-	if err = s.updateReplicas(deployment.Namespace, deployment.Name, deploymentConfig.Template.ControllerTemplate.Replicas); err != nil {
+	if err = s.updateReplicas(deployment.Namespace, deployment.Name, desiredReplicas); err != nil {
 		return err
 	}
 
