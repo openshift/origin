@@ -54,7 +54,7 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")
 	flags.StringVar(&options.PublicAPIServerURL, "public-master", "", "The API public facing server's URL (if applicable).")
 	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
-	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
+	flags.BoolVar(&options.Overwrite, "overwrite", false, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 
 	return cmd
 }
