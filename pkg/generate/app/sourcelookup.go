@@ -5,9 +5,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -44,41 +42,9 @@ type SourceRepository struct {
 // NewSourceRepository creates a reference to a local or remote source code repository from
 // a URL or path.
 func NewSourceRepository(s string) (*SourceRepository, error) {
-	var location *url.URL
-	switch {
-	case strings.HasPrefix(s, "git@"):
-		base := "git://" + strings.TrimPrefix(s, "git@")
-		url, err := url.Parse(base)
-		if err != nil {
-			return nil, err
-		}
-		location = url
-
-	default:
-		uri, err := url.Parse(s)
-		if err != nil {
-			return nil, err
-		}
-
-		if uri.Scheme == "" {
-			path := s
-			ref := ""
-			segments := strings.SplitN(path, "#", 2)
-			if len(segments) == 2 {
-				path, ref = segments[0], segments[1]
-			}
-			path, err := filepath.Abs(path)
-			if err != nil {
-				return nil, err
-			}
-			uri = &url.URL{
-				Scheme:   "file",
-				Path:     path,
-				Fragment: ref,
-			}
-		}
-
-		location = uri
+	location, err := git.ParseRepository(s)
+	if err != nil {
+		return nil, err
 	}
 	return &SourceRepository{
 		location: s,

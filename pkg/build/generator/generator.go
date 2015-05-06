@@ -26,7 +26,7 @@ type GeneratorClient interface {
 	GetBuild(ctx kapi.Context, name string) (*buildapi.Build, error)
 	CreateBuild(ctx kapi.Context, build *buildapi.Build) error
 	GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
-	GetImageStreamImage(ctx kapi.Context, name string) (*imageapi.Image, error)
+	GetImageStreamImage(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error)
 	GetImageStreamTag(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error)
 }
 
@@ -36,7 +36,7 @@ type Client struct {
 	GetBuildFunc            func(ctx kapi.Context, name string) (*buildapi.Build, error)
 	CreateBuildFunc         func(ctx kapi.Context, build *buildapi.Build) error
 	GetImageStreamFunc      func(ctx kapi.Context, name string) (*imageapi.ImageStream, error)
-	GetImageStreamImageFunc func(ctx kapi.Context, name string) (*imageapi.Image, error)
+	GetImageStreamImageFunc func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error)
 	GetImageStreamTagFunc   func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error)
 }
 
@@ -60,7 +60,7 @@ func (c Client) GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageSt
 	return c.GetImageStreamFunc(ctx, name)
 }
 
-func (c Client) GetImageStreamImage(ctx kapi.Context, name string) (*imageapi.Image, error) {
+func (c Client) GetImageStreamImage(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
 	return c.GetImageStreamImageFunc(ctx, name)
 }
 func (c Client) GetImageStreamTag(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {

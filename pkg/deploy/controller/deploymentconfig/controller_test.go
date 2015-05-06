@@ -2,6 +2,7 @@ package deploymentconfig
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -30,6 +31,10 @@ func TestHandle_initialOk(t *testing.T) {
 				t.Fatalf("unexpected call with deployment %v", deployment)
 				return nil, nil
 			},
+			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+				t.Fatalf("unexpected call to list deployments")
+				return nil, nil
+			},
 		},
 		recorder: &record.FakeRecorder{},
 	}
@@ -41,11 +46,15 @@ func TestHandle_initialOk(t *testing.T) {
 	}
 }
 
-// TestHandle_updateOk ensures that an updated config (version >0) with no
-// existing deployment will result in a new deployment.
+// TestHandle_updateOk ensures that an updated config (version >0) results in
+// a new deployment with the appropriate replica count based on a variety of
+// existing prior deployments.
 func TestHandle_updateOk(t *testing.T) {
-	deploymentConfig := deploytest.OkDeploymentConfig(1)
-	var deployed *kapi.ReplicationController
+	var (
+		config              *deployapi.DeploymentConfig
+		deployed            *kapi.ReplicationController
+		existingDeployments *kapi.ReplicationControllerList
+	)
 
 	controller := &DeploymentConfigController{
 		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
@@ -59,18 +68,57 @@ func TestHandle_updateOk(t *testing.T) {
 				deployed = deployment
 				return deployment, nil
 			},
+			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+				return existingDeployments, nil
+			},
 		},
 		recorder: &record.FakeRecorder{},
 	}
 
-	err := controller.Handle(deploymentConfig)
-
-	if deployed == nil {
-		t.Fatalf("expected a deployment")
+	type existing struct {
+		version  int
+		replicas int
 	}
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	type scenario struct {
+		version          int
+		expectedReplicas int
+		existing         []existing
+	}
+
+	scenarios := []scenario{
+		// No existing deployments
+		{1, 1, []existing{}},
+		// A single existing deployment
+		{2, 1, []existing{{1, 1}}},
+		// An active and deactivated existing deployment
+		{3, 2, []existing{{2, 2}, {1, 0}}},
+		// An active and deactivated existing deployment with weird ordering
+		{4, 3, []existing{{1, 0}, {2, 0}, {3, 3}}},
+	}
+
+	for _, scenario := range scenarios {
+		deployed = nil
+		config = deploytest.OkDeploymentConfig(scenario.version)
+		existingDeployments = &kapi.ReplicationControllerList{}
+		for _, e := range scenario.existing {
+			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), api.Codec)
+			d.Spec.Replicas = e.replicas
+			existingDeployments.Items = append(existingDeployments.Items, *d)
+		}
+		err := controller.Handle(config)
+
+		if deployed == nil {
+			t.Fatalf("expected a deployment")
+		}
+
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if e, a := strconv.Itoa(scenario.expectedReplicas), deployed.Annotations[deployapi.DesiredReplicasAnnotation]; e != a {
+			t.Errorf("expected desired replicas %s, got %s", e, a)
+		}
 	}
 }
 
@@ -87,6 +135,10 @@ func TestHandle_nonfatalLookupError(t *testing.T) {
 			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call with deployment %v", deployment)
+				return nil, nil
+			},
+			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+				t.Fatalf("unexpected call to list deployments")
 				return nil, nil
 			},
 		},
@@ -120,6 +172,10 @@ func TestHandle_configAlreadyDeployed(t *testing.T) {
 				t.Fatalf("unexpected call to to create deployment: %v", deployment)
 				return nil, nil
 			},
+			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+				t.Fatalf("unexpected call to list deployments")
+				return nil, nil
+			},
 		},
 	}
 
@@ -143,6 +199,9 @@ func TestHandle_nonfatalCreateError(t *testing.T) {
 			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewInternalError(fmt.Errorf("test error"))
+			},
+			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{}, nil
 			},
 		},
 		recorder: &record.FakeRecorder{},
@@ -171,6 +230,9 @@ func TestHandle_fatalError(t *testing.T) {
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call to create")
 				return nil, kerrors.NewInternalError(fmt.Errorf("test error"))
+			},
+			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+				return &kapi.ReplicationControllerList{}, nil
 			},
 		},
 	}

@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Google Inc. All rights reserved.
+Copyright 2015 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -124,4 +124,8 @@ func (c *Fake) ServerVersion() (*version.Info, error) {
 func (c *Fake) ServerAPIVersions() (*api.APIVersions, error) {
 	c.Actions = append(c.Actions, FakeAction{Action: "get-apiversions", Value: nil})
 	return &api.APIVersions{Versions: []string{"v1beta1", "v1beta2"}}, nil
+}
+
+func (c *Fake) ComponentStatuses() client.ComponentStatusInterface {
+	return &FakeComponentStatuses{Fake: c}
 }

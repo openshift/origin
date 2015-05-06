@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -21,7 +22,7 @@ import (
 )
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.NewEtcdHelper(client, latest.Codec))
+	return New(tools.NewEtcdHelper(client, latest.Codec, etcdtest.PathPrefix()))
 }
 
 // This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we
@@ -45,12 +46,12 @@ func makeTestDefaultBuildListKey() string {
 }
 func makeTestBuildConfigListKey(namespace string) string {
 	if len(namespace) != 0 {
-		return "/buildConfigs/" + namespace
+		return "/buildconfigs/" + namespace
 	}
-	return "/buildConfigs"
+	return "/buildconfigs"
 }
 func makeTestBuildConfigKey(namespace, id string) string {
-	return "/buildConfigs/" + namespace + "/" + id
+	return "/buildconfigs/" + namespace + "/" + id
 }
 func makeTestDefaultBuildConfigKey(id string) string {
 	return makeTestBuildConfigKey(kapi.NamespaceDefault, id)
@@ -684,7 +685,7 @@ func TestEtcdListBuildConfigsInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Data["/buildConfigs/alfa"] = tools.EtcdResponseWithError{
+	fakeClient.Data["/buildconfigs/alfa"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -696,7 +697,7 @@ func TestEtcdListBuildConfigsInDifferentNamespaces(t *testing.T) {
 		},
 		E: nil,
 	}
-	fakeClient.Data["/buildConfigs/bravo"] = tools.EtcdResponseWithError{
+	fakeClient.Data["/buildconfigs/bravo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -734,8 +735,8 @@ func TestEtcdGetBuildConfigInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/buildConfigs/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
-	fakeClient.Set("/buildConfigs/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/buildconfigs/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/buildconfigs/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetBuildConfig(namespaceAlfa, "foo")

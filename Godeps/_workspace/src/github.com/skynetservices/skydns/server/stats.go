@@ -15,11 +15,12 @@ func (nopCounter) Inc(_ int64) {}
 
 // These are the stat variables defined by this package.
 var (
-	StatsForwardCount    Counter = nopCounter{}
-	StatsLookupCount     Counter = nopCounter{}
-	StatsRequestCount    Counter = nopCounter{}
-	StatsDnssecOkCount   Counter = nopCounter{}
-	StatsDnssecCacheMiss Counter = nopCounter{}
-	StatsNameErrorCount  Counter = nopCounter{}
-	StatsNoDataCount     Counter = nopCounter{}
+	StatsForwardCount     Counter = nopCounter{}
+	StatsStubForwardCount Counter = nopCounter{}
+	StatsLookupCount      Counter = nopCounter{}
+	StatsRequestCount     Counter = nopCounter{}
+	StatsDnssecOkCount    Counter = nopCounter{}
+	StatsDnssecCacheMiss  Counter = nopCounter{}
+	StatsNameErrorCount   Counter = nopCounter{}
+	StatsNoDataCount      Counter = nopCounter{}
 )

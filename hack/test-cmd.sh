@@ -177,8 +177,6 @@ osc logout
 osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 osc get projects
 osc project project-foo
- 
-
 
 # test config files from the --config flag
 osc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
@@ -467,7 +465,7 @@ echo "ui-project-commands: ok"
 # Test deleting and recreating a project
 osadm new-project recreated-project --admin="createuser1"
 osc delete project recreated-project
-osc delete project recreated-project
+wait_for_command '! osc get project recreated-project' "${TIME_MIN}"
 osadm new-project recreated-project --admin="createuser2"
 osc describe policybinding master:default -n recreated-project | grep createuser2
 echo "ex new-project: ok"

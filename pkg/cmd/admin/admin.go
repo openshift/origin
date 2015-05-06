@@ -18,22 +18,20 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const longDesc = `
-OpenShift Administrative Commands
+const admin_long = `OpenShift Administrative Commands
 
 Commands for managing an OpenShift cluster are exposed here. Many administrative
 actions involve interaction with the OpenShift client as well.
 
 Note: This is a beta release of OpenShift and may change significantly.  See
-    https://github.com/openshift/origin for the latest information on OpenShift.
-`
+    https://github.com/openshift/origin for the latest information on OpenShift.`
 
 func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
-		Short: "tools for managing an OpenShift cluster",
-		Long:  fmt.Sprintf(longDesc),
+		Short: "Tools for managing an OpenShift cluster",
+		Long:  fmt.Sprintf(admin_long),
 		Run: func(c *cobra.Command, args []string) {
 			c.SetOutput(out)
 			c.Help()

@@ -105,6 +105,13 @@ func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.Validat
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("openShiftStorageVersion"))
 	}
 
+	if strings.ContainsRune(config.KubernetesStoragePrefix, '%') {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("kubernetesStoragePrefix", config.KubernetesStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
+	}
+	if strings.ContainsRune(config.OpenShiftStoragePrefix, '%') {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("openShiftStoragePrefix", config.OpenShiftStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
+	}
+
 	return allErrs
 }
 
@@ -201,11 +208,8 @@ func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorLi
 func ValidateProjectRequestConfig(config api.ProjectRequestConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if len(config.ProjectRequestTemplate) > 0 {
-		tokens := strings.Split(config.ProjectRequestTemplate, "/")
-		if len(tokens) != 2 {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("projectRequestTemplate", config.ProjectRequestTemplate, "must be in the form: namespace/templateName"))
-		}
+	if _, _, err := api.ParseNamespaceAndName(config.ProjectRequestTemplate); err != nil {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("projectRequestTemplate", config.ProjectRequestTemplate, "must be in the form: namespace/templateName"))
 	}
 
 	return allErrs

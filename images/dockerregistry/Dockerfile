@@ -1,5 +1,6 @@
 #
-# This is the official OpenShift Origin Docker Registry image.
+# This is the integrated OpenShift Origin Docker registry. It is configured to
+# publish metadata to OpenShift to provide automatic management of images on push.
 #
 # The standard name for this image is openshift3_beta/ose-docker-registry
 #

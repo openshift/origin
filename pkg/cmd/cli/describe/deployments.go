@@ -12,6 +12,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
@@ -84,7 +85,7 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 				return kclient.ReplicationControllers(namespace).Get(name)
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return kclient.Pods(namespace).List(selector)
+				return kclient.Pods(namespace).List(selector, fields.Everything())
 			},
 			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
 				return kclient.Events(deploymentConfig.Namespace).Search(deploymentConfig)
@@ -266,7 +267,7 @@ func NewLatestDeploymentDescriber(client client.Interface, kclient kclient.Inter
 				return kclient.ReplicationControllers(namespace).Get(name)
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
-				return kclient.Pods(namespace).List(selector)
+				return kclient.Pods(namespace).List(selector, fields.Everything())
 			},
 			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
 				return kclient.Events(deploymentConfig.Namespace).Search(deploymentConfig)

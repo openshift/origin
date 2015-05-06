@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -116,6 +116,11 @@ func init() {
 			out.Value = in.Value
 			out.Key = in.Name
 			out.Name = in.Name
+
+			if err := s.Convert(&in.ValueFrom, &out.ValueFrom, 0); err != nil {
+				return err
+			}
+
 			return nil
 		},
 		func(in *EnvVar, out *newer.EnvVar, s conversion.Scope) error {
@@ -125,9 +130,13 @@ func init() {
 			} else {
 				out.Name = in.Key
 			}
+
+			if err := s.Convert(&in.ValueFrom, &out.ValueFrom, 0); err != nil {
+				return err
+			}
+
 			return nil
 		},
-
 		// Path & MountType are deprecated.
 		func(in *newer.VolumeMount, out *VolumeMount, s conversion.Scope) error {
 			out.Name = in.Name
@@ -677,6 +686,10 @@ func init() {
 			if err := s.Convert(&in.RestartPolicy, &out.RestartPolicy, 0); err != nil {
 				return err
 			}
+			if in.TerminationGracePeriodSeconds != nil {
+				out.TerminationGracePeriodSeconds = new(int64)
+				*out.TerminationGracePeriodSeconds = *in.TerminationGracePeriodSeconds
+			}
 			out.DNSPolicy = DNSPolicy(in.DNSPolicy)
 			out.Version = "v1beta2"
 			out.HostNetwork = in.HostNetwork
@@ -691,6 +704,10 @@ func init() {
 			}
 			if err := s.Convert(&in.RestartPolicy, &out.RestartPolicy, 0); err != nil {
 				return err
+			}
+			if in.TerminationGracePeriodSeconds != nil {
+				out.TerminationGracePeriodSeconds = new(int64)
+				*out.TerminationGracePeriodSeconds = *in.TerminationGracePeriodSeconds
 			}
 			out.DNSPolicy = newer.DNSPolicy(in.DNSPolicy)
 			out.HostNetwork = in.HostNetwork
@@ -1170,6 +1187,9 @@ func init() {
 			if err := s.Convert(&in.ISCSI, &out.ISCSI, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.AWSElasticBlockStore, &out.AWSElasticBlockStore, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.HostPath, &out.HostDir, 0); err != nil {
 				return err
 			}
@@ -1180,6 +1200,9 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.Glusterfs, &out.Glusterfs, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.PersistentVolumeClaimVolumeSource, &out.PersistentVolumeClaimVolumeSource, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1197,6 +1220,9 @@ func init() {
 			if err := s.Convert(&in.ISCSI, &out.ISCSI, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.AWSElasticBlockStore, &out.AWSElasticBlockStore, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.HostDir, &out.HostPath, 0); err != nil {
 				return err
 			}
@@ -1204,6 +1230,9 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.NFS, &out.NFS, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.PersistentVolumeClaimVolumeSource, &out.PersistentVolumeClaimVolumeSource, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.Glusterfs, &out.Glusterfs, 0); err != nil {
@@ -1567,6 +1596,8 @@ func init() {
 			switch label {
 			case "name":
 				return "metadata.name", value, nil
+			case "unschedulable":
+				return "spec.unschedulable", value, nil
 			default:
 				return "", "", fmt.Errorf("field label not supported: %s", label)
 			}
@@ -1616,6 +1647,19 @@ func init() {
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "status.phase":
+				return label, value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
+			}
+		})
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "Secret",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "type":
 				return label, value, nil
 			default:
 				return "", "", fmt.Errorf("field label not supported: %s", label)

@@ -143,8 +143,8 @@ func (r *REST) waitForBuild(ctx kapi.Context, build *api.Build) error {
 }
 
 // NewGetOptions returns a new options object for build logs
-func (r *REST) NewGetOptions() runtime.Object {
-	return &api.BuildLogOptions{}
+func (r *REST) NewGetOptions() (runtime.Object, bool, string) {
+	return &api.BuildLogOptions{}, false, ""
 }
 
 // New creates an empty BuildLog resource

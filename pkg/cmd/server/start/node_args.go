@@ -46,7 +46,7 @@ type NodeArgs struct {
 // BindNodeArgs binds the options to the flags with prefix + default flag names
 func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
 	flags.StringVar(&args.VolumeDir, prefix+"volume-dir", "openshift.local.volumes", "The volume storage directory.")
-	// TODO rename this node-name and recommend hostname -f
+	// TODO rename this node-name and recommend uname -n
 	flags.StringVar(&args.NodeName, prefix+"hostname", args.NodeName, "The hostname to identify this node with the master.")
 	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
 }
@@ -149,7 +149,7 @@ func defaultHostname() (string, error) {
 
 	// Note: We use exec here instead of os.Hostname() because we
 	// want the FQDN, and this is the easiest way to get it.
-	fqdn, err := exec.Command("hostname", "-f").Output()
+	fqdn, err := exec.Command("uname", "-n").Output()
 	if err != nil {
 		return "", fmt.Errorf("Couldn't determine hostname: %v", err)
 	}

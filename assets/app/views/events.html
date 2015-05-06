@@ -1,0 +1,41 @@
+<div ng-controller="ProjectController" class="content">
+  <project-page>
+    <div ng-controller="EventsController">
+      <div class="page-header page-header-bleed-right">
+        <h1>Events</h1>
+      </div>
+      <alerts alerts="alerts"></alerts>
+      <div ng-if="(events | hashSize) === 0">
+        <div>
+          <em>{{emptyMessage}}</em>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table ng-if="(events | hashSize) !== 0" class="table table-bordered table-condensed">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Name</th>
+              <th>Kind</th>
+              <th>Reason</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="event in events | toArray | orderBy:'-lastTimestamp'">
+              <td class="nowrap">{{event.lastTimestamp | date:'mediumTime'}}</td>
+              <td>{{event.involvedObject.name}}</td>
+              <td>{{event.involvedObject.kind}}</td>
+              <td class="nowrap">{{event.reason}}</td>
+              <td>{{event.message}}
+                <span class="text-muted small" ng-if="event.count > 1">
+                  ({{event.count}} times in the last
+                    {{event.firstTimestamp | duration:event.lastTimestamp:true}})
+                </span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </project-page>
+</div>

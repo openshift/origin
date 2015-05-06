@@ -8,7 +8,7 @@ angular.module('openshiftConsole')
     };
   })
   .filter('duration', function() {
-    return function(timestampLhs, timestampRhs) {
+    return function(timestampLhs, timestampRhs, omitSingle) {
       if (!timestampLhs) {
         return timestampLhs;
       }
@@ -25,24 +25,23 @@ angular.module('openshiftConsole')
       var hours = duration.hours();
       var minutes = duration.minutes();
       var seconds = duration.seconds();
-      if (years > 0) {
-        humanizedDuration.push(years + (years == 1 ? " year" : " years"));
+
+      function add(count, singularText, pluralText) {
+        if (count > 0) {
+          if (omitSingle && count === 1) {
+            humanizedDuration.push(singularText);
+          } else {
+            humanizedDuration.push(count + ' ' + (count === 1 ? singularText : pluralText));
+          }
+        }
       }
-      if (months > 0) {
-        humanizedDuration.push(months + (months == 1 ? " month" : " months"));
-      }
-      if (days > 0) {
-        humanizedDuration.push(days + (days == 1 ? " day" : " days"));
-      }
-      if (hours > 0) {
-        humanizedDuration.push(hours + (hours == 1 ? " hour" : " hours"));
-      }
-      if (minutes > 0) {
-        humanizedDuration.push(minutes + (minutes == 1 ? " minute" : " minutes"));
-      }
-      if (seconds > 0) {
-        humanizedDuration.push(seconds + (seconds == 1 ? " second" : " seconds"));
-      }
+
+      add(years, "year", "years");
+      add(months, "month", "months");
+      add(days, "day", "days");
+      add(hours, "hour", "hours");
+      add(minutes, "minute", "minutes");
+      add(seconds, "second", "seconds");
 
       if (humanizedDuration.length == 0) {
         humanizedDuration.push("0 seconds");
@@ -54,7 +53,7 @@ angular.module('openshiftConsole')
 
       return humanizedDuration.join(", ");
     };
-  })  
+  })
   .filter('ageLessThan', function() {
     // ex:  amt = 5  and unit = 'minutes'
     return function(timestamp, amt, unit) {

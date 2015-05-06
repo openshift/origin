@@ -19,11 +19,11 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const longCommandDesc = `
-Perform a Deployment
+const (
+	deployer_long = `Perform a Deployment.
 
-This command makes calls to OpenShift to perform a deployment as described by a deployment config.
-`
+This command makes calls to OpenShift to perform a deployment as described by a deployment config.`
+)
 
 type config struct {
 	Config         *clientcmd.Config
@@ -45,7 +45,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
 		Short: "Run the OpenShift deployer",
-		Long:  longCommandDesc,
+		Long:  deployer_long,
 		Run: func(c *cobra.Command, args []string) {
 			_, kClient, err := cfg.Config.Clients()
 			if err != nil {

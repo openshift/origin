@@ -31,19 +31,17 @@ type AllInOneOptions struct {
 	NodeConfigFile   string
 }
 
-const longAllInOneCommandDesc = `
-Start an OpenShift all-in-one server
+const allInOne_long = `Start an OpenShift all-in-one server
 
 This command helps you launch an OpenShift all-in-one server, which allows
 you to run all of the components of an OpenShift system on a server with Docker. Running
 
-    $ openshift start
+  $ openshift start
 
 will start OpenShift listening on all interfaces, launch an etcd server to store persistent
 data, and launch the Kubernetes system components. The server will run in the foreground until
 you terminate the process.  This command delegates to "openshift start master" and 
 "openshift start node".
-
 
 Note: starting OpenShift without passing the --master address will attempt to find the IP
 address that will be visible inside running Docker containers. This is not always successful,
@@ -51,8 +49,7 @@ so if you have problems tell OpenShift what public address it will be via --mast
 
 You may also pass --etcd=<address> to connect to an external etcd server.
 
-You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.
-`
+You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
 func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
@@ -61,7 +58,7 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Launch OpenShift All-In-One",
-		Long:  longAllInOneCommandDesc,
+		Long:  allInOne_long,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
 				fmt.Println(err.Error())

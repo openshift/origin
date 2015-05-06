@@ -7,19 +7,24 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const longCommandSTIDesc = `
-Perform a Source-to-Image Build
+const (
+	stiBuilder_long = `Perform a Source-to-Image Build.
 
 This command executes a Source-to-Image build using arguments passed via the environment.
-It expects to be run inside of a container.
-`
+It expects to be run inside of a container.`
+
+	dockerBuilder_long = `Perform a Docker Build.
+
+This command executes a Docker build using arguments passed via the environment.
+It expects to be run inside of a container.`
+)
 
 // NewCommandSTIBuilder provides a CLI handler for STI build type
 func NewCommandSTIBuilder(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Run an OpenShift Source-to-Images build",
-		Long:  longCommandSTIDesc,
+		Long:  stiBuilder_long,
 		Run: func(c *cobra.Command, args []string) {
 			cmd.RunSTIBuild()
 		},
@@ -29,19 +34,12 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 	return cmd
 }
 
-const longCommandDockerDesc = `
-Perform a Docker Build
-
-This command executes a Docker build using arguments passed via the environment.
-It expects to be run inside of a container.
-`
-
 // NewCommandDockerBuilder provides a CLI handler for Docker build type
 func NewCommandDockerBuilder(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Run an OpenShift Docker build",
-		Long:  longCommandDockerDesc,
+		Long:  dockerBuilder_long,
 		Run: func(c *cobra.Command, args []string) {
 			cmd.RunDockerBuild()
 		},

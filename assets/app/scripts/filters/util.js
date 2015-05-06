@@ -151,6 +151,15 @@ angular.module('openshiftConsole')
         return isSecure ? 'https://' : 'http://';
     };
   })
+  .filter('githubLink', function() {
+    return function(link) {
+      var m = link.match(/^(?:https?:\/\/|git:\/\/|git\+ssh:\/\/|git\+https:\/\/)?(?:[^@]+@)?github\.com[:\/]([^\/]+\/[^\/]+?)(?:\.git(#.*)?)?$/);
+      if (m) {
+        link = "https://github.com/" + m[1];
+      }
+      return link;
+    };
+  })
   .filter('yesNo', function() {
       return function(isTrue) {
           return isTrue ? 'Yes' : 'No';
@@ -192,5 +201,19 @@ angular.module('openshiftConsole')
         }
       });
       return result;
+    };
+  })
+  .filter("toArray", function() {
+    return function(items) {
+      if (angular.isArray(items)) {
+        return items;
+      }
+
+      var array = [];
+      angular.forEach(items, function(item) {
+        array.push(item);
+      });
+
+      return array;
     };
   });

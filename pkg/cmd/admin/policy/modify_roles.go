@@ -36,9 +36,9 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 	options := &RoleModificationOptions{}
 
 	cmd := &cobra.Command{
-		Use:   name + " <role> <group> [group]...",
-		Short: "add groups to a role in the current project",
-		Long:  `add groups to a role in the current project`,
+		Use:   name + " ROLE GROUP [GROUP ...]",
+		Short: "Add groups to a role in the current project",
+		Long:  `Add groups to a role in the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, &options.Groups, "group"); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -59,9 +59,9 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 	options := &RoleModificationOptions{}
 
 	cmd := &cobra.Command{
-		Use:   name + " <role> <user> [user]...",
-		Short: "add users to a role in the current project",
-		Long:  `add users to a role in the current project`,
+		Use:   name + " ROLE USER [USER ...]",
+		Short: "Add users to a role in the current project",
+		Long:  `Add users to a role in the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, &options.Users, "user"); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -82,9 +82,9 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 	options := &RoleModificationOptions{}
 
 	cmd := &cobra.Command{
-		Use:   name + " <role> <group> [group]...",
-		Short: "remove group from role in the current project",
-		Long:  `remove group from role in the current project`,
+		Use:   name + " ROLE GROUP [GROUP ...]",
+		Short: "Remove group from role in the current project",
+		Long:  `Remove group from role in the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, &options.Groups, "group"); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -105,9 +105,9 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 	options := &RoleModificationOptions{}
 
 	cmd := &cobra.Command{
-		Use:   name + " <role> <user> [user]...",
-		Short: "remove user from role in the current project",
-		Long:  `remove user from role in the current project`,
+		Use:   name + " ROLE USER [USER ...]",
+		Short: "Remove user from role in the current project",
+		Long:  `Remove user from role in the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, &options.Users, "user"); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))

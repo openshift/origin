@@ -214,9 +214,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache)
 
-	tokens := strings.Split(c.Options.ProjectRequestConfig.ProjectRequestTemplate, "/")
-	namespace := tokens[0]
-	templateName := tokens[1]
+	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectRequestConfig.ProjectRequestTemplate)
+	if err != nil {
+		glog.Errorf("Error parsing project request template value: %v", err)
+		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
+	}
 	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, namespace, templateName, roleBindingStorage, *projectStorage, c.PrivilegedLoopbackOpenShiftClient)
 
 	// initialize OpenShift API
@@ -559,17 +561,31 @@ func (c *MasterConfig) checkProjectRequestTemplate() {
 		return
 	}
 
-	tokens := strings.Split(c.Options.ProjectRequestConfig.ProjectRequestTemplate, "/")
-	namespace := tokens[0]
-	templateName := tokens[1]
+	const baseErrorFormat = "Error creating default project request template %v.  Unprivileged project requests will fail until a template is available."
 
-	if _, err := c.PrivilegedLoopbackOpenShiftClient.Templates(namespace).Get(templateName); !kapierror.IsNotFound(err) {
+	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectRequestConfig.ProjectRequestTemplate)
+	if err != nil {
+		glog.Errorf(baseErrorFormat+"  Caused by: %v", c.Options.ProjectRequestConfig.ProjectRequestTemplate, err)
+		return
+	}
+	if len(namespace) == 0 {
+		glog.Errorf(baseErrorFormat+"  The namespace for the project request template may not be empty.", c.Options.ProjectRequestConfig.ProjectRequestTemplate)
+		return
+	}
+	if len(templateName) == 0 {
+		glog.Errorf(baseErrorFormat+"  The name for the project request template may not be empty.", c.Options.ProjectRequestConfig.ProjectRequestTemplate)
+		return
+	}
+
+	// if the template already exists, no work to do
+	if _, err := c.PrivilegedLoopbackOpenShiftClient.Templates(namespace).Get(templateName); err == nil {
 		return
 	}
 
 	template := projectrequeststorage.NewSampleTemplate(c.Options.PolicyConfig.MasterAuthorizationNamespace, namespace, templateName)
 	if _, err := c.PrivilegedLoopbackOpenShiftClient.Templates(namespace).Create(template); err != nil {
-		glog.Errorf("Error creating default project request template %v.  Unprivileged project requests will fail until a template is available.", c.Options.ProjectRequestConfig.ProjectRequestTemplate)
+		glog.Errorf(baseErrorFormat+"  Caused by: %v", c.Options.ProjectRequestConfig.ProjectRequestTemplate, err)
+		return
 	}
 }
 

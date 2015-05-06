@@ -40,7 +40,7 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 	case *kapi.Namespace:
 		errors = validation.ValidateNamespace(t)
 	case *kapi.Node:
-		errors = validation.ValidateMinion(t)
+		errors = validation.ValidateNode(t)
 
 	case *imageapi.Image:
 		t.Namespace = ""

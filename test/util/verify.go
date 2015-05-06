@@ -138,6 +138,6 @@ func CleanupServiceAndPod(pod *kapi.Pod, service *kapi.Service, ns string) {
 	if err != nil {
 		return
 	}
-	client.Pods(ns).Delete(pod.Name)
+	client.Pods(ns).Delete(pod.Name, nil)
 	client.Services(ns).Delete(service.Name)
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -206,20 +206,36 @@ func (r *Result) Watch(resourceVersion string) (watch.Interface, error) {
 // the objects as children, or if only a single Object is present, as that object. The provided
 // version will be preferred as the conversion target, but the Object's mapping version will be
 // used if that version is not present.
-func AsVersionedObject(infos []*Info, version string) (runtime.Object, error) {
+func AsVersionedObject(infos []*Info, forceList bool, version string) (runtime.Object, error) {
 	objects := []runtime.Object{}
 	for _, info := range infos {
 		if info.Object == nil {
 			continue
 		}
+
+		// objects that are not part of api.Scheme must be converted to JSON
+		// TODO: convert to map[string]interface{}, attach to runtime.Unknown?
+		if len(version) > 0 {
+			if _, _, err := api.Scheme.ObjectVersionAndKind(info.Object); runtime.IsNotRegisteredError(err) {
+				// TODO: ideally this would encode to version, but we don't expose multiple codecs here.
+				data, err := info.Mapping.Codec.Encode(info.Object)
+				if err != nil {
+					return nil, err
+				}
+				objects = append(objects, &runtime.Unknown{RawJSON: data})
+				continue
+			}
+		}
+
 		converted, err := tryConvert(info.Mapping.ObjectConvertor, info.Object, version, info.Mapping.APIVersion)
 		if err != nil {
 			return nil, err
 		}
 		objects = append(objects, converted)
 	}
+
 	var object runtime.Object
-	if len(objects) == 1 {
+	if len(objects) == 1 && !forceList {
 		object = objects[0]
 	} else {
 		object = &api.List{Items: objects}

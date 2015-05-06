@@ -16,12 +16,12 @@ import (
 	templateplugin "github.com/openshift/origin/plugins/router/template"
 )
 
-const longCommandDesc = `
-Start an OpenShift router
+const (
+	router_long = `Start an OpenShift router.
 
 This command launches a router connected to your OpenShift master. The router listens for routes and endpoints
-created by users and keeps a local router configuration up to date with those changes.
-`
+created by users and keeps a local router configuration up to date with those changes.`
+)
 
 type templateRouterConfig struct {
 	Config             *clientcmd.Config
@@ -39,7 +39,7 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
 		Short: "Start an OpenShift router",
-		Long:  longCommandDesc,
+		Long:  router_long,
 		Run: func(c *cobra.Command, args []string) {
 			defaultCert := util.Env("DEFAULT_CERTIFICATE", "")
 			if len(defaultCert) > 0 {

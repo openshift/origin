@@ -92,11 +92,12 @@ func init() {
 			out.Incremental = !in.Clean
 			if in.From != nil {
 				out.From = &api.ObjectReference{
+					Kind:      in.From.Kind,
 					Name:      in.From.Name,
 					Namespace: in.From.Namespace,
-					Kind:      "ImageStreamTag",
 				}
-				if in.From.Kind != "ImageStreamTag" {
+				if len(in.From.Kind) == 0 || in.From.Kind == "ImageStream" || in.From.Kind == "ImageRepository" {
+					out.From.Kind = "ImageStreamTag"
 					if len(in.Tag) > 0 {
 						out.From.Name = out.From.Name + ":" + in.Tag
 					} else {
@@ -151,11 +152,12 @@ func init() {
 			out.NoCache = in.NoCache
 			if in.From != nil {
 				out.From = &api.ObjectReference{
+					Kind:      in.From.Kind,
 					Name:      in.From.Name,
 					Namespace: in.From.Namespace,
-					Kind:      "ImageStreamTag",
 				}
-				if in.From.Kind != "ImageStreamTag" {
+				if len(in.From.Kind) == 0 || in.From.Kind == "ImageStream" || in.From.Kind == "ImageRepository" {
+					out.From.Kind = "ImageStreamTag"
 					if len(in.Tag) > 0 {
 						out.From.Name = out.From.Name + ":" + in.Tag
 					} else {
@@ -208,11 +210,12 @@ func init() {
 			out.ExposeDockerSocket = in.ExposeDockerSocket
 			if in.From != nil {
 				out.From = &api.ObjectReference{
+					Kind:      in.From.Kind,
 					Name:      in.From.Name,
 					Namespace: in.From.Namespace,
-					Kind:      "ImageStreamTag",
 				}
-				if in.From.Kind != "ImageStreamTag" {
+				if len(in.From.Kind) == 0 || in.From.Kind == "ImageStream" || in.From.Kind == "ImageRepository" {
+					out.From.Kind = "ImageStreamTag"
 					if len(in.Tag) > 0 {
 						out.From.Name = out.From.Name + ":" + in.Tag
 					} else {

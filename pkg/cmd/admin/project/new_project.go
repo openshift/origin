@@ -35,7 +35,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 	options := &NewProjectOptions{}
 
 	cmd := &cobra.Command{
-		Use:   name + " <project-name>",
+		Use:   name + " NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]",
 		Short: "create a new project",
 		Long:  `create a new project`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -65,7 +65,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 
 func (o *NewProjectOptions) complete(args []string) error {
 	if len(args) != 1 {
-		return errors.New("You must specify one argument: <project-name>")
+		return errors.New("You must specify one argument: project name")
 	}
 
 	o.ProjectName = args[0]

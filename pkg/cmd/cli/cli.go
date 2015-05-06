@@ -15,8 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const longDesc = `
-OpenShift Client
+const cli_long = `OpenShift Client.
 
 The OpenShift client exposes commands for managing your applications, as well as lower level
 tools to interact with each component of your system.
@@ -24,18 +23,18 @@ tools to interact with each component of your system.
 To create a new application, you can use the example app source. Login to your server and then
 run new-app:
 
-    $ %[1]s login
-    $ %[1]s new-app openshift/ruby-20-centos7~git@github.com/mfojtik/sinatra-app-example
+  $ %[1]s login
+  $ %[1]s new-app openshift/ruby-20-centos7~git@github.com/mfojtik/sinatra-app-example
 
 This will create an application based on the Docker image 'openshift/ruby-20-centos7' that builds
 the source code at 'github.com/mfojtik/sinatra-app-example'. To start the build, run
 
-    $ %[1]s start-build sinatra-app-example
+  $ %[1]s start-build sinatra-app-example
 
 and watch the build logs and build status with:
 
-    $ %[1]s get builds
-    $ %[1]s build-logs <name_of_build>
+  $ %[1]s get builds
+  $ %[1]s build-logs <name_of_build>
 
 You'll be able to view the deployed application on the IP and port of the service that new-app
 created for you.
@@ -43,15 +42,14 @@ created for you.
 You can easily switch between multiple projects using '%[1]s project <projectname>'.
 
 Note: This is a beta release of OpenShift and may change significantly.  See
-    https://github.com/openshift/origin for the latest information on OpenShift.
-`
+    https://github.com/openshift/origin for the latest information on OpenShift.`
 
 func NewCommandCLI(name, fullName string) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Client tools for OpenShift",
-		Long:  fmt.Sprintf(longDesc, fullName),
+		Long:  fmt.Sprintf(cli_long, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			c.SetOutput(os.Stdout)
 			c.Help()
@@ -62,7 +60,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	in := os.Stdin
 	out := os.Stdout
 
-	cmds.AddCommand(cmd.NewCmdLogin(f, in, out))
+	cmds.AddCommand(cmd.NewCmdLogin(fullName, f, in, out))
 	cmds.AddCommand(cmd.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out))
 	cmds.AddCommand(cmd.NewCmdProject(fullName+" project", f, out))
 	cmds.AddCommand(cmd.NewCmdRequestProject("new-project", fullName+" new-project", fullName+" login", fullName+" project", f, out))

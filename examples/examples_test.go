@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/golang/glog"
 
@@ -58,7 +58,7 @@ func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error 
 func TestExampleObjectSchemas(t *testing.T) {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-	kubelet.SetupCapabilities(true, nil)
+	capabilities.Setup(true, nil)
 	cases := map[string]map[string]runtime.Object{
 		"../examples/hello-openshift": {
 			"hello-pod":     &kapi.Pod{},

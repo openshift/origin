@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Google Inc. All rights reserved.
+Copyright 2014 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -199,6 +199,12 @@ func (s *Scheme) AddConversionFuncs(conversionFuncs ...interface{}) error {
 		}
 	}
 	return nil
+}
+
+// Similar to AddConversionFuncs, but registers conversion functions that were
+// automatically generated.
+func (s *Scheme) AddGeneratedConversionFuncs(conversionFuncs ...interface{}) error {
+	return s.AddConversionFuncs(conversionFuncs...)
 }
 
 // AddStructFieldConversion allows you to specify a mechanical copy for a moved

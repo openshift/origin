@@ -6,14 +6,9 @@ import (
 	"testing"
 )
 
-// emptyRouter creates a new, empty template router
-func emptyRouter() templateRouter {
-	return templateRouter{state: map[string]ServiceUnit{}}
-}
-
 // TestCreateServiceUnit tests creating a service unit and finding it in router state
 func TestCreateServiceUnit(t *testing.T) {
-	router := emptyRouter()
+	router := newFakeTemplateRouter()
 	suKey := "test"
 	router.CreateServiceUnit("test")
 
@@ -24,7 +19,7 @@ func TestCreateServiceUnit(t *testing.T) {
 
 // TestDeleteServiceUnit tests that deleted service units no longer exist in state
 func TestDeleteServiceUnit(t *testing.T) {
-	router := emptyRouter()
+	router := newFakeTemplateRouter()
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 
@@ -41,7 +36,7 @@ func TestDeleteServiceUnit(t *testing.T) {
 
 // TestAddEndpoints test adding endpoints to service units
 func TestAddEndpoints(t *testing.T) {
-	router := emptyRouter()
+	router := newFakeTemplateRouter()
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 
@@ -80,7 +75,7 @@ func TestAddEndpoints(t *testing.T) {
 
 // TestDeleteEndpoints tests removing endpoints from service units
 func TestDeleteEndpoints(t *testing.T) {
-	router := emptyRouter()
+	router := newFakeTemplateRouter()
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 
@@ -121,7 +116,7 @@ func TestDeleteEndpoints(t *testing.T) {
 
 // TestRouteKey tests that route keys are created as expected
 func TestRouteKey(t *testing.T) {
-	router := emptyRouter()
+	router := newFakeTemplateRouter()
 	route := &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: "foo",
@@ -138,7 +133,7 @@ func TestRouteKey(t *testing.T) {
 
 // TestAddRoute tests adding a service alias config to a service unit
 func TestAddRoute(t *testing.T) {
-	router := emptyRouter()
+	router := newFakeTemplateRouter()
 	route := &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: "foo",
@@ -212,7 +207,7 @@ func findCert(cert string, certs map[string]Certificate, isPrivateKey bool, t *t
 
 // TestRemoveRoute tests removing a ServiceAliasConfig from a ServiceUnit
 func TestRemoveRoute(t *testing.T) {
-	router := emptyRouter()
+	router := newFakeTemplateRouter()
 	route := &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: "foo",
@@ -315,7 +310,7 @@ func TestShouldWriteCertificates(t *testing.T) {
 		},
 	}
 
-	router := emptyRouter()
+	router := newFakeTemplateRouter()
 	for _, tc := range testCases {
 		result := router.shouldWriteCerts(tc.cfg)
 		if result != tc.shouldWriteCerts {

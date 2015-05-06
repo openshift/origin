@@ -66,7 +66,7 @@
             <div ng-if="buildConfig.parameters.source.type == 'Git'">
 
                 <dt>Source repo:</dt>
-                <dd>{{buildConfig.parameters.source.git.uri}}</dd>
+                <dd ng-bind-html='buildConfig.parameters.source.git.uri | githubLink | linky'></dd>
 
             </div>
           </div>
@@ -224,7 +224,7 @@
           <div ng-if="build.parameters.source">
             <div ng-if="build.parameters.source.type == 'Git'">
               <div ng-if="buildConfig.parameters.source.git.uri != build.parameters.source.git.uri">
-                Source repo: {{build.parameters.source.git.uri}}
+                Source repo: <span ng-bind-html='build.parameters.source.git.uri | githubLink | linky'></span>
               </div>
             </div>
             <!-- TODO add git ref details -->
@@ -296,7 +296,9 @@
             </div>
           </div>
           <div ng-if="build.parameters.source">
-            <div ng-if="build.parameters.source.type == 'Git'">Source repo: {{build.parameters.source.git.uri}}</div>
+            <div ng-if="build.parameters.source.type == 'Git'">
+              Source repo: <span ng-bind-html='build.parameters.source.git.uri | githubLink | linky'></span>
+            </div>
             <!-- TODO add git ref details -->
           </div>
           <div ng-if="build.parameters.output">

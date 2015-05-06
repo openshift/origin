@@ -42,7 +42,7 @@ func TestAdmissionExists(t *testing.T) {
 		},
 		Status: buildapi.BuildStatusNew,
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, "bogus-ns", "builds", "CREATE"))
+	err := handler.Admit(admission.NewAttributesRecord(build, "Build", "bogus-ns", "builds", "CREATE"))
 	if err == nil {
 		t.Errorf("Expected an error because namespace does not exist")
 	}
@@ -86,7 +86,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 		},
 		Status: buildapi.BuildStatusNew,
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, namespaceObj.Namespace, "builds", "CREATE"))
+	err := handler.Admit(admission.NewAttributesRecord(build, "Build", namespaceObj.Namespace, "builds", "CREATE"))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
@@ -96,19 +96,19 @@ func TestAdmissionLifecycle(t *testing.T) {
 	store.Add(namespaceObj)
 
 	// verify create operations in the namespace cause an error
-	err = handler.Admit(admission.NewAttributesRecord(build, namespaceObj.Namespace, "builds", "CREATE"))
+	err = handler.Admit(admission.NewAttributesRecord(build, "Build", namespaceObj.Namespace, "builds", "CREATE"))
 	if err == nil {
 		t.Errorf("Expected error rejecting creates in a namespace when it is terminating")
 	}
 
 	// verify update operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(build, namespaceObj.Namespace, "builds", "UPDATE"))
+	err = handler.Admit(admission.NewAttributesRecord(build, "Build", namespaceObj.Namespace, "builds", "UPDATE"))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
 
 	// verify delete operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(nil, namespaceObj.Namespace, "builds", "DELETE"))
+	err = handler.Admit(admission.NewAttributesRecord(nil, "Build", namespaceObj.Namespace, "builds", "DELETE"))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}

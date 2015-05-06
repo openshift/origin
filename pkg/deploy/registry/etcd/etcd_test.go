@@ -13,6 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -39,12 +40,12 @@ func makeTestDefaultDeploymentListKey() string {
 }
 func makeTestDeploymentConfigListKey(namespace string) string {
 	if len(namespace) != 0 {
-		return "/deploymentConfigs/" + namespace
+		return "/deploymentconfigs/" + namespace
 	}
-	return "/deploymentConfigs"
+	return "/deploymentconfigs"
 }
 func makeTestDeploymentConfigKey(namespace, id string) string {
-	return "/deploymentConfigs/" + namespace + "/" + id
+	return "/deploymentconfigs/" + namespace + "/" + id
 }
 func makeTestDefaultDeploymentConfigKey(id string) string {
 	return makeTestDeploymentConfigKey(kapi.NamespaceDefault, id)
@@ -54,7 +55,7 @@ func makeTestDefaultDeploymentConfigListKey() string {
 }
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.NewEtcdHelper(client, latest.Codec))
+	return New(tools.NewEtcdHelper(client, latest.Codec, etcdtest.PathPrefix()))
 }
 
 func TestEtcdListEmptyDeployments(t *testing.T) {
@@ -641,7 +642,7 @@ func TestEtcdListDeploymentConfigsInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Data["/deploymentConfigs/alfa"] = tools.EtcdResponseWithError{
+	fakeClient.Data["/deploymentconfigs/alfa"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -653,7 +654,7 @@ func TestEtcdListDeploymentConfigsInDifferentNamespaces(t *testing.T) {
 		},
 		E: nil,
 	}
-	fakeClient.Data["/deploymentConfigs/bravo"] = tools.EtcdResponseWithError{
+	fakeClient.Data["/deploymentconfigs/bravo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -691,8 +692,8 @@ func TestEtcdGetDeploymentConfigInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/deploymentConfigs/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
-	fakeClient.Set("/deploymentConfigs/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/deploymentconfigs/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/deploymentconfigs/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.DeploymentConfig{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetDeploymentConfig(namespaceAlfa, "foo")

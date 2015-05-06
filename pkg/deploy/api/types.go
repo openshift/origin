@@ -161,6 +161,10 @@ const (
 	// DeploymentConfigLabel is the name of a label used to correlate a deployment with the
 	// DeploymentConfigs on which the deployment is based.
 	DeploymentConfigLabel = "deploymentconfig"
+	// DesiredReplicasAnnotation represents the desired number of replicas for a
+	// new deployment.
+	// TODO: This should be made public upstream.
+	DesiredReplicasAnnotation = "kubectl.kubernetes.io/desired-replicas"
 )
 
 // DeploymentConfig represents a configuration for a single deployment (represented as a

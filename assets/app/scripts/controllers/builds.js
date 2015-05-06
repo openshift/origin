@@ -64,7 +64,7 @@ angular.module('openshiftConsole')
       Logger.log("buildConfigs (subscribe)", $scope.buildConfigs);
     }));
 
-    var associateRunningBuildToBuildConfig = function(buildsByBuildConfig) {
+    function associateRunningBuildToBuildConfig(buildsByBuildConfig) {
       var buildConfigBuildsInProgress = {};
       angular.forEach(buildsByBuildConfig, function(buildConfigBuilds, buildConfigName) {
         buildConfigBuildsInProgress[buildConfigName] = {};
@@ -78,7 +78,7 @@ angular.module('openshiftConsole')
       return buildConfigBuildsInProgress;
     };
 
-    var updateFilterWarning = function() {
+    function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.builds) && !$.isEmptyObject($scope.unfilteredBuilds)) {
         $scope.alerts["builds"] = {
           type: "warning",

@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2/internal"
 )
 
 // expiryDelta determines how earlier a token should be considered
@@ -101,4 +104,30 @@ func (t *Token) expired() bool {
 // Valid reports whether t is non-nil, has an AccessToken, and is not expired.
 func (t *Token) Valid() bool {
 	return t != nil && t.AccessToken != "" && !t.expired()
+}
+
+// tokenFromInternal maps an *internal.Token struct into
+// a *Token struct.
+func tokenFromInternal(t *internal.Token) *Token {
+	if t == nil {
+		return nil
+	}
+	return &Token{
+		AccessToken:  t.AccessToken,
+		TokenType:    t.TokenType,
+		RefreshToken: t.RefreshToken,
+		Expiry:       t.Expiry,
+		raw:          t.Raw,
+	}
+}
+
+// retrieveToken takes a *Config and uses that to retrieve an *internal.Token.
+// This token is then mapped from *internal.Token into an *oauth2.Token which is returned along
+// with an error..
+func retrieveToken(ctx context.Context, c *Config, v url.Values) (*Token, error) {
+	tk, err := internal.RetrieveToken(ctx, c.ClientID, c.ClientSecret, c.Endpoint.TokenURL, v)
+	if err != nil {
+		return nil, err
+	}
+	return tokenFromInternal(tk), nil
 }
