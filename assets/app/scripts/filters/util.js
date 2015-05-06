@@ -193,4 +193,18 @@ angular.module('openshiftConsole')
       });
       return result;
     };
+  })
+  .filter("toArray", function() {
+    return function(items) {
+      if (angular.isArray(items)) {
+        return items;
+      }
+
+      var array = [];
+      angular.forEach(items, function(item) {
+        array.push(item);
+      });
+
+      return array;
+    };
   });
