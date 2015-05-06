@@ -15,7 +15,7 @@ import (
 
 func TestRecreate_initialDeployment(t *testing.T) {
 	var updatedController *kapi.ReplicationController
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	var deployment *kapi.ReplicationController
 
 	strategy := &RecreateDeploymentStrategy{
 		codec:        api.Codec,
@@ -37,16 +37,36 @@ func TestRecreate_initialDeployment(t *testing.T) {
 		},
 	}
 
+	// Deployment replicas should follow the config as there's no explicit
+	// desired annotation.
+	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 	err := strategy.Deploy(deployment, []kapi.ObjectReference{})
-
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
 	}
-
-	if updatedController == nil {
-		t.Fatalf("expected a ReplicationController")
+	if e, a := 1, updatedController.Spec.Replicas; e != a {
+		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
 	}
 
+	// Deployment replicas should follow the explicit annotation.
+	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment.Annotations[deployapi.DesiredReplicasAnnotation] = "2"
+	err = strategy.Deploy(deployment, []kapi.ObjectReference{})
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+	if e, a := 2, updatedController.Spec.Replicas; e != a {
+		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
+	}
+
+	// Deployment replicas should follow the config as the explicit value is
+	// invalid.
+	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment.Annotations[deployapi.DesiredReplicasAnnotation] = "invalid"
+	err = strategy.Deploy(deployment, []kapi.ObjectReference{})
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
 	if e, a := 1, updatedController.Spec.Replicas; e != a {
 		t.Fatalf("expected controller replicas to be %d, got %d", e, a)
 	}
