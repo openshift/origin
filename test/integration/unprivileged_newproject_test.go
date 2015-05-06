@@ -90,6 +90,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	requestProject.ProjectName = "different"
 	// This should fail during the template retrieve
 	if err := requestProject.Run(); !kapierrors.IsNotFound(err) {
 		t.Errorf("expected a not found error, but got %v", err)

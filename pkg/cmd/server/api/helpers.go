@@ -3,6 +3,7 @@ package api
 import (
 	"crypto/x509"
 	"fmt"
+	"strings"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
@@ -11,6 +12,21 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
+
+// ParseNamespaceAndName returns back the namespace and name (empty if something goes wrong), for a given string.
+// This is useful when pointing to a particular resource inside of our config.
+func ParseNamespaceAndName(in string) (string, string, error) {
+	if len(in) == 0 {
+		return "", "", nil
+	}
+
+	tokens := strings.Split(in, "/")
+	if len(tokens) != 2 {
+		return "", "", fmt.Errorf("expected input in the form <namespace>/<resource-name>, not: %v", in)
+	}
+
+	return tokens[0], tokens[1], nil
+}
 
 func RelativizeMasterConfigPaths(config *MasterConfig, base string) error {
 	return cmdutil.RelativizePathWithNoBacksteps(GetMasterFileReferences(config), base)
