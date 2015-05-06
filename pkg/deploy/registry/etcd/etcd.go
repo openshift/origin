@@ -20,7 +20,7 @@ const (
 	// DeploymentPath is the path to deployment resources in etcd
 	DeploymentPath string = "/deployments"
 	// DeploymentConfigPath is the path to deploymentConfig resources in etcd
-	DeploymentConfigPath string = "/deploymentConfigs"
+	DeploymentConfigPath string = "/deploymentconfigs"
 )
 
 // Etcd implements deployment.Registry and deploymentconfig.Registry interfaces.

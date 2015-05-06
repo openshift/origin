@@ -12,8 +12,14 @@ func init() {
 			if len(obj.KubernetesStorageVersion) == 0 {
 				obj.KubernetesStorageVersion = "v1beta3"
 			}
+			if len(obj.KubernetesStoragePrefix) == 0 {
+				obj.KubernetesStoragePrefix = "kubernetes.io"
+			}
 			if len(obj.OpenShiftStorageVersion) == 0 {
 				obj.OpenShiftStorageVersion = "v1beta1"
+			}
+			if len(obj.OpenShiftStoragePrefix) == 0 {
+				obj.OpenShiftStoragePrefix = "openshift.io"
 			}
 		},
 	)
