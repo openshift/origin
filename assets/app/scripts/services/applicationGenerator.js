@@ -85,7 +85,7 @@ angular.module("openshiftConsole")
     };
 
     scope._generateRoute = function(input, name, serviceName){
-      if(!input.routing) return null;
+      if(!input.routing.include) return null;
       return {
         kind: "Route",
         apiVersion: osApiVersion,
