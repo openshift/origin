@@ -225,6 +225,10 @@
                       {
                         "name": "MYSQL_DATABASE",
                         "value": "${MYSQL_DATABASE}"
+                      },
+                      {
+                       "name": "MYSQL_ROOT_PASSWORD",
+                       "value": "${MYSQL_ROOT_PASSWORD}"
                       }
                     ],
                     "image": "openshift/mysql-55-centos7",
@@ -290,6 +294,12 @@
       "from": "[a-zA-Z0-9]{8}",
       "generate": "expression",
       "name": "MYSQL_PASSWORD"
+    },
+    {
+      "description": "database root password",
+      "from": "[a-zA-Z0-9]{8}",
+      "generate": "expression",
+      "name": "MYSQL_ROOT_PASSWORD"
     },
     {
       "description": "database name",
