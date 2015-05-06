@@ -146,12 +146,11 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 
 // defaultHostname returns the default hostname for this system.
 func defaultHostname() (string, error) {
-
 	// Note: We use exec here instead of os.Hostname() because we
 	// want the FQDN, and this is the easiest way to get it.
 	fqdn, err := exec.Command("hostname", "-f").Output()
 	if err != nil {
 		return "", fmt.Errorf("Couldn't determine hostname: %v", err)
 	}
-	return strings.TrimSpace(string(fqdn)), nil
+	return strings.ToLower(strings.TrimSpace(string(fqdn))), nil
 }
