@@ -43,6 +43,7 @@ OPENSTACK_CRED_FILE = "~/.openstackcred"
 OPENSTACK_BOX_URL   = "https://github.com/cloudbau/vagrant-openstack-plugin/raw/master/dummy.box"
 AWS_CRED_FILE       = "~/.awscred"
 AWS_BOX_URL         = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
+VM_NAME_PREFIX      = ENV['OPENSHIFT_VM_NAME_PREFIX'] || ""
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
@@ -123,7 +124,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     }
 
     # OpenShift master
-    config.vm.define "master" do |config|
+    config.vm.define "#{VM_NAME_PREFIX}master" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
       config.vm.provision "shell", inline: "/vagrant/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{ENV['OPENSHIFT_SDN']}"
@@ -134,7 +135,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     # OpenShift minion
     num_minion.times do |n|
-      config.vm.define "minion-#{n+1}" do |minion|
+      config.vm.define "#{VM_NAME_PREFIX}minion-#{n+1}" do |minion|
         minion_index = n+1
         minion_ip = minion_ips[n]
         minion.vm.box = kube_box[kube_os]["name"]
@@ -150,7 +151,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ##########################
     # define settings for the single VM being created.
-    config.vm.define "openshiftdev", primary: true do |config|
+    config.vm.define "#{VM_NAME_PREFIX}openshiftdev", primary: true do |config|
       config.vm.hostname = "openshiftdev.local"
 
       if vagrant_openshift_config['rebuild_yum_cache']
