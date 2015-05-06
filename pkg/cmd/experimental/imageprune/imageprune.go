@@ -64,7 +64,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 					prune.DescribingImagePruneFunc(out)(image, referencedStreams)
 					return prune.DeletingImagePruneFunc(osClient.Images(), osClient)(image, referencedStreams)
 				}
-				layerPruneFunc = func(registryURL string, req dockerregistry.DeleteLayersRequest) []error {
+				layerPruneFunc = func(registryURL string, req dockerregistry.DeleteLayersRequest) (error, map[string][]error) {
 					prune.DescribingLayerPruneFunc(out)(registryURL, req)
 					return prune.DeletingLayerPruneFunc(http.DefaultClient)(registryURL, req)
 				}

@@ -59,7 +59,7 @@ func (r DeleteLayersRequest) AddStream(layer, stream string) {
 
 type DeleteLayersResponse struct {
 	Result string
-	Errors []string
+	Errors map[string][]string
 }
 
 // deleteLayerFunc returns an http.HandlerFunc that is able to fully delete a
@@ -89,11 +89,10 @@ func deleteLayerFunc(app *handlers.App) http.HandlerFunc {
 		}
 
 		adminService := app.Registry().AdminService()
-		errs := []error{}
+		errs := map[string][]error{}
 		for layer, repos := range deletions {
 			log.Infof("Deleting layer=%q, repos=%v", layer, repos)
-			layerErrs := adminService.DeleteLayer(layer, repos)
-			errs = append(errs, layerErrs...)
+			errs[layer] = adminService.DeleteLayer(layer, repos)
 		}
 
 		log.Infof("errs=%v", errs)
@@ -108,10 +107,14 @@ func deleteLayerFunc(app *handlers.App) http.HandlerFunc {
 
 		response := DeleteLayersResponse{
 			Result: result,
+			Errors: map[string][]string{},
 		}
 
-		for _, err := range errs {
-			response.Errors = append(response.Errors, err.Error())
+		for layer, layerErrors := range errs {
+			response.Errors[layer] = []string{}
+			for _, err := range layerErrors {
+				response.Errors[layer] = append(response.Errors[layer], err.Error())
+			}
 		}
 
 		buf, err := json.Marshal(&response)

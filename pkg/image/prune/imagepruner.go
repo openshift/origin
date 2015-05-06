@@ -40,7 +40,7 @@ type ImagePruneFunc func(image *imageapi.Image, streams []*imageapi.ImageStream)
 // LayerPruneFunc is a function that is invoked for each registry, along with
 // a DeleteLayersRequest that contains the layers that can be pruned and the
 // image stream names that reference each layer.
-type LayerPruneFunc func(registryURL string, req dockerregistry.DeleteLayersRequest) []error
+type LayerPruneFunc func(registryURL string, req dockerregistry.DeleteLayersRequest) (requestError error, layerErrors map[string][]error)
 
 // ImagePruner knows how to prune images and layers.
 type ImagePruner interface {
@@ -103,7 +103,7 @@ func NewImagePruner(minimumAgeInMinutesToPrune int, tagRevisionsToKeep int, imag
 		return nil, fmt.Errorf("Error listing image streams: %v", err)
 	}
 
-	allPods, err := pods.Pods(kapi.NamespaceAll).List(labels.Everything())
+	allPods, err := pods.Pods(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, fmt.Errorf("Error listing pods: %v", err)
 	}
@@ -585,7 +585,8 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, layerPruneFu
 
 	for registryURL, req := range registryDeletionRequests {
 		glog.V(4).Infof("Invoking layerPruneFunc with registry=%q, req=%#v", registryURL, req)
-		layerPruneFunc(registryURL, req)
+		requestError, layerErrors := layerPruneFunc(registryURL, req)
+		glog.V(4).Infof("layerPruneFunc requestError=%v, layerErrors=%#v", requestError, layerErrors)
 	}
 }
 
@@ -647,9 +648,12 @@ func DeletingImagePruneFunc(images client.ImageInterface, streams client.ImageSt
 // DescribingLayerPruneFunc returns a LayerPruneFunc that writes information
 // about the layers that are eligible for pruning to out.
 func DescribingLayerPruneFunc(out io.Writer) LayerPruneFunc {
-	return func(registryURL string, deletions dockerregistry.DeleteLayersRequest) []error {
+	return func(registryURL string, deletions dockerregistry.DeleteLayersRequest) (error, map[string][]error) {
+		result := map[string][]error{}
+
 		fmt.Fprintf(out, "Pruning from registry %q\n", registryURL)
 		for layer, repos := range deletions {
+			result[layer] = []error{}
 			fmt.Fprintf(out, "\tLayer %q\n", layer)
 			if len(repos) > 0 {
 				fmt.Fprint(out, "\tReferenced streams:\n")
@@ -658,7 +662,7 @@ func DescribingLayerPruneFunc(out io.Writer) LayerPruneFunc {
 				fmt.Fprintf(out, "\t\t%q\n", repo)
 			}
 		}
-		return []error{}
+		return nil, result
 	}
 }
 
@@ -672,53 +676,56 @@ func DescribingLayerPruneFunc(out io.Writer) LayerPruneFunc {
 // key being a layer, and each value being a list of Docker image repository
 // names referenced by the layer.
 func DeletingLayerPruneFunc(registryClient *http.Client) LayerPruneFunc {
-	return func(registryURL string, deletions dockerregistry.DeleteLayersRequest) []error {
-		errs := []error{}
-
+	return func(registryURL string, deletions dockerregistry.DeleteLayersRequest) (requestError error, layerErrors map[string][]error) {
 		glog.V(4).Infof("Starting pruning of layers from %q, req %#v", registryURL, deletions)
 		body, err := json.Marshal(&deletions)
 		if err != nil {
 			glog.Errorf("Error marshaling request body: %v", err)
-			return []error{fmt.Errorf("Error creating request body: %v", err)}
+			return fmt.Errorf("Error creating request body: %v", err), nil
 		}
 
 		//TODO https
 		req, err := http.NewRequest("DELETE", fmt.Sprintf("http://%s/admin/layers", registryURL), bytes.NewReader(body))
 		if err != nil {
 			glog.Errorf("Error creating request: %v", err)
-			return []error{fmt.Errorf("Error creating request: %v", err)}
+			return fmt.Errorf("Error creating request: %v", err), nil
 		}
 
 		glog.V(4).Infof("Sending request to registry")
 		resp, err := registryClient.Do(req)
 		if err != nil {
 			glog.Errorf("Error sending request: %v", err)
-			return []error{fmt.Errorf("Error sending request: %v", err)}
+			return fmt.Errorf("Error sending request: %v", err), nil
 		}
 		defer resp.Body.Close()
 
 		buf, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			glog.Errorf("Error reading response body: %v", err)
-			return []error{fmt.Errorf("Error reading response body: %v", err)}
+			return fmt.Errorf("Error reading response body: %v", err), nil
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			glog.Errorf("Unexpected status code in response: %d", resp.StatusCode)
-			return []error{fmt.Errorf("Unexpected status code %d in response %s", resp.StatusCode, buf)}
+			return fmt.Errorf("Unexpected status code %d in response %s", resp.StatusCode, buf), nil
 		}
 
 		var deleteResponse dockerregistry.DeleteLayersResponse
 		if err := json.Unmarshal(buf, &deleteResponse); err != nil {
 			glog.Errorf("Error unmarshaling response: %v", err)
-			return []error{fmt.Errorf("Error unmarshaling response: %v", err)}
+			return fmt.Errorf("Error unmarshaling response: %v", err), nil
 		}
 
-		for _, e := range deleteResponse.Errors {
-			errs = append(errs, errors.New(e))
+		errs := map[string][]error{}
+
+		for layer, layerErrors := range deleteResponse.Errors {
+			errs[layer] = []error{}
+			for _, err := range layerErrors {
+				errs[layer] = append(errs[layer], errors.New(err))
+			}
 		}
 
-		return errs
+		return nil, errs
 	}
 }
 

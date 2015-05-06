@@ -592,8 +592,8 @@ func TestImagePruning(t *testing.T) {
 			return []error{}
 		}
 
-		layerPruneFunc := func(registryURL string, req dockerregistry.DeleteLayersRequest) []error {
-			return []error{}
+		layerPruneFunc := func(registryURL string, req dockerregistry.DeleteLayersRequest) (error, map[string][]error) {
+			return nil, map[string][]error{}
 		}
 
 		p.Run(imagePruneFunc, layerPruneFunc)
@@ -789,7 +789,7 @@ func TestLayerPruning(t *testing.T) {
 			return []error{}
 		}
 
-		layerPruneFunc := func(registryURL string, req dockerregistry.DeleteLayersRequest) []error {
+		layerPruneFunc := func(registryURL string, req dockerregistry.DeleteLayersRequest) (error, map[string][]error) {
 			registryDeletions, ok := actualDeletions[registryURL]
 			if !ok {
 				registryDeletions = util.NewStringSet()
@@ -807,7 +807,7 @@ func TestLayerPruning(t *testing.T) {
 			actualDeletions[registryURL] = registryDeletions
 			actualUpdatedStreams[registryURL] = streamUpdates
 
-			return []error{}
+			return nil, map[string][]error{}
 		}
 
 		p := newImagePruner(60, 1, &test.images, &test.streams, &kapi.PodList{}, &kapi.ReplicationControllerList{}, &buildapi.BuildConfigList{}, &buildapi.BuildList{}, &deployapi.DeploymentConfigList{})
@@ -864,21 +864,22 @@ func TestDeletingLayerPruneFunc(t *testing.T) {
 		simulateClientError        bool
 		registryResponseStatusCode int
 		registryResponse           string
+		expectedRequestError       string
 		expectedErrors             []string
 	}{
 		"client error": {
-			simulateClientError: true,
-			expectedErrors:      []string{"Error sending request:"},
+			simulateClientError:  true,
+			expectedRequestError: "Error sending request:",
 		},
 		"non-200 response": {
 			registryResponseStatusCode: http.StatusInternalServerError,
-			expectedErrors:             []string{fmt.Sprintf("Unexpected status code %d in response", http.StatusInternalServerError)},
+			expectedRequestError:       fmt.Sprintf("Unexpected status code %d in response", http.StatusInternalServerError),
 			registryResponse:           "{}",
 		},
 		"error unmarshaling response body": {
 			registryResponseStatusCode: http.StatusOK,
 			registryResponse:           "foo",
-			expectedErrors:             []string{"Error unmarshaling response:"},
+			expectedRequestError:       "Error unmarshaling response:",
 		},
 		"happy path - no response errors": {
 			registryResponseStatusCode: http.StatusOK,
@@ -887,7 +888,7 @@ func TestDeletingLayerPruneFunc(t *testing.T) {
 		},
 		"happy path - with response errors": {
 			registryResponseStatusCode: http.StatusOK,
-			registryResponse:           `{"result":"failure","errors":["error1","error2","error3"]}`,
+			registryResponse:           `{"result":"failure","errors":{"layer1":["error1","error2","error3"]}}`,
 			expectedErrors:             []string{"error1", "error2", "error3"},
 		},
 	}
@@ -914,8 +915,21 @@ func TestDeletingLayerPruneFunc(t *testing.T) {
 			"layer1": {"aaa/stream1", "bbb/stream2"},
 		}
 
-		errs := pruneFunc(registry, deletions)
+		requestError, layerErrors := pruneFunc(registry, deletions)
 
+		gotError := requestError != nil
+		expectError := len(test.expectedRequestError) != 0
+		if e, a := expectError, gotError; e != a {
+			t.Errorf("%s: requestError: expected %t, got %t: %v", name, e, a, requestError)
+			continue
+		}
+		if gotError {
+			if e, a := test.expectedRequestError, requestError; !strings.HasPrefix(a.Error(), e) {
+				t.Errorf("%s: expected request error %q, got %q", name, e, a)
+			}
+		}
+
+		errs := layerErrors["layer1"]
 		if e, a := len(test.expectedErrors), len(errs); e != a {
 			t.Errorf("%s: expected %d errors (%v), got %d (%v)", name, e, test.expectedErrors, a, errs)
 			continue
