@@ -20,7 +20,7 @@ done
 node_list=${node_list:1}
 
 # Install the required packages
-yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils
+yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils which
 
 # Build openshift
 echo "Building openshift"

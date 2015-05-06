@@ -24,7 +24,7 @@ for (( i=0; i<${#MINION_NAMES[@]}; i++)); do
 done
 
 # Install the required packages
-yum install -y docker-io git golang e2fsprogs hg openvswitch net-tools bridge-utils
+yum install -y docker-io git golang e2fsprogs hg openvswitch net-tools bridge-utils which
 
 # Build openshift
 echo "Building openshift"

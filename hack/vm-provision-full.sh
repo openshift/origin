@@ -4,7 +4,7 @@ IFS=$'\n\t'
 USERNAME="${1:-vagrant}"
 
 yum update -y
-yum install -y docker-io git vim golang e2fsprogs tmux httpie ctags hg bind-utils
+yum install -y docker-io git vim golang e2fsprogs tmux httpie ctags hg bind-utils which
 
 if [[ ! -d /data/src/github.com/openshift/origin ]]; then
   mkdir -p /data/src/github.com/openshift/origin
