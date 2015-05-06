@@ -3,6 +3,7 @@ package start
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -34,6 +35,7 @@ type MasterOptions struct {
 
 	CreateCertificates bool
 	ConfigFile         string
+	Output             cmdutil.Output
 }
 
 const master_long = `Start an OpenShift master.
@@ -62,8 +64,8 @@ You may also pass --etcd=<address> to connect to an external etcd server.
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
-func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
-	options := &MasterOptions{}
+func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
+	options := &MasterOptions{Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
 		Use:   "master",
@@ -87,9 +89,9 @@ func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
 			if err := options.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.ID)
+						fmt.Fprintf(options.Output.Get(), "Invalid %s %s\n", details.Kind, details.ID)
 						for _, cause := range details.Causes {
-							fmt.Fprintln(c.Out(), cause.Message)
+							fmt.Fprintln(options.Output.Get(), cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -98,6 +100,7 @@ func NewCommandStartMaster() (*cobra.Command, *MasterOptions) {
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	options.MasterArgs = NewDefaultMasterArgs()
 
@@ -277,6 +280,7 @@ func (o MasterOptions) CreateCerts() error {
 		Hostnames:          hostnames.List(),
 		APIServerURL:       masterAddr.String(),
 		PublicAPIServerURL: publicMasterAddr.String(),
+		Output:             o.Output,
 	}
 	if err := mintAllCertsOptions.Validate(nil); err != nil {
 		return err

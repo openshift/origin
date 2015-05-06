@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/golang/glog"
@@ -9,6 +10,7 @@ import (
 
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -23,6 +25,7 @@ type CreateServerCertOptions struct {
 
 	Hostnames util.StringList
 	Overwrite bool
+	Output    cmdutil.Output
 }
 
 const create_server_long = `
@@ -41,7 +44,7 @@ Example: Creating a secure router certificate.
 `
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateServerCertOptions{GetSignerCertOptions: &GetSignerCertOptions{}}
+	options := &CreateServerCertOptions{GetSignerCertOptions: &GetSignerCertOptions{}, Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -103,9 +106,17 @@ func (o CreateServerCertOptions) CreateServerCert() (*crypto.TLSCertificateConfi
 		return nil, err
 	}
 
+	var ca *crypto.TLSCertificateConfig
+	written := true
 	if o.Overwrite {
-		return signerCert.MakeServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
+		ca, err = signerCert.MakeServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
 	} else {
-		return signerCert.EnsureServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
+		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
 	}
+	if written {
+		fmt.Fprintf(o.Output.Get(), "Generated new server certificate as %s, key as %s\n", o.CertFile, o.KeyFile)
+	} else {
+		fmt.Fprintf(o.Output.Get(), "Keeping existing server certificate at %s, key at %s\n", o.CertFile, o.KeyFile)
+	}
+	return ca, err
 }

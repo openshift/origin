@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/golang/glog"
@@ -9,6 +10,7 @@ import (
 	"github.com/spf13/pflag"
 
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -20,6 +22,7 @@ type CreateSignerCertOptions struct {
 	KeyFile    string
 	SerialFile string
 	Name       string
+	Output     cmdutil.Output
 
 	Overwrite bool
 }
@@ -42,7 +45,7 @@ deployments of OpenShift should utilize properly signed certificates
 `
 
 func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateSignerCertOptions{Overwrite: true}
+	options := &CreateSignerCertOptions{Overwrite: true, Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -87,10 +90,18 @@ func (o CreateSignerCertOptions) Validate(args []string) error {
 
 func (o CreateSignerCertOptions) CreateSignerCert() (*crypto.CA, error) {
 	glog.V(2).Infof("Creating a signer cert with: %#v", o)
-
+	var ca *crypto.CA
+	var err error
+	written := true
 	if o.Overwrite {
-		return crypto.MakeCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name)
+		ca, err = crypto.MakeCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name)
 	} else {
-		return crypto.EnsureCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name)
+		ca, written, err = crypto.EnsureCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name)
 	}
+	if written {
+		fmt.Fprintf(o.Output.Get(), "Generated new CA for %s: cert in %s and key in %s\n", o.Name, o.CertFile, o.KeyFile)
+	} else {
+		fmt.Fprintf(o.Output.Get(), "Keeping existing CA cert at %s and key at %s\n", o.CertFile, o.KeyFile)
+	}
+	return ca, err
 }

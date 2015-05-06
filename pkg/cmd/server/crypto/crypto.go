@@ -115,12 +115,13 @@ type CA struct {
 	Config     *TLSCertificateConfig
 }
 
-func EnsureCA(certFile, keyFile, serialFile, name string) (*CA, error) {
+// Return CA, whether it was created (as opposed to pre-existing), and any error
+func EnsureCA(certFile, keyFile, serialFile, name string) (*CA, bool, error) {
 	if ca, err := GetCA(certFile, keyFile, serialFile); err == nil {
-		return ca, nil
+		return ca, false, err
 	}
-
-	return MakeCA(certFile, keyFile, serialFile, name)
+	ca, err := MakeCA(certFile, keyFile, serialFile, name)
+	return ca, true, err
 }
 
 func GetCA(certFile, keyFile, serialFile string) (*CA, error) {
@@ -181,13 +182,14 @@ func MakeCA(certFile, keyFile, serialFile, name string) (*CA, error) {
 	}, nil
 }
 
-func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, error) {
+func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, bool, error) {
 	certConfig, err := GetServerCert(certFile, keyFile, hostnames)
 	if err != nil {
-		return ca.MakeServerCert(certFile, keyFile, hostnames)
+		certConfig, err = ca.MakeServerCert(certFile, keyFile, hostnames)
+		return certConfig, true, err
 	}
 
-	return certConfig, nil
+	return certConfig, false, nil
 }
 
 func GetServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, error) {
@@ -224,13 +226,14 @@ func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames util.StringSet)
 	return server, nil
 }
 
-func (ca *CA) EnsureClientCertificate(certFile, keyFile string, u user.Info) (*TLSCertificateConfig, error) {
+func (ca *CA) EnsureClientCertificate(certFile, keyFile string, u user.Info) (*TLSCertificateConfig, bool, error) {
 	certConfig, err := GetTLSCertificateConfig(certFile, keyFile)
 	if err != nil {
-		return ca.MakeClientCertificate(certFile, keyFile, u)
+		certConfig, err = ca.MakeClientCertificate(certFile, keyFile, u)
+		return certConfig, true, err // true indicates we wrote the files.
 	}
 
-	return certConfig, nil
+	return certConfig, false, nil
 }
 
 func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info) (*TLSCertificateConfig, error) {

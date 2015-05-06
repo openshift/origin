@@ -3,6 +3,7 @@ package start
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 )
 
@@ -24,6 +26,7 @@ type NodeOptions struct {
 	NodeArgs *NodeArgs
 
 	ConfigFile string
+	Output     cmdutil.Output
 }
 
 const node_long = `Start an OpenShift node.
@@ -31,12 +34,12 @@ This command helps you launch an OpenShift node.  Running
 
   $ openshift start node --master=<masterIP>
 
-will start an OpenShift node that attempts to connect to the master on the provided IP. The 
+will start an OpenShift node that attempts to connect to the master on the provided IP. The
 node will run in the foreground until you terminate the process.`
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
-func NewCommandStartNode() (*cobra.Command, *NodeOptions) {
-	options := &NodeOptions{}
+func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
+	options := &NodeOptions{Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
 		Use:   "node",
@@ -59,9 +62,9 @@ func NewCommandStartNode() (*cobra.Command, *NodeOptions) {
 			if err := options.StartNode(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.ID)
+						fmt.Fprintf(options.Output.Get(), "Invalid %s %s\n", details.Kind, details.ID)
 						for _, cause := range details.Causes {
-							fmt.Fprintln(c.Out(), cause.Message)
+							fmt.Fprintln(options.Output.Get(), cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -70,6 +73,7 @@ func NewCommandStartNode() (*cobra.Command, *NodeOptions) {
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -208,6 +212,7 @@ func (o NodeOptions) CreateNodeConfig() error {
 		APIServerCAFile: getSignerOptions.CertFile,
 
 		NodeClientCAFile: getSignerOptions.CertFile,
+		Output:           o.Output,
 	}
 
 	if err := createNodeConfigOptions.Validate(nil); err != nil {

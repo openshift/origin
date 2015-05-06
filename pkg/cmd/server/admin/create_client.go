@@ -12,6 +12,7 @@ import (
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const CreateClientCommandName = "create-api-client-config"
@@ -27,6 +28,7 @@ type CreateClientOptions struct {
 	APIServerCAFile    string
 	APIServerURL       string
 	PublicAPIServerURL string
+	Output             cmdutil.Output
 }
 
 const create_client_long = `
@@ -36,7 +38,7 @@ master as the specified user.
 `
 
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateClientOptions{GetSignerCertOptions: &GetSignerCertOptions{}}
+	options := &CreateClientOptions{GetSignerCertOptions: &GetSignerCertOptions{}, Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -113,6 +115,7 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		User:      o.User,
 		Groups:    o.Groups,
 		Overwrite: true,
+		Output:    o.Output,
 	}
 	if _, err := createClientCertOptions.CreateClientCert(); err != nil {
 		return err
@@ -138,6 +141,7 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		ContextNamespace: kapi.NamespaceDefault,
 
 		KubeConfigFile: kubeConfigFile,
+		Output:         o.Output,
 	}
 	if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 		return err

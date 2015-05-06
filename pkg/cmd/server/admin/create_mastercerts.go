@@ -13,6 +13,7 @@ import (
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const CreateMasterCertsCommandName = "create-master-certs"
@@ -70,10 +71,11 @@ type CreateMasterCertsOptions struct {
 	PublicAPIServerURL string
 
 	Overwrite bool
+	Output    cmdutil.Output
 }
 
 func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateMasterCertsOptions{}
+	options := &CreateMasterCertsOptions{Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -133,6 +135,7 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
 		Name:       o.SignerName,
 		Overwrite:  o.Overwrite,
+		Output:     o.Output,
 	}
 	if err := signerCertOptions.Validate(nil); err != nil {
 		return err
@@ -185,6 +188,7 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *GetSign
 			ContextNamespace: kapi.NamespaceDefault,
 
 			KubeConfigFile: DefaultKubeConfigFilename(filepath.Dir(clientCertInfo.CertLocation.CertFile), clientCertInfo.UnqualifiedUser),
+			Output:         o.Output,
 		}
 		if err := createKubeConfigOptions.Validate(nil); err != nil {
 			return err
@@ -224,6 +228,7 @@ func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo
 		User:      clientCertInfo.User,
 		Groups:    util.StringList(clientCertInfo.Groups.List()),
 		Overwrite: o.Overwrite,
+		Output:    o.Output,
 	}
 	if _, err := clientCertOptions.CreateClientCert(); err != nil {
 		return err
@@ -241,6 +246,7 @@ func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *GetSig
 
 			Hostnames: o.Hostnames,
 			Overwrite: o.Overwrite,
+			Output:    o.Output,
 		}
 		if err := serverCertOptions.Validate(nil); err != nil {
 			return err
