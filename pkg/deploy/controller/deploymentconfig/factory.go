@@ -48,6 +48,9 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 
 	configController := &DeploymentConfigController{
 		deploymentClient: &deploymentClientImpl{
+			listDeploymentsFunc: func(namespace string) (*kapi.ReplicationControllerList, error) {
+				return factory.KubeClient.ReplicationControllers(namespace).List(labels.Everything())
+			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
 			},
@@ -68,9 +71,15 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, count int) bool {
 				kutil.HandleError(err)
+				// no retries for a fatal error
 				if _, isFatal := err.(fatalError); isFatal {
 					return false
 				}
+				// infinite retries for a transient error
+				if _, isTransient := err.(transientError); isTransient {
+					return true
+				}
+				// no retries for anything else
 				if count > 0 {
 					return false
 				}
