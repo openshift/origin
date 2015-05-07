@@ -18,6 +18,7 @@ package etcd
 
 import (
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -112,6 +113,19 @@ func NamespaceKeyRootFunc(ctx api.Context, prefix string) string {
 		key = key + "/" + ns
 	}
 	return key
+}
+
+// NoNamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing namespace rules.
+// If a namespace is on context, it errors.
+func NoNamespaceKeyFunc(ctx api.Context, prefix string, name string) (string, error) {
+	ns, ok := api.NamespaceFrom(ctx)
+	if ok && len(ns) > 0 {
+		return "", kubeerr.NewBadRequest(fmt.Sprintf("Namespace parameter is not allowed on %s.", path.Base(prefix)))
+	}
+	if len(name) == 0 {
+		return "", kubeerr.NewBadRequest("Name parameter required.")
+	}
+	return path.Join(prefix, name), nil
 }
 
 // NamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing namespace rules.
