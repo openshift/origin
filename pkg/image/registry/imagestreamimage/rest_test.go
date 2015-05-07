@@ -232,7 +232,7 @@ func TestGet(t *testing.T) {
 		fakeEtcdClient, _, storage := setup(t)
 
 		if test.repo != nil {
-			fakeEtcdClient.Data["/imageRepositories/default/repo"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data["/imagerepositories/default/repo"] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: &etcd.Node{
 						Value: runtime.EncodeOrDie(latest.Codec, test.repo),
@@ -240,7 +240,7 @@ func TestGet(t *testing.T) {
 				},
 			}
 		} else {
-			fakeEtcdClient.Data["/imageRepositories/default/repo"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data["/imagerepositories/default/repo"] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: nil,
 				},

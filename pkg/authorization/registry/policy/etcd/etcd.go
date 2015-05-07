@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/policy"
 )
 
-const PolicyPath = "/registry/authorization/policy"
+const PolicyPath = "/authorization/local/policies"
 
 type REST struct {
 	*etcdgeneric.Etcd

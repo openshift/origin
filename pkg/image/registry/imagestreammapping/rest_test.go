@@ -101,7 +101,7 @@ func TestCreateConflictingNamespace(t *testing.T) {
 
 func TestCreateImageStreamNotFoundWithName(t *testing.T) {
 	fakeEtcdClient, _, storage := setup(t)
-	fakeEtcdClient.ExpectNotFoundGet("/imageRepositories/default/somerepo")
+	fakeEtcdClient.ExpectNotFoundGet("/imagerepositories/default/somerepo")
 
 	obj, err := storage.Create(kapi.NewDefaultContext(), validNewMappingWithName())
 	if obj != nil {
@@ -132,7 +132,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
 	}
 
-	fakeEtcdClient.Data["/imageRepositories/default/somerepo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default/somerepo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
@@ -159,7 +159,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 	}
 
 	repo := &api.ImageStream{}
-	if err := helper.ExtractObj("/imageRepositories/default/somerepo", repo, false); err != nil {
+	if err := helper.ExtractObj("/imagerepositories/default/somerepo", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
 	if e, a := "imageID1", repo.Status.Tags["latest"].Items[0].Image; e != a {
@@ -212,7 +212,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 	}
 
 	fakeEtcdClient, _, storage := setup(t)
-	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -224,7 +224,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 			},
 		},
 	}
-	fakeEtcdClient.Data["/imageRepositories/default/somerepo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default/somerepo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
@@ -291,7 +291,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 	}
 
 	fakeEtcdClient, _, storage := setup(t)
-	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -303,7 +303,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 			},
 		},
 	}
-	fakeEtcdClient.Data["/imageRepositories/default/somerepo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default/somerepo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),

@@ -18,7 +18,7 @@ type REST struct {
 	etcdgeneric.Etcd
 }
 
-const EtcdPrefix = "/registry/identities"
+const EtcdPrefix = "/useridentities"
 
 // NewREST returns a RESTStorage object that will work against identites
 func NewREST(h tools.EtcdHelper) *REST {

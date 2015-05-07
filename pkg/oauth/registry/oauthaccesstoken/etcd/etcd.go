@@ -19,7 +19,7 @@ type REST struct {
 	store *etcdgeneric.Etcd
 }
 
-const EtcdPrefix = "/registry/oauth/accessTokens"
+const EtcdPrefix = "/oauth/accesstokens"
 
 // NewREST returns a RESTStorage object that will work against access tokens
 func NewREST(h tools.EtcdHelper) *REST {

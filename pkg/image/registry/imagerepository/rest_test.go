@@ -66,7 +66,7 @@ func TestListImageRepositories(t *testing.T) {
 	fakeEtcdClient, _, rest, _ := newTestHelpers(t)
 
 	fakeEtcdClient.ChangeIndex = 1
-	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{},
 		E: fakeEtcdClient.NewError(tools.EtcdErrorCodeNotFound),
 	}
@@ -100,7 +100,7 @@ func TestListImageRepositoriesError(t *testing.T) {
 func TestListImageRepositoriesPopulatedList(t *testing.T) {
 	fakeEtcdClient, _, rest, _ := newTestHelpers(t)
 
-	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -145,7 +145,7 @@ func TestGetImageRepositoryOK(t *testing.T) {
 	fakeEtcdClient, _, rest, _ := newTestHelpers(t)
 
 	streamName := "foo"
-	fakeEtcdClient.Set("/imageRepositories/default/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: streamName}}), 0)
+	fakeEtcdClient.Set("/imagerepositories/default/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: streamName}}), 0)
 
 	obj, err := rest.Get(kapi.NewDefaultContext(), streamName)
 	if err != nil {
@@ -171,7 +171,7 @@ func TestCreateImageRepositoryOK(t *testing.T) {
 	}
 
 	actual := &api.ImageRepository{}
-	if err := helper.ExtractObj("/imageRepositories/default/foo", actual, false); err != nil {
+	if err := helper.ExtractObj("/imagerepositories/default/foo", actual, false); err != nil {
 		t.Fatalf("unexpected extraction error: %v", err)
 	}
 	if actual.Name != repo.Name {
@@ -222,7 +222,7 @@ func TestUpdateImageRepositoryErrorSaving(t *testing.T) {
 
 func TestUpdateImageRepositoryOK(t *testing.T) {
 	fakeEtcdClient, _, rest, _ := newTestHelpers(t)
-	fakeEtcdClient.Data["/imageRepositories/default/bar"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default/bar"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
@@ -253,7 +253,7 @@ func TestUpdateImageRepositoryOK(t *testing.T) {
 
 func TestDeleteImageRepository(t *testing.T) {
 	fakeEtcdClient, _, rest, _ := newTestHelpers(t)
-	fakeEtcdClient.Data["/imageRepositories/default/foo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageRepository{
@@ -279,7 +279,7 @@ func TestDeleteImageRepository(t *testing.T) {
 
 func TestUpdateImageRepositoryConflictingNamespace(t *testing.T) {
 	fakeEtcdClient, _, rest, _ := newTestHelpers(t)
-	fakeEtcdClient.Data["/imageRepositories/legal-name/bar"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/legal-name/bar"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{

@@ -18,7 +18,7 @@ type REST struct {
 	etcdgeneric.Etcd
 }
 
-const EtcdPrefix = "/registry/oauth/clientAuthorizations"
+const EtcdPrefix = "/oauth/clientauthorizations"
 
 // NewREST returns a RESTStorage object that will work against oauth clients
 func NewREST(h tools.EtcdHelper) *REST {

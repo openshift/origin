@@ -127,7 +127,7 @@ func TestCreateConflictingNamespace(t *testing.T) {
 
 func TestCreateErrorListingImageStreams(t *testing.T) {
 	fakeEtcdClient, _, storage := setup(t)
-	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: nil,
 		},
@@ -148,7 +148,7 @@ func TestCreateErrorListingImageStreams(t *testing.T) {
 
 func TestCreateImageStreamNotFound(t *testing.T) {
 	fakeEtcdClient, _, storage := setup(t)
-	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
@@ -180,7 +180,7 @@ func TestCreateSuccessWithDockerImageRepository(t *testing.T) {
 		},
 	}
 
-	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -192,7 +192,7 @@ func TestCreateSuccessWithDockerImageRepository(t *testing.T) {
 			},
 		},
 	}
-	fakeEtcdClient.Data["/imageRepositories/default/somerepo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default/somerepo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, initialStream),
@@ -219,7 +219,7 @@ func TestCreateSuccessWithDockerImageRepository(t *testing.T) {
 	}
 
 	repo := &api.ImageStream{}
-	if err := helper.ExtractObj("/imageRepositories/default/somerepo", repo, false); err != nil {
+	if err := helper.ExtractObj("/imagerepositories/default/somerepo", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
 	if e, a := "imageID1", repo.Status.Tags["latest"].Items[0].Image; e != a {
@@ -237,7 +237,7 @@ func TestCreateSuccessWithMismatchedNames(t *testing.T) {
 		},
 	}
 
-	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -249,7 +249,7 @@ func TestCreateSuccessWithMismatchedNames(t *testing.T) {
 			},
 		},
 	}
-	fakeEtcdClient.Data["/imageRepositories/default/repo1"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default/repo1"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, initialStream),
@@ -276,7 +276,7 @@ func TestCreateSuccessWithMismatchedNames(t *testing.T) {
 	}
 
 	repo := &api.ImageStream{}
-	if err := helper.ExtractObj("/imageRepositories/default/repo1", repo, false); err != nil {
+	if err := helper.ExtractObj("/imagerepositories/default/repo1", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
 	if e, a := "localhost:5000/someproject/somerepo:imageID1", repo.Status.Tags["latest"].Items[0].DockerImageReference; e != a {
@@ -294,7 +294,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
 	}
 
-	fakeEtcdClient.Data["/imageRepositories/default/somerepo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default/somerepo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, initialStream),
@@ -321,7 +321,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 	}
 
 	repo := &api.ImageStream{}
-	if err := helper.ExtractObj("/imageRepositories/default/somerepo", repo, false); err != nil {
+	if err := helper.ExtractObj("/imagerepositories/default/somerepo", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
 	if e, a := "imageID1", repo.Status.Tags["latest"].Items[0].Image; e != a {
@@ -373,7 +373,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 	}
 
 	fakeEtcdClient, helper, storage := setup(t)
-	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -385,7 +385,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 			},
 		},
 	}
-	fakeEtcdClient.Data["/imageRepositories/default/somerepo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default/somerepo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
@@ -424,7 +424,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 	}
 
 	repo := &api.ImageStream{}
-	if err := helper.ExtractObj("/imageRepositories/default/somerepo", repo, false); err != nil {
+	if err := helper.ExtractObj("/imagerepositories/default/somerepo", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
 	/*
@@ -499,7 +499,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 	}
 
 	fakeEtcdClient, helper, storage := setup(t)
-	fakeEtcdClient.Data["/imageRepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -511,7 +511,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 			},
 		},
 	}
-	fakeEtcdClient.Data["/imageRepositories/default/somerepo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagerepositories/default/somerepo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
@@ -550,7 +550,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 	}
 
 	repo := &api.ImageStream{}
-	if err := helper.ExtractObj("/imageRepositories/default/somerepo", repo, false); err != nil {
+	if err := helper.ExtractObj("/imagerepositories/default/somerepo", repo, false); err != nil {
 		t.Fatalf("Unexpected non-nil err: %#v", err)
 	}
 	// Tags aren't changed during mapping creation
