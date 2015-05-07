@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestOverlap(t *testing.T) {
+func TestHasConflicts(t *testing.T) {
 	testCases := []struct {
 		A   interface{}
 		B   interface{}
@@ -46,12 +46,12 @@ func TestOverlap(t *testing.T) {
 	}
 
 	for i, testCase := range testCases {
-		out := overlap(testCase.A, testCase.B)
+		out := hasConflicts(testCase.A, testCase.B)
 		if out != testCase.Ret {
 			t.Errorf("%d: expected %t got %t", i, testCase.Ret, out)
 			continue
 		}
-		out = overlap(testCase.B, testCase.A)
+		out = hasConflicts(testCase.B, testCase.A)
 		if out != testCase.Ret {
 			t.Errorf("%d: expected reversed %t got %t", i, testCase.Ret, out)
 		}

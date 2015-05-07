@@ -199,9 +199,11 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 		if err != nil {
 			glog.V(4).Infof("Unable to calculate diff, no merge is possible: %v", err)
 			delta = nil
+		} else {
+			delta.AddPreconditions(jsonmerge.RequireKeyUnchanged("apiVersion"))
+			results.delta = delta
+			results.version = defaultVersion
 		}
-		results.delta = delta
-		results.version = defaultVersion
 
 		err = resource.NewFlattenListVisitor(updates, rmap).Visit(func(info *resource.Info) error {
 			data, err := info.Mapping.Codec.Encode(info.Object)
@@ -312,10 +314,13 @@ func (r *editResults) AddError(err error, info *resource.Info) string {
 	case errors.IsConflict(err):
 		if r.delta != nil {
 			v1 := info.ResourceVersion
-			if perr := tryPatch(r.delta, info, r.version); perr != nil {
+			if perr := applyPatch(r.delta, info, r.version); perr != nil {
 				// the error was related to the patching process
 				if nerr, ok := perr.(patchError); ok {
 					r.conflict++
+					if jsonmerge.IsPreconditionFailed(nerr.error) {
+						return fmt.Sprintf("Error: the API version of the provided object cannot be changed")
+					}
 					// the patch is in conflict, report to user and exit
 					if jsonmerge.IsConflicting(nerr.error) {
 						// TODO: read message
@@ -343,10 +348,10 @@ type patchError struct {
 	error
 }
 
-// tryPatch reads the latest version of the object, writes it to version, then attempts to merge
+// applyPatch reads the latest version of the object, writes it to version, then attempts to merge
 // the changes onto it without conflict. If a conflict occurs jsonmerge.IsConflicting(err) is
 // true. The info object is mutated
-func tryPatch(delta *jsonmerge.Delta, info *resource.Info, version string) error {
+func applyPatch(delta *jsonmerge.Delta, info *resource.Info, version string) error {
 	if err := info.Get(); err != nil {
 		return patchError{err}
 	}
