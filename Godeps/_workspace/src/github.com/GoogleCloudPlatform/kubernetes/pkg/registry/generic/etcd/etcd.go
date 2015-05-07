@@ -118,7 +118,7 @@ func NamespaceKeyRootFunc(ctx api.Context, prefix string) string {
 func NoNamespaceKeyFunc(ctx api.Context, prefix string, name string) (string, error) {
 	ns, ok := api.NamespaceFrom(ctx)
 	if ok && len(ns) > 0 {
-		return "", kubeerr.NewBadRequest("Namespace parameter is not allowed.")
+		return "", kubeerr.NewBadRequest(fmt.Sprintf("Namespace parameter is not allowed on %s.", path.Base(prefix)))
 	}
 	if len(name) == 0 {
 		return "", kubeerr.NewBadRequest("Name parameter required.")
