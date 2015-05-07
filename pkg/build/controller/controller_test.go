@@ -45,37 +45,37 @@ func (es *errStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) 
 
 type okPodManager struct{}
 
-func (_ *okPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (*okPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, nil
 }
 
-func (_ *okPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
+func (*okPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
 	return nil
 }
 
 type errPodManager struct{}
 
-func (_ *errPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (*errPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, errors.New("CreatePod error!")
 }
 
-func (_ *errPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
+func (*errPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
 	return errors.New("DeletePod error!")
 }
 
 type errExistsPodManager struct{}
 
-func (_ *errExistsPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+func (*errExistsPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return &kapi.Pod{}, kerrors.NewAlreadyExists("kind", "name")
 }
 
-func (_ *errExistsPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
+func (*errExistsPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
 	return kerrors.NewNotFound("kind", "name")
 }
 
 type okImageStreamClient struct{}
 
-func (_ *okImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
+func (*okImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
 	return &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: namespace},
 		Status: imageapi.ImageStreamStatus{
@@ -86,13 +86,13 @@ func (_ *okImageStreamClient) GetImageStream(namespace, name string) (*imageapi.
 
 type errImageStreamClient struct{}
 
-func (_ *errImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
+func (*errImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
 	return nil, errors.New("GetImageStream error!")
 }
 
 type errNotFoundImageStreamClient struct{}
 
-func (_ *errNotFoundImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
+func (*errNotFoundImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
 	return nil, kerrors.NewNotFound("ImageStream", name)
 }
 

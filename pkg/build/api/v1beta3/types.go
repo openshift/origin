@@ -42,6 +42,7 @@ type BuildSpec struct {
 	Resources kapi.ResourceRequirements `json:"resources,omitempty" description:"the desired compute resources the build should have"`
 }
 
+// BuildStatus contains the status of a build
 type BuildStatus struct {
 	// Phase is the point in the build lifecycle.
 	Phase BuildPhase `json:"phase"`
@@ -64,7 +65,7 @@ type BuildStatus struct {
 	CompletionTimestamp *util.Time `json:"completionTimestamp,omitempty"`
 
 	// Duration contains time.Duration object describing build time.
-	Duration time.Duration `json:"duration",omitempty"`
+	Duration time.Duration `json:"duration,omitempty"`
 
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference `json:"config,omitempty"`

@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 )
 
-var mockBuildStrategy api.BuildStrategy = api.BuildStrategy{
+var mockBuildStrategy = api.BuildStrategy{
 	Type: "STI",
 	STIStrategy: &api.STIBuildStrategy{
 		From: &kapi.ObjectReference{

@@ -20,6 +20,7 @@ type BuildGenerator struct {
 	Client GeneratorClient
 }
 
+// GeneratorClient is the API client used by the generator
 type GeneratorClient interface {
 	GetBuildConfig(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
 	UpdateBuildConfig(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
@@ -30,6 +31,7 @@ type GeneratorClient interface {
 	GetImageStreamTag(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error)
 }
 
+// Client is an implementation of the GeneratorClient interface
 type Client struct {
 	GetBuildConfigFunc      func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
 	UpdateBuildConfigFunc   func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error
@@ -40,29 +42,37 @@ type Client struct {
 	GetImageStreamTagFunc   func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error)
 }
 
+// GetBuildConfig retrieves a named build config
 func (c Client) GetBuildConfig(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 	return c.GetBuildConfigFunc(ctx, name)
 }
 
+// UpdateBuildConfig updates a named build config
 func (c Client) UpdateBuildConfig(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 	return c.UpdateBuildConfigFunc(ctx, buildConfig)
 }
 
+// GetBuild retrieves a build
 func (c Client) GetBuild(ctx kapi.Context, name string) (*buildapi.Build, error) {
 	return c.GetBuildFunc(ctx, name)
 }
 
+// CreateBuild creates a new build
 func (c Client) CreateBuild(ctx kapi.Context, build *buildapi.Build) error {
 	return c.CreateBuildFunc(ctx, build)
 }
 
+// GetImageStream retrieves a named image stream
 func (c Client) GetImageStream(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 	return c.GetImageStreamFunc(ctx, name)
 }
 
+// GetImageStreamImage retrieves an image stream image
 func (c Client) GetImageStreamImage(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
 	return c.GetImageStreamImageFunc(ctx, name)
 }
+
+// GetImageStreamTag retrieves and image stream tag
 func (c Client) GetImageStreamTag(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
 	return c.GetImageStreamTagFunc(ctx, name)
 }

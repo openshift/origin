@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/build/api/validation"
 )
 
+// NewREST creates a new storage object for build generation
 func NewREST(generator *BuildGenerator) (*CloneREST, *InstantiateREST) {
 	return &CloneREST{generator: generator}, &InstantiateREST{generator: generator}
 }
@@ -20,10 +21,12 @@ type CloneREST struct {
 	generator *BuildGenerator
 }
 
+// New creates a new build clone request
 func (s *CloneREST) New() runtime.Object {
 	return &buildapi.BuildRequest{}
 }
 
+// Create instantiates a new build from an existing build
 func (s *CloneREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	request, ok := obj.(*buildapi.BuildRequest)
 	if !ok {
@@ -41,10 +44,12 @@ type InstantiateREST struct {
 	generator *BuildGenerator
 }
 
+// New creates a new build generation request
 func (s *InstantiateREST) New() runtime.Object {
 	return &buildapi.BuildRequest{}
 }
 
+// Create instantiates a new build from a build configuration
 func (s *InstantiateREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	request, ok := obj.(*buildapi.BuildRequest)
 	if !ok {

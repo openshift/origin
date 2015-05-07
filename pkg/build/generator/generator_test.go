@@ -321,7 +321,7 @@ func TestGenerateBuildWithImageTagForSTIStrategyImageRepository(t *testing.T) {
 
 	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
 	if err != nil {
-		t.Fatal("Unexpected error %v", err)
+		t.Fatalf("Unexpected error %v", err)
 	}
 	if build.Parameters.Strategy.STIStrategy.From.Name != newImage {
 		t.Errorf("STI base image value %s does not match expected value %s", build.Parameters.Strategy.STIStrategy.From.Name, newImage)
@@ -391,7 +391,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 
 	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
 	if err != nil {
-		t.Fatal("Unexpected error %v", err)
+		t.Fatalf("Unexpected error %v", err)
 	}
 	if build.Parameters.Strategy.DockerStrategy.From.Name != newImage {
 		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.From.Name, newImage)
@@ -461,7 +461,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 
 	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
 	if err != nil {
-		t.Fatal("Unexpected error %v", err)
+		t.Fatalf("Unexpected error %v", err)
 	}
 	if build.Parameters.Strategy.CustomStrategy.From.Name != newImage {
 		t.Errorf("Custom base image value %s does not match expected value %s", build.Parameters.Strategy.CustomStrategy.From.Name, newImage)
