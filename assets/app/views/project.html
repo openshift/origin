@@ -30,7 +30,26 @@
         <div class="row">
           <div class="col-md-12">
             <div class="tile">
-              <h2 class="service osc-object" ng-init="numPorts = service.spec.ports.length" kind="Service" resource="service">{{serviceId}}
+
+              <!-- Routes -->
+              <h2 class="route osc-object" ng-if="displayRouteByService[serviceId]" ng-init="otherRoutes = (routesByService[serviceId] | hashSize) - 1" kind="Route" resource="displayRouteByService[serviceId]">
+                <span ng-if="(displayRouteByService[serviceId] | isWebRoute)">
+                  <i class="fa fa-globe"></i>
+                  <a href="{{displayRouteByService[serviceId] | routeWebURL}}">{{displayRouteByService[serviceId] | routeLabel}}</a>
+                </span>
+                <span ng-if="!(displayRouteByService[serviceId] | isWebRoute)">
+                  {{displayRouteByService[serviceId] | routeLabel}}
+                </span>
+                <span class="small" ng-if="otherRoutes">
+                  (and
+                  <a href="project/{{projectName}}/browse/services#service-{{serviceId}}">{{otherRoutes}}
+                      other {{(otherRoutes == 1) ? 'route' : 'routes'}}</a>)
+                </span>
+              </h2>
+
+              <!-- Service -->
+              <h2 class="service osc-object" ng-init="numPorts = service.spec.ports.length" kind="Service" resource="service">
+                {{serviceId}}
                 <span class="small" ng-if="service.spec.portalIP != 'None'">
                   - routing traffic on {{service.spec.portalIP}}
                 </span>

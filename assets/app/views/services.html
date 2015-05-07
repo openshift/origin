@@ -11,7 +11,7 @@
         </div>
       </div>
       <div style="margin-bottom: 10px;" ng-repeat="service in services">
-        <h3>{{service.metadata.name}}</h3>
+        <h3 id="service-{{service.metadata.name}}">{{service.metadata.name}}</h3>
         <div>Created: <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></div>
         <div>IP:
           <span ng-if="service.spec.portalIP == 'None'"><em>none</em></span>
@@ -30,8 +30,8 @@
         </div>
         <div>Routes: <span ng-if="(routesByService[service.metadata.name] | hashSize) == 0"><em>none</em></span>
             <span ng-repeat="(routeName, route) in routesByService[service.metadata.name]">
-                <span ng-if="route | isWebRoute"><a href="{{route | routeWebURL}}">{{route.host}}</a></span>
-                <span ng-if="!(route | isWebRoute)">{{route.host}}</span>
+                <span ng-if="route | isWebRoute"><a href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
+                <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
                 <span ng-show="!$last">, </span>
             </span>
         </div>

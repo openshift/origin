@@ -11,6 +11,10 @@ angular.module('openshiftConsole')
   .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver) {
     $scope.pods = {};
     $scope.services = {};
+    $scope.routesByService = {};
+    // The "best" route to display on the overview page for each service
+    // (one with a custom host if present)
+    $scope.displayRouteByService = {};
     $scope.unfilteredServices = {};
     $scope.deployments = {};
     $scope.deploymentConfigs = {};
@@ -71,6 +75,24 @@ angular.module('openshiftConsole')
       $scope.emptyMessage = "No services to show";
       updateFilterWarning();
       Logger.log("services (list)", $scope.services);
+    }));
+
+    watches.push(DataService.watch("routes", $scope, function(routes) {
+      var routeMap = $scope.routesByService = {};
+      var displayRouteMap = $scope.displayRouteByService = {};
+      angular.forEach(routes.by("metadata.name"), function(route, routeName){
+        var serviceName = route.serviceName;
+        routeMap[serviceName] = routeMap[serviceName] || {};
+        routeMap[serviceName][routeName] = route;
+
+        // Find the best route to display for a service. Prefer the first custom host we find.
+        if (!displayRouteMap[serviceName] ||
+            (!isGeneratedHost(route) && isGeneratedHost(displayRouteMap[serviceName]))) {
+          displayRouteMap[serviceName] = route;
+        }
+      });
+
+      Logger.log("routes (subscribe)", $scope.routesByService);
     }));
 
     // Expects deploymentsByServiceByDeploymentConfig to be up to date
@@ -340,6 +362,10 @@ angular.module('openshiftConsole')
         delete $scope.alerts["services"];
       }
     };
+
+    function isGeneratedHost(route) {
+      return route.metadata.annotations && route.metadata.annotations["openshift.io/host.generated"] === "true";
+    }
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
       // trigger a digest loop
