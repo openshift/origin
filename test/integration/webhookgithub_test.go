@@ -89,18 +89,24 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 	}
 	defer watch.Stop()
 
-	// trigger build event sending push notification
-	postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
+	for _, s := range []string{
+		whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
+		"/osapi/v1beta1/buildConfigs/pushbuild/webhooks/secret101/github?namespace=" + testutil.Namespace(),
+	} {
 
-	event := <-watch.ResultChan()
-	actual := event.Object.(*buildapi.Build)
+		// trigger build event sending push notification
+		postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
-	if actual.Status != buildapi.BuildStatusNew {
-		t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
-	}
+		event := <-watch.ResultChan()
+		actual := event.Object.(*buildapi.Build)
 
-	if actual.Parameters.Strategy.DockerStrategy.From.Name != "originalImage" {
-		t.Errorf("Expected %s, got %s", "originalImage", actual.Parameters.Strategy.DockerStrategy.From.Name)
+		if actual.Status != buildapi.BuildStatusNew {
+			t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
+		}
+
+		if actual.Parameters.Strategy.DockerStrategy.From.Name != "originalImage" {
+			t.Errorf("Expected %s, got %s", "originalImage", actual.Parameters.Strategy.DockerStrategy.From.Name)
+		}
 	}
 }
 
@@ -168,18 +174,24 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 	}
 	defer watch.Stop()
 
-	// trigger build event sending push notification
-	postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
+	for _, s := range []string{
+		whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
+		"/osapi/v1beta1/buildConfigs/pushbuild/webhooks/secret101/github?namespace=" + testutil.Namespace(),
+	} {
 
-	event := <-watch.ResultChan()
-	actual := event.Object.(*buildapi.Build)
+		// trigger build event sending push notification
+		postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
-	if actual.Status != buildapi.BuildStatusNew {
-		t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
-	}
+		event := <-watch.ResultChan()
+		actual := event.Object.(*buildapi.Build)
 
-	if actual.Parameters.Strategy.STIStrategy.From.Name != "registry:3000/integration/imageStream:success" {
-		t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageStream:success", actual.Parameters.Strategy.STIStrategy.From.Name)
+		if actual.Status != buildapi.BuildStatusNew {
+			t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
+		}
+
+		if actual.Parameters.Strategy.STIStrategy.From.Name != "registry:3000/integration/imageStream:success" {
+			t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageStream:success", actual.Parameters.Strategy.STIStrategy.From.Name)
+		}
 	}
 }
 
@@ -204,17 +216,22 @@ func TestWebhookGithubPing(t *testing.T) {
 	}
 	defer watch.Stop()
 
-	// trigger build event sending push notification
-	postFile(&http.Client{}, "ping", "pingevent.json", openshift.server.URL+openshift.whPrefix+"pushbuild/secret101/github?namespace="+testutil.Namespace(), http.StatusOK, t)
+	for _, s := range []string{
+		openshift.whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
+		"/osapi/v1beta1/buildConfigs/pushbuild/webhooks/secret101/github?namespace=" + testutil.Namespace(),
+	} {
+		// trigger build event sending push notification
+		postFile(&http.Client{}, "ping", "pingevent.json", openshift.server.URL+s, http.StatusOK, t)
 
-	// TODO: improve negative testing
-	timer := time.NewTimer(time.Second / 2)
-	select {
-	case <-timer.C:
-		// nothing should happen
-	case event := <-watch.ResultChan():
-		build := event.Object.(*buildapi.Build)
-		t.Fatalf("Unexpected build created: %#v", build)
+		// TODO: improve negative testing
+		timer := time.NewTimer(time.Second / 2)
+		select {
+		case <-timer.C:
+			// nothing should happen
+		case event := <-watch.ResultChan():
+			build := event.Object.(*buildapi.Build)
+			t.Fatalf("Unexpected build created: %#v", build)
+		}
 	}
 }
 

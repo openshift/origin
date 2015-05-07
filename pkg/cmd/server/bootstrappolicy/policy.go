@@ -180,6 +180,17 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 			},
 		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: WebHooksRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("get", "create"),
+					Resources: util.NewStringSet("buildconfigs/webhooks"),
+				},
+			},
+		},
 	}
 }
 
@@ -282,6 +293,15 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 				Name: RegistryRoleName,
 			},
 			Groups: util.NewStringSet(RegistryGroup),
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: WebHooksRoleBindingName,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: WebHooksRoleName,
+			},
+			Groups: util.NewStringSet(AuthenticatedGroup, UnauthenticatedGroup),
 		},
 	}
 }

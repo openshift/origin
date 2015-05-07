@@ -32,6 +32,7 @@ import (
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	"github.com/openshift/origin/pkg/build/webhook"
+	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -240,10 +241,20 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	}
 	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
+	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
+		buildEtcd,
+		buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
+		map[string]webhook.Plugin{
+			"generic": generic.New(),
+			"github":  github.New(),
+		},
+	)
+
 	storage := map[string]rest.Storage{
 		"builds":                   buildregistry.NewREST(buildEtcd),
 		"builds/clone":             buildClone,
 		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
+		"buildConfigs/webhooks":    buildConfigWebHooks,
 		"buildConfigs/instantiate": buildConfigInstantiate,
 		"imageStreams":             imageStreamStorage,
 		"imageStreams/status":      imageStreamStatus,
@@ -277,7 +288,8 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
 		webhook.NewController(bcClient, buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
 			map[string]webhook.Plugin{
-				"github": github.New(),
+				"github":  github.New(),
+				"generic": generic.New(),
 			})))
 
 	bcFactory := buildcontrollerfactory.BuildControllerFactory{

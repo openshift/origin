@@ -431,6 +431,12 @@ osc start-build --list-webhooks='all' ruby-sample-build
 [[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "github") ]]
 [[ $(osc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101") ]]
 [ ! "$(osc start-build --list-webhooks='blah')" ]
+
+webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta1 | head -n 1)
+osc start-build --from-webhook="${webhook}"
+webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta3 | head -n 1)
+osc start-build --from-webhook="${webhook}"
+osc get builds
 echo "buildConfig: ok"
 
 osc create -f test/integration/fixtures/test-buildcli.json

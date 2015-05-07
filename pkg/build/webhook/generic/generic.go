@@ -24,11 +24,11 @@ func New() *WebHookPlugin {
 func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
 	trigger, ok := webhook.FindTriggerPolicy(api.GenericWebHookBuildTriggerType, buildCfg)
 	if !ok {
-		err = fmt.Errorf("BuildConfig %s does not support the Generic webhook trigger type", buildCfg.Name)
+		err = webhook.ErrHookNotEnabled
 		return
 	}
 	if trigger.GenericWebHook.Secret != secret {
-		err = fmt.Errorf("Secret does not match for BuildConfig %s", buildCfg.Name)
+		err = webhook.ErrSecretMismatch
 		return
 	}
 	if err = verifyRequest(req); err != nil {

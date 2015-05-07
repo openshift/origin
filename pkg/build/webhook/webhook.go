@@ -1,9 +1,15 @@
 package webhook
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/openshift/origin/pkg/build/api"
+)
+
+var (
+	ErrSecretMismatch = fmt.Errorf("the provided secret does not match")
+	ErrHookNotEnabled = fmt.Errorf("the specified hook is not enabled")
 )
 
 // GitRefMatches determines if the ref from a webhook event matches a build configuration
