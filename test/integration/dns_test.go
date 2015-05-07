@@ -8,6 +8,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/miekg/dns"
@@ -54,27 +55,35 @@ func TestDNS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := client.Services(kapi.NamespaceDefault).Create(&kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "headless",
-		},
-		Spec: kapi.ServiceSpec{
-			PortalIP: kapi.PortalIPNone,
-			Ports:    []kapi.ServicePort{{Port: 443}},
-		},
-	}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, err := client.Endpoints(kapi.NamespaceDefault).Create(&kapi.Endpoints{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "headless",
-		},
-		Subsets: []kapi.EndpointSubset{{
-			Addresses: []kapi.EndpointAddress{{IP: "172.0.0.1"}},
-			Ports:     []kapi.EndpointPort{{Port: 2345}},
-		}},
-	}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	for {
+		if _, err := client.Services(kapi.NamespaceDefault).Create(&kapi.Service{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "headless",
+			},
+			Spec: kapi.ServiceSpec{
+				PortalIP: kapi.PortalIPNone,
+				Ports:    []kapi.ServicePort{{Port: 443}},
+			},
+		}); err != nil {
+			if errors.IsForbidden(err) {
+				t.Logf("forbidden, sleeping: %v", err)
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if _, err := client.Endpoints(kapi.NamespaceDefault).Create(&kapi.Endpoints{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "headless",
+			},
+			Subsets: []kapi.EndpointSubset{{
+				Addresses: []kapi.EndpointAddress{{IP: "172.0.0.1"}},
+				Ports:     []kapi.EndpointPort{{Port: 2345}},
+			}},
+		}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		break
 	}
 	headlessIP := net.ParseIP("172.0.0.1")
 
@@ -115,7 +124,7 @@ func TestDNS(t *testing.T) {
 			}
 			in, err := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
 			if err != nil {
-				t.Errorf("%d: unexpected error: %v", i, err)
+				t.Logf("%d: unexpected error: %v", i, err)
 				return
 			}
 			if !tc.recursionExpected && len(in.Answer) != 1 {
