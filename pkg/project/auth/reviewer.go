@@ -49,7 +49,9 @@ func (r *reviewer) Review(name string) (Review, error) {
 		Resource:     "namespaces",
 		ResourceName: name,
 	}
+
 	response, err := r.resourceAccessReviewsNamespacer.ResourceAccessReviews(name).Create(resourceAccessReview)
+
 	if err != nil {
 		return nil, err
 	}

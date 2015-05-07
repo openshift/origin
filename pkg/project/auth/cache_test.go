@@ -114,7 +114,7 @@ func TestSyncNamespace(t *testing.T) {
 		},
 	}
 
-	authorizationCache := NewAuthorizationCache(reviewer, mockKubeClient.Namespaces(), mockOriginClient, mockOriginClient, "default")
+	authorizationCache := NewAuthorizationCache(reviewer, mockKubeClient.Namespaces(), mockOriginClient, mockOriginClient, mockOriginClient, mockOriginClient)
 	// we prime the data we need here since we are not running reflectors
 	for i := range namespaceList.Items {
 		authorizationCache.namespaceStore.Add(&namespaceList.Items[i])

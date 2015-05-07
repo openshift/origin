@@ -213,7 +213,9 @@ func newProjectAuthorizationCache(openshiftClient *osclient.Client, kubeClient *
 		kubeClient.Namespaces(),
 		openshiftClient,
 		openshiftClient,
-		"dead-value")
+		openshiftClient,
+		openshiftClient,
+	)
 }
 
 func newPolicyCache(etcdHelper tools.EtcdHelper) *policycache.PolicyCache {
