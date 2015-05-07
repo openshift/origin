@@ -48,20 +48,19 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.VolumeMounts) != 2 {
-		t.Fatalf("Expected 2 volumes in container, got %d", len(container.VolumeMounts))
+	if len(container.Env) != 4 {
+		t.Fatalf("Expected 4 elements in Env table, got %d", len(container.Env))
 	}
-	if container.VolumeMounts[0].MountPath != dockerSocketPath {
-		t.Fatalf("Expected %s in first VolumeMount, got %s", dockerSocketPath, container.VolumeMounts[0].MountPath)
+	if len(container.VolumeMounts) != 3 {
+		t.Fatalf("Expected 3 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	if container.VolumeMounts[1].MountPath != dockerPushSecretMountPath {
-		t.Fatalf("Expected %s in first VolumeMount, got %s", dockerPushSecretMountPath, container.VolumeMounts[1].MountPath)
+	for i, expected := range []string{dockerSocketPath, dockerPushSecretMountPath, sourceSecretMountPath} {
+		if container.VolumeMounts[i].MountPath != expected {
+			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
+		}
 	}
-	if len(actual.Spec.Volumes) != 2 {
-		t.Fatalf("Expected 2 volumes in Build pod, got %d", len(actual.Spec.Volumes))
-	}
-	if len(container.Env) != 3 {
-		t.Fatalf("Expected 3 elements in Env table, got %d", len(container.Env))
+	if len(actual.Spec.Volumes) != 3 {
+		t.Fatalf("Expected 3 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if !kapi.Semantic.DeepEqual(container.Resources, expected.Parameters.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
@@ -93,7 +92,8 @@ func mockDockerBuild() *buildapi.Build {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
 				},
-				ContextDir: "my/test/dir",
+				ContextDir:       "my/test/dir",
+				SourceSecretName: "secretFoo",
 			},
 			Strategy: buildapi.BuildStrategy{
 				Type:           buildapi.DockerBuildStrategyType,

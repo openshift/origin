@@ -111,6 +111,13 @@ type BuildSource struct {
 	// This allows to have buildable sources in directory other than root of
 	// repository.
 	ContextDir string `json:"contextDir,omitempty"`
+
+	// SourceSecretName is the name of a Secret that would be used for setting
+	// up the authentication for cloning private repository.
+	// The secret contains valid credentials for remote repository, where the
+	// secret's data key represent the authentication method to be used and value is
+	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
+	SourceSecretName string `json:"sourceSecretName,omitempty" description:"supported auth methods are: ssh-privatekey`
 }
 
 // SourceRevision is the revision or commit information from the source for the build

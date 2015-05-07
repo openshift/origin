@@ -173,6 +173,9 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 		if len(p.Source.ContextDir) > 0 {
 			formatString(out, "ContextDir", p.Source.ContextDir)
 		}
+		if len(p.Source.SourceSecretName) > 0 {
+			formatString(out, "Source Secret", p.Source.SourceSecretName)
+		}
 	}
 	if p.Output.To != nil {
 		tag := imageapi.DefaultImageTag

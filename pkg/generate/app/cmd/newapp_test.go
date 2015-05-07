@@ -98,6 +98,15 @@ func TestValidate(t *testing.T) {
 			env:                 map[string]string{},
 			parms:               map[string]string{},
 		},
+		"git+sshsourcerepos": {
+			cfg: AppConfig{
+				SourceRepositories: []string{"git@github.com:openshift/ruby-hello-world.git"},
+			},
+			componentValues:     []string{},
+			sourceRepoLocations: []string{"git@github.com:openshift/ruby-hello-world.git"},
+			env:                 map[string]string{},
+			parms:               map[string]string{},
+		},
 		"envs": {
 			cfg: AppConfig{
 				Environment: util.StringList{"one=first", "two=second", "three=third"},

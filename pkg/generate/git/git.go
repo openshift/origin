@@ -17,41 +17,30 @@ import (
 // - file
 // - git
 func ParseRepository(s string) (*url.URL, error) {
-	switch {
-	case strings.HasPrefix(s, "git@"):
-		base := "git://" + strings.TrimPrefix(s, "git@")
-		url, err := url.Parse(base)
-		if err != nil {
-			return nil, err
-		}
-		return url, nil
-
-	default:
-		uri, err := url.Parse(s)
-		if err != nil {
-			return nil, err
-		}
-
-		if uri.Scheme == "" {
-			path := s
-			ref := ""
-			segments := strings.SplitN(path, "#", 2)
-			if len(segments) == 2 {
-				path, ref = segments[0], segments[1]
-			}
-			path, err := filepath.Abs(path)
-			if err != nil {
-				return nil, err
-			}
-			uri = &url.URL{
-				Scheme:   "file",
-				Path:     path,
-				Fragment: ref,
-			}
-		}
-
-		return uri, nil
+	uri, err := url.Parse(s)
+	if err != nil {
+		return nil, err
 	}
+
+	if uri.Scheme == "" && !strings.HasPrefix(uri.Path, "git@") {
+		path := s
+		ref := ""
+		segments := strings.SplitN(path, "#", 2)
+		if len(segments) == 2 {
+			path, ref = segments[0], segments[1]
+		}
+		path, err := filepath.Abs(path)
+		if err != nil {
+			return nil, err
+		}
+		uri = &url.URL{
+			Scheme:   "file",
+			Path:     path,
+			Fragment: ref,
+		}
+	}
+
+	return uri, nil
 }
 
 // NameFromRepositoryURL suggests a name for a repository URL based on the last

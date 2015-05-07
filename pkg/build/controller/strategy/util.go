@@ -17,6 +17,7 @@ const (
 	// TODO: The pull secrets is the same as push secret for now.
 	//       This will be replaced using Service Account.
 	dockerPullSecretMountPath = dockerPushSecretMountPath
+	sourceSecretMountPath     = "/var/run/secrets/source"
 )
 
 var whitelistEnvVarNames = []string{"BUILD_LOGLEVEL"}
@@ -71,6 +72,26 @@ func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) error {
 	return nil
 }
 
+// mountSecretVolume is a helper method responsible for actual mounting secret
+// volumes into a pod.
+func mountSecretVolume(pod *kapi.Pod, secretName, mountPath string) {
+	volume := kapi.Volume{
+		Name: secretName,
+		VolumeSource: kapi.VolumeSource{
+			Secret: &kapi.SecretVolumeSource{
+				SecretName: secretName,
+			},
+		},
+	}
+	volumeMount := kapi.VolumeMount{
+		Name:      secretName,
+		MountPath: mountPath,
+		ReadOnly:  true,
+	}
+	pod.Spec.Volumes = append(pod.Spec.Volumes, volume)
+	pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, volumeMount)
+}
+
 // setupDockerSecrets mounts Docker Registry secrets into Pod running the build,
 // allowing Docker to authenticate against private registries or Docker Hub.
 func setupDockerSecrets(pod *kapi.Pod, pushSecret string) {
@@ -78,26 +99,25 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret string) {
 		return
 	}
 
-	volume := kapi.Volume{
-		Name: pushSecret,
-		VolumeSource: kapi.VolumeSource{
-			Secret: &kapi.SecretVolumeSource{
-				SecretName: pushSecret,
-			},
-		},
-	}
-	volumeMount := kapi.VolumeMount{
-		Name:      pushSecret,
-		MountPath: dockerPushSecretMountPath,
-		ReadOnly:  true,
-	}
-
-	glog.V(3).Infof("Installed %s as docker push secret in Pod %s", volumeMount.MountPath, pod.Name)
-	pod.Spec.Volumes = append(pod.Spec.Volumes, volume)
-	pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, volumeMount)
+	mountSecretVolume(pod, pushSecret, dockerPushSecretMountPath)
+	glog.V(3).Infof("Installed %s as docker push secret in Pod %s", dockerPushSecretMountPath, pod.Name)
 	pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
 		{Name: "PUSH_DOCKERCFG_PATH", Value: filepath.Join(dockerPushSecretMountPath, "dockercfg")},
 		{Name: "PULL_DOCKERCFG_PATH", Value: filepath.Join(dockerPullSecretMountPath, "dockercfg")},
+	}...)
+}
+
+// setupSourceSecrets mounts SSH key used for accesing private SCM to clone
+// application source code during build.
+func setupSourceSecrets(pod *kapi.Pod, sourceSecret string) {
+	if len(sourceSecret) == 0 {
+		return
+	}
+
+	mountSecretVolume(pod, sourceSecret, sourceSecretMountPath)
+	glog.V(3).Infof("Installed source secrets in %s, in Pod %s", sourceSecretMountPath, pod.Name)
+	pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
+		{Name: "SOURCE_SECRET_PATH", Value: sourceSecretMountPath},
 	}...)
 }
 
