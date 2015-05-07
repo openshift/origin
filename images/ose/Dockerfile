@@ -13,7 +13,6 @@ RUN ln -s /usr/bin/openshift /usr/bin/openshift-deploy && \
     ln -s /usr/bin/openshift /usr/bin/openshift-experimental && \
     ln -s /usr/bin/openshift /usr/bin/openshift-docker-build && \
     ln -s /usr/bin/openshift /usr/bin/openshift-sti-build && \
-    ln -s /usr/bin/openshift /usr/bin/osadm && \
     ln -s /usr/bin/openshift /usr/bin/openshift-router
 
 ENV HOME /root
