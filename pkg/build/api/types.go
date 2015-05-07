@@ -40,7 +40,7 @@ type Build struct {
 	CompletionTimestamp *util.Time `json:"completionTimestamp,omitempty"`
 
 	// Duration contains time.Duration object describing build time.
-	Duration time.Duration `json:"duration",omitempty"`
+	Duration time.Duration `json:"duration,omitempty"`
 
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference `json:"config,omitempty"`

@@ -38,7 +38,7 @@ func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, err
 	}, nil
 }
 
-var mockBuildStrategy api.BuildStrategy = api.BuildStrategy{
+var mockBuildStrategy = api.BuildStrategy{
 	Type: "STI",
 	STIStrategy: &api.STIBuildStrategy{
 		From: &kapi.ObjectReference{

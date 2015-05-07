@@ -16,6 +16,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+// ImageChangeControllerFatalError represents a fatal error while handling an image change
 type ImageChangeControllerFatalError struct {
 	Reason string
 	Err    error
