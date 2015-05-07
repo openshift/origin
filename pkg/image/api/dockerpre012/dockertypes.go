@@ -51,4 +51,6 @@ type DockerConfig struct {
 	NetworkDisabled bool                `json:"NetworkDisabled,omitempty"`
 	SecurityOpts    []string            `json:"SecurityOpts,omitempty"`
 	OnBuild         []string            `json:"OnBuild,omitempty"`
+	// This field is not supported in pre012 and will always be empty.
+	Labels map[string]string `json:"Labels,omitempty"`
 }
