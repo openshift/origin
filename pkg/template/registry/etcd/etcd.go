@@ -12,6 +12,8 @@ import (
 	"github.com/openshift/origin/pkg/template/registry"
 )
 
+const prefix = "/templates"
+
 // REST implements a RESTStorage for templates against etcd
 type REST struct {
 	*etcdgeneric.Etcd
@@ -23,10 +25,10 @@ func NewREST(h tools.EtcdHelper) *REST {
 		NewFunc:     func() runtime.Object { return &api.Template{} },
 		NewListFunc: func() runtime.Object { return &api.TemplateList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
-			return etcdgeneric.NamespaceKeyRootFunc(ctx, "/registry/templates")
+			return etcdgeneric.NamespaceKeyRootFunc(ctx, prefix)
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NamespaceKeyFunc(ctx, "/registry/templates", name)
+			return etcdgeneric.NamespaceKeyFunc(ctx, prefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Template).Name, nil

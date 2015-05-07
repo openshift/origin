@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 )
 
-const ClusterPolicyPath = "/registry/authorization/clusterpolicy"
+const ClusterPolicyPath = "/authorization/cluster/policies"
 
 type REST struct {
 	*etcdgeneric.Etcd

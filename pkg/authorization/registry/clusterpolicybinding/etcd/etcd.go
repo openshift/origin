@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 )
 
-const ClusterPolicyBindingPath = "/registry/authorization/clusterpolicybinding"
+const ClusterPolicyBindingPath = "/authorization/cluster/policybindings"
 
 type REST struct {
 	*etcdgeneric.Etcd
