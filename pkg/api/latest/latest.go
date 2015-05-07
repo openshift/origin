@@ -8,6 +8,9 @@ import (
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
+	"github.com/golang/glog"
 
 	_ "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/meta"
@@ -74,19 +77,7 @@ func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 }
 
 // originTypes are the hardcoded types defined by the OpenShift API.
-var originTypes = []string{
-	"Build", "BuildConfig", "BuildLog",
-	"Deployment", "DeploymentConfig",
-	"Image", "ImageRepository", "ImageStream", "ImageRepositoryMapping", "ImageStreamMapping", "ImageRepositoryTag", "ImageStreamTag", "ImageStreamImage",
-	"Template", "TemplateConfig", "ProcessedTemplate",
-	"Route",
-	"Project", "ProjectRequest",
-	"User", "Identity", "UserIdentityMapping",
-	"OAuthClient", "OAuthClientAuthorization", "OAuthAccessToken", "OAuthAuthorizeToken",
-	"Role", "RoleBinding", "Policy", "PolicyBinding",
-	"ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding",
-	"ResourceAccessReview", "SubjectAccessReview",
-}
+var originTypes = util.StringSet{}
 
 // UserResources are the resource names that apply to the primary, user facing resources used by
 // client tools. They are in deletion-first order - dependent resources should be last.
@@ -99,14 +90,8 @@ var UserResources = []string{
 }
 
 // OriginKind returns true if OpenShift owns the kind described in a given apiVersion.
-// TODO: make this based on scheme information or other behavior
 func OriginKind(kind, apiVersion string) bool {
-	for _, t := range originTypes {
-		if t == kind {
-			return true
-		}
-	}
-	return false
+	return originTypes.Has(kind)
 }
 
 func init() {
@@ -139,6 +124,8 @@ func init() {
 	// the list of kinds that are scoped at the root of the api hierarchy
 	// if a kind is not enumerated here, it is assumed to have a namespace scope
 	kindToRootScope := map[string]bool{
+		"Status": true,
+
 		"Project":        true,
 		"ProjectRequest": true,
 
@@ -159,7 +146,13 @@ func init() {
 
 	// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources
 	for _, version := range versions {
-		for kind := range api.Scheme.KnownTypes(version) {
+		for kind, t := range api.Scheme.KnownTypes(version) {
+			if !strings.Contains(t.PkgPath(), "openshift/origin") {
+				if _, ok := kindToRootScope[kind]; !ok {
+					continue
+				}
+			}
+			originTypes.Insert(kind)
 			mixedCase, found := versionMixedCase[version]
 			if !found {
 				mixedCase = false
@@ -169,9 +162,10 @@ func init() {
 				panic(fmt.Sprintf("no scope defined for %s", version))
 			}
 			_, found = kindToRootScope[kind]
-			if found {
+			if found || (strings.HasSuffix(kind, "List") && kindToRootScope[strings.TrimSuffix(kind, "List")]) {
 				scope = kmeta.RESTScopeRoot
 			}
+			glog.V(6).Infof("Registering %s %s %s", kind, version, scope.Name())
 			originMapper.Add(scope, kind, version, mixedCase)
 		}
 	}
