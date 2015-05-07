@@ -839,7 +839,7 @@ func (d *ClusterPolicyDescriber) Describe(namespace, name string) (string, error
 		return "", err
 	}
 
-	return DescribePolicy(authorizationTypeConverter.ToPolicy(policy))
+	return DescribePolicy(authorizationapi.ToPolicy(policy))
 }
 
 type ClusterRoleDescriber struct {
@@ -854,7 +854,7 @@ func (d *ClusterRoleDescriber) Describe(namespace, name string) (string, error) 
 		return "", err
 	}
 
-	return DescribeRole(authorizationTypeConverter.ToRole(role))
+	return DescribeRole(authorizationapi.ToRole(role))
 }
 
 // ClusterPolicyBindingDescriber generates information about a Project
@@ -870,7 +870,7 @@ func (d *ClusterPolicyBindingDescriber) Describe(namespace, name string) (string
 		return "", err
 	}
 
-	return DescribePolicyBinding(authorizationTypeConverter.ToPolicyBinding(policyBinding))
+	return DescribePolicyBinding(authorizationapi.ToPolicyBinding(policyBinding))
 }
 
 // ClusterRoleBindingDescriber generates information about a Project
@@ -887,5 +887,5 @@ func (d *ClusterRoleBindingDescriber) Describe(namespace, name string) (string, 
 	}
 
 	role, err := d.ClusterRoles().Get(roleBinding.RoleRef.Name)
-	return DescribeRoleBinding(authorizationTypeConverter.ToRoleBinding(roleBinding), authorizationTypeConverter.ToRole(role), err)
+	return DescribeRoleBinding(authorizationapi.ToRoleBinding(roleBinding), authorizationapi.ToRole(role), err)
 }

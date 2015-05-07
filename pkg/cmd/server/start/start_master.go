@@ -250,7 +250,6 @@ func (o MasterOptions) RunMaster() error {
 func (o MasterOptions) CreateBootstrapPolicy() error {
 	writeBootstrapPolicy := admin.CreateBootstrapPolicyFileOptions{
 		File: o.MasterArgs.GetPolicyFile(),
-		MasterAuthorizationNamespace:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
 		OpenShiftSharedResourcesNamespace: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace,
 	}
 

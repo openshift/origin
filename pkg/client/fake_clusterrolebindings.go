@@ -26,6 +26,11 @@ func (c *FakeClusterRoleBindings) Create(roleBinding *authorizationapi.ClusterRo
 	return obj.(*authorizationapi.ClusterRoleBinding), err
 }
 
+func (c *FakeClusterRoleBindings) Update(roleBinding *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, error) {
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-clusterRoleBinding"}, &authorizationapi.ClusterRoleBinding{})
+	return obj.(*authorizationapi.ClusterRoleBinding), err
+}
+
 func (c *FakeClusterRoleBindings) Delete(name string) error {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-clusterRoleBinding", Value: name})
 	return nil

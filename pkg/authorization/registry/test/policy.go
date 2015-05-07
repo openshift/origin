@@ -12,8 +12,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
-var resourceVersion = 1
-
 type PolicyRegistry struct {
 	// Policies is a of namespace->name->Policy
 	Policies map[string]map[string]authorizationapi.Policy

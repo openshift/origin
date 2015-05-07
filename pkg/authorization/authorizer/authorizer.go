@@ -12,12 +12,11 @@ import (
 )
 
 type openshiftAuthorizer struct {
-	masterAuthorizationNamespace string
-	ruleResolver                 rulevalidation.AuthorizationRuleResolver
+	ruleResolver rulevalidation.AuthorizationRuleResolver
 }
 
-func NewAuthorizer(masterAuthorizationNamespace string, ruleResolver rulevalidation.AuthorizationRuleResolver) Authorizer {
-	return &openshiftAuthorizer{masterAuthorizationNamespace, ruleResolver}
+func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver) Authorizer {
+	return &openshiftAuthorizer{ruleResolver}
 }
 
 func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes AuthorizationAttributes) (bool, string, error) {
@@ -28,7 +27,7 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 	// This is most common when a bound role is missing, but enough roles are still present and bound to authorize the request.
 	errs := []error{}
 
-	masterContext := kapi.WithNamespace(ctx, a.masterAuthorizationNamespace)
+	masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
 	globalAllowed, globalReason, err := a.authorizeWithNamespaceRules(masterContext, attributes)
 	if globalAllowed {
 		return true, globalReason, nil
@@ -73,7 +72,7 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 }
 
 func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
-	masterContext := kapi.WithNamespace(ctx, a.masterAuthorizationNamespace)
+	masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
 	globalUsers, globalGroups, err := a.getAllowedSubjectsFromNamespaceBindings(masterContext, attributes)
 	if err != nil {
 		return nil, nil, err
@@ -140,6 +139,9 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(ctx kapi.Context, pass
 			return false, "", err
 		}
 		if matches {
+			if len(kapi.NamespaceValue(ctx)) == 0 {
+				return true, fmt.Sprintf("allowed by cluster rule: %#v", rule), nil
+			}
 			return true, fmt.Sprintf("allowed by rule in %v: %#v", kapi.NamespaceValue(ctx), rule), nil
 		}
 	}

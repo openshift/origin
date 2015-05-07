@@ -83,3 +83,5 @@ func (s RoleBindingSorter) Swap(i, j int) {
 func GetPolicyBindingName(policyRefNamespace string) string {
 	return fmt.Sprintf("%s:%s", policyRefNamespace, PolicyName)
 }
+
+var ClusterPolicyBindingName = GetPolicyBindingName("")

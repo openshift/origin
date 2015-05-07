@@ -23,10 +23,10 @@ func TestInvalidRole(t *testing.T) {
 		expectedAllowed: false,
 		expectedError:   "unable to interpret:",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newInvalidExtensionPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newInvalidExtensionBindings()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newInvalidExtensionPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newInvalidExtensionBindings()
 
 	test.test(t)
 }
@@ -40,10 +40,10 @@ func TestInvalidRoleButRuleNotUsed(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newInvalidExtensionPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newInvalidExtensionBindings()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newInvalidExtensionPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newInvalidExtensionBindings()
 
 	test.test(t)
 }
@@ -57,11 +57,11 @@ func TestViewerGetAllowedKindInMallet(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -76,11 +76,11 @@ func TestViewerGetAllowedKindInAdze(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Victor cannot get on pods in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -96,11 +96,11 @@ func TestViewerGetDisallowedKindInMallet(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Victor cannot get on policies in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -115,11 +115,11 @@ func TestViewerGetDisallowedKindInAdze(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Victor cannot get on policies in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -135,11 +135,11 @@ func TestViewerCreateAllowedKindInMallet(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Victor cannot create on pods in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -154,11 +154,11 @@ func TestViewerCreateAllowedKindInAdze(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Victor cannot create on pods in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -174,11 +174,11 @@ func TestEditorUpdateAllowedKindInMallet(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -193,11 +193,11 @@ func TestEditorUpdateAllowedKindInAdze(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Edgar cannot update on pods in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -213,11 +213,11 @@ func TestEditorUpdateDisallowedKindInMallet(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Edgar cannot update on roleBindings in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -232,11 +232,11 @@ func TestEditorUpdateDisallowedKindInAdze(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Edgar cannot update on roleBindings in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -252,11 +252,11 @@ func TestEditorGetAllowedKindInMallet(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -271,11 +271,11 @@ func TestEditorGetAllowedKindInAdze(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Edgar cannot get on pods in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -291,11 +291,11 @@ func TestAdminUpdateAllowedKindInMallet(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -310,11 +310,11 @@ func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Matthew cannot update on roleBindings in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -330,11 +330,11 @@ func TestAdminUpdateStatusInMallet(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Matthew cannot update on pods/status in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -349,11 +349,11 @@ func TestAdminGetStatusInMallet(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -369,11 +369,11 @@ func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Matthew cannot update on policies in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -388,11 +388,11 @@ func TestAdminUpdateDisallowedKindInAdze(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Matthew cannot update on roles in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -408,11 +408,11 @@ func TestAdminGetAllowedKindInMallet(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in mallet",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -427,11 +427,11 @@ func TestAdminGetAllowedKindInAdze(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  "Matthew cannot get on policies in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = newAdzePolicies()
 	test.policies = append(test.policies, newMalletPolicies()...)
-	test.bindings = newDefaultGlobalBinding()
-	test.bindings = append(test.bindings, newAdzeBindings()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = newAdzeBindings()
 	test.bindings = append(test.bindings, newMalletBindings()...)
 
 	test.test(t)
@@ -451,7 +451,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
+				Name:      authorizationapi.ClusterPolicyBindingName,
 				Namespace: "mallet",
 			},
 			RoleBindings: map[string]authorizationapi.RoleBinding{
@@ -461,8 +461,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 						Namespace: "mallet",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      bootstrappolicy.AdminRoleName,
-						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+						Name: bootstrappolicy.AdminRoleName,
 					},
 					Users: util.NewStringSet("Matthew"),
 				},
@@ -472,8 +471,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 						Namespace: "mallet",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      bootstrappolicy.ViewRoleName,
-						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+						Name: bootstrappolicy.ViewRoleName,
 					},
 					Users: util.NewStringSet("Victor"),
 				},
@@ -483,8 +481,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 						Namespace: "mallet",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      bootstrappolicy.EditRoleName,
-						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+						Name: bootstrappolicy.EditRoleName,
 					},
 					Users: util.NewStringSet("Edgar"),
 				},
@@ -544,39 +541,36 @@ func newInvalidExtensionBindings() []authorizationapi.PolicyBinding {
 	}
 }
 
-func GetBootstrapPolicy(masterNamespace string) *authorizationapi.Policy {
-	policy := &authorizationapi.Policy{
+func GetBootstrapPolicy() *authorizationapi.ClusterPolicy {
+	policy := &authorizationapi.ClusterPolicy{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              authorizationapi.PolicyName,
-			Namespace:         masterNamespace,
 			CreationTimestamp: util.Now(),
 			UID:               util.NewUUID(),
 		},
 		LastModified: util.Now(),
-		Roles:        make(map[string]authorizationapi.Role),
+		Roles:        make(map[string]authorizationapi.ClusterRole),
 	}
 
-	for _, role := range bootstrappolicy.GetBootstrapMasterRoles(masterNamespace) {
+	for _, role := range bootstrappolicy.GetBootstrapClusterRoles() {
 		policy.Roles[role.Name] = role
 	}
 
 	return policy
 }
 
-func GetBootstrapPolicyBinding(masterNamespace string) *authorizationapi.PolicyBinding {
-	policyBinding := &authorizationapi.PolicyBinding{
+func GetBootstrapPolicyBinding() *authorizationapi.ClusterPolicyBinding {
+	policyBinding := &authorizationapi.ClusterPolicyBinding{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:              masterNamespace,
-			Namespace:         masterNamespace,
+			Name:              ":Default",
 			CreationTimestamp: util.Now(),
 			UID:               util.NewUUID(),
 		},
 		LastModified: util.Now(),
-		PolicyRef:    kapi.ObjectReference{Namespace: masterNamespace},
-		RoleBindings: make(map[string]authorizationapi.RoleBinding),
+		RoleBindings: make(map[string]authorizationapi.ClusterRoleBinding),
 	}
 
-	for _, roleBinding := range bootstrappolicy.GetBootstrapMasterRoleBindings(masterNamespace) {
+	for _, roleBinding := range bootstrappolicy.GetBootstrapClusterRoleBindings() {
 		policyBinding.RoleBindings[roleBinding.Name] = roleBinding
 	}
 

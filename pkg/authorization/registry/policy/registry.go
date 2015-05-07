@@ -22,7 +22,11 @@ type Registry interface {
 	UpdatePolicy(ctx kapi.Context, policy *authorizationapi.Policy) error
 	// DeletePolicy deletes a policy.
 	DeletePolicy(ctx kapi.Context, id string) error
-	// WatchPolicyBindings watches policies.
+}
+
+type WatchingRegistry interface {
+	Registry
+	// WatchPolicies watches policies.
 	WatchPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
@@ -38,7 +42,7 @@ type storage struct {
 
 // NewRegistry returns a new Registry interface for the given Storage. Any mismatched
 // types will panic.
-func NewRegistry(s Storage) Registry {
+func NewRegistry(s Storage) WatchingRegistry {
 	return &storage{s}
 }
 

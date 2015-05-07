@@ -9,16 +9,16 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	"github.com/openshift/origin/pkg/authorization/registry/test"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
-func testNewBasePolicies() []authorizationapi.Policy {
-	return []authorizationapi.Policy{
+func testNewClusterPolicies() []authorizationapi.ClusterPolicy {
+	return []authorizationapi.ClusterPolicy{
 		{
-			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace},
-			Roles: map[string]authorizationapi.Role{
+			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
+			Roles: map[string]authorizationapi.ClusterRole{
 				"cluster-admin": {
 					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admin"},
 					Rules:      []authorizationapi.PolicyRule{{Verbs: util.NewStringSet("*"), Resources: util.NewStringSet("*")}},
@@ -29,6 +29,10 @@ func testNewBasePolicies() []authorizationapi.Policy {
 				},
 			},
 		},
+	}
+}
+func testNewLocalPolicies() []authorizationapi.Policy {
+	return []authorizationapi.Policy{
 		{
 			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
 			Roles:      map[string]authorizationapi.Role{},
@@ -36,14 +40,18 @@ func testNewBasePolicies() []authorizationapi.Policy {
 	}
 }
 
-func makeTestStorage() roleregistry.Storage {
-	policyRegistry := test.NewPolicyRegistry(testNewBasePolicies(), nil)
-
+func makeLocalTestStorage() roleregistry.Storage {
+	policyRegistry := test.NewPolicyRegistry(testNewLocalPolicies(), nil)
 	return NewVirtualStorage(policyRegistry)
 }
 
+func makeClusterTestStorage() roleregistry.Storage {
+	clusterPolicyRegistry := test.NewClusterPolicyRegistry(testNewClusterPolicies(), nil)
+	return NewVirtualStorage(clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry))
+}
+
 func TestCreateValidationError(t *testing.T) {
-	storage := makeTestStorage()
+	storage := makeLocalTestStorage()
 
 	role := &authorizationapi.Role{}
 
@@ -55,7 +63,7 @@ func TestCreateValidationError(t *testing.T) {
 }
 
 func TestCreateValid(t *testing.T) {
-	storage := makeTestStorage()
+	storage := makeLocalTestStorage()
 
 	role := &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
@@ -78,7 +86,7 @@ func TestCreateValid(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	storage := makeTestStorage()
+	storage := makeLocalTestStorage()
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	realizedRoleObj, _ := storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
@@ -109,7 +117,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateError(t *testing.T) {
-	storage := makeTestStorage()
+	storage := makeLocalTestStorage()
 
 	role := &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},
@@ -127,7 +135,7 @@ func TestUpdateError(t *testing.T) {
 }
 
 func TestDeleteError(t *testing.T) {
-	storage := makeTestStorage()
+	storage := makeLocalTestStorage()
 
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	_, err := storage.Delete(ctx, "foo", nil)
@@ -141,7 +149,7 @@ func TestDeleteError(t *testing.T) {
 }
 
 func TestDeleteValid(t *testing.T) {
-	storage := makeTestStorage()
+	storage := makeLocalTestStorage()
 	ctx := kapi.WithNamespace(kapi.NewContext(), "unittest")
 	storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: kapi.ObjectMeta{Name: "my-role"},

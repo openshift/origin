@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -75,7 +76,7 @@ func (r *PolicyBindingRegistry) GetPolicyBinding(ctx kapi.Context, id string) (*
 		}
 	}
 
-	return nil, fmt.Errorf("PolicyBinding %v::%v not found", namespace, id)
+	return nil, kapierrors.NewNotFound("PolicyBinding", id)
 }
 
 // CreatePolicyBinding creates a new policyBinding.
@@ -108,7 +109,7 @@ func (r *PolicyBindingRegistry) UpdatePolicyBinding(ctx kapi.Context, policyBind
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
 	if existing, _ := r.GetPolicyBinding(ctx, policyBinding.Name); existing == nil {
-		return fmt.Errorf("PolicyBinding %v::%v not found", namespace, policyBinding.Name)
+		return kapierrors.NewNotFound("PolicyBinding", policyBinding.Name)
 	}
 
 	addPolicyBinding(r.PolicyBindings, *policyBinding)

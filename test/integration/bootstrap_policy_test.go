@@ -87,11 +87,11 @@ func TestOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).Delete(authorizationapi.PolicyName); err != nil {
+	if err := client.ClusterPolicies().Delete(authorizationapi.PolicyName); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -105,11 +105,11 @@ func TestOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if err := admin.OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.MasterAuthorizationNamespace, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
+	if err := admin.OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := client.Policies(masterConfig.PolicyConfig.MasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err != nil {
+	if _, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything()); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

@@ -18,10 +18,13 @@ import (
 type DefaultRuleResolver struct {
 	policyGetter  PolicyGetter
 	bindingLister BindingLister
+
+	clusterPolicyGetter  PolicyGetter
+	clusterBindingLister BindingLister
 }
 
-func NewDefaultRuleResolver(policyGetter PolicyGetter, bindingLister BindingLister) *DefaultRuleResolver {
-	return &DefaultRuleResolver{policyGetter, bindingLister}
+func NewDefaultRuleResolver(policyGetter PolicyGetter, bindingLister BindingLister, clusterPolicyGetter PolicyGetter, clusterBindingLister BindingLister) *DefaultRuleResolver {
+	return &DefaultRuleResolver{policyGetter, bindingLister, clusterPolicyGetter, clusterBindingLister}
 }
 
 type AuthorizationRuleResolver interface {
@@ -44,16 +47,35 @@ type BindingLister interface {
 }
 
 func (a *DefaultRuleResolver) getPolicy(ctx kapi.Context) (*authorizationapi.Policy, error) {
-	policy, err := a.policyGetter.GetPolicy(ctx, authorizationapi.PolicyName)
+	namespace, _ := kapi.NamespaceFrom(ctx)
+
+	var policy *authorizationapi.Policy
+	var err error
+	switch {
+	case len(namespace) == 0:
+		policy, err = a.clusterPolicyGetter.GetPolicy(ctx, authorizationapi.PolicyName)
+	default:
+		policy, err = a.policyGetter.GetPolicy(ctx, authorizationapi.PolicyName)
+	}
+
 	if err != nil {
 		return nil, err
 	}
-
 	return policy, nil
 }
 
 func (a *DefaultRuleResolver) getPolicyBindings(ctx kapi.Context) ([]authorizationapi.PolicyBinding, error) {
-	policyBindingList, err := a.bindingLister.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
+	namespace, _ := kapi.NamespaceFrom(ctx)
+
+	var policyBindingList *authorizationapi.PolicyBindingList
+	var err error
+	switch {
+	case len(namespace) == 0:
+		policyBindingList, err = a.clusterBindingLister.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
+	default:
+		policyBindingList, err = a.bindingLister.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
+	}
+
 	if err != nil {
 		return nil, err
 	}

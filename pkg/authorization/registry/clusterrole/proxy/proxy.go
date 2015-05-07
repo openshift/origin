@@ -7,17 +7,17 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
+	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 )
 
 type ClusterRoleStorage struct {
-	masterNamespace string
-	typeConverter   authorizationapi.TypeConverter
-	roleStorage     roleregistry.Storage
+	roleStorage rolestorage.VirtualStorage
 }
 
-func NewClusterRoleStorage(masterNamespace string, roleStorage roleregistry.Storage) *ClusterRoleStorage {
-	return &ClusterRoleStorage{masterNamespace, authorizationapi.TypeConverter{masterNamespace}, roleStorage}
+func NewClusterRoleStorage(clusterPolicyRegistry clusterpolicyregistry.Registry) *ClusterRoleStorage {
+	return &ClusterRoleStorage{rolestorage.VirtualStorage{clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry), roleregistry.ClusterStrategy, roleregistry.ClusterStrategy}}
 }
 
 func (s *ClusterRoleStorage) New() runtime.Object {
@@ -28,50 +28,50 @@ func (s *ClusterRoleStorage) NewList() runtime.Object {
 }
 
 func (s *ClusterRoleStorage) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
-	ret, err := s.roleStorage.List(kapi.WithNamespace(ctx, s.masterNamespace), label, field)
+	ret, err := s.roleStorage.List(ctx, label, field)
 	if ret == nil {
 		return nil, err
 	}
-	return s.typeConverter.ToClusterRoleList(ret.(*authorizationapi.RoleList)), err
+	return authorizationapi.ToClusterRoleList(ret.(*authorizationapi.RoleList)), err
 }
 
 func (s *ClusterRoleStorage) Get(ctx kapi.Context, name string) (runtime.Object, error) {
-	ret, err := s.roleStorage.Get(kapi.WithNamespace(ctx, s.masterNamespace), name)
+	ret, err := s.roleStorage.Get(ctx, name)
 	if ret == nil {
 		return nil, err
 	}
 
-	return s.typeConverter.ToClusterRole(ret.(*authorizationapi.Role)), err
+	return authorizationapi.ToClusterRole(ret.(*authorizationapi.Role)), err
 }
 func (s *ClusterRoleStorage) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
-	ret, err := s.roleStorage.Delete(kapi.WithNamespace(ctx, s.masterNamespace), name, options)
+	ret, err := s.roleStorage.Delete(ctx, name, options)
 	if ret == nil {
 		return nil, err
 	}
 
-	return s.typeConverter.ToClusterRole(ret.(*authorizationapi.Role)), err
+	return ret.(*kapi.Status), err
 }
 
 func (s *ClusterRoleStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	clusterObj := obj.(*authorizationapi.ClusterRole)
-	convertedObj := s.typeConverter.ToRole(clusterObj)
+	convertedObj := authorizationapi.ToRole(clusterObj)
 
-	ret, err := s.roleStorage.Create(kapi.WithNamespace(ctx, s.masterNamespace), convertedObj)
+	ret, err := s.roleStorage.Create(ctx, convertedObj)
 	if ret == nil {
 		return nil, err
 	}
 
-	return s.typeConverter.ToClusterRole(ret.(*authorizationapi.Role)), err
+	return authorizationapi.ToClusterRole(ret.(*authorizationapi.Role)), err
 }
 
 func (s *ClusterRoleStorage) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	clusterObj := obj.(*authorizationapi.ClusterRole)
-	convertedObj := s.typeConverter.ToRole(clusterObj)
+	convertedObj := authorizationapi.ToRole(clusterObj)
 
-	ret, created, err := s.roleStorage.Update(kapi.WithNamespace(ctx, s.masterNamespace), convertedObj)
+	ret, created, err := s.roleStorage.Update(ctx, convertedObj)
 	if ret == nil {
 		return nil, created, err
 	}
 
-	return s.typeConverter.ToClusterRole(ret.(*authorizationapi.Role)), created, err
+	return authorizationapi.ToClusterRole(ret.(*authorizationapi.Role)), created, err
 }

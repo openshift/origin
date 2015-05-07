@@ -66,11 +66,10 @@ func TestLogin(t *testing.T) {
 	}
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:                clusterAdminClient,
-		ProjectName:           project,
-		AdminRole:             bootstrappolicy.AdminRoleName,
-		MasterPolicyNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		AdminUser:             username,
+		Client:      clusterAdminClient,
+		ProjectName: project,
+		AdminRole:   bootstrappolicy.AdminRoleName,
+		AdminUser:   username,
 	}
 	if err := newProjectOptions.Run(); err != nil {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)

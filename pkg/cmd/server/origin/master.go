@@ -90,8 +90,10 @@ import (
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/proxy"
-	clusterpolicybindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/proxy"
+	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
+	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
+	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
+	clusterpolicybindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
 	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
 	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
@@ -161,8 +163,17 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
 	policyBindingStorage := policybindingetcd.NewStorage(c.EtcdHelper)
 	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
+
+	clusterPolicyStorage := clusterpolicystorage.NewStorage(c.EtcdHelper)
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
+	clusterPolicyBindingStorage := clusterpolicybindingstorage.NewStorage(c.EtcdHelper)
+	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
+
 	roleStorage := rolestorage.NewVirtualStorage(policyRegistry)
-	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyRegistry, policyBindingRegistry, c.Options.PolicyConfig.MasterAuthorizationNamespace)
+	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry)
+	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry)
+	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
+
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
 
@@ -219,7 +230,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		glog.Errorf("Error parsing project request template value: %v", err)
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, namespace, templateName, roleBindingStorage, *projectStorage, c.PrivilegedLoopbackOpenShiftClient)
+	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient)
 
 	// initialize OpenShift API
 	storage := map[string]rest.Storage{
@@ -273,10 +284,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"roles":          roleStorage,
 		"roleBindings":   roleBindingStorage,
 
-		"clusterPolicies":       clusterpolicystorage.NewClusterPolicyStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, policyStorage),
-		"clusterPolicyBindings": clusterpolicybindingstorage.NewClusterPolicyBindingStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, policyBindingStorage),
-		"clusterRoleBindings":   clusterrolebindingstorage.NewClusterRoleBindingStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, roleBindingStorage),
-		"clusterRoles":          clusterrolestorage.NewClusterRoleStorage(c.Options.PolicyConfig.MasterAuthorizationNamespace, roleStorage),
+		"clusterPolicies":       clusterPolicyStorage,
+		"clusterPolicyBindings": clusterPolicyBindingStorage,
+		"clusterRoleBindings":   clusterRoleBindingStorage,
+		"clusterRoles":          clusterRoleStorage,
 	}
 
 	// for v1beta1, we dual register camelCase and camelcase names
@@ -537,10 +548,8 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 
 	// Attempt to create the required policy rules now, and then stick in a forever loop to make sure they are always available
 	c.ensureComponentAuthorizationRules()
-	c.ensureMasterAuthorizationNamespace()
 	c.ensureOpenShiftSharedResourcesNamespace()
 	go util.Forever(func() {
-		c.ensureMasterAuthorizationNamespace()
 		c.ensureOpenShiftSharedResourcesNamespace()
 	}, 10*time.Second)
 
@@ -582,30 +591,10 @@ func (c *MasterConfig) checkProjectRequestTemplate() {
 		return
 	}
 
-	template := projectrequeststorage.NewSampleTemplate(c.Options.PolicyConfig.MasterAuthorizationNamespace, namespace, templateName)
+	template := projectrequeststorage.NewSampleTemplate(namespace, templateName)
 	if _, err := c.PrivilegedLoopbackOpenShiftClient.Templates(namespace).Create(template); err != nil {
 		glog.Errorf(baseErrorFormat+"  Caused by: %v", c.Options.ProjectRequestConfig.ProjectRequestTemplate, err)
 		return
-	}
-}
-
-// ensureMasterAuthorizationNamespace is called as part of global policy initialization to ensure master namespace exists
-func (c *MasterConfig) ensureMasterAuthorizationNamespace() {
-
-	// ensure that master namespace actually exists
-	namespace, err := c.KubeClient().Namespaces().Get(c.Options.PolicyConfig.MasterAuthorizationNamespace)
-	if err != nil {
-		namespace = &kapi.Namespace{
-			ObjectMeta: kapi.ObjectMeta{Name: c.Options.PolicyConfig.MasterAuthorizationNamespace},
-			Spec: kapi.NamespaceSpec{
-				Finalizers: []kapi.FinalizerName{projectapi.FinalizerProject},
-			},
-		}
-		kapi.FillObjectMetaSystemFields(api.NewContext(), &namespace.ObjectMeta)
-		_, err = c.KubeClient().Namespaces().Create(namespace)
-		if err != nil {
-			glog.Errorf("Error creating namespace: %v due to %v\n", namespace, err)
-		}
 	}
 }
 
@@ -629,13 +618,13 @@ func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
 
 // ensureComponentAuthorizationRules initializes the global policies
 func (c *MasterConfig) ensureComponentAuthorizationRules() {
-	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(c.EtcdHelper))
-	ctx := kapi.WithNamespace(kapi.NewContext(), c.Options.PolicyConfig.MasterAuthorizationNamespace)
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicystorage.NewStorage(c.EtcdHelper))
+	ctx := kapi.WithNamespace(kapi.NewContext(), "")
 
-	if _, err := policyRegistry.GetPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
+	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
 		glog.Infof("No master policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
-		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.MasterAuthorizationNamespace, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
+		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 			glog.Errorf("Error creating bootstrap policy: %v", err)
 		}
 

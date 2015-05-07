@@ -2,7 +2,6 @@ package bootstrappolicy
 
 // known namespaces
 const (
-	DefaultMasterAuthorizationNamespace      = "master"
 	DefaultOpenShiftSharedResourcesNamespace = "openshift"
 )
 
