@@ -16,8 +16,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/dockerregistry"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	"github.com/openshift/origin/pkg/dockerregistry/server"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -580,7 +580,7 @@ func TestImagePruning(t *testing.T) {
 		if len(tcFilter) > 0 && name != tcFilter {
 			continue
 		}
-		p := newImagePruner(60, 3, &test.images, &test.streams, &test.pods, &test.rcs, &test.bcs, &test.builds, &test.dcs)
+		p := newImagePruner(60*time.Minute, 3, &test.images, &test.streams, &test.pods, &test.rcs, &test.bcs, &test.builds, &test.dcs)
 		actualDeletions := util.NewStringSet()
 		actualUpdatedStreams := util.NewStringSet()
 
@@ -592,7 +592,7 @@ func TestImagePruning(t *testing.T) {
 			return []error{}
 		}
 
-		layerPruneFunc := func(registryURL string, req dockerregistry.DeleteLayersRequest) (error, map[string][]error) {
+		layerPruneFunc := func(registryURL string, req server.DeleteLayersRequest) (error, map[string][]error) {
 			return nil, map[string][]error{}
 		}
 
@@ -789,7 +789,7 @@ func TestLayerPruning(t *testing.T) {
 			return []error{}
 		}
 
-		layerPruneFunc := func(registryURL string, req dockerregistry.DeleteLayersRequest) (error, map[string][]error) {
+		layerPruneFunc := func(registryURL string, req server.DeleteLayersRequest) (error, map[string][]error) {
 			registryDeletions, ok := actualDeletions[registryURL]
 			if !ok {
 				registryDeletions = util.NewStringSet()
@@ -896,22 +896,22 @@ func TestDeletingLayerPruneFunc(t *testing.T) {
 	for name, test := range tests {
 		client := http.DefaultClient
 
-		server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			w.WriteHeader(test.registryResponseStatusCode)
 			w.Write([]byte(test.registryResponse))
 		}))
-		registry := server.Listener.Addr().String()
+		registry := testServer.Listener.Addr().String()
 
 		if !test.simulateClientError {
-			server.Start()
-			defer server.Close()
+			testServer.Start()
+			defer testServer.Close()
 		} else {
 			registry = "noregistryhere!"
 		}
 
 		pruneFunc := DeletingLayerPruneFunc(client)
 
-		deletions := dockerregistry.DeleteLayersRequest{
+		deletions := server.DeleteLayersRequest{
 			"layer1": {"aaa/stream1", "bbb/stream2"},
 		}
 
