@@ -69,13 +69,14 @@ cp $(pwd)/ovssubnet/bin/openshift-ovs-subnet $(pwd)/openshift-ovs-subnet
 %install
 
 install -d %{buildroot}%{_bindir}
-for bin in openshift-sdn openshift-sdn-simple-setup-node.sh openshift-sdn-kube-subnet-setup.sh openshift-ovs-subnet
+for bin in openshift-sdn openshift-sdn-simple-setup-node.sh openshift-sdn-kube-subnet-setup.sh
 do
   install -p -m 755 ${bin} %{buildroot}%{_bindir}/${bin}
 done
 
-mkdir -p %{kube_plugin_path}
-install -p -m 755 openshift-ovs-subnet %{kube_plugin_path}/openshift-ovs-subnet
+
+mkdir -p %{buildroot}%{kube_plugin_path}
+install -p -m 755 openshift-ovs-subnet %{buildroot}%{kube_plugin_path}/openshift-ovs-subnet
 
 install -d -m 0755 %{buildroot}%{_unitdir}
 install -m 0644 -t %{buildroot}%{_unitdir} rel-eng/openshift-sdn-master.service
@@ -93,7 +94,7 @@ install -m 0644 rel-eng/openshift-sdn-node.sysconfig %{buildroot}%{_sysconfdir}/
 %{_bindir}/openshift-sdn
 %{_bindir}/openshift-sdn-simple-setup-node.sh
 %{_bindir}/openshift-sdn-kube-subnet-setup.sh
-%{_bindir}/openshift-ovs-subnet
+%{kube_plugin_path}/openshift-ovs-subnet
 
 %files master
 %defattr(-,root,root,-)
