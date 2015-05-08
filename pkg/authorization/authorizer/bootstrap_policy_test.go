@@ -281,6 +281,38 @@ func TestEditorGetAllowedKindInAdze(t *testing.T) {
 	test.test(t)
 }
 
+func TestVerbOnBaseResourceAdditionalRestrictions(t *testing.T) {
+	denied := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "denied-execer"}),
+		attributes: &DefaultAuthorizationAttributes{
+			Verb:     "get",
+			Resource: "pods/exec",
+		},
+		expectedAllowed: false,
+		expectedReason:  "denied-execer cannot get on pods/exec in mallet",
+	}
+	denied.clusterPolicies = newDefaultClusterPolicies()
+	denied.policies = newMalletPolicies()
+	denied.clusterBindings = newDefaultClusterPolicyBindings()
+	denied.bindings = newMalletBindings()
+	denied.test(t)
+
+	allowed := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "allowed-execer"}),
+		attributes: &DefaultAuthorizationAttributes{
+			Verb:     "get",
+			Resource: "pods/exec",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in mallet",
+	}
+	allowed.clusterPolicies = newDefaultClusterPolicies()
+	allowed.policies = newMalletPolicies()
+	allowed.clusterBindings = newDefaultClusterPolicyBindings()
+	allowed.bindings = newMalletBindings()
+	allowed.test(t)
+}
+
 func TestAdminUpdateAllowedKindInMallet(t *testing.T) {
 	test := &authorizeTest{
 		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "mallet"), &user.DefaultInfo{Name: "Matthew"}),
@@ -444,7 +476,33 @@ func newMalletPolicies() []authorizationapi.Policy {
 				Name:      authorizationapi.PolicyName,
 				Namespace: "mallet",
 			},
-			Roles: map[string]authorizationapi.Role{},
+			Roles: map[string]authorizationapi.Role{
+				"exec-no-update": {
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "exec-no-update",
+						Namespace: "mallet",
+					},
+					Rules: []authorizationapi.PolicyRule{
+						{
+							Verbs:                 util.NewStringSet("get"),
+							Resources:             util.NewStringSet("pods/exec"),
+							AttributeRestrictions: runtime.EmbeddedObject{&authorizationapi.IsVerbAllowedOnBaseResource{Verb: "update"}},
+						},
+					},
+				},
+				"pod-updater": {
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "pod-updater",
+						Namespace: "mallet",
+					},
+					Rules: []authorizationapi.PolicyRule{
+						{
+							Verbs:     util.NewStringSet("update"),
+							Resources: util.NewStringSet("pods"),
+						},
+					},
+				},
+			},
 		}}
 }
 func newMalletBindings() []authorizationapi.PolicyBinding {
@@ -484,6 +542,36 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 						Name: bootstrappolicy.EditRoleName,
 					},
 					Users: util.NewStringSet("Edgar"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      authorizationapi.GetPolicyBindingName("mallet"),
+				Namespace: "mallet",
+			},
+			RoleBindings: map[string]authorizationapi.RoleBinding{
+				"execers": {
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "execers",
+						Namespace: "mallet",
+					},
+					RoleRef: kapi.ObjectReference{
+						Name:      "exec-no-update",
+						Namespace: "mallet",
+					},
+					Users: util.NewStringSet("denied-execer", "allowed-execer"),
+				},
+				"pod-updaters": {
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "pod-updaters",
+						Namespace: "mallet",
+					},
+					RoleRef: kapi.ObjectReference{
+						Name:      "pod-updater",
+						Namespace: "mallet",
+					},
+					Users: util.NewStringSet("allowed-execer"),
 				},
 			},
 		},
