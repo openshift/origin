@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/dockerregistry/server"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/prune"
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/origin/pkg/cmd/dockerregistry"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -18,16 +19,16 @@ const longDesc = `
 `
 
 type config struct {
-	DryRun                    bool
-	MinimumResourcePruningAge int
-	TagRevisionsToKeep        int
+	DryRun             bool
+	KeepYoungerThan    time.Duration
+	TagRevisionsToKeep int
 }
 
 func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	cfg := &config{
-		DryRun: true,
-		MinimumResourcePruningAge: 60,
-		TagRevisionsToKeep:        3,
+		DryRun:             true,
+		KeepYoungerThan:    60 * time.Minute,
+		TagRevisionsToKeep: 3,
 	}
 
 	cmd := &cobra.Command{
@@ -45,7 +46,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 				glog.Fatalf("Error getting client: %v", err)
 			}
 
-			pruner, err := prune.NewImagePruner(cfg.MinimumResourcePruningAge, cfg.TagRevisionsToKeep, osClient, osClient, kClient, kClient, osClient, osClient, osClient)
+			pruner, err := prune.NewImagePruner(cfg.KeepYoungerThan, cfg.TagRevisionsToKeep, osClient, osClient, kClient, kClient, osClient, osClient, osClient)
 			if err != nil {
 				glog.Fatalf("Error creating image pruner: %v", err)
 			}
@@ -64,7 +65,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 					prune.DescribingImagePruneFunc(out)(image, referencedStreams)
 					return prune.DeletingImagePruneFunc(osClient.Images(), osClient)(image, referencedStreams)
 				}
-				layerPruneFunc = func(registryURL string, req dockerregistry.DeleteLayersRequest) (error, map[string][]error) {
+				layerPruneFunc = func(registryURL string, req server.DeleteLayersRequest) (error, map[string][]error) {
 					prune.DescribingLayerPruneFunc(out)(registryURL, req)
 					return prune.DeletingLayerPruneFunc(http.DefaultClient)(registryURL, req)
 				}
@@ -79,7 +80,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	}
 
 	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Perform an image pruning dry-run, displaying what would be deleted but not actually deleting anything (default=true).")
-	cmd.Flags().IntVar(&cfg.MinimumResourcePruningAge, "older-than", cfg.MinimumResourcePruningAge, "Specify the minimum age for an image to be prunable, as well as the minimum age for an image stream or pod that references an image to be prunable.")
+	cmd.Flags().DurationVar(&cfg.KeepYoungerThan, "keep-younger-than", cfg.KeepYoungerThan, "Specify the minimum age for an image to be prunable, as well as the minimum age for an image stream or pod that references an image to be prunable.")
 	cmd.Flags().IntVar(&cfg.TagRevisionsToKeep, "keep-tag-revisions", cfg.TagRevisionsToKeep, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
 
 	return cmd

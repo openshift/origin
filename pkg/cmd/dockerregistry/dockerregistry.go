@@ -3,7 +3,6 @@ package dockerregistry
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,173 +12,14 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/health"
+	"github.com/docker/distribution/registry/auth"
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/filesystem"
 	_ "github.com/docker/distribution/registry/storage/driver/s3"
 	"github.com/docker/distribution/version"
 	gorillahandlers "github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	_ "github.com/openshift/origin/pkg/dockerregistry/server"
+	"github.com/openshift/origin/pkg/dockerregistry/server"
 )
-
-func newOpenShiftHandler(app *handlers.App) http.Handler {
-	router := mux.NewRouter()
-	router.HandleFunc("/healthz", health.StatusHandler)
-	// TODO add https scheme
-	router.HandleFunc("/admin/layers", deleteLayerFunc(app)).Methods("DELETE")
-	//router.HandleFunc("/admin/manifests", deleteManifestFunc(app)).Methods("DELETE")
-	// delegate to the registry if it's not 1 of the OpenShift routes
-	router.NotFoundHandler = app
-
-	return router
-}
-
-// DeleteLayersRequest is a mapping from layers to the image repositories that
-// reference them. Below is a sample request:
-//
-// {
-//   "layer1": ["repo1", "repo2"],
-// 	 "layer2": ["repo1", "repo3"],
-// 	 ...
-// }
-type DeleteLayersRequest map[string][]string
-
-// AddLayer adds a layer to the request if it doesn't already exist.
-func (r DeleteLayersRequest) AddLayer(layer string) {
-	if _, ok := r[layer]; !ok {
-		r[layer] = []string{}
-	}
-}
-
-// AddStream adds an image stream reference to the layer.
-func (r DeleteLayersRequest) AddStream(layer, stream string) {
-	r[layer] = append(r[layer], stream)
-}
-
-type DeleteLayersResponse struct {
-	Result string
-	Errors map[string][]string
-}
-
-// deleteLayerFunc returns an http.HandlerFunc that is able to fully delete a
-// layer from storage.
-func deleteLayerFunc(app *handlers.App) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		defer req.Body.Close()
-		log.Infof("deleteLayerFunc invoked")
-
-		//TODO verify auth
-
-		body, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			//TODO
-			log.Errorf("Error reading body: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		deletions := DeleteLayersRequest{}
-		err = json.Unmarshal(body, &deletions)
-		if err != nil {
-			//TODO
-			log.Errorf("Error unmarshaling body: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		adminService := app.Registry().AdminService()
-		errs := map[string][]error{}
-		for layer, repos := range deletions {
-			log.Infof("Deleting layer=%q, repos=%v", layer, repos)
-			errs[layer] = adminService.DeleteLayer(layer, repos)
-		}
-
-		log.Infof("errs=%v", errs)
-
-		var result string
-		switch len(errs) {
-		case 0:
-			result = "success"
-		default:
-			result = "failure"
-		}
-
-		response := DeleteLayersResponse{
-			Result: result,
-			Errors: map[string][]string{},
-		}
-
-		for layer, layerErrors := range errs {
-			response.Errors[layer] = []string{}
-			for _, err := range layerErrors {
-				response.Errors[layer] = append(response.Errors[layer], err.Error())
-			}
-		}
-
-		buf, err := json.Marshal(&response)
-		if err != nil {
-			w.Write([]byte(fmt.Sprintf("Error marshaling response: %v", err)))
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Write(buf)
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
-/*
-type DeleteManifestsRequest map[string][]string
-
-func (r *DeleteManifestsRequest) AddManifest(revision string) {
-	if _, ok := r[revision]; !ok {
-		r[revision] = []string{}
-	}
-}
-
-func (r *DeleteManifestsRequest) AddStream(revision, stream string) {
-	r[revision] = append(r[revision], stream)
-}
-
-func deleteManifestsFunc(app *handlers.App) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		defer req.Body.Close()
-
-		//TODO verify auth
-
-		body, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			//TODO
-			log.Errorf("Error reading body: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		deletions := DeleteManifestsRequest{}
-		err = json.Unmarshal(body, &deletions)
-		if err != nil {
-			//TODO
-			log.Errorf("Error unmarshaling body: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		adminService := app.Registry().AdminService()
-		errs := []error{}
-		for revision, repos := range deletions {
-			log.Infof("Deleting manifest revision=%q, repos=%v", revision, repos)
-			manifestErrs := adminService.DeleteManifest(revision, repos)
-			errs = append(errs, manifestErrs...)
-		}
-
-		log.Infof("errs=%v", errs)
-
-		//TODO write response
-		w.WriteHeader(http.StatusOK)
-	}
-}
-*/
 
 // Execute runs the Docker registry.
 func Execute(configFile io.Reader) {
@@ -199,8 +39,49 @@ func Execute(configFile io.Reader) {
 	ctx := context.Background()
 
 	app := handlers.NewApp(ctx, *config)
-	handler := newOpenShiftHandler(app)
-	handler = gorillahandlers.CombinedLoggingHandler(os.Stdout, handler)
+
+	// register OpenShift routes
+	app.RegisterRoute(app.NewRoute().Path("/healthz"), server.HealthzHandler, handlers.NameNotRequired, handlers.NoCustomAccessRecords)
+
+	// TODO add https scheme
+	adminRouter := app.NewRoute().PathPrefix("/admin/").Subrouter()
+
+	pruneAccessRecords := func(*http.Request) []auth.Access {
+		return []auth.Access{
+			{
+				Resource: auth.Resource{
+					Type: "admin",
+				},
+				Action: "prune",
+			},
+		}
+	}
+
+	app.RegisterRoute(
+		// DELETE /admin/layers
+		adminRouter.Path("/layers").Methods("DELETE"),
+		// handler
+		server.DeleteLayersHandler(app.Registry().AdminService()),
+		// repo name not required in url
+		handlers.NameNotRequired,
+		// custom access records
+		pruneAccessRecords,
+	)
+
+	app.RegisterRoute(
+		// DELETE /admin/manifests
+		adminRouter.Path("/manifests").Methods("DELETE"),
+		// handler
+		server.DeleteManifestsHandler(app.Registry().AdminService()),
+		// repo name not required in url
+		handlers.NameNotRequired,
+		// custom access records
+		pruneAccessRecords,
+	)
+
+	//app.RegisterRoute(app.NewRoute().Path("/admin/repositories/{repository}/").Methods("DELETE"), server.DeleteRepositoryHandler(app.Registry().AdminService()), func(*http.Request) bool { return true })
+
+	handler := gorillahandlers.CombinedLoggingHandler(os.Stdout, app)
 
 	if config.HTTP.TLS.Certificate == "" {
 		context.GetLogger(app).Infof("listening on %v", config.HTTP.Addr)

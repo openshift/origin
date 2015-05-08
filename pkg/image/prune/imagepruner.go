@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -20,8 +21,8 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/dockerregistry"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	"github.com/openshift/origin/pkg/dockerregistry/server"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 )
@@ -29,8 +30,8 @@ import (
 // pruneAlgorithm contains the various settings to use when evaluating images
 // and layers for pruning.
 type pruneAlgorithm struct {
-	minimumAgeInMinutesToPrune int
-	tagRevisionsToKeep         int
+	keepYoungerThan    time.Duration
+	tagRevisionsToKeep int
 }
 
 // ImagePruneFunc is a function that is invoked for each image that is
@@ -40,7 +41,7 @@ type ImagePruneFunc func(image *imageapi.Image, streams []*imageapi.ImageStream)
 // LayerPruneFunc is a function that is invoked for each registry, along with
 // a DeleteLayersRequest that contains the layers that can be pruned and the
 // image stream names that reference each layer.
-type LayerPruneFunc func(registryURL string, req dockerregistry.DeleteLayersRequest) (requestError error, layerErrors map[string][]error)
+type LayerPruneFunc func(registryURL string, req server.DeleteLayersRequest) (requestError error, layerErrors map[string][]error)
 
 // ImagePruner knows how to prune images and layers.
 type ImagePruner interface {
@@ -59,10 +60,10 @@ var _ ImagePruner = &imagePruner{}
 /*
 NewImagePruner creates a new ImagePruner.
 
-minimumAgeInMinutesToPrune is the minimum age, in minutes, that a resource
-must be in order for the image it references (or an image itself) to be a
-candidate for pruning. For example, if minimumAgeInMinutesToPrune is 60, and
-an ImageStream is only 59 minutes old, none of the images it references are
+Images younger than keepYoungerThan and images referenced by image streams
+and/or pods younger than keepYoungerThan are preserved. All other images are
+candidates for pruning. For example, if keepYoungerThan is 60m, and an
+ImageStream is only 59 minutes old, none of the images it references are
 eligible for pruning.
 
 tagRevisionsToKeep is the number of revisions per tag in an image stream's
@@ -92,7 +93,7 @@ ImageStreams having a reference to the image in `status.tags`.
 Also automatically remove any image layer that is no longer referenced by any
 images.
 */
-func NewImagePruner(minimumAgeInMinutesToPrune int, tagRevisionsToKeep int, images client.ImagesInterfacer, streams client.ImageStreamsNamespacer, pods kclient.PodsNamespacer, rcs kclient.ReplicationControllersNamespacer, bcs client.BuildConfigsNamespacer, builds client.BuildsNamespacer, dcs client.DeploymentConfigsNamespacer) (ImagePruner, error) {
+func NewImagePruner(keepYoungerThan time.Duration, tagRevisionsToKeep int, images client.ImagesInterfacer, streams client.ImageStreamsNamespacer, pods kclient.PodsNamespacer, rcs kclient.ReplicationControllersNamespacer, bcs client.BuildConfigsNamespacer, builds client.BuildsNamespacer, dcs client.DeploymentConfigsNamespacer) (ImagePruner, error) {
 	allImages, err := images.Images().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, fmt.Errorf("Error listing images: %v", err)
@@ -128,18 +129,18 @@ func NewImagePruner(minimumAgeInMinutesToPrune int, tagRevisionsToKeep int, imag
 		return nil, fmt.Errorf("Error listing deployment configs: %v", err)
 	}
 
-	return newImagePruner(minimumAgeInMinutesToPrune, tagRevisionsToKeep, allImages, allStreams, allPods, allRCs, allBCs, allBuilds, allDCs), nil
+	return newImagePruner(keepYoungerThan, tagRevisionsToKeep, allImages, allStreams, allPods, allRCs, allBCs, allBuilds, allDCs), nil
 }
 
 // newImagePruner creates a new ImagePruner.
-func newImagePruner(minimumAgeInMinutesToPrune int, tagRevisionsToKeep int, images *imageapi.ImageList, streams *imageapi.ImageStreamList, pods *kapi.PodList, rcs *kapi.ReplicationControllerList, bcs *buildapi.BuildConfigList, builds *buildapi.BuildList, dcs *deployapi.DeploymentConfigList) ImagePruner {
+func newImagePruner(keepYoungerThan time.Duration, tagRevisionsToKeep int, images *imageapi.ImageList, streams *imageapi.ImageStreamList, pods *kapi.PodList, rcs *kapi.ReplicationControllerList, bcs *buildapi.BuildConfigList, builds *buildapi.BuildList, dcs *deployapi.DeploymentConfigList) ImagePruner {
 	g := graph.New()
 
-	glog.V(1).Infof("Creating image pruner with minimumAgeInMinutesToPrune=%d, tagRevisionsToKeep=%d", minimumAgeInMinutesToPrune, tagRevisionsToKeep)
+	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, tagRevisionsToKeep=%d", keepYoungerThan, tagRevisionsToKeep)
 
 	algorithm := pruneAlgorithm{
-		minimumAgeInMinutesToPrune: minimumAgeInMinutesToPrune,
-		tagRevisionsToKeep:         tagRevisionsToKeep,
+		keepYoungerThan:    keepYoungerThan,
+		tagRevisionsToKeep: tagRevisionsToKeep,
 	}
 
 	addImagesToGraph(g, images, algorithm)
@@ -176,9 +177,8 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 		}
 
 		age := util.Now().Sub(image.CreationTimestamp.Time)
-		ageInMinutes := int(age.Minutes())
-		if ageInMinutes < algorithm.minimumAgeInMinutesToPrune {
-			glog.V(4).Infof("Image %q is younger than minimum pruning age, skipping (age=%d)", image.Name, ageInMinutes)
+		if age < algorithm.keepYoungerThan {
+			glog.V(4).Infof("Image %q is younger than minimum pruning age, skipping (age=%v)", image.Name, age)
 			continue
 		}
 
@@ -218,7 +218,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 		oldImageRevisionReferenceKind := graph.WeakReferencedImageGraphEdgeKind
 
 		age := util.Now().Sub(stream.CreationTimestamp.Time)
-		if int(age.Minutes()) < algorithm.minimumAgeInMinutesToPrune {
+		if age < algorithm.keepYoungerThan {
 			// stream's age is below threshold - use a strong reference for old image revisions instead
 			glog.V(4).Infof("Stream %s/%s is below age threshold - none of its images are eligible for pruning", stream.Namespace, stream.Name)
 			oldImageRevisionReferenceKind = graph.ReferencedImageGraphEdgeKind
@@ -277,7 +277,7 @@ func addPodsToGraph(g graph.Graph, pods *kapi.PodList, algorithm pruneAlgorithm)
 
 		if pod.Status.Phase != kapi.PodRunning && pod.Status.Phase != kapi.PodPending {
 			age := util.Now().Sub(pod.CreationTimestamp.Time)
-			if int(age.Minutes()) >= algorithm.minimumAgeInMinutesToPrune {
+			if age >= algorithm.keepYoungerThan {
 				glog.V(4).Infof("Pod %s/%s is not running or pending and age is at least minimum pruning age - skipping", pod.Namespace, pod.Name)
 				// not pending or running, age is at least minimum pruning age, skip
 				continue
@@ -538,10 +538,10 @@ func streamLayerReferences(g graph.Graph, layerNode *graph.ImageLayerNode) []*gr
 }
 
 // pruneLayers creates a mapping of registryURLs to
-// dockerregistry.DeleteLayersRequest objects, invoking layerPruneFunc for each
+// server.DeleteLayersRequest objects, invoking layerPruneFunc for each
 // registryURL and request.
 func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, layerPruneFunc LayerPruneFunc) {
-	registryDeletionRequests := map[string]dockerregistry.DeleteLayersRequest{}
+	registryDeletionRequests := map[string]server.DeleteLayersRequest{}
 
 	for _, layerNode := range layerNodes {
 		glog.V(4).Infof("Examining layer %q", layerNode.Layer)
@@ -571,7 +571,7 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, layerPruneFu
 			deletionRequest, ok := registryDeletionRequests[ref.Registry]
 			if !ok {
 				glog.V(4).Infof("Request not found - creating new one")
-				deletionRequest = dockerregistry.DeleteLayersRequest{}
+				deletionRequest = server.DeleteLayersRequest{}
 				registryDeletionRequests[ref.Registry] = deletionRequest
 			}
 
@@ -648,7 +648,7 @@ func DeletingImagePruneFunc(images client.ImageInterface, streams client.ImageSt
 // DescribingLayerPruneFunc returns a LayerPruneFunc that writes information
 // about the layers that are eligible for pruning to out.
 func DescribingLayerPruneFunc(out io.Writer) LayerPruneFunc {
-	return func(registryURL string, deletions dockerregistry.DeleteLayersRequest) (error, map[string][]error) {
+	return func(registryURL string, deletions server.DeleteLayersRequest) (error, map[string][]error) {
 		result := map[string][]error{}
 
 		fmt.Fprintf(out, "Pruning from registry %q\n", registryURL)
@@ -676,7 +676,7 @@ func DescribingLayerPruneFunc(out io.Writer) LayerPruneFunc {
 // key being a layer, and each value being a list of Docker image repository
 // names referenced by the layer.
 func DeletingLayerPruneFunc(registryClient *http.Client) LayerPruneFunc {
-	return func(registryURL string, deletions dockerregistry.DeleteLayersRequest) (requestError error, layerErrors map[string][]error) {
+	return func(registryURL string, deletions server.DeleteLayersRequest) (requestError error, layerErrors map[string][]error) {
 		glog.V(4).Infof("Starting pruning of layers from %q, req %#v", registryURL, deletions)
 		body, err := json.Marshal(&deletions)
 		if err != nil {
@@ -710,7 +710,7 @@ func DeletingLayerPruneFunc(registryClient *http.Client) LayerPruneFunc {
 			return fmt.Errorf("Unexpected status code %d in response %s", resp.StatusCode, buf), nil
 		}
 
-		var deleteResponse dockerregistry.DeleteLayersResponse
+		var deleteResponse server.DeleteLayersResponse
 		if err := json.Unmarshal(buf, &deleteResponse); err != nil {
 			glog.Errorf("Error unmarshaling response: %v", err)
 			return fmt.Errorf("Error unmarshaling response: %v", err), nil

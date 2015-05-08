@@ -132,7 +132,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 
 		// In case of docker login, hits endpoint /v2
 		if len(accessRecords) == 0 {
-			err = VerifyOpenShiftUser(user, client)
+			err = verifyOpenShiftUser(user, client)
 			if err != nil {
 				challenge.err = err
 				return nil, challenge
@@ -143,37 +143,46 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	for _, access := range accessRecords {
 		log.Debugf("%s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
 
-		if access.Resource.Type != "repository" {
-			continue
-		}
+		switch access.Resource.Type {
+		case "repository":
+			repoParts := strings.SplitN(access.Resource.Name, "/", 2)
+			if len(repoParts) != 2 {
+				challenge.err = ErrNamespaceRequired
+				return nil, challenge
+			}
 
-		repoParts := strings.SplitN(access.Resource.Name, "/", 2)
-		if len(repoParts) != 2 {
-			challenge.err = ErrNamespaceRequired
-			return nil, challenge
-		}
+			verb := ""
+			switch access.Action {
+			case "push":
+				verb = "update"
+			case "pull":
+				verb = "get"
+			default:
+				challenge.err = fmt.Errorf("Unknown action: %s", access.Action)
+				return nil, challenge
+			}
 
-		verb := ""
-		switch access.Action {
-		case "push":
-			verb = "update"
-		case "pull":
-			verb = "get"
-		default:
-			challenge.err = fmt.Errorf("Unknown action: %s", access.Action)
-			return nil, challenge
-		}
-
-		err = VerifyOpenShiftAccess(repoParts[0], repoParts[1], verb, client)
-		if err != nil {
-			challenge.err = err
-			return nil, challenge
+			if err := verifyImageStreamAccess(repoParts[0], repoParts[1], verb, client); err != nil {
+				challenge.err = err
+				return nil, challenge
+			}
+		case "admin":
+			switch access.Action {
+			case "prune":
+				if err := verifyPruneAccess(client); err != nil {
+					challenge.err = err
+					return nil, challenge
+				}
+			default:
+				challenge.err = fmt.Errorf("Unknown action: %s", access.Action)
+				return nil, challenge
+			}
 		}
 	}
 	return WithUserClient(ctx, client), nil
 }
 
-func VerifyOpenShiftUser(user string, client *client.Client) error {
+func verifyOpenShiftUser(user string, client *client.Client) error {
 	userObj, err := client.Users().Get("~")
 	if err != nil {
 		log.Errorf("Get user failed with error: %s", err)
@@ -186,13 +195,30 @@ func VerifyOpenShiftUser(user string, client *client.Client) error {
 	return nil
 }
 
-func VerifyOpenShiftAccess(namespace, imageRepo, verb string, client *client.Client) error {
+func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.Client) error {
 	sar := authorizationapi.SubjectAccessReview{
 		Verb:         verb,
 		Resource:     "imageStreams",
 		ResourceName: imageRepo,
 	}
 	response, err := client.SubjectAccessReviews(namespace).Create(&sar)
+	if err != nil {
+		log.Errorf("OpenShift client error: %s", err)
+		return ErrOpenShiftAccessDenied
+	}
+	if !response.Allowed {
+		log.Errorf("OpenShift access denied: %s", response.Reason)
+		return ErrOpenShiftAccessDenied
+	}
+	return nil
+}
+
+func verifyPruneAccess(client *client.Client) error {
+	sar := authorizationapi.SubjectAccessReview{
+		Verb:     "delete",
+		Resource: "images",
+	}
+	response, err := client.ClusterSubjectAccessReviews().Create(&sar)
 	if err != nil {
 		log.Errorf("OpenShift client error: %s", err)
 		return ErrOpenShiftAccessDenied

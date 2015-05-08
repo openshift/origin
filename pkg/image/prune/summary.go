@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/openshift/origin/pkg/cmd/dockerregistry"
+	"github.com/openshift/origin/pkg/dockerregistry/server"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -93,7 +93,7 @@ func (p *summarizingPruner) imagePruneFunc(base ImagePruneFunc) ImagePruneFunc {
 }
 
 func (p *summarizingPruner) layerPruneFunc(base LayerPruneFunc) LayerPruneFunc {
-	return func(registryURL string, req dockerregistry.DeleteLayersRequest) (error, map[string][]error) {
+	return func(registryURL string, req server.DeleteLayersRequest) (error, map[string][]error) {
 		requestError, layerErrors := base(registryURL, req)
 		p.registryResults[registryURL] = registryResult{
 			requestError: requestError,
