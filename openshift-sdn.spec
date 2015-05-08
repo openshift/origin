@@ -41,6 +41,7 @@ Requires:         openshift-node
 Requires:         docker-io >= 1.3.2
 Requires:         openvswitch >= 2.3.1
 Requires:         bridge-utils
+Requires:         ethtool
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
