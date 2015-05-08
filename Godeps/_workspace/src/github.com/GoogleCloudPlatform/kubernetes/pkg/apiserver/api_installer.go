@@ -128,6 +128,24 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		return err
 	}
 
+	if hasSubresource {
+		storage, ok := a.group.Storage[resource]
+		if !ok {
+			return fmt.Errorf("subresources can only be declared when the parent is also registered: %s needs %s", path, resource)
+		}
+		object := storage.New()
+		_, kind, err := a.group.Typer.ObjectVersionAndKind(object)
+		if err != nil {
+			return err
+		}
+		parentMapping, err := a.group.Mapper.RESTMapping(kind, a.group.Version)
+		if err != nil {
+			return err
+		}
+		// the sub resource uses the scope of its parent, in the case of sub resource kinds that may span namespaces
+		mapping.Scope = parentMapping.Scope
+	}
+
 	// what verbs are supported by the storage, used to know what verbs we support per path
 	creater, isCreater := storage.(rest.Creater)
 	lister, isLister := storage.(rest.Lister)
