@@ -52,8 +52,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 		},
 	}
 
-	// TODO remove once we have global policy objects
-	cmd.Flags().StringVar(&options.AdminRole, "admin-role", bootstrappolicy.AdminRoleName, "project admin role name in the master policy namespace")
+	cmd.Flags().StringVar(&options.AdminRole, "admin-role", bootstrappolicy.AdminRoleName, "project admin role name in the cluster policy")
 	cmd.Flags().StringVar(&options.AdminUser, "admin", "", "project admin username")
 	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "project display name")
 	cmd.Flags().StringVar(&options.Description, "description", "", "project description")
@@ -98,7 +97,7 @@ func (o *NewProjectOptions) Run() error {
 
 		if err := adduser.AddRole(); err != nil {
 			fmt.Printf("The project %v was created, but %v could not be added to the %v role.\n", o.ProjectName, o.AdminUser, o.AdminRole)
-			fmt.Printf("To add the user to the existing project, run\n\n\topenshift ex policy add-role-to-user --namespace=%v %v %v\n", o.ProjectName, o.AdminRole, o.AdminUser)
+			fmt.Printf("To add the user to the existing project, run\n\n\tosadm policy add-role-to-user --namespace=%v %v %v\n", o.ProjectName, o.AdminRole, o.AdminUser)
 			return err
 		}
 	}

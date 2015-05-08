@@ -67,12 +67,12 @@ Pre-requisites/Prep Time
 
         $ vagrant ssh minion-1
         #  Add user and project.
-        openshift ex policy add-user view anypassword:test-admin
-        openshift ex new-project test --display-name="Failover Sample" \
-           --description="Router Failover" --admin=anypassword:test-admin
+        osadm policy add-role-to-user view test-admin
+        osadm new-project test --display-name="Failover Sample" \
+           --description="Router Failover" --admin=test-admin
         #  Create a test app using the template.
         cd /vagrant/hack/exp/router-failover
-        openshift cli create -n test -f conf/hello-openshift-template.json
+        osc create -n test -f conf/hello-openshift-template.json
 
         echo "Wait for the app to startup and check app is reachable."
         for ip in 10.245.2.3 10.245.2.4; do
