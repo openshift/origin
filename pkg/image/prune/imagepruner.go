@@ -583,6 +583,12 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, layerPruneFu
 		}
 	}
 
+	// TODO this really should be a registryPruneFunc instead of a layerPruneFunc,
+	// sending a map of manifest->streams and a map of layer->streams to the registry.
+	// The registry should delete each manifest directory from each stream, delete
+	// each layer dir from each stream, and finally delete each layer from blobs.
+	//
+	// Right now this only handles the layer portion.
 	for registryURL, req := range registryDeletionRequests {
 		glog.V(4).Infof("Invoking layerPruneFunc with registry=%q, req=%#v", registryURL, req)
 		requestError, layerErrors := layerPruneFunc(registryURL, req)
