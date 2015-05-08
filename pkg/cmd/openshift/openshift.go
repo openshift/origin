@@ -88,7 +88,7 @@ func NewCommandOpenShift() *cobra.Command {
 		},
 	}
 
-	startAllInOne, _ := start.NewCommandStartAllInOne()
+	startAllInOne, _ := start.NewCommandStartAllInOne(os.Stdout)
 	root.AddCommand(startAllInOne)
 	root.AddCommand(admin.NewCommandAdmin("admin", "openshift admin", os.Stdout))
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))

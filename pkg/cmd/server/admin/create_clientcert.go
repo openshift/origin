@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/golang/glog"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 type CreateClientCertOptions struct {
@@ -21,6 +23,7 @@ type CreateClientCertOptions struct {
 	Groups util.StringList
 
 	Overwrite bool
+	Output    cmdutil.Output
 }
 
 func (o CreateClientCertOptions) Validate(args []string) error {
@@ -55,10 +58,18 @@ func (o CreateClientCertOptions) CreateClientCert() (*crypto.TLSCertificateConfi
 		return nil, err
 	}
 
+	var cert *crypto.TLSCertificateConfig
+	written := true
 	userInfo := &user.DefaultInfo{Name: o.User, Groups: o.Groups}
 	if o.Overwrite {
-		return signerCert.MakeClientCertificate(o.CertFile, o.KeyFile, userInfo)
+		cert, err = signerCert.MakeClientCertificate(o.CertFile, o.KeyFile, userInfo)
 	} else {
-		return signerCert.EnsureClientCertificate(o.CertFile, o.KeyFile, userInfo)
+		cert, written, err = signerCert.EnsureClientCertificate(o.CertFile, o.KeyFile, userInfo)
 	}
+	if written {
+		fmt.Fprintf(o.Output.Get(), "Generated new client cert as %s and key as %s\n", o.CertFile, o.KeyFile)
+	} else {
+		fmt.Fprintf(o.Output.Get(), "Keeping existing client cert at %s and key at %s\n", o.CertFile, o.KeyFile)
+	}
+	return cert, err
 }

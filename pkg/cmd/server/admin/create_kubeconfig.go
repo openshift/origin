@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const CreateKubeConfigCommandName = "create-kubeconfig"
@@ -33,10 +35,11 @@ type CreateKubeConfigOptions struct {
 	ContextNamespace string
 
 	KubeConfigFile string
+	Output         cmdutil.Output
 }
 
 func NewCommandCreateKubeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateKubeConfigOptions{}
+	options := &CreateKubeConfigOptions{Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -183,6 +186,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 		CurrentContext: o.ContextNick,
 	}
 
+	fmt.Fprintf(o.Output.Get(), "Generating '%s' API client config as %s\n", o.UserNick, o.KubeConfigFile)
 	// Ensure the parent dir exists
 	if err := os.MkdirAll(filepath.Dir(o.KubeConfigFile), os.FileMode(0755)); err != nil {
 		return nil, err

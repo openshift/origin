@@ -3,6 +3,7 @@ package start
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -29,6 +30,8 @@ type AllInOneOptions struct {
 	ConfigDir        util.StringFlag
 	MasterConfigFile string
 	NodeConfigFile   string
+
+	Output cmdutil.Output
 }
 
 const allInOne_long = `Start an OpenShift all-in-one server
@@ -52,8 +55,8 @@ You may also pass --etcd=<address> to connect to an external etcd server.
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
-func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
-	options := &AllInOneOptions{}
+func NewCommandStartAllInOne(out io.Writer) (*cobra.Command, *AllInOneOptions) {
+	options := &AllInOneOptions{Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -87,6 +90,7 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -105,8 +109,8 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 	BindListenArg(listenArg, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
 
-	startMaster, _ := NewCommandStartMaster()
-	startNode, _ := NewCommandStartNode()
+	startMaster, _ := NewCommandStartMaster(out)
+	startNode, _ := NewCommandStartNode(out)
 	cmd.AddCommand(startMaster)
 	cmd.AddCommand(startNode)
 
@@ -216,12 +220,12 @@ func (o AllInOneOptions) StartAllInOne() error {
 		glog.Infof("Starting an OpenShift all-in-one")
 	}
 
-	masterOptions := MasterOptions{o.MasterArgs, o.CreateCerts, o.MasterConfigFile}
+	masterOptions := MasterOptions{o.MasterArgs, o.CreateCerts, o.MasterConfigFile, o.Output}
 	if err := masterOptions.RunMaster(); err != nil {
 		return err
 	}
 
-	nodeOptions := NodeOptions{o.NodeArgs, o.NodeConfigFile}
+	nodeOptions := NodeOptions{o.NodeArgs, o.NodeConfigFile, o.Output}
 	if err := nodeOptions.RunNode(); err != nil {
 		return err
 	}
