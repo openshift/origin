@@ -42,7 +42,7 @@ angular.module('openshiftConsole')
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
     $scope.renderOptions = $scope.renderOptions || {};
-    $scope.renderOptions.showSidebarRight = true;
+    $scope.renderOptions.showSidebarRight = false;
 
     var watches = [];
 
@@ -55,6 +55,10 @@ angular.module('openshiftConsole')
 
     watches.push(DataService.watch("services", $scope, function(services) {
       $scope.unfilteredServices = services.by("metadata.name");
+      var isEmpty = Object.keys($scope.unfilteredServices).length === 0;
+      $scope.renderOptions.showSidebarRight = !isEmpty;
+      $scope.renderOptions.showGetStarted = isEmpty;
+
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
       $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
