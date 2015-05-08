@@ -20,40 +20,40 @@ import (
 )
 
 const (
-	buildChain_long = `Output build dependencies of a specific image repository.
+	buildChain_long = `Output build dependencies of a specific image stream.
 Supported output formats are json, dot, and ast. The default is set to json.
 Tag and namespace are optional and if they are not specified, 'latest' and the 
 default namespace will be used respectively.`
 
-	buildChain_example = `  // Build dependency tree for the specified image repository and tag
-  $ openshift ex build-chain [image-repository]:[tag]
+	buildChain_example = `  // Build dependency tree for the specified image stream and tag
+  $ openshift ex build-chain [image-stream]:[tag]
 
-  // Build dependency trees for all tags in the specified image repository
-  $ openshift ex build-chain [image-repository] --all-tags
+  // Build dependency trees for all tags in the specified image stream
+  $ openshift ex build-chain [image-stream] --all-tags
 
   // Build the dependency tree using tag 'latest' in 'testing' namespace
-  $ openshift ex build-chain [image-repository] -n testing
+  $ openshift ex build-chain [image-stream] -n testing
 
   // Build the dependency tree and output it in DOT syntax
-  $ openshift ex build-chain [image-repository] -o dot
+  $ openshift ex build-chain [image-stream] -o dot
 
-  // Build dependency trees for all image repositories in the current namespace
+  // Build dependency trees for all image streams in the current namespace
   $ openshift ex build-chain
 
-  // Build dependency trees for all image repositories across all namespaces
+  // Build dependency trees for all image streams across all namespaces
   $ openshift ex build-chain --all`
 )
 
-// ImageRepo is a representation of a node inside a tree
-type ImageRepo struct {
-	FullName string       `json:"fullname"`
-	Tags     []string     `json:"tags,omitempty"`
-	Edges    []*Edge      `json:"edges,omitempty"`
-	Children []*ImageRepo `json:"children,omitempty"`
+// Node is a representation of an image stream inside a tree
+type Node struct {
+	FullName string   `json:"fullname"`
+	Tags     []string `json:"tags,omitempty"`
+	Edges    []*Edge  `json:"edges,omitempty"`
+	Children []*Node  `json:"children,omitempty"`
 }
 
 // String helps in dumping a tree in AST format
-func (root *ImageRepo) String() string {
+func (root *Node) String() string {
 	tree := ""
 	tree += root.FullName
 
@@ -88,8 +88,8 @@ func NewEdge(fullname, to string) *Edge {
 // NewCmdBuildChain implements the OpenShift experimental build-chain command
 func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s [IMAGEREPOSITORY:TAG | --all]", name),
-		Short:   "Output build dependencies of a specific image repository",
+		Use:     fmt.Sprintf("%s [IMAGESTREAM:TAG | --all]", name),
+		Short:   "Output build dependencies of a specific image stream",
 		Long:    buildChain_long,
 		Example: buildChain_example,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -98,8 +98,8 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 		},
 	}
 
-	cmd.Flags().Bool("all", false, "Build dependency trees for all image repositories")
-	cmd.Flags().Bool("all-tags", false, "Build dependency trees for all tags of a specific image repository")
+	cmd.Flags().Bool("all", false, "Build dependency trees for all image streams")
+	cmd.Flags().Bool("all-tags", false, "Build dependency trees for all tags of a specific image stream")
 	cmd.Flags().StringP("output", "o", "json", "Output format of dependency tree(s)")
 	return cmd
 }
@@ -113,7 +113,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		(len(args) == 1 && all) ||
 		(len(args) == 0 && allTags) ||
 		(all && allTags) {
-		return cmdutil.UsageError(cmd, "Must pass nothing, an image repository name:tag combination, or specify the --all flag")
+		return cmdutil.UsageError(cmd, "Must pass nothing, an image stream name:tag combination, or specify the --all flag")
 	}
 
 	osc, _, err := f.Clients()
@@ -154,58 +154,58 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		buildConfigList = append(buildConfigList, cfgList.Items...)
 	}
 
-	// Parse user input and validate specified image repository
-	repos := make(map[string][]string)
+	// Parse user input and validate specified image stream
+	streams := make(map[string][]string)
 	if !all && len(args) != 0 {
 		name, specifiedTag, err := parseTag(args[0])
 		if err != nil {
 			return err
 		}
 
-		// Validate the specified image repository
-		imgRepo, err := osc.ImageStreams(namespace).Get(name)
+		// Validate the specified image stream
+		is, err := osc.ImageStreams(namespace).Get(name)
 		if err != nil {
 			return err
 		}
-		repo := join(namespace, name)
+		stream := join(namespace, name)
 
 		// Validate specified tag
 		tags := make([]string, 0)
 		exists := false
-		for tag := range imgRepo.Status.Tags {
+		for tag := range is.Status.Tags {
 			tags = append(tags, tag)
 			if specifiedTag == tag {
 				exists = true
 			}
 		}
 		if !exists && !allTags {
-			// The specified tag isn't a part of our image repository
-			return fmt.Errorf("no tag %s exists in %s", specifiedTag, repo)
+			// The specified tag isn't a part of our image stream
+			return fmt.Errorf("no tag %s exists in %s", specifiedTag, stream)
 		} else if !allTags {
 			// Use only the specified tag
 			tags = []string{specifiedTag}
 		}
 
-		// Set the specified repo as the only one to output dependencies for
-		repos[repo] = tags
+		// Set the specified stream as the only one to output dependencies for
+		streams[stream] = tags
 	} else {
-		repos = getRepos(buildConfigList)
+		streams = getStreams(buildConfigList)
 	}
 
-	if len(repos) == 0 {
-		return fmt.Errorf("no image repository available for building its dependency tree")
+	if len(streams) == 0 {
+		return fmt.Errorf("no image stream available for building its dependency tree")
 	}
 
 	output := cmdutil.GetFlagString(cmd, "output")
-	for repo, tags := range repos {
+	for stream, tags := range streams {
 		for _, tag := range tags {
-			glog.V(4).Infof("Checking dependencies of repo %s tag %s", repo, tag)
-			root, err := findRepoDeps(repo, tag, buildConfigList)
+			glog.V(4).Infof("Checking dependencies of stream %s tag %s", stream, tag)
+			root, err := findStreamDeps(stream, tag, buildConfigList)
 			if err != nil {
 				return err
 			}
 
-			// Check if the given image repository doesn't have any dependencies
+			// Check if the given image stream doesn't have any dependencies
 			if treeSize(root) < 2 {
 				glog.Infof("%s:%s has no dependencies\n", root.FullName, tag)
 				continue
@@ -220,7 +220,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 				fmt.Println(string(jsonDump))
 			case "dot":
 				g := dot.NewGraph()
-				_, name, err := split(repo)
+				_, name, err := split(stream)
 				if err != nil {
 					return err
 				}
@@ -246,10 +246,10 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 	return nil
 }
 
-// getRepos iterates over a given set of build configurations
-// and extracts all the image repositories which trigger a
-// build when the image repository is updated
-func getRepos(configs []buildapi.BuildConfig) map[string][]string {
+// getStreams iterates over a given set of build configurations
+// and extracts all the image streams which trigger a
+// build when the image stream is updated
+func getStreams(configs []buildapi.BuildConfig) map[string][]string {
 	glog.V(1).Infof("Scanning buildconfigs")
 	avoidDuplicates := make(map[string][]string)
 	for _, cfg := range configs {
@@ -271,16 +271,16 @@ func getRepos(configs []buildapi.BuildConfig) map[string][]string {
 					// trigger builds.
 					continue
 				}
-				var repo string
+				var stream string
 				switch from.Namespace {
 				case "":
-					repo = join(cfg.Namespace, name)
+					stream = join(cfg.Namespace, name)
 				default:
-					repo = join(from.Namespace, name)
+					stream = join(from.Namespace, name)
 				}
 
 				uniqueTag := true
-				for _, prev := range avoidDuplicates[repo] {
+				for _, prev := range avoidDuplicates[stream] {
 					if prev == tag {
 						uniqueTag = false
 						break
@@ -288,7 +288,7 @@ func getRepos(configs []buildapi.BuildConfig) map[string][]string {
 				}
 				glog.V(1).Infof("checking unique tag %v %s", uniqueTag, tag)
 				if uniqueTag {
-					avoidDuplicates[repo] = append(avoidDuplicates[repo], tag)
+					avoidDuplicates[stream] = append(avoidDuplicates[stream], tag)
 				}
 			}
 		}
@@ -297,22 +297,22 @@ func getRepos(configs []buildapi.BuildConfig) map[string][]string {
 	return avoidDuplicates
 }
 
-// findRepoDeps accepts an image repository and a list of build
+// findStreamDeps accepts an image stream and a list of build
 // configurations and returns the dependency tree of the specified
-// image repository
-func findRepoDeps(repo, tag string, buildConfigList []buildapi.BuildConfig) (*ImageRepo, error) {
-	root := &ImageRepo{
-		FullName: repo,
+// image stream
+func findStreamDeps(stream, tag string, buildConfigList []buildapi.BuildConfig) (*Node, error) {
+	root := &Node{
+		FullName: stream,
 		Tags:     []string{tag},
 	}
 
-	namespace, name, err := split(repo)
+	namespace, name, err := split(stream)
 	if err != nil {
 		return nil, err
 	}
 
 	// Search all build configurations in order to find the image
-	// repositories depending on the specified image repository
+	// streams depending on the specified image stream
 	var childNamespace, childName, childTag string
 	for _, cfg := range buildConfigList {
 		for _, tr := range cfg.Triggers {
@@ -325,8 +325,8 @@ func findRepoDeps(repo, tag string, buildConfigList []buildapi.BuildConfig) (*Im
 				from.Namespace = cfg.Namespace
 			}
 			fromTag := strings.Split(from.Name, ":")[1]
-			parentRepo := namespace + "/" + name + ":" + tag
-			if buildutil.NameFromImageStream("", from, fromTag) == parentRepo {
+			parentStream := namespace + "/" + name + ":" + tag
+			if buildutil.NameFromImageStream("", from, fromTag) == parentStream {
 				// Either To & Tag or DockerImageReference will be used as output
 				if cfg.Parameters.Output.To != nil && cfg.Parameters.Output.To.Name != "" {
 					childName = cfg.Parameters.Output.To.Name
@@ -346,10 +346,10 @@ func findRepoDeps(repo, tag string, buildConfigList []buildapi.BuildConfig) (*Im
 					childNamespace = cfg.Namespace
 				}
 
-				childRepo := join(childNamespace, childName)
+				childStream := join(childNamespace, childName)
 
 				// Build all children and their dependency trees recursively
-				child, err := findRepoDeps(childRepo, childTag, buildConfigList)
+				child, err := findStreamDeps(childStream, childTag, buildConfigList)
 				if err != nil {
 					return nil, err
 				}
@@ -361,10 +361,10 @@ func findRepoDeps(repo, tag string, buildConfigList []buildapi.BuildConfig) (*Im
 				// If the child depends on root via more than one tag, we have to make sure
 				// that only one single instance of the child will make it into root.Children
 				cont := false
-				for _, repo := range root.Children {
-					if repo.FullName == child.FullName {
+				for _, stream := range root.Children {
+					if stream.FullName == child.FullName {
 						// Just pass the tag along and discard the current child
-						repo.Tags = append(repo.Tags, child.Tags...)
+						stream.Tags = append(stream.Tags, child.Tags...)
 						cont = true
 						break
 					}
@@ -383,8 +383,8 @@ func findRepoDeps(repo, tag string, buildConfigList []buildapi.BuildConfig) (*Im
 
 var once sync.Once
 
-// dotDump dumps the given image repository tree in DOT syntax
-func dotDump(root *ImageRepo, g *dot.Graph, graphName string) (string, error) {
+// dotDump dumps the given image stream tree in DOT syntax
+func dotDump(root *Node, g *dot.Graph, graphName string) (string, error) {
 	if root == nil {
 		return "", nil
 	}

@@ -8,11 +8,11 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// invalidRepoTagErr is returned when an invalid image repository and tag
+// invalidStreamTagErr is returned when an invalid image stream and tag
 // combination has been passed by the user
-var invalidRepoTagErr = fmt.Errorf("invalid [imageRepository]:[tag] input")
+var invalidStreamTagErr = fmt.Errorf("invalid [imageStream]:[tag] input")
 
-// parseTag parses the input and returns the repo (namespace+name)
+// parseTag parses the input and returns the stream (namespace+name)
 // alongside a tag
 func parseTag(input string) (string, string, error) {
 	args := strings.Split(input, ":")
@@ -25,7 +25,7 @@ func parseTag(input string) (string, string, error) {
 		}
 		return args[0], args[1], nil
 	default:
-		return "", "", invalidRepoTagErr
+		return "", "", invalidStreamTagErr
 	}
 }
 
@@ -34,14 +34,14 @@ func join(namespace, name string) string {
 	return namespace + "/" + name
 }
 
-var invalidRepoErr = fmt.Errorf("cannot split input to name and namespace")
+var invalidStreamErr = fmt.Errorf("cannot split input to name and namespace")
 
-// split accepts an image repository namespace/name string
+// split accepts an image stream namespace/name string
 // and splits it to namespace (first) and name (second)
-func split(repo string) (string, string, error) {
-	args := strings.Split(repo, "/")
+func split(stream string) (string, string, error) {
+	args := strings.Split(stream, "/")
 	if len(args) != 2 {
-		return "", "", invalidRepoErr
+		return "", "", invalidStreamErr
 	}
 	return args[0], args[1], nil
 }
@@ -69,7 +69,7 @@ func setTag(tag string, attrs map[string]string) {
 }
 
 // treeSize traverses a tree and returns its size
-func treeSize(root *ImageRepo) int {
+func treeSize(root *Node) int {
 	if root == nil {
 		return 0
 	}
