@@ -47,7 +47,7 @@ func (h *Helper) GetDockerAuth(registry, authType string) (docker.AuthConfigurat
 		dockercfgPath = getDockercfgFile(pathForAuthType)
 	}
 	if _, err := os.Stat(dockercfgPath); err != nil {
-		glog.Errorf("%s: %v", dockercfgPath, err)
+		glog.V(3).Infof("%s: %v", dockercfgPath, err)
 		return authCfg, false
 	}
 	cfg, err := readDockercfg(dockercfgPath)
