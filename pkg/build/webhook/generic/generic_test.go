@@ -26,8 +26,8 @@ func GivenRequest(method string) *http.Request {
 	return req
 }
 
-func GivenRequestWithPayload(t *testing.T) *http.Request {
-	data, err := ioutil.ReadFile("fixtures/push-git.json")
+func GivenRequestWithPayload(t *testing.T, filename string) *http.Request {
+	data, err := ioutil.ReadFile("fixtures/" + filename)
 	if err != nil {
 		t.Errorf("Error reading setup data: %v", err)
 		return nil
@@ -82,35 +82,6 @@ func TestVerifyRequestForUserAgent(t *testing.T) {
 
 }
 
-func TestVerifyRequestForContentType(t *testing.T) {
-	req := &http.Request{
-		Header: http.Header{"User-Agent": {"foobar"}},
-		Method: "POST",
-	}
-	err := verifyRequest(req)
-	if err != nil && !strings.Contains(err.Error(), "Content-Type") {
-		t.Errorf("Exp. a content type error")
-	}
-
-	req.Header.Add("Content-Length", "1")
-	err = verifyRequest(req)
-	if err == nil || !strings.Contains(err.Error(), "Content-Type") {
-		t.Errorf("Exp. ContentType to be required if a payload is posted %v", err)
-	}
-
-	req.Header.Add("Content-Type", "X-Whatever")
-	err = verifyRequest(req)
-	if err == nil || !strings.Contains(err.Error(), "Unsupported Content-Type") {
-		t.Errorf("Exp. to only support json payloads %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	err = verifyRequest(req)
-	if err != nil && !strings.Contains(err.Error(), "Unsupported Content-Type") {
-		t.Errorf("Exp. to allow json payloads %v", err)
-	}
-}
-
 func TestExtractWithEmptyPayload(t *testing.T) {
 	req := GivenRequest("POST")
 	req.Header.Add("User-Agent", "Some User Agent")
@@ -148,7 +119,7 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 }
 
 func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
-	req := GivenRequestWithPayload(t)
+	req := GivenRequestWithPayload(t, "push-github.json")
 	buildConfig := &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
@@ -183,7 +154,7 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 }
 
 func TestExtractWithGitPayload(t *testing.T) {
-	req := GivenRequestWithPayload(t)
+	req := GivenRequestWithPayload(t, "push-github.json")
 	buildConfig := &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
@@ -286,6 +257,68 @@ func TestExtractWithUnmatchedGitRefsPayload(t *testing.T) {
 	}
 	if revision != nil {
 		t.Error("Expected the 'revision' return value to be nil")
+	}
+}
+
+func TestGitlabPush(t *testing.T) {
+	req := GivenRequestWithPayload(t, "push-gitlab.json")
+	buildConfig := &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GenericWebHookBuildTriggerType,
+				GenericWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+			},
+			Strategy: mockBuildStrategy,
+		},
+	}
+	plugin := New()
+
+	_, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+
+	if err != nil {
+		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
+	}
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
+	}
+}
+func TestNonJsonPush(t *testing.T) {
+	req, _ := http.NewRequest("POST", "http://someurl.com", nil)
+	req.Header.Add("User-Agent", "Some User Agent")
+	req.Header.Add("Content-Type", "*/*")
+
+	buildConfig := &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GenericWebHookBuildTriggerType,
+				GenericWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+			},
+			Strategy: mockBuildStrategy,
+		},
+	}
+	plugin := New()
+
+	_, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+
+	if err != nil {
+		t.Errorf("Expected to be able to trigger a build without a payload error: %v", err)
+	}
+	if !proceed {
+		t.Error("Expected 'proceed' return value to be 'true'")
 	}
 }
 
