@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -61,13 +62,11 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 		Long:  allInOne_long,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
-				fmt.Println(err.Error())
-				c.Help()
+				fmt.Println(kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
-				c.Help()
+				fmt.Println(kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
@@ -135,7 +134,7 @@ func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *K
 
 func (o AllInOneOptions) Validate(args []string) error {
 	if len(args) != 0 {
-		return errors.New("no arguments are supported for start")
+		return errors.New("No arguments are supported for start")
 	}
 
 	if (len(o.MasterConfigFile) == 0) != (len(o.NodeConfigFile) == 0) {
