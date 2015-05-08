@@ -118,8 +118,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # OS platform to box information
     kube_box = {
       "fedora" => {
-        "name" => "fedora20_openshift",
-        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_20_latest.box"
+        "name" => "fedora_deps",
+        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_deps.box"
       }
     }
 
