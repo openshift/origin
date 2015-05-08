@@ -103,26 +103,24 @@ func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 	}
 
 	addValerie := &policy.RoleModificationOptions{
-		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		RoleName:         bootstrappolicy.ViewRoleName,
-		BindingNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		Client:           clusterAdminClient,
-		Users:            []string{"valerie"},
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.ViewRoleName,
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		Users:               []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if err = clusterAdminClient.Roles(bootstrappolicy.DefaultMasterAuthorizationNamespace).Delete(bootstrappolicy.ViewRoleName); err != nil {
+	if err = clusterAdminClient.ClusterRoles().Delete(bootstrappolicy.ViewRoleName); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	addEdgar := &policy.RoleModificationOptions{
-		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		RoleName:         bootstrappolicy.EditRoleName,
-		BindingNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		Client:           clusterAdminClient,
-		Users:            []string{"edgar"},
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.EditRoleName,
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		Users:               []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -193,22 +191,20 @@ func TestResourceAccessReview(t *testing.T) {
 	}
 
 	addValerie := &policy.RoleModificationOptions{
-		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		RoleName:         bootstrappolicy.ViewRoleName,
-		BindingNamespace: "hammer-project",
-		Client:           haroldClient,
-		Users:            []string{"valerie"},
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.ViewRoleName,
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", haroldClient),
+		Users:               []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	addEdgar := &policy.RoleModificationOptions{
-		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		RoleName:         bootstrappolicy.EditRoleName,
-		BindingNamespace: "mallet-project",
-		Client:           markClient,
-		Users:            []string{"edgar"},
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.EditRoleName,
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", markClient),
+		Users:               []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -321,22 +317,20 @@ func TestSubjectAccessReview(t *testing.T) {
 	}
 
 	addValerie := &policy.RoleModificationOptions{
-		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		RoleName:         bootstrappolicy.ViewRoleName,
-		BindingNamespace: "hammer-project",
-		Client:           haroldClient,
-		Users:            []string{"valerie"},
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.ViewRoleName,
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", haroldClient),
+		Users:               []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	addEdgar := &policy.RoleModificationOptions{
-		RoleNamespace:    bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		RoleName:         bootstrappolicy.EditRoleName,
-		BindingNamespace: "mallet-project",
-		Client:           markClient,
-		Users:            []string{"edgar"},
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.EditRoleName,
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", markClient),
+		Users:               []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

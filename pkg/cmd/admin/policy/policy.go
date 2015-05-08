@@ -3,8 +3,8 @@ package policy
 import (
 	"fmt"
 	"io"
-	"strings"
 
+	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -28,13 +28,19 @@ func NewCommandPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer
 		Run:   runHelp,
 	}
 
+	cmds.AddCommand(NewCmdWhoCan(WhoCanRecommendedName, fullName+" "+WhoCanRecommendedName, f, out))
+
 	cmds.AddCommand(NewCmdAddRoleToUser(AddRoleToUserRecommendedName, fullName+" "+AddRoleToUserRecommendedName, f, out))
 	cmds.AddCommand(NewCmdRemoveRoleFromUser(RemoveRoleFromUserRecommendedName, fullName+" "+RemoveRoleFromUserRecommendedName, f, out))
 	cmds.AddCommand(NewCmdRemoveUserFromProject(RemoveUserRecommendedName, fullName+" "+RemoveUserRecommendedName, f, out))
 	cmds.AddCommand(NewCmdAddRoleToGroup(AddRoleToGroupRecommendedName, fullName+" "+AddRoleToGroupRecommendedName, f, out))
 	cmds.AddCommand(NewCmdRemoveRoleFromGroup(RemoveRoleFromGroupRecommendedName, fullName+" "+RemoveRoleFromGroupRecommendedName, f, out))
 	cmds.AddCommand(NewCmdRemoveGroupFromProject(RemoveGroupRecommendedName, fullName+" "+RemoveGroupRecommendedName, f, out))
-	cmds.AddCommand(NewCmdWhoCan(WhoCanRecommendedName, fullName+" "+WhoCanRecommendedName, f, out))
+
+	cmds.AddCommand(NewCmdAddClusterRoleToUser(AddClusterRoleToUserRecommendedName, fullName+" "+AddClusterRoleToUserRecommendedName, f, out))
+	cmds.AddCommand(NewCmdRemoveClusterRoleFromUser(RemoveClusterRoleFromUserRecommendedName, fullName+" "+RemoveClusterRoleFromUserRecommendedName, f, out))
+	cmds.AddCommand(NewCmdAddClusterRoleToGroup(AddClusterRoleToGroupRecommendedName, fullName+" "+AddClusterRoleToGroupRecommendedName, f, out))
+	cmds.AddCommand(NewCmdRemoveClusterRoleFromGroup(RemoveClusterRoleFromGroupRecommendedName, fullName+" "+RemoveClusterRoleFromGroupRecommendedName, f, out))
 
 	return cmds
 }
@@ -66,9 +72,27 @@ func getUniqueName(basename string, existingNames *util.StringSet) string {
 	return string(util.NewUUID())
 }
 
-func getExistingRoleBindingsForRole(roleNamespace, role string, bindingInterface client.PolicyBindingInterface) ([]*authorizationapi.RoleBinding, error) {
-	existingBindings, err := bindingInterface.Get(authorizationapi.GetPolicyBindingName(roleNamespace))
-	if err != nil && !strings.Contains(err.Error(), " not found") {
+// RoleBindingAccessor is used by role modification commands to access and modify roles
+type RoleBindingAccessor interface {
+	GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error)
+	GetExistingRoleBindingNames() (*util.StringSet, error)
+	UpdateRoleBinding(binding *authorizationapi.RoleBinding) error
+	CreateRoleBinding(binding *authorizationapi.RoleBinding) error
+}
+
+// LocalRoleBindingAccessor operates against role bindings in namespace
+type LocalRoleBindingAccessor struct {
+	BindingNamespace string
+	Client           client.Interface
+}
+
+func NewLocalRoleBindingAccessor(bindingNamespace string, client client.Interface) LocalRoleBindingAccessor {
+	return LocalRoleBindingAccessor{bindingNamespace, client}
+}
+
+func (a LocalRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error) {
+	existingBindings, err := a.Client.PolicyBindings(a.BindingNamespace).Get(authorizationapi.GetPolicyBindingName(roleNamespace))
+	if err != nil && !kapierrors.IsNotFound(err) {
 		return nil, err
 	}
 
@@ -84,8 +108,8 @@ func getExistingRoleBindingsForRole(roleNamespace, role string, bindingInterface
 	return ret, nil
 }
 
-func getExistingRoleBindingNames(bindingInterface client.PolicyBindingInterface) (*util.StringSet, error) {
-	policyBindings, err := bindingInterface.List(labels.Everything(), fields.Everything())
+func (a LocalRoleBindingAccessor) GetExistingRoleBindingNames() (*util.StringSet, error) {
+	policyBindings, err := a.Client.PolicyBindings(a.BindingNamespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -98,4 +122,73 @@ func getExistingRoleBindingNames(bindingInterface client.PolicyBindingInterface)
 	}
 
 	return ret, nil
+}
+
+func (a LocalRoleBindingAccessor) UpdateRoleBinding(binding *authorizationapi.RoleBinding) error {
+	_, err := a.Client.RoleBindings(a.BindingNamespace).Update(binding)
+	return err
+}
+
+func (a LocalRoleBindingAccessor) CreateRoleBinding(binding *authorizationapi.RoleBinding) error {
+	binding.Namespace = a.BindingNamespace
+	_, err := a.Client.RoleBindings(a.BindingNamespace).Create(binding)
+	return err
+}
+
+// ClusterRoleBindingAccessor operates against cluster scoped role bindings
+type ClusterRoleBindingAccessor struct {
+	Client client.Interface
+}
+
+func NewClusterRoleBindingAccessor(client client.Interface) ClusterRoleBindingAccessor {
+	// the master namespace value doesn't matter because we're round tripping all the values, so the namespace gets stripped out
+	return ClusterRoleBindingAccessor{client}
+}
+
+func (a ClusterRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error) {
+	uncast, err := a.Client.ClusterPolicyBindings().Get(authorizationapi.GetPolicyBindingName(roleNamespace))
+	if err != nil && !kapierrors.IsNotFound(err) {
+		return nil, err
+	}
+	existingBindings := authorizationapi.ToPolicyBinding(uncast)
+
+	ret := make([]*authorizationapi.RoleBinding, 0)
+	// see if we can find an existing binding that points to the role in question.
+	for _, currBinding := range existingBindings.RoleBindings {
+		if currBinding.RoleRef.Name == role {
+			t := currBinding
+			ret = append(ret, &t)
+		}
+	}
+
+	return ret, nil
+}
+
+func (a ClusterRoleBindingAccessor) GetExistingRoleBindingNames() (*util.StringSet, error) {
+	uncast, err := a.Client.ClusterPolicyBindings().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return nil, err
+	}
+	policyBindings := authorizationapi.ToPolicyBindingList(uncast)
+
+	ret := &util.StringSet{}
+	for _, existingBindings := range policyBindings.Items {
+		for _, currBinding := range existingBindings.RoleBindings {
+			ret.Insert(currBinding.Name)
+		}
+	}
+
+	return ret, nil
+}
+
+func (a ClusterRoleBindingAccessor) UpdateRoleBinding(binding *authorizationapi.RoleBinding) error {
+	clusterBinding := authorizationapi.ToClusterRoleBinding(binding)
+	_, err := a.Client.ClusterRoleBindings().Update(clusterBinding)
+	return err
+}
+
+func (a ClusterRoleBindingAccessor) CreateRoleBinding(binding *authorizationapi.RoleBinding) error {
+	clusterBinding := authorizationapi.ToClusterRoleBinding(binding)
+	_, err := a.Client.ClusterRoleBindings().Create(clusterBinding)
+	return err
 }

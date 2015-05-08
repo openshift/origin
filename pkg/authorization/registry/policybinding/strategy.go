@@ -20,7 +20,6 @@ type strategy struct {
 	runtime.ObjectTyper
 }
 
-// Strategy is the default logic that applies when creating and updating PolicyBinding objects.
 var Strategy = strategy{kapi.Scheme}
 
 // NamespaceScoped is true for policybindings.
@@ -38,17 +37,17 @@ func (strategy) GenerateName(base string) string {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (s strategy) PrepareForCreate(obj runtime.Object) {
 	binding := obj.(*authorizationapi.PolicyBinding)
 
-	scrubBindingRefs(binding)
+	s.scrubBindingRefs(binding)
 	// force a delimited name, just in case we someday allow a reference to a global object that won't have a namespace.  We'll end up with a name like ":default".
 	// ":" is not in the value space of namespaces, so no escaping is necessary
 	binding.Name = authorizationapi.GetPolicyBindingName(binding.PolicyRef.Namespace)
 }
 
 // scrubBindingRefs discards pieces of the object references that we don't respect to avoid confusion.
-func scrubBindingRefs(binding *authorizationapi.PolicyBinding) {
+func (s strategy) scrubBindingRefs(binding *authorizationapi.PolicyBinding) {
 	binding.PolicyRef = kapi.ObjectReference{Namespace: binding.PolicyRef.Namespace, Name: authorizationapi.PolicyName}
 
 	for roleBindingKey, roleBinding := range binding.RoleBindings {
@@ -58,20 +57,20 @@ func scrubBindingRefs(binding *authorizationapi.PolicyBinding) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s strategy) PrepareForUpdate(obj, old runtime.Object) {
 	binding := obj.(*authorizationapi.PolicyBinding)
 
-	scrubBindingRefs(binding)
+	s.scrubBindingRefs(binding)
 }
 
 // Validate validates a new policyBinding.
 func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidatePolicyBinding(obj.(*authorizationapi.PolicyBinding))
+	return validation.ValidateLocalPolicyBinding(obj.(*authorizationapi.PolicyBinding))
 }
 
 // ValidateUpdate is the default update validation for an end user.
 func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidatePolicyBindingUpdate(obj.(*authorizationapi.PolicyBinding), old.(*authorizationapi.PolicyBinding))
+	return validation.ValidateLocalPolicyBindingUpdate(obj.(*authorizationapi.PolicyBinding), old.(*authorizationapi.PolicyBinding))
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

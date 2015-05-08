@@ -20,6 +20,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/editor"
+	"github.com/openshift/origin/pkg/util/jsonmerge"
 )
 
 const (
@@ -193,6 +194,17 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 			continue
 		}
 
+		// attempt to calculate a delta for merging conflicts
+		delta, err := jsonmerge.NewDelta(original, edited)
+		if err != nil {
+			glog.V(4).Infof("Unable to calculate diff, no merge is possible: %v", err)
+			delta = nil
+		} else {
+			delta.AddPreconditions(jsonmerge.RequireKeyUnchanged("apiVersion"))
+			results.delta = delta
+			results.version = defaultVersion
+		}
+
 		err = resource.NewFlattenListVisitor(updates, rmap).Visit(func(info *resource.Info) error {
 			data, err := info.Mapping.Codec.Encode(info.Object)
 			if err != nil {
@@ -216,7 +228,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 			return errExit
 		}
 		if results.conflict > 0 {
-			fmt.Fprintf(cmd.Out(), "You must update your resource version and run `%s update -f %s` to overwrite the remote changes.\n", fullName, file)
+			fmt.Fprintf(cmd.Out(), "You must update your local resource version and run `%s update -f %s` to overwrite the remote changes.\n", fullName, file)
 			return errExit
 		}
 		if len(results.edit) == 0 {
@@ -274,6 +286,9 @@ type editResults struct {
 	conflict  int
 	edit      []*resource.Info
 	file      string
+
+	delta   *jsonmerge.Delta
+	version string
 }
 
 func (r *editResults) AddError(err error, info *resource.Info) string {
@@ -295,15 +310,69 @@ func (r *editResults) AddError(err error, info *resource.Info) string {
 	case errors.IsNotFound(err):
 		r.notfound++
 		return fmt.Sprintf("Error: the %s %s has been deleted on the server", info.Mapping.Kind, info.Name)
+
 	case errors.IsConflict(err):
+		if r.delta != nil {
+			v1 := info.ResourceVersion
+			if perr := applyPatch(r.delta, info, r.version); perr != nil {
+				// the error was related to the patching process
+				if nerr, ok := perr.(patchError); ok {
+					r.conflict++
+					if jsonmerge.IsPreconditionFailed(nerr.error) {
+						return fmt.Sprintf("Error: the API version of the provided object cannot be changed")
+					}
+					// the patch is in conflict, report to user and exit
+					if jsonmerge.IsConflicting(nerr.error) {
+						// TODO: read message
+						return fmt.Sprintf("Error: a conflicting change was made to the %s %s on the server", info.Mapping.Kind, info.Name)
+					}
+					glog.V(4).Infof("Attempted to patch the resource, but failed: %v", perr)
+					return fmt.Sprintf("Error: %v", err)
+				}
+				// try processing this server error and unset delta so we don't recurse
+				r.delta = nil
+				return r.AddError(err, info)
+			}
+			return fmt.Sprintf("Applied your changes to %s from version %s onto %s", info.Name, v1, info.ResourceVersion)
+		}
+		// no delta was available
 		r.conflict++
-		// TODO: make this better by extracting the resource version of the new version and allowing the user
-		// to know what command they need to run to update again (by rewriting the version?)
 		return fmt.Sprintf("Error: %v", err)
 	default:
 		r.retryable++
 		return fmt.Sprintf("Error: the %s %s could not be updated: %v", info.Mapping.Kind, info.Name, err)
 	}
+}
+
+type patchError struct {
+	error
+}
+
+// applyPatch reads the latest version of the object, writes it to version, then attempts to merge
+// the changes onto it without conflict. If a conflict occurs jsonmerge.IsConflicting(err) is
+// true. The info object is mutated
+func applyPatch(delta *jsonmerge.Delta, info *resource.Info, version string) error {
+	if err := info.Get(); err != nil {
+		return patchError{err}
+	}
+	obj, err := resource.AsVersionedObject([]*resource.Info{info}, false, version)
+	if err != nil {
+		return patchError{err}
+	}
+	data, err := info.Mapping.Codec.Encode(obj)
+	if err != nil {
+		return patchError{err}
+	}
+	merged, err := delta.Apply(data)
+	if err != nil {
+		return patchError{err}
+	}
+	updated, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, false, merged)
+	if err != nil {
+		return err
+	}
+	info.Refresh(updated, true)
+	return nil
 }
 
 // preservedFile writes out a message about the provided file if it exists to the
@@ -323,6 +392,7 @@ func preservedFile(err error, path string, out io.Writer) error {
 // any errors encountered reading the stream.
 func hasLines(r io.Reader) (bool, error) {
 	// TODO: if any files we read have > 64KB lines, we'll need to switch to bytes.ReadLine
+	// TODO: probably going to be secrets
 	s := bufio.NewScanner(r)
 	for s.Scan() {
 		if line := strings.TrimSpace(s.Text()); len(line) > 0 && line[0] != '#' {

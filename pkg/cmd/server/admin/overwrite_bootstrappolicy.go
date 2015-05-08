@@ -14,7 +14,6 @@ import (
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/openshift/origin/pkg/api/latest"
@@ -26,9 +25,17 @@ import (
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
+
+	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
+	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
+	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
+	clusterpolicybindingetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
+	clusterroleregistry "github.com/openshift/origin/pkg/authorization/registry/clusterrole"
+	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
+	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
+
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	configvalidation "github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	cmdclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -92,9 +99,6 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 	if err != nil {
 		return err
 	}
-	if err := configvalidation.ValidateNamespace(masterConfig.PolicyConfig.MasterAuthorizationNamespace, "masterAuthorizationNamespace"); len(err) > 0 {
-		return utilerrors.NewAggregate(err)
-	}
 
 	// Connect and setup etcd interfaces
 	etcdClient, err := etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
@@ -106,10 +110,10 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 		return err
 	}
 
-	return OverwriteBootstrapPolicy(etcdHelper, masterConfig.PolicyConfig.MasterAuthorizationNamespace, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
+	return OverwriteBootstrapPolicy(etcdHelper, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
 }
 
-func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, policyFile, createBootstrapPolicyCommand string, change bool, out io.Writer) error {
+func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, policyFile, createBootstrapPolicyCommand string, change bool, out io.Writer) error {
 	if !change {
 		fmt.Fprintf(out, "Performing a dry run of policy overwrite:\n\n")
 	}
@@ -131,8 +135,15 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 
 	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(etcdHelper))
 	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(etcdHelper))
+
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicyetcd.NewStorage(etcdHelper))
+	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterpolicybindingetcd.NewStorage(etcdHelper))
+
 	roleRegistry := roleregistry.NewRegistry(rolestorage.NewVirtualStorage(policyRegistry))
-	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyRegistry, policyBindingRegistry, masterNamespace)
+	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry)
+	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry)
+	clusterRoleRegistry := clusterroleregistry.NewRegistry(clusterRoleStorage)
+	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
 
 	return r.Visit(func(info *resource.Info) error {
 		template, ok := info.Object.(*templateapi.Template)
@@ -166,6 +177,33 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, masterNamespace, poli
 				} else {
 					fmt.Fprintf(out, "Overwrite role binding %s/%s\n", t.Namespace, t.Name)
 					if s, err := describe.DescribeRoleBinding(t, nil, nil); err == nil {
+						fmt.Fprintf(out, "%s\n", s)
+					}
+				}
+
+			case *authorizationapi.ClusterRole:
+				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
+				if change {
+					clusterRoleRegistry.DeleteClusterRole(ctx, t.Name)
+					if _, err := clusterRoleRegistry.CreateClusterRole(ctx, t); err != nil {
+						return err
+					}
+				} else {
+					fmt.Fprintf(out, "Overwrite role %s/%s\n", t.Namespace, t.Name)
+					if s, err := describe.DescribeRole(authorizationapi.ToRole(t)); err == nil {
+						fmt.Fprintf(out, "%s\n", s)
+					}
+				}
+			case *authorizationapi.ClusterRoleBinding:
+				ctx := kapi.WithNamespace(kapi.NewContext(), t.Namespace)
+				if change {
+					clusterRoleBindingStorage.Delete(ctx, t.Name, nil)
+					if _, err := clusterRoleBindingStorage.CreateClusterRoleBindingWithEscalation(ctx, t); err != nil {
+						return err
+					}
+				} else {
+					fmt.Fprintf(out, "Overwrite role binding %s/%s\n", t.Namespace, t.Name)
+					if s, err := describe.DescribeRoleBinding(authorizationapi.ToRoleBinding(t), nil, nil); err == nil {
 						fmt.Fprintf(out, "%s\n", s)
 					}
 				}

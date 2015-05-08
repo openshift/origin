@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -69,11 +70,21 @@ func (c *buildConfigs) Get(name string) (result *buildapi.BuildConfig, err error
 // WebHookURL returns the URL for the provided build config name and trigger policy, or ErrTriggerIsNotAWebHook
 // if the trigger is not a webhook type.
 func (c *buildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {
+	if kapi.PreV1Beta3(c.r.APIVersion()) {
+		switch {
+		case trigger.GenericWebHook != nil:
+			return c.r.Get().Namespace(c.ns).Resource("buildConfigHooks").Name(name).Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
+		case trigger.GithubWebHook != nil:
+			return c.r.Get().Namespace(c.ns).Resource("buildConfigHooks").Name(name).Suffix(trigger.GithubWebHook.Secret, "github").URL(), nil
+		default:
+			return nil, ErrTriggerIsNotAWebHook
+		}
+	}
 	switch {
 	case trigger.GenericWebHook != nil:
-		return c.r.Get().Namespace(c.ns).Resource("buildConfigHooks").Name(name).Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
 	case trigger.GithubWebHook != nil:
-		return c.r.Get().Namespace(c.ns).Resource("buildConfigHooks").Name(name).Suffix(trigger.GithubWebHook.Secret, "github").URL(), nil
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GithubWebHook.Secret, "github").URL(), nil
 	default:
 		return nil, ErrTriggerIsNotAWebHook
 	}

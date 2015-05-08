@@ -40,7 +40,7 @@ type Build struct {
 	CompletionTimestamp *util.Time `json:"completionTimestamp,omitempty"`
 
 	// Duration contains time.Duration object describing build time.
-	Duration time.Duration `json:"duration",omitempty"`
+	Duration time.Duration `json:"duration,omitempty"`
 
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference `json:"config,omitempty"`
@@ -202,7 +202,8 @@ type CustomBuildStrategy struct {
 
 	// Tag is the name of image stream tag to be used as the FROM image, it only
 	// applies when From is specified and the Kind of From is ImageStream.
-	Tag string `json:"tag,omitempty`
+	// JSON tag should be changed to "tag" instead of "Tag" in v1beta2
+	Tag string `json:"Tag,omitempty"`
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -233,7 +234,8 @@ type DockerBuildStrategy struct {
 
 	// Tag is the name of image stream tag to be used as the FROM image, it only
 	// applies when From is specified and the Kind of From is ImageStream.
-	Tag string `json:"tag,omitempty`
+	// JSON tag should be changed to "tag" instead of "Tag" in v1beta2
+	Tag string `json:"Tag,omitempty"`
 }
 
 // STIBuildStrategy defines input parameters specific to an STI build.
@@ -252,7 +254,7 @@ type STIBuildStrategy struct {
 
 	// Tag is the name of image stream tag to be used as the FROM image, it only
 	// applies when From is specified and the Kind of From is ImageStream.
-	// TODO change this to "tag" instead of "Tag" in v1beta2
+	// JSON tag should be changed to "tag" instead of "Tag" in v1beta2
 	Tag string `json:"Tag,omitempty"`
 
 	// Additional environment variables you want to pass into a builder container

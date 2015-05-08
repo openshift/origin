@@ -249,28 +249,29 @@ func testBuildHandler() *STI {
 
 func TestPostExecute(t *testing.T) {
 	type postExecuteTest struct {
-		tag             string
-		incremental     bool
-		previousImageID string
+		tag              string
+		incremental      bool
+		previousImageID  string
+		scriptsFromImage bool
 	}
 	testCases := []postExecuteTest{
 		// 0: tagged, incremental, without previous image
-		{"test/tag", true, ""},
+		{"test/tag", true, "", true},
 		// 1: tagged, incremental, with previous image
-		{"test/tag", true, "test-image"},
+		{"test/tag", true, "test-image", true},
 		// 2: tagged, no incremental, without previous image
-		{"test/tag", false, ""},
+		{"test/tag", false, "", true},
 		// 3: tagged, no incremental, with previous image
-		{"test/tag", false, "test-image"},
+		{"test/tag", false, "test-image", true},
 
 		// 4: no tag, incremental, without previous image
-		{"", true, ""},
+		{"", true, "", false},
 		// 5: no tag, incremental, with previous image
-		{"", true, "test-image"},
+		{"", true, "test-image", false},
 		// 6: no tag, no incremental, without previous image
-		{"", false, ""},
+		{"", false, "", false},
 		// 7: no tag, no incremental, with previous image
-		{"", false, "test-image"},
+		{"", false, "test-image", false},
 	}
 
 	for i, tc := range testCases {
@@ -287,12 +288,19 @@ func TestPostExecute(t *testing.T) {
 			bh.docker.(*test.FakeDocker).GetImageIDResult = tc.previousImageID
 		}
 		ci := bh.callbackInvoker.(*test.FakeCallbackInvoker)
+		if tc.scriptsFromImage {
+			bh.scriptsURL = map[string]string{api.Run: "image:///usr/local/sti"}
+		}
 		err := bh.PostExecute(containerID, "cmd1")
 		if err != nil {
 			t.Errorf("(%d) Unexpected error from postExecute: %v", i, err)
 		}
 		// Ensure CommitContainer was called with the right parameters
-		if !reflect.DeepEqual(dh.CommitContainerOpts.Command, []string{"cmd1/" + api.Run}) {
+		expectedCmd := []string{"cmd1/scripts/" + api.Run}
+		if tc.scriptsFromImage {
+			expectedCmd = []string{"/usr/local/sti/" + api.Run}
+		}
+		if !reflect.DeepEqual(dh.CommitContainerOpts.Command, expectedCmd) {
 			t.Errorf("(%d) Unexpected commit container command: %#v", i, dh.CommitContainerOpts.Command)
 		}
 		if dh.CommitContainerOpts.Repository != tc.tag {

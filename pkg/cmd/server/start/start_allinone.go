@@ -3,6 +3,7 @@ package start
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -15,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -29,6 +31,8 @@ type AllInOneOptions struct {
 	ConfigDir        util.StringFlag
 	MasterConfigFile string
 	NodeConfigFile   string
+
+	Output cmdutil.Output
 }
 
 const allInOne_long = `Start an OpenShift all-in-one server
@@ -52,8 +56,8 @@ You may also pass --etcd=<address> to connect to an external etcd server.
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
-func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
-	options := &AllInOneOptions{}
+func NewCommandStartAllInOne(out io.Writer) (*cobra.Command, *AllInOneOptions) {
+	options := &AllInOneOptions{Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -61,13 +65,11 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 		Long:  allInOne_long,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
-				fmt.Println(err.Error())
-				c.Help()
+				fmt.Println(kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
-				c.Help()
+				fmt.Println(kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
@@ -87,6 +89,7 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 			}
 		},
 	}
+	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -105,8 +108,8 @@ func NewCommandStartAllInOne() (*cobra.Command, *AllInOneOptions) {
 	BindListenArg(listenArg, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
 
-	startMaster, _ := NewCommandStartMaster()
-	startNode, _ := NewCommandStartNode()
+	startMaster, _ := NewCommandStartMaster(out)
+	startNode, _ := NewCommandStartNode(out)
 	cmd.AddCommand(startMaster)
 	cmd.AddCommand(startNode)
 
@@ -135,7 +138,7 @@ func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *K
 
 func (o AllInOneOptions) Validate(args []string) error {
 	if len(args) != 0 {
-		return errors.New("no arguments are supported for start")
+		return errors.New("No arguments are supported for start")
 	}
 
 	if (len(o.MasterConfigFile) == 0) != (len(o.NodeConfigFile) == 0) {
@@ -216,12 +219,12 @@ func (o AllInOneOptions) StartAllInOne() error {
 		glog.Infof("Starting an OpenShift all-in-one")
 	}
 
-	masterOptions := MasterOptions{o.MasterArgs, o.CreateCerts, o.MasterConfigFile}
+	masterOptions := MasterOptions{o.MasterArgs, o.CreateCerts, o.MasterConfigFile, o.Output}
 	if err := masterOptions.RunMaster(); err != nil {
 		return err
 	}
 
-	nodeOptions := NodeOptions{o.NodeArgs, o.NodeConfigFile}
+	nodeOptions := NodeOptions{o.NodeArgs, o.NodeConfigFile, o.Output}
 	if err := nodeOptions.RunNode(); err != nil {
 		return err
 	}

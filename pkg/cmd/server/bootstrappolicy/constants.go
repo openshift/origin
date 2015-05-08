@@ -2,7 +2,6 @@ package bootstrappolicy
 
 // known namespaces
 const (
-	DefaultMasterAuthorizationNamespace      = "master"
 	DefaultOpenShiftSharedResourcesNamespace = "openshift"
 )
 
@@ -44,6 +43,7 @@ const (
 	RegistryRoleName          = "system:registry"
 	InternalComponentRoleName = "system:component"
 	DeleteTokensRoleName      = "system:delete-tokens"
+	WebHooksRoleName          = "system:webhook"
 
 	OpenshiftSharedResourceViewRoleName = "shared-resource-viewer"
 )
@@ -59,6 +59,7 @@ const (
 	StatusCheckerRoleBindingName     = StatusCheckerRoleName + "-binding"
 	RouterRoleBindingName            = RouterRoleName + "s"
 	RegistryRoleBindingName          = RegistryRoleName + "s"
+	WebHooksRoleBindingName          = WebHooksRoleName + "s"
 
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
 )

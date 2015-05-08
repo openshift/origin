@@ -26,6 +26,11 @@ func (c *FakeClusterRoles) Create(role *authorizationapi.ClusterRole) (*authoriz
 	return obj.(*authorizationapi.ClusterRole), err
 }
 
+func (c *FakeClusterRoles) Update(role *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error) {
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-clusterRole"}, &authorizationapi.ClusterRole{})
+	return obj.(*authorizationapi.ClusterRole), err
+}
+
 func (c *FakeClusterRoles) Delete(name string) error {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-clusterRole", Value: name})
 	return nil

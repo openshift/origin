@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -48,6 +49,7 @@ type CreateNodeConfigOptions struct {
 	NodeClientCAFile string
 	APIServerCAFile  string
 	APIServerURL     string
+	Output           cmdutil.Output
 }
 
 func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
@@ -67,6 +69,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 		},
 	}
 	cmd.SetOutput(out)
+	options.Output = cmdutil.Output{out}
 
 	flags := cmd.Flags()
 
@@ -243,6 +246,7 @@ func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile st
 
 			User:   "system:node-" + o.NodeName,
 			Groups: util.StringList([]string{bootstrappolicy.NodesGroup}),
+			Output: o.Output,
 		}
 
 		if err := createNodeClientCert.Validate(nil); err != nil {
@@ -273,6 +277,7 @@ func (o CreateNodeConfigOptions) MakeServerCert(serverCertFile, serverKeyFile st
 			KeyFile:  serverKeyFile,
 
 			Hostnames: o.Hostnames,
+			Output:    o.Output,
 		}
 
 		if err := nodeServerCertOptions.Validate(nil); err != nil {
@@ -323,6 +328,7 @@ func (o CreateNodeConfigOptions) MakeKubeConfig(clientCertFile, clientKeyFile, c
 		ContextNamespace: kapi.NamespaceDefault,
 
 		KubeConfigFile: kubeConfigFile,
+		Output:         o.Output,
 	}
 	if err := createKubeConfigOptions.Validate(nil); err != nil {
 		return err
@@ -373,6 +379,7 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		return err
 	}
 
+	fmt.Fprintf(o.Output.Get(), "Creating node config for %s in %s", o.NodeName, o.NodeConfigDir)
 	// Relativize to config file dir
 	base, err := cmdutil.MakeAbs(o.NodeConfigDir, cwd)
 	if err != nil {

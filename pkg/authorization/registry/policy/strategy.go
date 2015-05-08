@@ -50,12 +50,12 @@ func (strategy) PrepareForUpdate(obj, old runtime.Object) {
 
 // Validate validates a new policy.
 func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidatePolicy(obj.(*authorizationapi.Policy))
+	return validation.ValidateLocalPolicy(obj.(*authorizationapi.Policy))
 }
 
 // ValidateUpdate is the default update validation for an end user.
 func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidatePolicyUpdate(obj.(*authorizationapi.Policy), old.(*authorizationapi.Policy))
+	return validation.ValidateLocalPolicyUpdate(obj.(*authorizationapi.Policy), old.(*authorizationapi.Policy))
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

@@ -4,76 +4,72 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
-type TypeConverter struct {
-	MasterNamespace string
-}
-
 // policies
 
-func (t TypeConverter) ToPolicyList(in *ClusterPolicyList) *PolicyList {
+func ToPolicyList(in *ClusterPolicyList) *PolicyList {
 	ret := &PolicyList{}
 	for _, curr := range in.Items {
-		ret.Items = append(ret.Items, *t.ToPolicy(&curr))
+		ret.Items = append(ret.Items, *ToPolicy(&curr))
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToPolicy(in *ClusterPolicy) *Policy {
+func ToPolicy(in *ClusterPolicy) *Policy {
 	if in == nil {
 		return nil
 	}
 
 	ret := &Policy{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = t.MasterNamespace
+	ret.Namespace = ""
 	ret.LastModified = in.LastModified
-	ret.Roles = t.ToRoleMap(in.Roles)
+	ret.Roles = ToRoleMap(in.Roles)
 
 	return ret
 }
 
-func (t TypeConverter) ToRoleMap(in map[string]ClusterRole) map[string]Role {
+func ToRoleMap(in map[string]ClusterRole) map[string]Role {
 	ret := map[string]Role{}
 	for key, role := range in {
-		ret[key] = *t.ToRole(&role)
+		ret[key] = *ToRole(&role)
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToRoleList(in *ClusterRoleList) *RoleList {
+func ToRoleList(in *ClusterRoleList) *RoleList {
 	ret := &RoleList{}
 	for _, curr := range in.Items {
-		ret.Items = append(ret.Items, *t.ToRole(&curr))
+		ret.Items = append(ret.Items, *ToRole(&curr))
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToRole(in *ClusterRole) *Role {
+func ToRole(in *ClusterRole) *Role {
 	if in == nil {
 		return nil
 	}
 
 	ret := &Role{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = t.MasterNamespace
+	ret.Namespace = ""
 	ret.Rules = in.Rules
 
 	return ret
 }
 
-func (t TypeConverter) ToClusterPolicyList(in *PolicyList) *ClusterPolicyList {
+func ToClusterPolicyList(in *PolicyList) *ClusterPolicyList {
 	ret := &ClusterPolicyList{}
 	for _, curr := range in.Items {
-		ret.Items = append(ret.Items, *t.ToClusterPolicy(&curr))
+		ret.Items = append(ret.Items, *ToClusterPolicy(&curr))
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToClusterPolicy(in *Policy) *ClusterPolicy {
+func ToClusterPolicy(in *Policy) *ClusterPolicy {
 	if in == nil {
 		return nil
 	}
@@ -82,30 +78,30 @@ func (t TypeConverter) ToClusterPolicy(in *Policy) *ClusterPolicy {
 	ret.ObjectMeta = in.ObjectMeta
 	ret.Namespace = ""
 	ret.LastModified = in.LastModified
-	ret.Roles = t.ToClusterRoleMap(in.Roles)
+	ret.Roles = ToClusterRoleMap(in.Roles)
 
 	return ret
 }
 
-func (t TypeConverter) ToClusterRoleMap(in map[string]Role) map[string]ClusterRole {
+func ToClusterRoleMap(in map[string]Role) map[string]ClusterRole {
 	ret := map[string]ClusterRole{}
 	for key, role := range in {
-		ret[key] = *t.ToClusterRole(&role)
+		ret[key] = *ToClusterRole(&role)
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToClusterRoleList(in *RoleList) *ClusterRoleList {
+func ToClusterRoleList(in *RoleList) *ClusterRoleList {
 	ret := &ClusterRoleList{}
 	for _, curr := range in.Items {
-		ret.Items = append(ret.Items, *t.ToClusterRole(&curr))
+		ret.Items = append(ret.Items, *ToClusterRole(&curr))
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToClusterRole(in *Role) *ClusterRole {
+func ToClusterRole(in *Role) *ClusterRole {
 	if in == nil {
 		return nil
 	}
@@ -120,86 +116,86 @@ func (t TypeConverter) ToClusterRole(in *Role) *ClusterRole {
 
 // policy bindings
 
-func (t TypeConverter) ToPolicyBindingList(in *ClusterPolicyBindingList) *PolicyBindingList {
+func ToPolicyBindingList(in *ClusterPolicyBindingList) *PolicyBindingList {
 	ret := &PolicyBindingList{}
 	for _, curr := range in.Items {
-		ret.Items = append(ret.Items, *t.ToPolicyBinding(&curr))
+		ret.Items = append(ret.Items, *ToPolicyBinding(&curr))
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToPolicyBinding(in *ClusterPolicyBinding) *PolicyBinding {
+func ToPolicyBinding(in *ClusterPolicyBinding) *PolicyBinding {
 	if in == nil {
 		return nil
 	}
 
 	ret := &PolicyBinding{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = t.MasterNamespace
+	ret.Namespace = ""
 	ret.LastModified = in.LastModified
-	ret.PolicyRef = t.ToPolicyRef(in.PolicyRef)
-	ret.RoleBindings = t.ToRoleBindingMap(in.RoleBindings)
+	ret.PolicyRef = ToPolicyRef(in.PolicyRef)
+	ret.RoleBindings = ToRoleBindingMap(in.RoleBindings)
 
 	return ret
 }
 
-func (t TypeConverter) ToPolicyRef(in kapi.ObjectReference) kapi.ObjectReference {
+func ToPolicyRef(in kapi.ObjectReference) kapi.ObjectReference {
 	ret := kapi.ObjectReference{}
-	ret.Namespace = t.MasterNamespace
+	ret.Namespace = ""
 	ret.Name = in.Name
 	return ret
 }
 
-func (t TypeConverter) ToRoleBindingMap(in map[string]ClusterRoleBinding) map[string]RoleBinding {
+func ToRoleBindingMap(in map[string]ClusterRoleBinding) map[string]RoleBinding {
 	ret := map[string]RoleBinding{}
 	for key, RoleBinding := range in {
-		ret[key] = *t.ToRoleBinding(&RoleBinding)
+		ret[key] = *ToRoleBinding(&RoleBinding)
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToRoleBindingList(in *ClusterRoleBindingList) *RoleBindingList {
+func ToRoleBindingList(in *ClusterRoleBindingList) *RoleBindingList {
 	ret := &RoleBindingList{}
 	for _, curr := range in.Items {
-		ret.Items = append(ret.Items, *t.ToRoleBinding(&curr))
+		ret.Items = append(ret.Items, *ToRoleBinding(&curr))
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToRoleBinding(in *ClusterRoleBinding) *RoleBinding {
+func ToRoleBinding(in *ClusterRoleBinding) *RoleBinding {
 	if in == nil {
 		return nil
 	}
 
 	ret := &RoleBinding{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = t.MasterNamespace
+	ret.Namespace = ""
 	ret.Users = in.Users
 	ret.Groups = in.Groups
-	ret.RoleRef = t.ToRoleRef(in.RoleRef)
+	ret.RoleRef = ToRoleRef(in.RoleRef)
 	return ret
 }
 
-func (t TypeConverter) ToRoleRef(in kapi.ObjectReference) kapi.ObjectReference {
+func ToRoleRef(in kapi.ObjectReference) kapi.ObjectReference {
 	ret := kapi.ObjectReference{}
-	ret.Namespace = t.MasterNamespace
+	ret.Namespace = ""
 	ret.Name = in.Name
 	return ret
 }
 
-func (t TypeConverter) ToClusterPolicyBindingList(in *PolicyBindingList) *ClusterPolicyBindingList {
+func ToClusterPolicyBindingList(in *PolicyBindingList) *ClusterPolicyBindingList {
 	ret := &ClusterPolicyBindingList{}
 	for _, curr := range in.Items {
-		ret.Items = append(ret.Items, *t.ToClusterPolicyBinding(&curr))
+		ret.Items = append(ret.Items, *ToClusterPolicyBinding(&curr))
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToClusterPolicyBinding(in *PolicyBinding) *ClusterPolicyBinding {
+func ToClusterPolicyBinding(in *PolicyBinding) *ClusterPolicyBinding {
 	if in == nil {
 		return nil
 	}
@@ -208,38 +204,38 @@ func (t TypeConverter) ToClusterPolicyBinding(in *PolicyBinding) *ClusterPolicyB
 	ret.ObjectMeta = in.ObjectMeta
 	ret.Namespace = ""
 	ret.LastModified = in.LastModified
-	ret.PolicyRef = t.ToClusterPolicyRef(in.PolicyRef)
-	ret.RoleBindings = t.ToClusterRoleBindingMap(in.RoleBindings)
+	ret.PolicyRef = ToClusterPolicyRef(in.PolicyRef)
+	ret.RoleBindings = ToClusterRoleBindingMap(in.RoleBindings)
 
 	return ret
 }
 
-func (t TypeConverter) ToClusterPolicyRef(in kapi.ObjectReference) kapi.ObjectReference {
+func ToClusterPolicyRef(in kapi.ObjectReference) kapi.ObjectReference {
 	ret := kapi.ObjectReference{}
 	ret.Namespace = ""
 	ret.Name = in.Name
 	return ret
 }
 
-func (t TypeConverter) ToClusterRoleBindingMap(in map[string]RoleBinding) map[string]ClusterRoleBinding {
+func ToClusterRoleBindingMap(in map[string]RoleBinding) map[string]ClusterRoleBinding {
 	ret := map[string]ClusterRoleBinding{}
 	for key, RoleBinding := range in {
-		ret[key] = *t.ToClusterRoleBinding(&RoleBinding)
+		ret[key] = *ToClusterRoleBinding(&RoleBinding)
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToClusterRoleBindingList(in *RoleBindingList) *ClusterRoleBindingList {
+func ToClusterRoleBindingList(in *RoleBindingList) *ClusterRoleBindingList {
 	ret := &ClusterRoleBindingList{}
 	for _, curr := range in.Items {
-		ret.Items = append(ret.Items, *t.ToClusterRoleBinding(&curr))
+		ret.Items = append(ret.Items, *ToClusterRoleBinding(&curr))
 	}
 
 	return ret
 }
 
-func (t TypeConverter) ToClusterRoleBinding(in *RoleBinding) *ClusterRoleBinding {
+func ToClusterRoleBinding(in *RoleBinding) *ClusterRoleBinding {
 	if in == nil {
 		return nil
 	}
@@ -249,12 +245,12 @@ func (t TypeConverter) ToClusterRoleBinding(in *RoleBinding) *ClusterRoleBinding
 	ret.Namespace = ""
 	ret.Users = in.Users
 	ret.Groups = in.Groups
-	ret.RoleRef = t.ToClusterRoleRef(in.RoleRef)
+	ret.RoleRef = ToClusterRoleRef(in.RoleRef)
 
 	return ret
 }
 
-func (t TypeConverter) ToClusterRoleRef(in kapi.ObjectReference) kapi.ObjectReference {
+func ToClusterRoleRef(in kapi.ObjectReference) kapi.ObjectReference {
 	ret := kapi.ObjectReference{}
 	ret.Namespace = ""
 	ret.Name = in.Name

@@ -298,8 +298,6 @@ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 osc delete dc docker-registry
 osc delete se docker-registry
 osc delete rc docker-registry-1
-registrypod=$(osc get pod | grep docker-registry-1 | awk '{print $1}')
-[ -n "${registrypod}" ] && osc delete pod $registrypod
 # done deleting registry resources
 osc delete imageStreams test
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
@@ -431,6 +429,12 @@ osc start-build --list-webhooks='all' ruby-sample-build
 [[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "github") ]]
 [[ $(osc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101") ]]
 [ ! "$(osc start-build --list-webhooks='blah')" ]
+
+webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta1 | head -n 1)
+osc start-build --from-webhook="${webhook}"
+webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta3 | head -n 1)
+osc start-build --from-webhook="${webhook}"
+osc get builds
 echo "buildConfig: ok"
 
 osc create -f test/integration/fixtures/test-buildcli.json
@@ -447,8 +451,12 @@ openshift admin policy add-role-to-group cluster-admin system:unauthenticated
 openshift admin policy remove-role-from-group cluster-admin system:unauthenticated
 openshift admin policy remove-role-from-group-from-project system:unauthenticated
 openshift admin policy add-role-to-user cluster-admin system:no-user
-openshift admin policy remove-user cluster-admin system:no-user
+openshift admin policy remove-role-from-user cluster-admin system:no-user
 openshift admin policy remove-user-from-project system:no-user
+openshift admin policy add-cluster-role-to-group cluster-admin system:unauthenticated
+openshift admin policy remove-cluster-role-from-group cluster-admin system:unauthenticated
+openshift admin policy add-cluster-role-to-user cluster-admin system:no-user
+openshift admin policy remove-cluster-role-from-user cluster-admin system:no-user
 echo "ex policy: ok"
 
 # Test the commands the UI projects page tells users to run
@@ -458,8 +466,8 @@ osadm policy add-role-to-user admin adduser -n ui-test-project
 # Make sure project can be listed by osc (after auth cache syncs)
 sleep 2 && [ "$(osc get projects | grep 'ui-test-project')" ]
 # Make sure users got added
-[ "$(osc describe policybinding master:default -n ui-test-project | grep createuser)" ]
-[ "$(osc describe policybinding master:default -n ui-test-project | grep adduser)" ]
+[ "$(osc describe policybinding ':default' -n ui-test-project | grep createuser)" ]
+[ "$(osc describe policybinding ':default' -n ui-test-project | grep adduser)" ]
 echo "ui-project-commands: ok"
 
 # Test deleting and recreating a project
@@ -467,7 +475,7 @@ osadm new-project recreated-project --admin="createuser1"
 osc delete project recreated-project
 wait_for_command '! osc get project recreated-project' "${TIME_MIN}"
 osadm new-project recreated-project --admin="createuser2"
-osc describe policybinding master:default -n recreated-project | grep createuser2
+osc describe policybinding ':default' -n recreated-project | grep createuser2
 echo "ex new-project: ok"
 
 # Test running a router

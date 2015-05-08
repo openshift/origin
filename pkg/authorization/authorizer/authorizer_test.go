@@ -11,15 +11,19 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
+	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 type authorizeTest struct {
+	clusterPolicies      []authorizationapi.ClusterPolicy
 	policies             []authorizationapi.Policy
 	policyRetrievalError error
 
+	clusterBindings       []authorizationapi.ClusterPolicyBinding
 	bindings              []authorizationapi.PolicyBinding
 	bindingRetrievalError error
 
@@ -33,7 +37,7 @@ type authorizeTest struct {
 
 func TestResourceNameDeny(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), bootstrappolicy.DefaultMasterAuthorizationNamespace), &user.DefaultInfo{Name: "just-a-user"}),
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "just-a-user"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:         "get",
 			Resource:     "users",
@@ -42,24 +46,24 @@ func TestResourceNameDeny(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  `just-a-user cannot get on users with name "just-a-user"`,
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.test(t)
 }
 
 func TestResourceNameAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), bootstrappolicy.DefaultMasterAuthorizationNamespace), &user.DefaultInfo{Name: "just-a-user"}),
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "just-a-user"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:         "get",
 			Resource:     "users",
 			ResourceName: "~",
 		},
 		expectedAllowed: true,
-		expectedReason:  "allowed by rule in master",
+		expectedReason:  "allowed by cluster rule",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.test(t)
 }
 
@@ -73,18 +77,16 @@ func TestDeniedWithError(t *testing.T) {
 		expectedAllowed: false,
 		expectedError:   "my special error",
 	}
-	test.policies = newDefaultGlobalPolicies()
+	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
 	test.bindings[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      "missing",
-			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+			Name: "missing",
 		},
 		RoleRef: kapi.ObjectReference{
-			Name:      "not-a-real-binding",
-			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+			Name: "not-a-real-binding",
 		},
 		Users: util.NewStringSet("Anna"),
 	}
@@ -103,18 +105,16 @@ func TestAllowedWithMissingBinding(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
+	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
 	test.bindings[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      "missing",
-			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+			Name: "missing",
 		},
 		RoleRef: kapi.ObjectReference{
-			Name:      "not-a-real-binding",
-			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+			Name: "not-a-real-binding",
 		},
 		Users: util.NewStringSet("Anna"),
 	}
@@ -131,10 +131,10 @@ func TestHealthAllow(t *testing.T) {
 			URL:            "/healthz",
 		},
 		expectedAllowed: true,
-		expectedReason:  "allowed by rule in master",
+		expectedReason:  "allowed by cluster rule",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 
 	test.test(t)
 }
@@ -148,10 +148,10 @@ func TestNonResourceAllow(t *testing.T) {
 			URL:            "not-specified",
 		},
 		expectedAllowed: true,
-		expectedReason:  "allowed by rule in master",
+		expectedReason:  "allowed by cluster rule",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 
 	test.test(t)
 }
@@ -167,8 +167,8 @@ func TestNonResourceDeny(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  `no-one cannot get on not-allowed`,
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 
 	test.test(t)
 }
@@ -184,31 +184,31 @@ func TestHealthDeny(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  `no-one cannot get on /healthz`,
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 
 	test.test(t)
 }
 
 func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), bootstrappolicy.DefaultMasterAuthorizationNamespace), &user.DefaultInfo{Name: "ClusterAdmin"}),
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "ClusterAdmin"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "update",
 			Resource: "deploymentConfigs",
 		},
 		expectedAllowed: true,
-		expectedReason:  "allowed by rule in master",
+		expectedReason:  "allowed by cluster rule",
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 
 	test.test(t)
 }
 
 func TestDisallowedViewingGlobalPods(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), bootstrappolicy.DefaultMasterAuthorizationNamespace), &user.DefaultInfo{Name: "SomeYahoo"}),
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "SomeYahoo"}),
 		attributes: &DefaultAuthorizationAttributes{
 			Verb:     "get",
 			Resource: "pods",
@@ -216,8 +216,8 @@ func TestDisallowedViewingGlobalPods(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  `SomeYahoo cannot get on pods`,
 	}
-	test.policies = newDefaultGlobalPolicies()
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 
 	test.test(t)
 }
@@ -232,9 +232,9 @@ func TestProjectAdminEditPolicy(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
 	}
-	test.policies = newDefaultGlobalPolicies()
+	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
 
 	test.test(t)
@@ -248,11 +248,11 @@ func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 			Resource: "roles",
 		},
 		expectedAllowed: true,
-		expectedReason:  "allowed by rule in master",
+		expectedReason:  "allowed by cluster rule",
 	}
-	test.policies = newDefaultGlobalPolicies()
+	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
 
 	test.test(t)
@@ -268,10 +268,10 @@ func TestResourceRestrictionsWork(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
 	}
-	test1.policies = newDefaultGlobalPolicies()
-	test1.policies = append(test1.policies, newAdzePolicies()...)
-	test1.bindings = newDefaultGlobalBinding()
-	test1.bindings = append(test1.bindings, newAdzeBindings()...)
+	test1.clusterPolicies = newDefaultClusterPolicies()
+	test1.policies = newAdzePolicies()
+	test1.clusterBindings = newDefaultClusterPolicyBindings()
+	test1.bindings = newAdzeBindings()
 	test1.test(t)
 
 	test2 := &authorizeTest{
@@ -283,10 +283,10 @@ func TestResourceRestrictionsWork(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  `Rachel cannot get on pods in adze`,
 	}
-	test2.policies = newDefaultGlobalPolicies()
-	test2.policies = append(test2.policies, newAdzePolicies()...)
-	test2.bindings = newDefaultGlobalBinding()
-	test2.bindings = append(test2.bindings, newAdzeBindings()...)
+	test2.clusterPolicies = newDefaultClusterPolicies()
+	test2.policies = newAdzePolicies()
+	test2.clusterBindings = newDefaultClusterPolicyBindings()
+	test2.bindings = newAdzeBindings()
 	test2.test(t)
 }
 
@@ -300,10 +300,10 @@ func TestResourceRestrictionsWithWeirdWork(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
 	}
-	test1.policies = newDefaultGlobalPolicies()
-	test1.policies = append(test1.policies, newAdzePolicies()...)
-	test1.bindings = newDefaultGlobalBinding()
-	test1.bindings = append(test1.bindings, newAdzeBindings()...)
+	test1.clusterPolicies = newDefaultClusterPolicies()
+	test1.policies = newAdzePolicies()
+	test1.clusterBindings = newDefaultClusterPolicyBindings()
+	test1.bindings = newAdzeBindings()
 	test1.test(t)
 
 	test2 := &authorizeTest{
@@ -315,10 +315,10 @@ func TestResourceRestrictionsWithWeirdWork(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
 	}
-	test2.policies = newDefaultGlobalPolicies()
-	test2.policies = append(test2.policies, newAdzePolicies()...)
-	test2.bindings = newDefaultGlobalBinding()
-	test2.bindings = append(test2.bindings, newAdzeBindings()...)
+	test2.clusterPolicies = newDefaultClusterPolicies()
+	test2.policies = newAdzePolicies()
+	test2.clusterBindings = newDefaultClusterPolicyBindings()
+	test2.bindings = newAdzeBindings()
 	test2.test(t)
 }
 
@@ -332,9 +332,9 @@ func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  `Rachel cannot get on buildConfigs in backsaw`,
 	}
-	test.policies = newDefaultGlobalPolicies()
+	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
-	test.bindings = newDefaultGlobalBinding()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
 
 	test.test(t)
@@ -350,10 +350,10 @@ func TestVerbRestrictionsWork(t *testing.T) {
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
 	}
-	test1.policies = newDefaultGlobalPolicies()
-	test1.policies = append(test1.policies, newAdzePolicies()...)
-	test1.bindings = newDefaultGlobalBinding()
-	test1.bindings = append(test1.bindings, newAdzeBindings()...)
+	test1.clusterPolicies = newDefaultClusterPolicies()
+	test1.policies = newAdzePolicies()
+	test1.clusterBindings = newDefaultClusterPolicyBindings()
+	test1.bindings = newAdzeBindings()
 	test1.test(t)
 
 	test2 := &authorizeTest{
@@ -365,17 +365,19 @@ func TestVerbRestrictionsWork(t *testing.T) {
 		expectedAllowed: false,
 		expectedReason:  `Valerie cannot create on buildConfigs in adze`,
 	}
-	test2.policies = newDefaultGlobalPolicies()
-	test2.policies = append(test2.policies, newAdzePolicies()...)
-	test2.bindings = newDefaultGlobalBinding()
-	test2.bindings = append(test2.bindings, newAdzeBindings()...)
+	test2.clusterPolicies = newDefaultClusterPolicies()
+	test2.policies = newAdzePolicies()
+	test2.clusterBindings = newDefaultClusterPolicyBindings()
+	test2.bindings = newAdzeBindings()
 	test2.test(t)
 }
 
 func (test *authorizeTest) test(t *testing.T) {
 	policyRegistry := testpolicyregistry.NewPolicyRegistry(test.policies, test.policyRetrievalError)
 	policyBindingRegistry := testpolicyregistry.NewPolicyBindingRegistry(test.bindings, test.bindingRetrievalError)
-	authorizer := NewAuthorizer(bootstrappolicy.DefaultMasterAuthorizationNamespace, rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry))
+	clusterPolicyRegistry := clusterpolicyregistry.NewSimulatedRegistry(testpolicyregistry.NewClusterPolicyRegistry(test.clusterPolicies, test.policyRetrievalError))
+	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(testpolicyregistry.NewClusterPolicyBindingRegistry(test.clusterBindings, test.bindingRetrievalError))
+	authorizer := NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry))
 
 	actualAllowed, actualReason, actualError := authorizer.Authorize(test.context, *test.attributes)
 
@@ -430,45 +432,40 @@ func matchError(expected string, actual error, field string, t *testing.T) {
 	}
 }
 
-func newDefaultGlobalPolicies() []authorizationapi.Policy {
-	return []authorizationapi.Policy{*GetBootstrapPolicy(bootstrappolicy.DefaultMasterAuthorizationNamespace)}
+func newDefaultClusterPolicies() []authorizationapi.ClusterPolicy {
+	return []authorizationapi.ClusterPolicy{*GetBootstrapPolicy()}
 }
-func newDefaultGlobalBinding() []authorizationapi.PolicyBinding {
-	policyBinding := authorizationapi.PolicyBinding{
+func newDefaultClusterPolicyBindings() []authorizationapi.ClusterPolicyBinding {
+	policyBinding := authorizationapi.ClusterPolicyBinding{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
-			Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+			Name: authorizationapi.ClusterPolicyBindingName,
 		},
-		RoleBindings: map[string]authorizationapi.RoleBinding{
+		RoleBindings: map[string]authorizationapi.ClusterRoleBinding{
 			"extra-cluster-admins": {
 				ObjectMeta: kapi.ObjectMeta{
-					Name:      "cluster-admins",
-					Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+					Name: "cluster-admins",
 				},
 				RoleRef: kapi.ObjectReference{
-					Name:      "cluster-admin",
-					Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+					Name: "cluster-admin",
 				},
 				Users:  util.NewStringSet("ClusterAdmin"),
 				Groups: util.NewStringSet("RootUsers"),
 			},
 			"user-only": {
 				ObjectMeta: kapi.ObjectMeta{
-					Name:      "user-only",
-					Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+					Name: "user-only",
 				},
 				RoleRef: kapi.ObjectReference{
-					Name:      "basic-user",
-					Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+					Name: "basic-user",
 				},
 				Users: util.NewStringSet("just-a-user"),
 			},
 		},
 	}
-	for key, value := range GetBootstrapPolicyBinding(bootstrappolicy.DefaultMasterAuthorizationNamespace).RoleBindings {
+	for key, value := range GetBootstrapPolicyBinding().RoleBindings {
 		policyBinding.RoleBindings[key] = value
 	}
-	return []authorizationapi.PolicyBinding{policyBinding}
+	return []authorizationapi.ClusterPolicyBinding{policyBinding}
 }
 
 func newAdzePolicies() []authorizationapi.Policy {
@@ -497,7 +494,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      bootstrappolicy.DefaultMasterAuthorizationNamespace,
+				Name:      authorizationapi.ClusterPolicyBindingName,
 				Namespace: "adze",
 			},
 			RoleBindings: map[string]authorizationapi.RoleBinding{
@@ -507,8 +504,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 						Namespace: "adze",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      bootstrappolicy.AdminRoleName,
-						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+						Name: bootstrappolicy.AdminRoleName,
 					},
 					Users: util.NewStringSet("Anna"),
 				},
@@ -518,8 +514,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 						Namespace: "adze",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      bootstrappolicy.ViewRoleName,
-						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+						Name: bootstrappolicy.ViewRoleName,
 					},
 					Users: util.NewStringSet("Valerie"),
 				},
@@ -529,8 +524,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 						Namespace: "adze",
 					},
 					RoleRef: kapi.ObjectReference{
-						Name:      bootstrappolicy.EditRoleName,
-						Namespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
+						Name: bootstrappolicy.EditRoleName,
 					},
 					Users: util.NewStringSet("Ellen"),
 				},
@@ -538,7 +532,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "adze",
+				Name:      authorizationapi.GetPolicyBindingName("adze"),
 				Namespace: "adze",
 			},
 			RoleBindings: map[string]authorizationapi.RoleBinding{

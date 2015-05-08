@@ -163,7 +163,7 @@ func (i *installer) install(scripts []string, userResults, sourceResults, defaul
 				continue
 			}
 			// set appropriate permissions
-			if err := i.fs.Chmod(dst, 0700); err != nil {
+			if err := i.fs.Chmod(dst, 0755); err != nil {
 				result.Error = err
 				continue
 			}

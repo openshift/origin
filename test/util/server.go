@@ -101,7 +101,6 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 func CreateBootstrapPolicy(masterArgs *start.MasterArgs) error {
 	createBootstrapPolicy := &admin.CreateBootstrapPolicyFileOptions{
 		File: path.Join(masterArgs.ConfigDir.Value(), "policy.json"),
-		MasterAuthorizationNamespace:      "master",
 		OpenShiftSharedResourcesNamespace: "openshift",
 	}
 
@@ -255,7 +254,7 @@ func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error)
 	for {
 		// confirm that we can actually query from the api server
 		if client, err := GetClusterAdminClient(adminKubeConfigFile); err == nil {
-			if _, err := client.Policies(bootstrappolicy.DefaultMasterAuthorizationNamespace).List(labels.Everything(), fields.Everything()); err == nil {
+			if _, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything()); err == nil {
 				break
 			}
 		}
@@ -280,11 +279,10 @@ func StartTestMaster() (*configapi.MasterConfig, string, error) {
 // back a client for the admin user
 func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Config, projectName, adminUser string) (*client.Client, error) {
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:                clusterAdminClient,
-		ProjectName:           projectName,
-		AdminRole:             bootstrappolicy.AdminRoleName,
-		MasterPolicyNamespace: bootstrappolicy.DefaultMasterAuthorizationNamespace,
-		AdminUser:             adminUser,
+		Client:      clusterAdminClient,
+		ProjectName: projectName,
+		AdminRole:   bootstrappolicy.AdminRoleName,
+		AdminUser:   adminUser,
 	}
 
 	if err := newProjectOptions.Run(); err != nil {

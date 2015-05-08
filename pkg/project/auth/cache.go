@@ -84,6 +84,7 @@ func (rs *reflectorSkipSynchronizer) SkipSynchronize(prevState string) (skip boo
 	}
 	currentState = strings.Join(resourceVersions, ",")
 	skip = currentState == prevState
+
 	return skip, currentState
 }
 
@@ -95,46 +96,54 @@ func (s *neverSkipSynchronizer) SkipSynchronize(prevState string) (bool, string)
 
 // AuthorizationCache maintains a cache on the set of namespaces a user or group can access.
 type AuthorizationCache struct {
-	namespaceStore          cache.Store
-	policyBindingIndexer    cache.Indexer
-	policyIndexer           cache.Indexer
-	reviewRecordStore       cache.Store
-	userSubjectRecordStore  cache.Store
-	groupSubjectRecordStore cache.Store
+	namespaceStore            cache.Store
+	policyBindingIndexer      cache.Indexer
+	policyIndexer             cache.Indexer
+	clusterPolicyBindingStore cache.Store
+	clusterPolicyStore        cache.Store
+	reviewRecordStore         cache.Store
+	userSubjectRecordStore    cache.Store
+	groupSubjectRecordStore   cache.Store
 
-	masterNamespace              string
-	masterBindingResourceVersion string
-	masterPolicyResourceVersion  string
+	clusterBindingResourceVersion string
+	clusterPolicyResourceVersion  string
 
 	skip      skipSynchronizer
 	lastState string
 
 	reviewer Reviewer
 
-	namespaceInterface       kclient.NamespaceInterface
-	policyBindingsNamespacer client.PolicyBindingsNamespacer
-	policiesNamespacer       client.PoliciesNamespacer
+	namespaceInterface            kclient.NamespaceInterface
+	policyBindingsNamespacer      client.PolicyBindingsNamespacer
+	policiesNamespacer            client.PoliciesNamespacer
+	clusterPolicyBindingInterface client.ClusterPolicyBindingsInterface
+	clusterPolicyInterface        client.ClusterPoliciesInterface
 
 	syncHandler func(request *reviewRequest, userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) error
 }
 
 // NewAuthorizationCache creates a new AuthorizationCache
-func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kclient.NamespaceInterface, policyBindingsNamespacer client.PolicyBindingsNamespacer, policiesNamespacer client.PoliciesNamespacer, masterNamespace string) *AuthorizationCache {
+func NewAuthorizationCache(reviewer Reviewer,
+	namespaceInterface kclient.NamespaceInterface, policyBindingsNamespacer client.PolicyBindingsNamespacer, policiesNamespacer client.PoliciesNamespacer,
+	clusterPolicyBindingInterface client.ClusterPolicyBindingsInterface, clusterPolicyInterface client.ClusterPoliciesInterface) *AuthorizationCache {
 	result := &AuthorizationCache{
-		namespaceStore:               cache.NewStore(cache.MetaNamespaceKeyFunc),
-		policyIndexer:                cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc}),
-		policyBindingIndexer:         cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc}),
-		reviewRecordStore:            cache.NewStore(reviewRecordKeyFn),
-		userSubjectRecordStore:       cache.NewStore(subjectRecordKeyFn),
-		groupSubjectRecordStore:      cache.NewStore(subjectRecordKeyFn),
-		masterNamespace:              masterNamespace,
-		masterBindingResourceVersion: "",
-		masterPolicyResourceVersion:  "",
-		namespaceInterface:           namespaceInterface,
-		policyBindingsNamespacer:     policyBindingsNamespacer,
-		policiesNamespacer:           policiesNamespacer,
-		reviewer:                     reviewer,
-		skip:                         &neverSkipSynchronizer{},
+		namespaceStore:                cache.NewStore(cache.MetaNamespaceKeyFunc),
+		policyIndexer:                 cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc}),
+		policyBindingIndexer:          cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc}),
+		clusterPolicyStore:            cache.NewStore(cache.MetaNamespaceKeyFunc),
+		clusterPolicyBindingStore:     cache.NewStore(cache.MetaNamespaceKeyFunc),
+		reviewRecordStore:             cache.NewStore(reviewRecordKeyFn),
+		userSubjectRecordStore:        cache.NewStore(subjectRecordKeyFn),
+		groupSubjectRecordStore:       cache.NewStore(subjectRecordKeyFn),
+		clusterBindingResourceVersion: "",
+		clusterPolicyResourceVersion:  "",
+		namespaceInterface:            namespaceInterface,
+		policyBindingsNamespacer:      policyBindingsNamespacer,
+		policiesNamespacer:            policiesNamespacer,
+		clusterPolicyBindingInterface: clusterPolicyBindingInterface,
+		clusterPolicyInterface:        clusterPolicyInterface,
+		reviewer:                      reviewer,
+		skip:                          &neverSkipSynchronizer{},
 	}
 	result.syncHandler = result.syncRequest
 	return result
@@ -188,7 +197,37 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 	)
 	policyReflector.Run()
 
-	reflectors := []*cache.Reflector{namespaceReflector, policyReflector, policyBindingReflector}
+	clusterPolicyBindingReflector := cache.NewReflector(
+		&cache.ListWatch{
+			ListFunc: func() (runtime.Object, error) {
+				return ac.clusterPolicyBindingInterface.ClusterPolicyBindings().List(labels.Everything(), fields.Everything())
+			},
+			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+				return ac.clusterPolicyBindingInterface.ClusterPolicyBindings().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			},
+		},
+		&authorizationapi.ClusterPolicyBinding{},
+		ac.clusterPolicyBindingStore,
+		2*time.Minute,
+	)
+	clusterPolicyBindingReflector.Run()
+
+	clusterPolicyReflector := cache.NewReflector(
+		&cache.ListWatch{
+			ListFunc: func() (runtime.Object, error) {
+				return ac.clusterPolicyInterface.ClusterPolicies().List(labels.Everything(), fields.Everything())
+			},
+			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+				return ac.clusterPolicyInterface.ClusterPolicies().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			},
+		},
+		&authorizationapi.ClusterPolicy{},
+		ac.clusterPolicyStore,
+		2*time.Minute,
+	)
+	clusterPolicyReflector.Run()
+
+	reflectors := []*cache.Reflector{namespaceReflector, policyReflector, policyBindingReflector, clusterPolicyReflector, clusterPolicyBindingReflector}
 	ac.skip = &reflectorSkipSynchronizer{reflectors: reflectors}
 
 	go util.Forever(func() { ac.synchronize() }, period)
@@ -255,31 +294,28 @@ func purgeDeletedNamespaces(namespaceSet *util.StringSet, userSubjectRecordStore
 	}
 }
 
-// invalidateCache returns true if there was a change in the master namespace that holds global policy and policy bindings
+// invalidateCache returns true if there was a change in the cluster namespace that holds global policy and policy bindings
+// TODO if we ever have more than one ClusterPolicy (to handle things like: this policy grants dangerous permissions, segregate it), this code will need to be updated
+// it makes the assumption that there is only ever one ClusterPolicy and one ClusterPolicyBinding.  If there is more than one, it will always invalidate the cache
+// and rebuild it.
 func (ac *AuthorizationCache) invalidateCache() bool {
 	invalidateCache := false
 
-	masterPolicies, err := ac.policyIndexer.Index("namespace", &authorizationapi.Policy{ObjectMeta: kapi.ObjectMeta{Namespace: ac.masterNamespace}})
-	if err != nil {
-		return true
-	}
-	for i := range masterPolicies {
-		policy := masterPolicies[i].(*authorizationapi.Policy)
-		if policy.ResourceVersion != ac.masterPolicyResourceVersion {
+	clusterPolicies := ac.clusterPolicyStore.List()
+	for i := range clusterPolicies {
+		policy := clusterPolicies[i].(*authorizationapi.ClusterPolicy)
+		if policy.ResourceVersion != ac.clusterPolicyResourceVersion {
 			invalidateCache = true
-			ac.masterPolicyResourceVersion = policy.ResourceVersion
+			ac.clusterPolicyResourceVersion = policy.ResourceVersion
 		}
 	}
 
-	masterPolicyBindings, err := ac.policyBindingIndexer.Index("namespace", &authorizationapi.PolicyBinding{ObjectMeta: kapi.ObjectMeta{Namespace: ac.masterNamespace}})
-	if err != nil {
-		return true
-	}
-	for i := range masterPolicyBindings {
-		policyBinding := masterPolicyBindings[i].(*authorizationapi.PolicyBinding)
-		if policyBinding.ResourceVersion != ac.masterBindingResourceVersion {
+	clusterPolicyBindings := ac.clusterPolicyBindingStore.List()
+	for i := range clusterPolicyBindings {
+		policyBinding := clusterPolicyBindings[i].(*authorizationapi.ClusterPolicyBinding)
+		if policyBinding.ResourceVersion != ac.clusterBindingResourceVersion {
 			invalidateCache = true
-			ac.masterBindingResourceVersion = policyBinding.ResourceVersion
+			ac.clusterBindingResourceVersion = policyBinding.ResourceVersion
 		}
 	}
 	return invalidateCache

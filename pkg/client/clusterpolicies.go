@@ -3,6 +3,7 @@ package client
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -15,6 +16,7 @@ type ClusterPolicyInterface interface {
 	List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyList, error)
 	Get(name string) (*authorizationapi.ClusterPolicy, error)
 	Delete(name string) error
+	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 type clusterPolicies struct {
@@ -45,4 +47,9 @@ func (c *clusterPolicies) Get(name string) (result *authorizationapi.ClusterPoli
 func (c *clusterPolicies) Delete(name string) (err error) {
 	err = c.r.Delete().Resource("clusterPolicies").Name(name).Do().Error()
 	return
+}
+
+// Watch returns a watch.Interface that watches the requested policyBindings
+func (c *clusterPolicies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	return c.r.Get().Prefix("watch").Resource("clusterPolicies").Param("resourceVersion", resourceVersion).LabelsSelectorParam(label).FieldsSelectorParam(field).Watch()
 }

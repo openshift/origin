@@ -15,13 +15,17 @@ type Registry interface {
 	// ListPolicyBindings obtains list of policyBindings that match a selector.
 	ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error)
 	// GetPolicyBinding retrieves a specific policyBinding.
-	GetPolicyBinding(ctx kapi.Context, id string) (*authorizationapi.PolicyBinding, error)
+	GetPolicyBinding(ctx kapi.Context, name string) (*authorizationapi.PolicyBinding, error)
 	// CreatePolicyBinding creates a new policyBinding.
 	CreatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error
 	// UpdatePolicyBinding updates a policyBinding.
 	UpdatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error
 	// DeletePolicyBinding deletes a policyBinding.
-	DeletePolicyBinding(ctx kapi.Context, id string) error
+	DeletePolicyBinding(ctx kapi.Context, name string) error
+}
+
+type WatchingRegistry interface {
+	Registry
 	// WatchPolicyBindings watches policyBindings.
 	WatchPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
@@ -38,7 +42,7 @@ type storage struct {
 
 // NewRegistry returns a new Registry interface for the given Storage. Any mismatched
 // types will panic.
-func NewRegistry(s Storage) Registry {
+func NewRegistry(s Storage) WatchingRegistry {
 	return &storage{s}
 }
 
@@ -51,13 +55,13 @@ func (s *storage) ListPolicyBindings(ctx kapi.Context, label labels.Selector, fi
 	return obj.(*authorizationapi.PolicyBindingList), nil
 }
 
-func (s *storage) CreatePolicyBinding(ctx kapi.Context, node *authorizationapi.PolicyBinding) error {
-	_, err := s.Create(ctx, node)
+func (s *storage) CreatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
+	_, err := s.Create(ctx, policyBinding)
 	return err
 }
 
-func (s *storage) UpdatePolicyBinding(ctx kapi.Context, node *authorizationapi.PolicyBinding) error {
-	_, _, err := s.Update(ctx, node)
+func (s *storage) UpdatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
+	_, _, err := s.Update(ctx, policyBinding)
 	return err
 }
 

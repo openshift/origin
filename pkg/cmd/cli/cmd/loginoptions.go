@@ -304,7 +304,15 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	}
 
 	newConfig := config.CreateConfig(o.Username, o.Project, o.Config)
-	baseDir := filepath.Dir(o.PathOptions.GetDefaultFilename())
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return false, err
+	}
+	baseDir, err := cmdutil.MakeAbs(filepath.Dir(o.PathOptions.GetDefaultFilename()), cwd)
+	if err != nil {
+		return false, err
+	}
 	if err := config.RelativizeClientConfigPaths(&newConfig, baseDir); err != nil {
 		return false, err
 	}

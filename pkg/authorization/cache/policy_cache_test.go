@@ -19,10 +19,10 @@ func TestPolicyGet(t *testing.T) {
 	defer close(policyStop)
 	defer close(bindingStop)
 
-	policyRegistry := testregistry.NewPolicyRegistry(testPolicies(), nil)
-	bindingRegistry := testregistry.NewPolicyBindingRegistry(testBindings(), nil)
+	policyRegistry := testregistry.NewPolicyRegistry(testLocalPolicies(), nil)
+	bindingRegistry := testregistry.NewPolicyBindingRegistry(testLocalBindings(), nil)
 
-	policyCache := NewPolicyCache(bindingRegistry, policyRegistry)
+	policyCache := NewPolicyCache(bindingRegistry, policyRegistry, &testregistry.ClusterPolicyBindingRegistry{}, &testregistry.ClusterPolicyRegistry{})
 	policyCache.RunUntil(bindingStop, policyStop)
 
 	testStop := make(chan struct{})
@@ -39,7 +39,7 @@ func TestPolicyGet(t *testing.T) {
 	}, 1*time.Millisecond, testStop)
 }
 
-func testPolicies() []authorizationapi.Policy {
+func testLocalPolicies() []authorizationapi.Policy {
 	return []authorizationapi.Policy{
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -49,7 +49,8 @@ func testPolicies() []authorizationapi.Policy {
 			Roles: map[string]authorizationapi.Role{},
 		}}
 }
-func testBindings() []authorizationapi.PolicyBinding {
+
+func testLocalBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
 			ObjectMeta: kapi.ObjectMeta{

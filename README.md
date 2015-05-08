@@ -33,7 +33,7 @@ NOTE: OpenShift is in alpha and is not yet intended for production use. However 
 
 Security Warning!!!
 -------------------
-OpenShift is a system which runs Docker containers on your machine.  In some cases (build operations and the registry service) it does so using privileged containers.  Those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they have effective root access.  This is particularly relevant when running the OpenShift as a node directly on your laptop or primary workstation.  Only run code you trust.
+OpenShift is a system that runs Docker containers on your machine.  In some cases (build operations and the registry service) it does so using privileged containers.  Those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they have effective root access.  This is particularly relevant when running the OpenShift as a node directly on your laptop or primary workstation.  Only run code you trust.
 
 For more information on the security of containers, see these articles:
 
@@ -67,7 +67,7 @@ Getting Started
 ---------------
 The simplest way to run OpenShift Origin is in a Docker container:
 
-    $ docker run -d --name "openshift-origin" --net=host --privileged \
+    $ sudo docker run -d --name "openshift-origin" --net=host --privileged \
         -v /var/run/docker.sock:/var/run/docker.sock \
         openshift/origin start
 
@@ -75,12 +75,12 @@ The simplest way to run OpenShift Origin is in a Docker container:
 
 Once the container is started, you can jump into a console inside the container and run the CLI.
 
-    $ docker exec -it openshift-origin bash
+    $ sudo docker exec -it openshift-origin bash
     $ osc --help
 
 If you just want to experiment with the API without worrying about security privileges, you can disable authorization checks by running this from the host system.  This command grants full access to anyone.
 
-    $ docker exec -it openshift-origin bash -c "openshift admin policy add-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.config/master/admin.kubeconfig"
+    $ sudo docker exec -it openshift-origin bash -c "openshift admin policy add-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.config/master/admin.kubeconfig"
 
 
 ### Start Developing

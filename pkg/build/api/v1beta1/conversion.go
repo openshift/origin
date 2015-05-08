@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -281,4 +282,36 @@ func init() {
 			out.LastTriggeredImageID = in.LastTriggeredImageID
 			return nil
 		})
+
+	// Add field conversion funcs.
+	err := api.Scheme.AddFieldLabelConversionFunc("v1beta1", "Build",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "name":
+				return "metadata.name", value, nil
+			case "status":
+				return "status", value, nil
+			case "podName":
+				return "podName", value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
+			}
+		})
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+	err = api.Scheme.AddFieldLabelConversionFunc("v1beta1", "BuildConfig",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "name":
+				return "metadata.name", value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
+			}
+		})
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
 }

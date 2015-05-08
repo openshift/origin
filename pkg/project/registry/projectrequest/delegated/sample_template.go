@@ -21,7 +21,7 @@ var (
 	parameters = []string{ProjectNameParam, ProjectDisplayNameParam, ProjectDescriptionParam, ProjectAdminUserParam}
 )
 
-func NewSampleTemplate(masterNamespace, openshiftNamespace, templateName string) *templateapi.Template {
+func NewSampleTemplate(openshiftNamespace, templateName string) *templateapi.Template {
 	ret := &templateapi.Template{}
 	ret.Name = templateName
 	ret.Namespace = openshiftNamespace
@@ -38,7 +38,6 @@ func NewSampleTemplate(masterNamespace, openshiftNamespace, templateName string)
 	binding.Name = "admins"
 	binding.Namespace = "${" + ProjectNameParam + "}"
 	binding.Users = util.NewStringSet("${" + ProjectAdminUserParam + "}")
-	binding.RoleRef.Namespace = masterNamespace
 	binding.RoleRef.Name = bootstrappolicy.AdminRoleName
 	ret.Objects = append(ret.Objects, binding)
 

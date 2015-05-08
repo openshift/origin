@@ -10,9 +10,12 @@ import (
 )
 
 func TestValidatePolicy(t *testing.T) {
-	errs := ValidatePolicy(&authorizationapi.Policy{
-		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
-	})
+	errs := ValidatePolicy(
+		&authorizationapi.Policy{
+			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+		},
+		true,
+	)
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
@@ -57,7 +60,7 @@ func TestValidatePolicy(t *testing.T) {
 		},
 	}
 	for k, v := range errorCases {
-		errs := ValidatePolicy(&v.A)
+		errs := ValidatePolicy(&v.A, true)
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.A)
 			continue
@@ -74,10 +77,13 @@ func TestValidatePolicy(t *testing.T) {
 }
 
 func TestValidatePolicyBinding(t *testing.T) {
-	errs := ValidatePolicyBinding(&authorizationapi.PolicyBinding{
-		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName("master")},
-		PolicyRef:  kapi.ObjectReference{Namespace: "master"},
-	})
+	errs := ValidatePolicyBinding(
+		&authorizationapi.PolicyBinding{
+			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.GetPolicyBindingName("master")},
+			PolicyRef:  kapi.ObjectReference{Namespace: "master"},
+		},
+		true,
+	)
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
@@ -141,7 +147,7 @@ func TestValidatePolicyBinding(t *testing.T) {
 		},
 	}
 	for k, v := range errorCases {
-		errs := ValidatePolicyBinding(&v.A)
+		errs := ValidatePolicyBinding(&v.A, true)
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.A)
 			continue
@@ -158,10 +164,13 @@ func TestValidatePolicyBinding(t *testing.T) {
 }
 
 func TestValidateRoleBinding(t *testing.T) {
-	errs := ValidateRoleBinding(&authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
-		RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
-	})
+	errs := ValidateRoleBinding(
+		&authorizationapi.RoleBinding{
+			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+			RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+		},
+		true,
+	)
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
@@ -190,9 +199,9 @@ func TestValidateRoleBinding(t *testing.T) {
 		"invalid ref": {
 			A: authorizationapi.RoleBinding{
 				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "name"},
-				RoleRef:    kapi.ObjectReference{Name: "valid"},
+				RoleRef:    kapi.ObjectReference{Namespace: "-192083", Name: "valid"},
 			},
-			T: fielderrors.ValidationErrorTypeRequired,
+			T: fielderrors.ValidationErrorTypeInvalid,
 			F: "roleRef.namespace",
 		},
 		"bad role": {
@@ -205,7 +214,7 @@ func TestValidateRoleBinding(t *testing.T) {
 		},
 	}
 	for k, v := range errorCases {
-		errs := ValidateRoleBinding(&v.A)
+		errs := ValidateRoleBinding(&v.A, true)
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.A)
 			continue
@@ -227,10 +236,14 @@ func TestValidateRoleBindingUpdate(t *testing.T) {
 		RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
 	}
 
-	errs := ValidateRoleBindingUpdate(&authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master", ResourceVersion: "1"},
-		RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
-	}, old)
+	errs := ValidateRoleBindingUpdate(
+		&authorizationapi.RoleBinding{
+			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master", ResourceVersion: "1"},
+			RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+		},
+		old,
+		true,
+	)
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
@@ -250,7 +263,7 @@ func TestValidateRoleBindingUpdate(t *testing.T) {
 		},
 	}
 	for k, v := range errorCases {
-		errs := ValidateRoleBindingUpdate(&v.A, old)
+		errs := ValidateRoleBindingUpdate(&v.A, old, true)
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.A)
 			continue
@@ -267,9 +280,12 @@ func TestValidateRoleBindingUpdate(t *testing.T) {
 }
 
 func TestValidateRole(t *testing.T) {
-	errs := ValidateRole(&authorizationapi.Role{
-		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
-	})
+	errs := ValidateRole(
+		&authorizationapi.Role{
+			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+		},
+		true,
+	)
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
@@ -295,7 +311,39 @@ func TestValidateRole(t *testing.T) {
 		},
 	}
 	for k, v := range errorCases {
-		errs := ValidateRole(&v.A)
+		errs := ValidateRole(&v.A, true)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v", k, v.A)
+			continue
+		}
+		for i := range errs {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
+	}
+}
+
+func TestValidateClusterPolicyBinding(t *testing.T) {
+	errorCases := map[string]struct {
+		A authorizationapi.PolicyBinding
+		T fielderrors.ValidationErrorType
+		F string
+	}{
+		"external namespace ref": {
+			A: authorizationapi.PolicyBinding{
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.GetPolicyBindingName("master")},
+				PolicyRef:  kapi.ObjectReference{Namespace: "master"},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "policyRef.namespace",
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidatePolicyBinding(&v.A, false)
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.A)
 			continue

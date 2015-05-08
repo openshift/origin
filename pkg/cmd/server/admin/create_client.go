@@ -12,6 +12,7 @@ import (
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const CreateClientCommandName = "create-api-client-config"
@@ -27,14 +28,22 @@ type CreateClientOptions struct {
 	APIServerCAFile    string
 	APIServerURL       string
 	PublicAPIServerURL string
+	Output             cmdutil.Output
 }
 
+const create_client_long = `
+Create a portable client folder containing a client certificate, a client key,
+a server certificate authority, and a .kubeconfig file for connecting to the
+master as the specified user.
+`
+
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateClientOptions{GetSignerCertOptions: &GetSignerCertOptions{}}
+	options := &CreateClientOptions{GetSignerCertOptions: &GetSignerCertOptions{}, Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create a portable client folder containing a client certificate, a client key, a server certificate authority, and a .kubeconfig file.",
+		Short: "Create a portable client folder with credentials for connecting to the master as given user",
+		Long:  create_client_long,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -106,6 +115,7 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		User:      o.User,
 		Groups:    o.Groups,
 		Overwrite: true,
+		Output:    o.Output,
 	}
 	if _, err := createClientCertOptions.CreateClientCert(); err != nil {
 		return err
@@ -131,6 +141,7 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		ContextNamespace: kapi.NamespaceDefault,
 
 		KubeConfigFile: kubeConfigFile,
+		Output:         o.Output,
 	}
 	if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 		return err

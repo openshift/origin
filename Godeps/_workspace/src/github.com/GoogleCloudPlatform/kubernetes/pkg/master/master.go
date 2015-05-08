@@ -669,7 +669,7 @@ func (m *Master) api_v1beta2() *apiserver.APIGroupVersion {
 func (m *Master) api_v1beta3() *apiserver.APIGroupVersion {
 	storage := make(map[string]rest.Storage)
 	for k, v := range m.storage {
-		if k == "minions" {
+		if k == "minions" || k == "minions/status" {
 			continue
 		}
 		storage[strings.ToLower(k)] = v

@@ -17,44 +17,46 @@ import (
 
 // strategy implements behavior for nodes
 type strategy struct {
+	namespaced bool
+
 	runtime.ObjectTyper
 }
 
-// Strategy is the default logic that applies when creating and updating rolebindings.
-var Strategy = strategy{kapi.Scheme}
+var ClusterStrategy = strategy{false, kapi.Scheme}
+var LocalStrategy = strategy{true, kapi.Scheme}
 
 // NamespaceScoped is false for rolebindings.
-func (strategy) NamespaceScoped() bool {
-	return true
+func (s strategy) NamespaceScoped() bool {
+	return s.namespaced
 }
 
 // AllowCreateOnUpdate is false for rolebindings.
-func (strategy) AllowCreateOnUpdate() bool {
+func (s strategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
-func (strategy) GenerateName(base string) string {
+func (s strategy) GenerateName(base string) string {
 	return base
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (strategy) PrepareForCreate(obj runtime.Object) {
+func (s strategy) PrepareForCreate(obj runtime.Object) {
 	_ = obj.(*authorizationapi.RoleBinding)
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (strategy) PrepareForUpdate(obj, old runtime.Object) {
+func (s strategy) PrepareForUpdate(obj, old runtime.Object) {
 	_ = obj.(*authorizationapi.RoleBinding)
 }
 
 // Validate validates a new role.
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateRoleBinding(obj.(*authorizationapi.RoleBinding))
+func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
+	return validation.ValidateRoleBinding(obj.(*authorizationapi.RoleBinding), s.namespaced)
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateRoleBindingUpdate(obj.(*authorizationapi.RoleBinding), old.(*authorizationapi.RoleBinding))
+func (s strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+	return validation.ValidateRoleBindingUpdate(obj.(*authorizationapi.RoleBinding), old.(*authorizationapi.RoleBinding), s.namespaced)
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

@@ -51,6 +51,7 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErr
 	return allErrs
 }
 
+// ValidateBuildRequest validates a BuildRequest object
 func ValidateBuildRequest(request *buildapi.BuildRequest) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	if len(request.Name) == 0 {

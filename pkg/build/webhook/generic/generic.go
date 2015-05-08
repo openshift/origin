@@ -24,11 +24,11 @@ func New() *WebHookPlugin {
 func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
 	trigger, ok := webhook.FindTriggerPolicy(api.GenericWebHookBuildTriggerType, buildCfg)
 	if !ok {
-		err = fmt.Errorf("BuildConfig %s does not support the Generic webhook trigger type", buildCfg.Name)
+		err = webhook.ErrHookNotEnabled
 		return
 	}
 	if trigger.GenericWebHook.Secret != secret {
-		err = fmt.Errorf("Secret does not match for BuildConfig %s", buildCfg.Name)
+		err = webhook.ErrSecretMismatch
 		return
 	}
 	if err = verifyRequest(req); err != nil {
@@ -41,7 +41,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		return nil, true, nil
 	}
 
-	if req.Body != nil {
+	if req.Body != nil && req.Header.Get("Content-Type") == "application/json" {
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return nil, false, err
@@ -86,9 +86,6 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 func verifyRequest(req *http.Request) error {
 	if method := req.Method; method != "POST" {
 		return fmt.Errorf("Unsupported HTTP method %s", method)
-	}
-	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
-		return fmt.Errorf("Unsupported Content-Type %s", contentType)
 	}
 	return nil
 }

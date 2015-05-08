@@ -8,15 +8,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
-func GetBootstrapRoles(masterNamespace, openshiftNamespace string) []authorizationapi.Role {
-	masterRoles := GetBootstrapMasterRoles(masterNamespace)
-	openshiftRoles := GetBootstrapOpenshiftRoles(openshiftNamespace)
-	ret := make([]authorizationapi.Role, 0, len(masterRoles)+len(openshiftRoles))
-	ret = append(ret, masterRoles...)
-	ret = append(ret, openshiftRoles...)
-	return ret
-}
-
 func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Role {
 	return []authorizationapi.Role{
 		{
@@ -33,12 +24,11 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Ro
 		},
 	}
 }
-func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
-	return []authorizationapi.Role{
+func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
+	return []authorizationapi.ClusterRole{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      ClusterAdminRoleName,
-				Namespace: masterNamespace,
+				Name: ClusterAdminRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -53,8 +43,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      AdminRoleName,
-				Namespace: masterNamespace,
+				Name: AdminRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -69,8 +58,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      EditRoleName,
-				Namespace: masterNamespace,
+				Name: EditRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -85,8 +73,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      ViewRoleName,
-				Namespace: masterNamespace,
+				Name: ViewRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -97,8 +84,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      BasicUserRoleName,
-				Namespace: masterNamespace,
+				Name: BasicUserRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{Verbs: util.NewStringSet("get"), Resources: util.NewStringSet("users"), ResourceNames: util.NewStringSet("~")},
@@ -109,8 +95,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      SelfProvisionerRoleName,
-				Namespace: masterNamespace,
+				Name: SelfProvisionerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{Verbs: util.NewStringSet("create"), Resources: util.NewStringSet("projectrequests")},
@@ -118,8 +103,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      StatusCheckerRoleName,
-				Namespace: masterNamespace,
+				Name: StatusCheckerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -130,8 +114,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      DeployerRoleName,
-				Namespace: masterNamespace,
+				Name: DeployerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -142,8 +125,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      InternalComponentRoleName,
-				Namespace: masterNamespace,
+				Name: InternalComponentRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -154,8 +136,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      DeleteTokensRoleName,
-				Namespace: masterNamespace,
+				Name: DeleteTokensRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -166,8 +147,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      RouterRoleName,
-				Namespace: masterNamespace,
+				Name: RouterRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -178,8 +158,7 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      RegistryRoleName,
-				Namespace: masterNamespace,
+				Name: RegistryRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -201,16 +180,18 @@ func GetBootstrapMasterRoles(masterNamespace string) []authorizationapi.Role {
 				},
 			},
 		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: WebHooksRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("get", "create"),
+					Resources: util.NewStringSet("buildconfigs/webhooks"),
+				},
+			},
+		},
 	}
-}
-
-func GetBootstrapRoleBindings(masterNamespace, openshiftNamespace string) []authorizationapi.RoleBinding {
-	masterRoleBindings := GetBootstrapMasterRoleBindings(masterNamespace)
-	openshiftRoleBindings := GetBootstrapOpenshiftRoleBindings(openshiftNamespace)
-	ret := make([]authorizationapi.RoleBinding, 0, len(masterRoleBindings)+len(openshiftRoleBindings))
-	ret = append(ret, masterRoleBindings...)
-	ret = append(ret, openshiftRoleBindings...)
-	return ret
 }
 
 func GetBootstrapOpenshiftRoleBindings(openshiftNamespace string) []authorizationapi.RoleBinding {
@@ -228,107 +209,99 @@ func GetBootstrapOpenshiftRoleBindings(openshiftNamespace string) []authorizatio
 		},
 	}
 }
-func GetBootstrapMasterRoleBindings(masterNamespace string) []authorizationapi.RoleBinding {
-	return []authorizationapi.RoleBinding{
+
+func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
+	return []authorizationapi.ClusterRoleBinding{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      InternalComponentRoleBindingName,
-				Namespace: masterNamespace,
+				Name: InternalComponentRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      InternalComponentRoleName,
-				Namespace: masterNamespace,
+				Name: InternalComponentRoleName,
 			},
 			Users:  util.NewStringSet(InternalComponentUsername, InternalComponentKubeUsername),
 			Groups: util.NewStringSet(NodesGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      DeployerRoleBindingName,
-				Namespace: masterNamespace,
+				Name: DeployerRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      DeployerRoleName,
-				Namespace: masterNamespace,
+				Name: DeployerRoleName,
 			},
 			Users: util.NewStringSet(DeployerUsername),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      ClusterAdminRoleBindingName,
-				Namespace: masterNamespace,
+				Name: ClusterAdminRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      ClusterAdminRoleName,
-				Namespace: masterNamespace,
+				Name: ClusterAdminRoleName,
 			},
 			Groups: util.NewStringSet(ClusterAdminGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      BasicUserRoleBindingName,
-				Namespace: masterNamespace,
+				Name: BasicUserRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      BasicUserRoleName,
-				Namespace: masterNamespace,
+				Name: BasicUserRoleName,
 			},
 			Groups: util.NewStringSet(AuthenticatedGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      SelfProvisionerRoleBindingName,
-				Namespace: masterNamespace,
+				Name: SelfProvisionerRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      SelfProvisionerRoleName,
-				Namespace: masterNamespace,
+				Name: SelfProvisionerRoleName,
 			},
 			Groups: util.NewStringSet(AuthenticatedGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      DeleteTokensRoleBindingName,
-				Namespace: masterNamespace,
+				Name: DeleteTokensRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      DeleteTokensRoleName,
-				Namespace: masterNamespace,
+				Name: DeleteTokensRoleName,
 			},
 			Groups: util.NewStringSet(AuthenticatedGroup, UnauthenticatedGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      StatusCheckerRoleBindingName,
-				Namespace: masterNamespace,
+				Name: StatusCheckerRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      StatusCheckerRoleName,
-				Namespace: masterNamespace,
+				Name: StatusCheckerRoleName,
 			},
 			Groups: util.NewStringSet(AuthenticatedGroup, UnauthenticatedGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      RouterRoleBindingName,
-				Namespace: masterNamespace,
+				Name: RouterRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      RouterRoleName,
-				Namespace: masterNamespace,
+				Name: RouterRoleName,
 			},
 			Groups: util.NewStringSet(RouterGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      RegistryRoleBindingName,
-				Namespace: masterNamespace,
+				Name: RegistryRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name:      RegistryRoleName,
-				Namespace: masterNamespace,
+				Name: RegistryRoleName,
 			},
 			Groups: util.NewStringSet(RegistryGroup),
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: WebHooksRoleBindingName,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: WebHooksRoleName,
+			},
+			Groups: util.NewStringSet(AuthenticatedGroup, UnauthenticatedGroup),
 		},
 	}
 }

@@ -36,7 +36,7 @@ type onBuildSourceHandler struct {
 
 // New returns a new instance of OnBuild builder
 func New(request *api.Request) (*OnBuild, error) {
-	dockerHandler, err := docker.New(request.DockerSocket)
+	dockerHandler, err := docker.New(request.DockerConfig)
 	if err != nil {
 		return nil, err
 	}
