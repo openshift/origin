@@ -215,7 +215,7 @@ func (r *Etcd) WatchBuildConfigs(ctx kapi.Context, label labels.Selector, field 
 			return false
 		}
 		fields := labels.Set{
-			"name": buildConfig.Name,
+			"metadata.name": buildConfig.Name,
 		}
 		return label.Matches(labels.Set(buildConfig.Labels)) && field.Matches(fields)
 	})
