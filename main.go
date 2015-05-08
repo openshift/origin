@@ -48,7 +48,7 @@ func init() {
 	flag.UintVar(&opts.containerSubnetLength, "container-subnet-length", 8, "container subnet length")
 	flag.StringVar(&opts.etcdEndpoints, "etcd-endpoints", "http://127.0.0.1:4001", "a comma-delimited list of etcd endpoints")
 	flag.StringVar(&opts.etcdPath, "etcd-path", "/registry/sdn/", "etcd path")
-	flag.StringVar(&opts.minionPath, "minion-path", "/kubernetes.io/registry/minions/", "etcd path that will be watched for minion creation/deletion (Note: -sync flag will override this path with -etcd-path)")
+	flag.StringVar(&opts.minionPath, "minion-path", "/kubernetes.io/minions/", "etcd path that will be watched for minion creation/deletion (Note: -sync flag will override this path with -etcd-path)")
 	flag.StringVar(&opts.etcdKeyfile, "etcd-keyfile", "", "SSL key file used to secure etcd communication")
 	flag.StringVar(&opts.etcdCertfile, "etcd-certfile", "", "SSL certification file used to secure etcd communication")
 	flag.StringVar(&opts.etcdCAFile, "etcd-cafile", "", "SSL Certificate Authority file used to secure etcd communication")
