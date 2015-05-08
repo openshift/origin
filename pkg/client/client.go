@@ -29,6 +29,8 @@ type Interface interface {
 	DeploymentsNamespacer
 	DeploymentConfigsNamespacer
 	RoutesNamespacer
+	HostSubnetsInterface
+	ClusterNetworkingInterface
 	IdentitiesInterface
 	UsersInterface
 	UserIdentityMappingsInterface
@@ -119,6 +121,16 @@ func (c *Client) DeploymentConfigs(namespace string) DeploymentConfigInterface {
 // Routes provides a REST client for Route
 func (c *Client) Routes(namespace string) RouteInterface {
 	return newRoutes(c, namespace)
+}
+
+// HostSubnet provides a REST client for HostSubnet
+func (c *Client) HostSubnets() HostSubnetInterface {
+	return newHostSubnet(c)
+}
+
+// ClusterNetwork provides a REST client for ClusterNetworking
+func (c *Client) ClusterNetwork() ClusterNetworkInterface {
+	return newClusterNetwork(c)
 }
 
 // Users provides a REST client for User
