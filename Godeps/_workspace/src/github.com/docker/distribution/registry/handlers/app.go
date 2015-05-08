@@ -218,18 +218,38 @@ func (app *App) RegisterHealthChecks() {
 	})
 }
 
+type customAccessRecordsFunc func(*http.Request) []auth.Access
+
+func NoCustomAccessRecords(*http.Request) []auth.Access {
+	return []auth.Access{}
+}
+
+func NameNotRequired(*http.Request) bool {
+	return false
+}
+
+func NameRequired(*http.Request) bool {
+	return true
+}
+
 // register a handler with the application, by route name. The handler will be
 // passed through the application filters and context will be constructed at
 // request time.
 func (app *App) register(routeName string, dispatch dispatchFunc) {
+	app.RegisterRoute(app.router.GetRoute(routeName), dispatch, app.nameRequired, NoCustomAccessRecords)
+}
 
+func (app *App) RegisterRoute(route *mux.Route, dispatch dispatchFunc, nameRequired nameRequiredFunc, accessRecords customAccessRecordsFunc) {
 	// TODO(stevvooe): This odd dispatcher/route registration is by-product of
 	// some limitations in the gorilla/mux router. We are using it to keep
 	// routing consistent between the client and server, but we may want to
 	// replace it with manual routing and structure-based dispatch for better
 	// control over the request execution.
+	route.Handler(app.dispatcher(dispatch, nameRequired, accessRecords))
+}
 
-	app.router.GetRoute(routeName).Handler(app.dispatcher(dispatch))
+func (app *App) NewRoute() *mux.Route {
+	return app.router.NewRoute()
 }
 
 // configureEvents prepares the event sink for action.
@@ -441,19 +461,19 @@ type dispatchFunc func(ctx *Context, r *http.Request) http.Handler
 
 // dispatcher returns a handler that constructs a request specific context and
 // handler, using the dispatch factory function.
-func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
+func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc, accessRecords customAccessRecordsFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		context := app.context(w, r)
 
-		if err := app.authorized(w, r, context); err != nil {
-			ctxu.GetLogger(context).Warnf("error authorizing context: %v", err)
+		if err := app.authorized(w, r, context, nameRequired, accessRecords(r)); err != nil {
+			ctxu.GetLogger(context).Errorf("error authorizing context: %v", err)
 			return
 		}
 
 		// Add username to request logging
 		context.Context = ctxu.WithLogger(context.Context, ctxu.GetLogger(context.Context, "auth.user.name"))
 
-		if app.nameRequired(r) {
+		if nameRequired(r) {
 			repository, err := app.registry.Repository(context, getName(context))
 
 			if err != nil {
@@ -554,7 +574,7 @@ func (app *App) context(w http.ResponseWriter, r *http.Request) *Context {
 // authorized checks if the request can proceed with access to the requested
 // repository. If it succeeds, the context may access the requested
 // repository. An error will be returned if access is not available.
-func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Context) error {
+func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Context, nameRequired nameRequiredFunc, customAccessRecords []auth.Access) error {
 	ctxu.GetLogger(context).Debug("authorizing request")
 	repo := getName(context)
 
@@ -563,12 +583,15 @@ func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Cont
 	}
 
 	var accessRecords []auth.Access
+	accessRecords = append(accessRecords, customAccessRecords...)
 
 	if repo != "" {
 		accessRecords = appendAccessRecords(accessRecords, r.Method, repo)
-	} else {
+	}
+
+	if len(accessRecords) == 0 {
 		// Only allow the name not to be set on the base route.
-		if app.nameRequired(r) {
+		if nameRequired(r) {
 			// For this to be properly secured, repo must always be set for a
 			// resource that may make a modification. The only condition under
 			// which name is not set and we still allow access is when the
@@ -622,6 +645,8 @@ func (app *App) eventBridge(ctx *Context, r *http.Request) notifications.Listene
 
 	return notifications.NewBridge(ctx.urlBuilder, app.events.source, actor, request, app.events.sink)
 }
+
+type nameRequiredFunc func(*http.Request) bool
 
 // nameRequired returns true if the route requires a name.
 func (app *App) nameRequired(r *http.Request) bool {
