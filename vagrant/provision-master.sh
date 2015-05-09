@@ -17,6 +17,9 @@ for (( i=0; i<${#MINION_NAMES[@]}; i++)); do
     echo "$ip $minion" >> /etc/hosts
   fi
 done
+if ! grep ${MASTER_IP} /etc/hosts; then
+  echo "${MASTER_IP} ${MASTER_NAME}" >> /etc/hosts
+fi
 node_list=${node_list:1}
 
 # Install the required packages
