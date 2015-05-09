@@ -111,6 +111,13 @@ type BuildSource struct {
 	// This allows to have buildable sources in directory other than root of
 	// repository.
 	ContextDir string `json:"contextDir,omitempty"`
+
+	// SourceSecretName is the name of a Secret that would be used for setting
+	// up the authentication for cloning private repository.
+	// The secret contains valid credentials for remote repository, where the
+	// data's key represent the authentication method to be used and value is
+	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
+	SourceSecretName string
 }
 
 // SourceRevision is the revision or commit information from the source for the build
@@ -240,7 +247,7 @@ type BuildOutput struct {
 	// a Docker image repository to push to. Failure to find the To will result in a build error.
 	To *kapi.ObjectReference `json:"to,omitempty"`
 
-	// pushSecretName is the name of a Secret that would be used for setting
+	// PushSecretName is the name of a Secret that would be used for setting
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
 	PushSecretName string `json:"pushSecretName,omitempty"`
