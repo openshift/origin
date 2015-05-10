@@ -316,8 +316,10 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 			actions = appendIf(actions, action{"CONNECT", itemPath + "/{path:*}", nameParams, namer}, isConnecter && connectSubpath)
 
 			// list across namespace.
+			// TODO: more strongly type whether a resource allows these actions on "all namespaces" (bulk delete)
 			namer = scopeNaming{scope, a.group.Linker, gpath.Join(a.prefix, itemPath), true}
 			actions = appendIf(actions, action{"LIST", resource, params, namer}, isLister)
+			actions = appendIf(actions, action{"POST", resource, params, namer}, isCreater)
 			actions = appendIf(actions, action{"WATCHLIST", "watch/" + resource, params, namer}, allowWatchList)
 
 		} else {
