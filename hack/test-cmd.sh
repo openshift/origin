@@ -399,6 +399,19 @@ osc get deploymentConfigs
 osc get dc
 osc create -f test/integration/fixtures/test-deployment-config.json
 osc describe deploymentConfigs test-deployment-config
+[ "$(osc env dc/test-deployment-config --list | grep TEST=value)" ]
+[ ! "$(osc env dc/test-deployment-config TEST- --list | grep TEST=value)" ]
+[ "$(osc env dc/test-deployment-config TEST=foo --list | grep TEST=foo)" ]
+[ "$(osc env dc/test-deployment-config OTHER=foo --list | grep TEST=value)" ]
+[ ! "$(osc env dc/test-deployment-config OTHER=foo -c 'ruby' --list | grep OTHER=foo)" ]
+[ "$(osc env dc/test-deployment-config OTHER=foo -c 'ruby*'   --list | grep OTHER=foo)" ]
+[ "$(osc env dc/test-deployment-config OTHER=foo -c '*hello*' --list | grep OTHER=foo)" ]
+[ "$(osc env dc/test-deployment-config OTHER=foo -c '*world'  --list | grep OTHER=foo)" ]
+[ "$(osc env dc/test-deployment-config OTHER=foo --list | grep OTHER=foo)" ]
+[ "$(osc env dc/test-deployment-config OTHER=foo -o yaml | grep "name: OTHER")" ]
+[ "$(echo "OTHER=foo" | osc env dc/test-deployment-config -e - --list | grep OTHER=foo)" ]
+[ ! "$(echo "#OTHER=foo" | osc env dc/test-deployment-config -e - --list | grep OTHER=foo)" ]
+[ "$(osc env dc/test-deployment-config TEST=bar OTHER=baz BAR-)" ]
 osc deploy test-deployment-config
 osc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
