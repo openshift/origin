@@ -26,11 +26,19 @@ type LogoutOptions struct {
 }
 
 const (
-	logout_long = `Logs out the current user by deleting the token and removing the token from the kubeconfig file.
+	logoutLong = `Log out of the active session out by clearing saved tokens
+
+An authentication token is stored in the config file after login - this command will delete
+that token on the server, and then remove the token from the configuration file.
+
+If you are using an alternative authentication method like Kerberos or client certificates,
+your ticket or client certificate will not be removed from the current system since these
+are typically managed by other programs. Instead, you can delete your config file to remove
+the local copy of that certificate or the record of your server login.
 
 After logging out, if you want to log back into the OpenShift server, try '%[1]s'.`
 
-	logout_example = `  // Logout
+	logoutExample = `  // Logout
   $ %[1]s`
 )
 
@@ -42,9 +50,9 @@ func NewCmdLogout(name, fullName, oscLoginFullCommand string, f *osclientcmd.Fac
 
 	cmds := &cobra.Command{
 		Use:     name,
-		Short:   "Logs out the current user.",
-		Long:    fmt.Sprintf(logout_long, oscLoginFullCommand),
-		Example: fmt.Sprintf(logout_example, fullName),
+		Short:   "End the current server session",
+		Long:    fmt.Sprintf(logoutLong, oscLoginFullCommand),
+		Example: fmt.Sprintf(logoutExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args); err != nil {
 				kcmdutil.CheckErr(err)
@@ -60,6 +68,8 @@ func NewCmdLogout(name, fullName, oscLoginFullCommand string, f *osclientcmd.Fac
 
 		},
 	}
+
+	// TODO: support --all which performs the same logic on all users in your config file.
 
 	return cmds
 }

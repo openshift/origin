@@ -52,24 +52,24 @@ type LoginOptions struct {
 }
 
 const (
-	login_long = `Logs in to the OpenShift server and saves a config file that will be used by 
-subsequent commands.
+	loginLong = `Log in to an OpenShift server and save config for future use
 
-First-time users of the OpenShift client must run this command to configure the server,
-establish a session against it, and save it to a configuration file. The default
-configuration will be in your home directory under ".config/openshift/config".
+First-time users of the OpenShift client should run this command to connect to a server,
+establish an authenticated session, and save connection to the configuration file. The
+default configuration will be saved to your home directory under
+".config/openshift/config".
 
-The information required to login, like username and password, a session token, or
-the server details, can be provided through flags. If not provided, the command will
+The information required to login -- like username and password, a session token, or
+the server details -- can be provided through flags. If not provided, the command will
 prompt for user input as needed.`
 
-	login_example = `  // Logs in interactively
+	loginExample = `  // Log in interactively
   $ %[1]s login
 
-  // Logs in to the given server with the given certificate authority file
+  // Log in to the given server with the given certificate authority file
   $ %[1]s login localhost:8443 --certificate-authority=/path/to/cert.crt
 
-  // Logs in to the given server with the given credentials (will not prompt interactively)
+  // Log in to the given server with the given credentials (will not prompt interactively)
   $ %[1]s login localhost:8443 --username=myuser --password=mypass`
 )
 
@@ -82,9 +82,9 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out 
 
 	cmds := &cobra.Command{
 		Use:     "login [URL]",
-		Short:   "Logs in and save the configuration",
-		Long:    login_long,
-		Example: fmt.Sprintf(login_example, fullName),
+		Short:   "Log in to an OpenShift server",
+		Long:    loginLong,
+		Example: fmt.Sprintf(loginExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args); err != nil {
 				kcmdutil.CheckErr(err)
