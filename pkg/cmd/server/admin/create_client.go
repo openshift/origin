@@ -104,7 +104,7 @@ func (o CreateClientOptions) CreateClientFolder() error {
 
 	clientCertFile := DefaultCertFilename(o.ClientDir, o.User)
 	clientKeyFile := DefaultKeyFilename(o.ClientDir, o.User)
-	clientCopyOfCAFile := DefaultCAFilename(o.ClientDir, o.User)
+	clientCopyOfCAFile := DefaultCAFilename(o.ClientDir, "ca")
 	kubeConfigFile := DefaultKubeConfigFilename(o.ClientDir, o.User)
 
 	createClientCertOptions := CreateClientCertOptions{
