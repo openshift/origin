@@ -379,17 +379,23 @@ osc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
 osc process -f test/templates/fixtures/guestbook.json --parameters --value="ADMIN_USERNAME=admin"
-osc process -f test/templates/fixtures/guestbook.json | osc create -f -
+osc process -f test/templates/fixtures/guestbook.json -l app=guestbook | osc create -f -
 osc status
 [ "$(osc status | grep frontend-service)" ]
 echo "template+config: ok"
-
 [ "$(OSC_EDITOR='cat' osc edit svc/kubernetes 2>&1 | grep 'Edit cancelled')" ]
 [ "$(OSC_EDITOR='cat' osc edit svc/kubernetes | grep 'provider: kubernetes')" ]
+osc delete all -l app=guestbook
 echo "edit: ok"
 
-openshift kube resize --replicas=2 rc guestbook
-osc get pods
+osc delete all --all
+osc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
+# resize rc via deployment configuration
+osc resize dc ruby-hello-world --replicas=1
+# resize directly
+osc resize rc ruby-hello-world-1 --current-replicas=1 --replicas=5
+[ "$(osc get rc/ruby-hello-world-1 | grep 5)" ]
+osc delete all -l app=ruby
 echo "resize: ok"
 
 osc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | osc create -f -

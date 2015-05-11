@@ -189,6 +189,19 @@ $ osc start-build --from-build=ruby-sample-build-275d3373-c252-11e4-bc79-080027c
 $ osc start-build --from-build=ruby-sample-build-275d3373-c252-11e4-bc79-080027c5bfa9 --follow 
 ```
 
+osc resize
+------------------
+
+This command sets a new size for a Replication Controller either directly or via its Deployment Configuration.
+
+#### Examples
+
+```bash
+# n is the highest deployment number for the dc ruby-hello-world
+$ osc resize rc ruby-hello-world-n  --replicas=3
+$ osc resize dc ruby-hello-world --current-replicas=3 --replicas=5
+```
+
 osc build-logs
 ------------------
 
