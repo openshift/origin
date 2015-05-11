@@ -29,6 +29,9 @@
                   {
                     "containerPort": 8080
                   }
+                ],
+                "env": [
+                  {"name":"TEST","value":"value"}
                 ]
               }
             ]

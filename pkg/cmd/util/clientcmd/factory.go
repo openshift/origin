@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 
 	"github.com/spf13/pflag"
 )
@@ -106,6 +107,36 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 
 	return w
+}
+
+// TODO: move to upstream
+func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {
+	// TODO: replace with a swagger schema based approach (identify pod template via schema introspection)
+	switch t := obj.(type) {
+	case *api.Pod:
+		return true, fn(&t.Spec)
+	case *api.PodTemplate:
+		return true, fn(&t.Template.Spec)
+	case *api.ReplicationController:
+		if t.Spec.TemplateRef != nil {
+			return true, fmt.Errorf("references to pod templates (%s/%s) cannot be updated", t.Spec.TemplateRef.Namespace, t.Spec.TemplateRef.Name)
+		}
+		if t.Spec.Template == nil {
+			t.Spec.Template = &api.PodTemplateSpec{}
+		}
+		return true, fn(&t.Spec.Template.Spec)
+	case *deployapi.DeploymentConfig:
+		template := t.Template.ControllerTemplate
+		if template.TemplateRef != nil {
+			return true, fmt.Errorf("deployment configs with references to pod templates (%s/%s) cannot be updated", template.TemplateRef.Namespace, template.TemplateRef.Name)
+		}
+		if template.Template == nil {
+			template.Template = &api.PodTemplateSpec{}
+		}
+		return true, fn(&template.Template.Spec)
+	default:
+		return false, fmt.Errorf("the object is not a pod or does not have a pod template")
+	}
 }
 
 // Clients returns an OpenShift and Kubernetes client.

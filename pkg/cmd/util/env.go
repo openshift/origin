@@ -35,7 +35,7 @@ func GetEnv(key string) (string, bool) {
 
 type Environment map[string]string
 
-var argumentEnvironment = regexp.MustCompile("^([\\w\\-]+)\\=(.*)$")
+var argumentEnvironment = regexp.MustCompile("^([\\w\\-_]+)\\=(.*)$")
 
 func IsEnvironmentArgument(s string) bool {
 	return argumentEnvironment.MatchString(s)
