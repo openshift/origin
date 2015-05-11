@@ -29,6 +29,9 @@ function set_env {
 set_env /home/$USERNAME
 set_env /root
 
+# fedora removed docker group, see https://bugzilla.redhat.com/show_bug.cgi?id=1195525
+groupadd docker || echo group \"docker\" already exists
+
 systemctl enable docker
 systemctl start docker
 
