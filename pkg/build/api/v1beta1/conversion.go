@@ -93,13 +93,11 @@ func init() {
 			}
 			out.Scripts = in.Scripts
 			out.Clean = !in.Incremental
-			out.PullSecretName = in.PullSecretName
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
 			out.Scripts = in.Scripts
 			out.Incremental = !in.Clean
-			out.PullSecretName = in.PullSecretName
 			if in.From != nil {
 				out.From = &api.ObjectReference{
 					Kind:      in.From.Kind,
@@ -127,7 +125,6 @@ func init() {
 		// Rename DockerBuildStrategy.BaseImage to DockerBuildStrategy.Image
 		func(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
 			out.NoCache = in.NoCache
-			out.PullSecretName = in.PullSecretName
 			if in.From != nil {
 				switch in.From.Kind {
 				case "ImageStreamImage":
@@ -164,7 +161,6 @@ func init() {
 		},
 		func(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
 			out.NoCache = in.NoCache
-			out.PullSecretName = in.PullSecretName
 			if in.From != nil {
 				out.From = &api.ObjectReference{
 					Kind:      in.From.Kind,
@@ -222,12 +218,10 @@ func init() {
 				}
 			}
 			out.ExposeDockerSocket = in.ExposeDockerSocket
-			out.PullSecretName = in.PullSecretName
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		func(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
 			out.ExposeDockerSocket = in.ExposeDockerSocket
-			out.PullSecretName = in.PullSecretName
 			if in.From != nil {
 				out.From = &api.ObjectReference{
 					Kind:      in.From.Kind,

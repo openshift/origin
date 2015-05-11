@@ -2,16 +2,17 @@ package builder
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	image "github.com/openshift/origin/pkg/image/api"
 	stiapi "github.com/openshift/source-to-image/pkg/api"
 	sti "github.com/openshift/source-to-image/pkg/build/strategies"
 
+	"github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
-	"github.com/openshift/origin/pkg/build/controller/strategy"
+	stidocker "github.com/openshift/source-to-image/pkg/docker"
 )
 
 // STIBuilder performs an STI build given the build object
@@ -42,7 +43,7 @@ func (s *STIBuilder) Build() error {
 		DockerConfig:  &stiapi.DockerConfig{Endpoint: s.dockerSocket},
 		Source:        s.build.Parameters.Source.Git.URI,
 		ContextDir:    s.build.Parameters.Source.ContextDir,
-		DockerCfgPath: strategy.DockerPullSecretMountPath,
+		DockerCfgPath: os.Getenv(dockercfg.PullAuthType),
 		Tag:           tag,
 		ScriptsURL:    s.build.Parameters.Strategy.STIStrategy.Scripts,
 		Environment:   getBuildEnvVars(s.build),
@@ -55,7 +56,14 @@ func (s *STIBuilder) Build() error {
 	} else if s.build.Parameters.Source.Git.Ref != "" {
 		request.Ref = s.build.Parameters.Source.Git.Ref
 	}
-	glog.V(2).Infof("Creating a new STI builder with build request: %#v\n", request)
+	// Attempt to read the .dockercfg and extract the authentication for
+	// docker pull
+	printRequest := request
+	if r, err := os.Open(request.DockerCfgPath); err == nil {
+		request.PullAuthentication = stidocker.GetImageRegistryAuth(r, request.BaseImage)
+		printRequest.PullAuthentication.Password = "[filtered]"
+	}
+	glog.V(2).Infof("Creating a new STI builder with build request: %#v\n", printRequest)
 	builder, err := sti.GetStrategy(request)
 	if err != nil {
 		return err

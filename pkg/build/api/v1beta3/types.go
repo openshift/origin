@@ -203,7 +203,7 @@ type CustomBuildStrategy struct {
 	// PullSecretName is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string `json:pullSecretName,omitempty`
+	PullSecretName string `json:"pullSecretName,omitempty"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
@@ -224,7 +224,7 @@ type DockerBuildStrategy struct {
 	// PullSecretName is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string `json:pullSecretName,omitempty`
+	PullSecretName string `json:"pullSecretName,omitempty"`
 
 	// NoCache if set to true indicates that the docker build must be executed with the
 	// --no-cache=true flag
@@ -240,7 +240,7 @@ type STIBuildStrategy struct {
 	// PullSecretName is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string `json:pullSecretName,omitempty`
+	PullSecretName string `json:"pullSecretName,omitempty"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`

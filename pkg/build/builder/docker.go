@@ -336,6 +336,19 @@ func traverseAST(cmd string, node *parser.Node) int {
 	return index
 }
 
+// setupPullSecret provides a Docker authentication configuration when the
+// PullSecret is specified.
+func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
+	if len(os.Getenv("PULL_DOCKERCFG_PATH")) == 0 {
+		return nil, nil
+	}
+	r, err := os.Open(os.Getenv("PULL_DOCKERCFG_PATH"))
+	if err != nil {
+		return nil, fmt.Errorf("'%s': %s", os.Getenv("PULL_DOCKERCFG_PATH"), err)
+	}
+	return docker.NewAuthConfigurations(r)
+}
+
 // dockerBuild performs a docker build on the source that has been retrieved
 func (d *DockerBuilder) dockerBuild(dir string) error {
 	var noCache bool
@@ -345,5 +358,9 @@ func (d *DockerBuilder) dockerBuild(dir string) error {
 		}
 		noCache = d.build.Parameters.Strategy.DockerStrategy.NoCache
 	}
-	return buildImage(d.dockerClient, dir, noCache, d.build.Parameters.Output.DockerImageReference, d.tar)
+	auth, err := d.setupPullSecret()
+	if err != nil {
+		return err
+	}
+	return buildImage(d.dockerClient, dir, noCache, d.build.Parameters.Output.DockerImageReference, d.tar, auth)
 }

@@ -215,7 +215,7 @@ type CustomBuildStrategy struct {
 	// PullSecretName is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string
+	PullSecretName string `json:"pullSecretName,omitempty"`
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -232,7 +232,7 @@ type DockerBuildStrategy struct {
 	// PullSecretName is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string
+	PullSecretName string `json:"pullSecretName,omitempty"`
 }
 
 // STIBuildStrategy defines input parameters specific to an STI build.
@@ -244,7 +244,7 @@ type STIBuildStrategy struct {
 	// PullSecretName is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string
+	PullSecretName string `json:"pullSecretName,omitempty"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
