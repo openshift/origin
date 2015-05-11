@@ -53,35 +53,50 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		return nil
 	}
 
-	// Check if the latest deployment already exists
-	if deployment, err := c.deploymentClient.getDeployment(config.Namespace, deployutil.LatestDeploymentNameForConfig(config)); err != nil {
-		if !errors.IsNotFound(err) {
-			return fmt.Errorf("couldn't get deployment for config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
-		}
-	} else {
-		// If there's an existing deployment, nothing needs to be done.
-		if deployment != nil {
-			return nil
-		}
-	}
-
-	// Check if any previous deployment is still running (any non-terminal state).
+	// Check if any existing inflight deployments (any non-terminal state).
 	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
 	if err != nil {
 		return fmt.Errorf("couldn't list deployments for config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
+	var inflightDeployment *kapi.ReplicationController
 	for _, deployment := range existingDeployments.Items {
 		deploymentStatus := deployutil.DeploymentStatusFor(&deployment)
 		switch deploymentStatus {
 		case deployapi.DeploymentStatusFailed,
 			deployapi.DeploymentStatusComplete:
 			// Previous deployment in terminal state - can ignore
-			// Ignoring specific deployment states so that any new
+			// Ignoring specific deployment states so that any newly introduced
 			// deployment state will not be ignored
 		default:
-			glog.V(4).Infof("Found previous deployment %s (status %s) - will requeue", deployutil.LabelForDeployment(&deployment), deploymentStatus)
-			return transientError(fmt.Sprintf("found previous deployment (state: %s) for %s - requeuing", deploymentStatus, deployutil.LabelForDeploymentConfig(config)))
+			if inflightDeployment == nil {
+				inflightDeployment = &deployment
+				continue
+			}
+			var deploymentForCancellation *kapi.ReplicationController
+			if deployutil.DeploymentVersionFor(inflightDeployment) < deployutil.DeploymentVersionFor(&deployment) {
+				deploymentForCancellation, inflightDeployment = inflightDeployment, &deployment
+			} else {
+				deploymentForCancellation = &deployment
+			}
+
+			deploymentForCancellation.Annotations[deployapi.DeploymentCancelledAnnotation] = "true"
+			if _, err := c.deploymentClient.updateDeployment(deploymentForCancellation.Namespace, deploymentForCancellation); err != nil {
+				glog.Errorf("couldn't cancel deployment %s: %v", deployutil.LabelForDeployment(deploymentForCancellation), err)
+			}
+			glog.V(2).Infof("Cancelled deployment %s for config %s", deployutil.LabelForDeployment(deploymentForCancellation), deployutil.LabelForDeploymentConfig(config))
 		}
+	}
+
+	// check to see if there are inflight deployments
+	if inflightDeployment != nil {
+		// check if this is the latest and only deployment
+		// if so, nothing needs to be done
+		if deployutil.DeploymentVersionFor(inflightDeployment) == config.LatestVersion {
+			return nil
+		}
+		// if this is an earlier deployment, raise a transientError so that the deployment config can be re-queued
+		glog.V(4).Infof("Found previous inflight deployment for %s - will requeue", deployutil.LabelForDeploymentConfig(config))
+		return transientError(fmt.Sprintf("found previous inflight deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config)))
 	}
 
 	// Try and build a deployment for the config.
@@ -128,22 +143,18 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 
 // deploymentClient abstracts access to deployments.
 type deploymentClient interface {
-	getDeployment(namespace, name string) (*kapi.ReplicationController, error)
 	createDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	// listDeploymentsForConfig should return deployments associated with the
 	// provided config.
 	listDeploymentsForConfig(namespace, configName string) (*kapi.ReplicationControllerList, error)
+	updateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
 }
 
 // deploymentClientImpl is a pluggable deploymentClient.
 type deploymentClientImpl struct {
-	getDeploymentFunc            func(namespace, name string) (*kapi.ReplicationController, error)
 	createDeploymentFunc         func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	listDeploymentsForConfigFunc func(namespace, configName string) (*kapi.ReplicationControllerList, error)
-}
-
-func (i *deploymentClientImpl) getDeployment(namespace, name string) (*kapi.ReplicationController, error) {
-	return i.getDeploymentFunc(namespace, name)
+	updateDeploymentFunc         func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
 }
 
 func (i *deploymentClientImpl) createDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
@@ -152,4 +163,8 @@ func (i *deploymentClientImpl) createDeployment(namespace string, deployment *ka
 
 func (i *deploymentClientImpl) listDeploymentsForConfig(namespace, configName string) (*kapi.ReplicationControllerList, error) {
 	return i.listDeploymentsForConfigFunc(namespace, configName)
+}
+
+func (i *deploymentClientImpl) updateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+	return i.updateDeploymentFunc(namespace, deployment)
 }

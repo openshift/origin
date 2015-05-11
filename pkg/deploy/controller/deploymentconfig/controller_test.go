@@ -3,6 +3,7 @@ package deploymentconfig
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"testing"
 
@@ -24,16 +25,16 @@ func TestHandle_initialOk(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				t.Fatalf("unexpected call with name %s", name)
-				return nil, nil
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call with deployment %v", deployment)
 				return nil, nil
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
 				t.Fatalf("unexpected call to list deployments")
+				return nil, nil
+			},
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected update call with deployment %v", deployment)
 				return nil, nil
 			},
 		},
@@ -62,15 +63,16 @@ func TestHandle_updateOk(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound("ReplicationController", name)
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				deployed = deployment
 				return deployment, nil
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
 				return existingDeployments, nil
+			},
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected update call with deployment %v", deployment)
+				return nil, nil
 			},
 		},
 		recorder: &record.FakeRecorder{},
@@ -132,15 +134,15 @@ func TestHandle_nonfatalLookupError(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewInternalError(fmt.Errorf("fatal test error"))
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call with deployment %v", deployment)
 				return nil, nil
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				t.Fatalf("unexpected call to list deployments")
+				return nil, kerrors.NewInternalError(fmt.Errorf("fatal test error"))
+			},
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected update call with deployment %v", deployment)
 				return nil, nil
 			},
 		},
@@ -166,16 +168,18 @@ func TestHandle_configAlreadyDeployed(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploymentConfig, kapi.Codec)
-				return deployment, nil
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call to to create deployment: %v", deployment)
 				return nil, nil
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				t.Fatalf("unexpected call to list deployments")
+				existingDeployments := []kapi.ReplicationController{}
+				deployment, _ := deployutil.MakeDeployment(deploymentConfig, kapi.Codec)
+				existingDeployments = append(existingDeployments, *deployment)
+				return &kapi.ReplicationControllerList{Items: existingDeployments}, nil
+			},
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected update call with deployment %v", deployment)
 				return nil, nil
 			},
 		},
@@ -196,14 +200,15 @@ func TestHandle_nonfatalCreateError(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound("ReplicationController", name)
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewInternalError(fmt.Errorf("test error"))
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
 				return &kapi.ReplicationControllerList{}, nil
+			},
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected update call with deployment %v", deployment)
+				return nil, nil
 			},
 		},
 		recorder: &record.FakeRecorder{},
@@ -226,15 +231,16 @@ func TestHandle_fatalError(t *testing.T) {
 			return nil, fmt.Errorf("couldn't make deployment")
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound("ReplicationController", name)
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call to create")
 				return nil, kerrors.NewInternalError(fmt.Errorf("test error"))
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
 				return &kapi.ReplicationControllerList{}, nil
+			},
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected update call with deployment %v", deployment)
+				return nil, nil
 			},
 		},
 	}
@@ -252,6 +258,7 @@ func TestHandle_fatalError(t *testing.T) {
 // new deployment for a config that has existing deployments succeeds of fails
 // depending upon the state of the existing deployments
 func TestHandle_existingDeployments(t *testing.T) {
+	var updatedDeployments []kapi.ReplicationController
 	var (
 		config              *deployapi.DeploymentConfig
 		deployed            *kapi.ReplicationController
@@ -263,9 +270,6 @@ func TestHandle_existingDeployments(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound("ReplicationController", name)
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				deployed = deployment
 				return deployment, nil
@@ -273,13 +277,19 @@ func TestHandle_existingDeployments(t *testing.T) {
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
 				return existingDeployments, nil
 			},
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedDeployments = append(updatedDeployments, *deployment)
+				//t.Fatalf("unexpected update call with deployment %v", deployment)
+				return deployment, nil
+			},
 		},
 		recorder: &record.FakeRecorder{},
 	}
 
 	type existing struct {
-		version int
-		status  deployapi.DeploymentStatus
+		version      int
+		status       deployapi.DeploymentStatus
+		shouldCancel bool
 	}
 
 	type scenario struct {
@@ -293,25 +303,32 @@ func TestHandle_existingDeployments(t *testing.T) {
 		// No existing deployments
 		{1, []existing{}, nil},
 		// A single existing completed deployment
-		{2, []existing{{1, deployapi.DeploymentStatusComplete}}, nil},
+		{2, []existing{{1, deployapi.DeploymentStatusComplete, false}}, nil},
 		// A single existing failed deployment
-		{2, []existing{{1, deployapi.DeploymentStatusFailed}}, nil},
+		{2, []existing{{1, deployapi.DeploymentStatusFailed, false}}, nil},
 		// Multiple existing completed/failed deployments
-		{3, []existing{{2, deployapi.DeploymentStatusFailed}, {1, deployapi.DeploymentStatusComplete}}, nil},
+		{3, []existing{{2, deployapi.DeploymentStatusFailed, false}, {1, deployapi.DeploymentStatusComplete, false}}, nil},
 
 		// A single existing deployment in the default state
-		{2, []existing{{1, ""}}, transientErrorType},
+		{2, []existing{{1, "", false}}, transientErrorType},
 		// A single existing new deployment
-		{2, []existing{{1, deployapi.DeploymentStatusNew}}, transientErrorType},
+		{2, []existing{{1, deployapi.DeploymentStatusNew, false}}, transientErrorType},
 		// A single existing pending deployment
-		{2, []existing{{1, deployapi.DeploymentStatusPending}}, transientErrorType},
+		{2, []existing{{1, deployapi.DeploymentStatusPending, false}}, transientErrorType},
 		// A single existing running deployment
-		{2, []existing{{1, deployapi.DeploymentStatusRunning}}, transientErrorType},
+		{2, []existing{{1, deployapi.DeploymentStatusRunning, false}}, transientErrorType},
 		// Multiple existing deployments with one in new/pending/running
-		{4, []existing{{3, deployapi.DeploymentStatusRunning}, {2, deployapi.DeploymentStatusComplete}, {1, deployapi.DeploymentStatusFailed}}, transientErrorType},
+		{4, []existing{{3, deployapi.DeploymentStatusRunning, false}, {2, deployapi.DeploymentStatusComplete, false}, {1, deployapi.DeploymentStatusFailed, false}}, transientErrorType},
+
+		// Multiple existing deployments with more than one in new/pending/running
+		{4, []existing{{3, deployapi.DeploymentStatusNew, false}, {2, deployapi.DeploymentStatusRunning, true}, {1, deployapi.DeploymentStatusFailed, false}}, transientErrorType},
+		// Multiple existing deployments with more than one in new/pending/running
+		// Latest deployment has already failed
+		{6, []existing{{5, deployapi.DeploymentStatusFailed, false}, {4, deployapi.DeploymentStatusRunning, false}, {3, deployapi.DeploymentStatusNew, true}, {2, deployapi.DeploymentStatusComplete, false}, {1, deployapi.DeploymentStatusNew, true}}, transientErrorType},
 	}
 
 	for _, scenario := range scenarios {
+		updatedDeployments = []kapi.ReplicationController{}
 		deployed = nil
 		config = deploytest.OkDeploymentConfig(scenario.version)
 		existingDeployments = &kapi.ReplicationControllerList{}
@@ -338,6 +355,23 @@ func TestHandle_existingDeployments(t *testing.T) {
 			if reflect.TypeOf(err) != scenario.errorType {
 				t.Fatalf("error expected: %s, got: %s", scenario.errorType, reflect.TypeOf(err))
 			}
+		}
+
+		expectedCancellations := []int{}
+		actualCancellations := []int{}
+		for _, e := range scenario.existing {
+			if e.shouldCancel {
+				expectedCancellations = append(expectedCancellations, e.version)
+			}
+		}
+		for _, d := range updatedDeployments {
+			actualCancellations = append(actualCancellations, deployutil.DeploymentVersionFor(&d))
+		}
+
+		sort.Ints(actualCancellations)
+		sort.Ints(expectedCancellations)
+		if !reflect.DeepEqual(actualCancellations, expectedCancellations) {
+			t.Fatalf("expected cancellations: %v, actual: %v", expectedCancellations, actualCancellations)
 		}
 	}
 }
