@@ -35,6 +35,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const validEtcdVersion = "etcd 2.0.9"
+
 type TestResource struct {
 	api.TypeMeta   `json:",inline"`
 	api.ObjectMeta `json:"metadata"`
@@ -685,35 +687,16 @@ func TestGuaranteedUpdate_CreateCollision(t *testing.T) {
 
 func TestGetEtcdVersion_ValidVersion(t *testing.T) {
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "{\"releaseVersion\":\"2.0.3\",\"internalVersion\":\"2\"}")
+		fmt.Fprint(w, validEtcdVersion)
 	}))
 	defer testServer.Close()
 
-	var relVersion string
-	var intVersion string
+	var version string
 	var err error
-	if relVersion, intVersion, err = GetEtcdVersion(testServer.URL); err != nil {
+	if version, err = GetEtcdVersion(testServer.URL); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	assert.Equal(t, "2.0.3", relVersion, "Unexpected external version")
-	assert.Equal(t, "2", intVersion, "Unexpected internal version")
-	assert.Nil(t, err)
-}
-
-func TestGetEtcdVersion_UnknownVersion(t *testing.T) {
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "{\"unknownAttribute\":\"foobar\",\"internalVersion\":\"2\"}")
-	}))
-	defer testServer.Close()
-
-	var relVersion string
-	var intVersion string
-	var err error
-	if relVersion, intVersion, err = GetEtcdVersion(testServer.URL); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	assert.Equal(t, "", relVersion, "Unexpected external version")
-	assert.Equal(t, "2", intVersion, "Unexpected internal version")
+	assert.Equal(t, validEtcdVersion, version, "Unexpected version")
 	assert.Nil(t, err)
 }
 
@@ -723,8 +706,12 @@ func TestGetEtcdVersion_ErrorStatus(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	var err error
-	_, _, err = GetEtcdVersion(testServer.URL)
+	_, err := GetEtcdVersion(testServer.URL)
+	assert.NotNil(t, err)
+}
+
+func TestGetEtcdVersion_NotListening(t *testing.T) {
+	_, err := GetEtcdVersion("http://127.0.0.1:4001")
 	assert.NotNil(t, err)
 }
 

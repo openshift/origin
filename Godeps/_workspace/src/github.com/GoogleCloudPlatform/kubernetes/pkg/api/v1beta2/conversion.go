@@ -19,6 +19,7 @@ package v1beta2
 import (
 	"fmt"
 	"net"
+	"reflect"
 	"strconv"
 
 	newer "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -179,6 +180,7 @@ func init() {
 			}
 			out.DesiredState.Host = in.Spec.Host
 			out.CurrentState.Host = in.Spec.Host
+			out.ServiceAccount = in.Spec.ServiceAccount
 			if err := s.Convert(&in.Status, &out.CurrentState, 0); err != nil {
 				return err
 			}
@@ -200,6 +202,7 @@ func init() {
 			if err := s.Convert(&in.DesiredState.Manifest, &out.Spec, 0); err != nil {
 				return err
 			}
+			out.Spec.ServiceAccount = in.ServiceAccount
 			out.Spec.Host = in.DesiredState.Host
 			if err := s.Convert(&in.CurrentState, &out.Status, 0); err != nil {
 				return err
@@ -281,6 +284,7 @@ func init() {
 				return err
 			}
 			out.DesiredState.Host = in.Spec.Host
+			out.ServiceAccount = in.Spec.ServiceAccount
 			if err := s.Convert(&in.Spec.NodeSelector, &out.NodeSelector, 0); err != nil {
 				return err
 			}
@@ -297,6 +301,7 @@ func init() {
 				return err
 			}
 			out.Spec.Host = in.DesiredState.Host
+			out.Spec.ServiceAccount = in.ServiceAccount
 			if err := s.Convert(&in.NodeSelector, &out.Spec.NodeSelector, 0); err != nil {
 				return err
 			}
@@ -308,7 +313,7 @@ func init() {
 			}
 			return nil
 		},
-		// Converts internal Container to v1beta1.Container.
+		// Converts internal Container to v1beta2.Container.
 		// Fields 'CPU' and 'Memory' are not present in the internal Container object.
 		// Hence the need for a custom conversion function.
 		func(in *newer.Container, out *Container, s conversion.Scope) error {
@@ -357,14 +362,19 @@ func init() {
 			if err := s.Convert(&in.TerminationMessagePath, &out.TerminationMessagePath, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Privileged, &out.Privileged, 0); err != nil {
-				return err
-			}
 			if err := s.Convert(&in.ImagePullPolicy, &out.ImagePullPolicy, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Capabilities, &out.Capabilities, 0); err != nil {
+			if err := s.Convert(&in.SecurityContext, &out.SecurityContext, 0); err != nil {
 				return err
+			}
+			// now that we've converted set the container field from security context
+			if out.SecurityContext != nil && out.SecurityContext.Privileged != nil {
+				out.Privileged = *out.SecurityContext.Privileged
+			}
+			// now that we've converted set the container field from security context
+			if out.SecurityContext != nil && out.SecurityContext.Capabilities != nil {
+				out.Capabilities = *out.SecurityContext.Capabilities
 			}
 			return nil
 		},
@@ -396,7 +406,7 @@ func init() {
 
 			return nil
 		},
-		// Converts v1beta1.Container to internal newer.Container.
+		// Converts v1beta2.Container to internal newer.Container.
 		// Fields 'CPU' and 'Memory' are not present in the internal newer.Container object.
 		// Hence the need for a custom conversion function.
 		func(in *Container, out *newer.Container, s conversion.Scope) error {
@@ -445,13 +455,23 @@ func init() {
 			if err := s.Convert(&in.TerminationMessagePath, &out.TerminationMessagePath, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Privileged, &out.Privileged, 0); err != nil {
-				return err
-			}
 			if err := s.Convert(&in.ImagePullPolicy, &out.ImagePullPolicy, 0); err != nil {
 				return err
 			}
-			if err := s.Convert(&in.Capabilities, &out.Capabilities, 0); err != nil {
+			if in.SecurityContext != nil {
+				if in.SecurityContext.Capabilities != nil {
+					if !reflect.DeepEqual(in.SecurityContext.Capabilities.Add, in.Capabilities.Add) ||
+						!reflect.DeepEqual(in.SecurityContext.Capabilities.Drop, in.Capabilities.Drop) {
+						return fmt.Errorf("container capability settings do not match security context settings, cannot convert")
+					}
+				}
+				if in.SecurityContext.Privileged != nil {
+					if in.Privileged != *in.SecurityContext.Privileged {
+						return fmt.Errorf("container privileged settings do not match security context settings, cannot convert")
+					}
+				}
+			}
+			if err := s.Convert(&in.SecurityContext, &out.SecurityContext, 0); err != nil {
 				return err
 			}
 			return nil
@@ -1559,7 +1579,7 @@ func init() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta1", "Namespace",
+	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta2", "Namespace",
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "status.phase":
@@ -1577,6 +1597,19 @@ func init() {
 			switch label {
 			case "type":
 				return label, value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
+			}
+		})
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+	err = newer.Scheme.AddFieldLabelConversionFunc("v1beta2", "ServiceAccount",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "name":
+				return "metadata.name", value, nil
 			default:
 				return "", "", fmt.Errorf("field label not supported: %s", label)
 			}

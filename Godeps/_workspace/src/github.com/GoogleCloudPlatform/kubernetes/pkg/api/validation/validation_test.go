@@ -228,6 +228,7 @@ func TestValidatePersistentVolumes(t *testing.T) {
 				Capacity: api.ResourceList{
 					api.ResourceName(api.ResourceStorage): resource.MustParse("10G"),
 				},
+				AccessModes: []api.AccessModeType{api.ReadWriteOnce},
 				PersistentVolumeSource: api.PersistentVolumeSource{
 					HostPath: &api.HostPathVolumeSource{Path: "/foo"},
 				},
@@ -239,6 +240,7 @@ func TestValidatePersistentVolumes(t *testing.T) {
 				Capacity: api.ResourceList{
 					api.ResourceName(api.ResourceStorage): resource.MustParse("10G"),
 				},
+				AccessModes: []api.AccessModeType{api.ReadWriteOnce},
 				PersistentVolumeSource: api.PersistentVolumeSource{
 					HostPath: &api.HostPathVolumeSource{Path: "/foo"},
 				},
@@ -250,11 +252,11 @@ func TestValidatePersistentVolumes(t *testing.T) {
 				Capacity: api.ResourceList{
 					api.ResourceName(api.ResourceStorage): resource.MustParse("10G"),
 				},
+				AccessModes: []api.AccessModeType{api.ReadWriteOnce},
 				PersistentVolumeSource: api.PersistentVolumeSource{
 					HostPath: &api.HostPathVolumeSource{Path: "/foo"},
 				},
-			},
-			),
+			}),
 		},
 		"missing-name": {
 			isExpectedFailure: true,
@@ -262,11 +264,23 @@ func TestValidatePersistentVolumes(t *testing.T) {
 				Capacity: api.ResourceList{
 					api.ResourceName(api.ResourceStorage): resource.MustParse("10G"),
 				},
+				AccessModes: []api.AccessModeType{api.ReadWriteOnce},
 			}),
 		},
 		"missing-capacity": {
 			isExpectedFailure: true,
 			volume:            testVolume("foo", "", api.PersistentVolumeSpec{}),
+		},
+		"missing-accessmodes": {
+			isExpectedFailure: true,
+			volume: testVolume("goodname", "missing-accessmodes", api.PersistentVolumeSpec{
+				Capacity: api.ResourceList{
+					api.ResourceName(api.ResourceStorage): resource.MustParse("10G"),
+				},
+				PersistentVolumeSource: api.PersistentVolumeSource{
+					HostPath: &api.HostPathVolumeSource{Path: "/foo"},
+				},
+			}),
 		},
 		"too-many-sources": {
 			isExpectedFailure: true,
@@ -377,136 +391,6 @@ func TestValidatePersistentVolumeClaim(t *testing.T) {
 			t.Errorf("Unexpected failure for scenario: %s - %+v", name, errs)
 		}
 	}
-}
-
-func TestValidatePersistentVolumeClaimUpdate(t *testing.T) {
-
-	pvcA := &api.PersistentVolumeClaim{
-		ObjectMeta: api.ObjectMeta{
-			Name:      "foo",
-			Namespace: "ns",
-			Labels: map[string]string{
-				"nice-label": "fizzbuzz",
-			},
-		},
-		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: []api.AccessModeType{
-				api.ReadWriteOnce,
-			},
-			Resources: api.ResourceRequirements{
-				Requests: api.ResourceList{
-					api.ResourceName(api.ResourceStorage): resource.MustParse("10G"),
-				},
-			},
-		},
-	}
-
-	// AccessModes differ from pvcA
-	pvcB := &api.PersistentVolumeClaim{
-		ObjectMeta: api.ObjectMeta{
-			Name:      "foo",
-			Namespace: "ns",
-			Labels: map[string]string{
-				"nice-label": "fizzbuzz",
-			},
-		},
-		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: []api.AccessModeType{
-				api.ReadWriteMany,
-			},
-			Resources: api.ResourceRequirements{
-				Requests: api.ResourceList{
-					api.ResourceName(api.ResourceStorage): resource.MustParse("10G"),
-				},
-			},
-		},
-	}
-
-	// Resources differ from pvcA
-	pvcC := &api.PersistentVolumeClaim{
-		ObjectMeta: api.ObjectMeta{
-			Name:      "foo",
-			Namespace: "ns",
-			Labels: map[string]string{
-				"nice-label": "fizzbuzz",
-			},
-		},
-		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: []api.AccessModeType{
-				api.ReadWriteOnce,
-			},
-			Resources: api.ResourceRequirements{
-				Requests: api.ResourceList{
-					api.ResourceName(api.ResourceStorage): resource.MustParse("7G"),
-				},
-			},
-		},
-	}
-
-	// Labels differ from pvcA
-	pvcD := &api.PersistentVolumeClaim{
-		ObjectMeta: api.ObjectMeta{
-			Name:      "foo",
-			Namespace: "ns",
-			Labels: map[string]string{
-				"nice-label": "buzzfizz",
-			},
-		},
-		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: []api.AccessModeType{
-				api.ReadWriteOnce,
-			},
-			Resources: api.ResourceRequirements{
-				Requests: api.ResourceList{
-					api.ResourceName(api.ResourceStorage): resource.MustParse("10G"),
-				},
-			},
-		},
-	}
-
-	scenarios := map[string]struct {
-		isExpectedFailure bool
-		oldClaim          *api.PersistentVolumeClaim
-		newClaim          *api.PersistentVolumeClaim
-	}{
-		"invalid-accessmodes-change": {
-			isExpectedFailure: true,
-			oldClaim:          pvcA,
-			newClaim:          pvcB,
-		},
-		"invalid-resources-change": {
-			isExpectedFailure: true,
-			oldClaim:          pvcA,
-			newClaim:          pvcC,
-		},
-		"valid-label-change": {
-			isExpectedFailure: false,
-			oldClaim:          pvcA,
-			newClaim:          pvcD,
-		},
-	}
-
-	// validation errors on Update only occur if the Claim is already bound.
-	// failures are only expected after binding
-	for name, scenario := range scenarios {
-		errs := ValidatePersistentVolumeClaimUpdate(scenario.newClaim, scenario.oldClaim)
-		if len(errs) > 0 && !scenario.isExpectedFailure {
-			t.Errorf("Unexpected failure for scenario: %s - %+v", name, errs)
-		}
-	}
-
-	// 2 of 3 scenarios above are invalid if the old PVC has a bound PV
-	for name, scenario := range scenarios {
-		scenario.oldClaim.Status.VolumeRef = &api.ObjectReference{Name: "foo", Namespace: "ns"}
-		errs := ValidatePersistentVolumeClaimUpdate(scenario.newClaim, scenario.oldClaim)
-		if len(errs) == 0 && scenario.isExpectedFailure {
-			t.Errorf("Unexpected success for scenario: %s", name)
-		}
-		if len(errs) > 0 && !scenario.isExpectedFailure {
-			t.Errorf("Unexpected failure for scenario: %s - %+v", name, errs)
-		}
-	}
-
 }
 
 func TestValidateVolumes(t *testing.T) {
@@ -636,7 +520,7 @@ func TestValidateEnv(t *testing.T) {
 		{
 			Name: "abc",
 			ValueFrom: &api.EnvVarSource{
-				FieldPath: &api.ObjectFieldSelector{
+				FieldRef: &api.ObjectFieldSelector{
 					APIVersion: "v1beta3",
 					FieldPath:  "metadata.name",
 				},
@@ -668,7 +552,7 @@ func TestValidateEnv(t *testing.T) {
 				Name:  "abc",
 				Value: "foo",
 				ValueFrom: &api.EnvVarSource{
-					FieldPath: &api.ObjectFieldSelector{
+					FieldRef: &api.ObjectFieldSelector{
 						APIVersion: "v1beta3",
 						FieldPath:  "metadata.name",
 					},
@@ -681,50 +565,50 @@ func TestValidateEnv(t *testing.T) {
 			envs: []api.EnvVar{{
 				Name: "abc",
 				ValueFrom: &api.EnvVarSource{
-					FieldPath: &api.ObjectFieldSelector{
+					FieldRef: &api.ObjectFieldSelector{
 						APIVersion: "v1beta3",
 					},
 				},
 			}},
-			expectedError: "[0].valueFrom.fieldPath.fieldPath: required value",
+			expectedError: "[0].valueFrom.fieldRef.fieldPath: required value",
 		},
 		{
 			name: "missing APIVersion on ObjectFieldSelector",
 			envs: []api.EnvVar{{
 				Name: "abc",
 				ValueFrom: &api.EnvVarSource{
-					FieldPath: &api.ObjectFieldSelector{
+					FieldRef: &api.ObjectFieldSelector{
 						FieldPath: "metadata.name",
 					},
 				},
 			}},
-			expectedError: "[0].valueFrom.fieldPath.apiVersion: required value",
+			expectedError: "[0].valueFrom.fieldRef.apiVersion: required value",
 		},
 		{
 			name: "invalid fieldPath",
 			envs: []api.EnvVar{{
 				Name: "abc",
 				ValueFrom: &api.EnvVarSource{
-					FieldPath: &api.ObjectFieldSelector{
+					FieldRef: &api.ObjectFieldSelector{
 						FieldPath:  "metadata.whoops",
 						APIVersion: "v1beta3",
 					},
 				},
 			}},
-			expectedError: "[0].valueFrom.fieldPath.fieldPath: invalid value 'metadata.whoops': error converting fieldPath",
+			expectedError: "[0].valueFrom.fieldRef.fieldPath: invalid value 'metadata.whoops': error converting fieldPath",
 		},
 		{
 			name: "unsupported fieldPath",
 			envs: []api.EnvVar{{
 				Name: "abc",
 				ValueFrom: &api.EnvVarSource{
-					FieldPath: &api.ObjectFieldSelector{
+					FieldRef: &api.ObjectFieldSelector{
 						FieldPath:  "status.phase",
 						APIVersion: "v1beta3",
 					},
 				},
 			}},
-			expectedError: "[0].valueFrom.fieldPath.fieldPath: unsupported value 'status.phase'",
+			expectedError: "[0].valueFrom.fieldRef.fieldPath: unsupported value 'status.phase'",
 		},
 	}
 	for _, tc := range errorCases {
@@ -901,7 +785,7 @@ func TestValidateContainers(t *testing.T) {
 			},
 			ImagePullPolicy: "IfNotPresent",
 		},
-		{Name: "abc-1234", Image: "image", Privileged: true, ImagePullPolicy: "IfNotPresent"},
+		{Name: "abc-1234", Image: "image", ImagePullPolicy: "IfNotPresent", SecurityContext: fakeValidSecurityContext(true)},
 	}
 	if errs := validateContainers(successCase, volumes); len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
@@ -1015,7 +899,7 @@ func TestValidateContainers(t *testing.T) {
 			},
 		},
 		"privilege disabled": {
-			{Name: "abc", Image: "image", Privileged: true},
+			{Name: "abc", Image: "image", SecurityContext: fakeValidSecurityContext(true)},
 		},
 		"invalid compute resource": {
 			{
@@ -1601,6 +1485,14 @@ func TestValidateService(t *testing.T) {
 			numErrs: 1,
 		},
 		{
+			name: "empty multi-port port[0] name",
+			tweakSvc: func(s *api.Service) {
+				s.Spec.Ports[0].Name = ""
+				s.Spec.Ports = append(s.Spec.Ports, api.ServicePort{Name: "p", Protocol: "TCP", Port: 12345})
+			},
+			numErrs: 1,
+		},
+		{
 			name: "invalid port name",
 			tweakSvc: func(s *api.Service) {
 				s.Spec.Ports[0].Name = "INVALID"
@@ -1674,7 +1566,7 @@ func TestValidateService(t *testing.T) {
 			name: "dup port name",
 			tweakSvc: func(s *api.Service) {
 				s.Spec.Ports[0].Name = "p"
-				s.Spec.Ports = append(s.Spec.Ports, api.ServicePort{Name: "p", Port: 12345})
+				s.Spec.Ports = append(s.Spec.Ports, api.ServicePort{Name: "p", Port: 12345, Protocol: "TCP"})
 			},
 			numErrs: 1,
 		},
@@ -1690,7 +1582,7 @@ func TestValidateService(t *testing.T) {
 			name: "invalid load balancer protocol 2",
 			tweakSvc: func(s *api.Service) {
 				s.Spec.CreateExternalLoadBalancer = true
-				s.Spec.Ports = append(s.Spec.Ports, api.ServicePort{Name: "p", Port: 12345, Protocol: "UDP"})
+				s.Spec.Ports = append(s.Spec.Ports, api.ServicePort{Name: "q", Port: 12345, Protocol: "UDP"})
 			},
 			numErrs: 1,
 		},
@@ -1742,7 +1634,7 @@ func TestValidateService(t *testing.T) {
 			name: "valid external load balancer 2 ports",
 			tweakSvc: func(s *api.Service) {
 				s.Spec.CreateExternalLoadBalancer = true
-				s.Spec.Ports = append(s.Spec.Ports, api.ServicePort{Name: "p", Port: 12345, Protocol: "TCP"})
+				s.Spec.Ports = append(s.Spec.Ports, api.ServicePort{Name: "q", Port: 12345, Protocol: "TCP"})
 			},
 			numErrs: 0,
 		},
@@ -2953,6 +2845,7 @@ func TestValidateNamespaceUpdate(t *testing.T) {
 }
 
 func TestValidateSecret(t *testing.T) {
+	// Opaque secret validation
 	validSecret := func() api.Secret {
 		return api.Secret{
 			ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "bar"},
@@ -2980,6 +2873,32 @@ func TestValidateSecret(t *testing.T) {
 	}
 	invalidKey.Data["a..b"] = []byte("whoops")
 
+	// kubernetes.io/service-account-token secret validation
+	validServiceAccountTokenSecret := func() api.Secret {
+		return api.Secret{
+			ObjectMeta: api.ObjectMeta{
+				Name:      "foo",
+				Namespace: "bar",
+				Annotations: map[string]string{
+					api.ServiceAccountNameKey: "foo",
+				},
+			},
+			Type: api.SecretTypeServiceAccountToken,
+			Data: map[string][]byte{
+				"data-1": []byte("bar"),
+			},
+		}
+	}
+
+	var (
+		emptyTokenAnnotation    = validServiceAccountTokenSecret()
+		missingTokenAnnotation  = validServiceAccountTokenSecret()
+		missingTokenAnnotations = validServiceAccountTokenSecret()
+	)
+	emptyTokenAnnotation.Annotations[api.ServiceAccountNameKey] = ""
+	delete(missingTokenAnnotation.Annotations, api.ServiceAccountNameKey)
+	missingTokenAnnotations.Annotations = nil
+
 	tests := map[string]struct {
 		secret api.Secret
 		valid  bool
@@ -2991,6 +2910,11 @@ func TestValidateSecret(t *testing.T) {
 		"invalid namespace": {invalidNs, false},
 		"over max size":     {overMaxSize, false},
 		"invalid key":       {invalidKey, false},
+
+		"valid service-account-token secret":        {validServiceAccountTokenSecret(), true},
+		"empty service-account-token annotation":    {emptyTokenAnnotation, false},
+		"missing service-account-token annotation":  {missingTokenAnnotation, false},
+		"missing service-account-token annotations": {missingTokenAnnotations, false},
 	}
 
 	for name, tc := range tests {
@@ -3178,5 +3102,91 @@ func TestValidateEndpoints(t *testing.T) {
 		if errs := ValidateEndpoints(&v.endpoints); len(errs) == 0 || errs[0].(*errors.ValidationError).Type != v.errorType || errs[0].(*errors.ValidationError).Detail != v.errorDetail {
 			t.Errorf("Expected error type %s with detail %s for %s, got %v", v.errorType, v.errorDetail, k, errs)
 		}
+	}
+}
+
+func TestValidateSecurityContext(t *testing.T) {
+	priv := false
+	var runAsUser int64 = 1
+	fullValidSC := func() *api.SecurityContext {
+		return &api.SecurityContext{
+			Privileged: &priv,
+			Capabilities: &api.Capabilities{
+				Add:  []api.CapabilityType{"foo"},
+				Drop: []api.CapabilityType{"bar"},
+			},
+			SELinuxOptions: &api.SELinuxOptions{
+				User:  "user",
+				Role:  "role",
+				Type:  "type",
+				Level: "level",
+			},
+			RunAsUser: &runAsUser,
+		}
+	}
+
+	//setup data
+	allSettings := fullValidSC()
+	noCaps := fullValidSC()
+	noCaps.Capabilities = nil
+
+	noSELinux := fullValidSC()
+	noSELinux.SELinuxOptions = nil
+
+	noPrivRequest := fullValidSC()
+	noPrivRequest.Privileged = nil
+
+	noRunAsUser := fullValidSC()
+	noRunAsUser.RunAsUser = nil
+
+	successCases := map[string]struct {
+		sc *api.SecurityContext
+	}{
+		"all settings":    {allSettings},
+		"no capabilities": {noCaps},
+		"no selinux":      {noSELinux},
+		"no priv request": {noPrivRequest},
+		"no run as user":  {noRunAsUser},
+	}
+	for k, v := range successCases {
+		if errs := ValidateSecurityContext(v.sc); len(errs) != 0 {
+			t.Errorf("Expected success for %s, got %v", k, errs)
+		}
+	}
+
+	privRequestWithGlobalDeny := fullValidSC()
+	requestPrivileged := true
+	privRequestWithGlobalDeny.Privileged = &requestPrivileged
+
+	negativeRunAsUser := fullValidSC()
+	var negativeUser int64 = -1
+	negativeRunAsUser.RunAsUser = &negativeUser
+
+	errorCases := map[string]struct {
+		sc          *api.SecurityContext
+		errorType   fielderrors.ValidationErrorType
+		errorDetail string
+	}{
+		"request privileged when capabilities forbids": {
+			sc:          privRequestWithGlobalDeny,
+			errorType:   "FieldValueForbidden",
+			errorDetail: "",
+		},
+		"negative RunAsUser": {
+			sc:          negativeRunAsUser,
+			errorType:   "FieldValueInvalid",
+			errorDetail: "runAsUser cannot be negative",
+		},
+	}
+	for k, v := range errorCases {
+		if errs := ValidateSecurityContext(v.sc); len(errs) == 0 || errs[0].(*errors.ValidationError).Type != v.errorType || errs[0].(*errors.ValidationError).Detail != v.errorDetail {
+			t.Errorf("Expected error type %s with detail %s for %s, got %v", v.errorType, v.errorDetail, k, errs)
+		}
+	}
+}
+
+func fakeValidSecurityContext(priv bool) *api.SecurityContext {
+	return &api.SecurityContext{
+		Privileged: &priv,
 	}
 }

@@ -282,11 +282,13 @@ type versionToResourceToFieldMapping map[string]resourceTypeToFieldMapping
 func (v versionToResourceToFieldMapping) filterField(apiVersion, resourceType, field, value string) (newField, newValue string, err error) {
 	rMapping, ok := v[apiVersion]
 	if !ok {
+		glog.Warningf("field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
 		return field, value, nil
 	}
 	newField, newValue, err = rMapping.filterField(resourceType, field, value)
 	if err != nil {
 		// This is only a warning until we find and fix all of the client's usages.
+		glog.Warningf("field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
 		return field, value, nil
 	}
 	return newField, newValue, nil
@@ -308,6 +310,9 @@ var fieldMappings = versionToResourceToFieldMapping{
 		"secrets": clientFieldNameToAPIVersionFieldName{
 			SecretType: "type",
 		},
+		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "name",
+		},
 	},
 	"v1beta2": resourceTypeToFieldMapping{
 		"nodes": clientFieldNameToAPIVersionFieldName{
@@ -324,6 +329,9 @@ var fieldMappings = versionToResourceToFieldMapping{
 		"secrets": clientFieldNameToAPIVersionFieldName{
 			SecretType: "type",
 		},
+		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "name",
+		},
 	},
 	"v1beta3": resourceTypeToFieldMapping{
 		"nodes": clientFieldNameToAPIVersionFieldName{
@@ -339,6 +347,9 @@ var fieldMappings = versionToResourceToFieldMapping{
 		},
 		"secrets": clientFieldNameToAPIVersionFieldName{
 			SecretType: "type",
+		},
+		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "metadata.name",
 		},
 	},
 }
