@@ -86,11 +86,14 @@ func generateFailoverMonitorContainerConfig(name string, options *ipfailover.IPF
 		MountPath: libModulesPath,
 	}
 
+	privileged := true
 	return &kapi.Container{
-		Name:            containerName,
-		Image:           image,
-		Ports:           ports,
-		Privileged:      true,
+		Name:  containerName,
+		Image: image,
+		Ports: ports,
+		SecurityContext: &kapi.SecurityContext{
+			Privileged: &privileged,
+		},
 		ImagePullPolicy: kapi.PullIfNotPresent,
 		VolumeMounts:    mounts,
 		Env:             env.List(),

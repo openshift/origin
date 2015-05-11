@@ -185,6 +185,10 @@ func (c *NodeConfig) RunKubelet() {
 		HighThresholdPercent: 90,
 		LowThresholdPercent:  80,
 	}
+	diskSpacePolicy := kubelet.DiskSpacePolicy{
+		DockerFreeDiskMB: 256,
+		RootFreeDiskMB:   256,
+	}
 
 	k, err := kubelet.NewMainKubelet(
 		c.NodeHost,
@@ -207,6 +211,7 @@ func (c *NodeConfig) RunKubelet() {
 		recorder,
 		cadvisorInterface,
 		imageGCPolicy,
+		diskSpacePolicy,
 		nil,
 		15*time.Second,
 		"/kubelet",
@@ -214,6 +219,7 @@ func (c *NodeConfig) RunKubelet() {
 		"",
 		"docker",
 		mount.New(),
+		"", // docker daemon container
 	)
 	if err != nil {
 		glog.Fatalf("Couldn't run kubelet: %s", err)

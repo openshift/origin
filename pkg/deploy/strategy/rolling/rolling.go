@@ -10,6 +10,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 
@@ -183,6 +184,7 @@ type rollingUpdaterClient struct {
 	UpdateReplicationControllerFn  func(namespace string, rc *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	CreateReplicationControllerFn  func(namespace string, rc *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	DeleteReplicationControllerFn  func(namespace, name string) error
+	ListReplicationControllersFn   func(namespace string, label labels.Selector) (*kapi.ReplicationControllerList, error)
 	ControllerHasDesiredReplicasFn func(rc *kapi.ReplicationController) wait.ConditionFunc
 }
 
@@ -200,6 +202,10 @@ func (c *rollingUpdaterClient) CreateReplicationController(namespace string, rc 
 
 func (c *rollingUpdaterClient) DeleteReplicationController(namespace, name string) error {
 	return c.DeleteReplicationControllerFn(namespace, name)
+}
+
+func (c *rollingUpdaterClient) ListReplicationControllers(namespace string, label labels.Selector) (*kapi.ReplicationControllerList, error) {
+	return c.ListReplicationControllersFn(namespace, label)
 }
 
 func (c *rollingUpdaterClient) ControllerHasDesiredReplicas(rc *kapi.ReplicationController) wait.ConditionFunc {

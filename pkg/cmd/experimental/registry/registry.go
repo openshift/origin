@@ -221,7 +221,9 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 								MountPath: cfg.Volume,
 							},
 						},
-						Privileged: mountHost,
+						SecurityContext: &kapi.SecurityContext{
+							Privileged: &mountHost,
+						},
 						// TODO reenable the liveness probe when we no longer support the v1 registry.
 						/*
 							LivenessProbe: &kapi.Probe{
