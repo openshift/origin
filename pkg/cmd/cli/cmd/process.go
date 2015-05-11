@@ -9,7 +9,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	ctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -75,12 +75,15 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 		},
 	}
 
-	kcmdutil.AddPrinterFlags(cmd)
-
-	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to update the resource")
+	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to read a template")
 	cmd.Flags().StringP("value", "v", "", "Specify a list of key-value pairs (eg. -v FOO=BAR,BAR=FOO) to set/override parameter values")
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
+
+	cmd.Flags().StringP("output", "o", "", "Output format. One of: describe|json|yaml|template|templatefile.")
+	cmd.Flags().Bool("raw", false, "If true output the processed template instead of the template's objects. Implied by -o describe")
+	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
+	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=template or -o=templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
 	return cmd
 }
 
@@ -144,6 +147,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		if !ok {
 			return fmt.Errorf("cannot convert input to Template: ", reflect.TypeOf(obj))
 		}
+		templateObj.CreationTimestamp = util.Now()
 
 		version, kind, err := kapi.Scheme.ObjectVersionAndKind(templateObj)
 		if err != nil {
@@ -160,11 +164,6 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		injectUserVars(cmd, templateObj)
 	}
 
-	printer, err := f.Factory.PrinterForMapping(cmd, mapping)
-	if err != nil {
-		return err
-	}
-
 	// If 'parameters' flag is set it does not do processing but only print
 	// the template parameters to console for inspection.
 	if kcmdutil.GetFlagBool(cmd, "parameters") == true {
@@ -177,7 +176,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 	label := kcmdutil.GetFlagString(cmd, "labels")
 	if len(label) != 0 {
-		lbl, err := ctl.ParseLabels(label)
+		lbl, err := kubectl.ParseLabels(label)
 		if err != nil {
 			return err
 		}
@@ -193,26 +192,49 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	if err != nil {
 		return err
 	}
-	var result runtime.Object = obj
+
+	outputVersion := kcmdutil.OutputVersion(cmd, mapping.APIVersion)
+	raw := kcmdutil.GetFlagBool(cmd, "raw")
+	outputFormat := kcmdutil.GetFlagString(cmd, "output")
+	if len(outputFormat) == 0 {
+		outputFormat = "json"
+	}
+
+	if outputFormat == "describe" {
+		s, err := (&describe.TemplateDescriber{
+			MetadataAccessor: meta.NewAccessor(),
+			ObjectTyper:      kapi.Scheme,
+			ObjectDescriber:  nil,
+		}).DescribeTemplate(obj)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(out, s)
+		return nil
+	}
+
+	// use generic output
+	var result runtime.Object
+	switch {
+	case raw:
+		result = obj
 	// legacy support - when using older api versions, output a Config
-	if kapi.PreV1Beta3(mapping.APIVersion) {
+	case kapi.PreV1Beta3(outputVersion):
 		result = &configapi.Config{
 			ListMeta: kapi.ListMeta{},
 			Items:    obj.Objects,
 		}
-	} else {
+	// display the processed template instead of the objects
+	default:
 		result = &kapi.List{
 			ListMeta: kapi.ListMeta{},
 			Items:    obj.Objects,
 		}
 	}
-
-	// We need to override the default output format to JSON so we can return
-	// processed template. Users might still be able to change the output
-	// format using the 'output' flag.
-	if !cmd.Flag("output").Changed {
-		cmd.Flags().Set("output", "json")
-		printer, _ = f.PrinterForMapping(cmd, mapping)
+	p, _, err := kubectl.GetPrinter(outputFormat, "")
+	if err != nil {
+		return err
 	}
-	return printer.PrintObj(result, out)
+	p = kubectl.NewVersionedPrinter(p, kapi.Scheme, outputVersion)
+	return p.PrintObj(result, out)
 }
