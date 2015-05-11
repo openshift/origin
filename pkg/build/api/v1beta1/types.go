@@ -207,6 +207,11 @@ type CustomBuildStrategy struct {
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:pullSecretName,omitempty`
+
 	// Tag is the name of image stream tag to be used as the FROM image, it only
 	// applies when From is specified and the Kind of From is ImageStream.
 	// JSON tag should be changed to "tag" instead of "Tag" in v1beta2
@@ -239,6 +244,11 @@ type DockerBuildStrategy struct {
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:pullSecretName,omitempty`
+
 	// Tag is the name of image stream tag to be used as the FROM image, it only
 	// applies when From is specified and the Kind of From is ImageStream.
 	// JSON tag should be changed to "tag" instead of "Tag" in v1beta2
@@ -258,6 +268,11 @@ type STIBuildStrategy struct {
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
+
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:pullSecretName,omitempty`
 
 	// Tag is the name of image stream tag to be used as the FROM image, it only
 	// applies when From is specified and the Kind of From is ImageStream.
