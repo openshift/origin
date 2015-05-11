@@ -24,7 +24,6 @@ func GetImageStreamForStrategy(config *buildapi.BuildConfig) *kapi.ObjectReferen
 		return config.Parameters.Strategy.CustomStrategy.From
 	default:
 		return nil
-
 	}
 }
 
