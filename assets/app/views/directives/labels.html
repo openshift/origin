@@ -19,7 +19,7 @@
     </osc-key-values>
   </div>
   <div ng-hide="$parent.expand">
-    <div>
+    <div ng-if="(labels | hashSize) == 0">
       <strong>None</strong>
     </div>
     <osc-key-values
