@@ -7,8 +7,12 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
-const BuildLabel = "build"
+const (
+	// BuildAnnotation is an annotation that identifies a Pod as being for a Build
+	BuildAnnotation = "openshift.io/build.name"
+	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
+	BuildLabel = "build"
+)
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
