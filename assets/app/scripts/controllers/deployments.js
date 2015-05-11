@@ -10,8 +10,10 @@
 angular.module('openshiftConsole')
   .controller('DeploymentsController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver) {
     $scope.deployments = {};
-    $scope.podTemplates = {};
     $scope.unfilteredDeployments = {};
+    $scope.deploymentConfigs = {};
+    $scope.deploymentsByDeploymentConfig = {};
+    $scope.podTemplates = {};
     $scope.imageStreams = {};
     $scope.imagesByDockerReference = {};
     $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
@@ -36,7 +38,22 @@ angular.module('openshiftConsole')
       ImageStreamResolver.fetchReferencedImageStreamImages($scope.podTemplates, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);      
       $scope.emptyMessage = "No deployments to show";
       updateFilterWarning();
+
+      $scope.deploymentsByDeploymentConfig = {};
+      angular.forEach($scope.deployments, function(deployment, deploymentName) {
+        var deploymentConfigName = $filter('annotation')(deployment, 'deploymentConfig');
+        if (deploymentConfigName) {
+          $scope.deploymentsByDeploymentConfig[deploymentConfigName] = $scope.deploymentsByDeploymentConfig[deploymentConfigName] || {};
+          $scope.deploymentsByDeploymentConfig[deploymentConfigName][deploymentName] = deployment;
+        }
+      });
+
       Logger.log("deployments (subscribe)", $scope.deployments);
+    }));
+
+    watches.push(DataService.watch("deploymentConfigs", $scope, function(deploymentConfigs) {
+      $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
+      Logger.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
     }));
 
     // Sets up subscription for imageStreams
