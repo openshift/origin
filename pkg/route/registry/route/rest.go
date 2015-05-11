@@ -17,6 +17,9 @@ import (
 	"github.com/openshift/origin/pkg/route/api/validation"
 )
 
+// HostGeneratedAnnotationKey is the key for an annotation set to "true" if the route's host was generated
+const HostGeneratedAnnotationKey = "openshift.io/host.generated"
+
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
 	registry  Registry
@@ -83,8 +86,14 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 		return nil, fmt.Errorf("allocation error: %s for route: %#v", err, obj)
 	}
 
+	if route.Annotations == nil {
+		route.Annotations = map[string]string{}
+	}
 	if len(route.Host) == 0 {
 		route.Host = rs.allocator.GenerateHostname(route, shard)
+		route.Annotations[HostGeneratedAnnotationKey] = "true"
+	} else {
+		route.Annotations[HostGeneratedAnnotationKey] = "false"
 	}
 
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
@@ -121,6 +130,10 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
 		return nil, false, errors.NewInvalid("route", route.Name, errs)
 	}
+
+	// TODO: Convert to generic etcd
+	// TODO: Call ValidateRouteUpdate->ValidateObjectMetaUpdate
+	// TODO: In the UpdateStrategy.PrepareForUpdate, set the HostGeneratedAnnotationKey annotation to "false" if the updated route object modifies the host
 
 	escapeNewLines(route.TLS)
 
