@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -132,12 +133,7 @@ func (g *DeploymentConfigGenerator) findImageStream(config *deployapi.Deployment
 			return &repo, nil
 		}
 	}
-	return nil, fmt.Errorf("couldn't find image stream for config %s trigger params", labelFor(config))
-}
-
-// labelFor builds a string identifier for a DeploymentConfig.
-func labelFor(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
+	return nil, fmt.Errorf("couldn't find image stream for config %s trigger params", deployutil.LabelForDeploymentConfig(config))
 }
 
 type GeneratorClient interface {

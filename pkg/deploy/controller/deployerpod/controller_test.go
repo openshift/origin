@@ -85,7 +85,7 @@ func TestHandle_runningPod(t *testing.T) {
 		t.Fatalf("expected deployment update")
 	}
 
-	if e, a := deployapi.DeploymentStatusRunning, statusFor(updatedDeployment); e != a {
+	if e, a := deployapi.DeploymentStatusRunning, deployutil.StatusForDeployment(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
 }
@@ -120,7 +120,7 @@ func TestHandle_podTerminatedOk(t *testing.T) {
 		t.Fatalf("expected deployment update")
 	}
 
-	if e, a := deployapi.DeploymentStatusComplete, statusFor(updatedDeployment); e != a {
+	if e, a := deployapi.DeploymentStatusComplete, deployutil.StatusForDeployment(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
 }
@@ -155,7 +155,7 @@ func TestHandle_podTerminatedFail(t *testing.T) {
 		t.Fatalf("expected deployment update")
 	}
 
-	if e, a := deployapi.DeploymentStatusFailed, statusFor(updatedDeployment); e != a {
+	if e, a := deployapi.DeploymentStatusFailed, deployutil.StatusForDeployment(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
 }

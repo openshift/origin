@@ -40,7 +40,7 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 	}
 
 	if !hasChangeTrigger {
-		glog.V(4).Infof("Ignoring config %s; no change triggers detected", labelFor(config))
+		glog.V(4).Infof("Ignoring config %s; no change triggers detected", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -48,11 +48,11 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 		_, _, err := c.generateDeployment(config)
 		if err != nil {
 			if kerrors.IsConflict(err) {
-				return fatalError(fmt.Sprintf("config %s updated since retrieval; aborting trigger: %v", labelFor(config), err))
+				return fatalError(fmt.Sprintf("config %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
 			}
-			return fmt.Errorf("couldn't create initial deployment for config %s: %v", labelFor(config), err)
+			return fmt.Errorf("couldn't create initial deployment for config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 		}
-		glog.V(4).Infof("Created initial deployment for config %s", labelFor(config))
+		glog.V(4).Infof("Created initial deployment for config %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -60,30 +60,30 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 	deployment, err := c.changeStrategy.getDeployment(config.Namespace, latestDeploymentName)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			glog.V(4).Infof("Ignoring config change for %s; no existing deployment found", labelFor(config))
+			glog.V(4).Infof("Ignoring config change for %s; no existing deployment found", deployutil.LabelForDeploymentConfig(config))
 			return nil
 		}
-		return fmt.Errorf("couldn't retrieve deployment for %s: %v", labelFor(config), err)
+		return fmt.Errorf("couldn't retrieve deployment for %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 
 	deployedConfig, err := c.decodeConfig(deployment)
 	if err != nil {
-		return fatalError(fmt.Sprintf("error decoding deploymentConfig from deployment %s for config %s: %v", labelForDeployment(deployment), labelFor(config), err))
+		return fatalError(fmt.Sprintf("error decoding deploymentConfig from deployment %s for config %s: %v", deployutil.LabelForDeployment(deployment), deployutil.LabelForDeploymentConfig(config), err))
 	}
 
 	if deployutil.PodSpecsEqual(config.Template.ControllerTemplate.Template.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec) {
-		glog.V(4).Infof("Ignoring config change for %s (latestVersion=%d); same as deployment %s", labelFor(config), config.LatestVersion, labelForDeployment(deployment))
+		glog.V(4).Infof("Ignoring config change for %s (latestVersion=%d); same as deployment %s", deployutil.LabelForDeploymentConfig(config), config.LatestVersion, deployutil.LabelForDeployment(deployment))
 		return nil
 	}
 
 	fromVersion, toVersion, err := c.generateDeployment(config)
 	if err != nil {
 		if kerrors.IsConflict(err) {
-			return fatalError(fmt.Sprintf("config %s updated since retrieval; aborting trigger: %v", labelFor(config), err))
+			return fatalError(fmt.Sprintf("config %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
 		}
-		return fmt.Errorf("couldn't generate deployment for config %s: %v", labelFor(config), err)
+		return fmt.Errorf("couldn't generate deployment for config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
-	glog.V(4).Infof("Updated config %s from version %d to %d for existing deployment %s", labelFor(config), fromVersion, toVersion, labelForDeployment(deployment))
+	glog.V(4).Infof("Updated config %s from version %d to %d for existing deployment %s", deployutil.LabelForDeploymentConfig(config), fromVersion, toVersion, deployutil.LabelForDeployment(deployment))
 	return nil
 }
 
@@ -142,14 +142,4 @@ func (i *changeStrategyImpl) generateDeploymentConfig(namespace, name string) (*
 
 func (i *changeStrategyImpl) updateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	return i.updateDeploymentConfigFunc(namespace, config)
-}
-
-// labelFor builds a string identifier for a DeploymentConfig.
-func labelFor(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
-}
-
-// labelForDeployment builds a string identifier for a DeploymentConfig.
-func labelForDeployment(deployment *kapi.ReplicationController) string {
-	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -32,7 +33,7 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 	// Find any configs which should be updated based on the new image state
 	configsToUpdate := map[string]*deployapi.DeploymentConfig{}
 	for _, config := range configs {
-		glog.V(4).Infof("Detecting changed images for deploymentConfig %s", labelFor(config))
+		glog.V(4).Infof("Detecting changed images for deploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 
 		for _, trigger := range config.Triggers {
 			params := trigger.ImageChangeParams
@@ -69,11 +70,11 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 		err := c.regenerate(config)
 		if err != nil {
 			anyFailed = true
-			glog.Infof("couldn't regenerate depoymentConfig %s: %s", labelFor(config), err)
+			glog.Infof("couldn't regenerate depoymentConfig %s: %s", deployutil.LabelForDeploymentConfig(config), err)
 			continue
 		}
 
-		glog.V(4).Infof("Regenerated deploymentConfig %s in response to image change trigger", labelFor(config))
+		glog.V(4).Infof("Regenerated deploymentConfig %s in response to image change trigger", deployutil.LabelForDeploymentConfig(config))
 	}
 
 	if anyFailed {
@@ -116,12 +117,12 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 	// Get a regenerated config which includes the new image repo references
 	newConfig, err := c.deploymentConfigClient.generateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
-		return fmt.Errorf("error generating new version of deploymentConfig %s: %v", labelFor(config), err)
+		return fmt.Errorf("error generating new version of deploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 
 	// No update occured
 	if config.LatestVersion == newConfig.LatestVersion {
-		glog.V(4).Infof("No version difference for generated config %s", labelFor(config))
+		glog.V(4).Infof("No version difference for generated config %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -131,17 +132,12 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 		return err
 	}
 
-	glog.Infof("Regenerated depoymentConfig %s for image updates", labelFor(config))
+	glog.Infof("Regenerated depoymentConfig %s for image updates", deployutil.LabelForDeploymentConfig(config))
 	return nil
 }
 
 func labelForRepo(imageRepo *imageapi.ImageStream) string {
 	return fmt.Sprintf("%s/%s", imageRepo.Namespace, imageRepo.Name)
-}
-
-// labelFor builds a string identifier for a DeploymentConfig.
-func labelFor(config *deployapi.DeploymentConfig) string {
-	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
 }
 
 // ImageChangeControllerDeploymentConfigClient abstracts access to DeploymentConfigs.

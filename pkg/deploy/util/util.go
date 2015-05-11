@@ -25,6 +25,21 @@ func DeployerPodNameForDeployment(deployment *api.ReplicationController) string 
 	return fmt.Sprintf("deploy-%s", deployment.Name)
 }
 
+// StatusForDeployment gets the DeploymentStatus for deployment from its annotations.
+func StatusForDeployment(deployment *api.ReplicationController) deployapi.DeploymentStatus {
+	return deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation])
+}
+
+// LabelForDeployment builds a string identifier for a Deployment.
+func LabelForDeployment(deployment *api.ReplicationController) string {
+	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
+}
+
+// LabelForDeploymentConfig builds a string identifier for a DeploymentConfig.
+func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
+	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
+}
+
 // HashPodSpecs hashes a PodSpec into a uint64.
 // TODO: Resources are currently ignored due to the formats not surviving encoding/decoding
 // in a consistent manner (e.g. 0 is represented sometimes as 0.000)
