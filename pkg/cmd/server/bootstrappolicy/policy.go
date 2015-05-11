@@ -43,6 +43,21 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: ClusterReaderRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("get", "list", "watch"),
+					Resources: util.NewStringSet(authorizationapi.ResourceAll),
+				},
+				{
+					Verbs:           util.NewStringSet("get"),
+					NonResourceURLs: util.NewStringSet(authorizationapi.NonResourceAll),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: AdminRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -239,6 +254,15 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 				Name: ClusterAdminRoleName,
 			},
 			Groups: util.NewStringSet(ClusterAdminGroup),
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ClusterReaderRoleBindingName,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: ClusterReaderRoleName,
+			},
+			Groups: util.NewStringSet(ClusterReaderGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{

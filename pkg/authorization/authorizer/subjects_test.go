@@ -37,7 +37,7 @@ func TestSubjects(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedUsers:  util.NewStringSet("Anna", "ClusterAdmin", "Ellen", "Valerie", "system:kube-client", "system:openshift-client", "system:openshift-deployer"),
-		expectedGroups: util.NewStringSet("RootUsers", "system:cluster-admins", "system:nodes"),
+		expectedGroups: util.NewStringSet("RootUsers", "system:cluster-admins", "system:cluster-readers", "system:nodes"),
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
