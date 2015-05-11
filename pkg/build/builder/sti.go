@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/build/controller/strategy"
 )
 
 // STIBuilder performs an STI build given the build object
@@ -37,14 +38,15 @@ func NewSTIBuilder(client DockerClient, dockerSocket string, authCfg docker.Auth
 func (s *STIBuilder) Build() error {
 	tag := s.build.Parameters.Output.DockerImageReference
 	request := &stiapi.Request{
-		BaseImage:    s.build.Parameters.Strategy.STIStrategy.From.Name,
-		DockerConfig: &stiapi.DockerConfig{Endpoint: s.dockerSocket},
-		Source:       s.build.Parameters.Source.Git.URI,
-		ContextDir:   s.build.Parameters.Source.ContextDir,
-		Tag:          tag,
-		ScriptsURL:   s.build.Parameters.Strategy.STIStrategy.Scripts,
-		Environment:  getBuildEnvVars(s.build),
-		Incremental:  s.build.Parameters.Strategy.STIStrategy.Incremental,
+		BaseImage:     s.build.Parameters.Strategy.STIStrategy.From.Name,
+		DockerConfig:  &stiapi.DockerConfig{Endpoint: s.dockerSocket},
+		Source:        s.build.Parameters.Source.Git.URI,
+		ContextDir:    s.build.Parameters.Source.ContextDir,
+		DockerCfgPath: strategy.DockerPullSecretMountPath,
+		Tag:           tag,
+		ScriptsURL:    s.build.Parameters.Strategy.STIStrategy.Scripts,
+		Environment:   getBuildEnvVars(s.build),
+		Incremental:   s.build.Parameters.Strategy.STIStrategy.Incremental,
 	}
 
 	if s.build.Parameters.Revision != nil && s.build.Parameters.Revision.Git != nil &&
