@@ -50,7 +50,7 @@ var (
 	}
 )
 
-func TestFrontProxyOnAuthorize(t *testing.T) {
+func TestAuthProxyOnAuthorize(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 
 	// setup

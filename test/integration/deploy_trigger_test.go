@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/api/v1beta1"
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -33,7 +33,6 @@ import (
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
-	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -425,14 +424,16 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 		"imageStreamImages":         imageStreamImageStorage,
 		"imageStreamMappings":       imageStreamMappingStorage,
 		"imageStreamTags":           imageStreamTagStorage,
-		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, v1beta1.Codec),
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
+	}
+	for k, v := range storage {
+		storage[strings.ToLower(k)] = v
 	}
 
 	version := &apiserver.APIGroupVersion{
 		Root:    "/osapi",
-		Version: "v1beta1",
+		Version: "v1beta3",
 
 		Storage: storage,
 		Codec:   latest.Codec,

@@ -19,14 +19,10 @@ type Interface interface {
 	BuildConfigsNamespacer
 	BuildLogsNamespacer
 	ImagesInterfacer
-	ImageRepositoriesNamespacer
-	ImageRepositoryMappingsNamespacer
-	ImageRepositoryTagsNamespacer
 	ImageStreamsNamespacer
 	ImageStreamMappingsNamespacer
 	ImageStreamTagsNamespacer
 	ImageStreamImagesNamespacer
-	DeploymentsNamespacer
 	DeploymentConfigsNamespacer
 	RoutesNamespacer
 	IdentitiesInterface
@@ -71,21 +67,6 @@ func (c *Client) Images() ImageInterface {
 	return newImages(c)
 }
 
-// ImageRepositories provides a REST client for ImageRepository
-func (c *Client) ImageRepositories(namespace string) ImageRepositoryInterface {
-	return newImageRepositories(c, namespace)
-}
-
-// ImageRepositoryMappings provides a REST client for ImageRepositoryMapping
-func (c *Client) ImageRepositoryMappings(namespace string) ImageRepositoryMappingInterface {
-	return newImageRepositoryMappings(c, namespace)
-}
-
-// ImageRepositoryTags provides a REST client for ImageRepositoryTag
-func (c *Client) ImageRepositoryTags(namespace string) ImageRepositoryTagInterface {
-	return newImageRepositoryTags(c, namespace)
-}
-
 // ImageStreams provides a REST client for ImageStream
 func (c *Client) ImageStreams(namespace string) ImageStreamInterface {
 	return newImageStreams(c, namespace)
@@ -104,11 +85,6 @@ func (c *Client) ImageStreamTags(namespace string) ImageStreamTagInterface {
 // ImageStreamImages provides a REST client for ImageStreamImage
 func (c *Client) ImageStreamImages(namespace string) ImageStreamImageInterface {
 	return newImageStreamImages(c, namespace)
-}
-
-// Deployments provides a REST client for Deployment
-func (c *Client) Deployments(namespace string) DeploymentInterface {
-	return newDeployments(c, namespace)
 }
 
 // DeploymentConfigs provides a REST client for DeploymentConfig

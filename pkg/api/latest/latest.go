@@ -129,6 +129,8 @@ func init() {
 		"Project":        true,
 		"ProjectRequest": true,
 
+		"Image": true,
+
 		"User":                true,
 		"Identity":            true,
 		"UserIdentityMapping": true,

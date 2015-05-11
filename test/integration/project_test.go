@@ -10,7 +10,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	kv1beta1 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	kv1beta3 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
@@ -19,7 +19,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/api/v1beta1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -54,10 +53,10 @@ func TestProjectIsNamespace(t *testing.T) {
 
 	version := &apiserver.APIGroupVersion{
 		Root:    "/api",
-		Version: "v1beta1",
+		Version: "v1beta3",
 
 		Storage: kubeStorage,
-		Codec:   kv1beta1.Codec,
+		Codec:   kv1beta3.Codec,
 
 		Mapper: klatest.RESTMapper,
 
@@ -73,7 +72,7 @@ func TestProjectIsNamespace(t *testing.T) {
 		t.Fatalf("unable to install REST: %v", err)
 	}
 
-	kubeClient, err := kclient.New(&kclient.Config{Host: server.URL, Version: "v1beta1"})
+	kubeClient, err := kclient.New(&kclient.Config{Host: server.URL, Version: "v1beta3"})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -85,10 +84,10 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 	osVersion := &apiserver.APIGroupVersion{
 		Root:    "/osapi",
-		Version: "v1beta1",
+		Version: "v1beta3",
 
 		Storage: originStorage,
-		Codec:   v1beta1.Codec,
+		Codec:   latest.Codec,
 
 		Mapper: latest.RESTMapper,
 

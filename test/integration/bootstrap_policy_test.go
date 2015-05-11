@@ -21,7 +21,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 )
 
-func TestAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
+func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -61,22 +61,22 @@ func TestAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := valerieOpenshiftClient.ImageRepositories(openshiftSharedResourcesNamespace).List(labels.Everything(), fields.Everything()); err != nil {
+	if _, err := valerieOpenshiftClient.ImageStreams(openshiftSharedResourcesNamespace).List(labels.Everything(), fields.Everything()); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageRepositories(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.ImageStreams(kapi.NamespaceDefault).List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := valerieOpenshiftClient.ImageRepositoryTags(openshiftSharedResourcesNamespace).Get("name", "tag"); !kapierror.IsNotFound(err) {
+	if _, err := valerieOpenshiftClient.ImageStreamTags(openshiftSharedResourcesNamespace).Get("name", "tag"); !kapierror.IsNotFound(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageRepositoryTags(kapi.NamespaceDefault).Get("name", "tag"); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.ImageStreamTags(kapi.NamespaceDefault).Get("name", "tag"); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
-func TestOverwritePolicyCommand(t *testing.T) {
+func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 	masterConfig, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -114,7 +114,7 @@ func TestOverwritePolicyCommand(t *testing.T) {
 	}
 }
 
-func TestSelfSubjectAccessReviews(t *testing.T) {
+func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

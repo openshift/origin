@@ -2,15 +2,16 @@ package v1beta3
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 
 	newer "github.com/openshift/origin/pkg/build/api"
 )
 
 func init() {
-	api.Scheme.AddConversionFuncs(
+	kapi.Scheme.AddConversionFuncs(
 		func(in *newer.Build, out *Build, s conversion.Scope) error {
 			if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
 				return err
@@ -194,10 +195,34 @@ func init() {
 			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 		},
 		func(in *newer.BuildOutput, out *BuildOutput, s conversion.Scope) error {
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if len(in.Tag) > 0 && (len(in.To.Kind) == 0 || in.To.Kind == "ImageStream") {
+				out.To.Kind = "ImageStreamTag"
+				out.To.Name = fmt.Sprintf("%s:%s", in.To.Name, in.Tag)
+			}
+			return nil
 		},
 		func(in *BuildOutput, out *newer.BuildOutput, s conversion.Scope) error {
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if in.To != nil && in.To.Kind == "ImageStreamTag" {
+				parts := strings.SplitN(in.To.Name, ":", 2)
+				if len(parts) == 1 {
+					parts = append(parts, "latest")
+				}
+				out.To = &kapi.ObjectReference{
+					Name:      parts[0],
+					Namespace: in.To.Namespace,
+					Kind:      "ImageStream",
+				}
+				if len(parts) > 1 {
+					out.Tag = parts[1]
+				}
+			}
+			return nil
 		},
 		func(in *newer.ImageChangeTrigger, out *ImageChangeTrigger, s conversion.Scope) error {
 			out.LastTriggeredImageID = in.LastTriggeredImageID
@@ -209,7 +234,7 @@ func init() {
 		})
 
 	// Add field conversion funcs.
-	err := api.Scheme.AddFieldLabelConversionFunc("v1beta3", "Build",
+	err := kapi.Scheme.AddFieldLabelConversionFunc("v1beta3", "Build",
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "name":
@@ -226,7 +251,7 @@ func init() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-	err = api.Scheme.AddFieldLabelConversionFunc("v1beta3", "BuildConfig",
+	err = kapi.Scheme.AddFieldLabelConversionFunc("v1beta3", "BuildConfig",
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "name":
