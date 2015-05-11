@@ -54,6 +54,21 @@ func (*okBuildConfigInstantiator) Instantiate(namespace string, requet *api.Buil
 	return &api.Build{}, nil
 }
 
+func TestWrongSecret(t *testing.T) {
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
+		map[string]webhook.Plugin{"github": New()}))
+	defer server.Close()
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("POST", server.URL+"/build100/wrongsecret/github", nil)
+	resp, _ := client.Do(req)
+	body, _ := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusBadRequest ||
+		!strings.Contains(string(body), webhook.ErrSecretMismatch.Error()) {
+		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
+	}
+}
+
 func TestWrongMethod(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
 		map[string]webhook.Plugin{"github": New()}))
@@ -75,17 +90,16 @@ func TestWrongContentType(t *testing.T) {
 	client := &http.Client{}
 	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
 	req.Header.Add("Content-Type", "application/text")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
 	req.Header.Add("X-Github-Event", "ping")
 	resp, _ := client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusBadRequest ||
 		!strings.Contains(string(body), "Content-Type") {
-		t.Errorf("Excepcted BadRequest, got %s: %s!", resp.Status, string(body))
+		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
 	}
 }
 
-func TestWrongUserAgent(t *testing.T) {
+func TestMissingEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
 		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
@@ -93,30 +107,11 @@ func TestWrongUserAgent(t *testing.T) {
 	client := &http.Client{}
 	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "go-lang")
-	req.Header.Add("X-Github-Event", "ping")
 	resp, _ := client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "User-Agent go-lang") {
-		t.Errorf("Excepcted BadRequest, got %s: %s!", resp.Status, string(body))
-	}
-}
-
-func TestMissingGithubEvent(t *testing.T) {
-	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
-		map[string]webhook.Plugin{"github": New()}))
-	defer server.Close()
-
-	client := &http.Client{}
-	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
-	resp, _ := client.Do(req)
-	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "X-GitHub-Event") {
-		t.Errorf("Excepcted BadRequest, got %s: %s!", resp.Status, string(body))
+		!strings.Contains(string(body), "Missing X-GitHub-Event or X-Gogs-Event") {
+		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
 	}
 }
 
@@ -128,13 +123,12 @@ func TestWrongGithubEvent(t *testing.T) {
 	client := &http.Client{}
 	req, _ := http.NewRequest("POST", server.URL+"/build100/secret101/github", nil)
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
 	req.Header.Add("X-GitHub-Event", "wrong")
 	resp, _ := client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusBadRequest ||
-		!strings.Contains(string(body), "Unknown") {
-		t.Errorf("Excepcted BadRequest, got %s: %s!", resp.Status, string(body))
+		!strings.Contains(string(body), "Unknown X-GitHub-Event or X-Gogs-Event") {
+		t.Errorf("Expected BadRequest, got %s: %s!", resp.Status, string(body))
 	}
 }
 
@@ -143,7 +137,7 @@ func TestJsonPingEvent(t *testing.T) {
 		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
-	postFile("ping", "pingevent.json", server.URL+"/build100/secret101/github",
+	postFile("X-GitHub-Event", "ping", "pingevent.json", server.URL+"/build100/secret101/github",
 		http.StatusOK, t)
 }
 
@@ -152,28 +146,37 @@ func TestJsonPushEventError(t *testing.T) {
 		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
-	post("push", []byte{}, server.URL+"/build100/secret101/github", http.StatusBadRequest, t)
+	post("X-GitHub-Event", "push", []byte{}, server.URL+"/build100/secret101/github", http.StatusBadRequest, t)
 }
 
-func TestJsonPushEvent(t *testing.T) {
+func TestJsonGithubPushEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
 		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
 
-	postFile("push", "pushevent.json", server.URL+"/build100/secret101/github",
+	postFile("X-GitHub-Event", "push", "pushevent.json", server.URL+"/build100/secret101/github",
 		http.StatusOK, t)
 }
 
-func postFile(event, filename, url string, expStatusCode int, t *testing.T) {
+func TestJsonGogsPushEvent(t *testing.T) {
+	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
+		map[string]webhook.Plugin{"github": New()}))
+	defer server.Close()
+
+	postFile("X-Gogs-Event", "push", "pushevent.json", server.URL+"/build100/secret101/github",
+		http.StatusOK, t)
+}
+
+func postFile(eventHeader, eventName, filename, url string, expStatusCode int, t *testing.T) {
 	data, err := ioutil.ReadFile("fixtures/" + filename)
 	if err != nil {
 		t.Errorf("Failed to open %s: %v", filename, err)
 	}
 
-	post(event, data, url, expStatusCode, t)
+	post(eventHeader, eventName, data, url, expStatusCode, t)
 }
 
-func post(event string, data []byte, url string, expStatusCode int, t *testing.T) {
+func post(eventHeader, eventName string, data []byte, url string, expStatusCode int, t *testing.T) {
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
@@ -181,8 +184,7 @@ func post(event string, data []byte, url string, expStatusCode int, t *testing.T
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
-	req.Header.Add("X-Github-Event", event)
+	req.Header.Add(eventHeader, eventName)
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -232,7 +234,6 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 	}
 	req, err := http.NewRequest("POST", "http://origin.com", bytes.NewReader(event))
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
 	req.Header.Add("X-Github-Event", eventType)
 
 	context.req = req
