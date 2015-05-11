@@ -111,6 +111,40 @@ func TestCreateRouteOK(t *testing.T) {
 	if route.Name != "foo" {
 		t.Errorf("Unexpected route: %#v", route)
 	}
+	if generatedAnnotation := route.Annotations[HostGeneratedAnnotationKey]; generatedAnnotation != "false" {
+		t.Errorf("Expected generated annotation to be 'false', got '%s'", generatedAnnotation)
+	}
+}
+
+func TestCreateRouteGenerated(t *testing.T) {
+	mockRegistry := test.NewRouteRegistry()
+	mockAllocator := ractest.NewTestRouteAllocationController()
+	storage := REST{
+		registry:  mockRegistry,
+		allocator: mockAllocator,
+	}
+
+	obj, err := storage.Create(kapi.NewDefaultContext(), &api.Route{
+		ObjectMeta:  kapi.ObjectMeta{Name: "foo"},
+		ServiceName: "myrubyservice",
+	})
+	if obj == nil {
+		t.Errorf("Expected nil obj, got %v", obj)
+	}
+	if err != nil {
+		t.Errorf("Unexpected non-nil error: %#v", err)
+	}
+
+	route, ok := obj.(*api.Route)
+	if !ok {
+		t.Errorf("Expected route type, got: %#v", obj)
+	}
+	if route.Name != "foo" {
+		t.Errorf("Unexpected route: %#v", route)
+	}
+	if generatedAnnotation := route.Annotations[HostGeneratedAnnotationKey]; generatedAnnotation != "true" {
+		t.Errorf("Expected generated annotation to be 'true', got '%s'", generatedAnnotation)
+	}
 }
 
 func TestGetRouteError(t *testing.T) {
