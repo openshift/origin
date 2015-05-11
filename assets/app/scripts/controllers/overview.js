@@ -132,20 +132,23 @@ angular.module('openshiftConsole')
     // Filter out monopods we know we don't want to see
     function showMonopod(pod) {
       // Hide pods in the Succeeded or Terminated phase since these are run once pods
-      // that are done
+      // that are done.
       if (pod.status.phase == 'Succeeded' || pod.status.phase == 'Terminated') {
         // TODO we may want to show pods for X amount of time after they have completed
         return false;
       }
-      // Hide our deployer pods since it is obvious the deployment is happening when the new deployment
-      // appears.
-      if (pod.metadata.annotations && pod.metadata.annotations.deployment) {
-        return false;
-      }
-      // Hide our build pods since we are already showing details for currently running or recently
-      // run builds under the appropriate areas
-      for (var id in $scope.builds) {
-        if ($scope.builds[id].metadata.name == pod.metadata.name) {
+
+      if (pod.metadata.annotations) {
+        // Hide our deployer pods since it is obvious the deployment is
+        // happening when the new deployment appears.
+        if (pod.metadata.annotations.deployment) {
+          return false;
+        }
+
+        // Hide our build pods since we are already showing details for
+        // currently running or recently run builds under the appropriate
+        // areas.
+        if (pod.metadata.annotations["openshift.io/build.name"]) {
           return false;
         }
       }
