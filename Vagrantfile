@@ -32,6 +32,21 @@ def full_provision(vm, username = [])
     vm.provision "setup", type: "shell", path: "hack/vm-provision-full.sh", args: username
   end
 end
+
+# @param tgt [Hash] target hash that we will be **altering**
+# @param src [Hash] read from this source hash
+# @return the modified target hash
+# @note this one does not merge Array elements
+def hash_deep_merge!(tgt_hash, src_hash)
+  tgt_hash.merge!(src_hash) { |key, oldval, newval|
+    if oldval.kind_of?(Hash) && newval.kind_of?(Hash)
+      hash_deep_merge!(oldval, newval)
+    else
+      newval
+    end
+  }
+end
+
 class VFLoadError < Vagrant::Errors::VagrantError
   def error_message; @parserr; end
   def initialize(message, *args)
@@ -47,56 +62,55 @@ VM_NAME_PREFIX      = ENV['OPENSHIFT_VM_NAME_PREFIX'] || ""
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
+  # these are the default settings, overrides are in .vagrant-openshift.json
+  vagrant_openshift_config = {
+    "instance_name"     => "origin-dev",
+    "os"                => "fedora",
+    "dev_cluster"       => false,
+    "insert_key"        => true,
+    "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
+    "rebuild_yum_cache" => false,
+    "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
+    "memory"            => ENV['OPENSHIFT_MEMORY'] || 1024,
+    "virtualbox"        => {
+      "box_name" => "fedora_inst",
+      "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
+    },
+    "vmware"            => {
+      "box_name" => "fedora_inst",
+      "box_url"  => "http://opscode-vm-bento.s3.amazonaws.com/vagrant/vmware/opscode_fedora-20_chef-provisionerless.box"
+    },
+    "libvirt"           => {
+      "box_name" => "fedora_inst",
+      "box_url"  => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_libvirt_inst.box"
+    },
+    "aws"               => {
+      "_see_also_"   => AWS_CRED_FILE,
+      "box_name"     => "aws-dummy-box",
+      "box_url"      => AWS_BOX_URL,
+      "ami"          => "<AMI>",
+      "ami_region"   => "<AMI_REGION>",
+      "ssh_user"     => "<SSH_USER>",
+    },
+    "openstack" => {
+      '_see_also_'  => OPENSTACK_CRED_FILE,
+      'box_name'    => "openstack-dummy-box",
+      'box_url'     => OPENSTACK_BOX_URL,
+      'flavor'      => "m1.tiny",
+      'image'       => "Fedora",
+      'ssh_user'    => "root",
+    },
+  }
+
   # attempt to read config in this repo's .vagrant-openshift.json if present
   if File.exist?('.vagrant-openshift.json')
     json = File.read('.vagrant-openshift.json')
     begin
-      vagrant_openshift_config = JSON.parse(json)
+      hash_deep_merge!(vagrant_openshift_config, JSON.parse(json))
     rescue JSON::ParserError => e
       raise VFLoadError.new "Error parsing .vagrant-openshift.json:\n#{e}"
     end
-  else
-    # this is only used as default when .vagrant-openshift.json does not exist
-    vagrant_openshift_config = {
-      "instance_name"     => "origin-dev",
-      "os"                => "fedora",
-      "dev_cluster"       => false,
-      "insert_key"        => true,
-      "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
-      "rebuild_yum_cache" => false,
-      "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
-      "memory"            => ENV['OPENSHIFT_MEMORY'] || 1024,
-      "virtualbox"        => {
-        "box_name" => "fedora_inst",
-        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
-      },
-      "vmware"            => {
-        "box_name" => "fedora_inst",
-        "box_url"  => "http://opscode-vm-bento.s3.amazonaws.com/vagrant/vmware/opscode_fedora-20_chef-provisionerless.box"
-      },
-      "libvirt"           => {
-        "box_name" => "fedora_inst",
-        "box_url"  => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_libvirt_inst.box"
-      },
-      "aws"               => {
-        "_see_also_"   => AWS_CRED_FILE,
-        "box_name"     => "aws-dummy-box",
-        "box_url"      => AWS_BOX_URL,
-        "ami"          => "<AMI>",
-        "ami_region"   => "<AMI_REGION>",
-        "ssh_user"     => "<SSH_USER>",
-      },
-      "openstack" => {
-        '_see_also_'  => OPENSTACK_CRED_FILE,
-        'box_name'    => "openstack-dummy-box",
-        'box_url'     => OPENSTACK_BOX_URL,
-        'flavor'      => "m1.tiny",
-        'image'       => "Fedora",
-        'ssh_user'    => "root",
-      },
-    }
   end
-
 
   dev_cluster = vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
   if dev_cluster
