@@ -29,10 +29,13 @@ function set_env {
 set_env /home/$USERNAME
 set_env /root
 
+groupadd -f docker
+usermod -a -G docker $USERNAME
+
 systemctl enable docker
 systemctl start docker
 
-usermod -a -G docker $USERNAME
+chown root:docker /var/run/docker.sock
 
 echo To install etcd, run hack/install-etcd.sh
 
