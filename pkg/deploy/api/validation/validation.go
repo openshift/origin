@@ -1,6 +1,9 @@
 package validation
 
 import (
+	"fmt"
+	"strings"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -193,8 +196,10 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 		if len(params.From.Kind) == 0 {
 			params.From.Kind = "ImageStream"
 		}
-		if params.From.Kind != "ImageRepository" && params.From.Kind != "ImageStream" {
-			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, "kind must be 'ImageStream' or 'ImageRepository'"))
+		kinds := util.NewStringSet("ImageRepository", "ImageStream", "ImageStreamTag")
+		if !kinds.Has(params.From.Kind) {
+			msg := fmt.Sprintf("kind must be one of: %s", strings.Join(kinds.List(), ", "))
+			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, msg))
 		}
 
 		if !util.IsDNS1123Subdomain(params.From.Name) {
