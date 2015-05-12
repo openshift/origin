@@ -101,6 +101,12 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.DockerImageReference = specs[c.Intn(len(specs))]
 			if forVersion == "v1beta3" {
 				j.Tag, j.DockerImageReference = "", ""
+				if j.To != nil && (len(j.To.Kind) == 0 || j.To.Kind == "ImageStream") {
+					j.To.Kind = "ImageStream"
+					if len(j.Tag) == 0 {
+						j.To.Kind = "latest"
+					}
+				}
 			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {

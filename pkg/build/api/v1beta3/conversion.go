@@ -198,9 +198,13 @@ func init() {
 			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 				return err
 			}
-			if len(in.Tag) > 0 && (len(in.To.Kind) == 0 || in.To.Kind == "ImageStream") {
+			if in.To != nil && (len(in.To.Kind) == 0 || in.To.Kind == "ImageStream") {
 				out.To.Kind = "ImageStreamTag"
-				out.To.Name = fmt.Sprintf("%s:%s", in.To.Name, in.Tag)
+				tag := in.Tag
+				if len(tag) == 0 {
+					tag = "latest"
+				}
+				out.To.Name = fmt.Sprintf("%s:%s", in.To.Name, tag)
 			}
 			return nil
 		},
@@ -213,11 +217,9 @@ func init() {
 				if len(parts) == 1 {
 					parts = append(parts, "latest")
 				}
-				out.To = &kapi.ObjectReference{
-					Name:      parts[0],
-					Namespace: in.To.Namespace,
-					Kind:      "ImageStream",
-				}
+				out.To.Kind = "ImageStream"
+				out.To.Name = parts[0]
+				out.To.Namespace = in.To.Namespace
 				if len(parts) > 1 {
 					out.Tag = parts[1]
 				}
