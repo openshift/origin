@@ -49,9 +49,6 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 
 	configController := &DeploymentConfigController{
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				return factory.KubeClient.ReplicationControllers(namespace).Create(deployment)
 			},

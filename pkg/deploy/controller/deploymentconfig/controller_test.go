@@ -24,10 +24,6 @@ func TestHandle_initialOk(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				t.Fatalf("unexpected call with name %s", name)
-				return nil, nil
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call with deployment %v", deployment)
 				return nil, nil
@@ -62,9 +58,6 @@ func TestHandle_updateOk(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound("ReplicationController", name)
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				deployed = deployment
 				return deployment, nil
@@ -132,16 +125,12 @@ func TestHandle_nonfatalLookupError(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewInternalError(fmt.Errorf("fatal test error"))
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call with deployment %v", deployment)
 				return nil, nil
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				t.Fatalf("unexpected call to list deployments")
-				return nil, nil
+				return nil, kerrors.NewInternalError(fmt.Errorf("fatal test error"))
 			},
 		},
 	}
@@ -166,17 +155,15 @@ func TestHandle_configAlreadyDeployed(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploymentConfig, kapi.Codec)
-				return deployment, nil
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call to to create deployment: %v", deployment)
 				return nil, nil
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				t.Fatalf("unexpected call to list deployments")
-				return nil, nil
+				existingDeployments := []kapi.ReplicationController{}
+				deployment, _ := deployutil.MakeDeployment(deploymentConfig, kapi.Codec)
+				existingDeployments = append(existingDeployments, *deployment)
+				return &kapi.ReplicationControllerList{Items: existingDeployments}, nil
 			},
 		},
 	}
@@ -196,9 +183,6 @@ func TestHandle_nonfatalCreateError(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound("ReplicationController", name)
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewInternalError(fmt.Errorf("test error"))
 			},
@@ -226,9 +210,6 @@ func TestHandle_fatalError(t *testing.T) {
 			return nil, fmt.Errorf("couldn't make deployment")
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound("ReplicationController", name)
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				t.Fatalf("unexpected call to create")
 				return nil, kerrors.NewInternalError(fmt.Errorf("test error"))
@@ -263,9 +244,6 @@ func TestHandle_existingDeployments(t *testing.T) {
 			return deployutil.MakeDeployment(config, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return nil, kerrors.NewNotFound("ReplicationController", name)
-			},
 			createDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				deployed = deployment
 				return deployment, nil
