@@ -116,6 +116,7 @@ func TestWatchBuildConfigs(t *testing.T) {
 func mockBuildConfig() *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
+			GenerateName: "mock-build-config",
 			Labels: map[string]string{
 				"label1": "value1",
 				"label2": "value2",
@@ -164,6 +165,7 @@ func TestBuildConfigClient(t *testing.T) {
 	// get a validation error
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
+			GenerateName: "mock-build",
 			Labels: map[string]string{
 				"label1": "value1",
 				"label2": "value2",

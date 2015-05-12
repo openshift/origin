@@ -30,8 +30,9 @@ import (
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
+	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
-	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
+	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
@@ -140,6 +141,7 @@ func TestWatchBuilds(t *testing.T) {
 func mockBuild() *buildapi.Build {
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
+			GenerateName: "mock-build",
 			Labels: map[string]string{
 				"label1": "value1",
 				"label2": "value2",
@@ -209,7 +211,10 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 
-	buildEtcd := buildetcd.New(etcdHelper)
+	buildStorage := buildetcd.NewStorage(etcdHelper)
+	buildRegistry := buildregistry.NewRegistry(buildStorage)
+	buildConfigStorage := buildconfigetcd.NewStorage(etcdHelper)
+	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
 	imageStorage := imageetcd.NewREST(etcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
@@ -231,10 +236,10 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc:      buildEtcd.GetBuildConfig,
-			UpdateBuildConfigFunc:   buildEtcd.UpdateBuildConfig,
-			GetBuildFunc:            buildEtcd.GetBuild,
-			CreateBuildFunc:         buildEtcd.CreateBuild,
+			GetBuildConfigFunc:      buildConfigRegistry.GetBuildConfig,
+			UpdateBuildConfigFunc:   buildConfigRegistry.UpdateBuildConfig,
+			GetBuildFunc:            buildRegistry.GetBuild,
+			CreateBuildFunc:         buildRegistry.CreateBuild,
 			GetImageStreamFunc:      imageStreamRegistry.GetImageStream,
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
@@ -243,7 +248,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
-		buildEtcd,
+		buildConfigRegistry,
 		buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
 		map[string]webhook.Plugin{
 			"generic": generic.New(),
@@ -252,9 +257,9 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	)
 
 	storage := map[string]rest.Storage{
-		"builds":                   buildregistry.NewREST(buildEtcd),
+		"builds":                   buildStorage,
 		"builds/clone":             buildClone,
-		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
+		"buildConfigs":             buildConfigStorage,
 		"buildConfigs/webhooks":    buildConfigWebHooks,
 		"buildConfigs/instantiate": buildConfigInstantiate,
 		"imageStreams":             imageStreamStorage,
