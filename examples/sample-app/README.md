@@ -132,29 +132,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         $ export CURL_CA_BUNDLE=`pwd`/openshift.local.config/master/ca.crt
         $ sudo chmod a+rwX openshift.local.config/master/admin.kubeconfig
 
-
-4. Bind a user names `test-admin` to the `view` role in the default namespace so you can observe progress in the web console
-
-        $ osadm policy add-role-to-user view test-admin --config=openshift.local.config/master/admin.kubeconfig
-
-
-5. Login as `test-admin` using any password
-
-        $ osc login --certificate-authority=openshift.local.config/master/ca.crt
-
-
-6. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
-
-    * You will need to have the browser accept the certificate at
-      `https://<host>:8443` before the console can consult the OpenShift
-      API. Of course this would not be necessary with a legitimate
-      certificate.
-    * If you click the `default` project and leave the tab open,
-      you'll see the page update as you deploy objects into the project
-      and run builds.
-
-
-7. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
+4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
         $ openshift ex registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
@@ -167,7 +145,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     of this tutorial.
 
 
-8. Confirm the registry is started (this can take a few minutes):
+5. Confirm the registry is started (this can take a few minutes):
 
         $ osc describe service docker-registry --config=openshift.local.config/master/admin.kubeconfig
 
@@ -185,13 +163,34 @@ This section covers how to perform all the steps of building, deploying, and upd
     be added to the docker-registry service list so that it's reachable from other places.
 
 
-9. Confirm the registry is accessible (you may need to run this more than once):
+6. Confirm the registry is accessible (you may need to run this more than once):
 
         $ curl -H 'Accept: application/json' -v `osc get service docker-registry --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}/v2/" --config=openshift.local.config/master/admin.kubeconfig`
 
     You should see:
 
         "< Docker-Distribution-Api-Version: registry/2.0"
+
+
+7. Bind a user names `test-admin` to the `view` role in the default namespace so you can observe progress in the web console
+
+        $ osadm policy add-role-to-user view test-admin --config=openshift.local.config/master/admin.kubeconfig
+
+
+9. Login as `test-admin` using any password
+
+        $ osc login --certificate-authority=openshift.local.config/master/ca.crt
+
+
+9. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
+
+    * You will need to have the browser accept the certificate at
+      `https://<host>:8443` before the console can consult the OpenShift
+      API. Of course this would not be necessary with a legitimate
+      certificate.
+    * If you click the `default` project and leave the tab open,
+      you'll see the page update as you deploy objects into the project
+      and run builds.
 
 
 10. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
