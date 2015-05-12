@@ -2,6 +2,7 @@
 /openshift.local.*
 /.project
 /.vagrant
+/cpu.pprof
 /assets/nbproject
 /examples/sample-app/openshift.local.*
 /examples/sample-app/logs/openshift.log

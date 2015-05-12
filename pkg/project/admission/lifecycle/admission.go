@@ -44,6 +44,9 @@ type lifecycle struct {
 // Admit enforces that a namespace must exist in order to associate content with it.
 // Admit enforces that a namespace that is terminating cannot accept new content being associated with it.
 func (e *lifecycle) Admit(a admission.Attributes) (err error) {
+	if len(a.GetNamespace()) == 0 {
+		return nil
+	}
 	defaultVersion, kind, err := latest.RESTMapper.VersionAndKindForResource(a.GetResource())
 	if err != nil {
 		return err

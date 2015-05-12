@@ -95,10 +95,6 @@ func deleteAllContent(client osclient.Interface, namespace string) (err error) {
 	if err != nil {
 		return err
 	}
-	err = deleteDeployments(client, namespace)
-	if err != nil {
-		return err
-	}
 	err = deleteImageStreams(client, namespace)
 	if err != nil {
 		return err
@@ -203,20 +199,6 @@ func deleteImageStreams(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.ImageStreams(ns).Delete(items.Items[i].Name)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func deleteDeployments(client osclient.Interface, ns string) error {
-	items, err := client.Deployments(ns).List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return err
-	}
-	for i := range items.Items {
-		err := client.Deployments(ns).Delete(items.Items[i].Name)
 		if err != nil {
 			return err
 		}

@@ -19,7 +19,7 @@ import (
 )
 
 // Version is the string that represents the current external default version.
-const Version = "v1beta1"
+const Version = "v1beta3"
 
 // OldestVersion is the string that represents the oldest server version supported,
 // for client code that wants to hardcode the lowest common denominator.
@@ -107,8 +107,8 @@ func init() {
 		},
 	)
 
-	// list of versions we support on the server
-	versions := Versions
+	// list of versions we support on the server, in preferred order
+	versions := []string{"v1beta3", "v1beta1"}
 
 	// versions that used mixed case URL formats
 	versionMixedCase := map[string]bool{
@@ -128,6 +128,8 @@ func init() {
 
 		"Project":        true,
 		"ProjectRequest": true,
+
+		"Image": true,
 
 		"User":                true,
 		"Identity":            true,

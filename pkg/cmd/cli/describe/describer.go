@@ -37,8 +37,6 @@ func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host
 		return &BuildConfigDescriber{c, host}, true
 	case "BuildLog":
 		return &BuildLogDescriber{c}, true
-	case "Deployment":
-		return &DeploymentDescriber{c}, true
 	case "DeploymentConfig":
 		return NewDeploymentConfigDescriber(c, kclient), true
 	case "Identity":

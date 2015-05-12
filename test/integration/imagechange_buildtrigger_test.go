@@ -155,12 +155,12 @@ func setup(t *testing.T) *client.Client {
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
 		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
@@ -228,8 +228,8 @@ func runTest(t *testing.T, testname string, clusterAdminClient *client.Client, i
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger:outputtag" {
-		t.Fatalf("Expected build with output image %s, got %s", "registry:8080/openshift/test-image-trigger:outputtag", newBuild.Parameters.Output.DockerImageReference)
+	if newBuild.Parameters.Output.To.Name != "test-image-trigger-repo" || newBuild.Parameters.Output.Tag != "outputtag" {
+		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
 	}
 	if newBuild.Labels["testlabel"] != "testvalue" {
 		t.Fatalf("Expected build with label %s=%s from build config got %s=%s", "testlabel", "testvalue", "testlabel", newBuild.Labels["testlabel"])
@@ -293,8 +293,8 @@ func runTest(t *testing.T, testname string, clusterAdminClient *client.Client, i
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger:outputtag" {
-		t.Fatalf("Expected build with output image %s, got %s", "registry:8080/openshift/test-image-trigger:outputtag", newBuild.Parameters.Output.DockerImageReference)
+	if newBuild.Parameters.Output.To.Name != "test-image-trigger-repo" || newBuild.Parameters.Output.Tag != "outputtag" {
+		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
 	}
 	if newBuild.Labels["testlabel"] != "testvalue" {
 		t.Fatalf("Expected build with label %s=%s from build config got %s=%s", "testlabel", "testvalue", "testlabel", newBuild.Labels["testlabel"])

@@ -121,7 +121,10 @@ const (
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
-var excludedV1Beta3Types = util.NewStringSet("templateConfigs", "deployments", "buildLogs")
+var excludedV1Beta3Types = util.NewStringSet(
+	"templateConfigs", "deployments", "buildLogs",
+	"imageRepositories", "imageRepositories/status", "imageRepositoryMappings", "imageRepositoryTags",
+)
 
 // APIInstaller installs additional API components into this server
 type APIInstaller interface {
@@ -302,61 +305,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"clusterRoles":          clusterRoleStorage,
 	}
 
-	// for v1beta1, we dual register camelCase and camelcase names
-	v1beta1Storage := map[string]rest.Storage{}
-	for k, v := range storage {
-		v1beta1Storage[k] = v
-		v1beta1Storage[strings.ToLower(k)] = v
-	}
-	v1beta3Storage := map[string]rest.Storage{}
-	for k, v := range storage {
-		if excludedV1Beta3Types.Has(k) {
-			continue
-		}
-		v1beta3Storage[strings.ToLower(k)] = v
-	}
-
-	version := &apiserver.APIGroupVersion{
-		Root:    OpenShiftAPIPrefix,
-		Version: OpenShiftAPIV1Beta1,
-
-		Storage: v1beta1Storage,
-		Codec:   v1beta1.Codec,
-
-		Mapper: latest.RESTMapper,
-
-		Creater:   kapi.Scheme,
-		Typer:     kapi.Scheme,
-		Convertor: kapi.Scheme,
-		Linker:    latest.SelfLinker,
-
-		Admit:   c.AdmissionControl,
-		Context: c.getRequestContextMapper(),
-	}
-
-	if err := version.InstallREST(container); err != nil {
+	if err := c.api_v1beta1(storage).InstallREST(container); err != nil {
 		glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
 	}
 
-	version3 := &apiserver.APIGroupVersion{
-		Root:    OpenShiftAPIPrefix,
-		Version: OpenShiftAPIV1Beta3,
-
-		Storage: v1beta3Storage,
-		Codec:   v1beta3.Codec,
-
-		Mapper: latest.RESTMapper,
-
-		Creater:   kapi.Scheme,
-		Typer:     kapi.Scheme,
-		Convertor: kapi.Scheme,
-		Linker:    latest.SelfLinker,
-
-		Admit:   c.AdmissionControl,
-		Context: c.getRequestContextMapper(),
-	}
-
-	if err := version3.InstallREST(container); err != nil {
+	if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
 		/*// TODO: remove this check once v1beta3 is complete
 		if utilerrs.FilterOut(err, func(err error) bool {
 			return strings.Contains(err.Error(), "is registered for version")
@@ -563,6 +516,52 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	}, 10*time.Second)
 
 	c.checkProjectRequestTemplate()
+}
+
+func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
+	return &apiserver.APIGroupVersion{
+		Root: OpenShiftAPIPrefix,
+
+		Mapper: latest.RESTMapper,
+
+		Creater:   kapi.Scheme,
+		Typer:     kapi.Scheme,
+		Convertor: kapi.Scheme,
+		Linker:    latest.SelfLinker,
+
+		Admit:   c.AdmissionControl,
+		Context: c.getRequestContextMapper(),
+	}
+}
+
+// api_v1beta1 returns the resources and codec for API version v1beta1.
+func (c *MasterConfig) api_v1beta1(all map[string]rest.Storage) *apiserver.APIGroupVersion {
+	storage := make(map[string]rest.Storage)
+	for k, v := range all {
+		storage[strings.ToLower(k)] = v
+		storage[k] = v
+	}
+	version := c.defaultAPIGroupVersion()
+	version.Storage = storage
+	version.Version = OpenShiftAPIV1Beta1
+	version.Codec = v1beta1.Codec
+	return version
+}
+
+// api_v1beta3 returns the resources and codec for API version v1beta3.
+func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGroupVersion {
+	storage := make(map[string]rest.Storage)
+	for k, v := range all {
+		if excludedV1Beta3Types.Has(k) {
+			continue
+		}
+		storage[strings.ToLower(k)] = v
+	}
+	version := c.defaultAPIGroupVersion()
+	version.Storage = storage
+	version.Version = OpenShiftAPIV1Beta3
+	version.Codec = v1beta3.Codec
+	return version
 }
 
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
