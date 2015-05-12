@@ -26,7 +26,13 @@ angular.module('openshiftConsole')
       },
       link: function(scope, elem, attrs) {
         // TODO need to make these elements selectable via the keyboard
-        $(elem).on("click.oscobject", function() {
+        $(elem).on("click.oscobject", function(event) {
+          // Clicks directly on a link inside osc-object elements should simply
+          // follow the link.
+          if (event.target.nodeName === 'A') {
+            return;
+          }
+
           if (scope.resource) {
             ObjectDescriber.setObject(scope.resource, scope.kind || scope.resource.kind, {source: scope});
             // Have to stop event propagation or nested resources will fire parent handlers
