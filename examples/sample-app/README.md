@@ -187,11 +187,11 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 9. Confirm the registry is accessible (you may need to run this more than once):
 
-        $ curl `osc get service docker-registry --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" --config=openshift.local.config/master/admin.kubeconfig`
+        $ curl -H 'Accept: application/json' -v `osc get service docker-registry --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}/v2/" --config=openshift.local.config/master/admin.kubeconfig`
 
     You should see:
 
-        "docker-registry server (dev) (v0.9.0)"
+        "< Docker-Distribution-Api-Version: registry/2.0"
 
 
 10. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
