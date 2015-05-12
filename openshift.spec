@@ -116,17 +116,8 @@ do
 done
 
 # Build only 'openshift' for other platforms
-for OS in darwin windows
-do
-    export GOOS=${OS}
-    if [ $GOOS == 'windows' ]
-    then
-        export GOARCH='386'
-    else
-        export GOARCH='amd64'
-    fi
-    go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
-done
+GOOS=windows GOARCH=386 go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
+GOOS=darwin GOARCH=amd64 go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
 
 #Build our pod
 pushd images/pod/
