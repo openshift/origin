@@ -218,16 +218,25 @@ type typeBasedFactoryStrategy struct {
 }
 
 func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
+	var pod *kapi.Pod
+	var err error
 	switch build.Parameters.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
-		return f.DockerBuildStrategy.CreateBuildPod(build)
+		pod, err = f.DockerBuildStrategy.CreateBuildPod(build)
 	case buildapi.STIBuildStrategyType:
-		return f.STIBuildStrategy.CreateBuildPod(build)
+		pod, err = f.STIBuildStrategy.CreateBuildPod(build)
 	case buildapi.CustomBuildStrategyType:
-		return f.CustomBuildStrategy.CreateBuildPod(build)
+		pod, err = f.CustomBuildStrategy.CreateBuildPod(build)
 	default:
 		return nil, errors.New("No strategy defined for type")
 	}
+	if pod != nil {
+		if pod.Annotations == nil {
+			pod.Annotations = map[string]string{}
+		}
+		pod.Annotations[buildapi.BuildAnnotation] = build.Name
+	}
+	return pod, err
 }
 
 // panicIfStopped panics with the provided object if the channel is closed

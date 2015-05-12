@@ -46,6 +46,7 @@ func NewSourceRepository(s string) (*SourceRepository, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &SourceRepository{
 		location: s,
 		url:      *location,

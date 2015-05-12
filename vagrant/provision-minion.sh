@@ -24,7 +24,7 @@ for (( i=0; i<${#MINION_NAMES[@]}; i++)); do
 done
 
 # Install the required packages
-yum install -y docker-io git golang e2fsprogs hg openvswitch net-tools bridge-utils
+yum install -y docker-io git golang e2fsprogs hg openvswitch net-tools bridge-utils which ethtool
 
 # Build openshift
 echo "Building openshift"
@@ -53,8 +53,8 @@ minion_name=${MINION_NAMES[$MINION_INDEX-1]}
 cat <<EOF > /usr/lib/systemd/system/openshift-node.service
 [Unit]
 Description=OpenShift Node
-Requires=docker.service network.service
-After=network.service
+Requires=network.service
+After=docker.service network.service
 
 [Service]
 ExecStart=/usr/bin/openshift start node --config=/openshift.local.config/node-${minion_name}/node-config.yaml

@@ -56,21 +56,20 @@ func TestSTICreateBuildPod(t *testing.T) {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 	// strategy ENV is not copied into the container environment, so only
-	// expect 5 not 6 values.
-	if len(container.Env) != 5 {
-		t.Fatalf("Expected 5 elements in Env table, got %d", len(container.Env))
+	// expect 6 not 7 values.
+	if len(container.Env) != 6 {
+		t.Fatalf("Expected 6 elements in Env table, got %d", len(container.Env))
 	}
-	if len(container.VolumeMounts) != 2 {
-		t.Fatalf("Expected 2 volumes in container, got %d", len(container.VolumeMounts))
+	if len(container.VolumeMounts) != 3 {
+		t.Fatalf("Expected 3 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	if container.VolumeMounts[0].MountPath != dockerSocketPath {
-		t.Fatalf("Expected %s in first VolumeMount, got %s", dockerSocketPath, container.VolumeMounts[0].MountPath)
+	for i, expected := range []string{dockerSocketPath, dockerPushSecretMountPath, sourceSecretMountPath} {
+		if container.VolumeMounts[i].MountPath != expected {
+			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
+		}
 	}
-	if container.VolumeMounts[1].MountPath != dockerPushSecretMountPath {
-		t.Fatalf("Expected %s in first VolumeMount, got %s", dockerPushSecretMountPath, container.VolumeMounts[1].MountPath)
-	}
-	if len(actual.Spec.Volumes) != 2 {
-		t.Fatalf("Expected 2 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 3 {
+		t.Fatalf("Expected 3 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if !kapi.Semantic.DeepEqual(container.Resources, expected.Parameters.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
@@ -111,6 +110,7 @@ func mockSTIBuild() *buildapi.Build {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/stibuild/Dockerfile",
 				},
+				SourceSecretName: "fooSecret",
 			},
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.STIBuildStrategyType,

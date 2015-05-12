@@ -78,6 +78,13 @@ Requires:       %{name} = %{version}-%{release}
 %description dockerregistry
 %{summary}
 
+%package pod
+Summary:        OpenShift Pod
+Requires:       openshift = %{version}-%{release}
+
+%description pod
+%{summary}
+
 %prep
 %setup -q
 
@@ -121,6 +128,11 @@ do
     go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
 done
 
+#Build our pod
+pushd images/pod/
+    go build -ldflags "%{ldflags}" pod.go
+popd
+
 %install
 
 install -d %{buildroot}%{_bindir}
@@ -136,7 +148,8 @@ done
 install -p -m 755 _build/bin/openshift %{buildroot}%{_datadir}/%{name}/linux/osc
 install -p -m 755 _build/bin/darwin_amd64/openshift %{buildroot}%{_datadir}/%{name}/macosx/osc
 install -p -m 755 _build/bin/windows_386/openshift.exe %{buildroot}%{_datadir}/%{name}/windows/osc.exe
-
+#Install openshift pod
+install -p -m 755 images/pod/pod %{buildroot}%{_bindir}/
 
 install -d -m 0755 %{buildroot}/etc/%{name}/{master,node}
 install -d -m 0755 %{buildroot}%{_unitdir}
@@ -228,6 +241,10 @@ fi
 %files dockerregistry
 %defattr(-,root,root,-)
 %{_bindir}/dockerregistry
+
+%files pod
+%defattr(-,root,root,-)
+%{_bindir}/pod
 
 %changelog
 * Mon May 04 2015 Scott Dodson <sdodson@redhat.com> 0.5.0.0

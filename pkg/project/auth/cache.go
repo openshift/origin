@@ -294,7 +294,7 @@ func purgeDeletedNamespaces(namespaceSet *util.StringSet, userSubjectRecordStore
 	}
 }
 
-// invalidateCache returns true if there was a change in the cluster namespace that holds global policy and policy bindings
+// invalidateCache returns true if there was a change in the cluster namespace that holds cluster policy and policy bindings
 // TODO if we ever have more than one ClusterPolicy (to handle things like: this policy grants dangerous permissions, segregate it), this code will need to be updated
 // it makes the assumption that there is only ever one ClusterPolicy and one ClusterPolicyBinding.  If there is more than one, it will always invalidate the cache
 // and rebuild it.

@@ -10,6 +10,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/webhook"
 )
 
 var mockBuildStrategy = api.BuildStrategy{
@@ -33,7 +34,6 @@ func GivenRequestWithPayload(t *testing.T, filename string) *http.Request {
 		return nil
 	}
 	req, _ := http.NewRequest("POST", "http://someurl.com", bytes.NewReader(data))
-	req.Header.Add("User-Agent", "Some User Agent")
 	req.Header.Add("Content-Type", "application/json")
 	return req
 }
@@ -45,46 +45,70 @@ func GivenRequestWithRefsPayload(t *testing.T) *http.Request {
 		return nil
 	}
 	req, _ := http.NewRequest("POST", "http://someurl.com", bytes.NewReader(data))
-	req.Header.Add("User-Agent", "Some User Agent")
 	req.Header.Add("Content-Type", "application/json")
 	return req
 }
 
 func TestVerifyRequestForMethod(t *testing.T) {
 	req := GivenRequest("GET")
-	err := verifyRequest(req)
-	if err == nil || !strings.Contains(err.Error(), "method") {
-		t.Errorf("Expected anything but POST to be an invalid method %v", err)
+	buildConfig := &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GenericWebHookBuildTriggerType,
+				GenericWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
+	}
+	plugin := New()
+	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+
+	if err == nil || !strings.Contains(err.Error(), "Unsupported HTTP method") {
+		t.Errorf("Excepcted unsupported HTTP method, got %v!", err)
+	}
+	if proceed {
+		t.Error("Expected 'proceed' return value to be 'false'")
+	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
 	}
 }
 
-func TestVerifyRequestForUserAgent(t *testing.T) {
-	req := &http.Request{
-		Header: http.Header{"Content-Type": {"application/json"}},
-		Method: "POST",
+func TestWrongSecret(t *testing.T) {
+	req := GivenRequest("POST")
+	buildConfig := &api.BuildConfig{
+		Triggers: []api.BuildTriggerPolicy{
+			{
+				Type: api.GenericWebHookBuildTriggerType,
+				GenericWebHook: &api.WebHookTrigger{
+					Secret: "secret100",
+				},
+			},
+		},
 	}
-	err := verifyRequest(req)
-	if err != nil {
-		t.Errorf("unexpected error %v", err)
-	}
+	plugin := New()
+	revision, proceed, err := plugin.Extract(buildConfig, "wrongsecret", "", req)
 
-	req.Header.Add("User-Agent", "")
-	err = verifyRequest(req)
-	if err != nil {
-		t.Errorf("unexpected error %v", err)
+	if err != webhook.ErrSecretMismatch {
+		t.Errorf("Excepcted %v, got %v!", webhook.ErrSecretMismatch, err)
 	}
-
-	req.Header.Set("User-Agent", "foobar")
-	err = verifyRequest(req)
-	if err != nil {
-		t.Errorf("unexpected error %v", err)
+	if proceed {
+		t.Error("Expected 'proceed' return value to be 'false'")
 	}
+	if revision != nil {
+		t.Error("Expected the 'revision' return value to be nil")
+	}
+}
 
+type emptyReader struct{}
+
+func (_ emptyReader) Read(p []byte) (n int, err error) {
+	return 0, io.EOF
 }
 
 func TestExtractWithEmptyPayload(t *testing.T) {
-	req := GivenRequest("POST")
-	req.Header.Add("User-Agent", "Some User Agent")
+	req, _ := http.NewRequest("POST", "http://someurl.com", emptyReader{})
 	req.Header.Add("Content-Type", "application/json")
 	buildConfig := &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
@@ -175,7 +199,6 @@ func TestExtractWithGitPayload(t *testing.T) {
 		},
 	}
 	plugin := New()
-
 	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
@@ -211,7 +234,6 @@ func TestExtractWithGitRefsPayload(t *testing.T) {
 		},
 	}
 	plugin := New()
-
 	revision, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
@@ -279,7 +301,6 @@ func TestGitlabPush(t *testing.T) {
 		},
 	}
 	plugin := New()
-
 	_, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
@@ -291,7 +312,6 @@ func TestGitlabPush(t *testing.T) {
 }
 func TestNonJsonPush(t *testing.T) {
 	req, _ := http.NewRequest("POST", "http://someurl.com", nil)
-	req.Header.Add("User-Agent", "Some User Agent")
 	req.Header.Add("Content-Type", "*/*")
 
 	buildConfig := &api.BuildConfig{
@@ -311,7 +331,6 @@ func TestNonJsonPush(t *testing.T) {
 		},
 	}
 	plugin := New()
-
 	_, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
 	if err != nil {
@@ -324,14 +343,13 @@ func TestNonJsonPush(t *testing.T) {
 
 type errJSON struct{}
 
-func (*errJSON) Read(p []byte) (n int, err error) {
+func (_ errJSON) Read(p []byte) (n int, err error) {
 	p = []byte("{")
 	return len(p), io.EOF
 }
 
 func TestExtractWithUnmarshalError(t *testing.T) {
-	req, _ := http.NewRequest("POST", "http://someurl.com", &errJSON{})
-	req.Header.Add("User-Agent", "Some User Agent")
+	req, _ := http.NewRequest("POST", "http://someurl.com", errJSON{})
 	req.Header.Add("Content-Type", "application/json")
 	buildConfig := &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
@@ -341,6 +359,15 @@ func TestExtractWithUnmarshalError(t *testing.T) {
 					Secret: "secret100",
 				},
 			},
+		},
+		Parameters: api.BuildParameters{
+			Source: api.BuildSource{
+				Type: api.BuildSourceGit,
+				Git: &api.GitBuildSource{
+					Ref: "other",
+				},
+			},
+			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()

@@ -57,7 +57,6 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 }
 
 func isVolumeSourceEmpty(volumeSource kapi.VolumeSource) bool {
-
 	if volumeSource.EmptyDir == nil &&
 		volumeSource.HostPath == nil &&
 		volumeSource.GCEPersistentDisk == nil &&

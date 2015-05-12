@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // HookExecutor executes a deployment lifecycle hook.
@@ -54,10 +55,10 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.ExecNewPodHook, deploym
 	pod, err := e.PodClient.CreatePod(deployment.Namespace, podSpec)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
-			return fmt.Errorf("couldn't create lifecycle pod for %s: %v", labelForDeployment(deployment), err)
+			return fmt.Errorf("couldn't create lifecycle pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 		}
 	} else {
-		glog.V(0).Infof("Created lifecycle pod %s for deployment %s", pod.Name, labelForDeployment(deployment))
+		glog.V(0).Infof("Created lifecycle pod %s for deployment %s", pod.Name, deployutil.LabelForDeployment(deployment))
 	}
 
 	// Wait for the pod to finish.
@@ -147,11 +148,6 @@ func buildContainer(hook *deployapi.ExecNewPodHook, deployment *kapi.Replication
 	}
 
 	return podSpec, nil
-}
-
-// labelForDeployment builds a string identifier for a deployment.
-func labelForDeployment(deployment *kapi.ReplicationController) string {
-	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
 }
 
 // HookExecutorPodClient abstracts access to pods.

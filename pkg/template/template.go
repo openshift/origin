@@ -191,9 +191,8 @@ func GetParameterByName(t *api.Template, name string) *api.Parameter {
 	return nil
 }
 
-// SubstituteParameters loops over all Environment variables defined for
-// all ReplicationController and Pod containers and substitutes all
-// Parameter expression occurrences with their corresponding values.
+// SubstituteParameters loops over all values defined in structured
+// and unstructured types that are children of item.
 //
 // Example of Parameter expression:
 //   - ${PARAMETER_NAME}

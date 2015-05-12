@@ -29,21 +29,19 @@ type usage interface {
 var errExit = fmt.Errorf("exit directly")
 
 const (
-	newApp_long = `Create a new application in OpenShift by specifying source code, templates, and/or images.
+	newAppLong = `Create a new application in OpenShift by specifying source code, templates, and/or images.
 
-This command will try to build up the components of an application using images, templates, 
-or code located on your system. It will lookup the images on the local Docker installation 
+This command will try to build up the components of an application using images, templates,
+or code located on your system. It will lookup the images on the local Docker installation
 (if available), a Docker registry, or an OpenShift image stream. If you specify a source
 code URL, it will set up a build that takes your source code and converts it into an
 image that can run inside of a pod. The images will be deployed via a deployment
 configuration, and a service will be hooked up to the first public port of the app.
 
 If you specify source code, you may need to run a build with 'start-build' after the
-application is created.
+application is created.`
 
-ALPHA: This command is under active development - feedback is appreciated.`
-
-	newApp_example = `  // Try to create an application based on the source code in the current directory
+	newAppExample = `  // Try to create an application based on the source code in the current directory
   $ %[1]s new-app .
 
   // Use the public Docker Hub MySQL image to create an app
@@ -67,8 +65,8 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd := &cobra.Command{
 		Use:     "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
 		Short:   "Create a new application",
-		Long:    newApp_long,
-		Example: fmt.Sprintf(newApp_example, fullName),
+		Long:    newAppLong,
+		Example: fmt.Sprintf(newAppExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			err := RunNewApplication(f, out, c, args, config)
 			if err == errExit {

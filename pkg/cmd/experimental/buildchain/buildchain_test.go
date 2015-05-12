@@ -9,10 +9,10 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func TestFindRepoDeps(t *testing.T) {
+func TestFindStreamDeps(t *testing.T) {
 	tests := []struct {
 		name                 string
-		repo                 string
+		stream               string
 		tag                  string
 		all                  bool
 		candidates           []buildapi.BuildConfig
@@ -23,7 +23,7 @@ func TestFindRepoDeps(t *testing.T) {
 	}{
 		{
 			name:                 "docker-image-references-test",
-			repo:                 "default/start",
+			stream:               "default/start",
 			tag:                  imageapi.DefaultImageTag,
 			all:                  false,
 			candidates:           dockerImageReferencesList(),
@@ -34,7 +34,7 @@ func TestFindRepoDeps(t *testing.T) {
 		},
 		{
 			name:                 "single-namespace-test",
-			repo:                 "default/start",
+			stream:               "default/start",
 			tag:                  "other",
 			all:                  true,
 			candidates:           singleNamespaceList(),
@@ -45,7 +45,7 @@ func TestFindRepoDeps(t *testing.T) {
 		},
 		{
 			name:                 "multiple-namespaces-test",
-			repo:                 "test/test-repo",
+			stream:               "test/test-repo",
 			tag:                  "atag",
 			all:                  true,
 			candidates:           multipleNamespacesList(),
@@ -57,7 +57,7 @@ func TestFindRepoDeps(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		root, err := findRepoDeps(test.repo, test.tag, test.candidates)
+		root, err := findStreamDeps(test.stream, test.tag, test.candidates)
 		if err != test.expectedErr {
 			t.Errorf("%s: Invalid error: Expected %v, got %v", test.name, test.expectedErr, err)
 		}
@@ -69,24 +69,24 @@ func TestFindRepoDeps(t *testing.T) {
 
 		rootChildren := len(root.Children)
 		if test.expectedRootChildren != rootChildren {
-			t.Errorf("%s: Invalid root(%s) children amount: Expected %d, got %d", test.name, test.repo, test.expectedRootChildren, rootChildren)
+			t.Errorf("%s: Invalid root(%s) children amount: Expected %d, got %d", test.name, test.stream, test.expectedRootChildren, rootChildren)
 		}
 
 		rootEdges := len(root.Edges)
 		if test.expectedRootEdges != rootEdges {
-			t.Errorf("%s: Invalid root(%s) edges amount: Expected %d, got %d", test.name, test.repo, test.expectedRootEdges, rootEdges)
+			t.Errorf("%s: Invalid root(%s) edges amount: Expected %d, got %d", test.name, test.stream, test.expectedRootEdges, rootEdges)
 		}
 	}
 }
 
-func TestGetRepos(t *testing.T) {
+func TestGetStreams(t *testing.T) {
 	tests := []struct {
 		name       string
 		configList []buildapi.BuildConfig
 		expected   map[string][]string
 	}{
 		{
-			name:       "1st getRepo test",
+			name:       "1st getStream test",
 			configList: dockerImageReferencesList(),
 			expected: map[string][]string{
 				"default/another-repo": {"outputtag"},
@@ -95,7 +95,7 @@ func TestGetRepos(t *testing.T) {
 			},
 		},
 		{
-			name:       "2nd getRepo test",
+			name:       "2nd getStream test",
 			configList: singleNamespaceList(),
 			expected: map[string][]string{
 				"default/another-repo": {"outputtag"},
@@ -104,18 +104,18 @@ func TestGetRepos(t *testing.T) {
 			},
 		},
 		{
-			name:       "3rd getRepo test",
+			name:       "3rd getStream test",
 			configList: []buildapi.BuildConfig{},
 			expected:   map[string][]string{},
 		},
 	}
 
 	for _, test := range tests {
-		repos := getRepos(test.configList)
-		for repo, tags := range repos {
-			expectedTags, ok := test.expected[repo]
+		streams := getStreams(test.configList)
+		for stream, tags := range streams {
+			expectedTags, ok := test.expected[stream]
 			if !ok {
-				t.Errorf("%s: Image repository not found: %s", test.name, repo)
+				t.Errorf("%s: Image stream not found: %s", test.name, stream)
 			}
 
 			sort.Strings(expectedTags)
@@ -161,7 +161,7 @@ func TestParseTag(t *testing.T) {
 			input:        "test:for:error",
 			expectedRest: "",
 			expectedTag:  "",
-			expectedErr:  invalidRepoTagErr,
+			expectedErr:  invalidStreamTagErr,
 		},
 	}
 
@@ -183,31 +183,31 @@ func TestJoin(t *testing.T) {
 	tests := []struct {
 		name           string
 		namespace      string
-		repo           string
+		stream         string
 		expectedOutput string
 	}{
 		{
 			name:           "1st join test",
 			namespace:      "default",
-			repo:           "centos",
+			stream:         "centos",
 			expectedOutput: "default/centos",
 		},
 		{
 			name:           "2nd join test",
 			namespace:      "testing",
-			repo:           "playground",
+			stream:         "playground",
 			expectedOutput: "testing/playground",
 		},
 		{
 			name:           "3rd join test",
 			namespace:      "other",
-			repo:           "another",
+			stream:         "another",
 			expectedOutput: "other/another",
 		},
 	}
 
 	for _, test := range tests {
-		fullName := join(test.namespace, test.repo)
+		fullName := join(test.namespace, test.stream)
 		if fullName != test.expectedOutput {
 			t.Errorf("%s: invalid output, expected %s, got %s", test.name, test.expectedOutput, fullName)
 		}
@@ -241,7 +241,7 @@ func TestSplit(t *testing.T) {
 			input:             "other/another/yay",
 			expectedNamespace: "",
 			expectedName:      "",
-			expectedErr:       invalidRepoErr,
+			expectedErr:       invalidStreamErr,
 		},
 	}
 

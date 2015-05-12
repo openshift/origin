@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/build/api"
@@ -48,9 +47,9 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 	if err = verifyRequest(req); err != nil {
 		return
 	}
-	method := req.Header.Get("X-GitHub-Event")
+	method := getEvent(req.Header)
 	if method != "ping" && method != "push" {
-		err = fmt.Errorf("Unknown X-GitHub-Event %s", method)
+		err = fmt.Errorf("Unknown X-GitHub-Event or X-Gogs-Event %s", method)
 		return
 	}
 	if method == "ping" {
@@ -90,11 +89,17 @@ func verifyRequest(req *http.Request) error {
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
 		return fmt.Errorf("Unsupported Content-Type %s", contentType)
 	}
-	if userAgent := req.Header.Get("User-Agent"); !strings.HasPrefix(userAgent, "GitHub-Hookshot/") {
-		return fmt.Errorf("Unsupported User-Agent %s", userAgent)
-	}
-	if req.Header.Get("X-GitHub-Event") == "" {
-		return errors.New("Missing X-GitHub-Event")
+	if len(getEvent(req.Header)) == 0 {
+		return errors.New("Missing X-GitHub-Event or X-Gogs-Event")
 	}
 	return nil
+}
+
+func getEvent(header http.Header) string {
+	event := header.Get("X-GitHub-Event")
+	if len(event) == 0 {
+		event = header.Get("X-Gogs-Event")
+	}
+
+	return event
 }

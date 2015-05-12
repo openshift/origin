@@ -44,14 +44,14 @@ func (e fatalError) Error() string { return "fatal error handling deployment: " 
 // Handle processes deployment and either creates a deployer pod or responds
 // to a terminal deployment status.
 func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) error {
-	currentStatus := statusFor(deployment)
+	currentStatus := deployutil.StatusForDeployment(deployment)
 	nextStatus := currentStatus
 
 	switch currentStatus {
 	case deployapi.DeploymentStatusNew:
 		podTemplate, err := c.makeDeployerPod(deployment)
 		if err != nil {
-			return fatalError(fmt.Sprintf("couldn't make deployer pod for %s: %v", labelForDeployment(deployment), err))
+			return fatalError(fmt.Sprintf("couldn't make deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
 		}
 
 		deploymentPod, err := c.podClient.createPod(deployment.Namespace, podTemplate)
@@ -59,11 +59,11 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 			// If the pod already exists, it's possible that a previous CreatePod succeeded but
 			// the deployment state update failed and now we're re-entering.
 			if !kerrors.IsAlreadyExists(err) {
-				c.recorder.Eventf(deployment, "failedCreate", "Error creating deployer pod for %s: %v", labelForDeployment(deployment), err)
-				return fmt.Errorf("couldn't create deployer pod for %s: %v", labelForDeployment(deployment), err)
+				c.recorder.Eventf(deployment, "failedCreate", "Error creating deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+				return fmt.Errorf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 			}
 		} else {
-			glog.V(2).Infof("Created pod %s for deployment %s", deploymentPod.Name, labelForDeployment(deployment))
+			glog.V(2).Infof("Created pod %s for deployment %s", deploymentPod.Name, deployutil.LabelForDeployment(deployment))
 		}
 
 		deployment.Annotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
@@ -71,7 +71,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 	case deployapi.DeploymentStatusPending,
 		deployapi.DeploymentStatusRunning,
 		deployapi.DeploymentStatusFailed:
-		glog.V(4).Infof("Ignoring deployment %s (status %s)", labelForDeployment(deployment), currentStatus)
+		glog.V(4).Infof("Ignoring deployment %s (status %s)", deployutil.LabelForDeployment(deployment), currentStatus)
 	case deployapi.DeploymentStatusComplete:
 		// Automatically clean up successful pods
 		// TODO: Could probably do a lookup here to skip the delete call, but it's not worth adding
@@ -79,20 +79,20 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		podName := deployment.Annotations[deployapi.DeploymentPodAnnotation]
 		if err := c.podClient.deletePod(deployment.Namespace, podName); err != nil {
 			if !kerrors.IsNotFound(err) {
-				return fmt.Errorf("couldn't delete completed deployer pod %s/%s for deployment %s: %v", deployment.Namespace, podName, labelForDeployment(deployment), err)
+				return fmt.Errorf("couldn't delete completed deployer pod %s/%s for deployment %s: %v", deployment.Namespace, podName, deployutil.LabelForDeployment(deployment), err)
 			}
 			// Already deleted
 		} else {
-			glog.V(4).Infof("Deleted completed deployer pod %s/%s for deployment %s", deployment.Namespace, podName, labelForDeployment(deployment))
+			glog.V(4).Infof("Deleted completed deployer pod %s/%s for deployment %s", deployment.Namespace, podName, deployutil.LabelForDeployment(deployment))
 		}
 	}
 
 	if currentStatus != nextStatus {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
 		if _, err := c.deploymentClient.updateDeployment(deployment.Namespace, deployment); err != nil {
-			return fmt.Errorf("couldn't update deployment %s to status %s: %v", labelForDeployment(deployment), nextStatus, err)
+			return fmt.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
-		glog.V(2).Infof("Updated deployment %s status from %s to %s", labelForDeployment(deployment), currentStatus, nextStatus)
+		glog.V(2).Infof("Updated deployment %s status from %s to %s", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus)
 	}
 
 	return nil
@@ -144,16 +144,6 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 
 	return pod, nil
-}
-
-// labelForDeployment builds a string identifier for a DeploymentConfig.
-func labelForDeployment(deployment *kapi.ReplicationController) string {
-	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
-}
-
-// statusFor gets the DeploymentStatus for deployment from its annotations.
-func statusFor(deployment *kapi.ReplicationController) deployapi.DeploymentStatus {
-	return deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation])
 }
 
 // deploymentClient abstracts access to deployments.

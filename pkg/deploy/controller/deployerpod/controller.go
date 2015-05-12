@@ -8,6 +8,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // DeployerPodController keeps a deployment's status in sync with the deployer pod
@@ -33,7 +34,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 		return fmt.Errorf("couldn't get deployment %s/%s associated with pod %s", pod.Namespace, deploymentName, pod.Name)
 	}
 
-	currentStatus := statusFor(deployment)
+	currentStatus := deployutil.StatusForDeployment(deployment)
 	nextStatus := currentStatus
 
 	switch pod.Status.Phase {
@@ -52,22 +53,12 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 	if currentStatus != nextStatus {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
 		if _, err := c.deploymentClient.updateDeployment(deployment.Namespace, deployment); err != nil {
-			return fmt.Errorf("couldn't update deployment %s to status %s: %v", labelForDeployment(deployment), nextStatus, err)
+			return fmt.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
-		glog.V(2).Infof("Updated deployment %s status from %s to %s", labelForDeployment(deployment), currentStatus, nextStatus)
+		glog.V(2).Infof("Updated deployment %s status from %s to %s", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus)
 	}
 
 	return nil
-}
-
-// labelFor builds a string identifier for a DeploymentConfig.
-func labelForDeployment(deployment *kapi.ReplicationController) string {
-	return fmt.Sprintf("%s/%s", deployment.Namespace, deployment.Name)
-}
-
-// statusFor gets the DeploymentStatus for deployment from its annotations.
-func statusFor(deployment *kapi.ReplicationController) deployapi.DeploymentStatus {
-	return deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation])
 }
 
 // deploymentClient abstracts access to deployments.

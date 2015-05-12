@@ -43,6 +43,7 @@ OPENSTACK_CRED_FILE = "~/.openstackcred"
 OPENSTACK_BOX_URL   = "https://github.com/cloudbau/vagrant-openstack-plugin/raw/master/dummy.box"
 AWS_CRED_FILE       = "~/.awscred"
 AWS_BOX_URL         = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
+VM_NAME_PREFIX      = ENV['OPENSHIFT_VM_NAME_PREFIX'] || ""
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
@@ -63,8 +64,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       "insert_key"        => true,
       "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
       "rebuild_yum_cache" => false,
-      "cpus"              => 2,
-      "memory"            => 1024,
+      "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
+      "memory"            => ENV['OPENSHIFT_MEMORY'] || 1024,
       "virtualbox"        => {
         "box_name" => "fedora_inst",
         "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
@@ -117,13 +118,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # OS platform to box information
     kube_box = {
       "fedora" => {
-        "name" => "fedora20_openshift",
-        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_20_latest.box"
+        "name" => "fedora_deps",
+        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_deps.box"
       }
     }
 
     # OpenShift master
-    config.vm.define "master" do |config|
+    config.vm.define "#{VM_NAME_PREFIX}master" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
       config.vm.provision "shell", inline: "/vagrant/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{ENV['OPENSHIFT_SDN']}"
@@ -134,7 +135,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     # OpenShift minion
     num_minion.times do |n|
-      config.vm.define "minion-#{n+1}" do |minion|
+      config.vm.define "#{VM_NAME_PREFIX}minion-#{n+1}" do |minion|
         minion_index = n+1
         minion_ip = minion_ips[n]
         minion.vm.box = kube_box[kube_os]["name"]
@@ -150,7 +151,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ##########################
     # define settings for the single VM being created.
-    config.vm.define "openshiftdev", primary: true do |config|
+    config.vm.define "#{VM_NAME_PREFIX}openshiftdev", primary: true do |config|
       config.vm.hostname = "openshiftdev.local"
 
       if vagrant_openshift_config['rebuild_yum_cache']
@@ -186,9 +187,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.vm.box_url = vagrant_openshift_config['virtualbox']['box_url'] unless dev_cluster
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
 
-      v.memory            = vagrant_openshift_config['memory']
-      v.cpus              = vagrant_openshift_config['cpus']
-      v.customize ["modifyvm", :id, "--cpus", "2"]
+      v.memory            = vagrant_openshift_config['memory'].to_i
+      v.cpus              = vagrant_openshift_config['cpus'].to_i
+      v.customize ["modifyvm", :id, "--cpus", vagrant_openshift_config['cpus'].to_s]
       # to make the ha-proxy reachable from the host, you need to add a port forwarding rule from 1080 to 80, which
       # requires root privilege. Use iptables on linux based or ipfw on BSD based OS:
       # sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 1080
@@ -202,8 +203,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.vm.box_url = vagrant_openshift_config['libvirt']['box_url']
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
       libvirt.driver      = 'kvm'
-      libvirt.memory      = vagrant_openshift_config['memory']
-      libvirt.cpus        = vagrant_openshift_config['cpus']
+      libvirt.memory      = vagrant_openshift_config['memory'].to_i
+      libvirt.cpus        = vagrant_openshift_config['cpus'].to_i
       full_provision(override.vm)
     end if vagrant_openshift_config['libvirt']
 
@@ -245,6 +246,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       os.ssh_username = user = voc['ssh_user']|| creds['OSSshUser']  || "root"           # login for the VM instance
       os.server_name  = ENV['OS_HOSTNAME']    || vagrant_openshift_config['instance_name'] # name for the instance created
       full_provision(override.vm, user)
+
+      # floating ip usually needed for accessing machines
+      floating_ip     = creds['OSFloatingIP'] || ENV['OS_FLOATING_IP']
+      os.floating_ip  = floating_ip == ":auto" ? :auto : floating_ip
+      floating_ip_pool = creds['OSFloatingIPPool'] || ENV['OS_FLOATING_IP_POOL']
+      os.floating_ip_pool = floating_ip_pool == "false" ? false : floating_ip_pool
     end if vagrant_openshift_config['openstack']
 
 
