@@ -468,7 +468,7 @@ type TemplateDescriber struct {
 	client.Interface
 	meta.MetadataAccessor
 	runtime.ObjectTyper
-	DescribeObject func(obj runtime.Object, out *tabwriter.Writer) (bool, error)
+	kctl.ObjectDescriber
 }
 
 // DescribeParameters prints out information about the parameters of a template
@@ -494,16 +494,20 @@ func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, o
 	}
 }
 
-// DescribeObjects prints out information about the objects of a template
-func (d *TemplateDescriber) DescribeObjects(objects []runtime.Object, out *tabwriter.Writer) {
+// describeObjects prints out information about the objects of a template
+func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwriter.Writer) {
 	formatString(out, "Objects", " ")
 	indent := "    "
 	for _, obj := range objects {
-		if d.DescribeObject != nil {
-			if ok, _ := d.DescribeObject(obj, out); ok {
-				out.Write([]byte("\n"))
+		if d.ObjectDescriber != nil {
+			output, err := d.DescribeObject(obj)
+			if err != nil {
+				fmt.Fprintf(out, "error: %v\n", err)
 				continue
 			}
+			fmt.Fprint(out, output)
+			fmt.Fprint(out, "\n")
+			continue
 		}
 
 		_, kind, _ := d.ObjectTyper.ObjectVersionAndKind(obj)
@@ -526,6 +530,12 @@ func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	return d.DescribeTemplate(template)
+}
+
+func (d *TemplateDescriber) DescribeTemplate(template *templateapi.Template) (string, error) {
+	// TODO: write error?
+	_ = runtime.DecodeList(template.Objects, kapi.Scheme, runtime.UnstructuredJSONScheme)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, template.ObjectMeta)
@@ -536,7 +546,7 @@ func (d *TemplateDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "Object Labels", formatLabels(template.ObjectLabels))
 		out.Write([]byte("\n"))
 		out.Flush()
-		d.DescribeObjects(template.Objects, out)
+		d.describeObjects(template.Objects, out)
 		return nil
 	})
 }

@@ -200,6 +200,7 @@ osc get templates
 osc get templates ruby-helloworld-sample
 osc process ruby-helloworld-sample
 osc describe templates ruby-helloworld-sample
+[ "$(osc describe templates ruby-helloworld-sample | grep -E "BuildConfig.*ruby-sample-build")" ]
 osc delete templates ruby-helloworld-sample
 osc get templates
 # TODO: create directly from template
