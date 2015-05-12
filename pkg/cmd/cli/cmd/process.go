@@ -180,6 +180,9 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		if err != nil {
 			return err
 		}
+		if templateObj.ObjectLabels == nil {
+			templateObj.ObjectLabels = make(map[string]string)
+		}
 		for key, value := range lbl {
 			templateObj.ObjectLabels[key] = value
 		}
