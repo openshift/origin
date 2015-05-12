@@ -39,8 +39,19 @@ angular.module('openshiftConsole')
     };
   })
   .filter('displayName', function(annotationFilter) {
-    return function(resource) {
-      return annotationFilter(resource, "displayName");
+    // annotationOnly - if true, don't fall back to using metadata.name when
+    //                  there's no displayName annotation
+    return function(resource, annotationOnly) {
+      var displayName = annotationFilter(resource, "displayName");
+      if (displayName || annotationOnly) {
+        return displayName;
+      }
+
+      if (resource && resource.metadata) {
+        return resource.metadata.name;
+      }
+
+      return null;
     };
   })
   .filter('tags', function(annotationFilter) {
@@ -235,5 +246,15 @@ angular.module('openshiftConsole')
         ref += " [" + tag + "]";
       }
       return ref;
+    };
+  })
+  .filter('orderByDisplayName', function(displayNameFilter, toArrayFilter) {
+    return function(items) {
+      var itemsArray = toArrayFilter(items);
+      itemsArray.sort(function(left, right) {
+        return displayNameFilter(left).localeCompare(displayNameFilter(right));
+      });
+
+      return itemsArray;
     };
   });
