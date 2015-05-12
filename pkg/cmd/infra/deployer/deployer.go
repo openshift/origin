@@ -14,7 +14,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	strategy "github.com/openshift/origin/pkg/deploy/strategy/recreate"
+	"github.com/openshift/origin/pkg/deploy/strategy"
+	"github.com/openshift/origin/pkg/deploy/strategy/recreate"
+	"github.com/openshift/origin/pkg/deploy/strategy/rolling"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -78,21 +80,35 @@ func NewCommandDeployer(name string) *cobra.Command {
 
 // deploy executes a deployment strategy.
 func deploy(kClient kclient.Interface, namespace, deploymentName string) error {
-	newDeployment, oldDeployments, err := getDeployerContext(&realReplicationControllerGetter{kClient}, namespace, deploymentName)
-
+	deployment, oldDeployments, err := getDeployerContext(&realReplicationControllerGetter{kClient}, namespace, deploymentName)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Choose a strategy based on some input
-	strategy := strategy.NewRecreateDeploymentStrategy(kClient, latest.Codec)
-	return strategy.Deploy(newDeployment, oldDeployments)
+	config, err := deployutil.DecodeDeploymentConfig(deployment, latest.Codec)
+	if err != nil {
+		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
+	}
+
+	var strategy strategy.DeploymentStrategy
+
+	switch config.Template.Strategy.Type {
+	case deployapi.DeploymentStrategyTypeRecreate:
+		strategy = recreate.NewRecreateDeploymentStrategy(kClient, latest.Codec)
+	case deployapi.DeploymentStrategyTypeRolling:
+		recreate := recreate.NewRecreateDeploymentStrategy(kClient, latest.Codec)
+		strategy = rolling.NewRollingDeploymentStrategy(deployment.Namespace, kClient, latest.Codec, recreate)
+	default:
+		return fmt.Errorf("unsupported strategy type: %s", config.Template.Strategy.Type)
+	}
+
+	return strategy.Deploy(deployment, oldDeployments)
 }
 
 // getDeployerContext finds the target deployment and any deployments it considers to be prior to the
 // target deployment. Only deployments whose LatestVersion is less than the target deployment are
 // considered to be prior.
-func getDeployerContext(controllerGetter replicationControllerGetter, namespace, deploymentName string) (*kapi.ReplicationController, []kapi.ObjectReference, error) {
+func getDeployerContext(controllerGetter replicationControllerGetter, namespace, deploymentName string) (*kapi.ReplicationController, []*kapi.ReplicationController, error) {
 	var err error
 	var newDeployment *kapi.ReplicationController
 	var newConfig *deployapi.DeploymentConfig
@@ -112,14 +128,14 @@ func getDeployerContext(controllerGetter replicationControllerGetter, namespace,
 	// encoded DeploymentConfigs to the new one by LatestVersion. Treat a failure to interpret a given
 	// old deployment as a fatal error to prevent overlapping deployments.
 	var allControllers *kapi.ReplicationControllerList
-	oldDeployments := []kapi.ObjectReference{}
+	oldDeployments := []*kapi.ReplicationController{}
 
 	if allControllers, err = controllerGetter.List(newDeployment.Namespace, labels.Everything()); err != nil {
 		return nil, nil, fmt.Errorf("Unable to get list replication controllers in deployment namespace %s: %v", newDeployment.Namespace, err)
 	}
 
 	glog.Infof("Inspecting %d potential prior deployments", len(allControllers.Items))
-	for _, controller := range allControllers.Items {
+	for i, controller := range allControllers.Items {
 		if configName, hasConfigName := controller.Annotations[deployapi.DeploymentConfigAnnotation]; !hasConfigName {
 			glog.Infof("Disregarding replicationController %s (not a deployment)", controller.Name)
 			continue
@@ -135,10 +151,7 @@ func getDeployerContext(controllerGetter replicationControllerGetter, namespace,
 
 		if oldVersion < newConfig.LatestVersion {
 			glog.Infof("Marking deployment %s as a prior deployment", controller.Name)
-			oldDeployments = append(oldDeployments, kapi.ObjectReference{
-				Namespace: controller.Namespace,
-				Name:      controller.Name,
-			})
+			oldDeployments = append(oldDeployments, &allControllers.Items[i])
 		} else {
 			glog.Infof("Disregarding deployment %s (same as or newer than target)", controller.Name)
 		}

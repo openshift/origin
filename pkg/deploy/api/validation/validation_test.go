@@ -328,6 +328,63 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			fielderrors.ValidationErrorTypeRequired,
 			"template.strategy.recreateParams.pre.execNewPod.containerName",
 		},
+		"invalid template.strategy.rollingParams.intervalSeconds": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Triggers:   manualTrigger(),
+				Template: api.DeploymentTemplate{
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRolling,
+						RollingParams: &api.RollingDeploymentStrategyParams{
+							IntervalSeconds:     mkintp(-20),
+							UpdatePeriodSeconds: mkintp(1),
+							TimeoutSeconds:      mkintp(1),
+						},
+					},
+					ControllerTemplate: test.OkControllerTemplate(),
+				},
+			},
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.intervalSeconds",
+		},
+		"invalid template.strategy.rollingParams.updatePeriodSeconds": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Triggers:   manualTrigger(),
+				Template: api.DeploymentTemplate{
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRolling,
+						RollingParams: &api.RollingDeploymentStrategyParams{
+							IntervalSeconds:     mkintp(1),
+							UpdatePeriodSeconds: mkintp(-20),
+							TimeoutSeconds:      mkintp(1),
+						},
+					},
+					ControllerTemplate: test.OkControllerTemplate(),
+				},
+			},
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.updatePeriodSeconds",
+		},
+		"invalid template.strategy.rollingParams.timeoutSeconds": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Triggers:   manualTrigger(),
+				Template: api.DeploymentTemplate{
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRolling,
+						RollingParams: &api.RollingDeploymentStrategyParams{
+							IntervalSeconds:     mkintp(1),
+							UpdatePeriodSeconds: mkintp(1),
+							TimeoutSeconds:      mkintp(-20),
+						},
+					},
+					ControllerTemplate: test.OkControllerTemplate(),
+				},
+			},
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.timeoutSeconds",
+		},
 	}
 
 	for k, v := range errorCases {
@@ -463,4 +520,9 @@ func TestValidateDeploymentConfigImageRepositorySupported(t *testing.T) {
 	if e, a := "ImageRepository", config.Triggers[0].ImageChangeParams.From.Kind; e != a {
 		t.Errorf("expected imageChangeParams.from.kind %s, got %s", e, a)
 	}
+}
+
+func mkintp(i int) *int64 {
+	v := int64(i)
+	return &v
 }

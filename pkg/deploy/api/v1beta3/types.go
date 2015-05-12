@@ -30,6 +30,8 @@ type DeploymentStrategy struct {
 	CustomParams *CustomDeploymentStrategyParams `json:"customParams,omitempty"`
 	// RecreateParams are the input to the Recreate deployment strategy.
 	RecreateParams *RecreateDeploymentStrategyParams `json:"recreateParams,omitempty"`
+	// RollingParams are the input to the Rolling deployment strategy.
+	RollingParams *RollingDeploymentStrategyParams `json:"rollingParams,omitempty"`
 	// Compute resource requirements to execute the deployment
 	Resources kapi.ResourceRequirements `json:"resources,omitempty"`
 }
@@ -42,6 +44,8 @@ const (
 	DeploymentStrategyTypeRecreate DeploymentStrategyType = "Recreate"
 	// DeploymentStrategyTypeCustom is a user defined strategy.
 	DeploymentStrategyTypeCustom DeploymentStrategyType = "Custom"
+	// DeploymentStrategyTypeRolling uses the Kubernetes RollingUpdater.
+	DeploymentStrategyTypeRolling DeploymentStrategyType = "Rolling"
 )
 
 // CustomParams are the input to the Custom deployment strategy.
@@ -97,6 +101,20 @@ type ExecNewPodHook struct {
 	// ContainerName is the name of a container in the deployment pod template
 	// whose Docker image will be used for the hook pod's container.
 	ContainerName string `json:"containerName"`
+}
+
+// RollingDeploymentStrategyParams are the input to the Rolling deployment
+// strategy.
+type RollingDeploymentStrategyParams struct {
+	// UpdatePeriodSeconds is the time to wait between individual pod updates.
+	// If the value is nil, a default will be used.
+	UpdatePeriodSeconds *int64 `json:"updatePeriodSeconds,omitempty" description:"the time to wait between individual pod updates"`
+	// IntervalSeconds is the time to wait between polling deployment status
+	// after update. If the value is nil, a default will be used.
+	IntervalSeconds *int64 `json:"intervalSeconds,omitempty" description:"the time to wait between polling deployment status after update"`
+	// TimeoutSeconds is the time to wait for updates before giving up. If the
+	// value is nil, a default will be used.
+	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty" description:"the time to wait for updates before giving up"`
 }
 
 // These constants represent keys used for correlating objects related to deployments.

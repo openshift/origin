@@ -19,6 +19,9 @@ func init() {
 			if err := s.Convert(&in.RecreateParams, &out.RecreateParams, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.RollingParams, &out.RollingParams, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
 				return err
 			}
@@ -32,6 +35,9 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.RecreateParams, &out.RecreateParams, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.RollingParams, &out.RollingParams, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {

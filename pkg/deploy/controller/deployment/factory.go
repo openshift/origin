@@ -28,8 +28,8 @@ type DeploymentControllerFactory struct {
 	Codec runtime.Codec
 	// Environment is a set of environment which should be injected into all deployer pod containers.
 	Environment []kapi.EnvVar
-	// RecreateStrategyImage specifies which Docker image which should implement the Recreate strategy.
-	RecreateStrategyImage string
+	// DeployerImage specifies which Docker image can support the default strategies.
+	DeployerImage string
 }
 
 // Create creates a DeploymentController.
@@ -100,9 +100,9 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 
 // makeContainer creates containers in the following way:
 //
-//   1. For the Recreate strategy, use the factory's RecreateStrategyImage as
-//      the container image, and the factory's Environment as the container
-//      environment.
+//   1. For the Recreate and Rolling strategies, strategy, use the factory's
+//      DeployerImage as the container image, and the factory's Environment
+//      as the container environment.
 //   2. For all Custom strategy, use the strategy's image for the container
 //      image, and use the combination of the factory's Environment and the
 //      strategy's environment as the container environment.
@@ -117,10 +117,10 @@ func (factory *DeploymentControllerFactory) makeContainer(strategy *deployapi.De
 
 	// Every strategy type should be handled here.
 	switch strategy.Type {
-	case deployapi.DeploymentStrategyTypeRecreate:
+	case deployapi.DeploymentStrategyTypeRecreate, deployapi.DeploymentStrategyTypeRolling:
 		// Use the factory-configured image.
 		return &kapi.Container{
-			Image: factory.RecreateStrategyImage,
+			Image: factory.DeployerImage,
 			Env:   environment,
 		}, nil
 	case deployapi.DeploymentStrategyTypeCustom:

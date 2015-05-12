@@ -844,10 +844,10 @@ func (c *MasterConfig) RunDeploymentController() error {
 	env = append(env, clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())...)
 
 	factory := deploycontroller.DeploymentControllerFactory{
-		KubeClient:            kclient,
-		Codec:                 latest.Codec,
-		Environment:           env,
-		RecreateStrategyImage: c.ImageFor("deployer"),
+		KubeClient:    kclient,
+		Codec:         latest.Codec,
+		Environment:   env,
+		DeployerImage: c.ImageFor("deployer"),
 	}
 
 	controller := factory.Create()

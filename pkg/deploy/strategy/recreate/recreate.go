@@ -58,7 +58,7 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec
 }
 
 // Deploy makes deployment active and disables oldDeployments.
-func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationController, oldDeployments []kapi.ObjectReference) error {
+func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
 	var err error
 	var deploymentConfig *deployapi.DeploymentConfig
 

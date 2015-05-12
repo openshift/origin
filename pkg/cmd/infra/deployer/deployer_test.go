@@ -96,13 +96,13 @@ func TestGetDeploymentContextNoPriorDeployments(t *testing.T) {
 func TestGetDeploymentContextWithPriorDeployments(t *testing.T) {
 	getter := &testReplicationControllerGetter{
 		getFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-			deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), kapi.Codec)
+			deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(3), kapi.Codec)
 			return deployment, nil
 		},
 		listFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
 			deployment1, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 			deployment2, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), kapi.Codec)
-			deployment3, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(3), kapi.Codec)
+			deployment3, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(4), kapi.Codec)
 			deployment4, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 			deployment4.Annotations[deployapi.DeploymentConfigAnnotation] = "another-config"
 			return &kapi.ReplicationControllerList{
@@ -131,8 +131,30 @@ func TestGetDeploymentContextWithPriorDeployments(t *testing.T) {
 		t.Fatal("expected non-nil oldDeployments")
 	}
 
-	if e, a := 1, len(oldDeployments); e != a {
-		t.Fatalf("expected oldDeployments with size %d, got %d: %#v", e, a, oldDeployments)
+	expected := []string{"config-1", "config-2"}
+	for _, e := range expected {
+		found := false
+		for _, d := range oldDeployments {
+			if d.Name == e {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected to find old deployment %s", e)
+		}
+	}
+	for _, d := range oldDeployments {
+		ok := false
+		for _, e := range expected {
+			if d.Name == e {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			t.Errorf("unexpected old deployment %s", d.Name)
+		}
 	}
 }
 
