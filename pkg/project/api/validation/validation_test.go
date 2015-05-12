@@ -97,6 +97,33 @@ func TestValidateProject(t *testing.T) {
 			// Should fail because the display name has \t \n
 			numErrs: 1,
 		},
+		{
+			name: "valid node selector",
+			project: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "foo",
+					Namespace: "",
+					Annotations: map[string]string{
+						"openshift.io/node-selector": "infra=true, env = test",
+					},
+				},
+			},
+			numErrs: 0,
+		},
+		{
+			name: "invalid node selector",
+			project: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "foo",
+					Namespace: "",
+					Annotations: map[string]string{
+						"openshift.io/node-selector": "infra, env = $test",
+					},
+				},
+			},
+			// Should fail because infra and $test doesn't satisfy the format
+			numErrs: 1,
+		},
 	}
 
 	for _, tc := range testCases {

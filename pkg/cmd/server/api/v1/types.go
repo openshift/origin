@@ -81,6 +81,8 @@ type MasterConfig struct {
 
 	PolicyConfig PolicyConfig `json:"policyConfig"`
 
+	// ProjectNodeSelector holds default project node label selector
+	ProjectNodeSelector string `json:"projectNodeSelector,omitempty"`
 	// ProjectRequestConfig holds information about how to handle new project requests
 	ProjectRequestConfig ProjectRequestConfig `json:"projectRequestConfig"`
 }
