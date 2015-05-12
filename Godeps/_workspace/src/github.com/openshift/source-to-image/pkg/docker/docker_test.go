@@ -7,16 +7,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fsouza/go-dockerclient"
-
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker/test"
 	"github.com/openshift/source-to-image/pkg/errors"
+
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 func getDocker(client Client) *stiDocker {
 	return &stiDocker{
-		client: client,
+		client:   client,
+		pullAuth: docker.AuthConfiguration{},
 	}
 }
 

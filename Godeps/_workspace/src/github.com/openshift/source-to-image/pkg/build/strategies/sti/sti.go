@@ -69,11 +69,11 @@ type STI struct {
 // be used for the case that the base Docker image does not have 'tar' or 'bash'
 // installed.
 func New(req *api.Request) (*STI, error) {
-	docker, err := docker.New(req.DockerConfig)
+	docker, err := docker.New(req.DockerConfig, req.PullAuthentication)
 	if err != nil {
 		return nil, err
 	}
-	inst := scripts.NewInstaller(req.BaseImage, req.ScriptsURL, docker)
+	inst := scripts.NewInstaller(req.BaseImage, req.ScriptsURL, docker, req.PullAuthentication)
 
 	b := &STI{
 		installer:        inst,

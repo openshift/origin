@@ -1,10 +1,13 @@
 package onbuild
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/docker/docker/builder/parser"
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/test"
@@ -45,11 +48,18 @@ func checkDockerfile(fs *test.FakeFileSystem, t *testing.T) {
 	if !strings.Contains(fs.WriteFileContent, `ENTRYPOINT ["./run"]`) {
 		t.Errorf("The Dockerfile does not set correct entrypoint:\n %s\n", fs.WriteFileContent)
 	}
+
+	buf := bytes.NewBuffer([]byte(fs.WriteFileContent))
+	if _, err := parser.Parse(buf); err != nil {
+		t.Errorf("cannot parse new Dockerfile: " + err.Error())
+	}
+
 }
 
 func TestCreateDockerfile(t *testing.T) {
 	fakeRequest := &api.Request{
-		BaseImage: "fake:onbuild",
+		BaseImage:   "fake:onbuild",
+		Environment: map[string]string{"FOO": "BAR", "TEST": "A VALUE"},
 	}
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{

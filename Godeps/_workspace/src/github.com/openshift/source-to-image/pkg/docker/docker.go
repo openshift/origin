@@ -54,7 +54,8 @@ type Client interface {
 }
 
 type stiDocker struct {
-	client Client
+	client   Client
+	pullAuth docker.AuthConfiguration
 }
 
 type PostExecutor interface {
@@ -70,6 +71,7 @@ type PullResult struct {
 type RunContainerOptions struct {
 	Image           string
 	PullImage       bool
+	PullAuth        docker.AuthConfiguration
 	ExternalScripts bool
 	ScriptsURL      string
 	Location        string
@@ -98,7 +100,7 @@ type BuildImageOptions struct {
 }
 
 // New creates a new implementation of the STI Docker interface
-func New(config *api.DockerConfig) (Docker, error) {
+func New(config *api.DockerConfig, auth docker.AuthConfiguration) (Docker, error) {
 	var client *docker.Client
 	var err error
 	if config.CertFile != "" && config.KeyFile != "" && config.CAFile != "" {
@@ -114,7 +116,8 @@ func New(config *api.DockerConfig) (Docker, error) {
 		return nil, err
 	}
 	return &stiDocker{
-		client: client,
+		client:   client,
+		pullAuth: auth,
 	}, nil
 }
 
@@ -172,8 +175,7 @@ func (d *stiDocker) CheckAndPull(name string) (image *docker.Image, err error) {
 func (d *stiDocker) PullImage(name string) (image *docker.Image, err error) {
 	glog.V(1).Infof("Pulling image %s", name)
 	// TODO: Add authentication support
-	if err = d.client.PullImage(docker.PullImageOptions{Repository: name},
-		docker.AuthConfiguration{}); err != nil {
+	if err = d.client.PullImage(docker.PullImageOptions{Repository: name}, d.pullAuth); err != nil {
 		glog.V(3).Infof("An error was received from the PullImage call: %v", err)
 		return nil, errors.NewPullImageError(name, err)
 	}
