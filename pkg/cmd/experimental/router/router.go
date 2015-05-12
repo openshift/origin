@@ -134,6 +134,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		glog.Fatal(err)
 	}
 
+	nodeSelector := map[string]string{}
 	label := map[string]string{"router": name}
 	if cfg.Labels != defaultLabel {
 		valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Labels, ","))
@@ -144,6 +145,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			return cmdutil.UsageError(cmd, "You may not pass negative labels in %q", cfg.Labels)
 		}
 		label = valid
+		nodeSelector = label
 	}
 
 	image := cfg.ImageTemplate.ExpandOrDie(cfg.Type)
@@ -233,7 +235,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 						Template: &kapi.PodTemplateSpec{
 							ObjectMeta: kapi.ObjectMeta{Labels: label},
 							Spec: kapi.PodSpec{
-								Containers: []kapi.Container{
+								NodeSelector: nodeSelector,
+								Containers:   []kapi.Container{
 									{
 										Name:  "router",
 										Image: image,
