@@ -24,6 +24,7 @@ const (
 	AuthenticatedGroup   = "system:authenticated"
 	UnauthenticatedGroup = "system:unauthenticated"
 	ClusterAdminGroup    = "system:cluster-admins"
+	ClusterReaderGroup   = "system:cluster-readers"
 	NodesGroup           = "system:nodes"
 	RouterGroup          = "system:routers"
 	RegistryGroup        = "system:registries"
@@ -32,6 +33,7 @@ const (
 // Roles
 const (
 	ClusterAdminRoleName      = "cluster-admin"
+	ClusterReaderRoleName     = "cluster-reader"
 	AdminRoleName             = "admin"
 	EditRoleName              = "edit"
 	ViewRoleName              = "view"
@@ -54,6 +56,7 @@ const (
 	InternalComponentRoleBindingName = InternalComponentRoleName + "s"
 	DeployerRoleBindingName          = DeployerRoleName + "s"
 	ClusterAdminRoleBindingName      = ClusterAdminRoleName + "s"
+	ClusterReaderRoleBindingName     = ClusterReaderRoleName + "s"
 	BasicUserRoleBindingName         = BasicUserRoleName + "s"
 	DeleteTokensRoleBindingName      = DeleteTokensRoleName + "-binding"
 	StatusCheckerRoleBindingName     = StatusCheckerRoleName + "-binding"
