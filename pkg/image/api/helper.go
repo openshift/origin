@@ -128,6 +128,29 @@ func (r DockerImageReference) String() string {
 	return fmt.Sprintf("%s%s%s%s", registry, r.Namespace, r.Name, ref)
 }
 
+// SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.
+// It returns false if the tag was not properly specified in the name.
+func SplitImageStreamTag(nameAndTag string) (name string, tag string, ok bool) {
+	parts := strings.SplitN(nameAndTag, ":", 2)
+	name = parts[0]
+	if len(parts) > 1 {
+		tag = parts[1]
+	}
+	if len(tag) == 0 {
+		tag = DefaultImageTag
+	}
+	return name, tag, len(parts) == 2
+}
+
+// SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.
+// It returns false if the tag was not properly specified in the name.
+func JoinImageStreamTag(name, tag string) string {
+	if len(tag) == 0 {
+		tag = DefaultImageTag
+	}
+	return fmt.Sprintf("%s:%s", name, tag)
+}
+
 // ImageWithMetadata returns a copy of image with the DockerImageMetadata filled in
 // from the raw DockerImageManifest data stored in the image.
 func ImageWithMetadata(image Image) (*Image, error) {

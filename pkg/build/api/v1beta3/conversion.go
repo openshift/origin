@@ -2,12 +2,12 @@ package v1beta3
 
 import (
 	"fmt"
-	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 
 	newer "github.com/openshift/origin/pkg/build/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func init() {
@@ -200,11 +200,7 @@ func init() {
 			}
 			if in.To != nil && (len(in.To.Kind) == 0 || in.To.Kind == "ImageStream") {
 				out.To.Kind = "ImageStreamTag"
-				tag := in.Tag
-				if len(tag) == 0 {
-					tag = "latest"
-				}
-				out.To.Name = fmt.Sprintf("%s:%s", in.To.Name, tag)
+				out.To.Name = imageapi.JoinImageStreamTag(in.To.Name, in.Tag)
 			}
 			return nil
 		},
@@ -213,16 +209,13 @@ func init() {
 				return err
 			}
 			if in.To != nil && in.To.Kind == "ImageStreamTag" {
-				parts := strings.SplitN(in.To.Name, ":", 2)
-				if len(parts) == 1 {
-					parts = append(parts, "latest")
+				name, tag, ok := imageapi.SplitImageStreamTag(in.To.Name)
+				if !ok {
+					return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.To.Name)
 				}
 				out.To.Kind = "ImageStream"
-				out.To.Name = parts[0]
-				out.To.Namespace = in.To.Namespace
-				if len(parts) > 1 {
-					out.Tag = parts[1]
-				}
+				out.To.Name = name
+				out.Tag = tag
 			}
 			return nil
 		},

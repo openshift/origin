@@ -259,7 +259,7 @@
                         "value": "${MYSQL_DATABASE}"
                       }
                     ],
-                    "image": "openshift/mysql-55-centos7",
+                    "image": "openshift/mysql-55-centos7:latest",
                     "name": "ruby-helloworld-database",
                     "ports": [
                       {
