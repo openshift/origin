@@ -188,9 +188,16 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 
 	envVars := getBuildEnvVars(d.build)
+	first := true
 	for k, v := range envVars {
-		newFileData = newFileData + fmt.Sprintf("ENV %s %s\n", k, v)
+		if first {
+			newFileData += fmt.Sprintf("ENV %s=\"%s\"", k, v)
+			first = false
+		} else {
+			newFileData += fmt.Sprintf(" \\\n\t%s=\"%s\"", k, v)
+		}
 	}
+	newFileData += "\n"
 
 	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
 		return err
