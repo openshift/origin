@@ -14,6 +14,16 @@ angular.module('openshiftConsole')
     }
   })
   .filter('annotation', function() {
+    // This maps a an annotation key to all known synonymous keys to insulate
+    // the referring code from key renames across API versions.
+    var annotationMap = {
+      "deploymentConfig": ["openshift.io/deployment-config.name"],
+      "deployment": ["openshift.io/deployment.name"],
+      "pod": ["openshift.io/deployer-pod.name"],
+      "deploymentStatus": ["openshift.io/deployment.phase"],
+      "encodedDeploymentConfig": ["openshift.io/encoded-deployment-config"],
+      "deploymentVersion": ["openshift.io/deployment-config.latest-version"]
+    };
     return function(resource, key) {
       if (resource && resource.spec && resource.spec.tags && key.indexOf(".") !== -1){
         var tagAndKey = key.split(".");
@@ -28,7 +38,20 @@ angular.module('openshiftConsole')
         }
       }
       if (resource && resource.metadata && resource.metadata.annotations) {
-        return resource.metadata.annotations[key];
+        // If the key's already in the annotation map, return it.
+        if (resource.metadata.annotations[key] !== undefined) {
+          return resource.metadata.annotations[key]
+        }
+        // Try and return a value for a mapped key.
+        var mappings = annotationMap[key] || [];
+        for (var i=0; i < mappings.length; i++) {
+          var mappedKey = mappings[i];
+          if (resource.metadata.annotations[mappedKey] !== undefined) {
+            return resource.metadata.annotations[mappedKey];
+          }
+        }
+        // Couldn't find anything.
+        return null;
       }
       return null;
     };

@@ -14,7 +14,37 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1beta1"
+	deployv3 "github.com/openshift/origin/pkg/deploy/api/v1beta3"
 )
+
+// Maps the latest annotation keys to all known previous key names.
+var annotationMap = map[string][]string{
+	deployapi.DeploymentConfigAnnotation: {
+		deployv1.DeploymentConfigAnnotation,
+		deployv3.DeploymentConfigAnnotation,
+	},
+	deployapi.DeploymentAnnotation: {
+		deployv1.DeploymentAnnotation,
+		deployv3.DeploymentAnnotation,
+	},
+	deployapi.DeploymentPodAnnotation: {
+		deployv1.DeploymentPodAnnotation,
+		deployv3.DeploymentPodAnnotation,
+	},
+	deployapi.DeploymentStatusAnnotation: {
+		deployv1.DeploymentStatusAnnotation,
+		deployv3.DeploymentPhaseAnnotation,
+	},
+	deployapi.DeploymentEncodedConfigAnnotation: {
+		deployv1.DeploymentEncodedConfigAnnotation,
+		deployv3.DeploymentEncodedConfigAnnotation,
+	},
+	deployapi.DeploymentVersionAnnotation: {
+		deployv1.DeploymentVersionAnnotation,
+		deployv3.DeploymentVersionAnnotation,
+	},
+}
 
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
@@ -23,11 +53,6 @@ func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 
 func DeployerPodNameForDeployment(deployment *api.ReplicationController) string {
 	return fmt.Sprintf("deploy-%s", deployment.Name)
-}
-
-// StatusForDeployment gets the DeploymentStatus for deployment from its annotations.
-func StatusForDeployment(deployment *api.ReplicationController) deployapi.DeploymentStatus {
-	return deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation])
 }
 
 // LabelForDeployment builds a string identifier for a Deployment.
@@ -67,7 +92,7 @@ func PodSpecsEqual(a, b api.PodSpec) bool {
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
 // if the controller doesn't contain an encoded config.
 func DecodeDeploymentConfig(controller *api.ReplicationController, codec runtime.Codec) (*deployapi.DeploymentConfig, error) {
-	encodedConfig := []byte(controller.Annotations[deployapi.DeploymentEncodedConfigAnnotation])
+	encodedConfig := []byte(EncodedDeploymentConfigFor(controller))
 	if decoded, err := codec.Decode(encodedConfig); err == nil {
 		if config, ok := decoded.(*deployapi.DeploymentConfig); ok {
 			return config, nil
@@ -176,4 +201,48 @@ func (lw *ListWatcherImpl) List() (runtime.Object, error) {
 
 func (lw *ListWatcherImpl) Watch(resourceVersion string) (watch.Interface, error) {
 	return lw.WatchFunc(resourceVersion)
+}
+
+func DeploymentConfigNameFor(obj runtime.Object) string {
+	return mappedAnnotationFor(obj, deployapi.DeploymentConfigAnnotation)
+}
+
+func DeploymentNameFor(obj runtime.Object) string {
+	return mappedAnnotationFor(obj, deployapi.DeploymentAnnotation)
+}
+
+func DeployerPodNameFor(obj runtime.Object) string {
+	return mappedAnnotationFor(obj, deployapi.DeploymentPodAnnotation)
+}
+
+func DeploymentStatusFor(obj runtime.Object) deployapi.DeploymentStatus {
+	return deployapi.DeploymentStatus(mappedAnnotationFor(obj, deployapi.DeploymentStatusAnnotation))
+}
+
+func EncodedDeploymentConfigFor(obj runtime.Object) string {
+	return mappedAnnotationFor(obj, deployapi.DeploymentEncodedConfigAnnotation)
+}
+
+func DeploymentVersionFor(obj runtime.Object) int {
+	v, err := strconv.Atoi(mappedAnnotationFor(obj, deployapi.DeploymentVersionAnnotation))
+	if err != nil {
+		return -1
+	}
+	return v
+}
+
+// mappedAnnotationFor finds the given annotation in obj using the annotation
+// map to search all known key variants.
+func mappedAnnotationFor(obj runtime.Object, key string) string {
+	meta, err := api.ObjectMetaFor(obj)
+	if err != nil {
+		return ""
+	}
+	for _, mappedKey := range annotationMap[key] {
+		val, hasVal := meta.Annotations[mappedKey]
+		if hasVal {
+			return val
+		}
+	}
+	return ""
 }

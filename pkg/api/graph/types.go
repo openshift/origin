@@ -3,7 +3,6 @@ package graph
 import (
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -15,6 +14,7 @@ import (
 	build "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	image "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -402,7 +402,7 @@ func JoinDeployments(node *DeploymentConfigNode, deploys []kapi.ReplicationContr
 		return
 	}
 	sort.Sort(RecentDeploymentReferences(matches))
-	if strconv.Itoa(node.DeploymentConfig.LatestVersion) == matches[0].Annotations[deploy.DeploymentVersionAnnotation] {
+	if node.DeploymentConfig.LatestVersion == deployutil.DeploymentVersionFor(matches[0]) {
 		node.ActiveDeployment = matches[0]
 		node.Deployments = matches[1:]
 		return
@@ -422,7 +422,7 @@ func belongsToBuildConfig(config *build.BuildConfig, b *build.Build) bool {
 
 func belongsToDeploymentConfig(config *deploy.DeploymentConfig, b *kapi.ReplicationController) bool {
 	if b.Annotations != nil {
-		return config.Name == b.Annotations[deploy.DeploymentConfigAnnotation]
+		return config.Name == deployutil.DeploymentConfigNameFor(b)
 	}
 	return false
 }

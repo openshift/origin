@@ -35,6 +35,7 @@ import (
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
@@ -97,10 +98,10 @@ func TestTriggers_manual(t *testing.T) {
 	}
 	deployment := event.Object.(*kapi.ReplicationController)
 
-	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+	if e, a := config.Name, deployutil.DeploymentConfigNameFor(deployment); e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
-	if e, a := "1", deployment.Annotations[deployapi.DeploymentVersionAnnotation]; e != a {
+	if e, a := 1, deployutil.DeploymentVersionFor(deployment); e != a {
 		t.Fatalf("Deployment annotation version does not match: %#v", deployment)
 	}
 }
@@ -201,7 +202,7 @@ waitForNewRC:
 		}
 	}
 
-	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+	if e, a := config.Name, deployutil.DeploymentConfigNameFor(deployment); e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 
@@ -217,7 +218,7 @@ waitForPendingStatus:
 			}
 		}
 	}
-	if e, a := string(deployapi.DeploymentStatusPending), deployment.Annotations[deployapi.DeploymentStatusAnnotation]; e != a {
+	if e, a := deployapi.DeploymentStatusPending, deployutil.DeploymentStatusFor(deployment); e != a {
 		t.Fatalf("expected deployment status %q, got %q", e, a)
 	}
 
@@ -287,7 +288,7 @@ func TestTriggers_configChange(t *testing.T) {
 
 	deployment := event.Object.(*kapi.ReplicationController)
 
-	if e, a := config.Name, deployment.Annotations[deployapi.DeploymentConfigAnnotation]; e != a {
+	if e, a := config.Name, deployutil.DeploymentConfigNameFor(deployment); e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
 	}
 

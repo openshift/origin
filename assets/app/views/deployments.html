@@ -11,10 +11,10 @@
         </div>
       </div>      
       <div style="margin-bottom: 10px;" ng-repeat="deployment in deployments">
-        <h3>{{deployment.metadata.annotations.deploymentConfig}} <span class="small">({{deployment.metadata.name}})</span></h3>
+        <h3>{{deployment | annotation:'deploymentConfig'}} <span class="small">({{deployment.metadata.name}})</span></h3>
         <div>Created: <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp></div>
-        <div>Status: {{deployment.metadata.annotations.deploymentStatus}}</div>
-        <div>Version: {{deployment.metadata.annotations.deploymentVersion}}</div>
+        <div>Status: {{deployment | annotation:'deploymentStatus'}}</div>
+        <div>Version: {{deployment | annotation:'deploymentVersion'}}</div>
         <div>Replicas: {{deployment.spec.replicas}}</div>
         <pod-template ng-init="podTemplate = deployment.spec.template"></pod-template>
       </div>      

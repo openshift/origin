@@ -2,7 +2,6 @@ package rolling
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -14,7 +13,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -158,17 +156,10 @@ func (s *RollingDeploymentStrategy) findLatestDeployment(oldDeployments []*kapi.
 	var latest *kapi.ReplicationController
 	latestVersion := 0
 	for _, deployment := range oldDeployments {
-		if val, hasVersion := deployment.Annotations[deployapi.DeploymentVersionAnnotation]; hasVersion {
-			version, err := strconv.Atoi(val)
-			if err != nil {
-				return nil, fmt.Errorf("deployment %s/%s has invalid version annotation value '%s': %v", deployment.Namespace, deployment.Name, val, err)
-			}
-			if version > latestVersion {
-				latest = deployment
-				latestVersion = version
-			}
-		} else {
-			glog.Infof("Ignoring deployment with missing version annotation: %s/%s", deployment.Namespace, deployment.Name)
+		version := deployutil.DeploymentVersionFor(deployment)
+		if version > latestVersion {
+			latest = deployment
+			latestVersion = version
 		}
 	}
 	if latest != nil {

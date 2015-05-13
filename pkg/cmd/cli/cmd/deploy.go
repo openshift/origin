@@ -174,7 +174,7 @@ func (c *deployLatestCommand) deploy(config *deployapi.DeploymentConfig, out io.
 		}
 	} else {
 		// Reject attempts to start a concurrent deployment.
-		status := statusFor(deployment)
+		status := deployutil.DeploymentStatusFor(deployment)
 		if status != deployapi.DeploymentStatusComplete && status != deployapi.DeploymentStatusFailed {
 			return fmt.Errorf("#%d is already in progress (%s)", config.LatestVersion, status)
 		}
@@ -206,9 +206,7 @@ func (c *retryDeploymentCommand) retry(config *deployapi.DeploymentConfig, out i
 		return err
 	}
 
-	status := statusFor(deployment)
-
-	if status != deployapi.DeploymentStatusFailed {
+	if status := deployutil.DeploymentStatusFor(deployment); status != deployapi.DeploymentStatusFailed {
 		return fmt.Errorf("#%d is %s; only failed deployments can be retried", config.LatestVersion, status)
 	}
 
@@ -218,10 +216,6 @@ func (c *retryDeploymentCommand) retry(config *deployapi.DeploymentConfig, out i
 		fmt.Fprintf(out, "retried #%d\n", config.LatestVersion)
 	}
 	return err
-}
-
-func statusFor(deployment *kapi.ReplicationController) deployapi.DeploymentStatus {
-	return deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation])
 }
 
 // deployCommandClientImpl is a pluggable deployCommandClient.

@@ -158,44 +158,6 @@ func TestGetDeploymentContextWithPriorDeployments(t *testing.T) {
 	}
 }
 
-func TestGetDeploymentContextInvalidPriorDeployment(t *testing.T) {
-	getter := &testReplicationControllerGetter{
-		getFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-			deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
-			return deployment, nil
-		},
-		listFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-			return &kapi.ReplicationControllerList{
-				Items: []kapi.ReplicationController{
-					{
-						ObjectMeta: kapi.ObjectMeta{
-							Name: "corrupt-deployment",
-							Annotations: map[string]string{
-								deployapi.DeploymentConfigAnnotation:  "config",
-								deployapi.DeploymentVersionAnnotation: "junk",
-							},
-						},
-					},
-				},
-			}, nil
-		},
-	}
-
-	newDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
-
-	if newDeployment != nil {
-		t.Fatalf("unexpected newDeployment: %#v", newDeployment)
-	}
-
-	if oldDeployments != nil {
-		t.Fatalf("unexpected oldDeployments: %#v", oldDeployments)
-	}
-
-	if err == nil {
-		t.Fatal("expected an error")
-	}
-}
-
 type testReplicationControllerGetter struct {
 	getFunc  func(namespace, name string) (*kapi.ReplicationController, error)
 	listFunc func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)

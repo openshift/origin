@@ -91,11 +91,11 @@ func pollPods(deploymentStore cache.Store, kClient kclient.PodsNamespacer) (cach
 	for _, obj := range deploymentStore.List() {
 		deployment := obj.(*kapi.ReplicationController)
 
-		switch deployapi.DeploymentStatus(deployment.Annotations[deployapi.DeploymentStatusAnnotation]) {
+		switch deployutil.DeploymentStatusFor(deployment) {
 		case deployapi.DeploymentStatusPending, deployapi.DeploymentStatusRunning:
 			// Validate the correlating pod annotation
-			podID, hasPodID := deployment.Annotations[deployapi.DeploymentPodAnnotation]
-			if !hasPodID {
+			podID := deployutil.DeployerPodNameFor(deployment)
+			if len(podID) == 0 {
 				glog.V(2).Infof("Unexpected state: deployment %s has no pod annotation; skipping pod polling", deployment.Name)
 				continue
 			}

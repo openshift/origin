@@ -2,7 +2,6 @@ package graph
 
 import (
 	"sort"
-	"strconv"
 
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/search"
@@ -11,6 +10,7 @@ import (
 
 	build "github.com/openshift/origin/pkg/build/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	image "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -348,15 +348,7 @@ type RecentDeploymentReferences []*kapi.ReplicationController
 func (m RecentDeploymentReferences) Len() int      { return len(m) }
 func (m RecentDeploymentReferences) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m RecentDeploymentReferences) Less(i, j int) bool {
-	a, err := strconv.Atoi(m[i].Annotations[deploy.DeploymentVersionAnnotation])
-	if err != nil {
-		return false
-	}
-	b, err := strconv.Atoi(m[j].Annotations[deploy.DeploymentVersionAnnotation])
-	if err != nil {
-		return true
-	}
-	return a > b
+	return deployutil.DeploymentVersionFor(m[i]) > deployutil.DeploymentVersionFor(m[j])
 }
 
 func CompareObjectMeta(a, b *kapi.ObjectMeta) bool {
