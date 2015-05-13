@@ -240,7 +240,7 @@ func TestBuildConfigInstantiatorError(t *testing.T) {
 	if actual, expected := bcInstantiator.newBuild.Parameters.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
 		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
 	}
-	if bcUpdater.buildcfg != nil && bcUpdater.updateCount > 1 {
+	if bcUpdater.updateCount > 1 {
 		t.Fatal("Expected no buildConfig update on BuildCreate error!")
 	}
 }
