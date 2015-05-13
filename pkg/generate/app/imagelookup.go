@@ -152,7 +152,6 @@ func (r DockerRegistryResolver) Resolve(value string) (*ComponentMatch, error) {
 		return nil, err
 	}
 
-	from := ref.Registry
 	if len(ref.Registry) == 0 {
 		ref.Registry = "Docker Hub"
 	}
@@ -160,7 +159,7 @@ func (r DockerRegistryResolver) Resolve(value string) (*ComponentMatch, error) {
 		Value:       value,
 		Argument:    fmt.Sprintf("--docker-image=%q", value),
 		Name:        value,
-		Description: descriptionFor(dockerImage, value, from),
+		Description: descriptionFor(dockerImage, value, ref.Registry),
 		Builder:     IsBuilderImage(dockerImage),
 		Score:       0,
 		Image:       dockerImage,
@@ -329,7 +328,7 @@ func InputImageFromMatch(match *ComponentMatch) (*ImageRef, error) {
 		if err != nil {
 			return nil, err
 		}
-		input.AsImageStream = false
+		input.AsImageStream = true
 		input.Info = match.Image
 		return input, nil
 
