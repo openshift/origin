@@ -569,7 +569,6 @@ func authenticationHandlerFilter(handler http.Handler, authenticator authenticat
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		glog.V(5).Infof("user %v -> %v", user, req.URL)
 
 		ctx, ok := contextMapper.Get(req)
 		if !ok {

@@ -59,6 +59,7 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 	flags.Var(&args.MasterPublicAddr, prefix+"public-master", "The master address for use by public clients, if different (host, host:port, or URL). Defaults to same as --master.")
 	flags.Var(&args.EtcdAddr, prefix+"etcd", "The address of the etcd server (host, host:port, or URL). If specified, no built-in etcd will be started.")
 	flags.Var(&args.PortalNet, prefix+"portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
+	flags.Var(&args.DNSBindAddr, prefix+"dns", "The address to listen for DNS requests on.")
 
 	flags.StringVar(&args.EtcdDir, prefix+"etcd-dir", "openshift.local.etcd", "The etcd data directory.")
 
@@ -74,7 +75,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		EtcdAddr:         flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "https", DefaultPort: 4001}.Default(),
 		PortalNet:        flagtypes.DefaultIPNet("172.30.0.0/16"),
 		MasterPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
-		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "http", DefaultPort: 53, AllowPrefix: true}.Default(),
+		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "tcp", DefaultPort: 53, AllowPrefix: true}.Default(),
 
 		ConfigDir: &util.StringFlag{},
 
