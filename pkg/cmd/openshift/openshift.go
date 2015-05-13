@@ -1,7 +1,6 @@
 package openshift
 
 import (
-	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -93,7 +92,7 @@ func NewCommandOpenShift() *cobra.Command {
 	root.AddCommand(admin.NewCommandAdmin("admin", "openshift admin", os.Stdout))
 	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
 	root.AddCommand(cli.NewCmdKubectl("kube"))
-	root.AddCommand(newExperimentalCommand("openshift", "ex"))
+	root.AddCommand(newExperimentalCommand("ex", "openshift ex"))
 	root.AddCommand(version.NewVersionCommand("openshift"))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
@@ -114,7 +113,7 @@ func NewCommandOpenShift() *cobra.Command {
 	return root
 }
 
-func newExperimentalCommand(parentName, name string) *cobra.Command {
+func newExperimentalCommand(name, fullName string) *cobra.Command {
 	experimental := &cobra.Command{
 		Use:   name,
 		Short: "Experimental commands under active development",
@@ -128,13 +127,12 @@ func newExperimentalCommand(parentName, name string) *cobra.Command {
 	f := clientcmd.New(experimental.PersistentFlags())
 	out := os.Stdout
 
-	subName := fmt.Sprintf("%s %s", parentName, name)
-	experimental.AddCommand(tokens.NewCmdTokens(f, subName, "tokens"))
-	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, subName, "ipfailover", os.Stdout))
-	experimental.AddCommand(exrouter.NewCmdRouter(f, subName, "router", os.Stdout))
-	experimental.AddCommand(exregistry.NewCmdRegistry(f, subName, "registry", os.Stdout))
-	experimental.AddCommand(buildchain.NewCmdBuildChain(f, subName, "build-chain"))
-	experimental.AddCommand(bundlesecret.NewCmdBundleSecret(f, subName, "bundle-secret", os.Stdout))
+	experimental.AddCommand(tokens.NewCmdTokens(tokens.TokenRecommendedCommandName, fullName+" "+tokens.TokenRecommendedCommandName, f, out))
+	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", os.Stdout))
+	experimental.AddCommand(exrouter.NewCmdRouter(f, fullName, "router", os.Stdout))
+	experimental.AddCommand(exregistry.NewCmdRegistry(f, fullName, "registry", os.Stdout))
+	experimental.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
+	experimental.AddCommand(bundlesecret.NewCmdBundleSecret(f, fullName, "bundle-secret", os.Stdout))
 	experimental.AddCommand(cmd.NewCmdOptions(f, out))
 	return experimental
 }
