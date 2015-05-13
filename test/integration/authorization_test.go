@@ -21,7 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
-func TestRestrictedAccessForProjectAdmins(t *testing.T) {
+func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -47,12 +47,12 @@ func TestRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = haroldClient.Deployments("hammer-project").List(labels.Everything(), fields.Everything())
+	_, err = haroldClient.DeploymentConfigs("hammer-project").List(labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = markClient.Deployments("hammer-project").List(labels.Everything(), fields.Everything())
+	_, err = markClient.DeploymentConfigs("hammer-project").List(labels.Everything(), fields.Everything())
 	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -91,7 +91,7 @@ func waitForProject(t *testing.T, client client.Interface, projectName string, d
 	t.Errorf("expected project %v not found", projectName)
 }
 
-func TestOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
+func TestAuthorizationOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -164,7 +164,7 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 	}
 }
 
-func TestResourceAccessReview(t *testing.T) {
+func TestAuthorizationResourceAccessReview(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -290,7 +290,7 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 	}
 }
 
-func TestSubjectAccessReview(t *testing.T) {
+func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

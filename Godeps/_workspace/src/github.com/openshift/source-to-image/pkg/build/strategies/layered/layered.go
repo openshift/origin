@@ -28,7 +28,7 @@ type Layered struct {
 }
 
 func New(request *api.Request, scripts build.ScriptsHandler) (*Layered, error) {
-	d, err := docker.New(request.DockerConfig)
+	d, err := docker.New(request.DockerConfig, request.PullAuthentication)
 	if err != nil {
 		return nil, err
 	}

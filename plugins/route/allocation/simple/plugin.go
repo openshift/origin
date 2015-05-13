@@ -60,7 +60,7 @@ func (p *SimpleAllocationPlugin) GenerateHostname(route *routeapi.Route, shard *
 	if len(route.Namespace) <= 0 {
 		s = fmt.Sprintf("%s.%s", name, shard.DNSSuffix)
 	} else {
-		s = fmt.Sprintf("%s-%s.%s", name, route.Namespace, shard.DNSSuffix)
+		s = fmt.Sprintf("%s.%s.%s", name, route.Namespace, shard.DNSSuffix)
 	}
 
 	glog.V(4).Infof("Generated hostname=%s for Route: %s", s, route.ServiceName)

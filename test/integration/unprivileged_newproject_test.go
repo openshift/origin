@@ -29,11 +29,11 @@ func TestUnprivilegedNewProject(t *testing.T) {
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	valerieClientConfig := *clusterAdminClientConfig
@@ -59,10 +59,10 @@ func TestUnprivilegedNewProject(t *testing.T) {
 	// confirm that we have access to request the project
 	allowed, err := valerieOpenshiftClient.ProjectRequests().List(labels.Everything(), fields.Everything())
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	if allowed.Status != kapi.StatusSuccess {
-		t.Errorf("expected %v, got %v", kapi.StatusSuccess, allowed.Status)
+		t.Fatalf("expected %v, got %v", kapi.StatusSuccess, allowed.Status)
 	}
 
 	requestProject := osc.NewProjectOptions{
@@ -75,30 +75,30 @@ func TestUnprivilegedNewProject(t *testing.T) {
 	}
 
 	if err := requestProject.Run(); err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	waitForProject(t, valerieOpenshiftClient, "new-project", 5*time.Second, 10)
 
 	// request the same one again.  This should fail during the bulk creation step
 	if err := requestProject.Run(); err == nil || !strings.Contains(err.Error(), "already exists") {
-		t.Errorf("expected an already exists error, but got %v", err)
+		t.Fatalf("expected an already exists error, but got %v", err)
 	}
 
 	tokens := strings.Split(masterConfig.ProjectRequestConfig.ProjectRequestTemplate, "/")
 	if err := clusterAdminClient.Templates(tokens[0]).Delete(tokens[1]); err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	requestProject.ProjectName = "different"
 	// This should fail during the template retrieve
 	if err := requestProject.Run(); !kapierrors.IsNotFound(err) {
-		t.Errorf("expected a not found error, but got %v", err)
+		t.Fatalf("expected a not found error, but got %v", err)
 	}
 
 }
 
-func TestDeniedUnprivilegedNewProject(t *testing.T) {
+func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -106,20 +106,20 @@ func TestDeniedUnprivilegedNewProject(t *testing.T) {
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	role, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.SelfProvisionerRoleName)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	role.Rules = []authorizationapi.PolicyRule{}
 	if _, err := clusterAdminClient.ClusterRoles().Update(role); err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	valerieClientConfig := *clusterAdminClientConfig
@@ -145,11 +145,11 @@ func TestDeniedUnprivilegedNewProject(t *testing.T) {
 	// confirm that we have access to request the project
 	allowed, err := valerieOpenshiftClient.ProjectRequests().List(labels.Everything(), fields.Everything())
 	if err == nil {
-		t.Errorf("expected error: %v", err)
+		t.Fatalf("expected error: %v", err)
 	}
 	expectedError := `ProjectRequest "" is forbidden: You may not request a new project via this API.`
 	if (err != nil) && (err.Error() != expectedError) {
-		t.Errorf("expected %v, got %v", expectedError, allowed.Status)
+		t.Fatalf("expected %v, got %v", expectedError, allowed.Status)
 	}
 
 }

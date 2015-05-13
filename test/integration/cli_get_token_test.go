@@ -48,7 +48,7 @@ func init() {
 	testutil.RequireEtcd()
 }
 
-func TestGetToken(t *testing.T) {
+func TestCLIGetToken(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 
 	// setup

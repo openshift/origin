@@ -88,7 +88,7 @@ describe('', function() {
       expect(element(by.cssContainingText("h2.service","frontend")).isPresent()).toBe(true);
       expect(element(by.cssContainingText(".pod-template-image","Build: ruby-sample-build")).isPresent()).toBe(true);
       expect(element(by.cssContainingText(".deployment-trigger","new image for test/origin-ruby-sample:latest")).isPresent()).toBe(true);
-      expect(element.all(by.css(".pod-running")).count()).toEqual(2);
+      expect(element.all(by.css(".pod-running")).count()).toEqual(3);
     });
   }); 
 

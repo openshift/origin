@@ -1,5 +1,7 @@
 package api
 
+import docker "github.com/fsouza/go-dockerclient"
+
 // Request contains essential fields for any request.
 type Request struct {
 
@@ -8,6 +10,13 @@ type Request struct {
 
 	// DockerConfig describes how to access host docker daemon.
 	DockerConfig *DockerConfig
+
+	// DockerCfgPath provides the path to the .dockercfg file
+	DockerCfgPath string
+
+	// PullAuthentication holds the authentication information for pulling the
+	// Docker images from private repositories
+	PullAuthentication docker.AuthConfiguration
 
 	// PreserveWorkingDir describes if working directory should be left after processing.
 	PreserveWorkingDir bool

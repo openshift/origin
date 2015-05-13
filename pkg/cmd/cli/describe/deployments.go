@@ -335,32 +335,3 @@ func (d *LatestDeploymentDescriber) describeDeploymentStatus(deploy *kapi.Replic
 		return fmt.Sprintf("#%s deployment %s %s ago", deploy.Annotations[deployapi.DeploymentVersionAnnotation], strings.ToLower(s), timeAt)
 	}
 }
-
-// DeploymentDescriber generates information about a deployment
-// DEPRECATED.
-type DeploymentDescriber struct {
-	client.Interface
-}
-
-// Describe returns a description of a DeploymentDescriber
-func (d *DeploymentDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Deployments(namespace)
-	deployment, err := c.Get(name)
-	if err != nil {
-		return "", err
-	}
-
-	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, deployment.ObjectMeta)
-		formatString(out, "Status", bold(deployment.Status))
-		formatString(out, "Strategy", deployment.Strategy.Type)
-		causes := []string{}
-		if deployment.Details != nil {
-			for _, c := range deployment.Details.Causes {
-				causes = append(causes, string(c.Type))
-			}
-		}
-		formatString(out, "Causes", strings.Join(causes, ","))
-		return nil
-	})
-}

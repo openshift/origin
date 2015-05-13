@@ -158,42 +158,10 @@
           "replicaSelector": {
             "name": "frontend"
           },
-          "replicas": 1
+          "replicas": 2
         },
         "strategy": {
-          "type": "Recreate",
-          "recreateParams": {
-            "pre": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "containerName": "ruby-helloworld",
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR1",
-                    "value": "custom_value1"
-                  }
-                ]
-              }
-            },
-            "post": {
-              "failurePolicy": "Ignore",
-              "execNewPod": {
-                "containerName": "ruby-helloworld",
-                "command": [
-                  "/bin/false"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ]
-              }
-            }
-          }
+          "type": "Rolling"
         }
       },
       "triggers": [
@@ -259,7 +227,7 @@
                         "value": "${MYSQL_DATABASE}"
                       }
                     ],
-                    "image": "openshift/mysql-55-centos7",
+                    "image": "openshift/mysql-55-centos7:latest",
                     "name": "ruby-helloworld-database",
                     "ports": [
                       {

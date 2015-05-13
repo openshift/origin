@@ -46,8 +46,9 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		"list-role",
 		"list-routes",
 		"list-builds",
+		"finalize-namespace",
 		"list-deploymentconfig",
-		"list-deployment")
+	)
 	actionSet := util.NewStringSet()
 	for i := range mockKubeClient.Actions {
 		actionSet.Insert(mockKubeClient.Actions[i].Action)

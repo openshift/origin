@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"log"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -61,6 +62,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 			errs = append(errs, fielderrors.NewFieldInvalid(f, params.Tag, fmt.Sprintf("no image recorded for %s/%s:%s", imageStream.Namespace, imageStream.Name, params.Tag)))
 			continue
 		}
+		log.Printf("generating %s from image stream %s with latest %s", name, imageStream.Name, latestEvent.DockerImageReference)
 
 		// Update containers
 		template := config.Template.ControllerTemplate.Template

@@ -71,13 +71,9 @@ if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
     go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$KUBE_COVER_PROFILE" "$test_package" "${@:2}"
   done
 
-  for test_package in "${test_packages[@]}"
-  do
-    if [ -f "${OUTPUT_COVERAGE}/$test_package/profile.out" ]; then
-      go tool cover "-html=${OUTPUT_COVERAGE}/$test_package/profile.out" -o "${OUTPUT_COVERAGE}/$test_package/coverage.html"
-      echo "coverage: ${OUTPUT_COVERAGE}/$test_package/coverage.html"
-    fi
-  done
+  echo 'mode: atomic' > ${OUTPUT_COVERAGE}/profiles.out
+  find $OUTPUT_COVERAGE -name profile.out | xargs sed '/^mode: atomic$/d' >> ${OUTPUT_COVERAGE}/profiles.out
+  go tool cover "-html=${OUTPUT_COVERAGE}/profiles.out" -o "${OUTPUT_COVERAGE}/coverage.html"
 else
   go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}" $test_packages
 fi

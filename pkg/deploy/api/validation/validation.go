@@ -1,6 +1,9 @@
 package validation
 
 import (
+	"fmt"
+	"strings"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -81,6 +84,12 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) fielderr
 	case deployapi.DeploymentStrategyTypeRecreate:
 		if strategy.RecreateParams != nil {
 			errs = append(errs, validateRecreateParams(strategy.RecreateParams).Prefix("recreateParams")...)
+		}
+	case deployapi.DeploymentStrategyTypeRolling:
+		if strategy.RollingParams == nil {
+			errs = append(errs, fielderrors.NewFieldRequired("rollingParams"))
+		} else {
+			errs = append(errs, validateRollingParams(strategy.RollingParams).Prefix("rollingParams")...)
 		}
 	case deployapi.DeploymentStrategyTypeCustom:
 		if strategy.CustomParams == nil {
@@ -168,6 +177,24 @@ func validateEnv(vars []kapi.EnvVar) fielderrors.ValidationErrorList {
 	return allErrs
 }
 
+func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams) fielderrors.ValidationErrorList {
+	errs := fielderrors.ValidationErrorList{}
+
+	if params.IntervalSeconds != nil && *params.IntervalSeconds < 1 {
+		errs = append(errs, fielderrors.NewFieldInvalid("intervalSeconds", *params.IntervalSeconds, "must be >0"))
+	}
+
+	if params.UpdatePeriodSeconds != nil && *params.UpdatePeriodSeconds < 1 {
+		errs = append(errs, fielderrors.NewFieldInvalid("updatePeriodSeconds", *params.UpdatePeriodSeconds, "must be >0"))
+	}
+
+	if params.TimeoutSeconds != nil && *params.TimeoutSeconds < 1 {
+		errs = append(errs, fielderrors.NewFieldInvalid("timeoutSeconds", *params.TimeoutSeconds, "must be >0"))
+	}
+
+	return errs
+}
+
 func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) fielderrors.ValidationErrorList {
 	errs := fielderrors.ValidationErrorList{}
 
@@ -193,8 +220,10 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 		if len(params.From.Kind) == 0 {
 			params.From.Kind = "ImageStream"
 		}
-		if params.From.Kind != "ImageRepository" && params.From.Kind != "ImageStream" {
-			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, "kind must be 'ImageStream' or 'ImageRepository'"))
+		kinds := util.NewStringSet("ImageRepository", "ImageStream", "ImageStreamTag")
+		if !kinds.Has(params.From.Kind) {
+			msg := fmt.Sprintf("kind must be one of: %s", strings.Join(kinds.List(), ", "))
+			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, msg))
 		}
 
 		if !util.IsDNS1123Subdomain(params.From.Name) {

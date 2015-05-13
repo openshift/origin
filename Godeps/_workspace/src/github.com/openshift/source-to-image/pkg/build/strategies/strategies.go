@@ -28,7 +28,7 @@ func GetStrategy(request *api.Request) (build.Builder, error) {
 // It returns information about the base image, containing metadata necessary
 // for choosing the right STI build strategy.
 func GetBaseImage(request *api.Request) (*docker.PullResult, error) {
-	d, err := docker.New(request.DockerConfig)
+	d, err := docker.New(request.DockerConfig, request.PullAuthentication)
 	result := docker.PullResult{}
 	if err != nil {
 		return nil, err

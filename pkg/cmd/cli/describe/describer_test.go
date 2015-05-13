@@ -28,7 +28,7 @@ type describeClient struct {
 func TestDescribeFor(t *testing.T) {
 	c := &client.Client{}
 	testTypesList := []string{
-		"Build", "BuildConfig", "BuildLog", "Deployment", "DeploymentConfig",
+		"Build", "BuildConfig", "BuildLog", "DeploymentConfig",
 		"Image", "ImageStream", "ImageStreamTag", "ImageStreamImage",
 		"Route", "Project",
 	}
@@ -49,7 +49,6 @@ func TestDescribers(t *testing.T) {
 		&BuildDescriber{c, fakeKube},
 		&BuildConfigDescriber{c, ""},
 		&BuildLogDescriber{c},
-		&DeploymentDescriber{c},
 		&ImageDescriber{c},
 		&ImageStreamDescriber{c},
 		&ImageStreamTagDescriber{c},

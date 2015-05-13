@@ -33,7 +33,7 @@ func CreateSampleImageStream(namespace string) *imageapi.ImageStream {
 // namespace
 func DeleteSampleImageStream(stream *imageapi.ImageStream, namespace string) {
 	client, _ := GetClusterAdminClient(KubeConfigPath())
-	client.ImageRepositories(namespace).Delete(stream.Name)
+	client.ImageStreams(namespace).Delete(stream.Name)
 }
 
 // GetBuildFixture reads the Build JSON and returns and Build object

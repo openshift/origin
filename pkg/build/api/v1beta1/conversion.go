@@ -2,13 +2,13 @@ package v1beta1
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+
 	newer "github.com/openshift/origin/pkg/build/api"
-	image "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func init() {
@@ -70,15 +70,16 @@ func init() {
 						Kind:      in.From.Kind,
 					}
 				case "ImageStreamTag":
-					bits := strings.Split(in.From.Name, ":")
+					name, tag, ok := imageapi.SplitImageStreamTag(in.From.Name)
+					if !ok {
+						return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
+					}
 					out.From = &kapi.ObjectReference{
-						Name:      bits[0],
-						Namespace: in.From.Namespace,
 						Kind:      "ImageStream",
+						Namespace: in.From.Namespace,
+						Name:      name,
 					}
-					if len(bits) > 1 {
-						out.Tag = bits[1]
-					}
+					out.Tag = tag
 				case "DockerImage":
 					out.Image = in.From.Name
 					out.BuilderImage = in.From.Name
@@ -99,11 +100,7 @@ func init() {
 				}
 				if len(in.From.Kind) == 0 || in.From.Kind == "ImageStream" || in.From.Kind == "ImageRepository" {
 					out.From.Kind = "ImageStreamTag"
-					if len(in.Tag) > 0 {
-						out.From.Name = out.From.Name + ":" + in.Tag
-					} else {
-						out.From.Name = out.From.Name + ":latest"
-					}
+					out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, in.Tag)
 				}
 			}
 			if in.Image != "" {
@@ -133,15 +130,16 @@ func init() {
 						Kind:      in.From.Kind,
 					}
 				case "ImageStreamTag":
-					bits := strings.Split(in.From.Name, ":")
+					name, tag, ok := imageapi.SplitImageStreamTag(in.From.Name)
+					if !ok {
+						return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
+					}
 					out.From = &kapi.ObjectReference{
-						Name:      bits[0],
-						Namespace: in.From.Namespace,
 						Kind:      "ImageStream",
+						Namespace: in.From.Namespace,
+						Name:      name,
 					}
-					if len(bits) > 1 {
-						out.Tag = bits[1]
-					}
+					out.Tag = tag
 				case "DockerImage":
 					out.Image = in.From.Name
 					out.BaseImage = in.From.Name
@@ -159,11 +157,7 @@ func init() {
 				}
 				if len(in.From.Kind) == 0 || in.From.Kind == "ImageStream" || in.From.Kind == "ImageRepository" {
 					out.From.Kind = "ImageStreamTag"
-					if len(in.Tag) > 0 {
-						out.From.Name = out.From.Name + ":" + in.Tag
-					} else {
-						out.From.Name = out.From.Name + ":latest"
-					}
+					out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, in.Tag)
 				}
 			}
 			if in.Image != "" {
@@ -191,15 +185,16 @@ func init() {
 						Kind:      in.From.Kind,
 					}
 				case "ImageStreamTag":
-					bits := strings.Split(in.From.Name, ":")
+					name, tag, ok := imageapi.SplitImageStreamTag(in.From.Name)
+					if !ok {
+						return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
+					}
 					out.From = &kapi.ObjectReference{
-						Name:      bits[0],
-						Namespace: in.From.Namespace,
 						Kind:      "ImageStream",
+						Namespace: in.From.Namespace,
+						Name:      name,
 					}
-					if len(bits) > 1 {
-						out.Tag = bits[1]
-					}
+					out.Tag = tag
 				case "DockerImage":
 					out.Image = in.From.Name
 				}
@@ -217,11 +212,7 @@ func init() {
 				}
 				if len(in.From.Kind) == 0 || in.From.Kind == "ImageStream" || in.From.Kind == "ImageRepository" {
 					out.From.Kind = "ImageStreamTag"
-					if len(in.Tag) > 0 {
-						out.From.Name = out.From.Name + ":" + in.Tag
-					} else {
-						out.From.Name = out.From.Name + ":latest"
-					}
+					out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, in.Tag)
 				}
 			}
 			if len(in.Image) != 0 {
@@ -241,7 +232,7 @@ func init() {
 			out.PushSecretName = in.PushSecretName
 			if len(in.DockerImageReference) > 0 {
 				out.DockerImageReference = in.DockerImageReference
-				ref, err := image.ParseDockerImageReference(in.DockerImageReference)
+				ref, err := imageapi.ParseDockerImageReference(in.DockerImageReference)
 				if err != nil {
 					return err
 				}
@@ -262,7 +253,7 @@ func init() {
 				return nil
 			}
 			if len(in.ImageTag) != 0 {
-				ref, err := image.ParseDockerImageReference(in.ImageTag)
+				ref, err := imageapi.ParseDockerImageReference(in.ImageTag)
 				if err != nil {
 					return err
 				}

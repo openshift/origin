@@ -10,18 +10,16 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
 
 // TestAdmissionExists verifies you cannot create Origin content if namespace is not known
 func TestAdmissionExists(t *testing.T) {
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	mockClient := &testclient.Fake{
 		Err: fmt.Errorf("DOES NOT EXIST"),
 	}
-	handler := &lifecycle{
-		client: mockClient,
-		store:  store,
-	}
+	projectcache.FakeProjectCache(mockClient, cache.NewStore(cache.MetaNamespaceKeyFunc), "")
+	handler := &lifecycle{}
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
 		Parameters: buildapi.BuildParameters{
@@ -62,12 +60,10 @@ func TestAdmissionLifecycle(t *testing.T) {
 	store := cache.NewStore(cache.MetaNamespaceIndexFunc)
 	store.Add(namespaceObj)
 	mockClient := &testclient.Fake{}
-	handler := &lifecycle{
-		client: mockClient,
-		store:  store,
-	}
+	projectcache.FakeProjectCache(mockClient, store, "")
+	handler := &lifecycle{}
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
+		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "other"},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -86,7 +82,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 		},
 		Status: buildapi.BuildStatusNew,
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, "Build", namespaceObj.Namespace, "builds", "CREATE"))
+	err := handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "builds", "CREATE"))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
@@ -96,19 +92,19 @@ func TestAdmissionLifecycle(t *testing.T) {
 	store.Add(namespaceObj)
 
 	// verify create operations in the namespace cause an error
-	err = handler.Admit(admission.NewAttributesRecord(build, "Build", namespaceObj.Namespace, "builds", "CREATE"))
+	err = handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "builds", "CREATE"))
 	if err == nil {
 		t.Errorf("Expected error rejecting creates in a namespace when it is terminating")
 	}
 
 	// verify update operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(build, "Build", namespaceObj.Namespace, "builds", "UPDATE"))
+	err = handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "builds", "UPDATE"))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
 
 	// verify delete operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(nil, "Build", namespaceObj.Namespace, "builds", "DELETE"))
+	err = handler.Admit(admission.NewAttributesRecord(nil, "Build", build.Namespace, "builds", "DELETE"))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}

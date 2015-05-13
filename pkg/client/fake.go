@@ -44,18 +44,6 @@ func (c *Fake) Images() ImageInterface {
 	return &FakeImages{Fake: c}
 }
 
-func (c *Fake) ImageRepositories(namespace string) ImageRepositoryInterface {
-	return &FakeImageRepositories{Fake: c, Namespace: namespace}
-}
-
-func (c *Fake) ImageRepositoryMappings(namespace string) ImageRepositoryMappingInterface {
-	return &FakeImageRepositoryMappings{Fake: c, Namespace: namespace}
-}
-
-func (c *Fake) ImageRepositoryTags(namespace string) ImageRepositoryTagInterface {
-	return &FakeImageRepositoryTags{Fake: c, Namespace: namespace}
-}
-
 func (c *Fake) ImageStreams(namespace string) ImageStreamInterface {
 	return &FakeImageStreams{Fake: c, Namespace: namespace}
 }
@@ -70,10 +58,6 @@ func (c *Fake) ImageStreamTags(namespace string) ImageStreamTagInterface {
 
 func (c *Fake) ImageStreamImages(namespace string) ImageStreamImageInterface {
 	return &FakeImageStreamImages{Fake: c, Namespace: namespace}
-}
-
-func (c *Fake) Deployments(namespace string) DeploymentInterface {
-	return &FakeDeployments{Fake: c, Namespace: namespace}
 }
 
 func (c *Fake) DeploymentConfigs(namespace string) DeploymentConfigInterface {

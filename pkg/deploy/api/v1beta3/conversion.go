@@ -1,6 +1,8 @@
 package v1beta3
 
 import (
+	"fmt"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -93,6 +95,9 @@ func init() {
 			if err := s.Convert(&in.RecreateParams, &out.RecreateParams, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.RollingParams, &out.RollingParams, 0); err != nil {
+				return err
+			}
 			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
 				return err
 			}
@@ -106,6 +111,9 @@ func init() {
 				return err
 			}
 			if err := s.Convert(&in.RecreateParams, &out.RecreateParams, 0); err != nil {
+				return err
+			}
+			if err := s.Convert(&in.RollingParams, &out.RollingParams, 0); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
@@ -154,6 +162,14 @@ func init() {
 				out.Tag = ref.Tag
 				ref.Tag, ref.ID = "", ""
 				out.RepositoryName = ref.String()
+			case "ImageStreamTag":
+				name, tag, ok := imageapi.SplitImageStreamTag(in.From.Name)
+				if !ok {
+					return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
+				}
+				out.From.Kind = "ImageStream"
+				out.From.Name = name
+				out.Tag = tag
 			}
 			return nil
 		},
@@ -164,6 +180,15 @@ func init() {
 			out.LastTriggeredImage = in.LastTriggeredImage
 			if err := s.Convert(&in.From, &out.From, 0); err != nil {
 				return err
+			}
+			switch in.From.Kind {
+			case "ImageStream":
+				out.From.Kind = "ImageStreamTag"
+				tag := in.Tag
+				if len(tag) == 0 {
+					tag = imageapi.DefaultImageTag
+				}
+				out.From.Name = fmt.Sprintf("%s:%s", in.From.Name, tag)
 			}
 			return nil
 		},
@@ -177,7 +202,7 @@ func init() {
 				}
 				out.Tag = ref.Tag
 				ref.Tag, ref.ID = "", ""
-				out.RepositoryName = ref.String()
+				out.RepositoryName = ref.Minimal().String()
 			}
 			return nil
 		},
@@ -189,7 +214,7 @@ func init() {
 				}
 				ref.Tag = in.Tag
 				out.From.Kind = "DockerImage"
-				out.From.Name = ref.Minimal().String()
+				out.From.Name = ref.String()
 			}
 			return nil
 		},

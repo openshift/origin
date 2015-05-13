@@ -5,6 +5,7 @@ package integration
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 
@@ -261,10 +262,13 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		"imageStreamTags":          imageStreamTagStorage,
 		"imageStreamImages":        imageStreamImageStorage,
 	}
+	for k, v := range storage {
+		storage[strings.ToLower(k)] = v
+	}
 
 	version := &apiserver.APIGroupVersion{
 		Root:    "/osapi",
-		Version: "v1beta1",
+		Version: "v1beta3",
 
 		Storage: storage,
 		Codec:   latest.Codec,

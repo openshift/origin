@@ -297,7 +297,7 @@ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 [ -n "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 # delete the registry resources
 osc delete dc docker-registry
-osc delete se docker-registry
+osc delete svc docker-registry
 osc delete rc docker-registry-1
 # done deleting registry resources
 osc delete imageStreams test
@@ -309,72 +309,32 @@ osc create -f examples/image-streams/image-streams-centos7.json
 [ -n "$(osc get imageStreams mysql -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(osc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(osc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
+# verify the image repository had its tags populated
+[ -n "$(osc get imageStreams wildfly -t "{{.status.tags.latest}}")" ]
+[ -n "$(osc get imageStreams wildfly -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 osc delete imageStreams ruby
 osc delete imageStreams nodejs
 osc delete imageStreams wildfly
-osc delete imageStreams mysql
+#osc delete imageStreams mysql
 osc delete imageStreams postgresql
 osc delete imageStreams mongodb
 [ -z "$(osc get imageStreams ruby -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageStreams nodejs -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams mysql -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(osc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
+wait_for_command 'osc get imagestreamTags mysql:latest' "${TIME_MIN}"
+[ -n "$(osc get imagestreams mysql -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 echo "imageStreams: ok"
 
-osc create -f test/integration/fixtures/test-image-stream.json
-osc create -f test/integration/fixtures/test-image-stream-mapping.json
-osc get images
-osc get imageStreams
-osc get imageStreamTag test:sometag
-osc get imageStreamImage test@sha256:4986bf8c15363d1c5d15512d5266f8777bfba4974ac56e3270e7760f6f0a8125
-osc delete imageStreams test
-echo "imageStreamMappings: ok"
-
-osc get imageRepositories
-osc create -f test/integration/fixtures/test-image-repository.json
-[ -n "$(osc get imageRepositories test -t "{{.status.dockerImageRepository}}")" ]
-osc delete imageRepositories test
-osc create -f examples/image-repositories/image-repositories.json
-[ -n "$(osc get imageRepositories ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories wildfly-8-centos -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageRepositories mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
-osc delete imageRepositories ruby-20-centos7
-osc delete imageRepositories nodejs-010-centos7
-osc delete imageRepositories mysql-55-centos7
-osc delete imageRepositories postgresql-92-centos7
-osc delete imageRepositories mongodb-24-centos7
-[ -z "$(osc get imageRepositories ruby-20-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories nodejs-010-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories mysql-55-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories postgresql-92-centos7 -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageRepositories mongodb-24-centos7 -t "{{.status.dockerImageRepository}}")" ]
-# don't delete wildfly-8-centos
-osc create -f - << EOF
-{"apiVersion": "v1beta1","dockerImageRepository": "openshift/mysql-55-centos7","kind": "ImageRepository","metadata": {"name": "mysql"}}
-EOF
-echo "imageRepositories: ok"
-
-osc create -f test/integration/fixtures/test-image-repository.json
-osc create -f test/integration/fixtures/test-image-repository-mapping.json
-osc get images
-osc get imageRepositories
-osc get imageRepositoryTag test:sometag
-osc delete imageRepositories test
-echo "imageRepositoryMappings: ok"
-
-[ -n "$(osc get imageRepositories mysql -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 [ "$(osc new-app library/php mysql -o yaml | grep 3306)" ]
-# verify we can generate a Docker image based component "mongodb" directly
 [ ! "$(osc new-app unknownhubimage -o yaml)" ]
+# verify we can generate a Docker image based component "mongodb" directly
 [ "$(osc new-app mongo -o yaml | grep library/mongo)" ]
 # the local image repository takes precedence over the Docker Hub "mysql" image
 [ "$(osc new-app mysql -o yaml | grep mysql-55-centos7)" ]
-osc new-app library/php mysql
+osc new-app library/php mysql -l no-source=php-mysql
+osc delete all -l no-source=php-mysql
 # check if we can create from a stored template
 osc create -f examples/sample-app/application-template-stibuild.json
 osc get template ruby-helloworld-sample
@@ -431,35 +391,38 @@ openshift kube resize --replicas=2 rc guestbook
 osc get pods
 echo "resize: ok"
 
-osc process -f examples/sample-app/application-template-dockerbuild.json | osc create -f -
+osc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | osc create -f -
 osc get buildConfigs
 osc get bc
 osc get builds
 
-[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Github"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github") ]]
-[[ $(osc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic") ]]
+[[ $(osc describe buildConfigs ruby-sample-build --api-version=v1beta1 | grep --text "Webhook Github"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github") ]]
+[[ $(osc describe buildConfigs ruby-sample-build --api-version=v1beta1 | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic") ]]
 osc start-build --list-webhooks='all' ruby-sample-build
 [[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "generic") ]]
 [[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "github") ]]
 [[ $(osc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101") ]]
 [ ! "$(osc start-build --list-webhooks='blah')" ]
-
 webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta1 | head -n 1)
 osc start-build --from-webhook="${webhook}"
 webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta3 | head -n 1)
 osc start-build --from-webhook="${webhook}"
 osc get builds
+osc delete all -l build=docker
 echo "buildConfig: ok"
 
 osc create -f test/integration/fixtures/test-buildcli.json
 # a build for which there is not an upstream tag in the corresponding imagerepo, so
 # the build should use the image field as defined in the buildconfig
 started=$(osc start-build ruby-sample-build-invalidtag)
-echo "start-build: ok"
 osc describe build ${started} | grep openshift/ruby-20-centos7$
+echo "start-build: ok"
 
 osc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
+osc delete is/ruby-20-centos7-buildcli
+osc delete bc/ruby-sample-build-validtag
+osc delete bc/ruby-sample-build-invalidtag
 
 openshift admin policy add-role-to-group cluster-admin system:unauthenticated
 openshift admin policy remove-role-from-group cluster-admin system:unauthenticated
@@ -506,12 +469,10 @@ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(osadm registry | grep 'service exists')" ]
 echo "ex registry: ok"
 
-# verify the image repository had its tags populated
-[ -n "$(osc get imageStreams wildfly-8-centos -t "{{.status.tags.latest}}")" ]
-[ -n "$(osc get imageStreams wildfly-8-centos -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
-
 # Test building a dependency tree
+osc process -f examples/sample-app/application-template-stibuild.json -l build=sti | osc create -f -
 [ "$(openshift ex build-chain --all -o dot | grep 'graph')" ]
+osc delete all -l build=sti
 echo "ex build-chain: ok"
 
 osadm new-project example --admin="createuser"
@@ -521,7 +482,7 @@ osc status
 echo "complex-scenarios: ok"
 
 # Clean-up everything before testing cleaning up everything...
-osc delete all -l template=application-template-stibuild
+osc delete all --all
 osc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | osc create -f -
 osc delete all -l name=mytemplate
 osc new-app https://github.com/openshift/ruby-hello-world -l name=hello-world

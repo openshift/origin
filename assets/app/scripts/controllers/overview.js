@@ -11,6 +11,10 @@ angular.module('openshiftConsole')
   .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver) {
     $scope.pods = {};
     $scope.services = {};
+    $scope.routesByService = {};
+    // The "best" route to display on the overview page for each service
+    // (one with a custom host if present)
+    $scope.displayRouteByService = {};
     $scope.unfilteredServices = {};
     $scope.deployments = {};
     $scope.deploymentConfigs = {};
@@ -73,6 +77,24 @@ angular.module('openshiftConsole')
       Logger.log("services (list)", $scope.services);
     }));
 
+    watches.push(DataService.watch("routes", $scope, function(routes) {
+      var routeMap = $scope.routesByService = {};
+      var displayRouteMap = $scope.displayRouteByService = {};
+      angular.forEach(routes.by("metadata.name"), function(route, routeName){
+        var serviceName = route.serviceName;
+        routeMap[serviceName] = routeMap[serviceName] || {};
+        routeMap[serviceName][routeName] = route;
+
+        // Find the best route to display for a service. Prefer the first custom host we find.
+        if (!displayRouteMap[serviceName] ||
+            (!isGeneratedHost(route) && isGeneratedHost(displayRouteMap[serviceName]))) {
+          displayRouteMap[serviceName] = route;
+        }
+      });
+
+      Logger.log("routes (subscribe)", $scope.routesByService);
+    }));
+
     // Expects deploymentsByServiceByDeploymentConfig to be up to date
     function podRelationships() {
       $scope.monopodsByService = {"": {}};
@@ -131,9 +153,11 @@ angular.module('openshiftConsole')
 
     // Filter out monopods we know we don't want to see
     function showMonopod(pod) {
-      // Hide pods in the Succeeded or Terminated phase since these are run once pods
-      // that are done.
-      if (pod.status.phase == 'Succeeded' || pod.status.phase == 'Terminated') {
+      // Hide pods in the Succeeded, Terminated, and Failed phases since these
+      // are run once pods that are done.
+      if (pod.status.phase === 'Succeeded' ||
+          pod.status.phase === 'Terminated' ||
+          pod.status.phase === 'Failed') {
         // TODO we may want to show pods for X amount of time after they have completed
         return false;
       }
@@ -154,7 +178,7 @@ angular.module('openshiftConsole')
       }
 
       return true;
-    };
+    }
 
     function deploymentConfigsByService() {
       $scope.deploymentConfigsByService = {"": {}};
@@ -340,6 +364,10 @@ angular.module('openshiftConsole')
         delete $scope.alerts["services"];
       }
     };
+
+    function isGeneratedHost(route) {
+      return route.metadata.annotations && route.metadata.annotations["openshift.io/host.generated"] === "true";
+    }
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
       // trigger a digest loop

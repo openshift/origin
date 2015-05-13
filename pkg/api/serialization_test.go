@@ -101,13 +101,36 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.DockerImageReference = specs[c.Intn(len(specs))]
 			if forVersion == "v1beta3" {
 				j.Tag, j.DockerImageReference = "", ""
+				if j.To != nil && (len(j.To.Kind) == 0 || j.To.Kind == "ImageStream") {
+					j.To.Kind = "ImageStream"
+					if len(j.Tag) == 0 {
+						j.To.Kind = "latest"
+					}
+				}
 			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			// TODO: we should not have to set defaults, instead we should be able to detect defaults were applied.
-			if len(j.Type) == 0 {
+			mkintp := func(i int) *int64 {
+				v := int64(i)
+				return &v
+			}
+			switch c.Intn(3) {
+			case 0:
+				// TODO: we should not have to set defaults, instead we should be able
+				// to detect defaults were applied.
+				j.Type = deploy.DeploymentStrategyTypeRolling
+				j.RollingParams = &deploy.RollingDeploymentStrategyParams{
+					IntervalSeconds:     mkintp(1),
+					UpdatePeriodSeconds: mkintp(1),
+					TimeoutSeconds:      mkintp(120),
+				}
+			case 1:
 				j.Type = deploy.DeploymentStrategyTypeRecreate
+				j.RollingParams = nil
+			case 2:
+				j.Type = deploy.DeploymentStrategyTypeCustom
+				j.RollingParams = nil
 			}
 		},
 		func(j *deploy.DeploymentCauseImageTrigger, c fuzz.Continue) {

@@ -186,6 +186,15 @@ angular.module('openshiftConsole')
         return url;
     };
   })
+  .filter('routeLabel', function() {
+    return function(route) {
+      var label = route.host;
+      if (route.path) {
+        label += route.path;
+      }
+      return label;
+    };
+  })
   .filter('parameterPlaceholder', function() {
     return function(parameter) {
       if (parameter.generate) {

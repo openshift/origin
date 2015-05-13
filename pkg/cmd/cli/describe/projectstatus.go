@@ -285,6 +285,8 @@ func describeBuildStatus(build *buildapi.Build, t *util.Time, parentName string)
 		return fmt.Sprintf("build %s succeeded %s ago%s", name, time, revision)
 	case buildapi.BuildStatusError:
 		return fmt.Sprintf("build %s stopped with an error %s ago%s", name, time, revision)
+	case buildapi.BuildStatusFailed:
+		return fmt.Sprintf("build %s failed %s ago%s", name, time, revision)
 	default:
 		status := strings.ToLower(string(build.Status))
 		return fmt.Sprintf("build %s %s for %s%s", name, status, time, revision)

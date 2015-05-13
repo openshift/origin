@@ -224,6 +224,9 @@ func ImageStreamTag(g MutableUniqueGraph, namespace, name, tag string) graph.Nod
 	if len(tag) == 0 {
 		tag = image.DefaultImageTag
 	}
+	if strings.Contains(name, ":") {
+		panic(name)
+	}
 	uname := UniqueName(fmt.Sprintf("%d|%s/%s:%s", ImageStreamGraphKind, namespace, name, tag))
 	return EnsureUnique(g,
 		uname,
@@ -272,17 +275,6 @@ func BuildConfig(g MutableUniqueGraph, config *build.BuildConfig) graph.Node {
 
 	from := buildutil.GetImageStreamForStrategy(config)
 	if from != nil {
-		for _, trigger := range config.Triggers {
-			if trigger.ImageChange != nil {
-				if len(from.Name) == 0 || from.Kind != "ImageStreamTag" {
-					continue
-				}
-				tag := strings.Split(from.Name, ":")[1]
-				in := ImageStreamTag(g, defaultNamespace(from.Namespace, config.Namespace), from.Name, tag)
-				g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
-			}
-		}
-
 		switch from.Kind {
 		case "DockerImage":
 			if ref, err := image.ParseDockerImageReference(from.Name); err == nil {
@@ -291,9 +283,13 @@ func BuildConfig(g MutableUniqueGraph, config *build.BuildConfig) graph.Node {
 				in := DockerRepository(g, ref.String(), tag)
 				g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
 			}
-		case "ImageStreamTag":
-			tag := strings.Split(from.Name, ":")[1]
+		case "ImageStream":
+			tag := image.DefaultImageTag
 			in := ImageStreamTag(g, defaultNamespace(from.Namespace, config.Namespace), from.Name, tag)
+			g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
+		case "ImageStreamTag":
+			name, tag, _ := image.SplitImageStreamTag(from.Name)
+			in := ImageStreamTag(g, defaultNamespace(from.Namespace, config.Namespace), name, tag)
 			g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
 		case "ImageStreamImage":
 			glog.V(4).Infof("Ignoring ImageStreamImage reference in buildconfig %s/%s", config.Namespace, config.Name)

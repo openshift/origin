@@ -66,8 +66,13 @@ func ConvertEnvironment(env []Environment) (result []string) {
 
 // ConvertEnvironmentToDocker converts the []Environment into Dockerfile format
 func ConvertEnvironmentToDocker(env []Environment) (result string) {
-	for _, e := range env {
-		result += fmt.Sprintf("ENV %s %s\n", e.Name, e.Value)
+	for i, e := range env {
+		if i == 0 {
+			result += fmt.Sprintf("ENV %s=\"%s\"", e.Name, e.Value)
+		} else {
+			result += fmt.Sprintf(" \\\n\t%s=\"%s\"", e.Name, e.Value)
+		}
 	}
+	result += "\n"
 	return
 }

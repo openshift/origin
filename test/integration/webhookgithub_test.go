@@ -218,7 +218,7 @@ func TestWebhookGithubPing(t *testing.T) {
 
 	for _, s := range []string{
 		openshift.whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
-		"/osapi/v1beta1/buildConfigs/pushbuild/webhooks/secret101/github?namespace=" + testutil.Namespace(),
+		"/osapi/v1beta3/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 		// trigger build event sending push notification
 		postFile(&http.Client{}, "ping", "pingevent.json", openshift.server.URL+s, http.StatusOK, t)
