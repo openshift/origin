@@ -56,12 +56,13 @@ func (s *STIBuilder) Build() error {
 	} else if s.build.Parameters.Source.Git.Ref != "" {
 		request.Ref = s.build.Parameters.Source.Git.Ref
 	}
-	// Attempt to read the .dockercfg and extract the authentication for
-	// docker pull
-	printRequest := request
+	printRequest := *request
+	// If DockerCfgPath is provided in api.Request, then attempt to read the the
+	// dockercfg file and get the authentication for pulling the builder image.
 	if r, err := os.Open(request.DockerCfgPath); err == nil {
 		request.PullAuthentication = stidocker.GetImageRegistryAuth(r, request.BaseImage)
 		printRequest.PullAuthentication.Password = "[filtered]"
+		glog.Infof("Using provided pull secret for pulling %s image", request.BaseImage)
 	}
 	glog.V(2).Infof("Creating a new STI builder with build request: %#v\n", printRequest)
 	builder, err := sti.GetStrategy(request)
@@ -84,7 +85,7 @@ func (s *STIBuilder) Build() error {
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
-			glog.V(3).Infof("Using Docker authentication provided")
+			glog.Infof("Using provided push secret for pushing %s image", request.BaseImage)
 			s.auth = pushAuthConfig
 		}
 		glog.Infof("Pushing %s image ...", dockerImageRef)
