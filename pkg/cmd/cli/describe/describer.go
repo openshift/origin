@@ -40,7 +40,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		"ImageStreamTag":       &ImageStreamTagDescriber{c},
 		"ImageStreamImage":     &ImageStreamImageDescriber{c},
 		"Route":                &RouteDescriber{c},
-		"Project":              &ProjectDescriber{c},
+		"Project":              &ProjectDescriber{c, kclient},
 		"Template":             &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
 		"Policy":               &PolicyDescriber{c},
 		"PolicyBinding":        &PolicyBindingDescriber{c},
@@ -457,16 +457,28 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 
 // ProjectDescriber generates information about a Project
 type ProjectDescriber struct {
-	client.Interface
+	osClient   client.Interface
+	kubeClient kclient.Interface
 }
 
 // Describe returns the description of a project
 func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Projects()
-	project, err := c.Get(name)
+	projectsClient := d.osClient.Projects()
+	project, err := projectsClient.Get(name)
 	if err != nil {
 		return "", err
 	}
+	resourceQuotasClient := d.kubeClient.ResourceQuotas(name)
+	resourceQuotaList, err := resourceQuotasClient.List(labels.Everything())
+	if err != nil {
+		return "", err
+	}
+	limitRangesClient := d.kubeClient.LimitRanges(name)
+	limitRangeList, err := limitRangesClient.List(labels.Everything())
+	if err != nil {
+		return "", err
+	}
+
 	nodeSelector := ""
 	if len(project.ObjectMeta.Annotations) > 0 {
 		if ns, ok := project.ObjectMeta.Annotations["openshift.io/node-selector"]; ok {
@@ -477,8 +489,89 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
 		formatString(out, "Display Name", project.Annotations["displayName"])
+		formatString(out, "Description", project.Annotations["description"])
 		formatString(out, "Status", project.Status.Phase)
 		formatString(out, "Node Selector", nodeSelector)
+		fmt.Fprintf(out, "\n")
+		if len(resourceQuotaList.Items) == 0 {
+			formatString(out, "Quota", "")
+		} else {
+			fmt.Fprintf(out, "Quota:\n")
+			for i := range resourceQuotaList.Items {
+				resourceQuota := &resourceQuotaList.Items[i]
+				fmt.Fprintf(out, "\tName:\t%s\n", resourceQuota.Name)
+				fmt.Fprintf(out, "\tResource\tUsed\tHard\n")
+				fmt.Fprintf(out, "\t--------\t----\t----\n")
+
+				resources := []kapi.ResourceName{}
+				for resource := range resourceQuota.Status.Hard {
+					resources = append(resources, resource)
+				}
+				sort.Sort(kctl.SortableResourceNames(resources))
+
+				msg := "\t%v\t%v\t%v\n"
+				for i := range resources {
+					resource := resources[i]
+					hardQuantity := resourceQuota.Status.Hard[resource]
+					usedQuantity := resourceQuota.Status.Used[resource]
+					fmt.Fprintf(out, msg, resource, usedQuantity.String(), hardQuantity.String())
+				}
+			}
+		}
+		fmt.Fprintf(out, "\n")
+		if len(limitRangeList.Items) == 0 {
+			formatString(out, "Resource limits", "")
+		} else {
+			fmt.Fprintf(out, "Resource limits:\n")
+			for i := range limitRangeList.Items {
+				limitRange := &limitRangeList.Items[i]
+				fmt.Fprintf(out, "\tName:\t%s\n", limitRange.Name)
+				fmt.Fprintf(out, "\tType\tResource\tMin\tMax\tDefault\n")
+				fmt.Fprintf(out, "\t----\t--------\t---\t---\t---\n")
+				for i := range limitRange.Spec.Limits {
+					item := limitRange.Spec.Limits[i]
+					maxResources := item.Max
+					minResources := item.Min
+					defaultResources := item.Default
+
+					set := map[kapi.ResourceName]bool{}
+					for k := range maxResources {
+						set[k] = true
+					}
+					for k := range minResources {
+						set[k] = true
+					}
+					for k := range defaultResources {
+						set[k] = true
+					}
+
+					for k := range set {
+						// if no value is set, we output -
+						maxValue := "-"
+						minValue := "-"
+						defaultValue := "-"
+
+						maxQuantity, maxQuantityFound := maxResources[k]
+						if maxQuantityFound {
+							maxValue = maxQuantity.String()
+						}
+
+						minQuantity, minQuantityFound := minResources[k]
+						if minQuantityFound {
+							minValue = minQuantity.String()
+						}
+
+						defaultQuantity, defaultQuantityFound := defaultResources[k]
+						if defaultQuantityFound {
+							defaultValue = defaultQuantity.String()
+						}
+
+						msg := "\t%v\t%v\t%v\t%v\t%v\n"
+						fmt.Fprintf(out, msg, item.Type, k, minValue, maxValue, defaultValue)
+					}
+				}
+			}
+		}
 		return nil
 	})
 }
