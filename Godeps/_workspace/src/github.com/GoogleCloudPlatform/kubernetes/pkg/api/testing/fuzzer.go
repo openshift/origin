@@ -196,13 +196,24 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 				ev.Value = c.RandString()
 			} else {
 				ev.ValueFrom = &api.EnvVarSource{}
-				ev.ValueFrom.FieldPath = &api.ObjectFieldSelector{}
+				ev.ValueFrom.FieldRef = &api.ObjectFieldSelector{}
 
 				versions := []string{"v1beta1", "v1beta2", "v1beta3"}
 
-				ev.ValueFrom.FieldPath.APIVersion = versions[c.Rand.Intn(len(versions))]
-				ev.ValueFrom.FieldPath.FieldPath = c.RandString()
+				ev.ValueFrom.FieldRef.APIVersion = versions[c.Rand.Intn(len(versions))]
+				ev.ValueFrom.FieldRef.FieldPath = c.RandString()
 			}
+		},
+		func(sc *api.SecurityContext, c fuzz.Continue) {
+			c.FuzzNoCustom(sc) // fuzz self without calling this function again
+			priv := c.RandBool()
+			sc.Privileged = &priv
+			sc.Capabilities = &api.Capabilities{
+				Add:  make([]api.CapabilityType, 0),
+				Drop: make([]api.CapabilityType, 0),
+			}
+			c.Fuzz(&sc.Capabilities.Add)
+			c.Fuzz(&sc.Capabilities.Drop)
 		},
 		func(e *api.Event, c fuzz.Continue) {
 			c.FuzzNoCustom(e) // fuzz self without calling this function again

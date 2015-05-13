@@ -72,6 +72,8 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 
 		EnableV1: true,
 
+		EnableCoreControllers: true,
+
 		Authorizer:       c.Authorizer,
 		AdmissionControl: c.AdmissionControl,
 	}
@@ -93,7 +95,7 @@ func (c *MasterConfig) RunNamespaceController() {
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController() {
-	controllerManager := controller.NewReplicationManager(c.KubeClient)
+	controllerManager := controller.NewReplicationManager(c.KubeClient, controller.BurstReplicas)
 	go controllerManager.Run(5, util.NeverStop)
 	glog.Infof("Started Kubernetes Replication Manager")
 }
@@ -146,6 +148,9 @@ func (c *MasterConfig) RunMinionController() {
 		1*time.Minute,  // startup grace
 		10*time.Second, // monitor period
 		"openshift",
+
+		nil,   // clusterCIDR
+		false, // allocateNodeCIDRs
 	)
 	minionController.Run(10*time.Second, true)
 

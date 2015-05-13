@@ -51,7 +51,7 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 	if e, a := "/var/run/docker.sock", mount.MountPath; e != a {
 		t.Errorf("Expected %s, got %s", e, a)
 	}
-	if pod.Spec.Containers[0].Privileged {
+	if pod.Spec.Containers[0].SecurityContext != nil && pod.Spec.Containers[0].SecurityContext.Privileged != nil && *pod.Spec.Containers[0].SecurityContext.Privileged {
 		t.Error("Expected privileged to be false")
 	}
 }
@@ -73,6 +73,7 @@ func TestSetupBuildEnvFails(t *testing.T) {
 		{Name: "BUILD", Value: ""},
 		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
 	}
+	privileged := true
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: buildutil.GetBuildPodName(build),
@@ -84,7 +85,9 @@ func TestSetupBuildEnvFails(t *testing.T) {
 					Image: build.Parameters.Strategy.CustomStrategy.From.Name,
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-					Privileged: true,
+					SecurityContext: &kapi.SecurityContext{
+						Privileged: &privileged,
+					},
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,

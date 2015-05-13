@@ -17,10 +17,10 @@ limitations under the License.
 package controller
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
@@ -84,7 +84,7 @@ func (r *RCExpectations) SatisfiedExpectations(rc *api.ReplicationController) bo
 		if podExp.Fulfilled() {
 			return true
 		} else {
-			glog.V(4).Infof("Controller %v still waiting on expectations %#v", podExp)
+			glog.V(4).Infof("Controller still waiting on expectations %#v", podExp)
 			return false
 		}
 	} else if err != nil {
@@ -124,9 +124,6 @@ func (r *RCExpectations) ExpectDeletions(rc *api.ReplicationController, dels int
 // Decrements the expectation counts of the given rc.
 func (r *RCExpectations) lowerExpectations(rc *api.ReplicationController, add, del int) {
 	if podExp, exists, err := r.GetExpectations(rc); err == nil && exists {
-		if podExp.add > 0 && podExp.del > 0 {
-			glog.V(2).Infof("Controller has both add and del expectations %+v", podExp)
-		}
 		podExp.Seen(int64(add), int64(del))
 		// The expectations might've been modified since the update on the previous line.
 		glog.V(4).Infof("Lowering expectations %+v", podExp)
@@ -167,6 +164,11 @@ func (e *PodExpectations) Fulfilled() bool {
 	return atomic.LoadInt64(&e.add) <= 0 && atomic.LoadInt64(&e.del) <= 0
 }
 
+// getExpectations returns the add and del expectations of the pod.
+func (e *PodExpectations) getExpectations() (int64, int64) {
+	return atomic.LoadInt64(&e.add), atomic.LoadInt64(&e.del)
+}
+
 // NewRCExpectations returns a store for PodExpectations.
 func NewRCExpectations() *RCExpectations {
 	return &RCExpectations{cache.NewTTLStore(expKeyFunc, ExpectationsTimeout)}
@@ -201,8 +203,9 @@ func (r RealPodControl) createReplica(namespace string, controller *api.Replicat
 	if err != nil {
 		return fmt.Errorf("unable to get controller reference: %v", err)
 	}
-	// TODO: Version this serialization per #7322
-	createdByRefJson, err := json.Marshal(createdByRef)
+	createdByRefJson, err := latest.Codec.Encode(&api.SerializedReference{
+		Reference: *createdByRef,
+	})
 	if err != nil {
 		return fmt.Errorf("unable to serialize controller reference: %v", err)
 	}

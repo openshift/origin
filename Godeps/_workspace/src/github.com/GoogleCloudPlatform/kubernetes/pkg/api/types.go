@@ -222,6 +222,8 @@ type PersistentVolumeSource struct {
 	HostPath *HostPathVolumeSource `json:"hostPath"`
 	// Glusterfs represents a Glusterfs volume that is attached to a host and exposed to the pod
 	Glusterfs *GlusterfsVolumeSource `json:"glusterfs"`
+	// NFS represents an NFS mount on the host that shares a pod's lifetime
+	NFS *NFSVolumeSource `json:"nfs"`
 }
 
 type PersistentVolumeClaimVolumeSource struct {
@@ -245,12 +247,14 @@ type PersistentVolume struct {
 
 type PersistentVolumeSpec struct {
 	// Resources represents the actual resources of the volume
-	Capacity ResourceList `json:"capacity`
+	Capacity ResourceList `json:"capacity"`
 	// Source represents the location and type of a volume to mount.
 	PersistentVolumeSource `json:",inline"`
 	// AccessModes contains all ways the volume can be mounted
 	AccessModes []AccessModeType `json:"accessModes,omitempty"`
-	// holds the binding reference to a PersistentVolumeClaim
+	// ClaimRef is part of a bi-directional binding between PersistentVolume and PersistentVolumeClaim.
+	// ClaimRef is expected to be non-nil when bound.
+	// claim.VolumeName is the authoritative bind between PV and PVC.
 	ClaimRef *ObjectReference `json:"claimRef,omitempty"`
 }
 
@@ -290,17 +294,17 @@ type PersistentVolumeClaimSpec struct {
 	AccessModes []AccessModeType `json:"accessModes,omitempty"`
 	// Resources represents the minimum resources required
 	Resources ResourceRequirements `json:"resources,omitempty"`
+	// VolumeName is the binding reference to the PersistentVolume backing this claim
+	VolumeName string `json:"volumeName,omitempty"`
 }
 
 type PersistentVolumeClaimStatus struct {
 	// Phase represents the current phase of PersistentVolumeClaim
 	Phase PersistentVolumeClaimPhase `json:"phase,omitempty"`
 	// AccessModes contains all ways the volume backing the PVC can be mounted
-	AccessModes []AccessModeType `json:"accessModes,omitempty`
+	AccessModes []AccessModeType `json:"accessModes,omitempty"`
 	// Represents the actual resources of the underlying volume
 	Capacity ResourceList `json:"capacity,omitempty"`
-	// VolumeRef is a reference to the PersistentVolume bound to the PersistentVolumeClaim
-	VolumeRef *ObjectReference `json:"volumeRef,omitempty"`
 }
 
 type AccessModeType string
@@ -518,7 +522,7 @@ type EnvVar struct {
 // EnvVarSource represents a source for the value of an EnvVar.
 type EnvVarSource struct {
 	// Required: Selects a field of the pod; only name and namespace are supported.
-	FieldPath *ObjectFieldSelector `json:"fieldPath"`
+	FieldRef *ObjectFieldSelector `json:"fieldRef"`
 }
 
 // ObjectFieldSelector selects an APIVersioned field of an object.
@@ -594,6 +598,9 @@ type ResourceRequirements struct {
 	// Limits describes the maximum amount of compute resources required.
 	Limits ResourceList `json:"limits,omitempty"`
 	// Requests describes the minimum amount of compute resources required.
+	// Note: 'Requests' are honored only for Persistent Volumes as of now.
+	// TODO: Update the scheduler to use 'Requests' in addition to 'Limits'. If Request is omitted for a container,
+	// it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value
 	Requests ResourceList `json:"requests,omitempty"`
 }
 
@@ -620,12 +627,10 @@ type Container struct {
 	Lifecycle      *Lifecycle           `json:"lifecycle,omitempty"`
 	// Required.
 	TerminationMessagePath string `json:"terminationMessagePath,omitempty"`
-	// Optional: Default to false.
-	Privileged bool `json:"privileged,omitempty"`
 	// Required: Policy for pulling images for this container
 	ImagePullPolicy PullPolicy `json:"imagePullPolicy"`
-	// Optional: Capabilities for container.
-	Capabilities Capabilities `json:"capabilities,omitempty"`
+	// Optional: SecurityContext defines the security options the pod should be run with
+	SecurityContext *SecurityContext `json:"securityContext,omitempty" description:"security options the pod should run with"`
 }
 
 // Handler defines a specific action that should be taken
@@ -811,6 +816,10 @@ type PodSpec struct {
 	// NodeSelector is a selector which must be true for the pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
+	// ServiceAccount is the name of the ServiceAccount to use to run this pod
+	// The pod will be allowed to use secrets referenced by the ServiceAccount
+	ServiceAccount string `json:"serviceAccount"`
+
 	// Host is a request to schedule this pod onto a specific host.  If it is non-empty,
 	// the the scheduler simply schedules this pod onto that host, assuming that it fits
 	// resource requirements.
@@ -825,7 +834,7 @@ type PodSpec struct {
 // state of a system.
 type PodStatus struct {
 	Phase      PodPhase       `json:"phase,omitempty"`
-	Conditions []PodCondition `json:"Condition,omitempty"`
+	Conditions []PodCondition `json:"conditions,omitempty"`
 	// A human readable message indicating details about why the pod is in this state.
 	Message string `json:"message,omitempty"`
 
@@ -1032,6 +1041,26 @@ type Service struct {
 	Status ServiceStatus `json:"status,omitempty"`
 }
 
+// ServiceAccount binds together:
+// * a name, understood by users, and perhaps by peripheral systems, for an identity
+// * a principal that can be authenticated and authorized
+// * a set of secrets
+type ServiceAccount struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// Secrets is the list of secrets allowed to be used by pods running using this ServiceAccount
+	Secrets []ObjectReference `json:"secrets"`
+}
+
+// ServiceAccountList is a list of ServiceAccount objects
+type ServiceAccountList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty"`
+
+	Items []ServiceAccount `json:"items"`
+}
+
 // Endpoints is a collection of endpoints that implement the actual service.  Example:
 //   Name: "mysvc",
 //   Subsets: [
@@ -1120,7 +1149,7 @@ type NodeSystemInfo struct {
 	// BootID is the boot-id reported by the node
 	BootID string `json:"bootID"`
 	// Kernel version reported by the node
-	KernelVersion string `json:"kernelVersion""`
+	KernelVersion string `json:"kernelVersion"`
 	// OS image used reported by the node
 	OsImage string `json:"osImage"`
 	// Container runtime version reported by the node
@@ -1329,6 +1358,9 @@ type PodLogOptions struct {
 
 	// If true, follow the logs for the pod
 	Follow bool
+
+	// If true, return previous terminated container logs
+	Previous bool
 }
 
 // PodExecOptions is the query options to a Pod's remote exec call
@@ -1350,8 +1382,8 @@ type PodExecOptions struct {
 	// Container in which to execute the command.
 	Container string
 
-	// Command is the remote command to execute
-	Command string
+	// Command is the remote command to execute; argv array; not executed within a shell.
+	Command []string
 }
 
 // PodProxyOptions is the query options to a Pod's proxy call
@@ -1590,6 +1622,11 @@ type ObjectReference struct {
 	FieldPath string `json:"fieldPath,omitempty"`
 }
 
+type SerializedReference struct {
+	TypeMeta  `json:",inline"`
+	Reference ObjectReference `json:"reference,omitempty" description:"the reference to an object in the system"`
+}
+
 type EventSource struct {
 	// Component from which the event is generated.
 	Component string `json:"component,omitempty"`
@@ -1794,7 +1831,25 @@ const MaxSecretSize = 1 * 1024 * 1024
 type SecretType string
 
 const (
-	SecretTypeOpaque SecretType = "Opaque" // Default; arbitrary user-defined data
+	// SecretTypeOpaque is the default; arbitrary user-defined data
+	SecretTypeOpaque SecretType = "Opaque"
+
+	// SecretTypeServiceAccountToken contains a token that identifies a service account to the API
+	//
+	// Required fields:
+	// - Secret.Annotations["kubernetes.io/service-account.name"] - the name of the ServiceAccount the token identifies
+	// - Secret.Annotations["kubernetes.io/service-account.uid"] - the UID of the ServiceAccount the token identifies
+	// - Secret.Data["token"] - a token that identifies the service account to the API
+	SecretTypeServiceAccountToken SecretType = "kubernetes.io/service-account-token"
+
+	// ServiceAccountNameKey is the key of the required annotation for SecretTypeServiceAccountToken secrets
+	ServiceAccountNameKey = "kubernetes.io/service-account.name"
+	// ServiceAccountUIDKey is the key of the required annotation for SecretTypeServiceAccountToken secrets
+	ServiceAccountUIDKey = "kubernetes.io/service-account.uid"
+	// ServiceAccountTokenKey is the key of the required data for SecretTypeServiceAccountToken secrets
+	ServiceAccountTokenKey = "token"
+	// ServiceAccountKubeconfigKey is the key of the optional kubeconfig data for SecretTypeServiceAccountToken secrets
+	ServiceAccountKubeconfigKey = "kubernetes.kubeconfig"
 )
 
 type SecretList struct {
@@ -1872,4 +1927,59 @@ type ComponentStatusList struct {
 	ListMeta `json:"metadata,omitempty"`
 
 	Items []ComponentStatus `json:"items"`
+}
+
+// SecurityContext holds security configuration that will be applied to a container.  SecurityContext
+// contains duplication of some existing fields from the Container resource.  These duplicate fields
+// will be populated based on the Container configuration if they are not set.  Defining them on
+// both the Container AND the SecurityContext will result in an error.
+type SecurityContext struct {
+	// Capabilities are the capabilities to add/drop when running the container
+	Capabilities *Capabilities `json:"capabilities,omitempty" description:"the linux capabilites that should be added or removed"`
+
+	// Run the container in privileged mode
+	Privileged *bool `json:"privileged,omitempty" description:"run the container in privileged mode"`
+
+	// SELinuxOptions are the labels to be applied to the container
+	// and volumes
+	SELinuxOptions *SELinuxOptions `json:"seLinuxOptions,omitempty" description:"options that control the SELinux labels applied"`
+
+	// RunAsUser is the UID to run the entrypoint of the container process.
+	RunAsUser *int64 `json:"runAsUser,omitempty" description:"the user id that runs the first process in the container"`
+}
+
+// SELinuxOptions are the labels to be applied to the container.
+type SELinuxOptions struct {
+	// SELinux user label
+	User string `json:"user,omitempty" description:"the user label to apply to the container"`
+
+	// SELinux role label
+	Role string `json:"role,omitempty" description:"the role label to apply to the container"`
+
+	// SELinux type label
+	Type string `json:"type,omitempty" description:"the type label to apply to the container"`
+
+	// SELinux level label.
+	Level string `json:"level,omitempty" description:"the level label to apply to the container"`
+}
+
+// RangeAllocation is an opaque API object (not exposed to end users) that can be persisted to record
+// the global allocation state of the cluster. The schema of Range and Data generic, in that Range
+// should be a string representation of the inputs to a range (for instance, for IP allocation it
+// might be a CIDR) and Data is an opaque blob understood by an allocator which is typically a
+// binary range.  Consumers should use annotations to record additional information (schema version,
+// data encoding hints). A range allocation should *ALWAYS* be recreatable at any time by observation
+// of the cluster, thus the object is less strongly typed than most.
+type RangeAllocation struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty"`
+	// A string representing a unique label for a range of resources, such as a CIDR "10.0.0.0/8" or
+	// port range "10000-30000". Range is not strongly schema'd here. The Range is expected to define
+	// a start and end unless there is an implicit end.
+	Range string `json:"range"`
+	// A byte array representing the serialized state of a range allocation. Additional clarifiers on
+	// the type or format of data should be represented with annotations. For IP allocations, this is
+	// represented as a bit array starting at the base IP of the CIDR in Range, with each bit representing
+	// a single allocated address (the fifth bit on CIDR 10.0.0.0/8 is 10.0.0.4).
+	Data []byte `json:"data"`
 }
