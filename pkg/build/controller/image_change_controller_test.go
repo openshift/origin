@@ -240,7 +240,7 @@ func TestBuildConfigInstantiatorError(t *testing.T) {
 	if actual, expected := bcInstantiator.newBuild.Parameters.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
 		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
 	}
-	if bcUpdater.buildcfg != nil {
+	if bcUpdater.buildcfg != nil && bcUpdater.updateCount > 1 {
 		t.Fatal("Expected no buildConfig update on BuildCreate error!")
 	}
 }
@@ -254,6 +254,7 @@ func TestBuildConfigUpdateError(t *testing.T) {
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
 	bcUpdater.err = fmt.Errorf("error")
+	bcUpdater.errUpdateCount = 2
 
 	err := controller.HandleImageRepo(imageStream)
 	if len(bcInstantiator.name) == 0 {
@@ -286,12 +287,21 @@ func TestNewImageIDNoDockerRepo(t *testing.T) {
 }
 
 type mockBuildConfigUpdater struct {
-	buildcfg *buildapi.BuildConfig
-	err      error
+	updateCount    int
+	buildcfg       *buildapi.BuildConfig
+	err            error
+	errUpdateCount int
 }
 
 func (m *mockBuildConfigUpdater) Update(buildcfg *buildapi.BuildConfig) error {
 	m.buildcfg = buildcfg
+	m.updateCount++
+	if m.errUpdateCount > 0 {
+		if m.updateCount == m.errUpdateCount {
+			return m.err
+		}
+		return nil
+	}
 	return m.err
 }
 
