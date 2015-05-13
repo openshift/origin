@@ -47,9 +47,9 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 		RetryManager: controller.NewQueueRetryManager(
 			q,
 			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, count int) bool {
+			func(obj interface{}, err error, retries controller.Retry) bool {
 				util.HandleError(err)
-				return count < 5
+				return retries.Count < 5
 			},
 			kutil.NewTokenBucketRateLimiter(1, 10),
 		),

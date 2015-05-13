@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
@@ -26,11 +27,27 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// limitedLogAndRetry stops retrying after 60 attempts.  Given the throttler configuration,
-// this means this event has been retried over a period of at least 50 seconds.
-func limitedLogAndRetry(obj interface{}, err error, count int) bool {
-	kutil.HandleError(err)
-	return count < 60
+const maxRetries = 60
+
+// limitedLogAndRetry stops retrying after maxTimeout, failing the build.
+func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.Duration) controller.RetryFunc {
+	return func(obj interface{}, err error, retries controller.Retry) bool {
+		kutil.HandleError(err)
+		if time.Since(retries.StartTimestamp.Time) < maxTimeout {
+			return true
+		}
+		build := obj.(*buildapi.Build)
+		build.Status = buildapi.BuildStatusFailed
+		build.Message = err.Error()
+		now := kutil.Now()
+		build.CompletionTimestamp = &now
+		glog.V(3).Infof("Giving up retrying build %s/%s: %v", build.Namespace, build.Name, err)
+		if err := buildupdater.Update(build.Namespace, build); err != nil {
+			// retry update, but only on error other than NotFound
+			return !kerrors.IsNotFound(err)
+		}
+		return false
+	}
 }
 
 // BuildControllerFactory constructs BuildController objects
@@ -67,8 +84,12 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	}
 
 	return &controller.RetryController{
-		Queue:        queue,
-		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, limitedLogAndRetry, kutil.NewTokenBucketRateLimiter(1, 10)),
+		Queue: queue,
+		RetryManager: controller.NewQueueRetryManager(
+			queue,
+			cache.MetaNamespaceKeyFunc,
+			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
+			kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			build := obj.(*buildapi.Build)
 			return buildController.HandleBuild(build)
@@ -111,8 +132,15 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 	}
 
 	return &controller.RetryController{
-		Queue:        queue,
-		RetryManager: controller.NewQueueRetryManager(queue, cache.MetaNamespaceKeyFunc, limitedLogAndRetry, kutil.NewTokenBucketRateLimiter(1, 10)),
+		Queue: queue,
+		RetryManager: controller.NewQueueRetryManager(
+			queue,
+			cache.MetaNamespaceKeyFunc,
+			func(obj interface{}, err error, retries controller.Retry) bool {
+				kutil.HandleError(err)
+				return retries.Count < maxRetries
+			},
+			kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			pod := obj.(*kapi.Pod)
 			return buildPodController.HandlePod(pod)
@@ -151,15 +179,12 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, count int) bool {
+			func(obj interface{}, err error, retries controller.Retry) bool {
 				kutil.HandleError(err)
 				if _, isFatal := err.(buildcontroller.ImageChangeControllerFatalError); isFatal {
 					return false
 				}
-				if count > 60 {
-					return false
-				}
-				return true
+				return retries.Count < maxRetries
 			},
 			kutil.NewTokenBucketRateLimiter(1, 10),
 		),

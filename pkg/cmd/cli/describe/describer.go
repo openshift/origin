@@ -113,7 +113,11 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		if build.Config != nil {
 			formatString(out, "Build Config", build.Config.Name)
 		}
-		formatString(out, "Status", bold(build.Status))
+		status := bold(build.Status)
+		if build.Status == buildapi.BuildStatusFailed {
+			status += " (" + build.Message + ")"
+		}
+		formatString(out, "Status", status)
 		if build.StartTimestamp != nil {
 			formatString(out, "Started", build.StartTimestamp.Time)
 		}
@@ -135,7 +139,10 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 
 func describeBuildDuration(build *buildapi.Build) string {
 	t := util.Now().Rfc3339Copy()
-	if build.StartTimestamp == nil && build.Status == buildapi.BuildStatusCancelled {
+	if build.StartTimestamp == nil &&
+		(build.Status == buildapi.BuildStatusCancelled ||
+			build.Status == buildapi.BuildStatusFailed ||
+			build.Status == buildapi.BuildStatusError) {
 		// time a build waited for its pod before ultimately being canceled before that pod was created
 		return fmt.Sprintf("waited for %s", build.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
 	} else if build.StartTimestamp == nil && build.Status != buildapi.BuildStatusCancelled {
