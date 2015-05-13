@@ -81,6 +81,8 @@ import (
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
+	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
+	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
@@ -107,6 +109,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/plugins/osdn"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 )
 
@@ -156,6 +159,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	buildEtcd := buildetcd.New(c.EtcdHelper)
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
+	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
+	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
 
 	userStorage := useretcd.NewREST(c.EtcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)
@@ -281,6 +286,9 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,
+
+		"hostSubnet":     hostSubnetStorage,
+		"clusterNetwork": clusterNetworkStorage,
 
 		"users":                userStorage,
 		"identities":           identityStorage,
@@ -893,6 +901,13 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
 	controller := factory.Create()
 	controller.Run()
+}
+
+// SDN controller runs openshift-sdn if the said network plugin is provided
+func (c *MasterConfig) RunSDNController() {
+	if c.Options.NetworkConfig.NetworkPluginName == osdn.NetworkPluginName() {
+		osdn.Master(*c.SdnClient(), *c.KubeClient(), c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
+	}
 }
 
 // RouteAllocator returns a route allocation controller.

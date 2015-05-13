@@ -19,24 +19,7 @@ make
 make install
 popd
 
-# Create systemd service
-cat <<EOF > /usr/lib/systemd/system/openshift-node-sdn.service
-[Unit]
-Description=openshift SDN node
-Requires=openvswitch.service
-After=openvswitch.service
-Before=openshift-node.service
-
-[Service]
-ExecStart=/usr/bin/openshift-sdn -minion -etcd-endpoints=https://${MASTER_IP}:4001 -public-ip=${MINION_IP} -etcd-keyfile=${ETCD_KEYFILE} -etcd-certfile=${ETCD_CERTFILE} -etcd-cafile=${ETCD_CAFILE}
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Start the service
-systemctl daemon-reload
 systemctl enable openvswitch
 systemctl start openvswitch
-systemctl enable openshift-node-sdn.service
-systemctl start openshift-node-sdn.service
+
+# no need to start openshift-sdn, as it is integrated with openshift binary

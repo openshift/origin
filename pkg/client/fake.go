@@ -68,6 +68,14 @@ func (c *Fake) Routes(namespace string) RouteInterface {
 	return &FakeRoutes{Fake: c, Namespace: namespace}
 }
 
+func (c *Fake) HostSubnets() HostSubnetInterface {
+	return &FakeHostSubnet{Fake: c}
+}
+
+func (c *Fake) ClusterNetwork() ClusterNetworkInterface {
+	return &FakeClusterNetwork{Fake: c}
+}
+
 func (c *Fake) Templates(namespace string) TemplateInterface {
 	return &FakeTemplates{Fake: c}
 }

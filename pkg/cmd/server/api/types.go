@@ -89,6 +89,9 @@ type MasterConfig struct {
 	ProjectNodeSelector string `json:"projectNodeSelector,omitempty"`
 	// ProjectRequestConfig holds information about how to handle new project requests
 	ProjectRequestConfig ProjectRequestConfig
+
+	// NetworkConfig to be passed to the compiled in network plugin
+	NetworkConfig NetworkConfig
 }
 
 // ProjectRequestConfig holds information about how to handle new project requests
@@ -107,6 +110,13 @@ type PolicyConfig struct {
 
 	// OpenShiftSharedResourcesNamespace is the namespace where shared OpenShift resources live (like shared templates)
 	OpenShiftSharedResourcesNamespace string
+}
+
+// NetworkConfig to be passed to the compiled in network plugin
+type NetworkConfig struct {
+	NetworkPluginName  string `json:"networkPluginName"`
+	ClusterNetworkCIDR string `json:"clusterNetworkCIDR"`
+	HostSubnetLength   uint   `json:"hostSubnetLength"`
 }
 
 type ImageConfig struct {

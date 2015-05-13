@@ -57,6 +57,7 @@ pushd /vagrant
       --node="${minion}" \
       --hostnames="${minion},${ip}" \
       --master="https://${MASTER_IP}:8443" \
+      --network-plugin="redhat/openshift-ovs-subnet" \
       --node-client-certificate-authority="${CERT_DIR}/ca.crt" \
       --certificate-authority="${CERT_DIR}/ca.crt" \
       --signer-cert="${CERT_DIR}/ca.crt" \
@@ -78,7 +79,7 @@ Requires=docker.service network.service
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start master --master=https://${MASTER_IP}:8443 --nodes=${node_list}
+ExecStart=/usr/bin/openshift start master --master=https://${MASTER_IP}:8443 --nodes=${node_list} --network-plugin=redhat/openshift-ovs-subnet
 WorkingDirectory=/vagrant/
 
 [Install]
