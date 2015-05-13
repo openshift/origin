@@ -75,7 +75,6 @@ func TestGenerateDeploymentConfig(t *testing.T) {
 		},
 	}
 
-
 	for _, tc := range tests {
 		options := makeIPFailoverConfigOptions(tc.Selector, tc.Replicas)
 		selector := makeSelector(options)

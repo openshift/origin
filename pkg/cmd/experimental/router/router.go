@@ -236,7 +236,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 							ObjectMeta: kapi.ObjectMeta{Labels: label},
 							Spec: kapi.PodSpec{
 								NodeSelector: nodeSelector,
-								Containers:   []kapi.Container{
+								Containers: []kapi.Container{
 									{
 										Name:  "router",
 										Image: image,
