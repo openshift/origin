@@ -107,6 +107,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/version"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 )
 
@@ -411,6 +412,7 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Server", fmt.Sprintf("OpenShift/%s", version.Get()))
 			w.WriteHeader(http.StatusOK)
 			w.Write(output)
 		} else {
