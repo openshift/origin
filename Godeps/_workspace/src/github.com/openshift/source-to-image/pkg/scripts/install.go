@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"path/filepath"
 
+	dockerClient "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
@@ -17,12 +18,13 @@ type Installer interface {
 }
 
 // NewInstaller returns a new instance of the default Installer implementation
-func NewInstaller(image string, scriptsURL string, docker docker.Docker) Installer {
+func NewInstaller(image string, scriptsURL string, docker docker.Docker, auth dockerClient.AuthConfiguration) Installer {
 	return &installer{
 		image:      image,
 		scriptsURL: scriptsURL,
 		docker:     docker,
 		downloader: NewDownloader(),
+		pullAuth:   auth,
 		fs:         util.NewFileSystem(),
 	}
 }
@@ -31,6 +33,7 @@ type installer struct {
 	image      string
 	scriptsURL string
 	docker     docker.Docker
+	pullAuth   dockerClient.AuthConfiguration
 	downloader Downloader
 	fs         util.FileSystem
 }
