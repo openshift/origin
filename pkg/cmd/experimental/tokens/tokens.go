@@ -1,6 +1,7 @@
 package tokens
 
 import (
+	"io"
 	"os"
 	"path"
 
@@ -13,11 +14,13 @@ import (
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
+const TokenRecommendedCommandName = "tokens"
+
 const (
 	TOKEN_FILE_PARAM = "token-file"
 )
 
-func NewCmdTokens(f *osclientcmd.Factory, parentName, name string) *cobra.Command {
+func NewCmdTokens(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
@@ -31,7 +34,7 @@ func NewCmdTokens(f *osclientcmd.Factory, parentName, name string) *cobra.Comman
 
 	cmds.AddCommand(NewCmdValidateToken(f))
 	cmds.AddCommand(NewCmdRequestToken(f))
-	cmds.AddCommand(NewCmdWhoAmI(f))
+	cmds.AddCommand(NewCmdWhoAmI(WhoAmIRecommendedCommandName, fullName+" "+WhoAmIRecommendedCommandName, f, out))
 
 	return cmds
 }
