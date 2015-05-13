@@ -6,6 +6,14 @@ MINION_IP=$4
 OPENSHIFT_SDN=$6
 MINION_INDEX=$5
 
+NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
+sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
+
+systemctl restart network
+
+# get the minion name, index is 1-based
+minion_name=${MINION_NAMES[$MINION_INDEX-1]}
+
 # Setup hosts file to support ping by hostname to master
 if [ ! "$(cat /etc/hosts | grep $MASTER_NAME)" ]; then
   echo "Adding $MASTER_NAME to hosts file"
@@ -22,6 +30,9 @@ for (( i=0; i<${#MINION_NAMES[@]}; i++)); do
     echo "$ip $minion" >> /etc/hosts
   fi  
 done
+if ! grep ${MINION_IP} /etc/hosts; then
+  echo "${MINION_IP} ${minion_name}" >> /etc/hosts
+fi
 
 # Install the required packages
 yum install -y docker-io git golang e2fsprogs hg openvswitch net-tools bridge-utils which ethtool
@@ -47,8 +58,6 @@ else
   $(dirname $0)/provision-gre-network.sh $@
 fi
 
-# get the minion name, index is 1-based
-minion_name=${MINION_NAMES[$MINION_INDEX-1]}
 # Create systemd service
 cat <<EOF > /usr/lib/systemd/system/openshift-node.service
 [Unit]

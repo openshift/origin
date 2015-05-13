@@ -1058,11 +1058,11 @@
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/ovssubnet",
-			"Rev": "83026250e430a37f9a2c17a0bdecd6e36383c753"
+			"Rev": "3ba813b579ee95a86599ba0896f2d470d7702a19"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/api",
-			"Rev": "83026250e430a37f9a2c17a0bdecd6e36383c753"
+			"Rev": "3ba813b579ee95a86599ba0896f2d470d7702a19"
 		}
 	]
 }
