@@ -1,42 +1,36 @@
-<div class="navbar-project">
-  <div class="navbar-project-menu">
-    <div class="form-group">
-      <label class="control-label" for="boostrapSelect">Projects</label>
-      <!-- TODO add multiple attribute back to the select tag when we support selecting multiple -->
-      <select class="selectpicker form-control" data-selected-text-format="count>3" id="boostrapSelect"></select>
+<div class="navbar-project container-fluid">
+  <div class="row">
+    <div class="col-sm-4">
+      <div class="form-group">
+        <label class="control-label" for="boostrapSelect">Projects</label>
+        <!-- TODO add multiple attribute back to the select tag when we support selecting multiple -->
+        <select class="selectpicker form-control" data-selected-text-format="count>3" id="boostrapSelect"></select>
+      </div>
     </div>
-  </div>
-  <div class="navbar-search filter">
-    <div class="container-fluid">
-        <div class="row">
-          <div class="col-md-6">
-            <div class="form-group">
-              <label ng-if="!renderOptions || !renderOptions.hideFilterWidget" class="control-label">Filter by labels</label>
-              <div class="navbar-filter-widget">
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4 active-filters">
-          </div>
-          <div class="col-md-2" style="margin-top: 30px;">
-            <span ng-if="project.status.phase == 'Active'">
-              <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
-                <span>Create</span>
-                <i class="fa fa-plus" />
-              </a>
-            </span>
-            <span ng-if="project.status.phase != 'Active'">
-              <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary" disabled="disabled">
-                <span>Create</span>
-                <i class="fa fa-plus" />
-              </a>
-              <span ng-if="project.status.phase == 'Terminating'" class="pficon-layered" data-toggle="tooltip" data-placement="left" title="This project has been marked for deletion. No content may be created in this project." style="cursor: help; font-size: 32px; vertical-align: top; margin-left: 5px;">
-                <span class="pficon pficon-warning-triangle"></span>
-                <span class="pficon pficon-warning-exclamation"></span>
-              </span>              
-            </span>
-          </div>
-        </div>
+    <div class="col-sm-5 filter">
+      <div class="form-group">
+        <label ng-if="!renderOptions || !renderOptions.hideFilterWidget" class="control-label">Filter by labels</label>
+        <div class="navbar-filter-widget"></div>
+      </div>
+      <div class="active-filters"></div>
+    </div>
+    <div class="col-sm-3 create-button-container">
+      <span ng-if="project.status.phase == 'Active'">
+        <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
+          <span>Create</span>
+          <i class="fa fa-plus" />
+        </a>
+      </span>
+      <span ng-if="project.status.phase != 'Active'">
+        <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary" disabled="disabled">
+          <span>Create</span>
+          <i class="fa fa-plus" />
+        </a>
+        <span ng-if="project.status.phase == 'Terminating'" class="pficon-layered" data-toggle="tooltip" data-placement="left" title="This project has been marked for deletion. No content may be created in this project." style="cursor: help; font-size: 32px; vertical-align: top; margin-left: 5px;">
+          <span class="pficon pficon-warning-triangle"></span>
+          <span class="pficon pficon-warning-exclamation"></span>
+        </span>
+      </span>
     </div>
   </div>
 </div>
