@@ -52,7 +52,16 @@ func NewController(sub api.SubnetRegistry, hostname string, selfIP string) (*Ovs
 			log.Errorf("Failed to lookup IP Address for %s", hostname)
 			return nil, err
 		}
-		selfIP = addrs[0].String()
+		for _, addr := range addrs {
+			if addr.String() != "127.0.0.1" {
+				selfIP = addr.String()
+				break
+			}
+		}
+		if selfIP == "" {
+			log.Errorf("Failed to lookup valid IP Address for %s (%v)", hostname, addrs)
+			return nil, err
+		}
 	}
 	log.Infof("Self IP: %s.", selfIP)
 	return &OvsController{
