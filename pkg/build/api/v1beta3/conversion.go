@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi_v1beta3 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 
 	newer "github.com/openshift/origin/pkg/build/api"
@@ -201,6 +202,13 @@ func init() {
 			if in.To != nil && (len(in.To.Kind) == 0 || in.To.Kind == "ImageStream") {
 				out.To.Kind = "ImageStreamTag"
 				out.To.Name = imageapi.JoinImageStreamTag(in.To.Name, in.Tag)
+				return nil
+			}
+			if len(in.DockerImageReference) != 0 {
+				out.To = &kapi_v1beta3.ObjectReference{
+					Kind: "DockerImage",
+					Name: in.DockerImageReference,
+				}
 			}
 			return nil
 		},
@@ -216,6 +224,11 @@ func init() {
 				out.To.Kind = "ImageStream"
 				out.To.Name = name
 				out.Tag = tag
+				return nil
+			}
+			if in.To != nil && in.To.Kind == "DockerImage" {
+				out.To = nil
+				out.DockerImageReference = in.To.Name
 			}
 			return nil
 		},
