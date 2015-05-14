@@ -140,6 +140,13 @@ type RollingDeploymentStrategyParams struct {
 	// TimeoutSeconds is the time to wait for updates before giving up. If the
 	// value is nil, a default will be used.
 	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty" description:"the time to wait for updates before giving up"`
+	// Pre is a lifecycle hook which is executed before the deployment process
+	// begins. All LifecycleHookFailurePolicy values are supported.
+	Pre *LifecycleHook `json:"pre,omitempty" description:"a hook executed before the strategy starts the deployment"`
+	// Post is a lifecycle hook which is executed after the strategy has
+	// finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
+	// is NOT supported.
+	Post *LifecycleHook `json:"post,omitempty" description:"a hook executed after the strategy finishes the deployment"`
 }
 
 // A DeploymentList is a collection of deployments.

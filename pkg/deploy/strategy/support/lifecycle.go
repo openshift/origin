@@ -2,12 +2,17 @@ package support
 
 import (
 	"fmt"
-	"reflect"
+	"time"
 
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -21,11 +26,29 @@ type HookExecutor struct {
 }
 
 // Execute executes hook in the context of deployment.
-func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
-	if hook.ExecNewPod != nil {
-		return e.executeExecNewPod(hook.ExecNewPod, deployment)
+func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error {
+	for {
+		var err error
+		switch {
+		case hook.ExecNewPod != nil:
+			err = e.executeExecNewPod(hook.ExecNewPod, deployment)
+		}
+
+		if err == nil {
+			return nil
+		}
+
+		switch hook.FailurePolicy {
+		case deployapi.LifecycleHookFailurePolicyAbort:
+			return fmt.Errorf("Hook failed, aborting: %s", err)
+		case deployapi.LifecycleHookFailurePolicyIgnore:
+			glog.Infof("Hook failed, ignoring: %s", err)
+			return nil
+		case deployapi.LifecycleHookFailurePolicyRetry:
+			glog.Infof("Hook failed, retrying: %s", err)
+			time.Sleep(retryPeriod)
+		}
 	}
-	return nil
 }
 
 // executeExecNewPod executes a ExecNewPod hook by creating a new pod based on
@@ -44,13 +67,6 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.ExecNewPodHook, deploym
 		return err
 	}
 
-	// Set up a watch for the pod
-	podWatch, err := e.PodClient.WatchPod(deployment.Namespace, podSpec.Name)
-	if err != nil {
-		return fmt.Errorf("couldn't create watch for pod %s/%s: %s", deployment.Namespace, podSpec.Name, err)
-	}
-	defer podWatch.Stop()
-
 	// Try to create the pod
 	pod, err := e.PodClient.CreatePod(deployment.Namespace, podSpec)
 	if err != nil {
@@ -63,28 +79,16 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.ExecNewPodHook, deploym
 
 	// Wait for the pod to finish.
 	// TODO: Delete pod before returning?
+	nextPod := e.PodClient.PodWatch(pod.Namespace, pod.Name, pod.ResourceVersion)
 	glog.V(0).Infof("Waiting for hook pod %s/%s to complete", pod.Namespace, pod.Name)
 	for {
-		select {
-		case event, ok := <-podWatch.ResultChan():
-			if !ok {
-				return fmt.Errorf("couldn't watch pod %s/%s", pod.Namespace, pod.Name)
-			}
-			if event.Type == watch.Error {
-				return kerrors.FromObject(event.Object)
-			}
-			pod, podOk := event.Object.(*kapi.Pod)
-			if !podOk {
-				return fmt.Errorf("expected a pod event, got a %s", reflect.TypeOf(event.Object))
-			}
-			glog.V(0).Infof("Lifecycle pod %s/%s in phase %s", pod.Namespace, pod.Name, pod.Status.Phase)
-			switch pod.Status.Phase {
-			case kapi.PodSucceeded:
-				return nil
-			case kapi.PodFailed:
-				// TODO: Add context
-				return fmt.Errorf("pod failed")
-			}
+		pod := nextPod()
+		switch pod.Status.Phase {
+		case kapi.PodSucceeded:
+			return nil
+		case kapi.PodFailed:
+			// TODO: Add context
+			return fmt.Errorf("pod failed")
 		}
 	}
 }
@@ -157,19 +161,40 @@ func buildContainer(hook *deployapi.ExecNewPodHook, deployment *kapi.Replication
 // HookExecutorPodClient abstracts access to pods.
 type HookExecutorPodClient interface {
 	CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
-	WatchPod(namespace, name string) (watch.Interface, error)
+	PodWatch(namespace, name, resourceVersion string) func() *kapi.Pod
 }
 
 // HookExecutorPodClientImpl is a pluggable HookExecutorPodClient.
 type HookExecutorPodClientImpl struct {
 	CreatePodFunc func(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
-	WatchPodFunc  func(namespace, name string) (watch.Interface, error)
+	PodWatchFunc  func(namespace, name, resourceVersion string) func() *kapi.Pod
 }
 
 func (i *HookExecutorPodClientImpl) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return i.CreatePodFunc(namespace, pod)
 }
 
-func (i *HookExecutorPodClientImpl) WatchPod(namespace, name string) (watch.Interface, error) {
-	return i.WatchPodFunc(namespace, name)
+func (i *HookExecutorPodClientImpl) PodWatch(namespace, name, resourceVersion string) func() *kapi.Pod {
+	return i.PodWatchFunc(namespace, name, resourceVersion)
+}
+
+// NewPodWatch creates a pod watching function which is backed by a
+// FIFO/reflector pair. This avoids managing watches directly.
+func NewPodWatch(client kclient.Interface, namespace, name, resourceVersion string) func() *kapi.Pod {
+	fieldSelector, _ := fields.ParseSelector("metadata.name=" + name)
+	podLW := &deployutil.ListWatcherImpl{
+		ListFunc: func() (runtime.Object, error) {
+			return client.Pods(namespace).List(labels.Everything(), fieldSelector)
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return client.Pods(namespace).Watch(labels.Everything(), fieldSelector, resourceVersion)
+		},
+	}
+	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	cache.NewReflector(podLW, &kapi.Pod{}, queue, 1*time.Minute).Run()
+
+	return func() *kapi.Pod {
+		obj := queue.Pop()
+		return obj.(*kapi.Pod)
+	}
 }

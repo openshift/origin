@@ -13,7 +13,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/strategy"
+	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -44,6 +46,8 @@ type RollingDeploymentStrategy struct {
 	rollingUpdate func(config *kubectl.RollingUpdaterConfig) error
 	// codec is used to access the encoded config on a deployment.
 	codec runtime.Codec
+	// hookExecutor can execute a lifecycle hook.
+	hookExecutor hookExecutor
 }
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
@@ -80,6 +84,16 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, co
 			updater := kubectl.NewRollingUpdater(namespace, updaterClient)
 			return updater.Update(config)
 		},
+		hookExecutor: &stratsupport.HookExecutor{
+			PodClient: &stratsupport.HookExecutorPodClientImpl{
+				CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+					return client.Pods(namespace).Create(pod)
+				},
+				PodWatchFunc: func(namespace, name, resourceVersion string) func() *kapi.Pod {
+					return stratsupport.NewPodWatch(client, namespace, name, resourceVersion)
+				},
+			},
+		},
 	}
 }
 
@@ -89,6 +103,10 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 		return fmt.Errorf("couldn't decode DeploymentConfig from Deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
 	}
 
+	params := config.Template.Strategy.RollingParams
+	// TODO: Consider exposing this via the API.
+	hookRetryPeriod := 1 * time.Second
+
 	// Find the latest deployment (if any).
 	latest, err := s.findLatestDeployment(oldDeployments)
 	if err != nil {
@@ -97,8 +115,51 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 
 	// If there's no prior deployment, delegate to another strategy since the
 	// rolling updater only supports transitioning between two deployments.
+	//
+	// Hook support is duplicated here for now. When the rolling updater can
+	// handle initial deployments, all of this code can go away.
 	if latest == nil {
-		return s.initialStrategy.Deploy(deployment, oldDeployments)
+		// Execute any pre-hook.
+		if params.Pre != nil {
+			err := s.hookExecutor.Execute(params.Pre, deployment, hookRetryPeriod)
+			if err != nil {
+				return fmt.Errorf("Pre hook failed: %s", err)
+			}
+			glog.Infof("Pre hook finished")
+		}
+
+		// Execute the delegate strategy.
+		err := s.initialStrategy.Deploy(deployment, oldDeployments)
+		if err != nil {
+			return err
+		}
+
+		// Execute any post-hook. Errors are logged and ignored.
+		if params.Post != nil {
+			// TODO: handle this in defaulting/conversion/validation?
+			if params.Post.FailurePolicy == deployapi.LifecycleHookFailurePolicyAbort {
+				params.Post.FailurePolicy = deployapi.LifecycleHookFailurePolicyIgnore
+			}
+			err := s.hookExecutor.Execute(params.Post, deployment, hookRetryPeriod)
+			if err != nil {
+				glog.Errorf("Post hook failed: %s", err)
+			} else {
+				glog.Infof("Post hook finished")
+			}
+		}
+
+		// All done.
+		return nil
+	}
+
+	// Prepare for a rolling update.
+	// Execute any pre-hook.
+	if params.Pre != nil {
+		err := s.hookExecutor.Execute(params.Pre, deployment, hookRetryPeriod)
+		if err != nil {
+			return fmt.Errorf("Pre hook failed: %s", err)
+		}
+		glog.Infof("Pre hook finished")
 	}
 
 	// HACK: Assign the source ID annotation that the rolling updater expects,
@@ -106,10 +167,14 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	//
 	// Related upstream issue:
 	// https://github.com/GoogleCloudPlatform/kubernetes/pull/7183
+	deployment, err = s.client.GetReplicationController(deployment.Namespace, deployment.Name)
+	if err != nil {
+		return fmt.Errorf("couldn't look up deployment %s: %s", deployutil.LabelForDeployment(deployment))
+	}
 	if _, hasSourceId := deployment.Annotations[sourceIdAnnotation]; !hasSourceId {
 		deployment.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", latest.Name, latest.ObjectMeta.UID)
 		if updated, err := s.client.UpdateReplicationController(deployment.Namespace, deployment); err != nil {
-			return fmt.Errorf("couldn't assign source annotation to Deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
+			return fmt.Errorf("couldn't assign source annotation to deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
 		} else {
 			deployment = updated
 		}
@@ -126,7 +191,6 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 
 	glog.Infof("OldRc: %s, replicas=%d", latest.Name, latest.Spec.Replicas)
 	// Perform a rolling update.
-	params := config.Template.Strategy.RollingParams
 	rollingConfig := &kubectl.RollingUpdaterConfig{
 		Out:           &rollingUpdaterWriter{},
 		OldRc:         latest,
@@ -145,7 +209,26 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 		*params.IntervalSeconds,
 		*params.TimeoutSeconds,
 	)
-	return s.rollingUpdate(rollingConfig)
+	err = s.rollingUpdate(rollingConfig)
+	if err != nil {
+		return err
+	}
+
+	// Execute any post-hook. Errors are logged and ignored.
+	if params.Post != nil {
+		// TODO: handle this in defaulting/conversion/validation?
+		if params.Post.FailurePolicy == deployapi.LifecycleHookFailurePolicyAbort {
+			params.Post.FailurePolicy = deployapi.LifecycleHookFailurePolicyIgnore
+		}
+		err := s.hookExecutor.Execute(params.Post, deployment, hookRetryPeriod)
+		if err != nil {
+			glog.Errorf("Post hook failed: %s", err)
+		} else {
+			glog.Info("Post hook finished")
+		}
+	}
+
+	return nil
 }
 
 // findLatestDeployment retrieves deployments identified by oldDeployments and
@@ -209,4 +292,18 @@ type rollingUpdaterWriter struct{}
 func (w *rollingUpdaterWriter) Write(p []byte) (n int, err error) {
 	glog.Info(fmt.Sprintf("RollingUpdater: %s", p))
 	return len(p), nil
+}
+
+// hookExecutor knows how to execute a deployment lifecycle hook.
+type hookExecutor interface {
+	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error
+}
+
+// hookExecutorImpl is a pluggable hookExecutor.
+type hookExecutorImpl struct {
+	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error
+}
+
+func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error {
+	return i.executeFunc(hook, deployment, retryPeriod)
 }

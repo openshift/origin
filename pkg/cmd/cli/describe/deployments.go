@@ -181,6 +181,17 @@ func printStrategy(strategy deployapi.DeploymentStrategy, w *tabwriter.Writer) {
 				printHook("Post-deployment", post, w)
 			}
 		}
+	case deployapi.DeploymentStrategyTypeRolling:
+		if strategy.RollingParams != nil {
+			pre := strategy.RollingParams.Pre
+			post := strategy.RollingParams.Post
+			if pre != nil {
+				printHook("Pre-deployment", pre, w)
+			}
+			if post != nil {
+				printHook("Post-deployment", post, w)
+			}
+		}
 	case deployapi.DeploymentStrategyTypeCustom:
 		fmt.Fprintf(w, "\t  Image:\t%s\n", strategy.CustomParams.Image)
 

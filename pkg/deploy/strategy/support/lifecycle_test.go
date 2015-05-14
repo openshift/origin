@@ -6,65 +6,31 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-func TestHookExecutor_executeExecNewWatchFailure(t *testing.T) {
-	hook := &deployapi.LifecycleHook{
-		ExecNewPod: &deployapi.ExecNewPodHook{
-			ContainerName: "undefined",
-		},
-	}
-
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
-
-	executor := &HookExecutor{
-		PodClient: &HookExecutorPodClientImpl{
-			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				t.Fatalf("unexpected call to CreatePod")
-				return nil, nil
-			},
-			WatchPodFunc: func(namespace, name string) (watch.Interface, error) {
-				return nil, fmt.Errorf("couldn't make watch")
-			},
-		},
-	}
-
-	err := executor.Execute(hook, deployment)
-
-	if err == nil {
-		t.Fatalf("expected an error")
-	}
-	t.Logf("got expected error: %s", err)
-}
-
 func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
-	hook := &deployapi.LifecycleHook{
-		ExecNewPod: &deployapi.ExecNewPodHook{
-			ContainerName: "container1",
-		},
+	hook := &deployapi.ExecNewPodHook{
+		ContainerName: "container1",
 	}
 
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
-
-	podWatch := newTestWatch()
 
 	executor := &HookExecutor{
 		PodClient: &HookExecutorPodClientImpl{
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return nil, fmt.Errorf("couldn't create pod")
 			},
-			WatchPodFunc: func(namespace, name string) (watch.Interface, error) {
-				return podWatch, nil
+			PodWatchFunc: func(namespace, name, resourceVersion string) func() *kapi.Pod {
+				return func() *kapi.Pod { return nil }
 			},
 		},
 	}
 
-	err := executor.Execute(hook, deployment)
+	err := executor.executeExecNewPod(hook, deployment)
 
 	if err == nil {
 		t.Fatalf("expected an error")
@@ -73,40 +39,28 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 }
 
 func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
-	hook := &deployapi.LifecycleHook{
-		ExecNewPod: &deployapi.ExecNewPodHook{
-			ContainerName: "container1",
-		},
+	hook := &deployapi.ExecNewPodHook{
+		ContainerName: "container1",
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 
-	podWatch := newTestWatch()
-
 	var createdPod *kapi.Pod
 	executor := &HookExecutor{
 		PodClient: &HookExecutorPodClientImpl{
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				go func() {
-					obj, _ := kapi.Scheme.Copy(pod)
-					cp := obj.(*kapi.Pod)
-					cp.Status.Phase = kapi.PodSucceeded
-					podWatch.events <- watch.Event{
-						Type:   watch.Modified,
-						Object: cp,
-					}
-				}()
 				createdPod = pod
 				return createdPod, nil
 			},
-			WatchPodFunc: func(namespace, name string) (watch.Interface, error) {
-				return podWatch, nil
+			PodWatchFunc: func(namespace, name, resourceVersion string) func() *kapi.Pod {
+				createdPod.Status.Phase = kapi.PodSucceeded
+				return func() *kapi.Pod { return createdPod }
 			},
 		},
 	}
 
-	err := executor.Execute(hook, deployment)
+	err := executor.executeExecNewPod(hook, deployment)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -122,39 +76,27 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 }
 
 func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
-	hook := &deployapi.LifecycleHook{
-		ExecNewPod: &deployapi.ExecNewPodHook{
-			ContainerName: "container1",
-		},
+	hook := &deployapi.ExecNewPodHook{
+		ContainerName: "container1",
 	}
 
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
-
-	podWatch := newTestWatch()
 
 	var createdPod *kapi.Pod
 	executor := &HookExecutor{
 		PodClient: &HookExecutorPodClientImpl{
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				go func() {
-					obj, _ := kapi.Scheme.Copy(pod)
-					cp := obj.(*kapi.Pod)
-					cp.Status.Phase = kapi.PodFailed
-					podWatch.events <- watch.Event{
-						Type:   watch.Modified,
-						Object: cp,
-					}
-				}()
 				createdPod = pod
 				return createdPod, nil
 			},
-			WatchPodFunc: func(namespace, name string) (watch.Interface, error) {
-				return podWatch, nil
+			PodWatchFunc: func(namespace, name, resourceVersion string) func() *kapi.Pod {
+				createdPod.Status.Phase = kapi.PodFailed
+				return func() *kapi.Pod { return createdPod }
 			},
 		},
 	}
 
-	err := executor.Execute(hook, deployment)
+	err := executor.executeExecNewPod(hook, deployment)
 
 	if err == nil {
 		t.Fatalf("expected an error", err)
@@ -261,19 +203,4 @@ func TestHookExecutor_buildContainerOk(t *testing.T) {
 	if e, a := kapi.RestartPolicyNever, podSpec.Spec.RestartPolicy; e != a {
 		t.Fatalf("expected restart policy %s, got %s", e, a)
 	}
-}
-
-type testWatch struct {
-	events chan watch.Event
-}
-
-func newTestWatch() *testWatch {
-	return &testWatch{make(chan watch.Event)}
-}
-
-func (w *testWatch) Stop() {
-}
-
-func (w *testWatch) ResultChan() <-chan watch.Event {
-	return w.events
 }
