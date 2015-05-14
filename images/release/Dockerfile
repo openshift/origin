@@ -15,7 +15,7 @@ ENV TMPDIR /openshifttmp
 
 # Get the code coverage tool and godep
 RUN mkdir $TMPDIR && \
-    go get code.google.com/p/go.tools/cmd/cover github.com/tools/godep github.com/golang/lint/golint
+    go get golang.org/x/tools/cmd/cover github.com/tools/godep github.com/golang/lint/golint
 
 # Mark this as a os-build container
 RUN touch /os-build-image
