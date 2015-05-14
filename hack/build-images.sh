@@ -47,7 +47,7 @@ function image {
   set -x
   echo "--- $1 ---"
   docker build -t $1:latest $2
-  docker tag -f $1:latest $1:${OS_RELEASE_COMMIT}
+  docker tag $1:latest $1:${OS_RELEASE_COMMIT}
 }
 
 # images that depend on scratch
