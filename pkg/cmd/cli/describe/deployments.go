@@ -3,6 +3,7 @@ package describe
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -29,6 +30,7 @@ type DeploymentConfigDescriber struct {
 type deploymentDescriberClient interface {
 	getDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
 	getDeployment(namespace, name string) (*kapi.ReplicationController, error)
+	listDeployments(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)
 	listPods(namespace string, selector labels.Selector) (*kapi.PodList, error)
 	listEvents(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error)
 }
@@ -36,6 +38,7 @@ type deploymentDescriberClient interface {
 type genericDeploymentDescriberClient struct {
 	getDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)
 	getDeploymentFunc       func(namespace, name string) (*kapi.ReplicationController, error)
+	listDeploymentsFunc     func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)
 	listPodsFunc            func(namespace string, selector labels.Selector) (*kapi.PodList, error)
 	listEventsFunc          func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error)
 }
@@ -46,6 +49,10 @@ func (c *genericDeploymentDescriberClient) getDeploymentConfig(namespace, name s
 
 func (c *genericDeploymentDescriberClient) getDeployment(namespace, name string) (*kapi.ReplicationController, error) {
 	return c.getDeploymentFunc(namespace, name)
+}
+
+func (c *genericDeploymentDescriberClient) listDeployments(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+	return c.listDeploymentsFunc(namespace, selector)
 }
 
 func (c *genericDeploymentDescriberClient) listPods(namespace string, selector labels.Selector) (*kapi.PodList, error) {
@@ -83,6 +90,9 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return kclient.ReplicationControllers(namespace).Get(name)
+			},
+			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+				return kclient.ReplicationControllers(namespace).List(selector)
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
 				return kclient.Pods(namespace).List(selector, fields.Everything())
@@ -129,7 +139,20 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 				formatString(out, "Latest Deployment", fmt.Sprintf("error: %v", err))
 			}
 		} else {
-			printDeploymentRc(deployment, d.client, out)
+			header := fmt.Sprintf("Deployment #%v (latest)", deployment.Annotations[deployapi.DeploymentVersionAnnotation])
+			printDeploymentRc(deployment, d.client, out, header, true)
+		}
+		deploymentsHistory, err := d.client.listDeployments(namespace, labels.Everything())
+		if err == nil {
+			sorted := rcSorter{}
+			sorted = append(sorted, deploymentsHistory.Items...)
+			sort.Sort(sorted)
+			for _, item := range sorted {
+				if item.Name != deploymentName && deploymentConfig.Name == item.Annotations[deployapi.DeploymentConfigAnnotation] {
+					header := fmt.Sprintf("Deployment #%v", item.Annotations[deployapi.DeploymentVersionAnnotation])
+					printDeploymentRc(&item, d.client, out, header, false)
+				}
+			}
 		}
 
 		if events != nil {
@@ -216,19 +239,28 @@ func printReplicationControllerSpec(spec kapi.ReplicationControllerSpec, w io.Wr
 	return nil
 }
 
-func printDeploymentRc(deployment *kapi.ReplicationController, client deploymentDescriberClient, w io.Writer) error {
-	running, waiting, succeeded, failed, err := getPodStatusForDeployment(deployment, client)
-	if err != nil {
-		return err
+func printDeploymentRc(deployment *kapi.ReplicationController, client deploymentDescriberClient, w io.Writer, header string, verbose bool) error {
+	if len(header) > 0 {
+		fmt.Fprintf(w, "%v:\n", header)
 	}
 
-	fmt.Fprint(w, "Latest Deployment:\n")
-	fmt.Fprintf(w, "\tName:\t%s\n", deployment.Name)
+	if verbose {
+		fmt.Fprintf(w, "\tName:\t%s\n", deployment.Name)
+	}
+	timeAt := strings.ToLower(formatRelativeTime(deployment.CreationTimestamp.Time))
+	fmt.Fprintf(w, "\tCreated:\t%s ago\n", timeAt)
 	fmt.Fprintf(w, "\tStatus:\t%s\n", deployment.Annotations[deployapi.DeploymentStatusAnnotation])
-	fmt.Fprintf(w, "\tSelector:\t%s\n", formatLabels(deployment.Spec.Selector))
-	fmt.Fprintf(w, "\tLabels:\t%s\n", formatLabels(deployment.Labels))
 	fmt.Fprintf(w, "\tReplicas:\t%d current / %d desired\n", deployment.Status.Replicas, deployment.Spec.Replicas)
-	fmt.Fprintf(w, "\tPods Status:\t%d Running / %d Waiting / %d Succeeded / %d Failed\n", running, waiting, succeeded, failed)
+
+	if verbose {
+		fmt.Fprintf(w, "\tSelector:\t%s\n", formatLabels(deployment.Spec.Selector))
+		fmt.Fprintf(w, "\tLabels:\t%s\n", formatLabels(deployment.Labels))
+		running, waiting, succeeded, failed, err := getPodStatusForDeployment(deployment, client)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "\tPods Status:\t%d Running / %d Waiting / %d Succeeded / %d Failed\n", running, waiting, succeeded, failed)
+	}
 
 	return nil
 }
@@ -253,18 +285,24 @@ func getPodStatusForDeployment(deployment *kapi.ReplicationController, client de
 	return
 }
 
-type LatestDeploymentDescriber struct {
+type LatestDeploymentsDescriber struct {
+	count  int
 	client deploymentDescriberClient
 }
 
-func NewLatestDeploymentDescriber(client client.Interface, kclient kclient.Interface) *LatestDeploymentDescriber {
-	return &LatestDeploymentDescriber{
+// List the latest deployments limited to "count". In case count == -1, list back to the last successful.
+func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Interface, count int) *LatestDeploymentsDescriber {
+	return &LatestDeploymentsDescriber{
+		count: count,
 		client: &genericDeploymentDescriberClient{
 			getDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
 				return client.DeploymentConfigs(namespace).Get(name)
 			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return kclient.ReplicationControllers(namespace).Get(name)
+			},
+			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+				return kclient.ReplicationControllers(namespace).List(selector)
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
 				return kclient.Pods(namespace).List(selector, fields.Everything())
@@ -276,62 +314,55 @@ func NewLatestDeploymentDescriber(client client.Interface, kclient kclient.Inter
 	}
 }
 
-func (d *LatestDeploymentDescriber) Describe(namespace, name string) (string, error) {
+func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, error) {
 	config, err := d.client.getDeploymentConfig(namespace, name)
 	if err != nil {
 		return "", err
 	}
 
-	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := d.client.getDeployment(config.Namespace, deploymentName)
-	if err != nil && !kerrors.IsNotFound(err) {
-		return "", err
+	var deployments []kapi.ReplicationController
+	if d.count == -1 || d.count > 1 {
+		list, err := d.client.listDeployments(namespace, labels.Everything())
+		if err != nil && !kerrors.IsNotFound(err) {
+			return "", err
+		}
+		deployments = list.Items
+	} else {
+		deploymentName := deployutil.LatestDeploymentNameForConfig(config)
+		deployment, err := d.client.getDeployment(config.Namespace, deploymentName)
+		if err != nil && !kerrors.IsNotFound(err) {
+			return "", err
+		}
+		if deployment != nil {
+			deployments = []kapi.ReplicationController{*deployment}
+		}
 	}
 
 	g := graph.New()
 	deploy := graph.DeploymentConfig(g, config)
-	if deployment != nil {
-		graph.JoinDeployments(deploy.(*graph.DeploymentConfigNode), []kapi.ReplicationController{*deployment})
+	if len(deployments) > 0 {
+		graph.JoinDeployments(deploy.(*graph.DeploymentConfigNode), deployments)
 	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
-		indent := "  "
-		fmt.Fprintf(out, "Latest deployment for %s/%s:\n", namespace, name)
-		printLines(out, indent, 1, d.describeDeployment(deploy.(*graph.DeploymentConfigNode))...)
+		node := deploy.(*graph.DeploymentConfigNode)
+		descriptions := describeDeployments(node, d.count)
+		for i, description := range descriptions {
+			descriptions[i] = fmt.Sprintf("%v %v", name, description)
+		}
+		printLines(out, "", 0, descriptions...)
 		return nil
 	})
 }
 
-func (d *LatestDeploymentDescriber) describeDeployment(node *graph.DeploymentConfigNode) []string {
-	if node == nil {
-		return nil
-	}
-	out := []string{}
+type rcSorter []kapi.ReplicationController
 
-	if node.ActiveDeployment == nil {
-		on, auto := describeDeploymentConfigTriggers(node.DeploymentConfig)
-		if node.DeploymentConfig.LatestVersion == 0 {
-			out = append(out, fmt.Sprintf("#1 waiting %s. Run osc deploy --latest to deploy now.", on))
-		} else if auto {
-			out = append(out, fmt.Sprintf("#%d pending %s. Run osc deploy --latest to deploy now.", node.DeploymentConfig.LatestVersion, on))
-		}
-		// TODO: detect new image available?
-	} else {
-		out = append(out, d.describeDeploymentStatus(node.ActiveDeployment))
-	}
-	return out
+func (s rcSorter) Len() int {
+	return len(s)
 }
-
-func (d *LatestDeploymentDescriber) describeDeploymentStatus(deploy *kapi.ReplicationController) string {
-	timeAt := strings.ToLower(formatRelativeTime(deploy.CreationTimestamp.Time))
-	switch s := deploy.Annotations[deployapi.DeploymentStatusAnnotation]; deployapi.DeploymentStatus(s) {
-	case deployapi.DeploymentStatusFailed:
-		// TODO: encode fail time in the rc
-		return fmt.Sprintf("#%s failed %s ago. You can restart this deployment with osc deploy --retry.", deploy.Annotations[deployapi.DeploymentVersionAnnotation], timeAt)
-	case deployapi.DeploymentStatusComplete:
-		// TODO: pod status output
-		return fmt.Sprintf("#%s deployed %s ago", deploy.Annotations[deployapi.DeploymentVersionAnnotation], timeAt)
-	default:
-		return fmt.Sprintf("#%s deployment %s %s ago", deploy.Annotations[deployapi.DeploymentVersionAnnotation], strings.ToLower(s), timeAt)
-	}
+func (s rcSorter) Less(i, j int) bool {
+	return s[i].CreationTimestamp.Unix() > s[j].CreationTimestamp.Unix()
+}
+func (s rcSorter) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }

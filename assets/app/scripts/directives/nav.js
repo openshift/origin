@@ -20,7 +20,7 @@ angular.module('openshiftConsole')
       templateUrl: "views/_sidebar-main-nav-item.html"
     };
   })
-  .directive('projectNav', function($timeout, $location, LabelFilter) {
+  .directive('projectNav', function($timeout, $location, $filter, LabelFilter) {
     return {
       restrict: 'E',
       templateUrl: 'views/_project-nav.html',
@@ -28,11 +28,13 @@ angular.module('openshiftConsole')
         var select = $('.selectpicker', element);
 
         var updateOptions = function(projects) {
-          angular.forEach(projects, function(project) {
+          var sortedProjects = $filter('orderByDisplayName')(projects);
+          // Create options from the sorted array.
+          angular.forEach(sortedProjects, function(project) {
             $('<option>')
               .attr("value", project.metadata.name)
               .attr("selected", project.metadata.name == $scope.projectName)
-              .text((project.metadata.annotations && project.metadata.annotations.displayName)|| project.metadata.name)
+              .text($filter('displayName')(project))
               .appendTo(select);
           });
           // TODO add back in when we support create project

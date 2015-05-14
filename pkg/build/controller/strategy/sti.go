@@ -53,6 +53,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
 	}
 
+	privileged := true
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      buildutil.GetBuildPodName(build),
@@ -66,8 +67,10 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 					Image: bs.Image,
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-					Privileged: true,
-					Args:       []string{"--loglevel=" + getContainerVerbosity(containerEnv)},
+					SecurityContext: &kapi.SecurityContext{
+						Privileged: &privileged,
+					},
+					Args: []string{"--loglevel=" + getContainerVerbosity(containerEnv)},
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,

@@ -16,6 +16,7 @@ import (
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
+	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/user/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -43,12 +44,6 @@ func TestLogin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	// empty config, should display message
-	// loginOptions := newLoginOptions("", "", "", false)
-	// if err := loginOptions.GatherInfo(); err == nil {
-	// 	t.Errorf("Raw login should error out")
-	// }
 
 	username := "joe"
 	password := "pass"
@@ -106,6 +101,25 @@ func TestLogin(t *testing.T) {
 	// if _, err = loginOptions.SaveConfig(configFile.Name()); err != nil {
 	// 	t.Fatalf("unexpected error: %v", err)
 	// }
+
+	userWhoamiOptions := tokens.WhoAmIOptions{oClient.Users(), ioutil.Discard}
+	retrievedUser, err := userWhoamiOptions.WhoAmI()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if retrievedUser.Name != username {
+		t.Errorf("expected %v, got %v", retrievedUser.Name, username)
+	}
+
+	adminWhoamiOptions := tokens.WhoAmIOptions{clusterAdminClient.Users(), ioutil.Discard}
+	retrievedAdmin, err := adminWhoamiOptions.WhoAmI()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if retrievedAdmin.Name != "system:admin" {
+		t.Errorf("expected %v, got %v", retrievedAdmin.Name, "system:admin")
+	}
+
 }
 
 func newLoginOptions(server string, username string, password string, insecure bool) *cmd.LoginOptions {

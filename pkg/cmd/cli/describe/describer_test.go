@@ -76,6 +76,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	podList := &kapi.PodList{}
 	eventList := &kapi.EventList{}
+	deploymentList := &kapi.ReplicationControllerList{}
 
 	d := &DeploymentConfigDescriber{
 		client: &genericDeploymentDescriberClient{
@@ -84,6 +85,9 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 			},
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return deployment, nil
+			},
+			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+				return deploymentList, nil
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
 				return podList, nil

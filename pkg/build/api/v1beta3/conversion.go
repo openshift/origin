@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi_v1beta3 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 
 	newer "github.com/openshift/origin/pkg/build/api"
@@ -11,6 +12,27 @@ import (
 )
 
 func init() {
+	err := kapi.Scheme.AddDefaultingFuncs(
+		func(obj *STIBuildStrategy) {
+			if obj.From != nil && len(obj.From.Kind) == 0 {
+				obj.From.Kind = "ImageStreamTag"
+			}
+		},
+		func(obj *DockerBuildStrategy) {
+			if obj.From != nil && len(obj.From.Kind) == 0 {
+				obj.From.Kind = "ImageStreamTag"
+			}
+		},
+		func(obj *CustomBuildStrategy) {
+			if obj.From != nil && len(obj.From.Kind) == 0 {
+				obj.From.Kind = "ImageStreamTag"
+			}
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	kapi.Scheme.AddConversionFuncs(
 		func(in *newer.Build, out *Build, s conversion.Scope) error {
 			if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
@@ -177,22 +199,88 @@ func init() {
 		},
 
 		func(in *newer.STIBuildStrategy, out *STIBuildStrategy, s conversion.Scope) error {
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if in.From != nil && in.From.Kind == "ImageStream" {
+				out.From.Kind = "ImageStreamTag"
+				out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+			}
+			return nil
 		},
 		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if in.From != nil {
+				switch in.From.Kind {
+				case "ImageStream":
+					out.From.Kind = "ImageStreamTag"
+					out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+				case "ImageStreamTag":
+					_, _, ok := imageapi.SplitImageStreamTag(in.From.Name)
+					if !ok {
+						return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
+					}
+				}
+			}
+			return nil
 		},
 		func(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if in.From != nil && in.From.Kind == "ImageStream" {
+				out.From.Kind = "ImageStreamTag"
+				out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+			}
+			return nil
 		},
 		func(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if in.From != nil {
+				switch in.From.Kind {
+				case "ImageStream":
+					out.From.Kind = "ImageStreamTag"
+					out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+				case "ImageStreamTag":
+					_, _, ok := imageapi.SplitImageStreamTag(in.From.Name)
+					if !ok {
+						return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
+					}
+				}
+			}
+			return nil
 		},
 		func(in *newer.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if in.From != nil && in.From.Kind == "ImageStream" {
+				out.From.Kind = "ImageStreamTag"
+				out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+			}
+			return nil
 		},
 		func(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if in.From != nil {
+				switch in.From.Kind {
+				case "ImageStream":
+					out.From.Kind = "ImageStreamTag"
+					out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+				case "ImageStreamTag":
+					_, _, ok := imageapi.SplitImageStreamTag(in.From.Name)
+					if !ok {
+						return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
+					}
+				}
+			}
+			return nil
 		},
 		func(in *newer.BuildOutput, out *BuildOutput, s conversion.Scope) error {
 			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
@@ -201,6 +289,13 @@ func init() {
 			if in.To != nil && (len(in.To.Kind) == 0 || in.To.Kind == "ImageStream") {
 				out.To.Kind = "ImageStreamTag"
 				out.To.Name = imageapi.JoinImageStreamTag(in.To.Name, in.Tag)
+				return nil
+			}
+			if len(in.DockerImageReference) != 0 {
+				out.To = &kapi_v1beta3.ObjectReference{
+					Kind: "DockerImage",
+					Name: in.DockerImageReference,
+				}
 			}
 			return nil
 		},
@@ -216,6 +311,11 @@ func init() {
 				out.To.Kind = "ImageStream"
 				out.To.Name = name
 				out.Tag = tag
+				return nil
+			}
+			if in.To != nil && in.To.Kind == "DockerImage" {
+				out.To = nil
+				out.DockerImageReference = in.To.Name
 			}
 			return nil
 		},
@@ -229,7 +329,7 @@ func init() {
 		})
 
 	// Add field conversion funcs.
-	err := kapi.Scheme.AddFieldLabelConversionFunc("v1beta3", "Build",
+	err = kapi.Scheme.AddFieldLabelConversionFunc("v1beta3", "Build",
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "name":

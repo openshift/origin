@@ -47,7 +47,10 @@ type MasterArgs struct {
 	KubeConnectionArgs *KubeConnectionArgs
 
 	SchedulerConfigFile string
+
 	ProjectNodeSelector string
+
+	NetworkArgs *NetworkArgs
 }
 
 // BindMasterArgs binds the options to the flags with prefix + default flag names
@@ -78,6 +81,7 @@ func NewDefaultMasterArgs() *MasterArgs {
 		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
+		NetworkArgs:        NewDefaultNetworkArgs(),
 	}
 
 	return config
@@ -196,6 +200,12 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 		ProjectRequestConfig: configapi.ProjectRequestConfig{
 			ProjectRequestTemplate: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace + "/project-request",
+		},
+
+		NetworkConfig: configapi.NetworkConfig{
+			NetworkPluginName:  args.NetworkArgs.NetworkPluginName,
+			ClusterNetworkCIDR: args.NetworkArgs.ClusterNetworkCIDR,
+			HostSubnetLength:   args.NetworkArgs.HostSubnetLength,
 		},
 	}
 

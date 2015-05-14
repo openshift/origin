@@ -161,6 +161,7 @@ func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.
 type ImageRef struct {
 	imageapi.DockerImageReference
 	AsImageStream bool
+	OutputImage   bool
 
 	Stream *imageapi.ImageStream
 	Info   *imageapi.DockerImage
@@ -183,10 +184,15 @@ func (r *ImageRef) NameReference() string {
 
 // ObjectReference returns an object reference from the image reference
 func (r *ImageRef) ObjectReference() *kapi.ObjectReference {
+	if r.Stream != nil {
+		return &kapi.ObjectReference{
+			Kind: "ImageStreamTag",
+			Name: r.Name + ":" + r.Tag,
+		}
+	}
 	return &kapi.ObjectReference{
-		Kind:      "ImageStreamTag",
-		Name:      r.Name + ":" + imageapi.DefaultImageTag,
-		Namespace: r.Namespace,
+		Kind: "ImageStreamTag",
+		Name: r.Name + ":" + imageapi.DefaultImageTag,
 	}
 }
 
@@ -241,7 +247,7 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 		return nil, fmt.Errorf("unable to suggest an image stream name for %q", r.String())
 	}
 
-	repo := &imageapi.ImageStream{
+	stream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
@@ -249,11 +255,12 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 			Tags: map[string]imageapi.TagReference{imageapi.DefaultImageTag: {DockerImageReference: r.DockerImageReference.String()}},
 		},
 	}
-	if !r.AsImageStream {
-		repo.Spec.DockerImageRepository = r.String()
+	if !r.OutputImage {
+		stream.Spec.DockerImageRepository = r.String()
+		stream.Spec.Tags = map[string]imageapi.TagReference{}
 	}
 
-	return repo, nil
+	return stream, nil
 }
 
 // DeployableContainer sets up a container for the image ready for deployment

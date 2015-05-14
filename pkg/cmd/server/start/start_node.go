@@ -13,6 +13,7 @@ import (
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	"github.com/openshift/origin/plugins/osdn"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -225,11 +226,27 @@ func (o NodeOptions) CreateNodeConfig() error {
 	return nil
 }
 
+func RunSDNController(config configapi.NodeConfig) {
+	if config.NetworkPluginName == osdn.NetworkPluginName() {
+		kclient, _, err := configapi.GetKubeClient(config.MasterKubeConfig)
+		if err != nil {
+			glog.Fatal("Failed to get kube client for SDN")
+		}
+		oclient, _, err := configapi.GetOpenShiftClient(config.MasterKubeConfig)
+		if err != nil {
+			glog.Fatal("Failed to get kube client for SDN")
+		}
+		osdn.Node(*oclient, *kclient, config.NodeName, "")
+	}
+}
+
 func StartNode(config configapi.NodeConfig) error {
 	nodeConfig, err := kubernetes.BuildKubernetesNodeConfig(config)
 	if err != nil {
 		return err
 	}
+
+	RunSDNController(config)
 
 	nodeConfig.EnsureVolumeDir()
 	nodeConfig.EnsureDocker(docker.NewHelper())

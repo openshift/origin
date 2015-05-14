@@ -63,7 +63,25 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 			return nil, kerrs.NewForbidden("user", "~", errors.New("Requests to ~ must be authenticated"))
 		}
 		name = user.GetName()
+
+		if ok, _ := validation.ValidateUserName(name, false); !ok {
+			// The user the authentication layer has identified cannot possibly be a persisted user
+			// Return an API representation of the virtual user
+			return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}}, nil
+		}
+
+		obj, err := r.Etcd.Get(ctx, name)
+		if err == nil {
+			return obj, nil
+		}
+
+		if !kerrs.IsNotFound(err) {
+			return nil, err
+		}
+
+		return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}}, nil
 	}
+
 	if ok, details := validation.ValidateUserName(name, false); !ok {
 		return nil, fielderrors.NewFieldInvalid("metadata.name", name, details)
 	}

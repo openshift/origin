@@ -196,6 +196,58 @@ func TestSTIBuildStrategyNewToOldConversion(t *testing.T) {
 	if actual.Tag != "" {
 		t.Errorf("expected |%v|, actual |%v|", "", actual.Tag)
 	}
+
+	// ImageStream, unchanged
+	newVersion = newer.STIBuildStrategy{
+		From: &knewer.ObjectReference{
+			Kind:      "ImageStream",
+			Name:      "name",
+			Namespace: "namespace",
+		},
+	}
+	actual = older.STIBuildStrategy{}
+	err = Convert(&newVersion, &actual)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if actual.From.Kind != "ImageStream" {
+		t.Errorf("expected %v, actual %v", "", actual.From.Kind)
+	}
+	if actual.From.Name != "name" {
+		t.Errorf("expected %v, actual %v", "name", actual.From.Name)
+	}
+	if actual.From.Namespace != "namespace" {
+		t.Errorf("expected %v, actual %v", "namespace", actual.From.Namespace)
+	}
+	if actual.Tag != "" {
+		t.Errorf("expected %v, actual %v", "tag", actual.Tag)
+	}
+
+	// ImageStream(default), unchanged
+	newVersion = newer.STIBuildStrategy{
+		From: &knewer.ObjectReference{
+			Name:      "name",
+			Namespace: "namespace",
+		},
+	}
+	actual = older.STIBuildStrategy{}
+	err = Convert(&newVersion, &actual)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if actual.From.Kind != "ImageStream" {
+		t.Errorf("expected %v, actual %v", "", actual.From.Kind)
+	}
+	if actual.From.Name != "name" {
+		t.Errorf("expected %v, actual %v", "name", actual.From.Name)
+	}
+	if actual.From.Namespace != "namespace" {
+		t.Errorf("expected %v, actual %v", "namespace", actual.From.Namespace)
+	}
+	if actual.Tag != "" {
+		t.Errorf("expected %v, actual %v", "tag", actual.Tag)
+	}
+
 }
 
 func TestDockerBuildStrategyOldToNewConversion(t *testing.T) {
@@ -391,6 +443,58 @@ func TestDockerBuildStrategyNewToOldConversion(t *testing.T) {
 	if actual.Tag != "" {
 		t.Errorf("expected |%v|, actual |%v|", "", actual.Tag)
 	}
+
+	// ImageStream, unchanged
+	newVersion = newer.DockerBuildStrategy{
+		From: &knewer.ObjectReference{
+			Kind:      "ImageStream",
+			Name:      "name",
+			Namespace: "namespace",
+		},
+	}
+	actual = older.DockerBuildStrategy{}
+	err = Convert(&newVersion, &actual)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if actual.From.Kind != "ImageStream" {
+		t.Errorf("expected %v, actual %v", "", actual.From.Kind)
+	}
+	if actual.From.Name != "name" {
+		t.Errorf("expected %v, actual %v", "name", actual.From.Name)
+	}
+	if actual.From.Namespace != "namespace" {
+		t.Errorf("expected %v, actual %v", "namespace", actual.From.Namespace)
+	}
+	if actual.Tag != "" {
+		t.Errorf("expected %v, actual %v", "tag", actual.Tag)
+	}
+
+	// ImageStream(default), unchanged
+	newVersion = newer.DockerBuildStrategy{
+		From: &knewer.ObjectReference{
+			Name:      "name",
+			Namespace: "namespace",
+		},
+	}
+	actual = older.DockerBuildStrategy{}
+	err = Convert(&newVersion, &actual)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if actual.From.Kind != "ImageStream" {
+		t.Errorf("expected %v, actual %v", "", actual.From.Kind)
+	}
+	if actual.From.Name != "name" {
+		t.Errorf("expected %v, actual %v", "name", actual.From.Name)
+	}
+	if actual.From.Namespace != "namespace" {
+		t.Errorf("expected %v, actual %v", "namespace", actual.From.Namespace)
+	}
+	if actual.Tag != "" {
+		t.Errorf("expected %v, actual %v", "tag", actual.Tag)
+	}
+
 }
 
 func TestCustomBuildStrategyOldToNewConversion(t *testing.T) {
@@ -582,6 +686,57 @@ func TestCustomBuildStrategyNewToOldConversion(t *testing.T) {
 	}
 	if actual.Tag != "" {
 		t.Errorf("expected |%v|, actual |%v|", "", actual.Tag)
+	}
+
+	// ImageStream, unchanged
+	newVersion = newer.CustomBuildStrategy{
+		From: &knewer.ObjectReference{
+			Kind:      "ImageStream",
+			Name:      "name",
+			Namespace: "namespace",
+		},
+	}
+	actual = older.CustomBuildStrategy{}
+	err = Convert(&newVersion, &actual)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if actual.From.Kind != "ImageStream" {
+		t.Errorf("expected %v, actual %v", "", actual.From.Kind)
+	}
+	if actual.From.Name != "name" {
+		t.Errorf("expected %v, actual %v", "name", actual.From.Name)
+	}
+	if actual.From.Namespace != "namespace" {
+		t.Errorf("expected %v, actual %v", "namespace", actual.From.Namespace)
+	}
+	if actual.Tag != "" {
+		t.Errorf("expected %v, actual %v", "tag", actual.Tag)
+	}
+
+	// ImageStream(default), unchanged
+	newVersion = newer.CustomBuildStrategy{
+		From: &knewer.ObjectReference{
+			Name:      "name",
+			Namespace: "namespace",
+		},
+	}
+	actual = older.CustomBuildStrategy{}
+	err = Convert(&newVersion, &actual)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if actual.From.Kind != "ImageStream" {
+		t.Errorf("expected %v, actual %v", "", actual.From.Kind)
+	}
+	if actual.From.Name != "name" {
+		t.Errorf("expected %v, actual %v", "name", actual.From.Name)
+	}
+	if actual.From.Namespace != "namespace" {
+		t.Errorf("expected %v, actual %v", "namespace", actual.From.Namespace)
+	}
+	if actual.Tag != "" {
+		t.Errorf("expected %v, actual %v", "tag", actual.Tag)
 	}
 
 }

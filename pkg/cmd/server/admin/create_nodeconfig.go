@@ -42,14 +42,15 @@ type CreateNodeConfigOptions struct {
 	DNSIP               string
 	ListenAddr          flagtypes.Addr
 
-	ClientCertFile   string
-	ClientKeyFile    string
-	ServerCertFile   string
-	ServerKeyFile    string
-	NodeClientCAFile string
-	APIServerCAFile  string
-	APIServerURL     string
-	Output           cmdutil.Output
+	ClientCertFile    string
+	ClientKeyFile     string
+	ServerCertFile    string
+	ServerKeyFile     string
+	NodeClientCAFile  string
+	APIServerCAFile   string
+	APIServerURL      string
+	Output            cmdutil.Output
+	NetworkPluginName string
 }
 
 func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
@@ -94,6 +95,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 	flags.StringVar(&options.NodeClientCAFile, "node-client-certificate-authority", options.NodeClientCAFile, "The file containing signing authorities to use to verify requests to the node. If empty, all requests will be allowed.")
 	flags.StringVar(&options.APIServerURL, "master", options.APIServerURL, "The API server's URL.")
 	flags.StringVar(&options.APIServerCAFile, "certificate-authority", options.APIServerCAFile, "Path to the API server's CA file.")
+	flags.StringVar(&options.NetworkPluginName, "network-plugin", options.NetworkPluginName, "Name of the network plugin to hook to for pod networking.")
 
 	return cmd
 }
@@ -109,6 +111,7 @@ func NewDefaultCreateNodeConfigOptions() *CreateNodeConfigOptions {
 	options.ImageTemplate = variable.NewDefaultImageTemplate()
 
 	options.ListenAddr = flagtypes.Addr{Value: "0.0.0.0:10250", DefaultScheme: "https", DefaultPort: 10250, AllowPrefix: true}.Default()
+	options.NetworkPluginName = ""
 
 	return options
 }
@@ -360,6 +363,8 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		DNSIP:     o.DNSIP,
 
 		MasterKubeConfig: kubeConfigFile,
+
+		NetworkPluginName: o.NetworkPluginName,
 	}
 
 	if o.UseTLS() {

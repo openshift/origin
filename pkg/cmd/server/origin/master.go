@@ -39,9 +39,10 @@ import (
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
+	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
+	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
 	buildlogregistry "github.com/openshift/origin/pkg/build/registry/buildlog"
-	buildetcd "github.com/openshift/origin/pkg/build/registry/etcd"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
@@ -81,6 +82,8 @@ import (
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
+	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
+	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
@@ -107,6 +110,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/plugins/osdn"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 )
 
@@ -153,9 +157,16 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		glog.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
-	buildEtcd := buildetcd.New(c.EtcdHelper)
+	buildStorage := buildetcd.NewStorage(c.EtcdHelper)
+	buildRegistry := buildregistry.NewRegistry(buildStorage)
+
+	buildConfigStorage := buildconfigetcd.NewStorage(c.EtcdHelper)
+	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
+
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
+	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
+	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
 
 	userStorage := useretcd.NewREST(c.EtcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)
@@ -200,10 +211,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc:      buildEtcd.GetBuildConfig,
-			UpdateBuildConfigFunc:   buildEtcd.UpdateBuildConfig,
-			GetBuildFunc:            buildEtcd.GetBuild,
-			CreateBuildFunc:         buildEtcd.CreateBuild,
+			GetBuildConfigFunc:      buildConfigRegistry.GetBuildConfig,
+			UpdateBuildConfigFunc:   buildConfigRegistry.UpdateBuildConfig,
+			GetBuildFunc:            buildRegistry.GetBuild,
+			CreateBuildFunc:         buildRegistry.CreateBuild,
 			GetImageStreamFunc:      imageStreamRegistry.GetImageStream,
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
@@ -238,7 +249,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	bcClient, _ := c.BuildControllerClients()
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
-		buildEtcd,
+		buildConfigRegistry,
 		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
 		map[string]webhook.Plugin{
 			"generic": generic.New(),
@@ -248,13 +259,13 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	// initialize OpenShift API
 	storage := map[string]rest.Storage{
-		"builds":                   buildregistry.NewREST(buildEtcd),
+		"builds":                   buildStorage,
 		"builds/clone":             buildClone,
-		"buildConfigs":             buildconfigregistry.NewREST(buildEtcd),
+		"buildConfigs":             buildConfigStorage,
 		"buildConfigs/webhooks":    buildConfigWebHooks,
 		"buildConfigs/instantiate": buildConfigInstantiate,
-		"buildLogs":                buildlogregistry.NewREST(buildEtcd, c.BuildLogClient(), kubeletClient),
-		"builds/log":               buildlogregistry.NewREST(buildEtcd, c.BuildLogClient(), kubeletClient),
+		"buildLogs":                buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient),
+		"builds/log":               buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient),
 
 		"images":                   imageStorage,
 		"imageStreams":             imageStreamStorage,
@@ -281,6 +292,9 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,
+
+		"hostSubnet":     hostSubnetStorage,
+		"clusterNetwork": clusterNetworkStorage,
 
 		"users":                userStorage,
 		"identities":           identityStorage,
@@ -893,6 +907,13 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
 	controller := factory.Create()
 	controller.Run()
+}
+
+// SDN controller runs openshift-sdn if the said network plugin is provided
+func (c *MasterConfig) RunSDNController() {
+	if c.Options.NetworkConfig.NetworkPluginName == osdn.NetworkPluginName() {
+		osdn.Master(*c.SdnClient(), *c.KubeClient(), c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
+	}
 }
 
 // RouteAllocator returns a route allocation controller.

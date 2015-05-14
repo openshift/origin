@@ -333,6 +333,7 @@ echo "imageStreams: ok"
 [ "$(osc new-app mongo -o yaml | grep library/mongo)" ]
 # the local image repository takes precedence over the Docker Hub "mysql" image
 [ "$(osc new-app mysql -o yaml | grep mysql-55-centos7)" ]
+osc delete all --all
 osc new-app library/php mysql -l no-source=php-mysql
 osc delete all -l no-source=php-mysql
 # check if we can create from a stored template

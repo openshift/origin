@@ -257,6 +257,13 @@ func (c *MasterConfig) PolicyClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
+// SdnClient returns the sdn client object
+// It must have the capability to get/list/watch/create/delete
+// HostSubnets. And have the capability to get ClusterNetwork.
+func (c *MasterConfig) SdnClient() *osclient.Client {
+	return c.PrivilegedLoopbackOpenShiftClient
+}
+
 // DeploymentClient returns the deployment client object
 func (c *MasterConfig) DeploymentClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient

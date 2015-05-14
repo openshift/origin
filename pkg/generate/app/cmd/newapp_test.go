@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -464,11 +465,11 @@ func TestRun(t *testing.T) {
 	tests := []struct {
 		name        string
 		config      *AppConfig
-		expectedRes map[string]string
+		expected    map[string][]string
 		expectedErr error
 	}{
 		{
-			name: "",
+			name: "successful ruby app generation",
 			config: &AppConfig{
 				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
 
@@ -493,11 +494,12 @@ func TestRun(t *testing.T) {
 				osclient:        &client.Fake{},
 				originNamespace: "default",
 			},
-			expectedRes: map[string]string{
-				"imageStream":      "ruby-hello-world",
-				"buildConfig":      "ruby-hello-world",
-				"deploymentConfig": "ruby-hello-world",
-				"service":          "ruby-hello-world"},
+			expected: map[string][]string{
+				"imageStream":      {"ruby-hello-world", "ruby-20-centos7"},
+				"buildConfig":      {"ruby-hello-world"},
+				"deploymentConfig": {"ruby-hello-world"},
+				"service":          {"ruby-hello-world"},
+			},
 			expectedErr: nil,
 		},
 	}
@@ -505,41 +507,39 @@ func TestRun(t *testing.T) {
 	for _, test := range tests {
 		res, err := test.config.Run(os.Stdout)
 		if err != test.expectedErr {
-			t.Errorf("Error mismatch! Expected %v, got %v", test.expectedErr, err)
+			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
 		}
-		var object, objectName string
+		got := map[string][]string{}
 		for _, obj := range res.List.Items {
-			var unknown bool
 			switch tp := obj.(type) {
 			case *buildapi.BuildConfig:
-				object = "buildConfig"
-				objectName = tp.Name
+				got["buildConfig"] = append(got["buildConfig"], tp.Name)
 			case *kapi.Service:
-				object = "service"
-				objectName = tp.Name
+				got["service"] = append(got["service"], tp.Name)
 			case *imageapi.ImageStream:
-				object = "imageStream"
-				objectName = tp.Name
+				got["imageStream"] = append(got["imageStream"], tp.Name)
 			case *deploy.DeploymentConfig:
-				object = "deploymentConfig"
-				objectName = tp.Name
-			default:
-				t.Errorf("Unknown resource type")
-				unknown = true
+				got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
 			}
+		}
 
-			if unknown {
-				continue
-			}
+		if len(test.expected) != len(got) {
+			t.Errorf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
+			continue
+		}
 
-			name, ok := test.expectedRes[object]
+		for k, exp := range test.expected {
+			g, ok := got[k]
 			if !ok {
-				t.Errorf("Expected %s object, but didn't find one", object)
-				continue
+				t.Errorf("%s: Didn't find expected kind %s", test.name, k)
 			}
-			if name != objectName {
-				t.Errorf("Expected object name %s, got %s", name, objectName)
+
+			sort.Strings(g)
+			sort.Strings(exp)
+
+			if !reflect.DeepEqual(g, exp) {
+				t.Errorf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
 				continue
 			}
 		}

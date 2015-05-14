@@ -30,6 +30,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/ipallocator"
 )
 
 func NewTestREST(t *testing.T, endpoints *api.EndpointsList) (*REST, *registrytest.ServiceRegistry) {
@@ -39,7 +40,8 @@ func NewTestREST(t *testing.T, endpoints *api.EndpointsList) (*REST, *registryte
 		Endpoints: endpoints,
 	}
 	nodeRegistry := registrytest.NewMinionRegistry(machines, api.NodeResources{})
-	storage := NewStorage(registry, nodeRegistry, endpointRegistry, makeIPNet(t), "kubernetes")
+	r := ipallocator.NewCIDRRange(makeIPNet(t))
+	storage := NewStorage(registry, nodeRegistry, endpointRegistry, r, "kubernetes")
 	return storage, registry
 }
 
@@ -63,7 +65,6 @@ func deepCloneService(svc *api.Service) *api.Service {
 
 func TestServiceRegistryCreate(t *testing.T) {
 	storage, registry := NewTestREST(t, nil)
-	storage.portalMgr.randomAttempts = 0
 
 	svc := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
@@ -91,7 +92,7 @@ func TestServiceRegistryCreate(t *testing.T) {
 	if created_service.CreationTimestamp.IsZero() {
 		t.Errorf("Expected timestamp to be set, got: %v", created_service.CreationTimestamp)
 	}
-	if created_service.Spec.PortalIP != "1.2.3.1" {
+	if !makeIPNet(t).Contains(net.ParseIP(created_service.Spec.PortalIP)) {
 		t.Errorf("Unexpected PortalIP: %s", created_service.Spec.PortalIP)
 	}
 	srv, err := registry.GetService(ctx, svc.Name)
@@ -487,7 +488,6 @@ func TestServiceRegistryList(t *testing.T) {
 
 func TestServiceRegistryIPAllocation(t *testing.T) {
 	rest, _ := NewTestREST(t, nil)
-	rest.portalMgr.randomAttempts = 0
 
 	svc1 := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
@@ -506,7 +506,7 @@ func TestServiceRegistryIPAllocation(t *testing.T) {
 	if created_service_1.Name != "foo" {
 		t.Errorf("Expected foo, but got %v", created_service_1.Name)
 	}
-	if created_service_1.Spec.PortalIP != "1.2.3.1" {
+	if !makeIPNet(t).Contains(net.ParseIP(created_service_1.Spec.PortalIP)) {
 		t.Errorf("Unexpected PortalIP: %s", created_service_1.Spec.PortalIP)
 	}
 
@@ -526,15 +526,23 @@ func TestServiceRegistryIPAllocation(t *testing.T) {
 	if created_service_2.Name != "bar" {
 		t.Errorf("Expected bar, but got %v", created_service_2.Name)
 	}
-	if created_service_2.Spec.PortalIP != "1.2.3.2" { // new IP
+	if !makeIPNet(t).Contains(net.ParseIP(created_service_2.Spec.PortalIP)) {
 		t.Errorf("Unexpected PortalIP: %s", created_service_2.Spec.PortalIP)
+	}
+
+	testIPs := []string{"1.2.3.93", "1.2.3.94", "1.2.3.95", "1.2.3.96"}
+	testIP := ""
+	for _, ip := range testIPs {
+		if !rest.portals.(*ipallocator.Range).Has(net.ParseIP(ip)) {
+			testIP = ip
+		}
 	}
 
 	svc3 := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "quux"},
 		Spec: api.ServiceSpec{
 			Selector:        map[string]string{"bar": "baz"},
-			PortalIP:        "1.2.3.93",
+			PortalIP:        testIP,
 			SessionAffinity: api.AffinityTypeNone,
 			Ports: []api.ServicePort{{
 				Port:     6502,
@@ -543,16 +551,18 @@ func TestServiceRegistryIPAllocation(t *testing.T) {
 		},
 	}
 	ctx = api.NewDefaultContext()
-	created_svc3, _ := rest.Create(ctx, svc3)
+	created_svc3, err := rest.Create(ctx, svc3)
+	if err != nil {
+		t.Fatal(err)
+	}
 	created_service_3 := created_svc3.(*api.Service)
-	if created_service_3.Spec.PortalIP != "1.2.3.93" { // specific IP
+	if created_service_3.Spec.PortalIP != testIP { // specific IP
 		t.Errorf("Unexpected PortalIP: %s", created_service_3.Spec.PortalIP)
 	}
 }
 
 func TestServiceRegistryIPReallocation(t *testing.T) {
 	rest, _ := NewTestREST(t, nil)
-	rest.portalMgr.randomAttempts = 0
 
 	svc1 := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
@@ -571,7 +581,7 @@ func TestServiceRegistryIPReallocation(t *testing.T) {
 	if created_service_1.Name != "foo" {
 		t.Errorf("Expected foo, but got %v", created_service_1.Name)
 	}
-	if created_service_1.Spec.PortalIP != "1.2.3.1" {
+	if !makeIPNet(t).Contains(net.ParseIP(created_service_1.Spec.PortalIP)) {
 		t.Errorf("Unexpected PortalIP: %s", created_service_1.Spec.PortalIP)
 	}
 
@@ -594,14 +604,13 @@ func TestServiceRegistryIPReallocation(t *testing.T) {
 	if created_service_2.Name != "bar" {
 		t.Errorf("Expected bar, but got %v", created_service_2.Name)
 	}
-	if created_service_2.Spec.PortalIP != "1.2.3.1" { // same IP as before
+	if !makeIPNet(t).Contains(net.ParseIP(created_service_2.Spec.PortalIP)) {
 		t.Errorf("Unexpected PortalIP: %s", created_service_2.Spec.PortalIP)
 	}
 }
 
 func TestServiceRegistryIPUpdate(t *testing.T) {
 	rest, _ := NewTestREST(t, nil)
-	rest.portalMgr.randomAttempts = 0
 
 	svc := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
@@ -620,7 +629,7 @@ func TestServiceRegistryIPUpdate(t *testing.T) {
 	if created_service.Spec.Ports[0].Port != 6502 {
 		t.Errorf("Expected port 6502, but got %v", created_service.Spec.Ports[0].Port)
 	}
-	if created_service.Spec.PortalIP != "1.2.3.1" {
+	if !makeIPNet(t).Contains(net.ParseIP(created_service.Spec.PortalIP)) {
 		t.Errorf("Unexpected PortalIP: %s", created_service.Spec.PortalIP)
 	}
 
@@ -645,7 +654,6 @@ func TestServiceRegistryIPUpdate(t *testing.T) {
 
 func TestServiceRegistryIPExternalLoadBalancer(t *testing.T) {
 	rest, _ := NewTestREST(t, nil)
-	rest.portalMgr.randomAttempts = 0
 
 	svc := &api.Service{
 		ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
@@ -665,7 +673,7 @@ func TestServiceRegistryIPExternalLoadBalancer(t *testing.T) {
 	if created_service.Spec.Ports[0].Port != 6502 {
 		t.Errorf("Expected port 6502, but got %v", created_service.Spec.Ports[0].Port)
 	}
-	if created_service.Spec.PortalIP != "1.2.3.1" {
+	if !makeIPNet(t).Contains(net.ParseIP(created_service.Spec.PortalIP)) {
 		t.Errorf("Unexpected PortalIP: %s", created_service.Spec.PortalIP)
 	}
 
@@ -674,63 +682,6 @@ func TestServiceRegistryIPExternalLoadBalancer(t *testing.T) {
 	_, _, err := rest.Update(ctx, update)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
-	}
-}
-
-func TestServiceRegistryIPReloadFromStorage(t *testing.T) {
-	registry := registrytest.NewServiceRegistry()
-	machines := []string{"foo", "bar", "baz"}
-	nodeRegistry := registrytest.NewMinionRegistry(machines, api.NodeResources{})
-	endpoints := &registrytest.EndpointRegistry{}
-	rest1 := NewStorage(registry, nodeRegistry, endpoints, makeIPNet(t), "kubernetes")
-	rest1.portalMgr.randomAttempts = 0
-
-	svc := &api.Service{
-		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
-		Spec: api.ServiceSpec{
-			Selector:        map[string]string{"bar": "baz"},
-			SessionAffinity: api.AffinityTypeNone,
-			Ports: []api.ServicePort{{
-				Port:     6502,
-				Protocol: api.ProtocolTCP,
-			}},
-		},
-	}
-	ctx := api.NewDefaultContext()
-	rest1.Create(ctx, svc)
-	svc = &api.Service{
-		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
-		Spec: api.ServiceSpec{
-			Selector:        map[string]string{"bar": "baz"},
-			SessionAffinity: api.AffinityTypeNone,
-			Ports: []api.ServicePort{{
-				Port:     6502,
-				Protocol: api.ProtocolTCP,
-			}},
-		},
-	}
-	rest1.Create(ctx, svc)
-
-	// This will reload from storage, finding the previous 2
-	nodeRegistry = registrytest.NewMinionRegistry(machines, api.NodeResources{})
-	rest2 := NewStorage(registry, nodeRegistry, endpoints, makeIPNet(t), "kubernetes")
-	rest2.portalMgr.randomAttempts = 0
-
-	svc = &api.Service{
-		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
-		Spec: api.ServiceSpec{
-			Selector:        map[string]string{"bar": "baz"},
-			SessionAffinity: api.AffinityTypeNone,
-			Ports: []api.ServicePort{{
-				Port:     6502,
-				Protocol: api.ProtocolTCP,
-			}},
-		},
-	}
-	created_svc, _ := rest2.Create(ctx, svc)
-	created_service := created_svc.(*api.Service)
-	if created_service.Spec.PortalIP != "1.2.3.3" {
-		t.Errorf("Unexpected PortalIP: %s", created_service.Spec.PortalIP)
 	}
 }
 
@@ -773,7 +724,6 @@ func TestUpdateServiceWithConflictingNamespace(t *testing.T) {
 
 func TestCreate(t *testing.T) {
 	rest, registry := NewTestREST(t, nil)
-	rest.portalMgr.randomAttempts = 0
 
 	test := resttest.New(t, rest, registry.SetError)
 	test.TestCreate(

@@ -308,6 +308,9 @@ var fieldMappings = versionToResourceToFieldMapping{
 		"secrets": clientFieldNameToAPIVersionFieldName{
 			SecretType: "type",
 		},
+		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "name",
+		},
 	},
 	"v1beta2": resourceTypeToFieldMapping{
 		"nodes": clientFieldNameToAPIVersionFieldName{
@@ -324,6 +327,9 @@ var fieldMappings = versionToResourceToFieldMapping{
 		"secrets": clientFieldNameToAPIVersionFieldName{
 			SecretType: "type",
 		},
+		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "name",
+		},
 	},
 	"v1beta3": resourceTypeToFieldMapping{
 		"nodes": clientFieldNameToAPIVersionFieldName{
@@ -339,6 +345,9 @@ var fieldMappings = versionToResourceToFieldMapping{
 		},
 		"secrets": clientFieldNameToAPIVersionFieldName{
 			SecretType: "type",
+		},
+		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "metadata.name",
 		},
 	},
 }

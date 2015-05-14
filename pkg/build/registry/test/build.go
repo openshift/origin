@@ -19,7 +19,7 @@ type BuildRegistry struct {
 	sync.Mutex
 }
 
-func (r *BuildRegistry) ListBuilds(ctx kapi.Context, labels labels.Selector) (*buildapi.BuildList, error) {
+func (r *BuildRegistry) ListBuilds(ctx kapi.Context, labels labels.Selector, field fields.Selector) (*buildapi.BuildList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.Builds, r.Err

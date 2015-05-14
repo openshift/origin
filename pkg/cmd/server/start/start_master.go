@@ -114,6 +114,7 @@ func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
 	BindListenArg(options.MasterArgs.ListenArg, flags, "")
 	BindImageFormatArgs(options.MasterArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.MasterArgs.KubeConnectionArgs, flags, "")
+	BindNetworkArgs(options.MasterArgs.NetworkArgs, flags, "")
 
 	return cmd, options
 }
@@ -393,6 +394,8 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	openshiftConfig.RunImageImportController()
 	openshiftConfig.RunOriginNamespaceController()
 	openshiftConfig.RunProjectAuthorizationCache()
+
+	openshiftConfig.RunSDNController()
 
 	return nil
 }
