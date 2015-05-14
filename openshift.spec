@@ -5,18 +5,18 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the rel-eng directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 3b7282ad7eadc54c5cf5746b586aebdb977b6fc5
+%global commit 3194c45831d567559ddaf5255bcf129c8e4a2449
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 5+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.5.1-198-g3b7282a -X github.com/openshift/origin/pkg/version.commitFromGit 3b7282a -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit c07896e -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.16.2-338-gc07896e
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 5+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.5.1.0-29-g3194c45 -X github.com/openshift/origin/pkg/version.commitFromGit 3194c45 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 25d32ee -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.17.0-144-g25d32ee
 }
 
 Name:           openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the rel-eng directory of this project
-Version:        0.5.1.0
+Version:        0.5.1.1
 Release:        0%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
@@ -238,6 +238,59 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Thu May 14 2015 Scott Dodson <sdodson@redhat.com> 0.5.1.1
+- Kube 0.17 rebase
+- sdn integration
+* Thu May 14 2015 Scott Dodson <sdodson@redhat.com>
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- Merge pull request #2230 from csrwng/fix_build_output_conversion
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2128 from fabianofranz/614_deployment_history
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2228 from bparees/v1b1_conversion
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2229 from
+  smarterclayton/more_aggressive_v1beta3_build_checks
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2204 from derekwaynecarr/build_updates
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2218 from smarterclayton/rebase_kube
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2222 from deads2k/user-tilde
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2219 from spadgett/project-sort
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2150 from rajatchopra/sdn_integration
+  (dmcphers+openshiftbot@redhat.com)
+- Add support to deployments history in osc describe and deploy
+  (contact@fabianofranz.com)
+- add default conversion handling for imagestream kind (bparees@redhat.com)
+- Merge pull request #2089 from kargakis/image-stream-fix
+  (dmcphers+openshiftbot@redhat.com)
+- Fix conversion of output.DockerImageReference on v1beta3 builds
+  (cewong@redhat.com)
+- Migrate build and build config to latest patterns in storage
+  (decarr@redhat.com)
+- Refactor to match upstream (ccoleman@redhat.com)
+- UPSTREAM: print more useful error (ccoleman@redhat.com)
+- UPSTREAM: implement a generic webhook storage (ccoleman@redhat.com)
+- UPSTREAM: Suppress aggressive output of warning (ccoleman@redhat.com)
+- UPSTREAM: Ensure no namespace on create/update root scope types
+  (jliggitt@redhat.com)
+- UPSTREAM: Disable UIs for Kubernetes and etcd (ccoleman@redhat.com)
+- bump(github.com/GoogleCloudPlatform/kubernetes):25d32ee5132b41c122fe2929f3c6b
+  e7c3eb74f1d (ccoleman@redhat.com)
+- Be more aggressive about input and output on build From (ccoleman@redhat.com)
+- Merge pull request #2221 from danmcp/master
+  (dmcphers+openshiftbot@redhat.com)
+- update user/~ to return a user, even without an backing etcd entry
+  (deads@redhat.com)
+- Sort projects by display name (spadgett@redhat.com)
+- Cleanup coverage profiles from output (dmcphers@redhat.com)
+- SDN integration (rchopra@redhat.com)
+- Bug 1218971: new-app: Create input imageStream
+  (kargakis@users.noreply.github.com)
+
 * Wed May 13 2015 Scott Dodson <sdodson@redhat.com> 0.5.1.0
 - Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
 - Merge pull request #2202 from sdodson/fix-rpm-build
