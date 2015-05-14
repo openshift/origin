@@ -350,6 +350,22 @@ func (v DecoratedVisitor) Visit(fn VisitorFunc) error {
 	})
 }
 
+type ContinueOnErrorVisitor struct {
+	Visitor
+}
+
+func (v ContinueOnErrorVisitor) Visit(fn VisitorFunc) error {
+	errs := []error{}
+	err := v.Visitor.Visit(func(info *Info) error {
+		if err := fn(info); err != nil {
+			errs = append(errs, err)
+		}
+		return nil
+	})
+	errs = append(errs, err)
+	return errors.NewAggregate(errs)
+}
+
 // FlattenListVisitor flattens any objects that runtime.ExtractList recognizes as a list
 // - has an "Items" public field that is a slice of runtime.Objects or objects satisfying
 // that interface - into multiple Infos. An error on any sub item (for instance, if a List
