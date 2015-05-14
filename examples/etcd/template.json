@@ -1,0 +1,222 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1beta1",
+  "labels": {
+    "template": "etcd"
+  },
+  "metadata": {
+    "annotations": {
+      "description": "Example of clustered etcd",
+      "tags": "database,etcd",
+      "iconClass" : "icon-database"
+    },
+    "name": "etcd"
+  },
+  "parameters": [
+    {
+      "name": "ETCD_IMAGE",
+      "description": "The name of etcd Docker image to use",
+      "value": "openshift/etcd-20-centos7"
+    },
+    {
+      "name": "ETCD_NUM_MEMBERS",
+      "description": "Maximum number of members to launch (have to match with # of replicas)",
+      "value": "3"
+    },
+    {
+      "name": "ETCD_DISCOVERY",
+      "description": "A token used for etcd discovery",
+      "from": "http://etcd-discovery:2379/v2/keys/discovery/[a-z0-9]{40}",
+      "generate": "expression"
+    },
+    {
+      "name": "ETCD_CLUSTER_TOKEN",
+      "description": "A token etcd use to generate unique cluster ID and member ID",
+      "from": "etcd-cluster-[a-z0-9]{5}",
+      "generate": "expression"
+    }
+  ],
+  "items":[
+    {
+      "apiVersion": "v1beta1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "etcd"
+      },
+      "spec": {
+        "dockerImageRepository": "${ETCD_IMAGE}",
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "description": "Provides etcd v2.0.10",
+              "iconClass": "icon-database",
+              "tags": "database,etcd",
+              "version": "2.0.10"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "etcd-discovery",
+        "labels": {
+          "name": "etcd-discovery"
+        }
+      },
+      "spec": {
+        "portalIp": "None",
+        "ports": [
+          {
+            "port": 2379,
+            "targetPort": 2379
+          }
+        ],
+        "selector": {
+          "name": "etcd-discovery"
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "etcd",
+        "labels": {
+          "name": "etcd"
+        }
+      },
+      "spec": {
+        "portalIP": "None",
+        "ports": [
+          {
+            "name": "client",
+            "port": 2379,
+            "targetPort": 2379
+          },
+          {
+            "name": "server",
+            "port": 2380,
+            "targetPort": 2380
+          }
+        ],
+        "selector": {
+          "name": "etcd"
+        }
+      }
+    },
+    {
+      "apiVersion": "v1beta1",
+      "kind": "DeploymentConfig",
+      "metadata": {
+        "name": "etcd-discovery"
+      },
+      "template": {
+        "controllerTemplate": {
+          "podTemplate": {
+            "desiredState": {
+              "manifest": {
+                "containers":[
+                  {
+                    "name":  "discovery",
+                    "image": "${ETCD_IMAGE}",
+                    "command": ["etcd-discovery.sh"],
+                    "ports":[
+                      {
+                        "containerPort": 2379
+                      }
+                    ]
+                  }
+                ],
+                "version": "v1beta1"
+              }
+            },
+            "labels": {
+              "name": "etcd-discovery"
+            }
+          },
+          "replicaSelector": {
+            "name": "etcd-discovery"
+          },
+          "replicas": 1
+        },
+        "strategy": {
+          "type": "Recreate"
+        }
+      },
+      "triggers": [
+        {
+          "type": "ConfigChange"
+        }
+      ]
+    },   
+    {
+      "apiVersion": "v1beta1",
+      "kind": "DeploymentConfig",
+      "metadata": {
+        "name": "etcd"
+      },
+      "template": {
+        "controllerTemplate": {
+          "podTemplate": {
+            "desiredState": {
+              "manifest": {
+                "containers":[
+                  {
+                    "name":  "member",
+                    "image": "${ETCD_IMAGE}",
+                    "env": [
+                      {
+                        "name": "ETCD_NUM_MEMBERS",
+                        "value": "${ETCD_NUM_MEMBERS}"
+                      },
+                      {
+                        "name": "ETCD_INITIAL_CLUSTER_STATE",
+                        "value": "new"
+                      },
+                      {
+                        "name": "ETCD_INITIAL_CLUSTER_TOKEN",
+                        "value": "${ETCD_CLUSTER_TOKEN}"
+                      },
+                      {
+                        "name": "ETCD_DISCOVERY",
+                        "value": "${ETCD_DISCOVERY}"
+                      }
+                    ],
+                    "ports":[
+                      {
+                        "containerPort": 2379
+                      },
+                      {
+                        "containerPort": 2380
+                      }
+                    ]
+                  }
+                ],
+                "version": "v1beta1"
+              }
+            },
+            "labels": {
+              "name": "etcd"
+            }
+          },
+          "replicaSelector": {
+            "name": "etcd"
+          },
+          "replicas": 3
+        },
+        "strategy": {
+          "type": "Recreate"
+        }
+      },
+      "triggers": [
+        {
+          "type": "ConfigChange"
+        }
+      ]
+    }    
+  ]
+}
