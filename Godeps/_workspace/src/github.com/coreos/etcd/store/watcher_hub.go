@@ -31,6 +31,9 @@ import (
 // event happens between the end of the first watch command and the start
 // of the second command.
 type watcherHub struct {
+	// Fixes alignment for 32-bit compilers
+	_ uint64
+
 	mutex        sync.Mutex
 	watchers     map[string]*list.List
 	count        int64 // current number of watchers.

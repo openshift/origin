@@ -37,6 +37,9 @@ type RaftTimer interface {
 }
 
 type raftNode struct {
+	// Fixes alignment for 32-bit compilers
+	_ uint64
+
 	raft.Node
 
 	// config
