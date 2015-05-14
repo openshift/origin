@@ -45,19 +45,26 @@ angular.module("openshiftConsole")
      */
     scope.generate = function(input){
       //map ports to k8s structure
-      var ports = [];
-      angular.forEach(input.image.dockerImageMetadata.ContainerConfig.ExposedPorts, function(value, key){
-        var parts = key.split("/");
-        if(parts.length === 1){
-          parts.push("tcp");
-        }
-        ports.push(
-          {
-            containerPort: parseInt(parts[0]), 
-            name: input.name + "-" + parts[1] + "-" + parts[0],
-            protocol: parts[1]
-          });
-      });
+      var parsePorts = function(portSpec){
+        var ports = [];
+        angular.forEach(portSpec, function(value, key){
+          var parts = key.split("/");
+          if(parts.length === 1){
+            parts.push("tcp");
+          }
+          ports.push(
+            {
+              containerPort: parseInt(parts[0]), 
+              name: input.name + "-" + parts[1] + "-" + parts[0],
+              protocol: parts[1]
+            });
+        });
+        return ports;
+      };
+      var ports = input.image.dockerImageMetadata.Config ? parsePorts(input.image.dockerImageMetadata.Config.ExposedPorts) : [];
+      if(ports.length === 0 && input.image.dockerImageMetadata.ContainerConfig){
+        ports = parsePorts(input.image.dockerImageMetadata.ContainerConfig.ExposedPorts);
+      }
 
       //augment labels
       input.labels.name = input.name;
@@ -232,6 +239,7 @@ angular.module("openshiftConsole")
     };
 
     scope._generateService  = function(input, serviceName, port){
+      if(port === 'None') return null;
       var service = {
         kind: "Service",
         apiVersion: k8sApiVersion,
@@ -245,15 +253,16 @@ angular.module("openshiftConsole")
           }
         }
       };
-      if(port === 'None'){
-        service.spec.portalIP = 'None';
-      }else{
+      //TODO add in when server supports headless services without a port spec
+//      if(port === 'None'){
+//        service.spec.portalIP = 'None';
+//      }else{
         service.spec.ports = [{
           port: port.containerPort,
           targetPort: port.containerPort,
           protocol: port.protocol
         }];
-      }
+//      }
       return service;
     };
 

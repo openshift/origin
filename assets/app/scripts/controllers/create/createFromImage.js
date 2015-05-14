@@ -172,7 +172,7 @@ angular.module("openshiftConsole")
         }
       });
 
-      ifResourcesDontExist(resources, $scope.namespace, $scope).then(
+      ifResourcesDontExist(resources, $scope.projectName, $scope).then(
           createResources,
           elseShowWarning
         );
