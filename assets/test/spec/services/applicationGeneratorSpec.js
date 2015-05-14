@@ -87,28 +87,35 @@ describe("ApplicationGenerator", function(){
   });
   
   describe("#_generateService", function(){
-    it("should generate a headless service when no ports are exposed", function(){
-      var copy = angular.copy(input);
-      copy.image.dockerImageMetadata.ContainerConfig.ExposedPorts = {};
-      var service = ApplicationGenerator._generateService(copy, "theServiceName", "None");
-      expect(service).toEqual(        
-        {
-            "kind": "Service",
-            "apiVersion": "v1beta3",
-            "metadata": {
-                "name": "theServiceName",
-                "labels" : {
-                  "foo" : "bar",
-                  "abc" : "xyz"                }
-            },
-            "spec": {
-                "portalIP" : "None",
-                "selector": {
-                    "deploymentconfig": "ruby-hello-world"
-                }
-            }
-        });
+    
+    it("should not generate a service if no ports are exposed", function(){
+      var service = ApplicationGenerator._generateService(input, "theServiceName", "None");
+      expect(service).toEqual(null);        
     });
+    
+    //TODO - add in when server supports headless services without a port spec
+//    it("should generate a headless service when no ports are exposed", function(){
+//      var copy = angular.copy(input);
+//      copy.image.dockerImageMetadata.ContainerConfig.ExposedPorts = {};
+//      var service = ApplicationGenerator._generateService(copy, "theServiceName", "None");
+//      expect(service).toEqual(        
+//        {
+//            "kind": "Service",
+//            "apiVersion": "v1beta3",
+//            "metadata": {
+//                "name": "theServiceName",
+//                "labels" : {
+//                  "foo" : "bar",
+//                  "abc" : "xyz"                }
+//            },
+//            "spec": {
+//                "portalIP" : "None",
+//                "selector": {
+//                    "deploymentconfig": "ruby-hello-world"
+//                }
+//            }
+//        });
+//    });
   });
   
   describe("#_generateRoute", function(){
@@ -345,4 +352,44 @@ describe("ApplicationGenerator", function(){
     
   });
  
+  describe("generating service where the ports are defined on the image config block", function(){
+    var resources;
+    beforeEach(function(){
+      input.image.dockerImageMetadata.Config = {
+        "ExposedPorts": {
+          "999/tcp": {},
+          "777/tcp": {}
+        }
+      };
+      resources = ApplicationGenerator.generate(input);
+    });
+    
+    it("should use the first port found from the config block for the service ports", function(){
+        expect(resources.service).toEqual(
+        {
+            "kind": "Service",
+            "apiVersion": "v1beta3",
+            "metadata": {
+                "name": "ruby-hello-world",
+                "labels" : {
+                  "foo" : "bar",
+                  "abc" : "xyz",
+                  "name": "ruby-hello-world",
+                  "generatedby": "OpenShiftWebConsole"
+                }
+            },
+            "spec": {
+                "ports": [{
+                  "port": 777,
+                  "targetPort" : 777,
+                  "protocol": "tcp"
+                }],
+                "selector": {
+                    "deploymentconfig": "ruby-hello-world"
+                }
+            }
+        }
+      );
+    });
+  });
 });
