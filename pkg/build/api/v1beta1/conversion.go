@@ -83,6 +83,12 @@ func init() {
 				case "DockerImage":
 					out.Image = in.From.Name
 					out.BuilderImage = in.From.Name
+				case "ImageStream", "":
+					out.From = &kapi.ObjectReference{
+						Name:      in.From.Name,
+						Namespace: in.From.Namespace,
+						Kind:      "ImageStream",
+					}
 				}
 			}
 			out.Scripts = in.Scripts
@@ -143,6 +149,12 @@ func init() {
 				case "DockerImage":
 					out.Image = in.From.Name
 					out.BaseImage = in.From.Name
+				case "ImageStream", "":
+					out.From = &kapi.ObjectReference{
+						Name:      in.From.Name,
+						Namespace: in.From.Namespace,
+						Kind:      "ImageStream",
+					}
 				}
 			}
 			return nil
@@ -197,6 +209,12 @@ func init() {
 					out.Tag = tag
 				case "DockerImage":
 					out.Image = in.From.Name
+				case "ImageStream", "":
+					out.From = &kapi.ObjectReference{
+						Name:      in.From.Name,
+						Namespace: in.From.Namespace,
+						Kind:      "ImageStream",
+					}
 				}
 			}
 			out.ExposeDockerSocket = in.ExposeDockerSocket
