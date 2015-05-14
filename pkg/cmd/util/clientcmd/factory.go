@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployres "github.com/openshift/origin/pkg/deploy/resizer"
 
 	"github.com/spf13/pflag"
 )
@@ -100,6 +101,13 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return describer, nil
 		}
 		return kDescriberFunc(mapping)
+	}
+	w.Resizer = func(mapping *meta.RESTMapping) (kubectl.Resizer, error) {
+		osc, kc, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+		return deployres.ResizerFor(mapping.Kind, osc, kc)
 	}
 
 	w.Printer = func(mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {

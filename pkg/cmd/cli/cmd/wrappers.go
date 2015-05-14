@@ -225,3 +225,25 @@ func tab(original string) string {
 	}
 	return strings.Join(lines, "\n")
 }
+
+const (
+	resizeLong = `Set a new size for a Replication Controller either directly or via its Deployment Configuration.
+
+Resize also allows users to specify one or more preconditions for the resize action.
+If --current-replicas or --resource-version is specified, it is validated before the
+resize is attempted, and it is guaranteed that the precondition holds true when the
+resize is sent to the server.`
+	resizeExample = `// Resize replication controller named 'foo' to 3.
+$ %[1]s resize --replicas=3 replicationcontrollers foo
+
+// If the replication controller named foo's current size is 2, resize foo to 3.
+$ %[1]s resize --current-replicas=2 --replicas=3 replicationcontrollers foo`
+)
+
+// NewCmdResize is a wrapper for the Kubernetes cli resize command
+func NewCmdResize(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdResize(f.Factory, out)
+	cmd.Long = resizeLong
+	cmd.Example = fmt.Sprintf(resizeExample, fullName)
+	return cmd
+}
