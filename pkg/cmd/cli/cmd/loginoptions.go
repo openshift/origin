@@ -81,7 +81,6 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 				}
 			}
 		}
-
 	}
 
 	// ping to check if server is reachable
@@ -152,6 +151,28 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	t := *directClientConfig
 	clientConfig := &t
 
+	// if a token were explicitly provided, try to use it
+	if o.tokenProvided() {
+		clientConfig.BearerToken = o.Token
+		if osClient, err := client.New(clientConfig); err == nil {
+			me, err := whoAmI(osClient)
+			if err == nil {
+				o.Username = me.Name
+				o.Config = clientConfig
+
+				fmt.Fprintf(o.Out, "Logged into %q as %q using the token provided.\n\n", o.Config.Host, o.Username)
+				return nil
+			}
+
+			if !kerrors.IsUnauthorized(err) {
+				return err
+			}
+
+			fmt.Fprintln(o.Out, "The token provided is invalid (probably expired).\n")
+		}
+	}
+
+	// if a token was provided try to make use of it
 	// make sure we have a username before continuing
 	if !o.usernameProvided() {
 		if cmdutil.IsTerminal(o.Reader) {
@@ -171,15 +192,18 @@ func (o *LoginOptions) gatherAuthInfo() error {
 			if kubeconfigClientConfig, err := clientcmdConfig.ClientConfig(); err == nil {
 				if osClient, err := client.New(kubeconfigClientConfig); err == nil {
 					if me, err := whoAmI(osClient); err == nil && (o.Username == me.Name) {
-						o.Config.BearerToken = kubeconfigClientConfig.BearerToken
-						o.Config.CertFile = kubeconfigClientConfig.CertFile
-						o.Config.CertData = kubeconfigClientConfig.CertData
-						o.Config.KeyFile = kubeconfigClientConfig.KeyFile
-						o.Config.KeyData = kubeconfigClientConfig.KeyData
+						clientConfig.BearerToken = kubeconfigClientConfig.BearerToken
+						clientConfig.CertFile = kubeconfigClientConfig.CertFile
+						clientConfig.CertData = kubeconfigClientConfig.CertData
+						clientConfig.KeyFile = kubeconfigClientConfig.KeyFile
+						clientConfig.KeyData = kubeconfigClientConfig.KeyData
+
+						o.Config = clientConfig
 
 						if key == o.StartingKubeConfig.CurrentContext {
-							fmt.Fprintf(o.Out, "Already logged into %q as %q.\n", o.Config.Host, o.Username)
+							fmt.Fprintf(o.Out, "Already logged into %q as %q.\n\n", o.Config.Host, o.Username)
 						}
+
 						return nil
 					}
 				}
@@ -361,4 +385,8 @@ func (o *LoginOptions) usernameProvided() bool {
 
 func (o *LoginOptions) serverProvided() bool {
 	return (len(o.Server) > 0)
+}
+
+func (o *LoginOptions) tokenProvided() bool {
+	return len(o.Token) > 0
 }

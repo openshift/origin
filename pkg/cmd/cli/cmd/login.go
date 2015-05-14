@@ -48,6 +48,8 @@ type LoginOptions struct {
 	KeyFile     string
 	InsecureTLS bool
 
+	Token string
+
 	PathOptions *kcmdconfig.PathOptions
 }
 
@@ -168,6 +170,7 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 
 	o.CAFile = kcmdutil.GetFlagString(cmd, "certificate-authority")
 	o.InsecureTLS = kcmdutil.GetFlagBool(cmd, "insecure-skip-tls-verify")
+	o.Token = kcmdutil.GetFlagString(cmd, "token")
 
 	o.DefaultNamespace, _ = f.OpenShiftClientConfig.Namespace()
 
@@ -187,6 +190,10 @@ func (o LoginOptions) Validate(args []string, serverFlag string) error {
 
 	if (len(o.Server) == 0) && !cmdutil.IsTerminal(o.Reader) {
 		return errors.New("A server URL must be specified")
+	}
+
+	if len(o.Username) > 0 && len(o.Token) > 0 {
+		return errors.New("--token and --username are mutually exclusive")
 	}
 
 	if o.StartingKubeConfig == nil {
