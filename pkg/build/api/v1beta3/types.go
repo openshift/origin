@@ -242,8 +242,8 @@ type STIBuildStrategy struct {
 type BuildOutput struct {
 	// To defines an optional ImageStream to push the output of this build to. The namespace
 	// may be empty, in which case the ImageStream will be looked for in the namespace of
-	// the build. Kind must be set to 'ImageStream' and is the only supported value. This
-	// value will be used to look up a Docker image repository to push to.
+	// the build. Kind must be one of 'ImageStreamImage', 'ImageStreamTag' or 'DockerImage'.
+	// This value will be used to look up a Docker image repository to push to.
 	To *kapi.ObjectReference `json:"to,omitempty"`
 
 	// pushSecretName is the name of a Secret that would be used for setting
