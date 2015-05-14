@@ -23,7 +23,7 @@ type ImageChangeControllerFatalError struct {
 }
 
 func (e ImageChangeControllerFatalError) Error() string {
-	return "fatal error handling ImageStream change: " + e.Reason
+	return fmt.Sprintf("fatal error handling ImageStream change: %s, root error was: %s", e.Reason, e.Err.Error())
 }
 
 // ImageChangeController watches for changes to ImageRepositories and triggers
