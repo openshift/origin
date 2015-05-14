@@ -2,8 +2,6 @@ package v1beta3
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 func init() {
@@ -13,20 +11,20 @@ func init() {
 	}
 
 	err := api.Scheme.AddDefaultingFuncs(
-		func(obj *deployapi.DeploymentStrategy) {
+		func(obj *DeploymentStrategy) {
 			if len(obj.Type) == 0 {
-				obj.Type = deployapi.DeploymentStrategyTypeRolling
+				obj.Type = DeploymentStrategyTypeRolling
 			}
 
-			if obj.Type == deployapi.DeploymentStrategyTypeRolling && obj.RollingParams == nil {
-				obj.RollingParams = &deployapi.RollingDeploymentStrategyParams{
+			if obj.Type == DeploymentStrategyTypeRolling && obj.RollingParams == nil {
+				obj.RollingParams = &RollingDeploymentStrategyParams{
 					IntervalSeconds:     mkintp(1),
 					UpdatePeriodSeconds: mkintp(1),
 					TimeoutSeconds:      mkintp(120),
 				}
 			}
 		},
-		func(obj *deployapi.RollingDeploymentStrategyParams) {
+		func(obj *RollingDeploymentStrategyParams) {
 			if obj.IntervalSeconds == nil {
 				obj.IntervalSeconds = mkintp(1)
 			}

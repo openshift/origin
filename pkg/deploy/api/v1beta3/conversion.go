@@ -5,7 +5,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	newer "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -13,11 +12,6 @@ import (
 
 func init() {
 	err := api.Scheme.AddDefaultingFuncs(
-		func(obj *DeploymentConfigSpec) {
-			if len(obj.Strategy.Type) == 0 && util.AllPtrFieldsNil(obj.Strategy) {
-				obj.Strategy.Type = DeploymentStrategyTypeRecreate
-			}
-		},
 		func(obj *DeploymentTriggerImageChangeParams) {
 			if len(obj.From.Kind) == 0 {
 				obj.From.Kind = "ImageStreamTag"
