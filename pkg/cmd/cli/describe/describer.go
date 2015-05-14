@@ -215,6 +215,9 @@ func describeSTIStrategy(s *buildapi.STIBuildStrategy, out *tabwriter.Writer) {
 	if len(s.Scripts) != 0 {
 		formatString(out, "Scripts", s.Scripts)
 	}
+	if len(s.PullSecretName) != 0 {
+		formatString(out, "Pull Secret Name", s.PullSecretName)
+	}
 	if s.Incremental {
 		formatString(out, "Incremental Build", "yes")
 	}
@@ -227,6 +230,9 @@ func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writ
 		} else {
 			formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
 		}
+	}
+	if len(s.PullSecretName) != 0 {
+		formatString(out, "Pull Secret Name", s.PullSecretName)
 	}
 	if s.NoCache {
 		formatString(out, "No Cache", "true")
@@ -243,6 +249,9 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 	}
 	if s.ExposeDockerSocket {
 		formatString(out, "Expose Docker Socket", "yes")
+	}
+	if len(s.PullSecretName) != 0 {
+		formatString(out, "Pull Secret Name", s.PullSecretName)
 	}
 	if len(s.Env) != 0 {
 		formatString(out, "Environment", formatLabels(convertEnv(s.Env)))

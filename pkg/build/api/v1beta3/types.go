@@ -200,6 +200,11 @@ type CustomBuildStrategy struct {
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:"pullSecretName,omitempty"`
+
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
 
@@ -216,6 +221,11 @@ type DockerBuildStrategy struct {
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:"pullSecretName,omitempty"`
+
 	// NoCache if set to true indicates that the docker build must be executed with the
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty"`
@@ -226,6 +236,11 @@ type STIBuildStrategy struct {
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
+
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:"pullSecretName,omitempty"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`

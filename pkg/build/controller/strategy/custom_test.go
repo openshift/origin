@@ -56,7 +56,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if len(container.VolumeMounts) != 3 {
 		t.Fatalf("Expected 3 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	for i, expected := range []string{dockerSocketPath, dockerPushSecretMountPath, sourceSecretMountPath} {
+	for i, expected := range []string{dockerSocketPath, DockerPushSecretMountPath, sourceSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}

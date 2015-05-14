@@ -80,7 +80,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	if strategy.ExposeDockerSocket {
 		setupDockerSocket(pod)
-		setupDockerSecrets(pod, build.Parameters.Output.PushSecretName)
+		setupDockerSecrets(pod, build.Parameters.Output.PushSecretName, strategy.PullSecretName)
 	}
 	setupSourceSecrets(pod, build.Parameters.Source.SourceSecretName)
 	return pod, nil
