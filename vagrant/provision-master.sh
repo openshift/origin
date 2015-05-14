@@ -5,6 +5,11 @@ source $(dirname $0)/provision-config.sh
 
 OPENSHIFT_SDN=$4
 
+NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
+sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
+
+systemctl restart network
+
 # Setup hosts file to support ping by hostname to each minion in the cluster from apiserver
 node_list=""
 minion_ip_array=(${MINION_IPS//,/ })
