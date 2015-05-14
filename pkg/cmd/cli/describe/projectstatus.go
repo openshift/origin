@@ -355,24 +355,34 @@ func describeDeployments(node *graph.DeploymentConfigNode, count int) []string {
 		return nil
 	}
 	out := []string{}
+	deployments := node.Deployments
 
 	if node.ActiveDeployment == nil {
 		on, auto := describeDeploymentConfigTriggers(node.DeploymentConfig)
 		if node.DeploymentConfig.LatestVersion == 0 {
-			out = append(out, fmt.Sprintf("#1 deployment waiting %s", on))
+			out = append(out, fmt.Sprintf("#1 deployment waiting %s. Run osc deploy --latest to deploy now.", on))
 		} else if auto {
-			out = append(out, fmt.Sprintf("#%d deployment pending %s", node.DeploymentConfig.LatestVersion, on))
+			out = append(out, fmt.Sprintf("#%d deployment pending %s. Run osc deploy --latest to deploy now.", node.DeploymentConfig.LatestVersion, on))
 		}
 		// TODO: detect new image available?
 	} else {
-		out = append(out, describeDeploymentStatus(node.ActiveDeployment))
-		count--
+		deployments = append([]*kapi.ReplicationController{node.ActiveDeployment}, deployments...)
 	}
-	for i, deployment := range node.Deployments {
-		if i >= count {
-			break
-		}
+
+	for i, deployment := range deployments {
 		out = append(out, describeDeploymentStatus(deployment))
+
+		switch {
+		case count == -1:
+			status := deployment.Annotations[deployapi.DeploymentStatusAnnotation]
+			if deployapi.DeploymentStatus(status) == deployapi.DeploymentStatusComplete {
+				return out
+			}
+		default:
+			if i+1 >= count {
+				return out
+			}
+		}
 	}
 	return out
 }
@@ -382,7 +392,7 @@ func describeDeploymentStatus(deploy *kapi.ReplicationController) string {
 	switch s := deploy.Annotations[deployapi.DeploymentStatusAnnotation]; deployapi.DeploymentStatus(s) {
 	case deployapi.DeploymentStatusFailed:
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("#%s deployment failed %s ago", deploy.Annotations[deployapi.DeploymentVersionAnnotation], timeAt)
+		return fmt.Sprintf("#%s deployment failed %s ago. You can restart this deployment with osc deploy --retry.", deploy.Annotations[deployapi.DeploymentVersionAnnotation], timeAt)
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
 		return fmt.Sprintf("#%s deployed %s ago", deploy.Annotations[deployapi.DeploymentVersionAnnotation], timeAt)
