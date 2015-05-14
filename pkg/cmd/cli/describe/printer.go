@@ -20,6 +20,7 @@ import (
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -50,6 +51,9 @@ var (
 
 	// known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
+
+	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
+	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -113,6 +117,12 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(userIdentityMappingColumns, printUserIdentityMapping)
 
 	p.Handler(IsPersonalSubjectAccessReviewColumns, printIsPersonalSubjectAccessReview)
+
+	p.Handler(hostSubnetColumns, printHostSubnet)
+	p.Handler(hostSubnetColumns, printHostSubnetList)
+	p.Handler(clusterNetworkColumns, printClusterNetwork)
+	p.Handler(clusterNetworkColumns, printClusterNetworkList)
+
 	return p
 }
 
@@ -560,4 +570,31 @@ func printIdentityList(list *userapi.IdentityList, w io.Writer) error {
 func printUserIdentityMapping(mapping *userapi.UserIdentityMapping, w io.Writer) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", mapping.Name, mapping.Identity.Name, mapping.User.Name, mapping.User.UID)
 	return err
+}
+
+func printHostSubnet(h *sdnapi.HostSubnet, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", h.Name, h.Host, h.HostIP, h.Subnet)
+	return err
+}
+func printHostSubnetList(list *sdnapi.HostSubnetList, w io.Writer) error {
+	for _, item := range list.Items {
+		if err := printHostSubnet(&item, w); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printClusterNetwork(n *sdnapi.ClusterNetwork, w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t%d\n", n.Name, n.Network, n.HostSubnetLength)
+	return err
+}
+
+func printClusterNetworkList(list *sdnapi.ClusterNetworkList, w io.Writer) error {
+	for _, item := range list.Items {
+		if err := printClusterNetwork(&item, w); err != nil {
+			return err
+		}
+	}
+	return nil
 }

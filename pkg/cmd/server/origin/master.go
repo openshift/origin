@@ -293,8 +293,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,
 
-		"hostSubnet":     hostSubnetStorage,
-		"clusterNetwork": clusterNetworkStorage,
+		"hostSubnets":     hostSubnetStorage,
+		"clusterNetworks": clusterNetworkStorage,
 
 		"users":                userStorage,
 		"identities":           identityStorage,
