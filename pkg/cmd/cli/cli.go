@@ -54,6 +54,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 			c.SetOutput(os.Stdout)
 			c.Help()
 		},
+		BashCompletionFunction: bashCompletionFunc,
 	}
 
 	f := clientcmd.New(cmds.PersistentFlags())

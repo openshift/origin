@@ -9,6 +9,7 @@ import (
 	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -32,9 +33,13 @@ Possible resources include builds, buildConfigs, services, pods, etc.`
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	p := describe.NewHumanReadablePrinter(false)
+	validArgs := p.HandledResources()
+
 	cmd := kcmd.NewCmdGet(f.Factory, out)
 	cmd.Long = get_long
 	cmd.Example = fmt.Sprintf(get_example, fullName)
+	cmd.ValidArgs = validArgs
 	return cmd
 }
 
@@ -195,6 +200,7 @@ func NewCmdDescribe(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd := kcmd.NewCmdDescribe(f.Factory, out)
 	cmd.Long = describe_long
 	cmd.Example = fmt.Sprintf(describe_example, fullName)
+	cmd.ValidArgs = describe.DescribableResources()
 	return cmd
 }
 
