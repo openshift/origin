@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
@@ -47,9 +48,6 @@ import (
 
 const (
 	unauthenticatedUsername = "system:anonymous"
-
-	authenticatedGroup   = "system:authenticated"
-	unauthenticatedGroup = "system:unauthenticated"
 )
 
 // MasterConfig defines the required parameters for starting the OpenShift master
@@ -199,9 +197,9 @@ func newAuthenticator(servingInfo configapi.ServingInfo, etcdHelper tools.EtcdHe
 	ret := &unionrequest.Authenticator{
 		FailOnError: true,
 		Handlers: []authenticator.Request{
-			group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{authenticatedGroup}),
+			group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{bootstrappolicy.AuthenticatedGroup}),
 			authenticator.RequestFunc(func(req *http.Request) (user.Info, bool, error) {
-				return &user.DefaultInfo{Name: unauthenticatedUsername, Groups: []string{unauthenticatedGroup}}, true, nil
+				return &user.DefaultInfo{Name: unauthenticatedUsername, Groups: []string{bootstrappolicy.UnauthenticatedGroup}}, true, nil
 			}),
 		},
 	}
