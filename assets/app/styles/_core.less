@@ -56,16 +56,9 @@ html, body {
 
 .console-os .navbar-project {
   border-bottom: 1px solid @navbar-os-project-border-color; 
-  padding-bottom: 5px;
+  padding-bottom: 20px;
   position: relative;
   background: @navbar-os-project-bg;
-  min-height: 85px;
-  .navbar-project-menu {
-    position: relative;
-    display: block;
-    top: 0;
-    margin: 0 20px;
-  }
   label.control-label {
     color: @navbar-project-label-color;
     font-size: 11px;
@@ -104,36 +97,25 @@ html, body {
       margin-bottom: 0;
     }
   }
+  .active-filters {
+    /* If line-height is set, the active-filters div takes up space even
+       when no filters are active. */
+    line-height: 0;
+  }
+  .create-button-container {
+    margin-top: 15px;
+  }
 }
 @media (min-width: @screen-sm-min) {
   .console-os .navbar-project {
-    .navbar-project-menu {
-      display: inline-block;
-      float: left;
-      width: @navbar-project-menu-sm;
+    .navbar-filter-widget {
+      /* Prevent the filter button from wrapping at wide screen sizes. */
+      min-width: 340px;
     }
-    .navbar-search {
-      margin-left: @sidebar-left-width-open-sm;
-    }
-  }
-}
-@media (min-width: @screen-lg-min) { 
-  .console-os .navbar-project {
-    .navbar-project-menu {
-      width: @navbar-project-menu-md;
-    }
-    .navbar-search {
-      margin-left: @sidebar-left-width-open-md;
-    }
-  }
-}
-@media (min-width: @screen-xlg-min)  {
-  .console-os .navbar-project {
-    .navbar-project-menu {
-      width: @navbar-project-menu-lg;
-    }
-    .navbar-search {
-      margin-left: @sidebar-left-width-open-lg;
+    .create-button-container {
+      text-align: right;
+      /* Align button with other navbar controls that have a label above. */
+      margin-top: 30px;
     }
   }
 }
