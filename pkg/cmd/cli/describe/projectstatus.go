@@ -16,6 +16,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // ProjectStatusDescriber generates extended information about a Project
@@ -374,8 +375,7 @@ func describeDeployments(node *graph.DeploymentConfigNode, count int) []string {
 
 		switch {
 		case count == -1:
-			status := deployment.Annotations[deployapi.DeploymentStatusAnnotation]
-			if deployapi.DeploymentStatus(status) == deployapi.DeploymentStatusComplete {
+			if deployutil.DeploymentStatusFor(deployment) == deployapi.DeploymentStatusComplete {
 				return out
 			}
 		default:
@@ -389,15 +389,17 @@ func describeDeployments(node *graph.DeploymentConfigNode, count int) []string {
 
 func describeDeploymentStatus(deploy *kapi.ReplicationController) string {
 	timeAt := strings.ToLower(formatRelativeTime(deploy.CreationTimestamp.Time))
-	switch s := deploy.Annotations[deployapi.DeploymentStatusAnnotation]; deployapi.DeploymentStatus(s) {
+	status := deployutil.DeploymentStatusFor(deploy)
+	version := deployutil.DeploymentVersionFor(deploy)
+	switch status {
 	case deployapi.DeploymentStatusFailed:
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("#%s deployment failed %s ago. You can restart this deployment with osc deploy --retry.", deploy.Annotations[deployapi.DeploymentVersionAnnotation], timeAt)
+		return fmt.Sprintf("#%d deployment failed %s ago. You can restart this deployment with osc deploy --retry.", version, timeAt)
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
-		return fmt.Sprintf("#%s deployed %s ago", deploy.Annotations[deployapi.DeploymentVersionAnnotation], timeAt)
+		return fmt.Sprintf("#%d deployed %s ago", version, timeAt)
 	default:
-		return fmt.Sprintf("#%s deployment %s %s ago", deploy.Annotations[deployapi.DeploymentVersionAnnotation], strings.ToLower(s), timeAt)
+		return fmt.Sprintf("#%d deployment %s %s ago", version, strings.ToLower(string(status)), timeAt)
 	}
 }
 

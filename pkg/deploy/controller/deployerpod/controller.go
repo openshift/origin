@@ -23,8 +23,8 @@ type DeployerPodController struct {
 // Handle syncs pod's status with any associated deployment.
 func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 	// Verify the assumption that we'll be given only pods correlated to a deployment
-	deploymentName, hasDeploymentName := pod.Annotations[deployapi.DeploymentAnnotation]
-	if !hasDeploymentName {
+	deploymentName := deployutil.DeploymentNameFor(pod)
+	if len(deploymentName) == 0 {
 		glog.V(2).Infof("Ignoring pod %s; no deployment annotation found", pod.Name)
 		return nil
 	}
@@ -34,7 +34,7 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 		return fmt.Errorf("couldn't get deployment %s/%s associated with pod %s", pod.Namespace, deploymentName, pod.Name)
 	}
 
-	currentStatus := deployutil.StatusForDeployment(deployment)
+	currentStatus := deployutil.DeploymentStatusFor(deployment)
 	nextStatus := currentStatus
 
 	switch pod.Status.Phase {

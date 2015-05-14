@@ -142,10 +142,6 @@ func TestRolling_findLatestDeployment(t *testing.T) {
 		deployments[deployment.Name] = deployment
 	}
 
-	ignoredDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(12), kapi.Codec)
-	delete(ignoredDeployment.Annotations, deployapi.DeploymentVersionAnnotation)
-	deployments[ignoredDeployment.Name] = ignoredDeployment
-
 	strategy := &RollingDeploymentStrategy{
 		codec: api.Codec,
 		client: &rollingUpdaterClient{
@@ -178,7 +174,6 @@ func TestRolling_findLatestDeployment(t *testing.T) {
 				"config-3",
 				"config-1",
 				"config-7",
-				ignoredDeployment.Name,
 			},
 			latest: "config-7",
 		},
@@ -203,24 +198,6 @@ func TestRolling_findLatestDeployment(t *testing.T) {
 		if e, a := scenario.latest, found.Name; e != a {
 			t.Errorf("expected latest %s, got %s for scenario: %v", e, a, scenario)
 		}
-	}
-}
-
-func TestRolling_findLatestDeploymentInvalidDeployment(t *testing.T) {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
-	deployment.Annotations[deployapi.DeploymentVersionAnnotation] = ""
-
-	strategy := &RollingDeploymentStrategy{
-		codec: api.Codec,
-		client: &rollingUpdaterClient{
-			GetReplicationControllerFn: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return deployment, nil
-			},
-		},
-	}
-	_, err := strategy.findLatestDeployment([]*kapi.ReplicationController{deployment})
-	if err == nil {
-		t.Errorf("expected an error")
 	}
 }
 

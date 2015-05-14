@@ -44,7 +44,7 @@ func (e fatalError) Error() string { return "fatal error handling deployment: " 
 // Handle processes deployment and either creates a deployer pod or responds
 // to a terminal deployment status.
 func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) error {
-	currentStatus := deployutil.StatusForDeployment(deployment)
+	currentStatus := deployutil.DeploymentStatusFor(deployment)
 	nextStatus := currentStatus
 
 	switch currentStatus {
@@ -76,7 +76,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		// Automatically clean up successful pods
 		// TODO: Could probably do a lookup here to skip the delete call, but it's not worth adding
 		// yet since (delete retries will only normally occur during full a re-sync).
-		podName := deployment.Annotations[deployapi.DeploymentPodAnnotation]
+		podName := deployutil.DeployerPodNameFor(deployment)
 		if err := c.podClient.deletePod(deployment.Namespace, podName); err != nil {
 			if !kerrors.IsNotFound(err) {
 				return fmt.Errorf("couldn't delete completed deployer pod %s/%s for deployment %s: %v", deployment.Namespace, podName, deployutil.LabelForDeployment(deployment), err)

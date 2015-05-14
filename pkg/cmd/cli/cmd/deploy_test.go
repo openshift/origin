@@ -157,7 +157,7 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 		t.Fatalf("expected updated config")
 	}
 
-	if e, a := deployapi.DeploymentStatusNew, statusFor(updatedDeployment); e != a {
+	if e, a := deployapi.DeploymentStatusNew, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 }

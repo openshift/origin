@@ -37,6 +37,7 @@ func TestHandle_createPodOk(t *testing.T) {
 		podClient: &podClientImpl{
 			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				createdPod = pod
+				pod.Name = pod.GenerateName
 				return pod, nil
 			},
 		},
@@ -60,7 +61,7 @@ func TestHandle_createPodOk(t *testing.T) {
 		t.Fatalf("expected an updated deployment")
 	}
 
-	if e, a := string(deployapi.DeploymentStatusPending), updatedDeployment.Annotations[deployapi.DeploymentStatusAnnotation]; e != a {
+	if e, a := deployapi.DeploymentStatusPending, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected updated deployment status %s, got %s", e, a)
 	}
 
@@ -68,19 +69,19 @@ func TestHandle_createPodOk(t *testing.T) {
 		t.Fatalf("expected a pod to be created")
 	}
 
-	if _, hasPodAnnotation := updatedDeployment.Annotations[deployapi.DeploymentPodAnnotation]; !hasPodAnnotation {
+	if e := deployutil.DeployerPodNameFor(updatedDeployment); len(e) == 0 {
 		t.Fatalf("missing deployment pod annotation")
 	}
 
-	if e, a := createdPod.Name, updatedDeployment.Annotations[deployapi.DeploymentPodAnnotation]; e != a {
+	if e, a := createdPod.Name, deployutil.DeployerPodNameFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment pod annotation %s, got %s", e, a)
 	}
 
-	if _, hasDeploymentAnnotation := createdPod.Annotations[deployapi.DeploymentAnnotation]; !hasDeploymentAnnotation {
+	if e := deployutil.DeploymentNameFor(createdPod); len(e) == 0 {
 		t.Fatalf("missing deployment annotation")
 	}
 
-	if e, a := updatedDeployment.Name, createdPod.Annotations[deployapi.DeploymentAnnotation]; e != a {
+	if e, a := updatedDeployment.Name, deployutil.DeploymentNameFor(createdPod); e != a {
 		t.Fatalf("expected pod deployment annotation %s, got %s", e, a)
 	}
 

@@ -208,10 +208,7 @@ angular.module('openshiftConsole')
       angular.forEach($scope.deployments, function(deployment, depName){
         var foundMatch = false;
         var deploymentSelector = new LabelSelector(deployment.spec.selector);
-        var depConfigName = "";
-        if (deployment.metadata.annotations) {
-          depConfigName = deployment.metadata.annotations.deploymentConfig || "";
-        }
+        var depConfigName = $filter('annotation')(deployment, 'deploymentConfig') || "";
 
         angular.forEach($scope.unfilteredServices, function(service, name){
           bySvc[name] = bySvc[name] || {};
@@ -236,9 +233,10 @@ angular.module('openshiftConsole')
     };
 
     function parseEncodedDeploymentConfig(deployment) {
-      if (deployment.metadata.annotations && deployment.metadata.annotations.encodedDeploymentConfig) {
+      var configJson = $filter('annotation')(deployment, 'encodedDeploymentConfig')
+      if (configJson) {
         try {
-          var depConfig = $.parseJSON(deployment.metadata.annotations.encodedDeploymentConfig);
+          var depConfig = $.parseJSON(configJson);
           deployment.details = depConfig.details;
         }
         catch (e) {
