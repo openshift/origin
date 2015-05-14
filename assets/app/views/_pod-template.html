@@ -3,9 +3,9 @@
   podTemplate
   imagesByDockerReference (optional)
  -->
-<div class="pod-template">
-  <div class="pod-template-container" ng-repeat="container in podTemplate.spec.containers">
-    <div class="pod-template-image">                              
+<div class="component-block pod-template-container">
+  <div class="component pod-template-block" ng-repeat="container in podTemplate.spec.containers">
+    <div class="pod-template">                              
       <h4>{{container.name}}</h4>
       <div>
         <span class="fa fa-cube" aria-hidden="true"></span>
@@ -45,30 +45,22 @@
           </div>
         </div>
       </div>
+      
+      <div ng-if="container.ports.length > 0" class="pod-template-ports">
+        <div class="font-icon-block">
+          <!-- TODO figure out why the font-icon-block does not align correctly when the class names are used instead
+               of the data-icons
+           -->
+          <span data-icon="" aria-hidden="true" class="font-icon"></span>
+          <span data-icon="" aria-hidden="true" class="font-icon"></span>
+        </div>Ports:
+        <div ng-repeat="port in container.ports" class="port-number">
+          <span>{{port.containerPort}} ({{port.protocol}})<span ng-if="port.hostPort"> <span class="port-icon">&#10230;</span> {{port.hostPort}}</span></span>
+        </div>
+      </div> 
+
+      <div hawtio-extension name="container-links"></div>
+
     </div>
-
-    <div ng-if="container.ports.length > 0" class="pod-template-ports">
-      <div class="font-icon-block" style="margin-right: 5px;">
-        <!-- TODO figure out why the font-icon-block does not align correctly when the class names are used instead
-             of the data-icons
-         -->
-        <span data-icon="" aria-hidden="true" class="font-icon"></span>
-        <span data-icon="" aria-hidden="true" class="font-icon"></span>
-      </div>Ports:
-      <div ng-repeat="port in container.ports" class="port-number">
-        <span>{{port.containerPort}} ({{port.protocol}})<span ng-if="port.hostPort"> <span class="port-icon">&#10230;</span> {{port.hostPort}}</span></span>
-        <span class="connector connector-horizontal" style="left: -21px; top: 50%; width: 21px;">
-          <span class="connector-endpoint" style="left: -2px;"></span>
-          <span class="connector-line" style="top: 0px; left: 3px;width: 18px;"></span>
-        </span>
-        <span class="connector connector-horizontal" style="right: -21px; top: 50%; width: 21px; height: 7px;">
-          <span class="connector-line" style="top: 0px; left: 3px; width: 18px;"></span>
-          <span class="connector-endpoint" style="left: 18px;"></span>
-        </span>
-      </div>
-    </div>                              
-
-    <div hawtio-extension name="container-links"></div>
-
   </div>
 </div>

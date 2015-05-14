@@ -140,82 +140,83 @@ html, body {
 }
 
 
+
 // Overview page
 
-.project-overview-page {
-  .tile {
-    .osc-object {
-      &.osc-object-hover {
-        box-shadow: 0px 0px 0px 1px rgba(0, 168, 225, 0.5);
-      }
-      &.osc-object-active {
-        box-shadow: 0px 0px 0px 2px #00a8e1;
-      } 
-    }
-    .tile-container {
-      text-align: center;
-      .metadata {
-        font-size: 11px;
-        margin-bottom: 10px;
-      }
-    }
-    .deployments {
-      border-radius: @border-radius-md;
-      cursor: pointer;
-      padding: 0 10px;
-    }
-    .replication-controller {
-      border-radius: @border-radius-md;
-      cursor: pointer;
-      padding: 0 10px 10px;
-    }
-    .builds {
-      margin: 0;
-      padding: 5px;
-      overflow: hidden;
-      .build {
-        border-radius: @border-radius-md;
-        padding: 5px;
-        position: relative;
-        margin: 10px 0;
-        text-align: left;
-        &:first-child {
-          margin-top: 0;
-        }
-        &:after {
-          background-color: @connector-color;
-          bottom: -5px;
-          content: "";
-          display: block;
-          height: 1px;
-          left: 0;
-          right: 0;
-          position: absolute;
-        }
-      }
-    }
-    h2.service, h2.route {
-      background-color: rgba(204, 204, 204, 0.15);
-      border-radius: @border-radius-sm;
-      box-shadow: @osc-object-box-shadow;
-      cursor: pointer;
-      margin-bottom: 20px;
-      margin-top: 10px;
-      padding: 5px 0 5px 10px;
-      position: relative; 
-      &:after {
-        display: block;
-        content: '';
-        height: 20px;
-        position: absolute;
-        background-color: @connector-color;
-        width: 1px;
-        left: 50.25%;
-        bottom: -20px;
-      }
-    }
-  }
-}
+// .project-overview-page {
+//   .tile {
+//     .osc-object {
+//       &.osc-object-hover {
+//         box-shadow: 0px 0px 0px 1px rgba(0, 168, 225, 0.5);
+//       }
+//       &.osc-object-active {
+//         box-shadow: 0px 0px 0px 2px #00a8e1;
+//       } 
+//     }
+//     .tile-container {
+//       text-align: center;
+//       .metadata {
+//         font-size: 11px;
+//         margin-bottom: 10px;
+//       }
+//     }
+//     .deployments {
+//       border-radius: @border-radius-md;
+//       cursor: pointer;
+//       padding: 0 10px;
+//     }
+//     .replication-controller {
+//       border-radius: @border-radius-md;
+//       cursor: pointer;
+//       padding: 0 10px 10px;
+//     }
+//     .builds {
+//       margin: 0;
+//       padding: 5px;
+//       overflow: hidden;
+//       .build {
+//         border-radius: @border-radius-md;
+//         padding: 5px;
+//         position: relative;
+//         margin: 10px 0;
+//         text-align: left;
+//         &:first-child {
+//           margin-top: 0;
+//         }
+//         &:after {
+//           background-color: @connector-color;
+//           bottom: -5px;
+//           content: "";
+//           display: block;
+//           height: 1px;
+//           left: 0;
+//           right: 0;
+//           position: absolute;
+//         }
+//       }
+//     }
+//     h2.service, h2.route {
+//       background-color: rgba(204, 204, 204, 0.15);
+//       border-radius: @border-radius-sm;
+//       box-shadow: @osc-object-box-shadow;
+//       cursor: pointer;
+//       margin-bottom: 20px;
+//       margin-top: 10px;
+//       padding: 5px 0 5px 10px;
+//       position: relative; 
+//       &:after {
+//         display: block;
+//         content: '';
+//         height: 20px;
+//         position: absolute;
+//         background-color: @connector-color;
+//         width: 1px;
+//         left: 50.25%;
+//         bottom: -20px;
+//       }
+//     }
+//   }
+// }
 
 // Create App
 // --------------------------------------------------

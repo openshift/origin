@@ -1,37 +1,183 @@
-.pod-template {
-  text-align: left;
-  padding: 5px 10px;
-  margin: 0 10px;
-  border: solid 1px #ddd;
-  display: inline-block;
-  border-radius: @border-radius-md; 
-  .pod-template-container {
-    .flex-display(@display: flex);
-    .flex-direction(@direction: row);
-    .flex(@columns: 1 0 auto);
-    .pod-template-image {
-      border: 1px dashed #ddd;
-      border-radius: 3px;
-      padding: 0px 10px 5px;
+// temp  
+
+.gold {
+  background-color: gold;
+}
+
+// end temp
+
+
+// Put in components.less
+.components {
+  border-left: 3px solid #ccc;
+  border-left-style: dotted;
+  margin-bottom: 30px;
+  .connector {
+    display: none;
+  }
+  &.components-group {
+    border-left-style: solid;
+    .connector {
+      display: inline-block;
+      position: absolute;
+      top: 48%;
+      left: -5px;
+      i {
+        color: #ccc;
+        transform: rotate(137deg);
+        font-size: 9px;
+        position: absolute;
+      }
+      &:before {
+        content: '\f111';
+        font: normal normal normal 7px/1 FontAwesome;
+        display: inline-block;
+        color: #fff;
+        position: absolute;
+        left: 1px;
+        top:1px;
+      }
     }
-    .pod-template-ports {
-      margin: 10px 10px 10px 20px;
-      .port-number {
-        position: relative;
+    .osc-object-active {
+      .connector {
+        i {
+          color: @osc-object-active-color;
+        }
+      }
+    }
+  }
+  .components-panel {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    position: relative;
+    .osc-object-highlight();
+    .component-label {
+      text-transform: uppercase;
+      font-size: 11px;
+      color: @gray-light;
+      + span {
+        margin-left: 5px;
+      }
+    }
+    .component-block {
+      display: flex;
+      flex-flow: row wrap;
+      &.pod-template-container {
+        margin-top: 5px;
+      }
+      &.component-meta {
+        margin: 4px 0 6px;
+      }
+      .component {
+        flex: 1;
+        h2,h3 {
+          margin: 0 0 5px;
+        }
+        &.meta-data {
+          flex: 1;
+          text-align: right;
+          align-self:center;
+        }
+        &.pod-template-block {
+          text-align: left;
+          display: inline-block;
+          flex: 1 0 auto;
+          max-width: 450px;
+          border-radius: 3px;
+          margin-bottom: 10px;
+          &:nth-of-type(odd) {
+            margin-right: 10px;
+          }
+          .pod-template {
+            border: 1px dotted #ddd;
+            border-radius: @border-radius-md;
+            padding: 5px 10px;
+            h4 {
+              margin: 5px 0;
+            }
+            .fa {
+              margin-right: 5px;
+            }
+          }
+          .pod-template-ports {
+            .font-icon-block {
+              margin-right: 8px;
+            }
+            .port-number {
+              display: inline-block;
+            }
+          }
+        }
+      }
+    }
+    &.service {
+      border-left-width: 0;
+      margin-bottom: 6px;
+      padding: 6px 15px 5px;
+      .osc-object-highlight();
+      &.none {
+        background-color: transparent;
+      }
+    }
+    &.deployment-block {
+      margin: 0 0 0 6px;
+      padding: 5px 15px;
+      &.none {
+        background-color: transparent;
+        font-style: italic;
+        &:after {
+          background-color: #ccc;
+          top: 50%;
+          content: "";
+          display: block;
+          height: 1px;
+          left: -10px;
+          position: absolute;
+          width: 9px;
+        }
       }
     }
   }
 }
+
+.builds-block {
+  margin-left: 5px;
+  .builds {
+    margin: 0;
+    // padding: 5px;
+    overflow: hidden;
+    .build {
+      border-radius: @border-radius-md;
+      padding: 5px;
+      position: relative;
+      margin: 10px 0;
+      text-align: left;
+      &:first-child {
+        margin-top: 0;
+      }
+      &:after {
+        background-color: @connector-color;
+        bottom: -5px;
+        content: "";
+        display: block;
+        height: 1px;
+        left: 0;
+        right: 0;
+        position: absolute;
+      }
+    }
+  }
+}
+
+
 .pod-block {
-  display: inline-block;
+  display: block;
   .pod-container {
     .flex-display(@display: flex);
     .flex-direction(@direction: row);
-    .flex(@columns: 1 0 auto);
     .flex-wrap(@wrap: wrap);
-    align-items: center;
-    justify-content: center;
-    margin: 10px 0 -5px;
+    justify-content: flex-start;
+    margin-top: 5px;
     &.pod-container-lg {
       .pod {
         width: 70px;
@@ -39,73 +185,52 @@
       }
     }
     .pod {
-      cursor: pointer;
+      .osc-object-highlight();
       .flex(@columns: 1 0 auto);
+      max-width: 450px;
       border-radius: @border-radius-md;
-      box-shadow: @osc-object-box-shadow;
+      border: 1px solid transparent;
+      // box-shadow: @osc-object-box-shadow; <- remove if it's not used in highlight
       padding: 10px;
-      margin: 0 10px 10px;
+      position: relative;
+      margin: 0 10px 10px 0;
       text-align: center;
-      background-color: rgba(204, 204, 204, 0.15);
+      background-color: @pod-pending-bg;
+      font-family: 'PatternFlyIcons-webfont';
+      -webkit-font-smoothing: antialiased;
       &.pod-running {
-        background-color: rgba(117, 198, 247, 0.15);
+        background-color: @pod-running-bg;
+        .spinner {
+          display: none;
+        }
+      }
+      &.pod-failed {
+        background-color: @pod-warning-bg;
+        &:after {
+          color: #fff;
+          content: "\e608";
+          left: 6px;
+          top: 0;
+          position: absolute;
+        }
+        &:before {
+          content: "\e60c";
+          color: @brand-warning;
+          left: 5px;
+          top: -1px;
+          position: absolute;
+        }
       }
       .pod-text {
         font-size: 11px;
       }
-      &:hover {
+      .spinner {
+        position: absolute;
+        top: 5px;
+        right: 5px;
       }
     }
   }
-}
-
-
-.connector {
-  position: absolute;
-
-  &.connector-vertical {
-    width: 7px;
-
-    .connector-line {
-      width: 1px;
-      top: 0;
-      left: 6px; 
-    }
-
-    .connector-endpoint-top {
-      top: -2px;
-    }
-  }
-
-  &.connector-horizontal {
-    height: 7px;
-    .connector-endpoint {
-      top: -2px;
-    }
-    .connector-line {
-      height: 1px;
-    }
-  }
-
-  .connector-line {
-    position: absolute;
-    background-color: @connector-color;
-  }
-
-  .connector-endpoint {
-    position: absolute;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background-color: @connector-color;
-  }
-}
-
-.tile .separator {
-  border-top: 1px solid @connector-color;
-  margin-left: -20px;
-  margin-right: -20px;
-  margin-bottom: 10px;
 }
 
 .timestamp {
