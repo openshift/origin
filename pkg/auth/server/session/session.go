@@ -19,6 +19,7 @@ func NewStore(maxAgeSeconds int, secrets ...string) Store {
 	}
 	cookie := sessions.NewCookieStore(values...)
 	cookie.Options.MaxAge = maxAgeSeconds
+	cookie.Options.HttpOnly = true
 	return store{cookie}
 }
 
