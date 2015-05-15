@@ -107,6 +107,10 @@ func ValidateUser(user *api.User) fielderrors.ValidationErrorList {
 	}
 
 	for index, group := range user.Groups {
+		if len(group) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("groups[%d]", index), group, "may not be empty"))
+			continue
+		}
 		if ok, msg := ValidateGroupName(group, false); !ok {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("groups[%d]", index), group, msg))
 		}
@@ -118,6 +122,7 @@ func ValidateUser(user *api.User) fielderrors.ValidationErrorList {
 func ValidateUserUpdate(user *api.User, old *api.User) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &user.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, ValidateUser(user)...)
 	return allErrs
 }
 
@@ -160,6 +165,7 @@ func ValidateIdentityUpdate(identity *api.Identity, old *api.Identity) fielderro
 	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &identity.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, ValidateIdentity(identity)...)
 
 	if identity.ProviderName != old.ProviderName {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("providerName", identity.ProviderName, "may not change providerName"))
@@ -188,7 +194,7 @@ func ValidateUserIdentityMapping(mapping *api.UserIdentityMapping) fielderrors.V
 
 func ValidateUserIdentityMappingUpdate(mapping *api.UserIdentityMapping, old *api.UserIdentityMapping) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, ValidateUserIdentityMapping(mapping)...)
 	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &mapping.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, ValidateUserIdentityMapping(mapping)...)
 	return allErrs
 }
