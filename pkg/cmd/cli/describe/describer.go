@@ -720,7 +720,7 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 	})
 }
 
-const policyRuleHeadings = "Verbs\tResources\tResource Names\tExtension"
+const policyRuleHeadings = "Verbs\tResources\tResource Names\tNon-Resource URLs\tExtension"
 
 func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
 	extensionString := ""
@@ -734,10 +734,11 @@ func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 		}
 	}
 
-	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\n",
+	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\t%v\n",
 		rule.Verbs.List(),
 		rule.Resources.List(),
 		rule.ResourceNames.List(),
+		rule.NonResourceURLs.List(),
 		extensionString)
 }
 
