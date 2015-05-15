@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/admin/node"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
@@ -46,6 +47,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	cmds.AddCommand(exrouter.NewCmdRouter(f, fullName, "router", out))
 	cmds.AddCommand(exregistry.NewCmdRegistry(f, fullName, "registry", out))
 	cmds.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
+	cmds.AddCommand(node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out))
 	cmds.AddCommand(cmd.NewCmdConfig(fullName, "config"))
 
 	// TODO: these probably belong in a sub command
