@@ -399,7 +399,9 @@ type EtcdConfig struct {
 }
 
 type KubernetesMasterConfig struct {
-	MasterIP            string   `json:"masterIP"`
+	MasterIP string `json:"masterIP"`
+	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.
+	MasterCount         int      `json:"masterCount"`
 	ServicesSubnet      string   `json:"servicesSubnet"`
 	StaticNodeNames     []string `json:"staticNodeNames"`
 	SchedulerConfigFile string   `json:"schedulerConfigFile"`

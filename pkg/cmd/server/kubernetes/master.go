@@ -74,6 +74,8 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 
 		EnableCoreControllers: true,
 
+		MasterCount: c.MasterCount,
+
 		Authorizer:       c.Authorizer,
 		AdmissionControl: c.AdmissionControl,
 	}

@@ -191,6 +191,10 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) fielderr
 		allErrs = append(allErrs, ValidateSpecifiedIP(config.MasterIP, "masterIP")...)
 	}
 
+	if config.MasterCount < 1 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("masterCount", config.MasterCount, "must be a positive integer"))
+	}
+
 	if len(config.ServicesSubnet) > 0 {
 		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.ServicesSubnet)); err != nil {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("servicesSubnet", config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
