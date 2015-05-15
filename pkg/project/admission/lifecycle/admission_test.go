@@ -13,6 +13,20 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
 
+type UnknownObject struct{}
+
+func (*UnknownObject) IsAnAPIObject() {}
+
+// TestIgnoreThatWhichCannotBeKnown verifies that the plug-in does not reject objects that are unknown to RESTMapper
+func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
+	handler := &lifecycle{}
+	unknown := &UnknownObject{}
+	err := handler.Admit(admission.NewAttributesRecord(unknown, "who-cares", "unknown", "what", "CREATE"))
+	if err != nil {
+		t.Errorf("Admission control should not error if it finds an object it knows nothing about %v", err)
+	}
+}
+
 // TestAdmissionExists verifies you cannot create Origin content if namespace is not known
 func TestAdmissionExists(t *testing.T) {
 	mockClient := &testclient.Fake{
