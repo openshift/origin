@@ -57,6 +57,28 @@ func ValidateIdentityName(name string, _ bool) (bool, string) {
 	return true, ""
 }
 
+func ValidateGroupName(name string, _ bool) (bool, string) {
+	if strings.Contains(name, "%") {
+		return false, `may not contain "%"`
+	}
+	if strings.Contains(name, "/") {
+		return false, `may not contain "/"`
+	}
+	if strings.Contains(name, ":") {
+		return false, `may not contain ":"`
+	}
+	if name == ".." {
+		return false, `may not equal ".."`
+	}
+	if name == "." {
+		return false, `may not equal "."`
+	}
+	if name == "~" {
+		return false, `may not equal "~"`
+	}
+	return true, ""
+}
+
 func ValidateIdentityProviderName(name string) (bool, string) {
 	if strings.Contains(name, "%") {
 		return false, `may not contain "%"`
@@ -83,6 +105,13 @@ func ValidateUser(user *api.User) fielderrors.ValidationErrorList {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("identities[%d]", index), identity, msg))
 		}
 	}
+
+	for index, group := range user.Groups {
+		if ok, msg := ValidateGroupName(group, false); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("groups[%d]", index), group, msg))
+		}
+	}
+
 	return allErrs
 }
 

@@ -19,6 +19,8 @@ import (
 	"github.com/openshift/origin/pkg/oauth/registry/test"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+	userapi "github.com/openshift/origin/pkg/user/api"
+	usertest "github.com/openshift/origin/pkg/user/registry/test"
 )
 
 type testHandlers struct {
@@ -245,7 +247,8 @@ func TestRegistryAndServer(t *testing.T) {
 
 func TestAuthenticateTokenNotFound(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{Err: apierrs.NewNotFound("AccessToken", "token")}
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+	userRegistry := usertest.NewUserRegistry()
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry)
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -263,7 +266,8 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 }
 func TestAuthenticateTokenOtherGetError(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{Err: errors.New("get error")}
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+	userRegistry := usertest.NewUserRegistry()
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry)
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -287,7 +291,8 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 			ExpiresIn:  600, // 10 minutes
 		},
 	}
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+	userRegistry := usertest.NewUserRegistry()
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry)
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -306,9 +311,14 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 		AccessToken: &oapi.OAuthAccessToken{
 			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{time.Now()}},
 			ExpiresIn:  600, // 10 minutes
+			UserName:   "foo",
+			UserUID:    string("bar"),
 		},
 	}
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry)
+	userRegistry := usertest.NewUserRegistry()
+	userRegistry.Get["foo"] = &userapi.User{ObjectMeta: kapi.ObjectMeta{UID: "bar"}}
+
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry)
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if !found {

@@ -112,8 +112,9 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx kapi.Context, 
 	}
 
 	return &kuser.DefaultInfo{
-		Name: persistedUser.Name,
-		UID:  string(persistedUser.UID),
+		Name:   persistedUser.Name,
+		UID:    string(persistedUser.UID),
+		Groups: persistedUser.Groups,
 	}, nil
 }
 
@@ -182,8 +183,9 @@ func (p *provisioningIdentityMapper) getMapping(ctx kapi.Context, identity *user
 		return nil, kerrs.NewNotFound("UserIdentityMapping", identity.Name)
 	}
 	return &kuser.DefaultInfo{
-		Name: u.Name,
-		UID:  string(u.UID),
+		Name:   u.Name,
+		UID:    string(u.UID),
+		Groups: u.Groups,
 	}, nil
 }
 

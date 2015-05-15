@@ -12,6 +12,8 @@ type User struct {
 	FullName string
 
 	Identities []string
+
+	Groups []string
 }
 
 type UserList struct {
