@@ -324,7 +324,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 		t.Fatalf("Unexpected error %v", err)
 	}
 	if build.Parameters.Strategy.SourceStrategy.From.Name != newImage {
-		t.Errorf("STI base image value %s does not match expected value %s", build.Parameters.Strategy.SourceStrategy.From.Name, newImage)
+		t.Errorf("source-to-image base image value %s does not match expected value %s", build.Parameters.Strategy.SourceStrategy.From.Name, newImage)
 	}
 }
 

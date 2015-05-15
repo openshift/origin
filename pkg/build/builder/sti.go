@@ -64,7 +64,7 @@ func (s *STIBuilder) Build() error {
 		printRequest.PullAuthentication.Password = "[filtered]"
 		glog.Infof("Using provided pull secret for pulling %s image", request.BaseImage)
 	}
-	glog.V(2).Infof("Creating a new STI builder with build request: %#v\n", printRequest)
+	glog.V(2).Infof("Creating a new S2I builder with build request: %#v\n", printRequest)
 	builder, err := sti.GetStrategy(request)
 	if err != nil {
 		return err
