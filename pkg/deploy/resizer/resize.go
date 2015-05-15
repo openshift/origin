@@ -1,7 +1,6 @@
 package resizer
 
 import (
-	"fmt"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -21,15 +20,11 @@ type DeploymentConfigResizer struct {
 // ResizerFor returns the appropriate Resizer client depending on the provided
 // kind of resource (Replication controllers and deploymentConfigs supported)
 func ResizerFor(kind string, osc *client.Client, kc *kclient.Client) (kubectl.Resizer, error) {
-	switch kind {
-	case "ReplicationController":
-		c := kubectl.NewResizerClient(kc)
-		return kubectl.ResizerFor(kind, c)
-	case "DeploymentConfig":
-		c := NewResizerClient(osc, kc)
-		return &DeploymentConfigResizer{c}, nil
+	if kind != "DeploymentConfig" {
+		return kubectl.ResizerFor(kind, kubectl.NewResizerClient(kc))
+
 	}
-	return nil, fmt.Errorf("no resizer has been implemented for %q", kind)
+	return &DeploymentConfigResizer{NewResizerClient(osc, kc)}, nil
 }
 
 // Resize updates a replication controller created by the DeploymentConfig with the provided namespace/name,
