@@ -331,10 +331,18 @@ func IPAddressesDNSNames(hosts []string) ([]net.IP, []string) {
 	for _, host := range hosts {
 		if ip := net.ParseIP(host); ip != nil {
 			ips = append(ips, ip)
+		} else {
+			dns = append(dns, host)
 		}
-		// Include IP addresses as DNS names in the cert, for Python's sake
-		dns = append(dns, host)
 	}
+
+	// Include IP addresses as DNS subjectAltNames in the cert as well, for the sake of Python, Windows (< 10), and unnamed other libraries
+	// Ensure these technically invalid DNS subjectAltNames occur after the valid ones, to avoid triggering cert errors in Firefox
+	// See https://bugzilla.mozilla.org/show_bug.cgi?id=1148766
+	for _, ip := range ips {
+		dns = append(dns, ip.String())
+	}
+
 	return ips, dns
 }
 
