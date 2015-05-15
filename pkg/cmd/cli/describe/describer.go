@@ -819,7 +819,15 @@ func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) 
 		return "", err
 	}
 
-	role, err := d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name)
+	var role *authorizationapi.Role
+	if len(roleBinding.RoleRef.Namespace) == 0 {
+		var clusterRole *authorizationapi.ClusterRole
+		clusterRole, err = d.ClusterRoles().Get(roleBinding.RoleRef.Name)
+		role = authorizationapi.ToRole(clusterRole)
+	} else {
+		role, err = d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name)
+	}
+
 	return DescribeRoleBinding(roleBinding, role, err)
 }
 
