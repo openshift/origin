@@ -384,7 +384,7 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		return err
 	}
 
-	fmt.Fprintf(o.Output.Get(), "Creating node config for %s in %s", o.NodeName, o.NodeConfigDir)
+	fmt.Fprintf(o.Output.Get(), "Creating node config for %s in %s\n", o.NodeName, o.NodeConfigDir)
 	// Relativize to config file dir
 	base, err := cmdutil.MakeAbs(o.NodeConfigDir, cwd)
 	if err != nil {

@@ -234,7 +234,7 @@ func (o MasterOptions) RunMaster() error {
 			return err
 		}
 
-		glog.Infof("Wrote master config to: %s", o.MasterArgs.GetConfigFileToWrite())
+		fmt.Fprintf(o.Output.Get(), "Wrote master config to: %s\n", o.MasterArgs.GetConfigFileToWrite())
 
 		return nil
 	}
