@@ -277,8 +277,10 @@ func (b *STI) Exists(request *api.Request) bool {
 
 	// can only do incremental build if runtime image exists, so always pull image
 	previousImageExists, _ := b.docker.IsImageInLocalRegistry(request.Tag)
-	if image, _ := b.docker.PullImage(request.Tag); image != nil {
-		previousImageExists = true
+	if request.ForcePull {
+		if image, _ := b.docker.PullImage(request.Tag); image != nil {
+			previousImageExists = true
+		}
 	}
 
 	return previousImageExists && b.installedScripts[api.SaveArtifacts]
@@ -293,11 +295,14 @@ func (b *STI) Save(request *api.Request) (err error) {
 	}
 
 	image := request.Tag
-	reader, writer := io.Pipe()
+	outReader, outWriter := io.Pipe()
+	errReader, errWriter := io.Pipe()
+	defer errReader.Close()
+	defer errWriter.Close()
 	glog.V(1).Infof("Saving build artifacts from image %s to path %s", image, artifactTmpDir)
 	extractFunc := func() error {
-		defer reader.Close()
-		return b.tar.ExtractTarStream(artifactTmpDir, reader)
+		defer outReader.Close()
+		return b.tar.ExtractTarStream(artifactTmpDir, outReader)
 	}
 
 	opts := docker.RunContainerOptions{
@@ -306,11 +311,13 @@ func (b *STI) Save(request *api.Request) (err error) {
 		ScriptsURL:      request.ScriptsURL,
 		Location:        request.Location,
 		Command:         api.SaveArtifacts,
-		Stdout:          writer,
+		Stdout:          outWriter,
+		Stderr:          errWriter,
 		OnStart:         extractFunc,
 	}
+
+	go streamContainerError(errReader, nil, request)
 	err = b.docker.RunContainer(opts)
-	writer.Close()
 
 	if e, ok := err.(errors.ContainerError); ok {
 		return errors.NewSaveArtifactsError(image, e.Output, err)
@@ -368,7 +375,7 @@ func (b *STI) Execute(command string, request *api.Request) error {
 	if !request.LayeredBuild {
 		opts.Stdin = tarFile
 	}
-	// goroutine to stream container's output
+
 	go func(reader io.Reader) {
 		scanner := bufio.NewReader(reader)
 		for {
@@ -386,31 +393,33 @@ func (b *STI) Execute(command string, request *api.Request) error {
 			}
 		}
 	}(outReader)
-	// goroutine to stream container's error
-	go func(reader io.Reader) {
-		scanner := bufio.NewReader(reader)
-		for {
-			text, err := scanner.ReadString('\n')
-			if err != nil {
-				// we're ignoring ErrClosedPipe, as this is information
-				// the docker container ended streaming logs
-				if err != io.ErrClosedPipe {
-					glog.Errorf("Error reading docker stderr, %v", err)
-				}
-				break
-			}
-			glog.Error(text)
-			if len(errOutput) < maxErrorOutput {
-				errOutput += text + "\n"
-			}
-		}
-	}(errReader)
+
+	go streamContainerError(errReader, &errOutput, request)
 
 	err = b.docker.RunContainer(opts)
 	if e, ok := err.(errors.ContainerError); ok {
 		return errors.NewContainerError(request.BaseImage, e.ErrorCode, errOutput)
 	}
 	return err
+}
+
+func streamContainerError(errStream io.Reader, errOutput *string, request *api.Request) {
+	scanner := bufio.NewReader(errStream)
+	for {
+		text, err := scanner.ReadString('\n')
+		if err != nil {
+			// we're ignoring ErrClosedPipe, as this is information
+			// the docker container ended streaming logs
+			if err != io.ErrClosedPipe {
+				glog.Errorf("Error reading docker stderr, %v", err)
+			}
+			break
+		}
+		glog.Error(text)
+		if errOutput != nil && len(*errOutput) < maxErrorOutput {
+			*errOutput += text + "\n"
+		}
+	}
 }
 
 func (b *STI) generateConfigEnv() (configEnv []string) {

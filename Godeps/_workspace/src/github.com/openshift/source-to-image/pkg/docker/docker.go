@@ -313,6 +313,11 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		attachOpts.Stdout = true
 	}
 
+	if opts.Stderr != nil {
+		attachOpts.ErrorStream = opts.Stderr
+		attachOpts.Stderr = true
+	}
+
 	wg := sync.WaitGroup{}
 	go func() {
 		wg.Add(1)

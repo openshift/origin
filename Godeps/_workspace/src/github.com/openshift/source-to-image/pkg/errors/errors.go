@@ -67,7 +67,7 @@ func NewPullImageError(name string, err error) error {
 		Message:    fmt.Sprintf("unable to get %s", name),
 		Details:    err,
 		ErrorCode:  PullImageError,
-		Suggestion: "check image name, or if using local image add --forcePull=false flag",
+		Suggestion: "check image name, or if using local image add --force-pull=false flag",
 	}
 }
 
