@@ -191,8 +191,8 @@ func (r *ImageRef) ObjectReference() *kapi.ObjectReference {
 		}
 	}
 	return &kapi.ObjectReference{
-		Kind: "ImageStreamTag",
-		Name: r.Name + ":" + imageapi.DefaultImageTag,
+		Kind: "DockerImage",
+		Name: r.String(),
 	}
 }
 
