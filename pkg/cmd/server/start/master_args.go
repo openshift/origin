@@ -198,9 +198,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
 		},
 
-		ProjectRequestConfig: configapi.ProjectRequestConfig{
-			ProjectRequestTemplate: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace + "/project-request",
-		},
+		ProjectRequestConfig: configapi.ProjectRequestConfig{},
 
 		NetworkConfig: configapi.NetworkConfig{
 			NetworkPluginName:  args.NetworkArgs.NetworkPluginName,

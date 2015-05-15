@@ -4,7 +4,6 @@ package integration
 
 import (
 	"io/ioutil"
-	"strings"
 	"testing"
 	"time"
 
@@ -18,20 +17,18 @@ import (
 	osc "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	projectapi "github.com/openshift/origin/pkg/project/api"
+	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	testutil "github.com/openshift/origin/test/util"
 )
 
 func TestUnprivilegedNewProject(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -80,13 +77,92 @@ func TestUnprivilegedNewProject(t *testing.T) {
 
 	waitForProject(t, valerieOpenshiftClient, "new-project", 5*time.Second, 10)
 
-	// request the same one again.  This should fail during the bulk creation step
-	if err := requestProject.Run(); err == nil || !strings.Contains(err.Error(), "already exists") {
+	if err := requestProject.Run(); !kapierrors.IsAlreadyExists(err) {
 		t.Fatalf("expected an already exists error, but got %v", err)
 	}
 
-	tokens := strings.Split(masterConfig.ProjectRequestConfig.ProjectRequestTemplate, "/")
-	if err := clusterAdminClient.Templates(tokens[0]).Delete(tokens[1]); err != nil {
+}
+func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
+	namespace := "foo"
+	templateName := "bar"
+
+	masterOptions, err := testutil.DefaultMasterOptions()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	masterOptions.ProjectRequestConfig.ProjectRequestTemplate = namespace + "/" + templateName
+
+	clusterAdminKubeConfig, err := testutil.StartConfiguredMaster(masterOptions)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	valerieClientConfig := *clusterAdminClientConfig
+	valerieClientConfig.Username = ""
+	valerieClientConfig.Password = ""
+	valerieClientConfig.BearerToken = ""
+	valerieClientConfig.CertFile = ""
+	valerieClientConfig.KeyFile = ""
+	valerieClientConfig.CertData = nil
+	valerieClientConfig.KeyData = nil
+
+	accessToken, err := tokencmd.RequestToken(&valerieClientConfig, nil, "valerie", "security!")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	valerieClientConfig.BearerToken = accessToken
+	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := clusterAdminClient.Projects().Create(&projectapi.Project{ObjectMeta: kapi.ObjectMeta{Name: namespace}}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	template := projectrequeststorage.DefaultTemplate()
+	template.Name = templateName
+	template.Namespace = namespace
+
+	template.Objects[0].(*projectapi.Project).Annotations["extra"] = "here"
+	_, err = clusterAdminClient.Templates(namespace).Create(template)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	requestProject := osc.NewProjectOptions{
+		ProjectName: "new-project",
+		DisplayName: "display name here",
+		Description: "the special description",
+
+		Client: valerieOpenshiftClient,
+		Out:    ioutil.Discard,
+	}
+
+	if err := requestProject.Run(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	waitForProject(t, valerieOpenshiftClient, "new-project", 5*time.Second, 10)
+	project, err := valerieOpenshiftClient.Projects().Get("new-project")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if project.Annotations["extra"] != "here" {
+		t.Errorf("unexpected project %#v", project)
+	}
+
+	if err := clusterAdminClient.Templates(namespace).Delete(templateName); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
