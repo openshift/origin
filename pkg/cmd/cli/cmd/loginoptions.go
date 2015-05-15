@@ -272,6 +272,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
     $ osc new-project <projectname>
 
 `)
+		o.Project = o.DefaultNamespace
 
 	case 1:
 		o.Project = projectsItems[0].Name
