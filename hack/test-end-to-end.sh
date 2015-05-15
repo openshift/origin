@@ -285,7 +285,7 @@ wait_for_command '[[ "$(osc get endpoints docker-registry --output-version=v1bet
 DOCKER_REGISTRY=$(osc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
-wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry says: " $((2*TIME_MIN))
+wait_for_url_timed "http://${DOCKER_REGISTRY}/v2/" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 [ "$(dig @${API_HOST} "docker-registry.default.local." A)" ]
 
