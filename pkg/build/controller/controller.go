@@ -53,7 +53,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 		// Instead, we should requeue this build request using the same backoff logic as the scheduler.
 		//build.Status = buildapi.BuildStatusError
 		//build.Message = err.Error()
-		return fmt.Errorf("Build failed with error %s/%s: %#v", build.Namespace, build.Name, err)
+		return fmt.Errorf("Build failed with error %s/%s: %v", build.Namespace, build.Name, err)
 	}
 
 	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
@@ -61,7 +61,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 		// outcome of not updating the buildconfig is that we might rerun a build for the
 		// same "new" imageid change in the future, which is better than guaranteeing we
 		// run the build 2+ times by retrying it here.
-		glog.V(2).Infof("Failed to record changes to build %s/%s: %#v", build.Namespace, build.Name, err)
+		glog.V(2).Infof("Failed to record changes to build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 	return nil
 }
@@ -89,9 +89,12 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 		repo, err := bc.ImageStreamClient.GetImageStream(namespace, ref.Name)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				return fmt.Errorf("the referenced output image repository %s/%s does not exist", namespace, ref.Name)
+				return fmt.Errorf("the referenced output image stream %s/%s does not exist", namespace, ref.Name)
 			}
-			return fmt.Errorf("the referenced output repo %s/%s could not be found by %s/%s: %v", namespace, ref.Name, build.Namespace, build.Name, err)
+			return fmt.Errorf("the referenced output image stream %s/%s could not be found by build %s/%s: %v", namespace, ref.Name, build.Namespace, build.Name, err)
+		}
+		if len(repo.Status.DockerImageRepository) == 0 {
+			return fmt.Errorf("the image stream %s/%s cannot be used as the output for build %s/%s because the integrated Docker registry is not configured, or the user forgot to set a valid external registry", namespace, ref.Name, build.Namespace, build.Name)
 		}
 		if len(build.Parameters.Output.Tag) == 0 {
 			spec = repo.Status.DockerImageRepository
@@ -158,7 +161,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		glog.V(2).Infof("Cancelling build %s.", build.Name)
 
 		if err := bc.CancelBuild(build, pod); err != nil {
-			return fmt.Errorf("Failed to cancel build %s: %#v, will retry", build.Name, err)
+			return fmt.Errorf("Failed to cancel build %s: %v, will retry", build.Name, err)
 		}
 		return nil
 	}
@@ -192,7 +195,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			build.StartTimestamp = &dummy
 		}
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
-			return fmt.Errorf("Failed to update build %s: %#v", build.Name, err)
+			return fmt.Errorf("Failed to update build %s: %v", build.Name, err)
 		}
 	}
 	return nil

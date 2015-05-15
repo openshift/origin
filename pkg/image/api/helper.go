@@ -45,6 +45,9 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 			// registry/name
 			ref.Registry = repoParts[0]
 			ref.Namespace = "library"
+			if len(repoParts[1]) == 0 {
+				return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
+			}
 			ref.Name = repoParts[1]
 			ref.Tag = tag
 			ref.ID = id
@@ -52,6 +55,9 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		}
 		// namespace/name
 		ref.Namespace = repoParts[0]
+		if len(repoParts[1]) == 0 {
+			return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
+		}
 		ref.Name = repoParts[1]
 		ref.Tag = tag
 		ref.ID = id
@@ -60,6 +66,9 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		// registry/namespace/name
 		ref.Registry = repoParts[0]
 		ref.Namespace = repoParts[1]
+		if len(repoParts[2]) == 0 {
+			return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
+		}
 		ref.Name = repoParts[2]
 		ref.Tag = tag
 		ref.ID = id
