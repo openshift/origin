@@ -187,7 +187,7 @@ func (r *ImageRef) ObjectReference() *kapi.ObjectReference {
 	if r.Stream != nil {
 		return &kapi.ObjectReference{
 			Kind: "ImageStreamTag",
-			Name: r.Name + ":" + r.Tag,
+			Name: r.Stream.Name + ":" + r.Tag,
 		}
 	}
 	return &kapi.ObjectReference{
