@@ -38,7 +38,7 @@ func newHostSubnet(c *Client) *hostSubnet {
 func (c *hostSubnet) List() (result *sdnapi.HostSubnetList, err error) {
 	result = &sdnapi.HostSubnetList{}
 	err = c.r.Get().
-		Resource("hostSubnet").
+		Resource("hostSubnets").
 		Do().
 		Into(result)
 	return
@@ -47,27 +47,27 @@ func (c *hostSubnet) List() (result *sdnapi.HostSubnetList, err error) {
 // Get returns information about a particular user or an error
 func (c *hostSubnet) Get(hostName string) (result *sdnapi.HostSubnet, err error) {
 	result = &sdnapi.HostSubnet{}
-	err = c.r.Get().Resource("hostSubnet").Name(hostName).Do().Into(result)
+	err = c.r.Get().Resource("hostSubnets").Name(hostName).Do().Into(result)
 	return
 }
 
 // Create creates a new user. Returns the server's representation of the user and error if one occurs.
 func (c *hostSubnet) Create(hostSubnet *sdnapi.HostSubnet) (result *sdnapi.HostSubnet, err error) {
 	result = &sdnapi.HostSubnet{}
-	err = c.r.Post().Resource("hostSubnet").Body(hostSubnet).Do().Into(result)
+	err = c.r.Post().Resource("hostSubnets").Body(hostSubnet).Do().Into(result)
 	return
 }
 
 // Delete takes the name of the host, and returns an error if one occurs during deletion of the subnet
 func (c *hostSubnet) Delete(name string) error {
-	return c.r.Delete().Resource("hostSubnet").Name(name).Do().Error()
+	return c.r.Delete().Resource("hostSubnets").Name(name).Do().Error()
 }
 
 // Watch returns a watch.Interface that watches the requested subnets
 func (c *hostSubnet) Watch(resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
-		Resource("hostSubnet").
+		Resource("hostSubnets").
 		Param("resourceVersion", resourceVersion).
 		Watch()
 }

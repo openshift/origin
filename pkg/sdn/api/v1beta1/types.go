@@ -12,6 +12,12 @@ type ClusterNetwork struct {
 	HostSubnetLength int    `json:"hostsubnetlength" description:"number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host"`
 }
 
+type ClusterNetworkList struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []ClusterNetwork `json:"items"`
+}
+
 // HostSubnet encapsulates the inputs needed to define the container subnet network on a minion
 type HostSubnet struct {
 	kapi.TypeMeta   `json:",inline"`
