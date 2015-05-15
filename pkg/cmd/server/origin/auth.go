@@ -256,7 +256,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 
 // getCSRF returns the object responsible for generating and checking CSRF tokens
 func getCSRF() csrf.CSRF {
-	return csrf.NewCookieCSRF("csrf", "/", "", false, false)
+	return csrf.NewCookieCSRF("csrf", "/", "", false, true)
 }
 
 func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
