@@ -58,7 +58,7 @@ func init() {
 			}
 			return nil
 		},
-		func(in *newer.STIBuildStrategy, out *STIBuildStrategy, s conversion.Scope) error {
+		func(in *newer.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
 			if in.From != nil {
 				switch in.From.Kind {
 				case "ImageStreamImage":
@@ -96,7 +96,7 @@ func init() {
 			out.Clean = !in.Incremental
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
-		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
+		func(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
 			out.Scripts = in.Scripts
 			out.Incremental = !in.Clean
 			out.PullSecretName = in.PullSecretName

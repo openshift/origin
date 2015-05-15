@@ -13,7 +13,7 @@ import (
 
 func init() {
 	err := kapi.Scheme.AddDefaultingFuncs(
-		func(obj *STIBuildStrategy) {
+		func(obj *SourceBuildStrategy) {
 			if obj.From != nil && len(obj.From.Kind) == 0 {
 				obj.From.Kind = "ImageStreamTag"
 			}
@@ -121,9 +121,11 @@ func init() {
 		},
 
 		func(in *newer.BuildParameters, out *BuildSpec, s conversion.Scope) error {
-			err := s.DefaultConvert(&in.Strategy, &out.Strategy, conversion.IgnoreMissingFields)
-			if err != nil {
+			if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 				return err
+			}
+			if in.Strategy.Type == newer.SourceBuildStrategyType {
+				out.Strategy.Type = SourceBuildStrategyType
 			}
 			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 				return err
@@ -140,9 +142,11 @@ func init() {
 			return nil
 		},
 		func(in *BuildSpec, out *newer.BuildParameters, s conversion.Scope) error {
-			err := s.DefaultConvert(&in.Strategy, &out.Strategy, conversion.IgnoreMissingFields)
-			if err != nil {
+			if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 				return err
+			}
+			if in.Strategy.Type == SourceBuildStrategyType {
+				out.Strategy.Type = newer.SourceBuildStrategyType
 			}
 			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 				return err
@@ -160,9 +164,11 @@ func init() {
 		},
 
 		func(in *newer.BuildParameters, out *BuildConfigSpec, s conversion.Scope) error {
-			err := s.DefaultConvert(&in.Strategy, &out.Strategy, conversion.IgnoreMissingFields)
-			if err != nil {
+			if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 				return err
+			}
+			if in.Strategy.Type == newer.SourceBuildStrategyType {
+				out.Strategy.Type = SourceBuildStrategyType
 			}
 			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 				return err
@@ -179,9 +185,11 @@ func init() {
 			return nil
 		},
 		func(in *BuildConfigSpec, out *newer.BuildParameters, s conversion.Scope) error {
-			err := s.DefaultConvert(&in.Strategy, &out.Strategy, conversion.IgnoreMissingFields)
-			if err != nil {
+			if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 				return err
+			}
+			if in.Strategy.Type == SourceBuildStrategyType {
+				out.Strategy.Type = newer.SourceBuildStrategyType
 			}
 			if err := s.Convert(&in.Source, &out.Source, 0); err != nil {
 				return err
@@ -198,7 +206,7 @@ func init() {
 			return nil
 		},
 
-		func(in *newer.STIBuildStrategy, out *STIBuildStrategy, s conversion.Scope) error {
+		func(in *newer.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
 			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 				return err
 			}
@@ -208,7 +216,7 @@ func init() {
 			}
 			return nil
 		},
-		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
+		func(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
 			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 				return err
 			}

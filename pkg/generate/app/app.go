@@ -150,8 +150,8 @@ func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.
 	}
 
 	return &buildapi.BuildStrategy{
-		Type: buildapi.STIBuildStrategyType,
-		STIStrategy: &buildapi.STIBuildStrategy{
+		Type: buildapi.SourceBuildStrategyType,
+		SourceStrategy: &buildapi.SourceBuildStrategy{
 			From: s.Base.ObjectReference(),
 		},
 	}, s.Base.BuildTriggers()

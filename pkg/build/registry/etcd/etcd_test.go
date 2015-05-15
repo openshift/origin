@@ -129,8 +129,8 @@ func TestEtcdCreateBuild(t *testing.T) {
 				},
 			},
 			Strategy: api.BuildStrategy{
-				Type: api.STIBuildStrategyType,
-				STIStrategy: &api.STIBuildStrategy{
+				Type: api.SourceBuildStrategyType,
+				SourceStrategy: &api.SourceBuildStrategy{
 					From: &kapi.ObjectReference{
 						Name: "builder/image",
 					},
@@ -185,8 +185,8 @@ func TestEtcdCreateBuildUsingImage(t *testing.T) {
 				},
 			},
 			Strategy: api.BuildStrategy{
-				Type: api.STIBuildStrategyType,
-				STIStrategy: &api.STIBuildStrategy{
+				Type: api.SourceBuildStrategyType,
+				SourceStrategy: &api.SourceBuildStrategy{
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "builder/image",
@@ -417,8 +417,8 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 				},
 			},
 			Strategy: api.BuildStrategy{
-				Type: api.STIBuildStrategyType,
-				STIStrategy: &api.STIBuildStrategy{
+				Type: api.SourceBuildStrategyType,
+				SourceStrategy: &api.SourceBuildStrategy{
 					From: &kapi.ObjectReference{
 						Name: "builder/image",
 					},
@@ -472,8 +472,8 @@ func TestEtcdCreateBuildConfigUsingImage(t *testing.T) {
 				},
 			},
 			Strategy: api.BuildStrategy{
-				Type: api.STIBuildStrategyType,
-				STIStrategy: &api.STIBuildStrategy{
+				Type: api.SourceBuildStrategyType,
+				SourceStrategy: &api.SourceBuildStrategy{
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "builder/image",

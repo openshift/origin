@@ -65,8 +65,8 @@ func dockerStrategy(kind, name string) buildapi.BuildStrategy {
 }
 func stiStrategy(kind, name string) buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
-		Type: buildapi.STIBuildStrategyType,
-		STIStrategy: &buildapi.STIBuildStrategy{
+		Type: buildapi.SourceBuildStrategyType,
+		SourceStrategy: &buildapi.SourceBuildStrategy{
 			From: &kapi.ObjectReference{
 				Kind: kind,
 				Name: name,
@@ -203,8 +203,8 @@ func runTest(t *testing.T, testname string, clusterAdminClient *client.Client, i
 	}
 	newBuild := event.Object.(*buildapi.Build)
 	switch newBuild.Parameters.Strategy.Type {
-	case buildapi.STIBuildStrategyType:
-		if newBuild.Parameters.Strategy.STIStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
+	case buildapi.SourceBuildStrategyType:
+		if newBuild.Parameters.Strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, newBuild.Parameters.Strategy.DockerStrategy.From.Name, i, bc.Triggers[0].ImageChange)
@@ -268,8 +268,8 @@ func runTest(t *testing.T, testname string, clusterAdminClient *client.Client, i
 	}
 	newBuild = event.Object.(*buildapi.Build)
 	switch newBuild.Parameters.Strategy.Type {
-	case buildapi.STIBuildStrategyType:
-		if newBuild.Parameters.Strategy.STIStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
+	case buildapi.SourceBuildStrategyType:
+		if newBuild.Parameters.Strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
 			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Parameters.Strategy.DockerStrategy.From.Name, i, bc.Triggers[3].ImageChange)

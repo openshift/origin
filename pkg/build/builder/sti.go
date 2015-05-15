@@ -39,15 +39,15 @@ func NewSTIBuilder(client DockerClient, dockerSocket string, authCfg docker.Auth
 func (s *STIBuilder) Build() error {
 	tag := s.build.Parameters.Output.DockerImageReference
 	request := &stiapi.Request{
-		BaseImage:     s.build.Parameters.Strategy.STIStrategy.From.Name,
+		BaseImage:     s.build.Parameters.Strategy.SourceStrategy.From.Name,
 		DockerConfig:  &stiapi.DockerConfig{Endpoint: s.dockerSocket},
 		Source:        s.build.Parameters.Source.Git.URI,
 		ContextDir:    s.build.Parameters.Source.ContextDir,
 		DockerCfgPath: os.Getenv(dockercfg.PullAuthType),
 		Tag:           tag,
-		ScriptsURL:    s.build.Parameters.Strategy.STIStrategy.Scripts,
+		ScriptsURL:    s.build.Parameters.Strategy.SourceStrategy.Scripts,
 		Environment:   getBuildEnvVars(s.build),
-		Incremental:   s.build.Parameters.Strategy.STIStrategy.Incremental,
+		Incremental:   s.build.Parameters.Strategy.SourceStrategy.Incremental,
 	}
 
 	if s.build.Parameters.Revision != nil && s.build.Parameters.Revision.Git != nil &&

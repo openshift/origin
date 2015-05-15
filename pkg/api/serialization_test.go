@@ -71,7 +71,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.From.Kind = specs[c.Intn(len(specs))]
 			}
 		},
-		func(j *build.STIBuildStrategy, c fuzz.Continue) {
+		func(j *build.SourceBuildStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.From.Kind = "ImageStreamTag"
 			j.From.Name = "image:tag"

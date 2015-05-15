@@ -309,7 +309,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 			Image: "test-docker-builder",
 			Codec: latest.Codec,
 		},
-		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
+		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
 			Image:                "test-sti-builder",
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			Codec:                latest.Codec,

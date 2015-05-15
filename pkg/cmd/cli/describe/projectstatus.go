@@ -198,7 +198,7 @@ func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graph.ImageT
 			return "docker build; no source set"
 		}
 		return fmt.Sprintf("docker build of %s", source)
-	case buildapi.STIBuildStrategyType:
+	case buildapi.SourceBuildStrategyType:
 		source, ok := describeSourceInPipeline(&build.Parameters.Source)
 		if !ok {
 			return fmt.Sprintf("unconfigured source build %s", build.Name)

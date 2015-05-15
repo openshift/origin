@@ -804,7 +804,7 @@ func (c *MasterConfig) RunBuildController() {
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: v1beta1.Codec,
 		},
-		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
+		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			// TODO: this will be set to --storage-version (the internal schema we use)

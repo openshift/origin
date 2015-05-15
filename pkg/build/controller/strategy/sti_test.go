@@ -19,7 +19,7 @@ func (t *FakeTempDirCreator) CreateTempDirectory() (string, error) {
 }
 
 func TestSTICreateBuildPod(t *testing.T) {
-	strategy := &STIBuildStrategy{
+	strategy := &SourceBuildStrategy{
 		Image:                "sti-test-image",
 		TempDirectoryCreator: &FakeTempDirCreator{},
 		Codec:                v1beta1.Codec,
@@ -113,8 +113,8 @@ func mockSTIBuild() *buildapi.Build {
 				SourceSecretName: "fooSecret",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.STIBuildStrategyType,
-				STIStrategy: &buildapi.STIBuildStrategy{
+				Type: buildapi.SourceBuildStrategyType,
+				SourceStrategy: &buildapi.SourceBuildStrategy{
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "repository/sti-builder",
