@@ -81,8 +81,12 @@ module.exports = function (grunt) {
           open: true,
           middleware: function (connect) {
             return [
-              modRewrite(['!^/(config.js|favicon.ico|(bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
+              modRewrite(['!^/(config.js|favicon.ico|(java|bower_components|scripts|images|styles|views)(/.*)?)$ /index.html [L]']),
               connect.static('.tmp'),
+              connect().use(
+                '/java',
+                connect.static('./openshift-jvm')
+              ),
               connect().use(
                 '/bower_components',
                 connect.static('./bower_components')

@@ -20,6 +20,12 @@
   $provide.factory("HawtioNav", function(){
     return {add: function() {}};
   });
+
+  $provide.factory("HawtioExtension", function() {
+    return {
+      add: function() {}
+    };
+  });
   
 }));
 
