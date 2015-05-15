@@ -303,7 +303,10 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		globalExistedBefore = false
 	}
 
-	newConfig := config.CreateConfig(o.Username, o.Project, o.Config)
+	newConfig, err := config.CreateConfig(o.Project, o.Config)
+	if err != nil {
+		return false, err
+	}
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -313,11 +316,11 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if err := config.RelativizeClientConfigPaths(&newConfig, baseDir); err != nil {
+	if err := config.RelativizeClientConfigPaths(newConfig, baseDir); err != nil {
 		return false, err
 	}
 
-	configToWrite, err := config.MergeConfig(*o.StartingKubeConfig, newConfig)
+	configToWrite, err := config.MergeConfig(*o.StartingKubeConfig, *newConfig)
 	if err != nil {
 		return false, err
 	}

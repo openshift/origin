@@ -294,7 +294,7 @@ wait_for_url_timed "http://${DOCKER_REGISTRY}/v2/" "[INFO] Docker registry says:
 echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
 osc login -u e2e-user -p pass
 osc project cache
-token=$(osc config view --flatten -o template -t '{{range .users}}{{if eq .name "e2e-user"}}{{.user.token}}{{end}}{{end}}')
+token=$(osc config view --flatten -o template -t '{{with index .users 0}}{{.user.token}}{{end}}')
 [[ -n ${token} ]]
 
 # TODO reenable this once we've got docker push secrets 100% ready

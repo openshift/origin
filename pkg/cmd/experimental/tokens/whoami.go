@@ -26,8 +26,8 @@ func NewCmdWhoAmI(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "displays the current identity",
-		Long:  `displays the current identity`,
+		Short: "displays the username of the currently authenticated user",
+		Long:  `displays the username of the currently authenticated user`,
 		Run: func(cmd *cobra.Command, args []string) {
 			client, _, err := f.Clients()
 			kcmdutil.CheckErr(err)
