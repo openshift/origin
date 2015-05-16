@@ -43,6 +43,7 @@ module.exports = function(config) {
       "bower_components/kubernetes-label-selector/labelSelector.js",
       "bower_components/kubernetes-label-selector/labelFilter.js",
       "bower_components/kubernetes-object-describer/dist/object-describer.js",
+      "bower_components/messenger/build/js/messenger.js",
       "bower_components/openshift-object-describer/dist/object-describer.js",
       'app/scripts/**/*.js',
       //'test/mock/**/*.js',

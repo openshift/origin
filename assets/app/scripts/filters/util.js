@@ -207,15 +207,19 @@ angular.module('openshiftConsole')
   })
   .filter("toArray", function() {
     return function(items) {
+      if (!items) {
+        return [];
+      }
+
       if (angular.isArray(items)) {
         return items;
       }
 
-      var array = [];
+      var itemsArray = [];
       angular.forEach(items, function(item) {
-        array.push(item);
+        itemsArray.push(item);
       });
 
-      return array;
+      return itemsArray;
     };
   });

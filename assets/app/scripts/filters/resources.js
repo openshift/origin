@@ -275,7 +275,9 @@ angular.module('openshiftConsole')
     return function(items) {
       var itemsArray = toArrayFilter(items);
       itemsArray.sort(function(left, right) {
-        return displayNameFilter(left).localeCompare(displayNameFilter(right));
+        var leftName = displayNameFilter(left) || '';
+        var rightName = displayNameFilter(right) || '';
+        return leftName.localeCompare(rightName);
       });
 
       return itemsArray;

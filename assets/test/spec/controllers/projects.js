@@ -42,7 +42,7 @@ describe('Controller: ProjectsController', function () {
     timeout;
 
   // Initialize the controller and a mock scope
-  beforeEach(inject(function ($controller, $timeout, $rootScope, MemoryUserStore) {
+  beforeEach(inject(function ($controller, $timeout, $rootScope, $q, MemoryUserStore) {
     // Set up a stub user
     MemoryUserStore.setToken("myToken");
     MemoryUserStore.setUser({metadata: {name: "My User"}});
@@ -56,6 +56,11 @@ describe('Controller: ProjectsController', function () {
         list: function(type, context, callback, opts) {
           // TODO return mocked project data
           callback({by: function(){return {}}});
+        },
+        get: function(type, name, context, opts) {
+          var deferred = $q.defer();
+          deferred.resolve({});
+          return deferred.promise;
         }
       }
     });

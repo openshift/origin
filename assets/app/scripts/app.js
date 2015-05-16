@@ -96,6 +96,10 @@ angular
         templateUrl: 'views/projects.html',
         controller: 'ProjectsController'
       })
+      .when('/createProject', {
+        templateUrl: 'views/createProject.html',
+        controller: 'CreateProjectController'
+      })
       .when('/project/:project', {
         redirectTo: function(params) {
           return '/project/' + encodeURIComponent(params.project) + "/overview";
