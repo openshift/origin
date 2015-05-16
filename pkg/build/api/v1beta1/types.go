@@ -165,8 +165,8 @@ type BuildStrategy struct {
 	// DockerStrategy holds the parameters to the Docker build strategy.
 	DockerStrategy *DockerBuildStrategy `json:"dockerStrategy,omitempty"`
 
-	// STIStrategy holds the parameters to the STI build strategy.
-	STIStrategy *STIBuildStrategy `json:"stiStrategy,omitempty"`
+	// SourceStrategy holds the parameters to the STI build strategy.
+	SourceStrategy *SourceBuildStrategy `json:"stiStrategy,omitempty"`
 
 	// CustomStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty"`
@@ -180,9 +180,9 @@ const (
 	// DockerBuildStrategyType performs builds using a Dockerfile.
 	DockerBuildStrategyType BuildStrategyType = "Docker"
 
-	// STIBuildStrategyType performs builds build using Source To Images with a Git repository
+	// SourceBuildStrategyType performs builds build using Source To Images with a Git repository
 	// and a builder image.
-	STIBuildStrategyType BuildStrategyType = "STI"
+	SourceBuildStrategyType BuildStrategyType = "STI"
 
 	// CustomBuildStrategyType performs builds using custom builder Docker image.
 	CustomBuildStrategyType BuildStrategyType = "Custom"
@@ -255,8 +255,8 @@ type DockerBuildStrategy struct {
 	PullSecretName string `json:"pullSecretName,omitempty"`
 }
 
-// STIBuildStrategy defines input parameters specific to an STI build.
-type STIBuildStrategy struct {
+// SourceBuildStrategy defines input parameters specific to an STI build.
+type SourceBuildStrategy struct {
 	// BuilderImage is the image used to execute the build.
 	// Deprecated: will be removed in v1beta3, use Image.
 	BuilderImage string `json:"builderImage,omitempty"`

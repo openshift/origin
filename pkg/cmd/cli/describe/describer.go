@@ -150,13 +150,21 @@ type BuildConfigDescriber struct {
 	host string
 }
 
+// TODO: remove when internal SourceBuildStrategyType is refactored to "Source"
+func describeStrategy(strategyType buildapi.BuildStrategyType) buildapi.BuildStrategyType {
+	if strategyType == buildapi.SourceBuildStrategyType {
+		strategyType = buildapi.BuildStrategyType("Source")
+	}
+	return strategyType
+}
+
 func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) {
-	formatString(out, "Strategy", p.Strategy.Type)
+	formatString(out, "Strategy", describeStrategy(p.Strategy.Type))
 	switch p.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
 		describeDockerStrategy(p.Strategy.DockerStrategy, out)
-	case buildapi.STIBuildStrategyType:
-		describeSTIStrategy(p.Strategy.STIStrategy, out)
+	case buildapi.SourceBuildStrategyType:
+		describeSourceStrategy(p.Strategy.SourceStrategy, out)
 	case buildapi.CustomBuildStrategyType:
 		describeCustomStrategy(p.Strategy.CustomStrategy, out)
 	}
@@ -202,7 +210,7 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 	}
 }
 
-func describeSTIStrategy(s *buildapi.STIBuildStrategy, out *tabwriter.Writer) {
+func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writer) {
 	if s.From != nil && len(s.From.Name) != 0 {
 		if len(s.From.Namespace) != 0 {
 			formatString(out, "Image Reference", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))

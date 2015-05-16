@@ -12,13 +12,13 @@ import (
 
 var Convert = knewer.Scheme.Convert
 
-func TestSTIBuildStrategyOldToNewConversion(t *testing.T) {
-	var actual newer.STIBuildStrategy
+func TestSourceBuildStrategyOldToNewConversion(t *testing.T) {
+	var actual newer.SourceBuildStrategy
 
-	oldVersion := older.STIBuildStrategy{
+	oldVersion := older.SourceBuildStrategy{
 		BuilderImage: "testimage",
 	}
-	actual = newer.STIBuildStrategy{}
+	actual = newer.SourceBuildStrategy{}
 	err := Convert(&oldVersion, &actual)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -31,7 +31,7 @@ func TestSTIBuildStrategyOldToNewConversion(t *testing.T) {
 	}
 
 	// default (ImageStream/ImageRepository) Kind
-	oldVersion = older.STIBuildStrategy{
+	oldVersion = older.SourceBuildStrategy{
 		Clean: true,
 		From: &kolder.ObjectReference{
 			Name:      "name",
@@ -39,7 +39,7 @@ func TestSTIBuildStrategyOldToNewConversion(t *testing.T) {
 		},
 		Tag: "tag",
 	}
-	actual = newer.STIBuildStrategy{}
+	actual = newer.SourceBuildStrategy{}
 	err = Convert(&oldVersion, &actual)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -58,7 +58,7 @@ func TestSTIBuildStrategyOldToNewConversion(t *testing.T) {
 	}
 
 	// check Kind==ImageStream
-	oldVersion = older.STIBuildStrategy{
+	oldVersion = older.SourceBuildStrategy{
 		From: &kolder.ObjectReference{
 			Kind:      "ImageStream",
 			Name:      "name",
@@ -66,7 +66,7 @@ func TestSTIBuildStrategyOldToNewConversion(t *testing.T) {
 		},
 		Tag: "tag",
 	}
-	actual = newer.STIBuildStrategy{}
+	actual = newer.SourceBuildStrategy{}
 	err = Convert(&oldVersion, &actual)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -82,7 +82,7 @@ func TestSTIBuildStrategyOldToNewConversion(t *testing.T) {
 	}
 
 	// check Kind==ImageRepository
-	oldVersion = older.STIBuildStrategy{
+	oldVersion = older.SourceBuildStrategy{
 		From: &kolder.ObjectReference{
 			Kind:      "ImageRepository",
 			Name:      "name",
@@ -90,7 +90,7 @@ func TestSTIBuildStrategyOldToNewConversion(t *testing.T) {
 		},
 		Tag: "tag",
 	}
-	actual = newer.STIBuildStrategy{}
+	actual = newer.SourceBuildStrategy{}
 	err = Convert(&oldVersion, &actual)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -106,30 +106,30 @@ func TestSTIBuildStrategyOldToNewConversion(t *testing.T) {
 	}
 
 	// check default to tag to latest
-	oldVersion = older.STIBuildStrategy{
+	oldVersion = older.SourceBuildStrategy{
 		From: &kolder.ObjectReference{
 			Name:      "name",
 			Namespace: "namespace",
 		},
 	}
-	actual = newer.STIBuildStrategy{}
+	actual = newer.SourceBuildStrategy{}
 	err = Convert(&oldVersion, &actual)
 	if actual.From.Name != "name:latest" {
 		t.Errorf("expected %v, actual %v", "name:latest", actual.From.Name)
 	}
 }
 
-func TestSTIBuildStrategyNewToOldConversion(t *testing.T) {
-	var actual older.STIBuildStrategy
+func TestSourceBuildStrategyNewToOldConversion(t *testing.T) {
+	var actual older.SourceBuildStrategy
 
-	newVersion := newer.STIBuildStrategy{
+	newVersion := newer.SourceBuildStrategy{
 		From: &knewer.ObjectReference{
 			Kind:      "DockerImage",
 			Name:      "name",
 			Namespace: "namespace",
 		},
 	}
-	actual = older.STIBuildStrategy{}
+	actual = older.SourceBuildStrategy{}
 	err := Convert(&newVersion, &actual)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -145,14 +145,14 @@ func TestSTIBuildStrategyNewToOldConversion(t *testing.T) {
 	}
 
 	// ImageStreamTag, convert to ImageStream+tag
-	newVersion = newer.STIBuildStrategy{
+	newVersion = newer.SourceBuildStrategy{
 		From: &knewer.ObjectReference{
 			Kind:      "ImageStreamTag",
 			Name:      "name:tag",
 			Namespace: "namespace",
 		},
 	}
-	actual = older.STIBuildStrategy{}
+	actual = older.SourceBuildStrategy{}
 	err = Convert(&newVersion, &actual)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -171,7 +171,7 @@ func TestSTIBuildStrategyNewToOldConversion(t *testing.T) {
 	}
 
 	// ImageStreamImage, convert to ImageStream+tag
-	newVersion = newer.STIBuildStrategy{
+	newVersion = newer.SourceBuildStrategy{
 		From: &knewer.ObjectReference{
 			Kind:      "ImageStreamImage",
 			Name:      "name@id",
@@ -179,7 +179,7 @@ func TestSTIBuildStrategyNewToOldConversion(t *testing.T) {
 		},
 	}
 
-	actual = older.STIBuildStrategy{}
+	actual = older.SourceBuildStrategy{}
 	err = Convert(&newVersion, &actual)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -198,14 +198,14 @@ func TestSTIBuildStrategyNewToOldConversion(t *testing.T) {
 	}
 
 	// ImageStream, unchanged
-	newVersion = newer.STIBuildStrategy{
+	newVersion = newer.SourceBuildStrategy{
 		From: &knewer.ObjectReference{
 			Kind:      "ImageStream",
 			Name:      "name",
 			Namespace: "namespace",
 		},
 	}
-	actual = older.STIBuildStrategy{}
+	actual = older.SourceBuildStrategy{}
 	err = Convert(&newVersion, &actual)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -224,13 +224,13 @@ func TestSTIBuildStrategyNewToOldConversion(t *testing.T) {
 	}
 
 	// ImageStream(default), unchanged
-	newVersion = newer.STIBuildStrategy{
+	newVersion = newer.SourceBuildStrategy{
 		From: &knewer.ObjectReference{
 			Name:      "name",
 			Namespace: "namespace",
 		},
 	}
-	actual = older.STIBuildStrategy{}
+	actual = older.SourceBuildStrategy{}
 	err = Convert(&newVersion, &actual)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

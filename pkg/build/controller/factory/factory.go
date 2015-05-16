@@ -39,7 +39,7 @@ type BuildControllerFactory struct {
 	KubeClient          kclient.Interface
 	BuildUpdater        buildclient.BuildUpdater
 	DockerBuildStrategy *strategy.DockerBuildStrategy
-	STIBuildStrategy    *strategy.STIBuildStrategy
+	SourceBuildStrategy    *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
@@ -60,7 +60,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 		PodManager:        client,
 		BuildStrategy: &typeBasedFactoryStrategy{
 			DockerBuildStrategy: factory.DockerBuildStrategy,
-			STIBuildStrategy:    factory.STIBuildStrategy,
+			SourceBuildStrategy:    factory.SourceBuildStrategy,
 			CustomBuildStrategy: factory.CustomBuildStrategy,
 		},
 		Recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-controller"}),
@@ -213,7 +213,7 @@ func (pe *podEnumerator) Get(index int) interface{} {
 
 type typeBasedFactoryStrategy struct {
 	DockerBuildStrategy *strategy.DockerBuildStrategy
-	STIBuildStrategy    *strategy.STIBuildStrategy
+	SourceBuildStrategy    *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
 }
 
@@ -223,8 +223,8 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.
 	switch build.Parameters.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
 		pod, err = f.DockerBuildStrategy.CreateBuildPod(build)
-	case buildapi.STIBuildStrategyType:
-		pod, err = f.STIBuildStrategy.CreateBuildPod(build)
+	case buildapi.SourceBuildStrategyType:
+		pod, err = f.SourceBuildStrategy.CreateBuildPod(build)
 	case buildapi.CustomBuildStrategyType:
 		pod, err = f.CustomBuildStrategy.CreateBuildPod(build)
 	default:

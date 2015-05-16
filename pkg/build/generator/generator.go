@@ -162,13 +162,13 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	// reference to a valid image so we can run the build.  Builds do not consume ImageStream references,
 	// only image specs.
 	switch {
-	case build.Parameters.Strategy.Type == buildapi.STIBuildStrategyType &&
-		build.Parameters.Strategy.STIStrategy.From != nil:
-		image, err := g.resolveImageStreamReference(ctx, build.Parameters.Strategy.STIStrategy.From, build.Config.Namespace)
+	case build.Parameters.Strategy.Type == buildapi.SourceBuildStrategyType &&
+		build.Parameters.Strategy.SourceStrategy.From != nil:
+		image, err := g.resolveImageStreamReference(ctx, build.Parameters.Strategy.SourceStrategy.From, build.Config.Namespace)
 		if err != nil {
 			return nil, err
 		}
-		build.Parameters.Strategy.STIStrategy.From = &kapi.ObjectReference{
+		build.Parameters.Strategy.SourceStrategy.From = &kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: image,
 		}

@@ -342,8 +342,8 @@ func TestValidateBuildParameters(t *testing.T) {
 					},
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type:        buildapi.STIBuildStrategyType,
-					STIStrategy: &buildapi.STIBuildStrategy{},
+					Type:           buildapi.SourceBuildStrategyType,
+					SourceStrategy: &buildapi.SourceBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
 					DockerImageReference: "repository/data",
@@ -398,8 +398,8 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 					},
 				},
 				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.STIBuildStrategyType,
-					STIStrategy: &buildapi.STIBuildStrategy{
+					Type: buildapi.SourceBuildStrategyType,
+					SourceStrategy: &buildapi.SourceBuildStrategy{
 						From: &kapi.ObjectReference{
 							Name: "reponame",
 						},

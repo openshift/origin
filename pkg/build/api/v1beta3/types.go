@@ -171,8 +171,8 @@ type BuildStrategy struct {
 	// DockerStrategy holds the parameters to the Docker build strategy.
 	DockerStrategy *DockerBuildStrategy `json:"dockerStrategy,omitempty"`
 
-	// STIStrategy holds the parameters to the STI build strategy.
-	STIStrategy *STIBuildStrategy `json:"stiStrategy,omitempty"`
+	// SourceStrategy holds the parameters to the Source build strategy.
+	SourceStrategy *SourceBuildStrategy `json:"sourceStrategy,omitempty"`
 
 	// CustomStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty"`
@@ -186,9 +186,9 @@ const (
 	// DockerBuildStrategyType performs builds using a Dockerfile.
 	DockerBuildStrategyType BuildStrategyType = "Docker"
 
-	// STIBuildStrategyType performs builds build using Source To Images with a Git repository
+	// SourceBuildStrategyType performs builds build using Source To Images with a Git repository
 	// and a builder image.
-	STIBuildStrategyType BuildStrategyType = "STI"
+	SourceBuildStrategyType BuildStrategyType = "Source"
 
 	// CustomBuildStrategyType performs builds using custom builder Docker image.
 	CustomBuildStrategyType BuildStrategyType = "Custom"
@@ -231,8 +231,8 @@ type DockerBuildStrategy struct {
 	NoCache bool `json:"noCache,omitempty"`
 }
 
-// STIBuildStrategy defines input parameters specific to an STI build.
-type STIBuildStrategy struct {
+// SourceBuildStrategy defines input parameters specific to an Source build.
+type SourceBuildStrategy struct {
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
@@ -245,10 +245,10 @@ type STIBuildStrategy struct {
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
 
-	// Scripts is the location of STI scripts
+	// Scripts is the location of Source scripts
 	Scripts string `json:"scripts,omitempty"`
 
-	// Incremental flag forces the STI build to do incremental builds if true.
+	// Incremental flag forces the Source build to do incremental builds if true.
 	Incremental bool `json:"incremental,omitempty"`
 }
 
