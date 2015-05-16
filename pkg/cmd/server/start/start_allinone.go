@@ -20,6 +20,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -112,6 +113,9 @@ func NewCommandStartAllInOne(out io.Writer) (*cobra.Command, *AllInOneOptions) {
 	startNode, _ := NewCommandStartNode(out)
 	cmd.AddCommand(startMaster)
 	cmd.AddCommand(startNode)
+
+	startKube := kubernetes.NewCommand("kubernetes", "openshift", out)
+	cmd.AddCommand(startKube)
 
 	return cmd, options
 }
