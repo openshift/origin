@@ -1,7 +1,7 @@
 package osin
 
 import (
-	"net/http"
+	"time"
 )
 
 // Server is an OAuth2 implementation
@@ -10,6 +10,7 @@ type Server struct {
 	Storage           Storage
 	AuthorizeTokenGen AuthorizeTokenGen
 	AccessTokenGen    AccessTokenGen
+	Now               func() time.Time
 }
 
 // NewServer creates a new server instance
@@ -19,21 +20,13 @@ func NewServer(config *ServerConfig, storage Storage) *Server {
 		Storage:           storage,
 		AuthorizeTokenGen: &AuthorizeTokenGenDefault{},
 		AccessTokenGen:    &AccessTokenGenDefault{},
+		Now:               time.Now,
 	}
 }
 
 // NewResponse creates a new response for the server
 func (s *Server) NewResponse() *Response {
-	r := &Response{
-		Type:            DATA,
-		StatusCode:      200,
-		ErrorStatusCode: 200,
-		Output:          make(ResponseData),
-		Headers:         make(http.Header),
-		IsError:         false,
-		Storage:         s.Storage.Clone(),
-	}
-	r.Headers.Add("Cache-Control", "no-store")
+	r := NewResponse(s.Storage)
 	r.ErrorStatusCode = s.Config.ErrorStatusCode
 	return r
 }
