@@ -26,8 +26,8 @@ func New(config *osin.ServerConfig, storage osin.Storage, authorize AuthorizeHan
 	server := osin.NewServer(config, storage)
 
 	// Override tokengen to ensure we get valid length tokens
-	server.AuthorizeTokenGen = &AuthorizeTokenGen{}
-	server.AccessTokenGen = &AccessTokenGen{}
+	server.AuthorizeTokenGen = TokenGen{}
+	server.AccessTokenGen = TokenGen{}
 
 	return &Server{
 		config:       config,

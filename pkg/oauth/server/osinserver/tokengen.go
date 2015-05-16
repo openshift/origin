@@ -2,39 +2,42 @@ package osinserver
 
 import (
 	"encoding/base64"
+	"io"
 	"strings"
 
-	"code.google.com/p/go-uuid/uuid"
+	"crypto/rand"
 
 	"github.com/RangelReale/osin"
 )
 
+func randomBytes(len int) []byte {
+	b := make([]byte, len)
+	if _, err := io.ReadFull(rand.Reader, b); err != nil {
+		// rand.Reader should never fail
+		panic(err.Error())
+	}
+	return b
+}
 func randomToken() string {
-	// Two random uuids to get the length we want (> 32 chars when base-64 encoded)
-	b := []byte{}
-	b = append(b, []byte(uuid.NewRandom())...)
-	b = append(b, []byte(uuid.NewRandom())...)
+	// 32 bytes (256 bits) = 43 base64-encoded characters
+	b := randomBytes(32)
 	// Use URLEncoding to ensure we don't get / characters
 	s := base64.URLEncoding.EncodeToString(b)
 	// Strip trailing ='s... they're ugly
 	return strings.TrimRight(s, "=")
 }
 
-// AuthorizeTokenGen is an authorization token generator
-type AuthorizeTokenGen struct {
+// TokenGen is an authorization and access token generator
+type TokenGen struct {
 }
 
 // GenerateAuthorizeToken generates a random UUID code
-func (a *AuthorizeTokenGen) GenerateAuthorizeToken(data *osin.AuthorizeData) (ret string, err error) {
+func (TokenGen) GenerateAuthorizeToken(data *osin.AuthorizeData) (ret string, err error) {
 	return randomToken(), nil
 }
 
-// AccessTokenGen is an access token generator
-type AccessTokenGen struct {
-}
-
 // GenerateAccessToken generates random UUID access and refresh tokens
-func (a *AccessTokenGen) GenerateAccessToken(data *osin.AccessData, generaterefresh bool) (string, string, error) {
+func (TokenGen) GenerateAccessToken(data *osin.AccessData, generaterefresh bool) (string, string, error) {
 	accesstoken := randomToken()
 
 	refreshtoken := ""
