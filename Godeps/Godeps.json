@@ -55,6 +55,26 @@
 			"Rev": "c73835dc8fc6958baf8df8656864ee4d6d04b130"
 		},
 		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-apiserver/app",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-controller-manager/app",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-proxy/app",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/cmd/kubelet/app",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/admission",
 			"Comment": "v0.17.0-144-g25d32ee",
 			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
@@ -330,7 +350,17 @@
 			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
 		},
 		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/volumeclaimbinder",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/watch",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/cmd/kube-scheduler/app",
 			"Comment": "v0.17.0-144-g25d32ee",
 			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
 		},
@@ -340,7 +370,17 @@
 			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
 		},
 		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/deny",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/limitranger",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/namespace/autoprovision",
 			"Comment": "v0.17.0-144-g25d32ee",
 			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
 		},
@@ -356,6 +396,16 @@
 		},
 		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcequota",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/securitycontext/scdeny",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/serviceaccount",
 			"Comment": "v0.17.0-144-g25d32ee",
 			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
 		},
@@ -386,6 +436,11 @@
 		},
 		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler",
+			"Comment": "v0.17.0-144-g25d32ee",
+			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
+		},
+		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/third_party/forked/coreos/go-etcd/etcd",
 			"Comment": "v0.17.0-144-g25d32ee",
 			"Rev": "25d32ee5132b41c122fe2929f3c6be7c3eb74f1d"
 		},
@@ -905,6 +960,31 @@
 			"Rev": "c13058f493c3756207ced654dce2986e812f2bcf"
 		},
 		{
+			"ImportPath": "github.com/mitchellh/goamz/aws",
+			"Rev": "703cfb45985762869e465f37ed030ff01615ff1e"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/goamz/ec2",
+			"Rev": "703cfb45985762869e465f37ed030ff01615ff1e"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/mapstructure",
+			"Rev": "740c764bc6149d3f1806231418adb9f52c11bcbf"
+		},
+		{
+			"ImportPath": "github.com/openshift/openshift-sdn/ovssubnet",
+			"Rev": "3ba813b579ee95a86599ba0896f2d470d7702a19"
+		},
+		{
+			"ImportPath": "github.com/openshift/openshift-sdn/pkg/api",
+			"Rev": "3ba813b579ee95a86599ba0896f2d470d7702a19"
+		},
+		{
+			"ImportPath": "github.com/openshift/openshift-sdn/pkg/netutils",
+			"Comment": "v0.1-83-g3ba813b",
+			"Rev": "3ba813b579ee95a86599ba0896f2d470d7702a19"
+		},
+		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
 			"Comment": "v0.5",
 			"Rev": "ac0b2512c9f933afa985b056a7f3cbce1942cacb"
@@ -973,6 +1053,11 @@
 			"Rev": "490cc6eb5fa45bf8a8b7b73c8bc82a8160e8531d"
 		},
 		{
+			"ImportPath": "github.com/rackspace/gophercloud",
+			"Comment": "v1.0.0-569-gf3ced00",
+			"Rev": "f3ced00552c1c7d4a6184500af9062cfb4ff4463"
+		},
+		{
 			"ImportPath": "github.com/skynetservices/skydns/backends/etcd",
 			"Comment": "2.0.1d-99-gd442ef6",
 			"Rev": "d442ef670e06f67e7eb3133605670bbeba2ea68b"
@@ -1017,6 +1102,10 @@
 			"Rev": "8e4cdcb3c22b40d5e330ade0b68cb2e2a3cf6f98"
 		},
 		{
+			"ImportPath": "github.com/vaughan0/go-ini",
+			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
+		},
+		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "cbcac7bb8415db9b6cb4d1ebab1dc9afbd688b97"
 		},
@@ -1055,14 +1144,6 @@
 		{
 			"ImportPath": "speter.net/go/exp/math/dec/inf",
 			"Rev": "42ca6cd68aa922bc3f32f1e056e61b65945d9ad7"
-		},
-		{
-			"ImportPath": "github.com/openshift/openshift-sdn/ovssubnet",
-			"Rev": "3ba813b579ee95a86599ba0896f2d470d7702a19"
-		},
-		{
-			"ImportPath": "github.com/openshift/openshift-sdn/pkg/api",
-			"Rev": "3ba813b579ee95a86599ba0896f2d470d7702a19"
 		}
 	]
 }

@@ -56,8 +56,18 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-sti-build
   openshift-docker-build
   openshift-gitserver
+  origin
   osc
+  os
   osadm
+  oadm
+  kubectl
+  kubernetes
+  kubelet
+  kube-proxy
+  kube-apiserver
+  kube-controller-manager
+  kube-scheduler
 )
 readonly OPENSHIFT_BINARY_COPY=(
   osc

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/golang/glog"
@@ -97,11 +98,10 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 
 // NewCmdKubectl provides exactly the functionality from Kubernetes,
 // but with support for OpenShift resources
-func NewCmdKubectl(name string) *cobra.Command {
+func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	f := clientcmd.New(flags)
-	out := os.Stdout
-	cmds := kubecmd.NewKubectlCommand(f.Factory, os.Stdin, os.Stdout, os.Stderr)
+	cmds := kubecmd.NewKubectlCommand(f.Factory, os.Stdin, out, os.Stderr)
 	cmds.Aliases = []string{"kubectl"}
 	cmds.Use = name
 	cmds.Short = "Kubernetes cluster management via kubectl"

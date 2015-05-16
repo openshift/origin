@@ -84,7 +84,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 
 	cmd := &cobra.Command{
 		Use:     name,
-		Short:   "Install and check OpenShift Docker registry",
+		Short:   "Install the OpenShift Docker registry",
 		Long:    registry_long,
 		Example: fmt.Sprintf(registry_example, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
