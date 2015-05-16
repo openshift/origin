@@ -80,7 +80,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [NAME]", name),
-		Short:   "Install and check OpenShift routers",
+		Short:   "Install an OpenShift router",
 		Long:    router_long,
 		Example: fmt.Sprintf(router_example, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {

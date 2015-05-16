@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/infra/gitserver"
 	"github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/server/start"
+	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
@@ -61,12 +62,28 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = builder.NewCommandDockerBuilder(basename)
 	case "openshift-gitserver":
 		cmd = gitserver.NewCommandGitServer(basename)
-	case "osc":
+	case "osc", "os":
 		cmd = cli.NewCommandCLI(basename, basename)
-	case "osadm":
+	case "osadm", "oadm":
 		cmd = admin.NewCommandAdmin(basename, basename, os.Stdout)
+	case "kubectl":
+		cmd = cli.NewCmdKubectl(basename, os.Stdout)
+	case "kube-apiserver":
+		cmd = kubernetes.NewAPIServerCommand(basename, basename, os.Stdout)
+	case "kube-controller-manager":
+		cmd = kubernetes.NewControllersCommand(basename, basename, os.Stdout)
+	case "kubelet":
+		cmd = kubernetes.NewKubeletCommand(basename, basename, os.Stdout)
+	case "kube-proxy":
+		cmd = kubernetes.NewProxyCommand(basename, basename, os.Stdout)
+	case "kube-scheduler":
+		cmd = kubernetes.NewSchedulerCommand(basename, basename, os.Stdout)
+	case "kubernetes":
+		cmd = kubernetes.NewCommand(basename, basename, os.Stdout)
+	case "origin":
+		cmd = NewCommandOpenShift("origin")
 	default:
-		cmd = NewCommandOpenShift()
+		cmd = NewCommandOpenShift("openshift")
 	}
 
 	templates.UseMainTemplates(cmd)
@@ -76,9 +93,9 @@ func CommandFor(basename string) *cobra.Command {
 }
 
 // NewCommandOpenShift creates the standard OpenShift command
-func NewCommandOpenShift() *cobra.Command {
+func NewCommandOpenShift(name string) *cobra.Command {
 	root := &cobra.Command{
-		Use:   "openshift",
+		Use:   name,
 		Short: "OpenShift helps you build, deploy, and manage your cloud applications",
 		Long:  openshift_long,
 		Run: func(c *cobra.Command, args []string) {
@@ -87,13 +104,13 @@ func NewCommandOpenShift() *cobra.Command {
 		},
 	}
 
-	startAllInOne, _ := start.NewCommandStartAllInOne(os.Stdout)
+	startAllInOne, _ := start.NewCommandStartAllInOne(name, os.Stdout)
 	root.AddCommand(startAllInOne)
-	root.AddCommand(admin.NewCommandAdmin("admin", "openshift admin", os.Stdout))
-	root.AddCommand(cli.NewCommandCLI("cli", "openshift cli"))
-	root.AddCommand(cli.NewCmdKubectl("kube"))
-	root.AddCommand(newExperimentalCommand("ex", "openshift ex"))
-	root.AddCommand(version.NewVersionCommand("openshift"))
+	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", os.Stdout))
+	root.AddCommand(cli.NewCommandCLI("cli", name+" cli"))
+	root.AddCommand(cli.NewCmdKubectl("kube", os.Stdout))
+	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
+	root.AddCommand(version.NewVersionCommand(name))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
 	// directly

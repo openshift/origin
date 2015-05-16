@@ -57,7 +57,7 @@ You may also pass --etcd=<address> to connect to an external etcd server.
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
-func NewCommandStartAllInOne(out io.Writer) (*cobra.Command, *AllInOneOptions) {
+func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
 	options := &AllInOneOptions{Output: cmdutil.Output{out}}
 
 	cmd := &cobra.Command{
@@ -114,7 +114,7 @@ func NewCommandStartAllInOne(out io.Writer) (*cobra.Command, *AllInOneOptions) {
 	cmd.AddCommand(startMaster)
 	cmd.AddCommand(startNode)
 
-	startKube := kubernetes.NewCommand("kubernetes", "openshift", out)
+	startKube := kubernetes.NewCommand("kubernetes", fullName, out)
 	cmd.AddCommand(startKube)
 
 	return cmd, options

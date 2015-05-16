@@ -207,6 +207,7 @@ osc get templates
 echo "templates: ok"
 
 # verify some default commands
+[ "$(openshift 2>&1)" ]
 [ "$(openshift cli)" ]
 [ "$(openshift ex)" ]
 [ "$(openshift admin config 2>&1)" ]
@@ -216,6 +217,14 @@ echo "templates: ok"
 [ "$(openshift kubectl 2>&1)" ]
 [ "$(openshift kube 2>&1)" ]
 [ "$(openshift admin 2>&1)" ]
+[ "$(openshift start kubernetes 2>&1)" ]
+[ "$(kubernetes 2>&1)" ]
+[ "$(kubectl 2>&1)" ]
+[ "$(osc 2>&1)" ]
+[ "$(os 2>&1)" ]
+[ "$(osadm 2>&1)" ]
+[ "$(oadm 2>&1)" ]
+[ "$(origin 2>&1)" ]
 
 # help for root commands must be consistent
 [ "$(openshift | grep 'OpenShift Application Platform')" ]
@@ -226,6 +235,7 @@ echo "templates: ok"
 [ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
 [ "$(osadm 2>&1 | grep 'OpenShift Administrative Commands')" ]
 [ "$(openshift admin 2>&1 | grep 'OpenShift Administrative Commands')" ]
+[ "$(openshift start kubernetes 2>&1 | grep 'Kubernetes server components')" ]
 
 # help for root commands with --help flag must be consistent
 [ "$(openshift --help 2>&1 | grep 'OpenShift Application Platform')" ]
@@ -390,6 +400,7 @@ echo "edit: ok"
 
 osc delete all --all
 osc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
+wait_for_command 'osc get rc/ruby-hello-world-1' "${TIME_MIN}"
 # resize rc via deployment configuration
 osc resize dc ruby-hello-world --replicas=1
 # resize directly
