@@ -101,23 +101,25 @@ func main() {
 	// Auth endpoint
 	clienthttp.HandleFunc("/appauth", func(w http.ResponseWriter, r *http.Request) {
 		// parse a token request
-		if areqdata, err := areq.HandleRequest(r); err == nil {
-			treq := client.NewAccessRequest(osincli.AUTHORIZATION_CODE, areqdata)
-
-			// show access request url (for debugging only)
-			u2 := treq.GetTokenUrl()
-			w.Write([]byte(fmt.Sprintf("Access token URL: %s\n", u2.String())))
-
-			// exchange the authorize token for the access token
-			ad, err := treq.GetToken()
-			if err == nil {
-				w.Write([]byte(fmt.Sprintf("Access token: %+v\n", ad)))
-			} else {
-				w.Write([]byte(fmt.Sprintf("ERROR: %s\n", err)))
-			}
-		} else {
+		areqdata, err := areq.HandleRequest(r)
+		if err != nil {
 			w.Write([]byte(fmt.Sprintf("ERROR: %s\n", err)))
+			return
 		}
+
+		treq := client.NewAccessRequest(osincli.AUTHORIZATION_CODE, areqdata)
+
+		// show access request url (for debugging only)
+		u2 := treq.GetTokenUrl()
+		w.Write([]byte(fmt.Sprintf("Access token URL: %s\n", u2.String())))
+
+		// exchange the authorize token for the access token
+		ad, err := treq.GetToken()
+		if err != nil {
+			w.Write([]byte(fmt.Sprintf("ERROR: %s\n", err)))
+			return
+		}
+		w.Write([]byte(fmt.Sprintf("Access token: %+v\n", ad)))
 	})
 
 	go http.ListenAndServe(":14001", clienthttp)

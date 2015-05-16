@@ -189,7 +189,7 @@ func TestAccessClientCredentials(t *testing.T) {
 		t.Fatalf("Unexpected access token: %s", d)
 	}
 
-	if d := resp.Output["refresh_token"]; d != "r1" {
-		t.Fatalf("Unexpected refresh token: %s", d)
+	if d, dok := resp.Output["refresh_token"]; dok {
+		t.Fatalf("Refresh token should not be generated: %s", d)
 	}
 }

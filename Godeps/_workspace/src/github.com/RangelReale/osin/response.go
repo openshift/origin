@@ -45,7 +45,12 @@ func NewResponse(storage Storage) *Response {
 		IsError:         false,
 		Storage:         storage.Clone(),
 	}
-	r.Headers.Add("Cache-Control", "no-store")
+	r.Headers.Add(
+		"Cache-Control",
+		"no-cache, no-store, max-age=0, must-revalidate",
+	)
+	r.Headers.Add("Pragma", "no-cache")
+	r.Headers.Add("Expires", "Fri, 01 Jan 1990 00:00:00 GMT")
 	return r
 }
 
@@ -117,7 +122,10 @@ func (r *Response) GetRedirectUrl() (string, error) {
 	}
 	if r.RedirectInFragment {
 		u.RawQuery = ""
-		u.Fragment = q.Encode()
+		u.Fragment, err = url.QueryUnescape(q.Encode())
+		if err != nil {
+			return "", err
+		}
 	} else {
 		u.RawQuery = q.Encode()
 	}

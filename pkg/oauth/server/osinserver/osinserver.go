@@ -23,9 +23,15 @@ type Server struct {
 }
 
 func New(config *osin.ServerConfig, storage osin.Storage, authorize AuthorizeHandler, access AccessHandler, errorHandler ErrorHandler) *Server {
+	server := osin.NewServer(config, storage)
+
+	// Override tokengen to ensure we get valid length tokens
+	server.AuthorizeTokenGen = &AuthorizeTokenGen{}
+	server.AccessTokenGen = &AccessTokenGen{}
+
 	return &Server{
 		config:       config,
-		server:       osin.NewServer(config, storage),
+		server:       server,
 		authorize:    authorize,
 		access:       access,
 		errorHandler: errorHandler,

@@ -65,7 +65,12 @@ type AuthorizeData struct {
 
 // IsExpired is true if authorization expired
 func (d *AuthorizeData) IsExpired() bool {
-	return d.CreatedAt.Add(time.Duration(d.ExpiresIn) * time.Second).Before(time.Now())
+	return d.IsExpiredAt(time.Now())
+}
+
+// IsExpired is true if authorization expires at time 't'
+func (d *AuthorizeData) IsExpiredAt(t time.Time) bool {
+	return d.ExpireAt().Before(t)
 }
 
 // ExpireAt returns the expiration date
@@ -221,11 +226,14 @@ func (s *Server) FinishAuthorizeRequest(w *Response, r *http.Request, ar *Author
 			}
 
 			s.FinishAccessRequest(w, r, ret)
+			if ar.State != "" && w.InternalError == nil {
+				w.Output["state"] = ar.State
+			}
 		} else {
 			// generate authorization token
 			ret := &AuthorizeData{
 				Client:      ar.Client,
-				CreatedAt:   time.Now(),
+				CreatedAt:   s.Now(),
 				ExpiresIn:   ar.Expiration,
 				RedirectUri: ar.RedirectUri,
 				State:       ar.State,
