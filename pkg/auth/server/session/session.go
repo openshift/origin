@@ -12,7 +12,7 @@ type store struct {
 	store sessions.Store
 }
 
-func NewStore(maxAgeSeconds int, secrets ...string) Store {
+func NewStore(secure bool, maxAgeSeconds int, secrets ...string) Store {
 	values := [][]byte{}
 	for _, secret := range secrets {
 		values = append(values, []byte(secret))
@@ -20,6 +20,7 @@ func NewStore(maxAgeSeconds int, secrets ...string) Store {
 	cookie := sessions.NewCookieStore(values...)
 	cookie.Options.MaxAge = maxAgeSeconds
 	cookie.Options.HttpOnly = true
+	cookie.Options.Secure = secure
 	return store{cookie}
 }
 

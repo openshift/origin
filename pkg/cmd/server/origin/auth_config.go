@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/x509"
 	"fmt"
+	"net/url"
 
 	"code.google.com/p/go-uuid/uuid"
 
@@ -50,7 +51,8 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 
 	var sessionAuth *session.Authenticator
 	if options.OAuthConfig.SessionConfig != nil {
-		auth, err := BuildSessionAuth(options.OAuthConfig.SessionConfig)
+		secure := isHTTPS(options.OAuthConfig.MasterPublicURL)
+		auth, err := BuildSessionAuth(secure, options.OAuthConfig.SessionConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -83,12 +85,12 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 	return ret, nil
 }
 
-func BuildSessionAuth(config *configapi.SessionConfig) (*session.Authenticator, error) {
+func BuildSessionAuth(secure bool, config *configapi.SessionConfig) (*session.Authenticator, error) {
 	secrets, err := getSessionSecrets(config.SessionSecretsFile)
 	if err != nil {
 		return nil, err
 	}
-	sessionStore := session.NewStore(int(config.SessionMaxAgeSeconds), secrets...)
+	sessionStore := session.NewStore(secure, int(config.SessionMaxAgeSeconds), secrets...)
 	return session.NewAuthenticator(sessionStore, config.SessionName), nil
 }
 
@@ -117,4 +119,10 @@ func getSessionSecrets(filename string) ([]string, error) {
 	}
 
 	return secrets, nil
+}
+
+// isHTTPS returns true if the given URL is a valid https URL
+func isHTTPS(u string) bool {
+	parsedURL, err := url.Parse(u)
+	return err == nil && parsedURL.Scheme == "https"
 }

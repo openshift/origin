@@ -255,8 +255,9 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 }
 
 // getCSRF returns the object responsible for generating and checking CSRF tokens
-func getCSRF() csrf.CSRF {
-	return csrf.NewCookieCSRF("csrf", "/", "", false, true)
+func (c *AuthConfig) getCSRF() csrf.CSRF {
+	secure := isHTTPS(c.Options.MasterPublicURL)
+	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
 }
 
 func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
@@ -283,7 +284,7 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 		return handlers.NewAutoGrant()
 
 	case configapi.GrantHandlerPrompt:
-		grantServer := grant.NewGrant(getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
+		grantServer := grant.NewGrant(c.getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
 		grantServer.Install(mux, OpenShiftApprovePrefix)
 		return handlers.NewRedirectGrant(OpenShiftApprovePrefix)
 
@@ -333,7 +334,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
 
 				redirectors["login"] = &redirector{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
-				login := login.NewLogin(getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, login.DefaultLoginFormRenderer)
+				login := login.NewLogin(c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, login.DefaultLoginFormRenderer)
 				login.Install(mux, OpenShiftLoginPrefix)
 			}
 			if identityProvider.UseAsChallenger {
@@ -347,7 +348,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 			}
 
 			// Default state builder, combining CSRF and return URL handling
-			state := external.CSRFRedirectingState(getCSRF())
+			state := external.CSRFRedirectingState(c.getCSRF())
 
 			// OAuth auth requires
 			// 1. a session success handler (to remember you logged in)
