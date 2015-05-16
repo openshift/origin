@@ -417,10 +417,10 @@ func TestRunContainer(t *testing.T) {
 		}
 		// Make sure AttachToContainer was not called with both Stdin & Stdout
 		for _, opt := range fakeDocker.AttachToContainerOpts {
-			if opt.InputStream != nil && (opt.OutputStream != nil || opt.ErrorStream != nil) {
+			if opt.InputStream != nil && (opt.OutputStream != nil) {
 				t.Errorf("%s: AttachToContainer was called with both Stdin and Stdout: %#v", desc, opt)
 			}
-			if opt.Stdin && (opt.Stdout || opt.Stderr) {
+			if opt.Stdin && (opt.Stdout) {
 				t.Errorf("%s: AttachToContainer was called with both Stdin and Stdout flags: %#v", desc, opt)
 			}
 		}

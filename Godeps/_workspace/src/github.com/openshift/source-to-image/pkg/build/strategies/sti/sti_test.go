@@ -356,6 +356,7 @@ func TestExists(t *testing.T) {
 		bh := testBuildHandler()
 		bh.request.WorkingDir = "/working-dir"
 		bh.request.Incremental = ti.incremental
+		bh.request.ForcePull = true
 		bh.installedScripts = map[string]bool{api.SaveArtifacts: ti.scriptInstalled}
 		bh.docker.(*test.FakeDocker).PullResult = ti.previousImage
 

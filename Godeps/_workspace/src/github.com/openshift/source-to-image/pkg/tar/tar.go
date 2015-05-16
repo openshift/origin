@@ -174,46 +174,10 @@ func (t *stiTar) ExtractTarStream(dir string, reader io.Reader) error {
 					errorChannel <- err
 					break
 				}
-				path := filepath.Join(dir, header.Name)
-				glog.V(3).Infof("Creating %s", path)
-				success := false
-				// The file times need to be modified after it's been closed
-				// thus this function is deferred before the file close
-				defer func() {
-					if success && os.Chtimes(path, time.Now(),
-						header.FileInfo().ModTime()) != nil {
-						glog.Errorf("Error setting file dates: %v", err)
-						errorChannel <- err
-					}
-				}()
-				file, err := os.Create(path)
-				defer file.Close()
-				if err != nil {
-					glog.Errorf("Error creating file %s: %v", path, err)
+				if err := extractFile(dir, header, tarReader); err != nil {
+					glog.Errorf("Error extracting file %s: %v", header.Name, err)
 					errorChannel <- err
-					break
 				}
-				glog.V(3).Infof("Extracting/writing %s", path)
-				written, err := io.Copy(file, tarReader)
-				if err != nil {
-					glog.Errorf("Error writing file: %v", err)
-					errorChannel <- err
-					break
-				}
-				if written != header.Size {
-					message := fmt.Sprintf("Wrote %d bytes, expected to write %d",
-						written, header.Size)
-					glog.Errorf(message)
-					errorChannel <- fmt.Errorf(message)
-					break
-				}
-				if err = file.Chmod(header.FileInfo().Mode()); err != nil {
-					glog.Errorf("Error setting file mode: %v", err)
-					errorChannel <- err
-					break
-				}
-				glog.V(3).Infof("Done with %s", path)
-				success = true
 			}
 		}
 	}()
@@ -231,4 +195,32 @@ func (t *stiTar) ExtractTarStream(dir string, reader io.Reader) error {
 			return errors.NewTarTimeoutError()
 		}
 	}
+}
+
+func extractFile(dir string, header *tar.Header, tarReader io.Reader) error {
+	path := filepath.Join(dir, header.Name)
+	glog.V(3).Infof("Creating %s", path)
+
+	file, err := os.Create(path)
+	// The file times need to be modified after it's been closed thus this function
+	// is deferred after the file close (LIFO order for defer)
+	defer os.Chtimes(path, time.Now(), header.FileInfo().ModTime())
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	glog.V(3).Infof("Extracting/writing %s", path)
+	written, err := io.Copy(file, tarReader)
+	if err != nil {
+		return err
+	}
+	if written != header.Size {
+		return fmt.Errorf("Wrote %d bytes, expected to write %d", written, header.Size)
+	}
+	if err = file.Chmod(header.FileInfo().Mode()); err != nil {
+		return err
+	}
+
+	glog.V(3).Infof("Done with %s", path)
+	return nil
 }
