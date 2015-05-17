@@ -39,7 +39,7 @@ type BuildControllerFactory struct {
 	KubeClient          kclient.Interface
 	BuildUpdater        buildclient.BuildUpdater
 	DockerBuildStrategy *strategy.DockerBuildStrategy
-	SourceBuildStrategy    *strategy.SourceBuildStrategy
+	SourceBuildStrategy *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
@@ -60,7 +60,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 		PodManager:        client,
 		BuildStrategy: &typeBasedFactoryStrategy{
 			DockerBuildStrategy: factory.DockerBuildStrategy,
-			SourceBuildStrategy:    factory.SourceBuildStrategy,
+			SourceBuildStrategy: factory.SourceBuildStrategy,
 			CustomBuildStrategy: factory.CustomBuildStrategy,
 		},
 		Recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-controller"}),
@@ -213,7 +213,7 @@ func (pe *podEnumerator) Get(index int) interface{} {
 
 type typeBasedFactoryStrategy struct {
 	DockerBuildStrategy *strategy.DockerBuildStrategy
-	SourceBuildStrategy    *strategy.SourceBuildStrategy
+	SourceBuildStrategy *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
 }
 
