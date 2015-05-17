@@ -72,9 +72,14 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	listenArg.ListenAddr.Set(masterAddr)
 	masterArgs.EtcdAddr.Set(GetEtcdURL())
 
-	dnsAddr := FindAvailableBindAddress()
-	if len(os.Getenv("OS_DNS_ADDR")) > 0 {
-		dnsAddr = os.Getenv("OS_DNS_ADDR")
+	dnsAddr := os.Getenv("OS_DNS_ADDR")
+	if len(dnsAddr) == 0 {
+		for {
+			dnsAddr = FindAvailableBindAddress()
+			if dnsAddr != masterAddr {
+				break
+			}
+		}
 	}
 	fmt.Printf("dnsAddr: %#v\n", dnsAddr)
 	masterArgs.DNSBindAddr.Set(dnsAddr)
