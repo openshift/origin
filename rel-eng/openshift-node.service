@@ -10,7 +10,10 @@ Documentation=https://github.com/openshift/origin
 [Service]
 Type=notify
 EnvironmentFile=/etc/sysconfig/openshift-node
+Environment=GOTRACEBACK=crash
 ExecStart=/usr/bin/openshift start node --config=${CONFIG_FILE} $OPTIONS
+LimitNOFILE=65536
+LimitCORE=infinity
 WorkingDirectory=/var/lib/openshift/
 SyslogIdentifier=openshift-node
 
