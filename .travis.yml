@@ -1,17 +1,11 @@
 language: go
 
 go:
-  - 1.3
   - 1.4
 
 env:
  - TEST_ASSETS=true
  - TEST_ASSETS=false
-
-matrix:
-  exclude:
-    - go: 1.3
-      env: TEST_ASSETS=true
 
 install:
   - ./hack/verify-jsonformat.sh

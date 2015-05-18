@@ -25,7 +25,7 @@ ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 
 BuildRequires:  systemd
-BuildRequires:  golang >= 1.2-7
+BuildRequires:  golang >= 1.4
 
 
 %description
