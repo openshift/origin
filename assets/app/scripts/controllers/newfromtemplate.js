@@ -110,12 +110,7 @@ angular.module('openshiftConsole')
                 if (result.failure.length > 0) {
                   result.failure.forEach(
                     function(failure) {
-                      var objectName = "";
-                      if (failure.data && failure.data.details) {
-                        objectName = failure.data.details.kind + " " + failure.data.details.id;
-                      } else {
-                        objectName = "object";
-                      }
+                      var objectName = getFailureObjectName(failure) || "object";
                       alerts.push({
                         type: "error",
                         message: "Cannot create " + objectName + ". ",
@@ -181,4 +176,17 @@ angular.module('openshiftConsole')
         Navigate.toErrorPage("Cannot create from template: the specified template could not be retrieved.");
       }
     );
+
+    function getFailureObjectName(failure) {
+      if (!failure.data || !failure.data.details) {
+        return null;
+      }
+
+      var details = failure.data.details;
+      if (details.kind) {
+        return (details.id) ? details.kind + " " + details.id : details.kind;
+      }
+
+      return details.id;
+    }
   });
