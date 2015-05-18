@@ -72,7 +72,7 @@ if [[ -n "${profile}" ]]; then
     if [[ "${TEST_PROFILE-}" == "cli" ]]; then
         export CLI_PROFILE="${profile}"
     else
-        export WEB_PROFILE="${profile}"
+        export WEB_PROFILE="${profile:-cpu}"
     fi
 fi
 
@@ -130,7 +130,7 @@ openshift start \
 
 
 # Start openshift
-OPENSHIFT_PROFILE=cpu OPENSHIFT_ON_PANIC=crash openshift start \
+OPENSHIFT_ON_PANIC=crash openshift start \
   --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
   --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
   1>&2 &
