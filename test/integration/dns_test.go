@@ -147,7 +147,7 @@ func TestDNS(t *testing.T) {
 		{ // SRV record for that service
 			dnsQuestionName: "headless.default.svc.cluster.local.",
 			srv: []*dns.SRV{
-				&dns.SRV{
+				{
 					Target: "unknown-port-2345.e1.headless.",
 					Port:   2345,
 				},
@@ -164,11 +164,11 @@ func TestDNS(t *testing.T) {
 		{ // SRV records for that service
 			dnsQuestionName: "headless2.default.svc.cluster.local.",
 			srv: []*dns.SRV{
-				&dns.SRV{
+				{
 					Target: "http.e1.headless2.",
 					Port:   2346,
 				},
-				&dns.SRV{
+				{
 					Target: "other.e1.headless2.",
 					Port:   2345,
 				},
