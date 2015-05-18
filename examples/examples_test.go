@@ -61,8 +61,10 @@ func TestExampleObjectSchemas(t *testing.T) {
 	capabilities.Setup(true, nil)
 	cases := map[string]map[string]runtime.Object{
 		"../examples/hello-openshift": {
-			"hello-pod":     &kapi.Pod{},
-			"hello-project": &projectapi.Project{},
+			"hello-pod":                    &kapi.Pod{},
+			"hello-project":                &projectapi.Project{},
+			"hello-replication-controller": nil, // Skip.
+			"hello-template":               &templateapi.Template{},
 		},
 		"../examples/sample-app": {
 			"github-webhook-example":           nil, // Skip.

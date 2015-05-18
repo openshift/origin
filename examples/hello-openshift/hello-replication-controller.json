@@ -1,0 +1,66 @@
+{
+    "kind": "Config",
+    "apiVersion": "v1beta1",
+    "metadata": {
+        "creationTimestamp": null
+    },
+    "items": [
+        {
+            "kind": "DeploymentConfig",
+            "apiVersion": "v1beta1",
+            "metadata": {
+                "name": "replication-controller-test",
+                "creationTimestamp": null
+            },
+            "triggers": [
+                {
+                    "type": "ConfigChange"
+                }
+            ],
+            "template": {
+                "strategy": {
+                    "type": "Recreate"
+                },
+                "controllerTemplate": {
+                    "replicas": 3,
+                    "replicaSelector": {
+                        "name": "registrypod"
+                    },
+                    "podTemplate": {
+                        "desiredState": {
+                            "manifest": {
+                                "version": "v1beta2",
+                                "id": "",
+                                "volumes": null,
+                                "containers": [
+                                    {
+                                        "name": "replication-controller-test",
+                                        "image": "openshift/hello-openshift",
+                                        "ports": [
+                                            {
+                                                "containerPort": 5000,
+                                                "protocol": "TCP"
+                                            }
+                                        ],
+                                        "resources": {},
+                                        "terminationMessagePath": "/dev/termination-log",
+                                        "privileged": true,
+                                        "imagePullPolicy": "PullIfNotPresent",
+                                        "capabilities": {}
+                                    }
+                                ],
+                                "restartPolicy": {
+                                    "always": {}
+                                },
+                                "dnsPolicy": "ClusterFirst"
+                            }
+                        },
+                        "labels": {
+                            "name": "registrypod"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
