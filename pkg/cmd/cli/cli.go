@@ -90,7 +90,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 		cmds.AddCommand(version.NewVersionCommand(fullName))
 	}
 	cmds.AddCommand(cmd.NewCmdConfig(fullName, "config"))
-	cmds.AddCommand(cmd.NewCmdOptions(f, out))
+	cmds.AddCommand(cmd.NewCmdOptions(out))
 	cmds.AddCommand(cmd.NewCmdResize(fullName, f, out))
 
 	return cmds
@@ -113,7 +113,7 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 			glog.V(5).Infof("already registered flag %s", flag.Name)
 		}
 	})
-	cmds.AddCommand(cmd.NewCmdOptions(f, out))
+	cmds.AddCommand(cmd.NewCmdOptions(out))
 	return cmds
 }
 

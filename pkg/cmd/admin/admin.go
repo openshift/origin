@@ -65,7 +65,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 		cmds.AddCommand(version.NewVersionCommand(fullName))
 	}
 
-	cmds.AddCommand(cmd.NewCmdOptions(f, out))
+	cmds.AddCommand(cmd.NewCmdOptions(out))
 
 	return cmds
 }

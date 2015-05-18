@@ -29,7 +29,8 @@ const (
 	vars = `{{$isRootCmd := isRootCmd .}}` +
 		`{{$rootCmd := rootCmd .}}` +
 		`{{$explicitlyExposedFlags := exposed .}}` +
-		`{{$localNotPersistentFlags := flagsNotIntersected .LocalFlags .PersistentFlags}}`
+		`{{$localNotPersistentFlags := flagsNotIntersected .LocalFlags .PersistentFlags}}` +
+		`{{$optionsCmdFor := optionsCmdFor .}}`
 
 	mainHelpTemplate = `{{.Long | trim}}
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
@@ -47,8 +48,8 @@ Available Commands: {{range .Commands}}{{if and .Runnable (ne .Name "options")}}
 Options:
 {{ if $localNotPersistentFlags.HasFlags}}{{flagsUsages $localNotPersistentFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}{{end}}{{ if not $isRootCmd}}
 Use "{{$rootCmd}} --help" for a list of all commands available in {{$rootCmd}}.{{end}}{{ if .HasSubCommands }}
-Use "{{$rootCmd}} <command> --help" for more information about a given command.{{end}}{{ if and .HasInheritedFlags (not $isRootCmd)}}
-Use "{{$rootCmd}} options" for a list of global command-line options (applies to all commands).{{end}}`
+Use "{{$rootCmd}} <command> --help" for more information about a given command.{{end}}{{ if $optionsCmdFor}}
+Use "{{$optionsCmdFor}}" for a list of global command-line options (applies to all commands).{{end}}`
 
 	optionsHelpTemplate = ``
 

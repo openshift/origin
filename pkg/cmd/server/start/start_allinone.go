@@ -60,7 +60,7 @@ You may also pass --kubeconfig=<path> to connect to an external Kubernetes clust
 func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
 	options := &AllInOneOptions{Output: cmdutil.Output{out}}
 
-	cmd := &cobra.Command{
+	cmds := &cobra.Command{
 		Use:   "start",
 		Short: "Launch OpenShift All-In-One",
 		Long:  allInOne_long,
@@ -90,9 +90,9 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 			}
 		},
 	}
-	cmd.SetOutput(out)
+	cmds.SetOutput(out)
 
-	flags := cmd.Flags()
+	flags := cmds.Flags()
 
 	flags.Var(&options.ConfigDir, "write-config", "Directory to write an initial config into.  After writing, exit without starting the server.")
 	flags.StringVar(&options.MasterConfigFile, "master-config", "", "Location of the master configuration file to run from. When running from configuration files, all other command-line arguments are ignored.")
@@ -111,13 +111,13 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 
 	startMaster, _ := NewCommandStartMaster(out)
 	startNode, _ := NewCommandStartNode(out)
-	cmd.AddCommand(startMaster)
-	cmd.AddCommand(startNode)
+	cmds.AddCommand(startMaster)
+	cmds.AddCommand(startNode)
 
 	startKube := kubernetes.NewCommand("kubernetes", fullName, out)
-	cmd.AddCommand(startKube)
+	cmds.AddCommand(startKube)
 
-	return cmd, options
+	return cmds, options
 }
 
 // GetAllInOneArgs makes sure that the node and master args that should be shared, are shared
