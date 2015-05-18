@@ -3,11 +3,13 @@ package dockerregistry
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 
@@ -62,7 +64,10 @@ func (c *client) Connect(name string, allowInsecure bool) (Connection, error) {
 	if conn, ok := c.connections[prefix]; ok && conn.allowInsecure == allowInsecure {
 		return conn, nil
 	}
-	conn := newConnection(*target, allowInsecure)
+	conn, err := newConnection(*target, allowInsecure)
+	if err != nil {
+		return nil, err
+	}
 	c.connections[prefix] = conn
 	return conn, nil
 }
@@ -122,19 +127,37 @@ type connection struct {
 	allowInsecure bool
 }
 
-func newConnection(url url.URL, allowInsecure bool) *connection {
+func newConnection(url url.URL, allowInsecure bool) (*connection, error) {
 	client := http.DefaultClient
 	if allowInsecure {
 		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 		client = &http.Client{Transport: tr}
+	} else {
+		certData := os.Getenv("DOCKER_CERT_DATA")
+		keyData := os.Getenv("DOCKER_KEY_DATA")
+		if len(certData) > 0 && len(keyData) > 0 {
+			cert, err := tls.X509KeyPair([]byte(certData), []byte(keyData))
+			if err != nil {
+				return nil, err
+			}
+			tlsConfig := &tls.Config{
+				Certificates: []tls.Certificate{cert},
+				ClientAuth:   tls.RequireAndVerifyClientCert,
+			}
+			tr := &http.Transport{TLSClientConfig: tlsConfig}
+			client = &http.Client{Transport: tr}
+		} else if len(certData) > 0 || len(keyData) > 0 {
+			return nil, errors.New("securing registry needs both DOCKER_CERT_DATA and DOCKER_KEY_DATA")
+		}
 	}
+
 	return &connection{
 		url:    url,
 		client: client,
 		cached: make(map[string]*repository),
 
 		allowInsecure: allowInsecure,
-	}
+	}, nil
 }
 
 type repository struct {
