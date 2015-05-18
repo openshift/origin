@@ -279,8 +279,8 @@ func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromName
 		},
 	}
 	switch strategyType {
-	case buildapi.STIBuildStrategyType:
-		params.Strategy.STIStrategy = &buildapi.STIBuildStrategy{
+	case buildapi.SourceBuildStrategyType:
+		params.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{
 			From: &kapi.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
@@ -421,7 +421,7 @@ func TestImagePruning(t *testing.T) {
 		},
 		"referenced by bc - sti - ImageStreamImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", buildapi.STIBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
+			bcs:               bcList(bc("foo", "bc1", buildapi.SourceBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by bc - docker - ImageStreamImage - don't prune": {
@@ -436,7 +436,7 @@ func TestImagePruning(t *testing.T) {
 		},
 		"referenced by bc - sti - DockerImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			bcs:               bcList(bc("foo", "bc1", buildapi.STIBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			bcs:               bcList(bc("foo", "bc1", buildapi.SourceBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by bc - docker - DockerImage - don't prune": {
@@ -451,7 +451,7 @@ func TestImagePruning(t *testing.T) {
 		},
 		"referenced by build - sti - ImageStreamImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", buildapi.STIBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
+			builds:            buildList(build("foo", "build1", buildapi.SourceBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by build - docker - ImageStreamImage - don't prune": {
@@ -466,7 +466,7 @@ func TestImagePruning(t *testing.T) {
 		},
 		"referenced by build - sti - DockerImage - don't prune": {
 			images:            imageList(image("id", registryURL+"/foo/bar@id")),
-			builds:            buildList(build("foo", "build1", buildapi.STIBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			builds:            buildList(build("foo", "build1", buildapi.SourceBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
 			expectedDeletions: []string{},
 		},
 		"referenced by build - docker - DockerImage - don't prune": {
@@ -535,7 +535,7 @@ func TestImagePruning(t *testing.T) {
 			rcs:                    rcList(rc("foo", "rc1", registryURL+"/foo/bar@id2")),
 			pods:                   podList(pod("foo", "pod1", kapi.PodRunning, registryURL+"/foo/bar@id2")),
 			dcs:                    dcList(dc("foo", "rc1", registryURL+"/foo/bar@id")),
-			bcs:                    bcList(bc("foo", "bc1", buildapi.STIBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
+			bcs:                    bcList(bc("foo", "bc1", buildapi.SourceBuildStrategyType, "DockerImage", "foo", registryURL+"/foo/bar@id")),
 			builds:                 buildList(build("foo", "build1", buildapi.CustomBuildStrategyType, "ImageStreamImage", "foo", "bar@id")),
 			expectedDeletions:      []string{},
 			expectedUpdatedStreams: []string{},
