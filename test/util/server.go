@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
@@ -41,13 +43,26 @@ func GetBaseDir() string {
 	return cmdutil.Env("BASETMPDIR", path.Join(os.TempDir(), "openshift-"+Namespace()))
 }
 
-func FindAvailableBindAddress() string {
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		panic(err)
+// FindAvailableBindAddress returns a bind address on 127.0.0.1 with a free port in the low-high range.
+// If lowPort is 0, an ephemeral port is allocated.
+func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
+	if highPort < lowPort {
+		return "", errors.New("lowPort must be <= highPort")
 	}
-	defer l.Close()
-	return l.Addr().String()
+	for port := lowPort; port <= highPort; port++ {
+		l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+		if err != nil {
+			if port == 0 {
+				// Only get one shot to get an ephemeral port
+				return "", err
+			}
+			continue
+		}
+		defer l.Close()
+		return l.Addr().String(), nil
+	}
+
+	return "", fmt.Errorf("Could not find available port in the range %d-%d", lowPort, highPort)
 }
 
 func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs) {
@@ -62,9 +77,13 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	nodeArgs.MasterCertDir = masterArgs.ConfigDir.Value()
 
 	// don't wait for nodes to come up
-	masterAddr := FindAvailableBindAddress()
-	if len(os.Getenv("OS_MASTER_ADDR")) > 0 {
-		masterAddr = os.Getenv("OS_MASTER_ADDR")
+	masterAddr := os.Getenv("OS_MASTER_ADDR")
+	if len(masterAddr) == 0 {
+		if addr, err := FindAvailableBindAddress(8443, 8999); err != nil {
+			glog.Fatalf("Couldn't find free address for master: %v", err)
+		} else {
+			masterAddr = addr
+		}
 	}
 	fmt.Printf("masterAddr: %#v\n", masterAddr)
 
@@ -72,9 +91,13 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	listenArg.ListenAddr.Set(masterAddr)
 	masterArgs.EtcdAddr.Set(GetEtcdURL())
 
-	dnsAddr := FindAvailableBindAddress()
-	if len(os.Getenv("OS_DNS_ADDR")) > 0 {
-		dnsAddr = os.Getenv("OS_DNS_ADDR")
+	dnsAddr := os.Getenv("OS_DNS_ADDR")
+	if len(dnsAddr) == 0 {
+		if addr, err := FindAvailableBindAddress(8053, 8100); err != nil {
+			glog.Fatalf("Couldn't find free address for DNS: %v", err)
+		} else {
+			dnsAddr = addr
+		}
 	}
 	fmt.Printf("dnsAddr: %#v\n", dnsAddr)
 	masterArgs.DNSBindAddr.Set(dnsAddr)
