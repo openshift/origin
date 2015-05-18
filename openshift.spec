@@ -2,6 +2,9 @@
 %global debug_package %{nil}
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
+%global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
+%global sdn_import_path github.com/openshift/openshift-sdn
+
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the rel-eng directory. The values in this spec file will not be kept up to date.
 %{!?commit:
@@ -162,6 +165,13 @@ install -m 0644 tuned/openshift-node-host/tuned.conf %{buildroot}%{_prefix}/lib/
 install -d -m 0755 %{buildroot}%{_mandir}/man7
 install -m 0644 tuned/man/tuned-profiles-openshift-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-openshift-node.7
 
+# Install sdn scripts for node subpackage
+install -d -m 0755 %{buildroot}%{kube_plugin_path}
+pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/bin
+   install -p -m 755 openshift-ovs-subnet %{buildroot}%{kube_plugin_path}/openshift-ovs-subnet
+   install -p -m 755 openshift-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/
+   install -p -m 755 openshift-sdn-simple-setup-node.sh %{buildroot}%{_bindir}/
+popd
 
 %files
 %defattr(-,root,root,-)
@@ -192,6 +202,9 @@ install -m 0644 tuned/man/tuned-profiles-openshift-node.7 %{buildroot}%{_mandir}
 %{_unitdir}/openshift-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/openshift-node
 %config(noreplace) /etc/%{name}/node
+%{_bindir}/openshift-sdn-simple-setup-node.sh
+%{_bindir}/openshift-sdn-kube-subnet-setup.sh
+%{kube_plugin_path}/openshift-ovs-subnet
 
 %post node
 %systemd_post %{basename:openshift-node.service}
