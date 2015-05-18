@@ -134,6 +134,17 @@ func generateVolumeConfig() []kapi.Volume {
 	return []kapi.Volume{vol}
 }
 
+//  Generates the node selector (if any) to use.
+func generateNodeSelector(name string, selector map[string]string) map[string]string {
+	// Check if the selector is default.
+	selectorValue, ok := selector[ipfailover.DefaultName]
+	if ok && len(selector) == 1 && selectorValue == name {
+		return map[string]string{}
+	}
+
+	return selector
+}
+
 //  Generate the IP Failover deployment configuration.
 func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigCmdOptions, selector map[string]string) (*dapi.DeploymentConfig, error) {
 	containers, err := generateContainerConfig(name, options)
@@ -144,9 +155,10 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 	podTemplate := &kapi.PodTemplateSpec{
 		ObjectMeta: kapi.ObjectMeta{Labels: selector},
 		Spec: kapi.PodSpec{
-			HostNetwork: true,
-			Containers:  containers,
-			Volumes:     generateVolumeConfig(),
+			HostNetwork:  true,
+			NodeSelector: generateNodeSelector(name, selector),
+			Containers:   containers,
+			Volumes:      generateVolumeConfig(),
 		},
 	}
 
