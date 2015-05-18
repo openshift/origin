@@ -1,15 +1,43 @@
-package cmd
+package diagnostics
 
 import (
 	"fmt"
-	"github.com/openshift/origin/pkg/cmd/experimental/diagnostics/options"
-	"github.com/openshift/origin/pkg/cmd/server/start"
+	"io"
+	"os"
+
+	"github.com/spf13/cobra"
+
+	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kutilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+
+	diagnosticflags "github.com/openshift/origin/pkg/cmd/experimental/diagnostics/options"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/diagnostics/run"
-	"github.com/spf13/cobra"
-	"io"
+	"github.com/openshift/origin/pkg/diagnostics/log"
 )
+
+var (
+	AvailableOverallDiagnostics = util.NewStringSet()
+)
+
+func init() {
+	AvailableOverallDiagnostics.Insert(AvailableClientDiagnostics.List()...)
+	AvailableOverallDiagnostics.Insert(AvailableMasterDiagnostics.List()...)
+	AvailableOverallDiagnostics.Insert(AvailableNodeDiagnostics.List()...)
+}
+
+type OverallDiagnosticsOptions struct {
+	RequestedDiagnostics util.StringList
+
+	MasterConfigLocation string
+	NodeConfigLocation   string
+
+	Factory *osclientcmd.Factory
+
+	LogOptions *log.LoggerOptions
+	Logger     *log.Logger
+}
 
 const longAllDescription = `
 OpenShift Diagnostics
@@ -43,141 +71,148 @@ can be used with subcommands.
 `
 
 func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.Command {
-	opts := options.NewAllDiagnosticsOptions(out)
+	o := &OverallDiagnosticsOptions{
+		RequestedDiagnostics: AvailableOverallDiagnostics.List(),
+		LogOptions:           &log.LoggerOptions{Out: out},
+	}
+
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "This utility helps you understand and troubleshoot OpenShift v3.",
 		Long:  fmt.Sprintf(longAllDescription, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			opts.GlobalFlags = c.PersistentFlags()
-			run.Diagnose(opts)
+			kcmdutil.CheckErr(o.Complete())
+
+			failed, err := o.RunDiagnostics()
+			o.Logger.Summary()
+			o.Logger.Finish()
+
+			kcmdutil.CheckErr(err)
+			if failed {
+				os.Exit(255)
+			}
+
 		},
 	}
 	cmd.SetOutput(out) // for output re: usage / help
-	opts.BindFlags(cmd.Flags(), options.NewAllDiagnosticsFlagInfos())
-	// Although we reuse DiagOptions across all commands, we do not want the flags buried
-	// in the "global" flags, so we add them locally at each command.
-	opts.DiagOptions.BindFlags(cmd.Flags(), options.NewDiagnosticsFlagInfos())
 
-	/*
-	   This command needs the client factory built in the "client" subcommand.
-	   Generating the factory adds flags to the "client" cmd, and we do not want
-	   to add those flags to this command (the only client option here is a config
-	   file). So the factory object from client cmd is reused for this command.
-	*/
-	clientCmd, factory := NewClientCommand("client", name+" client", out)
-	opts.ClientDiagOptions.Factory = factory
+	o.Factory = osclientcmd.New(cmd.Flags()) // side effect: add standard persistent flags for openshift client
+	cmd.Flags().StringVar(&o.MasterConfigLocation, "master-config", "", "path to master config file")
+	cmd.Flags().StringVar(&o.NodeConfigLocation, "node-config", "", "path to node config file")
+	diagnosticflags.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, diagnosticflags.RecommendedLoggerOptionFlags())
+	diagnosticflags.BindDiagnosticFlag(cmd.Flags(), &o.RequestedDiagnostics, diagnosticflags.NewRecommendedDiagnosticFlag())
 
-	cmd.AddCommand(clientCmd)
-	cmd.AddCommand(NewMasterCommand("master", name+" master", out))
-	cmd.AddCommand(NewNodeCommand("node", name+" node", out))
+	cmd.AddCommand(NewClientCommand(ClientDiagnosticsRecommendedName, name+" "+ClientDiagnosticsRecommendedName, out))
+	cmd.AddCommand(NewMasterCommand(MasterDiagnosticsRecommendedName, name+" "+MasterDiagnosticsRecommendedName, out))
+	cmd.AddCommand(NewNodeCommand(NodeDiagnosticsRecommendedName, name+" "+NodeDiagnosticsRecommendedName, out))
 	cmd.AddCommand(NewOptionsCommand())
 
 	return cmd
 }
 
-const longClientDescription = `
-OpenShift Diagnostics
-
-This command helps you understand and troubleshoot OpenShift as a user. It is
-intended to be run from the same context as an OpenShift client
-("openshift cli" or "osc") and with the same configuration options.
-
-    $ %s
-`
-
-func NewClientCommand(name string, fullName string, out io.Writer) (*cobra.Command, *osclientcmd.Factory) {
-	opts := options.NewClientDiagnosticsOptions(out, nil)
-	cmd := &cobra.Command{
-		Use:   name,
-		Short: "Troubleshoot using the OpenShift v3 client.",
-		Long:  fmt.Sprintf(longClientDescription, fullName),
-		Run: func(c *cobra.Command, args []string) {
-			run.Diagnose(&options.AllDiagnosticsOptions{
-				ClientDiagOptions: opts,
-				DiagOptions:       opts.DiagOptions,
-				GlobalFlags:       c.PersistentFlags(),
-			})
-		},
+func (o *OverallDiagnosticsOptions) Complete() error {
+	var err error
+	o.Logger, err = o.LogOptions.NewLogger()
+	if err != nil {
+		return err
 	}
-	cmd.SetOutput(out) // for output re: usage / help
-	opts.MustCheck = true
-	opts.Factory = osclientcmd.New(cmd.PersistentFlags()) // side effect: add standard persistent flags for openshift client
-	opts.BindFlags(cmd.Flags(), options.NewClientDiagnosticsFlagInfos())
-	opts.DiagOptions.BindFlags(cmd.Flags(), options.NewDiagnosticsFlagInfos())
 
-	cmd.AddCommand(NewOptionsCommand())
-	return cmd, opts.Factory
+	return nil
 }
 
-const longMasterDescription = `
-OpenShift Diagnostics
+func (o OverallDiagnosticsOptions) RunDiagnostics() (bool, error) {
+	failed := false
+	errors := []error{}
 
-This command helps you understand and troubleshoot a running OpenShift
-master. It is intended to be run from the same context as the master
-(where "openshift start" or "openshift start master" is run, possibly from
-systemd or inside a container) and with the same configuration options.
-
-    $ %s
-`
-
-func NewMasterCommand(name string, fullName string, out io.Writer) *cobra.Command {
-	opts := options.NewMasterDiagnosticsOptions(out, nil)
-	cmd := &cobra.Command{
-		Use:   name,
-		Short: "Troubleshoot an OpenShift v3 master.",
-		Long:  fmt.Sprintf(longMasterDescription, fullName),
-		Run: func(c *cobra.Command, args []string) {
-			run.Diagnose(&options.AllDiagnosticsOptions{
-				MasterDiagOptions: opts,
-				DiagOptions:       opts.DiagOptions,
-				GlobalFlags:       c.PersistentFlags(),
-			})
-		},
+	masterFailed, err := o.CheckMaster()
+	failed = failed && masterFailed
+	if err != nil {
+		errors = append(errors, err)
 	}
-	cmd.SetOutput(out) // for output re: usage / help
-	opts.MustCheck = true
-	opts.MasterStartOptions = &start.MasterOptions{MasterArgs: start.MasterArgsAndFlags(cmd.Flags())}
-	opts.BindFlags(cmd.Flags(), options.NewMasterDiagnosticsFlagInfos())
-	opts.DiagOptions.BindFlags(cmd.Flags(), options.NewDiagnosticsFlagInfos())
 
-	cmd.AddCommand(NewOptionsCommand())
-	return cmd
+	nodeFailed, err := o.CheckNode()
+	failed = failed && nodeFailed
+	if err != nil {
+		errors = append(errors, err)
+	}
+
+	clientFailed, err := o.CheckClient()
+	failed = failed && clientFailed
+	if err != nil {
+		errors = append(errors, err)
+	}
+
+	return failed, kutilerrors.NewAggregate(errors)
 }
 
-const longNodeDescription = `
-OpenShift Diagnostics
+func (o OverallDiagnosticsOptions) CheckClient() (bool, error) {
+	runClientChecks := true
 
-This command helps you understand and troubleshoot a running OpenShift
-node. It is intended to be run from the same context as the node
-(where "openshift start" or "openshift start node" is run, possibly from
-systemd or inside a container) and with the same configuration options.
-
-    $ %s
-`
-
-func NewNodeCommand(name string, fullName string, out io.Writer) *cobra.Command {
-	opts := options.NewNodeDiagnosticsOptions(out, nil)
-	cmd := &cobra.Command{
-		Use:   name,
-		Short: "Troubleshoot an OpenShift v3 node.",
-		Long:  fmt.Sprintf(longNodeDescription, fullName),
-		Run: func(c *cobra.Command, args []string) {
-			run.Diagnose(&options.AllDiagnosticsOptions{
-				NodeDiagOptions: opts,
-				DiagOptions:     opts.DiagOptions,
-				GlobalFlags:     c.PersistentFlags(),
-			})
-		},
+	_, kubeClient, err := o.Factory.Clients()
+	if err != nil {
+		runClientChecks = false
 	}
-	cmd.SetOutput(out) // for output re: usage / help
-	opts.MustCheck = true
-	opts.NodeStartOptions = &start.NodeOptions{NodeArgs: start.NodeArgsAndFlags(cmd.Flags())}
-	opts.BindFlags(cmd.Flags(), options.NewNodeDiagnosticsFlagInfos())
-	opts.DiagOptions.BindFlags(cmd.Flags(), options.NewDiagnosticsFlagInfos())
 
-	cmd.AddCommand(NewOptionsCommand())
-	return cmd
+	kubeConfig, err := o.Factory.OpenShiftClientConfig.RawConfig()
+	if err != nil {
+		runClientChecks = false
+	}
+
+	if runClientChecks {
+		clientDiagnosticOptions := &ClientDiagnosticsOptions{
+			RequestedDiagnostics: intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableClientDiagnostics).List(),
+			KubeClient:           kubeClient,
+			KubeConfig:           &kubeConfig,
+			LogOptions:           o.LogOptions,
+			Logger:               o.Logger,
+		}
+
+		return clientDiagnosticOptions.RunDiagnostics()
+	}
+
+	return false, nil
+}
+
+func (o OverallDiagnosticsOptions) CheckNode() (bool, error) {
+	if len(o.NodeConfigLocation) == 0 {
+		if _, err := os.Stat(StandardNodeConfigPath); !os.IsNotExist(err) {
+			o.NodeConfigLocation = StandardNodeConfigPath
+		}
+	}
+
+	if len(o.NodeConfigLocation) != 0 {
+		masterDiagnosticOptions := &NodeDiagnosticsOptions{
+			RequestedDiagnostics: intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableNodeDiagnostics).List(),
+			NodeConfigLocation:   o.NodeConfigLocation,
+			LogOptions:           o.LogOptions,
+			Logger:               o.Logger,
+		}
+
+		return masterDiagnosticOptions.RunDiagnostics()
+	}
+
+	return false, nil
+}
+
+func (o OverallDiagnosticsOptions) CheckMaster() (bool, error) {
+	if len(o.MasterConfigLocation) == 0 {
+		if _, err := os.Stat(StandardMasterConfigPath); !os.IsNotExist(err) {
+			o.MasterConfigLocation = StandardMasterConfigPath
+		}
+	}
+
+	if len(o.MasterConfigLocation) != 0 {
+		masterDiagnosticOptions := &MasterDiagnosticsOptions{
+			RequestedDiagnostics: intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableMasterDiagnostics).List(),
+			MasterConfigLocation: o.MasterConfigLocation,
+			LogOptions:           o.LogOptions,
+			Logger:               o.Logger,
+		}
+
+		return masterDiagnosticOptions.RunDiagnostics()
+	}
+
+	return false, nil
 }
 
 func NewOptionsCommand() *cobra.Command {
@@ -191,4 +226,15 @@ func NewOptionsCommand() *cobra.Command {
 	templates.UseOptionsTemplates(cmd)
 
 	return cmd
+}
+
+// TODO move upstream
+func intersection(s1 util.StringSet, s2 util.StringSet) util.StringSet {
+	result := util.NewStringSet()
+	for key := range s1 {
+		if s2.Has(key) {
+			result.Insert(key)
+		}
+	}
+	return result
 }
