@@ -1,16 +1,11 @@
 package systemd
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
-	"github.com/openshift/origin/pkg/diagnostics/discovery"
-	"github.com/openshift/origin/pkg/diagnostics/log"
-	"github.com/openshift/origin/pkg/diagnostics/types"
-	"github.com/openshift/origin/pkg/diagnostics/types/diagnostic"
-	"io"
-	"os/exec"
 	"regexp"
+
+	"fmt"
+	"github.com/openshift/origin/pkg/diagnostics/log"
+	"github.com/openshift/origin/pkg/diagnostics/types/diagnostic"
 )
 
 type logEntry struct {
@@ -24,10 +19,10 @@ type logMatcher struct { // regex for scanning log messages and interpreting the
 	Interpretation string // log with above level+id if it's simple
 	KeepAfterMatch bool   // usually note only first matched entry, ignore rest
 	Interpret      func(  // run this for custom logic on match
-		env *discovery.Environment,
+		logger *log.Logger,
 		entry *logEntry,
 		matches []string,
-	) bool // KeepAfterMatch?
+	) (bool, []log.Message, []error, []error) // KeepAfterMatch?
 }
 
 type unitSpec struct {
@@ -57,6 +52,7 @@ be the same for each.`,
 // captures for logMatcher Interpret functions to store state between matches
 var tlsClientErrorSeen map[string]bool
 
+// TODO, these should probably be split into interfaces similar to Diagnostic
 // Specify what units we can check and what to look for and say about it
 var unitLogSpecs = []*unitSpec{
 	{
@@ -85,13 +81,15 @@ logs after the node is actually available.`,
 				// TODO: don't rely on ipv4 format, should be ipv6 "soon"
 				Regexp: regexp.MustCompile("http: TLS handshake error from ([\\d.]+):\\d+: remote error: bad certificate"),
 				Level:  log.WarnLevel,
-				Interpret: func(env *discovery.Environment, entry *logEntry, matches []string) bool {
+				Interpret: func(logger *log.Logger, entry *logEntry, matches []string) (bool, []log.Message, []error, []error) {
+					warnings := []error{}
+
 					client := matches[1]
 					prelude := fmt.Sprintf("Found 'openshift-master' journald log message:\n  %s\n", entry.Message)
 					if tlsClientErrorSeen == nil { // first time this message was seen
 						tlsClientErrorSeen = map[string]bool{client: true}
 						// TODO: too generic, adjust message depending on subnet of the "from" address
-						env.Log.Warnm("sdLogOMreBadCert", log.Msg{"client": client, "text": prelude + `
+						diagnosticError := diagnostic.NewDiagnosticError("sdLogOMreBadCert", prelude+`
 This error indicates that a client attempted to connect to the master
 HTTPS API server but broke off the connection because the master's
 certificate is not validated by a cerificate authority (CA) acceptable
@@ -129,13 +127,21 @@ log message:
   (so this message may simply indicate that the master generated a new
   server certificate, e.g. to add a different --public-master, and a
   browser hasn't accepted it yet and is still attempting API calls;
-  try logging out of the console and back in again).`})
+  try logging out of the console and back in again).`, nil)
+
+						message := log.Message{ID: diagnosticError.ID, EvaluatedText: diagnosticError.Explanation, TemplateData: map[string]string{"client": client}}
+						logger.LogMessage(log.WarnLevel, message)
+						warnings = append(warnings, diagnosticError)
+
 					} else if !tlsClientErrorSeen[client] {
 						tlsClientErrorSeen[client] = true
-						env.Log.Warnm("sdLogOMreBadCert", log.Msg{"client": client, "text": prelude +
-							`This message was diagnosed above, but for a different client address.`})
+						diagnosticError := diagnostic.NewDiagnosticError("sdLogOMreBadCert", prelude+`This message was diagnosed above, but for a different client address.`, nil)
+						message := log.Message{ID: diagnosticError.ID, EvaluatedText: diagnosticError.Explanation, TemplateData: map[string]string{"client": client}}
+						logger.LogMessage(log.WarnLevel, message)
+						warnings = append(warnings, diagnosticError)
+
 					} // else, it's a repeat, don't mention it
-					return true // show once for every client failing to connect, not just the first
+					return true, nil, warnings, nil // show once for every client failing to connect, not just the first
 				},
 			},
 			{
@@ -331,184 +337,4 @@ so the OpenShift node will not work on this host until it is resolved.`,
 		StartMatch:  regexp.MustCompile("Starting Open vSwitch"),
 		LogMatchers: []logMatcher{},
 	},
-}
-
-var systemdRelevant = func(env *discovery.Environment) (skip bool, reason string) {
-	if !env.HasSystemd {
-		return true, "systemd is not present on this host"
-	}
-	return false, ""
-}
-
-//
-// -------- The actual diagnostics definitions -----------
-//
-
-var Diagnostics = map[string]diagnostic.Diagnostic{
-
-	"AnalyzeLogs": {
-		Description: "Check for problems in systemd service logs since each service last started",
-		Condition:   systemdRelevant,
-		Run: func(env *discovery.Environment) {
-			for _, unit := range unitLogSpecs {
-				if svc := env.SystemdUnits[unit.Name]; svc.Enabled || svc.Active {
-					env.Log.Infom("sdCheckLogs", log.Msg{"tmpl": "Checking journalctl logs for '{{.name}}' service", "name": unit.Name})
-					matchLogsSinceLastStart(unit, env)
-				}
-			}
-		},
-	},
-
-	"UnitStatus": {
-		Description: "Check status for OpenShift-related systemd units",
-		Condition:   systemdRelevant,
-		Run: func(env *discovery.Environment) {
-			u := env.SystemdUnits
-			unitRequiresUnit(env.Log, u["openshift-node"], u["iptables"], `
-iptables is used by OpenShift nodes for container networking.
-Connections to a container will fail without it.`)
-			unitRequiresUnit(env.Log, u["openshift-node"], u["docker"], `OpenShift nodes use Docker to run containers.`)
-			unitRequiresUnit(env.Log, u["openshift"], u["docker"], `OpenShift nodes use Docker to run containers.`)
-			// node's dependency on openvswitch is a special case.
-			// We do not need to enable ovs because openshift-node starts it for us.
-			if u["openshift-node"].Active && !u["openvswitch"].Active {
-				env.Log.Error("sdUnitSDNreqOVS", `
-systemd unit openshift-node is running but openvswitch is not.
-Normally openshift-node starts openvswitch once initialized.
-It is likely that openvswitch has crashed or been stopped.
-
-The software-defined network (SDN) enables networking between
-containers on different nodes. Containers will not be able to
-connect to each other without the openvswitch service carrying
-this traffic.
-
-An administrator can start openvswitch with:
-
-  # systemctl start openvswitch
-
-To ensure it is not repeatedly failing to run, check the status and logs with:
-
-  # systemctl status openvswitch
-  # journalctl -ru openvswitch `)
-			}
-			// Anything that is enabled but not running deserves notice
-			for name, unit := range u {
-				if unit.Enabled && !unit.Active {
-					env.Log.Errorm("sdUnitInactive", log.Msg{"tmpl": `
-The {{.unit}} systemd unit is intended to start at boot but is not currently active.
-An administrator can start the {{.unit}} unit with:
-
-  # systemctl start {{.unit}}
-
-To ensure it is not failing to run, check the status and logs with:
-
-  # systemctl status {{.unit}}
-  # journalctl -ru {{.unit}}`, "unit": name})
-				}
-			}
-		},
-	},
-}
-
-//
-// -------- Functions used by the diagnostics -----------
-//
-
-func unitRequiresUnit(logger *log.Logger, unit types.SystemdUnit, requires types.SystemdUnit, reason string) {
-	if (unit.Active || unit.Enabled) && !requires.Exists {
-		logger.Errorm("sdUnitReqLoaded", log.Msg{"tmpl": `
-systemd unit {{.unit}} depends on unit {{.required}}, which is not loaded.
-{{.reason}}
-An administrator probably needs to install the {{.required}} unit with:
-
-  # yum install {{.required}}
-
-If it is already installed, you may to reload the definition with:
-
-  # systemctl reload {{.required}}
-  `, "unit": unit.Name, "required": requires.Name, "reason": reason})
-	} else if unit.Active && !requires.Active {
-		logger.Errorm("sdUnitReqActive", log.Msg{"tmpl": `
-systemd unit {{.unit}} is running but {{.required}} is not.
-{{.reason}}
-An administrator can start the {{.required}} unit with:
-
-  # systemctl start {{.required}}
-
-To ensure it is not failing to run, check the status and logs with:
-
-  # systemctl status {{.required}}
-  # journalctl -ru {{.required}}
-  `, "unit": unit.Name, "required": requires.Name, "reason": reason})
-	} else if unit.Enabled && !requires.Enabled {
-		logger.Warnm("sdUnitReqEnabled", log.Msg{"tmpl": `
-systemd unit {{.unit}} is enabled to run automatically at boot, but {{.required}} is not.
-{{.reason}}
-An administrator can enable the {{.required}} unit with:
-
-  # systemctl enable {{.required}}
-  `, "unit": unit.Name, "required": requires.Name, "reason": reason})
-	}
-}
-
-func matchLogsSinceLastStart(unit *unitSpec, env *discovery.Environment) {
-	cmd := exec.Command("journalctl", "-ru", unit.Name, "--output=json")
-	// JSON comes out of journalctl one line per record
-	lineReader, reader, err := func(cmd *exec.Cmd) (*bufio.Scanner, io.ReadCloser, error) {
-		stdout, err := cmd.StdoutPipe()
-		if err == nil {
-			lineReader := bufio.NewScanner(stdout)
-			if err = cmd.Start(); err == nil {
-				return lineReader, stdout, nil
-			}
-		}
-		return nil, nil, err
-	}(cmd)
-	if err != nil {
-		env.Log.Errorm("sdLogReadErr", log.Msg{"tmpl": `
-Diagnostics failed to query journalctl for the '{{.unit}}' unit logs.
-This should be very unusual, so please report this error:
-{{.error}}`, "unit": unit.Name, "error": errStr(err)})
-		return
-	}
-	defer func() { // close out pipe once done reading
-		reader.Close()
-		cmd.Wait()
-	}()
-	entryTemplate := logEntry{Message: `json:"MESSAGE"`}
-	matchCopy := append([]logMatcher(nil), unit.LogMatchers...) // make a copy, will remove matchers after they match something
-	for lineReader.Scan() {                                     // each log entry is a line
-		if len(matchCopy) == 0 { // if no rules remain to match
-			break // don't waste time reading more log entries
-		}
-		bytes, entry := lineReader.Bytes(), entryTemplate
-		if err := json.Unmarshal(bytes, &entry); err != nil {
-			env.Log.Debugm("sdLogBadJSON", log.Msg{"message": string(bytes), "error": errStr(err),
-				"tmpl": "Couldn't read the JSON for this log message:\n{{.message}}\nGot error {{.error}}"})
-		} else {
-			if unit.StartMatch.MatchString(entry.Message) {
-				break // saw the log message where the unit started; done looking.
-			}
-			for index, match := range matchCopy { // match log message against provided matchers
-				if strings := match.Regexp.FindStringSubmatch(entry.Message); strings != nil {
-					// if matches: print interpretation, remove from matchCopy, and go on to next log entry
-					keep := match.KeepAfterMatch
-					if match.Interpret != nil {
-						keep = match.Interpret(env, &entry, strings)
-					} else {
-						prelude := fmt.Sprintf("Found '%s' journald log message:\n  %s\n", unit.Name, entry.Message)
-						env.Log.Log(match.Level, match.Id, log.Msg{"text": prelude + match.Interpretation, "unit": unit.Name, "logMsg": entry.Message})
-					}
-					if !keep { // remove matcher once seen
-						matchCopy = append(matchCopy[:index], matchCopy[index+1:]...)
-					}
-					break
-				}
-			}
-		}
-	}
-}
-
-func errStr(err error) string {
-	return fmt.Sprintf("(%T) %[1]v", err)
 }

@@ -6,9 +6,26 @@ import (
 	"fmt"
 	ct "github.com/daviddengcn/go-colortext"
 	"io"
+	"io/ioutil"
 	"strings"
 	"text/template"
 )
+
+type LoggerOptions struct {
+	Level  int
+	Format string
+	Out    io.Writer
+}
+
+func (o *LoggerOptions) NewLogger() (*Logger, error) {
+	out := o.Out
+	if out == nil {
+		out = ioutil.Discard
+	}
+
+	ret, err := NewLogger(o.Level, o.Format, out)
+	return ret, err
+}
 
 type Level struct {
 	Level  int
@@ -19,7 +36,7 @@ type Level struct {
 }
 
 type Logger struct {
-	logger       loggerType
+	loggerType
 	level        Level
 	warningsSeen int
 	errorsSeen   int
@@ -27,19 +44,18 @@ type Logger struct {
 
 // Internal type to deal with different log formats
 type loggerType interface {
-	Write(Level, Msg)
+	Write(LogEntry)
 	Finish()
 }
 
 func NewLogger(setLevel int, setFormat string, out io.Writer) (*Logger, error) {
-
 	var logger loggerType
 	switch setFormat {
 	case "json":
 		logger = &jsonLogger{out: out}
 	case "yaml":
 		logger = &yamlLogger{out: out}
-	case "text":
+	case "text", "":
 		logger = newTextLogger(out)
 	default:
 		return nil, errors.New("Output format must be one of: text, json, yaml")
@@ -48,27 +64,64 @@ func NewLogger(setLevel int, setFormat string, out io.Writer) (*Logger, error) {
 	var err error = nil
 	level := DebugLevel
 	switch setLevel {
-	case 0:
+	case ErrorLevel.Level:
 		level = ErrorLevel
-	case 1:
+	case WarnLevel.Level:
 		level = WarnLevel
-	case 2:
+	case NoticeLevel.Level:
 		level = NoticeLevel
-	case 3:
+	case InfoLevel.Level:
 		level = InfoLevel
-	case 4:
+	case DebugLevel.Level:
 		// Debug, also default for invalid numbers below
 	default:
 		err = errors.New("Invalid diagnostic level; must be 0-4")
 	}
+
 	return &Logger{
-		logger: logger,
-		level:  level,
+		loggerType: logger,
+		level:      level,
 	}, err
 }
 
-// a map message type to throw type safety and method signatures out the window:
-type Msg map[string]interface{}
+type Message struct {
+	ID       string
+	Template string
+
+	// TemplateData is passed to template executor to complete the message
+	TemplateData interface{}
+
+	EvaluatedText string
+}
+
+func (m Message) String() string {
+	if len(m.EvaluatedText) > 0 {
+		return fmt.Sprintf("%s: %s", m.EvaluatedText)
+	}
+
+	if len(m.Template) == 0 {
+		return fmt.Sprintf("%s: %s %#v", m.ID, m.Template, m.TemplateData)
+	}
+
+	// if given a template, convert it to text
+	parsedTmpl, err := template.New(m.ID).Parse(m.Template)
+	if err != nil {
+		return fmt.Sprintf("%s: %s %#v: %v", m.ID, m.Template, m.TemplateData, err)
+	}
+
+	var buff bytes.Buffer
+	err = parsedTmpl.Execute(&buff, m.TemplateData)
+	if err != nil {
+		return fmt.Sprintf("%s: %s %#v: %v", m.ID, m.Template, m.TemplateData, err)
+	}
+
+	return buff.String()
+}
+
+type LogEntry struct {
+	Level Level
+	Message
+}
 
 /* a Msg can be expected to have the following entries:
  * "id": an identifier unique to the message being logged, intended for json/yaml output
@@ -83,112 +136,138 @@ type Msg map[string]interface{}
  */
 
 var (
-	ErrorLevel  = Level{0, "error", "ERROR: ", ct.Red, true}   // Something is definitely wrong
-	WarnLevel   = Level{1, "warn", "WARN:  ", ct.Yellow, true} // Likely to be an issue but maybe not
+	ErrorLevel  = Level{4, "error", "ERROR: ", ct.Red, true}   // Something is definitely wrong
+	WarnLevel   = Level{3, "warn", "WARN:  ", ct.Yellow, true} // Likely to be an issue but maybe not
 	NoticeLevel = Level{2, "note", "[Note] ", ct.White, false} // Introductory / summary
-	InfoLevel   = Level{3, "info", "Info:  ", ct.None, false}  // Just informational
-	DebugLevel  = Level{4, "debug", "debug: ", ct.None, false} // Extra verbose
+	InfoLevel   = Level{1, "info", "Info:  ", ct.None, false}  // Just informational
+	DebugLevel  = Level{0, "debug", "debug: ", ct.None, false} // Extra verbose
 )
 
 // Provide a summary at the end
 func (l *Logger) Summary() {
 	l.Notice("summary", "\nSummary of diagnostics execution:\n")
 	if l.warningsSeen > 0 {
-		l.Noticem("sumWarn", Msg{"tmpl": "Warnings seen: {{.num}}", "num": l.warningsSeen})
+		l.Noticef("sumWarn", "Warnings seen: %d", l.warningsSeen)
 	}
 	if l.errorsSeen > 0 {
-		l.Noticem("sumErr", Msg{"tmpl": "Errors seen: {{.num}}", "num": l.errorsSeen})
+		l.Noticef("sumErr", "Errors seen: %d", l.errorsSeen)
 	}
 	if l.warningsSeen == 0 && l.errorsSeen == 0 {
 		l.Notice("sumNone", "Completed with no errors or warnings seen.")
 	}
 }
 
-func (l *Logger) Log(level Level, id string, msg Msg) {
-	if level.Level > l.level.Level {
+func (l *Logger) LogMessage(level Level, message Message) {
+	// if there's no logger, return silently
+	if l == nil {
 		return
 	}
-	msg["id"] = id // TODO: use to retrieve template from elsewhere
-	// if given a template, convert it to text
-	if tmpl, exists := msg["tmpl"]; exists {
-		var buff bytes.Buffer
-		if tmplString, assertion := tmpl.(string); !assertion {
-			msg["templateErr"] = fmt.Sprintf("Invalid template type: %T", tmpl)
-			msg["templateId"] = id
-			msg["id"] = "tmplErr"
-		} else {
-			parsedTmpl, err := template.New(id).Parse(tmplString)
-			if err != nil {
-				msg["templateErr"] = err.Error()
-				msg["templateId"] = id
-				msg["id"] = "tmplErr"
-			} else if err = parsedTmpl.Execute(&buff, msg); err != nil {
-				msg["templateErr"] = err.Error()
-				msg["templateId"] = id
-				msg["id"] = "tmplErr"
-			} else {
-				msg["text"] = buff.String()
-				delete(msg, "tmpl")
-			}
-		}
-	}
+
+	// track how many of every type we've seen (probably unnecessary)
 	if level.Level == ErrorLevel.Level {
 		l.errorsSeen += 1
 	} else if level.Level == WarnLevel.Level {
 		l.warningsSeen += 1
 	}
-	l.logger.Write(level, msg)
+
+	if level.Level < l.level.Level {
+		return
+	}
+
+	if len(message.Template) == 0 {
+		l.Write(LogEntry{level, message})
+		return
+	}
+
+	// if given a template, convert it to text
+	parsedTmpl, err := template.New(message.ID).Parse(message.Template)
+	if err != nil {
+		templateErrorMessage := Message{
+			ID: "templateParseErr",
+			TemplateData: map[string]interface{}{
+				"error":           err.Error(),
+				"originalMessage": message,
+			},
+		}
+		l.LogMessage(level, templateErrorMessage)
+		return
+	}
+
+	var buff bytes.Buffer
+	err = parsedTmpl.Execute(&buff, message.TemplateData)
+	if err != nil {
+		templateErrorMessage := Message{
+			ID: "templateParseErr",
+			TemplateData: map[string]interface{}{
+				"error":           err.Error(),
+				"originalMessage": message,
+			},
+		}
+		l.LogMessage(level, templateErrorMessage)
+		return
+
+	}
+
+	message.EvaluatedText = buff.String()
+	l.Write(LogEntry{level, message})
 }
 
 // Convenience functions
 func (l *Logger) Error(id string, text string) {
-	l.Log(ErrorLevel, id, Msg{"text": text})
+	l.Logp(ErrorLevel, id, text)
 }
 func (l *Logger) Errorf(id string, msg string, a ...interface{}) {
-	l.Error(id, fmt.Sprintf(msg, a...))
+	l.Logpf(ErrorLevel, id, msg, a...)
 }
-func (l *Logger) Errorm(id string, msg Msg) {
-	l.Log(ErrorLevel, id, msg)
+func (l *Logger) Errorm(message Message) {
+	l.LogMessage(ErrorLevel, message)
 }
 func (l *Logger) Warn(id string, text string) {
-	l.Log(WarnLevel, id, Msg{"text": text})
+	l.Logp(WarnLevel, id, text)
 }
 func (l *Logger) Warnf(id string, msg string, a ...interface{}) {
-	l.Warn(id, fmt.Sprintf(msg, a...))
+	l.Logpf(WarnLevel, id, msg, a...)
 }
-func (l *Logger) Warnm(id string, msg Msg) {
-	l.Log(WarnLevel, id, msg)
+func (l *Logger) Warnm(message Message) {
+	l.LogMessage(WarnLevel, message)
 }
 func (l *Logger) Info(id string, text string) {
-	l.Log(InfoLevel, id, Msg{"text": text})
+	l.Logp(InfoLevel, id, text)
 }
 func (l *Logger) Infof(id string, msg string, a ...interface{}) {
-	l.Info(id, fmt.Sprintf(msg, a...))
+	l.Logpf(InfoLevel, id, msg, a...)
 }
-func (l *Logger) Infom(id string, msg Msg) {
-	l.Log(InfoLevel, id, msg)
+func (l *Logger) Infom(message Message) {
+	l.LogMessage(InfoLevel, message)
 }
 func (l *Logger) Notice(id string, text string) {
-	l.Log(NoticeLevel, id, Msg{"text": text})
+	l.Logp(NoticeLevel, id, text)
 }
 func (l *Logger) Noticef(id string, msg string, a ...interface{}) {
-	l.Notice(id, fmt.Sprintf(msg, a...))
+	l.Logpf(NoticeLevel, id, msg, a...)
 }
-func (l *Logger) Noticem(id string, msg Msg) {
-	l.Log(NoticeLevel, id, msg)
+func (l *Logger) Noticem(message Message) {
+	l.LogMessage(NoticeLevel, message)
 }
 func (l *Logger) Debug(id string, text string) {
-	l.Log(DebugLevel, id, Msg{"text": text})
+	l.Logp(DebugLevel, id, text)
 }
 func (l *Logger) Debugf(id string, msg string, a ...interface{}) {
-	l.Debug(id, fmt.Sprintf(msg, a...))
+	l.Logpf(DebugLevel, id, msg, a...)
 }
-func (l *Logger) Debugm(id string, msg Msg) {
-	l.Log(DebugLevel, id, msg)
+func (l *Logger) Debugm(message Message) {
+	l.LogMessage(DebugLevel, message)
+}
+
+func (l *Logger) Logp(level Level, id string, text string) {
+	l.LogMessage(level, Message{ID: id, EvaluatedText: text})
+}
+func (l *Logger) Logpf(level Level, id string, msg string, a ...interface{}) {
+	l.Logp(level, id, fmt.Sprintf(msg, a...))
 }
 
 func (l *Logger) Finish() {
-	l.logger.Finish()
+	l.loggerType.Finish()
 }
 
 func (l *Logger) ErrorsSeen() bool {

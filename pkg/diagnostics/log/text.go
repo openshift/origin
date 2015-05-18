@@ -31,11 +31,11 @@ func IsTerminal(w io.Writer) bool {
 	return ok && term.IsTerminal(file.Fd())
 }
 
-func (t *textLogger) Write(l Level, msg Msg) {
+func (t *textLogger) Write(entry LogEntry) {
 	if t.ttyOutput {
-		ct.ChangeColor(l.Color, l.Bright, ct.None, false)
+		ct.ChangeColor(entry.Level.Color, entry.Level.Bright, ct.None, false)
 	}
-	text := strings.TrimSpace(fmt.Sprintf("%v", msg["text"]))
+	text := strings.TrimSpace(entry.EvaluatedText)
 	if strings.Contains(text, "\n") { // separate multiline comments with newlines
 		if !t.lastNewline {
 			fmt.Fprintln(t.out) // separate from previous one-line log msg
@@ -45,7 +45,7 @@ func (t *textLogger) Write(l Level, msg Msg) {
 	} else {
 		t.lastNewline = false
 	}
-	fmt.Fprintln(t.out, l.Prefix+strings.Replace(text, "\n", "\n       ", -1))
+	fmt.Fprintln(t.out, entry.Level.Prefix+strings.Replace(text, "\n", "\n       ", -1))
 	if t.ttyOutput {
 		ct.ResetColor()
 	}
