@@ -116,12 +116,12 @@ type BuildSource struct {
 	// repository.
 	ContextDir string `json:"contextDir,omitempty"`
 
-	// SourceSecretName is the name of a Secret that would be used for setting
+	// SourceSecret is the name of a Secret that would be used for setting
 	// up the authentication for cloning private repository.
 	// The secret contains valid credentials for remote repository, where the
 	// data's key represent the authentication method to be used and value is
 	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
-	SourceSecretName string
+	SourceSecret *kapi.LocalObjectReference
 }
 
 // SourceRevision is the revision or commit information from the source for the build
@@ -212,10 +212,10 @@ type CustomBuildStrategy struct {
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
-	// PullSecretName is the name of a Secret that would be used for setting up
+	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string `json:"pullSecretName,omitempty"`
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -229,10 +229,10 @@ type DockerBuildStrategy struct {
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
-	// PullSecretName is the name of a Secret that would be used for setting up
+	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string `json:"pullSecretName,omitempty"`
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
 }
 
 // SourceBuildStrategy defines input parameters specific to an STI build.
@@ -241,10 +241,10 @@ type SourceBuildStrategy struct {
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
-	// PullSecretName is the name of a Secret that would be used for setting up
+	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string `json:"pullSecretName,omitempty"`
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
@@ -266,10 +266,10 @@ type BuildOutput struct {
 	// a Docker image repository to push to. Failure to find the To will result in a build error.
 	To *kapi.ObjectReference `json:"to,omitempty"`
 
-	// PushSecretName is the name of a Secret that would be used for setting
+	// PushSecret is the name of a Secret that would be used for setting
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
-	PushSecretName string `json:"pushSecretName,omitempty"`
+	PushSecret *kapi.LocalObjectReference `json:"pushSecret,omitempty"`
 
 	// Tag is the "version name" that will be associated with the output image. This
 	// field is only used if the To field is set, and is ignored when DockerImageReference is used.

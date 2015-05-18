@@ -110,7 +110,7 @@ func mockSTIBuild() *buildapi.Build {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/stibuild/Dockerfile",
 				},
-				SourceSecretName: "fooSecret",
+				SourceSecret: &kapi.LocalObjectReference{Name: "fooSecret"},
 			},
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.SourceBuildStrategyType,
@@ -119,8 +119,8 @@ func mockSTIBuild() *buildapi.Build {
 						Kind: "DockerImage",
 						Name: "repository/sti-builder",
 					},
-					PullSecretName: "bar",
-					Scripts:        "http://my.build.com/the/sti/scripts",
+					PullSecret: &kapi.LocalObjectReference{Name: "bar"},
+					Scripts:    "http://my.build.com/the/sti/scripts",
 					Env: []kapi.EnvVar{
 						{Name: "BUILD_LOGLEVEL", Value: "bar"},
 					},
@@ -128,7 +128,7 @@ func mockSTIBuild() *buildapi.Build {
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "docker-registry/repository/stiBuild",
-				PushSecretName:       "foo",
+				PushSecret:           &kapi.LocalObjectReference{Name: "foo"},
 			},
 			Resources: kapi.ResourceRequirements{
 				Limits: kapi.ResourceList{

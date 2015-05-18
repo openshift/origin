@@ -65,8 +65,8 @@ func run(builderFactory factoryFunc, scmAuths []scmauth.SCMAuth) {
 			dockercfg.PullAuthType,
 		)
 	}
-	if len(build.Parameters.Source.SourceSecretName) > 0 {
-		if err := setupSourceSecret(build.Parameters.Source.SourceSecretName, scmAuths); err != nil {
+	if build.Parameters.Source.SourceSecret != nil {
+		if err := setupSourceSecret(build.Parameters.Source.SourceSecret.Name, scmAuths); err != nil {
 			glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
 		}
 	}

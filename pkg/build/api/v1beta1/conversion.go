@@ -59,6 +59,9 @@ func init() {
 			return nil
 		},
 		func(in *newer.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
 			if in.From != nil {
 				switch in.From.Kind {
 				case "ImageStreamImage":
@@ -83,6 +86,8 @@ func init() {
 				case "DockerImage":
 					out.Image = in.From.Name
 					out.BuilderImage = in.From.Name
+					out.From = nil
+					out.Tag = ""
 				case "ImageStream", "":
 					out.From = &kapi.ObjectReference{
 						Name:      in.From.Name,
@@ -91,15 +96,14 @@ func init() {
 					}
 				}
 			}
-			out.Scripts = in.Scripts
-			out.PullSecretName = in.PullSecretName
 			out.Clean = !in.Incremental
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		func(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
-			out.Scripts = in.Scripts
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
 			out.Incremental = !in.Clean
-			out.PullSecretName = in.PullSecretName
 			if in.From != nil {
 				out.From = &api.ObjectReference{
 					Kind:      in.From.Kind,
@@ -126,8 +130,9 @@ func init() {
 		},
 		// Rename DockerBuildStrategy.BaseImage to DockerBuildStrategy.Image
 		func(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
-			out.NoCache = in.NoCache
-			out.PullSecretName = in.PullSecretName
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
 			if in.From != nil {
 				switch in.From.Kind {
 				case "ImageStreamImage":
@@ -152,6 +157,8 @@ func init() {
 				case "DockerImage":
 					out.Image = in.From.Name
 					out.BaseImage = in.From.Name
+					out.From = nil
+					out.Tag = ""
 				case "ImageStream", "":
 					out.From = &kapi.ObjectReference{
 						Name:      in.From.Name,
@@ -163,8 +170,9 @@ func init() {
 			return nil
 		},
 		func(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
-			out.NoCache = in.NoCache
-			out.PullSecretName = in.PullSecretName
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
 			if in.From != nil {
 				out.From = &api.ObjectReference{
 					Kind:      in.From.Kind,
@@ -190,7 +198,9 @@ func init() {
 			return nil
 		},
 		func(in *newer.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
-			out.PullSecretName = in.PullSecretName
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
 			if in.From != nil {
 				switch in.From.Kind {
 				case "ImageStreamImage":
@@ -214,6 +224,8 @@ func init() {
 					out.Tag = tag
 				case "DockerImage":
 					out.Image = in.From.Name
+					out.From = nil
+					out.Tag = ""
 				case "ImageStream", "":
 					out.From = &kapi.ObjectReference{
 						Name:      in.From.Name,
@@ -222,12 +234,12 @@ func init() {
 					}
 				}
 			}
-			out.ExposeDockerSocket = in.ExposeDockerSocket
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		func(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
-			out.PullSecretName = in.PullSecretName
-			out.ExposeDockerSocket = in.ExposeDockerSocket
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
 			if in.From != nil {
 				out.From = &api.ObjectReference{
 					Kind:      in.From.Kind,
@@ -252,7 +264,11 @@ func init() {
 			if err := s.Convert(&in.To, &out.To, 0); err != nil {
 				return err
 			}
-			out.PushSecretName = in.PushSecretName
+			if in.PushSecret != nil {
+				out.PushSecret = &kapi.LocalObjectReference{
+					Name: in.PushSecret.Name,
+				}
+			}
 			if len(in.DockerImageReference) > 0 {
 				out.DockerImageReference = in.DockerImageReference
 				ref, err := imageapi.ParseDockerImageReference(in.DockerImageReference)
@@ -282,7 +298,11 @@ func init() {
 					out.Tag = imageapi.DefaultImageTag
 				}
 			}
-			out.PushSecretName = in.PushSecretName
+			if in.PushSecret != nil {
+				out.PushSecret = &api.LocalObjectReference{
+					Name: in.PushSecret.Name,
+				}
+			}
 			if len(in.DockerImageReference) > 0 {
 				out.DockerImageReference = in.DockerImageReference
 				out.Tag = ""

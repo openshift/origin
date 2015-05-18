@@ -108,7 +108,7 @@ func mockCustomBuild() *buildapi.Build {
 					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
 					Ref: "master",
 				},
-				SourceSecretName: "secretFoo",
+				SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
 			},
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.CustomBuildStrategyType,
@@ -125,7 +125,7 @@ func mockCustomBuild() *buildapi.Build {
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "docker-registry/repository/customBuild",
-				PushSecretName:       "foo",
+				PushSecret:           &kapi.LocalObjectReference{Name: "foo"},
 			},
 			Resources: kapi.ResourceRequirements{
 				Limits: kapi.ResourceList{
