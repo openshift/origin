@@ -11,7 +11,10 @@ Requires=network.target
 [Service]
 Type=notify
 EnvironmentFile=/etc/sysconfig/openshift-master
+Environment=GOTRACEBACK=crash
 ExecStart=/usr/bin/openshift start master --config=${CONFIG_FILE} $OPTIONS
+LimitNOFILE=131072
+LimitCORE=infinity
 WorkingDirectory=/var/lib/openshift/
 SyslogIdentifier=openshift-master
 
