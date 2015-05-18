@@ -7,8 +7,9 @@ angular.module('openshiftConsole')
 //   withUser()
 //     returns a promise that resolves when there is a current user
 //     starts a login if there is no current user
-//   setUser(user, token)
+//   setUser(user, token[, ttl])
 //     sets the current user and token to use for authenticated requests
+//     if ttl is specified, it indicates how many seconds the user and token are valid
 //     triggers onUserChanged callbacks if the new user is different than the current user
 //   requestRequiresAuth(config)
 //     returns true if the request is to a protected URL
@@ -91,11 +92,11 @@ angular.module('openshiftConsole')
         }
       },
 
-      setUser: function(user, token) {
-        authLogger.log('AuthService.setUser()', user, token);
+      setUser: function(user, token, ttl) {
+        authLogger.log('AuthService.setUser()', user, token, ttl);
         var oldUser = userStore.getUser();
-        userStore.setUser(user);
-        userStore.setToken(token);
+        userStore.setUser(user, ttl);
+        userStore.setToken(token, ttl);
 
         $rootScope.user = user;
 
@@ -146,7 +147,7 @@ angular.module('openshiftConsole')
         }
         var self = this;
         _loginPromise = loginService.login().then(function(result) {
-          self.setUser(result.user, result.token);
+          self.setUser(result.user, result.token, result.ttl);
           _loginCallbacks.fire(result.user);
         }).catch(function(err) {
           Logger.error(err);
