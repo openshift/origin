@@ -2,7 +2,6 @@ package dns
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -48,16 +47,39 @@ func NewServiceResolver(config *server.Config, accessor ServiceAccessor, endpoin
 
 // Records implements the SkyDNS Backend interface and returns standard records for
 // a name.
+//
+// The standard pattern is <prefix>.<service_name>.<namespace>.(svc|endpoints).<base>
+//
+// * prefix may be any series of prefix values
+// * service_name and namespace must locate a real service
+// * svc indicates standard service rules apply (portalIP or endpoints as A records)
+//   * reverse lookup of IP is only possible for portalIP
+//   * SRV records are returned for each host+port combination as:
+//     _<port_name>._<port_protocol>.<dns>
+//     _<port_name>.<endpoint_id>.<dns>
+//   * endpoint_id is "portal" when portalIP is set
+// * endpoints always returns each individual endpoint as A records
+//
 func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error) {
 	if !strings.HasSuffix(name, b.base) {
 		return nil, nil
 	}
-	log.Printf("serving records for %s %t", name, exact)
 	prefix := strings.Trim(strings.TrimSuffix(name, b.base), ".")
 	segments := strings.Split(prefix, ".")
-	switch c := len(segments); {
-	case c >= 2:
-		svc, err := b.accessor.Services(segments[c-1]).Get(segments[c-2])
+	for i, j := 0, len(segments)-1; i < j; i, j = i+1, j-1 {
+		segments[i], segments[j] = segments[j], segments[i]
+	}
+	if len(segments) == 0 {
+		return nil, nil
+	}
+
+	switch segments[0] {
+	case "svc", "endpoints":
+		if len(segments) < 3 {
+			return nil, nil
+		}
+		namespace, name := segments[1], segments[2]
+		svc, err := b.accessor.Services(namespace).Get(name)
 		if err != nil {
 			if errors.IsNotFound(err) && b.fallback != nil {
 				if fallback, ok := b.fallback(prefix, exact); ok {
@@ -66,47 +88,142 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 			}
 			return nil, err
 		}
-		if svc.Spec.PortalIP == kapi.PortalIPNone {
-			endpoints, err := b.endpoints.Endpoints(segments[c-1]).Get(segments[c-2])
-			if err != nil {
-				return nil, err
+
+		// no portalIP and not headless, no DNS
+		if len(svc.Spec.PortalIP) == 0 {
+			return nil, nil
+		}
+
+		// if has a portal IP and looking at svc
+		if svc.Spec.PortalIP != kapi.PortalIPNone && segments[0] == "svc" {
+			if len(svc.Spec.Ports) == 0 {
+				return nil, nil
 			}
-			services := make([]msg.Service, 0, len(endpoints.Subsets)*4)
-			for _, s := range endpoints.Subsets {
-				for _, a := range s.Addresses {
-					for _, p := range s.Ports {
-						services = append(services, msg.Service{
-							Host: a.IP,
-							Port: p.Port,
-
-							Priority: 10,
-							Weight:   10,
-							Ttl:      30,
-
-							Text: "",
-							Key:  msg.Path(name),
-						})
-					}
+			services := []msg.Service{}
+			for _, p := range svc.Spec.Ports {
+				port := p.Port
+				if port == 0 {
+					port = p.TargetPort.IntVal
 				}
+				if port == 0 {
+					continue
+				}
+				if len(p.Protocol) == 0 {
+					p.Protocol = kapi.ProtocolTCP
+				}
+				portName := p.Name
+				if len(portName) == 0 {
+					portName = fmt.Sprintf("unknown-port-%d", port)
+				}
+				srvName := fmt.Sprintf("%s.portal.%s", portName, name)
+				keyName := fmt.Sprintf("_%s._%s.%s", portName, p.Protocol, name)
+				services = append(services,
+					msg.Service{
+						Host: svc.Spec.PortalIP,
+						Port: port,
+
+						Priority: 10,
+						Weight:   10,
+						Ttl:      30,
+
+						Text: "",
+						Key:  msg.Path(srvName),
+					},
+					msg.Service{
+						Host: srvName,
+						Port: port,
+
+						Priority: 10,
+						Weight:   10,
+						Ttl:      30,
+
+						Text: "",
+						Key:  msg.Path(keyName),
+					},
+				)
 			}
 			return services, nil
 		}
-		if len(svc.Spec.PortalIP) == 0 || len(svc.Spec.Ports) == 0 {
-			return nil, nil
+
+		// return endpoints
+		endpoints, err := b.endpoints.Endpoints(namespace).Get(name)
+		if err != nil {
+			return nil, err
 		}
-		return []msg.Service{
-			{
-				Host: svc.Spec.PortalIP,
-				Port: svc.Spec.Ports[0].Port,
+		targets := make(map[string]int)
+		services := make([]msg.Service, 0, len(endpoints.Subsets)*4)
+		count := 1
+		for _, s := range endpoints.Subsets {
+			for _, a := range s.Addresses {
+				shortName := ""
+				if a.TargetRef != nil {
+					name := fmt.Sprintf("%s-%s", a.TargetRef.Name, a.TargetRef.Namespace)
+					if c, ok := targets[name]; ok {
+						shortName = fmt.Sprintf("e%d", c)
+					} else {
+						shortName = fmt.Sprintf("e%d", count)
+						targets[name] = count
+						count++
+					}
+				} else {
+					shortName = fmt.Sprintf("e%d", count)
+					count++
+				}
+				hadPort := false
+				for _, p := range s.Ports {
+					port := p.Port
+					if port == 0 {
+						continue
+					}
+					hadPort = true
+					if len(p.Protocol) == 0 {
+						p.Protocol = kapi.ProtocolTCP
+					}
+					portName := p.Name
+					if len(portName) == 0 {
+						portName = fmt.Sprintf("unknown-port-%d", port)
+					}
+					srvName := fmt.Sprintf("%s.%s.%s", portName, shortName, name)
+					services = append(services, msg.Service{
+						Host: a.IP,
+						Port: port,
 
-				Priority: 10,
-				Weight:   10,
-				Ttl:      30,
+						Priority: 10,
+						Weight:   10,
+						Ttl:      30,
 
-				Text: "",
-				Key:  msg.Path(name),
-			},
-		}, nil
+						Text: "",
+						Key:  msg.Path(srvName),
+					})
+					keyName := fmt.Sprintf("_%s._%s.%s", portName, p.Protocol, name)
+					services = append(services, msg.Service{
+						Host: srvName,
+						Port: port,
+
+						Priority: 10,
+						Weight:   10,
+						Ttl:      30,
+
+						Text: "",
+						Key:  msg.Path(keyName),
+					})
+				}
+
+				if !hadPort {
+					services = append(services, msg.Service{
+						Host: a.IP,
+
+						Priority: 10,
+						Weight:   10,
+						Ttl:      30,
+
+						Text: "",
+						Key:  msg.Path(name),
+					})
+				}
+			}
+		}
+		return services, nil
 	}
 	return nil, nil
 }
@@ -128,7 +245,7 @@ func (b *ServiceResolver) ReverseRecord(name string) (*msg.Service, error) {
 		port = svc.Spec.Ports[0].Port
 	}
 	return &msg.Service{
-		Host: fmt.Sprintf("%s.%s.%s", svc.Name, svc.Namespace, b.base),
+		Host: fmt.Sprintf("%s.%s.svc.%s", svc.Name, svc.Namespace, b.base),
 		Port: port,
 
 		Priority: 10,
