@@ -666,7 +666,7 @@ func forbidden(reason, apiVersion string, w http.ResponseWriter, req *http.Reque
 	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
 	// that makes sense when a human reads it.
 	forbiddenError, _ := kapierror.NewForbidden("", "", errors.New("")).(*kapierror.StatusError)
-	forbiddenError.ErrStatus.Message = fmt.Sprintf("%q is forbidden because %s", req.RequestURI, reason)
+	forbiddenError.ErrStatus.Message = reason
 
 	// Not all API versions in valid API requests will have a matching codec in kubernetes.  If we can't find one,
 	// just default to the latest kube codec.

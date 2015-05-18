@@ -145,7 +145,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Options: options,
 
 		Authenticator:                 newAuthenticator(options.ServingInfo, etcdHelper, apiClientCAs),
-		Authorizer:                    newAuthorizer(policyCache),
+		Authorizer:                    newAuthorizer(policyCache, options.ProjectRequestConfig.ProjectRequestMessage),
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		PolicyCache:               policyCache,
@@ -227,8 +227,8 @@ func newPolicyCache(etcdHelper tools.EtcdHelper) *policycache.PolicyCache {
 	return policycache.NewPolicyCache(policyBindingRegistry, policyRegistry, clusterPolicyBindingRegistry, clusterPolicyRegistry)
 }
 
-func newAuthorizer(policyCache *policycache.PolicyCache) authorizer.Authorizer {
-	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyCache, policyCache, policyCache, policyCache))
+func newAuthorizer(policyCache *policycache.PolicyCache, projectRequestDenyMessage string) authorizer.Authorizer {
+	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyCache, policyCache, policyCache, policyCache), authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
 	return authorizer
 }
 
