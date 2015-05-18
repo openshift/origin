@@ -2,6 +2,7 @@ package strategy
 
 import (
 	"errors"
+	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -23,7 +24,7 @@ type CustomBuildStrategy struct {
 func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	data, err := bs.Codec.Encode(build)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}
 
 	strategy := build.Parameters.Strategy.CustomStrategy

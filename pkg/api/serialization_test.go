@@ -112,9 +112,17 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.Tag, j.DockerImageReference = "", ""
 				if j.To != nil && (len(j.To.Kind) == 0 || j.To.Kind == "ImageStream") {
 					j.To.Kind = "ImageStream"
+					j.Tag = image.DefaultImageTag
+				}
+			} else {
+				if j.To == nil {
+					j.Tag = ""
+					j.DockerImageReference = ""
+				} else {
 					if len(j.Tag) == 0 {
-						j.To.Kind = "latest"
+						j.Tag = image.DefaultImageTag
 					}
+					j.DockerImageReference = ""
 				}
 			}
 		},
@@ -224,7 +232,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		obj2 = obj2conv
 	}
 	if !api.Semantic.DeepEqual(item, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %#v\nFinal: %#v", name, util.ObjectDiff(item, obj2), codec, string(data), item, obj2)
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, util.ObjectDiff(item, obj2), codec, string(data), util.ObjectGoPrintSideBySide(item, obj2))
 		return
 	}
 

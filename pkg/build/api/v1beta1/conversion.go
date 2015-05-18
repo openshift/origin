@@ -252,7 +252,6 @@ func init() {
 			if err := s.Convert(&in.To, &out.To, 0); err != nil {
 				return err
 			}
-			out.Tag = in.Tag
 			out.PushSecretName = in.PushSecretName
 			if len(in.DockerImageReference) > 0 {
 				out.DockerImageReference = in.DockerImageReference
@@ -263,6 +262,13 @@ func init() {
 				out.Registry = ref.Registry
 				ref.Registry = ""
 				out.ImageTag = ref.String()
+				out.Tag = ""
+			}
+			if out.To != nil {
+				out.Tag = in.Tag
+				if len(out.Tag) == 0 {
+					out.Tag = imageapi.DefaultImageTag
+				}
 			}
 			return nil
 		},
@@ -270,19 +276,27 @@ func init() {
 			if err := s.Convert(&in.To, &out.To, 0); err != nil {
 				return err
 			}
-			out.Tag = in.Tag
+			if out.To != nil {
+				out.Tag = in.Tag
+				if len(out.Tag) == 0 {
+					out.Tag = imageapi.DefaultImageTag
+				}
+			}
 			out.PushSecretName = in.PushSecretName
 			if len(in.DockerImageReference) > 0 {
 				out.DockerImageReference = in.DockerImageReference
+				out.Tag = ""
 				return nil
 			}
-			if len(in.ImageTag) != 0 {
+			if len(in.ImageTag) > 0 {
 				ref, err := imageapi.ParseDockerImageReference(in.ImageTag)
 				if err != nil {
 					return err
 				}
 				ref.Registry = in.Registry
 				out.DockerImageReference = ref.String()
+				out.Tag = ""
+				return nil
 			}
 			return nil
 		},
