@@ -118,12 +118,12 @@ type BuildSource struct {
 	// repository.
 	ContextDir string `json:"contextDir,omitempty"`
 
-	// SourceSecretName is the name of a Secret that would be used for setting
+	// SourceSecret is the name of a Secret that would be used for setting
 	// up the authentication for cloning private repository.
 	// The secret contains valid credentials for remote repository, where the
 	// data's key represent the authentication method to be used and value is
 	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
-	SourceSecretName string `json:"sourceSecretName,omitempty" description:"supported auth methods are: ssh-privatekey`
+	SourceSecret *kapi.LocalObjectReference `json:"sourceSecret,omitempty" description:"supported auth methods are: ssh-privatekey"`
 }
 
 // SourceRevision is the revision or commit information from the source for the build
@@ -200,10 +200,10 @@ type CustomBuildStrategy struct {
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
-	// PullSecretName is the name of a Secret that would be used for setting up
+	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string `json:"pullSecretName,omitempty"`
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
@@ -221,10 +221,10 @@ type DockerBuildStrategy struct {
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
-	// PullSecretName is the name of a Secret that would be used for setting up
+	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string `json:"pullSecretName,omitempty"`
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
 
 	// NoCache if set to true indicates that the docker build must be executed with the
 	// --no-cache=true flag
@@ -237,10 +237,10 @@ type SourceBuildStrategy struct {
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
 
-	// PullSecretName is the name of a Secret that would be used for setting up
+	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecretName string `json:"pullSecretName,omitempty"`
+	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
@@ -261,10 +261,10 @@ type BuildOutput struct {
 	// This value will be used to look up a Docker image repository to push to.
 	To *kapi.ObjectReference `json:"to,omitempty"`
 
-	// pushSecretName is the name of a Secret that would be used for setting
+	// PushSecret is the name of a Secret that would be used for setting
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
-	PushSecretName string `json:"pushSecretName,omitempty"`
+	PushSecret *kapi.LocalObjectReference `json:"pushSecret,omitempty" description:"supported type: dockercfg"`
 }
 
 // BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
