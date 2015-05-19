@@ -37,7 +37,6 @@ func TestHandle_createPodOk(t *testing.T) {
 		podClient: &podClientImpl{
 			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				createdPod = pod
-				pod.Name = pod.GenerateName
 				return pod, nil
 			},
 		},
@@ -189,21 +188,31 @@ func TestHandle_createPodFail(t *testing.T) {
 	}
 }
 
-// TestHandle_createPodAlreadyExists ensures that attempts to create a
+// TestHandle_deployerPodAlreadyExists ensures that attempts to create a
 // deployer pod which  was already created don't result in an error
 // (effectively skipping the handling as redundant).
-func TestHandle_createPodAlreadyExists(t *testing.T) {
+func TestHandle_deployerPodAlreadyExists(t *testing.T) {
+	var updatedDeployment *kapi.ReplicationController
+
+	config := deploytest.OkDeploymentConfig(1)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
+	deployerPod := relatedPod(deployment)
+
 	controller := &DeploymentController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
 			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				t.Fatalf("unexpected deployment update")
-				return nil, nil
+				updatedDeployment = deployment
+				return updatedDeployment, nil
 			},
 		},
 		podClient: &podClientImpl{
+			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+				return deployerPod, nil
+			},
 			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return nil, kerrors.NewAlreadyExists("Pod", pod.Name)
 			},
@@ -214,14 +223,73 @@ func TestHandle_createPodAlreadyExists(t *testing.T) {
 		recorder: &record.FakeRecorder{},
 	}
 
-	// Verify no-op
-	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
-	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusPending)
 	err := controller.Handle(deployment)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if updatedDeployment.Annotations[deployapi.DeploymentPodAnnotation] != deployerPod.Name {
+		t.Fatalf("deployment not updated with pod name annotation")
+	}
+
+	if updatedDeployment.Annotations[deployapi.DeploymentStatusAnnotation] != string(deployapi.DeploymentStatusPending) {
+		t.Fatalf("deployment status not updated to pending")
+	}
+}
+
+// TestHandle_unrelatedPodAlreadyExists ensures that attempts to create a
+// deployer pod, when a pod with the same name but missing annotations
+// results in an error
+func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
+	var updatedDeployment *kapi.ReplicationController
+
+	config := deploytest.OkDeploymentConfig(1)
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
+	otherPod := unrelatedPod(deployment)
+
+	controller := &DeploymentController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedDeployment = deployment
+				return updatedDeployment, nil
+			},
+		},
+		podClient: &podClientImpl{
+			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+				return otherPod, nil
+			},
+			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+				return nil, kerrors.NewAlreadyExists("Pod", pod.Name)
+			},
+		},
+		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+			return okContainer(), nil
+		},
+		recorder: &record.FakeRecorder{},
+	}
+
+	err := controller.Handle(deployment)
+
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+
+	if _, isFatal := err.(fatalError); !isFatal {
+		t.Fatalf("expected a fatal error, got a %#v", err)
+	}
+
+	if _, exists := updatedDeployment.Annotations[deployapi.DeploymentPodAnnotation]; exists {
+		t.Fatalf("deployment updated with pod name annotation")
+	}
+
+	status := updatedDeployment.Annotations[deployapi.DeploymentStatusAnnotation]
+	if status != string(deployapi.DeploymentStatusFailed) {
+		t.Fatalf("expected deployment status: Failed. found: %s", status)
 	}
 }
 
@@ -422,6 +490,28 @@ func okContainer() *kapi.Container {
 			Limits: kapi.ResourceList{
 				kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
 				kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+			},
+		},
+	}
+}
+
+func relatedPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	return &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: deployment.Name,
+			Annotations: map[string]string{
+				deployapi.DeploymentAnnotation: deployment.Name,
+			},
+		},
+	}
+}
+
+func unrelatedPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	return &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: deployment.Name,
+			Annotations: map[string]string{
+				"unrelatedKey": "unrelatedValue",
 			},
 		},
 	}
