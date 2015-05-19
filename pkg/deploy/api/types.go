@@ -183,6 +183,12 @@ const (
 	// new deployment.
 	// TODO: This should be made public upstream.
 	DesiredReplicasAnnotation = "kubectl.kubernetes.io/desired-replicas"
+	// DeploymentStatusReasonAnnotation represents the reason for deployment being in a given state
+	// Used for specifying the reason for cancellation or failure of a deployment
+	DeploymentStatusReasonAnnotation = "openshift.io/deployment.status-reason"
+	// DeploymentCancelledAnnotation indicates that the deployment has been cancelled
+	// The annotation value does not matter and its mere presence indicates cancellation
+	DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
 )
 
 // DeploymentConfig represents a configuration for a single deployment (represented as a
