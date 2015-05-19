@@ -29,6 +29,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -734,6 +735,33 @@ func (c *MasterConfig) RunOriginNamespaceController() {
 	}
 	controller := factory.Create()
 	controller.Run()
+}
+
+func (c *MasterConfig) RunServiceAccountsController() {
+	if len(c.Options.ServiceAccountConfig.ManagedNames) == 0 {
+		glog.Infof("Skipped starting Service Account Manager, no managed names specified")
+		return
+	}
+	options := serviceaccount.DefaultServiceAccountsControllerOptions()
+	options.Names = util.NewStringSet(c.Options.ServiceAccountConfig.ManagedNames...)
+	serviceaccount.NewServiceAccountsController(c.KubeClient(), options).Run()
+	glog.Infof("Started Service Account Manager")
+}
+
+func (c *MasterConfig) RunServiceAccountTokensController() {
+	if len(c.Options.ServiceAccountConfig.PrivateKeyFile) == 0 {
+		glog.Infof("Skipped starting Service Account Token Controller, no private key specified")
+		return
+	}
+
+	privateKey, err := serviceaccount.ReadPrivateKey(c.Options.ServiceAccountConfig.PrivateKeyFile)
+	if err != nil {
+		glog.Fatalf("Error reading signing key for service account token controller: %v", err)
+	}
+	options := serviceaccount.DefaultTokenControllerOptions(serviceaccount.JWTTokenGenerator(privateKey))
+
+	serviceaccount.NewTokensController(c.KubeClient(), options).Run()
+	glog.Infof("Started Service Account Token Manager")
 }
 
 // RunPolicyCache starts the policy cache

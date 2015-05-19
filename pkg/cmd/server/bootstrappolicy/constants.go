@@ -7,6 +7,9 @@ const (
 
 // users
 const (
+	DefaultServiceAccountName = "default"
+	BuilderServiceAccountName = "builder"
+
 	RouterUnqualifiedUsername   = "openshift-router"
 	RegistryUnqualifiedUsername = "openshift-registry"
 
@@ -40,6 +43,8 @@ const (
 	SelfProvisionerRoleName   = "self-provisioner"
 	BasicUserRoleName         = "basic-user"
 	StatusCheckerRoleName     = "cluster-status"
+	ImagePullerRoleName       = "system:image-puller"
+	ImageBuilderRoleName      = "system:image-builder"
 	DeployerRoleName          = "system:deployer"
 	RouterRoleName            = "system:router"
 	RegistryRoleName          = "system:registry"
