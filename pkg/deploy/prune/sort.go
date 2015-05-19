@@ -16,7 +16,5 @@ func (s sortableReplicationControllers) Less(i, j int) bool {
 }
 
 func (s sortableReplicationControllers) Swap(i, j int) {
-	t := s[i]
-	s[i] = s[j]
-	s[j] = t
+	s[i], s[j] = s[j], s[i]
 }
