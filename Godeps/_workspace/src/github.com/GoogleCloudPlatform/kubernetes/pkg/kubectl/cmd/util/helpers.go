@@ -114,19 +114,11 @@ func MultilineError(prefix string, err error) string {
 		case 0:
 			return fmt.Sprintf("%s%v\n", prefix, err)
 		case 1:
-			msg, ok := StandardErrorMessage(errs[0])
-			if !ok {
-				msg = errs[0].Error()
-			}
-			return fmt.Sprintf("%s%v\n", prefix, msg)
+			return fmt.Sprintf("%s%v\n", prefix, messageForError(errs[0]))
 		default:
 			fmt.Fprintln(buf, prefix)
 			for _, err := range errs {
-				msg, ok := StandardErrorMessage(err)
-				if !ok {
-					msg = err.Error()
-				}
-				fmt.Fprintf(buf, "* %v\n", msg)
+				fmt.Fprintf(buf, "* %v\n", messageForError(err))
 			}
 			return buf.String()
 		}
@@ -139,13 +131,18 @@ func MultilineError(prefix string, err error) string {
 func MultipleErrors(prefix string, errs []error) string {
 	buf := &bytes.Buffer{}
 	for _, err := range errs {
-		msg, ok := StandardErrorMessage(err)
-		if !ok {
-			msg = err.Error()
-		}
-		fmt.Fprintf(buf, "%s%v\n", prefix, msg)
+		fmt.Fprintf(buf, "%s%v\n", prefix, messageForError(err))
 	}
 	return buf.String()
+}
+
+// messageForError returns the string representing the error.
+func messageForError(err error) string {
+	msg, ok := StandardErrorMessage(err)
+	if !ok {
+		msg = err.Error()
+	}
+	return msg
 }
 
 // fatal prints the message and then exits. If V(2) or greater, glog.Fatal

@@ -149,7 +149,6 @@ func (c *MasterConfig) RunMinionController() {
 		40*time.Second, // monitor grace
 		1*time.Minute,  // startup grace
 		10*time.Second, // monitor period
-		"openshift",
 
 		nil,   // clusterCIDR
 		false, // allocateNodeCIDRs

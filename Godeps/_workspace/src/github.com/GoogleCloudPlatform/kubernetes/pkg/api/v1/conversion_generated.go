@@ -79,29 +79,6 @@ func convert_api_Binding_To_v1_Binding(in *newer.Binding, out *Binding, s conver
 	return nil
 }
 
-func convert_api_Capabilities_To_v1_Capabilities(in *newer.Capabilities, out *Capabilities, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*newer.Capabilities))(in)
-	}
-	if in.Add != nil {
-		out.Add = make([]CapabilityType, len(in.Add))
-		for i := range in.Add {
-			out.Add[i] = CapabilityType(in.Add[i])
-		}
-	} else {
-		out.Add = nil
-	}
-	if in.Drop != nil {
-		out.Drop = make([]CapabilityType, len(in.Drop))
-		for i := range in.Drop {
-			out.Drop[i] = CapabilityType(in.Drop[i])
-		}
-	} else {
-		out.Drop = nil
-	}
-	return nil
-}
-
 func convert_v1_Capabilities_To_api_Capabilities(in *Capabilities, out *newer.Capabilities, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*Capabilities))(in)
@@ -118,6 +95,29 @@ func convert_v1_Capabilities_To_api_Capabilities(in *Capabilities, out *newer.Ca
 		out.Drop = make([]newer.CapabilityType, len(in.Drop))
 		for i := range in.Drop {
 			out.Drop[i] = newer.CapabilityType(in.Drop[i])
+		}
+	} else {
+		out.Drop = nil
+	}
+	return nil
+}
+
+func convert_api_Capabilities_To_v1_Capabilities(in *newer.Capabilities, out *Capabilities, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*newer.Capabilities))(in)
+	}
+	if in.Add != nil {
+		out.Add = make([]CapabilityType, len(in.Add))
+		for i := range in.Add {
+			out.Add[i] = CapabilityType(in.Add[i])
+		}
+	} else {
+		out.Add = nil
+	}
+	if in.Drop != nil {
+		out.Drop = make([]CapabilityType, len(in.Drop))
+		for i := range in.Drop {
+			out.Drop[i] = CapabilityType(in.Drop[i])
 		}
 	} else {
 		out.Drop = nil
@@ -235,6 +235,192 @@ func convert_api_ComponentStatusList_To_v1_ComponentStatusList(in *newer.Compone
 		}
 	} else {
 		out.Items = nil
+	}
+	return nil
+}
+
+func convert_v1_Container_To_api_Container(in *Container, out *newer.Container, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*Container))(in)
+	}
+	out.Name = in.Name
+	out.Image = in.Image
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.WorkingDir = in.WorkingDir
+	if in.Ports != nil {
+		out.Ports = make([]newer.ContainerPort, len(in.Ports))
+		for i := range in.Ports {
+			if err := convert_v1_ContainerPort_To_api_ContainerPort(&in.Ports[i], &out.Ports[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ports = nil
+	}
+	if in.Env != nil {
+		out.Env = make([]newer.EnvVar, len(in.Env))
+		for i := range in.Env {
+			if err := convert_v1_EnvVar_To_api_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Env = nil
+	}
+	if err := convert_v1_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if in.VolumeMounts != nil {
+		out.VolumeMounts = make([]newer.VolumeMount, len(in.VolumeMounts))
+		for i := range in.VolumeMounts {
+			if err := convert_v1_VolumeMount_To_api_VolumeMount(&in.VolumeMounts[i], &out.VolumeMounts[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.VolumeMounts = nil
+	}
+	if in.LivenessProbe != nil {
+		out.LivenessProbe = new(newer.Probe)
+		if err := convert_v1_Probe_To_api_Probe(in.LivenessProbe, out.LivenessProbe, s); err != nil {
+			return err
+		}
+	} else {
+		out.LivenessProbe = nil
+	}
+	if in.ReadinessProbe != nil {
+		out.ReadinessProbe = new(newer.Probe)
+		if err := convert_v1_Probe_To_api_Probe(in.ReadinessProbe, out.ReadinessProbe, s); err != nil {
+			return err
+		}
+	} else {
+		out.ReadinessProbe = nil
+	}
+	if in.Lifecycle != nil {
+		out.Lifecycle = new(newer.Lifecycle)
+		if err := convert_v1_Lifecycle_To_api_Lifecycle(in.Lifecycle, out.Lifecycle, s); err != nil {
+			return err
+		}
+	} else {
+		out.Lifecycle = nil
+	}
+	out.TerminationMessagePath = in.TerminationMessagePath
+	out.ImagePullPolicy = newer.PullPolicy(in.ImagePullPolicy)
+	if in.SecurityContext != nil {
+		out.SecurityContext = new(newer.SecurityContext)
+		if err := convert_v1_SecurityContext_To_api_SecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+			return err
+		}
+	} else {
+		out.SecurityContext = nil
+	}
+	return nil
+}
+
+func convert_api_Container_To_v1_Container(in *newer.Container, out *Container, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*newer.Container))(in)
+	}
+	out.Name = in.Name
+	out.Image = in.Image
+	if in.Command != nil {
+		out.Command = make([]string, len(in.Command))
+		for i := range in.Command {
+			out.Command[i] = in.Command[i]
+		}
+	} else {
+		out.Command = nil
+	}
+	if in.Args != nil {
+		out.Args = make([]string, len(in.Args))
+		for i := range in.Args {
+			out.Args[i] = in.Args[i]
+		}
+	} else {
+		out.Args = nil
+	}
+	out.WorkingDir = in.WorkingDir
+	if in.Ports != nil {
+		out.Ports = make([]ContainerPort, len(in.Ports))
+		for i := range in.Ports {
+			if err := convert_api_ContainerPort_To_v1_ContainerPort(&in.Ports[i], &out.Ports[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ports = nil
+	}
+	if in.Env != nil {
+		out.Env = make([]EnvVar, len(in.Env))
+		for i := range in.Env {
+			if err := convert_api_EnvVar_To_v1_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Env = nil
+	}
+	if err := convert_api_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+		return err
+	}
+	if in.VolumeMounts != nil {
+		out.VolumeMounts = make([]VolumeMount, len(in.VolumeMounts))
+		for i := range in.VolumeMounts {
+			if err := convert_api_VolumeMount_To_v1_VolumeMount(&in.VolumeMounts[i], &out.VolumeMounts[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.VolumeMounts = nil
+	}
+	if in.LivenessProbe != nil {
+		out.LivenessProbe = new(Probe)
+		if err := convert_api_Probe_To_v1_Probe(in.LivenessProbe, out.LivenessProbe, s); err != nil {
+			return err
+		}
+	} else {
+		out.LivenessProbe = nil
+	}
+	if in.ReadinessProbe != nil {
+		out.ReadinessProbe = new(Probe)
+		if err := convert_api_Probe_To_v1_Probe(in.ReadinessProbe, out.ReadinessProbe, s); err != nil {
+			return err
+		}
+	} else {
+		out.ReadinessProbe = nil
+	}
+	if in.Lifecycle != nil {
+		out.Lifecycle = new(Lifecycle)
+		if err := convert_api_Lifecycle_To_v1_Lifecycle(in.Lifecycle, out.Lifecycle, s); err != nil {
+			return err
+		}
+	} else {
+		out.Lifecycle = nil
+	}
+	out.TerminationMessagePath = in.TerminationMessagePath
+	out.ImagePullPolicy = PullPolicy(in.ImagePullPolicy)
+	if in.SecurityContext != nil {
+		out.SecurityContext = new(SecurityContext)
+		if err := convert_api_SecurityContext_To_v1_SecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+			return err
+		}
+	} else {
+		out.SecurityContext = nil
 	}
 	return nil
 }
@@ -1373,6 +1559,42 @@ func convert_api_ListMeta_To_v1_ListMeta(in *newer.ListMeta, out *ListMeta, s co
 		defaulting.(func(*newer.ListMeta))(in)
 	}
 	out.SelfLink = in.SelfLink
+	out.ResourceVersion = in.ResourceVersion
+	return nil
+}
+
+func convert_v1_ListOptions_To_api_ListOptions(in *ListOptions, out *newer.ListOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*ListOptions))(in)
+	}
+	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.LabelSelector, &out.LabelSelector, 0); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.FieldSelector, &out.FieldSelector, 0); err != nil {
+		return err
+	}
+	out.Watch = in.Watch
+	out.ResourceVersion = in.ResourceVersion
+	return nil
+}
+
+func convert_api_ListOptions_To_v1_ListOptions(in *newer.ListOptions, out *ListOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*newer.ListOptions))(in)
+	}
+	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.LabelSelector, &out.LabelSelector, 0); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.FieldSelector, &out.FieldSelector, 0); err != nil {
+		return err
+	}
+	out.Watch = in.Watch
 	out.ResourceVersion = in.ResourceVersion
 	return nil
 }
@@ -2616,6 +2838,12 @@ func convert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *newer.PodSpec, s conver
 	} else {
 		out.TerminationGracePeriodSeconds = nil
 	}
+	if in.ActiveDeadlineSeconds != nil {
+		out.ActiveDeadlineSeconds = new(int64)
+		*out.ActiveDeadlineSeconds = *in.ActiveDeadlineSeconds
+	} else {
+		out.ActiveDeadlineSeconds = nil
+	}
 	out.DNSPolicy = newer.DNSPolicy(in.DNSPolicy)
 	if in.NodeSelector != nil {
 		out.NodeSelector = make(map[string]string)
@@ -2662,6 +2890,12 @@ func convert_api_PodSpec_To_v1_PodSpec(in *newer.PodSpec, out *PodSpec, s conver
 	} else {
 		out.TerminationGracePeriodSeconds = nil
 	}
+	if in.ActiveDeadlineSeconds != nil {
+		out.ActiveDeadlineSeconds = new(int64)
+		*out.ActiveDeadlineSeconds = *in.ActiveDeadlineSeconds
+	} else {
+		out.ActiveDeadlineSeconds = nil
+	}
 	out.DNSPolicy = DNSPolicy(in.DNSPolicy)
 	if in.NodeSelector != nil {
 		out.NodeSelector = make(map[string]string)
@@ -2695,6 +2929,13 @@ func convert_v1_PodStatus_To_api_PodStatus(in *PodStatus, out *newer.PodStatus, 
 	out.Message = in.Message
 	out.HostIP = in.HostIP
 	out.PodIP = in.PodIP
+	if in.StartTime != nil {
+		if err := s.Convert(&in.StartTime, &out.StartTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.StartTime = nil
+	}
 	if in.ContainerStatuses != nil {
 		out.ContainerStatuses = make([]newer.ContainerStatus, len(in.ContainerStatuses))
 		for i := range in.ContainerStatuses {
@@ -2726,6 +2967,13 @@ func convert_api_PodStatus_To_v1_PodStatus(in *newer.PodStatus, out *PodStatus, 
 	out.Message = in.Message
 	out.HostIP = in.HostIP
 	out.PodIP = in.PodIP
+	if in.StartTime != nil {
+		if err := s.Convert(&in.StartTime, &out.StartTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.StartTime = nil
+	}
 	if in.ContainerStatuses != nil {
 		out.ContainerStatuses = make([]ContainerStatus, len(in.ContainerStatuses))
 		for i := range in.ContainerStatuses {
@@ -3343,9 +3591,9 @@ func convert_api_ResourceRequirements_To_v1_ResourceRequirements(in *newer.Resou
 	return nil
 }
 
-func convert_api_SELinuxOptions_To_v1_SELinuxOptions(in *newer.SELinuxOptions, out *SELinuxOptions, s conversion.Scope) error {
+func convert_v1_SELinuxOptions_To_api_SELinuxOptions(in *SELinuxOptions, out *newer.SELinuxOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*newer.SELinuxOptions))(in)
+		defaulting.(func(*SELinuxOptions))(in)
 	}
 	out.User = in.User
 	out.Role = in.Role
@@ -3354,9 +3602,9 @@ func convert_api_SELinuxOptions_To_v1_SELinuxOptions(in *newer.SELinuxOptions, o
 	return nil
 }
 
-func convert_v1_SELinuxOptions_To_api_SELinuxOptions(in *SELinuxOptions, out *newer.SELinuxOptions, s conversion.Scope) error {
+func convert_api_SELinuxOptions_To_v1_SELinuxOptions(in *newer.SELinuxOptions, out *SELinuxOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*SELinuxOptions))(in)
+		defaulting.(func(*newer.SELinuxOptions))(in)
 	}
 	out.User = in.User
 	out.Role = in.Role
@@ -3479,41 +3727,6 @@ func convert_api_SecretVolumeSource_To_v1_SecretVolumeSource(in *newer.SecretVol
 	return nil
 }
 
-func convert_api_SecurityContext_To_v1_SecurityContext(in *newer.SecurityContext, out *SecurityContext, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*newer.SecurityContext))(in)
-	}
-	if in.Capabilities != nil {
-		out.Capabilities = new(Capabilities)
-		if err := convert_api_Capabilities_To_v1_Capabilities(in.Capabilities, out.Capabilities, s); err != nil {
-			return err
-		}
-	} else {
-		out.Capabilities = nil
-	}
-	if in.Privileged != nil {
-		out.Privileged = new(bool)
-		*out.Privileged = *in.Privileged
-	} else {
-		out.Privileged = nil
-	}
-	if in.SELinuxOptions != nil {
-		out.SELinuxOptions = new(SELinuxOptions)
-		if err := convert_api_SELinuxOptions_To_v1_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
-			return err
-		}
-	} else {
-		out.SELinuxOptions = nil
-	}
-	if in.RunAsUser != nil {
-		out.RunAsUser = new(int64)
-		*out.RunAsUser = *in.RunAsUser
-	} else {
-		out.RunAsUser = nil
-	}
-	return nil
-}
-
 func convert_v1_SecurityContext_To_api_SecurityContext(in *SecurityContext, out *newer.SecurityContext, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*SecurityContext))(in)
@@ -3535,6 +3748,41 @@ func convert_v1_SecurityContext_To_api_SecurityContext(in *SecurityContext, out 
 	if in.SELinuxOptions != nil {
 		out.SELinuxOptions = new(newer.SELinuxOptions)
 		if err := convert_v1_SELinuxOptions_To_api_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	return nil
+}
+
+func convert_api_SecurityContext_To_v1_SecurityContext(in *newer.SecurityContext, out *SecurityContext, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*newer.SecurityContext))(in)
+	}
+	if in.Capabilities != nil {
+		out.Capabilities = new(Capabilities)
+		if err := convert_api_Capabilities_To_v1_Capabilities(in.Capabilities, out.Capabilities, s); err != nil {
+			return err
+		}
+	} else {
+		out.Capabilities = nil
+	}
+	if in.Privileged != nil {
+		out.Privileged = new(bool)
+		*out.Privileged = *in.Privileged
+	} else {
+		out.Privileged = nil
+	}
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(SELinuxOptions)
+		if err := convert_api_SELinuxOptions_To_v1_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
 			return err
 		}
 	} else {
@@ -4243,6 +4491,7 @@ func init() {
 		convert_api_ContainerStateWaiting_To_v1_ContainerStateWaiting,
 		convert_api_ContainerState_To_v1_ContainerState,
 		convert_api_ContainerStatus_To_v1_ContainerStatus,
+		convert_api_Container_To_v1_Container,
 		convert_api_DeleteOptions_To_v1_DeleteOptions,
 		convert_api_EmptyDirVolumeSource_To_v1_EmptyDirVolumeSource,
 		convert_api_EndpointAddress_To_v1_EndpointAddress,
@@ -4269,6 +4518,7 @@ func init() {
 		convert_api_LimitRangeSpec_To_v1_LimitRangeSpec,
 		convert_api_LimitRange_To_v1_LimitRange,
 		convert_api_ListMeta_To_v1_ListMeta,
+		convert_api_ListOptions_To_v1_ListOptions,
 		convert_api_List_To_v1_List,
 		convert_api_NFSVolumeSource_To_v1_NFSVolumeSource,
 		convert_api_NamespaceList_To_v1_NamespaceList,
@@ -4351,6 +4601,7 @@ func init() {
 		convert_v1_ContainerStateWaiting_To_api_ContainerStateWaiting,
 		convert_v1_ContainerState_To_api_ContainerState,
 		convert_v1_ContainerStatus_To_api_ContainerStatus,
+		convert_v1_Container_To_api_Container,
 		convert_v1_DeleteOptions_To_api_DeleteOptions,
 		convert_v1_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource,
 		convert_v1_EndpointAddress_To_api_EndpointAddress,
@@ -4377,6 +4628,7 @@ func init() {
 		convert_v1_LimitRangeSpec_To_api_LimitRangeSpec,
 		convert_v1_LimitRange_To_api_LimitRange,
 		convert_v1_ListMeta_To_api_ListMeta,
+		convert_v1_ListOptions_To_api_ListOptions,
 		convert_v1_List_To_api_List,
 		convert_v1_NFSVolumeSource_To_api_NFSVolumeSource,
 		convert_v1_NamespaceList_To_api_NamespaceList,

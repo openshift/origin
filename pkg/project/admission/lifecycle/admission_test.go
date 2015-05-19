@@ -21,7 +21,7 @@ func (*UnknownObject) IsAnAPIObject() {}
 func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 	handler := &lifecycle{}
 	unknown := &UnknownObject{}
-	err := handler.Admit(admission.NewAttributesRecord(unknown, "who-cares", "unknown", "what", "CREATE"))
+	err := handler.Admit(admission.NewAttributesRecord(unknown, "who-cares", "unknown", "what", "CREATE", nil))
 	if err != nil {
 		t.Errorf("Admission control should not error if it finds an object it knows nothing about %v", err)
 	}
@@ -54,7 +54,7 @@ func TestAdmissionExists(t *testing.T) {
 		},
 		Status: buildapi.BuildStatusNew,
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, "Build", "bogus-ns", "builds", "CREATE"))
+	err := handler.Admit(admission.NewAttributesRecord(build, "Build", "bogus-ns", "builds", "CREATE", nil))
 	if err == nil {
 		t.Errorf("Expected an error because namespace does not exist")
 	}
@@ -96,7 +96,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 		},
 		Status: buildapi.BuildStatusNew,
 	}
-	err := handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "builds", "CREATE"))
+	err := handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "builds", "CREATE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
@@ -106,19 +106,19 @@ func TestAdmissionLifecycle(t *testing.T) {
 	store.Add(namespaceObj)
 
 	// verify create operations in the namespace cause an error
-	err = handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "builds", "CREATE"))
+	err = handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "builds", "CREATE", nil))
 	if err == nil {
 		t.Errorf("Expected error rejecting creates in a namespace when it is terminating")
 	}
 
 	// verify update operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "builds", "UPDATE"))
+	err = handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "builds", "UPDATE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
 
 	// verify delete operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(nil, "Build", build.Namespace, "builds", "DELETE"))
+	err = handler.Admit(admission.NewAttributesRecord(nil, "Build", build.Namespace, "builds", "DELETE", nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}

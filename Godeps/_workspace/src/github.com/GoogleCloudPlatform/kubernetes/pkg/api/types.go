@@ -702,7 +702,7 @@ type ContainerState struct {
 
 type ContainerStatus struct {
 	// Each container in a pod must have a unique name.
-	Name string `name of the container; must be a DNS_LABEL and unique within the pod; cannot be updated"`
+	Name string `json:"name"`
 	// TODO(dchen1107): Should we rename PodStatus to a more generic name or have a separate states
 	// defined for container?
 	State                ContainerState `json:"state,omitempty"`
@@ -811,6 +811,9 @@ type PodSpec struct {
 	// a termination signal and the time when the processes are forcibly halted with a kill signal.
 	// Set this value longer than the expected cleanup time for your process.
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
+	// Optional duration in seconds relative to the StartTime that the pod may be active on a node
+	// before the system actively tries to terminate the pod; value must be positive integer
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
 	// Required: Set DNS policy.
 	DNSPolicy DNSPolicy `json:"dnsPolicy,omitempty"`
 	// NodeSelector is a selector which must be true for the pod to fit on a node
@@ -840,6 +843,10 @@ type PodStatus struct {
 
 	HostIP string `json:"hostIP,omitempty"`
 	PodIP  string `json:"podIP,omitempty"`
+
+	// Date and time at which the object was acknowledged by the Kubelet.
+	// This is before the Kubelet pulled the container image(s) for the pod.
+	StartTime *util.Time `json:"startTime,omitempty"`
 
 	// The list has one entry per container in the manifest. Each entry is
 	// currently the output of `docker inspect`. This output format is *not*
@@ -1238,6 +1245,8 @@ const (
 	ResourceMemory ResourceName = "memory"
 	// Volume size, in bytes (e,g. 5Gi = 5GiB = 5 * 1024 * 1024 * 1024)
 	ResourceStorage ResourceName = "storage"
+	// Number of Pods that may be running on this Node.
+	ResourceMaxPods ResourceName = "maxpods"
 )
 
 // ResourceList is a set of (resource name, quantity) pairs.
@@ -1692,6 +1701,7 @@ type ContainerManifest struct {
 	Containers                    []Container   `json:"containers"`
 	RestartPolicy                 RestartPolicy `json:"restartPolicy,omitempty"`
 	TerminationGracePeriodSeconds *int64        `json:"terminationGracePeriodSeconds,omitempty"`
+	ActiveDeadlineSeconds         *int64        `json:"activeDeadlineSeconds,omitempty"`
 	// Required: Set DNS policy.
 	DNSPolicy   DNSPolicy `json:"dnsPolicy"`
 	HostNetwork bool      `json:"hostNetwork,omitempty"`
@@ -1817,7 +1827,8 @@ type Secret struct {
 	TypeMeta   `json:",inline"`
 	ObjectMeta `json:"metadata,omitempty"`
 
-	// Data contains the secret data.  Each key must be a valid DNS_SUBDOMAIN.
+	// Data contains the secret data.  Each key must be a valid DNS_SUBDOMAIN
+	// or leading dot followed by valid DNS_SUBDOMAIN.
 	// The serialized form of the secret data is a base64 encoded string,
 	// representing the arbitrary (possibly non-string) data value here.
 	Data map[string][]byte `json:"data,omitempty"`
@@ -1850,6 +1861,15 @@ const (
 	ServiceAccountTokenKey = "token"
 	// ServiceAccountKubeconfigKey is the key of the optional kubeconfig data for SecretTypeServiceAccountToken secrets
 	ServiceAccountKubeconfigKey = "kubernetes.kubeconfig"
+
+	// SecretTypeDockercfg contains a dockercfg file that follows the same format rules as ~/.dockercfg
+	//
+	// Required fields:
+	// - Secret.Data[".dockercfg"] - a serialized ~/.dockercfg file
+	SecretTypeDockercfg SecretType = "kubernetes.io/dockercfg"
+
+	// DockerConfigKey is the key of the required data for SecretTypeDockercfg secrets
+	DockerConfigKey = ".dockercfg"
 )
 
 type SecretList struct {
