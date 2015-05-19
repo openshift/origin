@@ -5,7 +5,8 @@
 #
 FROM openshift3_beta/ose-base
 
-RUN yum -y install kmod keepalived iproute psmisc nc net-tools
+RUN yum -y install kmod keepalived iproute psmisc nc net-tools && \
+    yum clean all
 
 ADD conf/ /var/lib/openshift/ipfailover/keepalived/conf/
 ADD lib/  /var/lib/openshift/ipfailover/keepalived/lib/
