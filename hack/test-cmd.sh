@@ -168,12 +168,22 @@ if [[ "${API_SCHEME}" == "https" ]]; then
     [ "$(osc get services 2>&1 | grep 'certificate signed by unknown authority')" ]
 fi
 
-
+# login and logout tests
+[ "$(osc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify 2>&1 | grep 'mutually exclusive')" ]
+[ "$(osc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
+osc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+osc logout
+osc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
+temp_token=$(osc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
+[ "$(osc login --token=${temp_token} 2>&1 | grep 'using the token provided')" ]
+osc logout
 osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 osc new-project project-foo --display-name="my project" --description="boring project description"
 [ "$(osc project | grep 'Using project "project-foo"')" ]
 osc logout
 [ -z "$(osc get pods | grep 'system:anonymous')" ]
+
+# log in and set project to use from now on
 osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 osc get projects
 osc project project-foo
