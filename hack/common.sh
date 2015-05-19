@@ -208,12 +208,12 @@ EOF
   if [[ "${TRAVIS:-}" != "true" ]]; then
     local go_version
     go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.2" ]]; then
+    if [[ "${go_version[2]}" < "go1.4" ]]; then
       echo <<EOF
 
 Detected go version: ${go_version[*]}.
-Kubernetes requires go version 1.2 or greater.
-Please install Go version 1.2 or later.
+OpenShift and Kubernetes requires go version 1.4 or greater.
+Please install Go version 1.4 or later.
 
 EOF
       exit 2
@@ -299,7 +299,7 @@ os::build::place_bins() {
       if [[ "${OS_RELEASE_ARCHIVE-}" == "" ]]; then
         continue
       fi
-      
+
       # Create a temporary bin directory containing only the binaries marked for release.
       local release_binpath=$(mktemp -d openshift.release.${OS_RELEASE_ARCHIVE}.XXX)
       find "${full_binpath_src}" -maxdepth 1 -type f -exec \
