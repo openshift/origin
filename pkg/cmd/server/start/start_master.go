@@ -359,7 +359,6 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		kubeConfig.RunResourceQuotaManager()
 		kubeConfig.RunNamespaceController()
 		kubeConfig.RunPersistentVolumeClaimBinder()
-
 	} else {
 		_, kubeConfig, err := configapi.GetKubeClient(openshiftMasterConfig.MasterClients.ExternalKubernetesKubeConfig)
 		if err != nil {
@@ -395,6 +394,8 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	openshiftConfig.RunImageImportController()
 	openshiftConfig.RunOriginNamespaceController()
 	openshiftConfig.RunProjectAuthorizationCache()
+	openshiftConfig.RunServiceAccountsController()
+	openshiftConfig.RunServiceAccountTokensController()
 
 	openshiftConfig.RunSDNController()
 

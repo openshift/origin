@@ -47,7 +47,7 @@ server cert and run the command to fill it in:
 
     $ mv openshift.local.config/master/master.server.crt{,.old}
     $ %[1]s --cert-dir=... \
-	        --master=https://internal.master.fqdn:8443 \
+            --master=https://internal.master.fqdn:8443 \
             --public-master=https://external.master.fqdn:8443 \
             --hostnames=external.master.fqdn,internal.master.fqdn,localhost,127.0.0.1,172.17.42.1,kubernetes.default.local
 
@@ -167,6 +167,10 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 		return err
 	}
 
+	if err := o.createServiceAccountKeys(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -255,6 +259,23 @@ func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *GetSig
 		if _, err := serverCertOptions.CreateServerCert(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (o CreateMasterCertsOptions) createServiceAccountKeys() error {
+	keypairOptions := CreateKeyPairOptions{
+		PublicKeyFile:  DefaultServiceAccountPublicKeyFile(o.CertDir),
+		PrivateKeyFile: DefaultServiceAccountPrivateKeyFile(o.CertDir),
+
+		Overwrite: o.Overwrite,
+		Output:    o.Output,
+	}
+	if err := keypairOptions.Validate(nil); err != nil {
+		return err
+	}
+	if err := keypairOptions.CreateKeyPair(); err != nil {
+		return err
 	}
 	return nil
 }

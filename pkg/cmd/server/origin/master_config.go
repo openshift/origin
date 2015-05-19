@@ -1,17 +1,21 @@
 package origin
 
 import (
+	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	"net/http"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
+	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -141,10 +145,15 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	admissionControlPluginNames := []string{"OriginNamespaceLifecycle"}
 	admissionController := admission.NewFromPlugins(privilegedLoopbackKubeClient, admissionControlPluginNames, "")
 
+	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, client)
+	if err != nil {
+		return nil, err
+	}
+
 	config := &MasterConfig{
 		Options: options,
 
-		Authenticator:                 newAuthenticator(options.ServingInfo, etcdHelper, apiClientCAs),
+		Authenticator:                 newAuthenticator(options, etcdHelper, serviceAccountTokenGetter, apiClientCAs),
 		Authorizer:                    newAuthorizer(policyCache, options.ProjectRequestConfig.ProjectRequestMessage),
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
@@ -173,17 +182,53 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	return config, nil
 }
 
-func newAuthenticator(servingInfo configapi.ServingInfo, etcdHelper tools.EtcdHelper, apiClientCAs *x509.CertPool) authenticator.Request {
-	tokenAuthenticator := getEtcdTokenAuthenticator(etcdHelper)
+func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdclient.Client) (serviceaccount.ServiceAccountTokenGetter, error) {
+	var tokenGetter serviceaccount.ServiceAccountTokenGetter
+	if options.KubernetesMasterConfig == nil {
+		// When we're running against an external Kubernetes, use the external kubernetes client to validate service account tokens
+		// This prevents infinite auth loops if the privilegedLoopbackKubeClient authenticates using a service account token
+		kubeClient, _, err := configapi.GetKubeClient(options.MasterClients.ExternalKubernetesKubeConfig)
+		if err != nil {
+			return nil, err
+		}
+		tokenGetter = serviceaccount.NewGetterFromClient(kubeClient)
+	} else {
+		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
+		ketcdHelper, err := master.NewEtcdHelper(client, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+		if err != nil {
+			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
+		}
+		tokenGetter = serviceaccount.NewGetterFromEtcdHelper(ketcdHelper)
+	}
+	return tokenGetter, nil
+}
 
+func newAuthenticator(config configapi.MasterConfig, etcdHelper tools.EtcdHelper, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool) authenticator.Request {
 	authenticators := []authenticator.Request{}
-	authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
-	// Allow token as access_token param for WebSockets
-	// TODO: make the param name configurable
-	// TODO: limit this authenticator to watch methods, if possible
-	authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
 
-	if configapi.UseTLS(servingInfo) {
+	// ServiceAccount token
+	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
+		publicKeys := []*rsa.PublicKey{}
+		for _, keyFile := range config.ServiceAccountConfig.PublicKeyFiles {
+			publicKey, err := serviceaccount.ReadPublicKey(keyFile)
+			if err != nil {
+				glog.Fatalf("Error reading service account key file %s: %v", keyFile, err)
+			}
+			publicKeys = append(publicKeys, publicKey)
+		}
+		tokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
+		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
+	}
+
+	// OAuth token
+	if config.OAuthConfig != nil {
+		tokenAuthenticator := getEtcdTokenAuthenticator(etcdHelper)
+		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
+		// Allow token as access_token param for WebSockets
+		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
+	}
+
+	if configapi.UseTLS(config.ServingInfo) {
 		// build cert authenticator
 		// TODO: add "system:" prefix in authenticator, limit cert to username
 		// TODO: add "system:" prefix to groups in authenticator, limit cert to group name

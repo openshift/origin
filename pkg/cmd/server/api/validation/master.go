@@ -6,9 +6,13 @@ import (
 	"net/url"
 	"strings"
 
+	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
@@ -67,6 +71,7 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 
 	allErrs = append(allErrs, ValidateKubeletConnectionInfo(config.KubeletClientInfo).Prefix("kubeletClientInfo")...)
 
+	builtInKubernetes := config.KubernetesMasterConfig != nil
 	if config.KubernetesMasterConfig != nil {
 		allErrs = append(allErrs, ValidateKubernetesMasterConfig(config.KubernetesMasterConfig).Prefix("kubernetesMasterConfig")...)
 	}
@@ -88,6 +93,8 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 	if config.OAuthConfig != nil {
 		allErrs = append(allErrs, ValidateOAuthConfig(config.OAuthConfig).Prefix("oauthConfig")...)
 	}
+
+	allErrs = append(allErrs, ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig")...)
 
 	allErrs = append(allErrs, ValidateProjectNodeSelector(config.ProjectNodeSelector)...)
 
@@ -125,6 +132,49 @@ func ValidateProjectNodeSelector(nodeSelector string) fielderrors.ValidationErro
 		_, err := labelselector.Parse(nodeSelector)
 		if err != nil {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("projectNodeSelector", nodeSelector, "must be a valid label selector"))
+		}
+	}
+
+	return allErrs
+}
+
+func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubernetes bool) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	managedNames := util.NewStringSet(config.ManagedNames...)
+	if !managedNames.Has(bootstrappolicy.BuilderServiceAccountName) {
+		// TODO: warn that default builder service account won't be auto-created
+	}
+	if builtInKubernetes && !managedNames.Has(bootstrappolicy.DefaultServiceAccountName) {
+		// TODO: warn that default service account won't be auto-created
+	}
+
+	for i, name := range config.ManagedNames {
+		if ok, msg := kvalidation.ValidateServiceAccountName(name, false); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("", i), name, msg))
+		}
+	}
+
+	if len(config.PrivateKeyFile) > 0 {
+		if fileErrs := ValidateFile(config.PrivateKeyFile, "privateKeyFile"); len(fileErrs) > 0 {
+			allErrs = append(allErrs, fileErrs...)
+		} else if privateKey, err := serviceaccount.ReadPrivateKey(config.PrivateKeyFile); err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("privateKeyFile", config.PrivateKeyFile, err.Error()))
+		} else if err := privateKey.Validate(); err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("privateKeyFile", config.PrivateKeyFile, err.Error()))
+		}
+	} else if builtInKubernetes {
+		// TODO: warn that no service account tokens will be generated
+	}
+
+	if len(config.PublicKeyFiles) == 0 {
+		// TODO: warn that no service accounts will be able to authenticate
+	}
+	for i, publicKeyFile := range config.PublicKeyFiles {
+		if fileErrs := ValidateFile(publicKeyFile, fmt.Sprintf("publicKeyFiles[%d]", i)); len(fileErrs) > 0 {
+			allErrs = append(allErrs, fileErrs...)
+		} else if _, err := serviceaccount.ReadPublicKey(publicKeyFile); err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("publicKeyFiles[%d]", i), publicKeyFile, err.Error()))
 		}
 	}
 

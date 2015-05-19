@@ -280,9 +280,10 @@ func setupBuildControllerTest(additionalBuildControllers, additionalBuildPodCont
 
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	checkErr(t, err)
-	clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
+	_, err = clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
 		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
 	})
+	checkErr(t, err)
 	openshiftConfig, err := origin.BuildMasterConfig(*master)
 	checkErr(t, err)
 	for i := 0; i < additionalBuildControllers; i++ {
