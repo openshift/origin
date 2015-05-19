@@ -1,0 +1,84 @@
+<!--
+  Expects the following variables. All must be defined in the overviewDeployment directive scope.
+
+  rc   - ReplicationController. Required. May or may not have deployment annotations.
+  pods - [Pod]. Required.
+
+  deploymentConfigId               - String. Optional. If present, indicates this replication controller came from a deployment.
+  deploymentConfig                 - DeploymentConfig. Optional.
+  deploymentConfigDifferentService - Boolean. Optional.
+
+  imagesByDockerReference - map[dockerReference][]Image. Optional.
+  builds                  - map[buildId]build. Optional.
+ -->
+<div class="osc-object replication-controller components-panel deployment-block" 
+     kind="ReplicationController" resource="rc"
+     ng-init="isDeployment = (deploymentConfigId && (rc | annotation:'deploymentConfig') && (rc | annotation:'deploymentVersion'))">
+
+  <!--
+  Connector to the containing service block.
+  Hidden by CSS when in non-service blocks.
+  -->
+  <div class="connector">
+    <i class="fa fa-search"></i>
+  </div>
+
+  <!-- Header for deployments. Surface deployment config and trigger info. -->
+  <div class="component-block" ng-if="isDeployment">
+    <div class="component">
+      <div class="component-label">Deployment</div>
+      <h3 class="h4">
+        {{deploymentConfigId}}, #{{rc | annotation:'deploymentVersion'}}
+        <span class="pficon-layered" ng-if="deploymentConfig == null" data-toggle="tooltip" data-placement="right" title="Deployment config {{deploymentConfigId}} no longer exists" style="cursor: help;">
+          <span class="pficon pficon-warning-triangle"></span>
+          <span class="pficon pficon-warning-exclamation"></span>
+        </span>
+        <span class="pficon-layered" ng-if="deploymentConfig != null && deploymentConfigDifferentService" data-toggle="tooltip" data-placement="right" title="The deployment config this deployment was created from has changed. New deployments will not be included in this list." style="cursor: help;">
+          <span class="pficon pficon-warning-triangle"></span>
+          <span class="pficon pficon-warning-exclamation"></span>
+        </span>
+      </h3>
+    </div>
+
+    <div class="component meta-data">
+      created <relative-timestamp timestamp="rc.metadata.creationTimestamp"></relative-timestamp
+      ><span ng-if="rc.details.causes.length"
+        ><span>, triggered by 
+          <span class="deployment-trigger" ng-repeat="cause in rc.details.causes">
+            <span ng-switch="cause.type">
+              <span ng-switch-when="ImageChange">a new image for {{cause.imageTrigger.repositoryName | imageStreamName}}:{{cause.imageTrigger.tag}}</span>
+              <span ng-switch-when="ConfigChange">a deployment configuration change</span>
+            </span>
+          </span>
+        </span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Header for replication controllers. Name and timestamp only. -->
+  <div class="component-block" ng-if="!isDeployment">
+    <div class="component">
+      <div class="component-label">Replication Controller</div>
+      <h3 class="h4">{{rc.metadata.name}}</h3>
+    </div>
+
+    <div class="component meta-data">
+      created <relative-timestamp timestamp="rc.metadata.creationTimestamp"></relative-timestamp>
+    </div>
+  </div>
+
+  <div class="pod-block">
+    <div class="component-label">Pod Template</div>
+
+    <pod-template
+      pod-template="rc.spec.template" 
+      images-by-docker-reference="imagesByDockerReference"
+      builds="builds">
+    </pod-template>
+
+    <!-- TODO: surface spec.replicas/status.replicas here? -->
+    <div class="component-label">Pods</div>
+    <pods pods="pods"></pods>
+  </div>
+
+</div>

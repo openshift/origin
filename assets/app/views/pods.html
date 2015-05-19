@@ -60,7 +60,13 @@
           </ul>
         </div>
         <div>Pod template:</div>
-        <pod-template ng-init="podTemplate = pod"></pod-template>
+
+        <pod-template
+          pod-template="pod" 
+          images-by-docker-reference="imagesByDockerReference"
+          builds="builds">
+        </pod-template>
+
       </div>
     </div>
   </project-page>

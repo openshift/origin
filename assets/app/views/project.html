@@ -5,11 +5,15 @@
       <div class="page-header page-header-bleed-right">
         <h1>Project {{(project | displayName) || project.metadata.name}}</h1>
       </div>
+
       <!-- TODO handle things that don't live under services -->
       <alerts alerts="alerts"></alerts>
 
+      <!-- Empty states -->
       <div ng-if="(services | hashSize) == 0">
-        <div class="center-block empty-state-msg" ng-if="renderOptions.showGetStarted">
+
+        <!-- Getting started -->
+        <div ng-if="renderOptions.showGetStarted" class="center-block empty-state-msg">
           <h2>Your project is empty.</h2>
 
           <p class="text-muted">
@@ -20,10 +24,15 @@
             Get Started
           </a>
         </div>
+
+        <!-- Normal empty message (loading... or filtered) -->
         <div ng-if="!renderOptions.showGetStarted">
           <em>{{emptyMessage}}</em>
         </div>
+
       </div>
+
+
 
       <!-- TODO handle multiple services mapping to the same deploymentConfig/deployment/pod -->
       <section ng-repeat="(serviceId, service) in services" class="components components-group">
@@ -33,36 +42,43 @@
 
               <div class="osc-object components-panel service" ng-init="numPorts = service.spec.ports.length" kind="Service" resource="service">
 
-                <!-- Routes -->
-                <h2 class="route osc-object" ng-if="displayRouteByService[serviceId]" ng-init="otherRoutes = (routesByService[serviceId] | hashSize) - 1" kind="Route" resource="displayRouteByService[serviceId]">
-                  <span ng-if="(displayRouteByService[serviceId] | isWebRoute)">
-                    <i class="fa fa-globe"></i>
-                    <a href="{{displayRouteByService[serviceId] | routeWebURL}}">{{displayRouteByService[serviceId] | routeLabel}}</a>
-                  </span>
-                  <span ng-if="!(displayRouteByService[serviceId] | isWebRoute)">
-                    {{displayRouteByService[serviceId] | routeLabel}}
-                  </span>
-                  <span class="small" ng-if="otherRoutes">
-                    (and
-                    <a href="project/{{projectName}}/browse/services#service-{{serviceId}}">{{otherRoutes}}
-                        other {{(otherRoutes == 1) ? 'route' : 'routes'}}</a>)
-                  </span>
-                </h2>
-
                 <div class="component-block">
                   <div class="component">
                     <div class="component-label">
-                      Service
+                      Service <span ng-if="displayRouteByService[serviceId]">: {{serviceId}}</span>
                     </div>
-                    <h2>{{serviceId}}</h2>
+
+                    <!-- Show the route if present -->
+                    <h2 ng-if="displayRouteByService[serviceId]" ng-init="otherRoutes = (routesByService[serviceId] | hashSize) - 1">
+                      <span ng-if="(displayRouteByService[serviceId] | isWebRoute)">
+                        <a href="{{displayRouteByService[serviceId] | routeWebURL}}">{{displayRouteByService[serviceId] | routeLabel}}</a>
+                      </span>
+                      <span ng-if="!(displayRouteByService[serviceId] | isWebRoute)">
+                        {{displayRouteByService[serviceId] | routeLabel}}
+                      </span>
+                      <span class="small" ng-if="otherRoutes">
+                        (and
+                        <a href="project/{{projectName}}/browse/services#service-{{serviceId}}">
+                          {{otherRoutes}} other {{(otherRoutes == 1) ? 'route' : 'routes'}}
+                        </a>)
+                      </span>
+                    </h2>
+
+                    <!-- If no route is present, show the service name large -->
+                    <h2 ng-if="!displayRouteByService[serviceId]">
+                      {{serviceId}}
+                    </h2>
                   </div>
+
                   <div class="component meta-data">
                     <span class="small-DEFUNCT" ng-if="service.spec.portalIP != 'None'">
                       routing traffic on {{service.spec.portalIP}}
                     </span>
                     <span class="small-DEFUNCT" ng-if="numPorts"> -
-                      <!-- Show only the first two ports if there are many since we don't have much space here.
-                           The full list is visible elsewhere. -->
+                      <!--
+                      Show only the first two ports if there are many since we don't have much space here.
+                      The full list is visible elsewhere.
+                      -->
                       <span ng-repeat="portMapping in service.spec.ports | orderBy:port | limitTo:2">
                         port {{portMapping.port}} &#8594; {{portMapping.targetPort}}
                           ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span>
@@ -76,198 +92,131 @@
               </div>
 
 
-              <div class="separator-DEFUNCT"></div>
-              <!-- Iterate over deployment configs for this service and look for ones that don't have any deployments for this
-                   service, these are likely new so incoming builds are likely, so lets show these now.
+              <!--
+              Iterate over deploymentConfigs for this service.
+              Find ones that don't have any deployments for this service.
+              These are likely new, and could have incoming builds, which we want to surface.
                -->
-              <div ng-repeat="(deploymentConfigId, deploymentConfig) in deploymentConfigsByService[serviceId]" ng-if="!deploymentsByServiceByDeploymentConfig[serviceId][deploymentConfigId]">
-                <!-- As long as pods created from the deployments created from this deployment config will be routed
-                     to by this service, then we will show things related to triggers that are about to create stuff, like builds.
+              <div ng-repeat="(deploymentConfigId, deploymentConfig) in deploymentConfigsByService[serviceId]"
+                   ng-if="!deploymentsByServiceByDeploymentConfig[serviceId][deploymentConfigId]">
+                <!--
+                Pods in deployments created from this deployment config will be routed to by this service.
+                Show things related to triggers that are about to create stuff, like builds.
                 -->                
-                <triggers triggers="deploymentConfig.triggers"></triggers>                
+                <triggers triggers="deploymentConfig.triggers"></triggers>
               </div>
-              <!-- Now go through all deployments for this service grouped by deployment config (or lack thereof) -->
-              <!-- JTL: removed  class="osc-object deployments tile-container" kind="DeploymentConfig" resource="deploymentConfigs[deploymentConfigId]" -->
+              <!--
+              Iterate over all deployments for this service grouped by deploymentConfig (or lack thereof)
+              -->
               <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]">
-                <div> <!-- JTL: remove? -->
-                <!-- deploymentConfig could be null when we have any deployments that were not generated from a deploymentConfig -->
-                <!-- As long as pods created from the deployments created from this deployment config will be routed
-                     to by this service, then we will show things related to triggers that are about to create stuff, like builds.
+                <!-- 
+                deploymentConfig could be null:
+                1. when we have replicationControllers that were not generated from a deploymentConfig (deploymentConfigId=='')
+                2. when the deploymentConfig for these deployments no longer exists
+                3. when the deploymentConfig for these deployments no longer falls under this service
                 -->
                 <div ng-if="deploymentConfigsByService[serviceId][deploymentConfigId]">
+                  <!--
+                  Pods in deployments created from this deployment config will be routed to by this service.
+                  Show things related to triggers that are about to create stuff, like builds.
+                  -->                
                   <triggers triggers="deploymentConfigsByService[serviceId][deploymentConfigId].triggers"></triggers>
                 </div>
-                <!--
-                <deployment-config-metadata
-                  deployment-config-id="deploymentConfigId"
-                  exists="deploymentConfigs[deploymentConfigId]"
-                  different-service="!deploymentConfigsByService[serviceId][deploymentConfigId]">
-                </deployment-config-metadata>
-                -->
-                <!-- TODO right now we ONLY show deployments / RCs if they have pods, but we may also want to show 
-                     them if they are idled down to zero for example.
-                -->
-                <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)" class="osc-object replication-controller components-panel deployment-block" kind="ReplicationController" resource="deployment" ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
-                  <div class="connector">
-                    <i class="fa fa-search"></i>
-                  </div>
-                  <div ng-if="deployment">
-                    <div class="component-block">
-                      <div class="component">
-                        <div class="component-label" ng-if="deploymentConfigId">Deployment</div>
-                        <div class="component-label" ng-if="!deploymentConfigId">Replication Controller</div>
-                        <h3 class="h4">{{deployment.metadata.name}}</h3>
-                      </div>
-                      <div class="component meta-data">
-                        <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
-                        <span ng-if="deployment.details && deployment.details.causes && deployment.details.causes.length > 0">
-                          <span>, triggered by 
-                            <span class="deployment-trigger" ng-repeat="cause in deployment.details.causes">
-                              <span ng-switch="cause.type">
-                                <span ng-switch-when="ImageChange">new image for {{cause.imageTrigger.repositoryName | imageStreamName}}:{{cause.imageTrigger.tag}}</span>
-                                <span ng-switch-when="ConfigChange">deployment configuration change</span>
-                              </span>
-                            </span>
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="pod-block">
-                    <!-- TODO figure out why podTemplate can't be done the same way as pods -->
-                    <div class="component-label">Pod Template</div>
-                    <pod-template ng-init="podTemplate = deployment.spec.template"></pod-template>
-                    <div class="component-label">Pods</div>
-                    <pods pods="podsByDeployment[deployment.metadata.name]"></pods>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- Now go through any of the pods that are routed to by the service but not part of a deployment -->
-              <div ng-repeat="(podName, pod) in monopodsByService[serviceId]">
-                <div class="ng-scope tile-container components-panel deployment-block">
-                  <div class="connector">
-                    <i class="fa fa-search"></i>
-                  </div>
-                  <div class="component-block component-meta">
-                    <div class="component">
-                      <span class="component-label">Pod</span>
-                      <h3 class="h4">{{podName}}</h3>
-                    </div>
-                    <div class="component meta-data">
-                      <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp>
-                    </div>
-                  </div>               
-                  <div class="pod-block">
-                    <div class="component-label">Pod Template</div>
-                    <pod-template ng-init="podTemplate = pod"></pod-template>
-                    <div class="component-label">Pod Status</div>
-                    <pods pods="[pod]"></pods>
-                  </div>
-                </div>
-              </div>
-              <!-- TODO implement filters for empty and present to return booleans for cases like this -->
-            <div ng-if="(podsByService[serviceId] | hashSize) == 0" class="osc-object tile-container-DEFUNCT components-panel deployment-block deployments none">
-              <span class="pficon pficon-info"> There are currently no pods for this service.</span>
-            </div>
-            </div>
 
-                        
+                <!-- 
+                TODO: right now we ONLY show deployments / RCs if they have pods
+                We may also want to show them if they are idled down to zero (but only if we can filter old deployments)
+                -->
+                <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)" 
+                     ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
+
+                  <overview-deployment
+                    rc="deployment"
+                    deployment-config-id="deploymentConfigId"
+                    deployment-config="deploymentConfigs[deploymentConfigId]"
+                    deployment-config-different-service="!deploymentConfigsByService[serviceId][deploymentConfigId]"
+                    images-by-docker-reference="imagesByDockerReference"
+                    builds="builds"
+                    pods="podsByDeployment[deployment.metadata.name]">
+                  </overview-deployment>
+                </div>
+              </div>
+
+              <!-- Now go through any of the pods that are routed to by the service but not part of a deployment -->
+              <div ng-repeat="pod in monopodsByService[serviceId] track by (pod | uid)">
+
+                <overview-monopod pod="pod"></overview-monopod>
+
+              </div>
+
+              <!-- TODO implement filters for empty and present to return booleans for cases like this -->
+              <div ng-if="(podsByService[serviceId] | hashSize) == 0" class="osc-object tile-container-DEFUNCT components-panel deployment-block deployments none">
+                <span class="pficon pficon-info">There are currently no pods for this service.</span>
+              </div>
+
+            </div>
           </div>
         </div>
       </section>
-      <!-- TODO right now we ONLY show deployments / RCs if they have pods, but we may also want to show 
-           them if they are idled down to zero for example.
-      -->
-      <section ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig['']" class="components">        
-        <div ng-repeat="(deploymentId, deployment) in deploymentsByServiceByDeploymentConfig[''][deploymentConfigId]" ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
+
+      <!-- Show deploymentsConfigs not in a service -->
+      <section ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig['']" class="components">
+
+        <!-- 
+        TODO: right now we ONLY show deployments / RCs if they have pods
+        We may also want to show them if they are idled down to zero (but only if we can filter old deployments)
+        -->
+        <div ng-repeat="(deploymentId, deployment) in deploymentsByServiceByDeploymentConfig[''][deploymentConfigId] track by (deployment | uid)" 
+             ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
+
           <div class="row">
             <div class="col-md-12">
               <div class="tile-DEFUNCT">
-              <div class="components-panel service none">
-                <div class="service">
-                  <span ng-if="(deployments | hashSize) > 1">There is no service for these deployments.</span>
-                  <span ng-if="(deployments | hashSize) == 1">There is no service for this deployment.</span>
+
+                <div class="components-panel service none">
+                  <div class="service">
+                    <span ng-if="(deployments | hashSize) > 1">There is no service for these deployments.</span>
+                    <span ng-if="(deployments | hashSize) == 1">There is no service for this deployment.</span>
+                  </div>
                 </div>
-              </div>     
-                <div class="separator-DEFUNCT"></div>
-                <!-- As long as pods created from the deployments created from this deployment config will not be routed
-                     to by any service, then we will show things related to triggers that are about to create stuff, like builds.
-                     If things created from the deployment config in its current state would be routed to be a service
-                     then any trigger details would be showing up under the service instead.
-                -->
-                <div class="osc-object" kind="DeploymentConfig" resource="deploymentConfigs[deploymentConfigId]">
-                  <div ng-if="deploymentConfigs[deploymentConfigId] && deploymentConfigsByService[''][deploymentConfigId]">
-                    <triggers triggers="deploymentConfigs[deploymentConfigId].triggers"></triggers>
-                  </div>                
+  
+                <div ng-if="deploymentConfigs[deploymentConfigId] && deploymentConfigsByService[''][deploymentConfigId]">
                   <!--
-                  <deployment-config-metadata
-                    deployment-config-id="deploymentConfigId"
-                    exists="deploymentConfigs[deploymentConfigId]"
-                    different-service="!deploymentConfigsByService[''][deploymentConfigId]">
-                  </deployment-config-metadata>                
-                  -->
-                  <div class="osc-object tile-container-DEFUNCT components-panel deployment-block replication-controller" kind="ReplicationController" resource="deployment">
-                    <div class="component-block component-meta">
-                      <div class="component">
-                        <div class="component-label" ng-if="deploymentConfigId">Deployment</div>
-                        <div class="component-label" ng-if="!deploymentConfigId">Replication Controller</div>
-                        <h3 class="h4">{{deploymentId}}</h3>
-                      </div>
-                      <div class="component meta-data">
-                        <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
-                        <span ng-if="deployment.details && deployment.details.causes && deployment.details.causes.length > 0">
-                          <span>, triggered by 
-                            <span ng-repeat="cause in deployment.details.causes">
-                              <span ng-switch="cause.type">
-                                <span ng-switch-when="ImageChange">new image for {{cause.imageTrigger.repositoryName | imageStreamName}}:{{cause.imageTrigger.tag}}</span>
-                                <span ng-switch-when="ConfigChange">deployment configuration change</span>
-                              </span>
-                            </span>
-                          </span>
-                        </span>                    
-                      </div>
-                    </div>                
-                    <div class="pod-block">
-                      <div class="component-label">Pod Template</div>
-                      <pod-template ng-init="podTemplate = deployment.spec.template"></pod-template>
-                      <div class="component-label">Pods</div>
-                      <pods pods="podsByDeployment[deployment.metadata.name]"></pods>
-                    </div>
-                  </div>        
-                </div>
+                  Pods in deployments created from this deployment config will not be routed to by any service.
+                  Show things related to triggers that are about to create stuff, like builds.
+                  -->                
+                  <triggers triggers="deploymentConfigs[deploymentConfigId].triggers"></triggers>
+                </div>                
+
+                <overview-deployment
+                  rc="deployment"
+                  deployment-config-id="deploymentConfigId"
+                  deployment-config="deploymentConfigs[deploymentConfigId]"
+                  deployment-config-different-service="!deploymentConfigsByService[''][deploymentConfigId]"
+                  images-by-docker-reference="imagesByDockerReference"
+                  builds="builds"
+                  pods="podsByDeployment[deployment.metadata.name]">
+                </overview-deployment>
+
               </div>
             </div>
           </div>      
         </div>
       </section>
-      <section ng-repeat="(podName, pod) in monopodsByService['']" class="components">
+
+      <section ng-repeat="pod in monopodsByService[''] track by (pod | uid)" class="components">
         <div class="row">
           <div class="col-md-12">
             <div class="tile-DEFUNCT">
+
               <div class="components-panel service none">
                 <div class="service">
                   There is no service for this pod.
                 </div>
               </div>
-              <div class="separator"></div>     
-              <div class="ng-scope tile-container-DEFUNCT components-panel deployment-block deployments">
-                <div class="component-block component-meta">
-                  <div class="component">
-                    <span class="component-label">Pod</span>
-                    <h3 class="h4">podName</h3>
-                  </div>
-                  <div class="component meta-data">
-                    <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp>
-                  </div>
-                </div>                
-                <div class="pod-block">
-                  <div class="component-label">Pod Template</div>
-                  <pod-template ng-init="podTemplate = pod"></pod-template>
-                  <div class="component-label">Pod Status</div>
-                  <pods pods="[pod]"></pods>
-                </div>
-              </div>        
+
+              <overview-monopod pod="pod"></overview-monopod>
+
             </div>
           </div>
         </div>

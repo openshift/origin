@@ -1,9 +1,43 @@
 'use strict';
 
 angular.module('openshiftConsole')
+  .directive('overviewDeployment', function() {
+    return {
+      restrict: 'E',
+      scope: {
+      	// Replication controller / deployment fields
+        rc: '=',
+        deploymentConfig: '=',
+        deploymentConfigId: '=',
+        differentService: '=',
+
+        // Nested podTemplate fields
+        imagesByDockerReference: '=',
+        builds: '=',
+
+        // Pods
+        pods: '='
+      },
+      templateUrl: 'views/_overview-deployment.html'
+    };
+  })
+  .directive('overviewMonopod', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        pod: '='
+      },
+      templateUrl: 'views/_overview-monopod.html'
+    };
+  })
   .directive('podTemplate', function() {
     return {
       restrict: 'E',
+      scope: {
+        podTemplate: '=',
+        imagesByDockerReference: '=',
+        builds: '='
+      },
       templateUrl: 'views/_pod-template.html'
     };
   })

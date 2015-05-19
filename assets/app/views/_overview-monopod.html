@@ -1,0 +1,30 @@
+<!--
+  Expects the following variables. All must be defined in the overviewMonopod directive scope.
+
+  pod - Pod. Required.
+ -->
+<div class="tile-container components-panel deployment-block">
+  <div class="connector">
+    <i class="fa fa-search"></i>
+  </div>
+
+  <div class="component-block component-meta">
+    <div class="component">
+      <span class="component-label">Pod</span>
+      <h3 class="h4">{{pod.metadata.name}}</h3>
+    </div>
+
+    <div class="component meta-data">
+      <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp>
+    </div>
+
+  </div>               
+
+  <div class="pod-block">
+    <div class="component-label">Pod Template</div>
+    <pod-template pod-template="pod"></pod-template>
+
+    <div class="component-label">Pod Status</div>
+    <pods pods="[pod]"></pods>
+  </div>
+</div>
