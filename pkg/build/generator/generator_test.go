@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -204,6 +206,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	source := mockSource()
 	strategy := mockDockerStrategyForDockerImage()
 	output := mockOutput()
+	resources := mockResources()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "test-build-config",
@@ -218,8 +221,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 					Commit: "1234",
 				},
 			},
-			Strategy: strategy,
-			Output:   output,
+			Strategy:  strategy,
+			Output:    output,
+			Resources: resources,
 		},
 	}
 	revision := &buildapi.SourceRevision{
@@ -245,6 +249,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	}
 	if !reflect.DeepEqual(revision, build.Parameters.Revision) {
 		t.Errorf("Build revision does not match passed in revision")
+	}
+	if !reflect.DeepEqual(resources, build.Parameters.Resources) {
+		t.Errorf("Build resources does not match passed in resources")
 	}
 	if build.Labels["testlabel"] != bc.Labels["testlabel"] {
 		t.Errorf("Build does not contain labels from BuildConfig")
@@ -713,6 +720,14 @@ func TestResolveImageStreamRef(t *testing.T) {
 			t.Errorf("Scenario %d: Resolved reference %s did not match expected value %s", i, ref, test.expectedDockerRef)
 		}
 	}
+}
+
+func mockResources() kapi.ResourceRequirements {
+	res := kapi.ResourceRequirements{}
+	res.Limits = kapi.ResourceList{}
+	res.Limits[kapi.ResourceCPU] = resource.MustParse("100m")
+	res.Limits[kapi.ResourceMemory] = resource.MustParse("100Mi")
+	return res
 }
 
 func mockSource() buildapi.BuildSource {
