@@ -138,10 +138,11 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	bcCopy := obj.(*buildapi.BuildConfig)
 	build := &buildapi.Build{
 		Parameters: buildapi.BuildParameters{
-			Source:   bcCopy.Parameters.Source,
-			Strategy: bcCopy.Parameters.Strategy,
-			Output:   bcCopy.Parameters.Output,
-			Revision: revision,
+			Source:    bcCopy.Parameters.Source,
+			Strategy:  bcCopy.Parameters.Strategy,
+			Output:    bcCopy.Parameters.Output,
+			Revision:  revision,
+			Resources: bcCopy.Parameters.Resources,
 		},
 		ObjectMeta: kapi.ObjectMeta{
 			Labels: bcCopy.Labels,
