@@ -112,13 +112,14 @@ type ImageRepositoryTag struct {
 
 // ImageStreamTag exists to allow calls to `osc get imageStreamTag ...` to function.
 type ImageStreamTag struct {
-	Image
+	Image     `json:",inline"`
 	ImageName string `json:"imageName"`
 }
 
 // ImageStreamImage exists to allow calls to `osc get imageStreamImage ...` to function.
 type ImageStreamImage struct {
-	Image
+	Image     `json:",inline"`
+	ImageName string `json:"imageName"`
 }
 
 // DockerImageReference points to a Docker image.

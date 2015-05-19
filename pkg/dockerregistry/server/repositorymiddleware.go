@@ -104,7 +104,7 @@ func (r *repository) Get(ctx context.Context, dgst digest.Digest) (*manifest.Sig
 	if err != nil {
 		return nil, err
 	}
-
+	// TODO: we already fetched it above
 	image, err := r.getImage(dgst)
 	if err != nil {
 		return nil, err

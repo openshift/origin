@@ -29,7 +29,9 @@ var (
 	buildColumns            = []string{"NAME", "TYPE", "STATUS", "POD"}
 	buildConfigColumns      = []string{"NAME", "TYPE", "SOURCE"}
 	imageColumns            = []string{"NAME", "DOCKER REF"}
-	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS"}
+	imageStreamTagColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
+	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
+	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
@@ -64,9 +66,9 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(buildConfigColumns, printBuildConfig)
 	p.Handler(buildConfigColumns, printBuildConfigList)
 	p.Handler(imageColumns, printImage)
-	p.Handler(imageColumns, printImageStreamTag)
+	p.Handler(imageStreamTagColumns, printImageStreamTag)
 	p.Handler(imageColumns, printImageRepositoryTag)
-	p.Handler(imageColumns, printImageStreamImage)
+	p.Handler(imageStreamImageColumns, printImageStreamImage)
 	p.Handler(imageColumns, printImageList)
 	p.Handler(imageStreamColumns, printImageRepository)
 	p.Handler(imageStreamColumns, printImageRepositoryList)
@@ -226,15 +228,19 @@ func printImage(image *imageapi.Image, w io.Writer) error {
 }
 
 func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer) error {
-	return printImage(&ist.Image, w)
+	created := fmt.Sprintf("%s ago", formatRelativeTime(ist.CreationTimestamp.Time))
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", ist.Name, ist.Image.DockerImageReference, created, ist.ImageName)
+	return err
+}
+
+func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer) error {
+	created := fmt.Sprintf("%s ago", formatRelativeTime(isi.CreationTimestamp.Time))
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", isi.Name, isi.Image.DockerImageReference, created, isi.ImageName)
+	return err
 }
 
 func printImageRepositoryTag(irt *imageapi.ImageRepositoryTag, w io.Writer) error {
 	return printImage(&irt.Image, w)
-}
-
-func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer) error {
-	return printImage(&isi.Image, w)
 }
 
 func printImageList(images *imageapi.ImageList, w io.Writer) error {
@@ -269,11 +275,21 @@ func printImageRepositoryList(repos *imageapi.ImageRepositoryList, w io.Writer) 
 func printImageStream(stream *imageapi.ImageStream, w io.Writer) error {
 	tags := ""
 	set := util.NewStringSet()
-	for tag := range stream.Status.Tags {
+	var latest util.Time
+	for tag, list := range stream.Status.Tags {
 		set.Insert(tag)
+		if len(list.Items) > 0 {
+			if list.Items[0].Created.After(latest.Time) {
+				latest = list.Items[0].Created
+			}
+		}
+	}
+	latestTime := ""
+	if !latest.IsZero() {
+		latestTime = fmt.Sprintf("%s ago", formatRelativeTime(latest.Time))
 	}
 	tags = strings.Join(set.List(), ",")
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", stream.Name, stream.Status.DockerImageRepository, tags)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.Name, stream.Status.DockerImageRepository, tags, latestTime)
 	return err
 }
 
