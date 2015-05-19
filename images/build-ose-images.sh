@@ -21,6 +21,7 @@ docker build --no-cache=true -t openshift3_beta/ose-sti-builder ./builder/docker
 docker build --no-cache=true -t openshift3_beta/ose-sti-image-builder ./builder/docker/sti-image-builder/ && \
 docker build --no-cache=true -t openshift3_beta/ose-pod ./pod/
 docker build --no-cache=true -t openshift3_beta/ose-docker-registry ./dockerregistry
+docker build --no-cache=true -t openshift3_beta/ose-keepalived-ipfailover ./ipfailover/keepalived
 
 docker tag -f openshift3_beta/ose-docker-builder localhost:5000/openshift3_beta/ose-docker-builder
 docker tag -f openshift3_beta/ose-docker-builder localhost:5000/openshift3_beta/ose-docker-builder:${IMAGE_VERSION}
@@ -43,6 +44,9 @@ docker tag -f openshift3_beta/ose-pod localhost:5000/openshift3_beta/ose-pod:${I
 docker tag -f openshift3_beta/ose-docker-registry localhost:5000/openshift3_beta/ose-docker-registry
 docker tag -f openshift3_beta/ose-docker-registry localhost:5000/openshift3_beta/ose-docker-registry:${IMAGE_VERSION}
 
+docker tag -f openshift3_beta/ose-keepalived-ipfailover localhost:5000/openshift3_beta/ose-keepalived-ipfailover
+docker tag -f openshift3_beta/ose-keepalived-ipfailover localhost:5000/openshift3_beta/ose-keepalived-ipfailover:${IMAGE_VERSION}
+
 docker push localhost:5000/openshift3_beta/ose-docker-builder:latest &&
 docker push localhost:5000/openshift3_beta/ose-docker-builder:${IMAGE_VERSION} &&
 docker push localhost:5000/openshift3_beta/ose-sti-builder:latest &&
@@ -54,8 +58,10 @@ docker push localhost:5000/openshift3_beta/ose-deployer:${IMAGE_VERSION} &&
 docker push localhost:5000/openshift3_beta/ose-haproxy-router:latest &&
 docker push localhost:5000/openshift3_beta/ose-haproxy-router:${IMAGE_VERSION} &&
 docker push localhost:5000/openshift3_beta/ose-pod:latest &&
-docker push localhost:5000/openshift3_beta/ose-pod:${IMAGE_VERSION}
+docker push localhost:5000/openshift3_beta/ose-pod:${IMAGE_VERSION} &&
 docker push localhost:5000/openshift3_beta/ose-docker-registry:latest &&
-docker push localhost:5000/openshift3_beta/ose-docker-registry:${IMAGE_VERSION}
+docker push localhost:5000/openshift3_beta/ose-docker-registry:${IMAGE_VERSION} &&
+docker push localhost:5000/openshift3_beta/ose-keepalived-ipfailover:latest &&
+docker push localhost:5000/openshift3_beta/ose-keepalived-ipfailover:${IMAGE_VERSION}
 
 docker rmi $(docker images -q --filter "dangling=true")
