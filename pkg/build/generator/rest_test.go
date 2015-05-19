@@ -80,7 +80,7 @@ func TestCreateInstantiate(t *testing.T) {
 
 	rest := InstantiateREST{&BuildGenerator{Client: Client{
 		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
-			return mockBuildConfig(mockSource(), mockSTIStrategyForImageRepository(), mockOutput()), nil
+			return mockBuildConfig(mockSource(), mockSourceStrategyForImageRepository(), mockOutput()), nil
 		},
 		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 			return nil

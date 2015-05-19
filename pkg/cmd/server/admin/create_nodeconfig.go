@@ -58,7 +58,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create a portable client folder containing a client certificate, a client key, a server certificate authority, and a .kubeconfig file.",
+		Short: "Create a configuration bundle for a node",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -384,7 +384,7 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		return err
 	}
 
-	fmt.Fprintf(o.Output.Get(), "Creating node config for %s in %s", o.NodeName, o.NodeConfigDir)
+	fmt.Fprintf(o.Output.Get(), "Creating node config for %s in %s\n", o.NodeName, o.NodeConfigDir)
 	// Relativize to config file dir
 	base, err := cmdutil.MakeAbs(o.NodeConfigDir, cwd)
 	if err != nil {

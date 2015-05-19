@@ -27,22 +27,49 @@ angular.module('openshiftConsole')
       link: function ($scope, element, attrs) {
         var select = $('.selectpicker', element);
 
-        var updateOptions = function(projects) {
+        var updateOptions = function() {
+          var currentProject = $scope.project;
+          if (!currentProject || angular.equals({}, currentProject)) {
+            if (!$scope.projectName) {
+              // Wait until we have at least $scope.projectName or $scope.project.
+              return;
+            }
+
+            currentProject = {
+              metadata: {
+                name: $scope.projectName
+              }
+            };
+          }
+          var projectName = $scope.projectName || currentProject.metadata.name;
+
+          // Locally add the "current" project to the projects list if it
+          // doesn't exist. This can happen when creating a new project from
+          // the web, which navigates immediately to the project page.
+          var projects;
+          if (!$scope.projects || !$scope.projects[projectName]) {
+            projects = {};
+            projects[$scope.projectName] = currentProject;
+            projects = angular.extend(projects, $scope.projects);
+          } else {
+            projects = $scope.projects;
+          }
+
           var sortedProjects = $filter('orderByDisplayName')(projects);
           // Create options from the sorted array.
           angular.forEach(sortedProjects, function(project) {
             $('<option>')
               .attr("value", project.metadata.name)
-              .attr("selected", project.metadata.name == $scope.projectName)
+              .attr("selected", project.metadata.name == projectName)
               .text($filter('displayName')(project))
               .appendTo(select);
           });
-          // TODO add back in when we support create project
+          // TODO
           // <option data-divider="true"></option>
           // <option>Create new</option>
         };
 
-        updateOptions($scope.projects);
+        updateOptions();
 
         select.selectpicker({
               iconBase: 'fa',
@@ -57,11 +84,18 @@ angular.module('openshiftConsole')
             $location.url(newURL);
           });
         });
-        $scope.$watch("projects", function(projects) {
+
+        var clearAndUpdateOptions = function(newValue, oldValue) {
+          if (newValue === oldValue) {
+            return;
+          }
+
           select.empty();
-          updateOptions(projects);
+          updateOptions();
           select.selectpicker('refresh');
-        });
+        };
+        $scope.$watch("project", clearAndUpdateOptions);
+        $scope.$watch("projects", clearAndUpdateOptions);
 
         LabelFilter.setupFilterWidget($(".navbar-filter-widget", element), $(".active-filters", element));
         LabelFilter.toggleFilterWidget(!$scope.renderOptions || !$scope.renderOptions.hideFilterWidget);

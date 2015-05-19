@@ -27,7 +27,6 @@ func NewREST(h tools.EtcdHelper) *REST {
 		NewFunc:     func() runtime.Object { return &api.OAuthAuthorizeToken{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthAuthorizeTokenList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
-			// TODO: JTL: switch to NoNamespaceKeyRootFunc after rebase
 			return EtcdPrefix
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
@@ -38,6 +37,11 @@ func NewREST(h tools.EtcdHelper) *REST {
 		},
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return oauthauthorizetoken.Matcher(label, field)
+		},
+		TTLFunc: func(obj runtime.Object, update bool) (uint64, error) {
+			token := obj.(*api.OAuthAuthorizeToken)
+			expires := uint64(token.ExpiresIn)
+			return expires, nil
 		},
 		EndpointName: "oauthauthorizetokens",
 

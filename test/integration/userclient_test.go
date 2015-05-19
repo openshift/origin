@@ -93,7 +93,7 @@ func TestUserInitialization(t *testing.T) {
 	identityRegistry := identityregistry.NewRegistry(identityetcd.NewREST(etcdHelper))
 	useridentityMappingRegistry := useridentitymapping.NewRegistry(useridentitymapping.NewREST(userRegistry, identityRegistry))
 
-	lookup := identitymapper.NewLookupIdentityMapper(useridentityMappingRegistry)
+	lookup := identitymapper.NewLookupIdentityMapper(useridentityMappingRegistry, userRegistry)
 	provisioner := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(identityRegistry, userRegistry)
 
 	testcases := map[string]struct {

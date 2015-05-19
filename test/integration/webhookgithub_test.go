@@ -189,8 +189,8 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 			t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
 		}
 
-		if actual.Parameters.Strategy.STIStrategy.From.Name != "registry:3000/integration/imageStream:success" {
-			t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageStream:success", actual.Parameters.Strategy.STIStrategy.From.Name)
+		if actual.Parameters.Strategy.SourceStrategy.From.Name != "registry:3000/integration/imageStream:success" {
+			t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageStream:success", actual.Parameters.Strategy.SourceStrategy.From.Name)
 		}
 	}
 }
@@ -324,8 +324,8 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 				ContextDir: "context",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.STIBuildStrategyType,
-				STIStrategy: &buildapi.STIBuildStrategy{
+				Type: buildapi.SourceBuildStrategyType,
+				SourceStrategy: &buildapi.SourceBuildStrategy{
 					From: &kapi.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: imageStream + ":" + imageTag,

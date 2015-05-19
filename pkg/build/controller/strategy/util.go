@@ -13,10 +13,8 @@ import (
 // container
 const (
 	dockerSocketPath          = "/var/run/docker.sock"
-	dockerPushSecretMountPath = "/var/run/secrets/push"
-	// TODO: The pull secrets is the same as push secret for now.
-	//       This will be replaced using Service Account.
-	dockerPullSecretMountPath = dockerPushSecretMountPath
+	DockerPushSecretMountPath = "/var/run/secrets/push"
+	DockerPullSecretMountPath = "/var/run/secrets/pull"
 	sourceSecretMountPath     = "/var/run/secrets/source"
 )
 
@@ -94,17 +92,22 @@ func mountSecretVolume(pod *kapi.Pod, secretName, mountPath string) {
 
 // setupDockerSecrets mounts Docker Registry secrets into Pod running the build,
 // allowing Docker to authenticate against private registries or Docker Hub.
-func setupDockerSecrets(pod *kapi.Pod, pushSecret string) {
-	if len(pushSecret) == 0 {
-		return
+func setupDockerSecrets(pod *kapi.Pod, pushSecret string, pullSecret string) {
+	if len(pushSecret) > 0 {
+		mountSecretVolume(pod, pushSecret, DockerPushSecretMountPath)
+		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
+			{Name: "PUSH_DOCKERCFG_PATH", Value: filepath.Join(DockerPushSecretMountPath, "dockercfg")},
+		}...)
+		glog.V(3).Infof("%s be used for docker push in %s", DockerPullSecretMountPath, pod.Name)
 	}
 
-	mountSecretVolume(pod, pushSecret, dockerPushSecretMountPath)
-	glog.V(3).Infof("Installed %s as docker push secret in Pod %s", dockerPushSecretMountPath, pod.Name)
-	pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
-		{Name: "PUSH_DOCKERCFG_PATH", Value: filepath.Join(dockerPushSecretMountPath, "dockercfg")},
-		{Name: "PULL_DOCKERCFG_PATH", Value: filepath.Join(dockerPullSecretMountPath, "dockercfg")},
-	}...)
+	if len(pullSecret) > 0 {
+		mountSecretVolume(pod, pullSecret, DockerPullSecretMountPath)
+		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
+			{Name: "PULL_DOCKERCFG_PATH", Value: filepath.Join(DockerPullSecretMountPath, "dockercfg")},
+		}...)
+		glog.V(3).Infof("%s be used for docker pull in %s", DockerPullSecretMountPath, pod.Name)
+	}
 }
 
 // setupSourceSecrets mounts SSH key used for accesing private SCM to clone

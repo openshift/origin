@@ -63,6 +63,7 @@ type RouterConfig struct {
 	DryRun             bool
 	Credentials        string
 	DefaultCertificate string
+	Selector           string
 }
 
 var errExit = fmt.Errorf("exit")
@@ -80,7 +81,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [NAME]", name),
-		Short:   "Install and check OpenShift routers",
+		Short:   "Install an OpenShift router",
 		Long:    router_long,
 		Example: fmt.Sprintf(router_example, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -101,6 +102,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
 	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
 	cmd.Flags().StringVar(&cfg.DefaultCertificate, "default-cert", cfg.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.")
+	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run routers on a specific set of nodes.")
 
 	cmdutil.AddPrinterFlags(cmd)
 
@@ -144,6 +146,18 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			return cmdutil.UsageError(cmd, "You may not pass negative labels in %q", cfg.Labels)
 		}
 		label = valid
+	}
+
+	nodeSelector := map[string]string{}
+	if len(cfg.Selector) > 0 {
+		valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Selector, ","))
+		if err != nil {
+			glog.Fatal(err)
+		}
+		if len(remove) > 0 {
+			return cmdutil.UsageError(cmd, "You may not pass negative labels in selector %q", cfg.Selector)
+		}
+		nodeSelector = valid
 	}
 
 	image := cfg.ImageTemplate.ExpandOrDie(cfg.Type)
@@ -233,6 +247,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 						Template: &kapi.PodTemplateSpec{
 							ObjectMeta: kapi.ObjectMeta{Labels: label},
 							Spec: kapi.PodSpec{
+								NodeSelector: nodeSelector,
 								Containers: []kapi.Container{
 									{
 										Name:  "router",

@@ -169,8 +169,8 @@ type BuildStrategy struct {
 	// DockerStrategy holds the parameters to the Docker build strategy.
 	DockerStrategy *DockerBuildStrategy `json:"dockerStrategy,omitempty"`
 
-	// STIStrategy holds the parameters to the STI build strategy.
-	STIStrategy *STIBuildStrategy `json:"stiStrategy,omitempty"`
+	// SourceStrategy holds the parameters to the STI build strategy.
+	SourceStrategy *SourceBuildStrategy `json:"stiStrategy,omitempty"`
 
 	// CustomStrategy holds the parameters to the Custom build strategy.
 	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty"`
@@ -184,9 +184,9 @@ const (
 	// DockerBuildStrategyType performs builds using a Dockerfile.
 	DockerBuildStrategyType BuildStrategyType = "Docker"
 
-	// STIBuildStrategyType performs builds build using Source To Images with a Git repository
+	// SourceBuildStrategyType performs builds build using Source To Images with a Git repository
 	// and a builder image.
-	STIBuildStrategyType BuildStrategyType = "STI"
+	SourceBuildStrategyType BuildStrategyType = "STI"
 
 	// CustomBuildStrategyType performs builds using the custom builder Docker image.
 	CustomBuildStrategyType BuildStrategyType = "Custom"
@@ -211,6 +211,11 @@ type CustomBuildStrategy struct {
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
+
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:"pullSecretName,omitempty"`
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -223,13 +228,23 @@ type DockerBuildStrategy struct {
 	// the docker image should be pulled
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
 	From *kapi.ObjectReference `json:"from,omitempty"`
+
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:"pullSecretName,omitempty"`
 }
 
-// STIBuildStrategy defines input parameters specific to an STI build.
-type STIBuildStrategy struct {
+// SourceBuildStrategy defines input parameters specific to an STI build.
+type SourceBuildStrategy struct {
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From *kapi.ObjectReference `json:"from,omitempty"`
+
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:"pullSecretName,omitempty"`
 
 	// Additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`

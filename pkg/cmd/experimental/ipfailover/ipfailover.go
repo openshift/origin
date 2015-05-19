@@ -47,7 +47,7 @@ ALPHA: This command is currently being actively developed. It is intended
   $ %[1]s %[2]s ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
 
   // Use a different IP failover config image and see the configuration:
-  $ %[1]s %[2]s ipf-alt --selector="jack=the-vipper" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag`
+  $ %[1]s %[2]s ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag`
 )
 
 func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
@@ -62,7 +62,7 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out i
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [NAME]", name),
-		Short:   "Configure or view IP Failover configuration",
+		Short:   "Install an IP failover group to a set of nodes",
 		Long:    ipFailover_long,
 		Example: fmt.Sprintf(ipFailover_example, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {

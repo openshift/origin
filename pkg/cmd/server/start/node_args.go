@@ -68,7 +68,7 @@ func NewDefaultNodeArgs() *NodeArgs {
 
 		MasterCertDir: "openshift.local.config/master/certificates",
 
-		ClusterDomain: cmdutil.Env("OPENSHIFT_DNS_DOMAIN", "local"),
+		ClusterDomain: cmdutil.Env("OPENSHIFT_DNS_DOMAIN", "cluster.local"),
 		ClusterDNS:    dnsIP,
 
 		NetworkPluginName: "",

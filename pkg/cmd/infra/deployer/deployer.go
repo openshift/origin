@@ -2,7 +2,6 @@ package deployer
 
 import (
 	"fmt"
-	"strconv"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -136,20 +135,12 @@ func getDeployerContext(controllerGetter replicationControllerGetter, namespace,
 
 	glog.Infof("Inspecting %d potential prior deployments", len(allControllers.Items))
 	for i, controller := range allControllers.Items {
-		if configName, hasConfigName := controller.Annotations[deployapi.DeploymentConfigAnnotation]; !hasConfigName {
-			glog.Infof("Disregarding replicationController %s (not a deployment)", controller.Name)
-			continue
-		} else if configName != newConfig.Name {
-			glog.Infof("Disregarding deployment %s (doesn't match target deploymentConfig %s)", controller.Name, configName)
+		if oldName := deployutil.DeploymentConfigNameFor(&controller); oldName != newConfig.Name {
+			glog.Infof("Disregarding deployment %s (doesn't match target deploymentConfig %s)", controller.Name, oldName)
 			continue
 		}
 
-		var oldVersion int
-		if oldVersion, err = strconv.Atoi(controller.Annotations[deployapi.DeploymentVersionAnnotation]); err != nil {
-			return nil, nil, fmt.Errorf("Couldn't determine version of deployment %s: %v", controller.Name, err)
-		}
-
-		if oldVersion < newConfig.LatestVersion {
+		if deployutil.DeploymentVersionFor(&controller) < newConfig.LatestVersion {
 			glog.Infof("Marking deployment %s as a prior deployment", controller.Name)
 			oldDeployments = append(oldDeployments, &allControllers.Items[i])
 		} else {

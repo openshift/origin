@@ -75,10 +75,7 @@ if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
   find $OUTPUT_COVERAGE -name profile.out | xargs sed '/^mode: atomic$/d' >> ${OUTPUT_COVERAGE}/profiles.out
   go tool cover "-html=${OUTPUT_COVERAGE}/profiles.out" -o "${OUTPUT_COVERAGE}/coverage.html"
 
-  for test_package in "${test_packages[@]}"
-  do
-     rm -rf "$OUTPUT_COVERAGE/$test_package"
-  done
+  rm -rf $OUTPUT_COVERAGE/$OS_GO_PACKAGE
 else
   go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}" $test_packages
 fi

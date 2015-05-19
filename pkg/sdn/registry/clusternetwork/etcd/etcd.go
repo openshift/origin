@@ -24,7 +24,7 @@ const etcdPrefix = "/registry/sdnnetworks"
 func NewREST(h tools.EtcdHelper) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ClusterNetwork{} },
-		NewListFunc: func() runtime.Object { return &api.ClusterNetwork{} },
+		NewListFunc: func() runtime.Object { return &api.ClusterNetworkList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
 			return etcdPrefix
 		},

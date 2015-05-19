@@ -293,8 +293,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,
 
-		"hostSubnet":     hostSubnetStorage,
-		"clusterNetwork": clusterNetworkStorage,
+		"hostSubnets":     hostSubnetStorage,
+		"clusterNetworks": clusterNetworkStorage,
 
 		"users":                userStorage,
 		"identities":           identityStorage,
@@ -528,8 +528,6 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	go util.Forever(func() {
 		c.ensureOpenShiftSharedResourcesNamespace()
 	}, 10*time.Second)
-
-	c.checkProjectRequestTemplate()
 }
 
 func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
@@ -584,40 +582,6 @@ func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
 		c.RequestContextMapper = kapi.NewRequestContextMapper()
 	}
 	return c.RequestContextMapper
-}
-
-// checkProjectRequestTemplate looks to see if there should be a projectrequest template.  If there should be one and it's not present
-func (c *MasterConfig) checkProjectRequestTemplate() {
-	if len(c.Options.ProjectRequestConfig.ProjectRequestTemplate) == 0 {
-		return
-	}
-
-	const baseErrorFormat = "Error creating default project request template %v.  Unprivileged project requests will fail until a template is available."
-
-	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectRequestConfig.ProjectRequestTemplate)
-	if err != nil {
-		glog.Errorf(baseErrorFormat+"  Caused by: %v", c.Options.ProjectRequestConfig.ProjectRequestTemplate, err)
-		return
-	}
-	if len(namespace) == 0 {
-		glog.Errorf(baseErrorFormat+"  The namespace for the project request template may not be empty.", c.Options.ProjectRequestConfig.ProjectRequestTemplate)
-		return
-	}
-	if len(templateName) == 0 {
-		glog.Errorf(baseErrorFormat+"  The name for the project request template may not be empty.", c.Options.ProjectRequestConfig.ProjectRequestTemplate)
-		return
-	}
-
-	// if the template already exists, no work to do
-	if _, err := c.PrivilegedLoopbackOpenShiftClient.Templates(namespace).Get(templateName); err == nil {
-		return
-	}
-
-	template := projectrequeststorage.NewSampleTemplate(namespace, templateName)
-	if _, err := c.PrivilegedLoopbackOpenShiftClient.Templates(namespace).Create(template); err != nil {
-		glog.Errorf(baseErrorFormat+"  Caused by: %v", c.Options.ProjectRequestConfig.ProjectRequestTemplate, err)
-		return
-	}
 }
 
 // ensureOpenShiftSharedResourcesNamespace is called as part of global policy initialization to ensure shared namespace exists
@@ -804,7 +768,7 @@ func (c *MasterConfig) RunBuildController() {
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec: v1beta1.Codec,
 		},
-		STIBuildStrategy: &buildstrategy.STIBuildStrategy{
+		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			// TODO: this will be set to --storage-version (the internal schema we use)

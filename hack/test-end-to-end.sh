@@ -285,7 +285,7 @@ wait_for_command '[[ "$(osc get endpoints docker-registry --output-version=v1bet
 DOCKER_REGISTRY=$(osc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
-wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry says: " $((2*TIME_MIN))
+wait_for_url_timed "http://${DOCKER_REGISTRY}/v2/" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 [ "$(dig @${API_HOST} "docker-registry.default.local." A)" ]
 
@@ -294,7 +294,7 @@ wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry s
 echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
 osc login -u e2e-user -p pass
 osc project cache
-token=$(osc config view --flatten -o template -t '{{range .users}}{{if eq .name "e2e-user"}}{{.user.token}}{{end}}{{end}}')
+token=$(osc config view --flatten -o template -t '{{with index .users 0}}{{.user.token}}{{end}}')
 [[ -n ${token} ]]
 
 # TODO reenable this once we've got docker push secrets 100% ready

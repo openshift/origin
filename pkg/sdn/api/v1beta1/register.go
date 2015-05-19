@@ -7,11 +7,13 @@ import (
 func init() {
 	api.Scheme.AddKnownTypes("v1beta1",
 		&ClusterNetwork{},
+		&ClusterNetworkList{},
 		&HostSubnet{},
 		&HostSubnetList{},
 	)
 }
 
-func (*ClusterNetwork) IsAnAPIObject() {}
-func (*HostSubnet) IsAnAPIObject()     {}
-func (*HostSubnetList) IsAnAPIObject() {}
+func (*ClusterNetwork) IsAnAPIObject()     {}
+func (*ClusterNetworkList) IsAnAPIObject() {}
+func (*HostSubnet) IsAnAPIObject()         {}
+func (*HostSubnetList) IsAnAPIObject()     {}

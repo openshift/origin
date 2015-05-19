@@ -2,11 +2,14 @@ package etcd
 
 import (
 	"fmt"
+	"net"
+	"net/http"
 	"time"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -71,28 +74,21 @@ func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 // connect to the etcd server and block until the server responds at least once, or return an
 // error if the server never responded.
 func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
-	var etcdClient *etcdclient.Client
-
-	if len(etcdClientInfo.ClientCert.CertFile) > 0 {
-		tlsClient, err := etcdclient.NewTLSClient(
-			etcdClientInfo.URLs,
-			etcdClientInfo.ClientCert.CertFile,
-			etcdClientInfo.ClientCert.KeyFile,
-			etcdClientInfo.CA,
-		)
-		if err != nil {
-			return nil, err
-		}
-		etcdClient = tlsClient
-	} else if len(etcdClientInfo.CA) > 0 {
-		etcdClient = etcdclient.NewClient(etcdClientInfo.URLs)
-		err := etcdClient.AddRootCA(etcdClientInfo.CA)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		etcdClient = etcdclient.NewClient(etcdClientInfo.URLs)
+	// etcd does a poor job of setting up the transport - use the Kube client stack
+	transport, err := client.TransportFor(&client.Config{
+		TLSClientConfig: client.TLSClientConfig{
+			CertFile: etcdClientInfo.ClientCert.CertFile,
+			KeyFile:  etcdClientInfo.ClientCert.KeyFile,
+			CAFile:   etcdClientInfo.CA,
+		},
+		WrapTransport: DefaultEtcdClientTransport,
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	etcdClient := etcdclient.NewClient(etcdClientInfo.URLs)
+	etcdClient.SetTransport(transport.(*http.Transport))
 
 	for i := 0; ; i++ {
 		_, err := etcdClient.Get("/", false, false)
@@ -100,10 +96,26 @@ func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdcli
 			break
 		}
 		if i > 100 {
-			return nil, fmt.Errorf("Could not reach etcd: %v", err)
+			return nil, fmt.Errorf("could not reach etcd: %v", err)
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
 
 	return etcdClient, nil
+}
+
+// DefaultEtcdClientTransport sets defaults for an etcd Transport that are suitable
+// for use by infrastructure components.
+func DefaultEtcdClientTransport(rt http.RoundTripper) http.RoundTripper {
+	transport := rt.(*http.Transport)
+	dialer := &net.Dialer{
+		Timeout: 30 * time.Second,
+		// Lower the keep alive for connections.
+		KeepAlive: 1 * time.Second,
+	}
+	transport.Dial = dialer.Dial
+	// Because watches are very bursty, defends against long delays
+	// in watch reconnections.
+	transport.MaxIdleConnsPerHost = 500
+	return transport
 }

@@ -31,13 +31,20 @@ type NewProjectOptions struct {
 	AdminUser string
 }
 
+const newProjectLong = `Create a new project
+
+Use this command to create a project. You may optionally specify metadata about the project,
+an admin user (and role, if you want to use a non-default admin role), and a node selector
+to restrict which nodes pods in this project can be scheduled to.
+`
+
 func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
 
 	cmd := &cobra.Command{
 		Use:   name + " NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]",
-		Short: "create a new project",
-		Long:  `create a new project`,
+		Short: "Create a new project",
+		Long:  newProjectLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.complete(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))

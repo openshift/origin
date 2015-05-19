@@ -139,7 +139,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 				formatString(out, "Latest Deployment", fmt.Sprintf("error: %v", err))
 			}
 		} else {
-			header := fmt.Sprintf("Deployment #%v (latest)", deployment.Annotations[deployapi.DeploymentVersionAnnotation])
+			header := fmt.Sprintf("Deployment #%d (latest)", deployutil.DeploymentVersionFor(deployment))
 			printDeploymentRc(deployment, d.client, out, header, true)
 		}
 		deploymentsHistory, err := d.client.listDeployments(namespace, labels.Everything())
@@ -148,8 +148,8 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 			sorted = append(sorted, deploymentsHistory.Items...)
 			sort.Sort(sorted)
 			for _, item := range sorted {
-				if item.Name != deploymentName && deploymentConfig.Name == item.Annotations[deployapi.DeploymentConfigAnnotation] {
-					header := fmt.Sprintf("Deployment #%v", item.Annotations[deployapi.DeploymentVersionAnnotation])
+				if item.Name != deploymentName && deploymentConfig.Name == deployutil.DeploymentConfigNameFor(&item) {
+					header := fmt.Sprintf("Deployment #%d", deployutil.DeploymentVersionFor(&item))
 					printDeploymentRc(&item, d.client, out, header, false)
 				}
 			}
@@ -249,7 +249,7 @@ func printDeploymentRc(deployment *kapi.ReplicationController, client deployment
 	}
 	timeAt := strings.ToLower(formatRelativeTime(deployment.CreationTimestamp.Time))
 	fmt.Fprintf(w, "\tCreated:\t%s ago\n", timeAt)
-	fmt.Fprintf(w, "\tStatus:\t%s\n", deployment.Annotations[deployapi.DeploymentStatusAnnotation])
+	fmt.Fprintf(w, "\tStatus:\t%s\n", deployutil.DeploymentStatusFor(deployment))
 	fmt.Fprintf(w, "\tReplicas:\t%d current / %d desired\n", deployment.Status.Replicas, deployment.Spec.Replicas)
 
 	if verbose {

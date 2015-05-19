@@ -49,18 +49,18 @@ func TestDockerCreateBuildPod(t *testing.T) {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 	if len(container.Env) != 4 {
-		t.Fatalf("Expected 4 elements in Env table, got %d", len(container.Env))
+		t.Fatalf("Expected 4 elements in Env table, got %+v", container.Env)
 	}
-	if len(container.VolumeMounts) != 3 {
-		t.Fatalf("Expected 3 volumes in container, got %d", len(container.VolumeMounts))
+	if len(container.VolumeMounts) != 4 {
+		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	for i, expected := range []string{dockerSocketPath, dockerPushSecretMountPath, sourceSecretMountPath} {
+	for i, expected := range []string{dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath, sourceSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if len(actual.Spec.Volumes) != 3 {
-		t.Fatalf("Expected 3 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 4 {
+		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if !kapi.Semantic.DeepEqual(container.Resources, expected.Parameters.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
@@ -96,8 +96,10 @@ func mockDockerBuild() *buildapi.Build {
 				SourceSecretName: "secretFoo",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
+				Type: buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{
+					PullSecretName: "bar",
+				},
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "docker-registry/repository/dockerBuild",

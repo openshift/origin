@@ -20,6 +20,7 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 type REST struct {
@@ -48,9 +49,6 @@ func (r *REST) NewList() runtime.Object {
 }
 
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
-	if len(r.openshiftNamespace) == 0 || len(r.templateName) == 0 {
-		return nil, errors.New("this endpoint is disabled")
-	}
 
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
 		return nil, err
@@ -78,7 +76,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		projectAdmin = userInfo.GetName()
 	}
 
-	template, err := r.openshiftClient.Templates(r.openshiftNamespace).Get(r.templateName)
+	template, err := r.getTemplate()
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +94,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 	}
 
-	list, err := r.openshiftClient.TemplateConfigs(r.openshiftNamespace).Create(template)
+	list, err := r.openshiftClient.TemplateConfigs(kapi.NamespaceDefault).Create(template)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +114,14 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	return r.openshiftClient.Projects().Get(projectName)
+}
+
+func (r *REST) getTemplate() (*templateapi.Template, error) {
+	if len(r.openshiftNamespace) == 0 || len(r.templateName) == 0 {
+		return DefaultTemplate(), nil
+	}
+
+	return r.openshiftClient.Templates(r.openshiftNamespace).Get(r.templateName)
 }
 
 func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
@@ -143,6 +149,14 @@ func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Select
 	forbiddenError, _ := kapierror.NewForbidden("ProjectRequest", "", errors.New("You may not request a new project via this API.")).(*kapierror.StatusError)
 	if len(r.message) > 0 {
 		forbiddenError.ErrStatus.Message = r.message
+		forbiddenError.ErrStatus.Details = &kapi.StatusDetails{
+			Kind: "ProjectRequest",
+			Causes: []kapi.StatusCause{
+				{Message: r.message},
+			},
+		}
+	} else {
+		forbiddenError.ErrStatus.Message = "You may not request a new project via this API."
 	}
 	return nil, forbiddenError
 }

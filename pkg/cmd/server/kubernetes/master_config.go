@@ -21,10 +21,12 @@ import (
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
-	MasterIP   net.IP
-	MasterPort int
-	NodeHosts  []string
-	PortalNet  *net.IPNet
+	MasterIP    net.IP
+	MasterPort  int
+	MasterCount int
+
+	NodeHosts []string
+	PortalNet *net.IPNet
 
 	RequestContextMapper kapi.RequestContextMapper
 
@@ -74,6 +76,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	kmaster := &MasterConfig{
 		MasterIP:             net.ParseIP(options.KubernetesMasterConfig.MasterIP),
 		MasterPort:           port,
+		MasterCount:          options.KubernetesMasterConfig.MasterCount,
 		NodeHosts:            options.KubernetesMasterConfig.StaticNodeNames,
 		PortalNet:            &portalNet,
 		RequestContextMapper: requestContextMapper,

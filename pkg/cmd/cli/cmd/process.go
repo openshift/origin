@@ -127,9 +127,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 
 		version, kind, err := mapper.VersionAndKindForResource("template")
 		if mapping, err = mapper.RESTMapping(kind, version); err != nil {
-			if err != nil {
-				return err
-			}
+			return err
 		}
 	} else {
 		obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
@@ -154,9 +152,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 			return err
 		}
 		if mapping, err = mapper.RESTMapping(kind, version); err != nil {
-			if err != nil {
-				return err
-			}
+			return err
 		}
 	}
 

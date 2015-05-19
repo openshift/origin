@@ -9,8 +9,18 @@ import (
 	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
+
+func tab(original string) string {
+	lines := []string{}
+	scanner := bufio.NewScanner(strings.NewReader(original))
+	for scanner.Scan() {
+		lines = append(lines, "  "+scanner.Text())
+	}
+	return strings.Join(lines, "\n")
+}
 
 const (
 	get_long = `Display one or many resources.
@@ -32,9 +42,13 @@ Possible resources include builds, buildConfigs, services, pods, etc.`
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	p := describe.NewHumanReadablePrinter(false)
+	validArgs := p.HandledResources()
+
 	cmd := kcmd.NewCmdGet(f.Factory, out)
 	cmd.Long = get_long
 	cmd.Example = fmt.Sprintf(get_example, fullName)
+	cmd.ValidArgs = validArgs
 	return cmd
 }
 
@@ -195,6 +209,7 @@ func NewCmdDescribe(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd := kcmd.NewCmdDescribe(f.Factory, out)
 	cmd.Long = describe_long
 	cmd.Example = fmt.Sprintf(describe_example, fullName)
+	cmd.ValidArgs = describe.DescribableResources()
 	return cmd
 }
 
@@ -217,11 +232,82 @@ func NewCmdProxy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 	return cmd
 }
 
-func tab(original string) string {
-	lines := []string{}
-	scanner := bufio.NewScanner(strings.NewReader(original))
-	for scanner.Scan() {
-		lines = append(lines, "  "+scanner.Text())
-	}
-	return strings.Join(lines, "\n")
+const (
+	resizeLong = `Set a new size for a Replication Controller either directly or via its Deployment Configuration.
+
+Resize also allows users to specify one or more preconditions for the resize action.
+If --current-replicas or --resource-version is specified, it is validated before the
+resize is attempted, and it is guaranteed that the precondition holds true when the
+resize is sent to the server.`
+	resizeExample = `// Resize replication controller named 'foo' to 3.
+$ %[1]s resize --replicas=3 replicationcontrollers foo
+
+// If the replication controller named foo's current size is 2, resize foo to 3.
+$ %[1]s resize --current-replicas=2 --replicas=3 replicationcontrollers foo`
+)
+
+// NewCmdResize is a wrapper for the Kubernetes cli resize command
+func NewCmdResize(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdResize(f.Factory, out)
+	cmd.Long = resizeLong
+	cmd.Example = fmt.Sprintf(resizeExample, fullName)
+	return cmd
+}
+
+const (
+	stopLong = `Gracefully shut down a resource by id or filename.
+
+Attempts to shut down and delete a resource that supports graceful termination.
+If the resource is resizable it will be resized to 0 before deletion.`
+
+	stopExample = `// Shut down foo.
+$ %[1]s stop replicationcontroller foo
+
+// Stop pods and services with label name=myLabel.
+$ %[1]s stop pods,services -l name=myLabel
+
+// Shut down the service defined in service.json
+$ %[1]s stop -f service.json
+
+// Shut down all resources in the path/to/resources directory
+$ %[1]s stop -f path/to/resources`
+)
+
+// NewCmdStop is a wrapper for the Kubernetes cli stop command
+func NewCmdStop(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdStop(f.Factory, out)
+	cmd.Long = stopLong
+	cmd.Example = fmt.Sprintf(stopExample, fullName)
+	return cmd
+}
+
+const (
+	labelLong = `Update the labels on a resource.
+
+If --overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error.
+If --resource-version is specified, then updates will use this resource version, otherwise the existing resource-version will be used.`
+
+	labelExample = `// Update pod 'foo' with the label 'unhealthy' and the value 'true'.
+$ %[1]s label pods foo unhealthy=true
+
+// Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
+$ %[1]s label --overwrite pods foo status=unhealthy
+
+// Update all pods in the namespace
+$ %[1]s label pods --all status=unhealthy
+
+// Update pod 'foo' only if the resource is unchanged from version 1.
+$ %[1]s label pods foo status=unhealthy --resource-version=1
+
+// Update pod 'foo' by removing a label named 'bar' if it exists.
+// Does not require the --overwrite flag.
+$ %[1]s label pods foo bar-`
+)
+
+// NewCmdLabel is a wrapper for the Kubernetes cli label command
+func NewCmdLabel(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdLabel(f.Factory, out)
+	cmd.Long = labelLong
+	cmd.Example = fmt.Sprintf(labelExample, fullName)
+	return cmd
 }

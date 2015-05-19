@@ -58,7 +58,7 @@ func init() {
 			}
 			return nil
 		},
-		func(in *newer.STIBuildStrategy, out *STIBuildStrategy, s conversion.Scope) error {
+		func(in *newer.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
 			if in.From != nil {
 				switch in.From.Kind {
 				case "ImageStreamImage":
@@ -92,12 +92,14 @@ func init() {
 				}
 			}
 			out.Scripts = in.Scripts
+			out.PullSecretName = in.PullSecretName
 			out.Clean = !in.Incremental
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
-		func(in *STIBuildStrategy, out *newer.STIBuildStrategy, s conversion.Scope) error {
+		func(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
 			out.Scripts = in.Scripts
 			out.Incremental = !in.Clean
+			out.PullSecretName = in.PullSecretName
 			if in.From != nil {
 				out.From = &api.ObjectReference{
 					Kind:      in.From.Kind,
@@ -125,6 +127,7 @@ func init() {
 		// Rename DockerBuildStrategy.BaseImage to DockerBuildStrategy.Image
 		func(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
 			out.NoCache = in.NoCache
+			out.PullSecretName = in.PullSecretName
 			if in.From != nil {
 				switch in.From.Kind {
 				case "ImageStreamImage":
@@ -161,6 +164,7 @@ func init() {
 		},
 		func(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
 			out.NoCache = in.NoCache
+			out.PullSecretName = in.PullSecretName
 			if in.From != nil {
 				out.From = &api.ObjectReference{
 					Kind:      in.From.Kind,
@@ -186,6 +190,7 @@ func init() {
 			return nil
 		},
 		func(in *newer.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
+			out.PullSecretName = in.PullSecretName
 			if in.From != nil {
 				switch in.From.Kind {
 				case "ImageStreamImage":
@@ -221,6 +226,7 @@ func init() {
 			return s.Convert(&in.Env, &out.Env, 0)
 		},
 		func(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
+			out.PullSecretName = in.PullSecretName
 			out.ExposeDockerSocket = in.ExposeDockerSocket
 			if in.From != nil {
 				out.From = &api.ObjectReference{
@@ -246,7 +252,6 @@ func init() {
 			if err := s.Convert(&in.To, &out.To, 0); err != nil {
 				return err
 			}
-			out.Tag = in.Tag
 			out.PushSecretName = in.PushSecretName
 			if len(in.DockerImageReference) > 0 {
 				out.DockerImageReference = in.DockerImageReference
@@ -257,6 +262,13 @@ func init() {
 				out.Registry = ref.Registry
 				ref.Registry = ""
 				out.ImageTag = ref.String()
+				out.Tag = ""
+			}
+			if out.To != nil {
+				out.Tag = in.Tag
+				if len(out.Tag) == 0 {
+					out.Tag = imageapi.DefaultImageTag
+				}
 			}
 			return nil
 		},
@@ -264,19 +276,27 @@ func init() {
 			if err := s.Convert(&in.To, &out.To, 0); err != nil {
 				return err
 			}
-			out.Tag = in.Tag
+			if out.To != nil {
+				out.Tag = in.Tag
+				if len(out.Tag) == 0 {
+					out.Tag = imageapi.DefaultImageTag
+				}
+			}
 			out.PushSecretName = in.PushSecretName
 			if len(in.DockerImageReference) > 0 {
 				out.DockerImageReference = in.DockerImageReference
+				out.Tag = ""
 				return nil
 			}
-			if len(in.ImageTag) != 0 {
+			if len(in.ImageTag) > 0 {
 				ref, err := imageapi.ParseDockerImageReference(in.ImageTag)
 				if err != nil {
 					return err
 				}
 				ref.Registry = in.Registry
 				out.DockerImageReference = ref.String()
+				out.Tag = ""
+				return nil
 			}
 			return nil
 		},

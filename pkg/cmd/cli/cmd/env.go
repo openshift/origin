@@ -63,6 +63,9 @@ syntax.`
   // Update all replication controllers in the project to have ENV=prod
   $ %[1]s env replicationControllers --all ENV=prod
 
+  // Remove the enviroment variable ENV from all deployment configs
+  $ %[1]s env deploymentConfigs --all ENV-
+
   // Remove the enviroment variable ENV from a pod definition on disk and update the pod on the server
   $ %[1]s env -f pod.json ENV-
 

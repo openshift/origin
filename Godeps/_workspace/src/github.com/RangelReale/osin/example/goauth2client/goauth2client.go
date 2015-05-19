@@ -88,41 +88,40 @@ func main() {
 
 		w.Write([]byte("<html><body>"))
 		w.Write([]byte("APP AUTH - CODE<br/>"))
+		defer w.Write([]byte("</body></html>"))
 
-		if code != "" {
-
-			var jr *oauth.Token
-			var err error
-
-			// if parse, download and parse json
-			if r.Form.Get("doparse") == "1" {
-				jr, err = ctransport.Exchange(code)
-				if err != nil {
-					jr = nil
-					w.Write([]byte(fmt.Sprintf("ERROR: %s<br/>\n", err)))
-				}
-			}
-
-			// show json access token
-			if jr != nil {
-				w.Write([]byte(fmt.Sprintf("ACCESS TOKEN: %s<br/>\n", jr.AccessToken)))
-				if jr.RefreshToken != "" {
-					w.Write([]byte(fmt.Sprintf("REFRESH TOKEN: %s<br/>\n", jr.RefreshToken)))
-				}
-			}
-
-			w.Write([]byte(fmt.Sprintf("FULL RESULT: %+v<br/>\n", jr)))
-
-			cururl := *r.URL
-			curq := cururl.Query()
-			curq.Add("doparse", "1")
-			cururl.RawQuery = curq.Encode()
-			w.Write([]byte(fmt.Sprintf("<a href=\"%s\">Download Token</a><br/>", cururl.String())))
-		} else {
+		if code == "" {
 			w.Write([]byte("Nothing to do"))
+			return
 		}
 
-		w.Write([]byte("</body></html>"))
+		var jr *oauth.Token
+		var err error
+
+		// if parse, download and parse json
+		if r.Form.Get("doparse") == "1" {
+			jr, err = ctransport.Exchange(code)
+			if err != nil {
+				jr = nil
+				w.Write([]byte(fmt.Sprintf("ERROR: %s<br/>\n", err)))
+			}
+		}
+
+		// show json access token
+		if jr != nil {
+			w.Write([]byte(fmt.Sprintf("ACCESS TOKEN: %s<br/>\n", jr.AccessToken)))
+			if jr.RefreshToken != "" {
+				w.Write([]byte(fmt.Sprintf("REFRESH TOKEN: %s<br/>\n", jr.RefreshToken)))
+			}
+		}
+
+		w.Write([]byte(fmt.Sprintf("FULL RESULT: %+v<br/>\n", jr)))
+
+		cururl := *r.URL
+		curq := cururl.Query()
+		curq.Add("doparse", "1")
+		cururl.RawQuery = curq.Encode()
+		w.Write([]byte(fmt.Sprintf("<a href=\"%s\">Download Token</a><br/>", cururl.String())))
 	})
 
 	http.ListenAndServe(":14000", nil)

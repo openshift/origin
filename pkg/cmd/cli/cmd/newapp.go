@@ -34,27 +34,32 @@ const (
 This command will try to build up the components of an application using images, templates,
 or code located on your system. It will lookup the images on the local Docker installation
 (if available), a Docker registry, or an OpenShift image stream. If you specify a source
-code URL, it will set up a build that takes your source code and converts it into an
-image that can run inside of a pod. The images will be deployed via a deployment
-configuration, and a service will be hooked up to the first public port of the app.
+code URL, it will set up a build that takes your source code and converts it into an image
+that can run inside of a pod. The images will be deployed via a deployment configuration,
+and a service will be hooked up to the first public port of the app. You may either specify 
+components using the various existing flags or let new-app autodetect what kind of components
+you have provided.
 
-If you specify source code, you may need to run a build with 'start-build' after the
+If you provide source code, you may need to run a build with 'start-build' after the
 application is created.`
 
-	newAppExample = `  // Try to create an application based on the source code in the current directory
-  $ %[1]s new-app .
+	newAppExample = `  // Create an application based on the source code in the current directory and a Docker image
+  $ %[1]s new-app . --docker-image=repo/langimage
 
-  // Use the public Docker Hub MySQL image to create an app
-  $ %[1]s new-app mysql
+  // Create a NodeJS application based on the provided [image]~[source code] combination
+  $ %[1]s new-app openshift/nodejs-010-centos7~https://bitbucket.com/user/nodejs-app
 
-  // Use a MySQL image in a private registry to create an app
-  $ %[1]s new-app myregistry.com/mycompany/mysql
+  // Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
+  $ %[1]s new-app mysql -l db=mysql
 
-  // Create an application from the remote repository using the specified label
-  $ %[1]s new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
+  // Use a MySQL image in a private registry to create an app and override application artifacts' names
+  $ %[1]s new-app --image=myregistry.com/mycompany/mysql --name=private
+
+  // Create an application from a remote repository using its beta2 branch
+  $ %[1]s new-app https://github.com/openshift/ruby-hello-world#beta2
 
   // Create an application based on a stored template, explicitly setting a parameter value
-  $ %[1]s new-app ruby-helloworld-sample --param=MYSQL_USER=admin`
+  $ %[1]s new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin`
 )
 
 // NewCmdNewApplication implements the OpenShift cli new-app command

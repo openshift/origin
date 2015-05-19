@@ -28,53 +28,51 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
+func describerMap(c *client.Client, kclient kclient.Interface, host string) map[string]kctl.Describer {
+	m := map[string]kctl.Describer{
+		"Build":                &BuildDescriber{c, kclient},
+		"BuildConfig":          &BuildConfigDescriber{c, host},
+		"BuildLog":             &BuildLogDescriber{c},
+		"DeploymentConfig":     NewDeploymentConfigDescriber(c, kclient),
+		"Identity":             &IdentityDescriber{c},
+		"Image":                &ImageDescriber{c},
+		"ImageStream":          &ImageStreamDescriber{c},
+		"ImageStreamTag":       &ImageStreamTagDescriber{c},
+		"ImageStreamImage":     &ImageStreamImageDescriber{c},
+		"Route":                &RouteDescriber{c},
+		"Project":              &ProjectDescriber{c, kclient},
+		"Template":             &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
+		"Policy":               &PolicyDescriber{c},
+		"PolicyBinding":        &PolicyBindingDescriber{c},
+		"RoleBinding":          &RoleBindingDescriber{c},
+		"Role":                 &RoleDescriber{c},
+		"ClusterPolicy":        &ClusterPolicyDescriber{c},
+		"ClusterPolicyBinding": &ClusterPolicyBindingDescriber{c},
+		"ClusterRoleBinding":   &ClusterRoleBindingDescriber{c},
+		"ClusterRole":          &ClusterRoleDescriber{c},
+		"User":                 &UserDescriber{c},
+		"UserIdentityMapping":  &UserIdentityMappingDescriber{c},
+	}
+	return m
+}
+
+// List of all resource types we can describe
+func DescribableResources() []string {
+	// Include describable resources in kubernetes
+	keys := kctl.DescribableResources()
+
+	for k := range describerMap(nil, nil, "") {
+		resource := strings.ToLower(k)
+		keys = append(keys, resource)
+	}
+	return keys
+}
+
 // DescriberFor returns a describer for a given kind of resource
 func DescriberFor(kind string, c *client.Client, kclient kclient.Interface, host string) (kctl.Describer, bool) {
-	switch kind {
-	case "Build":
-		return &BuildDescriber{c, kclient}, true
-	case "BuildConfig":
-		return &BuildConfigDescriber{c, host}, true
-	case "BuildLog":
-		return &BuildLogDescriber{c}, true
-	case "DeploymentConfig":
-		return NewDeploymentConfigDescriber(c, kclient), true
-	case "Identity":
-		return &IdentityDescriber{c}, true
-	case "Image":
-		return &ImageDescriber{c}, true
-	case "ImageStream":
-		return &ImageStreamDescriber{c}, true
-	case "ImageStreamTag":
-		return &ImageStreamTagDescriber{c}, true
-	case "ImageStreamImage":
-		return &ImageStreamImageDescriber{c}, true
-	case "Route":
-		return &RouteDescriber{c}, true
-	case "Project":
-		return &ProjectDescriber{c}, true
-	case "Template":
-		return &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil}, true
-	case "Policy":
-		return &PolicyDescriber{c}, true
-	case "PolicyBinding":
-		return &PolicyBindingDescriber{c}, true
-	case "RoleBinding":
-		return &RoleBindingDescriber{c}, true
-	case "Role":
-		return &RoleDescriber{c}, true
-	case "ClusterPolicy":
-		return &ClusterPolicyDescriber{c}, true
-	case "ClusterPolicyBinding":
-		return &ClusterPolicyBindingDescriber{c}, true
-	case "ClusterRoleBinding":
-		return &ClusterRoleBindingDescriber{c}, true
-	case "ClusterRole":
-		return &ClusterRoleDescriber{c}, true
-	case "User":
-		return &UserDescriber{c}, true
-	case "UserIdentityMapping":
-		return &UserIdentityMappingDescriber{c}, true
+	f, ok := describerMap(c, kclient, host)[kind]
+	if ok {
+		return f, true
 	}
 	return nil, false
 }
@@ -152,13 +150,21 @@ type BuildConfigDescriber struct {
 	host string
 }
 
+// TODO: remove when internal SourceBuildStrategyType is refactored to "Source"
+func describeStrategy(strategyType buildapi.BuildStrategyType) buildapi.BuildStrategyType {
+	if strategyType == buildapi.SourceBuildStrategyType {
+		strategyType = buildapi.BuildStrategyType("Source")
+	}
+	return strategyType
+}
+
 func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) {
-	formatString(out, "Strategy", p.Strategy.Type)
+	formatString(out, "Strategy", describeStrategy(p.Strategy.Type))
 	switch p.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
 		describeDockerStrategy(p.Strategy.DockerStrategy, out)
-	case buildapi.STIBuildStrategyType:
-		describeSTIStrategy(p.Strategy.STIStrategy, out)
+	case buildapi.SourceBuildStrategyType:
+		describeSourceStrategy(p.Strategy.SourceStrategy, out)
 	case buildapi.CustomBuildStrategyType:
 		describeCustomStrategy(p.Strategy.CustomStrategy, out)
 	}
@@ -204,7 +210,7 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 	}
 }
 
-func describeSTIStrategy(s *buildapi.STIBuildStrategy, out *tabwriter.Writer) {
+func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writer) {
 	if s.From != nil && len(s.From.Name) != 0 {
 		if len(s.From.Namespace) != 0 {
 			formatString(out, "Image Reference", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))
@@ -214,6 +220,9 @@ func describeSTIStrategy(s *buildapi.STIBuildStrategy, out *tabwriter.Writer) {
 	}
 	if len(s.Scripts) != 0 {
 		formatString(out, "Scripts", s.Scripts)
+	}
+	if len(s.PullSecretName) != 0 {
+		formatString(out, "Pull Secret Name", s.PullSecretName)
 	}
 	if s.Incremental {
 		formatString(out, "Incremental Build", "yes")
@@ -227,6 +236,9 @@ func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writ
 		} else {
 			formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
 		}
+	}
+	if len(s.PullSecretName) != 0 {
+		formatString(out, "Pull Secret Name", s.PullSecretName)
 	}
 	if s.NoCache {
 		formatString(out, "No Cache", "true")
@@ -243,6 +255,9 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 	}
 	if s.ExposeDockerSocket {
 		formatString(out, "Expose Docker Socket", "yes")
+	}
+	if len(s.PullSecretName) != 0 {
+		formatString(out, "Pull Secret Name", s.PullSecretName)
 	}
 	if len(s.Env) != 0 {
 		formatString(out, "Environment", formatLabels(convertEnv(s.Env)))
@@ -442,16 +457,28 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 
 // ProjectDescriber generates information about a Project
 type ProjectDescriber struct {
-	client.Interface
+	osClient   client.Interface
+	kubeClient kclient.Interface
 }
 
 // Describe returns the description of a project
 func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
-	c := d.Projects()
-	project, err := c.Get(name)
+	projectsClient := d.osClient.Projects()
+	project, err := projectsClient.Get(name)
 	if err != nil {
 		return "", err
 	}
+	resourceQuotasClient := d.kubeClient.ResourceQuotas(name)
+	resourceQuotaList, err := resourceQuotasClient.List(labels.Everything())
+	if err != nil {
+		return "", err
+	}
+	limitRangesClient := d.kubeClient.LimitRanges(name)
+	limitRangeList, err := limitRangesClient.List(labels.Everything())
+	if err != nil {
+		return "", err
+	}
+
 	nodeSelector := ""
 	if len(project.ObjectMeta.Annotations) > 0 {
 		if ns, ok := project.ObjectMeta.Annotations["openshift.io/node-selector"]; ok {
@@ -462,8 +489,89 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
 		formatString(out, "Display Name", project.Annotations["displayName"])
+		formatString(out, "Description", project.Annotations["description"])
 		formatString(out, "Status", project.Status.Phase)
 		formatString(out, "Node Selector", nodeSelector)
+		fmt.Fprintf(out, "\n")
+		if len(resourceQuotaList.Items) == 0 {
+			formatString(out, "Quota", "")
+		} else {
+			fmt.Fprintf(out, "Quota:\n")
+			for i := range resourceQuotaList.Items {
+				resourceQuota := &resourceQuotaList.Items[i]
+				fmt.Fprintf(out, "\tName:\t%s\n", resourceQuota.Name)
+				fmt.Fprintf(out, "\tResource\tUsed\tHard\n")
+				fmt.Fprintf(out, "\t--------\t----\t----\n")
+
+				resources := []kapi.ResourceName{}
+				for resource := range resourceQuota.Status.Hard {
+					resources = append(resources, resource)
+				}
+				sort.Sort(kctl.SortableResourceNames(resources))
+
+				msg := "\t%v\t%v\t%v\n"
+				for i := range resources {
+					resource := resources[i]
+					hardQuantity := resourceQuota.Status.Hard[resource]
+					usedQuantity := resourceQuota.Status.Used[resource]
+					fmt.Fprintf(out, msg, resource, usedQuantity.String(), hardQuantity.String())
+				}
+			}
+		}
+		fmt.Fprintf(out, "\n")
+		if len(limitRangeList.Items) == 0 {
+			formatString(out, "Resource limits", "")
+		} else {
+			fmt.Fprintf(out, "Resource limits:\n")
+			for i := range limitRangeList.Items {
+				limitRange := &limitRangeList.Items[i]
+				fmt.Fprintf(out, "\tName:\t%s\n", limitRange.Name)
+				fmt.Fprintf(out, "\tType\tResource\tMin\tMax\tDefault\n")
+				fmt.Fprintf(out, "\t----\t--------\t---\t---\t---\n")
+				for i := range limitRange.Spec.Limits {
+					item := limitRange.Spec.Limits[i]
+					maxResources := item.Max
+					minResources := item.Min
+					defaultResources := item.Default
+
+					set := map[kapi.ResourceName]bool{}
+					for k := range maxResources {
+						set[k] = true
+					}
+					for k := range minResources {
+						set[k] = true
+					}
+					for k := range defaultResources {
+						set[k] = true
+					}
+
+					for k := range set {
+						// if no value is set, we output -
+						maxValue := "-"
+						minValue := "-"
+						defaultValue := "-"
+
+						maxQuantity, maxQuantityFound := maxResources[k]
+						if maxQuantityFound {
+							maxValue = maxQuantity.String()
+						}
+
+						minQuantity, minQuantityFound := minResources[k]
+						if minQuantityFound {
+							minValue = minQuantity.String()
+						}
+
+						defaultQuantity, defaultQuantityFound := defaultResources[k]
+						if defaultQuantityFound {
+							defaultValue = defaultQuantity.String()
+						}
+
+						msg := "\t%v\t%v\t%v\t%v\t%v\n"
+						fmt.Fprintf(out, msg, item.Type, k, minValue, maxValue, defaultValue)
+					}
+				}
+			}
+		}
 		return nil
 	})
 }
@@ -713,7 +821,7 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 	})
 }
 
-const policyRuleHeadings = "Verbs\tResources\tResource Names\tExtension"
+const policyRuleHeadings = "Verbs\tResources\tResource Names\tNon-Resource URLs\tExtension"
 
 func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
 	extensionString := ""
@@ -727,10 +835,11 @@ func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 		}
 	}
 
-	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\n",
+	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\t%v\n",
 		rule.Verbs.List(),
 		rule.Resources.List(),
 		rule.ResourceNames.List(),
+		rule.NonResourceURLs.List(),
 		extensionString)
 }
 
@@ -812,7 +921,15 @@ func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) 
 		return "", err
 	}
 
-	role, err := d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name)
+	var role *authorizationapi.Role
+	if len(roleBinding.RoleRef.Namespace) == 0 {
+		var clusterRole *authorizationapi.ClusterRole
+		clusterRole, err = d.ClusterRoles().Get(roleBinding.RoleRef.Name)
+		role = authorizationapi.ToRole(clusterRole)
+	} else {
+		role, err = d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name)
+	}
+
 	return DescribeRoleBinding(roleBinding, role, err)
 }
 

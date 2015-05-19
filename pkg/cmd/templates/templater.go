@@ -28,6 +28,7 @@ func (templater *Templater) UsageFunc() func(*cobra.Command) error {
 			"flagsUsages":         flagsUsages,
 			"rootCmd":             rootCmdName,
 			"isRootCmd":           isRootCmd,
+			"optionsCmdFor":       optionsCmdFor,
 			"exposed": func(c *cobra.Command) *flag.FlagSet {
 				exposed := flag.NewFlagSet("exposed", flag.ContinueOnError)
 				if len(templater.Exposed) > 0 {
@@ -58,36 +59,59 @@ func UseOptionsTemplates(cmd *cobra.Command) {
 	cmd.SetUsageFunc(templater.UsageFunc())
 }
 
-func rootCmd(c *cobra.Command) []string {
-	root := []string{}
+func rootCmdNames(c *cobra.Command) []string {
+	cmds := rootCmds(c)
+	rootCmdNames := []string{}
+	for _, cmd := range cmds {
+		rootCmdNames = append(rootCmdNames, cmd.Name())
+	}
+	return rootCmdNames
+}
 
-	var appendCmdName func(*cobra.Command)
-	appendCmdName = func(x *cobra.Command) {
+func rootCmds(c *cobra.Command) []*cobra.Command {
+	root := []*cobra.Command{}
+
+	var appendCmd func(*cobra.Command)
+	appendCmd = func(x *cobra.Command) {
 		if x.HasParent() {
-			appendCmdName(x.Parent())
-			root = append(root, x.Parent().Name())
+			appendCmd(x.Parent())
+			root = append(root, x.Parent())
 		}
 	}
-	appendCmdName(c)
+	appendCmd(c)
 
-	if cName := c.Name(); c.HasSubCommands() && len(root) == 1 && root[0] == "openshift" && cName != "openshift" {
-		root = append(root, cName)
+	if c.HasSubCommands() && len(root) == 1 && root[0].Name() == "openshift" && c.Name() != "openshift" {
+		root = append(root, c)
 	}
 
 	if len(root) == 0 {
-		root = append(root, c.Name())
+		root = append(root, c)
 	}
 
 	return root
 }
 
 func rootCmdName(c *cobra.Command) string {
-	return strings.Join(rootCmd(c), " ")
+	return strings.Join(rootCmdNames(c), " ")
 }
 
 func isRootCmd(c *cobra.Command) bool {
-	r := rootCmd(c)
+	r := rootCmdNames(c)
 	return c.HasSubCommands() && r[len(r)-1] == c.Name()
+}
+
+func optionsCmdFor(c *cobra.Command) string {
+	if !c.HasInheritedFlags() || !c.Runnable() {
+		return ""
+	}
+	rootCmdStructure := rootCmds(c)
+	for i := len(rootCmdStructure) - 1; i >= 0; i-- {
+		cmd := rootCmdStructure[i]
+		if _, _, err := cmd.Find([]string{"options"}); err == nil {
+			return cmd.CommandPath() + " options"
+		}
+	}
+	return ""
 }
 
 func flagsUsages(f *flag.FlagSet) string {

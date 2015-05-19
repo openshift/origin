@@ -8,6 +8,11 @@ import (
 
 func init() {
 	err := newer.Scheme.AddDefaultingFuncs(
+		func(obj *KubernetesMasterConfig) {
+			if obj.MasterCount == 0 {
+				obj.MasterCount = 1
+			}
+		},
 		func(obj *EtcdStorageConfig) {
 			if len(obj.KubernetesStorageVersion) == 0 {
 				obj.KubernetesStorageVersion = "v1beta3"

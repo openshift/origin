@@ -56,7 +56,8 @@ func (a *Addr) String() string {
 // Set attempts to set a string value to an address
 func (a *Addr) Set(value string) error {
 	var addr *url.URL
-	if a.isURL(value) {
+	isURL := a.isURL(value)
+	if isURL {
 		parsed, err := url.Parse(value)
 		if err != nil {
 			return fmt.Errorf("not a valid URL: %v", err)
@@ -84,7 +85,10 @@ func (a *Addr) Set(value string) error {
 		a.Host = host
 		a.Port = int(portNum)
 	} else {
-		port := a.DefaultPort
+		port := 0
+		if !isURL {
+			port = a.DefaultPort
+		}
 		if port == 0 {
 			switch addr.Scheme {
 			case "http":

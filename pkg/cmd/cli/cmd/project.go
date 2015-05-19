@@ -13,7 +13,6 @@ import (
 	kubecmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
@@ -159,7 +158,7 @@ func (o ProjectOptions) RunProject() error {
 
 	// Check if argument is an existing context, if so just set it as the context in use.
 	// If not a context then we will try to handle it as a project.
-	if context, ok := config.Contexts[argument]; !o.ProjectOnly && (ok && len(context.Namespace) > 0) {
+	if context, contextExists := config.Contexts[argument]; !o.ProjectOnly && contextExists {
 		contextInUse = argument
 		namespaceInUse = context.Namespace
 
@@ -187,47 +186,19 @@ func (o ProjectOptions) RunProject() error {
 			return err
 		}
 
-		// If a context exists, just set it as the current one.
-		exists := false
-		for k, ctx := range config.Contexts {
-			namespace := ctx.Namespace
-			cluster := config.Clusters[ctx.Cluster]
-			authInfo := config.AuthInfos[ctx.AuthInfo]
-
-			if len(namespace) > 0 && namespace == project.Name && clusterAndAuthEquality(clientCfg, cluster, authInfo) {
-				exists = true
-				config.CurrentContext = k
-
-				contextInUse = k
-				namespaceInUse = namespace
-
-				break
-			}
+		kubeconfig, err := cliconfig.CreateConfig(project.Name, o.ClientConfig)
+		if err != nil {
+			return err
 		}
 
-		// Otherwise create a new context, reusing the cluster and auth info
-		if !exists {
-			currentCtx := config.CurrentContext
-
-			newCtx := clientcmdapi.NewContext()
-			newCtx.Namespace = project.Name
-
-			newCtx.AuthInfo = config.Contexts[currentCtx].AuthInfo
-			newCtx.Cluster = config.Contexts[currentCtx].Cluster
-
-			existingContexIdentifiers := &util.StringSet{}
-			for key := range config.Contexts {
-				existingContexIdentifiers.Insert(key)
-			}
-
-			newCtxName := cliconfig.GenerateContextIdentifier(newCtx.Namespace, newCtx.Cluster, "", existingContexIdentifiers)
-
-			config.Contexts[newCtxName] = *newCtx
-			config.CurrentContext = newCtxName
-
-			contextInUse = newCtxName
-			namespaceInUse = project.Name
+		merged, err := cliconfig.MergeConfig(config, *kubeconfig)
+		if err != nil {
+			return err
 		}
+		config = *merged
+
+		namespaceInUse = project.Name
+		contextInUse = merged.CurrentContext
 	}
 
 	if err := kubecmdconfig.ModifyConfig(o.PathOptions, config); err != nil {

@@ -150,8 +150,8 @@ func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.
 	}
 
 	return &buildapi.BuildStrategy{
-		Type: buildapi.STIBuildStrategyType,
-		STIStrategy: &buildapi.STIBuildStrategy{
+		Type: buildapi.SourceBuildStrategyType,
+		SourceStrategy: &buildapi.SourceBuildStrategy{
 			From: s.Base.ObjectReference(),
 		},
 	}, s.Base.BuildTriggers()
@@ -187,12 +187,12 @@ func (r *ImageRef) ObjectReference() *kapi.ObjectReference {
 	if r.Stream != nil {
 		return &kapi.ObjectReference{
 			Kind: "ImageStreamTag",
-			Name: r.Name + ":" + r.Tag,
+			Name: r.Stream.Name + ":" + r.Tag,
 		}
 	}
 	return &kapi.ObjectReference{
-		Kind: "ImageStreamTag",
-		Name: r.Name + ":" + imageapi.DefaultImageTag,
+		Kind: "DockerImage",
+		Name: r.String(),
 	}
 }
 

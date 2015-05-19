@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/golang/glog"
@@ -54,6 +55,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 			c.SetOutput(os.Stdout)
 			c.Help()
 		},
+		BashCompletionFunction: bashCompletionFunc,
 	}
 
 	f := clientcmd.New(cmds.PersistentFlags())
@@ -88,18 +90,20 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 		cmds.AddCommand(version.NewVersionCommand(fullName))
 	}
 	cmds.AddCommand(cmd.NewCmdConfig(fullName, "config"))
-	cmds.AddCommand(cmd.NewCmdOptions(f, out))
+	cmds.AddCommand(cmd.NewCmdOptions(out))
+	cmds.AddCommand(cmd.NewCmdResize(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdStop(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdLabel(fullName, f, out))
 
 	return cmds
 }
 
 // NewCmdKubectl provides exactly the functionality from Kubernetes,
 // but with support for OpenShift resources
-func NewCmdKubectl(name string) *cobra.Command {
+func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	f := clientcmd.New(flags)
-	out := os.Stdout
-	cmds := kubecmd.NewKubectlCommand(f.Factory, os.Stdin, os.Stdout, os.Stderr)
+	cmds := kubecmd.NewKubectlCommand(f.Factory, os.Stdin, out, os.Stderr)
 	cmds.Aliases = []string{"kubectl"}
 	cmds.Use = name
 	cmds.Short = "Kubernetes cluster management via kubectl"
@@ -111,7 +115,7 @@ func NewCmdKubectl(name string) *cobra.Command {
 			glog.V(5).Infof("already registered flag %s", flag.Name)
 		}
 	})
-	cmds.AddCommand(cmd.NewCmdOptions(f, out))
+	cmds.AddCommand(cmd.NewCmdOptions(out))
 	return cmds
 }
 

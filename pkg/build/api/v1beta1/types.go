@@ -165,8 +165,8 @@ type BuildStrategy struct {
 	// DockerStrategy holds the parameters to the Docker build strategy.
 	DockerStrategy *DockerBuildStrategy `json:"dockerStrategy,omitempty"`
 
-	// STIStrategy holds the parameters to the STI build strategy.
-	STIStrategy *STIBuildStrategy `json:"stiStrategy,omitempty"`
+	// SourceStrategy holds the parameters to the STI build strategy.
+	SourceStrategy *SourceBuildStrategy `json:"stiStrategy,omitempty"`
 
 	// CustomStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty"`
@@ -180,9 +180,9 @@ const (
 	// DockerBuildStrategyType performs builds using a Dockerfile.
 	DockerBuildStrategyType BuildStrategyType = "Docker"
 
-	// STIBuildStrategyType performs builds build using Source To Images with a Git repository
+	// SourceBuildStrategyType performs builds build using Source To Images with a Git repository
 	// and a builder image.
-	STIBuildStrategyType BuildStrategyType = "STI"
+	SourceBuildStrategyType BuildStrategyType = "STI"
 
 	// CustomBuildStrategyType performs builds using custom builder Docker image.
 	CustomBuildStrategyType BuildStrategyType = "Custom"
@@ -211,6 +211,11 @@ type CustomBuildStrategy struct {
 	// applies when From is specified and the Kind of From is ImageStream.
 	// JSON tag should be changed to "tag" instead of "Tag" in v1beta2
 	Tag string `json:"Tag,omitempty"`
+
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:"pullSecretName,omitempty"`
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -243,10 +248,15 @@ type DockerBuildStrategy struct {
 	// applies when From is specified and the Kind of From is ImageStream.
 	// JSON tag should be changed to "tag" instead of "Tag" in v1beta2
 	Tag string `json:"Tag,omitempty"`
+
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:"pullSecretName,omitempty"`
 }
 
-// STIBuildStrategy defines input parameters specific to an STI build.
-type STIBuildStrategy struct {
+// SourceBuildStrategy defines input parameters specific to an STI build.
+type SourceBuildStrategy struct {
 	// BuilderImage is the image used to execute the build.
 	// Deprecated: will be removed in v1beta3, use Image.
 	BuilderImage string `json:"builderImage,omitempty"`
@@ -273,6 +283,11 @@ type STIBuildStrategy struct {
 	// Clean flag forces the STI build to not do incremental builds if true.
 	// Deprecated: in v1beta3 it will be replaced by Incremental.
 	Clean bool `json:"clean,omitempty"`
+
+	// PullSecretName is the name of a Secret that would be used for setting up
+	// the authentication for pulling the Docker images from the private Docker
+	// registries
+	PullSecretName string `json:"pullSecretName,omitempty"`
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy

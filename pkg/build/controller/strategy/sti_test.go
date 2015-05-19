@@ -19,7 +19,7 @@ func (t *FakeTempDirCreator) CreateTempDirectory() (string, error) {
 }
 
 func TestSTICreateBuildPod(t *testing.T) {
-	strategy := &STIBuildStrategy{
+	strategy := &SourceBuildStrategy{
 		Image:                "sti-test-image",
 		TempDirectoryCreator: &FakeTempDirCreator{},
 		Codec:                v1beta1.Codec,
@@ -60,16 +60,16 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if len(container.Env) != 6 {
 		t.Fatalf("Expected 6 elements in Env table, got %d", len(container.Env))
 	}
-	if len(container.VolumeMounts) != 3 {
-		t.Fatalf("Expected 3 volumes in container, got %d", len(container.VolumeMounts))
+	if len(container.VolumeMounts) != 4 {
+		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	for i, expected := range []string{dockerSocketPath, dockerPushSecretMountPath, sourceSecretMountPath} {
+	for i, expected := range []string{dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath, sourceSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if len(actual.Spec.Volumes) != 3 {
-		t.Fatalf("Expected 3 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 4 {
+		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if !kapi.Semantic.DeepEqual(container.Resources, expected.Parameters.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
@@ -113,13 +113,14 @@ func mockSTIBuild() *buildapi.Build {
 				SourceSecretName: "fooSecret",
 			},
 			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.STIBuildStrategyType,
-				STIStrategy: &buildapi.STIBuildStrategy{
+				Type: buildapi.SourceBuildStrategyType,
+				SourceStrategy: &buildapi.SourceBuildStrategy{
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "repository/sti-builder",
 					},
-					Scripts: "http://my.build.com/the/sti/scripts",
+					PullSecretName: "bar",
+					Scripts:        "http://my.build.com/the/sti/scripts",
 					Env: []kapi.EnvVar{
 						{Name: "BUILD_LOGLEVEL", Value: "bar"},
 					},

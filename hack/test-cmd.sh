@@ -72,7 +72,7 @@ if [[ -n "${profile}" ]]; then
     if [[ "${TEST_PROFILE-}" == "cli" ]]; then
         export CLI_PROFILE="${profile}"
     else
-        export WEB_PROFILE="${profile}"
+        export WEB_PROFILE="${profile:-cpu}"
     fi
 fi
 
@@ -130,7 +130,7 @@ openshift start \
 
 
 # Start openshift
-OPENSHIFT_PROFILE=cpu OPENSHIFT_ON_PANIC=crash openshift start \
+OPENSHIFT_ON_PANIC=crash openshift start \
   --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
   --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
   1>&2 &
@@ -168,12 +168,22 @@ if [[ "${API_SCHEME}" == "https" ]]; then
     [ "$(osc get services 2>&1 | grep 'certificate signed by unknown authority')" ]
 fi
 
-
+# login and logout tests
+[ "$(osc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify 2>&1 | grep 'mutually exclusive')" ]
+[ "$(osc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
+osc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+osc logout
+osc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
+temp_token=$(osc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
+[ "$(osc login --token=${temp_token} 2>&1 | grep 'using the token provided')" ]
+osc logout
 osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 osc new-project project-foo --display-name="my project" --description="boring project description"
 [ "$(osc project | grep 'Using project "project-foo"')" ]
 osc logout
 [ -z "$(osc get pods | grep 'system:anonymous')" ]
+
+# log in and set project to use from now on
 osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 osc get projects
 osc project project-foo
@@ -207,6 +217,7 @@ osc get templates
 echo "templates: ok"
 
 # verify some default commands
+[ "$(openshift 2>&1)" ]
 [ "$(openshift cli)" ]
 [ "$(openshift ex)" ]
 [ "$(openshift admin config 2>&1)" ]
@@ -216,6 +227,14 @@ echo "templates: ok"
 [ "$(openshift kubectl 2>&1)" ]
 [ "$(openshift kube 2>&1)" ]
 [ "$(openshift admin 2>&1)" ]
+[ "$(openshift start kubernetes 2>&1)" ]
+[ "$(kubernetes 2>&1)" ]
+[ "$(kubectl 2>&1)" ]
+[ "$(osc 2>&1)" ]
+[ "$(os 2>&1)" ]
+[ "$(osadm 2>&1)" ]
+[ "$(oadm 2>&1)" ]
+[ "$(origin 2>&1)" ]
 
 # help for root commands must be consistent
 [ "$(openshift | grep 'OpenShift Application Platform')" ]
@@ -226,6 +245,7 @@ echo "templates: ok"
 [ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
 [ "$(osadm 2>&1 | grep 'OpenShift Administrative Commands')" ]
 [ "$(openshift admin 2>&1 | grep 'OpenShift Administrative Commands')" ]
+[ "$(openshift start kubernetes 2>&1 | grep 'Kubernetes server components')" ]
 
 # help for root commands with --help flag must be consistent
 [ "$(openshift --help 2>&1 | grep 'OpenShift Application Platform')" ]
@@ -379,18 +399,37 @@ osc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
 osc process -f test/templates/fixtures/guestbook.json --parameters --value="ADMIN_USERNAME=admin"
-osc process -f test/templates/fixtures/guestbook.json | osc create -f -
+osc process -f test/templates/fixtures/guestbook.json -l app=guestbook | osc create -f -
 osc status
 [ "$(osc status | grep frontend-service)" ]
 echo "template+config: ok"
-
 [ "$(OSC_EDITOR='cat' osc edit svc/kubernetes 2>&1 | grep 'Edit cancelled')" ]
 [ "$(OSC_EDITOR='cat' osc edit svc/kubernetes | grep 'provider: kubernetes')" ]
+osc delete all -l app=guestbook
 echo "edit: ok"
 
-openshift kube resize --replicas=2 rc guestbook
-osc get pods
+osc delete all --all
+osc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
+wait_for_command 'osc get rc/ruby-hello-world-1' "${TIME_MIN}"
+# resize rc via deployment configuration
+osc resize dc ruby-hello-world --replicas=1
+# resize directly
+osc resize rc ruby-hello-world-1 --current-replicas=1 --replicas=5
+[ "$(osc get rc/ruby-hello-world-1 | grep 5)" ]
+osc delete all -l app=ruby
 echo "resize: ok"
+
+osc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | osc create -f -
+wait_for_command 'osc get rc/database-1' "${TIME_MIN}"
+osc get dc/database
+osc stop dc/database
+[ ! "$(osc get rc/database-1)" ]
+[ ! "$(osc get dc/database)" ]
+echo "stop: ok"
+osc label bc ruby-sample-build acustom=label
+[ "$(osc describe bc/ruby-sample-build | grep 'acustom=label')" ]
+osc delete all -l app=dockerbuild
+echo "label: ok"
 
 osc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | osc create -f -
 osc get buildConfigs
@@ -424,6 +463,19 @@ echo "cancel-build: ok"
 osc delete is/ruby-20-centos7-buildcli
 osc delete bc/ruby-sample-build-validtag
 osc delete bc/ruby-sample-build-invalidtag
+
+# Test admin manage-node operations
+[ "$(openshift admin manage-node --help 2>&1 | grep 'Manage node operations')" ]
+[ "$(osadm manage-node --schedulable=true | grep --text 'Ready' | grep -v 'Sched')" ]
+osc create -f examples/hello-openshift/hello-pod.json
+[ "$(osadm manage-node --list-pods | grep 'hello-openshift' | grep -v 'unassigned')" ]
+[ "$(osadm manage-node --evacuate --dry-run | grep 'hello-openshift')" ]
+[ "$(osadm manage-node --schedulable=false | grep 'SchedulingDisabled')" ]
+[ "$(osadm manage-node --evacuate 2>&1 | grep 'Unable to evacuate')" ]
+[ "$(osadm manage-node --evacuate --force | grep 'hello-openshift')" ]
+[ ! "$(osadm manage-node --list-pods | grep 'hello-openshift')" ]
+osc delete pods hello-openshift
+echo "manage-node: ok"
 
 openshift admin policy add-role-to-group cluster-admin system:unauthenticated
 openshift admin policy remove-role-from-group cluster-admin system:unauthenticated

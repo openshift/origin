@@ -28,7 +28,7 @@ angular.module('openshiftConsole')
     var authLogger = Logger.get("auth");
 
     return {
-      // Returns a promise that resolves with {user:{...}, token:''}, or rejects with {error:'...'[,error_description:'...',error_uri:'...']}
+      // Returns a promise that resolves with {user:{...}, token:'...', ttl:X}, or rejects with {error:'...'[,error_description:'...',error_uri:'...']}
       login: function() {
         if (_oauth_client_id == "") {
           return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthClientID() not set'}); 
@@ -45,7 +45,7 @@ angular.module('openshiftConsole')
         uri.query({
           client_id: _oauth_client_id,
           response_type: 'token',
-          state: $location.url(), // TODO: get state working
+          state: $location.url(),
           redirect_uri: _oauth_redirect_uri,
         });
         authLogger.log("RedirectLoginService.login(), redirecting", uri.toString());
@@ -86,6 +86,7 @@ angular.module('openshiftConsole')
           var deferred = $q.defer();
           deferred.resolve({
             token: fragmentParams.access_token,
+            ttl: fragmentParams.expires_in,
             then: fragmentParams.state
           });
           return deferred.promise;

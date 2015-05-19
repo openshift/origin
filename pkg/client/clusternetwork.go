@@ -32,13 +32,13 @@ func newClusterNetwork(c *Client) *clusterNetwork {
 // Get returns information about a particular network
 func (c *clusterNetwork) Get(networkName string) (result *sdnapi.ClusterNetwork, err error) {
 	result = &sdnapi.ClusterNetwork{}
-	err = c.r.Get().Resource("clusterNetwork").Name(networkName).Do().Into(result)
+	err = c.r.Get().Resource("clusterNetworks").Name(networkName).Do().Into(result)
 	return
 }
 
 // Create creates a new ClusterNetwork. Returns the server's representation of ClusterNetwork and error if one occurs.
 func (c *clusterNetwork) Create(cn *sdnapi.ClusterNetwork) (result *sdnapi.ClusterNetwork, err error) {
 	result = &sdnapi.ClusterNetwork{}
-	err = c.r.Post().Resource("clusterNetwork").Body(cn).Do().Into(result)
+	err = c.r.Post().Resource("clusterNetworks").Body(cn).Do().Into(result)
 	return
 }

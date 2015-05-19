@@ -51,8 +51,8 @@ function exectest() {
   echo "Running $1..."
 
   result=1
-  if [ ! -z "${VERBOSE-}" ]; then
-    out=$("${testexec}" -test.v=true -v ${VERBOSE-} -test.run="^$1$" "${@:2}" 2>&1)
+  if [ -n "${VERBOSE-}" ]; then
+    "${testexec}" -test.v -test.run="^$1$" "${@:2}" 2>&1
     result=$?
   else
     out=$("${testexec}" -test.run="^$1$" "${@:2}" 2>&1)

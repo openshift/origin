@@ -11,8 +11,10 @@ import (
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
 	"github.com/openshift/origin/pkg/user/registry/user"
@@ -64,10 +66,14 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		}
 		name = user.GetName()
 
+		// remove the known virtual groups from the list if they are present
+		contextGroups := util.NewStringSet(user.GetGroups()...)
+		contextGroups.Delete(bootstrappolicy.UnauthenticatedGroup, bootstrappolicy.AuthenticatedGroup)
+
 		if ok, _ := validation.ValidateUserName(name, false); !ok {
 			// The user the authentication layer has identified cannot possibly be a persisted user
 			// Return an API representation of the virtual user
-			return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}}, nil
+			return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 		}
 
 		obj, err := r.Etcd.Get(ctx, name)
@@ -79,7 +85,7 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 			return nil, err
 		}
 
-		return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}}, nil
+		return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 	}
 
 	if ok, details := validation.ValidateUserName(name, false); !ok {

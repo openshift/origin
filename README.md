@@ -206,37 +206,7 @@ FAQ
     iterate through the next few months, you'll see this repository focus more on integration and
     plugins, with more and more features becoming part of Kubernetes.
 
-2. What about [geard](https://github.com/openshift/geard)?
-
-    Geard started as a prototype vehicle for the next generation of the OpenShift node - as an
-    orchestration endpoint, to offer integration with systemd, and to prototype network abstraction,
-    routing, SSH access to containers, and Git hosting.  Its intended goal is to provide a simple
-    way of reliably managing containers at scale, and to offer administrators tools for easily
-    composing those applications (gear deploy).
-
-    With the introduction of Kubernetes, the Kubelet, and the pull model it leverages from etcd, we
-    believe we can implement the pull-orchestration model described in
-    [orchestrating geard](https://github.com/openshift/geard/blob/master/docs/orchestrating_geard.md),
-    especially now that we have a path to properly
-    [limit host compromises from affecting the cluster](https://github.com/GoogleCloudPlatform/kubernetes/pull/860).  
-    The pull-model has many advantages for end clients, not least of which that they are guaranteed
-    to eventually converge to the correct state of the server. We expect that the use cases the geard
-    endpoint offered will be merged into the Kubelet for consumption by admins.
-
-    systemd and Docker integration offers efficient and clean process management and secure logging
-    aggregation with the system.  We plan on introducing those capabilities into Kubernetes over
-    time, especially as we work with the Docker upstream to limit the impact of the Docker daemon's
-    parent child process relationship with containers, where death of the Docker daemon terminates
-    the containers under it
-
-    Network links and their ability to simplify how software connects to other containers is planned
-    for Docker links v2 and is a capability we believe will be important in Kubernetes as well ([see issue 494 for more details](https://github.com/GoogleCloudPlatform/kubernetes/issues/494)).
-
-    The geard deployment descriptor describes containers and their relationships and will be mapped
-    to deployment on top of Kubernetes.  The geard commandline itself will likely be merged directly
-    into the `openshift` command for all-in-one management of a cluster.
-
-3. What can I run on OpenShift?
+2. What can I run on OpenShift?
 
     OpenShift is designed to run any existing Docker images.  In addition you can define builds that will produce new Docker images from a Dockerfile.  However the real magic of OpenShift can be seen when using [Source-To-Image](https://github.com/openshift/source-to-image)(STI) builds which allow you to simply supply an application source repository which will be combined with an existing STI-enabled Docker image to produce a new runnable image that runs your application.  We are continuing to grow the ecosystem of STI-enabled images and documenting them [here](https://ci.openshift.redhat.com/openshift-docs-master-testing/latest/openshift_sti_images/overview.html).  We also have a few more experimental images available:
 

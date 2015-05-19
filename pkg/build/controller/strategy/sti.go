@@ -12,8 +12,8 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
-// STIBuildStrategy creates STI(source to image) builds
-type STIBuildStrategy struct {
+// SourceBuildStrategy creates STI(source to image) builds
+type SourceBuildStrategy struct {
 	Image                string
 	TempDirectoryCreator TempDirectoryCreator
 	// Codec is the codec to use for encoding the output pod.
@@ -36,10 +36,10 @@ var STITempDirectoryCreator = &tempDirectoryCreator{}
 
 // CreateBuildPod creates a pod that will execute the STI build
 // TODO: Make the Pod definition configurable
-func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
+func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	data, err := bs.Codec.Encode(build)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}
 
 	containerEnv := []kapi.EnvVar{
@@ -48,7 +48,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 		{Name: "BUILD_LOGLEVEL", Value: fmt.Sprintf("%d", cmdutil.GetLogLevel())},
 	}
 
-	strategy := build.Parameters.Strategy.STIStrategy
+	strategy := build.Parameters.Strategy.SourceStrategy
 	if len(strategy.Env) > 0 {
 		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
 	}
@@ -80,7 +80,7 @@ func (bs *STIBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, er
 	pod.Spec.Containers[0].Resources = build.Parameters.Resources
 
 	setupDockerSocket(pod)
-	setupDockerSecrets(pod, build.Parameters.Output.PushSecretName)
+	setupDockerSecrets(pod, build.Parameters.Output.PushSecretName, strategy.PullSecretName)
 	setupSourceSecrets(pod, build.Parameters.Source.SourceSecretName)
 	return pod, nil
 }

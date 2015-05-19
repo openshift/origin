@@ -71,13 +71,16 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.From.Kind = specs[c.Intn(len(specs))]
 			}
 		},
-		func(j *build.STIBuildStrategy, c fuzz.Continue) {
+		func(j *build.SourceBuildStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.From.Kind = "ImageStreamTag"
 			j.From.Name = "image:tag"
 			j.From.APIVersion = ""
 			j.From.ResourceVersion = ""
 			j.From.FieldPath = ""
+			if forVersion == "v1beta1" {
+				j.PullSecretName = ""
+			}
 		},
 		func(j *build.CustomBuildStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -86,6 +89,9 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.From.APIVersion = ""
 			j.From.ResourceVersion = ""
 			j.From.FieldPath = ""
+			if forVersion == "v1beta1" {
+				j.PullSecretName = ""
+			}
 		},
 		func(j *build.DockerBuildStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -94,6 +100,9 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.From.APIVersion = ""
 			j.From.ResourceVersion = ""
 			j.From.FieldPath = ""
+			if forVersion == "v1beta1" {
+				j.PullSecretName = ""
+			}
 		},
 		func(j *build.BuildOutput, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -103,9 +112,17 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.Tag, j.DockerImageReference = "", ""
 				if j.To != nil && (len(j.To.Kind) == 0 || j.To.Kind == "ImageStream") {
 					j.To.Kind = "ImageStream"
+					j.Tag = image.DefaultImageTag
+				}
+			} else {
+				if j.To == nil {
+					j.Tag = ""
+					j.DockerImageReference = ""
+				} else {
 					if len(j.Tag) == 0 {
-						j.To.Kind = "latest"
+						j.Tag = image.DefaultImageTag
 					}
+					j.DockerImageReference = ""
 				}
 			}
 		},
@@ -215,7 +232,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		obj2 = obj2conv
 	}
 	if !api.Semantic.DeepEqual(item, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %#v\nFinal: %#v", name, util.ObjectDiff(item, obj2), codec, string(data), item, obj2)
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, util.ObjectDiff(item, obj2), codec, string(data), util.ObjectGoPrintSideBySide(item, obj2))
 		return
 	}
 

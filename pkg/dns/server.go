@@ -12,8 +12,8 @@ import (
 // NewServerDefaults returns the default SkyDNS server configuration for a DNS server.
 func NewServerDefaults() (*server.Config, error) {
 	config := &server.Config{
-		Domain: "local.",
-		Local:  "openshift.default.local.",
+		Domain: "cluster.local.",
+		Local:  "openshift.default.svc.cluster.local.",
 	}
 	return config, server.SetDefaults(config)
 }
@@ -39,8 +39,11 @@ func ListenAndServe(config *server.Config, client *client.Client, etcdclient *et
 }
 
 func openshiftFallback(name string, exact bool) (string, bool) {
-	if name == "openshift.default" {
-		return "kubernetes.default.", true
+	if name == "openshift.default.svc" {
+		return "kubernetes.default.svc.", true
+	}
+	if name == "openshift.default.endpoints" {
+		return "kubernetes.default.endpoints.", true
 	}
 	return "", false
 }

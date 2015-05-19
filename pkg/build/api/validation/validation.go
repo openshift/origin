@@ -161,11 +161,11 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 	case len(strategy.Type) == 0:
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("type"))
 
-	case strategy.Type == buildapi.STIBuildStrategyType:
-		if strategy.STIStrategy == nil {
+	case strategy.Type == buildapi.SourceBuildStrategyType:
+		if strategy.SourceStrategy == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("stiStrategy"))
 		} else {
-			allErrs = append(allErrs, validateSTIStrategy(strategy.STIStrategy).Prefix("stiStrategy")...)
+			allErrs = append(allErrs, validateSourceStrategy(strategy.SourceStrategy).Prefix("stiStrategy")...)
 		}
 	case strategy.Type == buildapi.DockerBuildStrategyType:
 		// DockerStrategy is currently optional, initialize it to a default state if it's not set.
@@ -185,7 +185,7 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 	return allErrs
 }
 
-func validateSTIStrategy(strategy *buildapi.STIBuildStrategy) fielderrors.ValidationErrorList {
+func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	if strategy.From == nil || len(strategy.From.Name) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))

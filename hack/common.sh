@@ -56,8 +56,18 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-sti-build
   openshift-docker-build
   openshift-gitserver
+  origin
   osc
+  os
   osadm
+  oadm
+  kubectl
+  kubernetes
+  kubelet
+  kube-proxy
+  kube-apiserver
+  kube-controller-manager
+  kube-scheduler
 )
 readonly OPENSHIFT_BINARY_COPY=(
   osc
@@ -198,12 +208,12 @@ EOF
   if [[ "${TRAVIS:-}" != "true" ]]; then
     local go_version
     go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.2" ]]; then
+    if [[ "${go_version[2]}" < "go1.4" ]]; then
       echo <<EOF
 
 Detected go version: ${go_version[*]}.
-Kubernetes requires go version 1.2 or greater.
-Please install Go version 1.2 or later.
+OpenShift and Kubernetes requires go version 1.4 or greater.
+Please install Go version 1.4 or later.
 
 EOF
       exit 2
@@ -289,7 +299,7 @@ os::build::place_bins() {
       if [[ "${OS_RELEASE_ARCHIVE-}" == "" ]]; then
         continue
       fi
-      
+
       # Create a temporary bin directory containing only the binaries marked for release.
       local release_binpath=$(mktemp -d openshift.release.${OS_RELEASE_ARCHIVE}.XXX)
       find "${full_binpath_src}" -maxdepth 1 -type f -exec \
@@ -453,4 +463,39 @@ os::build::ldflags() {
     # The -ldflags parameter takes a single string, so join the output.
     echo "${ldflags[*]-}"
   )
+}
+
+os::build::gen-doc() {
+  local cmd="$1"
+  local dest="$2"
+  local skipprefix="${3:-}"
+
+  # We do this in a tmpdir in case the dest has other non-autogenned files
+  # We don't want to include them in the list of gen'd files
+  local tmpdir="${OS_ROOT}/doc_tmp"
+  mkdir "${tmpdir}"
+  # generate the new files
+  ${cmd} "${tmpdir}"
+  # create the list of generated files
+  ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/.files_generated"
+
+  # remove all old generated file from the destination
+  while read file; do
+    if [[ -e "${tmpdir}/${file}" && -n "${skipprefix}" ]]; then
+      local original generated
+      original=$(grep -v "^${skipprefix}" "${dest}/${file}") || :
+      generated=$(grep -v "^${skipprefix}" "${tmpdir}/${file}") || :
+      if [[ "${original}" == "${generated}" ]]; then
+        # overwrite generated with original.
+        mv "${dest}/${file}" "${tmpdir}/${file}"
+      fi
+    else
+      rm "${dest}/${file}" || true
+    fi
+  done <"${dest}/.files_generated"
+
+  # put the new generated file into the destination
+  find "${tmpdir}" -exec rsync -pt {} "${dest}" \; >/dev/null
+  #cleanup
+  rm -rf "${tmpdir}"
 }

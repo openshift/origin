@@ -126,6 +126,8 @@ angular.module('openshiftConsole')
           return "http://docs.openshift.org/latest/dev_guide/builds.html#webhook-triggers";
         case "start-build":
           return "http://docs.openshift.org/latest/dev_guide/builds.html#starting-a-build";
+        case "deployment-operations":
+          return "http://docs.openshift.org/latest/cli_reference/basic_cli_operations.html#deployment-operations";
         default:
           return "http://docs.openshift.org/latest/welcome/index.html";
       }
@@ -205,15 +207,19 @@ angular.module('openshiftConsole')
   })
   .filter("toArray", function() {
     return function(items) {
+      if (!items) {
+        return [];
+      }
+
       if (angular.isArray(items)) {
         return items;
       }
 
-      var array = [];
+      var itemsArray = [];
       angular.forEach(items, function(item) {
-        array.push(item);
+        itemsArray.push(item);
       });
 
-      return array;
+      return itemsArray;
     };
   });

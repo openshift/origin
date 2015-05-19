@@ -690,6 +690,7 @@ angular.module('openshiftConsole')
     policies:                  API_CFG.openshift,
     policyBindings:            API_CFG.openshift,
     projects:                  API_CFG.openshift,
+    projectRequests:           API_CFG.openshift,
     roles:                     API_CFG.openshift,
     roleBindings:              API_CFG.openshift,
     routes:                    API_CFG.openshift,

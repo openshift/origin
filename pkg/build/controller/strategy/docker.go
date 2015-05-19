@@ -25,10 +25,12 @@ type DockerBuildStrategy struct {
 func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	data, err := bs.Codec.Encode(build)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}
 
 	privileged := true
+	strategy := build.Parameters.Strategy.DockerStrategy
+
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      buildutil.GetBuildPodName(build),
@@ -57,7 +59,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	pod.Spec.Containers[0].Resources = build.Parameters.Resources
 
 	setupDockerSocket(pod)
-	setupDockerSecrets(pod, build.Parameters.Output.PushSecretName)
+	setupDockerSecrets(pod, build.Parameters.Output.PushSecretName, strategy.PullSecretName)
 	setupSourceSecrets(pod, build.Parameters.Source.SourceSecretName)
 	return pod, nil
 }

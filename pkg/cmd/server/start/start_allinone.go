@@ -20,6 +20,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -56,10 +57,10 @@ You may also pass --etcd=<address> to connect to an external etcd server.
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
-func NewCommandStartAllInOne(out io.Writer) (*cobra.Command, *AllInOneOptions) {
+func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
 	options := &AllInOneOptions{Output: cmdutil.Output{out}}
 
-	cmd := &cobra.Command{
+	cmds := &cobra.Command{
 		Use:   "start",
 		Short: "Launch OpenShift All-In-One",
 		Long:  allInOne_long,
@@ -89,9 +90,9 @@ func NewCommandStartAllInOne(out io.Writer) (*cobra.Command, *AllInOneOptions) {
 			}
 		},
 	}
-	cmd.SetOutput(out)
+	cmds.SetOutput(out)
 
-	flags := cmd.Flags()
+	flags := cmds.Flags()
 
 	flags.Var(&options.ConfigDir, "write-config", "Directory to write an initial config into.  After writing, exit without starting the server.")
 	flags.StringVar(&options.MasterConfigFile, "master-config", "", "Location of the master configuration file to run from. When running from configuration files, all other command-line arguments are ignored.")
@@ -110,10 +111,13 @@ func NewCommandStartAllInOne(out io.Writer) (*cobra.Command, *AllInOneOptions) {
 
 	startMaster, _ := NewCommandStartMaster(out)
 	startNode, _ := NewCommandStartNode(out)
-	cmd.AddCommand(startMaster)
-	cmd.AddCommand(startNode)
+	cmds.AddCommand(startMaster)
+	cmds.AddCommand(startNode)
 
-	return cmd, options
+	startKube := kubernetes.NewCommand("kubernetes", fullName, out)
+	cmds.AddCommand(startKube)
+
+	return cmds, options
 }
 
 // GetAllInOneArgs makes sure that the node and master args that should be shared, are shared

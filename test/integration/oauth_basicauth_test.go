@@ -202,7 +202,10 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 	})
 
 	// Start remote server
-	remoteAddr := testutil.FindAvailableBindAddress()
+	remoteAddr, err := testutil.FindAvailableBindAddress(9443, 9999)
+	if err != nil {
+		t.Fatalf("Couldn't get free address for test server: %v", err)
+	}
 	remoteServer := &http.Server{
 		Addr:           remoteAddr,
 		Handler:        remoteHandler,

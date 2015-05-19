@@ -71,7 +71,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		return fmt.Errorf("couldn't list deployments for config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 	for _, deployment := range existingDeployments.Items {
-		deploymentStatus := deployutil.StatusForDeployment(&deployment)
+		deploymentStatus := deployutil.DeploymentStatusFor(&deployment)
 		switch deploymentStatus {
 		case deployapi.DeploymentStatusFailed,
 			deployapi.DeploymentStatusComplete:

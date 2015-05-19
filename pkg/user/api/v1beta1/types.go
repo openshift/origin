@@ -12,6 +12,8 @@ type User struct {
 	FullName string `json:"fullName,omitempty"`
 
 	Identities []string `json:"identities"`
+
+	Groups []string `json:"groups"`
 }
 
 type UserList struct {

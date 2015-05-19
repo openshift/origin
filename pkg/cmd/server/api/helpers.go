@@ -3,7 +3,10 @@ package api
 import (
 	"crypto/x509"
 	"fmt"
+	"net"
+	"net/http"
 	"strings"
+	"time"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
@@ -145,6 +148,7 @@ func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, err
 	if err != nil {
 		return nil, nil, err
 	}
+	kubeConfig.WrapTransport = DefaultClientTransport
 	kubeClient, err := kclient.New(kubeConfig)
 	if err != nil {
 		return nil, nil, err
@@ -162,12 +166,27 @@ func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *kclient.Config,
 	if err != nil {
 		return nil, nil, err
 	}
+	kubeConfig.WrapTransport = DefaultClientTransport
 	openshiftClient, err := client.New(kubeConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	return openshiftClient, kubeConfig, nil
+}
+
+// DefaultClientTransport sets defaults for a client Transport that are suitable
+// for use by infrastructure components.
+func DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
+	transport := rt.(*http.Transport)
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	transport.Dial = dialer.Dial
+	// Hold open more internal idle connections
+	transport.MaxIdleConnsPerHost = 50
+	return transport
 }
 
 func UseTLS(servingInfo ServingInfo) bool {

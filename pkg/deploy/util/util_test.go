@@ -108,7 +108,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 		}
 	}
 
-	if len(deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation]) == 0 {
+	if len(EncodedDeploymentConfigFor(deployment)) == 0 {
 		t.Fatalf("expected deployment with DeploymentEncodedConfigAnnotation annotation")
 	}
 

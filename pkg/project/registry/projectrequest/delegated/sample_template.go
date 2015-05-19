@@ -1,10 +1,10 @@
 package delegated
 
 import (
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -21,10 +21,10 @@ var (
 	parameters = []string{ProjectNameParam, ProjectDisplayNameParam, ProjectDescriptionParam, ProjectAdminUserParam}
 )
 
-func NewSampleTemplate(openshiftNamespace, templateName string) *templateapi.Template {
+func DefaultTemplate() *templateapi.Template {
 	ret := &templateapi.Template{}
-	ret.Name = templateName
-	ret.Namespace = openshiftNamespace
+	ret.Name = "project-request"
+	ret.Namespace = kapi.NamespaceDefault
 
 	project := &projectapi.Project{}
 	project.Name = "${" + ProjectNameParam + "}"

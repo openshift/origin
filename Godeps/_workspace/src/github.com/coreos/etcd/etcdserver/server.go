@@ -158,6 +158,7 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 	haveWAL := wal.Exist(cfg.WALDir())
 	ss := snap.New(cfg.SnapDir())
 
+	var remotes []*Member
 	switch {
 	case !haveWAL && !cfg.NewCluster:
 		if err := cfg.VerifyJoinExisting(); err != nil {
@@ -170,7 +171,7 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 		if err := ValidateClusterAndAssignIDs(cfg.Cluster, existingCluster); err != nil {
 			return nil, fmt.Errorf("error validating peerURLs %s: %v", existingCluster, err)
 		}
-		cfg.Cluster.UpdateIndex(existingCluster.index)
+		remotes = existingCluster.Members()
 		cfg.Cluster.SetID(existingCluster.id)
 		cfg.Cluster.SetStore(st)
 		cfg.Print()
@@ -238,6 +239,7 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 		Name: cfg.Name,
 		ID:   id.String(),
 	}
+	sstats.Initialize()
 	lstats := stats.NewLeaderStats(id.String())
 
 	srv := &EtcdServer{
@@ -260,8 +262,14 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 		reqIDGen:   idutil.NewGenerator(uint8(id), time.Now()),
 	}
 
+	// TODO: move transport initialization near the definition of remote
 	tr := rafthttp.NewTransporter(cfg.Transport, id, cfg.Cluster.ID(), srv, srv.errorc, sstats, lstats)
-	// add all the remote members into sendhub
+	// add all remotes into transport
+	for _, m := range remotes {
+		if m.ID != id {
+			tr.AddRemote(m.ID, m.PeerURLs)
+		}
+	}
 	for _, m := range cfg.Cluster.Members() {
 		if m.ID != id {
 			tr.AddPeer(m.ID, m.PeerURLs)
@@ -292,7 +300,6 @@ func (s *EtcdServer) start() {
 	s.w = wait.New()
 	s.done = make(chan struct{})
 	s.stop = make(chan struct{})
-	s.stats.Initialize()
 	// TODO: if this is an empty log, writes all peer infos
 	// into the first entry
 	go s.run()
@@ -395,19 +402,15 @@ func (s *EtcdServer) run() {
 				if err := s.store.Recovery(rd.Snapshot.Data); err != nil {
 					log.Panicf("recovery store error: %v", err)
 				}
+				s.Cluster.Recover()
 
-				// It avoids snapshot recovery overwriting newer cluster and
-				// transport setting, which may block the communication.
-				if s.Cluster.index < rd.Snapshot.Metadata.Index {
-					s.Cluster.Recover()
-					// recover raft transport
-					s.r.transport.RemoveAllPeers()
-					for _, m := range s.Cluster.Members() {
-						if m.ID == s.ID() {
-							continue
-						}
-						s.r.transport.AddPeer(m.ID, m.PeerURLs)
+				// recover raft transport
+				s.r.transport.RemoveAllPeers()
+				for _, m := range s.Cluster.Members() {
+					if m.ID == s.ID() {
+						continue
 					}
+					s.r.transport.AddPeer(m.ID, m.PeerURLs)
 				}
 
 				appliedi = rd.Snapshot.Metadata.Index
@@ -671,9 +674,9 @@ func (s *EtcdServer) publish(retryInterval time.Duration) {
 }
 
 func (s *EtcdServer) send(ms []raftpb.Message) {
-	for _, m := range ms {
-		if !s.Cluster.IsIDRemoved(types.ID(m.To)) {
-			m.To = 0
+	for i, _ := range ms {
+		if s.Cluster.IsIDRemoved(types.ID(ms[i].To)) {
+			ms[i].To = 0
 		}
 	}
 	s.r.transport.Send(ms)
@@ -723,7 +726,11 @@ func (s *EtcdServer) applyRequest(r pb.Request) Response {
 		switch {
 		case existsSet:
 			if exists {
-				return f(s.store.Update(r.Path, r.Val, expr))
+				if r.PrevIndex == 0 && r.PrevValue == "" {
+					return f(s.store.Update(r.Path, r.Val, expr))
+				} else {
+					return f(s.store.CompareAndSwap(r.Path, r.PrevValue, r.PrevIndex, r.Val, expr))
+				}
 			}
 			return f(s.store.Create(r.Path, r.Dir, r.Val, false, expr))
 		case r.PrevIndex > 0 || r.PrevValue != "":

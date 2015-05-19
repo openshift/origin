@@ -130,7 +130,7 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 	osutil.RegisterInterruptHandler(s.Stop)
 
 	ch := etcdhttp.NewClientHandler(s)
-	ph := etcdhttp.NewPeerHandler(s.Cluster, etcdserver.RaftTimer(s), s.RaftHandler())
+	ph := etcdhttp.NewPeerHandler(s.Cluster, s.RaftHandler())
 	// Start the peer server in a goroutine
 	for _, l := range plns {
 		go func(l net.Listener) {

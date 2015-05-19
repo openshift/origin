@@ -11,13 +11,14 @@ import (
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-
-	"github.com/spf13/pflag"
+	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
+	deployres "github.com/openshift/origin/pkg/deploy/resizer"
 )
 
 // NewFactory creates a default Factory for commands that should share identical server
@@ -101,7 +102,20 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kDescriberFunc(mapping)
 	}
-
+	w.Resizer = func(mapping *meta.RESTMapping) (kubectl.Resizer, error) {
+		osc, kc, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+		return deployres.ResizerFor(mapping.Kind, osc, kc)
+	}
+	w.Reaper = func(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
+		osc, kc, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+		return deployreaper.ReaperFor(mapping.Kind, osc, kc)
+	}
 	w.Printer = func(mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
 		return describe.NewHumanReadablePrinter(noHeaders), nil
 	}

@@ -23,7 +23,7 @@ type ImageChangeControllerFatalError struct {
 }
 
 func (e ImageChangeControllerFatalError) Error() string {
-	return "fatal error handling ImageStream change: " + e.Reason
+	return fmt.Sprintf("fatal error handling ImageStream change: %s, root error was: %s", e.Reason, e.Err.Error())
 }
 
 // ImageChangeController watches for changes to ImageRepositories and triggers
@@ -51,6 +51,12 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 	// TODO: this is inefficient
 	for _, bc := range c.BuildConfigStore.List() {
 		config := bc.(*buildapi.BuildConfig)
+		obj, err := kapi.Scheme.Copy(config)
+		if err != nil {
+			continue
+		}
+		originalConfig := obj.(*buildapi.BuildConfig)
+
 		from := buildutil.GetImageStreamForStrategy(config)
 		if from == nil || from.Kind != "ImageStreamTag" {
 			continue
@@ -98,6 +104,21 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 		}
 
 		if shouldBuild {
+			// The following update is meant to reduce the chance that the image change controller
+			// will kick off multiple builds on an image change in a HA setup, where multiple controllers
+			// of the same type may be looking at the same etcd data.
+			// If multiple controllers read the same build config (with same ResourceVersion) above and
+			// make a determination that a build needs to be kicked off, the update will only allow one of
+			// those controllers to continue to launch the build, while the rest will return an error and
+			// reset their queue. This won't eliminate the chance of multiple builds, since another controller
+			// can read the build after this update and launch its own build.
+			// TODO: Find a better mechanism to synchronize in a HA setup.
+			if err := c.BuildConfigUpdater.Update(originalConfig); err != nil {
+				// Cannot make an update to the original build config. Likely it has been changed by another process
+				glog.V(4).Infof("Cannot update build config %s when preparing to update LastTriggeredImageID: %v", config.Name, err)
+				return err
+			}
+
 			glog.V(4).Infof("Running build for buildConfig %s in namespace %s", config.Name, config.Namespace)
 			// instantiate new build
 			request := &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Name: config.Name}}
