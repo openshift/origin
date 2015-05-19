@@ -26,10 +26,7 @@ func (s *SchedulableOptions) Run() error {
 			errList = append(errList, err)
 		}
 	}
-	if len(errList) != 0 {
-		return kerrors.NewAggregate(errList)
-	}
-	return nil
+	return kerrors.NewAggregate(errList)
 }
 
 func (s *SchedulableOptions) RunSchedulable(node *kapi.Node, ignoreHeaders *bool) error {
