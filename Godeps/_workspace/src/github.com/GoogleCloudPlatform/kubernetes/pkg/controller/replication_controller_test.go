@@ -889,9 +889,9 @@ func doTestControllerBurstReplicas(t *testing.T, burstReplicas, numReplicas int)
 
 				// This simulates the watch events for all but 1 of the expected pods.
 				// None of these should wake the controller because it has expectations==BurstReplicas.
-				for _, pod := range pods.Items[:expectedPods-1] {
-					manager.podStore.Store.Add(&pod)
-					manager.addPod(&pod)
+				for i := 0; i < expectedPods-1; i++ {
+					manager.podStore.Store.Add(&pods.Items[i])
+					manager.addPod(&pods.Items[i])
 				}
 
 				podExp, exists, err := manager.expectations.GetExpectations(controllerSpec)
@@ -907,9 +907,9 @@ func doTestControllerBurstReplicas(t *testing.T, burstReplicas, numReplicas int)
 					expectedPods = burstReplicas
 				}
 				validateSyncReplication(t, &fakePodControl, 0, expectedPods)
-				for _, pod := range pods.Items[:expectedPods-1] {
-					manager.podStore.Store.Delete(&pod)
-					manager.deletePod(&pod)
+				for i := 0; i < expectedPods-1; i++ {
+					manager.podStore.Store.Delete(&pods.Items[i])
+					manager.deletePod(&pods.Items[i])
 				}
 				podExp, exists, err := manager.expectations.GetExpectations(controllerSpec)
 				if !exists || err != nil {
@@ -952,4 +952,41 @@ func TestControllerBurstReplicas(t *testing.T) {
 	doTestControllerBurstReplicas(t, 5, 30)
 	doTestControllerBurstReplicas(t, 5, 12)
 	doTestControllerBurstReplicas(t, 3, 2)
+}
+
+type FakeRCExpectations struct {
+	*RCExpectations
+	satisfied    bool
+	expSatisfied func()
+}
+
+func (fe FakeRCExpectations) SatisfiedExpectations(rc *api.ReplicationController) bool {
+	fe.expSatisfied()
+	return fe.satisfied
+}
+
+// TestRCSyncExpectations tests that a pod cannot sneak in between counting active pods
+// and checking expectations.
+func TestRCSyncExpectations(t *testing.T) {
+	client := client.NewOrDie(&client.Config{Host: "", Version: testapi.Version()})
+	fakePodControl := FakePodControl{}
+	manager := NewReplicationManager(client, 2)
+	manager.podControl = &fakePodControl
+
+	controllerSpec := newReplicationController(2)
+	manager.controllerStore.Store.Add(controllerSpec)
+	pods := newPodList(nil, 2, api.PodPending, controllerSpec)
+	manager.podStore.Store.Add(&pods.Items[0])
+	postExpectationsPod := pods.Items[1]
+
+	manager.expectations = FakeRCExpectations{
+		NewRCExpectations(), true, func() {
+			// If we check active pods before checking expectataions, the rc
+			// will create a new replica because it doesn't see this pod, but
+			// has fulfilled its expectations.
+			manager.podStore.Store.Add(&postExpectationsPod)
+		},
+	}
+	manager.syncReplicationController(getKey(controllerSpec, t))
+	validateSyncReplication(t, &fakePodControl, 0, 0)
 }

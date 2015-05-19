@@ -18,7 +18,6 @@ package etcd
 
 import (
 	"fmt"
-	"path"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kubeerr "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -111,19 +110,6 @@ func NamespaceKeyRootFunc(ctx api.Context, prefix string) string {
 		key = key + "/" + ns
 	}
 	return key
-}
-
-// NoNamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing namespace rules.
-// If a namespace is on context, it errors.
-func NoNamespaceKeyFunc(ctx api.Context, prefix string, name string) (string, error) {
-	ns, ok := api.NamespaceFrom(ctx)
-	if ok && len(ns) > 0 {
-		return "", kubeerr.NewBadRequest(fmt.Sprintf("Namespace parameter is not allowed on %s.", path.Base(prefix)))
-	}
-	if len(name) == 0 {
-		return "", kubeerr.NewBadRequest("Name parameter required.")
-	}
-	return path.Join(prefix, name), nil
 }
 
 // NamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing namespace rules.
@@ -252,7 +238,7 @@ func (e *Etcd) UpdateWithName(ctx api.Context, name string, obj runtime.Object) 
 	}
 	ttl := uint64(0)
 	if e.TTLFunc != nil {
-		ttl, err = e.TTLFunc(obj, false)
+		ttl, err = e.TTLFunc(obj, true)
 		if err != nil {
 			return err
 		}
@@ -295,7 +281,7 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 			}
 			ttl := uint64(0)
 			if e.TTLFunc != nil {
-				ttl, err = e.TTLFunc(obj, true)
+				ttl, err = e.TTLFunc(obj, false)
 				if err != nil {
 					return nil, 0, err
 				}
@@ -317,7 +303,7 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 		}
 		ttl := uint64(0)
 		if e.TTLFunc != nil {
-			ttl, err = e.TTLFunc(obj, false)
+			ttl, err = e.TTLFunc(obj, true)
 			if err != nil {
 				return nil, 0, err
 			}
