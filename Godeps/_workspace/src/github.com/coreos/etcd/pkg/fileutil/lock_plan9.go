@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !windows,!plan9,!solaris
-
 package fileutil
 
 import (
 	"errors"
 	"os"
 	"syscall"
+	"time"
 )
 
 var (
@@ -35,42 +34,57 @@ type Lock interface {
 }
 
 type lock struct {
-	fd   int
-	file *os.File
+	fname string
+	file  *os.File
 }
 
 func (l *lock) Name() string {
-	return l.file.Name()
+	return l.fname
 }
 
 // TryLock acquires exclusivity on the lock without blocking
 func (l *lock) TryLock() error {
-	err := syscall.Flock(l.fd, syscall.LOCK_EX|syscall.LOCK_NB)
-	if err != nil && err == syscall.EWOULDBLOCK {
+	err := os.Chmod(l.fname, syscall.DMEXCL|0600)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Open(l.fname)
+	if err != nil {
 		return ErrLocked
 	}
-	return err
+
+	l.file = f
+	return nil
 }
 
-// Lock acquires exclusivity on the lock without blocking
+// Lock acquires exclusivity on the lock with blocking
 func (l *lock) Lock() error {
-	return syscall.Flock(l.fd, syscall.LOCK_EX)
+	err := os.Chmod(l.fname, syscall.DMEXCL|0600)
+	if err != nil {
+		return err
+	}
+
+	for {
+		f, err := os.Open(l.fname)
+		if err == nil {
+			l.file = f
+			return nil
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 // Unlock unlocks the lock
 func (l *lock) Unlock() error {
-	return syscall.Flock(l.fd, syscall.LOCK_UN)
-}
-
-func (l *lock) Destroy() error {
 	return l.file.Close()
 }
 
+func (l *lock) Destroy() error {
+	return nil
+}
+
 func NewLock(file string) (Lock, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-	l := &lock{int(f.Fd()), f}
+	l := &lock{fname: file}
 	return l, nil
 }
