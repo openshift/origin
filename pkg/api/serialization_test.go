@@ -259,7 +259,7 @@ var skipV1beta2 = map[string]struct{}{
 	"ImageRepository": {},
 }
 
-const fuzzIters = 400
+const fuzzIters = 20
 
 // For debugging problems
 func TestSpecificKind(t *testing.T) {
