@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
+	"strings"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -31,7 +31,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/kubelet/app"
-	"github.com/openshift/origin/pkg/service"
 )
 
 type commandExecutor interface {
@@ -220,6 +219,8 @@ func (c *NodeConfig) RunKubelet() {
 		"docker",
 		mount.New(),
 		"", // docker daemon container
+		false,
+		200,
 	)
 	if err != nil {
 		glog.Fatalf("Couldn't run kubelet: %s", err)
@@ -263,12 +264,6 @@ func (c *NodeConfig) RunProxy() {
 	// initialize kube proxy
 	serviceConfig := pconfig.NewServiceConfig()
 	endpointsConfig := pconfig.NewEndpointsConfig()
-	pconfig.NewSourceAPI(
-		c.Client.Services(kapi.NamespaceAll),
-		c.Client.Endpoints(kapi.NamespaceAll),
-		30*time.Second,
-		serviceConfig.Channel("api"),
-		endpointsConfig.Channel("api"))
 	loadBalancer := proxy.NewLoadBalancerRR()
 	endpointsConfig.RegisterHandler(loadBalancer)
 
@@ -286,15 +281,39 @@ func (c *NodeConfig) RunProxy() {
 		protocol = iptables.ProtocolIpv6
 	}
 
-	var proxier pconfig.ServiceConfigHandler
-	proxier = proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol))
-	if proxier == nil || reflect.ValueOf(proxier).IsNil() { // explicitly declared interfaces aren't plain nil, you must reflect inside to see if it's really nil or not
-		glog.Errorf("WARNING: Could not modify iptables.  iptables must be mutable by this process to use services.  Do you have root permissions?")
-		proxier = &service.FailingServiceConfigProxy{}
-	}
-	serviceConfig.RegisterHandler(proxier)
+	go util.Forever(func() {
+		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol))
+		if err != nil {
+			switch {
+			// conflicting use of iptables, retry
+			case proxy.IsProxyLocked(err):
+				glog.Errorf("Unable to start proxy, will retry: %v", err)
+				return
+			// on a system without iptables
+			case strings.Contains(err.Error(), "executable file not found in path"):
+				glog.V(4).Infof("kube-proxy initialization error: %v", err)
+				glog.Warningf("WARNING: Could not find the iptables command. The service proxy requires iptables and will be disabled.")
+			case err == proxy.ErrProxyOnLocalhost:
+				glog.Warningf("WARNING: The service proxy cannot bind to localhost and will be disabled.")
+			case strings.Contains(err.Error(), "you must be root"):
+				glog.Warningf("WARNING: Could not modify iptables. You must run this process as root to use the service proxy.")
+			default:
+				glog.Warningf("WARNING: Could not modify iptables. You must run this process as root to use the service proxy: %v", err)
+			}
+			select {}
+		}
 
-	glog.Infof("Started Kubernetes Proxy on %s", host)
+		pconfig.NewSourceAPI(
+			c.Client.Services(kapi.NamespaceAll),
+			c.Client.Endpoints(kapi.NamespaceAll),
+			30*time.Second,
+			serviceConfig.Channel("api"),
+			endpointsConfig.Channel("api"))
+
+		serviceConfig.RegisterHandler(proxier)
+		glog.Infof("Started Kubernetes Proxy on %s", host)
+		select {}
+	}, 5*time.Second)
 }
 
 // TODO: more generic location
