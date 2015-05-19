@@ -98,7 +98,7 @@ func TestCreateInstantiate(t *testing.T) {
 			return &imageapi.ImageStreamTag{*image, name}, nil
 		},
 		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
-			return &imageapi.ImageStreamImage{*image}, nil
+			return &imageapi.ImageStreamImage{Image: *image}, nil
 		},
 	}}}
 
