@@ -9,6 +9,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/docker/docker/pkg/units"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
@@ -108,7 +110,9 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 	events, _ := d.kubeClient.Events(namespace).Search(build)
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
-		formatString(out, "BuildConfig", build.Labels[buildapi.BuildConfigLabel])
+		if build.Config != nil {
+			formatString(out, "Build Config", build.Config.Name)
+		}
 		formatString(out, "Status", bold(build.Status))
 		if build.StartTimestamp != nil {
 			formatString(out, "Started", build.StartTimestamp.Time)
@@ -259,8 +263,12 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 	if len(s.PullSecretName) != 0 {
 		formatString(out, "Pull Secret Name", s.PullSecretName)
 	}
-	if len(s.Env) != 0 {
-		formatString(out, "Environment", formatLabels(convertEnv(s.Env)))
+	for i, env := range s.Env {
+		if i == 0 {
+			formatString(out, "Environment", formatEnv(env))
+		} else {
+			formatString(out, "", formatEnv(env))
+		}
 	}
 }
 
@@ -363,15 +371,64 @@ func (d *ImageDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 
-	return describeImage(image)
+	return describeImage(image, "")
 }
 
-func describeImage(image *imageapi.Image) (string, error) {
+func describeImage(image *imageapi.Image, imageName string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, image.ObjectMeta)
 		formatString(out, "Docker Image", image.DockerImageReference)
+		if len(imageName) > 0 {
+			formatString(out, "Image Name", imageName)
+		}
+		formatString(out, "Parent Image", image.DockerImageMetadata.Parent)
+		formatString(out, "Layer Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
+		formatString(out, "Image Created", fmt.Sprintf("%s ago", formatRelativeTime(image.DockerImageMetadata.Created.Time)))
+		formatString(out, "Author", image.DockerImageMetadata.Author)
+		formatString(out, "Arch", image.DockerImageMetadata.Architecture)
+		describeDockerImage(out, &image.DockerImageMetadata.Config)
 		return nil
 	})
+}
+
+func describeDockerImage(out *tabwriter.Writer, image *imageapi.DockerConfig) {
+	hasCommand := false
+	if len(image.Entrypoint) > 0 {
+		hasCommand = true
+		formatString(out, "Entrypoint", strings.Join(image.Entrypoint, " "))
+	}
+	if len(image.Cmd) > 0 {
+		hasCommand = true
+		formatString(out, "Command", strings.Join(image.Cmd, " "))
+	}
+	if !hasCommand {
+		formatString(out, "Command", "")
+	}
+	formatString(out, "Working Dir", image.WorkingDir)
+	formatString(out, "User", image.User)
+	ports := util.NewStringSet()
+	for k := range image.ExposedPorts {
+		ports.Insert(k)
+	}
+	formatString(out, "Exposes Ports", strings.Join(ports.List(), ", "))
+	for i, env := range image.Env {
+		if i == 0 {
+			formatString(out, "Environment", env)
+		} else {
+			fmt.Fprintf(out, "\t%s\n", env)
+		}
+	}
+	volumes := util.NewStringSet()
+	for k := range image.Volumes {
+		volumes.Insert(k)
+	}
+	for i, volume := range volumes.List() {
+		if i == 0 {
+			formatString(out, "Volumes", volume)
+		} else {
+			fmt.Fprintf(out, "\t%s\n", volume)
+		}
+	}
 }
 
 // ImageStreamTagDescriber generates information about a ImageStreamTag (Image).
@@ -392,7 +449,7 @@ func (d *ImageStreamTagDescriber) Describe(namespace, name string) (string, erro
 		return "", err
 	}
 
-	return describeImage(&imageStreamTag.Image)
+	return describeImage(&imageStreamTag.Image, imageStreamTag.ImageName)
 }
 
 // ImageStreamImageDescriber generates information about a ImageStreamImage (Image).
@@ -409,7 +466,7 @@ func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, er
 		return "", err
 	}
 
-	return describeImage(&imageStreamImage.Image)
+	return describeImage(&imageStreamImage.Image, imageStreamImage.ImageName)
 }
 
 // ImageStreamDescriber generates information about a ImageStream
