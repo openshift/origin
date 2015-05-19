@@ -40,20 +40,20 @@ iptables -I INPUT $lineno -p udp -m multiport --dports 4789 -m comment --comment
 iptables -I INPUT $((lineno+1)) -i ${TUN} -m comment --comment "traffic from docker for internet" -j ACCEPT
 
 ## docker
-if [[ -z "${DOCKER_OPTIONS}" ]]
+if [[ -z "${DOCKER_NETWORK_OPTIONS}" ]]
 then
-    DOCKER_OPTIONS='-b=lbr0 --mtu=1450 --selinux-enabled'
+    DOCKER_NETWORK_OPTIONS='-b=lbr0 --mtu=1450'
 fi
 
-if ! grep -q "^OPTIONS='${DOCKER_OPTIONS}'" /etc/sysconfig/docker
+if ! grep -q "^DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'" /etc/sysconfig/docker-network
 then
-    cat <<EOF > /etc/sysconfig/docker
+    cat <<EOF > /etc/sysconfig/docker-network
 # This file has been modified by openshift-sdn. Please modify the
-# DOCKER_OPTIONS variable in the /etc/sysconfig/openshift-sdn-node,
+# DOCKER_NETWORK_OPTIONS variable in the /etc/sysconfig/openshift-sdn-node,
 # /etc/sysconfig/openshift-sdn-master or /etc/sysconfig/openshift-sdn
 # files (depending on your setup).
 
-OPTIONS='${DOCKER_OPTIONS}'
+DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'
 EOF
 fi
 systemctl daemon-reload
