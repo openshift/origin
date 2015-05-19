@@ -11,7 +11,7 @@
   imagesByDockerReference - map[dockerReference][]Image. Optional.
   builds                  - map[buildId]build. Optional.
  -->
-<div class="osc-object replication-controller components-panel deployment-block" 
+<div class="osc-object components-panel deployment-block" 
      kind="ReplicationController" resource="rc"
      ng-init="isDeployment = (deploymentConfigId && (rc | annotation:'deploymentConfig') && (rc | annotation:'deploymentVersion'))">
 
@@ -24,7 +24,7 @@
   </div>
 
   <!-- Header for deployments. Surface deployment config and trigger info. -->
-  <div class="component-block" ng-if="isDeployment">
+  <div class="component-block component-meta" ng-if="isDeployment">
     <div class="component">
       <div class="component-label">Deployment</div>
       <h3 class="h4">
@@ -47,7 +47,7 @@
           <span class="deployment-trigger" ng-repeat="cause in rc.details.causes">
             <span ng-switch="cause.type">
               <span ng-switch-when="ImageChange">a new image for {{cause.imageTrigger.repositoryName | imageStreamName}}:{{cause.imageTrigger.tag}}</span>
-              <span ng-switch-when="ConfigChange">a deployment configuration change</span>
+              <span ng-switch-when="ConfigChange">a config change</span>
             </span>
           </span>
         </span>
@@ -56,7 +56,7 @@
   </div>
 
   <!-- Header for replication controllers. Name and timestamp only. -->
-  <div class="component-block" ng-if="!isDeployment">
+  <div class="component-block component-meta" ng-if="!isDeployment">
     <div class="component">
       <div class="component-label">Replication Controller</div>
       <h3 class="h4">{{rc.metadata.name}}</h3>

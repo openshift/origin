@@ -3,7 +3,7 @@
 
   pod - Pod. Required.
  -->
-<div class="tile-container components-panel deployment-block">
+<div class="tile-container components-panel deployment-block osc-object" kind="Pod" resource="pod">
   <div class="connector">
     <i class="fa fa-search"></i>
   </div>
@@ -15,16 +15,16 @@
     </div>
 
     <div class="component meta-data">
-      <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp>
+      created <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp>
     </div>
 
   </div>               
 
   <div class="pod-block">
-    <div class="component-label">Pod Template</div>
+    <div class="component-label">Containers</div>
     <pod-template pod-template="pod"></pod-template>
 
-    <div class="component-label">Pod Status</div>
+    <div class="component-label">Status</div>
     <pods pods="[pod]"></pods>
   </div>
 </div>
