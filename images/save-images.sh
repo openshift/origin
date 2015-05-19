@@ -11,7 +11,7 @@ os::build::get_version_vars
 # OS_GIT_VERSION is like 'v0.3.1-4-g2c853ed-dirty'
 IMAGE_VERSION=`echo ${OS_GIT_VERSION} | cut -d '-' -f 1`
 
-for i in ose-deployer ose-docker-builder ose-docker-registry ose-haproxy-router ose-pod ose-sti-builder ose-sti-image-builder;
+for i in ose-deployer ose-docker-builder ose-docker-registry ose-keepalived-ipfailover ose-haproxy-router ose-pod ose-sti-builder ose-sti-image-builder;
 do
   docker save localhost:5000/openshift3_beta/${i}:${IMAGE_VERSION} | gzip > ~/openshift3_beta--${i}-${IMAGE_VERSION}.tar.gz
 done
