@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/node"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/admin/project"
+	"github.com/openshift/origin/pkg/cmd/admin/prune"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
@@ -49,6 +50,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	cmds.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
 	cmds.AddCommand(node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out))
 	cmds.AddCommand(cmd.NewCmdConfig(fullName, "config"))
+	cmds.AddCommand(prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, out))
 
 	// TODO: these probably belong in a sub command
 	cmds.AddCommand(admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, out))
