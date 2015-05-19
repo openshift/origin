@@ -19,6 +19,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volumeclaimbinder"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 	schedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api"
@@ -93,6 +94,12 @@ func (c *MasterConfig) RunNamespaceController() {
 	namespaceController := namespace.NewNamespaceManager(c.KubeClient, 5*time.Minute)
 	namespaceController.Run()
 	glog.Infof("Started Kubernetes Namespace Manager")
+}
+
+func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
+	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(c.KubeClient, 5*time.Minute)
+	binder.Run()
+	glog.Infof("Started Kubernetes Persistent Volume Claim Binder")
 }
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
