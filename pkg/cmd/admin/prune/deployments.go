@@ -43,7 +43,7 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "Prune deployments",
+		Short: "Remove older completed and failed deployments",
 		Long:  fmt.Sprintf(deploymentsLongDesc, parentName, name),
 
 		Run: func(cmd *cobra.Command, args []string) {

@@ -10,12 +10,17 @@ import (
 
 const PruneRecommendedName = "prune"
 
+const pruneLong = `Remove older versions of resources from the server
+
+The commands here allow administrators to manage the older versions of resources on
+the system by removing them.`
+
 func NewCommandPrune(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
-		Short: "Prune resources",
-		Long:  `Prune resources`,
+		Short: "Remove older versions of resources from the server",
+		Long:  pruneLong,
 		Run:   runHelp,
 	}
 
