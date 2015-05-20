@@ -749,16 +749,15 @@ func TestDeletingImagePruneFunc(t *testing.T) {
 	}
 }
 
-/*
-func TestLayerPruning(t *testing.T) {
+func TestRegistryPruning(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
-	registryURL := "registry1"
 
 	tests := map[string]struct {
-		images                imageapi.ImageList
-		streams               imageapi.ImageStreamList
-		expectedDeletions     map[string]util.StringSet
-		expectedStreamUpdates map[string]util.StringSet
+		images                    imageapi.ImageList
+		streams                   imageapi.ImageStreamList
+		expectedLayerDeletions    util.StringSet
+		expectedBlobDeletions     util.StringSet
+		expectedManifestDeletions util.StringSet
 	}{
 		"layers unique to id1 pruned": {
 			images: imageList(
@@ -766,167 +765,99 @@ func TestLayerPruning(t *testing.T) {
 				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
 			),
 			streams: streamList(
-				stream(registryURL, "foo", "bar", tags(
+				stream("registry1", "foo", "bar", tags(
 					tag("latest",
-						tagEvent("id2", registryURL+"/foo/bar@id2"),
-						tagEvent("id1", registryURL+"/foo/bar@id1"),
+						tagEvent("id2", "registry1/foo/bar@id2"),
+						tagEvent("id1", "registry1/foo/bar@id1"),
 					),
 				)),
-				stream(registryURL, "foo", "other", tags(
+				stream("registry1", "foo", "other", tags(
 					tag("latest",
-						tagEvent("id2", registryURL+"/foo/other@id2"),
+						tagEvent("id2", "registry1/foo/other@id2"),
+					),
+				)),
+				stream("registry2", "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id2", "registry2/foo/bar@id2"),
+						tagEvent("id1", "registry2/foo/bar@id1"),
+					),
+				)),
+				stream("registry2", "foo", "other", tags(
+					tag("latest",
+						tagEvent("id2", "registry2/foo/other@id2"),
 					),
 				)),
 			),
-			expectedDeletions: map[string]util.StringSet{
-				"registry1": util.NewStringSet("layer1", "layer2"),
-			},
-			expectedStreamUpdates: map[string]util.StringSet{
-				"registry1": util.NewStringSet("foo/bar"),
-			},
+			expectedLayerDeletions: util.NewStringSet(
+				"registry1|foo/bar|layer1",
+				"registry1|foo/bar|layer2",
+				"registry2|foo/bar|layer1",
+				"registry2|foo/bar|layer2",
+			),
+			expectedBlobDeletions: util.NewStringSet(
+				"registry1|layer1",
+				"registry1|layer2",
+				"registry2|layer1",
+				"registry2|layer2",
+			),
+			expectedManifestDeletions: util.NewStringSet(
+				"registry1|foo/bar|id1",
+				"registry2|foo/bar|id1",
+			),
 		},
 		"no pruning when no images are pruned": {
 			images: imageList(
 				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
 			),
 			streams: streamList(
-				stream(registryURL, "foo", "bar", tags(
+				stream("registry1", "foo", "bar", tags(
 					tag("latest",
-						tagEvent("id1", registryURL+"/foo/bar@id1"),
+						tagEvent("id1", "registry1/foo/bar@id1"),
 					),
 				)),
 			),
-			expectedDeletions:     map[string]util.StringSet{},
-			expectedStreamUpdates: map[string]util.StringSet{},
+			expectedLayerDeletions:    util.NewStringSet(),
+			expectedBlobDeletions:     util.NewStringSet(),
+			expectedManifestDeletions: util.NewStringSet(),
 		},
 	}
 
 	for name, test := range tests {
-		actualDeletions := map[string]util.StringSet{}
-		actualUpdatedStreams := map[string]util.StringSet{}
+		actualLayerDeletions := util.NewStringSet()
+		actualBlobDeletions := util.NewStringSet()
+		actualManifestDeletions := util.NewStringSet()
 
-		imagePruneFunc := func(image *imageapi.Image, streams []*imageapi.ImageStream) []error {
+		pruneImage := func(image *imageapi.Image, streams []*imageapi.ImageStream) []error {
 			return []error{}
 		}
 
-		layerPruneFunc := func(registryURL string, req server.DeleteLayersRequest) (error, map[string][]error) {
-			registryDeletions, ok := actualDeletions[registryURL]
-			if !ok {
-				registryDeletions = util.NewStringSet()
-			}
-			streamUpdates, ok := actualUpdatedStreams[registryURL]
-			if !ok {
-				streamUpdates = util.NewStringSet()
-			}
-
-			for layer, streams := range req {
-				registryDeletions.Insert(layer)
-				streamUpdates.Insert(streams...)
-			}
-
-			actualDeletions[registryURL] = registryDeletions
-			actualUpdatedStreams[registryURL] = streamUpdates
-
-			return nil, map[string][]error{}
+		pruneLayer := func(registryURL, repo, layer string) error {
+			actualLayerDeletions.Insert(fmt.Sprintf("%s|%s|%s", registryURL, repo, layer))
+			return nil
 		}
 
-		p := newImagePruner(60, 1, &test.images, &test.streams, &kapi.PodList{}, &kapi.ReplicationControllerList{}, &buildapi.BuildConfigList{}, &buildapi.BuildList{}, &deployapi.DeploymentConfigList{})
-
-		p.Run(imagePruneFunc, layerPruneFunc)
-
-		if !reflect.DeepEqual(test.expectedDeletions, actualDeletions) {
-			t.Errorf("%s: expected layer deletions %#v, got %#v", name, test.expectedDeletions, actualDeletions)
+		pruneBlob := func(registryURL, blob string) error {
+			actualBlobDeletions.Insert(fmt.Sprintf("%s|%s", registryURL, blob))
+			return nil
 		}
 
-		if !reflect.DeepEqual(test.expectedStreamUpdates, actualUpdatedStreams) {
-			t.Errorf("%s: expected stream updates %q, got %q", name, test.expectedStreamUpdates, actualUpdatedStreams)
+		pruneManifest := func(registryURL, repo, manifest string) error {
+			actualManifestDeletions.Insert(fmt.Sprintf("%s|%s|%s", registryURL, repo, manifest))
+			return nil
+		}
+
+		p := NewImagePruner(60, 1, &test.images, &test.streams, &kapi.PodList{}, &kapi.ReplicationControllerList{}, &buildapi.BuildConfigList{}, &buildapi.BuildList{}, &deployapi.DeploymentConfigList{})
+
+		p.Run(pruneImage, pruneLayer, pruneBlob, pruneManifest)
+
+		if !reflect.DeepEqual(test.expectedLayerDeletions, actualLayerDeletions) {
+			t.Errorf("%s: expected layer deletions %#v, got %#v", name, test.expectedLayerDeletions, actualLayerDeletions)
+		}
+		if !reflect.DeepEqual(test.expectedBlobDeletions, actualBlobDeletions) {
+			t.Errorf("%s: expected blob deletions %#v, got %#v", name, test.expectedBlobDeletions, actualBlobDeletions)
+		}
+		if !reflect.DeepEqual(test.expectedManifestDeletions, actualManifestDeletions) {
+			t.Errorf("%s: expected manifest deletions %#v, got %#v", name, test.expectedManifestDeletions, actualManifestDeletions)
 		}
 	}
 }
-*/
-
-/*
-func TestDeletingLayerPruneFunc(t *testing.T) {
-	tests := map[string]struct {
-		simulateClientError        bool
-		registryResponseStatusCode int
-		registryResponse           string
-		expectedRequestError       string
-		expectedErrors             []string
-	}{
-		"client error": {
-			simulateClientError:  true,
-			expectedRequestError: "Error sending request:",
-		},
-		"non-200 response": {
-			registryResponseStatusCode: http.StatusInternalServerError,
-			expectedRequestError:       fmt.Sprintf("Unexpected status code %d in response", http.StatusInternalServerError),
-			registryResponse:           "{}",
-		},
-		"error unmarshaling response body": {
-			registryResponseStatusCode: http.StatusOK,
-			registryResponse:           "foo",
-			expectedRequestError:       "Error unmarshaling response:",
-		},
-		"happy path - no response errors": {
-			registryResponseStatusCode: http.StatusOK,
-			registryResponse:           `{"result":"success"}`,
-			expectedErrors:             []string{},
-		},
-		"happy path - with response errors": {
-			registryResponseStatusCode: http.StatusOK,
-			registryResponse:           `{"result":"failure","errors":{"layer1":["error1","error2","error3"]}}`,
-			expectedErrors:             []string{"error1", "error2", "error3"},
-		},
-	}
-
-	for name, test := range tests {
-		client := http.DefaultClient
-
-		testServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			w.WriteHeader(test.registryResponseStatusCode)
-			w.Write([]byte(test.registryResponse))
-		}))
-		registry := testServer.Listener.Addr().String()
-
-		if !test.simulateClientError {
-			testServer.Start()
-			defer testServer.Close()
-		} else {
-			registry = "noregistryhere!"
-		}
-
-		pruneFunc := DeletingLayerPruneFunc(client)
-
-		deletions := server.DeleteLayersRequest{
-			"layer1": {"aaa/stream1", "bbb/stream2"},
-		}
-
-		requestError, layerErrors := pruneFunc(registry, deletions)
-
-		gotError := requestError != nil
-		expectError := len(test.expectedRequestError) != 0
-		if e, a := expectError, gotError; e != a {
-			t.Errorf("%s: requestError: expected %t, got %t: %v", name, e, a, requestError)
-			continue
-		}
-		if gotError {
-			if e, a := test.expectedRequestError, requestError; !strings.HasPrefix(a.Error(), e) {
-				t.Errorf("%s: expected request error %q, got %q", name, e, a)
-			}
-		}
-
-		errs := layerErrors["layer1"]
-		if e, a := len(test.expectedErrors), len(errs); e != a {
-			t.Errorf("%s: expected %d errors (%v), got %d (%v)", name, e, test.expectedErrors, a, errs)
-			continue
-		}
-		for i, e := range test.expectedErrors {
-			a := errs[i].Error()
-			if !strings.HasPrefix(a, e) {
-				t.Errorf("%s: expected error starting with %q, got %q", name, e, a)
-			}
-		}
-	}
-}
-*/
