@@ -57,6 +57,7 @@ import (
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
+	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
 	deployrollback "github.com/openshift/origin/pkg/deploy/rollback"
 	"github.com/openshift/origin/pkg/dns"
@@ -169,6 +170,9 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	buildConfigStorage := buildconfigetcd.NewStorage(c.EtcdHelper)
 	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
+	deployConfigStorage := deployconfigetcd.NewStorage(c.EtcdHelper)
+	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
+
 	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
 	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
@@ -231,7 +235,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		Client: deployconfiggenerator.Client{
-			DCFn:   deployEtcd.GetDeploymentConfig,
+			DCFn:   deployConfigRegistry.GetDeploymentConfig,
 			ISFn:   imageStreamRegistry.GetImageStream,
 			LISFn2: imageStreamRegistry.ListImageStreams,
 		},
@@ -239,7 +243,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	_, kclient := c.DeploymentConfigControllerClients()
 	deployRollback := &deployrollback.RollbackGenerator{}
 	deployRollbackClient := deployrollback.Client{
-		DCFn: deployEtcd.GetDeploymentConfig,
+		DCFn: deployConfigRegistry.GetDeploymentConfig,
 		RCFn: clientDeploymentInterface{kclient}.GetDeployment,
 		GRFn: deployRollback.GenerateRollback,
 	}
@@ -285,7 +289,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"imageRepositoryTags":      imageRepositoryTagStorage,
 
 		"deployments":               deployregistry.NewREST(deployEtcd),
-		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
+		"deploymentConfigs":         deployConfigStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
 

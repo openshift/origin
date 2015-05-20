@@ -19,8 +19,6 @@ import (
 const (
 	// DeploymentPath is the path to deployment resources in etcd
 	DeploymentPath string = "/deployments"
-	// DeploymentConfigPath is the path to deploymentConfig resources in etcd
-	DeploymentConfigPath string = "/deploymentconfigs"
 )
 
 // Etcd implements deployment.Registry and deploymentconfig.Registry interfaces.
@@ -129,101 +127,4 @@ func (r *Etcd) WatchDeployments(ctx kapi.Context, label labels.Selector, field f
 		}
 		return label.Matches(labels.Set(deployment.Labels)) && field.Matches(fields)
 	})
-}
-
-// ListDeploymentConfigs obtains a list of DeploymentConfigs.
-func (r *Etcd) ListDeploymentConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector) (*api.DeploymentConfigList, error) {
-	deploymentConfigs := api.DeploymentConfigList{}
-	err := r.ExtractToList(makeDeploymentConfigListKey(ctx), &deploymentConfigs)
-	if err != nil {
-		return nil, err
-	}
-	filtered := []api.DeploymentConfig{}
-	for _, item := range deploymentConfigs.Items {
-		fields := labels.Set{
-			"name": item.Name,
-		}
-		if label.Matches(labels.Set(item.Labels)) && field.Matches(fields) {
-			filtered = append(filtered, item)
-		}
-	}
-
-	deploymentConfigs.Items = filtered
-	return &deploymentConfigs, err
-}
-
-// WatchDeploymentConfigs begins watching for new, changed, or deleted DeploymentConfigs.
-func (r *Etcd) WatchDeploymentConfigs(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := tools.ParseWatchResourceVersion(resourceVersion, "deploymentConfig")
-	if err != nil {
-		return nil, err
-	}
-
-	return r.WatchList(makeDeploymentConfigListKey(ctx), version, func(obj runtime.Object) bool {
-		config, ok := obj.(*api.DeploymentConfig)
-		if !ok {
-			glog.Errorf("Unexpected object during deploymentConfig watch: %#v", obj)
-			return false
-		}
-		fields := labels.Set{
-			"name": config.Name,
-		}
-		return label.Matches(labels.Set(config.Labels)) && field.Matches(fields)
-	})
-}
-
-func makeDeploymentConfigListKey(ctx kapi.Context) string {
-	return kubeetcd.MakeEtcdListKey(ctx, DeploymentConfigPath)
-}
-
-func makeDeploymentConfigKey(ctx kapi.Context, id string) (string, error) {
-	return kubeetcd.MakeEtcdItemKey(ctx, DeploymentConfigPath, id)
-}
-
-// GetDeploymentConfig gets a specific DeploymentConfig specified by its ID.
-func (r *Etcd) GetDeploymentConfig(ctx kapi.Context, id string) (*api.DeploymentConfig, error) {
-	var deploymentConfig api.DeploymentConfig
-	key, err := makeDeploymentConfigKey(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	err = r.ExtractObj(key, &deploymentConfig, false)
-	if err != nil {
-		return nil, etcderr.InterpretGetError(err, "deploymentConfig", id)
-	}
-	return &deploymentConfig, nil
-}
-
-// CreateDeploymentConfig creates a new DeploymentConfig.
-func (r *Etcd) CreateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.DeploymentConfig) error {
-	key, err := makeDeploymentConfigKey(ctx, deploymentConfig.Name)
-	if err != nil {
-		return err
-	}
-
-	err = r.CreateObj(key, deploymentConfig, nil, 0)
-	return etcderr.InterpretCreateError(err, "deploymentConfig", deploymentConfig.Name)
-}
-
-// UpdateDeploymentConfig replaces an existing DeploymentConfig.
-func (r *Etcd) UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *api.DeploymentConfig) error {
-	key, err := makeDeploymentConfigKey(ctx, deploymentConfig.Name)
-	if err != nil {
-		return err
-	}
-
-	err = r.SetObj(key, deploymentConfig, nil, 0)
-	return etcderr.InterpretUpdateError(err, "deploymentConfig", deploymentConfig.Name)
-}
-
-// DeleteDeploymentConfig deletes a DeploymentConfig specified by its ID.
-func (r *Etcd) DeleteDeploymentConfig(ctx kapi.Context, id string) error {
-	key, err := makeDeploymentConfigKey(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	err = r.Delete(key, false)
-	return etcderr.InterpretDeleteError(err, "deploymentConfig", id)
 }
