@@ -142,11 +142,15 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 		o.StartingKubeConfig = kclientcmdapi.NewConfig()
 	}
 
+	addr := flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default()
+
 	if serverFlag := kcmdutil.GetFlagString(cmd, "server"); len(serverFlag) > 0 {
-		o.Server = serverFlag
+		if err := addr.Set(serverFlag); err != nil {
+			return err
+		}
+		o.Server = addr.String()
 
 	} else if len(args) == 1 {
-		addr := flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default()
 		if err := addr.Set(args[0]); err != nil {
 			return err
 		}
@@ -158,7 +162,6 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 				o.Server = cluster.Server
 			}
 		}
-
 	}
 
 	if certFile := kcmdutil.GetFlagString(cmd, "client-certificate"); len(certFile) > 0 {
