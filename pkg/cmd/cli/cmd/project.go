@@ -155,6 +155,7 @@ func (o ProjectOptions) RunProject() error {
 
 	contextInUse := ""
 	namespaceInUse := ""
+	contextNameIsGenerated := false
 
 	// Check if argument is an existing context, if so just set it as the context in use.
 	// If not a context then we will try to handle it as a project.
@@ -168,13 +169,25 @@ func (o ProjectOptions) RunProject() error {
 		project, err := o.Client.Projects().Get(argument)
 		if err != nil {
 			if isNotFound, isForbidden := kapierrors.IsNotFound(err), clientcmd.IsForbidden(err); isNotFound || isForbidden {
-				msg := fmt.Sprintf("A project named %q does not exist or you do not have rights to view project on server %q.", argument, clientCfg.Host)
+				var msg string
+				if isForbidden {
+					msg = fmt.Sprintf("You are not a member of project %q.", argument)
+				} else {
+					msg = fmt.Sprintf("A project named %q does not exist on %q.", argument, clientCfg.Host)
+				}
 
 				projects, err := getProjects(o.Client)
 				if err == nil {
-					msg += "\nYour projects are:"
-					for _, project := range projects {
-						msg += "\n" + project.Name
+					switch len(projects) {
+					case 0:
+						msg += "\nYou are not a member of any projects. You can request a project to be created with the 'new-project' command."
+					case 1:
+						msg += fmt.Sprintf("\nYou have one project on this server: %s", api.DisplayNameAndNameForProject(&projects[0]))
+					default:
+						msg += "\nYour projects are:"
+						for _, project := range projects {
+							msg += fmt.Sprintf("\n* %s", api.DisplayNameAndNameForProject(&project))
+						}
 					}
 				}
 
@@ -199,13 +212,14 @@ func (o ProjectOptions) RunProject() error {
 
 		namespaceInUse = project.Name
 		contextInUse = merged.CurrentContext
+		contextNameIsGenerated = true
 	}
 
 	if err := kubecmdconfig.ModifyConfig(o.PathOptions, config); err != nil {
 		return err
 	}
 
-	if contextInUse != namespaceInUse {
+	if contextInUse != namespaceInUse && !contextNameIsGenerated {
 		if len(namespaceInUse) > 0 {
 			fmt.Fprintf(out, "Now using project %q from context named %q on server %q.\n", namespaceInUse, contextInUse, clientCfg.Host)
 		} else {
