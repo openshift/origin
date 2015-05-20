@@ -39,6 +39,8 @@ type Namespace interface {
 	// registry may or may not have the repository but should always return a
 	// reference.
 	Repository(ctx context.Context, name string) (Repository, error)
+
+	Blobs() BlobService
 }
 
 // Repository is a named collection of manifests and layers.
@@ -174,6 +176,10 @@ type SignatureService interface {
 
 	// Put stores the signature for the provided digest.
 	Put(dgst digest.Digest, signatures ...[]byte) error
+}
+
+type BlobService interface {
+	Delete(dgst digest.Digest) error
 }
 
 // Descriptor describes targeted content. Used in conjunction with a blob
