@@ -191,6 +191,15 @@ const (
 	DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
 )
 
+// These constants represent the various reasons for cancelling a deployment
+// or for a deployment being placed in a failed state
+const (
+	DeploymentCancelledByUser                 = "The deployment was cancelled by the user"
+	DeploymentCancelledNewerDeploymentExists  = "The deployment was cancelled as a newer deployment was found running"
+	DeploymentFailedUnrelatedDeploymentExists = "The deployment failed as an unrelated pod with the same name as this deployment is already running"
+	DeploymentFailedDeployerPodNoLongerExists = "The deployment failed as the deployer pod no longer exists"
+)
+
 // DeploymentConfig represents a configuration for a single deployment (represented as a
 // ReplicationController). It also contains details about changes which resulted in the current
 // state of the DeploymentConfig. Each change to the DeploymentConfig which should result in

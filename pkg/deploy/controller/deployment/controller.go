@@ -56,9 +56,41 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 
 		deploymentPod, err := c.podClient.createPod(deployment.Namespace, podTemplate)
 		if err != nil {
-			// If the pod already exists, it's possible that a previous CreatePod succeeded but
-			// the deployment state update failed and now we're re-entering.
-			if !kerrors.IsAlreadyExists(err) {
+			if kerrors.IsAlreadyExists(err) {
+				// If the pod already exists, it's possible that a previous CreatePod succeeded but
+				// the deployment state update failed and now we're re-entering.
+				// Ensure that the pod is the one we created by verifying the annotation on it
+				existingPod, err := c.podClient.getPod(deployment.Namespace, deployutil.DeployerPodNameForDeployment(deployment))
+				if err != nil {
+					c.recorder.Eventf(deployment, "failedCreate", "Error getting existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+					return fmt.Errorf("couldn't fetch existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+				}
+				// TODO: Investigate checking the container image of the running pod and
+				// comparing with the intended deployer pod image.
+				// If we do so, we'll need to ensure that changes to 'unrelated' pods
+				// don't result in updates to the deployment
+				// So, the image check will have to be done in other areas of the code as well
+				if deployutil.DeploymentNameFor(existingPod) == deployment.Name {
+					// we'll just set the deploymentPod so that pod name annotation
+					// can be set on the deployment below
+					deploymentPod = existingPod
+				} else {
+					c.recorder.Eventf(deployment, "failedCreate", "Error creating deployer pod for %s since another pod with the same name exists", deployutil.LabelForDeployment(deployment))
+
+					// we seem to have an unrelated pod running with the same name as the deployment
+					// set the deployment status to Failed
+					failedStatus := string(deployapi.DeploymentStatusFailed)
+					deployment.Annotations[deployapi.DeploymentStatusAnnotation] = failedStatus
+					deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedUnrelatedDeploymentExists
+					if _, err := c.deploymentClient.updateDeployment(deployment.Namespace, deployment); err != nil {
+						c.recorder.Eventf(deployment, "failedUpdate", "Error updating deployment %s status to %s", deployutil.LabelForDeployment(deployment), failedStatus)
+						glog.Errorf("Error updating deployment %s status to %s", deployutil.LabelForDeployment(deployment), failedStatus)
+					} else {
+						glog.V(2).Infof("Updated deployment %s status to %s", deployutil.LabelForDeployment(deployment), failedStatus)
+					}
+					return fatalError(fmt.Sprintf("couldn't create deployer pod for %s since an unrelated pod with the same name exists", deployutil.LabelForDeployment(deployment)))
+				}
+			} else {
 				c.recorder.Eventf(deployment, "failedCreate", "Error creating deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 				return fmt.Errorf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 			}
@@ -121,7 +153,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			GenerateName: deployutil.DeployerPodNameForDeployment(deployment),
+			Name: deployutil.DeployerPodNameForDeployment(deployment),
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: deployment.Name,
 			},
@@ -154,6 +186,7 @@ type deploymentClient interface {
 
 // podClient abstracts access to pods.
 type podClient interface {
+	getPod(namespace, name string) (*kapi.Pod, error)
 	createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
 	deletePod(namespace, name string) error
 }
@@ -174,8 +207,13 @@ func (i *deploymentClientImpl) updateDeployment(namespace string, deployment *ka
 
 // podClientImpl is a pluggable podClient.
 type podClientImpl struct {
+	getPodFunc    func(namespace, name string) (*kapi.Pod, error)
 	createPodFunc func(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
 	deletePodFunc func(namespace, name string) error
+}
+
+func (i *podClientImpl) getPod(namespace, name string) (*kapi.Pod, error) {
+	return i.getPodFunc(namespace, name)
 }
 
 func (i *podClientImpl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
