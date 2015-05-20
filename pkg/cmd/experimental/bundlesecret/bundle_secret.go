@@ -20,9 +20,14 @@ import (
 type CreateSecretOptions struct {
 	// Name of the resulting secret
 	Name string
+
+	// SecretTypeName is the type to use when creating the secret.  It is checked against known types.
+	SecretTypeName string
+
 	// Files/Directories to read from.
 	// Directory sources are listed and any direct file children included (but subfolders are not traversed)
 	Sources util.StringList
+
 	// Writer to write warnings to
 	Stderr io.Writer
 	// Controls whether to output warnings
@@ -41,7 +46,7 @@ func NewCmdBundleSecret(f *clientcmd.Factory, parentName, name string, out io.Wr
   $ %s %s <secret-name> <source> [<source>...]
 		`, parentName, name),
 		Run: func(c *cobra.Command, args []string) {
-			options.Complete(args)
+			cmdutil.CheckErr(options.Complete(args))
 
 			err := options.Validate()
 			if err != nil {
@@ -64,6 +69,7 @@ func NewCmdBundleSecret(f *clientcmd.Factory, parentName, name string, out io.Wr
 
 	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", options.Quiet, "Suppress warnings")
 	cmd.Flags().VarP(&options.Sources, "source", "f", "List of filenames or directories to use as sources of Kubernetes Secret.Data")
+	cmd.Flags().StringVar(&options.SecretTypeName, "type", "", "The type of secret")
 	cmdutil.AddPrinterFlags(cmd)
 
 	// Default to JSON
@@ -81,7 +87,7 @@ func NewDefaultOptions() *CreateSecretOptions {
 	}
 }
 
-func (o *CreateSecretOptions) Complete(args []string) {
+func (o *CreateSecretOptions) Complete(args []string) error {
 	// Fill name from args[0]
 	if len(args) > 0 {
 		o.Name = args[0]
@@ -91,6 +97,8 @@ func (o *CreateSecretOptions) Complete(args []string) {
 	if len(args) > 1 {
 		o.Sources = append(o.Sources, args[1:]...)
 	}
+
+	return nil
 }
 
 func (o *CreateSecretOptions) Validate() error {
@@ -100,6 +108,20 @@ func (o *CreateSecretOptions) Validate() error {
 	if len(o.Sources) == 0 {
 		return errors.New("At least one source file or directory must be specified")
 	}
+
+nameCheck:
+	switch o.SecretTypeName {
+	case string(kapi.SecretTypeOpaque), "":
+		// this is ok
+	default:
+		for _, secretType := range KnownSecretTypes {
+			if o.SecretTypeName == string(secretType.Type) {
+				break nameCheck
+			}
+		}
+		return fmt.Errorf("unknown secret type: %v", o.SecretTypeName)
+	}
+
 	return nil
 }
 
@@ -144,8 +166,21 @@ func (o *CreateSecretOptions) CreateSecret() (*kapi.Secret, error) {
 		return nil, errors.New("No files selected")
 	}
 
+	// if the secret type isn't specified, attempt to auto-detect likely hit
+	secretType := kapi.SecretType(o.SecretTypeName)
+	if len(o.SecretTypeName) == 0 {
+		secretType = kapi.SecretTypeOpaque
+
+		for _, knownSecretType := range KnownSecretTypes {
+			if knownSecretType.Matches(secretData) {
+				secretType = knownSecretType.Type
+			}
+		}
+	}
+
 	secret := &kapi.Secret{
 		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+		Type:       secretType,
 		Data:       secretData,
 	}
 
