@@ -169,6 +169,10 @@ const (
 // Currently set to 6 hours
 const MaxDeploymentDurationSeconds int64 = 21600
 
+// This constant represents the value for the DeploymentCancelledAnnotation annotation
+// that signifies that the deployment should be cancelled
+const DeploymentCancelledAnnotationValue = "true"
+
 // DeploymentConfig represents a configuration for a single deployment (represented as a
 // ReplicationController). It also contains details about changes which resulted in the current
 // state of the DeploymentConfig. Each change to the DeploymentConfig which should result in
