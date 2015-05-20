@@ -7,6 +7,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
@@ -560,6 +561,8 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, pruneLayer L
 	}
 }
 
+const retryCount = 2
+
 // DeletingImagePruneFunc returns an ImagePruneFunc that deletes the image and
 // removes it from each referencing ImageStream's status.tags.
 func DeletingImagePruneFunc(images client.ImageInterface, streams client.ImageStreamsNamespacer) ImagePruneFunc {
@@ -574,7 +577,8 @@ func DeletingImagePruneFunc(images client.ImageInterface, streams client.ImageSt
 			return result
 		}
 
-		for _, stream := range referencedStreams {
+		var updateStream func(*imageapi.Image, *imageapi.ImageStream, int) error
+		updateStream = func(image *imageapi.Image, stream *imageapi.ImageStream, retry int) error {
 			glog.V(4).Infof("Checking if stream %s/%s has references to image in status.tags", stream.Namespace, stream.Name)
 			for tag, history := range stream.Status.Tags {
 				glog.V(4).Infof("Checking tag %q", tag)
@@ -591,7 +595,21 @@ func DeletingImagePruneFunc(images client.ImageInterface, streams client.ImageSt
 
 			glog.V(4).Infof("Updating image stream %s/%s", stream.Namespace, stream.Name)
 			glog.V(5).Infof("Updated stream: %#v", stream)
+			//TODO use the updated ImageStream that's returned and update the entry in the graph
+			//to hopefully avoid having to re-get the stream?
 			if _, err := streams.ImageStreams(stream.Namespace).UpdateStatus(stream); err != nil {
+				if errors.IsConflict(err) && retry > 0 {
+					if stream, err := streams.ImageStreams(stream.Namespace).Get(stream.Name); err == nil {
+						return updateStream(image, stream, retry-1)
+					}
+				}
+				return err
+			}
+			return nil
+		}
+
+		for _, stream := range referencedStreams {
+			if err := updateStream(image, stream, retryCount); err != nil {
 				e := fmt.Errorf("Unable to update image stream status %s/%s: %v", stream.Namespace, stream.Name, err)
 				glog.Error(e)
 				result = append(result, e)
