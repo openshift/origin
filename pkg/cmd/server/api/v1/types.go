@@ -1,13 +1,13 @@
 package v1
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
 // NodeConfig is the fully specified config starting an OpenShift node
 type NodeConfig struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 
 	// NodeName is the value used to identify this particular node in the cluster.  If possible, this should be your fully qualified hostname.
 	// If you're describing a set of static nodes to the master, this value must match one of the values in the list
@@ -42,7 +42,7 @@ type NodeConfig struct {
 }
 
 type MasterConfig struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 
 	// ServingInfo describes how to start serving
 	ServingInfo ServingInfo `json:"servingInfo"`
@@ -202,7 +202,7 @@ type AssetConfig struct {
 	// If not specified, the built-in logout page is shown.
 	LogoutURL string `json:"logoutURL"`
 
-	// MasterPublicURL is how the web console can access the OpenShift v1beta3 server
+	// MasterPublicURL is how the web console can access the OpenShift v1 server
 	MasterPublicURL string `json:"masterPublicURL"`
 }
 
@@ -245,7 +245,7 @@ type SessionConfig struct {
 
 // SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.
 type SessionSecrets struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 
 	// New sessions are signed and encrypted using the first secret.
 	// Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.
@@ -271,34 +271,34 @@ type IdentityProvider struct {
 }
 
 type BasicAuthPasswordIdentityProvider struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 
 	RemoteConnectionInfo `json:",inline"`
 }
 
 type AllowAllPasswordIdentityProvider struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 }
 
 type DenyAllPasswordIdentityProvider struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 }
 
 type HTPasswdPasswordIdentityProvider struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 
 	File string `json:"file"`
 }
 
 type RequestHeaderIdentityProvider struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 
 	ClientCA string   `json:"clientCA"`
 	Headers  []string `json:"headers"`
 }
 
 type GitHubIdentityProvider struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 
 	// ClientID is the oauth client ID
 	ClientID string `json:"clientID"`
@@ -307,7 +307,7 @@ type GitHubIdentityProvider struct {
 }
 
 type GoogleIdentityProvider struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 
 	// ClientID is the oauth client ID
 	ClientID string `json:"clientID"`
@@ -319,7 +319,7 @@ type GoogleIdentityProvider struct {
 }
 
 type OpenIDIdentityProvider struct {
-	v1beta3.TypeMeta `json:",inline"`
+	v1.TypeMeta `json:",inline"`
 
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used

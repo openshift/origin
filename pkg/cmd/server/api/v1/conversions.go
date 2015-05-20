@@ -21,7 +21,7 @@ func init() {
 				obj.KubernetesStoragePrefix = "kubernetes.io"
 			}
 			if len(obj.OpenShiftStorageVersion) == 0 {
-				obj.OpenShiftStorageVersion = "v1beta1"
+				obj.OpenShiftStorageVersion = "v1beta3"
 			}
 			if len(obj.OpenShiftStoragePrefix) == 0 {
 				obj.OpenShiftStoragePrefix = "openshift.io"
