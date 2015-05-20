@@ -4,20 +4,17 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
+	"strconv"
+	"strings"
 	"time"
 
+	kapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kubelet/app"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/cadvisor"
-	kconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/config"
-	kubecontainer "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/container"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
 	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
@@ -31,7 +28,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/kubelet/app"
-	"github.com/openshift/origin/pkg/service"
 )
 
 type commandExecutor interface {
@@ -90,6 +86,7 @@ func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 	c.DockerClient = dockerClient
 }
 
+// HandleDockerError handles an an error from the docker daemon
 func (c *NodeConfig) HandleDockerError(message string) {
 	if !c.AllowDisabledDocker {
 		glog.Fatalf("ERROR: %s", message)
@@ -145,42 +142,12 @@ func (c *NodeConfig) RunKubelet() {
 	}
 
 	cadvisorInterface, err := cadvisor.New(4194)
-	if err == nil {
-		// TODO: use VersionInfo after the next rebase
-		_, err = cadvisorInterface.MachineInfo()
-	}
 	if err != nil {
-		glog.Errorf("WARNING: cAdvisor cannot be started: %v", err)
-		cadvisorInterface = &cadvisor.Fake{}
+		glog.Fatalf("Error instantiating cadvisor: %v", err)
 	}
 
 	hostNetworkCapabilities := []string{kubelet.ApiserverSource, kubelet.FileSource}
-	// initialize Kubelet
-	// Allow privileged containers
-	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-	capabilities.Setup(true, hostNetworkCapabilities)
-	recorder := record.NewBroadcaster().NewRecorder(kapi.EventSource{Component: "kubelet", Host: c.NodeHost})
 
-	cfg := kconfig.NewPodConfig(kconfig.PodConfigNotificationSnapshotAndUpdates, recorder)
-	kconfig.NewSourceApiserver(c.Client, c.NodeHost, cfg.Channel(kubelet.ApiserverSource))
-	// define manifest file source for pods, if specified
-	if len(c.PodManifestPath) > 0 {
-		_, err = os.Stat(c.PodManifestPath)
-		if err == nil {
-			glog.Infof("Adding pod manifest file/dir: %v", c.PodManifestPath)
-			kconfig.NewSourceFile(c.PodManifestPath, c.NodeHost,
-				time.Duration(c.PodManifestCheckIntervalSeconds)*time.Second,
-				cfg.Channel(kubelet.FileSource))
-		} else {
-			glog.Errorf("WARNING: PodManifestPath specified is not a valid file/directory: %v", err)
-		}
-	}
-
-	gcPolicy := kubelet.ContainerGCPolicy{
-		MinAge:             10 * time.Second,
-		MaxPerPodContainer: 5,
-		MaxContainers:      100,
-	}
 	imageGCPolicy := kubelet.ImageGCPolicy{
 		HighThresholdPercent: 90,
 		LowThresholdPercent:  80,
@@ -189,73 +156,78 @@ func (c *NodeConfig) RunKubelet() {
 		DockerFreeDiskMB: 256,
 		RootFreeDiskMB:   256,
 	}
-
-	k, err := kubelet.NewMainKubelet(
-		c.NodeHost,
-		c.DockerClient,
-		c.Client,
-		c.VolumeDir,
-		c.ImageFor("pod"),
-		3*time.Second,
-		0.0,
-		10,
-		gcPolicy,
-		cfg.SeenAllSources,
-		c.ClusterDomain,
-		clusterDNS,
-		kapi.NamespaceDefault,
-		app.ProbeVolumePlugins(),
-		app.ProbeNetworkPlugins(),
-		c.NetworkPluginName,
-		5*time.Minute,
-		recorder,
-		cadvisorInterface,
-		imageGCPolicy,
-		diskSpacePolicy,
-		nil,
-		15*time.Second,
-		"/kubelet",
-		kubecontainer.RealOS{},
-		"",
-		"docker",
-		mount.New(),
-		"", // docker daemon container
-	)
+	kubeAddress, kubePortStr, err := net.SplitHostPort(c.BindAddress)
 	if err != nil {
-		glog.Fatalf("Couldn't run kubelet: %s", err)
+		glog.Fatalf("Cannot parse node address: %v", err)
 	}
-	go util.Forever(func() { k.Run(cfg.Updates()) }, 0)
-
-	handler := kubelet.NewServer(k, true)
-
-	server := &http.Server{
-		Addr:           c.BindAddress,
-		Handler:        &handler,
-		ReadTimeout:    5 * time.Minute,
-		WriteTimeout:   5 * time.Minute,
-		MaxHeaderBytes: 1 << 20,
+	kubePort, err := strconv.Atoi(kubePortStr)
+	if err != nil {
+		glog.Fatalf("Cannot parse node port: %v", err)
 	}
 
-	go util.Forever(func() {
-		glog.Infof("Started Kubelet for node %s, server at %s, tls=%v", c.NodeHost, c.BindAddress, c.TLS)
-		if clusterDNS != nil {
-			glog.Infof("  Kubelet is setting %s as a DNS nameserver for domain %q", clusterDNS, c.ClusterDomain)
-		}
-		k.BirthCry()
-
-		if c.TLS {
-			server.TLSConfig = &tls.Config{
+	var tlsOptions *kubelet.TLSOptions
+	if c.TLS {
+		tlsOptions = &kubelet.TLSOptions{
+			Config: &tls.Config{
 				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
 				MinVersion: tls.VersionTLS10,
 				// RequireAndVerifyClientCert lets us limit requests to ones with a valid client certificate
 				ClientAuth: tls.RequireAndVerifyClientCert,
 				ClientCAs:  c.ClientCAs,
-			}
-			glog.Fatal(server.ListenAndServeTLS(c.KubeletCertFile, c.KubeletKeyFile))
-		} else {
-			glog.Fatal(server.ListenAndServe())
+			},
+			CertFile: c.KubeletCertFile,
+			KeyFile:  c.KubeletKeyFile,
 		}
-	}, 0)
+	}
+
+	kcfg := kapp.KubeletConfig{
+		Address: util.IP(net.ParseIP(kubeAddress)),
+		// Allow privileged containers
+		// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
+		AllowPrivileged:                true,
+		HostNetworkSources:             hostNetworkCapabilities,
+		HostnameOverride:               c.NodeHost,
+		RootDirectory:                  c.VolumeDir,
+		ConfigFile:                     c.PodManifestPath,
+		ManifestURL:                    "",
+		FileCheckFrequency:             time.Duration(c.PodManifestCheckIntervalSeconds) * time.Second,
+		HTTPCheckFrequency:             0,
+		PodInfraContainerImage:         c.ImageFor("pod"),
+		SyncFrequency:                  10 * time.Second,
+		RegistryPullQPS:                0.0,
+		RegistryBurst:                  10,
+		MinimumGCAge:                   10 * time.Second,
+		MaxPerPodContainerCount:        5,
+		MaxContainerCount:              100,
+		ClusterDomain:                  c.ClusterDomain,
+		ClusterDNS:                     util.IP(clusterDNS),
+		Runonce:                        false,
+		Port:                           uint(kubePort),
+		ReadOnlyPort:                   0,
+		CadvisorInterface:              cadvisorInterface,
+		EnableServer:                   true,
+		EnableDebuggingHandlers:        true,
+		DockerClient:                   c.DockerClient,
+		KubeClient:                     c.Client,
+		MasterServiceNamespace:         kapi.NamespaceDefault,
+		VolumePlugins:                  app.ProbeVolumePlugins(),
+		NetworkPlugins:                 app.ProbeNetworkPlugins(),
+		NetworkPluginName:              c.NetworkPluginName,
+		StreamingConnectionIdleTimeout: 5 * time.Minute,
+		TLSOptions:                     tlsOptions,
+		ImageGCPolicy:                  imageGCPolicy,
+		DiskSpacePolicy:                diskSpacePolicy,
+		Cloud:                          nil,
+		NodeStatusUpdateFrequency: 15 * time.Second,
+		ResourceContainer:         "/kubelet",
+		CgroupRoot:                "",
+		ContainerRuntime:          "docker",
+		Mounter:                   mount.New(),
+		DockerDaemonContainer:     "",
+		ConfigureCBR0:             false,
+		MaxPods:                   200,
+	}
+	kapp.RunKubelet(&kcfg, nil)
 }
 
 // RunProxy starts the proxy
@@ -263,12 +235,6 @@ func (c *NodeConfig) RunProxy() {
 	// initialize kube proxy
 	serviceConfig := pconfig.NewServiceConfig()
 	endpointsConfig := pconfig.NewEndpointsConfig()
-	pconfig.NewSourceAPI(
-		c.Client.Services(kapi.NamespaceAll),
-		c.Client.Endpoints(kapi.NamespaceAll),
-		30*time.Second,
-		serviceConfig.Channel("api"),
-		endpointsConfig.Channel("api"))
 	loadBalancer := proxy.NewLoadBalancerRR()
 	endpointsConfig.RegisterHandler(loadBalancer)
 
@@ -286,15 +252,39 @@ func (c *NodeConfig) RunProxy() {
 		protocol = iptables.ProtocolIpv6
 	}
 
-	var proxier pconfig.ServiceConfigHandler
-	proxier = proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol))
-	if proxier == nil || reflect.ValueOf(proxier).IsNil() { // explicitly declared interfaces aren't plain nil, you must reflect inside to see if it's really nil or not
-		glog.Errorf("WARNING: Could not modify iptables.  iptables must be mutable by this process to use services.  Do you have root permissions?")
-		proxier = &service.FailingServiceConfigProxy{}
-	}
-	serviceConfig.RegisterHandler(proxier)
+	go util.Forever(func() {
+		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol))
+		if err != nil {
+			switch {
+			// conflicting use of iptables, retry
+			case proxy.IsProxyLocked(err):
+				glog.Errorf("Unable to start proxy, will retry: %v", err)
+				return
+			// on a system without iptables
+			case strings.Contains(err.Error(), "executable file not found in path"):
+				glog.V(4).Infof("kube-proxy initialization error: %v", err)
+				glog.Warningf("WARNING: Could not find the iptables command. The service proxy requires iptables and will be disabled.")
+			case err == proxy.ErrProxyOnLocalhost:
+				glog.Warningf("WARNING: The service proxy cannot bind to localhost and will be disabled.")
+			case strings.Contains(err.Error(), "you must be root"):
+				glog.Warningf("WARNING: Could not modify iptables. You must run this process as root to use the service proxy.")
+			default:
+				glog.Warningf("WARNING: Could not modify iptables. You must run this process as root to use the service proxy: %v", err)
+			}
+			select {}
+		}
 
-	glog.Infof("Started Kubernetes Proxy on %s", host)
+		pconfig.NewSourceAPI(
+			c.Client.Services(kapi.NamespaceAll),
+			c.Client.Endpoints(kapi.NamespaceAll),
+			30*time.Second,
+			serviceConfig.Channel("api"),
+			endpointsConfig.Channel("api"))
+
+		serviceConfig.RegisterHandler(proxier)
+		glog.Infof("Started Kubernetes Proxy on %s", host)
+		select {}
+	}, 5*time.Second)
 }
 
 // TODO: more generic location

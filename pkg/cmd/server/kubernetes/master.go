@@ -19,6 +19,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volumeclaimbinder"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 	schedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api"
@@ -95,6 +96,12 @@ func (c *MasterConfig) RunNamespaceController() {
 	glog.Infof("Started Kubernetes Namespace Manager")
 }
 
+func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
+	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(c.KubeClient, 5*time.Minute)
+	binder.Run()
+	glog.Infof("Started Kubernetes Persistent Volume Claim Binder")
+}
+
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController() {
 	controllerManager := controller.NewReplicationManager(c.KubeClient, controller.BurstReplicas)
@@ -149,7 +156,6 @@ func (c *MasterConfig) RunMinionController() {
 		40*time.Second, // monitor grace
 		1*time.Minute,  // startup grace
 		10*time.Second, // monitor period
-		"openshift",
 
 		nil,   // clusterCIDR
 		false, // allocateNodeCIDRs

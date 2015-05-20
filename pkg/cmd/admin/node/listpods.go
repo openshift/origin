@@ -35,10 +35,7 @@ func (l *ListPodsOptions) Run() error {
 			errList = append(errList, err)
 		}
 	}
-	if len(errList) != 0 {
-		return kerrors.NewAggregate(errList)
-	}
-	return nil
+	return kerrors.NewAggregate(errList)
 }
 
 func (l *ListPodsOptions) RunListPods(node *kapi.Node) error {

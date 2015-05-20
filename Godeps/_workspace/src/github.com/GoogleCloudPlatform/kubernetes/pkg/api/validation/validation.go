@@ -17,9 +17,11 @@ limitations under the License.
 package validation
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -32,18 +34,18 @@ import (
 	"github.com/golang/glog"
 )
 
-const cIdentifierErrorMsg string = "must match regex " + util.CIdentifierFmt
-const isNegativeErrorMsg string = "value must not be negative"
+const cIdentifierErrorMsg string = `must be a C identifier (matching regex ` + util.CIdentifierFmt + `): e.g. "my_name" or "MyName"`
+const isNegativeErrorMsg string = `must be non-negative`
 
 func intervalErrorMsg(lo, hi int) string {
-	return fmt.Sprintf("must be greater than %d and less than %d", lo, hi)
+	return fmt.Sprintf(`must be greater than %d and less than %d`, lo, hi)
 }
 
-var labelValueErrorMsg string = fmt.Sprintf("must have at most %d characters and match regex %s", util.LabelValueMaxLength, util.LabelValueFmt)
-var qualifiedNameErrorMsg string = fmt.Sprintf("must have at most %d characters and match regex %s", util.QualifiedNameMaxLength, util.QualifiedNameFmt)
-var dnsSubdomainErrorMsg string = fmt.Sprintf("must have at most %d characters and match regex %s", util.DNS1123SubdomainMaxLength, util.DNS1123SubdomainFmt)
-var dns1123LabelErrorMsg string = fmt.Sprintf("must have at most %d characters and match regex %s", util.DNS1123LabelMaxLength, util.DNS1123LabelFmt)
-var dns952LabelErrorMsg string = fmt.Sprintf("must have at most %d characters and match regex %s", util.DNS952LabelMaxLength, util.DNS952LabelFmt)
+var labelValueErrorMsg string = fmt.Sprintf(`must have at most %d characters, matching regex %s: e.g. "MyValue" or ""`, util.LabelValueMaxLength, util.LabelValueFmt)
+var qualifiedNameErrorMsg string = fmt.Sprintf(`must be a qualified name (at most %d characters, matching regex %s), with an optional DNS subdomain prefix (at most %d characters, matching regex %s) and slash (/): e.g. "MyName" or "example.com/MyName"`, util.QualifiedNameMaxLength, util.QualifiedNameFmt, util.DNS1123SubdomainMaxLength, util.DNS1123SubdomainFmt)
+var dnsSubdomainErrorMsg string = fmt.Sprintf(`must be a DNS subdomain (at most %d characters, matching regex %s): e.g. "example.com"`, util.DNS1123SubdomainMaxLength, util.DNS1123SubdomainFmt)
+var dns1123LabelErrorMsg string = fmt.Sprintf(`must be a DNS label (at most %d characters, matching regex %s): e.g. "my-name"`, util.DNS1123LabelMaxLength, util.DNS1123LabelFmt)
+var dns952LabelErrorMsg string = fmt.Sprintf(`must be a DNS 952 label (at most %d characters, matching regex %s): e.g. "my-name"`, util.DNS952LabelMaxLength, util.DNS952LabelFmt)
 var pdPartitionErrorMsg string = intervalErrorMsg(0, 255)
 var portRangeErrorMsg string = intervalErrorMsg(0, 65536)
 
@@ -911,6 +913,12 @@ func ValidatePodSpec(spec *api.PodSpec) errs.ValidationErrorList {
 	allErrs = append(allErrs, validateDNSPolicy(&spec.DNSPolicy).Prefix("dnsPolicy")...)
 	allErrs = append(allErrs, ValidateLabels(spec.NodeSelector, "nodeSelector")...)
 	allErrs = append(allErrs, validateHostNetwork(spec.HostNetwork, spec.Containers).Prefix("hostNetwork")...)
+
+	if spec.ActiveDeadlineSeconds != nil {
+		if *spec.ActiveDeadlineSeconds <= 0 {
+			allErrs = append(allErrs, errs.NewFieldInvalid("activeDeadlineSeconds", spec.ActiveDeadlineSeconds, "activeDeadlineSeconds must be a positive integer greater than 0"))
+		}
+	}
 	return allErrs
 }
 
@@ -1251,6 +1259,16 @@ func ValidateServiceAccountUpdate(oldServiceAccount, newServiceAccount *api.Serv
 	return allErrs
 }
 
+const SecretKeyFmt string = "\\.?" + util.DNS1123LabelFmt + "(\\." + util.DNS1123LabelFmt + ")*"
+
+var secretKeyRegexp = regexp.MustCompile("^" + SecretKeyFmt + "$")
+
+// IsSecretKey tests for a string that conforms to the definition of a
+// subdomain in DNS (RFC 1123), except that a leading dot is allowed
+func IsSecretKey(value string) bool {
+	return len(value) <= util.DNS1123SubdomainMaxLength && secretKeyRegexp.MatchString(value)
+}
+
 // ValidateSecret tests if required fields in the Secret are set.
 func ValidateSecret(secret *api.Secret) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
@@ -1258,8 +1276,8 @@ func ValidateSecret(secret *api.Secret) errs.ValidationErrorList {
 
 	totalSize := 0
 	for key, value := range secret.Data {
-		if !util.IsDNS1123Subdomain(key) {
-			allErrs = append(allErrs, errs.NewFieldInvalid(fmt.Sprintf("data[%s]", key), key, dnsSubdomainErrorMsg))
+		if !IsSecretKey(key) {
+			allErrs = append(allErrs, errs.NewFieldInvalid(fmt.Sprintf("data[%s]", key), key, fmt.Sprintf("must have at most %d characters and match regex %s", util.DNS1123SubdomainMaxLength, SecretKeyFmt)))
 		}
 
 		totalSize += len(value)
@@ -1278,6 +1296,18 @@ func ValidateSecret(secret *api.Secret) errs.ValidationErrorList {
 		}
 	case api.SecretTypeOpaque, "":
 		// no-op
+	case api.SecretTypeDockercfg:
+		dockercfgBytes, exists := secret.Data[api.DockerConfigKey]
+		if !exists {
+			allErrs = append(allErrs, errs.NewFieldRequired(fmt.Sprintf("data[%s]", api.DockerConfigKey)))
+			break
+		}
+
+		// make sure that the content is well-formed json.
+		if err := json.Unmarshal(dockercfgBytes, &map[string]interface{}{}); err != nil {
+			allErrs = append(allErrs, errs.NewFieldInvalid(fmt.Sprintf("data[%s]", api.DockerConfigKey), "<secret contents redacted>", err.Error()))
+		}
+
 	default:
 		// no-op
 	}

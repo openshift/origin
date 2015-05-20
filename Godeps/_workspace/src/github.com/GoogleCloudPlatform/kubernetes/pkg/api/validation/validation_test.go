@@ -544,7 +544,7 @@ func TestValidateEnv(t *testing.T) {
 		{
 			name:          "name not a C identifier",
 			envs:          []api.EnvVar{{Name: "a.b.c"}},
-			expectedError: "[0].name: invalid value 'a.b.c': must match regex [A-Za-z_][A-Za-z0-9_]*",
+			expectedError: `[0].name: invalid value 'a.b.c': must be a C identifier (matching regex [A-Za-z_][A-Za-z0-9_]*): e.g. "my_name" or "MyName"`,
 		},
 		{
 			name: "value and valueFrom specified",
@@ -989,6 +989,7 @@ func TestValidateDNSPolicy(t *testing.T) {
 }
 
 func TestValidatePodSpec(t *testing.T) {
+	activeDeadlineSeconds := int64(30)
 	successCases := []api.PodSpec{
 		{ // Populate basic fields, leave defaults for most.
 			Volumes:       []api.Volume{{Name: "vol", VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}}}},
@@ -1005,8 +1006,9 @@ func TestValidatePodSpec(t *testing.T) {
 			NodeSelector: map[string]string{
 				"key": "value",
 			},
-			Host:      "foobar",
-			DNSPolicy: api.DNSClusterFirst,
+			Host:                  "foobar",
+			DNSPolicy:             api.DNSClusterFirst,
+			ActiveDeadlineSeconds: &activeDeadlineSeconds,
 		},
 		{ // Populate HostNetwork.
 			Containers: []api.Container{
@@ -1025,6 +1027,7 @@ func TestValidatePodSpec(t *testing.T) {
 		}
 	}
 
+	activeDeadlineSeconds = int64(0)
 	failureCases := map[string]api.PodSpec{
 		"bad volume": {
 			Volumes:       []api.Volume{{}},
@@ -1060,6 +1063,19 @@ func TestValidatePodSpec(t *testing.T) {
 			HostNetwork:   true,
 			RestartPolicy: api.RestartPolicyAlways,
 			DNSPolicy:     api.DNSClusterFirst,
+		},
+		"bad-active-deadline-seconds": {
+			Volumes: []api.Volume{
+				{Name: "vol", VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}}},
+			},
+			Containers:    []api.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+			RestartPolicy: api.RestartPolicyAlways,
+			NodeSelector: map[string]string{
+				"key": "value",
+			},
+			Host:                  "foobar",
+			DNSPolicy:             api.DNSClusterFirst,
+			ActiveDeadlineSeconds: &activeDeadlineSeconds,
 		},
 	}
 	for k, v := range failureCases {
@@ -2413,10 +2429,6 @@ func TestValidateServiceUpdate(t *testing.T) {
 }
 
 func TestValidateResourceNames(t *testing.T) {
-	longString := "a"
-	for i := 0; i < 6; i++ {
-		longString += longString
-	}
 	table := []struct {
 		input   string
 		success bool
@@ -2432,7 +2444,8 @@ func TestValidateResourceNames(t *testing.T) {
 		{"my.favorite.app.co/_12345", false},
 		{"my.favorite.app.co/12345_", false},
 		{"kubernetes.io/..", false},
-		{"kubernetes.io/" + longString, true},
+		{"kubernetes.io/" + strings.Repeat("a", 63), true},
+		{"kubernetes.io/" + strings.Repeat("a", 64), false},
 		{"kubernetes.io//", false},
 		{"kubernetes.io", false},
 		{"kubernetes.io/will/not/work/", false},
@@ -2856,12 +2869,15 @@ func TestValidateSecret(t *testing.T) {
 	}
 
 	var (
-		emptyName   = validSecret()
-		invalidName = validSecret()
-		emptyNs     = validSecret()
-		invalidNs   = validSecret()
-		overMaxSize = validSecret()
-		invalidKey  = validSecret()
+		emptyName     = validSecret()
+		invalidName   = validSecret()
+		emptyNs       = validSecret()
+		invalidNs     = validSecret()
+		overMaxSize   = validSecret()
+		invalidKey    = validSecret()
+		leadingDotKey = validSecret()
+		dotKey        = validSecret()
+		doubleDotKey  = validSecret()
 	)
 
 	emptyName.Name = ""
@@ -2872,6 +2888,9 @@ func TestValidateSecret(t *testing.T) {
 		"over": make([]byte, api.MaxSecretSize+1),
 	}
 	invalidKey.Data["a..b"] = []byte("whoops")
+	leadingDotKey.Data[".key"] = []byte("bar")
+	dotKey.Data["."] = []byte("bar")
+	doubleDotKey.Data[".."] = []byte("bar")
 
 	// kubernetes.io/service-account-token secret validation
 	validServiceAccountTokenSecret := func() api.Secret {
@@ -2903,18 +2922,62 @@ func TestValidateSecret(t *testing.T) {
 		secret api.Secret
 		valid  bool
 	}{
-		"valid":             {validSecret(), true},
-		"empty name":        {emptyName, false},
-		"invalid name":      {invalidName, false},
-		"empty namespace":   {emptyNs, false},
-		"invalid namespace": {invalidNs, false},
-		"over max size":     {overMaxSize, false},
-		"invalid key":       {invalidKey, false},
-
+		"valid":                                     {validSecret(), true},
+		"empty name":                                {emptyName, false},
+		"invalid name":                              {invalidName, false},
+		"empty namespace":                           {emptyNs, false},
+		"invalid namespace":                         {invalidNs, false},
+		"over max size":                             {overMaxSize, false},
+		"invalid key":                               {invalidKey, false},
 		"valid service-account-token secret":        {validServiceAccountTokenSecret(), true},
 		"empty service-account-token annotation":    {emptyTokenAnnotation, false},
 		"missing service-account-token annotation":  {missingTokenAnnotation, false},
 		"missing service-account-token annotations": {missingTokenAnnotations, false},
+		"leading dot key":                           {leadingDotKey, true},
+		"dot key":                                   {dotKey, false},
+		"double dot key":                            {doubleDotKey, false},
+	}
+
+	for name, tc := range tests {
+		errs := ValidateSecret(&tc.secret)
+		if tc.valid && len(errs) > 0 {
+			t.Errorf("%v: Unexpected error: %v", name, errs)
+		}
+		if !tc.valid && len(errs) == 0 {
+			t.Errorf("%v: Unexpected non-error", name)
+		}
+	}
+}
+
+func TestValidateDockerConfigSecret(t *testing.T) {
+	validDockerSecret := func() api.Secret {
+		return api.Secret{
+			ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "bar"},
+			Type:       api.SecretTypeDockercfg,
+			Data: map[string][]byte{
+				api.DockerConfigKey: []byte(`{"https://index.docker.io/v1/": {"auth": "Y2x1ZWRyb29sZXIwMDAxOnBhc3N3b3Jk","email": "fake@example.com"}}`),
+			},
+		}
+	}
+
+	var (
+		missingDockerConfigKey = validDockerSecret()
+		emptyDockerConfigKey   = validDockerSecret()
+		invalidDockerConfigKey = validDockerSecret()
+	)
+
+	delete(missingDockerConfigKey.Data, api.DockerConfigKey)
+	emptyDockerConfigKey.Data[api.DockerConfigKey] = []byte("")
+	invalidDockerConfigKey.Data[api.DockerConfigKey] = []byte("bad")
+
+	tests := map[string]struct {
+		secret api.Secret
+		valid  bool
+	}{
+		"valid":             {validDockerSecret(), true},
+		"missing dockercfg": {missingDockerConfigKey, false},
+		"empty dockercfg":   {emptyDockerConfigKey, false},
+		"invalid dockercfg": {invalidDockerConfigKey, false},
 	}
 
 	for name, tc := range tests {

@@ -177,7 +177,8 @@ type ImageStreamTag struct {
 
 // ImageStreamImage exists to allow calls to `osc get imageStreamImage ...` to function.
 type ImageStreamImage struct {
-	Image `json:",inline"`
+	Image     `json:",inline"`
+	ImageName string `json:"imageName"`
 }
 
 // DockerImageReference points to a Docker image.

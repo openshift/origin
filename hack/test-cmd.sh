@@ -318,7 +318,7 @@ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 # delete the registry resources
 osc delete dc docker-registry
 osc delete svc docker-registry
-osc delete rc docker-registry-1
+[ ! "$(osc get rc docker-registry-1)" ]
 # done deleting registry resources
 osc delete imageStreams test
 [ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
@@ -345,6 +345,16 @@ osc delete imageStreams mongodb
 [ -z "$(osc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
 wait_for_command 'osc get imagestreamTags mysql:latest' "${TIME_MIN}"
 [ -n "$(osc get imagestreams mysql -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
+osc describe istag/mysql:latest
+[ "$(osc describe istag/mysql:latest | grep "Environment:")" ]
+[ "$(osc describe istag/mysql:latest | grep "Image Created:")" ]
+[ "$(osc describe istag/mysql:latest | grep "Image Name:")" ]
+name=$(osc get istag/mysql:latest -t '{{ .imageName }}')
+imagename="isimage/mysql@${name:0:7}"
+osc describe ${imagename}
+[ "$(osc describe ${imagename} | grep "Environment:")" ]
+[ "$(osc describe ${imagename} | grep "Image Created:")" ]
+[ "$(osc describe ${imagename} | grep "Image Name:")" ]
 echo "imageStreams: ok"
 
 [ "$(osc new-app library/php mysql -o yaml | grep 3306)" ]

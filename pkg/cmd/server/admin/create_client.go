@@ -31,10 +31,12 @@ type CreateClientOptions struct {
 	Output             cmdutil.Output
 }
 
-const create_client_long = `
-Create a portable client folder containing a client certificate, a client key,
+const createClientLong = `
+Create a client configuration for connecting to OpenShift
+
+This command creates a folder containing a client certificate, a client key,
 a server certificate authority, and a .kubeconfig file for connecting to the
-master as the specified user.
+master as the provided user.
 `
 
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
@@ -42,8 +44,8 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create a portable client folder with credentials for connecting to the master as given user",
-		Long:  create_client_long,
+		Short: "Create a config file for connecting to the server as a user",
+		Long:  createClientLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))

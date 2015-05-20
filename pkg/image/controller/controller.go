@@ -47,6 +47,9 @@ func needsImport(repo *api.ImageStream) bool {
 	*/
 }
 
+// retryCount is the number of times to retry on a conflict when updating an image stream
+const retryCount = 2
+
 // Next processes the given image repository, looking for repos that have DockerImageRepository
 // set but have not yet been marked as "ready". If transient errors occur, err is returned but
 // the image repository is not modified (so it will be tried again later). If a permanent
@@ -62,7 +65,7 @@ func (c *ImportController) Next(repo *api.ImageStream) error {
 	if err != nil {
 		err = fmt.Errorf("invalid docker image repository, cannot import data: %v", err)
 		util.HandleError(err)
-		return c.done(repo, err.Error())
+		return c.done(repo, err.Error(), retryCount)
 	}
 
 	insecure := repo.Annotations != nil && repo.Annotations[insecureRepositoryAnnotation] == "true"
@@ -74,7 +77,7 @@ func (c *ImportController) Next(repo *api.ImageStream) error {
 	tags, err := conn.ImageTags(ref.Namespace, ref.Name)
 	switch {
 	case dockerregistry.IsRepositoryNotFound(err), dockerregistry.IsRegistryNotFound(err):
-		return c.done(repo, err.Error())
+		return c.done(repo, err.Error(), retryCount)
 	case err != nil:
 		return err
 	}
@@ -112,14 +115,14 @@ func (c *ImportController) Next(repo *api.ImageStream) error {
 
 	// nothing to tag - no images in the upstream repo, or we're in sync
 	if len(imageToTag) == 0 {
-		return c.done(repo, "")
+		return c.done(repo, "", retryCount)
 	}
 
 	for id, tags := range imageToTag {
 		dockerImage, err := conn.ImageByID(ref.Namespace, ref.Name, id)
 		switch {
 		case dockerregistry.IsRepositoryNotFound(err), dockerregistry.IsRegistryNotFound(err):
-			return c.done(repo, err.Error())
+			return c.done(repo, err.Error(), retryCount)
 		case dockerregistry.IsImageNotFound(err):
 			for _, tag := range tags {
 				delete(newTags, tag)
@@ -132,7 +135,7 @@ func (c *ImportController) Next(repo *api.ImageStream) error {
 		if err := kapi.Scheme.Convert(dockerImage, &image); err != nil {
 			err = fmt.Errorf("could not convert image: %#v", err)
 			util.HandleError(err)
-			return c.done(repo, err.Error())
+			return c.done(repo, err.Error(), retryCount)
 		}
 
 		idTagPresent := false
@@ -172,7 +175,7 @@ func (c *ImportController) Next(repo *api.ImageStream) error {
 			}
 			if err := c.mappings.ImageStreamMappings(repo.Namespace).Create(mapping); err != nil {
 				if errors.IsNotFound(err) {
-					return c.done(repo, err.Error())
+					return c.done(repo, err.Error(), retryCount)
 				}
 				return err
 			}
@@ -180,11 +183,11 @@ func (c *ImportController) Next(repo *api.ImageStream) error {
 	}
 
 	// we've completed our updates
-	return c.done(repo, "")
+	return c.done(repo, "", retryCount)
 }
 
 // done marks the repository as being processed due to an error or failure condition
-func (c *ImportController) done(repo *api.ImageStream, reason string) error {
+func (c *ImportController) done(repo *api.ImageStream, reason string, retry int) error {
 	if len(reason) == 0 {
 		reason = util.Now().UTC().Format(time.RFC3339)
 	}
@@ -193,6 +196,11 @@ func (c *ImportController) done(repo *api.ImageStream, reason string) error {
 	}
 	repo.Annotations[dockerImageRepositoryCheckAnnotation] = reason
 	if _, err := c.repositories.ImageStreams(repo.Namespace).Update(repo); err != nil && !errors.IsNotFound(err) {
+		if errors.IsConflict(err) && retry > 0 {
+			if repo, err := c.repositories.ImageStreams(repo.Namespace).Get(repo.Name); err == nil {
+				return c.done(repo, reason, retry-1)
+			}
+		}
 		return err
 	}
 	return nil

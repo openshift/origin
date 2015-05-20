@@ -217,7 +217,7 @@ func (v *PathVisitor) Visit(fn VisitorFunc) error {
 	}
 	info, err := v.Mapper.InfoForData(data, v.Path)
 	if err != nil {
-		if v.IgnoreErrors {
+		if !v.IgnoreErrors {
 			return err
 		}
 		glog.V(2).Infof("Unable to load file %q: %v", v.Path, err)
@@ -280,7 +280,7 @@ func (v *DirectoryVisitor) Visit(fn VisitorFunc) error {
 		}
 		info, err := v.Mapper.InfoForData(data, path)
 		if err != nil {
-			if v.IgnoreErrors {
+			if !v.IgnoreErrors {
 				return err
 			}
 			glog.V(2).Infof("Unable to load file %q: %v", path, err)
@@ -350,10 +350,19 @@ func (v DecoratedVisitor) Visit(fn VisitorFunc) error {
 	})
 }
 
+// ContinueOnErrorVisitor visits each item and, if an error occurs on
+// any individual item, returns an aggregate error after all items
+// are visited.
 type ContinueOnErrorVisitor struct {
 	Visitor
 }
 
+// Visit returns nil if no error occurs during traversal, a regular
+// error if one occurs, or if multiple errors occur, an aggregate
+// error.  If the provided visitor fails on any individual item it
+// will not prevent the remaining items from being visited. An error
+// returned by the visitor directly may still result in some items
+// not being visited.
 func (v ContinueOnErrorVisitor) Visit(fn VisitorFunc) error {
 	errs := []error{}
 	err := v.Visitor.Visit(func(info *Info) error {
@@ -362,7 +371,12 @@ func (v ContinueOnErrorVisitor) Visit(fn VisitorFunc) error {
 		}
 		return nil
 	})
-	errs = append(errs, err)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	if len(errs) == 1 {
+		return errs[0]
+	}
 	return errors.NewAggregate(errs)
 }
 

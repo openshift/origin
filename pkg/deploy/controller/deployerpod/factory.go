@@ -1,11 +1,13 @@
 package deployerpod
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
@@ -37,9 +39,6 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		},
 	}
-	deploymentQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentQueue, 2*time.Minute).Run()
-
 	deploymentStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentStore, 2*time.Minute).Run()
 
@@ -85,13 +84,14 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 
 // pollPods lists all pods associated with pending or running deployments and returns
 // a cache.Enumerator suitable for use with a cache.Poller.
-func pollPods(deploymentStore cache.Store, kClient kclient.PodsNamespacer) (cache.Enumerator, error) {
+func pollPods(deploymentStore cache.Store, kClient kclient.Interface) (cache.Enumerator, error) {
 	list := &kapi.PodList{}
 
 	for _, obj := range deploymentStore.List() {
 		deployment := obj.(*kapi.ReplicationController)
+		currentStatus := deployutil.DeploymentStatusFor(deployment)
 
-		switch deployutil.DeploymentStatusFor(deployment) {
+		switch currentStatus {
 		case deployapi.DeploymentStatusPending, deployapi.DeploymentStatusRunning:
 			// Validate the correlating pod annotation
 			podID := deployutil.DeployerPodNameFor(deployment)
@@ -103,6 +103,20 @@ func pollPods(deploymentStore cache.Store, kClient kclient.PodsNamespacer) (cach
 			pod, err := kClient.Pods(deployment.Namespace).Get(podID)
 			if err != nil {
 				glog.V(2).Infof("Couldn't find pod %s for deployment %s: %#v", podID, deployment.Name, err)
+
+				// if the deployer pod doesn't exist, update the deployment status to failed
+				// TODO: This update should be moved the controller
+				// once this poll is changed in favor of pod status updates.
+				if kerrors.IsNotFound(err) {
+					nextStatus := deployapi.DeploymentStatusFailed
+					deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
+					deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = fmt.Sprintf("Couldn't find pod %s for deployment %s", podID, deployment.Name)
+
+					if _, err := kClient.ReplicationControllers(deployment.Namespace).Update(deployment); err != nil {
+						glog.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
+					}
+					glog.V(2).Infof("Updated deployment %s status from %s to %s", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus)
+				}
 				continue
 			}
 

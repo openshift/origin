@@ -1222,7 +1222,7 @@ func (dm *DockerManager) runContainerInPod(pod *api.Pod, container *api.Containe
 	// labels for Cloud Logging.
 	podFullName := kubecontainer.GetPodFullName(pod)
 	containerLogFile := path.Join(dm.dockerRoot, "containers", id, fmt.Sprintf("%s-json.log", id))
-	symlinkFile := path.Join(dm.containerLogsDir, fmt.Sprintf("%s-%s-%s.log", podFullName, container.Name, id))
+	symlinkFile := path.Join(dm.containerLogsDir, fmt.Sprintf("%s_%s-%s.log", podFullName, container.Name, id))
 	if err = dm.os.Symlink(containerLogFile, symlinkFile); err != nil {
 		glog.Errorf("Failed to create symbolic link to the log file of pod %q container %q: %v", podFullName, container.Name, err)
 	}
@@ -1293,7 +1293,8 @@ func (dm *DockerManager) createPodInfraContainer(pod *api.Pod) (kubeletTypes.Doc
 	if containerInfo.State.Pid == 0 {
 		return "", fmt.Errorf("failed to get init PID for Docker pod infra container %q", string(id))
 	}
-	return id, util.ApplyOomScoreAdj(containerInfo.State.Pid, podOomScoreAdj)
+	util.ApplyOomScoreAdj(containerInfo.State.Pid, podOomScoreAdj)
+	return id, nil
 }
 
 // TODO(vmarmol): This will soon be made non-public when its only use is internal.

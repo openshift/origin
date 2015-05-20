@@ -358,6 +358,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		kubeConfig.RunMinionController()
 		kubeConfig.RunResourceQuotaManager()
 		kubeConfig.RunNamespaceController()
+		kubeConfig.RunPersistentVolumeClaimBinder()
 
 	} else {
 		_, kubeConfig, err := configapi.GetKubeClient(openshiftMasterConfig.MasterClients.ExternalKubernetesKubeConfig)

@@ -114,6 +114,9 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 					j.To.Kind = "ImageStream"
 					j.Tag = image.DefaultImageTag
 				}
+				if j.To != nil && strings.Contains(j.To.Name, ":") {
+					j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
+				}
 			} else {
 				if j.To == nil {
 					j.Tag = ""

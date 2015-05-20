@@ -1,11 +1,16 @@
 package imagestreamimage
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/docker/distribution/digest"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -64,24 +69,47 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		return nil, errors.NewNotFound("imageStreamImage", imageID)
 	}
 
+	set := util.NewStringSet()
 	for _, history := range repo.Status.Tags {
 		for _, tagging := range history.Items {
-			if tagging.Image == imageID {
-				image, err := r.imageRegistry.GetImage(ctx, imageID)
-				if err != nil {
-					return nil, err
+			if d, err := digest.ParseDigest(tagging.Image); err == nil {
+				if strings.HasPrefix(d.Hex(), imageID) || strings.HasPrefix(tagging.Image, imageID) {
+					set.Insert(tagging.Image)
 				}
-				imageWithMetadata, err := api.ImageWithMetadata(*image)
-				if err != nil {
-					return nil, err
-				}
-				isi := api.ImageStreamImage{Image: *imageWithMetadata}
-				isi.Namespace = kapi.NamespaceValue(ctx)
-				isi.Name = id
-				return &isi, nil
+				continue
+			}
+			if strings.HasPrefix(tagging.Image, imageID) {
+				set.Insert(tagging.Image)
 			}
 		}
 	}
 
-	return nil, errors.NewNotFound("imageStreamImage", imageID)
+	switch len(set) {
+	case 1:
+		imageName := set.List()[0]
+		image, err := r.imageRegistry.GetImage(ctx, imageName)
+		if err != nil {
+			return nil, err
+		}
+		imageWithMetadata, err := api.ImageWithMetadata(*image)
+		if err != nil {
+			return nil, err
+		}
+		isi := api.ImageStreamImage{Image: *imageWithMetadata}
+		isi.ImageName = imageName
+		isi.Namespace = kapi.NamespaceValue(ctx)
+
+		if d, err := digest.ParseDigest(imageName); err == nil {
+			imageName = d.Hex()
+		}
+		if len(imageName) > 7 {
+			imageName = imageName[:7]
+		}
+		isi.Name = fmt.Sprintf("%s@%s", name, imageName)
+		return &isi, nil
+	case 0:
+		return nil, errors.NewNotFound("imageStreamImage", imageID)
+	default:
+		return nil, errors.NewConflict("imageStreamImage", imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
+	}
 }
