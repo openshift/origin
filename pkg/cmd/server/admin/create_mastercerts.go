@@ -17,7 +17,8 @@ import (
 )
 
 const CreateMasterCertsCommandName = "create-master-certs"
-const master_cert_long = `
+const master_cert_long = `Create keys and certificates for an OpenShift master
+
 This command creates keys and certs necessary to run a secure OpenShift master.
 It also creates keys, certificates, and configuration necessary for most
 related infrastructure components that are clients to the master.
@@ -79,7 +80,7 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create all certificates for an OpenShift master (signer/CA, server, common clients).",
+		Short: "Create certificates for an OpenShift master",
 		Long:  fmt.Sprintf(master_cert_long, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {

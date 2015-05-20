@@ -36,7 +36,7 @@ func NewCommandCreateBootstrapPolicyFile(commandName string, fullName string, ou
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create bootstrap policy for OpenShift.",
+		Short: "Create bootstrap policy for OpenShift",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
