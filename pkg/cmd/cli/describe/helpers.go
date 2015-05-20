@@ -11,6 +11,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -55,6 +56,13 @@ func convertEnv(env []api.EnvVar) map[string]string {
 	return result
 }
 
+func formatEnv(env api.EnvVar) string {
+	if env.ValueFrom != nil && env.ValueFrom.FieldRef != nil {
+		return fmt.Sprintf("%s=<%s>", env.Name, env.ValueFrom.FieldRef.FieldPath)
+	}
+	return fmt.Sprintf("%s=%s", env.Name, env.Value)
+}
+
 func formatString(out *tabwriter.Writer, label string, v interface{}) {
 	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s\n", label, toString(v)))
 }
@@ -85,8 +93,16 @@ func formatAnnotations(out *tabwriter.Writer, m api.ObjectMeta, prefix string) {
 	if len(values[0]) > 0 {
 		formatString(out, prefix+"Description", values[0])
 	}
-	if len(annotations) > 0 {
-		formatString(out, prefix+"Annotations", formatLabels(annotations))
+	keys := util.NewStringSet()
+	for k := range annotations {
+		keys.Insert(k)
+	}
+	for i, key := range keys.List() {
+		if i == 0 {
+			formatString(out, prefix+"Annotations", fmt.Sprintf("%s=%s", key, annotations[key]))
+		} else {
+			fmt.Fprintf(out, "%s\t%s=%s\n", prefix, key, annotations[key])
+		}
 	}
 }
 
