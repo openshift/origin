@@ -36,7 +36,10 @@ const defaultClusterURL = "https://localhost:8443"
 // Notice that some methods mutate this object so it should not be reused. The Config
 // provided as a pointer will also mutate (handle new auth tokens, etc).
 type LoginOptions struct {
-	Server string
+	Server      string
+	CAFile      string
+	InsecureTLS bool
+	APIVersion  string
 
 	// flags and printing helpers
 	Username string
@@ -51,10 +54,8 @@ type LoginOptions struct {
 	Out                io.Writer
 
 	// cert data to be used when authenticating
-	CAFile      string
-	CertFile    string
-	KeyFile     string
-	InsecureTLS bool
+	CertFile string
+	KeyFile  string
 
 	Token string
 
@@ -157,6 +158,11 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 		default:
 			return nil, result.Error()
 		}
+	}
+
+	// check for matching api version
+	if len(o.APIVersion) > 0 {
+		clientConfig.Version = o.APIVersion
 	}
 
 	o.Config = clientConfig

@@ -130,11 +130,18 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 		}
 	}
 
-	if certFile := kcmdutil.GetFlagString(cmd, "client-certificate"); len(certFile) > 0 {
-		o.CertFile = certFile
-	}
-	if keyFile := kcmdutil.GetFlagString(cmd, "client-key"); len(keyFile) > 0 {
-		o.KeyFile = keyFile
+	o.CertFile = kcmdutil.GetFlagString(cmd, "client-certificate")
+	o.KeyFile = kcmdutil.GetFlagString(cmd, "client-key")
+	o.APIVersion = kcmdutil.GetFlagString(cmd, "api-version")
+
+	// if the API version isn't explicitly passed, use the API version from the default context (same rules as the server above)
+	if len(o.APIVersion) == 0 {
+		if defaultContext, defaultContextExists := o.StartingKubeConfig.Contexts[o.StartingKubeConfig.CurrentContext]; defaultContextExists {
+			if cluster, exists := o.StartingKubeConfig.Clusters[defaultContext.Cluster]; exists {
+				o.APIVersion = cluster.APIVersion
+			}
+		}
+
 	}
 
 	o.CAFile = kcmdutil.GetFlagString(cmd, "certificate-authority")
