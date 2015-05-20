@@ -361,9 +361,9 @@ func describeDeployments(node *graph.DeploymentConfigNode, count int) []string {
 	if node.ActiveDeployment == nil {
 		on, auto := describeDeploymentConfigTriggers(node.DeploymentConfig)
 		if node.DeploymentConfig.LatestVersion == 0 {
-			out = append(out, fmt.Sprintf("#1 deployment waiting %s. Run osc deploy --latest to deploy now.", on))
+			out = append(out, fmt.Sprintf("#1 deployment waiting %s", on))
 		} else if auto {
-			out = append(out, fmt.Sprintf("#%d deployment pending %s. Run osc deploy --latest to deploy now.", node.DeploymentConfig.LatestVersion, on))
+			out = append(out, fmt.Sprintf("#%d deployment pending %s", node.DeploymentConfig.LatestVersion, on))
 		}
 		// TODO: detect new image available?
 	} else {
@@ -394,7 +394,7 @@ func describeDeploymentStatus(deploy *kapi.ReplicationController) string {
 	switch status {
 	case deployapi.DeploymentStatusFailed:
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("#%d deployment failed %s ago. You can restart this deployment with osc deploy --retry.", version, timeAt)
+		return fmt.Sprintf("#%d deployment failed %s ago", version, timeAt)
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
 		return fmt.Sprintf("#%d deployed %s ago", version, timeAt)
