@@ -104,7 +104,7 @@ openshift admin create-master-certs \
   --cert-dir="${MASTER_CONFIG_DIR}" \
   --hostnames="${SERVER_HOSTNAME_LIST}" \
   --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}"
+  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
 
 openshift admin create-node-config \
   --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
