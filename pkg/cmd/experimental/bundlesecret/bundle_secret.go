@@ -9,6 +9,7 @@ import (
 	"path"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -153,12 +154,13 @@ func (o *CreateSecretOptions) CreateSecret() (*kapi.Secret, error) {
 
 func readFile(filePath string, dataMap map[string][]byte) error {
 	fileName := path.Base(filePath)
-	if !util.IsDNS1123Subdomain(fileName) {
+	if !kvalidation.IsSecretKey(fileName) {
 		return fmt.Errorf("%s cannot be used as a key in a secret", filePath)
 	}
 	if _, exists := dataMap[fileName]; exists {
 		return fmt.Errorf("Multiple files with the same name (%s) cannot be included a secret", fileName)
 	}
+
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return err
