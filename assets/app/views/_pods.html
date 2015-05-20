@@ -2,7 +2,7 @@
   Expects the following variables:
   pods - a hash of pod objects by id
 -->
-<div class="pod-container">
+<div class="component-block pod-container">
   <div class="animate-repeat pod pod-{{pod.status.phase.toLowerCase()}} osc-object"  ng-repeat="pod in pods track by (pod | uid)" kind="Pod" resource="pod">
     <div class="pod-text">
       <strong>{{pod.status.phase}}</strong><div ng-if="pod.status.podIP">{{pod.status.podIP}}</div><div ng-if="!pod.status.podIP">allocating IP...</div>

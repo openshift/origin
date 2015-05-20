@@ -142,7 +142,10 @@
               <div style="padding-top:10px;" ng-if="deployment.spec.template">
                 <dt>Pod Template:</dt>
                 <dd>
-                  <pod-template ng-init="podTemplate = deployment.spec.template"></pod-template>
+                  <pod-template
+                    pod-template="deployment.spec.template" 
+                    images-by-docker-reference="imagesByDockerReference"
+                    builds="builds"></pod-template>
                 </dd>
               </div>
             </div>
@@ -210,7 +213,15 @@
               </div>
               <div style="padding-top:10px;" ng-if="deployment.spec.template">
                 <dt>Pod Template:</dt>
-                <pod-template ng-init="podTemplate = deployment.spec.template"></pod-template>
+
+                <dd>
+                  <pod-template
+                    pod-template="deployment.spec.template" 
+                    images-by-docker-reference="imagesByDockerReference"
+                    builds="builds">
+                  </pod-template>
+                </dd>
+
               </div>
             </div>
           </dl>

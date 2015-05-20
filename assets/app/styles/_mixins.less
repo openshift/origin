@@ -7,6 +7,19 @@
 }
 
 
+.osc-object-highlight() {
+    &.osc-object {
+    &.osc-object-hover {
+      cursor: pointer;
+      border-color: @osc-object-hover-color;
+    }
+    &.osc-object-active {
+      border-color: @osc-object-active-color;
+    } 
+  }
+}
+
+
 // Requires inline-block or block
 .truncate() {
   overflow: hidden;

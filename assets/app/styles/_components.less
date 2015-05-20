@@ -1,0 +1,286 @@
+//
+// Overview page components
+// --------------------------------------------------
+
+.components {
+  border-left: 3px solid #ccc;
+  border-left-style: dotted;
+  margin-bottom: 30px;
+  .connector {
+    display: none;
+  }
+  &.components-group {
+    border-left-style: solid;
+    .connector {
+      display: inline-block;
+      position: absolute;
+      top: 48%;
+      left: -5px;
+      i {
+        color: #ccc;
+        transform: rotate(137deg);
+        font-size: 9px;
+        position: absolute;
+      }
+      &:before {
+        content: '\f111';
+        font: normal normal normal 7px/1 FontAwesome;
+        display: inline-block;
+        color: #fff;
+        position: absolute;
+        left: 1px;
+        top:1px;
+      }
+    }
+    .osc-object-active {
+      .connector {
+        i {
+          color: @osc-object-active-color;
+        }
+      }
+    }
+  }
+  .components-panel {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    position: relative;
+    .osc-object-highlight();
+    .component-label {
+      text-transform: uppercase;
+      font-size: 11px;
+      color: @gray-light;
+      + span {
+        margin-left: 5px;
+      }
+    }
+    .component-block {
+      .flex-display(@display: flex);
+      .flex-direction(@direction: row);
+      .flex-wrap(@wrap: wrap);
+
+      @media (max-width: @screen-sm-min) {
+        /* Switch to vertical layout at small sizes */
+        .flex-direction(@direction: column);
+      }
+
+      &.pod-template-container {
+        margin-top: 5px;
+      }
+      &.component-meta {
+        margin: 4px 0 6px;
+      }
+      .component {
+        .flex(@columns: 1);
+        h2,h3 {
+          margin: 0 0 5px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        &.meta-data {
+          .flex(@columns: 1);
+          text-align: right;
+          line-height: 1.3em;
+          .align-self(@align: left);
+          color: @gray-light;
+        }
+
+        @media (max-width: @screen-sm-min) {
+          &.meta-data {
+            /* Left align for vertical layout at small sizes */
+            text-align: left;
+          }
+        }
+
+      }
+    }
+    &.service {
+      border-left-width: 0;
+      margin-bottom: 6px;
+      padding: 6px 15px 5px;
+      .osc-object-highlight();
+      &.none {
+        background-color: transparent;
+      }
+    }
+    &.deployment-block {
+      margin: 0 0 6px 6px;
+      padding: 5px 15px;
+      &.none {
+        background-color: transparent;
+        &:after {
+          background-color: #ccc;
+          top: 50%;
+          content: "";
+          display: block;
+          height: 1px;
+          left: -10px;
+          position: absolute;
+          width: 9px;
+        }
+      }
+    }
+  }
+}
+
+.pod-template-block {
+  text-align: left;
+  display: inline-block;
+  .flex(@columns: 1 0 auto);
+  max-width: 450px;
+  border-radius: 3px;
+  margin-bottom: 10px;
+  margin-right: 10px;
+  .pod-template {
+    border: 1px dotted #ddd;
+    border-radius: @border-radius-md;
+    padding: 5px 10px;
+    h4 {
+      margin: 5px 0;
+    }
+    .fa {
+      margin-right: 5px;
+    }
+  }
+  .pod-template-ports {
+    .font-icon-block {
+      margin-right: 8px;
+    }
+    .port-number {
+      display: inline-block;
+    }
+  }
+}
+
+
+.builds-block {
+  margin-left: 5px;
+  .builds {
+    margin: 0;
+    overflow: hidden;
+    .build {
+      /* Put a transparent border in place so osc-object-highlight shows selection */
+      border: 1px solid transparent;
+      .osc-object-highlight();
+      border-radius: @border-radius-md;
+      padding: 5px;
+      position: relative;
+      margin: 10px 0;
+      text-align: left;
+      &:first-child {
+        margin-top: 0;
+      }
+      + .build:after {
+        background-color: @connector-color;
+        top: -6px;
+        content: "";
+        display: block;
+        height: 1px;
+        left: 0;
+        right: 0;
+        position: absolute;
+      }
+    }
+  }
+}
+
+
+.pod-block {
+  display: block;
+  .pod-container {
+    .flex-display(@display: flex);
+    .flex-direction(@direction: row);
+    .flex-wrap(@wrap: wrap);
+    .justify-content(@justify: flex-start);
+    margin-top: 5px;
+    &.pod-container-lg {
+      .pod {
+        width: 70px;
+        height: 70px;
+      }
+    }
+    .pod {
+      .osc-object-highlight();
+      .flex(@columns: 1 1 auto);
+      max-width: 450px;
+      border-radius: @border-radius-md;
+      border: 1px solid transparent;
+      // box-shadow: @osc-object-box-shadow; <- remove if it's not used in highlight
+      padding: 10px;
+      position: relative;
+      margin: 0 10px 10px 0;
+      text-align: center;
+      background-color: @pod-pending-bg;
+      -webkit-font-smoothing: antialiased;
+      &.pod-running {
+        background-color: @pod-running-bg;
+        .spinner {
+          display: none;
+        }
+      }
+      &.pod-failed {
+        background-color: @pod-warning-bg;
+        strong {
+          position: relative;
+          &:after {
+            color: #fff;
+            content: "\e608";
+            left: -15px;
+            top: 0;
+            position: absolute;
+            font-family: 'PatternFlyIcons-webfont';
+          }
+          &:before {
+            content: "\e60c";
+            color: @brand-warning;
+            left: -16px;
+            top: -1px;
+            position: absolute;
+            font-family: 'PatternFlyIcons-webfont';
+          }
+        }
+      }
+      .pod-text {
+        font-family: @font-family-base;
+        font-size: 11px;
+      }
+      .spinner {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+      }
+    }
+  }
+}
+
+.animate-repeat.ng-move,
+.animate-repeat.ng-enter,
+.animate-repeat.ng-leave {
+  -webkit-transition:all 1s;
+  transition:all 1s;
+}
+
+.animate-repeat.ng-leave.ng-leave-active,
+.animate-repeat.ng-move,
+.animate-repeat.ng-enter {
+  opacity:0;
+}
+
+.animate-repeat.ng-leave,
+.animate-repeat.ng-move.ng-move-active,
+.animate-repeat.ng-enter.ng-enter-active {
+  opacity:1;
+}
+
+/* Angular automatically animates things by creating
+   transition periods between elements showing and hiding.
+   In some cases we do not want to see both elements at the same time
+   so we hide things in the ng-leave state that we have tagged with the
+   additional hide-ng-leave class.
+ */
+.hide-ng-leave.ng-leave {
+  display: none;
+}
+
+.hide-ng-leave .ng-leave {
+  display: none;
+}

@@ -59,7 +59,8 @@ pushd ${OS_ROOT}/assets > /dev/null
   
   cmd "rm -rf openshift-jvm"
   cmd "mkdir -p openshift-jvm"
-  wget https://github.com/hawtio/openshift-jvm/archive/v1.0.13-build.tar.gz -O - | tar -xz -C openshift-jvm --strip-components=1
+  unset CURL_CA_BUNDLE
+  curl -s https://codeload.github.com/hawtio/openshift-jvm/tar.gz/v1.0.13-build | tar -xz -C openshift-jvm --strip-components=1
 popd > /dev/null
 
 pushd ${OS_ROOT}/Godeps/_workspace > /dev/null
