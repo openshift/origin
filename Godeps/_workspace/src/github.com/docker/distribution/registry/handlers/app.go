@@ -144,6 +144,10 @@ func NewApp(ctx context.Context, configuration configuration.Configuration) *App
 	return app
 }
 
+func (app *App) Registry() distribution.Namespace {
+	return app.registry
+}
+
 // register a handler with the application, by route name. The handler will be
 // passed through the application filters and context will be constructed at
 // request time.

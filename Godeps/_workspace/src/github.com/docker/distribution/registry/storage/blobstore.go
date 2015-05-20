@@ -2,7 +2,9 @@ package storage
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/docker/distribution"
 	ctxu "github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
@@ -21,6 +23,30 @@ type blobStore struct {
 	driver storagedriver.StorageDriver
 	pm     *pathMapper
 	ctx    context.Context
+}
+
+var _ distribution.BlobService = &blobStore{}
+
+func (bs *blobStore) Delete(dgst digest.Digest) error {
+	found, err := bs.exists(dgst)
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		// TODO if the blob doesn't exist, should this be an error?
+		return nil
+	}
+
+	path, err := bs.path(dgst)
+
+	if err != nil {
+		return err
+	}
+
+	path = strings.TrimSuffix(path, "/data")
+
+	return bs.driver.Delete(path)
 }
 
 // exists reports whether or not the path exists. If the driver returns error
