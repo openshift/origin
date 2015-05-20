@@ -1,188 +1,142 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/docker/distribution"
+	ctxu "github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/handlers"
+	gorillahandlers "github.com/gorilla/handlers"
 )
 
-// DeleteLayersRequest is a mapping from layers to the image repositories that
-// reference them. Below is a sample request:
-//
-// {
-//   "layer1": ["repo1", "repo2"],
-//   "layer2": ["repo1", "repo3"],
-//   ...
-// }
-type DeleteLayersRequest map[string][]string
+// BlobDispatcher takes the request context and builds the appropriate handler
+// for handling blob requests.
+func BlobDispatcher(ctx *handlers.Context, r *http.Request) http.Handler {
+	reference := ctxu.GetStringValue(ctx, "vars.digest")
+	dgst, _ := digest.ParseDigest(reference)
 
-// AddLayer adds a layer to the request if it doesn't already exist.
-func (r DeleteLayersRequest) AddLayer(layer string) {
-	if _, ok := r[layer]; !ok {
-		r[layer] = []string{}
+	blobHandler := &blobHandler{
+		Context: ctx,
+		Digest:  dgst,
+	}
+
+	return gorillahandlers.MethodHandler{
+		"DELETE": http.HandlerFunc(blobHandler.Delete),
 	}
 }
 
-// AddStream adds an image stream reference to the layer.
-func (r DeleteLayersRequest) AddStream(layer, stream string) {
-	r[layer] = append(r[layer], stream)
+// blobHandler handles http operations on blobs.
+type blobHandler struct {
+	*handlers.Context
+
+	Digest digest.Digest
 }
 
-type DeleteLayersResponse struct {
-	Result string
-	Errors map[string][]string
+// Delete deletes the blob from the storage backend.
+func (bh *blobHandler) Delete(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	if len(bh.Digest) == 0 {
+		bh.Errors.Push(v2.ErrorCodeBlobUnknown)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	err := bh.Registry().Blobs().Delete(bh.Digest)
+	if err != nil {
+		bh.Errors.PushErr(fmt.Errorf("error deleting blob %q: %v", bh.Digest, err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
-// deleteLayerFunc returns an http.HandlerFunc that is able to fully delete a
-// layer from storage.
-func DeleteLayersHandler(adminService distribution.AdminService) func(ctx *handlers.Context, r *http.Request) http.Handler {
-	return func(ctx *handlers.Context, r *http.Request) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			defer req.Body.Close()
-			log.Infof("deleteLayerFunc invoked")
+// LayerDispatcher takes the request context and builds the appropriate handler
+// for handling layer requests.
+func LayerDispatcher(ctx *handlers.Context, r *http.Request) http.Handler {
+	reference := ctxu.GetStringValue(ctx, "vars.digest")
+	dgst, _ := digest.ParseDigest(reference)
 
-			decoder := json.NewDecoder(req.Body)
-			deletions := DeleteLayersRequest{}
-			if err := decoder.Decode(&deletions); err != nil {
-				//TODO
-				log.Errorf("Error unmarshaling body: %v", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+	layerHandler := &layerHandler{
+		Context: ctx,
+		Digest:  dgst,
+	}
 
-			errs := map[string][]error{}
-			for layer, repos := range deletions {
-				log.Infof("Deleting layer=%q, repos=%v", layer, repos)
-				errs[layer] = adminService.DeleteLayer(layer, repos)
-			}
-
-			log.Infof("errs=%v", errs)
-
-			var result string
-			switch len(errs) {
-			case 0:
-				result = "success"
-			default:
-				result = "failure"
-			}
-
-			response := DeleteLayersResponse{
-				Result: result,
-				Errors: map[string][]string{},
-			}
-
-			for layer, layerErrors := range errs {
-				response.Errors[layer] = []string{}
-				for _, err := range layerErrors {
-					response.Errors[layer] = append(response.Errors[layer], err.Error())
-				}
-			}
-
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-			encoder := json.NewEncoder(w)
-			if err := encoder.Encode(&response); err != nil {
-				w.Write([]byte(fmt.Sprintf("Error marshaling response: %v", err)))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.WriteHeader(http.StatusOK)
-		})
+	return gorillahandlers.MethodHandler{
+		"DELETE": http.HandlerFunc(layerHandler.Delete),
 	}
 }
 
-type DeleteManifestsRequest map[string][]string
+// layerHandler handles http operations on layers.
+type layerHandler struct {
+	*handlers.Context
 
-func (r DeleteManifestsRequest) AddManifest(revision string) {
-	if _, ok := r[revision]; !ok {
-		r[revision] = []string{}
+	Digest digest.Digest
+}
+
+// Delete deletes the layer link from the repository from the storage backend.
+func (lh *layerHandler) Delete(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	if len(lh.Digest) == 0 {
+		lh.Errors.Push(v2.ErrorCodeBlobUnknown)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	err := lh.Repository.Layers().Delete(lh.Digest)
+	if err != nil {
+		lh.Errors.PushErr(fmt.Errorf("error unlinking layer %q from repo %q: %v", lh.Digest, lh.Repository.Name(), err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// ManifestDispatcher takes the request context and builds the appropriate
+// handler for handling manifest requests.
+func ManifestDispatcher(ctx *handlers.Context, r *http.Request) http.Handler {
+	reference := ctxu.GetStringValue(ctx, "vars.digest")
+	dgst, _ := digest.ParseDigest(reference)
+
+	manifestHandler := &manifestHandler{
+		Context: ctx,
+		Digest:  dgst,
+	}
+
+	return gorillahandlers.MethodHandler{
+		"DELETE": http.HandlerFunc(manifestHandler.Delete),
 	}
 }
 
-func (r DeleteManifestsRequest) AddStream(revision, stream string) {
-	r[revision] = append(r[revision], stream)
+// manifestHandler handles http operations on mainfests.
+type manifestHandler struct {
+	*handlers.Context
+
+	Digest digest.Digest
 }
 
-type DeleteManifestsResponse struct {
-	Result string
-	Errors map[string][]string
-}
+// Delete deletes the manifest information from the repository from the storage
+// backend.
+func (mh *manifestHandler) Delete(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
 
-func DeleteManifestsHandler(adminService distribution.AdminService) func(ctx *handlers.Context, r *http.Request) http.Handler {
-	return func(ctx *handlers.Context, r *http.Request) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			defer req.Body.Close()
-
-			decoder := json.NewDecoder(req.Body)
-			deletions := DeleteManifestsRequest{}
-			if err := decoder.Decode(&deletions); err != nil {
-				//TODO
-				log.Errorf("Error unmarshaling body: %v", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			errs := map[string][]error{}
-			for revision, repos := range deletions {
-				log.Infof("Deleting manifest revision=%q, repos=%v", revision, repos)
-				dgst, err := digest.ParseDigest(revision)
-				if err != nil {
-					errs[revision] = []error{fmt.Errorf("Error parsing revision %q: %v", revision, err)}
-					continue
-				}
-				errs[revision] = adminService.DeleteManifest(dgst, repos)
-			}
-
-			log.Infof("errs=%v", errs)
-
-			var result string
-			switch len(errs) {
-			case 0:
-				result = "success"
-			default:
-				result = "failure"
-			}
-
-			response := DeleteManifestsResponse{
-				Result: result,
-				Errors: map[string][]string{},
-			}
-
-			for revision, revisionErrors := range errs {
-				response.Errors[revision] = []string{}
-				for _, err := range revisionErrors {
-					response.Errors[revision] = append(response.Errors[revision], err.Error())
-				}
-			}
-
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-			encoder := json.NewEncoder(w)
-			if err := encoder.Encode(&response); err != nil {
-				w.Write([]byte(fmt.Sprintf("Error marshaling response: %v", err)))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.WriteHeader(http.StatusOK)
-		})
+	if len(mh.Digest) == 0 {
+		mh.Errors.Push(v2.ErrorCodeManifestUnknown)
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
-}
 
-func DeleteRepositoryHandler(adminService distribution.AdminService) func(ctx *handlers.Context, r *http.Request) http.Handler {
-	return func(ctx *handlers.Context, r *http.Request) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			defer req.Body.Close()
-
-			if err := adminService.DeleteRepository(ctx.Repository.Name()); err != nil {
-				w.Write([]byte(fmt.Sprintf("Error deleting repository %q: %v", ctx.Repository.Name(), err)))
-			}
-
-			w.WriteHeader(http.StatusNoContent)
-		})
+	err := mh.Repository.Manifests().Delete(mh.Context, mh.Digest)
+	if err != nil {
+		mh.Errors.PushErr(fmt.Errorf("error deleting repo %q, manifest %q: %v", mh.Repository.Name(), mh.Digest, err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	eximageprune "github.com/openshift/origin/pkg/cmd/experimental/imageprune"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/admin/node"
@@ -48,7 +47,6 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	cmds.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
 	cmds.AddCommand(exrouter.NewCmdRouter(f, fullName, "router", out))
 	cmds.AddCommand(exregistry.NewCmdRegistry(f, fullName, "registry", out))
-	cmds.AddCommand(eximageprune.NewCmdPruneImages(f, fullName, "prune-images", out))
 	cmds.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
 	cmds.AddCommand(node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out))
 	cmds.AddCommand(cmd.NewCmdConfig(fullName, "config"))

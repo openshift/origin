@@ -1,5 +1,6 @@
 package prune
 
+/*
 import (
 	"fmt"
 	"io"
@@ -16,18 +17,18 @@ type summarizingPruner struct {
 	imageFailures  []string
 	imageErrors    []error
 
-	/*
-		{
-			registry1: {
-				layer1: {
-					requestError: nil,
-					layerErrors: [err1, err2],
-				},
-				...,
-			},
-			registry2: ...
-		}
-	*/
+
+		//{
+		//	registry1: {
+		//		layer1: {
+		//			requestError: nil,
+		//			layerErrors: [err1, err2],
+		//		},
+		//		...,
+		//	},
+		//	registry2: ...
+		//}
+
 	registryResults map[string]registryResult
 }
 
@@ -102,3 +103,4 @@ func (p *summarizingPruner) layerPruneFunc(base LayerPruneFunc) LayerPruneFunc {
 		return requestError, layerErrors
 	}
 }
+*/

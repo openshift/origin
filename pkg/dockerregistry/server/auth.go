@@ -166,6 +166,8 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				challenge.err = err
 				return nil, challenge
 			}
+
+			return WithUserClient(ctx, client), nil
 		case "admin":
 			switch access.Action {
 			case "prune":
@@ -173,13 +175,16 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 					challenge.err = err
 					return nil, challenge
 				}
+
+				return WithUserClient(ctx, client), nil
 			default:
 				challenge.err = fmt.Errorf("Unknown action: %s", access.Action)
 				return nil, challenge
 			}
 		}
 	}
-	return WithUserClient(ctx, client), nil
+
+	return ctx, nil
 }
 
 func verifyOpenShiftUser(user string, client *client.Client) error {

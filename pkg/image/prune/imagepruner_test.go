@@ -4,20 +4,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	"github.com/openshift/origin/pkg/dockerregistry/server"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -499,6 +494,22 @@ func TestImagePruning(t *testing.T) {
 			expectedDeletions:      []string{"id4"},
 			expectedUpdatedStreams: []string{"foo/bar"},
 		},
+		"image stream - same manifest listed multiple times in tag history": {
+			images: imageList(
+				image("id1", registryURL+"/foo/bar@id1"),
+				image("id2", registryURL+"/foo/bar@id2"),
+			),
+			streams: streamList(
+				stream(registryURL, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("id1", registryURL+"/foo/bar@id1"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+						tagEvent("id1", registryURL+"/foo/bar@id1"),
+						tagEvent("id2", registryURL+"/foo/bar@id2"),
+					),
+				)),
+			),
+		},
 		"image stream age less than min pruning age - don't prune": {
 			images: imageList(
 				image("id", registryURL+"/foo/bar@id"),
@@ -580,11 +591,11 @@ func TestImagePruning(t *testing.T) {
 		if len(tcFilter) > 0 && name != tcFilter {
 			continue
 		}
-		p := newImagePruner(60*time.Minute, 3, &test.images, &test.streams, &test.pods, &test.rcs, &test.bcs, &test.builds, &test.dcs)
+		p := NewImagePruner(60*time.Minute, 3, &test.images, &test.streams, &test.pods, &test.rcs, &test.bcs, &test.builds, &test.dcs)
 		actualDeletions := util.NewStringSet()
 		actualUpdatedStreams := util.NewStringSet()
 
-		imagePruneFunc := func(image *imageapi.Image, streams []*imageapi.ImageStream) []error {
+		pruneImage := func(image *imageapi.Image, streams []*imageapi.ImageStream) []error {
 			actualDeletions.Insert(image.Name)
 			for _, stream := range streams {
 				actualUpdatedStreams.Insert(fmt.Sprintf("%s/%s", stream.Namespace, stream.Name))
@@ -592,11 +603,19 @@ func TestImagePruning(t *testing.T) {
 			return []error{}
 		}
 
-		layerPruneFunc := func(registryURL string, req server.DeleteLayersRequest) (error, map[string][]error) {
-			return nil, map[string][]error{}
+		pruneLayer := func(registryURL, repo, layer string) error {
+			return nil
 		}
 
-		p.Run(imagePruneFunc, layerPruneFunc)
+		pruneBlob := func(registryURL, blob string) error {
+			return nil
+		}
+
+		pruneManifest := func(registryURL, repo, manifest string) error {
+			return nil
+		}
+
+		p.Run(pruneImage, pruneLayer, pruneBlob, pruneManifest)
 
 		expectedDeletions := util.NewStringSet(test.expectedDeletions...)
 		if !reflect.DeepEqual(expectedDeletions, actualDeletions) {
@@ -730,6 +749,7 @@ func TestDeletingImagePruneFunc(t *testing.T) {
 	}
 }
 
+/*
 func TestLayerPruning(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
 	registryURL := "registry1"
@@ -823,42 +843,9 @@ func TestLayerPruning(t *testing.T) {
 		}
 	}
 }
+*/
 
-func TestNewImagePruner(t *testing.T) {
-	osFake := &client.Fake{}
-
-	kFake := &testclient.Fake{}
-	p, err := NewImagePruner(60, 3, osFake, osFake, kFake, kFake, osFake, osFake, osFake)
-	if err != nil {
-		t.Fatalf("unexpected error creating image pruner: %v", err)
-	}
-	if p == nil {
-		t.Fatalf("unexpected nil pruner")
-	}
-
-	seen := util.NewStringSet()
-	for _, action := range osFake.Actions {
-		seen.Insert(action.Action)
-	}
-	for _, action := range kFake.Actions {
-		seen.Insert(action.Action)
-	}
-
-	expected := util.NewStringSet(
-		"list-images",
-		"list-imagestreams",
-		"list-pods",
-		"list-replicationControllers",
-		"list-buildconfig",
-		"list-builds",
-		"list-deploymentconfig",
-	)
-
-	if e, a := expected, seen; !reflect.DeepEqual(e, a) {
-		t.Errorf("Expected actions=%v, got: %v", e.List(), a.List())
-	}
-}
-
+/*
 func TestDeletingLayerPruneFunc(t *testing.T) {
 	tests := map[string]struct {
 		simulateClientError        bool
@@ -942,3 +929,4 @@ func TestDeletingLayerPruneFunc(t *testing.T) {
 		}
 	}
 }
+*/

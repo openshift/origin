@@ -1,19 +1,12 @@
 package prune
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
@@ -22,7 +15,6 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	"github.com/openshift/origin/pkg/dockerregistry/server"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 )
@@ -41,12 +33,15 @@ type ImagePruneFunc func(image *imageapi.Image, streams []*imageapi.ImageStream)
 // LayerPruneFunc is a function that is invoked for each registry, along with
 // a DeleteLayersRequest that contains the layers that can be pruned and the
 // image stream names that reference each layer.
-type LayerPruneFunc func(registryURL string, req server.DeleteLayersRequest) (requestError error, layerErrors map[string][]error)
+//type LayerPruneFunc func(registryURL string, req server.DeleteLayersRequest) (requestError error, layerErrors map[string][]error)
+type LayerPruneFunc func(registryURL, repo, layer string) error
+type BlobPruneFunc func(registryURL, blob string) error
+type ManifestPruneFunc func(registryURL, repo, manifest string) error
 
 // ImagePruner knows how to prune images and layers.
 type ImagePruner interface {
 	// Run prunes images and layers.
-	Run(imagePruneFunc ImagePruneFunc, layerPruneFunc LayerPruneFunc)
+	Run(pruneImage ImagePruneFunc, pruneLayer LayerPruneFunc, pruneBlob BlobPruneFunc, pruneManifest ManifestPruneFunc)
 }
 
 // imagePruner implements ImagePruner.
@@ -70,8 +65,10 @@ tagRevisionsToKeep is the number of revisions per tag in an image stream's
 status.tags that are preserved and ineligible for pruning. Any revision older
 than tagRevisionsToKeep is eligible for pruning.
 
-images, streams, pods, rcs, bcs, builds, and dcs are client interfaces for
-retrieving each respective resource type.
+images, streams, pods, rcs, bcs, builds, and dcs are the resources used to run
+the pruning algorithm. These should be the full list for each type from the
+cluster; otherwise, the pruning algorithm might result in incorrect
+calculations and premature pruning.
 
 The ImagePruner performs the following logic: remove any image contaning the
 annotation openshift.io/image.managed=true that was created at least *n*
@@ -93,47 +90,7 @@ ImageStreams having a reference to the image in `status.tags`.
 Also automatically remove any image layer that is no longer referenced by any
 images.
 */
-func NewImagePruner(keepYoungerThan time.Duration, tagRevisionsToKeep int, images client.ImagesInterfacer, streams client.ImageStreamsNamespacer, pods kclient.PodsNamespacer, rcs kclient.ReplicationControllersNamespacer, bcs client.BuildConfigsNamespacer, builds client.BuildsNamespacer, dcs client.DeploymentConfigsNamespacer) (ImagePruner, error) {
-	allImages, err := images.Images().List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return nil, fmt.Errorf("Error listing images: %v", err)
-	}
-
-	allStreams, err := streams.ImageStreams(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return nil, fmt.Errorf("Error listing image streams: %v", err)
-	}
-
-	allPods, err := pods.Pods(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return nil, fmt.Errorf("Error listing pods: %v", err)
-	}
-
-	allRCs, err := rcs.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
-	if err != nil {
-		return nil, fmt.Errorf("Error listing replication controllers: %v", err)
-	}
-
-	allBCs, err := bcs.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return nil, fmt.Errorf("Error listing build configs: %v", err)
-	}
-
-	allBuilds, err := builds.Builds(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return nil, fmt.Errorf("Error listing builds: %v", err)
-	}
-
-	allDCs, err := dcs.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return nil, fmt.Errorf("Error listing deployment configs: %v", err)
-	}
-
-	return newImagePruner(keepYoungerThan, tagRevisionsToKeep, allImages, allStreams, allPods, allRCs, allBCs, allBuilds, allDCs), nil
-}
-
-// newImagePruner creates a new ImagePruner.
-func newImagePruner(keepYoungerThan time.Duration, tagRevisionsToKeep int, images *imageapi.ImageList, streams *imageapi.ImageStreamList, pods *kapi.PodList, rcs *kapi.ReplicationControllerList, bcs *buildapi.BuildConfigList, builds *buildapi.BuildList, dcs *deployapi.DeploymentConfigList) ImagePruner {
+func NewImagePruner(keepYoungerThan time.Duration, tagRevisionsToKeep int, images *imageapi.ImageList, streams *imageapi.ImageStreamList, pods *kapi.PodList, rcs *kapi.ReplicationControllerList, bcs *buildapi.BuildConfigList, builds *buildapi.BuildList, dcs *deployapi.DeploymentConfigList) ImagePruner {
 	g := graph.New()
 
 	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, tagRevisionsToKeep=%d", keepYoungerThan, tagRevisionsToKeep)
@@ -244,6 +201,13 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 				default:
 					kind = oldImageRevisionReferenceKind
 				}
+
+				glog.V(4).Infof("Checking for existing strong reference from stream %s/%s to image %s", stream.Namespace, stream.Name, imageNode.Image.Name)
+				if edge := g.EdgeBetween(imageStreamNode, imageNode); edge != nil && g.EdgeKind(edge) == graph.ReferencedImageGraphEdgeKind {
+					glog.V(4).Infof("Strong reference found")
+					continue
+				}
+
 				glog.V(4).Infof("Adding edge (kind=%d) from %q to %q", kind, imageStreamNode.UniqueName.UniqueName(), imageNode.UniqueName.UniqueName())
 				g.AddEdge(imageStreamNode, imageNode, kind)
 
@@ -463,7 +427,7 @@ func imageIsPrunable(g graph.Graph, imageNode *graph.ImageNode) bool {
 // with the image streams that reference the image. After imagePruneFunc is
 // invoked, the image node is removed from the graph, so that layers eligible
 // for pruning may later be identified.
-func pruneImages(g graph.Graph, imageNodes []*graph.ImageNode, imagePruneFunc ImagePruneFunc) {
+func pruneImages(g graph.Graph, imageNodes []*graph.ImageNode, pruneImage ImagePruneFunc, pruneManifest ManifestPruneFunc) {
 	for _, imageNode := range imageNodes {
 		glog.V(4).Infof("Examining image %q", imageNode.Image.Name)
 
@@ -475,8 +439,22 @@ func pruneImages(g graph.Graph, imageNodes []*graph.ImageNode, imagePruneFunc Im
 		glog.V(4).Infof("Image has only weak references - pruning")
 
 		streams := imageStreamPredecessors(g, imageNode)
-		if errs := imagePruneFunc(imageNode.Image, streams); len(errs) > 0 {
+		if errs := pruneImage(imageNode.Image, streams); len(errs) > 0 {
 			glog.Errorf("Error pruning image %q: %v", imageNode.Image.Name, errs)
+		}
+
+		for _, stream := range streams {
+			ref, err := imageapi.DockerImageReferenceForStream(stream)
+			repoName := fmt.Sprintf("%s/%s", ref.Namespace, ref.Name)
+			if err != nil {
+				glog.Errorf("Error constructing DockerImageReference for %q: %v", repoName, err)
+				continue
+			}
+
+			glog.V(4).Infof("Invoking pruneManifest for registry %q, repo %q, image %q", ref.Registry, repoName, imageNode.Image.Name)
+			if err := pruneManifest(ref.Registry, repoName, imageNode.Image.Name); err != nil {
+				glog.Errorf("Error pruning manifest for registry %q, repo %q, image %q: %v", ref.Registry, repoName, imageNode.Image.Name, err)
+			}
 		}
 
 		// remove pruned image node from graph, for layer pruning later
@@ -487,14 +465,14 @@ func pruneImages(g graph.Graph, imageNodes []*graph.ImageNode, imagePruneFunc Im
 // Run identifies images eligible for pruning, invoking imagePruneFunc for each
 // image, and then it identifies layers eligible for pruning, invoking
 // layerPruneFunc for each registry URL that has layers that can be pruned.
-func (p *imagePruner) Run(imagePruneFunc ImagePruneFunc, layerPruneFunc LayerPruneFunc) {
+func (p *imagePruner) Run(pruneImage ImagePruneFunc, pruneLayer LayerPruneFunc, pruneBlob BlobPruneFunc, pruneManifest ManifestPruneFunc) {
 	allNodes := p.g.NodeList()
 
 	imageNodes := imageNodeSubgraph(allNodes)
-	pruneImages(p.g, imageNodes, imagePruneFunc)
+	pruneImages(p.g, imageNodes, pruneImage, pruneManifest)
 
 	layerNodes := layerNodeSubgraph(allNodes)
-	pruneLayers(p.g, layerNodes, layerPruneFunc)
+	pruneLayers(p.g, layerNodes, pruneLayer, pruneBlob)
 }
 
 // layerNodeSubgraph returns the subset of nodes that are ImageLayerNodes.
@@ -540,9 +518,7 @@ func streamLayerReferences(g graph.Graph, layerNode *graph.ImageLayerNode) []*gr
 // pruneLayers creates a mapping of registryURLs to
 // server.DeleteLayersRequest objects, invoking layerPruneFunc for each
 // registryURL and request.
-func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, layerPruneFunc LayerPruneFunc) {
-	registryDeletionRequests := map[string]server.DeleteLayersRequest{}
-
+func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, pruneLayer LayerPruneFunc, pruneBlob BlobPruneFunc) {
 	for _, layerNode := range layerNodes {
 		glog.V(4).Infof("Examining layer %q", layerNode.Layer)
 
@@ -551,10 +527,11 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, layerPruneFu
 			continue
 		}
 
+		registries := util.NewStringSet()
+
 		// get streams that reference layer
 		streamNodes := streamLayerReferences(g, layerNode)
 
-		// for each stream, get its registry
 		for _, streamNode := range streamNodes {
 			stream := streamNode.ImageStream
 			streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
@@ -566,46 +543,20 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, layerPruneFu
 				continue
 			}
 
-			// update registry layer deletion request
-			glog.V(4).Infof("Looking for existing deletion request for registry %q", ref.Registry)
-			deletionRequest, ok := registryDeletionRequests[ref.Registry]
-			if !ok {
-				glog.V(4).Infof("Request not found - creating new one")
-				deletionRequest = server.DeleteLayersRequest{}
-				registryDeletionRequests[ref.Registry] = deletionRequest
+			if !registries.Has(ref.Registry) {
+				registries.Insert(ref.Registry)
+				glog.V(4).Infof("Invoking pruneBlob with registry=%q, blob=%q", ref.Registry, layerNode.Layer)
+				if err := pruneBlob(ref.Registry, layerNode.Layer); err != nil {
+					glog.Errorf("Error invoking pruneBlob: %v", err)
+				}
 			}
 
-			glog.V(4).Infof("Adding or updating layer %q in deletion request", layerNode.Layer)
-			deletionRequest.AddLayer(layerNode.Layer)
-
-			glog.V(4).Infof("Adding stream %q", streamName)
-			deletionRequest.AddStream(layerNode.Layer, streamName)
+			repoName := fmt.Sprintf("%s/%s", ref.Namespace, ref.Name)
+			glog.V(4).Infof("Invoking pruneLayer with registry=%q, repo=%q, layer=%q", ref.Registry, repoName, layerNode.Layer)
+			if err := pruneLayer(ref.Registry, repoName, layerNode.Layer); err != nil {
+				glog.Errorf("Error invoking pruneLayer: %v", err)
+			}
 		}
-	}
-
-	// TODO this really should be a registryPruneFunc instead of a layerPruneFunc,
-	// sending a map of manifest->streams and a map of layer->streams to the registry.
-	// The registry should delete each manifest directory from each stream, delete
-	// each layer dir from each stream, and finally delete each layer from blobs.
-	//
-	// Right now this only handles the layer portion.
-	for registryURL, req := range registryDeletionRequests {
-		glog.V(4).Infof("Invoking layerPruneFunc with registry=%q, req=%#v", registryURL, req)
-		requestError, layerErrors := layerPruneFunc(registryURL, req)
-		glog.V(4).Infof("layerPruneFunc requestError=%v, layerErrors=%#v", requestError, layerErrors)
-	}
-}
-
-// DescribingImagePruneFunc returns an ImagePruneFunc that writes information
-// about the images that are eligible for pruning to out.
-func DescribingImagePruneFunc(out io.Writer) ImagePruneFunc {
-	return func(image *imageapi.Image, referencedStreams []*imageapi.ImageStream) []error {
-		streamNames := []string{}
-		for _, stream := range referencedStreams {
-			streamNames = append(streamNames, fmt.Sprintf("%s/%s", stream.Namespace, stream.Name))
-		}
-		fmt.Fprintf(out, "Pruning image %q and updating image streams %v\n", image.Name, streamNames)
-		return []error{}
 	}
 }
 
@@ -651,27 +602,6 @@ func DeletingImagePruneFunc(images client.ImageInterface, streams client.ImageSt
 	}
 }
 
-// DescribingLayerPruneFunc returns a LayerPruneFunc that writes information
-// about the layers that are eligible for pruning to out.
-func DescribingLayerPruneFunc(out io.Writer) LayerPruneFunc {
-	return func(registryURL string, deletions server.DeleteLayersRequest) (error, map[string][]error) {
-		result := map[string][]error{}
-
-		fmt.Fprintf(out, "Pruning from registry %q\n", registryURL)
-		for layer, repos := range deletions {
-			result[layer] = []error{}
-			fmt.Fprintf(out, "\tLayer %q\n", layer)
-			if len(repos) > 0 {
-				fmt.Fprint(out, "\tReferenced streams:\n")
-			}
-			for _, repo := range repos {
-				fmt.Fprintf(out, "\t\t%q\n", repo)
-			}
-		}
-		return nil, result
-	}
-}
-
 // DeletingLayerPruneFunc returns a LayerPruneFunc that sends the
 // DeleteLayersRequest to the Docker registry.
 //
@@ -682,56 +612,32 @@ func DescribingLayerPruneFunc(out io.Writer) LayerPruneFunc {
 // key being a layer, and each value being a list of Docker image repository
 // names referenced by the layer.
 func DeletingLayerPruneFunc(registryClient *http.Client) LayerPruneFunc {
-	return func(registryURL string, deletions server.DeleteLayersRequest) (requestError error, layerErrors map[string][]error) {
-		glog.V(4).Infof("Starting pruning of layers from %q, req %#v", registryURL, deletions)
-		body, err := json.Marshal(&deletions)
-		if err != nil {
-			glog.Errorf("Error marshaling request body: %v", err)
-			return fmt.Errorf("Error creating request body: %v", err), nil
-		}
+	return func(registryURL, repoName, layer string) error {
+		glog.V(4).Infof("Pruning registry %q, repo %q, layer %q", registryURL, repoName, layer)
 
 		//TODO https
-		req, err := http.NewRequest("DELETE", fmt.Sprintf("http://%s/admin/layers", registryURL), bytes.NewReader(body))
+		req, err := http.NewRequest("DELETE", fmt.Sprintf("http://%s/admin/%s/layers/%s", registryURL, repoName, layer), nil)
 		if err != nil {
 			glog.Errorf("Error creating request: %v", err)
-			return fmt.Errorf("Error creating request: %v", err), nil
+			return fmt.Errorf("Error creating request: %v", err)
 		}
 
 		glog.V(4).Infof("Sending request to registry")
 		resp, err := registryClient.Do(req)
 		if err != nil {
 			glog.Errorf("Error sending request: %v", err)
-			return fmt.Errorf("Error sending request: %v", err), nil
+			return fmt.Errorf("Error sending request: %v", err)
 		}
 		defer resp.Body.Close()
 
-		buf, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			glog.Errorf("Error reading response body: %v", err)
-			return fmt.Errorf("Error reading response body: %v", err), nil
-		}
-
-		if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode != http.StatusNoContent {
 			glog.Errorf("Unexpected status code in response: %d", resp.StatusCode)
-			return fmt.Errorf("Unexpected status code %d in response %s", resp.StatusCode, buf), nil
+			//TODO decode error response
+			//decoder := json.NewDecoder(resp.Body)
+			return fmt.Errorf("Unexpected status code %d in response", resp.StatusCode)
 		}
 
-		var deleteResponse server.DeleteLayersResponse
-		if err := json.Unmarshal(buf, &deleteResponse); err != nil {
-			glog.Errorf("Error unmarshaling response: %v", err)
-			return fmt.Errorf("Error unmarshaling response: %v", err), nil
-		}
-
-		errs := map[string][]error{}
-
-		for layer, layerErrors := range deleteResponse.Errors {
-			errs[layer] = []error{}
-			for _, err := range layerErrors {
-				errs[layer] = append(errs[layer], errors.New(err))
-			}
-		}
-
-		return nil, errs
+		return nil
 	}
 }
 
@@ -747,4 +653,66 @@ func imageStreamPredecessors(g graph.Graph, imageNode *graph.ImageNode) []*image
 	}
 
 	return streams
+}
+
+func DeletingBlobPruneFunc(registryClient *http.Client) BlobPruneFunc {
+	return func(registryURL, blob string) error {
+		glog.V(4).Infof("Pruning registry %q, blob %q", registryURL, blob)
+
+		//TODO https
+		req, err := http.NewRequest("DELETE", fmt.Sprintf("http://%s/admin/blobs/%s", registryURL, blob), nil)
+		if err != nil {
+			glog.Errorf("Error creating request: %v", err)
+			return fmt.Errorf("Error creating request: %v", err)
+		}
+
+		glog.V(4).Infof("Sending request to registry")
+		resp, err := registryClient.Do(req)
+		if err != nil {
+			glog.Errorf("Error sending request: %v", err)
+			return fmt.Errorf("Error sending request: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusNoContent {
+			glog.Errorf("Unexpected status code in response: %d", resp.StatusCode)
+			//TODO decode error response
+			//decoder := json.NewDecoder(resp.Body)
+			return fmt.Errorf("Unexpected status code %d in response", resp.StatusCode)
+		}
+
+		return nil
+	}
+}
+
+func DeletingManifestPruneFunc(registryClient *http.Client) ManifestPruneFunc {
+	return func(registryURL, repoName, manifest string) error {
+		glog.V(4).Infof("Pruning manifest for registry %q, repo %q, manifest %q", registryURL, repoName, manifest)
+
+		//TODO https
+		req, err := http.NewRequest("DELETE", fmt.Sprintf("http://%s/admin/%s/manifests/%s", registryURL, repoName, manifest), nil)
+		if err != nil {
+			glog.Errorf("Error creating request: %v", err)
+			return fmt.Errorf("Error creating request: %v", err)
+		}
+
+		glog.V(4).Infof("Sending request to registry")
+		resp, err := registryClient.Do(req)
+		if err != nil {
+			glog.Errorf("Error sending request: %v", err)
+			return fmt.Errorf("Error sending request: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusNoContent {
+			glog.Errorf("Unexpected status code in response: %d", resp.StatusCode)
+			//TODO decode error response
+			decoder := json.NewDecoder(resp.Body)
+			response := make(map[string]interface{})
+			decoder.Decode(&response)
+			return fmt.Errorf("Unexpected status code %d in response: %#v", resp.StatusCode, response)
+		}
+
+		return nil
+	}
 }
