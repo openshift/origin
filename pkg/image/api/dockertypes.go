@@ -51,6 +51,7 @@ type DockerConfig struct {
 	NetworkDisabled bool                `json:"NetworkDisabled,omitempty"`
 	SecurityOpts    []string            `json:"SecurityOpts,omitempty"`
 	OnBuild         []string            `json:"OnBuild,omitempty"`
+	Labels          map[string]string   `json:"Labels,omitempty"`
 }
 
 // DockerImageManifest represents the Docker v2 image format.
