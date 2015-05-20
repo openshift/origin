@@ -73,8 +73,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
     "memory"            => ENV['OPENSHIFT_MEMORY'] || 1024,
     "virtualbox"        => {
-      "box_name" => "fedora_inst",
-      "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
+      "box_name" => "fedora_deps",
+      "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_deps.box"
     },
     "vmware"            => {
       "box_name" => "fedora_inst",
