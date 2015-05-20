@@ -72,8 +72,10 @@ if [[ -n "${profile}" ]]; then
     if [[ "${TEST_PROFILE-}" == "cli" ]]; then
         export CLI_PROFILE="${profile}"
     else
-        export WEB_PROFILE="${profile:-cpu}"
+        export WEB_PROFILE="${profile}"
     fi
+else
+  export WEB_PROFILE=cpu
 fi
 
 # set path so OpenShift is available
