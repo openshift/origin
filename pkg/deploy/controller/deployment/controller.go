@@ -151,6 +151,9 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 	envVars = append(envVars, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: deployment.Name})
 	envVars = append(envVars, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: deployment.Namespace})
 
+	// Assigning to a variable since its address is required
+	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
+
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: deployutil.DeployerPodNameForDeployment(deployment),
@@ -169,7 +172,8 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 					Resources: deploymentConfig.Template.Strategy.Resources,
 				},
 			},
-			RestartPolicy: kapi.RestartPolicyNever,
+			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
+			RestartPolicy:         kapi.RestartPolicyNever,
 		},
 	}
 

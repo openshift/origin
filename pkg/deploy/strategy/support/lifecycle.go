@@ -125,6 +125,9 @@ func buildContainer(hook *deployapi.ExecNewPodHook, deployment *kapi.Replication
 		return nil, fmt.Errorf("couldn't clone ResourceRequirements: %v", err)
 	}
 
+	// Assigning to a variable since its address is required
+	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
+
 	podSpec := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: podName,
@@ -143,7 +146,8 @@ func buildContainer(hook *deployapi.ExecNewPodHook, deployment *kapi.Replication
 					Resources:  resources,
 				},
 			},
-			RestartPolicy: kapi.RestartPolicyNever,
+			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
+			RestartPolicy:         kapi.RestartPolicyNever,
 		},
 	}
 
