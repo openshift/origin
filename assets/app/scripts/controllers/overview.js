@@ -17,7 +17,8 @@ angular.module('openshiftConsole')
     $scope.displayRouteByService = {};
     $scope.unfilteredServices = {};
     $scope.deployments = {};
-    $scope.deploymentConfigs = {};
+    // Initialize to undefined so we know when deployment configs are actually loaded.
+    $scope.deploymentConfigs = undefined;
     $scope.builds = {};
     $scope.imageStreams = {};
     $scope.imagesByDockerReference = {};

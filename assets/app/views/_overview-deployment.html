@@ -5,7 +5,7 @@
   pods - [Pod]. Required.
 
   deploymentConfigId               - String. Optional. If present, indicates this replication controller came from a deployment.
-  deploymentConfig                 - DeploymentConfig. Optional.
+  deploymentConfigMissing          - Boolean. Optional.
   deploymentConfigDifferentService - Boolean. Optional.
 
   imagesByDockerReference - map[dockerReference][]Image. Optional.
@@ -29,11 +29,13 @@
       <div class="component-label">Deployment</div>
       <h3 class="h4">
         {{deploymentConfigId}}, #{{rc | annotation:'deploymentVersion'}}
-        <span class="pficon-layered" ng-if="deploymentConfig == null" data-toggle="tooltip" data-placement="right" title="Deployment config {{deploymentConfigId}} no longer exists" style="cursor: help;">
+        <span class="pficon-layered" ng-if="deploymentConfigMissing" data-toggle="tooltip" data-placement="right"
+            title="The deployment config this deployment was created from no longer exists." style="cursor: help;">
           <span class="pficon pficon-warning-triangle"></span>
           <span class="pficon pficon-warning-exclamation"></span>
         </span>
-        <span class="pficon-layered" ng-if="deploymentConfig != null && deploymentConfigDifferentService" data-toggle="tooltip" data-placement="right" title="The deployment config this deployment was created from has changed. New deployments will not be included in this list." style="cursor: help;">
+        <span class="pficon-layered" ng-if="deploymentConfigDifferentService" data-toggle="tooltip" data-placement="right"
+            title="The deployment config this deployment was created from has changed. New deployments will not be included in this list." style="cursor: help;">
           <span class="pficon pficon-warning-triangle"></span>
           <span class="pficon pficon-warning-exclamation"></span>
         </span>
