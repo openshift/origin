@@ -176,7 +176,8 @@ fi
 # must only accept one arg (server)
 [ "$(osc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
 # logs in with a valid certificate authority
-osc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+osc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1beta3
+grep -q "v1beta3" ${HOME}/.config/openshift/config
 osc logout
 # logs in skipping certificate check
 osc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything

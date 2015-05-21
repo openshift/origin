@@ -103,6 +103,7 @@ func CreateConfig(namespace string, clientCfg *client.Config) (*clientcmdapi.Con
 		cluster.CertificateAuthorityData = clientCfg.CAData
 	}
 	cluster.InsecureSkipTLSVerify = clientCfg.Insecure
+	cluster.APIVersion = clientCfg.Version
 	config.Clusters[clusterNick] = *cluster
 
 	context := clientcmdapi.NewContext()
