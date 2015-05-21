@@ -46,7 +46,10 @@ func Master(osClient osclient.Client, kClient kclient.Client, clusterNetwork str
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
-	kc.StartMaster(false, clusterNetwork, clusterNetworkLength)
+	err = kc.StartMaster(false, clusterNetwork, clusterNetworkLength)
+	if err != nil {
+		glog.Fatalf("SDN initialization failed: %v", err)
+	}
 }
 
 func Node(osClient osclient.Client, kClient kclient.Client, hostname string, publicIP string) {
@@ -126,6 +129,8 @@ func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan *osdnapi.SubnetEvent
 			hs := obj.(*api.HostSubnet)
 			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, Minion: hs.Host, Sub: osdnapi.Subnet{Minion: hs.HostIP, Sub: hs.Subnet}}
 		case watch.Deleted:
+			// TODO: There is a chance that a Delete event will not get triggered.
+			// Need to use a periodic sync loop that lists and compares.
 			hs := obj.(*api.HostSubnet)
 			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, Minion: hs.Host, Sub: osdnapi.Subnet{Minion: hs.HostIP, Sub: hs.Subnet}}
 		}
@@ -173,11 +178,16 @@ func (oi *OsdnRegistryInterface) WatchMinions(receiver chan *osdnapi.MinionEvent
 			return err
 		}
 		switch eventType {
-		case watch.Added, watch.Modified:
+		case watch.Added:
+			// we should ignore the modified event because status updates cause unnecessary noise
+			// the only time we would care about modified would be if the minion changes its IP address
+			// and hence all nodes need to update their vtep entries for the respective subnet
 			// create minionEvent
 			node := obj.(*kapi.Node)
 			receiver <- &osdnapi.MinionEvent{Type: osdnapi.Added, Minion: node.ObjectMeta.Name}
 		case watch.Deleted:
+			// TODO: There is a chance that a Delete event will not get triggered.
+			// Need to use a periodic sync loop that lists and compares.
 			node := obj.(*kapi.Node)
 			receiver <- &osdnapi.MinionEvent{Type: osdnapi.Deleted, Minion: node.ObjectMeta.Name}
 		}
@@ -186,13 +196,21 @@ func (oi *OsdnRegistryInterface) WatchMinions(receiver chan *osdnapi.MinionEvent
 }
 
 func (oi *OsdnRegistryInterface) WriteNetworkConfig(network string, subnetLength uint) error {
-	cn := &api.ClusterNetwork{
+	cn, err := oi.oClient.ClusterNetwork().Get("default")
+	if err == nil {
+		if cn.Network == network && cn.HostSubnetLength == int(subnetLength) {
+			return nil
+		} else {
+			return fmt.Errorf("A network already exists and does not match the new network's parameters - Existing: (%s, %d); New: (%s, %d) ", cn.Network, cn.HostSubnetLength, network, subnetLength)
+		}
+	}
+	cn = &api.ClusterNetwork{
 		TypeMeta:         kapi.TypeMeta{Kind: "ClusterNetwork"},
 		ObjectMeta:       kapi.ObjectMeta{Name: "default"},
 		Network:          network,
 		HostSubnetLength: int(subnetLength),
 	}
-	_, err := oi.oClient.ClusterNetwork().Create(cn)
+	_, err = oi.oClient.ClusterNetwork().Create(cn)
 	return err
 }
 
