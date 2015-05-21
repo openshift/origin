@@ -79,9 +79,6 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.From.APIVersion = ""
 			j.From.ResourceVersion = ""
 			j.From.FieldPath = ""
-			if forVersion == "v1beta1" {
-				j.PullSecretName = ""
-			}
 		},
 		func(j *build.CustomBuildStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -90,9 +87,6 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.From.APIVersion = ""
 			j.From.ResourceVersion = ""
 			j.From.FieldPath = ""
-			if forVersion == "v1beta1" {
-				j.PullSecretName = ""
-			}
 		},
 		func(j *build.DockerBuildStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -101,9 +95,6 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.From.APIVersion = ""
 			j.From.ResourceVersion = ""
 			j.From.FieldPath = ""
-			if forVersion == "v1beta1" {
-				j.PullSecretName = ""
-			}
 		},
 		func(j *build.BuildOutput, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
