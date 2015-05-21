@@ -504,14 +504,22 @@ func (*ImageStreamNode) Kind() int {
 	return ImageStreamGraphKind
 }
 
+func imageStreamName(stream *image.ImageStream) UniqueName {
+	return UniqueName(fmt.Sprintf("%d|%s", ImageStreamGraphKind, stream.Status.DockerImageRepository))
+}
+
 // ImageStream adds a graph node for the Image Stream if it does not already exist.
 func ImageStream(g MutableUniqueGraph, stream *image.ImageStream) graph.Node {
 	return EnsureUnique(g,
-		UniqueName(fmt.Sprintf("%d|%s", ImageStreamGraphKind, stream.Status.DockerImageRepository)),
+		imageStreamName(stream),
 		func(node Node) graph.Node {
 			return &ImageStreamNode{node, stream}
 		},
 	)
+}
+
+func FindImageStream(g MutableUniqueGraph, stream *image.ImageStream) graph.Node {
+	return g.Find(imageStreamName(stream))
 }
 
 type ReplicationControllerNode struct {

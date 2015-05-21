@@ -88,42 +88,60 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 			w := tabwriter.NewWriter(out, 10, 4, 3, ' ', 0)
 			defer w.Flush()
 
+			var streams util.StringSet
 			printImageHeader := true
-			describingImagePruneFunc := func(image *imageapi.Image, streams []*imageapi.ImageStream) []error {
+			describingImagePruneFunc := func(image *imageapi.Image) error {
 				if printImageHeader {
 					printImageHeader = false
-					fmt.Fprintf(w, "IMAGE\tSTREAMS\n")
+					fmt.Fprintf(w, "IMAGE\tSTREAMS")
 				}
-				streamNames := util.NewStringSet()
-				for _, stream := range streams {
-					streamNames.Insert(fmt.Sprintf("%s/%s", stream.Namespace, stream.Name))
+
+				if streams.Len() > 0 {
+					fmt.Fprintf(w, strings.Join(streams.List(), ", "))
 				}
-				fmt.Fprintf(w, "%s\t%s\n", image.Name, strings.Join(streamNames.List(), ", "))
+
+				fmt.Fprintf(w, "\n%s\t", image.Name)
+				streams = util.NewStringSet()
+
 				return nil
+			}
+
+			describingImageStreamPruneFunc := func(stream *imageapi.ImageStream, image *imageapi.Image) (*imageapi.ImageStream, error) {
+				streams.Insert(stream.Status.DockerImageRepository)
+				return stream, nil
 			}
 
 			printLayerHeader := true
 			describingLayerPruneFunc := func(registryURL, repo, layer string) error {
 				if printLayerHeader {
 					printLayerHeader = false
-					fmt.Fprintf(w, "\nREGISTRY\tSTREAM\tLAYER\n")
+					// need to print the remaining streams for the last image
+					if streams.Len() > 0 {
+						fmt.Fprintf(w, strings.Join(streams.List(), ", "))
+					}
+					fmt.Fprintf(w, "\n\nREGISTRY\tSTREAM\tLAYER\n")
 				}
 				fmt.Fprintf(w, "%s\t%s\t%s\n", registryURL, repo, layer)
 				return nil
 			}
 
 			var (
-				imagePruneFunc    prune.ImagePruneFunc
-				layerPruneFunc    prune.LayerPruneFunc
-				blobPruneFunc     prune.BlobPruneFunc
-				manifestPruneFunc prune.ManifestPruneFunc
+				imagePruneFunc       prune.ImagePruneFunc
+				imageStreamPruneFunc prune.ImageStreamPruneFunc
+				layerPruneFunc       prune.LayerPruneFunc
+				blobPruneFunc        prune.BlobPruneFunc
+				manifestPruneFunc    prune.ManifestPruneFunc
 			)
 
 			switch cfg.DryRun {
 			case false:
-				imagePruneFunc = func(image *imageapi.Image, referencedStreams []*imageapi.ImageStream) []error {
-					describingImagePruneFunc(image, referencedStreams)
-					return prune.DeletingImagePruneFunc(osClient.Images(), osClient)(image, referencedStreams)
+				imagePruneFunc = func(image *imageapi.Image) error {
+					describingImagePruneFunc(image)
+					return prune.DeletingImagePruneFunc(osClient.Images())(image)
+				}
+				imageStreamPruneFunc = func(stream *imageapi.ImageStream, image *imageapi.Image) (*imageapi.ImageStream, error) {
+					describingImageStreamPruneFunc(stream, image)
+					return prune.DeletingImageStreamPruneFunc(osClient)(stream, image)
 				}
 				layerPruneFunc = func(registryURL, repo, layer string) error {
 					describingLayerPruneFunc(registryURL, repo, layer)
@@ -134,6 +152,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 			default:
 				fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made.")
 				imagePruneFunc = describingImagePruneFunc
+				imageStreamPruneFunc = describingImageStreamPruneFunc
 				layerPruneFunc = describingLayerPruneFunc
 				blobPruneFunc = func(registryURL, blob string) error {
 					return nil
@@ -143,7 +162,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 				}
 			}
 
-			pruner.Run(imagePruneFunc, layerPruneFunc, blobPruneFunc, manifestPruneFunc)
+			pruner.Run(imagePruneFunc, imageStreamPruneFunc, layerPruneFunc, blobPruneFunc, manifestPruneFunc)
 		},
 	}
 

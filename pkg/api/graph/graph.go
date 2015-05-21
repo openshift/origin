@@ -9,7 +9,7 @@ import (
 )
 
 type Node struct {
-	graph.Node
+	concrete.Node
 	UniqueName
 }
 

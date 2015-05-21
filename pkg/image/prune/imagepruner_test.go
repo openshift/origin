@@ -595,12 +595,14 @@ func TestImagePruning(t *testing.T) {
 		actualDeletions := util.NewStringSet()
 		actualUpdatedStreams := util.NewStringSet()
 
-		pruneImage := func(image *imageapi.Image, streams []*imageapi.ImageStream) []error {
+		pruneImage := func(image *imageapi.Image) error {
 			actualDeletions.Insert(image.Name)
-			for _, stream := range streams {
-				actualUpdatedStreams.Insert(fmt.Sprintf("%s/%s", stream.Namespace, stream.Name))
-			}
-			return []error{}
+			return nil
+		}
+
+		pruneStream := func(stream *imageapi.ImageStream, image *imageapi.Image) (*imageapi.ImageStream, error) {
+			actualUpdatedStreams.Insert(fmt.Sprintf("%s/%s", stream.Namespace, stream.Name))
+			return stream, nil
 		}
 
 		pruneLayer := func(registryURL, repo, layer string) error {
@@ -615,7 +617,7 @@ func TestImagePruning(t *testing.T) {
 			return nil
 		}
 
-		p.Run(pruneImage, pruneLayer, pruneBlob, pruneManifest)
+		p.Run(pruneImage, pruneStream, pruneLayer, pruneBlob, pruneManifest)
 
 		expectedDeletions := util.NewStringSet(test.expectedDeletions...)
 		if !reflect.DeepEqual(expectedDeletions, actualDeletions) {
@@ -630,69 +632,14 @@ func TestImagePruning(t *testing.T) {
 }
 
 func TestDeletingImagePruneFunc(t *testing.T) {
-	registryURL := "registry"
+	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
 
 	tests := map[string]struct {
-		referencedStreams  []*imageapi.ImageStream
-		expectedUpdates    []*imageapi.ImageStream
 		imageDeletionError error
-		streamUpdateError  error
 	}{
-		"no referenced streams": {
-			referencedStreams: []*imageapi.ImageStream{},
-			expectedUpdates:   []*imageapi.ImageStream{},
-		},
-		"1 tag, 1 image revision": {
-			referencedStreams: []*imageapi.ImageStream{
-				streamPtr(registryURL, "foo", "bar", tags(
-					tag("latest",
-						tagEvent("id", "registry/foo/bar@id"),
-					),
-				)),
-			},
-			expectedUpdates: []*imageapi.ImageStream{},
-		},
-		"1 tag, multiple image revisions": {
-			referencedStreams: []*imageapi.ImageStream{
-				streamPtr(registryURL, "foo", "bar", tags(
-					tag("latest",
-						tagEvent("id", "registry/foo/bar@id"),
-						tagEvent("id2", "registry/foo/bar@id2"),
-					),
-				)),
-			},
-			expectedUpdates: []*imageapi.ImageStream{
-				streamPtr(registryURL, "foo", "bar", tags(
-					tag("latest",
-						tagEvent("id", "registry/foo/bar@id"),
-					),
-				)),
-			},
-		},
-		"image deletion error": {
-			referencedStreams: []*imageapi.ImageStream{
-				streamPtr(registryURL, "foo", "bar", tags(
-					tag("latest",
-						tagEvent("id", "registry/foo/bar@id"),
-					),
-				)),
-			},
+		"no error": {},
+		"delete error": {
 			imageDeletionError: fmt.Errorf("foo"),
-		},
-		"stream update error": {
-			referencedStreams: []*imageapi.ImageStream{
-				streamPtr(registryURL, "foo", "bar", tags(
-					tag("latest",
-						tagEvent("id", "registry/foo/bar@id"),
-					),
-				)),
-				streamPtr(registryURL, "bar", "baz", tags(
-					tag("latest",
-						tagEvent("id", "registry/foo/bar@id"),
-					),
-				)),
-			},
-			streamUpdateError: fmt.Errorf("foo"),
 		},
 	}
 
@@ -700,51 +647,22 @@ func TestDeletingImagePruneFunc(t *testing.T) {
 		imageClient := client.Fake{
 			Err: test.imageDeletionError,
 		}
-		streamClient := client.Fake{
-			Err: test.streamUpdateError,
-		}
-		pruneFunc := DeletingImagePruneFunc(imageClient.Images(), &streamClient)
-		errs := pruneFunc(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "id2"}}, test.referencedStreams)
+		pruneFunc := DeletingImagePruneFunc(imageClient.Images())
+		err := pruneFunc(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "id2"}})
 		if test.imageDeletionError != nil {
-			if e, a := 1, len(errs); e != a {
-				t.Errorf("%s: # of errors: expected %v, got %v", name, e, a)
-				continue
-			}
-			if e, a := fmt.Sprintf("Error deleting image: %v", test.imageDeletionError), errs[0].Error(); e != a {
-				t.Errorf("%s: errs: expected %v, got %v", name, e, a)
+			if e, a := fmt.Sprintf("Error deleting image: %v", test.imageDeletionError), err.Error(); e != a {
+				t.Errorf("%s: err: expected %v, got %v", name, e, a)
 			}
 			continue
 		}
 
-		if test.streamUpdateError != nil {
-			if e, a := len(test.referencedStreams), len(errs); e != a {
-				t.Errorf("%s: # of errors: expected %v, got %v", name, e, a)
-				continue
-			}
-			for i, stream := range test.referencedStreams {
-				if e, a := fmt.Sprintf("Unable to update image stream status %s/%s: %v", stream.Namespace, stream.Name, test.streamUpdateError), errs[i].Error(); e != a {
-					t.Errorf("%s: errs: expected %v, got %v", name, e, a)
-				}
-			}
+		if e, a := 1, len(imageClient.Actions); e != a {
+			t.Errorf("%s: expected %d actions, got %d: %#v", name, e, a, imageClient.Actions)
 			continue
 		}
 
-		if len(imageClient.Actions) < 1 {
-			t.Fatalf("%s: expected image deletion", name)
-		}
-
-		if e, a := len(test.referencedStreams), len(streamClient.Actions); e != a {
-			t.Errorf("%s: expected %d stream updates, got %d", name, e, a)
-		}
-
-		for i := range test.expectedUpdates {
-			if e, a := "update-status-imagestream", streamClient.Actions[i].Action; e != a {
-				t.Errorf("%s: unexpected action %q", name, a)
-			}
-			updatedStream := streamClient.Actions[i].Value.(*imageapi.ImageStream)
-			if e, a := test.expectedUpdates[i], updatedStream; !reflect.DeepEqual(e, a) {
-				t.Errorf("%s: unexpected updated stream: %s", name, util.ObjectDiff(e, a))
-			}
+		if e, a := "delete-image", imageClient.Actions[0].Action; e != a {
+			t.Errorf("%s: expected action %q, got %q", name, e, a)
 		}
 	}
 }
@@ -823,12 +741,17 @@ func TestRegistryPruning(t *testing.T) {
 	}
 
 	for name, test := range tests {
+		t.Logf("Running test case %s", name)
 		actualLayerDeletions := util.NewStringSet()
 		actualBlobDeletions := util.NewStringSet()
 		actualManifestDeletions := util.NewStringSet()
 
-		pruneImage := func(image *imageapi.Image, streams []*imageapi.ImageStream) []error {
-			return []error{}
+		pruneImage := func(image *imageapi.Image) error {
+			return nil
+		}
+
+		pruneStream := func(stream *imageapi.ImageStream, image *imageapi.Image) (*imageapi.ImageStream, error) {
+			return stream, nil
 		}
 
 		pruneLayer := func(registryURL, repo, layer string) error {
@@ -848,7 +771,7 @@ func TestRegistryPruning(t *testing.T) {
 
 		p := NewImagePruner(60, 1, &test.images, &test.streams, &kapi.PodList{}, &kapi.ReplicationControllerList{}, &buildapi.BuildConfigList{}, &buildapi.BuildList{}, &deployapi.DeploymentConfigList{})
 
-		p.Run(pruneImage, pruneLayer, pruneBlob, pruneManifest)
+		p.Run(pruneImage, pruneStream, pruneLayer, pruneBlob, pruneManifest)
 
 		if !reflect.DeepEqual(test.expectedLayerDeletions, actualLayerDeletions) {
 			t.Errorf("%s: expected layer deletions %#v, got %#v", name, test.expectedLayerDeletions, actualLayerDeletions)
