@@ -253,6 +253,28 @@ angular.module('openshiftConsole')
         (resource && resource.metadata && resource.metadata.namespace);
     };
   })
+  .filter('imageObjectRef', function(){
+    return function(objectRef){
+      // TODO: needs to handle the current namespace
+      var ns = objectRef.namespace || "";
+      if (ns.length > 0) {
+        ns = ns + "/";
+      }
+      var kind = objectRef.kind;
+      if (kind === "ImageStreamTag" || kind === "ImageStreamImage") {
+        return ns+objectRef.name;
+      }
+      if (kind === "DockerImage") {
+        // TODO: replace with real DockerImageReference parse function
+        var name = objectRef.name;
+        name = name.substring(name.lastIndexOf("/")+1);
+        return name;
+      }
+      // TODO: we may want to indicate the actual type
+      var ref = ns + objectRef.name;
+      return ref;
+    };
+  })
   .filter('imageRepoReference', function(){
     return function(objectRef, kind, tag){
       var ns = objectRef.namespace || "";

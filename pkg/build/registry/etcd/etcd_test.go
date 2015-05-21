@@ -132,7 +132,7 @@ func TestEtcdCreateBuild(t *testing.T) {
 				Type: api.SourceBuildStrategyType,
 				SourceStrategy: &api.SourceBuildStrategy{
 					From: &kapi.ObjectReference{
-						Name: "builder/image",
+						Name: "builder:image",
 					},
 				},
 			},
@@ -420,7 +420,7 @@ func TestEtcdCreateBuildConfig(t *testing.T) {
 				Type: api.SourceBuildStrategyType,
 				SourceStrategy: &api.SourceBuildStrategy{
 					From: &kapi.ObjectReference{
-						Name: "builder/image",
+						Name: "builder:image",
 					},
 				},
 			},

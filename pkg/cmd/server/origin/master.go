@@ -32,6 +32,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -119,15 +120,20 @@ const (
 	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
 	OpenShiftAPIV1Beta1       = "v1beta1"
 	OpenShiftAPIV1Beta3       = "v1beta3"
+	OpenShiftAPIV1            = "v1"
 	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
 	OpenShiftAPIPrefixV1Beta3 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
+	OpenShiftAPIPrefixV1      = "/oapi" + "/" + OpenShiftAPIV1
 	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
-var excludedV1Beta3Types = util.NewStringSet(
-	"templateConfigs", "deployments", "buildLogs",
-	"imageRepositories", "imageRepositories/status", "imageRepositoryMappings", "imageRepositoryTags",
+var (
+	excludedV1Beta3Types = util.NewStringSet(
+		"templateConfigs", "deployments", "buildLogs",
+		"imageRepositories", "imageRepositories/status", "imageRepositoryMappings", "imageRepositoryTags",
+	)
+	excludedV1Types = excludedV1Beta3Types
 )
 
 // APIInstaller installs additional API components into this server
@@ -324,12 +330,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 
 	if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
-		/*// TODO: remove this check once v1beta3 is complete
-		if utilerrs.FilterOut(err, func(err error) bool {
-			return strings.Contains(err.Error(), "is registered for version")
-		}) != nil {*/
 		glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
-		//}
+	}
+
+	if err := c.api_v1(storage).InstallREST(container); err != nil {
+		glog.Fatalf("Unable to initialize v1 API: %v", err)
 	}
 
 	var root *restful.WebService
@@ -341,17 +346,20 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			svc.Doc("OpenShift REST API, version v1beta1").ApiVersion("v1beta1")
 		case OpenShiftAPIPrefixV1Beta3:
 			svc.Doc("OpenShift REST API, version v1beta3").ApiVersion("v1beta3")
+		case OpenShiftAPIPrefixV1:
+			svc.Doc("OpenShift REST API, version v1").ApiVersion("v1")
 		}
 	}
 	if root == nil {
 		root = new(restful.WebService)
 		container.Add(root)
 	}
-	initAPIVersionRoute(root, "v1beta1", "v1beta3")
+	initAPIVersionRoute(root, "v1beta1", "v1beta3", "v1")
 
 	return []string{
-		fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta1),
-		fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1Beta3),
+		fmt.Sprintf("Started OpenShift API at %%s%s (deprecated)", OpenShiftAPIPrefixV1Beta1),
+		fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta3),
+		fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1),
 	}
 }
 
@@ -416,6 +424,8 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 				"/metrics",
 				"/osapi",
 				"/osapi/v1beta1",
+				"/osapi/v1beta3",
+				"/oapi/v1",
 				"/swaggerapi/",
 			}}
 			// TODO it would be nice if apiserver.writeRawJSON was not private
@@ -573,6 +583,22 @@ func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGr
 	version.Storage = storage
 	version.Version = OpenShiftAPIV1Beta3
 	version.Codec = v1beta3.Codec
+	return version
+}
+
+// api_v1 returns the resources and codec for API version v1.
+func (c *MasterConfig) api_v1(all map[string]rest.Storage) *apiserver.APIGroupVersion {
+	storage := make(map[string]rest.Storage)
+	for k, v := range all {
+		if excludedV1Types.Has(k) {
+			continue
+		}
+		storage[strings.ToLower(k)] = v
+	}
+	version := c.defaultAPIGroupVersion()
+	version.Storage = storage
+	version.Version = OpenShiftAPIV1
+	version.Codec = v1.Codec
 	return version
 }
 
