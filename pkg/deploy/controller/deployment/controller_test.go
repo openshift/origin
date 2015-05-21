@@ -84,6 +84,14 @@ func TestHandle_createPodOk(t *testing.T) {
 		t.Fatalf("expected pod deployment annotation %s, got %s", e, a)
 	}
 
+	if createdPod.Spec.ActiveDeadlineSeconds == nil {
+		t.Fatalf("expected ActiveDeadlineSeconds to be set on the deployer pod")
+	}
+
+	if *createdPod.Spec.ActiveDeadlineSeconds != deployapi.MaxDeploymentDurationSeconds {
+		t.Fatalf("expected ActiveDeadlineSeconds on the deployer pod to be set to %d; found: %d", deployapi.MaxDeploymentDurationSeconds, *createdPod.Spec.ActiveDeadlineSeconds)
+	}
+
 	actualContainer := createdPod.Spec.Containers[0]
 
 	if e, a := expectedContainer.Image, actualContainer.Image; e != a {
