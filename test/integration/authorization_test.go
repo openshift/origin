@@ -244,7 +244,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		test := resourceAccessReviewTest{
 			clientInterface: markClient.ClusterResourceAccessReviews(),
 			review:          requestWhoCanViewDeployments,
-			err:             "forbidden",
+			err:             "cannot ",
 		}
 		test.run(t)
 	}
@@ -369,7 +369,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	subjectAccessReviewTest{
 		clientInterface: haroldClient.SubjectAccessReviews("mallet-project"),
 		review:          askCanEdgarDeletePods,
-		err:             "forbidden",
+		err:             "cannot ",
 	}.run(t)
 
 	askCanHaroldUpdateProject := &authorizationapi.SubjectAccessReview{User: "harold", Verb: "update", Resource: "projects"}
@@ -396,7 +396,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	subjectAccessReviewTest{
 		clientInterface: haroldClient.ClusterSubjectAccessReviews(),
 		review:          askCanClusterAdminsCreateProject,
-		err:             "forbidden",
+		err:             "cannot ",
 	}.run(t)
 
 	askCanICreatePods := &authorizationapi.SubjectAccessReview{Verb: "create", Resource: "projects"}

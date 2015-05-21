@@ -162,7 +162,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 	subjectAccessReviewTest{
 		clientInterface: valerieOpenshiftClient.SubjectAccessReviews("openshift"),
 		review:          askCanClusterAdminsCreateProject,
-		err:             "forbidden",
+		err:             "cannot ",
 	}.run(t)
 
 }

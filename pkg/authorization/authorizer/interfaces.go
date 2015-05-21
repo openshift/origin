@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
@@ -28,4 +29,16 @@ type AuthorizationAttributes interface {
 	IsNonResourceURL() bool
 	// GetURL returns the URL path being requested, including the leading '/'
 	GetURL() string
+}
+
+// ForbiddenMessageMaker creates a forbidden message from a MessageContext
+type ForbiddenMessageMaker interface {
+	MakeMessage(ctx MessageContext) (string, error)
+}
+
+// MessageContext contains sufficient information to create a forbidden message.  It is bundled in this one object to make it easy and obvious how to build a golang template
+type MessageContext struct {
+	User       user.Info
+	Namespace  string
+	Attributes AuthorizationAttributes
 }

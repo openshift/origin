@@ -12,11 +12,12 @@ import (
 )
 
 type openshiftAuthorizer struct {
-	ruleResolver rulevalidation.AuthorizationRuleResolver
+	ruleResolver          rulevalidation.AuthorizationRuleResolver
+	forbiddenMessageMaker ForbiddenMessageMaker
 }
 
-func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver) Authorizer {
-	return &openshiftAuthorizer{ruleResolver}
+func NewAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, forbiddenMessageMaker ForbiddenMessageMaker) Authorizer {
+	return &openshiftAuthorizer{ruleResolver, forbiddenMessageMaker}
 }
 
 func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes AuthorizationAttributes) (bool, string, error) {
@@ -51,21 +52,10 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 		return false, "", kerrors.NewAggregate(errs)
 	}
 
-	username := "MISSING"
-	if user, userExists := kapi.UserFrom(ctx); userExists {
-		username = user.GetName()
-	}
-
-	denyReason := "denied by default"
-	if passedAttributes.IsNonResourceURL() {
-		denyReason = fmt.Sprintf("%v cannot %v on %v", username, attributes.GetVerb(), attributes.GetURL())
-
-	} else {
-		resourceNamePart := ""
-		if len(attributes.GetResourceName()) > 0 {
-			resourceNamePart = fmt.Sprintf(" with name \"%v\"", attributes.GetResourceName())
-		}
-		denyReason = fmt.Sprintf("%v cannot %v on %v%v in %v", username, attributes.GetVerb(), attributes.GetResource(), resourceNamePart, namespace)
+	user, _ := kapi.UserFrom(ctx)
+	denyReason, err := a.forbiddenMessageMaker.MakeMessage(MessageContext{user, namespace, attributes})
+	if err != nil {
+		denyReason = err.Error()
 	}
 
 	return false, denyReason, nil
