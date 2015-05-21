@@ -607,6 +607,44 @@ func DeletingImageStreamPruneFunc(streams client.ImageStreamsNamespacer) ImageSt
 	}
 }
 
+func deleteFromRegistry(registryClient *http.Client, url string) error {
+	deleteFunc := func(proto, url string) error {
+		req, err := http.NewRequest("DELETE", url, nil)
+		if err != nil {
+			glog.Errorf("Error creating request: %v", err)
+			return fmt.Errorf("Error creating request: %v", err)
+		}
+
+		glog.V(4).Infof("Sending request to registry")
+		resp, err := registryClient.Do(req)
+		if err != nil {
+			glog.Errorf("Error sending request: %v", err)
+			return fmt.Errorf("Error sending request: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusNoContent {
+			glog.Errorf("Unexpected status code in response: %d", resp.StatusCode)
+			//TODO do a better job of decoding and reporting the errors?
+			decoder := json.NewDecoder(resp.Body)
+			response := make(map[string]interface{})
+			decoder.Decode(&response)
+			return fmt.Errorf("Unexpected status code %d in response: %#v", resp.StatusCode, response)
+		}
+
+		return nil
+	}
+
+	var err error
+	for _, proto := range []string{"https", "http"} {
+		err = deleteFunc(proto, fmt.Sprintf("%s://%s", proto, url))
+		if err == nil {
+			return nil
+		}
+	}
+	return err
+}
+
 // DeletingLayerPruneFunc returns a LayerPruneFunc that uses registryClient to
 // send a layer deletion request to the regsitry.
 //
@@ -615,95 +653,20 @@ func DeletingImageStreamPruneFunc(streams client.ImageStreamsNamespacer) ImageSt
 func DeletingLayerPruneFunc(registryClient *http.Client) LayerPruneFunc {
 	return func(registryURL, repoName, layer string) error {
 		glog.V(4).Infof("Pruning registry %q, repo %q, layer %q", registryURL, repoName, layer)
-
-		//TODO https
-		req, err := http.NewRequest("DELETE", fmt.Sprintf("http://%s/admin/%s/layers/%s", registryURL, repoName, layer), nil)
-		if err != nil {
-			glog.Errorf("Error creating request: %v", err)
-			return fmt.Errorf("Error creating request: %v", err)
-		}
-
-		glog.V(4).Infof("Sending request to registry")
-		resp, err := registryClient.Do(req)
-		if err != nil {
-			glog.Errorf("Error sending request: %v", err)
-			return fmt.Errorf("Error sending request: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusNoContent {
-			glog.Errorf("Unexpected status code in response: %d", resp.StatusCode)
-			//TODO do a better job of decoding and reporting the errors?
-			decoder := json.NewDecoder(resp.Body)
-			response := make(map[string]interface{})
-			decoder.Decode(&response)
-			return fmt.Errorf("Unexpected status code %d in response: %#v", resp.StatusCode, response)
-		}
-
-		return nil
+		return deleteFromRegistry(registryClient, fmt.Sprintf("%s/admin/%s/layers/%s", registryURL, repoName, layer))
 	}
 }
 
 func DeletingBlobPruneFunc(registryClient *http.Client) BlobPruneFunc {
 	return func(registryURL, blob string) error {
 		glog.V(4).Infof("Pruning registry %q, blob %q", registryURL, blob)
-
-		//TODO https
-		req, err := http.NewRequest("DELETE", fmt.Sprintf("http://%s/admin/blobs/%s", registryURL, blob), nil)
-		if err != nil {
-			glog.Errorf("Error creating request: %v", err)
-			return fmt.Errorf("Error creating request: %v", err)
-		}
-
-		glog.V(4).Infof("Sending request to registry")
-		resp, err := registryClient.Do(req)
-		if err != nil {
-			glog.Errorf("Error sending request: %v", err)
-			return fmt.Errorf("Error sending request: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusNoContent {
-			glog.Errorf("Unexpected status code in response: %d", resp.StatusCode)
-			//TODO do a better job of decoding and reporting the errors?
-			decoder := json.NewDecoder(resp.Body)
-			response := make(map[string]interface{})
-			decoder.Decode(&response)
-			return fmt.Errorf("Unexpected status code %d in response: %#v", resp.StatusCode, response)
-		}
-
-		return nil
+		return deleteFromRegistry(registryClient, fmt.Sprintf("%s/admin/blobs/%s", registryURL, blob))
 	}
 }
 
 func DeletingManifestPruneFunc(registryClient *http.Client) ManifestPruneFunc {
 	return func(registryURL, repoName, manifest string) error {
 		glog.V(4).Infof("Pruning manifest for registry %q, repo %q, manifest %q", registryURL, repoName, manifest)
-
-		//TODO https
-		req, err := http.NewRequest("DELETE", fmt.Sprintf("http://%s/admin/%s/manifests/%s", registryURL, repoName, manifest), nil)
-		if err != nil {
-			glog.Errorf("Error creating request: %v", err)
-			return fmt.Errorf("Error creating request: %v", err)
-		}
-
-		glog.V(4).Infof("Sending request to registry")
-		resp, err := registryClient.Do(req)
-		if err != nil {
-			glog.Errorf("Error sending request: %v", err)
-			return fmt.Errorf("Error sending request: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusNoContent {
-			glog.Errorf("Unexpected status code in response: %d", resp.StatusCode)
-			//TODO do a better job of decoding and reporting the errors?
-			decoder := json.NewDecoder(resp.Body)
-			response := make(map[string]interface{})
-			decoder.Decode(&response)
-			return fmt.Errorf("Unexpected status code %d in response: %#v", resp.StatusCode, response)
-		}
-
-		return nil
+		return deleteFromRegistry(registryClient, fmt.Sprintf("%s/admin/%s/manifests/%s", registryURL, repoName, manifest))
 	}
 }

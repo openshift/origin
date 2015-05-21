@@ -10,6 +10,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -133,6 +134,17 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 				manifestPruneFunc    prune.ManifestPruneFunc
 			)
 
+			clientConfig, err := f.OpenShiftClientConfig.ClientConfig()
+			cmdutil.CheckErr(err)
+
+			tlsConfig, err := kclient.TLSConfigFor(clientConfig)
+			cmdutil.CheckErr(err)
+
+			tr := http.Transport{
+				TLSClientConfig: tlsConfig,
+			}
+			registryClient := &http.Client{Transport: &tr}
+
 			switch cfg.DryRun {
 			case false:
 				imagePruneFunc = func(image *imageapi.Image) error {
@@ -145,10 +157,10 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 				}
 				layerPruneFunc = func(registryURL, repo, layer string) error {
 					describingLayerPruneFunc(registryURL, repo, layer)
-					return prune.DeletingLayerPruneFunc(http.DefaultClient)(registryURL, repo, layer)
+					return prune.DeletingLayerPruneFunc(registryClient)(registryURL, repo, layer)
 				}
-				blobPruneFunc = prune.DeletingBlobPruneFunc(http.DefaultClient)
-				manifestPruneFunc = prune.DeletingManifestPruneFunc(http.DefaultClient)
+				blobPruneFunc = prune.DeletingBlobPruneFunc(registryClient)
+				manifestPruneFunc = prune.DeletingManifestPruneFunc(registryClient)
 			default:
 				fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made.")
 				imagePruneFunc = describingImagePruneFunc
