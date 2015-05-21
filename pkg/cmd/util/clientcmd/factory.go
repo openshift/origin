@@ -2,6 +2,7 @@ package clientcmd
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
@@ -19,9 +20,10 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
 	deployres "github.com/openshift/origin/pkg/deploy/resizer"
+	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 
-// NewFactory creates a default Factory for commands that should share identical server
+// New creates a default Factory for commands that should share identical server
 // connection behavior. Most commands should use this method to get a factory.
 func New(flags *pflag.FlagSet) *Factory {
 	// Override global default to "" so we force the client to ask for user input
@@ -53,6 +55,10 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	clients := &clientCache{
 		clients: make(map[string]*client.Client),
 		loader:  clientConfig,
+	}
+	generators := map[string]kubectl.Generator{
+		"route/v1":   routegen.RouteGenerator{},
+		"service/v1": kubectl.ServiceGenerator{},
 	}
 
 	w := &Factory{
@@ -116,11 +122,65 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return deployreaper.ReaperFor(mapping.Kind, osc, kc)
 	}
+	w.Generator = func(name string) (kubectl.Generator, bool) {
+		generator, ok := generators[name]
+		return generator, ok
+	}
+	w.PodSelectorForObject = func(object runtime.Object) (string, error) {
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			return kubectl.MakeLabels(t.Template.ControllerTemplate.Selector), nil
+		case *api.ReplicationController:
+			return kubectl.MakeLabels(t.Spec.Selector), nil
+		case *api.Pod:
+			if len(t.Labels) == 0 {
+				return "", fmt.Errorf("the pod has no labels and cannot be exposed")
+			}
+			return kubectl.MakeLabels(t.Labels), nil
+		case *api.Service:
+			if t.Spec.Selector == nil {
+				return "", fmt.Errorf("the service has no pod selector set")
+			}
+			return kubectl.MakeLabels(t.Spec.Selector), nil
+		default:
+			kind, err := meta.NewAccessor().Kind(object)
+			if err != nil {
+				return "", err
+			}
+			return "", fmt.Errorf("it is not possible to get a pod selector from %s", kind)
+		}
+	}
+	w.PortsForObject = func(object runtime.Object) ([]string, error) {
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			return getPorts(t.Template.ControllerTemplate.Template.Spec), nil
+		case *api.ReplicationController:
+			return getPorts(t.Spec.Template.Spec), nil
+		case *api.Pod:
+			return getPorts(t.Spec), nil
+		default:
+			kind, err := meta.NewAccessor().Kind(object)
+			if err != nil {
+				return nil, err
+			}
+			return nil, fmt.Errorf("it is not possible to get ports from %s", kind)
+		}
+	}
 	w.Printer = func(mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
 		return describe.NewHumanReadablePrinter(noHeaders), nil
 	}
 
 	return w
+}
+
+func getPorts(spec api.PodSpec) []string {
+	result := []string{}
+	for _, container := range spec.Containers {
+		for _, port := range container.Ports {
+			result = append(result, strconv.Itoa(port.ContainerPort))
+		}
+	}
+	return result
 }
 
 // TODO: move to upstream

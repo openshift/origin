@@ -523,6 +523,14 @@ sleep 2 && [ "$(osc get projects | grep 'ui-test-project')" ]
 [ "$(osc describe policybinding ':default' -n ui-test-project | grep adduser)" ]
 echo "ui-project-commands: ok"
 
+# Expose service as a route
+osc delete svc/frontend
+osc create -f test/integration/fixtures/test-service.json
+osc expose service frontend
+[ "$(osc get route frontend | grep 'name=frontend')" ]
+osc delete svc,route -l name=frontend
+echo "expose: ok"
+
 # Test deleting and recreating a project
 osadm new-project recreated-project --admin="createuser1"
 osc delete project recreated-project
