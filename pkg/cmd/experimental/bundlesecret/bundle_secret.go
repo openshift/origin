@@ -158,7 +158,7 @@ func readFile(filePath string, dataMap map[string][]byte) error {
 		return fmt.Errorf("%s cannot be used as a key in a secret", filePath)
 	}
 	if _, exists := dataMap[fileName]; exists {
-		return fmt.Errorf("Multiple files with the same name (%s) cannot be included a secret", fileName)
+		return fmt.Errorf("Multiple files with the same name (%s) cannot be included in a secret", fileName)
 	}
 
 	data, err := ioutil.ReadFile(filePath)
