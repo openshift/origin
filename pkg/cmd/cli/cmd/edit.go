@@ -195,6 +195,13 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 			continue
 		}
 
+		visitor := resource.NewFlattenListVisitor(updates, rmap)
+
+		// need to make sure the original namespace wasn't changed while editing
+		if err = visitor.Visit(resource.RequireNamespace(cmdNamespace)); err != nil {
+			return preservedFile(err, file, cmd.Out())
+		}
+
 		// attempt to calculate a delta for merging conflicts
 		delta, err := jsonmerge.NewDelta(original, edited)
 		if err != nil {
@@ -206,7 +213,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 			results.version = defaultVersion
 		}
 
-		err = resource.NewFlattenListVisitor(updates, rmap).Visit(func(info *resource.Info) error {
+		err = visitor.Visit(func(info *resource.Info) error {
 			data, err := info.Mapping.Codec.Encode(info.Object)
 			if err != nil {
 				return err
