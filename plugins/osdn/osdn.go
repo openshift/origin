@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"strings"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -16,6 +19,7 @@ import (
 	osdnapi "github.com/openshift/openshift-sdn/pkg/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/sdn/api"
 )
 
@@ -100,32 +104,32 @@ func (oi *OsdnRegistryInterface) CreateSubnet(minion string, sub *osdnapi.Subnet
 }
 
 func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan *osdnapi.SubnetEvent, stop chan bool) error {
-	// double go :(
-	revision := ""
-	wi, err := oi.oClient.HostSubnets().Watch(revision)
-	if err != nil {
-		return err
+	subnetEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	listWatch := &cache.ListWatch{
+		ListFunc: func() (runtime.Object, error) {
+			return oi.oClient.HostSubnets().List()
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return oi.oClient.HostSubnets().Watch(resourceVersion)
+		},
 	}
-	go func() {
-		for {
-			ev := <-wi.ResultChan()
-			switch ev.Type {
-			case watch.Added:
-				// create SubnetEvent
-				hs := ev.Object.(*api.HostSubnet)
-				receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, Minion: hs.Host, Sub: osdnapi.Subnet{Minion: hs.HostIP, Sub: hs.Subnet}}
-			case watch.Deleted:
-				hs := ev.Object.(*api.HostSubnet)
-				receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, Minion: hs.Host, Sub: osdnapi.Subnet{Minion: hs.HostIP, Sub: hs.Subnet}}
-			case watch.Modified:
-				hs := ev.Object.(*api.HostSubnet)
-				receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, Minion: hs.Host, Sub: osdnapi.Subnet{Minion: hs.HostIP, Sub: hs.Subnet}}
-			case watch.Error:
-				fmt.Errorf("Error in watching subnets")
-				return
-			}
+	cache.NewReflector(listWatch, &api.HostSubnet{}, subnetEventQueue, 4*time.Minute).Run()
+
+	for {
+		eventType, obj, err := subnetEventQueue.Pop()
+		if err != nil {
+			return err
 		}
-	}()
+		switch eventType {
+		case watch.Added, watch.Modified:
+			// create SubnetEvent
+			hs := obj.(*api.HostSubnet)
+			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, Minion: hs.Host, Sub: osdnapi.Subnet{Minion: hs.HostIP, Sub: hs.Subnet}}
+		case watch.Deleted:
+			hs := obj.(*api.HostSubnet)
+			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, Minion: hs.Host, Sub: osdnapi.Subnet{Minion: hs.HostIP, Sub: hs.Subnet}}
+		}
+	}
 	return nil
 }
 
@@ -152,30 +156,32 @@ func (oi *OsdnRegistryInterface) CreateMinion(minion string, data string) error 
 }
 
 func (oi *OsdnRegistryInterface) WatchMinions(receiver chan *osdnapi.MinionEvent, stop chan bool) error {
-	wi, err := oi.kClient.Nodes().Watch(labels.Everything(), fields.Everything(), "0")
-	if err != nil {
-		return err
+	minionEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	listWatch := &cache.ListWatch{
+		ListFunc: func() (runtime.Object, error) {
+			return oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return oi.kClient.Nodes().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		},
 	}
-	go func() {
-		for {
-			ev := <-wi.ResultChan()
-			switch ev.Type {
-			case watch.Added:
-				// create minionEvent
-				node := ev.Object.(*kapi.Node)
-				receiver <- &osdnapi.MinionEvent{Type: osdnapi.Added, Minion: node.ObjectMeta.Name}
-			case watch.Deleted:
-				node := ev.Object.(*kapi.Node)
-				receiver <- &osdnapi.MinionEvent{Type: osdnapi.Deleted, Minion: node.ObjectMeta.Name}
-			case watch.Modified:
-				node := ev.Object.(*kapi.Node)
-				receiver <- &osdnapi.MinionEvent{Type: osdnapi.Added, Minion: node.ObjectMeta.Name}
-			case watch.Error:
-				fmt.Errorf("Error in watching subnets")
-				return
-			}
+	cache.NewReflector(listWatch, &kapi.Node{}, minionEventQueue, 4*time.Minute).Run()
+
+	for {
+		eventType, obj, err := minionEventQueue.Pop()
+		if err != nil {
+			return err
 		}
-	}()
+		switch eventType {
+		case watch.Added, watch.Modified:
+			// create minionEvent
+			node := obj.(*kapi.Node)
+			receiver <- &osdnapi.MinionEvent{Type: osdnapi.Added, Minion: node.ObjectMeta.Name}
+		case watch.Deleted:
+			node := obj.(*kapi.Node)
+			receiver <- &osdnapi.MinionEvent{Type: osdnapi.Deleted, Minion: node.ObjectMeta.Name}
+		}
+	}
 	return nil
 }
 
