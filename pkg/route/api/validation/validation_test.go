@@ -247,6 +247,19 @@ func TestValidateTLS(t *testing.T) {
 			},
 			expectedErrors: 1,
 		},
+		{
+			name: "Double escaped newlines",
+			route: &api.Route{
+				TLS: &api.TLSConfig{
+					Termination:              api.TLSTerminationReencrypt,
+					Certificate:              "d\\nef",
+					Key:                      "g\\nhi",
+					CACertificate:            "j\\nkl",
+					DestinationCACertificate: "j\\nkl",
+				},
+			},
+			expectedErrors: 4,
+		},
 	}
 
 	for _, tc := range tests {
