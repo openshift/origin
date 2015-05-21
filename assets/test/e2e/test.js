@@ -23,7 +23,7 @@ describe('', function() {
 
   var login = function(loginPageAlreadyLoaded) {
     // The login page doesn't use angular, so we have to use the underlying WebDriver instance
-    var driver = browser.driver;  
+    var driver = browser.driver;
     if (!loginPageAlreadyLoaded) {
       browser.get('/');
       driver.wait(function() {
@@ -76,7 +76,7 @@ describe('', function() {
 
     it('should be able to list the test project', function() {
       browser.get('/');
-      
+
       expect(element(by.cssContainingText("h2.project","test")).isPresent()).toBe(true);
     });
 
@@ -92,10 +92,10 @@ describe('', function() {
 
       expect(element(by.cssContainingText(".pod-template-build","Build: ruby-sample-build")).isPresent()).toBe(true);
 
-      expect(element(by.cssContainingText(".deployment-trigger","new image for test/origin-ruby-sample:latest")).isPresent()).toBe(true);
-      
+      expect(element(by.cssContainingText(".deployment-trigger","new image for origin-ruby-sample:latest")).isPresent()).toBe(true);
+
       expect(element.all(by.css(".pod-running")).count()).toEqual(3);
     });
-  }); 
+  });
 
 });

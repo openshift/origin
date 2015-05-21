@@ -235,7 +235,12 @@ angular.module('openshiftConsole')
       if (configJson) {
         try {
           var depConfig = $.parseJSON(configJson);
-          deployment.details = depConfig.details;
+          if (depConfig.apiVersion === "v1beta1") {
+            // TODO: will be slightly inaccurate for now
+            deployment.status = {details: depConfig.details};
+          } else {
+            deployment.status = depConfig.status;
+          }
         }
         catch (e) {
           Logger.error("Failed to parse encoded deployment config", e);

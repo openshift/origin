@@ -42,11 +42,11 @@
 
     <div class="component meta-data">
       created <relative-timestamp timestamp="rc.metadata.creationTimestamp"></relative-timestamp
-      ><span ng-if="rc.details.causes.length"
+      ><span ng-if="rc.status.details.causes.length"
         ><span>, triggered by 
-          <span class="deployment-trigger" ng-repeat="cause in rc.details.causes">
+          <span class="deployment-trigger" ng-repeat="cause in rc.status.details.causes">
             <span ng-switch="cause.type">
-              <span ng-switch-when="ImageChange">a new image for {{cause.imageTrigger.repositoryName | imageStreamName}}:{{cause.imageTrigger.tag}}</span>
+              <span ng-switch-when="ImageChange">a new image for {{cause.imageTrigger.from | imageObjectRef}}</span>
               <span ng-switch-when="ConfigChange">a config change</span>
             </span>
           </span>
