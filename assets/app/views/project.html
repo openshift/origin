@@ -80,7 +80,7 @@
                 Show only the first two ports if there are many since we don't have much space here.
                 The full list is visible elsewhere.
                 -->
-                <span ng-repeat="portMapping in service.spec.ports | orderBy:port | limitTo:2" class="nowrap">
+                <span ng-repeat="portMapping in service.spec.ports | orderBy:'port' | limitTo:2" class="nowrap">
                   port {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
                     ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span>
                 </span>
