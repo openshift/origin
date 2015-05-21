@@ -9,9 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	kcmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -20,38 +18,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
-
-// Helper for the login and setup process, gathers all information required for a
-// successful login and eventual update of config files.
-// Depending on the Reader present it can be interactive, asking for terminal input in
-// case of any missing information.
-// Notice that some methods mutate this object so it should not be reused. The Config
-// provided as a pointer will also mutate (handle new auth tokens, etc).
-type LoginOptions struct {
-	Server string
-
-	// flags and printing helpers
-	Username string
-	Password string
-	Project  string
-
-	// infra
-	StartingKubeConfig *kclientcmdapi.Config
-	DefaultNamespace   string
-	Config             *kclient.Config
-	Reader             io.Reader
-	Out                io.Writer
-
-	// cert data to be used when authenticating
-	CAFile      string
-	CertFile    string
-	KeyFile     string
-	InsecureTLS bool
-
-	Token string
-
-	PathOptions *kcmdconfig.PathOptions
-}
 
 const (
 	loginLong = `Log in to an OpenShift server and save config for future use
