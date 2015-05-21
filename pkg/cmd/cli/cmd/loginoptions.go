@@ -46,11 +46,7 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 
 	clientConfig := &kclient.Config{}
 
-	// if someone specified a server, use it as the default
-	if len(o.Server) > 0 {
-		clientConfig.Host = o.Server
-
-	} else {
+	if len(o.Server) == 0 {
 		// we need to have a server to talk to
 		if cmdutil.IsTerminal(o.Reader) {
 			for !o.serverProvided() {
@@ -58,10 +54,17 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 				promptMsg := fmt.Sprintf("OpenShift server [%s]: ", defaultServer)
 
 				o.Server = cmdutil.PromptForStringWithDefault(o.Reader, defaultServer, promptMsg)
-				clientConfig.Host = o.Server
 			}
 		}
 	}
+
+	// normalize the provided server to a format expected by config
+	serverNormalized, err := config.NormalizeServerURL(o.Server)
+	if err != nil {
+		return nil, err
+	}
+	o.Server = serverNormalized
+	clientConfig.Host = o.Server
 
 	if len(o.CAFile) > 0 {
 		clientConfig.CAFile = o.CAFile

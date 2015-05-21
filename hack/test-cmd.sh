@@ -171,17 +171,27 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 fi
 
 # login and logout tests
+# --token and --username are mutually exclusive
 [ "$(osc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify 2>&1 | grep 'mutually exclusive')" ]
+# must only accept one arg (server)
 [ "$(osc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
+# logs in with a valid certificate authority
 osc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 osc logout
+# logs in skipping certificate check
 osc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
+# logs in by an existing and valid token
 temp_token=$(osc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
 [ "$(osc login --token=${temp_token} 2>&1 | grep 'using the token provided')" ]
 osc logout
-osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+# properly parse server port
+[ "$(osc login https://server1:844333 2>&1 | grep 'Not a valid port')" ]
+# properly handle trailing slash
+osc login --server=${KUBERNETES_MASTER}/ --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+# create a new project
 osc new-project project-foo --display-name="my project" --description="boring project description"
 [ "$(osc project | grep 'Using project "project-foo"')" ]
+# denies access after logging out
 osc logout
 [ -z "$(osc get pods | grep 'system:anonymous')" ]
 
