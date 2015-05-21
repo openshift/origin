@@ -48,7 +48,7 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 
 	// create imagerepo
 	imageStream := &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: "imageStream"},
+		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
 		Spec: imageapi.ImageStreamSpec{
 			DockerImageRepository: "registry:3000/integration/imageStream",
 			Tags: map[string]imageapi.TagReference{
@@ -63,7 +63,7 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 	}
 
 	ism := &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: "imageStream"},
+		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
 		Tag:        "validTag",
 		Image: imageapi.Image{
 			ObjectMeta: kapi.ObjectMeta{
@@ -133,7 +133,7 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 
 	// create imagerepo
 	imageStream := &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: "imageStream"},
+		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
 		Spec: imageapi.ImageStreamSpec{
 			DockerImageRepository: "registry:3000/integration/imageStream",
 			Tags: map[string]imageapi.TagReference{
@@ -148,7 +148,7 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 	}
 
 	ism := &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: "imageStream"},
+		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
 		Tag:        "validTag",
 		Image: imageapi.Image{
 			ObjectMeta: kapi.ObjectMeta{
@@ -162,7 +162,7 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 	}
 
 	// create buildconfig
-	buildConfig := mockBuildConfigImageStreamParms("originalImage", "imageStream", "validTag")
+	buildConfig := mockBuildConfigImageStreamParms("originalImage", "image-stream", "validTag")
 
 	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
