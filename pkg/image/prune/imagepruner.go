@@ -618,7 +618,6 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 		glog.V(4).Infof("Sending request to registry")
 		resp, err := registryClient.Do(req)
 		if err != nil {
-			glog.Errorf("Error sending request: %v", err)
 			return fmt.Errorf("Error sending request: %v", err)
 		}
 		defer resp.Body.Close()
