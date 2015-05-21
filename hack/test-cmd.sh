@@ -492,7 +492,7 @@ osc delete bc/ruby-sample-build-invalidtag
 
 # Test admin manage-node operations
 [ "$(openshift admin manage-node --help 2>&1 | grep 'Manage node operations')" ]
-[ "$(osadm manage-node --schedulable=true | grep --text 'Ready' | grep -v 'Sched')" ]
+[ "$(osadm manage-node --selector='' --schedulable=true | grep --text 'Ready' | grep -v 'Sched')" ]
 osc create -f examples/hello-openshift/hello-pod.json
 #[ "$(osadm manage-node --list-pods | grep 'hello-openshift' | grep -E '(unassigned|assigned)')" ]
 #[ "$(osadm manage-node --evacuate --dry-run | grep 'hello-openshift')" ]
