@@ -108,6 +108,15 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 	events, _ := d.kubeClient.Events(namespace).Search(build)
+	if events == nil {
+		events = &kapi.EventList{}
+	}
+	// get also pod events and merge it all into one list for describe
+	if pod, err := d.kubeClient.Pods(namespace).Get(buildutil.GetBuildPodName(build)); err == nil {
+		if podEvents, _ := d.kubeClient.Events(namespace).Search(pod); podEvents != nil {
+			events.Items = append(events.Items, podEvents.Items...)
+		}
+	}
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
 		if build.Config != nil {
@@ -129,9 +138,7 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "Duration", describeBuildDuration(build))
 		formatString(out, "Build Pod", buildutil.GetBuildPodName(build))
 		describeBuildParameters(build.Parameters, out)
-		if events != nil {
-			kctl.DescribeEvents(events, out)
-		}
+		kctl.DescribeEvents(events, out)
 
 		return nil
 	})
