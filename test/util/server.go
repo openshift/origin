@@ -341,7 +341,7 @@ func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Co
 		AdminUser:   adminUser,
 	}
 
-	if err := newProjectOptions.Run(); err != nil {
+	if err := newProjectOptions.Run(false); err != nil {
 		return nil, err
 	}
 

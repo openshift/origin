@@ -8,6 +8,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
@@ -30,28 +31,29 @@ func TestPodAdmission(t *testing.T) {
 	}
 
 	tests := []struct {
-		defaultNodeSelector string
-		projectNodeSelector string
-		podNodeSelector     map[string]string
-		mergedNodeSelector  map[string]string
-		admit               bool
-		testName            string
+		defaultNodeSelector       string
+		projectNodeSelector       string
+		podNodeSelector           map[string]string
+		mergedNodeSelector        map[string]string
+		ignoreProjectNodeSelector bool
+		admit                     bool
+		testName                  string
 	}{
 		{
-			defaultNodeSelector: "",
-			projectNodeSelector: "",
-			podNodeSelector:     map[string]string{},
-			mergedNodeSelector:  map[string]string{},
-			admit:               true,
-			testName:            "No node selectors",
+			defaultNodeSelector:       "",
+			podNodeSelector:           map[string]string{},
+			mergedNodeSelector:        map[string]string{},
+			ignoreProjectNodeSelector: true,
+			admit:    true,
+			testName: "No node selectors",
 		},
 		{
-			defaultNodeSelector: "infra = false",
-			projectNodeSelector: "",
-			podNodeSelector:     map[string]string{},
-			mergedNodeSelector:  map[string]string{"infra": "false"},
-			admit:               true,
-			testName:            "Default node selector and no conflicts",
+			defaultNodeSelector:       "infra = false",
+			podNodeSelector:           map[string]string{},
+			mergedNodeSelector:        map[string]string{"infra": "false"},
+			ignoreProjectNodeSelector: true,
+			admit:    true,
+			testName: "Default node selector and no conflicts",
 		},
 		{
 			defaultNodeSelector: "",
@@ -60,6 +62,14 @@ func TestPodAdmission(t *testing.T) {
 			mergedNodeSelector:  map[string]string{"infra": "false"},
 			admit:               true,
 			testName:            "Project node selector and no conflicts",
+		},
+		{
+			defaultNodeSelector: "infra = false",
+			projectNodeSelector: "",
+			podNodeSelector:     map[string]string{},
+			mergedNodeSelector:  map[string]string{},
+			admit:               true,
+			testName:            "Empty project node selector and no conflicts",
 		},
 		{
 			defaultNodeSelector: "infra = false",
@@ -96,7 +106,9 @@ func TestPodAdmission(t *testing.T) {
 	}
 	for _, test := range tests {
 		projectcache.FakeProjectCache(mockClient, projectStore, test.defaultNodeSelector)
-		project.ObjectMeta.Annotations = map[string]string{"openshift.io/node-selector": test.projectNodeSelector}
+		if !test.ignoreProjectNodeSelector {
+			project.ObjectMeta.Annotations = map[string]string{projectapi.ProjectNodeSelectorParam: test.projectNodeSelector}
+		}
 		pod.Spec = kapi.PodSpec{NodeSelector: test.podNodeSelector}
 
 		err := handler.Admit(admission.NewAttributesRecord(pod, "Pod", project.ObjectMeta.Name, "pods", admission.Create, nil))

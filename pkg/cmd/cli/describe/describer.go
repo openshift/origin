@@ -27,6 +27,7 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -552,7 +553,7 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 
 	nodeSelector := ""
 	if len(project.ObjectMeta.Annotations) > 0 {
-		if ns, ok := project.ObjectMeta.Annotations["openshift.io/node-selector"]; ok {
+		if ns, ok := project.ObjectMeta.Annotations[projectapi.ProjectNodeSelectorParam]; ok {
 			nodeSelector = ns
 		}
 	}

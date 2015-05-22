@@ -18,10 +18,9 @@ import (
 )
 
 type NewProjectOptions struct {
-	ProjectName  string
-	DisplayName  string
-	Description  string
-	NodeSelector string
+	ProjectName string
+	DisplayName string
+	Description string
 
 	Client client.Interface
 
@@ -106,7 +105,6 @@ func (o *NewProjectOptions) Run() error {
 	projectRequest.DisplayName = o.DisplayName
 	projectRequest.Annotations = make(map[string]string)
 	projectRequest.Annotations["description"] = o.Description
-	projectRequest.Annotations["openshift.io/node-selector"] = o.NodeSelector
 
 	project, err := o.Client.ProjectRequests().Create(projectRequest)
 	if err != nil {

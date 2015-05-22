@@ -122,7 +122,7 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						"openshift.io/node-selector": "infra=true, env = test",
+						api.ProjectNodeSelectorParam: "infra=true, env = test",
 					},
 				},
 			},
@@ -135,7 +135,7 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						"openshift.io/node-selector": "infra, env = $test",
+						api.ProjectNodeSelectorParam: "infra, env = $test",
 					},
 				},
 			},

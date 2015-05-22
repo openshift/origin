@@ -66,7 +66,7 @@ func TestLogin(t *testing.T) {
 		AdminRole:   bootstrappolicy.AdminRoleName,
 		AdminUser:   username,
 	}
-	if err := newProjectOptions.Run(); err != nil {
+	if err := newProjectOptions.Run(false); err != nil {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)
 	}
 
