@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	"github.com/docker/distribution/registry/api/v2"
 
 	"github.com/openshift/origin/pkg/image/api"
 )
@@ -16,6 +16,20 @@ func MinimalNameValidation(name string, prefix bool) (bool, string) {
 		if strings.Contains(name, illegal) {
 			return false, fmt.Sprintf(`may not contain "%s"`, illegal)
 		}
+	}
+	return true, ""
+}
+
+func ValidateImageStreamName(name string, prefix bool) (bool, string) {
+	// Sanity check to make sure we never allow invalid characters, no matter what RepositoryNameComponentRegexp allows
+	if ok, msg := MinimalNameValidation(name, false); !ok {
+		return false, msg
+	}
+	if len(name) < v2.RepositoryNameComponentMinLength {
+		return false, fmt.Sprintf("must be at least %d characters long", v2.RepositoryNameComponentMinLength)
+	}
+	if !v2.RepositoryNameComponentAnchoredRegexp.MatchString(name) {
+		return false, fmt.Sprintf("must match %q", v2.RepositoryNameComponentRegexp.String())
 	}
 	return true, ""
 }
@@ -41,7 +55,15 @@ func ValidateImage(image *api.Image) fielderrors.ValidationErrorList {
 func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 
-	result = append(result, validation.ValidateObjectMeta(&stream.ObjectMeta, true, MinimalNameValidation).Prefix("metadata")...)
+	result = append(result, validation.ValidateObjectMeta(&stream.ObjectMeta, true, ValidateImageStreamName).Prefix("metadata")...)
+
+	// Ensure we can generate a valid docker image repository from namespace/name
+	if len(stream.Namespace) > 0 && len(stream.Namespace) < v2.RepositoryNameComponentMinLength {
+		result = append(result, fielderrors.NewFieldInvalid("metadata.namespace", stream.Namespace, fmt.Sprintf("must be at least %d characters long", v2.RepositoryNameComponentMinLength)))
+	}
+	if len(stream.Namespace+"/"+stream.Name) > v2.RepositoryNameTotalLengthMax {
+		result = append(result, fielderrors.NewFieldInvalid("metadata.name", stream.Name, fmt.Sprintf("'namespace/name' cannot be longer than %d characters", v2.RepositoryNameTotalLengthMax)))
+	}
 
 	if stream.Spec.Tags == nil {
 		stream.Spec.Tags = make(map[string]api.TagReference)
@@ -103,8 +125,8 @@ func ValidateImageStreamMapping(mapping *api.ImageStreamMapping) fielderrors.Val
 		result = append(result, fielderrors.NewFieldRequired("dockerImageRepository"))
 	}
 
-	if !util.IsDNS1123Subdomain(mapping.Namespace) {
-		result = append(result, fielderrors.NewFieldInvalid("namespace", mapping.Namespace, ""))
+	if ok, msg := validation.ValidateNamespaceName(mapping.Namespace, false); !ok {
+		result = append(result, fielderrors.NewFieldInvalid("namespace", mapping.Namespace, msg))
 	}
 	if len(mapping.Tag) == 0 {
 		result = append(result, fielderrors.NewFieldRequired("tag"))

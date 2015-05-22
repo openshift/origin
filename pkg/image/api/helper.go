@@ -44,14 +44,15 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		if strings.Contains(repoParts[0], ":") {
 			// registry/name
 			ref.Registry = repoParts[0]
-			ref.Namespace = "library"
+			// TODO: default this in all cases where Namespace ends up as ""?
+			ref.Namespace = DockerDefaultNamespace
 			if len(repoParts[1]) == 0 {
 				return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 			}
 			ref.Name = repoParts[1]
 			ref.Tag = tag
 			ref.ID = id
-			return ref, nil
+			break
 		}
 		// namespace/name
 		ref.Namespace = repoParts[0]
@@ -61,7 +62,7 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		ref.Name = repoParts[1]
 		ref.Tag = tag
 		ref.ID = id
-		return ref, nil
+		break
 	case 3:
 		// registry/namespace/name
 		ref.Registry = repoParts[0]
@@ -72,7 +73,7 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		ref.Name = repoParts[2]
 		ref.Tag = tag
 		ref.ID = id
-		return ref, nil
+		break
 	case 1:
 		// name
 		if len(repoParts[0]) == 0 {
@@ -81,10 +82,23 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 		ref.Name = repoParts[0]
 		ref.Tag = tag
 		ref.ID = id
-		return ref, nil
+		break
 	default:
 		return ref, fmt.Errorf("the docker pull spec %q must be two or three segments separated by slashes", spec)
 	}
+
+	// TODO: validate repository name here?
+	//
+	// repo := ref.Name
+	// if len(ref.Namespace) > 0 {
+	// 	repo = ref.Namespace + "/" + ref.Name
+	// }
+
+	// if err := v2.ValidateRepositoryName(repo); err != nil {
+	// 	return DockerImageReference{}, err
+	// }
+
+	return ref, nil
 }
 
 // DockerClientDefaults sets the default values used by the Docker client.

@@ -29,7 +29,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	expected := mockCustomBuild()
 	actual, err := strategy.CreateBuildPod(expected)
 	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	if expected, actual := buildutil.GetBuildPodName(expected), actual.ObjectMeta.Name; expected != actual {

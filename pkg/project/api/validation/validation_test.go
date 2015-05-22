@@ -44,7 +44,7 @@ func TestValidateProject(t *testing.T) {
 			name: "invalid id uppercase",
 			project: api.Project{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: "A",
+					Name: "AA",
 				},
 			},
 			numErrs: 1,
@@ -53,7 +53,25 @@ func TestValidateProject(t *testing.T) {
 			name: "valid id leading number",
 			project: api.Project{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: "1",
+					Name: "11",
+				},
+			},
+			numErrs: 0,
+		},
+		{
+			name: "invalid id for create (< 2 characters)",
+			project: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "h",
+				},
+			},
+			numErrs: 1,
+		},
+		{
+			name: "valid id for create (2+ characters)",
+			project: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "hi",
 				},
 			},
 			numErrs: 0,
@@ -146,4 +164,22 @@ func TestValidateProject(t *testing.T) {
 	if len(errs) != 0 {
 		t.Errorf("Unexpected non-zero error list: %#v", errs)
 	}
+}
+
+func TestValidateProjectUpdate(t *testing.T) {
+	// Ensure we can update projects with short names, to make sure we can
+	// proxy updates to namespaces created outside project validation
+	project := &api.Project{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:            "a",
+			UID:             "123",
+			ResourceVersion: "1",
+		},
+	}
+
+	errs := ValidateProjectUpdate(project, project)
+	if len(errs) > 0 {
+		t.Fatalf("Expected no errors, got %v", errs)
+	}
+
 }
