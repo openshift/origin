@@ -253,8 +253,22 @@ func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
 	return master, adminKubeConfigFile, err
 }
 
+type TestOptions struct {
+	DeleteAllEtcdKeys bool
+}
+
+func DefaultTestOptions() TestOptions {
+	return TestOptions{true}
+}
+
 func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error) {
-	DeleteAllEtcdKeys()
+	return StartConfiguredMasterWithOptions(masterConfig, DefaultTestOptions())
+}
+
+func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, testOptions TestOptions) (string, error) {
+	if testOptions.DeleteAllEtcdKeys {
+		DeleteAllEtcdKeys()
+	}
 
 	if err := start.StartMaster(masterConfig); err != nil {
 		return "", err

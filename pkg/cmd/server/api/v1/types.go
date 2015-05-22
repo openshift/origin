@@ -74,6 +74,9 @@ type MasterConfig struct {
 	// DNSConfig, if present start the DNS server in this process
 	DNSConfig *DNSConfig `json:"dnsConfig"`
 
+	// ServiceAccountConfig holds options related to service accounts
+	ServiceAccountConfig ServiceAccountConfig `json:"serviceAccountConfig"`
+
 	// MasterClients holds all the client connection information for controllers and other system components
 	MasterClients MasterClients `json:"masterClients"`
 
@@ -223,6 +226,23 @@ type OAuthConfig struct {
 	SessionConfig *SessionConfig `json:"sessionConfig"`
 
 	TokenConfig TokenConfig `json:"tokenConfig"`
+}
+
+type ServiceAccountConfig struct {
+	// ManagedNames is a list of service account names that will be auto-created in every namespace.
+	// If no names are specified, the ServiceAccountsController will not be started.
+	ManagedNames []string `json:"managedNames"`
+
+	// PrivateKeyFile is a file containing a PEM-encoded private RSA key, used to sign service account tokens.
+	// If no private key is specified, the service account TokensController will not be started.
+	PrivateKeyFile string `json:"privateKeyFile"`
+
+	// PublicKeyFiles is a list of files, each containing a PEM-encoded public RSA key.
+	// (If any file contains a private key, the public portion of the key is used)
+	// The list of public keys is used to verify presented service account tokens.
+	// Each key is tried in order until the list is exhausted or verification succeeds.
+	// If no keys are specified, no service account authentication will be available.
+	PublicKeyFiles []string `json:"publicKeyFiles"`
 }
 
 type TokenConfig struct {
