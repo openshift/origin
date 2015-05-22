@@ -7,9 +7,9 @@ angular.module('openshiftConsole')
       scope: {
       	// Replication controller / deployment fields
         rc: '=',
-        deploymentConfig: '=',
         deploymentConfigId: '=',
-        differentService: '=',
+        deploymentConfigMissing: '=',
+        deploymentConfigDifferentService: '=',
 
         // Nested podTemplate fields
         imagesByDockerReference: '=',
