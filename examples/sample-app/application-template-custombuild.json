@@ -108,6 +108,9 @@
         {
           "imageChange": {},
           "type": "imageChange"
+        },
+        {
+          "type": "ConfigChange"
         }
       ]
     },
