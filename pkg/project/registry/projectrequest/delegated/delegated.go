@@ -94,6 +94,21 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 	}
 
+	// This was not done as part of DefaultTemplate() because we want to
+	// populate node selector as annotation only if explicitly set by user
+	if _, ok := projectRequest.Annotations["openshift.io/node-selector"]; ok {
+		projectNodeSelector := projectRequest.Annotations["openshift.io/node-selector"]
+		for i := range template.Objects {
+			_, kind, err := kapi.Scheme.ObjectVersionAndKind(template.Objects[i])
+			if err != nil {
+				return nil, err
+			}
+			if kind == "Project" {
+				project := template.Objects[i].(*projectapi.Project)
+				project.Annotations["openshift.io/node-selector"] = projectNodeSelector
+			}
+		}
+	}
 	list, err := r.openshiftClient.TemplateConfigs(kapi.NamespaceDefault).Create(template)
 	if err != nil {
 		return nil, err

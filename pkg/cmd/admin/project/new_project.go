@@ -38,6 +38,8 @@ an admin user (and role, if you want to use a non-default admin role), and a nod
 to restrict which nodes pods in this project can be scheduled to.
 `
 
+var CheckNodeSelector bool
+
 func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
 
@@ -54,6 +56,11 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 			if options.Client, _, err = f.Clients(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
+
+			// We can't depend on len(NodeSelector) > 0 as node-selector="" is valid
+			// and we want to populate node selector as annotation only if explicitly set by user
+			CheckNodeSelector = cmd.Flag("node-selector").Changed
+
 			if err := options.Run(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
@@ -92,7 +99,9 @@ func (o *NewProjectOptions) Run() error {
 	project.Annotations = make(map[string]string)
 	project.Annotations["description"] = o.Description
 	project.Annotations["displayName"] = o.DisplayName
-	project.Annotations["openshift.io/node-selector"] = o.NodeSelector
+	if CheckNodeSelector {
+		project.Annotations["openshift.io/node-selector"] = o.NodeSelector
+	}
 	project, err := o.Client.Projects().Create(project)
 	if err != nil {
 		return err
