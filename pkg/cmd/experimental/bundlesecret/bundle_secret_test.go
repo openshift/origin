@@ -1,7 +1,11 @@
 package bundlesecret
 
 import (
+	"io/ioutil"
 	"testing"
+
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 func TestValidate(t *testing.T) {
@@ -87,5 +91,37 @@ func TestCreateSecret(t *testing.T) {
 		if err != nil && !test.expErr {
 			t.Errorf("%s: unexpected error: %s", test.testName, err)
 		}
+	}
+}
+
+func TestSecretTypeSpecified(t *testing.T) {
+	options := CreateSecretOptions{
+		Name:           "any",
+		SecretTypeName: string(kapi.SecretTypeDockercfg),
+		Sources:        util.StringList([]string{"./bsFixtures/www.google.com"}),
+		Stderr:         ioutil.Discard,
+	}
+
+	secret, err := options.CreateSecret()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if secret.Type != kapi.SecretTypeDockercfg {
+		t.Errorf("expected %v, got %v", kapi.SecretTypeDockercfg, secret.Type)
+	}
+}
+func TestSecretTypeDiscovered(t *testing.T) {
+	options := CreateSecretOptions{
+		Name:    "any",
+		Sources: util.StringList([]string{"./bsFixtures/leadingdot/.dockercfg"}),
+		Stderr:  ioutil.Discard,
+	}
+
+	secret, err := options.CreateSecret()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if secret.Type != kapi.SecretTypeDockercfg {
+		t.Errorf("expected %v, got %v", kapi.SecretTypeDockercfg, secret.Type)
 	}
 }
