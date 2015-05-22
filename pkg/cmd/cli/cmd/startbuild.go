@@ -26,12 +26,12 @@ import (
 )
 
 const (
-	startBuild_long = `Start a build.
+	startBuildLong = `Start a build.
 
 This command starts a build for the provided build configuration or re-runs an existing build using
 --from-build=<name>. You may pass the --follow flag to see output from the build.`
 
-	startBuild_example = `  // Starts build from build configuration matching the name "3bd2ug53b"
+	startBuildExample = `  // Starts build from build configuration matching the name "3bd2ug53b"
   $ %[1]s start-build 3bd2ug53b
 
   // Starts build from build matching the name "3bd2ug53b"
@@ -50,8 +50,8 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	cmd := &cobra.Command{
 		Use:     "start-build (BUILDCONFIG | --from-build=BUILD)",
 		Short:   "Starts a new build from existing build or buildConfig",
-		Long:    startBuild_long,
-		Example: fmt.Sprintf(startBuild_example, fullName),
+		Long:    startBuildLong,
+		Example: fmt.Sprintf(startBuildExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunStartBuild(f, out, cmd, args, webhooks)
 			cmdutil.CheckErr(err)

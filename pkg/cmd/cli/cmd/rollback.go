@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	rollback_long = `Revert part of an application back to a previous deployment.
+	rollbackLong = `Revert part of an application back to a previous deployment.
 
 When you run this command your deployment configuration will be updated to match
 the provided deployment. By default only the pod and container configuration
@@ -30,7 +30,7 @@ a human-readable representation of the updated deployment configuration instead 
 executing the rollback. This is useful if you're not quite sure what the outcome
 will be.`
 
-	rollback_example = `  // Perform a rollback
+	rollbackExample = `  // Perform a rollback
   $ %[1]s rollback deployment-1
 
   // See what the rollback will look like, but don't perform the rollback
@@ -51,8 +51,8 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd := &cobra.Command{
 		Use:     "rollback DEPLOYMENT",
 		Short:   "Revert part of an application back to a previous deployment.",
-		Long:    rollback_long,
-		Example: fmt.Sprintf(rollback_example, fullName),
+		Long:    rollbackLong,
+		Example: fmt.Sprintf(rollbackExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunRollback(f, out, cmd, args, rollback)
 			cmdutil.CheckErr(err)

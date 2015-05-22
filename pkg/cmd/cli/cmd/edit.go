@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	edit_long = `Edit a resource from the default editor.
+	editLong = `Edit a resource from the default editor.
 
 The edit command allows you to directly edit any API resource you can retrieve via the
 command line tools. It will open the editor defined by your OSC_EDITOR, GIT_EDITOR,
@@ -43,7 +43,7 @@ is another editor changing the resource on the server. When this occurs, you wil
 to apply your changes to the newer version of the resource, or update your temporary
 saved copy to include the latest resource version.`
 
-	edit_example = `  // Edit the service named 'docker-registry':
+	editExample = `  // Edit the service named 'docker-registry':
   $ %[1]s edit svc/docker-registry
 
   // Edit the deployment config named 'my-deployment':
@@ -61,8 +61,8 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 	cmd := &cobra.Command{
 		Use:     "edit (RESOURCE/NAME | -f FILENAME)",
 		Short:   "Edit a resource on the server and apply the update.",
-		Long:    edit_long,
-		Example: fmt.Sprintf(edit_example, fullName),
+		Long:    editLong,
+		Example: fmt.Sprintf(editExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunEdit(fullName, f, out, cmd, args, filenames)
 			if err == errExit {

@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	expose_long = `Take a replicated application and expose it as a route.
+	exposeLong = `Take a replicated application and expose it as a route.
 
 Looks up a service by name and derives a route from it.`
 
-	expose_example = `// Create a route based on service nginx. The new route will re-use nginx's labels.
+	exposeExample = `// Create a route based on service nginx. The new route will re-use nginx's labels.
 $ %[1]s expose service nginx
 
 // Create a route and specify your own label.
@@ -27,8 +27,8 @@ $ %[1]s expose service nginx --labels name=myroute`
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
 func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdExposeService(f.Factory, out)
-	cmd.Long = expose_long
-	cmd.Example = fmt.Sprintf(expose_example, fullName)
+	cmd.Long = exposeLong
+	cmd.Example = fmt.Sprintf(exposeExample, fullName)
 	cmd.Flags().Set("generator", "route/v1")
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		err := validate(cmd, f, args)

@@ -23,11 +23,11 @@ func tab(original string) string {
 }
 
 const (
-	get_long = `Display one or many resources.
+	getLong = `Display one or many resources.
 
 Possible resources include builds, buildConfigs, services, pods, etc.`
 
-	get_example = `  // List all pods in ps output format.
+	getExample = `  // List all pods in ps output format.
   $ %[1]s get pods
 
   // List a single replication controller with specified ID in ps output format.
@@ -46,18 +46,18 @@ func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 	validArgs := p.HandledResources()
 
 	cmd := kcmd.NewCmdGet(f.Factory, out)
-	cmd.Long = get_long
-	cmd.Example = fmt.Sprintf(get_example, fullName)
+	cmd.Long = getLong
+	cmd.Example = fmt.Sprintf(getExample, fullName)
 	cmd.ValidArgs = validArgs
 	return cmd
 }
 
 const (
-	update_long = `Update a resource by filename or stdin.
+	updateLong = `Update a resource by filename or stdin.
 
 JSON and YAML formats are accepted.`
 
-	update_example = `  // Update a pod using the data in pod.json.
+	updateExample = `  // Update a pod using the data in pod.json.
   $ %[1]s update -f pod.json
 
   // Update a pod based on the JSON passed into stdin.
@@ -70,13 +70,13 @@ JSON and YAML formats are accepted.`
 // NewCmdUpdate is a wrapper for the Kubernetes cli update command
 func NewCmdUpdate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdUpdate(f.Factory, out)
-	cmd.Long = update_long
-	cmd.Example = fmt.Sprintf(update_example, fullName)
+	cmd.Long = updateLong
+	cmd.Example = fmt.Sprintf(updateExample, fullName)
 	return cmd
 }
 
 const (
-	delete_long = `Delete a resource by filename, stdin, resource and ID, or by resources and label selector.
+	deleteLong = `Delete a resource by filename, stdin, resource and ID, or by resources and label selector.
 
 JSON and YAML formats are accepted.
 
@@ -87,7 +87,7 @@ Note that the delete command does NOT do resource version checks, so if someone
 submits an update to a resource right when you submit a delete, their update
 will be lost along with the rest of the resource.`
 
-	delete_example = `  // Delete a pod using the type and ID specified in pod.json.
+	deleteExample = `  // Delete a pod using the type and ID specified in pod.json.
   $ %[1]s delete -f pod.json
 
   // Delete a pod based on the type and ID in the JSON passed into stdin.
@@ -106,8 +106,8 @@ will be lost along with the rest of the resource.`
 // NewCmdDelete is a wrapper for the Kubernetes cli delete command
 func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdDelete(f.Factory, out)
-	cmd.Long = delete_long
-	cmd.Example = fmt.Sprintf(delete_example, fullName)
+	cmd.Long = deleteLong
+	cmd.Example = fmt.Sprintf(deleteExample, fullName)
 	return cmd
 }
 
@@ -130,11 +130,11 @@ func NewCmdLog(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 }
 
 const (
-	create_long = `Create a resource by filename or stdin.
+	createLong = `Create a resource by filename or stdin.
 
 JSON and YAML formats are accepted.`
 
-	create_example = `  // Create a pod using the data in pod.json.
+	createExample = `  // Create a pod using the data in pod.json.
   $ %[1]s create -f pod.json
 
   // Create a pod based on the JSON passed into stdin.
@@ -144,15 +144,15 @@ JSON and YAML formats are accepted.`
 // NewCmdCreate is a wrapper for the Kubernetes cli create command
 func NewCmdCreate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdCreate(f.Factory, out)
-	cmd.Long = create_long
-	cmd.Example = fmt.Sprintf(create_example, fullName)
+	cmd.Long = createLong
+	cmd.Example = fmt.Sprintf(createExample, fullName)
 	return cmd
 }
 
 const (
-	exec_long = `Execute a command in a container.`
+	execLong = `Execute a command in a container.`
 
-	exec_example = `  // Get output from running 'date' in ruby-container from pod 123456-7890
+	execExample = `  // Get output from running 'date' in ruby-container from pod 123456-7890
   $ %[1]s exec -p 123456-7890 -c ruby-container date
 
   // Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
@@ -162,15 +162,15 @@ const (
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
 func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdExec(f.Factory, cmdIn, cmdOut, cmdErr)
-	cmd.Long = exec_long
-	cmd.Example = fmt.Sprintf(exec_example, fullName)
+	cmd.Long = execLong
+	cmd.Example = fmt.Sprintf(execExample, fullName)
 	return cmd
 }
 
 const (
-	portForward_long = `Forward 1 or more local ports to a pod.`
+	portForwardLong = `Forward 1 or more local ports to a pod.`
 
-	portForward_example = `  // Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
+	portForwardExample = `  // Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
   $ %[1]s port-forward -p mypod 5000 6000
 
   // Listens on port 8888 locally, forwarding to 5000 in the pod
@@ -186,18 +186,18 @@ const (
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
 func NewCmdPortForward(fullName string, f *clientcmd.Factory) *cobra.Command {
 	cmd := kcmd.NewCmdPortForward(f.Factory)
-	cmd.Long = portForward_long
-	cmd.Example = fmt.Sprintf(portForward_example, fullName)
+	cmd.Long = portForwardLong
+	cmd.Example = fmt.Sprintf(portForwardExample, fullName)
 	return cmd
 }
 
 const (
-	describe_long = `Show details of a specific resource.
+	describeLong = `Show details of a specific resource.
 
 This command joins many API calls together to form a detailed description of a
 given resource.`
 
-	describe_example = `  // Provide details about the ruby-20-centos7 image repository
+	describeExample = `  // Provide details about the ruby-20-centos7 image repository
   $ %[1]s describe imageRepository ruby-20-centos7
 
   // Provide details about the ruby-sample-build build configuration
@@ -207,16 +207,16 @@ given resource.`
 // NewCmdDescribe is a wrapper for the Kubernetes cli describe command
 func NewCmdDescribe(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdDescribe(f.Factory, out)
-	cmd.Long = describe_long
-	cmd.Example = fmt.Sprintf(describe_example, fullName)
+	cmd.Long = describeLong
+	cmd.Example = fmt.Sprintf(describeExample, fullName)
 	cmd.ValidArgs = describe.DescribableResources()
 	return cmd
 }
 
 const (
-	proxy_long = `Run a proxy to the Kubernetes API server.`
+	proxyLong = `Run a proxy to the Kubernetes API server.`
 
-	proxy_example = `  // Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
+	proxyExample = `  // Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
   $ %[1]s proxy --port=8011 --www=./local/www/
 
   // Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
@@ -227,8 +227,8 @@ const (
 // NewCmdProxy is a wrapper for the Kubernetes cli proxy command
 func NewCmdProxy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdProxy(f.Factory, out)
-	cmd.Long = proxy_long
-	cmd.Example = fmt.Sprintf(proxy_example, fullName)
+	cmd.Long = proxyLong
+	cmd.Example = fmt.Sprintf(proxyExample, fullName)
 	return cmd
 }
 

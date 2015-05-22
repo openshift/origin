@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	status_long = `Show a high level overview of the current project. Links components by their relationships.
+	statusLong = `Show a high level overview of the current project. Links components by their relationships.
 For more information about individual items, use the describe command (e.g. osc describe buildConfig,
 osc describe deploymentConfig, osc describe service).`
 
-	status_example = `  // Show an overview of the current project
+	statusExample = `  // Show an overview of the current project
   $ %[1]s status`
 )
 
@@ -26,8 +26,8 @@ func NewCmdStatus(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd := &cobra.Command{
 		Use:     "status",
 		Short:   "Show an overview of the current project",
-		Long:    status_long,
-		Example: fmt.Sprintf(status_example, fullName),
+		Long:    statusLong,
+		Example: fmt.Sprintf(statusExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunStatus(f, out)
 			cmdutil.CheckErr(err)

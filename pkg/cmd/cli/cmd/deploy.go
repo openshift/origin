@@ -32,13 +32,13 @@ type DeployOptions struct {
 }
 
 const (
-	deploy_long = `View, start and restart deployments.
+	deployLong = `View, start and restart deployments.
 
 If no options are given, view the latest deployment.
 
 NOTE: This command is still under active development and is subject to change.`
 
-	deploy_example = `  // Display the latest deployment for the 'database' deployment config
+	deployExample = `  // Display the latest deployment for the 'database' deployment config
   $ %[1]s deploy database
 
   // Start a new deployment based on the 'database' deployment config
@@ -57,8 +57,8 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd := &cobra.Command{
 		Use:     "deploy DEPLOYMENTCONFIG",
 		Short:   "View, start and restart deployments.",
-		Long:    deploy_long,
-		Example: fmt.Sprintf(deploy_example, fullName),
+		Long:    deployLong,
+		Example: fmt.Sprintf(deployExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, out); err != nil {
 				cmdutil.CheckErr(err)
