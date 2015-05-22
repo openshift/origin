@@ -31,8 +31,8 @@ func DefaultTemplate() *templateapi.Template {
 	project := &projectapi.Project{}
 	project.Name = ns
 	project.Annotations = map[string]string{
-		"description": "${" + ProjectDescriptionParam + "}",
-		"displayName": "${" + ProjectDisplayNameParam + "}",
+		projectapi.ProjectDescription: "${" + ProjectDescriptionParam + "}",
+		projectapi.ProjectDisplayName: "${" + ProjectDisplayNameParam + "}",
 	}
 	ret.Objects = append(ret.Objects, project)
 

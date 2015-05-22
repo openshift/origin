@@ -8,7 +8,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 
-	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
@@ -107,7 +106,7 @@ func TestPodAdmission(t *testing.T) {
 	for _, test := range tests {
 		projectcache.FakeProjectCache(mockClient, projectStore, test.defaultNodeSelector)
 		if !test.ignoreProjectNodeSelector {
-			project.ObjectMeta.Annotations = map[string]string{projectapi.ProjectNodeSelectorParam: test.projectNodeSelector}
+			project.ObjectMeta.Annotations = map[string]string{"openshift.io/node-selector": test.projectNodeSelector}
 		}
 		pod.Spec = kapi.PodSpec{NodeSelector: test.podNodeSelector}
 

@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
 // ProjectStatusDescriber generates extended information about a Project
@@ -75,8 +76,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
-		if len(project.Annotations["displayName"]) > 0 && project.Annotations["displayName"] != namespace {
-			fmt.Fprintf(out, "In project %s (%s)\n", project.Annotations["displayName"], namespace)
+		if len(project.Annotations[projectapi.ProjectDisplayName]) > 0 &&
+			project.Annotations[projectapi.ProjectDisplayName] != namespace {
+			fmt.Fprintf(out, "In project %s (%s)\n", project.Annotations[projectapi.ProjectDisplayName], namespace)
 		} else {
 			fmt.Fprintf(out, "In project %s\n", namespace)
 		}

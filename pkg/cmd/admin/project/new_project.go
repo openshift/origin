@@ -96,10 +96,10 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 	project := &projectapi.Project{}
 	project.Name = o.ProjectName
 	project.Annotations = make(map[string]string)
-	project.Annotations["description"] = o.Description
-	project.Annotations["displayName"] = o.DisplayName
+	project.Annotations[projectapi.ProjectDescription] = o.Description
+	project.Annotations[projectapi.ProjectDisplayName] = o.DisplayName
 	if useNodeSelector {
-		project.Annotations[projectapi.ProjectNodeSelectorParam] = o.NodeSelector
+		project.Annotations[projectapi.ProjectNodeSelector] = o.NodeSelector
 	}
 	project, err := o.Client.Projects().Create(project)
 	if err != nil {

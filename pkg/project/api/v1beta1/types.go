@@ -14,8 +14,6 @@ type ProjectList struct {
 const (
 	// These are internal finalizer values to Origin
 	FinalizerOrigin kapi.FinalizerName = "openshift.io/origin"
-
-	ProjectNodeSelectorParam string = "openshift.io/node-selector"
 )
 
 // ProjectSpec describes the attributes on a Project
@@ -46,4 +44,5 @@ type ProjectRequest struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 	DisplayName     string `json:"displayName,omitempty"`
+	Description     string `json:"description,omitempty"`
 }
