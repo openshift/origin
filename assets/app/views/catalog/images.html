@@ -18,16 +18,16 @@
           <div ng-repeat-end ng-if="($index % 3) == 2" class="clearfix"></div>
         </div>
       </div>
-      <div click-to-reveal link-text="Don't see the image you are looking for?">
+      <div ng-if="nonBuilders.length" click-to-reveal link-text="Don't see the image you are looking for?">
         <h2>
-          <span>All images</span>
+          <span>Other images</span>
           <span class="small pficon-layered" data-toggle="tooltip" data-placement="right" title="Some images in this list may not be able to build source. Use with caution." style="cursor: help;">
             <span class="pficon pficon-warning-triangle"></span>
             <span class="pficon pficon-warning-exclamation"></span>
           </span>
         </h2>
         <div class="row">
-          <catalog-image image-repo="image.imageRepo" image-tag="image.imageRepoTag" project="projectName" source-url="sourceURL" ng-repeat-start="image in images | orderBy : 'name'"></catalog-image>
+          <catalog-image image-repo="image.imageRepo" image-tag="image.imageRepoTag" project="projectName" source-url="sourceURL" ng-repeat-start="image in nonBuilders | orderBy : 'name'"></catalog-image>
           <div ng-repeat-end ng-if="($index % 3) == 2" class="clearfix"></div>
         </div>
       </div>      
