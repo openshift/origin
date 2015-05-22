@@ -21,9 +21,17 @@ func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 
 // Generate accepts a set of parameters and maps them into a new route
 func (RouteGenerator) Generate(params map[string]string) (runtime.Object, error) {
-	labels, err := kubectl.ParseLabels(params["labels"])
-	if err != nil {
-		return nil, err
+	var (
+		labels map[string]string
+		err    error
+	)
+
+	labelString, found := params["labels"]
+	if found && len(labelString) > 0 {
+		labels, err = kubectl.ParseLabels(labelString)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &api.Route{
