@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/deploy/api"
 	deployres "github.com/openshift/origin/pkg/deploy/resizer"
 	"github.com/openshift/origin/pkg/deploy/util"
 )
@@ -41,7 +42,17 @@ type DeploymentConfigReaper struct {
 // zero replicas, waits for all of them to get deleted and then deletes both the
 // replication controller and its deployment configuration.
 func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *kapi.DeleteOptions) (string, error) {
-	resizer, err := deployres.ResizerFor("DeploymentConfig", reaper.osc.(*client.Client), reaper.kc.(*kclient.Client))
+	dc, err := reaper.osc.DeploymentConfigs(namespace).Get(name)
+	if err != nil {
+		return "", err
+	}
+	// Disable dc triggers while reaping
+	dc.Triggers = []api.DeploymentTriggerPolicy{}
+	dc, err = reaper.osc.DeploymentConfigs(namespace).Update(dc)
+	if err != nil {
+		return "", err
+	}
+	resizer, err := deployres.ResizerFor("DeploymentConfig", reaper.osc, reaper.kc)
 	if err != nil {
 		return "", err
 	}
@@ -51,10 +62,6 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *
 		// The deploymentConfig may not have a replication controller to resize
 		// so we shouldn't error out here
 		glog.V(2).Info(err)
-	}
-	dc, err := reaper.osc.DeploymentConfigs(namespace).Get(name)
-	if err != nil {
-		return "", err
 	}
 	if err = reaper.kc.ReplicationControllers(namespace).Delete(util.LatestDeploymentNameForConfig(dc)); err != nil {
 		// The deploymentConfig may not have a replication controller to delete
