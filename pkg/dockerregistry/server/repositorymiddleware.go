@@ -161,6 +161,9 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 		Image: imageapi.Image{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: dgst.String(),
+				Annotations: map[string]string{
+					imageapi.ManagedByOpenShiftAnnotation: "true",
+				},
 			},
 			DockerImageReference: fmt.Sprintf("%s/%s/%s@%s", r.registryAddr, r.namespace, r.name, dgst.String()),
 			DockerImageManifest:  string(payload),
@@ -221,9 +224,11 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 	return nil
 }
 
-// Delete deletes the manifest with digest `dgst`.
+// Delete deletes the manifest with digest `dgst`. Note: Image resources
+// in OpenShift are deleted via 'osadm prune images'. This function deletes
+// the content related to the manifest in the registry's storage (signatures).
 func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
-	return r.registryClient.Images().Delete(dgst.String())
+	return r.Repository.Manifests().Delete(ctx, dgst)
 }
 
 // getImageStream retrieves the ImageStream for r.

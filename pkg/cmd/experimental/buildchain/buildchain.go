@@ -256,7 +256,7 @@ func getStreams(configs []buildapi.BuildConfig) map[string][]string {
 		glog.V(1).Infof("Scanning buildconfig %v", cfg)
 		for _, tr := range cfg.Triggers {
 			glog.V(1).Infof("Scanning trigger %v", tr)
-			from := buildutil.GetImageStreamForStrategy(&cfg)
+			from := buildutil.GetImageStreamForStrategy(cfg.Parameters.Strategy)
 			glog.V(1).Infof("Strategy from= %v", from)
 			if tr.ImageChange != nil && from != nil && from.Name != "" {
 				glog.V(1).Infof("found ICT with from %s kind %s", from.Name, from.Kind)
@@ -316,7 +316,7 @@ func findStreamDeps(stream, tag string, buildConfigList []buildapi.BuildConfig) 
 	var childNamespace, childName, childTag string
 	for _, cfg := range buildConfigList {
 		for _, tr := range cfg.Triggers {
-			from := buildutil.GetImageStreamForStrategy(&cfg)
+			from := buildutil.GetImageStreamForStrategy(cfg.Parameters.Strategy)
 			if from == nil || from.Kind != "ImageStreamTag" || tr.ImageChange == nil {
 				continue
 			}

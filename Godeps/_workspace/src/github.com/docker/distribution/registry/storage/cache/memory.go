@@ -43,6 +43,15 @@ func (ilic *inmemoryLayerInfoCache) Add(ctx context.Context, repo string, dgst d
 	return nil
 }
 
+func (ilic *inmemoryLayerInfoCache) Delete(ctx context.Context, repo string, dgst digest.Digest) error {
+	members, ok := ilic.membership[repo]
+	if !ok {
+		return nil
+	}
+	delete(members, dgst)
+	return nil
+}
+
 // Meta retrieves the layer meta data from the redis hash, returning
 // ErrUnknownLayer if not found.
 func (ilic *inmemoryLayerInfoCache) Meta(ctx context.Context, dgst digest.Digest) (LayerMeta, error) {

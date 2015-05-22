@@ -11,9 +11,9 @@ import (
 	"golang.org/x/net/context"
 )
 
-// TestVerifyOpenShiftAccess mocks openshift http request/response and
+// TestVerifyImageStreamAccess mocks openshift http request/response and
 // tests invalid/valid/scoped openshift tokens.
-func TestVerifyOpenShiftAccess(t *testing.T) {
+func TestVerifyImageStreamAccess(t *testing.T) {
 	tests := []struct {
 		openshiftStatusCode int
 		openshiftResponse   string
@@ -44,13 +44,13 @@ func TestVerifyOpenShiftAccess(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = VerifyOpenShiftAccess("foo", "bar", "create", client)
+		err = verifyImageStreamAccess("foo", "bar", "create", client)
 		if err == nil || test.expectedError == nil {
 			if err != test.expectedError {
-				t.Fatal("VerifyOpenShiftAccess did not get expected error - got %s - expected %s", err, test.expectedError)
+				t.Fatal("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
 			}
 		} else if err.Error() != test.expectedError.Error() {
-			t.Fatal("VerifyOpenShiftAccess did not get expected error - got %s - expected %s", err, test.expectedError)
+			t.Fatal("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
 		}
 		server.Close()
 	}

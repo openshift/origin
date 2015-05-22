@@ -39,6 +39,8 @@ type Namespace interface {
 	// registry may or may not have the repository but should always return a
 	// reference.
 	Repository(ctx context.Context, name string) (Repository, error)
+
+	Blobs() BlobService
 }
 
 // Repository is a named collection of manifests and layers.
@@ -108,6 +110,9 @@ type LayerService interface {
 	// Fetch the layer identifed by TarSum.
 	Fetch(digest digest.Digest) (Layer, error)
 
+	// Delete unlinks the layer from a Repository.
+	Delete(dgst digest.Digest) error
+
 	// Upload begins a layer upload to repository identified by name,
 	// returning a handle.
 	Upload() (LayerUpload, error)
@@ -171,6 +176,10 @@ type SignatureService interface {
 
 	// Put stores the signature for the provided digest.
 	Put(dgst digest.Digest, signatures ...[]byte) error
+}
+
+type BlobService interface {
+	Delete(dgst digest.Digest) error
 }
 
 // Descriptor describes targeted content. Used in conjunction with a blob

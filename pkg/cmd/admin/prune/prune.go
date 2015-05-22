@@ -26,6 +26,7 @@ func NewCommandPrune(name, fullName string, f *clientcmd.Factory, out io.Writer)
 
 	cmds.AddCommand(NewCmdPruneBuilds(f, fullName, PruneBuildsRecommendedName, out))
 	cmds.AddCommand(NewCmdPruneDeployments(f, fullName, PruneDeploymentsRecommendedName, out))
+	cmds.AddCommand(NewCmdPruneImages(f, fullName, PruneImagesRecommendedName, out))
 	return cmds
 }
 
