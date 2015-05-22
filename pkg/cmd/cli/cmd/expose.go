@@ -13,15 +13,20 @@ import (
 )
 
 const (
-	exposeLong = `Take a replicated application and expose it as a route.
+	exposeLong = `Expose containers internally as services or externally via routes.
 
-Looks up a service by name and derives a route from it.`
+There is also the ability to expose a deployment configuration, replication controller, service, or pod
+as a new service on a specified port. If no labels are specified, the new object will re-use the 
+labels from the object it exposes.`
 
-	exposeExample = `// Create a route based on service nginx. The new route will re-use nginx's labels.
+	exposeExample = `// Create a route based on service nginx. The new route will re-use nginx's labels
 $ %[1]s expose service nginx
 
-// Create a route and specify your own label.
-$ %[1]s expose service nginx --labels name=myroute`
+// Create a route and specify your own label and route name
+$ %[1]s expose service nginx --labels name=myroute --name=fromdowntown
+
+// Expose a deployment configuration as a service and use the specified port
+$ %[1]s expose dc ruby-hello-world --port=8080 --generator=services/v1`
 )
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command

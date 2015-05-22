@@ -199,7 +199,7 @@ the new object will re-use the labels from the object it exposes.
 # Expose a service as a route
 $ osc expose service frontend
 # Expose a deployment config as a service and use the specified port and name
-$ osc expose dc ruby-heloo-world --port=8080 --name=myservice --generator=services/v1
+$ osc expose dc ruby-hello-world --port=8080 --name=myservice --generator=services/v1
 ```
 
 osc process
