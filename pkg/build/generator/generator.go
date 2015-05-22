@@ -5,19 +5,23 @@ import (
 	"regexp"
 	"strings"
 
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // BuildGenerator is a central place responsible for generating new Build objects
 // from BuildConfigs and other Builds.
 type BuildGenerator struct {
-	Client GeneratorClient
+	Client          GeneratorClient
+	ServiceAccounts kclient.ServiceAccountsNamespacer
+	Secrets         kclient.SecretsNamespacer
 }
 
 // GeneratorClient is the API client used by the generator
@@ -149,6 +153,25 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		},
 		Status: buildapi.BuildStatusNew,
 	}
+
+	if bc.Parameters.Output.PushSecret == nil {
+		sa, err := g.ServiceAccounts.ServiceAccounts(bc.Namespace).Get(bootstrappolicy.BuilderServiceAccountName)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, secretRef := range sa.Secrets {
+			secret, err := g.Secrets.Secrets(bc.Namespace).Get(secretRef.Name)
+			if err != nil {
+				return nil, err
+			}
+
+			if secret.Type == kapi.SecretTypeDockercfg {
+				build.Parameters.Output.PushSecret = &kapi.LocalObjectReference{Name: secret.Name}
+			}
+		}
+	}
+
 	build.Config = &kapi.ObjectReference{Kind: "BuildConfig", Name: bc.Name, Namespace: bc.Namespace}
 	build.Name = getNextBuildName(bc)
 	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {

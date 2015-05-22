@@ -227,6 +227,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
+		ServiceAccounts: c.KubeClient(),
+		Secrets:         c.KubeClient(),
 	}
 	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
