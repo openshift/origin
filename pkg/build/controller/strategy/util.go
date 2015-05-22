@@ -92,19 +92,19 @@ func mountSecretVolume(pod *kapi.Pod, secretName, mountPath string) {
 
 // setupDockerSecrets mounts Docker Registry secrets into Pod running the build,
 // allowing Docker to authenticate against private registries or Docker Hub.
-func setupDockerSecrets(pod *kapi.Pod, pushSecret string, pullSecret string) {
-	if len(pushSecret) > 0 {
-		mountSecretVolume(pod, pushSecret, DockerPushSecretMountPath)
+func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectReference) {
+	if pushSecret != nil {
+		mountSecretVolume(pod, pushSecret.Name, DockerPushSecretMountPath)
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
-			{Name: "PUSH_DOCKERCFG_PATH", Value: filepath.Join(DockerPushSecretMountPath, "dockercfg")},
+			{Name: "PUSH_DOCKERCFG_PATH", Value: filepath.Join(DockerPushSecretMountPath, kapi.DockerConfigKey)},
 		}...)
 		glog.V(3).Infof("%s be used for docker push in %s", DockerPullSecretMountPath, pod.Name)
 	}
 
-	if len(pullSecret) > 0 {
-		mountSecretVolume(pod, pullSecret, DockerPullSecretMountPath)
+	if pullSecret != nil {
+		mountSecretVolume(pod, pullSecret.Name, DockerPullSecretMountPath)
 		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
-			{Name: "PULL_DOCKERCFG_PATH", Value: filepath.Join(DockerPullSecretMountPath, "dockercfg")},
+			{Name: "PULL_DOCKERCFG_PATH", Value: filepath.Join(DockerPullSecretMountPath, kapi.DockerConfigKey)},
 		}...)
 		glog.V(3).Infof("%s be used for docker pull in %s", DockerPullSecretMountPath, pod.Name)
 	}
@@ -112,12 +112,12 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret string, pullSecret string) {
 
 // setupSourceSecrets mounts SSH key used for accesing private SCM to clone
 // application source code during build.
-func setupSourceSecrets(pod *kapi.Pod, sourceSecret string) {
-	if len(sourceSecret) == 0 {
+func setupSourceSecrets(pod *kapi.Pod, sourceSecret *kapi.LocalObjectReference) {
+	if sourceSecret == nil {
 		return
 	}
 
-	mountSecretVolume(pod, sourceSecret, sourceSecretMountPath)
+	mountSecretVolume(pod, sourceSecret.Name, sourceSecretMountPath)
 	glog.V(3).Infof("Installed source secrets in %s, in Pod %s", sourceSecretMountPath, pod.Name)
 	pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
 		{Name: "SOURCE_SECRET_PATH", Value: sourceSecretMountPath},

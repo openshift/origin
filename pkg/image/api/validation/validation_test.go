@@ -2,6 +2,7 @@ package validation
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -178,6 +179,11 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 }
 
 func TestValidateImageStream(t *testing.T) {
+
+	namespace63Char := strings.Repeat("a", 63)
+	name191Char := strings.Repeat("b", 191)
+	name192Char := "x" + name191Char
+
 	tests := map[string]struct {
 		namespace             string
 		name                  string
@@ -207,6 +213,13 @@ func TestValidateImageStream(t *testing.T) {
 				fielderrors.NewFieldInvalid("metadata.name", "foo%%bar", `may not contain "%"`),
 			},
 		},
+		"other invalid name": {
+			namespace: "foo",
+			name:      "foo bar",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("metadata.name", "foo bar", `must match "[a-z0-9]+(?:[._-][a-z0-9]+)*"`),
+			},
+		},
 		"missing namespace": {
 			namespace: "",
 			name:      "foo",
@@ -219,6 +232,13 @@ func TestValidateImageStream(t *testing.T) {
 			name:      "foo",
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldInvalid("metadata.namespace", "!$", `must be a DNS subdomain (at most 253 characters, matching regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*): e.g. "example.com"`),
+			},
+		},
+		"short namespace": {
+			namespace: "f",
+			name:      "foo",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("metadata.namespace", "f", `must be at least 2 characters long`),
 			},
 		},
 		"invalid dockerImageRepository": {
@@ -281,6 +301,23 @@ func TestValidateImageStream(t *testing.T) {
 				},
 			},
 			expected: fielderrors.ValidationErrorList{},
+		},
+		"all possible characters used": {
+			namespace: "abcdefghijklmnopqrstuvwxyz-1234567890",
+			name:      "abcdefghijklmnopqrstuvwxyz-1234567890.dot_underscore-dash",
+			expected:  fielderrors.ValidationErrorList{},
+		},
+		"max name and namespace length met": {
+			namespace: namespace63Char,
+			name:      name191Char,
+			expected:  fielderrors.ValidationErrorList{},
+		},
+		"max name and namespace length exceeded": {
+			namespace: namespace63Char,
+			name:      name192Char,
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("metadata.name", name192Char, "'namespace/name' cannot be longer than 255 characters"),
+			},
 		},
 	}
 

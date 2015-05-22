@@ -45,11 +45,11 @@ func injectUserVars(cmd *cobra.Command, t *api.Template) {
 }
 
 const (
-	process_long = `Process template into a list of resources specified in filename or stdin
+	processLong = `Process template into a list of resources specified in filename or stdin
 
 JSON and YAML formats are accepted.`
 
-	process_example = `  // Convert template.json file into resource list
+	processExample = `  // Convert template.json file into resource list
   $ %[1]s process -f template.json
 
   // Process template while passing a user-defined label
@@ -67,8 +67,8 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 	cmd := &cobra.Command{
 		Use:     "process (TEMPLATE | -f FILENAME) [-v=KEY=VALUE]",
 		Short:   "Process template into list of resources",
-		Long:    process_long,
-		Example: fmt.Sprintf(process_example, fullName),
+		Long:    processLong,
+		Example: fmt.Sprintf(processExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunProcess(f, out, cmd, args)
 			kcmdutil.CheckErr(err)

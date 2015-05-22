@@ -188,7 +188,8 @@ func TestGraph(t *testing.T) {
 			}
 			bc++
 		case *image.ImageStream:
-			if g.Kind(node) != ImageStreamGraphKind {
+			// TODO resolve this check for 2 kinds, since both have the same object type
+			if g.Kind(node) != ImageStreamGraphKind && g.Kind(node) != ImageStreamTagGraphKind {
 				t.Fatalf("unexpected kind: %v", g.Kind(node))
 			}
 			ir++

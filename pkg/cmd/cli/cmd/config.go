@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	config_long = `Manages the OpenShift config files.
+	configLong = `Manages the OpenShift config files.
 
 Reference: https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/kubeconfig-file.md`
 
-	config_example = `  // Change the config context to use
+	configExample = `  // Change the config context to use
   %[1]s %[2]s use-context my-context
 
   // Set the value of a config preference
@@ -37,8 +37,8 @@ func NewCmdConfig(parentName, name string) *cobra.Command {
 
 	cmd := config.NewCmdConfig(pathOptions, os.Stdout)
 	cmd.Short = "Change configuration files for the client"
-	cmd.Long = config_long
-	cmd.Example = fmt.Sprintf(config_example, parentName, name)
+	cmd.Long = configLong
+	cmd.Example = fmt.Sprintf(configExample, parentName, name)
 
 	return cmd
 }

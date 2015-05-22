@@ -171,17 +171,28 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 fi
 
 # login and logout tests
+# --token and --username are mutually exclusive
 [ "$(osc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify 2>&1 | grep 'mutually exclusive')" ]
+# must only accept one arg (server)
 [ "$(osc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
-osc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+# logs in with a valid certificate authority
+osc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1beta3
+grep -q "v1beta3" ${HOME}/.config/openshift/config
 osc logout
+# logs in skipping certificate check
 osc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
+# logs in by an existing and valid token
 temp_token=$(osc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
 [ "$(osc login --token=${temp_token} 2>&1 | grep 'using the token provided')" ]
 osc logout
-osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+# properly parse server port
+[ "$(osc login https://server1:844333 2>&1 | grep 'Not a valid port')" ]
+# properly handle trailing slash
+osc login --server=${KUBERNETES_MASTER}/ --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+# create a new project
 osc new-project project-foo --display-name="my project" --description="boring project description"
 [ "$(osc project | grep 'Using project "project-foo"')" ]
+# denies access after logging out
 osc logout
 [ -z "$(osc get pods | grep 'system:anonymous')" ]
 
@@ -375,6 +386,9 @@ osc get template ruby-helloworld-sample
 [ "$(osc new-app ruby-helloworld-sample -o yaml | grep MYSQL_PASSWORD)" ]
 [ "$(osc new-app ruby-helloworld-sample -o yaml | grep ADMIN_USERNAME)" ]
 [ "$(osc new-app ruby-helloworld-sample -o yaml | grep ADMIN_PASSWORD)" ]
+# check that we can create from the template without errors
+osc new-app ruby-helloworld-sample -l app=helloworld
+osc delete all -l app=helloworld
 # create from template with code explicitly set is not supported
 [ ! "$(osc new-app ruby-helloworld-sample~git@github.com/mfojtik/sinatra-app-example)" ]
 osc delete template ruby-helloworld-sample
@@ -511,6 +525,14 @@ sleep 2 && [ "$(osc get projects | grep 'ui-test-project')" ]
 [ "$(osc describe policybinding ':default' -n ui-test-project | grep createuser)" ]
 [ "$(osc describe policybinding ':default' -n ui-test-project | grep adduser)" ]
 echo "ui-project-commands: ok"
+
+# Expose service as a route
+osc delete svc/frontend
+osc create -f test/integration/fixtures/test-service.json
+osc expose service frontend
+[ "$(osc get route frontend | grep 'name=frontend')" ]
+osc delete svc,route -l name=frontend
+echo "expose: ok"
 
 # Test deleting and recreating a project
 osadm new-project recreated-project --admin="createuser1"

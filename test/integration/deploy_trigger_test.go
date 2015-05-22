@@ -34,7 +34,7 @@ import (
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
-	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
+	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -410,10 +410,12 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	//imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 
-	deployEtcd := deployetcd.New(etcdHelper)
+	deployConfigStorage := deployconfigetcd.NewStorage(etcdHelper)
+	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
+
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		Client: deployconfiggenerator.Client{
-			DCFn:   deployEtcd.GetDeploymentConfig,
+			DCFn:   deployConfigRegistry.GetDeploymentConfig,
 			ISFn:   imageStreamRegistry.GetImageStream,
 			LISFn2: imageStreamRegistry.ListImageStreams,
 		},
@@ -425,7 +427,7 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 		"imageStreamImages":         imageStreamImageStorage,
 		"imageStreamMappings":       imageStreamMappingStorage,
 		"imageStreamTags":           imageStreamTagStorage,
-		"deploymentConfigs":         deployconfigregistry.NewREST(deployEtcd),
+		"deploymentConfigs":         deployConfigStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 	}
 	for k, v := range storage {

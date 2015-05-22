@@ -6,13 +6,14 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
+	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/openshift/origin/pkg/client"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -22,7 +23,7 @@ type describeClient struct {
 	T         *testing.T
 	Namespace string
 	Err       error
-	*client.Fake
+	*testclient.Fake
 }
 
 func TestDescribeFor(t *testing.T) {
@@ -33,7 +34,7 @@ func TestDescribeFor(t *testing.T) {
 		"Route", "Project",
 	}
 	for _, o := range testTypesList {
-		_, ok := DescriberFor(o, c, &testclient.Fake{}, "")
+		_, ok := DescriberFor(o, c, &ktestclient.Fake{}, "")
 		if !ok {
 			t.Errorf("Unable to obtain describer for %s", o)
 		}
@@ -41,8 +42,8 @@ func TestDescribeFor(t *testing.T) {
 }
 
 func TestDescribers(t *testing.T) {
-	fake := &client.Fake{}
-	fakeKube := &testclient.Fake{}
+	fake := &testclient.Fake{}
+	fakeKube := &ktestclient.Fake{}
 	c := &describeClient{T: t, Namespace: "foo", Fake: fake}
 
 	testDescriberList := []kubectl.Describer{

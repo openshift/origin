@@ -9,7 +9,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/openshift/origin/pkg/client"
+
+	client "github.com/openshift/origin/pkg/client/testclient"
 )
 
 // mockReview implements the Review interface for test cases

@@ -184,6 +184,24 @@ $ osc get -o yaml pod POD_ID
 $ osc log frontend-pod mysql-container
 ```
 
+osc expose
+------------
+
+This command looks up a service and exposes it as a route. There is also
+the ability to expose a deployment config, replication controller, service, 
+or pod as a new service on a specified port. If no labels are specified, 
+the new object will re-use the labels from the object it exposes.
+
+
+#### Examples
+
+```bash
+# Expose a service as a route
+$ osc expose service frontend
+# Expose a deployment config as a service and use the specified port and name
+$ osc expose dc ruby-heloo-world --port=8080 --name=myservice --generator=services/v1
+```
+
 osc process
 ---------------
 

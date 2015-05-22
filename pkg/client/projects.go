@@ -7,12 +7,12 @@ import (
 	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
 )
 
-// UsersInterface has methods to work with User resources in a namespace
+// ProjectsInterface has methods to work with Project resources in a namespace
 type ProjectsInterface interface {
 	Projects() ProjectInterface
 }
 
-// UserInterface exposes methods on user resources.
+// ProjectInterface exposes methods on project resources.
 type ProjectInterface interface {
 	Create(p *projectapi.Project) (*projectapi.Project, error)
 	Delete(name string) error
@@ -24,14 +24,14 @@ type projects struct {
 	r *Client
 }
 
-// newUsers returns a users
+// newUsers returns a project
 func newProjects(c *Client) *projects {
 	return &projects{
 		r: c,
 	}
 }
 
-// Get returns information about a particular user or an error
+// Get returns information about a particular project or an error
 func (c *projects) Get(name string) (result *projectapi.Project, err error) {
 	result = &projectapi.Project{}
 	err = c.r.Get().Resource("projects").Name(name).Do().Into(result)

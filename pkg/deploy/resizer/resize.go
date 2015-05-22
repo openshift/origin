@@ -19,7 +19,7 @@ type DeploymentConfigResizer struct {
 
 // ResizerFor returns the appropriate Resizer client depending on the provided
 // kind of resource (Replication controllers and deploymentConfigs supported)
-func ResizerFor(kind string, osc *client.Client, kc *kclient.Client) (kubectl.Resizer, error) {
+func ResizerFor(kind string, osc client.Interface, kc kclient.Interface) (kubectl.Resizer, error) {
 	if kind != "DeploymentConfig" {
 		return kubectl.ResizerFor(kind, kubectl.NewResizerClient(kc))
 

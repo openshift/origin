@@ -109,8 +109,8 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		if len(groups) == 0 {
 			fmt.Fprintln(out, "\nYou have no services, deployment configs, or build configs. 'osc new-app' can be used to create applications from scratch from existing Docker images and templates.")
 		} else {
-			fmt.Fprintln(out, "\nTo see more information about a service or deployment config, use 'osc describe service <name>' or 'osc describe dc <name>'.")
-			fmt.Fprintln(out, "You can use 'osc get pods,svc,dc,bc,builds' to see lists of each of the types described above.")
+			fmt.Fprintln(out, "\nTo see more information about a service or deployment, use 'osc describe service <name>' or 'osc describe dc <name>'.")
+			fmt.Fprintln(out, "You can use 'osc get all' to see lists of each of the types described above.")
 		}
 
 		return nil
@@ -371,7 +371,7 @@ func describeDeployments(node *graph.DeploymentConfigNode, count int) []string {
 	}
 
 	for i, deployment := range deployments {
-		out = append(out, describeDeploymentStatus(deployment))
+		out = append(out, describeDeploymentStatus(deployment, i == 0))
 
 		switch {
 		case count == -1:
@@ -387,20 +387,61 @@ func describeDeployments(node *graph.DeploymentConfigNode, count int) []string {
 	return out
 }
 
-func describeDeploymentStatus(deploy *kapi.ReplicationController) string {
+func describeDeploymentStatus(deploy *kapi.ReplicationController, first bool) string {
 	timeAt := strings.ToLower(formatRelativeTime(deploy.CreationTimestamp.Time))
 	status := deployutil.DeploymentStatusFor(deploy)
 	version := deployutil.DeploymentVersionFor(deploy)
 	switch status {
 	case deployapi.DeploymentStatusFailed:
+		reason := deployutil.DeploymentStatusReasonFor(deploy)
+		if len(reason) > 0 {
+			reason = fmt.Sprintf(": %s", reason)
+		}
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("#%d deployment failed %s ago", version, timeAt)
+		return fmt.Sprintf("#%d deployment failed %s ago%s%s", version, timeAt, reason, describeDeploymentPodSummaryInline(deploy, false))
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
-		return fmt.Sprintf("#%d deployed %s ago", version, timeAt)
+		return fmt.Sprintf("#%d deployed %s ago%s", version, timeAt, describeDeploymentPodSummaryInline(deploy, first))
+	case deployapi.DeploymentStatusRunning:
+		return fmt.Sprintf("#%d deployment running for %s%s", version, timeAt, describeDeploymentPodSummaryInline(deploy, false))
 	default:
-		return fmt.Sprintf("#%d deployment %s %s ago", version, strings.ToLower(string(status)), timeAt)
+		return fmt.Sprintf("#%d deployment %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describeDeploymentPodSummaryInline(deploy, false))
 	}
+}
+
+func describeDeploymentPodSummaryInline(deploy *kapi.ReplicationController, includeEmpty bool) string {
+	s := describeDeploymentPodSummary(deploy, includeEmpty)
+	if len(s) == 0 {
+		return s
+	}
+	change := ""
+	if changing, ok := deployutil.DeploymentDesiredReplicas(deploy); ok {
+		switch {
+		case changing < deploy.Spec.Replicas:
+			change = fmt.Sprintf(" reducing to %d", changing)
+		case changing > deploy.Spec.Replicas:
+			change = fmt.Sprintf(" growing to %d", changing)
+		}
+	}
+	return fmt.Sprintf(" - %s%s", s, change)
+}
+
+func describeDeploymentPodSummary(deploy *kapi.ReplicationController, includeEmpty bool) string {
+	actual, requested := deploy.Status.Replicas, deploy.Spec.Replicas
+	if actual == requested {
+		switch {
+		case actual == 0:
+			if !includeEmpty {
+				return ""
+			}
+			return "0 pods"
+		case actual > 1:
+			return fmt.Sprintf("%d pods", actual)
+		default:
+			return "1 pod"
+		}
+	}
+	return fmt.Sprintf("%d/%d pods", actual, requested)
 }
 
 func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (string, bool) {

@@ -64,7 +64,7 @@ var (
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
 		KubeInternalsGroupName: {"minions", "nodes", "bindings", "events", "namespaces"},
-		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services", "endpoints", "pods/log"},
+		KubeExposedGroupName:   {"pods", "replicationcontrollers", "services", "endpoints", "persistentvolumeclaims", "pods/log"},
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
 		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status"},
 	}

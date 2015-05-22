@@ -111,6 +111,14 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
+
+	if createdPod.Spec.ActiveDeadlineSeconds == nil {
+		t.Fatalf("expected ActiveDeadlineSeconds to be set on the deployment hook executor pod")
+	}
+
+	if *createdPod.Spec.ActiveDeadlineSeconds != deployapi.MaxDeploymentDurationSeconds {
+		t.Fatalf("expected ActiveDeadlineSeconds to be set to %d; found: %d", deployapi.MaxDeploymentDurationSeconds, *createdPod.Spec.ActiveDeadlineSeconds)
+	}
 }
 
 func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {

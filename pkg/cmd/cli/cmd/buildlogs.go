@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	buildLogs_long = `Retrieve logs from the containers where the build occured.
+	buildLogsLong = `Retrieve logs from the containers where the build occured.
 
 NOTE: This command may be moved in the future.`
 
-	buildLogs_example = `  // Stream logs from container to stdout
+	buildLogsExample = `  // Stream logs from container to stdout
   $ %[1]s build-logs 566bed879d2d`
 )
 
@@ -27,8 +27,8 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 	cmd := &cobra.Command{
 		Use:     "build-logs BUILD",
 		Short:   "Show container logs from the build container",
-		Long:    buildLogs_long,
-		Example: fmt.Sprintf(buildLogs_example, fullName),
+		Long:    buildLogsLong,
+		Example: fmt.Sprintf(buildLogsExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunBuildLogs(f, out, cmd, opts, args)
 			cmdutil.CheckErr(err)

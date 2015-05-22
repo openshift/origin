@@ -8,10 +8,12 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+// ClusterPolicyBindingsInterface has methods to work with ClusterPolicyBindings resources in a namespace
 type ClusterPolicyBindingsInterface interface {
 	ClusterPolicyBindings() ClusterPolicyBindingInterface
 }
 
+// ClusterPolicyBindingInterface exposes methods on ClusterPolicyBindings resources
 type ClusterPolicyBindingInterface interface {
 	List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error)
 	Get(name string) (*authorizationapi.ClusterPolicyBinding, error)
@@ -38,14 +40,14 @@ func (c *clusterPolicyBindings) List(label labels.Selector, field fields.Selecto
 	return
 }
 
-// Get returns information about a particular policyBinding and error if one occurs.
+// Get returns information about a particular clusterPolicyBindings and error if one occurs.
 func (c *clusterPolicyBindings) Get(name string) (result *authorizationapi.ClusterPolicyBinding, err error) {
 	result = &authorizationapi.ClusterPolicyBinding{}
 	err = c.r.Get().Resource("clusterPolicyBindings").Name(name).Do().Into(result)
 	return
 }
 
-// Create creates new policyBinding. Returns the server's representation of the policyBinding and error if one occurs.
+// Create creates new policyBinding. Returns the server's representation of the clusterPolicyBindings and error if one occurs.
 func (c *clusterPolicyBindings) Create(policyBinding *authorizationapi.ClusterPolicyBinding) (result *authorizationapi.ClusterPolicyBinding, err error) {
 	result = &authorizationapi.ClusterPolicyBinding{}
 	err = c.r.Post().Resource("clusterPolicyBindings").Body(policyBinding).Do().Into(result)
@@ -58,7 +60,7 @@ func (c *clusterPolicyBindings) Delete(name string) (err error) {
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested policyBindings
+// Watch returns a watch.Interface that watches the requested clusterPolicyBindings
 func (c *clusterPolicyBindings) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Resource("clusterPolicyBindings").Param("resourceVersion", resourceVersion).LabelsSelectorParam(label).FieldsSelectorParam(field).Watch()
 }

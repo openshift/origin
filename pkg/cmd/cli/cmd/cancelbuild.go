@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	cancelBuild_long = `Cancels a pending or running build.`
+	cancelBuildLong = `Cancels a pending or running build.`
 
-	cancelBuild_example = `  // Cancel the build with the given name
+	cancelBuildExample = `  // Cancel the build with the given name
   $ %[1]s cancel-build 1da32cvq
 
   // Cancel the named build and print the build logs
@@ -32,8 +32,8 @@ func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *co
 	cmd := &cobra.Command{
 		Use:     "cancel-build BUILD",
 		Short:   "Cancel a pending or running build.",
-		Long:    cancelBuild_long,
-		Example: fmt.Sprintf(cancelBuild_example, fullName),
+		Long:    cancelBuildLong,
+		Example: fmt.Sprintf(cancelBuildExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCancelBuild(f, out, cmd, args)
 			cmdutil.CheckErr(err)

@@ -21,6 +21,7 @@ type ImageStreamInterface interface {
 	Update(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	Delete(name string) error
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	UpdateStatus(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 }
 
 // ImageStreamNamespaceGetter exposes methods to get ImageStreams by Namespace
@@ -99,4 +100,11 @@ func (c *imageStreams) Watch(label labels.Selector, field fields.Selector, resou
 		LabelsSelectorParam(label).
 		FieldsSelectorParam(field).
 		Watch()
+}
+
+// UpdateStatus updates the image stream's status. Returns the server's representation of the image stream, and an error, if it occurs.
+func (c *imageStreams) UpdateStatus(stream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
+	result = &imageapi.ImageStream{}
+	err = c.r.Put().Namespace(c.ns).Resource("imageStreams").Name(stream.Name).SubResource("status").Body(stream).Do().Into(result)
+	return
 }

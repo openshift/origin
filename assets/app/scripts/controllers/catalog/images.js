@@ -12,8 +12,25 @@ angular.module('openshiftConsole')
     $scope.projectImageRepos = {};
     $scope.openshiftImageRepos = {};
     $scope.builders = [];
-    $scope.images = [];
+    $scope.nonBuilders = [];
     $scope.sourceURL = $routeParams.builderfor;
+
+    var isBuilder = function(imageRepo, tag) {
+      if (!imageRepo.spec || !imageRepo.spec.tags) {
+        return false;
+      }
+
+      var i, imageTagSpec, categoryTags;
+      for (i = 0; i < imageRepo.spec.tags.length; i++) {
+        imageTagSpec = imageRepo.spec.tags[i];
+        if (imageTagSpec.name === tag && imageTagSpec.annotations && imageTagSpec.annotations.tags) {
+          categoryTags = imageTagSpec.annotations.tags.split(/\s*,\s*/);
+          if (categoryTags.indexOf("builder") >= 0) {
+            return true;
+          }
+        }
+      }
+    };
 
     var imagesForRepos = function(imageRepos, scope) {
       angular.forEach(imageRepos, function(imageRepo) {
@@ -25,23 +42,16 @@ angular.module('openshiftConsole')
               imageRepoTag: imageRepoTag,
               name: imageRepo.metadata.name + ":" + imageRepoTag
             };
-            $scope.images.push(image);
 
-            var categoryTags = [];
-            if(imageRepo.spec.tags){
-              angular.forEach(imageRepo.spec.tags, function(imageTags){
-                if(imageTags.annotations && imageTags.annotations.tags){
-                  categoryTags = imageTags.annotations.tags.split(/\s*,\s*/);
-                }
-                if (categoryTags.indexOf("builder") >= 0) {
-                  $scope.builders.push(image);
-                }
-              });
+            if (isBuilder(imageRepo, imageRepoTag)) {
+              $scope.builders.push(image);
+            } else {
+              $scope.nonBuilders.push(image);
             }
           });
-          Logger.info("builders", $scope.builders);
         }
       });
+      Logger.info("builders", $scope.builders);
     };
 
     DataService.list("imageStreams", $scope, function(imageRepos) {

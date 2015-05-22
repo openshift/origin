@@ -9,12 +9,12 @@ import (
 	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
 )
 
-// UsersInterface has methods to work with User resources in a namespace
+// ProjectRequestsInterface has methods to work with ProjectRequest resources in a namespace
 type ProjectRequestsInterface interface {
 	ProjectRequests() ProjectRequestInterface
 }
 
-// UserInterface exposes methods on user resources.
+// ProjectRequestInterface exposes methods on projectRequest resources.
 type ProjectRequestInterface interface {
 	Create(p *projectapi.ProjectRequest) (*projectapi.Project, error)
 	List(label labels.Selector, field fields.Selector) (*kapi.Status, error)
@@ -31,7 +31,7 @@ func newProjectRequests(c *Client) *projectRequests {
 	}
 }
 
-// Create creates a new ProjectRequest
+// Create creates a new Project
 func (c *projectRequests) Create(p *projectapi.ProjectRequest) (result *projectapi.Project, err error) {
 	result = &projectapi.Project{}
 	err = c.r.Post().Resource("projectrequests").Body(p).Do().Into(result)

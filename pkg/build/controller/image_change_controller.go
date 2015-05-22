@@ -57,7 +57,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 		}
 		originalConfig := obj.(*buildapi.BuildConfig)
 
-		from := buildutil.GetImageStreamForStrategy(config)
+		from := buildutil.GetImageStreamForStrategy(config.Parameters.Strategy)
 		if from == nil || from.Kind != "ImageStreamTag" {
 			continue
 		}

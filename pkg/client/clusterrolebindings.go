@@ -7,10 +7,12 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+// ClusterRoleBindingsInterface has methods to work with ClusterRoleBindings resources in a namespace
 type ClusterRoleBindingsInterface interface {
 	ClusterRoleBindings() ClusterRoleBindingInterface
 }
 
+// ClusterRoleBindingInterface exposes methods on ClusterRoleBindings resources
 type ClusterRoleBindingInterface interface {
 	List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterRoleBindingList, error)
 	Get(name string) (*authorizationapi.ClusterRoleBinding, error)

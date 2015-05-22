@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -11,7 +12,9 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
+	kclientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	kcmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	kubecmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -25,6 +28,39 @@ import (
 )
 
 const defaultClusterURL = "https://localhost:8443"
+
+// LoginOptions is a helper for the login and setup process, gathers all information required for a
+// successful login and eventual update of config files.
+// Depending on the Reader present it can be interactive, asking for terminal input in
+// case of any missing information.
+// Notice that some methods mutate this object so it should not be reused. The Config
+// provided as a pointer will also mutate (handle new auth tokens, etc).
+type LoginOptions struct {
+	Server      string
+	CAFile      string
+	InsecureTLS bool
+	APIVersion  string
+
+	// flags and printing helpers
+	Username string
+	Password string
+	Project  string
+
+	// infra
+	StartingKubeConfig *kclientcmdapi.Config
+	DefaultNamespace   string
+	Config             *kclient.Config
+	Reader             io.Reader
+	Out                io.Writer
+
+	// cert data to be used when authenticating
+	CertFile string
+	KeyFile  string
+
+	Token string
+
+	PathOptions *kcmdconfig.PathOptions
+}
 
 // Gather all required information in a comprehensive order.
 func (o *LoginOptions) GatherInfo() error {
@@ -46,11 +82,7 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 
 	clientConfig := &kclient.Config{}
 
-	// if someone specified a server, use it as the default
-	if len(o.Server) > 0 {
-		clientConfig.Host = o.Server
-
-	} else {
+	if len(o.Server) == 0 {
 		// we need to have a server to talk to
 		if cmdutil.IsTerminal(o.Reader) {
 			for !o.serverProvided() {
@@ -58,10 +90,17 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 				promptMsg := fmt.Sprintf("OpenShift server [%s]: ", defaultServer)
 
 				o.Server = cmdutil.PromptForStringWithDefault(o.Reader, defaultServer, promptMsg)
-				clientConfig.Host = o.Server
 			}
 		}
 	}
+
+	// normalize the provided server to a format expected by config
+	serverNormalized, err := config.NormalizeServerURL(o.Server)
+	if err != nil {
+		return nil, err
+	}
+	o.Server = serverNormalized
+	clientConfig.Host = o.Server
 
 	if len(o.CAFile) > 0 {
 		clientConfig.CAFile = o.CAFile
@@ -119,6 +158,11 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 		default:
 			return nil, result.Error()
 		}
+	}
+
+	// check for matching api version
+	if len(o.APIVersion) > 0 {
+		clientConfig.Version = o.APIVersion
 	}
 
 	o.Config = clientConfig

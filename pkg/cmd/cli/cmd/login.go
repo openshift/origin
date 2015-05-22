@@ -9,9 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	kcmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -20,38 +18,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
-
-// Helper for the login and setup process, gathers all information required for a
-// successful login and eventual update of config files.
-// Depending on the Reader present it can be interactive, asking for terminal input in
-// case of any missing information.
-// Notice that some methods mutate this object so it should not be reused. The Config
-// provided as a pointer will also mutate (handle new auth tokens, etc).
-type LoginOptions struct {
-	Server string
-
-	// flags and printing helpers
-	Username string
-	Password string
-	Project  string
-
-	// infra
-	StartingKubeConfig *kclientcmdapi.Config
-	DefaultNamespace   string
-	Config             *kclient.Config
-	Reader             io.Reader
-	Out                io.Writer
-
-	// cert data to be used when authenticating
-	CAFile      string
-	CertFile    string
-	KeyFile     string
-	InsecureTLS bool
-
-	Token string
-
-	PathOptions *kcmdconfig.PathOptions
-}
 
 const (
 	loginLong = `Log in to an OpenShift server and save config for future use
@@ -142,11 +108,15 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 		o.StartingKubeConfig = kclientcmdapi.NewConfig()
 	}
 
+	addr := flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default()
+
 	if serverFlag := kcmdutil.GetFlagString(cmd, "server"); len(serverFlag) > 0 {
-		o.Server = serverFlag
+		if err := addr.Set(serverFlag); err != nil {
+			return err
+		}
+		o.Server = addr.String()
 
 	} else if len(args) == 1 {
-		addr := flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default()
 		if err := addr.Set(args[0]); err != nil {
 			return err
 		}
@@ -158,14 +128,20 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 				o.Server = cluster.Server
 			}
 		}
-
 	}
 
-	if certFile := kcmdutil.GetFlagString(cmd, "client-certificate"); len(certFile) > 0 {
-		o.CertFile = certFile
-	}
-	if keyFile := kcmdutil.GetFlagString(cmd, "client-key"); len(keyFile) > 0 {
-		o.KeyFile = keyFile
+	o.CertFile = kcmdutil.GetFlagString(cmd, "client-certificate")
+	o.KeyFile = kcmdutil.GetFlagString(cmd, "client-key")
+	o.APIVersion = kcmdutil.GetFlagString(cmd, "api-version")
+
+	// if the API version isn't explicitly passed, use the API version from the default context (same rules as the server above)
+	if len(o.APIVersion) == 0 {
+		if defaultContext, defaultContextExists := o.StartingKubeConfig.Contexts[o.StartingKubeConfig.CurrentContext]; defaultContextExists {
+			if cluster, exists := o.StartingKubeConfig.Clusters[defaultContext.Cluster]; exists {
+				o.APIVersion = cluster.APIVersion
+			}
+		}
+
 	}
 
 	o.CAFile = kcmdutil.GetFlagString(cmd, "certificate-authority")

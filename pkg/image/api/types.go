@@ -13,6 +13,8 @@ type ImageList struct {
 	Items []Image `json:"items"`
 }
 
+const ManagedByOpenShiftAnnotation = "openshift.io/image.managed"
+
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
 	kapi.TypeMeta   `json:",inline"`

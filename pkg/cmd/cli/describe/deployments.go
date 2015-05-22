@@ -65,7 +65,7 @@ func (c *genericDeploymentDescriberClient) listEvents(deploymentConfig *deployap
 
 // NewDeploymentConfigDescriberForConfig returns a new DeploymentConfigDescriber
 // for a DeploymentConfig
-func NewDeploymentConfigDescriberForConfig(config *deployapi.DeploymentConfig) *DeploymentConfigDescriber {
+func NewDeploymentConfigDescriberForConfig(client client.Interface, kclient kclient.Interface, config *deployapi.DeploymentConfig) *DeploymentConfigDescriber {
 	return &DeploymentConfigDescriber{
 		client: &genericDeploymentDescriberClient{
 			getDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
@@ -74,8 +74,14 @@ func NewDeploymentConfigDescriberForConfig(config *deployapi.DeploymentConfig) *
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return nil, kerrors.NewNotFound("ReplicatonController", name)
 			},
+			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
+				return nil, kerrors.NewNotFound("ReplicationControllerList", fmt.Sprintf("%v", selector))
+			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
 				return nil, kerrors.NewNotFound("PodList", fmt.Sprintf("%v", selector))
+			},
+			listEventsFunc: func(deploymentConfig *deployapi.DeploymentConfig) (*kapi.EventList, error) {
+				return kclient.Events(config.Namespace).Search(config)
 			},
 		},
 	}

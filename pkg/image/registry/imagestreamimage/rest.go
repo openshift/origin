@@ -35,9 +35,9 @@ func (r *REST) New() runtime.Object {
 	return &api.ImageStreamImage{}
 }
 
-// nameAndID splits a string into its name component and ID component, and returns an error
+// ParseNameAndID splits a string into its name component and ID component, and returns an error
 // if the string is not in the right form.
-func nameAndID(input string) (name string, id string, err error) {
+func ParseNameAndID(input string) (name string, id string, err error) {
 	segments := strings.Split(input, "@")
 	switch len(segments) {
 	case 2:
@@ -55,7 +55,7 @@ func nameAndID(input string) (name string, id string, err error) {
 // Get retrieves an image by ID that has previously been tagged into an image stream.
 // `id` is of the form <repo name>@<image id>.
 func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
-	name, imageID, err := nameAndID(id)
+	name, imageID, err := ParseNameAndID(id)
 	if err != nil {
 		return nil, err
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -93,6 +94,18 @@ func validateSource(input *buildapi.BuildSource) fielderrors.ValidationErrorList
 	} else {
 		allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
 	}
+	allErrs = append(allErrs, validateSecretRef(input.SourceSecret).Prefix("sourceSecret")...)
+	return allErrs
+}
+
+func validateSecretRef(ref *kapi.LocalObjectReference) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	if ref == nil {
+		return allErrs
+	}
+	if len(ref.Name) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
+	}
 	return allErrs
 }
 
@@ -138,11 +151,14 @@ func validateOutput(output *buildapi.BuildOutput) fielderrors.ValidationErrorLis
 		}
 	}
 
+	allErrs = append(allErrs, validateSecretRef(output.PushSecret).Prefix("pushSecret")...)
+
 	if len(output.DockerImageReference) != 0 {
 		if _, err := imageapi.ParseDockerImageReference(output.DockerImageReference); err != nil {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerImageReference", output.DockerImageReference, err.Error()))
 		}
 	}
+
 	return allErrs
 }
 
@@ -172,6 +188,7 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 		if strategy.DockerStrategy == nil {
 			strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
 		}
+		allErrs = append(allErrs, validateSecretRef(strategy.DockerStrategy.PullSecret).Prefix("pullSecret")...)
 	case strategy.Type == buildapi.CustomBuildStrategyType:
 		if strategy.CustomStrategy == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("customStrategy"))
@@ -190,6 +207,7 @@ func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy) fielderrors.
 	if strategy.From == nil || len(strategy.From.Name) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
 	}
+	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret).Prefix("pullSecret")...)
 	return allErrs
 }
 
@@ -198,6 +216,7 @@ func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy) fielderrors.
 	if strategy.From == nil || len(strategy.From.Name) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
 	}
+	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret).Prefix("pullSecret")...)
 	return allErrs
 }
 

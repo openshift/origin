@@ -110,7 +110,7 @@ func pollPods(deploymentStore cache.Store, kClient kclient.Interface) (cache.Enu
 				if kerrors.IsNotFound(err) {
 					nextStatus := deployapi.DeploymentStatusFailed
 					deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
-					deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = fmt.Sprintf("Couldn't find pod %s for deployment %s", podID, deployment.Name)
+					deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = fmt.Sprintf("deployment process pod %q was deleted before completion", podID)
 
 					if _, err := kClient.ReplicationControllers(deployment.Namespace).Update(deployment); err != nil {
 						glog.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)

@@ -74,6 +74,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdDeploy(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdRollback(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdEnv(fullName, f, os.Stdin, out))
+	cmds.AddCommand(cmd.NewCmdExpose(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdGet(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdDescribe(fullName, f, out))
 	// Deprecate 'osc apply' with 'osc create' command.

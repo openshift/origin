@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/adler32"
 	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -18,7 +19,8 @@ import (
 	deployv3 "github.com/openshift/origin/pkg/deploy/api/v1beta3"
 )
 
-// Maps the latest annotation keys to all known previous key names.
+// Maps the latest annotation keys to all known previous key names. Keys not represented here
+// may still be looked up directly via mappedAnnotationFor
 var annotationMap = map[string][]string{
 	deployapi.DeploymentConfigAnnotation: {
 		deployv1.DeploymentConfigAnnotation,
@@ -43,6 +45,10 @@ var annotationMap = map[string][]string{
 	deployapi.DeploymentVersionAnnotation: {
 		deployv1.DeploymentVersionAnnotation,
 		deployv3.DeploymentVersionAnnotation,
+	},
+	deployapi.DeploymentCancelledAnnotation: {
+		deployv1.DeploymentCancelledAnnotation,
+		deployv3.DeploymentCancelledAnnotation,
 	},
 }
 
@@ -219,6 +225,22 @@ func DeploymentStatusFor(obj runtime.Object) deployapi.DeploymentStatus {
 	return deployapi.DeploymentStatus(mappedAnnotationFor(obj, deployapi.DeploymentStatusAnnotation))
 }
 
+func DeploymentStatusReasonFor(obj runtime.Object) string {
+	return mappedAnnotationFor(obj, deployapi.DeploymentStatusReasonAnnotation)
+}
+
+func DeploymentDesiredReplicas(obj runtime.Object) (int, bool) {
+	s := mappedAnnotationFor(obj, deployapi.DesiredReplicasAnnotation)
+	if len(s) == 0 {
+		return 0, false
+	}
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, false
+	}
+	return i, true
+}
+
 func EncodedDeploymentConfigFor(obj runtime.Object) string {
 	return mappedAnnotationFor(obj, deployapi.DeploymentEncodedConfigAnnotation)
 }
@@ -231,6 +253,11 @@ func DeploymentVersionFor(obj runtime.Object) int {
 	return v
 }
 
+func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
+	value := mappedAnnotationFor(deployment, deployapi.DeploymentCancelledAnnotation)
+	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
+}
+
 // mappedAnnotationFor finds the given annotation in obj using the annotation
 // map to search all known key variants.
 func mappedAnnotationFor(obj runtime.Object, key string) string {
@@ -239,10 +266,12 @@ func mappedAnnotationFor(obj runtime.Object, key string) string {
 		return ""
 	}
 	for _, mappedKey := range annotationMap[key] {
-		val, hasVal := meta.Annotations[mappedKey]
-		if hasVal {
+		if val, ok := meta.Annotations[mappedKey]; ok {
 			return val
 		}
+	}
+	if val, ok := meta.Annotations[key]; ok {
+		return val
 	}
 	return ""
 }

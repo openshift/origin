@@ -10,7 +10,7 @@
 angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
   .factory("ProxyPod", function(API_CFG) {
     return function(namespace, podId, port) {
-      var kubeProxyURI = new URI(window.location.protocol + '//' + API_CFG.k8s.hostPort + API_CFG.k8s.prefix);
+      var kubeProxyURI = new URI().host(API_CFG.k8s.hostPort).path(API_CFG.k8s.prefix);
       var apiVersion = API_CFG.k8s.version || 'v1beta3';
       if (port) {
         podId = podId + ':' + port;
@@ -19,10 +19,10 @@ angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
                   .segment('proxy')
                   .segment('namespaces').segment(namespace)
                   .segment('pods').segment(podId);
-      return kubeProxyURI.toString();
+      return kubeProxyURI;
     };
   })
-  .run(function(ProxyPod, BaseHref, HawtioExtension, $templateCache, $compile) {
+  .run(function(ProxyPod, BaseHref, HawtioExtension, $templateCache, $compile, AuthService) {
     var template =
       '<span ng-show="jolokiaUrl" title="View java details">' +
       '  <a ng-click="gotoContainerView($event, container, jolokiaUrl)" ng-href="jolokiaUrl">' +
@@ -40,21 +40,24 @@ angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
       if (!jolokiaPort) {
         return;
       }
-      var pod = $scope.$eval('pod');
-      if (!pod) {
+      var pod = $scope.$eval('podTemplate');
+      // TODO distinguish between pod and pod templates for now...
+      if (!pod || !pod.status) {
         return;
       }
       var podId = pod.metadata.name;
       var namespace = pod.metadata.namespace;
-      $scope.jolokiaUrl = new URI(ProxyPod(namespace, podId, jolokiaPort.containerPort)).segment('jolokia/').toString();
+      $scope.jolokiaUrl = ProxyPod(namespace, podId, jolokiaPort.containerPort).segment('jolokia/').toString();
       $scope.gotoContainerView = function($event, container, jolokiaUrl) {
         $event.preventDefault();
         $event.stopPropagation();
         var returnTo = window.location.href;
         var title = container.name || 'Untitled Container';
+        var token = AuthService.UserStore().getToken() || '';
         var targetURI = new URI().path(BaseHref)
                                  .segment('java')
                                  .segment('index.html')
+                                 .hash(token)
                                  .query({
                                    jolokiaUrl: jolokiaUrl,
                                    title: title,

@@ -92,18 +92,18 @@ func mockDockerBuild() *buildapi.Build {
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
 				},
-				ContextDir:       "my/test/dir",
-				SourceSecretName: "secretFoo",
+				ContextDir:   "my/test/dir",
+				SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
 			},
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
-					PullSecretName: "bar",
+					PullSecret: &kapi.LocalObjectReference{Name: "bar"},
 				},
 			},
 			Output: buildapi.BuildOutput{
 				DockerImageReference: "docker-registry/repository/dockerBuild",
-				PushSecretName:       "foo",
+				PushSecret:           &kapi.LocalObjectReference{Name: "foo"},
 			},
 			Resources: kapi.ResourceRequirements{
 				Limits: kapi.ResourceList{

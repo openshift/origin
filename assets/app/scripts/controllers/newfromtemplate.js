@@ -131,11 +131,15 @@ angular.module('openshiftConsole')
           Navigate.toProjectOverview($scope.projectName);
         },
         function(result) { // failure
+          var details;
+          if (result.data && result.data.message) {
+            details = result.data.message;
+          }
           $scope.alerts = [
             {
               type: "error",
               message: "An error occurred processing the template.",
-              details: "Status: " + result.status + ". " + result.data,
+              details: details
             }
           ];
         }

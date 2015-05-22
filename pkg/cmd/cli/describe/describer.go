@@ -181,8 +181,8 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 		if len(p.Source.ContextDir) > 0 {
 			formatString(out, "ContextDir", p.Source.ContextDir)
 		}
-		if len(p.Source.SourceSecretName) > 0 {
-			formatString(out, "Source Secret", p.Source.SourceSecretName)
+		if p.Source.SourceSecret != nil {
+			formatString(out, "Source Secret", p.Source.SourceSecret.Name)
 		}
 	}
 	if p.Output.To != nil {
@@ -198,8 +198,8 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 	}
 
 	formatString(out, "Output Spec", p.Output.DockerImageReference)
-	if len(p.Output.PushSecretName) > 0 {
-		formatString(out, "Push Secret", p.Output.PushSecretName)
+	if p.Output.PushSecret != nil {
+		formatString(out, "Push Secret", p.Output.PushSecret.Name)
 	}
 
 	if p.Revision != nil && p.Revision.Type == buildapi.BuildSourceGit && p.Revision.Git != nil {
@@ -225,8 +225,8 @@ func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writ
 	if len(s.Scripts) != 0 {
 		formatString(out, "Scripts", s.Scripts)
 	}
-	if len(s.PullSecretName) != 0 {
-		formatString(out, "Pull Secret Name", s.PullSecretName)
+	if s.PullSecret != nil {
+		formatString(out, "Pull Secret Name", s.PullSecret.Name)
 	}
 	if s.Incremental {
 		formatString(out, "Incremental Build", "yes")
@@ -241,8 +241,8 @@ func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writ
 			formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
 		}
 	}
-	if len(s.PullSecretName) != 0 {
-		formatString(out, "Pull Secret Name", s.PullSecretName)
+	if s.PullSecret != nil {
+		formatString(out, "Pull Secret Name", s.PullSecret.Name)
 	}
 	if s.NoCache {
 		formatString(out, "No Cache", "true")
@@ -260,8 +260,8 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 	if s.ExposeDockerSocket {
 		formatString(out, "Expose Docker Socket", "yes")
 	}
-	if len(s.PullSecretName) != 0 {
-		formatString(out, "Pull Secret Name", s.PullSecretName)
+	if s.PullSecret != nil {
+		formatString(out, "Pull Secret Name", s.PullSecret.Name)
 	}
 	for i, env := range s.Env {
 		if i == 0 {

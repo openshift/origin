@@ -30,7 +30,7 @@ type NewProjectOptions struct {
 }
 
 const (
-	requestProject_long = `Create a new project for yourself in OpenShift with you as the project admin.
+	requestProjectLong = `Create a new project for yourself in OpenShift with you as the project admin.
 
 Assuming your cluster admin has granted you permission, this command will 
 create a new project for you and assign you as the project admin.  You must 
@@ -38,7 +38,7 @@ be logged in, so you might have to run %[1]s first.
 
 After your project is created you can switch to it using %[2]s <project name>.`
 
-	requestProject_example = `  // Create a new project with minimal information
+	requestProjectExample = `  // Create a new project with minimal information
   $ %[1]s web-team-dev
 
   // Create a new project with a description and node selector
@@ -52,8 +52,8 @@ func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION] [--node-selector=<label selector>]", name),
 		Short:   "Request a new project",
-		Long:    fmt.Sprintf(requestProject_long, oscLoginName, oscProjectName),
-		Example: fmt.Sprintf(requestProject_example, fullName),
+		Long:    fmt.Sprintf(requestProjectLong, oscLoginName, oscProjectName),
+		Example: fmt.Sprintf(requestProjectExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.complete(cmd, f); err != nil {
 				kcmdutil.CheckErr(err)
