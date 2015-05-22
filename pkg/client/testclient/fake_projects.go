@@ -1,11 +1,14 @@
-package client
+package testclient
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-)
-import projectapi "github.com/openshift/origin/pkg/project/api"
 
+	projectapi "github.com/openshift/origin/pkg/project/api"
+)
+
+// FakeProjects implements ProjectInterface. Meant to be embedded into a struct to get a default
+// implementation. This makes faking out just the methods you want to test easier.
 type FakeProjects struct {
 	Fake *Fake
 }

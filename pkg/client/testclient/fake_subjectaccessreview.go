@@ -1,9 +1,11 @@
-package client
+package testclient
 
 import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+// FakeSubjectAccessReviews implements SubjectAccessReviewInterface. Meant to be embedded into a struct to get a default
+// implementation. This makes faking out just the methods you want to test easier.
 type FakeSubjectAccessReviews struct {
 	Fake *Fake
 }
@@ -13,6 +15,9 @@ func (c *FakeSubjectAccessReviews) Create(subjectAccessReview *authorizationapi.
 	return obj.(*authorizationapi.SubjectAccessReviewResponse), err
 }
 
+// FakeClusterSubjectAccessReviews implements the ClusterSubjectAccessReviews interface.
+// Meant to be embedded into a struct to get a default implementation.
+// This makes faking out just the methods you want to test easier.
 type FakeClusterSubjectAccessReviews struct {
 	Fake *Fake
 }

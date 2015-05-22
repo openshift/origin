@@ -1,9 +1,10 @@
-package client
+package testclient
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
+	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -14,7 +15,7 @@ type FakeImages struct {
 	Fake *Fake
 }
 
-var _ ImageInterface = &FakeImages{}
+var _ client.ImageInterface = &FakeImages{}
 
 func (c *FakeImages) List(label labels.Selector, field fields.Selector) (*imageapi.ImageList, error) {
 	obj, err := c.Fake.Invokes(FakeAction{Action: "list-images"}, &imageapi.ImageList{})

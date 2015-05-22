@@ -1,4 +1,4 @@
-package client
+package testclient
 
 import (
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"

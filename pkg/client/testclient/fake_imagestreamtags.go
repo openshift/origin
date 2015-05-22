@@ -1,8 +1,9 @@
-package client
+package testclient
 
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -14,7 +15,7 @@ type FakeImageStreamTags struct {
 	Namespace string
 }
 
-var _ ImageStreamTagInterface = &FakeImageStreamTags{}
+var _ client.ImageStreamTagInterface = &FakeImageStreamTags{}
 
 func (c *FakeImageStreamTags) Get(name, tag string) (result *imageapi.ImageStreamTag, err error) {
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-imagestream-tag", Value: fmt.Sprintf("%s:%s", name, tag)})

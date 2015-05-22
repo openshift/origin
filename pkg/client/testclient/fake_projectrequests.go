@@ -1,4 +1,4 @@
-package client
+package testclient
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -8,6 +8,8 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
+// FakeProjectRequests implements ProjectInterface. Meant to be embedded into a struct to get a default
+// implementation. This makes faking out just the methods you want to test easier.
 type FakeProjectRequests struct {
 	Fake *Fake
 }

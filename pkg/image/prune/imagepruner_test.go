@@ -11,7 +11,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -644,7 +644,7 @@ func TestDeletingImagePruneFunc(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		imageClient := client.Fake{
+		imageClient := testclient.Fake{
 			Err: test.imageDeletionError,
 		}
 		pruneFunc := DeletingImagePruneFunc(imageClient.Images())

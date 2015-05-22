@@ -1,9 +1,11 @@
-package client
+package testclient
 
 import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+// FakeResourceAccessReviews implements ResourceAccessReviewInterface. Meant to be embedded into a struct to get a default
+// implementation. This makes faking out just the methods you want to test easier.
 type FakeResourceAccessReviews struct {
 	Fake *Fake
 }
