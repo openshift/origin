@@ -386,6 +386,9 @@ osc get template ruby-helloworld-sample
 [ "$(osc new-app ruby-helloworld-sample -o yaml | grep MYSQL_PASSWORD)" ]
 [ "$(osc new-app ruby-helloworld-sample -o yaml | grep ADMIN_USERNAME)" ]
 [ "$(osc new-app ruby-helloworld-sample -o yaml | grep ADMIN_PASSWORD)" ]
+# check that we can create from the template without errors
+osc new-app ruby-helloworld-sample -l app=helloworld
+osc delete all -l app=helloworld
 # create from template with code explicitly set is not supported
 [ ! "$(osc new-app ruby-helloworld-sample~git@github.com/mfojtik/sinatra-app-example)" ]
 osc delete template ruby-helloworld-sample
