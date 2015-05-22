@@ -74,7 +74,7 @@ func TestViewerGetAllowedKindInAdze(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Victor cannot get on pods in adze",
+		expectedReason:  `User "Victor" cannot get pods in project "adze"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -94,7 +94,7 @@ func TestViewerGetDisallowedKindInMallet(t *testing.T) {
 			Resource: "policies",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Victor cannot get on policies in mallet",
+		expectedReason:  `User "Victor" cannot get policies in project "mallet"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -113,7 +113,7 @@ func TestViewerGetDisallowedKindInAdze(t *testing.T) {
 			Resource: "policies",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Victor cannot get on policies in adze",
+		expectedReason:  `User "Victor" cannot get policies in project "adze"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -133,7 +133,7 @@ func TestViewerCreateAllowedKindInMallet(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Victor cannot create on pods in mallet",
+		expectedReason:  `User "Victor" cannot create pods in project "mallet"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -152,7 +152,7 @@ func TestViewerCreateAllowedKindInAdze(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Victor cannot create on pods in adze",
+		expectedReason:  `User "Victor" cannot create pods in project "adze"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -191,7 +191,7 @@ func TestEditorUpdateAllowedKindInAdze(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Edgar cannot update on pods in adze",
+		expectedReason:  `User "Edgar" cannot update pods in project "adze"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -211,7 +211,7 @@ func TestEditorUpdateDisallowedKindInMallet(t *testing.T) {
 			Resource: "roleBindings",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Edgar cannot update on roleBindings in mallet",
+		expectedReason:  `User "Edgar" cannot update roleBindings in project "mallet"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -230,7 +230,7 @@ func TestEditorUpdateDisallowedKindInAdze(t *testing.T) {
 			Resource: "roleBindings",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Edgar cannot update on roleBindings in adze",
+		expectedReason:  `User "Edgar" cannot update roleBindings in project "adze"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -269,7 +269,7 @@ func TestEditorGetAllowedKindInAdze(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Edgar cannot get on pods in adze",
+		expectedReason:  `User "Edgar" cannot get pods in project "adze"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -308,7 +308,7 @@ func TestAdminUpdateAllowedKindInAdze(t *testing.T) {
 			Resource: "roleBindings",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Matthew cannot update on roleBindings in adze",
+		expectedReason:  `User "Matthew" cannot update roleBindings in project "adze"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -328,7 +328,7 @@ func TestAdminUpdateStatusInMallet(t *testing.T) {
 			Resource: "pods/status",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Matthew cannot update on pods/status in mallet",
+		expectedReason:  `User "Matthew" cannot update pods/status in project "mallet"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -367,7 +367,7 @@ func TestAdminUpdateDisallowedKindInMallet(t *testing.T) {
 			Resource: "policies",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Matthew cannot update on policies in mallet",
+		expectedReason:  `User "Matthew" cannot update policies in project "mallet"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -386,7 +386,7 @@ func TestAdminUpdateDisallowedKindInAdze(t *testing.T) {
 			Resource: "roles",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Matthew cannot update on roles in adze",
+		expectedReason:  `User "Matthew" cannot update roles in project "adze"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()
@@ -425,7 +425,7 @@ func TestAdminGetAllowedKindInAdze(t *testing.T) {
 			Resource: "policies",
 		},
 		expectedAllowed: false,
-		expectedReason:  "Matthew cannot get on policies in adze",
+		expectedReason:  `User "Matthew" cannot get policies in project "adze"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()

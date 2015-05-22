@@ -44,7 +44,7 @@ func TestResourceNameDeny(t *testing.T) {
 			ResourceName: "just-a-user",
 		},
 		expectedAllowed: false,
-		expectedReason:  `just-a-user cannot get on users with name "just-a-user"`,
+		expectedReason:  `User "just-a-user" cannot get users`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.clusterBindings = newDefaultClusterPolicyBindings()
@@ -165,7 +165,7 @@ func TestNonResourceDeny(t *testing.T) {
 			URL:            "not-allowed",
 		},
 		expectedAllowed: false,
-		expectedReason:  `no-one cannot get on not-allowed`,
+		expectedReason:  `User "no-one" cannot "get" on "not-allowed"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.clusterBindings = newDefaultClusterPolicyBindings()
@@ -182,7 +182,7 @@ func TestHealthDeny(t *testing.T) {
 			URL:            "/healthz",
 		},
 		expectedAllowed: false,
-		expectedReason:  `no-one cannot get on /healthz`,
+		expectedReason:  `User "no-one" cannot "get" on "/healthz"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.clusterBindings = newDefaultClusterPolicyBindings()
@@ -214,7 +214,7 @@ func TestDisallowedViewingGlobalPods(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  `SomeYahoo cannot get on pods`,
+		expectedReason:  `User "SomeYahoo" cannot get pods`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.clusterBindings = newDefaultClusterPolicyBindings()
@@ -281,7 +281,7 @@ func TestResourceRestrictionsWork(t *testing.T) {
 			Resource: "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  `Rachel cannot get on pods in adze`,
+		expectedReason:  `User "Rachel" cannot get pods in project "adze"`,
 	}
 	test2.clusterPolicies = newDefaultClusterPolicies()
 	test2.policies = newAdzePolicies()
@@ -330,7 +330,7 @@ func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 			Resource: "buildConfigs",
 		},
 		expectedAllowed: false,
-		expectedReason:  `Rachel cannot get on buildConfigs in backsaw`,
+		expectedReason:  `User "Rachel" cannot get buildConfigs in project "backsaw"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)
@@ -363,7 +363,7 @@ func TestVerbRestrictionsWork(t *testing.T) {
 			Resource: "buildConfigs",
 		},
 		expectedAllowed: false,
-		expectedReason:  `Valerie cannot create on buildConfigs in adze`,
+		expectedReason:  `User "Valerie" cannot create buildConfigs in project "adze"`,
 	}
 	test2.clusterPolicies = newDefaultClusterPolicies()
 	test2.policies = newAdzePolicies()
@@ -377,7 +377,7 @@ func (test *authorizeTest) test(t *testing.T) {
 	policyBindingRegistry := testpolicyregistry.NewPolicyBindingRegistry(test.bindings, test.bindingRetrievalError)
 	clusterPolicyRegistry := clusterpolicyregistry.NewSimulatedRegistry(testpolicyregistry.NewClusterPolicyRegistry(test.clusterPolicies, test.policyRetrievalError))
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(testpolicyregistry.NewClusterPolicyBindingRegistry(test.clusterBindings, test.bindingRetrievalError))
-	authorizer := NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry))
+	authorizer := NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry), NewForbiddenMessageResolver(""))
 
 	actualAllowed, actualReason, actualError := authorizer.Authorize(test.context, *test.attributes)
 

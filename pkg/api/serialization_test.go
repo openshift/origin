@@ -17,6 +17,7 @@ import (
 
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -53,13 +54,13 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *image.ImageRepositoryMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion == "v1beta3" {
+			if forVersion != "v1beta1" {
 				j.DockerImageRepository = ""
 			}
 		},
 		func(j *image.ImageStreamMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion == "v1beta3" {
+			if forVersion != "v1beta1" {
 				j.DockerImageRepository = ""
 			}
 		},
@@ -108,7 +109,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			c.FuzzNoCustom(j)
 			specs := []string{"", "a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.DockerImageReference = specs[c.Intn(len(specs))]
-			if forVersion == "v1beta3" {
+			if forVersion != "v1beta1" {
 				j.Tag, j.DockerImageReference = "", ""
 				if j.To != nil && (len(j.To.Kind) == 0 || j.To.Kind == "ImageStream") {
 					j.To.Kind = "ImageStream"
@@ -255,7 +256,10 @@ var skipStandardVersions = map[string][]string{
 	"DockerImage": {"pre012", "1.0"},
 }
 var skipV1beta1 = map[string]struct{}{}
-var skipV1beta2 = map[string]struct{}{
+var skipV1beta3 = map[string]struct{}{
+	"ImageRepository": {},
+}
+var skipV1 = map[string]struct{}{
 	"ImageRepository": {},
 }
 
@@ -277,6 +281,7 @@ func TestSpecificKind(t *testing.T) {
 	roundTrip(t, osapi.Codec, item)
 	roundTrip(t, v1beta1.Codec, item)
 	roundTrip(t, v1beta3.Codec, item)
+	roundTrip(t, v1.Codec, item)
 }
 
 func TestTypes(t *testing.T) {
@@ -310,9 +315,13 @@ func TestTypes(t *testing.T) {
 				fuzzInternalObject(t, "v1beta1", item, seed)
 				roundTrip(t, v1beta1.Codec, item)
 			}
-			if _, ok := skipV1beta2[kind]; !ok {
+			if _, ok := skipV1beta3[kind]; !ok {
 				fuzzInternalObject(t, "v1beta3", item, seed)
 				roundTrip(t, v1beta3.Codec, item)
+			}
+			if _, ok := skipV1[kind]; !ok {
+				fuzzInternalObject(t, "v1", item, seed)
+				roundTrip(t, v1.Codec, item)
 			}
 		}
 	}

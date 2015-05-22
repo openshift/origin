@@ -55,6 +55,10 @@ func TestCreateSecret(t *testing.T) {
 			expErr:   true, // "/bsFixtures/invalid-DNS cannot be used as a key in a secret"
 		},
 		{
+			testName: "leadingDotsAllowed",
+			args:     []string{"testSecret", "./bsFixtures/leadingdot/.dockercfg"},
+		},
+		{
 			testName: "filesSameName",
 			args:     []string{"testSecret", "./bsFixtures/www.google.com", "./bsFixtures/multiple/www.google.com"},
 			expErr:   true, // "Multiple files with the same name (www.google.com) cannot be included a secret"

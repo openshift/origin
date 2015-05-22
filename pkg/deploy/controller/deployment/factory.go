@@ -58,6 +58,9 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 			},
 		},
 		podClient: &podClientImpl{
+			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+				return factory.KubeClient.Pods(namespace).Get(name)
+			},
 			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return factory.KubeClient.Pods(namespace).Create(pod)
 			},

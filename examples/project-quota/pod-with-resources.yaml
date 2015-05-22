@@ -1,0 +1,19 @@
+apiVersion: v1beta3
+kind: Pod
+metadata:
+  name: pod-with-resources
+spec:
+  containers:
+  - capabilities: {}
+    image: gcr.io/google_containers/serve_hostname
+    imagePullPolicy: IfNotPresent
+    name: kubernetes-serve-hostname
+    resources:
+      limits:
+        cpu: 100m
+        memory: 6Mi
+    securityContext:
+      capabilities: {}
+      privileged: false
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always

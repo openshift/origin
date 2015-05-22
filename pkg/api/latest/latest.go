@@ -14,6 +14,7 @@ import (
 
 	_ "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/meta"
+	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 )
@@ -29,13 +30,13 @@ const OldestVersion = "v1beta1"
 // may be assumed to be least feature rich to most feature rich, and clients may
 // choose to prefer the latter items in the list over the former items when presented
 // with a set of versions to choose.
-var Versions = []string{"v1beta1", "v1beta3"}
+var Versions = []string{"v1beta1", "v1beta3", "v1"}
 
 // Codec is the default codec for serializing output that should use
 // the latest supported version.  Use this Codec when writing to
 // disk, a data store that is not dynamically versioned, or in tests.
 // This codec can decode any object that OpenShift is aware of.
-var Codec = v1beta1.Codec
+var Codec = v1beta3.Codec
 
 // accessor is the shared static metadata accessor for the API.
 var accessor = kmeta.NewAccessor()
@@ -68,6 +69,12 @@ func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 	case "v1beta3":
 		return &kmeta.VersionInterfaces{
 			Codec:            v1beta3.Codec,
+			ObjectConvertor:  api.Scheme,
+			MetadataAccessor: accessor,
+		}, nil
+	case "v1":
+		return &kmeta.VersionInterfaces{
+			Codec:            v1.Codec,
 			ObjectConvertor:  api.Scheme,
 			MetadataAccessor: accessor,
 		}, nil
@@ -108,7 +115,7 @@ func init() {
 	)
 
 	// list of versions we support on the server, in preferred order
-	versions := []string{"v1beta3", "v1beta1"}
+	versions := []string{"v1beta3", "v1beta1", "v1"}
 
 	// versions that used mixed case URL formats
 	versionMixedCase := map[string]bool{
@@ -119,6 +126,7 @@ func init() {
 	versionToNamespaceScope := map[string]kmeta.RESTScope{
 		"v1beta1": kmeta.RESTScopeNamespaceLegacy,
 		"v1beta3": kmeta.RESTScopeNamespace,
+		"v1":      kmeta.RESTScopeNamespace,
 	}
 
 	// the list of kinds that are scoped at the root of the api hierarchy

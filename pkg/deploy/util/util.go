@@ -52,7 +52,7 @@ func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 }
 
 func DeployerPodNameForDeployment(deployment *api.ReplicationController) string {
-	return fmt.Sprintf("deploy-%s", deployment.Name)
+	return deployment.Name
 }
 
 // LabelForDeployment builds a string identifier for a Deployment.

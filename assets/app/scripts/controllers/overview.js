@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('OverviewController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver) {
+  .controller('OverviewController', function ($scope, DataService, annotationFilter, LabelFilter, Logger, ImageStreamResolver) {
     $scope.pods = {};
     $scope.services = {};
     $scope.routesByService = {};
@@ -162,19 +162,17 @@ angular.module('openshiftConsole')
         return false;
       }
 
-      if (pod.metadata.annotations) {
-        // Hide our deployer pods since it is obvious the deployment is
-        // happening when the new deployment appears.
-        if (pod.metadata.annotations.deployment) {
-          return false;
-        }
+      // Hide our deployer pods since it is obvious the deployment is
+      // happening when the new deployment appears.
+      if (annotationFilter(pod, "openshift.io/deployment.name")) {
+        return false;
+      }
 
-        // Hide our build pods since we are already showing details for
-        // currently running or recently run builds under the appropriate
-        // areas.
-        if (pod.metadata.annotations["openshift.io/build.name"]) {
-          return false;
-        }
+      // Hide our build pods since we are already showing details for
+      // currently running or recently run builds under the appropriate
+      // areas.
+      if (annotationFilter(pod, "openshift.io/build.name")) {
+        return false;
       }
 
       return true;
@@ -208,7 +206,7 @@ angular.module('openshiftConsole')
       angular.forEach($scope.deployments, function(deployment, depName){
         var foundMatch = false;
         var deploymentSelector = new LabelSelector(deployment.spec.selector);
-        var depConfigName = $filter('annotation')(deployment, 'deploymentConfig') || "";
+        var depConfigName = annotationFilter(deployment, 'deploymentConfig') || "";
 
         angular.forEach($scope.unfilteredServices, function(service, name){
           bySvc[name] = bySvc[name] || {};
@@ -233,11 +231,16 @@ angular.module('openshiftConsole')
     };
 
     function parseEncodedDeploymentConfig(deployment) {
-      var configJson = $filter('annotation')(deployment, 'encodedDeploymentConfig')
+      var configJson = annotationFilter(deployment, 'encodedDeploymentConfig')
       if (configJson) {
         try {
           var depConfig = $.parseJSON(configJson);
-          deployment.details = depConfig.details;
+          if (depConfig.apiVersion === "v1beta1") {
+            // TODO: will be slightly inaccurate for now
+            deployment.status = {details: depConfig.details};
+          } else {
+            deployment.status = depConfig.status;
+          }
         }
         catch (e) {
           Logger.error("Failed to parse encoded deployment config", e);
@@ -364,7 +367,7 @@ angular.module('openshiftConsole')
     };
 
     function isGeneratedHost(route) {
-      return route.metadata.annotations && route.metadata.annotations["openshift.io/host.generated"] === "true";
+      return annotationFilter(route, "openshift.io/host.generated") === "true";
     }
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
