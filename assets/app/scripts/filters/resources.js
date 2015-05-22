@@ -304,4 +304,13 @@ angular.module('openshiftConsole')
 
       return itemsArray;
     };
+  })
+  .filter('projectOverviewURL', function(Navigate) {
+    return function(project) {
+      if (!project || !project.metadata || !project.metadata.name) {
+        return null;
+      }
+
+      return Navigate.projectOverviewURL(project.metadata.name);
+    };
   });
