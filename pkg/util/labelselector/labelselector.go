@@ -245,7 +245,7 @@ func (p *Parser) parseLabel() (string, string, error) {
 		return "", "", err
 	}
 	if op != "=" {
-		return "", "", fmt.Errorf("Invalid operator: %s, expected: '='", op)
+		return "", "", fmt.Errorf("invalid operator: %s, expected: '='", op)
 	}
 	value, err := p.parseExactValue()
 	if err != nil {

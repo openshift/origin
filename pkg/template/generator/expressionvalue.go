@@ -77,7 +77,7 @@ func alphabetSlice(from, to byte) (string, error) {
 	leftPos := strings.Index(ASCII, string(from))
 	rightPos := strings.LastIndex(ASCII, string(to))
 	if leftPos > rightPos {
-		return "", fmt.Errorf("Invalid range specified: %s-%s", string(from), string(to))
+		return "", fmt.Errorf("invalid range specified: %s-%s", string(from), string(to))
 	}
 	return ASCII[leftPos:rightPos], nil
 }
@@ -127,7 +127,7 @@ func findExpressionPos(s string) [][]byte {
 func rangesAndLength(s string) (string, int, error) {
 	expr := s[0:strings.LastIndex(s, "{")]
 	if !expressionExp.MatchString(expr) {
-		return "", 0, fmt.Errorf("Malformed expresion syntax: %s", expr)
+		return "", 0, fmt.Errorf("malformed expresion syntax: %s", expr)
 	}
 
 	length, _ := strconv.Atoi(s[strings.LastIndex(s, "{")+1 : len(s)-1])
@@ -135,5 +135,5 @@ func rangesAndLength(s string) (string, int, error) {
 	if length > 0 && length <= 255 {
 		return expr, length, nil
 	}
-	return "", 0, fmt.Errorf("Range must be within [1-255] characters (%d)", length)
+	return "", 0, fmt.Errorf("range must be within [1-255] characters (%d)", length)
 }

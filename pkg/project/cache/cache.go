@@ -43,7 +43,7 @@ func (p *ProjectCache) GetNamespaceObject(name string) (*kapi.Namespace, error) 
 		namespace, err = p.Client.Namespaces().Get(name)
 		// the namespace does not exist, so prevent create and update in that namespace
 		if err != nil {
-			return nil, fmt.Errorf("Namespace %s does not exist", name)
+			return nil, fmt.Errorf("namespace %s does not exist", name)
 		}
 	}
 	return namespace, nil

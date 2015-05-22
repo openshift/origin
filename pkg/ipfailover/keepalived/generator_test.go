@@ -83,7 +83,7 @@ func TestGenerateDeploymentConfig(t *testing.T) {
 			t.Errorf("Test case for %s got an error %v where none was expected", tc.Name, err)
 		}
 		if tc.Name != dc.Name {
-			t.Errorf("Test case for %s got deployment config name %v where %v was expected", tc.Name, dc.Name, tc.Name)
+			t.Errorf("Test case for %s got DeploymentConfig name %v where %v was expected", tc.Name, dc.Name, tc.Name)
 		}
 
 		controller := dc.Template.ControllerTemplate

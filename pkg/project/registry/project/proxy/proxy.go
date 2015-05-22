@@ -91,7 +91,7 @@ func convertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
 func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
-		return nil, kerrors.NewForbidden("Project", "", fmt.Errorf("Unable to list projects without a user on the context"))
+		return nil, kerrors.NewForbidden("Project", "", fmt.Errorf("unable to list projects without a user on the context"))
 	}
 	namespaceList, err := s.lister.List(user)
 	if err != nil {

@@ -374,7 +374,7 @@ func TestEtcdGetBuildConfig(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	} else if buildConfig.Name != "foo" {
-		t.Errorf("Unexpected build config: %#v", buildConfig)
+		t.Errorf("Unexpected BuildConfig: %#v", buildConfig)
 	}
 }
 

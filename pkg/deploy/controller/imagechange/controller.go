@@ -21,19 +21,21 @@ type ImageChangeController struct {
 // fatalError is an error which can't be retried.
 type fatalError string
 
-func (e fatalError) Error() string { return "fatal error handling imageRepository: " + string(e) }
+func (e fatalError) Error() string {
+	return fmt.Sprintf("fatal error handling ImageStream: %s", string(e))
+}
 
 // Handle processes image change triggers associated with imageRepo.
 func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 	configs, err := c.deploymentConfigClient.listDeploymentConfigs()
 	if err != nil {
-		return fmt.Errorf("couldn't get list of deploymentConfigs while handling imageRepo %s: %v", labelForRepo(imageRepo), err)
+		return fmt.Errorf("couldn't get list of DeploymentConfig while handling ImageStream %s/%s: %v", imageRepo.Namespace, labelForRepo(imageRepo), err)
 	}
 
 	// Find any configs which should be updated based on the new image state
 	configsToUpdate := map[string]*deployapi.DeploymentConfig{}
 	for _, config := range configs {
-		glog.V(4).Infof("Detecting changed images for deploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
+		glog.V(4).Infof("Detecting changed images for DeploymentConfig %s/%s", config.Namespace, deployutil.LabelForDeploymentConfig(config))
 
 		for _, trigger := range config.Triggers {
 			params := trigger.ImageChangeParams
@@ -51,7 +53,7 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 			// Find the latest tag event for the trigger tag
 			latestEvent := imageapi.LatestTaggedImage(imageRepo, params.Tag)
 			if latestEvent == nil {
-				glog.V(4).Infof("Couldn't find latest tag event for tag %s in imageRepo %s", params.Tag, labelForRepo(imageRepo))
+				glog.V(2).Infof("Couldn't find latest tag event for tag %s in ImageStream %s/%s", params.Tag, imageRepo.Namespace, labelForRepo(imageRepo))
 				continue
 			}
 
@@ -70,18 +72,18 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 		err := c.regenerate(config)
 		if err != nil {
 			anyFailed = true
-			glog.Infof("couldn't regenerate depoymentConfig %s: %s", deployutil.LabelForDeploymentConfig(config), err)
+			glog.V(2).Infof("Couldn't regenerate DeploymentConfig %s/%s: %s", config.Namespace, deployutil.LabelForDeploymentConfig(config), err)
 			continue
 		}
 
-		glog.V(4).Infof("Regenerated deploymentConfig %s in response to image change trigger", deployutil.LabelForDeploymentConfig(config))
+		glog.V(4).Infof("Regenerated DeploymentConfig %s/%s in response to image change trigger", config.Namespace, deployutil.LabelForDeploymentConfig(config))
 	}
 
 	if anyFailed {
-		return fatalError(fmt.Sprintf("couldn't update some deploymentConfigs for trigger on imageRepo %s", labelForRepo(imageRepo)))
+		return fatalError(fmt.Sprintf("couldn't update some DeploymentConfig for trigger on ImageStream %s/%s", imageRepo.Namespace, labelForRepo(imageRepo)))
 	}
 
-	glog.V(4).Infof("Updated all configs for trigger on imageRepo %s", labelForRepo(imageRepo))
+	glog.V(4).Infof("Updated all DeploymentConfigs for trigger on ImageStream %s/%s", imageRepo.Namespace, labelForRepo(imageRepo))
 	return nil
 }
 
@@ -117,12 +119,12 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 	// Get a regenerated config which includes the new image repo references
 	newConfig, err := c.deploymentConfigClient.generateDeploymentConfig(config.Namespace, config.Name)
 	if err != nil {
-		return fmt.Errorf("error generating new version of deploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
+		return fmt.Errorf("error generating new version of DeploymentConfig %s/%s: %v", config.Namespace, deployutil.LabelForDeploymentConfig(config), err)
 	}
 
 	// No update occured
 	if config.LatestVersion == newConfig.LatestVersion {
-		glog.V(4).Infof("No version difference for generated config %s", deployutil.LabelForDeploymentConfig(config))
+		glog.V(4).Infof("No version difference for generated DeploymentConfig %s/%s", config.Namespace, deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -132,7 +134,7 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 		return err
 	}
 
-	glog.Infof("Regenerated depoymentConfig %s for image updates", deployutil.LabelForDeploymentConfig(config))
+	glog.Infof("Regenerated DeploymentConfig %s/%s for image updates", config.Namespace, deployutil.LabelForDeploymentConfig(config))
 	return nil
 }
 

@@ -27,17 +27,19 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		err = webhook.ErrHookNotEnabled
 		return
 	}
+	glog.V(4).Infof("Checking if the provided secret for BuildConfig %s/%s matches", buildCfg.Namespace, buildCfg.Name)
 	if trigger.GenericWebHook.Secret != secret {
 		err = webhook.ErrSecretMismatch
 		return
 	}
+	glog.V(4).Infof("Verifying build request for BuildConfig %s/%s", buildCfg.Namespace, buildCfg.Name)
 	if err = verifyRequest(req); err != nil {
 		return
 	}
 
 	git := buildCfg.Parameters.Source.Git
 	if git == nil {
-		glog.V(4).Infof("No source defined for build config, but triggering anyway: %s", buildCfg.Name)
+		glog.V(4).Infof("No source defined for BuildConfig %s/%s, but triggering anyway", buildCfg.Namespace, buildCfg.Name)
 		return nil, true, nil
 	}
 
@@ -55,6 +57,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 			return nil, true, nil
 		}
 		if data.Git == nil {
+			glog.V(4).Infof("No git information for the generic webhook found in %s/%s", buildCfg.Namespace, buildCfg.Name)
 			return nil, true, nil
 		}
 
@@ -68,11 +71,11 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 					return revision, true, nil
 				}
 			}
-			glog.V(2).Infof("Skipping build for %q. None of the supplied refs matched %q", buildCfg, git.Ref)
+			glog.V(2).Infof("Skipping build for BuildConfig %s/%s. None of the supplied refs matched %q", buildCfg.Namespace, buildCfg, git.Ref)
 			return nil, false, nil
 		}
 		if !webhook.GitRefMatches(data.Git.Ref, git.Ref) {
-			glog.V(2).Infof("Skipping build for %q. Branch reference from %q does not match configuration", buildCfg.Name, data.Git.Ref)
+			glog.V(2).Infof("Skipping build for BuildConfig %s/%s. Branch reference from %q does not match configuration", buildCfg.Namespace, buildCfg.Name, data.Git.Ref)
 			return nil, false, nil
 		}
 		revision = &api.SourceRevision{

@@ -115,7 +115,7 @@ func NewEnviromentConfig() (*Config, error) {
 	}
 	abs, err := filepath.Abs(home)
 	if err != nil {
-		return nil, fmt.Errorf("Can't make %q absolute: %v", home, err)
+		return nil, fmt.Errorf("can't make %q absolute: %v", home, err)
 	}
 	if stat, err := os.Stat(abs); err != nil || !stat.IsDir() {
 		return nil, fmt.Errorf("GIT_HOME must be an existing directory: %v", err)

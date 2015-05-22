@@ -21,12 +21,12 @@ func ValidateRoute(route *routeapi.Route) fielderrors.ValidationErrorList {
 	//host is not required but if it is set ensure it meets DNS requirements
 	if len(route.Host) > 0 {
 		if !util.IsDNS1123Subdomain(route.Host) {
-			result = append(result, fielderrors.NewFieldInvalid("host", route.Host, "Host must conform to DNS 952 subdomain conventions"))
+			result = append(result, fielderrors.NewFieldInvalid("host", route.Host, "host must conform to DNS 952 subdomain conventions"))
 		}
 	}
 
 	if len(route.Path) > 0 && !strings.HasPrefix(route.Path, "/") {
-		result = append(result, fielderrors.NewFieldInvalid("path", route.Path, "Path must begin with /"))
+		result = append(result, fielderrors.NewFieldInvalid("path", route.Path, "path must begin with /"))
 	}
 
 	if len(route.ServiceName) == 0 {

@@ -46,7 +46,7 @@ saved copy to include the latest resource version.`
 	editExample = `  // Edit the service named 'docker-registry':
   $ %[1]s edit svc/docker-registry
 
-  // Edit the deployment config named 'my-deployment':
+  // Edit the DeploymentConfig named 'my-deployment':
   $ %[1]s edit dc/my-deployment
 
   // Use an alternative editor

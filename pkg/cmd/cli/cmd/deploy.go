@@ -42,16 +42,16 @@ If no options are given, view the latest deployment.
 
 NOTE: This command is still under active development and is subject to change.`
 
-	deployExample = `  // Display the latest deployment for the 'database' deployment config
+	deployExample = `  // Display the latest deployment for the 'database' DeploymentConfig
   $ %[1]s deploy database
 
-  // Start a new deployment based on the 'database' deployment config
+  // Start a new deployment based on the 'database' DeploymentConfig
   $ %[1]s deploy frontend --latest
 
-  // Retry the latest failed deployment based on the 'frontend' deployment config
+  // Retry the latest failed deployment based on the 'frontend' DeploymentConfig
   $ %[1]s deploy frontend --retry
 
-  // Cancel the in-progress deployment based on the 'frontend' deployment config
+  // Cancel the in-progress deployment based on the 'frontend' DeploymentConfig
   $ %[1]s deploy frontend --cancel`
 )
 
@@ -111,10 +111,10 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 
 func (o DeployOptions) Validate(args []string) error {
 	if len(args) == 0 || len(args[0]) == 0 {
-		return errors.New("A deploymentConfig name is required.")
+		return errors.New("a DeploymentConfig name is required.")
 	}
 	if len(args) > 1 {
-		return errors.New("Only one deploymentConfig name is supported as argument.")
+		return errors.New("only one DeploymentConfig name is supported as argument.")
 	}
 	numOptions := 0
 	if o.deployLatest {
@@ -127,7 +127,7 @@ func (o DeployOptions) Validate(args []string) error {
 		numOptions++
 	}
 	if numOptions > 1 {
-		return errors.New("Only one of --latest, --retry, or --cancel is allowed.")
+		return errors.New("only one of --latest, --retry, or --cancel is allowed.")
 	}
 	return nil
 }

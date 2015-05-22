@@ -244,7 +244,7 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 
 	name, ok := r.SuggestName()
 	if !ok {
-		return nil, fmt.Errorf("unable to suggest an image stream name for %q", r.String())
+		return nil, fmt.Errorf("unable to suggest an ImageStream name for %q", r.String())
 	}
 
 	stream := &imageapi.ImageStream{
@@ -333,7 +333,7 @@ type BuildRef struct {
 func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	name, ok := NameSuggestions{r.Source, r.Output}.SuggestName()
 	if !ok {
-		return nil, fmt.Errorf("unable to suggest a name for this build config from %q", r.Source.URL)
+		return nil, fmt.Errorf("unable to suggest a name for this BuildConfig from %q", r.Source.URL)
 	}
 	source := &buildapi.BuildSource{}
 	sourceTriggers := []buildapi.BuildTriggerPolicy{}
@@ -380,7 +380,7 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 		}
 		name, ok := suggestions.SuggestName()
 		if !ok {
-			return nil, fmt.Errorf("unable to suggest a name for this deployment config")
+			return nil, fmt.Errorf("unable to suggest a name for this DeploymentConfig")
 		}
 		r.Name = name
 	}

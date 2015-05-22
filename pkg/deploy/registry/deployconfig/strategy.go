@@ -67,7 +67,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
 			deploymentConfig, ok := obj.(*api.DeploymentConfig)
 			if !ok {
-				return nil, nil, fmt.Errorf("not a deployment config")
+				return nil, nil, fmt.Errorf("not a DeploymentConfig")
 			}
 			return labels.Set(deploymentConfig.ObjectMeta.Labels), SelectableFields(deploymentConfig), nil
 		},

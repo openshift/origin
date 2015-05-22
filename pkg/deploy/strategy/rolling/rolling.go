@@ -63,13 +63,13 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, co
 		// hurt to further guard against it since we would have no way to identify
 		// or clean up orphaned RCs RollingUpdater might inadvertently create.
 		CreateReplicationControllerFn: func(namespace string, rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-			return nil, fmt.Errorf("unexpected attempt to create deployment: %#v", rc)
+			return nil, fmt.Errorf("unexpected attempt to create Deployment: %#v", rc)
 		},
 		// We give the RollingUpdater a policy which should prevent it from
 		// deleting the source deployment after the transition, but it doesn't
 		// hurt to guard by removing its ability to delete.
 		DeleteReplicationControllerFn: func(namespace, name string) error {
-			return fmt.Errorf("unexpected attempt to delete %s/%s", namespace, name)
+			return fmt.Errorf("unexpected attempt to delete Deployment %s/%s", namespace, name)
 		},
 	}
 	return &RollingDeploymentStrategy{
@@ -86,13 +86,13 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, co
 func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
 	config, err := deployutil.DecodeDeploymentConfig(deployment, s.codec)
 	if err != nil {
-		return fmt.Errorf("Couldn't decode DeploymentConfig from deployment %s: %v", deployment.Name, err)
+		return fmt.Errorf("couldn't decode DeploymentConfig from Deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
 	}
 
 	// Find the latest deployment (if any).
 	latest, err := s.findLatestDeployment(oldDeployments)
 	if err != nil {
-		return fmt.Errorf("couldn't determine latest deployment: %v", err)
+		return fmt.Errorf("couldn't determine latest Deployment: %v", err)
 	}
 
 	// If there's no prior deployment, delegate to another strategy since the
@@ -109,7 +109,7 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	if _, hasSourceId := deployment.Annotations[sourceIdAnnotation]; !hasSourceId {
 		deployment.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", latest.Name, latest.ObjectMeta.UID)
 		if updated, err := s.client.UpdateReplicationController(deployment.Namespace, deployment); err != nil {
-			return fmt.Errorf("couldn't assign source annotation to deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
+			return fmt.Errorf("couldn't assign source annotation to Deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
 		} else {
 			deployment = updated
 		}
@@ -136,7 +136,7 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 		Timeout:       time.Duration(*params.TimeoutSeconds) * time.Second,
 		CleanupPolicy: kubectl.PreserveRollingUpdateCleanupPolicy,
 	}
-	glog.Infof("Starting rolling update with config: %#v (UpdatePeriod %d, Interval %d, Timeout %d) (UpdatePeriodSeconds %d, IntervalSeconds %d, TimeoutSeconds %d)",
+	glog.Infof("Starting rolling update with DeploymentConfig: %#v (UpdatePeriod %d, Interval %d, Timeout %d) (UpdatePeriodSeconds %d, IntervalSeconds %d, TimeoutSeconds %d)",
 		rollingConfig,
 		rollingConfig.UpdatePeriod,
 		rollingConfig.Interval,
@@ -163,9 +163,9 @@ func (s *RollingDeploymentStrategy) findLatestDeployment(oldDeployments []*kapi.
 		}
 	}
 	if latest != nil {
-		glog.Infof("Found latest deployment %s", latest.Name)
+		glog.Infof("Found latest Deployment %s", latest.Name)
 	} else {
-		glog.Info("No latest deployment found")
+		glog.Info("No latest Deployment found")
 	}
 	return latest, nil
 }

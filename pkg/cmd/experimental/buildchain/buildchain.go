@@ -89,7 +89,7 @@ func NewEdge(fullname, to string) *Edge {
 func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [IMAGESTREAM:TAG | --all]", name),
-		Short:   "Output build dependencies of a specific image stream",
+		Short:   "Output build dependencies of a specific ImageStream",
 		Long:    buildChain_long,
 		Example: buildChain_example,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -98,8 +98,8 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 		},
 	}
 
-	cmd.Flags().Bool("all", false, "Build dependency trees for all image streams")
-	cmd.Flags().Bool("all-tags", false, "Build dependency trees for all tags of a specific image stream")
+	cmd.Flags().Bool("all", false, "Build dependency trees for all ImageStreams")
+	cmd.Flags().Bool("all-tags", false, "Build dependency trees for all tags of a specific ImageStream")
 	cmd.Flags().StringP("output", "o", "json", "Output format of dependency tree(s)")
 	return cmd
 }
@@ -113,7 +113,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		(len(args) == 1 && all) ||
 		(len(args) == 0 && allTags) ||
 		(all && allTags) {
-		return cmdutil.UsageError(cmd, "Must pass nothing, an image stream name:tag combination, or specify the --all flag")
+		return cmdutil.UsageError(cmd, "Must pass nothing, an ImageStream name:tag combination, or specify the --all flag")
 	}
 
 	osc, _, err := f.Clients()
@@ -193,7 +193,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 	}
 
 	if len(streams) == 0 {
-		return fmt.Errorf("no image stream available for building its dependency tree")
+		return fmt.Errorf("no ImageStream available for building its dependency tree")
 	}
 
 	output := cmdutil.GetFlagString(cmd, "output")
@@ -250,10 +250,10 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 // and extracts all the image streams which trigger a
 // build when the image stream is updated
 func getStreams(configs []buildapi.BuildConfig) map[string][]string {
-	glog.V(1).Infof("Scanning buildconfigs")
+	glog.V(1).Infof("Scanning BuildConfigs")
 	avoidDuplicates := make(map[string][]string)
 	for _, cfg := range configs {
-		glog.V(1).Infof("Scanning buildconfig %v", cfg)
+		glog.V(1).Infof("Scanning BuildConfigs %v", cfg)
 		for _, tr := range cfg.Triggers {
 			glog.V(1).Infof("Scanning trigger %v", tr)
 			from := buildutil.GetImageStreamForStrategy(cfg.Parameters.Strategy)

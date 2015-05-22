@@ -61,7 +61,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
 			buildConfig, ok := obj.(*api.BuildConfig)
 			if !ok {
-				return nil, nil, fmt.Errorf("not a build config")
+				return nil, nil, fmt.Errorf("not a BuildConfig")
 			}
 			return labels.Set(buildConfig.ObjectMeta.Labels), SelectableFields(buildConfig), nil
 		},

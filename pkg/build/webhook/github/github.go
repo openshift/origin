@@ -40,10 +40,12 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 		err = webhook.ErrHookNotEnabled
 		return
 	}
+	glog.V(4).Infof("Checking if the provided secret for BuildConfig %s/%s matches", buildCfg.Namespace, buildCfg.Name)
 	if trigger.GithubWebHook.Secret != secret {
 		err = webhook.ErrSecretMismatch
 		return
 	}
+	glog.V(4).Infof("Verifying build request for BuildConfig %s/%s", buildCfg.Namespace, buildCfg.Name)
 	if err = verifyRequest(req); err != nil {
 		return
 	}
@@ -66,7 +68,7 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 	}
 	proceed = webhook.GitRefMatches(event.Ref, buildCfg.Parameters.Source.Git.Ref)
 	if !proceed {
-		glog.V(2).Infof("Skipping build for '%s'.  Branch reference from '%s' does not match configuration", buildCfg, event)
+		glog.V(2).Infof("Skipping build for BuildConfig %s/%s.  Branch reference from '%s' does not match configuration", buildCfg.Namespace, buildCfg, event)
 	}
 
 	revision = &api.SourceRevision{

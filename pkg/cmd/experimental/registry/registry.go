@@ -32,7 +32,7 @@ exist.
 
 To run a highly available registry, you should be using a remote storage mechanism like an
 object store (several are supported by the Docker registry). The default Docker registry image
-is configured to accept configuration as environment variables - refer to the config file in
+is configured to accept configuration as environment variables - refer to the configuration file in
 that image for more on setting up alternative storage. Once you've made those changes, you can
 pass --replicas=2 or higher to ensure you have failover protection. The default registry setup
 uses a local volume and the data will be lost if you delete the running pod.

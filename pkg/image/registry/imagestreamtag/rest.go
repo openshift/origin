@@ -39,10 +39,10 @@ func nameAndTag(id string) (name string, tag string, err error) {
 		name = segments[0]
 		tag = segments[1]
 		if len(name) == 0 || len(tag) == 0 {
-			err = errors.NewBadRequest("imageStreamTags must be retrieved with <name>:<tag>")
+			err = errors.NewBadRequest("ImageStreamTags must be retrieved with <name>:<tag>")
 		}
 	default:
-		err = errors.NewBadRequest("imageStreamTags must be retrieved with <name>:<tag>")
+		err = errors.NewBadRequest("ImageStreamTags must be retrieved with <name>:<tag>")
 	}
 	return
 }

@@ -650,7 +650,7 @@ func TestDeletingImagePruneFunc(t *testing.T) {
 		pruneFunc := DeletingImagePruneFunc(imageClient.Images())
 		err := pruneFunc(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "id2"}})
 		if test.imageDeletionError != nil {
-			if e, a := fmt.Sprintf("Error deleting image: %v", test.imageDeletionError), err.Error(); e != a {
+			if e, a := fmt.Sprintf("error deleting image: %v", test.imageDeletionError), err.Error(); e != a {
 				t.Errorf("%s: err: expected %v, got %v", name, e, a)
 			}
 			continue
