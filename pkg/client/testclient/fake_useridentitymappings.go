@@ -1,10 +1,10 @@
-package client
+package testclient
 
 import (
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
-// FakeUserIdentityMappings implements BuildInterface. Meant to be embedded into a struct to get a default
+// FakeUserIdentityMappings implements UserIdentityMappingInterface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the methods you want to test easier.
 type FakeUserIdentityMappings struct {
 	Fake *Fake

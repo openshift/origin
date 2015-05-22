@@ -1,4 +1,4 @@
-package client
+package testclient
 
 import (
 	templateapi "github.com/openshift/origin/pkg/template/api"

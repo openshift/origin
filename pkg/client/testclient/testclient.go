@@ -8,12 +8,13 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 )
 
+// NewFixtureClients returns mocks of the OpenShift and Kubernetes clients
 func NewFixtureClients(o testclient.ObjectRetriever) (osclient.Interface, kclient.Interface) {
-	osc := &osclient.Fake{
+	osc := &Fake{
 		ReactFn: testclient.ObjectReaction(o, latest.RESTMapper),
 	}
-	kcc := &testclient.Fake{
+	kc := &testclient.Fake{
 		ReactFn: testclient.ObjectReaction(o, latest.RESTMapper),
 	}
-	return osc, kcc
+	return osc, kc
 }

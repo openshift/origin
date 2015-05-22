@@ -1,4 +1,4 @@
-package client
+package testclient
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
@@ -8,7 +8,7 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
-// FakeRoutes implements BuildInterface. Meant to be embedded into a struct to get a default
+// FakeRoutes implements RouteInterface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the methods you want to test easier.
 type FakeRoutes struct {
 	Fake      *Fake

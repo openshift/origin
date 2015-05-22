@@ -1,4 +1,4 @@
-package client
+package testclient
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"

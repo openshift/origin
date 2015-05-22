@@ -1,4 +1,4 @@
-package client
+package testclient
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
@@ -8,7 +8,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
-// FakeDeploymentConfigs implements BuildInterface. Meant to be embedded into a struct to get a default
+// FakeDeploymentConfigs implements DeploymentConfigInterface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the methods you want to test easier.
 type FakeDeploymentConfigs struct {
 	Fake      *Fake

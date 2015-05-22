@@ -8,10 +8,12 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+// ClusterPoliciesInterface has methods to work with ClusterPolicies resources in a namespace
 type ClusterPoliciesInterface interface {
 	ClusterPolicies() ClusterPolicyInterface
 }
 
+// ClusterPolicyInterface exposes methods on ClusterPolicies resources
 type ClusterPolicyInterface interface {
 	List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyList, error)
 	Get(name string) (*authorizationapi.ClusterPolicy, error)
@@ -49,7 +51,7 @@ func (c *clusterPolicies) Delete(name string) (err error) {
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested policyBindings
+// Watch returns a watch.Interface that watches the requested clusterPolicies
 func (c *clusterPolicies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Resource("clusterPolicies").Param("resourceVersion", resourceVersion).LabelsSelectorParam(label).FieldsSelectorParam(field).Watch()
 }

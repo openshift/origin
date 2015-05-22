@@ -7,10 +7,12 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+// ClusterRolesInterface has methods to work with ClusterRoles resources in a namespace
 type ClusterRolesInterface interface {
 	ClusterRoles() ClusterRoleInterface
 }
 
+// ClusterRoleInterface exposes methods on ClusterRoles resources
 type ClusterRoleInterface interface {
 	List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterRoleList, error)
 	Get(name string) (*authorizationapi.ClusterRole, error)

@@ -1,4 +1,4 @@
-package client
+package testclient
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client"
 )
 
 // FakeBuildConfigs implements BuildConfigInterface. Meant to be embedded into a struct to get a default
@@ -35,7 +36,7 @@ func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTrigge
 	case trigger.GithubWebHook != nil:
 		return url.Parse(fmt.Sprintf("http://localhost/buildConfigHooks/%s/%s/github", name, trigger.GithubWebHook.Secret))
 	default:
-		return nil, ErrTriggerIsNotAWebHook
+		return nil, client.ErrTriggerIsNotAWebHook
 	}
 }
 

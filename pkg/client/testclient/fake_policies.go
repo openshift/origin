@@ -1,4 +1,4 @@
-package client
+package testclient
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
@@ -8,6 +8,8 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+// FakePolicies implements PolicyInterface. Meant to be embedded into a struct to get a default
+// implementation. This makes faking out just the methods you want to test easier.
 type FakePolicies struct {
 	Fake *Fake
 }

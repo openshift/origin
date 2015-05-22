@@ -1,9 +1,11 @@
 package client
 
+// OAuthAccessTokensInterface has methods to work with OAuthAccessTokens resources in a namespace
 type OAuthAccessTokensInterface interface {
 	OAuthAccessTokens() OAuthAccessTokenInterface
 }
 
+// OAuthAccessTokenInterface exposes methods on OAuthAccessTokens resources.
 type OAuthAccessTokenInterface interface {
 	Delete(name string) error
 }
