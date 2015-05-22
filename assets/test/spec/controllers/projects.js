@@ -52,6 +52,9 @@ describe('Controller: ProjectsController', function () {
 
     ProjectsController = $controller('ProjectsController', {
       $scope: scope,
+      $route: {
+        reload: function() {}
+      },
       DataService: {
         list: function(type, context, callback, opts) {
           // TODO return mocked project data
