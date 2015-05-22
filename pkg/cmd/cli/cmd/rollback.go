@@ -81,7 +81,7 @@ func RunRollback(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args [
 	outputTemplate := cmdutil.GetFlagString(cmd, "template")
 	dryRun := cmdutil.GetFlagBool(cmd, "dry-run")
 
-	osClient, _, err := f.Clients()
+	osClient, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func RunRollback(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args [
 
 	// If dry-run is specified, describe the rollback and exit
 	if dryRun {
-		describer := describe.NewDeploymentConfigDescriberForConfig(newConfig)
+		describer := describe.NewDeploymentConfigDescriberForConfig(osClient, kClient, newConfig)
 		description, err := describer.Describe(newConfig.Namespace, newConfig.Name)
 		if err != nil {
 			return err
