@@ -119,6 +119,24 @@ func deleteAllContent(client osclient.Interface, namespace string) (err error) {
 	if err != nil {
 		return err
 	}
+	err = deleteTemplates(client, namespace)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteTemplates(client osclient.Interface, ns string) error {
+	items, err := client.Templates(ns).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+	for i := range items.Items {
+		err := client.Templates(ns).Delete(items.Items[i].Name)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
