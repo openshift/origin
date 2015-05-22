@@ -27,11 +27,11 @@ var (
 
 	// ConcurrentBuildControllersTestWait is the time that TestConcurrentBuildControllers waits
 	// for any other changes to happen when testing whether only a single build got processed
-	ConcurrentBuildControllersTestWait = 5 * time.Second
+	ConcurrentBuildControllersTestWait = 15 * time.Second
 
 	// ConcurrentBuildPodControllersTestWait is the time that TestConcurrentBuildPodControllers waits
 	// after a state transition to make sure other state transitions don't occur unexpectedly
-	ConcurrentBuildPodControllersTestWait = 10 * time.Second
+	ConcurrentBuildPodControllersTestWait = 15 * time.Second
 
 	// BuildControllersWatchTimeout is used by all tests to wait for watch events. In case where only
 	// a single watch event is expected, the test will fail after the timeout.
