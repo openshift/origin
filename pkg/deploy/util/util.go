@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/adler32"
 	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -44,6 +45,10 @@ var annotationMap = map[string][]string{
 	deployapi.DeploymentVersionAnnotation: {
 		deployv1.DeploymentVersionAnnotation,
 		deployv3.DeploymentVersionAnnotation,
+	},
+	deployapi.DeploymentCancelledAnnotation: {
+		deployv1.DeploymentCancelledAnnotation,
+		deployv3.DeploymentCancelledAnnotation,
 	},
 }
 
@@ -246,6 +251,11 @@ func DeploymentVersionFor(obj runtime.Object) int {
 		return -1
 	}
 	return v
+}
+
+func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
+	value := mappedAnnotationFor(deployment, deployapi.DeploymentCancelledAnnotation)
+	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
 }
 
 // mappedAnnotationFor finds the given annotation in obj using the annotation

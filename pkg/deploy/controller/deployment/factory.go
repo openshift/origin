@@ -35,6 +35,8 @@ type DeploymentControllerFactory struct {
 // Create creates a DeploymentController.
 func (factory *DeploymentControllerFactory) Create() controller.RunnableController {
 	deploymentLW := &deployutil.ListWatcherImpl{
+		// TODO: Investigate specifying annotation field selectors to fetch only 'deployments'
+		// Currently field selectors are not supported for replication controllers
 		ListFunc: func() (runtime.Object, error) {
 			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
 		},
