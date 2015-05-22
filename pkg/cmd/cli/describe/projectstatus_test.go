@@ -137,6 +137,8 @@ func TestProjectStatus(t *testing.T) {
 				"database deploys",
 				"frontend deploys",
 				"with docker.io/openshift/ruby-20-centos7:latest",
+				"#2 deployment failed less than a second ago: unable to contact server - 0/1 pods",
+				"#2 deployment running for 7 seconds - 2/1 pods",
 				"#1 deployed 8 seconds ago",
 				"#1 deployed less than a second ago",
 				"To see more information",
@@ -176,6 +178,6 @@ func TestProjectStatus(t *testing.T) {
 				t.Errorf("%s: did not have %q:\n%s\n---", k, s, out)
 			}
 		}
-		//t.Logf("\n%s", out)
+		t.Logf("\n%s", out)
 	}
 }

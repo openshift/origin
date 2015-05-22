@@ -18,7 +18,8 @@ import (
 	deployv3 "github.com/openshift/origin/pkg/deploy/api/v1beta3"
 )
 
-// Maps the latest annotation keys to all known previous key names.
+// Maps the latest annotation keys to all known previous key names. Keys not represented here
+// may still be looked up directly via mappedAnnotationFor
 var annotationMap = map[string][]string{
 	deployapi.DeploymentConfigAnnotation: {
 		deployv1.DeploymentConfigAnnotation,
@@ -219,6 +220,22 @@ func DeploymentStatusFor(obj runtime.Object) deployapi.DeploymentStatus {
 	return deployapi.DeploymentStatus(mappedAnnotationFor(obj, deployapi.DeploymentStatusAnnotation))
 }
 
+func DeploymentStatusReasonFor(obj runtime.Object) string {
+	return mappedAnnotationFor(obj, deployapi.DeploymentStatusReasonAnnotation)
+}
+
+func DeploymentDesiredReplicas(obj runtime.Object) (int, bool) {
+	s := mappedAnnotationFor(obj, deployapi.DesiredReplicasAnnotation)
+	if len(s) == 0 {
+		return 0, false
+	}
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, false
+	}
+	return i, true
+}
+
 func EncodedDeploymentConfigFor(obj runtime.Object) string {
 	return mappedAnnotationFor(obj, deployapi.DeploymentEncodedConfigAnnotation)
 }
@@ -239,10 +256,12 @@ func mappedAnnotationFor(obj runtime.Object, key string) string {
 		return ""
 	}
 	for _, mappedKey := range annotationMap[key] {
-		val, hasVal := meta.Annotations[mappedKey]
-		if hasVal {
+		if val, ok := meta.Annotations[mappedKey]; ok {
 			return val
 		}
+	}
+	if val, ok := meta.Annotations[key]; ok {
+		return val
 	}
 	return ""
 }
