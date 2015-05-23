@@ -237,7 +237,7 @@ type DeploymentTriggerImageChangeParams struct {
 	// trigger will be used.
 	From kapi.ObjectReference `json:"from" description:"a reference to an ImageRepository, ImageStream, or ImageStreamTag to watch for changes`
 	// LastTriggeredImage is the last image to be triggered.
-	LastTriggeredImage string `json:"lastTriggeredImage" description:"the last image to be triggered"`
+	LastTriggeredImage string `json:"lastTriggeredImage,omitempty" description:"the last image to be triggered"`
 }
 
 // DeploymentDetails captures information about the causes of a deployment.
