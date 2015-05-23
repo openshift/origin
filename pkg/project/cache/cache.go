@@ -51,12 +51,14 @@ func (p *ProjectCache) GetNamespaceObject(name string) (*kapi.Namespace, error) 
 
 func (p *ProjectCache) GetNodeSelector(namespace *kapi.Namespace) string {
 	selector := ""
+	found := false
 	if len(namespace.ObjectMeta.Annotations) > 0 {
 		if ns, ok := namespace.ObjectMeta.Annotations["openshift.io/node-selector"]; ok {
 			selector = ns
+			found = true
 		}
 	}
-	if len(selector) == 0 {
+	if !found {
 		selector = p.DefaultNodeSelector
 	}
 	return selector

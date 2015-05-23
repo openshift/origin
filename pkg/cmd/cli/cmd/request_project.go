@@ -45,6 +45,8 @@ After your project is created you can switch to it using %[2]s <project name>.`
   $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team." --node-selector="env=dev"`
 )
 
+var CheckNodeSelector bool
+
 func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
 	options.Out = out
@@ -63,6 +65,11 @@ func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f
 			if options.Client, _, err = f.Clients(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
+
+			// We can't depend on len(NodeSelector) > 0 as node-selector="" is valid
+			// and we want to populate node selector as annotation only if explicitly set by user
+			CheckNodeSelector = cmd.Flag("node-selector").Changed
+
 			if err := options.Run(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
@@ -107,7 +114,9 @@ func (o *NewProjectOptions) Run() error {
 	projectRequest.DisplayName = o.DisplayName
 	projectRequest.Annotations = make(map[string]string)
 	projectRequest.Annotations["description"] = o.Description
-	projectRequest.Annotations["openshift.io/node-selector"] = o.NodeSelector
+	if CheckNodeSelector {
+		projectRequest.Annotations["openshift.io/node-selector"] = o.NodeSelector
+	}
 
 	project, err := o.Client.ProjectRequests().Create(projectRequest)
 	if err != nil {
