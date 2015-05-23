@@ -231,6 +231,28 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		}
 	}
 
+	if builtInKubernetes {
+		// When we start Kubernetes, we're responsible for generating the default account
+		config.ServiceAccountConfig.ManagedNames = []string{
+			bootstrappolicy.DefaultServiceAccountName,
+			bootstrappolicy.BuilderServiceAccountName,
+		}
+		// We also need the private key file to give to the token generator
+		config.ServiceAccountConfig.PrivateKeyFile = admin.DefaultServiceAccountPrivateKeyFile(args.ConfigDir.Value())
+		// We also need the public key file to give to the authenticator
+		config.ServiceAccountConfig.PublicKeyFiles = []string{
+			admin.DefaultServiceAccountPublicKeyFile(args.ConfigDir.Value()),
+		}
+	} else {
+		// When running against an external Kubernetes, we're only responsible for the builder account.
+		// We don't have the private key, but we need to get the public key to authenticate signed tokens.
+		// TODO: JTL: take arg for public key(s)?
+		config.ServiceAccountConfig.ManagedNames = []string{
+			bootstrappolicy.BuilderServiceAccountName,
+		}
+		config.ServiceAccountConfig.PublicKeyFiles = []string{}
+	}
+
 	// Roundtrip the config to v1 and back to ensure proper defaults are set.
 	ext, err := configapi.Scheme.ConvertToVersion(config, "v1")
 	if err != nil {

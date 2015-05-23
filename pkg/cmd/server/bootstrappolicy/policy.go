@@ -130,6 +130,28 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: ImagePullerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("get"),
+					Resources: util.NewStringSet("imagestreams"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ImageBuilderRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("get", "update"),
+					Resources: util.NewStringSet("imagestreams"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: DeployerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
