@@ -90,7 +90,7 @@ type MasterConfig struct {
 	ProjectRequestConfig ProjectRequestConfig `json:"projectRequestConfig"`
 
 	// NetworkConfig to be passed to the compiled in network plugin
-	NetworkConfig NetworkConfig
+	NetworkConfig NetworkConfig `json:"networkConfig"`
 }
 
 type ProjectRequestConfig struct {
