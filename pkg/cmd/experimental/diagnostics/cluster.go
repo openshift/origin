@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	AvailableClusterDiagnostics = util.NewStringSet("NodeDefinitions")
+	AvailableClusterDiagnostics = util.NewStringSet("NodeDefinitions", "ClusterRegistry", "ClusterRouter")
 )
 
 func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool /* ok */, error) {
@@ -40,7 +40,11 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 		case "NodeDefinitions":
-			diagnostics = append(diagnostics, clustdiags.NodeDefinitions{kclusterClient})
+			diagnostics = append(diagnostics, &clustdiags.NodeDefinitions{kclusterClient, clusterClient})
+		case "ClusterRegistry":
+			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{kclusterClient, clusterClient})
+		case "ClusterRouter":
+			diagnostics = append(diagnostics, &clustdiags.ClusterRouter{kclusterClient, clusterClient})
 
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
