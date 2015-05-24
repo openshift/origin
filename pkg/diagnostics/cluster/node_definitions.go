@@ -9,9 +9,11 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
@@ -48,31 +50,36 @@ other options for 'oadm manage-node').
 // NodeDefinitions
 type NodeDefinitions struct {
 	KubeClient *kclient.Client
+	OsClient   *osclient.Client
 }
 
-func (d NodeDefinitions) Name() string {
+func (d *NodeDefinitions) Name() string {
 	return "NodeDefinitions"
 }
 
-func (d NodeDefinitions) Description() string {
+func (d *NodeDefinitions) Description() string {
 	return "Check node records on master"
 }
 
-func (d NodeDefinitions) CanRun() (bool, error) {
-	if d.KubeClient == nil {
-		return false, errors.New("must have kube client")
+func (d *NodeDefinitions) CanRun() (bool, error) {
+	if d.KubeClient == nil || d.OsClient == nil {
+		return false, errors.New("must have kube and os client")
 	}
-	if _, err := d.KubeClient.Nodes().List(labels.LabelSelector{}, fields.Everything()); err != nil {
-		// TODO check for 403 to return: "Client does not have cluster-admin access and cannot see node records"
-
+	can, err := adminCan(d.OsClient, kapi.NamespaceDefault, &authorizationapi.SubjectAccessReview{
+		Verb:     "list",
+		Resource: "nodes",
+	})
+	if err != nil {
 		msg := log.Message{ID: "clGetNodesFailed", EvaluatedText: fmt.Sprintf(clientErrorGettingNodes, err)}
 		return false, types.DiagnosticError{msg.ID, &msg, err}
+	} else if !can {
+		msg := log.Message{ID: "clGetNodesFailed", EvaluatedText: "Client does not have cluster-admin access and cannot see node records"}
+		return false, types.DiagnosticError{msg.ID, &msg, err}
 	}
-
 	return true, nil
 }
 
-func (d NodeDefinitions) Check() *types.DiagnosticResult {
+func (d *NodeDefinitions) Check() *types.DiagnosticResult {
 	r := types.NewDiagnosticResult("NodeDefinition")
 
 	nodes, err := d.KubeClient.Nodes().List(labels.LabelSelector{}, fields.Everything())
