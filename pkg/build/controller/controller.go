@@ -49,10 +49,6 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	}
 
 	if err := bc.nextBuildStatus(build); err != nil {
-		// TODO: all build errors should be retried, and build error should not be a permanent status change.
-		// Instead, we should requeue this build request using the same backoff logic as the scheduler.
-		//build.Status = buildapi.BuildStatusError
-		//build.Message = err.Error()
 		return fmt.Errorf("Build failed with error %s/%s: %v", build.Namespace, build.Name, err)
 	}
 
@@ -187,12 +183,12 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		glog.V(4).Infof("Updating build %s status %s -> %s", build.Name, build.Status, nextStatus)
 		build.Status = nextStatus
 		if build.Status == buildapi.BuildStatusComplete || build.Status == buildapi.BuildStatusFailed || build.Status == buildapi.BuildStatusCancelled {
-			dummy := util.Now()
-			build.CompletionTimestamp = &dummy
+			now := util.Now()
+			build.CompletionTimestamp = &now
 		}
 		if build.Status == buildapi.BuildStatusRunning {
-			dummy := util.Now()
-			build.StartTimestamp = &dummy
+			now := util.Now()
+			build.StartTimestamp = &now
 		}
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 			return fmt.Errorf("Failed to update build %s: %v", build.Name, err)
@@ -214,8 +210,8 @@ func (bc *BuildPodController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) 
 	}
 
 	build.Status = buildapi.BuildStatusCancelled
-	dummy := util.Now()
-	build.CompletionTimestamp = &dummy
+	now := util.Now()
+	build.CompletionTimestamp = &now
 	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 		return err
 	}

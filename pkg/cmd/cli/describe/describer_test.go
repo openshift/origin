@@ -222,7 +222,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 			},
 			"1m0s",
 		},
-		{ // 5 - build cancelled before running, start time wasn't set yet
+		{ // 6 - build cancelled before running, start time wasn't set yet
 			&buildapi.Build{
 				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
 				CompletionTimestamp: &completion,
@@ -231,7 +231,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 			},
 			"waited for 2m0s",
 		},
-		{ // 5 - build cancelled while running, start time is set already
+		{ // 7 - build cancelled while running, start time is set already
 			&buildapi.Build{
 				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
 				StartTimestamp:      &start,
@@ -240,6 +240,24 @@ func TestDescribeBuildDuration(t *testing.T) {
 				Duration:            duration,
 			},
 			"1m0s",
+		},
+		{ // 8 - build failed before running, start time wasn't set yet
+			&buildapi.Build{
+				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
+				CompletionTimestamp: &completion,
+				Status:              buildapi.BuildStatusFailed,
+				Duration:            duration,
+			},
+			"waited for 2m0s",
+		},
+		{ // 9 - build error before running, start time wasn't set yet
+			&buildapi.Build{
+				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
+				CompletionTimestamp: &completion,
+				Status:              buildapi.BuildStatusError,
+				Duration:            duration,
+			},
+			"waited for 2m0s",
 		},
 	}
 

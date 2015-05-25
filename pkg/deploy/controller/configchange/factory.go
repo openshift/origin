@@ -64,12 +64,12 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, count int) bool {
+			func(obj interface{}, err error, retries controller.Retry) bool {
 				kutil.HandleError(err)
 				if _, isFatal := err.(fatalError); isFatal {
 					return false
 				}
-				if count > 0 {
+				if retries.Count > 0 {
 					return false
 				}
 				return true

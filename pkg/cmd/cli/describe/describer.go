@@ -108,12 +108,25 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 	events, _ := d.kubeClient.Events(namespace).Search(build)
+	if events == nil {
+		events = &kapi.EventList{}
+	}
+	// get also pod events and merge it all into one list for describe
+	if pod, err := d.kubeClient.Pods(namespace).Get(buildutil.GetBuildPodName(build)); err == nil {
+		if podEvents, _ := d.kubeClient.Events(namespace).Search(pod); podEvents != nil {
+			events.Items = append(events.Items, podEvents.Items...)
+		}
+	}
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, build.ObjectMeta)
 		if build.Config != nil {
 			formatString(out, "Build Config", build.Config.Name)
 		}
-		formatString(out, "Status", bold(build.Status))
+		status := bold(build.Status)
+		if build.Status == buildapi.BuildStatusFailed {
+			status += " (" + build.Message + ")"
+		}
+		formatString(out, "Status", status)
 		if build.StartTimestamp != nil {
 			formatString(out, "Started", build.StartTimestamp.Time)
 		}
@@ -125,9 +138,7 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "Duration", describeBuildDuration(build))
 		formatString(out, "Build Pod", buildutil.GetBuildPodName(build))
 		describeBuildParameters(build.Parameters, out)
-		if events != nil {
-			kctl.DescribeEvents(events, out)
-		}
+		kctl.DescribeEvents(events, out)
 
 		return nil
 	})
@@ -135,7 +146,10 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 
 func describeBuildDuration(build *buildapi.Build) string {
 	t := util.Now().Rfc3339Copy()
-	if build.StartTimestamp == nil && build.Status == buildapi.BuildStatusCancelled {
+	if build.StartTimestamp == nil &&
+		(build.Status == buildapi.BuildStatusCancelled ||
+			build.Status == buildapi.BuildStatusFailed ||
+			build.Status == buildapi.BuildStatusError) {
 		// time a build waited for its pod before ultimately being canceled before that pod was created
 		return fmt.Sprintf("waited for %s", build.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.CreationTimestamp.Rfc3339Copy().Time))
 	} else if build.StartTimestamp == nil && build.Status != buildapi.BuildStatusCancelled {

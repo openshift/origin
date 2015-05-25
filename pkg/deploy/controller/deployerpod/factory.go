@@ -72,7 +72,7 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 		RetryManager: controller.NewQueueRetryManager(
 			podQueue,
 			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, count int) bool { return count < 1 },
+			func(obj interface{}, err error, retries controller.Retry) bool { return retries.Count < 1 },
 			kutil.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
