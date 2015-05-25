@@ -29,6 +29,8 @@ const (
 	ImageGroupName      = ResourceGroupPrefix + ":images"
 	OAuthGroupName      = ResourceGroupPrefix + ":oauth"
 	UserGroupName       = ResourceGroupPrefix + ":users"
+	TemplateGroupName   = ResourceGroupPrefix + ":templates"
+	SDNGroupName        = ResourceGroupPrefix + ":sdn"
 	// PolicyOwnerGroupName includes the physical resources behind the PermissionGrantingGroupName.  Unless these physical objects are created first, users with privileges to PermissionGrantingGroupName will
 	// only be able to bind to global roles
 	PolicyOwnerGroupName = ResourceGroupPrefix + ":policy"
@@ -54,12 +56,14 @@ var (
 		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone"},
 		ImageGroupName:              {"images", "imagerepositories", "imagerepositorymappings", "imagerepositorytags", "imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
 		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
+		SDNGroupName:                {"clusternetworks", "hostsubnets"},
+		TemplateGroupName:           {"templates", "templateconfigs", "processedtemplates"},
 		UserGroupName:               {"identities", "users", "useridentitymappings"},
 		OAuthGroupName:              {"oauthauthorizetokens", "oauthaccesstokens", "oauthclients", "oauthclientauthorizations"},
 		PolicyOwnerGroupName:        {"policies", "policybindings"},
 		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews", "subjectaccessreviews"},
-		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, "templates", "templateconfigs", "processedtemplates", "routes"},
-		OpenshiftAllGroupName:       {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects"},
+		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, TemplateGroupName, "routes"},
+		OpenshiftAllGroupName:       {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, SDNGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects"},
 		OpenshiftStatusGroupName:    {"imagerepositories/status"},
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
