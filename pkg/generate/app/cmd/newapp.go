@@ -26,6 +26,7 @@ import (
 // AppConfig contains all the necessary configuration for an application
 type AppConfig struct {
 	SourceRepositories util.StringList
+	ContextDir         string
 
 	Components         util.StringList
 	ImageStreams       util.StringList
@@ -153,6 +154,10 @@ func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository
 	})
 	b.AddGroups(c.Groups)
 	refs, repos, errs := b.Result()
+
+	if len(repos) > 0 {
+		repos[0].SetContextDir(c.ContextDir)
+	}
 
 	if len(c.TypeOfBuild) != 0 && len(repos) == 0 {
 		errs = append(errs, fmt.Errorf("when --build is specified you must provide at least one source code location"))

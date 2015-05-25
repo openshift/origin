@@ -8,7 +8,7 @@ import (
 
 func TestFromGitURL(t *testing.T) {
 	gen := &SourceRefGenerator{&test.FakeGit{}}
-	srcRef, err := gen.FromGitURL("git@github.com:openshift/origin.git#test_branch")
+	srcRef, err := gen.FromGitURL("git@github.com:openshift/origin.git#test_branch", "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
