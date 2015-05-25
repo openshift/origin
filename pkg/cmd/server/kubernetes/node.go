@@ -27,7 +27,6 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
-	"github.com/openshift/origin/pkg/kubelet/app"
 )
 
 type commandExecutor interface {
@@ -210,8 +209,8 @@ func (c *NodeConfig) RunKubelet() {
 		DockerClient:                   c.DockerClient,
 		KubeClient:                     c.Client,
 		MasterServiceNamespace:         kapi.NamespaceDefault,
-		VolumePlugins:                  app.ProbeVolumePlugins(),
-		NetworkPlugins:                 app.ProbeNetworkPlugins(),
+		VolumePlugins:                  kapp.ProbeVolumePlugins(),
+		NetworkPlugins:                 kapp.ProbeNetworkPlugins(),
 		NetworkPluginName:              c.NetworkPluginName,
 		StreamingConnectionIdleTimeout: 5 * time.Minute,
 		TLSOptions:                     tlsOptions,
