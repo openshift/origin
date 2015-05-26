@@ -25,6 +25,11 @@ type Build struct {
 
 // BuildSpec encapsulates all the inputs necessary to represent a build.
 type BuildSpec struct {
+	// ServiceAccount is the name of the ServiceAccount to use to run the pod
+	// created by this build.
+	// The pod will be allowed to use secrets referenced by the ServiceAccount
+	ServiceAccount string `json:"serviceAccount,omitempty"`
+
 	// Source describes the SCM in use.
 	Source BuildSource `json:"source,omitempty"`
 
