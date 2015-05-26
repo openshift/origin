@@ -1,90 +1,18 @@
 {
-  "apiVersion": "v1beta1",
-  "dockerImageReference": "openshift/ruby-19-centos:latest",
   "kind": "Image",
-  "meta": {
-    "Architecture": "amd64",
-    "Author": "Michal Fojtik \u003cmfojtik@redhat.com\u003e",
-    "Comment": "",
-    "Config": {
-      "AttachStderr": false,
-      "AttachStdin": false,
-      "AttachStdout": false,
-      "Cmd": [
-        "/opt/ruby/bin/usage"
-      ],
-      "CpuShares": 0,
-      "Cpuset": "",
-      "Domainname": "",
-      "Entrypoint": null,
-      "Env": [
-        "HOME=/opt/ruby",
-        "PATH=/opt/ruby/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-        "STI_SCRIPTS_URL=https://raw.githubusercontent.com/openshift/ruby-19-centos/master/.sti/bin",
-        "APP_ROOT=."
-      ],
-      "ExposedPorts": {
-        "9292/tcp": {}
-      },
-      "Hostname": "df1704c4368e",
-      "Image": "dde5ee6a036d5d2c69240413fa8f3bb9bb1fea25166996eadf42e2f113736401",
-      "Memory": 0,
-      "MemorySwap": 0,
-      "NetworkDisabled": false,
-      "OnBuild": [],
-      "OpenStdin": false,
-      "PortSpecs": null,
-      "StdinOnce": false,
-      "Tty": false,
-      "User": "ruby",
-      "Volumes": null,
-      "WorkingDir": "/opt/ruby/src"
-    },
-    "Container": "72ce367abbc2862232b5e5e3485e51f096983e4e28b8dbefba9a6fd5ce0d6e48",
-    "ContainerConfig": {
-      "AttachStderr": false,
-      "AttachStdin": false,
-      "AttachStdout": false,
-      "Cmd": [
-        "/bin/sh",
-        "-c",
-        "#(nop) CMD [/opt/ruby/bin/usage]"
-      ],
-      "CpuShares": 0,
-      "Cpuset": "",
-      "Domainname": "",
-      "Entrypoint": null,
-      "Env": [
-        "HOME=/opt/ruby",
-        "PATH=/opt/ruby/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-        "STI_SCRIPTS_URL=https://raw.githubusercontent.com/openshift/ruby-19-centos/master/.sti/bin",
-        "APP_ROOT=."
-      ],
-      "ExposedPorts": {
-        "9292/tcp": {}
-      },
-      "Hostname": "df1704c4368e",
-      "Image": "dde5ee6a036d5d2c69240413fa8f3bb9bb1fea25166996eadf42e2f113736401",
-      "Memory": 0,
-      "MemorySwap": 0,
-      "NetworkDisabled": false,
-      "OnBuild": [],
-      "OpenStdin": false,
-      "PortSpecs": null,
-      "StdinOnce": false,
-      "Tty": false,
-      "User": "ruby",
-      "Volumes": null,
-      "WorkingDir": "/opt/ruby/src"
-    },
-    "Created": "2014-08-08T14:36:01.303084707Z",
-    "DockerVersion": "1.1.2-dev",
-    "Id": "7dbbbc6cb29d5abc29b722c06d5209a499fa97cd655c59793540d00933ab4e45",
-    "Os": "linux",
-    "Parent": "dde5ee6a036d5d2c69240413fa8f3bb9bb1fea25166996eadf42e2f113736401",
-    "Size": 0
-  },
+  "apiVersion": "v1beta3",
   "metadata": {
-    "name": "test"
-  }
+    "name": "test",
+    "creationTimestamp": null
+  },
+  "dockerImageReference": "openshift/ruby-19-centos:latest",
+  "dockerImageMetadata": {
+    "kind": "DockerImage",
+    "apiVersion": "1.0",
+    "Id": "",
+    "Created": null,
+    "ContainerConfig": {},
+    "Config": {}
+  },
+  "dockerImageMetadataVersion": "1.0"
 }

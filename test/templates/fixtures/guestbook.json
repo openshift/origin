@@ -1,192 +1,305 @@
 {
-  "apiVersion": "v1beta1",
-  "items": [
-    {
-      "apiVersion": "v1beta1",
-      "host": "guestbook.example.com",
-      "id": "frontend-route",
-      "kind": "Route",
-      "metadata": {
-        "name": "frontend-route"
-      },
-      "serviceName": "frontend-service"
-    },
-    {
-      "apiVersion": "v1beta1",
-      "id": "frontend-service",
-      "kind": "Service",
-      "port": 5432,
-      "selector": {
-        "name": "frontend-service"
-      }
-    },
-    {
-      "apiVersion": "v1beta1",
-      "id": "redis-master",
-      "kind": "Service",
-      "port": 10000,
-      "selector": {
-        "name": "redis-master"
-      }
-    },
-    {
-      "apiVersion": "v1beta1",
-      "id": "${SLAVE_SERVICE_NAME}",
-      "kind": "Service",
-      "port": 10001,
-      "selector": {
-        "name": "${SLAVE_SERVICE_NAME}"
-      }
-    },
-    {
-      "apiVersion": "v1beta1",
-      "desiredState": {
-        "manifest": {
-          "containers": [
-            {
-              "env": [
-                {
-                  "name": "REDIS_PASSWORD",
-                  "value": "${REDIS_PASSWORD}"
-                }
-              ],
-              "image": "dockerfile/redis",
-              "name": "master",
-              "ports": [
-                {
-                  "containerPort": 6379
-                }
-              ]
-            }
-          ],
-          "name": "redis-master",
-          "version": "v1beta1"
-        }
-      },
-      "id": "redis-master",
-      "kind": "Pod",
-      "labels": {
-        "name": "redis-master"
-      }
-    },
-    {
-      "apiVersion": "v1beta1",
-      "desiredState": {
-        "podTemplate": {
-          "desiredState": {
-            "manifest": {
-              "containers": [
-                {
-                  "env": [
-                    {
-                      "name": "ADMIN_USERNAME",
-                      "value": "${ADMIN_USERNAME}"
-                    },
-                    {
-                      "name": "ADMIN_PASSWORD",
-                      "value": "${ADMIN_PASSWORD}"
-                    },
-                    {
-                      "name": "REDIS_PASSWORD",
-                      "value": "${REDIS_PASSWORD}"
-                    }
-                  ],
-                  "image": "brendanburns/php-redis",
-                  "name": "php-redis",
-                  "ports": [
-                    {
-                      "containerPort": 80,
-                      "hostPort": 8000
-                    }
-                  ]
-                }
-              ],
-              "name": "guestbook",
-              "version": "v1beta1"
-            }
-          },
-          "labels": {
-            "name": "frontend-service"
-          }
-        },
-        "replicaSelector": {
-          "name": "frontend-service"
-        },
-        "replicas": 3
-      },
-      "id": "guestbook",
-      "kind": "ReplicationController"
-    },
-    {
-      "apiVersion": "v1beta1",
-      "desiredState": {
-        "podTemplate": {
-          "desiredState": {
-            "manifest": {
-              "containers": [
-                {
-                  "env": [
-                    {
-                      "name": "REDIS_PASSWORD",
-                      "value": "${REDIS_PASSWORD}"
-                    }
-                  ],
-                  "image": "brendanburns/${SLAVE_SERVICE_NAME}",
-                  "name": "slave",
-                  "ports": [
-                    {
-                      "containerPort": 6379,
-                      "hostPort": 6380
-                    }
-                  ]
-                }
-              ],
-              "id": "${SLAVE_SERVICE_NAME}",
-              "version": "v1beta1"
-            }
-          },
-          "labels": {
-            "name": "${SLAVE_SERVICE_NAME}"
-          }
-        },
-        "replicaSelector": {
-          "name": "${SLAVE_SERVICE_NAME}"
-        },
-        "replicas": 2
-      },
-      "id": "${SLAVE_SERVICE_NAME}",
-      "kind": "ReplicationController"
-    }
-  ],
   "kind": "Template",
+  "apiVersion": "v1beta3",
   "metadata": {
+    "name": "guestbook-example",
+    "creationTimestamp": null,
     "annotations": {
       "description": "Example shows how to build a simple multi-tier application using Kubernetes and Docker"
-    },
-    "name": "guestbook-example"
+    }
   },
+  "objects": [
+    {
+      "kind": "Route",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "frontend-route",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "host": "guestbook.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend-service"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "frontend-service",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 5432,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend-service"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "redis-master",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 10000,
+            "targetPort": 10000,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "redis-master"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "${SLAVE_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 10001,
+            "targetPort": 10001,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Pod",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "redis-master",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "redis-master"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "master",
+            "image": "dockerfile/redis",
+            "ports": [
+              {
+                "containerPort": 6379,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "REDIS_PASSWORD",
+                "value": "${REDIS_PASSWORD}"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccount": ""
+      },
+      "status": {}
+    },
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "guestbook",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "frontend-service"
+        }
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "name": "frontend-service"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "frontend-service"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "php-redis",
+                "image": "brendanburns/php-redis",
+                "ports": [
+                  {
+                    "hostPort": 8000,
+                    "containerPort": 80,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ADMIN_USERNAME",
+                    "value": "${ADMIN_USERNAME}"
+                  },
+                  {
+                    "name": "ADMIN_PASSWORD",
+                    "value": "${ADMIN_PASSWORD}"
+                  },
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    },
+    {
+      "kind": "ReplicationController",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "${SLAVE_SERVICE_NAME}",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        }
+      },
+      "spec": {
+        "replicas": 2,
+        "selector": {
+          "name": "${SLAVE_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "${SLAVE_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "slave",
+                "image": "brendanburns/${SLAVE_SERVICE_NAME}",
+                "ports": [
+                  {
+                    "hostPort": 6380,
+                    "containerPort": 6379,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "REDIS_PASSWORD",
+                    "value": "${REDIS_PASSWORD}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    }
+  ],
   "parameters": [
     {
+      "name": "ADMIN_USERNAME",
       "description": "Guestbook administrator username",
-      "from": "admin[A-Z0-9]{3}",
       "generate": "expression",
-      "name": "ADMIN_USERNAME"
+      "from": "admin[A-Z0-9]{3}"
     },
     {
+      "name": "ADMIN_PASSWORD",
       "description": "Guestbook administrator password",
-      "from": "[a-zA-Z0-9]{8}",
       "generate": "expression",
-      "name": "ADMIN_PASSWORD"
+      "from": "[a-zA-Z0-9]{8}"
     },
     {
+      "name": "REDIS_PASSWORD",
       "description": "Redis password",
-      "from": "[a-zA-Z0-9]{8}",
       "generate": "expression",
-      "name": "REDIS_PASSWORD"
+      "from": "[a-zA-Z0-9]{8}"
     },
     {
-      "description": "Slave Service name",
       "name": "SLAVE_SERVICE_NAME",
+      "description": "Slave Service name",
       "value": "redis-slave"
     }
   ]

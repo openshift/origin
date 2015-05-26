@@ -1,26 +1,38 @@
 {
-  "apiVersion": "v1beta2",
-  "desiredState": {
-    "manifest": {
-      "containers": [
-        {
-          "image": "openshift/hello-openshift",
-          "name": "hello-openshift",
-          "ports": [
-            {
-              "containerPort": 8080,
-              "hostPort": 6061
-            }
-          ]
-        }
-      ],
-      "id": "hello-openshift",
-      "version": "v1beta1"
+  "kind": "Pod",
+  "apiVersion": "v1beta3",
+  "metadata": {
+    "name": "hello-openshift",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "hello-openshift"
     }
   },
-  "id": "hello-openshift",
-  "kind": "Pod",
-  "labels": {
-    "name": "hello-openshift"
-  }
+  "spec": {
+    "containers": [
+      {
+        "name": "hello-openshift",
+        "image": "openshift/hello-openshift",
+        "ports": [
+          {
+            "hostPort": 6061,
+            "containerPort": 8080,
+            "protocol": "TCP"
+          }
+        ],
+        "resources": {},
+        "terminationMessagePath": "/dev/termination-log",
+        "imagePullPolicy": "IfNotPresent",
+        "capabilities": {},
+        "securityContext": {
+          "capabilities": {},
+          "privileged": false
+        }
+      }
+    ],
+    "restartPolicy": "Always",
+    "dnsPolicy": "ClusterFirst",
+    "serviceAccount": ""
+  },
+  "status": {}
 }

@@ -1,127 +1,150 @@
 {
-  "apiVersion": "v1beta1",
   "kind": "Template",
+  "apiVersion": "v1beta3",
   "metadata": {
+    "name": "mysql",
+    "creationTimestamp": null,
     "annotations": {
       "description": "This template creates a basic MySQL database service",
-      "tags": "database,mysql",
-      "iconClass" : "icon-mysql-database"
-    },
-    "name": "mysql"
-  },
-  "parameters": [
-    {
-      "description": "database username",
-      "from": "user[A-Z0-9]{3}",
-      "generate": "expression",
-      "name": "MYSQL_USER"
-    },
-    {
-      "description": "database password",
-      "from": "[a-zA-Z0-9]{8}",
-      "generate": "expression",
-      "name": "MYSQL_PASSWORD"
-    },
-    {
-      "description": "database name",
-      "name": "MYSQL_DATABASE",
-      "value": "sampledb"
+      "iconClass": "icon-mysql-database",
+      "tags": "database,mysql"
     }
-  ],
-  "labels": {
-    "template": "mysql-template"
   },
-  "items": [
+  "objects": [
     {
-      "apiVersion": "v1beta3",
       "kind": "Service",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mysql"
+        "name": "mysql",
+        "creationTimestamp": null
       },
       "spec": {
         "ports": [
           {
             "name": "mysql",
-            "port": 3306,
             "protocol": "TCP",
-            "targetPort": 3306
+            "port": 3306,
+            "targetPort": 3306,
+            "nodePort": 0
           }
         ],
         "selector": {
           "name": "mysql"
-        }
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
       }
     },
     {
-      "apiVersion": "v1beta1",
       "kind": "DeploymentConfig",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mysql"
+        "name": "mysql",
+        "creationTimestamp": null
       },
-      "template": {
-        "controllerTemplate": {
-          "podTemplate": {
-            "desiredState": {
-              "manifest": {
-                "containers": [
-                  {
-                    "env": [
-                      {
-                        "name": "MYSQL_USER",
-                        "value": "${MYSQL_USER}"
-                      },
-                      {
-                        "name": "MYSQL_PASSWORD",
-                        "value": "${MYSQL_PASSWORD}"
-                      },
-                      {
-                        "name": "MYSQL_DATABASE",
-                        "value": "${MYSQL_DATABASE}"
-                      }
-                    ],
-                    "image": "mysql",
-                    "name": "mysql",
-                    "ports": [
-                      {
-                        "containerPort": 3306
-                      }
-                    ]
-                  }
-                ],
-                "version": "v1beta1"
-              }
-            },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "mysql"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "mysql:latest"
+              },
+              "lastTriggeredImage": ""
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "mysql"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
             "labels": {
               "name": "mysql"
             }
           },
-          "replicaSelector": {
-            "name": "mysql"
-          },
-          "replicas": 1
-        },
-        "strategy": {
-          "type": "Recreate"
+          "spec": {
+            "containers": [
+              {
+                "name": "mysql",
+                "image": "mysql",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "value": "${MYSQL_USER}"
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${MYSQL_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
         }
       },
-      "triggers": [
-        {
-          "imageChangeParams": {
-            "automatic": true,
-            "containerNames": [
-              "mysql"
-            ],
-            "from": {
-              "name": "mysql"
-            },
-            "tag": "latest"
-          },
-          "type": "ImageChange"
-        },
-        {
-          "type": "ConfigChange"
-        }
-      ]
+      "status": {}
     }
-  ]
+  ],
+  "parameters": [
+    {
+      "name": "MYSQL_USER",
+      "description": "database username",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}"
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "database name",
+      "value": "sampledb"
+    }
+  ],
+  "labels": {
+    "template": "mysql-template"
+  }
 }
