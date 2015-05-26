@@ -15,6 +15,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -126,8 +127,15 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	checkErr(t, err)
+
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 

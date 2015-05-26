@@ -12,7 +12,6 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 	watchapi "github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -38,10 +37,6 @@ var (
 	// BuildControllersWatchTimeout is used by all tests to wait for watch events. In case where only
 	// a single watch event is expected, the test will fail after the timeout.
 	BuildControllersWatchTimeout = 5 * time.Second
-
-	// BuildServiceAccountWaitTimeout is used to determine how long to wait for the service account
-	// controllers to start up, and populate the service accounts in the test namespace
-	BuildServiceAccountWaitTimeout = 30 * time.Second
 )
 
 func init() {
@@ -306,19 +301,9 @@ func setupBuildControllerTest(additionalBuildControllers, additionalBuildPodCont
 	})
 	checkErr(t, err)
 
-	// Ensure the service accounts needed by build pods exist in the namespace
-	// The extra controllers tend to starve the service account controller
-	serviceAccounts := clusterAdminKubeClient.ServiceAccounts(testutil.Namespace())
-	err = wait.Poll(time.Second, BuildServiceAccountWaitTimeout, func() (bool, error) {
-		if _, err := serviceAccounts.Get(bootstrappolicy.DefaultServiceAccountName); err != nil {
-			return false, nil
-		}
-		if _, err := serviceAccounts.Get(bootstrappolicy.BuilderServiceAccountName); err != nil {
-			return false, nil
-		}
-		return true, nil
-	})
-	checkErr(t, err)
+	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	openshiftConfig, err := origin.BuildMasterConfig(*master)
 	checkErr(t, err)

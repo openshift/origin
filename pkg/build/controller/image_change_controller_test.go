@@ -6,10 +6,12 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildtest "github.com/openshift/origin/pkg/build/controller/test"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -24,7 +26,7 @@ func TestNewImageID(t *testing.T) {
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
-		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+		t.Fatalf("Unexpected error %v from HandleImageRepo", err)
 	}
 
 	if len(bcInstantiator.name) == 0 {
@@ -52,7 +54,7 @@ func TestNewImageIDDefaultTag(t *testing.T) {
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
-		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+		t.Fatalf("Unexpected error %v from HandleImageRepo", err)
 	}
 	if len(bcInstantiator.name) == 0 {
 		t.Error("Expected build generation when new image was created!")
@@ -80,7 +82,7 @@ func TestNonExistentImageStream(t *testing.T) {
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
-		t.Errorf("Unexpected error %v from HandleImageRepo", err)
+		t.Fatalf("Unexpected error %v from HandleImageRepo", err)
 	}
 	if len(bcInstantiator.name) != 0 {
 		t.Error("New build generated when a different repository was updated!")
@@ -235,7 +237,7 @@ func TestBuildConfigInstantiatorError(t *testing.T) {
 
 	err := controller.HandleImageRepo(imageStream)
 	if err == nil || !strings.Contains(err.Error(), "instantiating error") {
-		t.Error("Expected error from HandleImageRepo")
+		t.Fatalf("Expected error from HandleImageRepo")
 	}
 	if actual, expected := bcInstantiator.newBuild.Parameters.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
 		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
@@ -376,8 +378,14 @@ func (i *buildConfigInstantiator) Instantiate(namespace string, request *buildap
 }
 
 func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *imageapi.ImageStream, image *imageapi.Image) *buildConfigInstantiator {
+	builderAccount := kapi.ServiceAccount{
+		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName},
+		Secrets:    []kapi.ObjectReference{},
+	}
 	instantiator := &buildConfigInstantiator{}
 	generator := buildgenerator.BuildGenerator{
+		Secrets:         testclient.NewSimpleFake(),
+		ServiceAccounts: testclient.NewSimpleFake(&builderAccount),
 		Client: buildgenerator.Client{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return buildcfg, nil
