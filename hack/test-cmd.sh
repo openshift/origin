@@ -564,6 +564,7 @@ echo "ex build-chain: ok"
 
 osadm new-project example --admin="createuser"
 osc project example
+wait_for_command 'osc get serviceaccount default' "${TIME_MIN}"
 osc create -f test/fixtures/app-scenarios
 osc status
 echo "complex-scenarios: ok"
