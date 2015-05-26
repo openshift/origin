@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -284,6 +285,7 @@ func NewCmdStop(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 const (
 	labelLong = `Update the labels on a resource.
 
+A valid label value is consisted of letters and/or numbers with a max length of %[1]d characters.
 If --overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error.
 If --resource-version is specified, then updates will use this resource version, otherwise the existing resource-version will be used.`
 
@@ -307,7 +309,7 @@ $ %[1]s label pods foo bar-`
 // NewCmdLabel is a wrapper for the Kubernetes cli label command
 func NewCmdLabel(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdLabel(f.Factory, out)
-	cmd.Long = labelLong
+	cmd.Long = fmt.Sprintf(labelLong, kutil.LabelValueMaxLength)
 	cmd.Example = fmt.Sprintf(labelExample, fullName)
 	return cmd
 }
