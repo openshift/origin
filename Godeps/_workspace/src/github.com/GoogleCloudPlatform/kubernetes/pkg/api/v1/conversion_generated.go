@@ -3917,6 +3917,16 @@ func convert_v1_ServiceAccount_To_api_ServiceAccount(in *ServiceAccount, out *ne
 	} else {
 		out.Secrets = nil
 	}
+	if in.ImagePullSecrets != nil {
+		out.ImagePullSecrets = make([]newer.LocalObjectReference, len(in.ImagePullSecrets))
+		for i := range in.ImagePullSecrets {
+			if err := convert_v1_LocalObjectReference_To_api_LocalObjectReference(&in.ImagePullSecrets[i], &out.ImagePullSecrets[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ImagePullSecrets = nil
+	}
 	return nil
 }
 
@@ -3939,6 +3949,16 @@ func convert_api_ServiceAccount_To_v1_ServiceAccount(in *newer.ServiceAccount, o
 		}
 	} else {
 		out.Secrets = nil
+	}
+	if in.ImagePullSecrets != nil {
+		out.ImagePullSecrets = make([]LocalObjectReference, len(in.ImagePullSecrets))
+		for i := range in.ImagePullSecrets {
+			if err := convert_api_LocalObjectReference_To_v1_LocalObjectReference(&in.ImagePullSecrets[i], &out.ImagePullSecrets[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.ImagePullSecrets = nil
 	}
 	return nil
 }
