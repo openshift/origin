@@ -13,7 +13,7 @@ angular.module('openshiftConsole')
         });
         scope.$on('$destroy', function() {
           ObjectDescriber.removeResourceChangedCallback(callback);
-        });    
+        });
       }
     };
   })
@@ -76,7 +76,7 @@ angular.module('openshiftConsole')
           if (ObjectDescriber.getSource() === scope) {
             ObjectDescriber.clearObject();
           }
-        });        
+        });
       }
     };
   })  
@@ -95,18 +95,18 @@ angular.module('openshiftConsole')
       this.source = opts.source || null;
       var self = this;
       // queue this up to run after the current digest loop finishes
-      $timeout(function(){      
+      $timeout(function(){
         self.callbacks.fire(resource, kind);
       }, 0);
     };
 
     ObjectDescriber.prototype.clearObject = function() {
       this.setObject(null, null);
-    };    
+    };
 
     ObjectDescriber.prototype.getSource = function() {
       return this.source;
-    };        
+    };
 
     // Callback will never be called within a digest loop
     ObjectDescriber.prototype.onResourceChanged = function(callback) {
@@ -123,7 +123,7 @@ angular.module('openshiftConsole')
 
     ObjectDescriber.prototype.removeResourceChangedCallback = function(callback) {
       this.callbacks.remove(callback);
-    };    
+    };
 
     return new ObjectDescriber();
   });

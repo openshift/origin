@@ -170,7 +170,7 @@ angular.module("openshiftConsole")
       }
       return deploymentConfig;
     };
-    
+
     scope._generateBuildConfig = function(input, imageSpec, labels){
       var dockerSpec = input.imageRepo.status.dockerImageRepository + ":" + input.imageTag;
       var triggers = [
