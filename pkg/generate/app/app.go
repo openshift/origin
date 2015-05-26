@@ -184,15 +184,23 @@ func (r *ImageRef) NameReference() string {
 
 // ObjectReference returns an object reference from the image reference
 func (r *ImageRef) ObjectReference() *kapi.ObjectReference {
-	if r.Stream != nil {
+	switch {
+	case r.Stream != nil:
+		return &kapi.ObjectReference{
+			Kind:      "ImageStreamTag",
+			Name:      imageapi.NameAndTag(r.Stream.Name, r.Tag),
+			Namespace: r.Stream.Namespace,
+		}
+	case r.AsImageStream:
 		return &kapi.ObjectReference{
 			Kind: "ImageStreamTag",
-			Name: r.Stream.Name + ":" + r.Tag,
+			Name: imageapi.NameAndTag(r.Name, r.Tag),
 		}
-	}
-	return &kapi.ObjectReference{
-		Kind: "DockerImage",
-		Name: r.String(),
+	default:
+		return &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: r.String(),
+		}
 	}
 }
 
@@ -233,7 +241,12 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 
 // BuildTriggers sets up build triggers for the base image
 func (r *ImageRef) BuildTriggers() []buildapi.BuildTriggerPolicy {
-	return []buildapi.BuildTriggerPolicy{}
+	return []buildapi.BuildTriggerPolicy{
+		{
+			Type:        buildapi.ImageChangeBuildTriggerType,
+			ImageChange: &buildapi.ImageChangeTrigger{},
+		},
+	}
 }
 
 // ImageStream returns an ImageStream from an image reference
@@ -274,18 +287,27 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 		if len(tag) == 0 {
 			tag = imageapi.DefaultImageTag
 		}
+		imageChangeParams := &deployapi.DeploymentTriggerImageChangeParams{
+			Automatic:      true,
+			ContainerNames: []string{name},
+			Tag:            tag,
+		}
+		if r.Stream != nil {
+			imageChangeParams.From = kapi.ObjectReference{
+				Kind:      "ImageStream",
+				Name:      r.Stream.Name,
+				Namespace: r.Stream.Namespace,
+			}
+		} else {
+			imageChangeParams.From = kapi.ObjectReference{
+				Kind: "ImageStream",
+				Name: r.Name,
+			}
+		}
 		triggers = []deployapi.DeploymentTriggerPolicy{
 			{
-				Type: deployapi.DeploymentTriggerOnImageChange,
-				ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
-					Automatic:      true,
-					ContainerNames: []string{name},
-					From: kapi.ObjectReference{
-						Name: name,
-						Kind: "ImageStream",
-					},
-					Tag: tag,
-				},
+				Type:              deployapi.DeploymentTriggerOnImageChange,
+				ImageChangeParams: imageChangeParams,
 			},
 		}
 	}
