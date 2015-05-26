@@ -90,7 +90,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	masterOptions.ProjectRequestConfig.ProjectRequestTemplate = namespace + "/" + templateName
+	masterOptions.ProjectConfig.ProjectRequestTemplate = namespace + "/" + templateName
 
 	clusterAdminKubeConfig, err := testutil.StartConfiguredMaster(masterOptions)
 	if err != nil {

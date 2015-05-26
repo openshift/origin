@@ -251,12 +251,12 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache)
 
-	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectRequestConfig.ProjectRequestTemplate)
+	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
 	if err != nil {
 		glog.Errorf("Error parsing project request template value: %v", err)
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient)
+	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient)
 
 	bcClient, _ := c.BuildControllerClients()
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
@@ -806,8 +806,8 @@ func (c *MasterConfig) RunDNSServer() {
 
 // RunProjectCache populates project cache, used by scheduler and project admission controller.
 func (c *MasterConfig) RunProjectCache() {
-	glog.Infof("Using default project node label selector: %s", c.Options.ProjectNodeSelector)
-	projectcache.RunProjectCache(c.PrivilegedLoopbackKubernetesClient, c.Options.ProjectNodeSelector)
+	glog.Infof("Using default project node label selector: %s", c.Options.ProjectConfig.DefaultNodeSelector)
+	projectcache.RunProjectCache(c.PrivilegedLoopbackKubernetesClient, c.Options.ProjectConfig.DefaultNodeSelector)
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
