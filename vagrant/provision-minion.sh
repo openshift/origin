@@ -28,7 +28,7 @@ for (( i=0; i<${#MINION_NAMES[@]}; i++)); do
   if [ ! "$(cat /etc/hosts | grep $minion)" ]; then
     echo "Adding $minion to hosts file"
     echo "$ip $minion" >> /etc/hosts
-  fi  
+  fi
 done
 if ! grep ${MINION_IP} /etc/hosts; then
   echo "${MINION_IP} ${minion_name}" >> /etc/hosts

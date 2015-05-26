@@ -74,12 +74,12 @@ angular.module('openshiftConsole')
     var logoutService = loadService($injector, _logoutService, "AuthServiceProvider.LogoutService()");
 
     return {
-      
+
       // Returns the configured user store
       UserStore: function() {
         return userStore;
       },
-      
+
       // Returns true if currently logged in.
       isLoggedIn: function() {
         return !!userStore.getUser();
