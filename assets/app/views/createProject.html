@@ -5,13 +5,14 @@
       <form name="createProjectForm">
         <div class="form-group">
           <label for="name">Name *</label>
-          <span ng-class="{'has-error': createProjectForm.name.$error.pattern || nameTaken}">
+          <span ng-class="{'has-error': (createProjectForm.name.$error.pattern && createProjectForm.name.$touched) || nameTaken}">
             <input class="form-control input-lg"
                 name="name"
                 id="name"
                 placeholder="my-project"
                 type="text" autofocus
                 required
+                minlength="2"
                 maxlength="63"
                 pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
                 aria-describedby="nameHelp"
@@ -23,7 +24,7 @@
             <span class="help-block">A unique name for the project.</span>
           </div>
           <div class="has-error">
-            <span id="nameHelp" class="help-block" ng-if="createProjectForm.name.$error.pattern">
+            <span id="nameHelp" class="help-block" ng-if="createProjectForm.name.$error.pattern && createProjectForm.name.$touched">
               Project names may only contain lower-case letters, numbers, and dashes.
               They may not start or end with a dash.</span>
           </div>
