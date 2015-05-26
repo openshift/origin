@@ -97,7 +97,7 @@ angular.module('openshiftConsole')
         $scope.$watch("project", clearAndUpdateOptions);
         $scope.$watch("projects", clearAndUpdateOptions);
 
-        LabelFilter.setupFilterWidget($(".navbar-filter-widget", element), $(".active-filters", element));
+        LabelFilter.setupFilterWidget($(".navbar-filter-widget", element), $(".active-filters", element), { addButtonText: "Add" });
         LabelFilter.toggleFilterWidget(!$scope.renderOptions || !$scope.renderOptions.hideFilterWidget);
 
         $scope.$watch("renderOptions", function(renderOptions) {
