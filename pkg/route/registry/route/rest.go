@@ -2,7 +2,6 @@ package route
 
 import (
 	"fmt"
-	"strings"
 
 	"code.google.com/p/go-uuid/uuid"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -105,8 +104,6 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 
 	kapi.FillObjectMetaSystemFields(ctx, &route.ObjectMeta)
 
-	escapeNewLines(route.TLS)
-
 	err = rs.registry.CreateRoute(ctx, route)
 	if err != nil {
 		return nil, err
@@ -135,8 +132,6 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 	// TODO: Call ValidateRouteUpdate->ValidateObjectMetaUpdate
 	// TODO: In the UpdateStrategy.PrepareForUpdate, set the HostGeneratedAnnotationKey annotation to "false" if the updated route object modifies the host
 
-	escapeNewLines(route.TLS)
-
 	err := rs.registry.UpdateRoute(ctx, route)
 	if err != nil {
 		return nil, false, err
@@ -149,27 +144,4 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 // It implements apiserver.ResourceWatcher.
 func (rs *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return rs.registry.WatchRoutes(ctx, label, field, resourceVersion)
-}
-
-// escapeNewLines replaces json escaped new lines with actual line breaks
-// certs in json must be single line strings, a new line in json is represented by \\n.  This utility will replace
-// a json escaped newline with a real line break which is required for the cert to function properly
-func escapeNewLines(tls *api.TLSConfig) {
-	if tls != nil {
-		if len(tls.Certificate) > 0 {
-			tls.Certificate = strings.Replace(tls.Certificate, "\\n", "\n", -1)
-		}
-
-		if len(tls.Key) > 0 {
-			tls.Key = strings.Replace(tls.Key, "\\n", "\n", -1)
-		}
-
-		if len(tls.CACertificate) > 0 {
-			tls.CACertificate = strings.Replace(tls.CACertificate, "\\n", "\n", -1)
-		}
-
-		if len(tls.DestinationCACertificate) > 0 {
-			tls.DestinationCACertificate = strings.Replace(tls.DestinationCACertificate, "\\n", "\n", -1)
-		}
-	}
 }

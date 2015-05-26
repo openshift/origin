@@ -171,6 +171,13 @@ func DefaultEtcdServingCertInfo(certDir string) configapi.CertInfo {
 	}
 }
 
+func DefaultServiceAccountPrivateKeyFile(certDir string) string {
+	return path.Join(certDir, "serviceaccounts.private.key")
+}
+func DefaultServiceAccountPublicKeyFile(certDir string) string {
+	return path.Join(certDir, "serviceaccounts.public.key")
+}
+
 func DefaultNodeDir(nodeName string) string {
 	return "node-" + nodeName
 }

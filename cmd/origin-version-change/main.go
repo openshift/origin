@@ -12,13 +12,17 @@ import (
 	"runtime"
 
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	flag "github.com/spf13/pflag"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
+	kruntime "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 var (
@@ -36,6 +40,31 @@ func isYAML(data []byte) bool {
 		return true
 	}
 	return false
+}
+
+func changeTemplateObjectsVersion(t *templateapi.Template) {
+	if errs := kruntime.DecodeList(t.Objects, api.Scheme); len(errs) > 0 {
+		log.Fatalf("Unable to decode Template objects: %v", errs)
+	}
+	for i, obj := range t.Objects {
+		_, kind, err := api.Scheme.ObjectVersionAndKind(obj)
+		if err != nil {
+			glog.Infof("Template.Objects[%d]: Unable to determine version and kind: %v", i, err)
+			continue
+		}
+		mapping, err := latest.RESTMapper.RESTMapping(kind, *outputVersion)
+		if err != nil {
+			glog.Infof("Template.Objects[%d]: Unable to get REST mappings: %v", err)
+			continue
+		}
+		info := resource.Info{Object: obj, Mapping: mapping}
+		outputObj, err := resource.AsVersionedObject([]*resource.Info{&info}, false, *outputVersion)
+		if err != nil {
+			glog.Infof("Template.Objects[%d]: Unable to convert: %v", err)
+			continue
+		}
+		t.Objects[i] = outputObj
+	}
 }
 
 func main() {
@@ -75,6 +104,10 @@ func main() {
 	obj, err := api.Scheme.Decode(data)
 	if err != nil {
 		log.Fatalf("Couldn't decode input: %q", err)
+	}
+
+	if template, ok := obj.(*templateapi.Template); ok {
+		changeTemplateObjectsVersion(template)
 	}
 
 	outData, err := api.Scheme.EncodeToVersion(obj, *outputVersion)

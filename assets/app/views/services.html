@@ -20,7 +20,7 @@
         <div>Ports:
           <span ng-if="!service.spec.ports.length"><em>none</em></span>
           <ul ng-if="service.spec.ports.length">
-            <li ng-repeat="portMapping in service.spec.ports | orderBy:port">
+            <li ng-repeat="portMapping in service.spec.ports | orderBy:'port'">
               {{portMapping.port}} &#8594; {{portMapping.targetPort}} ({{portMapping.protocol}})
             </li>
           </ul>
