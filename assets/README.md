@@ -1,6 +1,6 @@
 OpenShift 3 Static Assets
 =========================
-The static assets for OpenShift v3.  This includes the web management console.
+The static assets for OpenShift v3.  This includes the web console.
 
 Contributing
 ------------
@@ -64,7 +64,7 @@ If Travis complains that bindata.go is different than the committed version, ens
 Architecture
 ------------
 
-The OpenShift v3 management console is based on AngularJS and [Hawt.io](https://github.com/hawtio/hawtio-core)
+The OpenShift v3 web console is based on AngularJS and [Hawt.io](https://github.com/hawtio/hawtio-core)
 
 #### Navigation
 
