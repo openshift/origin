@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -11,6 +13,7 @@ import (
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -29,6 +32,7 @@ type DeployOptions struct {
 	deploymentConfigName string
 	deployLatest         bool
 	retryDeploy          bool
+	cancelDeploy         bool
 }
 
 const (
@@ -45,7 +49,10 @@ NOTE: This command is still under active development and is subject to change.`
   $ %[1]s deploy frontend --latest
 
   // Retry the latest failed deployment based on the 'frontend' deployment config
-  $ %[1]s deploy frontend --retry`
+  $ %[1]s deploy frontend --retry
+
+  // Cancel the in-progress deployment based on the 'frontend' deployment config
+  $ %[1]s deploy frontend --cancel`
 )
 
 // NewCmdDeploy creates a new `deploy` command.
@@ -76,6 +83,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 
 	cmd.Flags().BoolVar(&options.deployLatest, "latest", false, "Start a new deployment now.")
 	cmd.Flags().BoolVar(&options.retryDeploy, "retry", false, "Retry the latest failed deployment.")
+	cmd.Flags().BoolVar(&options.cancelDeploy, "cancel", false, "Cancel the in-progress deployment.")
 
 	return cmd
 }
@@ -108,8 +116,18 @@ func (o DeployOptions) Validate(args []string) error {
 	if len(args) > 1 {
 		return errors.New("Only one deploymentConfig name is supported as argument.")
 	}
-	if o.deployLatest && o.retryDeploy {
-		return errors.New("Only one of --latest or --retry is allowed.")
+	numOptions := 0
+	if o.deployLatest {
+		numOptions++
+	}
+	if o.retryDeploy {
+		numOptions++
+	}
+	if o.cancelDeploy {
+		numOptions++
+	}
+	if numOptions > 1 {
+		return errors.New("Only one of --latest, --retry, or --cancel is allowed.")
 	}
 	return nil
 }
@@ -124,6 +142,14 @@ func (o DeployOptions) RunDeploy() error {
 		GetDeploymentFn: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return o.kubeClient.ReplicationControllers(namespace).Get(name)
 		},
+		ListDeploymentsForConfigFn: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+			selector, err := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeploymentConfigLabel, configName))
+			if err != nil {
+				return nil, err
+			}
+			return o.kubeClient.ReplicationControllers(namespace).List(selector)
+		},
+
 		UpdateDeploymentConfigFn: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 			return o.osClient.DeploymentConfigs(config.Namespace).Update(config)
 		},
@@ -139,6 +165,9 @@ func (o DeployOptions) RunDeploy() error {
 	case o.retryDeploy:
 		c := &retryDeploymentCommand{client: commandClient}
 		err = c.retry(config, o.out)
+	case o.cancelDeploy:
+		c := &cancelDeploymentCommand{client: commandClient}
+		err = c.cancel(config, o.out)
 	default:
 		describer := describe.NewLatestDeploymentsDescriber(o.osClient, o.kubeClient, -1)
 		desc, err := describer.Describe(config.Namespace, config.Name)
@@ -154,6 +183,7 @@ func (o DeployOptions) RunDeploy() error {
 // deployCommandClient abstracts access to the API server.
 type deployCommandClient interface {
 	GetDeployment(namespace, name string) (*kapi.ReplicationController, error)
+	ListDeploymentsForConfig(namespace, configName string) (*kapi.ReplicationControllerList, error)
 	UpdateDeploymentConfig(*deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	UpdateDeployment(*kapi.ReplicationController) (*kapi.ReplicationController, error)
 }
@@ -218,16 +248,64 @@ func (c *retryDeploymentCommand) retry(config *deployapi.DeploymentConfig, out i
 	return err
 }
 
+// cancelDeploymentCommand cancels the in-progress deployments.
+type cancelDeploymentCommand struct {
+	client deployCommandClient
+}
+
+// cancel cancels any deployment process in progress for config.
+func (c *cancelDeploymentCommand) cancel(config *deployapi.DeploymentConfig, out io.Writer) error {
+	deployments, err := c.client.ListDeploymentsForConfig(config.Namespace, config.Name)
+	if err != nil {
+		return err
+	}
+	failedCancellations := []string{}
+	for _, deployment := range deployments.Items {
+		status := deployutil.DeploymentStatusFor(&deployment)
+
+		switch status {
+		case deployapi.DeploymentStatusNew,
+			deployapi.DeploymentStatusPending,
+			deployapi.DeploymentStatusRunning:
+
+			if deployutil.IsDeploymentCancelled(&deployment) {
+				continue
+			}
+
+			deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
+			_, err := c.client.UpdateDeployment(&deployment)
+			if err == nil {
+				fmt.Fprintf(out, "cancelled #%d\n", config.LatestVersion)
+			} else {
+				fmt.Fprintf(out, "couldn't cancel deployment %d (status: %s): %v", deployutil.DeploymentVersionFor(&deployment), status, err)
+				failedCancellations = append(failedCancellations, strconv.Itoa(deployutil.DeploymentVersionFor(&deployment)))
+			}
+		}
+	}
+	if len(failedCancellations) == 0 {
+		return nil
+	} else {
+		return fmt.Errorf("couldn't cancel deployment %s", strings.Join(failedCancellations, ", "))
+	}
+}
+
 // deployCommandClientImpl is a pluggable deployCommandClient.
 type deployCommandClientImpl struct {
-	GetDeploymentFn          func(namespace, name string) (*kapi.ReplicationController, error)
-	UpdateDeploymentConfigFn func(*deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
-	UpdateDeploymentFn       func(*kapi.ReplicationController) (*kapi.ReplicationController, error)
+	GetDeploymentFn            func(namespace, name string) (*kapi.ReplicationController, error)
+	ListDeploymentsForConfigFn func(namespace, configName string) (*kapi.ReplicationControllerList, error)
+	UpdateDeploymentConfigFn   func(*deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+	UpdateDeploymentFn         func(*kapi.ReplicationController) (*kapi.ReplicationController, error)
 }
 
 func (c *deployCommandClientImpl) GetDeployment(namespace, name string) (*kapi.ReplicationController, error) {
 	return c.GetDeploymentFn(namespace, name)
 }
+
+func (c *deployCommandClientImpl) ListDeploymentsForConfig(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+	return c.ListDeploymentsForConfigFn(namespace, configName)
+}
+
 func (c *deployCommandClientImpl) UpdateDeploymentConfig(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	return c.UpdateDeploymentConfigFn(config)
 }

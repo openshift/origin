@@ -58,7 +58,7 @@ describe('', function() {
 
       login(true);
 
-      expect(browser.getTitle()).toEqual("OpenShift Management Console");
+      expect(browser.getTitle()).toEqual("OpenShift Web Console");
       expect(element(by.css(".navbar-utility .username")).getText()).toEqual("e2e-user");
     });
 

@@ -45,6 +45,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		"list-roleBinding",
 		"list-role",
 		"list-routes",
+		"list-templates",
 		"list-builds",
 		"finalize-namespace",
 		"list-deploymentconfig",
@@ -56,7 +57,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 	for i := range mockOriginClient.Actions {
 		actionSet.Insert(mockOriginClient.Actions[i].Action)
 	}
-	if !actionSet.HasAll(expectedActionSet.List()...) {
+	if !(actionSet.HasAll(expectedActionSet.List()...) && (len(actionSet) == len(expectedActionSet))) {
 		t.Errorf("Expected actions: %v, but got: %v", expectedActionSet, actionSet)
 	}
 }

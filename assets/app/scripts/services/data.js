@@ -285,7 +285,7 @@ angular.module('openshiftConsole')
             var msg = "Failed to get " + type + "/" + name;
             if (status !== 0) {
               msg += " (" + status + ")"
-            }            
+            }
             Notification.error(msg);
           }
           deferred.reject({
@@ -632,7 +632,7 @@ angular.module('openshiftConsole')
       }
       else {
         Notification.error(
-          "Server connection interrupted.", 
+          "Server connection interrupted.",
           {
             id: "websocket_retry_halted",
             mustDismiss: true,

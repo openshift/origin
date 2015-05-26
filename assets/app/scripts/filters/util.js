@@ -53,37 +53,37 @@ angular.module('openshiftConsole')
           break;
         case 'P':
           multiplier = Math.pow(1000, 5);
-          break;        
+          break;
         case 'T':
           multiplier = Math.pow(1000, 4);
-          break;        
+          break;
         case 'G':
           multiplier = Math.pow(1000, 3);
           break;
         case 'M':
           multiplier = Math.pow(1000, 2);
-          break;        
+          break;
         case 'K':
           multiplier = 1000;
-          break;        
+          break;
         case 'm':
           multiplier = 0.001;
-          break;        
+          break;
         case 'Ei':
           multiplier = Math.pow(1024, 6);
-          break;        
+          break;
         case 'Pi':
           multiplier = Math.pow(1024, 5);
-          break;        
+          break;
         case 'Ti':
           multiplier = Math.pow(1024, 4);
-          break;        
+          break;
         case 'Gi':
           multiplier = Math.pow(1024, 3);
-          break;        
+          break;
         case 'Mi':
           multiplier = Math.pow(1024, 2);
-          break;        
+          break;
         case 'Ki':
           multiplier = 1024;
           break;
