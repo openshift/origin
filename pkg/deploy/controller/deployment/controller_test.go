@@ -247,8 +247,8 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 }
 
 // TestHandle_unrelatedPodAlreadyExists ensures that attempts to create a
-// deployer pod, when a pod with the same name but missing annotations
-// results in an error
+// deployer pod, when a pod with the same name but missing annotations results
+// a transition to failed.
 func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
 
@@ -282,22 +282,20 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 	}
 
 	err := controller.Handle(deployment)
-
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-
-	if _, isFatal := err.(fatalError); !isFatal {
-		t.Fatalf("expected a fatal error, got a %#v", err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	if _, exists := updatedDeployment.Annotations[deployapi.DeploymentPodAnnotation]; exists {
 		t.Fatalf("deployment updated with pod name annotation")
 	}
 
-	status := updatedDeployment.Annotations[deployapi.DeploymentStatusAnnotation]
-	if status != string(deployapi.DeploymentStatusFailed) {
-		t.Fatalf("expected deployment status: Failed. found: %s", status)
+	if e, a := deployapi.DeploymentFailedUnrelatedDeploymentExists, deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation]; e != a {
+		t.Errorf("expected reason annotation %s, got %s", e, a)
+	}
+
+	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
+		t.Errorf("expected deployment status %s, got %s", e, a)
 	}
 }
 
@@ -484,6 +482,96 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 	}
 }
 
+func TestHandle_cancelNew(t *testing.T) {
+	var updatedDeployment *kapi.ReplicationController
+
+	controller := &DeploymentController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			updateDeploymentFunc: func(namspace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedDeployment = deployment
+				return updatedDeployment, nil
+			},
+		},
+		podClient: &podClientImpl{
+			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+				t.Fatalf("unexpected call to make container")
+				return nil, nil
+			},
+		},
+		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+			return okContainer(), nil
+		},
+		recorder: &record.FakeRecorder{},
+	}
+
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
+	deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+
+	err := controller.Handle(deployment)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
+		t.Fatalf("expected deployment status %s, got %s", e, a)
+	}
+}
+
+// TestHandle_cancelPendingRunning ensures that deployer pods are terminated
+// for deployments in post-New phases.
+func TestHandle_cancelPendingRunning(t *testing.T) {
+	var updatedPod *kapi.Pod
+
+	controller := &DeploymentController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			updateDeploymentFunc: func(namspace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				// None of these tests should transition the phase.
+				t.Errorf("unexpected call to updateDeployment")
+				return nil, nil
+			},
+		},
+		podClient: &podClientImpl{
+			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+				return ttlNonZeroPod(), nil
+			},
+			updatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+				updatedPod = pod
+				return pod, nil
+			},
+		},
+		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+			return okContainer(), nil
+		},
+		recorder: &record.FakeRecorder{},
+	}
+
+	cases := []deployapi.DeploymentStatus{
+		deployapi.DeploymentStatusPending,
+		deployapi.DeploymentStatusRunning,
+	}
+
+	for _, status := range cases {
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
+		deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+		err := controller.Handle(deployment)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if e, a := int64(1), *updatedPod.Spec.ActiveDeadlineSeconds; e != a {
+			t.Errorf("expected ActiveDeadlineSeconds %d, got %d", e, a)
+		}
+	}
+}
+
 func okContainer() *kapi.Container {
 	return &kapi.Container{
 		Image:   "test/image",
@@ -521,6 +609,24 @@ func unrelatedPod(deployment *kapi.ReplicationController) *kapi.Pod {
 			Annotations: map[string]string{
 				"unrelatedKey": "unrelatedValue",
 			},
+		},
+	}
+}
+
+func ttlNonZeroPod() *kapi.Pod {
+	ttl := int64(10)
+	return &kapi.Pod{
+		Spec: kapi.PodSpec{
+			ActiveDeadlineSeconds: &ttl,
+		},
+	}
+}
+
+func ttlZeroPod() *kapi.Pod {
+	ttl := int64(1)
+	return &kapi.Pod{
+		Spec: kapi.PodSpec{
+			ActiveDeadlineSeconds: &ttl,
 		},
 	}
 }

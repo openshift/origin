@@ -935,16 +935,6 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	controller.Run()
 }
 
-func (c *MasterConfig) RunDeploymentCancellationController() {
-	kclient := c.DeploymentCancellationControllerClient()
-	factory := deployconfigcontroller.DeploymentConfigControllerFactory{
-		KubeClient: kclient,
-		Codec:      latest.Codec,
-	}
-	controller := factory.Create()
-	controller.Run()
-}
-
 // SDN controller runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	if c.Options.NetworkConfig.NetworkPluginName == osdn.NetworkPluginName() {

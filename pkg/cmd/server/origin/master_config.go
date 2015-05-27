@@ -370,9 +370,6 @@ func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Clie
 func (c *MasterConfig) DeploymentImageChangeControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
-func (c *MasterConfig) DeploymentCancellationControllerClient() *kclient.Client {
-	return c.PrivilegedLoopbackKubernetesClient
-}
 
 // OriginNamespaceControllerClients returns a client for openshift and kubernetes.
 // The openshift client object must have authority to delete openshift content in any namespace
