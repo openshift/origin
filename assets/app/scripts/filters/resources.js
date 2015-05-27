@@ -380,4 +380,9 @@ angular.module('openshiftConsole')
 
       return false;
     };
+  })
+  .filter('projectOverviewURL', function(Navigate) {
+    return function(projectName) {
+      return Navigate.projectOverviewURL(projectName);
+    };
   });
