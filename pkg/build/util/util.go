@@ -4,12 +4,18 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 // GetBuildPodName returns name of the build pod.
 func GetBuildPodName(build *buildapi.Build) string {
 	return build.Name
+}
+
+// GetBuildName returns name of the build pod.
+func GetBuildName(pod *kapi.Pod) string {
+	return pod.Name
 }
 
 // GetImageStreamForStrategy returns the ImageStream[Tag/Image] ObjectReference associated
@@ -42,4 +48,11 @@ func NameFromImageStream(namespace string, ref *kapi.ObjectReference, tag string
 		ret = ret + ":" + tag
 	}
 	return ret
+}
+
+func IsBuildComplete(build *buildapi.Build) bool {
+	if build.Status != buildapi.BuildStatusRunning && build.Status != buildapi.BuildStatusPending && build.Status != buildapi.BuildStatusNew {
+		return true
+	}
+	return false
 }

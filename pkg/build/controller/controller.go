@@ -34,6 +34,7 @@ type BuildStrategy interface {
 type podManager interface {
 	CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
 	DeletePod(namespace string, pod *kapi.Pod) error
+	GetPod(namespace, name string) (*kapi.Pod, error)
 }
 
 type imageStreamClient interface {
@@ -138,19 +139,18 @@ type BuildPodController struct {
 }
 
 func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
-	// Find the build for this pod
-	var build *buildapi.Build
-	for _, obj := range bc.BuildStore.List() {
-		b := obj.(*buildapi.Build)
-		if buildutil.GetBuildPodName(b) == pod.Name {
-			build = b
-			break
-		}
+	// pod and build have the same name, so look up the build by the pod's name.
+	obj, exists, err := bc.BuildStore.Get(pod)
+	if err != nil {
+		glog.V(4).Infof("Error getting build for pod %s/%s: %v", pod.Namespace, pod.Name, err)
+		return err
 	}
-
-	if build == nil {
+	if !exists || obj == nil {
+		glog.V(5).Infof("No build found for pod %s/%s", pod.Namespace, pod.Name)
 		return nil
 	}
+
+	build := obj.(*buildapi.Build)
 
 	// A cancelling event was triggered for the build, delete its pod and update build status.
 	if build.Cancelled {
@@ -182,7 +182,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	if build.Status != nextStatus {
 		glog.V(4).Infof("Updating build %s status %s -> %s", build.Name, build.Status, nextStatus)
 		build.Status = nextStatus
-		if build.Status == buildapi.BuildStatusComplete || build.Status == buildapi.BuildStatusFailed || build.Status == buildapi.BuildStatusCancelled {
+		if buildutil.IsBuildComplete(build) {
 			now := util.Now()
 			build.CompletionTimestamp = &now
 		}
@@ -223,4 +223,76 @@ func (bc *BuildPodController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) 
 // isBuildCancellable checks for build status and returns true if the condition is checked.
 func isBuildCancellable(build *buildapi.Build) bool {
 	return build.Status == buildapi.BuildStatusNew || build.Status == buildapi.BuildStatusPending || build.Status == buildapi.BuildStatusRunning
+}
+
+// BuildPodDeleteController watches pods running builds and updates the build if the pod is deleted
+type BuildPodDeleteController struct {
+	BuildStore   cache.Store
+	BuildUpdater buildclient.BuildUpdater
+}
+
+func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error {
+	glog.V(4).Infof("Handling deletion of build pod %s/%s", pod.Namespace, pod.Name)
+	// pod and build use the same name and same key function, so we can look up the
+	// build by the pod object.  Doing this "right" is actually uglier since
+	// we would ideally want to pass the build object to the keyFunc, but that
+	// would require us having the build.  Constructing the key by hand is
+	// also not ideal since the keyFunc could change.
+	obj, exists, err := bc.BuildStore.Get(pod)
+	if err != nil {
+		glog.V(4).Infof("Error getting build for pod %s/%s", pod.Namespace, pod.Name)
+		return err
+	}
+	if !exists || obj == nil {
+		glog.V(5).Infof("No build found for deleted pod %s/%s", pod.Namespace, pod.Name)
+		return nil
+	}
+	build := obj.(*buildapi.Build)
+
+	if buildutil.IsBuildComplete(build) {
+		glog.V(4).Infof("Pod was deleted but Build %s/%s is already completed, so no need to update it.", build.Namespace, build.Name)
+		return nil
+	}
+
+	nextStatus := buildapi.BuildStatusError
+	if build.Status != nextStatus {
+		glog.V(4).Infof("Updating build %s/%s status %s -> %s", build.Namespace, build.Name, build.Status, nextStatus)
+		build.Status = nextStatus
+		build.Message = "The Pod for this Build was deleted before the Build completed."
+		now := util.Now()
+		build.CompletionTimestamp = &now
+		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
+			return fmt.Errorf("Failed to update build %s: %v", build.Name, err)
+		}
+	}
+	return nil
+}
+
+// BuildDeleteController watches for builds being deleted and cleans up associated pods
+type BuildDeleteController struct {
+	PodManager podManager
+}
+
+func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) error {
+	glog.V(4).Infof("Handling deletion of build %s", build.Name)
+	podName := buildutil.GetBuildPodName(build)
+	pod, err := bc.PodManager.GetPod(build.Namespace, podName)
+	if err != nil {
+		glog.V(2).Infof("Failed to find pod with name %s for build %s in namespace %s due to error: %v", podName, build.Name, build.Namespace, err)
+		return err
+	}
+	if pod == nil {
+		glog.V(2).Infof("Did not find pod with name %s for build %s in namespace %s", podName, build.Name, build.Namespace)
+		return nil
+	}
+	if pod.Labels[buildapi.BuildLabel] != build.Name {
+		glog.V(2).Infof("Not deleting pod %s/%s because the build label %s does not match the build name %s", pod.Namespace, podName, pod.Labels[buildapi.BuildLabel], build.Name)
+		return nil
+	}
+	err = bc.PodManager.DeletePod(build.Namespace, pod)
+	if err != nil {
+		glog.V(2).Infof("Failed to delete pod %s/%s for build %s due to error: %v", build.Namespace, podName, build.Name, err)
+		return err
+	}
+	return nil
 }

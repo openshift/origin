@@ -840,6 +840,8 @@ func (c *MasterConfig) RunBuildController() {
 
 	controller := factory.Create()
 	controller.Run()
+	deleteController := factory.CreateDeleteController()
+	deleteController.Run()
 }
 
 // RunBuildPodController starts the build/pod status sync loop for build status
@@ -852,6 +854,8 @@ func (c *MasterConfig) RunBuildPodController() {
 	}
 	controller := factory.Create()
 	controller.Run()
+	deletecontroller := factory.CreateDeleteController()
+	deletecontroller.Run()
 }
 
 // RunBuildImageChangeTriggerController starts the build image change trigger controller process.
