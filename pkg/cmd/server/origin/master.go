@@ -56,10 +56,8 @@ import (
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
-	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
-	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
 	deployrollback "github.com/openshift/origin/pkg/deploy/rollback"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
@@ -174,7 +172,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	deployConfigStorage := deployconfigetcd.NewStorage(c.EtcdHelper)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
-	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
 	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
 	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
@@ -289,7 +286,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"imageRepositoryMappings":  imageRepositoryMappingStorage,
 		"imageRepositoryTags":      imageRepositoryTagStorage,
 
-		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployConfigStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),

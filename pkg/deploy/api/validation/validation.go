@@ -16,23 +16,6 @@ import (
 //       The upstream validation API isn't factored currently to allow this; we'll make a PR to
 //       upstream and fix when it goes in.
 
-func ValidateDeployment(deployment *deployapi.Deployment) fielderrors.ValidationErrorList {
-	errs := validateDeploymentStrategy(&deployment.Strategy).Prefix("strategy")
-	if len(deployment.Name) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("name"))
-	} else if !util.IsDNS1123Subdomain(deployment.Name) {
-		errs = append(errs, fielderrors.NewFieldInvalid("name", deployment.Name, "name must be a valid subdomain"))
-	}
-	if len(deployment.Namespace) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("namespace"))
-	} else if !util.IsDNS1123Subdomain(deployment.Namespace) {
-		errs = append(errs, fielderrors.NewFieldInvalid("namespace", deployment.Namespace, "namespace must be a valid subdomain"))
-	}
-	errs = append(errs, validation.ValidateLabels(deployment.Labels, "labels")...)
-	errs = append(errs, validation.ValidateReplicationControllerSpec(&deployment.ControllerTemplate).Prefix("controllerTemplate")...)
-	return errs
-}
-
 func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) fielderrors.ValidationErrorList {
 	errs := fielderrors.ValidationErrorList{}
 	if len(config.Name) == 0 {

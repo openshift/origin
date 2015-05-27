@@ -49,17 +49,6 @@ func addReplicationControllerNestedLabels(obj *kapi.ReplicationController, label
 	return nil
 }
 
-// addDeploymentNestedLabels adds new label(s) to a nested labels of a single Deployment object
-func addDeploymentNestedLabels(obj *deployapi.Deployment, labels labels.Set) error {
-	if obj.ControllerTemplate.Template.Labels == nil {
-		obj.ControllerTemplate.Template.Labels = make(map[string]string)
-	}
-	if err := MergeInto(obj.ControllerTemplate.Template.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.Deployment.ControllerTemplate.Template: %v", err)
-	}
-	return nil
-}
-
 // addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
 func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels labels.Set) error {
 	if obj.Template.ControllerTemplate.Template.Labels == nil {
@@ -97,8 +86,6 @@ func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
 	switch objType := obj.(type) {
 	case *kapi.ReplicationController:
 		return addReplicationControllerNestedLabels(objType, labels)
-	case *deployapi.Deployment:
-		return addDeploymentNestedLabels(objType, labels)
 	case *deployapi.DeploymentConfig:
 		return addDeploymentConfigNestedLabels(objType, labels)
 	}

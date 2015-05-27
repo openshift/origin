@@ -78,8 +78,6 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(projectColumns, printProjectList)
 	p.Handler(routeColumns, printRoute)
 	p.Handler(routeColumns, printRouteList)
-	p.Handler(deploymentColumns, printDeployment)
-	p.Handler(deploymentColumns, printDeploymentList)
 	p.Handler(deploymentConfigColumns, printDeploymentConfig)
 	p.Handler(deploymentConfigColumns, printDeploymentConfigList)
 	p.Handler(templateColumns, printTemplate)
@@ -342,28 +340,6 @@ func printRouteList(routeList *routeapi.RouteList, w io.Writer) error {
 			return err
 		}
 	}
-	return nil
-}
-
-func printDeployment(d *deployapi.Deployment, w io.Writer) error {
-	causes := util.StringSet{}
-	if d.Details != nil {
-		for _, cause := range d.Details.Causes {
-			causes.Insert(string(cause.Type))
-		}
-	}
-	cStr := strings.Join(causes.List(), ", ")
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", d.Name, d.Status, cStr)
-	return err
-}
-
-func printDeploymentList(list *deployapi.DeploymentList, w io.Writer) error {
-	for _, d := range list.Items {
-		if err := printDeployment(&d, w); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 

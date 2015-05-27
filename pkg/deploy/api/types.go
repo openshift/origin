@@ -4,30 +4,6 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
-// Deployment represents a single configuration of a pod deployed into the cluster, and may
-// represent both a current deployment or a historical deployment.
-//
-// DEPRECATED: This type longer drives any system behavior. Deployments are now represented directly
-// by ReplicationControllers. Use DeploymentConfig to drive deployments.
-type Deployment struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
-
-	// Strategy describes how a deployment is executed.
-	Strategy DeploymentStrategy `json:"strategy,omitempty"`
-	// ControllerTemplate is the desired replication state the deployment works to materialize.
-	ControllerTemplate kapi.ReplicationControllerSpec `json:"controllerTemplate,omitempty"`
-	// Status is the execution status of the deployment.
-	Status DeploymentStatus `json:"status,omitempty"`
-	// Details captures the causes for the creation of this deployment resource.
-	// This could be based on a change made by the user to the deployment config
-	// or caused by an automatic trigger that was specified in the deployment config.
-	// Multiple triggers could have caused this deployment.
-	// If no trigger is specified here, then the deployment was likely created as a result of an
-	// explicit client request to create a new deployment resource.
-	Details *DeploymentDetails `json:"details,omitempty"`
-}
-
 // DeploymentStatus describes the possible states a deployment can be in.
 type DeploymentStatus string
 
@@ -146,14 +122,6 @@ type RollingDeploymentStrategyParams struct {
 	// finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
 	// is NOT supported.
 	Post *LifecycleHook `json:"post,omitempty" description:"a hook executed after the strategy finishes the deployment"`
-}
-
-// DeploymentList is a collection of deployments.
-// DEPRECATED: Like Deployment, this is no longer used.
-type DeploymentList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Deployment `json:"items"`
 }
 
 // These constants represent keys used for correlating objects related to deployments.
