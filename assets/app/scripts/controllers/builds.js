@@ -47,6 +47,7 @@ angular.module('openshiftConsole')
         $scope.buildConfigBuildsInProgress = associateRunningBuildToBuildConfig($scope.buildsByBuildConfig);
       } else if (action === 'ADDED'){
         // When new build id instantiated/cloned associate him to his buildConfig and add him into buildConfigBuildsInProgress structure.
+        $scope.buildConfigBuildsInProgress[buildConfigName] = $scope.buildConfigBuildsInProgress[buildConfigName] || {};
         $scope.buildConfigBuildsInProgress[buildConfigName][buildName] = build;
       } else if (action === 'MODIFIED'){
         // After the build ends remove him from the buildConfigBuildsInProgress structure.
