@@ -11,7 +11,6 @@ import (
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
@@ -47,8 +46,8 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec
 				CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 					return client.Pods(namespace).Create(pod)
 				},
-				WatchPodFunc: func(namespace, name string) (watch.Interface, error) {
-					return newPodWatch(client, namespace, name, 5*time.Second), nil
+				PodWatchFunc: func(namespace, name, resourceVersion string) func() *kapi.Pod {
+					return stratsupport.NewPodWatch(client, namespace, name, resourceVersion)
 				},
 			},
 		},
@@ -66,28 +65,12 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		return fmt.Errorf("couldn't decode DeploymentConfig from Deployment %s: %v", deployment.Name, err)
 	}
 
+	params := deploymentConfig.Template.Strategy.RecreateParams
 	// Execute any pre-hook.
-	if deploymentConfig.Template.Strategy.RecreateParams != nil {
-		preHook := deploymentConfig.Template.Strategy.RecreateParams.Pre
-		if preHook != nil {
-		preHookLoop:
-			for {
-				err := s.hookExecutor.Execute(preHook, deployment)
-				if err == nil {
-					glog.Info("Pre hook finished successfully")
-					break
-				}
-				switch preHook.FailurePolicy {
-				case deployapi.LifecycleHookFailurePolicyAbort:
-					return fmt.Errorf("Pre hook failed, aborting: %s", err)
-				case deployapi.LifecycleHookFailurePolicyIgnore:
-					glog.V(2).Infof("Pre hook failed, ignoring: %s", err)
-					break preHookLoop
-				case deployapi.LifecycleHookFailurePolicyRetry:
-					glog.V(2).Infof("Pre hook failed, retrying: %s", err)
-					time.Sleep(s.retryPeriod)
-				}
-			}
+	if params != nil && params.Pre != nil {
+		err := s.hookExecutor.Execute(params.Pre, deployment, s.retryPeriod)
+		if err != nil {
+			return fmt.Errorf("Pre hook failed: %s", err)
 		}
 	}
 
@@ -121,27 +104,15 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		}
 	}
 
-	// Execute any post-hook.
-	if deploymentConfig.Template.Strategy.RecreateParams != nil {
-		postHook := deploymentConfig.Template.Strategy.RecreateParams.Post
-		if postHook != nil {
-		postHookLoop:
-			for {
-				err := s.hookExecutor.Execute(postHook, deployment)
-				if err == nil {
-					glog.V(4).Info("Post hook finished successfully")
-					break
-				}
-				switch postHook.FailurePolicy {
-				case deployapi.LifecycleHookFailurePolicyIgnore, deployapi.LifecycleHookFailurePolicyAbort:
-					// Abort isn't supported here, so treat it like ignore.
-					glog.V(2).Infof("Post hook failed, ignoring: %s", err)
-					break postHookLoop
-				case deployapi.LifecycleHookFailurePolicyRetry:
-					glog.V(2).Infof("Post hook failed, retrying: %s", err)
-					time.Sleep(s.retryPeriod)
-				}
-			}
+	// Execute any post-hook. Errors are logged and ignored.
+	if params != nil && params.Post != nil {
+		// TODO: handle this in defaulting/conversion/validation?
+		if params.Post.FailurePolicy == deployapi.LifecycleHookFailurePolicyAbort {
+			params.Post.FailurePolicy = deployapi.LifecycleHookFailurePolicyIgnore
+		}
+		err := s.hookExecutor.Execute(params.Post, deployment, s.retryPeriod)
+		if err != nil {
+			glog.Infof("Post hook failed: %s", err)
 		}
 	}
 
@@ -206,65 +177,14 @@ func (r *realReplicationControllerClient) updateReplicationController(namespace 
 
 // hookExecutor knows how to execute a deployment lifecycle hook.
 type hookExecutor interface {
-	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error
+	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error
 }
 
 // hookExecutorImpl is a pluggable hookExecutor.
 type hookExecutorImpl struct {
-	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error
+	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error
 }
 
-func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
-	return i.executeFunc(hook, deployment)
-}
-
-// podWatch provides watch semantics for a pod backed by a poller, since
-// events aren't generated for pod status updates.
-type podWatch struct {
-	result chan watch.Event
-	stop   chan bool
-}
-
-// newPodWatch makes a new podWatch.
-func newPodWatch(client kclient.Interface, namespace, name string, period time.Duration) *podWatch {
-	pods := make(chan watch.Event)
-	stop := make(chan bool)
-	tick := time.NewTicker(period)
-	go func() {
-		for {
-			select {
-			case <-stop:
-				return
-			case <-tick.C:
-				pod, err := client.Pods(namespace).Get(name)
-				if err != nil {
-					pods <- watch.Event{
-						Type: watch.Error,
-						Object: &kapi.Status{
-							Status:  "Failure",
-							Message: fmt.Sprintf("couldn't get pod %s/%s: %s", namespace, name, err),
-						},
-					}
-					continue
-				}
-				pods <- watch.Event{
-					Type:   watch.Modified,
-					Object: pod,
-				}
-			}
-		}
-	}()
-
-	return &podWatch{
-		result: pods,
-		stop:   stop,
-	}
-}
-
-func (w *podWatch) Stop() {
-	w.stop <- true
-}
-
-func (w *podWatch) ResultChan() <-chan watch.Event {
-	return w.result
+func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error {
+	return i.executeFunc(hook, deployment, retryPeriod)
 }

@@ -385,6 +385,30 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			fielderrors.ValidationErrorTypeInvalid,
 			"template.strategy.rollingParams.timeoutSeconds",
 		},
+		"missing template.strategy.rollingParams.pre.failurePolicy": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Template: api.DeploymentTemplate{
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRolling,
+						RollingParams: &api.RollingDeploymentStrategyParams{
+							IntervalSeconds:     mkintp(1),
+							UpdatePeriodSeconds: mkintp(1),
+							TimeoutSeconds:      mkintp(20),
+							Pre: &api.LifecycleHook{
+								ExecNewPod: &api.ExecNewPodHook{
+									Command:       []string{"cmd"},
+									ContainerName: "container",
+								},
+							},
+						},
+					},
+					ControllerTemplate: test.OkControllerTemplate(),
+				},
+			},
+			fielderrors.ValidationErrorTypeRequired,
+			"template.strategy.rollingParams.pre.failurePolicy",
+		},
 	}
 
 	for k, v := range errorCases {

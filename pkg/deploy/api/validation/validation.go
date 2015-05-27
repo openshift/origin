@@ -199,6 +199,13 @@ func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams) fi
 		errs = append(errs, fielderrors.NewFieldInvalid("timeoutSeconds", *params.TimeoutSeconds, "must be >0"))
 	}
 
+	if params.Pre != nil {
+		errs = append(errs, validateLifecycleHook(params.Pre).Prefix("pre")...)
+	}
+	if params.Post != nil {
+		errs = append(errs, validateLifecycleHook(params.Post).Prefix("post")...)
+	}
+
 	return errs
 }
 

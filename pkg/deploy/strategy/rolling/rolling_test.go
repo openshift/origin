@@ -38,7 +38,9 @@ func TestRolling_deployInitial(t *testing.T) {
 		},
 	}
 
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	config := deploytest.OkDeploymentConfig(1)
+	config.Template.Strategy = deploytest.OkRollingStrategy()
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	err := strategy.Deploy(deployment, []*kapi.ReplicationController{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -49,17 +51,17 @@ func TestRolling_deployInitial(t *testing.T) {
 }
 
 func TestRolling_deployRolling(t *testing.T) {
-	latest, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	latestConfig := deploytest.OkDeploymentConfig(1)
+	latestConfig.Template.Strategy = deploytest.OkRollingStrategy()
+	latest, _ := deployutil.MakeDeployment(latestConfig, kapi.Codec)
 	config := deploytest.OkDeploymentConfig(2)
-	config.Template.Strategy = deployapi.DeploymentStrategy{
-		Type: deployapi.DeploymentStrategyTypeRolling,
-		RollingParams: &deployapi.RollingDeploymentStrategyParams{
-			IntervalSeconds:     mkintp(1),
-			UpdatePeriodSeconds: mkintp(2),
-			TimeoutSeconds:      mkintp(3),
-		},
-	}
+	config.Template.Strategy = deploytest.OkRollingStrategy()
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+	deployments := map[string]*kapi.ReplicationController{
+		latest.Name:     latest,
+		deployment.Name: deployment,
+	}
 
 	var rollingConfig *kubectl.RollingUpdaterConfig
 	deploymentUpdated := false
@@ -67,10 +69,7 @@ func TestRolling_deployRolling(t *testing.T) {
 		codec: api.Codec,
 		client: &rollingUpdaterClient{
 			GetReplicationControllerFn: func(namespace, name string) (*kapi.ReplicationController, error) {
-				if name != latest.Name {
-					t.Fatalf("unexpected call to GetReplicationController for %s", name)
-				}
-				return latest, nil
+				return deployments[name], nil
 			},
 			UpdateReplicationControllerFn: func(namespace string, rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				if rc.Name != deployment.Name {
@@ -112,11 +111,11 @@ func TestRolling_deployRolling(t *testing.T) {
 		t.Errorf("expected Interval %d, got %d", e, a)
 	}
 
-	if e, a := 2*time.Second, rollingConfig.UpdatePeriod; e != a {
+	if e, a := 1*time.Second, rollingConfig.UpdatePeriod; e != a {
 		t.Errorf("expected UpdatePeriod %d, got %d", e, a)
 	}
 
-	if e, a := 3*time.Second, rollingConfig.Timeout; e != a {
+	if e, a := 20*time.Second, rollingConfig.Timeout; e != a {
 		t.Errorf("expected Timeout %d, got %d", e, a)
 	}
 
@@ -138,7 +137,9 @@ func TestRolling_deployRolling(t *testing.T) {
 func TestRolling_findLatestDeployment(t *testing.T) {
 	deployments := map[string]*kapi.ReplicationController{}
 	for i := 1; i <= 10; i++ {
-		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(i), kapi.Codec)
+		config := deploytest.OkDeploymentConfig(i)
+		config.Template.Strategy = deploytest.OkRollingStrategy()
+		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 		deployments[deployment.Name] = deployment
 	}
 
@@ -201,6 +202,137 @@ func TestRolling_findLatestDeployment(t *testing.T) {
 	}
 }
 
+func TestRolling_deployRollingHooks(t *testing.T) {
+	config := deploytest.OkDeploymentConfig(1)
+	config.Template.Strategy = deploytest.OkRollingStrategy()
+	latest, _ := deployutil.MakeDeployment(config, kapi.Codec)
+
+	var hookError error
+
+	deployments := map[string]*kapi.ReplicationController{latest.Name: latest}
+
+	strategy := &RollingDeploymentStrategy{
+		codec: api.Codec,
+		client: &rollingUpdaterClient{
+			GetReplicationControllerFn: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return deployments[name], nil
+			},
+			UpdateReplicationControllerFn: func(namespace string, rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				return rc, nil
+			},
+		},
+		initialStrategy: &testStrategy{
+			deployFn: func(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
+				t.Fatalf("unexpected call to initial strategy")
+				return nil
+			},
+		},
+		rollingUpdate: func(config *kubectl.RollingUpdaterConfig) error {
+			return nil
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, _ time.Duration) error {
+				return hookError
+			},
+		},
+	}
+
+	cases := []struct {
+		params               *deployapi.RollingDeploymentStrategyParams
+		hookShouldFail       bool
+		deploymentShouldFail bool
+	}{
+		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), true, true},
+		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), false, false},
+		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), true, false},
+		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), false, false},
+	}
+
+	for _, tc := range cases {
+		config := deploytest.OkDeploymentConfig(2)
+		config.Template.Strategy.RollingParams = tc.params
+		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+		deployments[deployment.Name] = deployment
+		hookError = nil
+		if tc.hookShouldFail {
+			hookError = fmt.Errorf("hook failure")
+		}
+		err := strategy.Deploy(deployment, []*kapi.ReplicationController{latest})
+		if err != nil && tc.deploymentShouldFail {
+			t.Logf("got expected error: %v", err)
+		}
+		if err == nil && tc.deploymentShouldFail {
+			t.Errorf("expected an error for case: %v", tc)
+		}
+		if err != nil && !tc.deploymentShouldFail {
+			t.Errorf("unexpected error for case: %v: %v", tc, err)
+		}
+	}
+}
+
+// TestRolling_deployInitialHooks can go away once the rolling strategy
+// supports initial deployments.
+func TestRolling_deployInitialHooks(t *testing.T) {
+	var hookError error
+
+	strategy := &RollingDeploymentStrategy{
+		codec: api.Codec,
+		client: &rollingUpdaterClient{
+			GetReplicationControllerFn: func(namespace, name string) (*kapi.ReplicationController, error) {
+				t.Fatalf("unexpected call to GetReplicationController")
+				return nil, nil
+			},
+			UpdateReplicationControllerFn: func(namespace string, rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				return rc, nil
+			},
+		},
+		initialStrategy: &testStrategy{
+			deployFn: func(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
+				return nil
+			},
+		},
+		rollingUpdate: func(config *kubectl.RollingUpdaterConfig) error {
+			return nil
+		},
+		hookExecutor: &hookExecutorImpl{
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, _ time.Duration) error {
+				return hookError
+			},
+		},
+	}
+
+	cases := []struct {
+		params               *deployapi.RollingDeploymentStrategyParams
+		hookShouldFail       bool
+		deploymentShouldFail bool
+	}{
+		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), true, true},
+		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), false, false},
+		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), true, false},
+		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), false, false},
+	}
+
+	for _, tc := range cases {
+		config := deploytest.OkDeploymentConfig(2)
+		config.Template.Strategy.RollingParams = tc.params
+		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+		hookError = nil
+		if tc.hookShouldFail {
+			hookError = fmt.Errorf("hook failure")
+		}
+		err := strategy.Deploy(deployment, []*kapi.ReplicationController{})
+		if err != nil && tc.deploymentShouldFail {
+			t.Logf("got expected error: %v", err)
+		}
+		if err == nil && tc.deploymentShouldFail {
+			t.Errorf("expected an error for case: %v", tc)
+		}
+		if err != nil && !tc.deploymentShouldFail {
+			t.Errorf("unexpected error for case: %v: %v", tc, err)
+		}
+	}
+}
+
 type testStrategy struct {
 	deployFn func(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error
 }
@@ -212,4 +344,29 @@ func (s *testStrategy) Deploy(deployment *kapi.ReplicationController, oldDeploym
 func mkintp(i int) *int64 {
 	v := int64(i)
 	return &v
+}
+
+func rollingParams(preFailurePolicy, postFailurePolicy deployapi.LifecycleHookFailurePolicy) *deployapi.RollingDeploymentStrategyParams {
+	var pre *deployapi.LifecycleHook
+	var post *deployapi.LifecycleHook
+
+	if len(preFailurePolicy) > 0 {
+		pre = &deployapi.LifecycleHook{
+			FailurePolicy: preFailurePolicy,
+			ExecNewPod:    &deployapi.ExecNewPodHook{},
+		}
+	}
+	if len(postFailurePolicy) > 0 {
+		post = &deployapi.LifecycleHook{
+			FailurePolicy: postFailurePolicy,
+			ExecNewPod:    &deployapi.ExecNewPodHook{},
+		}
+	}
+	return &deployapi.RollingDeploymentStrategyParams{
+		UpdatePeriodSeconds: mkintp(1),
+		IntervalSeconds:     mkintp(1),
+		TimeoutSeconds:      mkintp(20),
+		Pre:                 pre,
+		Post:                post,
+	}
 }
