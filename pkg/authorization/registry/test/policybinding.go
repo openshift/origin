@@ -137,7 +137,7 @@ func (r *PolicyBindingRegistry) DeletePolicyBinding(ctx kapi.Context, id string)
 }
 
 func (r *PolicyBindingRegistry) WatchPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return nil, errors.New("unsupported")
+	return nil, errors.New("unsupported action for test registry")
 }
 
 func addPolicyBinding(bindings map[string]map[string]authorizationapi.PolicyBinding, binding authorizationapi.PolicyBinding) {
