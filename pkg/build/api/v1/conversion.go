@@ -28,6 +28,11 @@ func init() {
 				obj.From.Kind = "ImageStreamTag"
 			}
 		},
+		func(obj *BuildTriggerPolicy) {
+			if obj.Type == ImageChangeBuildTriggerType && obj.ImageChange == nil {
+				obj.ImageChange = &ImageChangeTrigger{}
+			}
+		},
 	)
 	if err != nil {
 		panic(err)
