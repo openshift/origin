@@ -9,7 +9,7 @@
           <div class="col-md-8">
             <osc-image-summary resource="image" name="imageName"></osc-image-summary>
             <form class="" ng-show="imageRepo" novalidate name="form">
-              <div>
+              <div class="gutter-bottom">
                   <h2>
                     Name
                   </h2>
@@ -28,10 +28,16 @@
                 </div>
               </div>
 
+              <div class="alert alert-info">
+                <span class="pficon pficon-info"></span>
+                <label>Note:</label> After creation, these settings can only be modified through the osc command.
+              </div>
+
               <osc-form-section
                 header="Routing" 
                 about-title="Routing"
                 about="Routing is a way to make your application publicly visible. Otherwise you may only be able to access your application by it's IP address, if allowed by the system administrator."
+                class="first-section"
                 >
                 <div ng-hide="$parent.expand">
                   <div>
@@ -198,10 +204,6 @@
 
               <labels labels="labels"></labels>
               <div class="buttons gutter-top-bottom gutter-top-bottom-2x">
-              <div class="alert alert-info">
-                <span class="pficon pficon-info"></span>
-                <label>Note:</label> After creation, these settings can only be modified through the osc command.
-              </div>
                 <!-- unable to use form.valid.  need to fix validators in labels and key values directive -->
                 <button class="btn btn-primary btn-lg" 
                     ng-click="createApp()" 
