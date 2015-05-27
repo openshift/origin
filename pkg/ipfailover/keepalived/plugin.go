@@ -64,7 +64,7 @@ func (p *KeepalivedPlugin) GetSelector() (map[string]string, error) {
 	}
 
 	if len(remove) > 0 {
-		return labels, fmt.Errorf("You may not pass negative labels in %q", p.Options.Selector)
+		return labels, fmt.Errorf("you may not pass negative labels in %q", p.Options.Selector)
 	}
 
 	glog.V(4).Infof("KeepAlived IP Failover config: %q - selector: %+v", p.Name, labels)
@@ -88,24 +88,24 @@ func (p *KeepalivedPlugin) GetNamespace() (string, error) {
 func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, error) {
 	osClient, _, err := p.Factory.Clients()
 	if err != nil {
-		return nil, fmt.Errorf("Error getting client: %v", err)
+		return nil, fmt.Errorf("error getting client: %v", err)
 	}
 
 	namespace, err := p.GetNamespace()
 	if err != nil {
-		return nil, fmt.Errorf("Error getting namespace: %v", err)
+		return nil, fmt.Errorf("error getting namespace: %v", err)
 	}
 
 	dc, err := osClient.DeploymentConfigs(namespace).Get(p.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			glog.V(4).Infof("KeepAlived IP Failover deployment config: %s not found", p.Name)
+			glog.V(4).Infof("KeepAlived IP Failover DeploymentConfig: %s not found", p.Name)
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Error getting KeepAlived IP Failover deployment config %q: %v", p.Name, err)
+		return nil, fmt.Errorf("error getting KeepAlived IP Failover DeploymentConfig %q: %v", p.Name, err)
 	}
 
-	glog.V(4).Infof("KeepAlived IP Failover deployment config: %q = %+v", p.Name, dc)
+	glog.V(4).Infof("KeepAlived IP Failover DeploymentConfig: %q = %+v", p.Name, dc)
 
 	return dc, nil
 }
@@ -114,17 +114,17 @@ func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, e
 func (p *KeepalivedPlugin) Generate() (*kapi.List, error) {
 	selector, err := p.GetSelector()
 	if err != nil {
-		return nil, fmt.Errorf("Error getting selector: %v", err)
+		return nil, fmt.Errorf("error getting selector: %v", err)
 	}
 
 	dc, err := GenerateDeploymentConfig(p.Name, p.Options, selector)
 	if err != nil {
-		return nil, fmt.Errorf("Error generating deployment config: %v", err)
+		return nil, fmt.Errorf("error generating DeploymentConfig: %v", err)
 	}
 
 	configList := &kapi.List{Items: []runtime.Object{dc}}
 
-	glog.V(4).Infof("KeepAlived IP Failover config: %q - generated config: %+v", p.Name, configList)
+	glog.V(4).Infof("KeepAlived IP Failover DeploymentConfig: %q - generated config: %+v", p.Name, configList)
 
 	return configList, nil
 }
@@ -133,7 +133,7 @@ func (p *KeepalivedPlugin) Generate() (*kapi.List, error) {
 func (p *KeepalivedPlugin) Create(out io.Writer) error {
 	namespace, err := p.GetNamespace()
 	if err != nil {
-		return fmt.Errorf("Error getting Namespace: %v", err)
+		return fmt.Errorf("error getting Namespace: %v", err)
 	}
 
 	mapper, typer := p.Factory.Factory.Object()
@@ -147,14 +147,14 @@ func (p *KeepalivedPlugin) Create(out io.Writer) error {
 
 	configList, err := p.Generate()
 	if err != nil {
-		return fmt.Errorf("Error generating config: %v", err)
+		return fmt.Errorf("error generating config: %v", err)
 	}
 
 	if errs := bulk.Create(configList, namespace); len(errs) != 0 {
-		return fmt.Errorf("Error creating config: %+v", errs)
+		return fmt.Errorf("error creating config: %+v", errs)
 	}
 
-	glog.V(4).Infof("Created KeepAlived IP Failover config: %q", p.Name)
+	glog.V(4).Infof("Created KeepAlived IP Failover DeploymentConfig: %q", p.Name)
 
 	return nil
 }

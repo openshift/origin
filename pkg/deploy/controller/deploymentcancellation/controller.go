@@ -39,7 +39,7 @@ func (c *DeploymentCancellationController) Handle(deployment *kapi.ReplicationCo
 
 		deployerPod, err := c.podClient.getPod(deployment.Namespace, deployutil.DeployerPodNameFor(deployment))
 		if err != nil {
-			return fmt.Errorf("couldn't fetch deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
+			return fmt.Errorf("couldn't fetch deployer pod for %s/%s: %v", deployment.Namespace, deployutil.LabelForDeployment(deployment), err)
 		}
 
 		// set the ActiveDeadlineSeconds on the deployer pod to 0, if not already set
@@ -47,10 +47,10 @@ func (c *DeploymentCancellationController) Handle(deployment *kapi.ReplicationCo
 		if deployerPod.Spec.ActiveDeadlineSeconds == nil || *deployerPod.Spec.ActiveDeadlineSeconds != zeroDelay {
 			deployerPod.Spec.ActiveDeadlineSeconds = &zeroDelay
 			if _, err := c.podClient.updatePod(deployerPod.Namespace, deployerPod); err != nil {
-				c.recorder.Eventf(deployment, "failedCancellation", "Error updating ActiveDeadlineSeconds to 0 on deployer pod for deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
-				return fmt.Errorf("couldn't update ActiveDeadlineSeconds to 0 on deployer pod for deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
+				c.recorder.Eventf(deployment, "failedCancellation", "Error updating ActiveDeadlineSeconds to 0 on deployer pod for Deployment %s/%s: %v", deployment.Namespace, deployutil.LabelForDeployment(deployment), err)
+				return fmt.Errorf("couldn't update ActiveDeadlineSeconds to 0 on deployer pod for Deployment %s/%s: %v", deployment.Namespace, deployutil.LabelForDeployment(deployment), err)
 			}
-			glog.V(2).Infof("Updated ActiveDeadlineSeconds to 0 on deployer pod for deployment %s", deployutil.LabelForDeployment(deployment))
+			glog.V(4).Infof("Updated ActiveDeadlineSeconds to 0 on deployer pod for Deployment %s/%s", deployment.Namespace, deployutil.LabelForDeployment(deployment))
 		}
 	}
 

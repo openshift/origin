@@ -158,7 +158,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) dialBackend(req *http.Request) (net
 		err = tlsConn.VerifyHostname(hostToVerify)
 		return tlsConn, err
 	default:
-		return nil, fmt.Errorf("Unknown scheme: %s", p.backendAddr.Scheme)
+		return nil, fmt.Errorf("unknown scheme: %s", p.backendAddr.Scheme)
 	}
 }
 

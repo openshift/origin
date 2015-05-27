@@ -88,7 +88,7 @@ type streamRef struct {
 
 // Instantiate returns new Build object based on a BuildRequest object
 func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
-	glog.V(4).Infof("Generating build from config %s", request.Name)
+	glog.V(4).Infof("Generating Build from BuildConfig %s/%s", request.Namespace, request.Name)
 	bc, err := g.Client.GetBuildConfig(ctx, request.Name)
 	if err != nil {
 		return nil, err
@@ -97,19 +97,19 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	if err != nil {
 		return nil, err
 	}
-
+	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
 	return g.createBuild(ctx, newBuild)
 }
 
 // Clone returns clone of a Build
 func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
-	glog.V(4).Infof("Generating build from build %s", request.Name)
+	glog.V(4).Infof("Generating build from build %s/%s", request.Namespace, request.Name)
 	build, err := g.Client.GetBuild(ctx, request.Name)
 	if err != nil {
 		return nil, err
 	}
 	newBuild := generateBuildFromBuild(build)
-
+	glog.V(4).Infof("Build %s/%s has been generated from Build %s/%s", newBuild.Namespace, newBuild.ObjectMeta.Name, build.Namespace, build.ObjectMeta.Name)
 	return g.createBuild(ctx, newBuild)
 }
 
@@ -208,27 +208,29 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from *kap
 		namespace = defaultNamespace
 	}
 
-	glog.V(4).Infof("resolvingImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
+	glog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
 	switch from.Kind {
 	case "ImageStreamImage":
 		image, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), from.Name)
 		if err != nil {
+			glog.V(2).Infof("Error ImageStreamReference %s in namespace %s: %v", from.Name, namespace, err)
 			if errors.IsNotFound(err) {
 				return "", err
 			}
 			return "", fatalError{err}
 		}
+		glog.V(4).Infof("Resolved ImageStreamReference %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
 		return image.DockerImageReference, nil
 	case "ImageStreamTag":
 		image, err := g.Client.GetImageStreamTag(kapi.WithNamespace(ctx, namespace), from.Name)
 		if err != nil {
-			glog.V(4).Infof("Error resolving image stream reference %s: %v", from.Name, err)
+			glog.V(2).Infof("Error resolving ImageStreamTag reference %s in namespace %s: %v", from.Name, namespace, err)
 			if errors.IsNotFound(err) {
 				return "", err
 			}
 			return "", fatalError{err}
 		}
-		glog.V(4).Infof("resolved imagestreamtag %s to image %s with ref %s", from.Name, image.Name, image.DockerImageReference)
+		glog.V(4).Infof("Resolved ImageStreamTag %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
 		return image.DockerImageReference, nil
 	case "DockerImage":
 		return from.Name, nil

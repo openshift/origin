@@ -58,7 +58,7 @@ func run(builderFactory factoryFunc, scmAuths []scmauth.SCMAuth) {
 	if output {
 		ref, err := image.ParseDockerImageReference(build.Parameters.Output.DockerImageReference)
 		if err != nil {
-			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
+			glog.Fatalf("Build output does not have a valid DockerImageReference: %v", err)
 		}
 		authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(
 			ref.Registry,

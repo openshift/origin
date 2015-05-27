@@ -103,10 +103,10 @@ func DecodeDeploymentConfig(controller *api.ReplicationController, codec runtime
 		if config, ok := decoded.(*deployapi.DeploymentConfig); ok {
 			return config, nil
 		} else {
-			return nil, fmt.Errorf("Decoded deploymentConfig from controller is not a DeploymentConfig: %v", err)
+			return nil, fmt.Errorf("decoded DeploymentConfig from controller is not a DeploymentConfig: %v", err)
 		}
 	} else {
-		return nil, fmt.Errorf("Failed to decode DeploymentConfig from controller: %v", err)
+		return nil, fmt.Errorf("failed to decode DeploymentConfig from controller: %v", err)
 	}
 }
 
@@ -133,7 +133,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 
 	podSpec := api.PodSpec{}
 	if err := api.Scheme.Convert(&config.Template.ControllerTemplate.Template.Spec, &podSpec); err != nil {
-		return nil, fmt.Errorf("Couldn't clone podTemplateSpec: %v", err)
+		return nil, fmt.Errorf("couldn't clone podSpec: %v", err)
 	}
 
 	controllerLabels := make(labels.Set)

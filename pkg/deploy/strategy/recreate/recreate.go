@@ -63,7 +63,7 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 	var deploymentConfig *deployapi.DeploymentConfig
 
 	if deploymentConfig, err = deployutil.DecodeDeploymentConfig(deployment, s.codec); err != nil {
-		return fmt.Errorf("Couldn't decode DeploymentConfig from deployment %s: %v", deployment.Name, err)
+		return fmt.Errorf("couldn't decode DeploymentConfig from Deployment %s: %v", deployment.Name, err)
 	}
 
 	// Execute any pre-hook.
@@ -81,10 +81,10 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 				case deployapi.LifecycleHookFailurePolicyAbort:
 					return fmt.Errorf("Pre hook failed, aborting: %s", err)
 				case deployapi.LifecycleHookFailurePolicyIgnore:
-					glog.Infof("Pre hook failed, ignoring: %s", err)
+					glog.V(2).Infof("Pre hook failed, ignoring: %s", err)
 					break preHookLoop
 				case deployapi.LifecycleHookFailurePolicyRetry:
-					glog.Infof("Pre hook failed, retrying: %s", err)
+					glog.V(2).Infof("Pre hook failed, retrying: %s", err)
 					time.Sleep(s.retryPeriod)
 				}
 			}
@@ -99,11 +99,11 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		if err != nil {
 			glog.Errorf("Deployment has an invalid desired replica count '%s'; falling back to config value %d", desired, desiredReplicas)
 		} else {
-			glog.Infof("Deployment has an explicit desired replica count %d", val)
+			glog.V(4).Infof("Deployment has an explicit desired replica count %d", val)
 			desiredReplicas = val
 		}
 	} else {
-		glog.Infof("Deployment has no explicit desired replica count; using the config value %d", desiredReplicas)
+		glog.V(4).Infof("Deployment has no explicit desired replica count; using the config value %d", desiredReplicas)
 	}
 
 	// Scale up the new deployment.
@@ -112,7 +112,7 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 	}
 
 	// Disable any old deployments.
-	glog.Infof("Found %d prior deployments to disable", len(oldDeployments))
+	glog.V(4).Infof("Found %d prior deployments to disable", len(oldDeployments))
 	allProcessed := true
 	for _, oldDeployment := range oldDeployments {
 		if err = s.updateReplicas(oldDeployment.Namespace, oldDeployment.Name, 0); err != nil {
@@ -129,16 +129,16 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 			for {
 				err := s.hookExecutor.Execute(postHook, deployment)
 				if err == nil {
-					glog.Info("Post hook finished successfully")
+					glog.V(4).Info("Post hook finished successfully")
 					break
 				}
 				switch postHook.FailurePolicy {
 				case deployapi.LifecycleHookFailurePolicyIgnore, deployapi.LifecycleHookFailurePolicyAbort:
 					// Abort isn't supported here, so treat it like ignore.
-					glog.Infof("Post hook failed, ignoring: %s", err)
+					glog.V(2).Infof("Post hook failed, ignoring: %s", err)
 					break postHookLoop
 				case deployapi.LifecycleHookFailurePolicyRetry:
-					glog.Infof("Post hook failed, retrying: %s", err)
+					glog.V(2).Infof("Post hook failed, retrying: %s", err)
 					time.Sleep(s.retryPeriod)
 				}
 			}
@@ -146,7 +146,7 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 	}
 
 	if !allProcessed {
-		return fmt.Errorf("Failed to disable all prior deployments for new deployment %s", deployment.Name)
+		return fmt.Errorf("failed to disable all prior deployments for new Deployment %s", deployment.Name)
 	}
 
 	glog.Infof("Deployment %s successfully made active", deployment.Name)
@@ -162,13 +162,13 @@ func (s *RecreateDeploymentStrategy) updateReplicas(namespace, name string, repl
 	for {
 		select {
 		case <-timeout:
-			return fmt.Errorf("Couldn't successfully update deployment %s/%s replica count to %d (timeout exceeded)", namespace, name, replicaCount)
+			return fmt.Errorf("couldn't successfully update Deployment %s/%s replica count to %d (timeout exceeded)", namespace, name, replicaCount)
 		default:
 			if deployment, err = s.client.getReplicationController(namespace, name); err != nil {
-				glog.Errorf("Couldn't get deployment %s/%s: %v", namespace, name, err)
+				glog.Errorf("Couldn't get Deployment %s/%s: %v", namespace, name, err)
 			} else {
 				deployment.Spec.Replicas = replicaCount
-				glog.Infof("Updating deployment %s/%s replica count to %d", namespace, name, replicaCount)
+				glog.V(4).Infof("Updating Deployment %s/%s replica count to %d", namespace, name, replicaCount)
 				if _, err = s.client.updateReplicationController(namespace, deployment); err == nil {
 					return nil
 				}
@@ -176,7 +176,7 @@ func (s *RecreateDeploymentStrategy) updateReplicas(namespace, name string, repl
 				if kerrors.IsConflict(err) {
 					continue
 				}
-				glog.Errorf("Error updating deployment %s/%s replica count to %d: %v", namespace, name, replicaCount, err)
+				glog.Errorf("Error updating Deployment %s/%s replica count to %d: %v", namespace, name, replicaCount, err)
 			}
 
 			time.Sleep(s.retryPeriod)

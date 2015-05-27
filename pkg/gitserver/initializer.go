@@ -177,7 +177,7 @@ func clone(config *Config) error {
 		for _, err := range errs {
 			s = append(s, err.Error())
 		}
-		return fmt.Errorf("Initial clone failed:\n* %s", strings.Join(s, "\n* "))
+		return fmt.Errorf("initial clone failed:\n* %s", strings.Join(s, "\n* "))
 	}
 	return nil
 }

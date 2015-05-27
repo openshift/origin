@@ -90,7 +90,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
-	return apierrors.NewForbidden(kind, name, fmt.Errorf("Namespace %s is terminating", a.GetNamespace()))
+	return apierrors.NewForbidden(kind, name, fmt.Errorf("namespace %s is terminating", a.GetNamespace()))
 }
 
 func NewLifecycle() (admission.Interface, error) {

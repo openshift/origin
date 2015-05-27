@@ -1,7 +1,7 @@
 package factory
 
 import (
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -41,7 +41,7 @@ func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.D
 		build.Message = err.Error()
 		now := kutil.Now()
 		build.CompletionTimestamp = &now
-		glog.V(3).Infof("Giving up retrying build %s/%s: %v", build.Namespace, build.Name, err)
+		glog.V(3).Infof("Giving up retrying Build %s/%s: %v", build.Namespace, build.Name, err)
 		if err := buildupdater.Update(build.Namespace, build); err != nil {
 			// retry update, but only on error other than NotFound
 			return !kerrors.IsNotFound(err)
@@ -282,7 +282,7 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.
 	case buildapi.CustomBuildStrategyType:
 		pod, err = f.CustomBuildStrategy.CreateBuildPod(build)
 	default:
-		return nil, errors.New("No strategy defined for type")
+		return nil, fmt.Errorf("no supported build strategy defined for Build %s/%s with type %s", build.Namespace, build.Name, build.Parameters.Strategy.Type)
 	}
 	if pod != nil {
 		if pod.Annotations == nil {

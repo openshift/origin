@@ -44,10 +44,10 @@ func ParseNameAndID(input string) (name string, id string, err error) {
 		name = segments[0]
 		id = segments[1]
 		if len(name) == 0 || len(id) == 0 {
-			err = errors.NewBadRequest("imageStreamImages must be retrieved with <name>@<id>")
+			err = errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
 		}
 	default:
-		err = errors.NewBadRequest("imageStreamImages must be retrieved with <name>@<id>")
+		err = errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
 	}
 	return
 }

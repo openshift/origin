@@ -53,27 +53,27 @@ func NewController(bcg buildclient.BuildConfigGetter,
 func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	uv, err := parseURL(req)
 	if err != nil {
-		glog.V(4).Infof("Failed parsing request URL: %v", err)
+		glog.V(2).Infof("Failed to parse request URL: %v", err)
 		notFound(w, err.Error())
 		return
 	}
 
 	buildCfg, err := c.buildConfigGetter.Get(uv.namespace, uv.buildConfigName)
 	if err != nil {
-		glog.V(4).Infof("Failed getting BuildConfig: %v", err)
+		glog.V(2).Infof("Failed to get BuildConfig %s/%s: %v", uv.namespace, uv.buildConfigName, err)
 		badRequest(w, err.Error())
 		return
 	}
 
 	plugin, ok := c.plugins[uv.plugin]
 	if !ok {
-		glog.V(4).Infof("Plugin %s not found", uv.plugin)
+		glog.V(2).Infof("Plugin %s not found", uv.plugin)
 		notFound(w, "Plugin ", uv.plugin, " not found")
 		return
 	}
 	revision, proceed, err := plugin.Extract(buildCfg, uv.secret, uv.path, req)
 	if err != nil {
-		glog.V(4).Infof("Failed extracting information from webhook: %v", err)
+		glog.V(2).Infof("Failed to extract information from webhook: %v", err)
 		badRequest(w, err.Error())
 		return
 	}
@@ -85,7 +85,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		Revision:   revision,
 	}
 	if _, err := c.buildConfigInstantiator.Instantiate(uv.namespace, request); err != nil {
-		glog.V(4).Infof("Failed generating new build: %v", err)
+		glog.V(2).Infof("Failed to generate new Build from BuildConfig %s/%s: %v", buildCfg.Namespace, buildCfg.Name, err)
 		badRequest(w, err.Error())
 	}
 }
@@ -98,7 +98,7 @@ func parseURL(req *http.Request) (uv urlVars, err error) {
 
 	parts := splitPath(url)
 	if len(parts) < 3 {
-		err = fmt.Errorf("Unexpected URL %s", url)
+		err = fmt.Errorf("unexpected URL %s", url)
 		return
 	}
 	uv = urlVars{

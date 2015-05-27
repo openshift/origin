@@ -18,7 +18,7 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) fielderrors.Valid
 	} else {
 		ones, bitSize := ipnet.Mask.Size()
 		if (bitSize - ones) <= clusterNet.HostSubnetLength {
-			result = append(result, fielderrors.NewFieldInvalid("hostSubnetLength", clusterNet.HostSubnetLength, "Subnet length is greater than cluster Mask"))
+			result = append(result, fielderrors.NewFieldInvalid("hostSubnetLength", clusterNet.HostSubnetLength, "subnet length is greater than cluster Mask"))
 		}
 	}
 
@@ -30,14 +30,14 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) fielderrors.Valid
 func ValidateHostSubnet(hs *sdnapi.HostSubnet) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 	if hs.Name == "" {
-		result = append(result, fielderrors.NewFieldInvalid("name", hs.Name, "Name missing in object metadata"))
+		result = append(result, fielderrors.NewFieldInvalid("name", hs.Name, "name missing in object metadata"))
 	}
 	_, _, err := net.ParseCIDR(hs.Subnet)
 	if err != nil {
 		result = append(result, fielderrors.NewFieldInvalid("subnet", hs.Subnet, err.Error()))
 	}
 	if net.ParseIP(hs.HostIP) == nil {
-		result = append(result, fielderrors.NewFieldInvalid("hostIP", hs.HostIP, "Invalid IP address"))
+		result = append(result, fielderrors.NewFieldInvalid("hostIP", hs.HostIP, "invalid IP address"))
 	}
 	return result
 }

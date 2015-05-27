@@ -58,7 +58,7 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 	}
 
 	if labelselector.Conflicts(projectNodeSelector, pod.Spec.NodeSelector) {
-		return apierrors.NewForbidden(resource, name, fmt.Errorf("Pod node label selector conflicts with its project node label selector"))
+		return apierrors.NewForbidden(resource, name, fmt.Errorf("pod node label selector conflicts with its project node label selector"))
 	}
 
 	// modify pod node selector = project node selector + current pod node selector
