@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('OverviewController', function ($scope, DataService, annotationFilter, LabelFilter, Logger, ImageStreamResolver) {
+  .controller('OverviewController', function ($scope, DataService, annotationFilter, hashSizeFilter, LabelFilter, Logger, ImageStreamResolver) {
     $scope.pods = {};
     $scope.services = {};
     $scope.routesByService = {};
@@ -54,15 +54,14 @@ angular.module('openshiftConsole')
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.pods = pods.by("metadata.name");
       podRelationships();
+      // Must be called after podRelationships()
+      updateShowGetStarted();
       ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
       Logger.log("pods", $scope.pods);
     }));
 
     watches.push(DataService.watch("services", $scope, function(services) {
       $scope.unfilteredServices = services.by("metadata.name");
-      var isEmpty = Object.keys($scope.unfilteredServices).length === 0;
-      $scope.renderOptions.showSidebarRight = !isEmpty;
-      $scope.renderOptions.showGetStarted = isEmpty;
 
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
@@ -72,6 +71,9 @@ angular.module('openshiftConsole')
       deploymentsByService();
       deploymentConfigsByService();
       podRelationships();
+
+      // Must be called after deploymentConfigsByService() and podRelationships()
+      updateShowGetStarted();
 
       $scope.emptyMessage = "No services to show";
       updateFilterWarning();
@@ -266,6 +268,10 @@ angular.module('openshiftConsole')
       // Order is important here since podRelationships expects deploymentsByServiceByDeploymentConfig to be up to date
       deploymentsByService();
       podRelationships();
+
+      // Must be called after podRelationships()
+      updateShowGetStarted();
+
       Logger.log("deployments (subscribe)", $scope.deployments);
     }));
 
@@ -330,6 +336,8 @@ angular.module('openshiftConsole')
       }
 
       deploymentConfigsByService();
+      // Must be called after deploymentConfigsByService()
+      updateShowGetStarted();
 
       Logger.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
     }));
@@ -354,6 +362,17 @@ angular.module('openshiftConsole')
       }
       Logger.log("builds (subscribe)", $scope.builds);
     }));
+
+    // Show the "Get Started" message if the project is empty.
+    function updateShowGetStarted() {
+      var projectEmpty =
+        hashSizeFilter($scope.unfilteredServices) === 0 &&
+        hashSizeFilter($scope.monopodsByService['']) === 0 &&
+        hashSizeFilter($scope.deploymentConfigsByService['']) === 0;
+
+      $scope.renderOptions.showSidebarRight = !projectEmpty;
+      $scope.renderOptions.showGetStarted = projectEmpty;
+    }
 
     function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services) && !$.isEmptyObject($scope.unfilteredServices)) {
