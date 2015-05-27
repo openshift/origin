@@ -13,7 +13,7 @@ type ProjectList struct {
 
 // These are internal finalizer values to Origin
 const (
-	FinalizerProject kapi.FinalizerName = "openshift.com/project"
+	FinalizerOrigin kapi.FinalizerName = "openshift.io/origin"
 )
 
 // ProjectSpec describes the attributes on a Project

@@ -618,7 +618,7 @@ func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
 		namespace = &kapi.Namespace{
 			ObjectMeta: kapi.ObjectMeta{Name: c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace},
 			Spec: kapi.NamespaceSpec{
-				Finalizers: []kapi.FinalizerName{projectapi.FinalizerProject},
+				Finalizers: []kapi.FinalizerName{projectapi.FinalizerOrigin},
 			},
 		}
 		kapi.FillObjectMetaSystemFields(api.NewContext(), &namespace.ObjectMeta)

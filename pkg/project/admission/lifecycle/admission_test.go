@@ -33,7 +33,7 @@ func TestAdmissionExists(t *testing.T) {
 		Err: fmt.Errorf("DOES NOT EXIST"),
 	}
 	projectcache.FakeProjectCache(mockClient, cache.NewStore(cache.MetaNamespaceKeyFunc), "")
-	handler := &lifecycle{}
+	handler := &lifecycle{client: mockClient}
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
 		Parameters: buildapi.BuildParameters{
@@ -75,7 +75,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 	store.Add(namespaceObj)
 	mockClient := &testclient.Fake{}
 	projectcache.FakeProjectCache(mockClient, store, "")
-	handler := &lifecycle{}
+	handler := &lifecycle{client: mockClient}
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "other"},
 		Parameters: buildapi.BuildParameters{
