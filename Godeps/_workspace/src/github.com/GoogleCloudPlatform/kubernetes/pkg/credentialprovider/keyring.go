@@ -111,6 +111,11 @@ func isDefaultRegistryMatch(image string) bool {
 		return true
 	}
 
+	if parts[0] == "docker.io" || parts[0] == "index.docker.io" {
+		// resolve docker.io/image and index.docker.io/image as default registry
+		return true
+	}
+
 	// From: http://blog.docker.com/2013/07/how-to-use-your-own-registry/
 	// Docker looks for either a “.” (domain separator) or “:” (port separator)
 	// to learn that the first part of the repository name is a location and not
