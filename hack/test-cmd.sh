@@ -504,11 +504,11 @@ osc delete pods hello-openshift
 echo "manage-node: ok"
 
 openshift admin policy add-role-to-group cluster-admin system:unauthenticated
-openshift admin policy remove-role-from-group cluster-admin system:unauthenticated
-openshift admin policy remove-role-from-group-from-project system:unauthenticated
 openshift admin policy add-role-to-user cluster-admin system:no-user
+openshift admin policy remove-role-from-group cluster-admin system:unauthenticated
 openshift admin policy remove-role-from-user cluster-admin system:no-user
-openshift admin policy remove-user-from-project system:no-user
+openshift admin policy remove-group system:unauthenticated
+openshift admin policy remove-user system:no-user
 openshift admin policy add-cluster-role-to-group cluster-admin system:unauthenticated
 openshift admin policy remove-cluster-role-from-group cluster-admin system:unauthenticated
 openshift admin policy add-cluster-role-to-user cluster-admin system:no-user

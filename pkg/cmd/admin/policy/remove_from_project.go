@@ -72,7 +72,7 @@ func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, ou
 }
 
 func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, args []string, target *[]string, targetName string) error {
-	if len(args) < 2 {
+	if len(args) < 1 {
 		return fmt.Errorf("You must specify at least one argument: <%s> [%s]...", targetName, targetName)
 	}
 
