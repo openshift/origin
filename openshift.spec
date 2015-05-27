@@ -88,6 +88,16 @@ Requires:       openshift = %{version}-%{release}
 %description pod
 %{summary}
 
+%package sdn-ovs
+Summary:          OpenShift SDN Plugin for Open vSwitch
+Requires:         openvswitch >= 2.3.1
+Requires:         openshift-node = %{version}-%{release}
+Requires:         bridge-utils
+Requires:         ethtool
+
+%description sdn-ovs
+%{summary}
+
 %prep
 %setup -q
 
@@ -165,13 +175,14 @@ install -m 0644 tuned/openshift-node-host/tuned.conf %{buildroot}%{_prefix}/lib/
 install -d -m 0755 %{buildroot}%{_mandir}/man7
 install -m 0644 tuned/man/tuned-profiles-openshift-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-openshift-node.7
 
-# Install sdn scripts for node subpackage
+# Install sdn scripts
 install -d -m 0755 %{buildroot}%{kube_plugin_path}
 pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/bin
    install -p -m 755 openshift-ovs-subnet %{buildroot}%{kube_plugin_path}/openshift-ovs-subnet
    install -p -m 755 openshift-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/
-   install -p -m 755 openshift-sdn-simple-setup-node.sh %{buildroot}%{_bindir}/
 popd
+install -d -m 0755 %{buildroot}%{_prefix}/lib/systemd/system/openshift-node.service.d
+install -p -m 0644 rel-eng/openshift-sdn-ovs.conf %{buildroot}%{_prefix}/lib/systemd/system/openshift-node.service.d/
 
 %files
 %defattr(-,root,root,-)
@@ -202,9 +213,6 @@ popd
 %{_unitdir}/openshift-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/openshift-node
 %config(noreplace) /etc/%{name}/node
-%{_bindir}/openshift-sdn-simple-setup-node.sh
-%{_bindir}/openshift-sdn-kube-subnet-setup.sh
-%{kube_plugin_path}/openshift-ovs-subnet
 
 %post node
 %systemd_post %{basename:openshift-node.service}
@@ -214,6 +222,12 @@ popd
 
 %postun node
 %systemd_postun
+
+%files sdn-ovs
+%defattr(-,root,root,-)
+%{_bindir}/openshift-sdn-kube-subnet-setup.sh
+%{kube_plugin_path}/openshift-ovs-subnet
+%{_prefix}/lib/systemd/system/openshift-node.service.d/openshift-sdn-ovs.conf
 
 %files -n tuned-profiles-openshift-node
 %defattr(-,root,root,-)
