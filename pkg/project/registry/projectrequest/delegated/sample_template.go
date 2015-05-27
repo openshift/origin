@@ -44,19 +44,26 @@ func DefaultTemplate() *templateapi.Template {
 	binding.RoleRef.Name = bootstrappolicy.AdminRoleName
 	ret.Objects = append(ret.Objects, binding)
 
-	serviceAccountsBinding := &authorizationapi.RoleBinding{}
-	serviceAccountsBinding.Name = "image-pullers"
-	serviceAccountsBinding.Namespace = ns
-	serviceAccountsBinding.Groups = util.NewStringSet(serviceaccount.MakeNamespaceGroupName(ns))
-	serviceAccountsBinding.RoleRef.Name = bootstrappolicy.ImagePullerRoleName
-	ret.Objects = append(ret.Objects, serviceAccountsBinding)
+	saViewersBinding := &authorizationapi.RoleBinding{}
+	saViewersBinding.Name = "viewers"
+	saViewersBinding.Namespace = ns
+	saViewersBinding.Groups = util.NewStringSet(serviceaccount.MakeNamespaceGroupName(ns))
+	saViewersBinding.RoleRef.Name = bootstrappolicy.ViewRoleName
+	ret.Objects = append(ret.Objects, saViewersBinding)
 
-	serviceAccountBuilderBinding := &authorizationapi.RoleBinding{}
-	serviceAccountBuilderBinding.Name = "image-builders"
-	serviceAccountBuilderBinding.Namespace = ns
-	serviceAccountBuilderBinding.Users = util.NewStringSet(serviceaccount.MakeUsername(ns, bootstrappolicy.BuilderServiceAccountName))
-	serviceAccountBuilderBinding.RoleRef.Name = bootstrappolicy.ImageBuilderRoleName
-	ret.Objects = append(ret.Objects, serviceAccountBuilderBinding)
+	saImagePullBinding := &authorizationapi.RoleBinding{}
+	saImagePullBinding.Name = "image-pullers"
+	saImagePullBinding.Namespace = ns
+	saImagePullBinding.Groups = util.NewStringSet(serviceaccount.MakeNamespaceGroupName(ns))
+	saImagePullBinding.RoleRef.Name = bootstrappolicy.ImagePullerRoleName
+	ret.Objects = append(ret.Objects, saImagePullBinding)
+
+	saImageBuilderBinding := &authorizationapi.RoleBinding{}
+	saImageBuilderBinding.Name = "image-builders"
+	saImageBuilderBinding.Namespace = ns
+	saImageBuilderBinding.Users = util.NewStringSet(serviceaccount.MakeUsername(ns, bootstrappolicy.BuilderServiceAccountName))
+	saImageBuilderBinding.RoleRef.Name = bootstrappolicy.ImageBuilderRoleName
+	ret.Objects = append(ret.Objects, saImageBuilderBinding)
 
 	for _, parameterName := range parameters {
 		parameter := templateapi.Parameter{}
