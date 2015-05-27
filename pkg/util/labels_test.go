@@ -138,23 +138,6 @@ func TestAddConfigLabels(t *testing.T) {
 			err:            true,
 			expectedLabels: map[string]string{"foo": "first value"},
 		},
-		{ // [11] Test adding labels to a Deployment object
-			obj: &deployapi.Deployment{
-				ObjectMeta: kapi.ObjectMeta{
-					Labels: map[string]string{"foo": "first value"},
-				},
-				ControllerTemplate: kapi.ReplicationControllerSpec{
-					Template: &kapi.PodTemplateSpec{
-						ObjectMeta: kapi.ObjectMeta{
-							Labels: map[string]string{"foo": "first value"},
-						},
-					},
-				},
-			},
-			addLabels:      map[string]string{"bar": "second value"},
-			err:            false,
-			expectedLabels: map[string]string{"foo": "first value", "bar": "second value"},
-		},
 		{ // [12] Test adding labels to a DeploymentConfig object
 			obj: &deployapi.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{
@@ -208,10 +191,6 @@ func TestAddConfigLabels(t *testing.T) {
 				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
 			if e, a := test.expectedLabels, objType.Spec.Selector; !reflect.DeepEqual(e, a) {
-				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
-			}
-		case *deployapi.Deployment:
-			if e, a := test.expectedLabels, objType.ControllerTemplate.Template.Labels; !reflect.DeepEqual(e, a) {
 				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
 		case *deployapi.DeploymentConfig:
