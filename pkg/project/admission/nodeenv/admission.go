@@ -7,7 +7,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -27,22 +26,22 @@ type podNodeEnvironment struct {
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
 func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
-	// ignore deletes
-	if a.GetOperation() == "DELETE" {
+	// ignore anything except create or update of pods
+	if !(a.GetOperation() == admission.Create || a.GetOperation() == admission.Update) {
 		return nil
 	}
-
 	resource := a.GetResource()
 	if resource != "pods" {
 		return nil
 	}
 
 	obj := a.GetObject()
-	name := "Unknown"
-	if obj != nil {
-		name, _ = meta.NewAccessor().Name(obj)
+	pod, ok := obj.(*kapi.Pod)
+	if !ok {
+		return nil
 	}
-	pod := obj.(*kapi.Pod)
+
+	name := pod.Name
 
 	projects, err := projectcache.GetProjectCache()
 	if err != nil {
@@ -65,6 +64,10 @@ func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
 	pod.Spec.NodeSelector = labelselector.Merge(projectNodeSelector, pod.Spec.NodeSelector)
 
 	return nil
+}
+
+func (p *podNodeEnvironment) Handles(operation admission.Operation) bool {
+	return operation == admission.Create || operation == admission.Update
 }
 
 func NewPodNodeEnvironment(client client.Interface) (admission.Interface, error) {

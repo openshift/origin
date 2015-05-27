@@ -25,6 +25,7 @@ type MasterConfig struct {
 	MasterPort  int
 	MasterCount int
 
+	// TODO: remove, not used
 	NodeHosts []string
 	PortalNet *net.IPNet
 

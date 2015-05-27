@@ -231,7 +231,7 @@ func TestValidateImageStream(t *testing.T) {
 			namespace: "!$",
 			name:      "foo",
 			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldInvalid("metadata.namespace", "!$", `must be a DNS subdomain (at most 253 characters, matching regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*): e.g. "example.com"`),
+				fielderrors.NewFieldInvalid("metadata.namespace", "!$", `must be a DNS label (at most 63 characters, matching regex [a-z0-9]([-a-z0-9]*[a-z0-9])?): e.g. "my-name"`),
 			},
 		},
 		"short namespace": {

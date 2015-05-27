@@ -77,13 +77,13 @@ func TestValidateProject(t *testing.T) {
 			numErrs: 0,
 		},
 		{
-			name: "valid id internal dots",
+			name: "invalid id internal dots",
 			project: api.Project{
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "1.a.1",
 				},
 			},
-			numErrs: 0,
+			numErrs: 1,
 		},
 		{
 			name: "has namespace",

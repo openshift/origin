@@ -138,7 +138,7 @@ func (o LogoutOptions) RunLogout() error {
 		return err
 	}
 
-	fmt.Fprintf(o.Out, "User, %v, logged out of %v\n", userInfo.Name, o.Config.Host)
+	fmt.Fprintf(o.Out, "Logged %q out on %q\n", userInfo.Name, o.Config.Host)
 
 	return nil
 }

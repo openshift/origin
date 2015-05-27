@@ -31,7 +31,7 @@ type NodeOptions struct {
 	Mapper            meta.RESTMapper
 	Typer             runtime.ObjectTyper
 	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	Printer           func(mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error)
+	Printer           func(mapping *meta.RESTMapping, noHeaders, withNamespace bool) (kubectl.ResourcePrinter, error)
 
 	CmdPrinter       kubectl.ResourcePrinter
 	CmdPrinterOutput bool
@@ -169,11 +169,11 @@ func (n *NodeOptions) GetPrinters(kind, version string) (kubectl.ResourcePrinter
 		return nil, nil, err
 	}
 
-	printerWithHeaders, err := n.Printer(mapping, false)
+	printerWithHeaders, err := n.Printer(mapping, false, true)
 	if err != nil {
 		return nil, nil, err
 	}
-	printerNoHeaders, err := n.Printer(mapping, true)
+	printerNoHeaders, err := n.Printer(mapping, true, true)
 	if err != nil {
 		return nil, nil, err
 	}
