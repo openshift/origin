@@ -12,6 +12,7 @@ import (
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/policy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
@@ -94,6 +95,8 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdResize(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdStop(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdLabel(fullName, f, out))
+
+	cmds.AddCommand(policy.NewCommandPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out))
 
 	return cmds
 }

@@ -311,6 +311,8 @@ echo "templates: ok"
 [ "$(openshift admin policy TYPO; echo $? | grep '1')" ]
 [ "$(openshift admin TYPO; echo $? | grep '1')" ]
 [ "$(openshift cli TYPO; echo $? | grep '1')" ]
+[ "$(osc policy TYPO; echo $? | grep '1')" ]
+
 osc get pods --match-server-version
 osc create -f examples/hello-openshift/hello-pod.json
 osc describe pod hello-openshift
@@ -525,6 +527,13 @@ openshift admin policy add-cluster-role-to-group cluster-admin system:unauthenti
 openshift admin policy remove-cluster-role-from-group cluster-admin system:unauthenticated
 openshift admin policy add-cluster-role-to-user cluster-admin system:no-user
 openshift admin policy remove-cluster-role-from-user cluster-admin system:no-user
+
+osc policy add-role-to-group cluster-admin system:unauthenticated
+osc policy add-role-to-user cluster-admin system:no-user
+osc policy remove-role-from-group cluster-admin system:unauthenticated
+osc policy remove-role-from-user cluster-admin system:no-user
+osc policy remove-group system:unauthenticated
+osc policy remove-user system:no-user
 echo "ex policy: ok"
 
 # Test the commands the UI projects page tells users to run
