@@ -8,9 +8,17 @@ import (
 
 func init() {
 	err := newer.Scheme.AddDefaultingFuncs(
+		func(obj *MasterConfig) {
+			if len(obj.APILevels) == 0 {
+				obj.APILevels = newer.DefaultOpenShiftAPILevels
+			}
+		},
 		func(obj *KubernetesMasterConfig) {
 			if obj.MasterCount == 0 {
 				obj.MasterCount = 1
+			}
+			if len(obj.APILevels) == 0 {
+				obj.APILevels = newer.DefaultKubernetesAPILevels
 			}
 		},
 		func(obj *EtcdStorageConfig) {

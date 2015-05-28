@@ -50,6 +50,9 @@ type MasterConfig struct {
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string `json:"corsAllowedOrigins"`
 
+	// APILevels is a list of API levels that should be enabled on startup: v1beta1, v1beta3, v1 as examples
+	APILevels []string `json:"apiLevels"`
+
 	// MasterPublicURL is how clients can access the OpenShift API server
 	MasterPublicURL string `json:"masterPublicURL"`
 
@@ -421,7 +424,9 @@ type EtcdConfig struct {
 }
 
 type KubernetesMasterConfig struct {
-	MasterIP string `json:"masterIP"`
+	// APILevels is a list of API levels that should be enabled on startup: v1beta1, v1beta2, v1beta3, v1 as examples
+	APILevels []string `json:"apiLevels"`
+	MasterIP  string   `json:"masterIP"`
 	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.
 	MasterCount         int      `json:"masterCount"`
 	ServicesSubnet      string   `json:"servicesSubnet"`
