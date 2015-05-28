@@ -51,16 +51,7 @@ OpenShift now requires at least Docker 1.6. Here's how to get it:
 RPMs for Docker 1.6 are available for Fedora 21 in the updates yum repository.
 
 ### CentOS 7
-Docker 1.6 is not yet available in the CentOS 7 Extras yum repository yet. In the meantime, you will need to install it from https://mirror.openshift.com/pub/openshift-v3/dependencies/centos7/x86_64/. Create `/etc/yum.repos.d/openshift-v3-dependencies.repo` with these contents
-
-    [openshift-v3-dependencies]
-    name=OpenShift V3 Dependencies
-    baseurl=https://mirror.openshift.com/pub/openshift-v3/dependencies/centos7/x86_64/
-    enabled=1
-    metadata_expire=7d
-    gpgcheck=0
-
-You will now be able to `yum install` or `yum update` Docker to 1.6.
+RPMs for Docker 1.6 are available for CentOS 7 in the extras yum repository.
 
 
 Getting Started
