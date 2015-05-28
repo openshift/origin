@@ -1,224 +1,231 @@
-<div class="container">
-  <div class="row">
-    <div class="col-md-12" ng-controller="ProjectController">
-      <div ng-controller="CreateFromImageController" class="create-from-image">
-        <div class="row">
-          <div class="col-md-2 template-name">
-            <span class="fa fa-cubes hidden-xs hidden-sm"></span>
-          </div>
-          <div class="col-md-8">
-            <osc-image-summary resource="image" name="imageName"></osc-image-summary>
-            <form class="" ng-show="imageRepo" novalidate name="form">
-              <div class="gutter-bottom">
-                  <h2>
-                    Name
-                  </h2>
-                <div class="form-group" ng-class="{'has-error': form.appname.$error.oscResourceNameValidator}">
-                 <input class="form-control"
-                        type="text" ng-model="name" name="appname" required="true" osc-resource-name-validator>
+<div ng-controller="ProjectController">
+  <div ng-controller="CreateFromImageController" class="container">
+    <ol class="breadcrumb">
+      <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
+      <li><a href="project/{{projectName}}/create">Create</a></li>
+      <li class="active"><strong>{{imageName}}</strong></li>
+    </ol>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="create-from-image">
+          <div class="row">
+            <div class="col-md-2 template-name gutter-top hidden-sm hidden-xs">
+              <span class="fa fa-cubes"></span>
+            </div>
+            <div class="col-md-8">
+              <osc-image-summary resource="image" name="imageName"></osc-image-summary>
+              <form class="" ng-show="imageRepo" novalidate name="form">
+                <div class="gutter-bottom">
+                    <h2>
+                      Name
+                    </h2>
+                  <div class="form-group" ng-class="{'has-error': form.appname.$error.oscResourceNameValidator}">
+                   <input class="form-control"
+                          type="text" ng-model="name" name="appname" required="true" osc-resource-name-validator>
+                  </div>
+                  <p class="help-block">Used to uniquely identify within this project all the resources created to support the application.</p>
+                  <div class="has-error" ng-show="form.appname.$error.oscResourceNameValidator">
+                    <span class="help-block"><strong>Please enter a valid name.</strong>
+                    <p>A valid name is applied to all generated resources and is an alphanumeric (a-z, and 0-9) string, with a maximum length of 24 characters, with the '-' character allowed anywhere except the first or last character.</p>
+                    </span>
+                  </div>
+                  <div class="has-error" ng-show="nameTaken">
+                    <span class="help-block">This name is already in use within the project. Please choose a different name.</span>
+                  </div>
                 </div>
-                <p class="help-block">Used to uniquely identify within this project all the resources created to support the application.</p>
-                <div class="has-error" ng-show="form.appname.$error.oscResourceNameValidator">
-                  <span class="help-block"><strong>Please enter a valid name.</strong>
-                  <p>A valid name is applied to all generated resources and is an alphanumeric (a-z, and 0-9) string, with a maximum length of 24 characters, with the '-' character allowed anywhere except the first or last character.</p>
-                  </span>
-                </div>
-                <div class="has-error" ng-show="nameTaken">
-                  <span class="help-block">This name is already in use within the project. Please choose a different name.</span>
-                </div>
-              </div>
 
-              <div class="alert alert-info">
-                <span class="pficon pficon-info"></span>
-                <label>Note:</label> After creation, these settings can only be modified through the osc command.
-              </div>
-
-              <osc-form-section
-                header="Routing" 
-                about-title="Routing"
-                about="Routing is a way to make your application publicly visible. Otherwise you may only be able to access your application by it's IP address, if allowed by the system administrator."
-                class="first-section"
-                >
-                <div ng-hide="$parent.expand">
-                  <div>
-                    <label>Create a route to the application: </label>
-                    <span>{{routing | yesNo}}</span>
-                  </div>
+                <div class="alert alert-info">
+                  <span class="pficon pficon-info"></span>
+                  <label>Note:</label> After creation, these settings can only be modified through the osc command.
                 </div>
-                <div ng-show="$parent.expand">
-                  <div class="form-group">
-                    <label class="checkbox-inline">
-                      <input type="checkbox" ng-model="routing.include">
-                        Create a route to the application
-                        <span class="help action-inline">
-                          <i class="pficon pficon-help" data-toggle="tooltip" data-placement="right" data-original-title="Additional routes with alternative configuration options (security, TLS termination, etc) can be added using the osc command."></i>
-                        </span>
-                    </label>
-                  </div>
-                </div>
-              </osc-form-section> 
 
-              <!-- /routing -->
+                <osc-form-section
+                  header="Routing" 
+                  about-title="Routing"
+                  about="Routing is a way to make your application publicly visible. Otherwise you may only be able to access your application by it's IP address, if allowed by the system administrator."
+                  class="first-section"
+                  >
+                  <div ng-hide="$parent.expand">
+                    <div>
+                      <label>Create a route to the application: </label>
+                      <span>{{routing | yesNo}}</span>
+                    </div>
+                  </div>
+                  <div ng-show="$parent.expand">
+                    <div class="form-group">
+                      <label class="checkbox-inline">
+                        <input type="checkbox" ng-model="routing.include">
+                          Create a route to the application
+                          <span class="help action-inline">
+                            <i class="pficon pficon-help" data-toggle="tooltip" data-placement="right" data-original-title="Additional routes with alternative configuration options (security, TLS termination, etc) can be added using the osc command."></i>
+                          </span>
+                      </label>
+                    </div>
+                  </div>
+                </osc-form-section> 
 
-              <osc-form-section 
-                header="Deployment Configuration" 
-                about-title="Deployment Configuration"
-                about="Deployment configurations describe how your application is configured
-                  by the cluster and under what conditions it should be recreated (e.g. when the image changes)."
-                >
-                <div ng-hide="$parent.expand">
-                  <h3>Autodeploy when</h3>
-                  <div>
-                    <label>New image is available: </label>
-                    <span>{{deploymentConfig.deployOnNewImage | yesNo}}</span>
-                  </div>
-                  <div>
-                    <label>Deployment configuration changes: </label>
-                    <span>{{deploymentConfig.deployOnConfigChange | yesNo}}</span>
-                  </div>
-                  <h3>Environment Variables <span class="help action-inline">
-                    <a href data-toggle="tooltip" data-placement="right" 
-                       data-original-title="Environment variables are used to configure and pass information to running containers.">
-                      <i class="pficon pficon-help"></i> 
-                    </a>
-                  </span></h3>
-                  
-                  <osc-key-values
-                    entries="deploymentConfig.envVars"
-                    delimiter="="
-                    key-validator="env"
-                    delete-policy="added"
-                    editable="false"
-                   />
-                </div>
-                <div class="animate-drawer" ng-show="$parent.expand">
-                  <h3>Autodeploy when</h3>
-                  <div>
-                    <label class="checkbox">
-                      <input type="checkbox" ng-model="deploymentConfig.deployOnNewImage">
-                      New image is available
-                    </label>
-                  </div>
-                  <div>
-                  <label class="checkbox">
-                    <input type="checkbox" ng-model="deploymentConfig.deployOnConfigChange">
-                    Deployment configuration changes
-                  </label>
-                  </div>
-                  <div>
+                <!-- /routing -->
+
+                <osc-form-section 
+                  header="Deployment Configuration" 
+                  about-title="Deployment Configuration"
+                  about="Deployment configurations describe how your application is configured
+                    by the cluster and under what conditions it should be recreated (e.g. when the image changes)."
+                  >
+                  <div ng-hide="$parent.expand">
+                    <h3>Autodeploy when</h3>
+                    <div>
+                      <label>New image is available: </label>
+                      <span>{{deploymentConfig.deployOnNewImage | yesNo}}</span>
+                    </div>
+                    <div>
+                      <label>Deployment configuration changes: </label>
+                      <span>{{deploymentConfig.deployOnConfigChange | yesNo}}</span>
+                    </div>
                     <h3>Environment Variables <span class="help action-inline">
                       <a href data-toggle="tooltip" data-placement="right" 
-                         data-original-title="Environment variables are used to configure and pass information to images.">
+                         data-original-title="Environment variables are used to configure and pass information to running containers.">
                         <i class="pficon pficon-help"></i> 
                       </a>
                     </span></h3>
+                    
                     <osc-key-values
                       entries="deploymentConfig.envVars"
                       delimiter="="
                       key-validator="env"
                       delete-policy="added"
-                      key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."
-                    />
+                      editable="false"
+                     />
                   </div>
-                </div>
-              </osc-form-section>
-
-              <!-- /deployment config -->
-
-              <osc-form-section 
-                header="Build Configuration"
-                about-title="Build Configuration"
-                about="A build configuration describes how to build your deployable image.  This includes
-                  your source, the base builder image, and when to launch new builds."
-                >
-                <div class="animate-drawer" ng-hide="$parent.expand">
-                  <div>
-                    <label>Source Code: </label>
-                    <span>{{buildConfig.sourceUrl | defaultIfBlank: "Not Specified"}}</span>
-                  </div>
-                  <div>
-                    <label>Automatically build new image when code changes: </label>
-                    <span>{{buildConfig.buildOnSourceChange | yesNo}}</span>
-                  </div>
-                  <div>
-                    <label>Automatically build new image when builder image changes: </label>
-                    <span>{{buildConfig.buildOnImageChange | yesNo}}</span>
-                  </div>
-                </div>
-                <div class="animate-drawer" ng-show="$parent.expand">
-                  <div>
-                    <label>Source Code: </label>
-                    <span>{{buildConfig.sourceUrl}}</span>
-                  </div>
-                  <div>
+                  <div class="animate-drawer" ng-show="$parent.expand">
+                    <h3>Autodeploy when</h3>
+                    <div>
+                      <label class="checkbox">
+                        <input type="checkbox" ng-model="deploymentConfig.deployOnNewImage">
+                        New image is available
+                      </label>
+                    </div>
+                    <div>
                     <label class="checkbox">
-                      <input type="checkbox" ng-model="buildConfig.buildOnSourceChange"/>
-                      Configure webhook build trigger 
-                      <span class="help action-inline">
+                      <input type="checkbox" ng-model="deploymentConfig.deployOnConfigChange">
+                      Deployment configuration changes
+                    </label>
+                    </div>
+                    <div>
+                      <h3>Environment Variables <span class="help action-inline">
                         <a href data-toggle="tooltip" data-placement="right" 
-                           data-original-title="The source repository must be configured to use the webhook to trigger a build when source is committed">
+                           data-original-title="Environment variables are used to configure and pass information to images.">
                           <i class="pficon pficon-help"></i> 
                         </a>
-                      </span>
+                      </span></h3>
+                      <osc-key-values
+                        entries="deploymentConfig.envVars"
+                        delimiter="="
+                        key-validator="env"
+                        delete-policy="added"
+                        key-validation-tooltip="A valid environment variable name is an alphanumeric (a-z and 0-9) string beginning with a letter that may contain underscores."
+                      />
+                    </div>
+                  </div>
+                </osc-form-section>
+
+                <!-- /deployment config -->
+
+                <osc-form-section 
+                  header="Build Configuration"
+                  about-title="Build Configuration"
+                  about="A build configuration describes how to build your deployable image.  This includes
+                    your source, the base builder image, and when to launch new builds."
+                  >
+                  <div class="animate-drawer" ng-hide="$parent.expand">
+                    <div>
+                      <label>Source Code: </label>
+                      <span>{{buildConfig.sourceUrl | defaultIfBlank: "Not Specified"}}</span>
+                    </div>
+                    <div>
+                      <label>Automatically build new image when code changes: </label>
+                      <span>{{buildConfig.buildOnSourceChange | yesNo}}</span>
+                    </div>
+                    <div>
+                      <label>Automatically build new image when builder image changes: </label>
+                      <span>{{buildConfig.buildOnImageChange | yesNo}}</span>
+                    </div>
+                  </div>
+                  <div class="animate-drawer" ng-show="$parent.expand">
+                    <div>
+                      <label>Source Code: </label>
+                      <span>{{buildConfig.sourceUrl}}</span>
+                    </div>
+                    <div>
+                      <label class="checkbox">
+                        <input type="checkbox" ng-model="buildConfig.buildOnSourceChange"/>
+                        Configure webhook build trigger 
+                        <span class="help action-inline">
+                          <a href data-toggle="tooltip" data-placement="right" 
+                             data-original-title="The source repository must be configured to use the webhook to trigger a build when source is committed">
+                            <i class="pficon pficon-help"></i> 
+                          </a>
+                        </span>
+                      </label>
+                    </div>
+                    <div>
+                      <label class="checkbox">
+                        <input type="checkbox" ng-model="buildConfig.buildOnImageChange"/>
+                        Automatically build new image when the builder image changes
+                        <span class="help action-inline">
+                          <a href data-toggle="tooltip" data-placement="right" data-original-title="Automatically building a new image when the builder image changes allows your code to always run on the latest updates.">
+                          <i class="pficon pficon-help"></i> 
+                          </a>
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </osc-form-section>
+
+                <!-- /build config -->
+
+                <osc-form-section 
+                  header="Scaling"
+                  about-title="Scaling"
+                  about="Scaling defines the number of running instances of your built image."
+                  >
+                  <div ng-hide="$parent.expand">
+                    <div>
+                      <label>Replicas: </label>
+                      <span>{{scaling.replicas}}</span>
+                    </div>
+                  </div>
+                  <div ng-show="$parent.expand">
+                    <label class="number">
+                      Replicas: 
+                      <input type="number" class="input-number" min="0" name="replicas" ng-model="scaling.replicas" required ng-pattern="/^\-?\d+$/">
                     </label>
+                    <div class="has-error" ng-show="form.replicas.$invalid">
+                      <span class="help-block">Replicas must be an integer value greater than or equal to 0</span>
+                    </div>
                   </div>
-                  <div>
-                    <label class="checkbox">
-                      <input type="checkbox" ng-model="buildConfig.buildOnImageChange"/>
-                      Automatically build new image when the builder image changes
-                      <span class="help action-inline">
-                        <a href data-toggle="tooltip" data-placement="right" data-original-title="Automatically building a new image when the builder image changes allows your code to always run on the latest updates.">
-                        <i class="pficon pficon-help"></i> 
-                        </a>
-                      </span>
-                    </label>
-                  </div>
+                </osc-form-section>
+
+                <!-- /scaling -->
+
+                <labels labels="labels"></labels>
+                <div class="buttons gutter-top-bottom gutter-top-bottom-2x">
+                  <!-- unable to use form.valid.  need to fix validators in labels and key values directive -->
+                  <button class="btn btn-primary btn-lg" 
+                      ng-click="createApp()" 
+                      ng-disabled="form.appname.$invalid || 
+                          form.replicas.$invalid"
+                      >Create</button>
+                  <a class="btn btn-default btn-lg" href="{{project | projectOverviewURL}}">Cancel</a>
                 </div>
-              </osc-form-section>
-
-              <!-- /build config -->
-
-              <osc-form-section 
-                header="Scaling"
-                about-title="Scaling"
-                about="Scaling defines the number of running instances of your built image."
-                >
-                <div ng-hide="$parent.expand">
-                  <div>
-                    <label>Replicas: </label>
-                    <span>{{scaling.replicas}}</span>
-                  </div>
-                </div>
-                <div ng-show="$parent.expand">
-                  <label class="number">
-                    Replicas: 
-                    <input type="number" class="input-number" min="0" name="replicas" ng-model="scaling.replicas" required ng-pattern="/^\-?\d+$/">
-                  </label>
-                  <div class="has-error" ng-show="form.replicas.$invalid">
-                    <span class="help-block">Replicas must be an integer value greater than or equal to 0</span>
-                  </div>
-                </div>
-              </osc-form-section>
-
-              <!-- /scaling -->
-
-              <labels labels="labels"></labels>
-              <div class="buttons gutter-top-bottom gutter-top-bottom-2x">
-                <!-- unable to use form.valid.  need to fix validators in labels and key values directive -->
-                <button class="btn btn-primary btn-lg" 
-                    ng-click="createApp()" 
-                    ng-disabled="form.appname.$invalid || 
-                        form.replicas.$invalid"
-                    >Create</button>
-                <a class="btn btn-default btn-lg" href="javascript:;" back>Cancel</a>
+              </form>
+              <div ng-hide="imageRepo">
+                {{ emptyMessage }}
               </div>
-            </form>
-            <div ng-hide="imageRepo">
-              {{ emptyMessage }}
             </div>
-          </div>
-        </div><!-- /row -->
-      </div><!-- /create-from-template -->
-    </div><!-- /col-* -->
-  </div><!-- /row -->
-</div><!-- /container -->
+          </div><!-- /row -->
+        </div><!-- /create-from-image -->
+      </div><!-- /col-* -->
+    </div><!-- /row -->
+  </div><!-- /container -->
+</div>

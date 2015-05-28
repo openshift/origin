@@ -1,38 +1,46 @@
-<div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <div ng-controller="NewFromTemplateController" class="create-from-template">
-        <div class="row">
-          <div class="col-md-2 template-name">
-            <span class="fa fa-cubes hidden-xs hidden-sm"></span>
+<div ng-controller="ProjectController">
+  <div ng-controller="NewFromTemplateController" class="container">
+    <div class="container">
+      <ol class="breadcrumb">
+        <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
+        <li><a href="project/{{projectName}}/create">Create</a></li>
+        <li class="active"><strong>{{template | displayName}}</strong></li>
+      </ol>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="create-from-template">
+          <div class="row">
+            <div class="col-md-2 template-name gutter-top hidden-sm hidden-xs">
+              <span class="fa fa-cubes"></span>
+            </div>
+            <div class="col-md-9">
+              <osc-image-summary resource="template"></osc-image-summary>
+              <div ng-if="templateImages.length" class="images">
+                <h2>Images</h2>
+                <ul class="list-unstyled" ng-repeat="image in templateImages">
+                  <li>
+                    <i class="fa fa-cube"></i>
+                    <span class="name">{{ image.name }}</span>
+                  </li>
+                </ul>
+              </div>
+              <template-options class="first-section"></template-options>
+              <labels labels="template.labels"></labels>
+              <div class="project gutter-bottom">
+              Items will be created in the <b>{{ projectDisplayName() }}</b> project.
+              </div>
+              <alerts alerts="alerts"></alerts>
+              <div class="buttons gutter-top-bottom">
+                <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()">Create</button>
+                <a class="btn btn-default btn-lg" href="{{project | projectOverviewURL}}">Cancel</a>
+              </div>
+            </div>
           </div>
-          <div class="col-md-9">
-            <osc-image-summary resource="template"></osc-image-summary>
-            <div ng-if="templateImages.length" class="images">
-              <h2>Images</h2>
-              <ul class="list-unstyled" ng-repeat="image in templateImages">
-                <li>
-                  <i class="fa fa-cube"></i>
-                  <span class="name">{{ image.name }}</span>
-                </li>
-              </ul>
-            </div>
-            <template-options class="first-section"></template-options>
-            <labels labels="template.labels"></labels>
-            <div class="project gutter-bottom">
-            Items will be created in the <b>{{ projectDisplayName() }}</b> project.
-            </div>
-            <alerts alerts="alerts"></alerts>
-            <div class="buttons gutter-top-bottom">
-              <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()">Create</button>
-              <a class="btn btn-default btn-lg" href="javascript:;" back>Cancel</a>
-            </div>
+          <div ng-hide="template">
+            {{ emptyMessage }}
           </div>
-        </div>
-        <div ng-hide="template">
-          {{ emptyMessage }}
-        </div>
-      </div><!-- /create-from-template -->
+        </div><!-- /create-from-template -->
+      </div>
     </div>
   </div>
 </div>
