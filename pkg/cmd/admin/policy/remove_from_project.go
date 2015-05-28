@@ -98,7 +98,7 @@ func (o *RemoveFromProjectOptions) Run() error {
 
 	for _, currPolicyBinding := range bindingList.Items {
 		for _, currBinding := range authorizationapi.SortRoleBindings(currPolicyBinding.RoleBindings, true) {
-			if !currBinding.Groups.HasAny(o.Groups...) && !currBinding.Groups.HasAny(o.Users...) {
+			if !currBinding.Groups.HasAny(o.Groups...) && !currBinding.Users.HasAny(o.Users...) {
 				continue
 			}
 
