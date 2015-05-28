@@ -165,7 +165,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 	for i := range streams.Items {
 		stream := &streams.Items[i]
 
-		glog.V(4).Infof("Examining image stream %s/%s", stream.Namespace, stream.Name)
+		glog.V(4).Infof("Examining ImageStream %s/%s", stream.Namespace, stream.Name)
 
 		// use a weak reference for old image revisions by default
 		oldImageRevisionReferenceKind := graph.WeakReferencedImageGraphEdgeKind
@@ -177,7 +177,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 			oldImageRevisionReferenceKind = graph.ReferencedImageGraphEdgeKind
 		}
 
-		glog.V(4).Infof("Adding image stream %s/%s to graph", stream.Namespace, stream.Name)
+		glog.V(4).Infof("Adding ImageStream %s/%s to graph", stream.Namespace, stream.Name)
 		isNode := graph.ImageStream(g, stream)
 		imageStreamNode := isNode.(*graph.ImageStreamNode)
 
@@ -262,7 +262,7 @@ func addPodSpecToGraph(g graph.Graph, spec *kapi.PodSpec, predecessor gonum.Node
 
 		ref, err := imageapi.ParseDockerImageReference(container.Image)
 		if err != nil {
-			glog.Errorf("Unable to parse docker image reference %q: %v", container.Image, err)
+			glog.Errorf("Unable to parse DockerImageReference %q: %v", container.Image, err)
 			continue
 		}
 
@@ -304,7 +304,7 @@ func addReplicationControllersToGraph(g graph.Graph, rcs *kapi.ReplicationContro
 func addDeploymentConfigsToGraph(g graph.Graph, dcs *deployapi.DeploymentConfigList) {
 	for i := range dcs.Items {
 		dc := &dcs.Items[i]
-		glog.V(4).Infof("Examining deployment config %s/%s", dc.Namespace, dc.Name)
+		glog.V(4).Infof("Examining DeploymentConfig %s/%s", dc.Namespace, dc.Name)
 		dcNode := graph.DeploymentConfig(g, dc)
 		addPodSpecToGraph(g, &dc.Template.ControllerTemplate.Template.Spec, dcNode)
 	}
@@ -316,7 +316,7 @@ func addDeploymentConfigsToGraph(g graph.Graph, dcs *deployapi.DeploymentConfigL
 func addBuildConfigsToGraph(g graph.Graph, bcs *buildapi.BuildConfigList) {
 	for i := range bcs.Items {
 		bc := &bcs.Items[i]
-		glog.V(4).Infof("Examining build config %s/%s", bc.Namespace, bc.Name)
+		glog.V(4).Infof("Examining BuildConfig %s/%s", bc.Namespace, bc.Name)
 		bcNode := graph.BuildConfig(g, bc)
 		addBuildStrategyImageReferencesToGraph(g, bc.Parameters.Strategy, bcNode)
 	}
@@ -354,14 +354,14 @@ func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.Bui
 	case "ImageStreamImage":
 		_, id, err := imagestreamimage.ParseNameAndID(from.Name)
 		if err != nil {
-			glog.V(4).Infof("Error parsing ImageStreamImage name %q: %v - skipping", from.Name, err)
+			glog.V(2).Infof("Error parsing ImageStreamImage name %q: %v - skipping", from.Name, err)
 			return
 		}
 		imageID = id
 	case "DockerImage":
 		ref, err := imageapi.ParseDockerImageReference(from.Name)
 		if err != nil {
-			glog.V(4).Infof("Error parsing DockerImage name %q: %v - skipping", from.Name, err)
+			glog.V(2).Infof("Error parsing DockerImage name %q: %v - skipping", from.Name, err)
 			return
 		}
 		imageID = ref.ID
@@ -543,7 +543,7 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, pruneLayer L
 		for _, streamNode := range streamNodes {
 			stream := streamNode.ImageStream
 			streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
-			glog.V(4).Infof("Layer has an image stream predecessor: %s", streamName)
+			glog.V(4).Infof("Layer has an ImageStream predecessor: %s", streamName)
 
 			ref, err := imageapi.DockerImageReferenceForStream(stream)
 			if err != nil {
@@ -573,7 +573,7 @@ func DeletingImagePruneFunc(images client.ImageInterface) ImagePruneFunc {
 	return func(image *imageapi.Image) error {
 		glog.V(4).Infof("Deleting image %q", image.Name)
 		if err := images.Delete(image.Name); err != nil {
-			e := fmt.Errorf("Error deleting image: %v", err)
+			e := fmt.Errorf("error deleting image: %v", err)
 			glog.Error(e)
 			return e
 		}
@@ -583,7 +583,7 @@ func DeletingImagePruneFunc(images client.ImageInterface) ImagePruneFunc {
 
 func DeletingImageStreamPruneFunc(streams client.ImageStreamsNamespacer) ImageStreamPruneFunc {
 	return func(stream *imageapi.ImageStream, image *imageapi.Image) (*imageapi.ImageStream, error) {
-		glog.V(4).Infof("Checking if stream %s/%s has references to image in status.tags", stream.Namespace, stream.Name)
+		glog.V(4).Infof("Checking if ImageStream %s/%s has references to image in status.tags", stream.Namespace, stream.Name)
 		for tag, history := range stream.Status.Tags {
 			glog.V(4).Infof("Checking tag %q", tag)
 			newHistory := imageapi.TagEventList{}
@@ -597,7 +597,7 @@ func DeletingImageStreamPruneFunc(streams client.ImageStreamsNamespacer) ImageSt
 			stream.Status.Tags[tag] = newHistory
 		}
 
-		glog.V(4).Infof("Updating image stream %s/%s", stream.Namespace, stream.Name)
+		glog.V(4).Infof("Updating ImageStream %s/%s", stream.Namespace, stream.Name)
 		glog.V(5).Infof("Updated stream: %#v", stream)
 		updatedStream, err := streams.ImageStreams(stream.Namespace).UpdateStatus(stream)
 		if err != nil {
@@ -612,13 +612,13 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 		req, err := http.NewRequest("DELETE", url, nil)
 		if err != nil {
 			glog.Errorf("Error creating request: %v", err)
-			return fmt.Errorf("Error creating request: %v", err)
+			return fmt.Errorf("error creating request: %v", err)
 		}
 
 		glog.V(4).Infof("Sending request to registry")
 		resp, err := registryClient.Do(req)
 		if err != nil {
-			return fmt.Errorf("Error sending request: %v", err)
+			return fmt.Errorf("error sending request: %v", err)
 		}
 		defer resp.Body.Close()
 
@@ -628,7 +628,7 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 			decoder := json.NewDecoder(resp.Body)
 			response := make(map[string]interface{})
 			decoder.Decode(&response)
-			return fmt.Errorf("Unexpected status code %d in response: %#v", resp.StatusCode, response)
+			return fmt.Errorf("unexpected status code %d in response: %#v", resp.StatusCode, response)
 		}
 
 		return nil

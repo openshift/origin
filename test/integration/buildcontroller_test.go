@@ -262,7 +262,22 @@ func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
 	strategy := stiStrategy("ImageStreamTag", streamName+":"+tag)
 	config := imageChangeBuildConfig("sti-imagestreamtag", strategy)
-	runImageChangeTriggerTest(t, "SimpleImageChangeBuildTriggerFromImageStreamTagSTI", osClient, imageStream, imageStreamMapping, config, tag)
+	runImageChangeTriggerTest(t, osClient, imageStream, imageStreamMapping, config, tag)
+}
+
+func TestBuildDeleteController(t *testing.T) {
+	osClient, kClient := setupBuildControllerTest(0, 0, 0, t)
+	runBuildDeleteTest(t, osClient, kClient)
+}
+
+func TestBuildRunningPodDeleteController(t *testing.T) {
+	osClient, kClient := setupBuildControllerTest(0, 0, 0, t)
+	runBuildRunningPodDeleteTest(t, osClient, kClient)
+}
+
+func TestBuildCompletePodDeleteController(t *testing.T) {
+	osClient, kClient := setupBuildControllerTest(0, 0, 0, t)
+	runBuildCompletePodDeleteTest(t, osClient, kClient)
 }
 
 func checkErr(t *testing.T, err error) {
@@ -309,7 +324,7 @@ func waitForWatch(t *testing.T, name string, w watchapi.Interface) *watchapi.Eve
 	return nil
 }
 
-func runImageChangeTriggerTest(t *testing.T, testname string, clusterAdminClient *client.Client, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildapi.BuildConfig, tag string) {
+func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildapi.BuildConfig, tag string) {
 	created, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
@@ -484,5 +499,166 @@ WaitLoop3:
 	updatedConfig = event.Object.(*buildapi.BuildConfig)
 	if e, a := "registry:8080/openshift/test-image-trigger:ref-2-random", updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
 		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
+	}
+}
+
+func runBuildDeleteTest(t *testing.T, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
+
+	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to Builds %v", err)
+	}
+	defer buildWatch.Stop()
+
+	created, err := clusterAdminClient.Builds(testutil.Namespace()).Create(mockBuild())
+	if err != nil {
+		t.Fatalf("Couldn't create Build: %v", err)
+	}
+
+	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to Pods %v", err)
+	}
+	defer podWatch.Stop()
+
+	// wait for initial build event from the creation of the imagerepo with tag latest
+	event := waitForWatch(t, "initial build added", buildWatch)
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	newBuild := event.Object.(*buildapi.Build)
+
+	// initial pod creation for build
+	event = waitForWatch(t, "build pod created", podWatch)
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+
+	clusterAdminClient.Builds(testutil.Namespace()).Delete(newBuild.Name)
+
+	event = waitForWatch(t, "pod deleted due to build deleted", podWatch)
+	if e, a := watchapi.Deleted, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	pod := event.Object.(*kapi.Pod)
+	if pod.Name != newBuild.Name {
+		t.Fatalf("Expected pod %s to be deleted, but pod %s was deleted", newBuild.Name, pod.Name)
+	}
+
+}
+
+func runBuildRunningPodDeleteTest(t *testing.T, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
+
+	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to Builds %v", err)
+	}
+	defer buildWatch.Stop()
+
+	created, err := clusterAdminClient.Builds(testutil.Namespace()).Create(mockBuild())
+	if err != nil {
+		t.Fatalf("Couldn't create Build: %v", err)
+	}
+
+	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to Pods %v", err)
+	}
+	defer podWatch.Stop()
+
+	// wait for initial build event from the creation of the imagerepo with tag latest
+	event := waitForWatch(t, "initial build added", buildWatch)
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	newBuild := event.Object.(*buildapi.Build)
+
+	// initial pod creation for build
+	event = waitForWatch(t, "build pod created", podWatch)
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+
+	event = waitForWatch(t, "build updated to pending", buildWatch)
+	if e, a := watchapi.Modified, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	newBuild = event.Object.(*buildapi.Build)
+	if newBuild.Status != buildapi.BuildStatusPending {
+		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status)
+	}
+
+	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(newBuild.Name, kapi.NewDeleteOptions(0))
+	event = waitForWatch(t, "build updated to error", buildWatch)
+	if e, a := watchapi.Modified, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	newBuild = event.Object.(*buildapi.Build)
+	if newBuild.Status != buildapi.BuildStatusError {
+		t.Fatalf("expected build status to be marked error, but was marked %s", newBuild.Status)
+	}
+}
+
+func runBuildCompletePodDeleteTest(t *testing.T, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
+
+	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to Builds %v", err)
+	}
+	defer buildWatch.Stop()
+
+	created, err := clusterAdminClient.Builds(testutil.Namespace()).Create(mockBuild())
+	if err != nil {
+		t.Fatalf("Couldn't create Build: %v", err)
+	}
+
+	podWatch, err := clusterAdminKubeClient.Pods(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to Pods %v", err)
+	}
+	defer podWatch.Stop()
+
+	// wait for initial build event from the creation of the imagerepo with tag latest
+	event := waitForWatch(t, "initial build added", buildWatch)
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	newBuild := event.Object.(*buildapi.Build)
+
+	// initial pod creation for build
+	event = waitForWatch(t, "build pod created", podWatch)
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+
+	event = waitForWatch(t, "build updated to pending", buildWatch)
+	if e, a := watchapi.Modified, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+
+	newBuild = event.Object.(*buildapi.Build)
+	if newBuild.Status != buildapi.BuildStatusPending {
+		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status)
+	}
+
+	newBuild.Status = buildapi.BuildStatusComplete
+	clusterAdminClient.Builds(testutil.Namespace()).Update(newBuild)
+	event = waitForWatch(t, "build updated to complete", buildWatch)
+	if e, a := watchapi.Modified, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	newBuild = event.Object.(*buildapi.Build)
+	if newBuild.Status != buildapi.BuildStatusComplete {
+		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status)
+	}
+
+	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(newBuild.Name, kapi.NewDeleteOptions(0))
+	time.Sleep(10 * time.Second)
+	newBuild, err = clusterAdminClient.Builds(testutil.Namespace()).Get(newBuild.Name)
+	if err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
+	if newBuild.Status != buildapi.BuildStatusComplete {
+		t.Fatalf("build status was updated to %s after deleting pod, should have stayed as %s", newBuild.Status, buildapi.BuildStatusComplete)
 	}
 }

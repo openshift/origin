@@ -28,16 +28,16 @@ import (
 const (
 	startBuildLong = `Start a build.
 
-This command starts a build for the provided build configuration or re-runs an existing build using
+This command starts a build for the provided BuildConfig or re-runs an existing build using
 --from-build=<name>. You may pass the --follow flag to see output from the build.`
 
-	startBuildExample = `  // Starts build from build configuration matching the name "3bd2ug53b"
+	startBuildExample = `  // Starts build from BuildConfig matching the name "3bd2ug53b"
   $ %[1]s start-build 3bd2ug53b
 
   // Starts build from build matching the name "3bd2ug53b"
   $ %[1]s start-build --from-build=3bd2ug53b
 
-  // Starts build from build configuration matching the name "3bd2ug53b" and watches the logs until the build
+  // Starts build from BuildConfig matching the name "3bd2ug53b" and watches the logs until the build
   // completes or fails
   $ %[1]s start-build 3bd2ug53b --follow`
 )
@@ -49,7 +49,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 
 	cmd := &cobra.Command{
 		Use:     "start-build (BUILDCONFIG | --from-build=BUILD)",
-		Short:   "Starts a new build from existing build or buildConfig",
+		Short:   "Starts a new build from existing Build or BuildConfig",
 		Long:    startBuildLong,
 		Example: fmt.Sprintf(startBuildExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -59,8 +59,8 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	}
 	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
 	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
-	cmd.Flags().Var(&webhooks, "list-webhooks", "List the webhooks for the specified build config or build; accepts 'all', 'generic', or 'github'")
-	cmd.Flags().String("from-webhook", "", "Specify a webhook URL for an existing build config to trigger")
+	cmd.Flags().Var(&webhooks, "list-webhooks", "List the webhooks for the specified BuildConfig or build; accepts 'all', 'generic', or 'github'")
+	cmd.Flags().String("from-webhook", "", "Specify a webhook URL for an existing BuildConfign to trigger")
 	cmd.Flags().String("git-post-receive", "", "The contents of the post-receive hook to trigger a build")
 	cmd.Flags().String("git-repository", "", "The path to the git repository for post-receive; defaults to the current directory")
 	return cmd
@@ -82,7 +82,7 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 		repo := git.NewRepository()
 		return RunStartBuildWebHook(f, out, webhook, path, postReceivePath, repo)
 	case len(args) != 1 && len(buildName) == 0:
-		return cmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag")
+		return cmdutil.UsageError(cmd, "Must pass a name of a BuildConfig or specify build name with '--from-build' flag")
 	}
 
 	name := buildName
@@ -170,7 +170,7 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 		}
 		ref := build.Config
 		if ref == nil {
-			return fmt.Errorf("the provided build %q was not created from a build config and cannot have webhooks", name)
+			return fmt.Errorf("the provided Build %q was not created from a BuildConfig and cannot have webhooks", name)
 		}
 		if len(ref.Namespace) > 0 {
 			namespace = ref.Namespace

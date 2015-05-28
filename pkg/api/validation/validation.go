@@ -63,8 +63,6 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 		errors = imagev.ValidateImageStreamMapping(t)
 	case *deployapi.DeploymentConfig:
 		errors = deployv.ValidateDeploymentConfig(t)
-	case *deployapi.Deployment:
-		errors = deployv.ValidateDeployment(t)
 	case *projectapi.Project:
 		// this is a global resource that should not have a namespace
 		t.Namespace = ""

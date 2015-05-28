@@ -8,11 +8,21 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectsController', function ($scope, $location, DataService, AuthService, Logger) {
+  .controller('ProjectsController', function ($scope, $route, DataService, AuthService, Logger) {
     $scope.projects = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
     $scope.canCreate = undefined;
+
+    $('#openshift-logo').on('click.projectsPage', function() {
+      // Force a reload. Angular doesn't reload the view when the URL doesn't change.
+      $route.reload();
+    });
+
+    $scope.$on('$destroy', function(){
+      // The click handler is only necessary on the projects page.
+      $('#openshift-logo').off('click.projectsPage');
+    });
 
     AuthService.withUser().then(function() {
       DataService.list("projects", $scope, function(projects) {

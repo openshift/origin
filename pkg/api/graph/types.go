@@ -98,7 +98,7 @@ func (n DeploymentConfigNode) Object() interface{} {
 }
 
 func (n DeploymentConfigNode) String() string {
-	return fmt.Sprintf("<deployment config %s/%s>", n.Namespace, n.Name)
+	return fmt.Sprintf("<DeploymentConfig %s/%s>", n.Namespace, n.Name)
 }
 
 func (*DeploymentConfigNode) Kind() int {
@@ -124,7 +124,7 @@ func (n ImageStreamTagNode) Object() interface{} {
 }
 
 func (n ImageStreamTagNode) String() string {
-	return fmt.Sprintf("<image stream %s/%s:%s>", n.Namespace, n.Name, n.Tag)
+	return fmt.Sprintf("<ImageStream %s/%s:%s>", n.Namespace, n.Name, n.Tag)
 }
 
 func (*ImageStreamTagNode) Kind() int {
@@ -345,7 +345,7 @@ func BuildConfig(g MutableUniqueGraph, config *build.BuildConfig) graph.Node {
 			in := ImageStreamTag(g, defaultNamespace(from.Namespace, config.Namespace), name, tag)
 			g.AddEdge(in, node, BuildInputImageGraphEdgeKind)
 		case "ImageStreamImage":
-			glog.V(4).Infof("Ignoring ImageStreamImage reference in buildconfig %s/%s", config.Namespace, config.Name)
+			glog.V(4).Infof("Ignoring ImageStreamImage reference in BuildConfig %s/%s", config.Namespace, config.Name)
 		}
 	}
 	return node
@@ -497,7 +497,7 @@ func (n ImageStreamNode) Object() interface{} {
 }
 
 func (n ImageStreamNode) String() string {
-	return fmt.Sprintf("<image stream %s/%s>", n.Namespace, n.Name)
+	return fmt.Sprintf("<ImageStream %s/%s>", n.Namespace, n.Name)
 }
 
 func (*ImageStreamNode) Kind() int {

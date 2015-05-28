@@ -19,13 +19,13 @@ func (g *RollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfi
 	rollback := &deployapi.DeploymentConfig{}
 
 	if err := kapi.Scheme.Convert(&from, &rollback); err != nil {
-		return nil, fmt.Errorf("Couldn't clone 'from' deploymentConfig: %v", err)
+		return nil, fmt.Errorf("couldn't clone 'from' DeploymentConfig: %v", err)
 	}
 
 	// construct the candidate deploymentConfig based on the rollback spec
 	if spec.IncludeTemplate {
 		if err := kapi.Scheme.Convert(&to.Template.ControllerTemplate.Template, &rollback.Template.ControllerTemplate.Template); err != nil {
-			return nil, fmt.Errorf("Couldn't copy template to rollback:: %v", err)
+			return nil, fmt.Errorf("couldn't copy template to rollback:: %v", err)
 		}
 	}
 
@@ -39,13 +39,13 @@ func (g *RollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfi
 
 	if spec.IncludeTriggers {
 		if err := kapi.Scheme.Convert(&to.Triggers, &rollback.Triggers); err != nil {
-			return nil, fmt.Errorf("Couldn't copy triggers to rollback:: %v", err)
+			return nil, fmt.Errorf("couldn't copy triggers to rollback:: %v", err)
 		}
 	}
 
 	if spec.IncludeStrategy {
 		if err := kapi.Scheme.Convert(&to.Template.Strategy, &rollback.Template.Strategy); err != nil {
-			return nil, fmt.Errorf("Couldn't copy strategy to rollback:: %v", err)
+			return nil, fmt.Errorf("couldn't copy strategy to rollback:: %v", err)
 		}
 	}
 

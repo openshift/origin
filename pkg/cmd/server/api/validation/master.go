@@ -96,11 +96,9 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 
 	allErrs = append(allErrs, ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig")...)
 
-	allErrs = append(allErrs, ValidateProjectNodeSelector(config.ProjectNodeSelector)...)
-
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
-	allErrs = append(allErrs, ValidateProjectRequestConfig(config.ProjectRequestConfig).Prefix("projectRequestConfig")...)
+	allErrs = append(allErrs, ValidateProjectConfig(config.ProjectConfig).Prefix("projectConfig")...)
 
 	return allErrs
 }
@@ -120,19 +118,6 @@ func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.Validat
 	}
 	if strings.ContainsRune(config.OpenShiftStoragePrefix, '%') {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("openShiftStoragePrefix", config.OpenShiftStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
-	}
-
-	return allErrs
-}
-
-func ValidateProjectNodeSelector(nodeSelector string) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-
-	if len(nodeSelector) > 0 {
-		_, err := labelselector.Parse(nodeSelector)
-		if err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("projectNodeSelector", nodeSelector, "must be a valid label selector"))
-		}
 	}
 
 	return allErrs
@@ -273,12 +258,18 @@ func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorLi
 	return allErrs
 }
 
-// ValidateProjectRequestConfig is stub for now.  no validation is required.
-func ValidateProjectRequestConfig(config api.ProjectRequestConfig) fielderrors.ValidationErrorList {
+func ValidateProjectConfig(config api.ProjectConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
 	if _, _, err := api.ParseNamespaceAndName(config.ProjectRequestTemplate); err != nil {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("projectRequestTemplate", config.ProjectRequestTemplate, "must be in the form: namespace/templateName"))
+	}
+
+	if len(config.DefaultNodeSelector) > 0 {
+		_, err := labelselector.Parse(config.DefaultNodeSelector)
+		if err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("defaultNodeSelector", config.DefaultNodeSelector, "must be a valid label selector"))
+		}
 	}
 
 	return allErrs

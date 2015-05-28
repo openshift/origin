@@ -59,8 +59,9 @@ var (
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
-func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
-	p := kctl.NewHumanReadablePrinter(noHeaders)
+func NewHumanReadablePrinter(noHeaders, withNamespace bool) *kctl.HumanReadablePrinter {
+	// TODO: support cross namespace listing
+	p := kctl.NewHumanReadablePrinter(noHeaders, withNamespace)
 	p.Handler(buildColumns, printBuild)
 	p.Handler(buildColumns, printBuildList)
 	p.Handler(buildConfigColumns, printBuildConfig)
@@ -78,8 +79,6 @@ func NewHumanReadablePrinter(noHeaders bool) *kctl.HumanReadablePrinter {
 	p.Handler(projectColumns, printProjectList)
 	p.Handler(routeColumns, printRoute)
 	p.Handler(routeColumns, printRouteList)
-	p.Handler(deploymentColumns, printDeployment)
-	p.Handler(deploymentColumns, printDeploymentList)
 	p.Handler(deploymentConfigColumns, printDeploymentConfig)
 	p.Handler(deploymentConfigColumns, printDeploymentConfigList)
 	p.Handler(templateColumns, printTemplate)
@@ -149,7 +148,7 @@ func PrintTemplateParameters(params []templateapi.Parameter, output io.Writer) e
 	return nil
 }
 
-func printTemplate(t *templateapi.Template, w io.Writer) error {
+func printTemplate(t *templateapi.Template, w io.Writer, withNamespace bool) error {
 	description := ""
 	if t.Annotations != nil {
 		description = t.Annotations["description"]
@@ -181,30 +180,30 @@ func printTemplate(t *templateapi.Template, w io.Writer) error {
 	return err
 }
 
-func printTemplateList(list *templateapi.TemplateList, w io.Writer) error {
+func printTemplateList(list *templateapi.TemplateList, w io.Writer, withNamespace bool) error {
 	for _, t := range list.Items {
-		if err := printTemplate(&t, w); err != nil {
+		if err := printTemplate(&t, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printBuild(build *buildapi.Build, w io.Writer) error {
+func printBuild(build *buildapi.Build, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Parameters.Strategy.Type), build.Status, buildutil.GetBuildPodName(build))
 	return err
 }
 
-func printBuildList(buildList *buildapi.BuildList, w io.Writer) error {
+func printBuildList(buildList *buildapi.BuildList, w io.Writer, withNamespace bool) error {
 	for _, build := range buildList.Items {
-		if err := printBuild(&build, w); err != nil {
+		if err := printBuild(&build, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer) error {
+func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, withNamespace bool) error {
 	if bc.Parameters.Strategy.Type == buildapi.CustomBuildStrategyType {
 		_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Parameters.Strategy.Type), bc.Parameters.Strategy.CustomStrategy.From.Name)
 		return err
@@ -213,46 +212,46 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer) error {
 	return err
 }
 
-func printBuildConfigList(buildList *buildapi.BuildConfigList, w io.Writer) error {
+func printBuildConfigList(buildList *buildapi.BuildConfigList, w io.Writer, withNamespace bool) error {
 	for _, buildConfig := range buildList.Items {
-		if err := printBuildConfig(&buildConfig, w); err != nil {
+		if err := printBuildConfig(&buildConfig, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printImage(image *imageapi.Image, w io.Writer) error {
+func printImage(image *imageapi.Image, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\n", image.Name, image.DockerImageReference)
 	return err
 }
 
-func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer) error {
+func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer, withNamespace bool) error {
 	created := fmt.Sprintf("%s ago", formatRelativeTime(ist.CreationTimestamp.Time))
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", ist.Name, ist.Image.DockerImageReference, created, ist.ImageName)
 	return err
 }
 
-func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer) error {
+func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer, withNamespace bool) error {
 	created := fmt.Sprintf("%s ago", formatRelativeTime(isi.CreationTimestamp.Time))
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", isi.Name, isi.Image.DockerImageReference, created, isi.ImageName)
 	return err
 }
 
-func printImageRepositoryTag(irt *imageapi.ImageRepositoryTag, w io.Writer) error {
-	return printImage(&irt.Image, w)
+func printImageRepositoryTag(irt *imageapi.ImageRepositoryTag, w io.Writer, withNamespace bool) error {
+	return printImage(&irt.Image, w, withNamespace)
 }
 
-func printImageList(images *imageapi.ImageList, w io.Writer) error {
+func printImageList(images *imageapi.ImageList, w io.Writer, withNamespace bool) error {
 	for _, image := range images.Items {
-		if err := printImage(&image, w); err != nil {
+		if err := printImage(&image, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printImageRepository(repo *imageapi.ImageRepository, w io.Writer) error {
+func printImageRepository(repo *imageapi.ImageRepository, w io.Writer, withNamespace bool) error {
 	tags := ""
 	set := util.NewStringSet()
 	for tag := range repo.Status.Tags {
@@ -263,16 +262,16 @@ func printImageRepository(repo *imageapi.ImageRepository, w io.Writer) error {
 	return err
 }
 
-func printImageRepositoryList(repos *imageapi.ImageRepositoryList, w io.Writer) error {
+func printImageRepositoryList(repos *imageapi.ImageRepositoryList, w io.Writer, withNamespace bool) error {
 	for _, repo := range repos.Items {
-		if err := printImageRepository(&repo, w); err != nil {
+		if err := printImageRepository(&repo, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printImageStream(stream *imageapi.ImageStream, w io.Writer) error {
+func printImageStream(stream *imageapi.ImageStream, w io.Writer, withNamespace bool) error {
 	tags := ""
 	set := util.NewStringSet()
 	var latest util.Time
@@ -293,16 +292,16 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer) error {
 	return err
 }
 
-func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer) error {
+func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer, withNamespace bool) error {
 	for _, stream := range streams.Items {
-		if err := printImageStream(&stream, w); err != nil {
+		if err := printImageStream(&stream, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printProject(project *projectapi.Project, w io.Writer) error {
+func printProject(project *projectapi.Project, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", project.Name, project.Annotations["displayName"], project.Status.Phase)
 	return err
 }
@@ -321,53 +320,31 @@ func (list SortableProjects) Less(i, j int) bool {
 	return list[i].ObjectMeta.Name < list[j].ObjectMeta.Name
 }
 
-func printProjectList(projects *projectapi.ProjectList, w io.Writer) error {
+func printProjectList(projects *projectapi.ProjectList, w io.Writer, withNamespace bool) error {
 	sort.Sort(SortableProjects(projects.Items))
 	for _, project := range projects.Items {
-		if err := printProject(&project, w); err != nil {
+		if err := printProject(&project, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printRoute(route *routeapi.Route, w io.Writer) error {
+func printRoute(route *routeapi.Route, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", route.Name, route.Host, route.Path, route.ServiceName, labels.Set(route.Labels))
 	return err
 }
 
-func printRouteList(routeList *routeapi.RouteList, w io.Writer) error {
+func printRouteList(routeList *routeapi.RouteList, w io.Writer, withNamespace bool) error {
 	for _, route := range routeList.Items {
-		if err := printRoute(&route, w); err != nil {
+		if err := printRoute(&route, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printDeployment(d *deployapi.Deployment, w io.Writer) error {
-	causes := util.StringSet{}
-	if d.Details != nil {
-		for _, cause := range d.Details.Causes {
-			causes.Insert(string(cause.Type))
-		}
-	}
-	cStr := strings.Join(causes.List(), ", ")
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", d.Name, d.Status, cStr)
-	return err
-}
-
-func printDeploymentList(list *deployapi.DeploymentList, w io.Writer) error {
-	for _, d := range list.Items {
-		if err := printDeployment(&d, w); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer) error {
+func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, withNamespace bool) error {
 	triggers := util.StringSet{}
 	for _, trigger := range dc.Triggers {
 		triggers.Insert(string(trigger.Type))
@@ -378,9 +355,9 @@ func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer) error {
 	return err
 }
 
-func printDeploymentConfigList(list *deployapi.DeploymentConfigList, w io.Writer) error {
+func printDeploymentConfigList(list *deployapi.DeploymentConfigList, w io.Writer, withNamespace bool) error {
 	for _, dc := range list.Items {
-		if err := printDeploymentConfig(&dc, w); err != nil {
+		if err := printDeploymentConfig(&dc, w, withNamespace); err != nil {
 			return err
 		}
 	}
@@ -388,7 +365,7 @@ func printDeploymentConfigList(list *deployapi.DeploymentConfigList, w io.Writer
 	return nil
 }
 
-func printPolicy(policy *authorizationapi.Policy, w io.Writer) error {
+func printPolicy(policy *authorizationapi.Policy, w io.Writer, withNamespace bool) error {
 	roleNames := util.StringSet{}
 	for key := range policy.Roles {
 		roleNames.Insert(key)
@@ -399,9 +376,9 @@ func printPolicy(policy *authorizationapi.Policy, w io.Writer) error {
 	return err
 }
 
-func printPolicyList(list *authorizationapi.PolicyList, w io.Writer) error {
+func printPolicyList(list *authorizationapi.PolicyList, w io.Writer, withNamespace bool) error {
 	for _, policy := range list.Items {
-		if err := printPolicy(&policy, w); err != nil {
+		if err := printPolicy(&policy, w, withNamespace); err != nil {
 			return err
 		}
 	}
@@ -409,7 +386,7 @@ func printPolicyList(list *authorizationapi.PolicyList, w io.Writer) error {
 	return nil
 }
 
-func printPolicyBinding(policyBinding *authorizationapi.PolicyBinding, w io.Writer) error {
+func printPolicyBinding(policyBinding *authorizationapi.PolicyBinding, w io.Writer, withNamespace bool) error {
 	roleBindingNames := util.StringSet{}
 	for key := range policyBinding.RoleBindings {
 		roleBindingNames.Insert(key)
@@ -420,9 +397,9 @@ func printPolicyBinding(policyBinding *authorizationapi.PolicyBinding, w io.Writ
 	return err
 }
 
-func printPolicyBindingList(list *authorizationapi.PolicyBindingList, w io.Writer) error {
+func printPolicyBindingList(list *authorizationapi.PolicyBindingList, w io.Writer, withNamespace bool) error {
 	for _, policyBinding := range list.Items {
-		if err := printPolicyBinding(&policyBinding, w); err != nil {
+		if err := printPolicyBinding(&policyBinding, w, withNamespace); err != nil {
 			return err
 		}
 	}
@@ -430,51 +407,51 @@ func printPolicyBindingList(list *authorizationapi.PolicyBindingList, w io.Write
 	return nil
 }
 
-func printClusterPolicy(policy *authorizationapi.ClusterPolicy, w io.Writer) error {
-	return printPolicy(authorizationapi.ToPolicy(policy), w)
+func printClusterPolicy(policy *authorizationapi.ClusterPolicy, w io.Writer, withNamespace bool) error {
+	return printPolicy(authorizationapi.ToPolicy(policy), w, withNamespace)
 }
 
-func printClusterPolicyList(list *authorizationapi.ClusterPolicyList, w io.Writer) error {
-	return printPolicyList(authorizationapi.ToPolicyList(list), w)
+func printClusterPolicyList(list *authorizationapi.ClusterPolicyList, w io.Writer, withNamespace bool) error {
+	return printPolicyList(authorizationapi.ToPolicyList(list), w, withNamespace)
 }
 
-func printClusterPolicyBinding(policyBinding *authorizationapi.ClusterPolicyBinding, w io.Writer) error {
-	return printPolicyBinding(authorizationapi.ToPolicyBinding(policyBinding), w)
+func printClusterPolicyBinding(policyBinding *authorizationapi.ClusterPolicyBinding, w io.Writer, withNamespace bool) error {
+	return printPolicyBinding(authorizationapi.ToPolicyBinding(policyBinding), w, withNamespace)
 }
 
-func printClusterPolicyBindingList(list *authorizationapi.ClusterPolicyBindingList, w io.Writer) error {
-	return printPolicyBindingList(authorizationapi.ToPolicyBindingList(list), w)
+func printClusterPolicyBindingList(list *authorizationapi.ClusterPolicyBindingList, w io.Writer, withNamespace bool) error {
+	return printPolicyBindingList(authorizationapi.ToPolicyBindingList(list), w, withNamespace)
 }
 
-func printClusterRole(role *authorizationapi.ClusterRole, w io.Writer) error {
-	return printRole(authorizationapi.ToRole(role), w)
+func printClusterRole(role *authorizationapi.ClusterRole, w io.Writer, withNamespace bool) error {
+	return printRole(authorizationapi.ToRole(role), w, withNamespace)
 }
 
-func printClusterRoleList(list *authorizationapi.ClusterRoleList, w io.Writer) error {
-	return printRoleList(authorizationapi.ToRoleList(list), w)
+func printClusterRoleList(list *authorizationapi.ClusterRoleList, w io.Writer, withNamespace bool) error {
+	return printRoleList(authorizationapi.ToRoleList(list), w, withNamespace)
 }
 
-func printClusterRoleBinding(roleBinding *authorizationapi.ClusterRoleBinding, w io.Writer) error {
-	return printRoleBinding(authorizationapi.ToRoleBinding(roleBinding), w)
+func printClusterRoleBinding(roleBinding *authorizationapi.ClusterRoleBinding, w io.Writer, withNamespace bool) error {
+	return printRoleBinding(authorizationapi.ToRoleBinding(roleBinding), w, withNamespace)
 }
 
-func printClusterRoleBindingList(list *authorizationapi.ClusterRoleBindingList, w io.Writer) error {
-	return printRoleBindingList(authorizationapi.ToRoleBindingList(list), w)
+func printClusterRoleBindingList(list *authorizationapi.ClusterRoleBindingList, w io.Writer, withNamespace bool) error {
+	return printRoleBindingList(authorizationapi.ToRoleBindingList(list), w, withNamespace)
 }
 
-func printIsPersonalSubjectAccessReview(a *authorizationapi.IsPersonalSubjectAccessReview, w io.Writer) error {
+func printIsPersonalSubjectAccessReview(a *authorizationapi.IsPersonalSubjectAccessReview, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "IsPersonalSubjectAccessReview\n")
 	return err
 }
 
-func printRole(role *authorizationapi.Role, w io.Writer) error {
+func printRole(role *authorizationapi.Role, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\n", role.Name)
 	return err
 }
 
-func printRoleList(list *authorizationapi.RoleList, w io.Writer) error {
+func printRoleList(list *authorizationapi.RoleList, w io.Writer, withNamespace bool) error {
 	for _, role := range list.Items {
-		if err := printRole(&role, w); err != nil {
+		if err := printRole(&role, w, withNamespace); err != nil {
 			return err
 		}
 	}
@@ -482,14 +459,14 @@ func printRoleList(list *authorizationapi.RoleList, w io.Writer) error {
 	return nil
 }
 
-func printRoleBinding(roleBinding *authorizationapi.RoleBinding, w io.Writer) error {
+func printRoleBinding(roleBinding *authorizationapi.RoleBinding, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\n", roleBinding.Name, roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, roleBinding.Users.List(), roleBinding.Groups.List())
 	return err
 }
 
-func printRoleBindingList(list *authorizationapi.RoleBindingList, w io.Writer) error {
+func printRoleBindingList(list *authorizationapi.RoleBindingList, w io.Writer, withNamespace bool) error {
 	for _, roleBinding := range list.Items {
-		if err := printRoleBinding(&roleBinding, w); err != nil {
+		if err := printRoleBinding(&roleBinding, w, withNamespace); err != nil {
 			return err
 		}
 	}
@@ -497,7 +474,7 @@ func printRoleBindingList(list *authorizationapi.RoleBindingList, w io.Writer) e
 	return nil
 }
 
-func printOAuthClient(client *oauthapi.OAuthClient, w io.Writer) error {
+func printOAuthClient(client *oauthapi.OAuthClient, w io.Writer, withNamespace bool) error {
 	challenge := "FALSE"
 	if client.RespondWithChallenges {
 		challenge = "TRUE"
@@ -505,110 +482,110 @@ func printOAuthClient(client *oauthapi.OAuthClient, w io.Writer) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v\n", client.Name, client.Secret, challenge, strings.Join(client.RedirectURIs, ","))
 	return err
 }
-func printOAuthClientList(list *oauthapi.OAuthClientList, w io.Writer) error {
+func printOAuthClientList(list *oauthapi.OAuthClientList, w io.Writer, withNamespace bool) error {
 	for _, item := range list.Items {
-		if err := printOAuthClient(&item, w); err != nil {
+		if err := printOAuthClient(&item, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printOAuthClientAuthorization(auth *oauthapi.OAuthClientAuthorization, w io.Writer) error {
+func printOAuthClientAuthorization(auth *oauthapi.OAuthClientAuthorization, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v\n", auth.Name, auth.UserName, auth.ClientName, strings.Join(auth.Scopes, ","))
 	return err
 }
-func printOAuthClientAuthorizationList(list *oauthapi.OAuthClientAuthorizationList, w io.Writer) error {
+func printOAuthClientAuthorizationList(list *oauthapi.OAuthClientAuthorizationList, w io.Writer, withNamespace bool) error {
 	for _, item := range list.Items {
-		if err := printOAuthClientAuthorization(&item, w); err != nil {
+		if err := printOAuthClientAuthorization(&item, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printOAuthAccessToken(token *oauthapi.OAuthAccessToken, w io.Writer) error {
+func printOAuthAccessToken(token *oauthapi.OAuthAccessToken, w io.Writer, withNamespace bool) error {
 	created := token.CreationTimestamp
 	expires := created.Add(time.Duration(token.ExpiresIn) * time.Second)
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", token.Name, token.UserName, token.ClientName, created, expires, token.RedirectURI, strings.Join(token.Scopes, ","))
 	return err
 }
-func printOAuthAccessTokenList(list *oauthapi.OAuthAccessTokenList, w io.Writer) error {
+func printOAuthAccessTokenList(list *oauthapi.OAuthAccessTokenList, w io.Writer, withNamespace bool) error {
 	for _, item := range list.Items {
-		if err := printOAuthAccessToken(&item, w); err != nil {
+		if err := printOAuthAccessToken(&item, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printOAuthAuthorizeToken(token *oauthapi.OAuthAuthorizeToken, w io.Writer) error {
+func printOAuthAuthorizeToken(token *oauthapi.OAuthAuthorizeToken, w io.Writer, withNamespace bool) error {
 	created := token.CreationTimestamp
 	expires := created.Add(time.Duration(token.ExpiresIn) * time.Second)
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", token.Name, token.UserName, token.ClientName, created, expires, token.RedirectURI, strings.Join(token.Scopes, ","))
 	return err
 }
-func printOAuthAuthorizeTokenList(list *oauthapi.OAuthAuthorizeTokenList, w io.Writer) error {
+func printOAuthAuthorizeTokenList(list *oauthapi.OAuthAuthorizeTokenList, w io.Writer, withNamespace bool) error {
 	for _, item := range list.Items {
-		if err := printOAuthAuthorizeToken(&item, w); err != nil {
+		if err := printOAuthAuthorizeToken(&item, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printUser(user *userapi.User, w io.Writer) error {
+func printUser(user *userapi.User, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", user.Name, user.UID, user.FullName, strings.Join(user.Identities, ", "))
 	return err
 }
-func printUserList(list *userapi.UserList, w io.Writer) error {
+func printUserList(list *userapi.UserList, w io.Writer, withNamespace bool) error {
 	for _, item := range list.Items {
-		if err := printUser(&item, w); err != nil {
+		if err := printUser(&item, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printIdentity(identity *userapi.Identity, w io.Writer) error {
+func printIdentity(identity *userapi.Identity, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", identity.Name, identity.ProviderName, identity.ProviderUserName, identity.User.Name, identity.User.UID)
 	return err
 }
-func printIdentityList(list *userapi.IdentityList, w io.Writer) error {
+func printIdentityList(list *userapi.IdentityList, w io.Writer, withNamespace bool) error {
 	for _, item := range list.Items {
-		if err := printIdentity(&item, w); err != nil {
+		if err := printIdentity(&item, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printUserIdentityMapping(mapping *userapi.UserIdentityMapping, w io.Writer) error {
+func printUserIdentityMapping(mapping *userapi.UserIdentityMapping, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", mapping.Name, mapping.Identity.Name, mapping.User.Name, mapping.User.UID)
 	return err
 }
 
-func printHostSubnet(h *sdnapi.HostSubnet, w io.Writer) error {
+func printHostSubnet(h *sdnapi.HostSubnet, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", h.Name, h.Host, h.HostIP, h.Subnet)
 	return err
 }
-func printHostSubnetList(list *sdnapi.HostSubnetList, w io.Writer) error {
+func printHostSubnetList(list *sdnapi.HostSubnetList, w io.Writer, withNamespace bool) error {
 	for _, item := range list.Items {
-		if err := printHostSubnet(&item, w); err != nil {
+		if err := printHostSubnet(&item, w, withNamespace); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printClusterNetwork(n *sdnapi.ClusterNetwork, w io.Writer) error {
+func printClusterNetwork(n *sdnapi.ClusterNetwork, w io.Writer, withNamespace bool) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%d\n", n.Name, n.Network, n.HostSubnetLength)
 	return err
 }
 
-func printClusterNetworkList(list *sdnapi.ClusterNetworkList, w io.Writer) error {
+func printClusterNetworkList(list *sdnapi.ClusterNetworkList, w io.Writer, withNamespace bool) error {
 	for _, item := range list.Items {
-		if err := printClusterNetwork(&item, w); err != nil {
+		if err := printClusterNetwork(&item, w, withNamespace); err != nil {
 			return err
 		}
 	}

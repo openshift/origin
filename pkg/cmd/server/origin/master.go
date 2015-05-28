@@ -56,10 +56,8 @@ import (
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	imagechangecontroller "github.com/openshift/origin/pkg/deploy/controller/imagechange"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
-	deployregistry "github.com/openshift/origin/pkg/deploy/registry/deploy"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
-	deployetcd "github.com/openshift/origin/pkg/deploy/registry/etcd"
 	deployrollback "github.com/openshift/origin/pkg/deploy/rollback"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
@@ -174,7 +172,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	deployConfigStorage := deployconfigetcd.NewStorage(c.EtcdHelper)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
-	deployEtcd := deployetcd.New(c.EtcdHelper)
 	routeEtcd := routeetcd.New(c.EtcdHelper)
 	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
 	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
@@ -251,12 +248,12 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 	projectStorage := projectproxy.NewREST(kclient.Namespaces(), c.ProjectAuthorizationCache)
 
-	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectRequestConfig.ProjectRequestTemplate)
+	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
 	if err != nil {
 		glog.Errorf("Error parsing project request template value: %v", err)
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectRequestConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient)
+	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient)
 
 	bcClient, _ := c.BuildControllerClients()
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
@@ -289,7 +286,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"imageRepositoryMappings":  imageRepositoryMappingStorage,
 		"imageRepositoryTags":      imageRepositoryTagStorage,
 
-		"deployments":               deployregistry.NewREST(deployEtcd),
 		"deploymentConfigs":         deployConfigStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
@@ -806,8 +802,8 @@ func (c *MasterConfig) RunDNSServer() {
 
 // RunProjectCache populates project cache, used by scheduler and project admission controller.
 func (c *MasterConfig) RunProjectCache() {
-	glog.Infof("Using default project node label selector: %s", c.Options.ProjectNodeSelector)
-	projectcache.RunProjectCache(c.PrivilegedLoopbackKubernetesClient, c.Options.ProjectNodeSelector)
+	glog.Infof("Using default project node label selector: %s", c.Options.ProjectConfig.DefaultNodeSelector)
+	projectcache.RunProjectCache(c.PrivilegedLoopbackKubernetesClient, c.Options.ProjectConfig.DefaultNodeSelector)
 }
 
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
@@ -840,6 +836,8 @@ func (c *MasterConfig) RunBuildController() {
 
 	controller := factory.Create()
 	controller.Run()
+	deleteController := factory.CreateDeleteController()
+	deleteController.Run()
 }
 
 // RunBuildPodController starts the build/pod status sync loop for build status
@@ -852,6 +850,8 @@ func (c *MasterConfig) RunBuildPodController() {
 	}
 	controller := factory.Create()
 	controller.Run()
+	deletecontroller := factory.CreateDeleteController()
+	deletecontroller.Run()
 }
 
 // RunBuildImageChangeTriggerController starts the build image change trigger controller process.

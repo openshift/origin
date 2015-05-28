@@ -355,7 +355,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		kubeConfig.RunScheduler()
 		kubeConfig.RunReplicationController()
 		kubeConfig.RunEndpointController()
-		kubeConfig.RunMinionController()
+		kubeConfig.RunNodeController()
 		kubeConfig.RunResourceQuotaManager()
 		kubeConfig.RunNamespaceController()
 		kubeConfig.RunPersistentVolumeClaimBinder()

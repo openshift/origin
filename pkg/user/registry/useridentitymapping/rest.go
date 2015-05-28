@@ -118,7 +118,7 @@ func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
-		return nil, errors.New("Invalid type")
+		return nil, errors.New("invalid type")
 	}
 	Strategy.PrepareForCreate(mapping)
 	createdMapping, _, err := s.createOrUpdate(ctx, obj, true)
@@ -131,7 +131,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
-		return nil, false, errors.New("Invalid type")
+		return nil, false, errors.New("invalid type")
 	}
 	Strategy.PrepareForUpdate(mapping, nil)
 	return s.createOrUpdate(ctx, mapping, false)

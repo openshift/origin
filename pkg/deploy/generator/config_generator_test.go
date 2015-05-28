@@ -29,7 +29,7 @@ func TestGenerate_fromMissingDeploymentConfig(t *testing.T) {
 	config, err := generator.Generate(kapi.NewDefaultContext(), "1234")
 
 	if config != nil {
-		t.Fatalf("Unexpected deployment config generated: %#v", config)
+		t.Fatalf("Unexpected DeploymentConfig generated: %#v", config)
 	}
 
 	if err == nil {

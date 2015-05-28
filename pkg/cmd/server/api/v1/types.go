@@ -84,21 +84,23 @@ type MasterConfig struct {
 
 	PolicyConfig PolicyConfig `json:"policyConfig"`
 
-	// ProjectNodeSelector holds default project node label selector
-	ProjectNodeSelector string `json:"projectNodeSelector,omitempty"`
-	// ProjectRequestConfig holds information about how to handle new project requests
-	ProjectRequestConfig ProjectRequestConfig `json:"projectRequestConfig"`
+	// ProjectConfig holds information about project creation and defaults
+	ProjectConfig ProjectConfig `json:"projectConfig"`
 
 	// NetworkConfig to be passed to the compiled in network plugin
 	NetworkConfig NetworkConfig `json:"networkConfig"`
 }
 
-type ProjectRequestConfig struct {
+type ProjectConfig struct {
+	// DefaultNodeSelector holds default project node label selector
+	DefaultNodeSelector string `json:"defaultNodeSelector"`
+
 	// ProjectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint
 	ProjectRequestMessage string `json:"projectRequestMessage"`
 
-	// ProjectRequestTemplate is the template to use for creating projects in response to projectrequest.  It is in the format namespace/template and it is optional.
-	// If it is not specified, then projectrequest will not work.  If the template does not exist, then a default will be created.
+	// ProjectRequestTemplate is the template to use for creating projects in response to projectrequest.
+	// It is in the format namespace/template and it is optional.
+	// If it is not specified, a default template is used.
 	ProjectRequestTemplate string `json:"projectRequestTemplate"`
 }
 

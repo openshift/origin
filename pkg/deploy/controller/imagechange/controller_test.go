@@ -22,7 +22,7 @@ func TestHandle_changeForNonAutomaticTag(t *testing.T) {
 	controller := &ImageChangeController{
 		deploymentConfigClient: &deploymentConfigClientImpl{
 			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				t.Fatalf("unexpected deployment config update")
+				t.Fatalf("unexpected DeploymentConfig update")
 				return nil, nil
 			},
 			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
@@ -59,7 +59,7 @@ func TestHandle_changeForUnregisteredTag(t *testing.T) {
 	controller := &ImageChangeController{
 		deploymentConfigClient: &deploymentConfigClientImpl{
 			updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-				t.Fatalf("unexpected deployment config update")
+				t.Fatalf("unexpected DeploymentConfig update")
 				return nil, nil
 			},
 			generateDeploymentConfigFunc: func(namespace, name string) (*deployapi.DeploymentConfig, error) {
@@ -213,7 +213,7 @@ func TestHandle_matchScenarios(t *testing.T) {
 			deploymentConfigClient: &deploymentConfigClientImpl{
 				updateDeploymentConfigFunc: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 					if !s.matches {
-						t.Fatalf("unexpected deployment config update for scenario: %v", s)
+						t.Fatalf("unexpected DeploymentConfig update for scenario: %v", s)
 					}
 					updated = true
 					return config, nil

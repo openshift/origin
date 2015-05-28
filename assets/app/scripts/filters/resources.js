@@ -304,4 +304,80 @@ angular.module('openshiftConsole')
 
       return itemsArray;
     };
+  })
+  .filter('isTroubledPod', function() {
+    // Scenario - Stuck Pod
+    // Check if the pod has been pending for a long time.
+    var isStuck = function(pod) {
+      if (pod.status.phase !== 'Pending') {
+        return false;
+      }
+
+      var fiveMinutesAgo = moment().subtract(5, 'm');
+      var created = moment(pod.metadata.creationTimestamp);
+      return created.isBefore(fiveMinutesAgo);
+    };
+
+    // Scenario - Looping Container
+    // Check if the container is frequently restarting.
+    var isLooping = function(containerStatus) {
+      if (containerStatus.restartCount < 3 ||
+          !containerStatus.state.running ||
+          !containerStatus.state.running.startedAt) {
+        return false;
+      }
+
+      // Only return true if the container has restarted recently.
+      var fiveMinutesAgo = moment().subtract(5, 'm');
+      var started = moment(containerStatus.state.running.startedAt);
+      return started.isAfter(fiveMinutesAgo);
+    };
+
+    // Scenario - Failed Container
+    // Check if the terminated container exited with a non-zero exit code
+    var isFailed = function(containerStatus) {
+      return containerStatus.state.termination && containerStatus.state.termination.exitCode !== 0;
+    };
+
+    // Scenario - Unprepared Container
+    // Check if the container still isn't ready after a length of time.
+    var isUnprepared = function(containerStatus) {
+      if (!containerStatus.state.running ||
+          containerStatus.ready !== false ||
+          !containerStatus.state.running.startedAt) {
+        return false;
+      }
+
+      var fiveMinutesAgo = moment().subtract(5, 'm');
+      var started = moment(containerStatus.state.running.startedAt);
+      return started.isBefore(fiveMinutesAgo);
+    };
+
+    return function(pod) {
+      if (isStuck(pod)) {
+        return true;
+      }
+
+      if (pod.status.phase === 'Running' && pod.status.containerStatuses) {
+        // Check container statuses and short circuit when we find any problem.
+        var i;
+        for (i = 0; i < pod.status.containerStatuses.length; ++i) {
+          var containerStatus = pod.status.containerStatuses[i];
+          if (!containerStatus.state) {
+            continue;
+          }
+          if (isFailed(containerStatus)) {
+            return true;
+          }
+          if (isLooping(containerStatus)) {
+            return true;
+          }
+          if (isUnprepared(containerStatus)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    };
   });

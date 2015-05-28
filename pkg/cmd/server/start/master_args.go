@@ -48,8 +48,6 @@ type MasterArgs struct {
 
 	SchedulerConfigFile string
 
-	ProjectNodeSelector string
-
 	NetworkArgs *NetworkArgs
 }
 
@@ -65,7 +63,6 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 
 	flags.Var(&args.NodeList, prefix+"nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
 	flags.Var(&args.CORSAllowedOrigins, prefix+"cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
-	flags.StringVar(&args.ProjectNodeSelector, prefix+"project-node-selector", "", "Default node label selector for the project if not explicitly specified. Format: '<key1>=<value1>, <key2>=<value2...'")
 }
 
 // NewDefaultMasterArgs creates MasterArgs with sub-objects created and default values set.
@@ -199,17 +196,17 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
 		},
 
-		ProjectRequestConfig: configapi.ProjectRequestConfig{},
+		ProjectConfig: configapi.ProjectConfig{
+			DefaultNodeSelector:    "",
+			ProjectRequestMessage:  "",
+			ProjectRequestTemplate: "",
+		},
 
 		NetworkConfig: configapi.NetworkConfig{
 			NetworkPluginName:  args.NetworkArgs.NetworkPluginName,
 			ClusterNetworkCIDR: args.NetworkArgs.ClusterNetworkCIDR,
 			HostSubnetLength:   args.NetworkArgs.HostSubnetLength,
 		},
-	}
-
-	if len(args.ProjectNodeSelector) > 0 {
-		config.ProjectNodeSelector = args.ProjectNodeSelector
 	}
 
 	if args.ListenArg.UseTLS() {

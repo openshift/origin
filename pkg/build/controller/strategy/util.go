@@ -118,7 +118,7 @@ func setupSourceSecrets(pod *kapi.Pod, sourceSecret *kapi.LocalObjectReference) 
 	}
 
 	mountSecretVolume(pod, sourceSecret.Name, sourceSecretMountPath)
-	glog.V(3).Infof("Installed source secrets in %s, in Pod %s", sourceSecretMountPath, pod.Name)
+	glog.V(3).Infof("Installed source secrets in %s, in Pod %s/%s", sourceSecretMountPath, pod.Namespace, pod.Name)
 	pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []kapi.EnvVar{
 		{Name: "SOURCE_SECRET_PATH", Value: sourceSecretMountPath},
 	}...)

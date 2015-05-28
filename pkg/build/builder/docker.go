@@ -66,6 +66,7 @@ func (d *DockerBuilder) Build() error {
 	if err = d.addBuildParameters(buildDir); err != nil {
 		return err
 	}
+	glog.V(4).Infof("Starting Docker build from %s/%s BuildConfig ...", d.build.Namespace, d.build.Name)
 	if err = d.dockerBuild(buildDir); err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func (d *DockerBuilder) Build() error {
 	if len(dockerImageRef) != 0 {
 		ref, err := image.ParseDockerImageReference(dockerImageRef)
 		if err != nil {
-			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
+			glog.Fatalf("Build %s/%s output does not have a valid DockerImageReference: %v", d.build.Namespace, d.build.Name, err)
 		}
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(

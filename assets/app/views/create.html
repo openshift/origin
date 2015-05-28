@@ -3,36 +3,43 @@
     <div class="container">
       <div class="row">
         <div class="col-md-12">
-          <h1>Create from ...</h1>
-          <!-- TODO need validation on source input field -->
-
-              <form name="from_source_form" class="form-inline gutter-bottom">
-              <h2>Source repository</h2>
-              <div class="row">
-                <div class="col-md-8">
-                  <div class="input-group">
-                    <span ng-class="{'has-error': from_source_form.from_source_url.$error.pattern}">
-                      <input class="form-control input-lg" name="from_source_url" placeholder="URL for source repository" type="text" required ng-model="from_source_url" ng-pattern="sourceURLPattern" ng-model-options="{ updateOn: 'blur' }"></input>
-                    </span>
-                    <span class="input-group-btn">
-                      <button type="submit" class="btn btn-lg btn-default" ng-click="createFromSource()" ng-enabled="from_source_form.$valid" value="">Next <i class="fa fa-arrow-right"></i>
-                      </button>
-                    </span>
-                  </div>
-                  <span class="text-danger" ng-if="from_source_form.from_source_url.$error.pattern">Please enter a valid URL</span>
+          <h1>Create</h1>
+          <form name="from_source_form" class="form-inline gutter-bottom">
+            <h2>Using Your Code</h2>
+            <p>Create your application from a Git source code repository.</p>
+            <div class="row">
+              <div class="col-md-8">
+                <div class="input-group">
+                  <span ng-class="{'has-error': from_source_form.$invalid && from_source_form.from_source_url.$touched}">
+                    <input class="form-control input-lg"
+                      name="from_source_url"
+                      placeholder="Repository URL"
+                      ng-pattern="sourceURLPattern"
+                      type="text"
+                      required
+                      ng-model="from_source_url"></input>
+                  </span>
+                  <span class="input-group-btn">
+                    <button type="submit" class="btn btn-lg btn-default" ng-click="createFromSource()"
+                      ng-disabled="from_source_form.$invalid" value="">Next</button>
+                  </span>
                 </div>
+                <span class="text-danger" ng-if="from_source_form.$invalid && from_source_form.from_source_url.$touched">Source repository must be a URL</span>
               </div>
-              </form>
+            </div>
+          </form>
 
           <div class="row">
             <div class="col-md-12">
-              <h2>Instant apps</h2>
+              <h2>Using a Template</h2>
+              <p>Templates have predefined resources for quickly creating components. You can customize some options in the next step.</p>
+              <h3>Instant Apps</h3>
               <div class="row">
                 <catalog-template template="template" project="projectName" ng-repeat="template in templatesByTag['instant-app'] | orderBy : 'metadata.name'"></catalog-template>
                 <div class="col-md-4">
                   <div ng-if="!templatesByTag['instant-app'].length">
                     <em>There are no instant apps available to create.</em>
-                  </div>        
+                  </div>
                   <a class="btn btn-lg btn-primary btn-block" href="project/{{projectName}}/catalog/templates">Browse all templates...</a>
                 </div>
               </div>

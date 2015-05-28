@@ -11,7 +11,6 @@ import (
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
@@ -47,8 +46,8 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec
 				CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 					return client.Pods(namespace).Create(pod)
 				},
-				WatchPodFunc: func(namespace, name string) (watch.Interface, error) {
-					return newPodWatch(client, namespace, name, 5*time.Second), nil
+				PodWatchFunc: func(namespace, name, resourceVersion string) func() *kapi.Pod {
+					return stratsupport.NewPodWatch(client, namespace, name, resourceVersion)
 				},
 			},
 		},
@@ -63,31 +62,15 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 	var deploymentConfig *deployapi.DeploymentConfig
 
 	if deploymentConfig, err = deployutil.DecodeDeploymentConfig(deployment, s.codec); err != nil {
-		return fmt.Errorf("Couldn't decode DeploymentConfig from deployment %s: %v", deployment.Name, err)
+		return fmt.Errorf("couldn't decode DeploymentConfig from Deployment %s: %v", deployment.Name, err)
 	}
 
+	params := deploymentConfig.Template.Strategy.RecreateParams
 	// Execute any pre-hook.
-	if deploymentConfig.Template.Strategy.RecreateParams != nil {
-		preHook := deploymentConfig.Template.Strategy.RecreateParams.Pre
-		if preHook != nil {
-		preHookLoop:
-			for {
-				err := s.hookExecutor.Execute(preHook, deployment)
-				if err == nil {
-					glog.Info("Pre hook finished successfully")
-					break
-				}
-				switch preHook.FailurePolicy {
-				case deployapi.LifecycleHookFailurePolicyAbort:
-					return fmt.Errorf("Pre hook failed, aborting: %s", err)
-				case deployapi.LifecycleHookFailurePolicyIgnore:
-					glog.Infof("Pre hook failed, ignoring: %s", err)
-					break preHookLoop
-				case deployapi.LifecycleHookFailurePolicyRetry:
-					glog.Infof("Pre hook failed, retrying: %s", err)
-					time.Sleep(s.retryPeriod)
-				}
-			}
+	if params != nil && params.Pre != nil {
+		err := s.hookExecutor.Execute(params.Pre, deployment, s.retryPeriod)
+		if err != nil {
+			return fmt.Errorf("Pre hook failed: %s", err)
 		}
 	}
 
@@ -99,11 +82,11 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		if err != nil {
 			glog.Errorf("Deployment has an invalid desired replica count '%s'; falling back to config value %d", desired, desiredReplicas)
 		} else {
-			glog.Infof("Deployment has an explicit desired replica count %d", val)
+			glog.V(4).Infof("Deployment has an explicit desired replica count %d", val)
 			desiredReplicas = val
 		}
 	} else {
-		glog.Infof("Deployment has no explicit desired replica count; using the config value %d", desiredReplicas)
+		glog.V(4).Infof("Deployment has no explicit desired replica count; using the config value %d", desiredReplicas)
 	}
 
 	// Scale up the new deployment.
@@ -112,7 +95,7 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 	}
 
 	// Disable any old deployments.
-	glog.Infof("Found %d prior deployments to disable", len(oldDeployments))
+	glog.V(4).Infof("Found %d prior deployments to disable", len(oldDeployments))
 	allProcessed := true
 	for _, oldDeployment := range oldDeployments {
 		if err = s.updateReplicas(oldDeployment.Namespace, oldDeployment.Name, 0); err != nil {
@@ -121,32 +104,20 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		}
 	}
 
-	// Execute any post-hook.
-	if deploymentConfig.Template.Strategy.RecreateParams != nil {
-		postHook := deploymentConfig.Template.Strategy.RecreateParams.Post
-		if postHook != nil {
-		postHookLoop:
-			for {
-				err := s.hookExecutor.Execute(postHook, deployment)
-				if err == nil {
-					glog.Info("Post hook finished successfully")
-					break
-				}
-				switch postHook.FailurePolicy {
-				case deployapi.LifecycleHookFailurePolicyIgnore, deployapi.LifecycleHookFailurePolicyAbort:
-					// Abort isn't supported here, so treat it like ignore.
-					glog.Infof("Post hook failed, ignoring: %s", err)
-					break postHookLoop
-				case deployapi.LifecycleHookFailurePolicyRetry:
-					glog.Infof("Post hook failed, retrying: %s", err)
-					time.Sleep(s.retryPeriod)
-				}
-			}
+	// Execute any post-hook. Errors are logged and ignored.
+	if params != nil && params.Post != nil {
+		// TODO: handle this in defaulting/conversion/validation?
+		if params.Post.FailurePolicy == deployapi.LifecycleHookFailurePolicyAbort {
+			params.Post.FailurePolicy = deployapi.LifecycleHookFailurePolicyIgnore
+		}
+		err := s.hookExecutor.Execute(params.Post, deployment, s.retryPeriod)
+		if err != nil {
+			glog.Infof("Post hook failed: %s", err)
 		}
 	}
 
 	if !allProcessed {
-		return fmt.Errorf("Failed to disable all prior deployments for new deployment %s", deployment.Name)
+		return fmt.Errorf("failed to disable all prior deployments for new Deployment %s", deployment.Name)
 	}
 
 	glog.Infof("Deployment %s successfully made active", deployment.Name)
@@ -162,13 +133,13 @@ func (s *RecreateDeploymentStrategy) updateReplicas(namespace, name string, repl
 	for {
 		select {
 		case <-timeout:
-			return fmt.Errorf("Couldn't successfully update deployment %s/%s replica count to %d (timeout exceeded)", namespace, name, replicaCount)
+			return fmt.Errorf("couldn't successfully update Deployment %s/%s replica count to %d (timeout exceeded)", namespace, name, replicaCount)
 		default:
 			if deployment, err = s.client.getReplicationController(namespace, name); err != nil {
-				glog.Errorf("Couldn't get deployment %s/%s: %v", namespace, name, err)
+				glog.Errorf("Couldn't get Deployment %s/%s: %v", namespace, name, err)
 			} else {
 				deployment.Spec.Replicas = replicaCount
-				glog.Infof("Updating deployment %s/%s replica count to %d", namespace, name, replicaCount)
+				glog.V(4).Infof("Updating Deployment %s/%s replica count to %d", namespace, name, replicaCount)
 				if _, err = s.client.updateReplicationController(namespace, deployment); err == nil {
 					return nil
 				}
@@ -176,7 +147,7 @@ func (s *RecreateDeploymentStrategy) updateReplicas(namespace, name string, repl
 				if kerrors.IsConflict(err) {
 					continue
 				}
-				glog.Errorf("Error updating deployment %s/%s replica count to %d: %v", namespace, name, replicaCount, err)
+				glog.Errorf("Error updating Deployment %s/%s replica count to %d: %v", namespace, name, replicaCount, err)
 			}
 
 			time.Sleep(s.retryPeriod)
@@ -206,65 +177,14 @@ func (r *realReplicationControllerClient) updateReplicationController(namespace 
 
 // hookExecutor knows how to execute a deployment lifecycle hook.
 type hookExecutor interface {
-	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error
+	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error
 }
 
 // hookExecutorImpl is a pluggable hookExecutor.
 type hookExecutorImpl struct {
-	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error
+	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error
 }
 
-func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController) error {
-	return i.executeFunc(hook, deployment)
-}
-
-// podWatch provides watch semantics for a pod backed by a poller, since
-// events aren't generated for pod status updates.
-type podWatch struct {
-	result chan watch.Event
-	stop   chan bool
-}
-
-// newPodWatch makes a new podWatch.
-func newPodWatch(client kclient.Interface, namespace, name string, period time.Duration) *podWatch {
-	pods := make(chan watch.Event)
-	stop := make(chan bool)
-	tick := time.NewTicker(period)
-	go func() {
-		for {
-			select {
-			case <-stop:
-				return
-			case <-tick.C:
-				pod, err := client.Pods(namespace).Get(name)
-				if err != nil {
-					pods <- watch.Event{
-						Type: watch.Error,
-						Object: &kapi.Status{
-							Status:  "Failure",
-							Message: fmt.Sprintf("couldn't get pod %s/%s: %s", namespace, name, err),
-						},
-					}
-					continue
-				}
-				pods <- watch.Event{
-					Type:   watch.Modified,
-					Object: pod,
-				}
-			}
-		}
-	}()
-
-	return &podWatch{
-		result: pods,
-		stop:   stop,
-	}
-}
-
-func (w *podWatch) Stop() {
-	w.stop <- true
-}
-
-func (w *podWatch) ResultChan() <-chan watch.Event {
-	return w.result
+func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error {
+	return i.executeFunc(hook, deployment, retryPeriod)
 }

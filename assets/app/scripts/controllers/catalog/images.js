@@ -9,11 +9,16 @@
  */
 angular.module('openshiftConsole')
   .controller('CatalogImagesController', function ($scope, DataService, $filter, LabelFilter, imageEnvFilter, $routeParams, Logger) {
-    $scope.projectImageRepos = {};
-    $scope.openshiftImageRepos = {};
     $scope.builders = [];
     $scope.nonBuilders = [];
     $scope.sourceURL = $routeParams.builderfor;
+    $scope.loaded = false;
+
+    // Image repositories for this project.
+    var projectImageRepos;
+
+    // Image repositories in the openshift namespace.
+    var openshiftImageRepos;
 
     var isBuilder = function(imageRepo, tag) {
       if (!imageRepo.spec || !imageRepo.spec.tags) {
@@ -54,18 +59,26 @@ angular.module('openshiftConsole')
       Logger.info("builders", $scope.builders);
     };
 
-    DataService.list("imageStreams", $scope, function(imageRepos) {
-      $scope.projectImageRepos = imageRepos.by("metadata.name");
-      imagesForRepos($scope.projectImageRepos, $scope);
+    var checkIfLoaded = function() {
+      // Set loaded to true only if both openshift image repos and project
+      // image repos have been loaded.
+      $scope.loaded = openshiftImageRepos && projectImageRepos;
+    };
 
-      Logger.info("project image repos", $scope.projectImageRepos);
+    DataService.list("imageStreams", $scope, function(imageRepos) {
+      projectImageRepos = imageRepos.by("metadata.name");
+      imagesForRepos(projectImageRepos, $scope);
+      checkIfLoaded();
+
+      Logger.info("project image repos", projectImageRepos);
     });
 
     DataService.list("imageStreams", {namespace: "openshift"}, function(imageRepos) {
-      $scope.openshiftImageRepos = imageRepos.by("metadata.name");
-      imagesForRepos($scope.openshiftImageRepos, {namespace: "openshift"});
+      openshiftImageRepos = imageRepos.by("metadata.name");
+      imagesForRepos(openshiftImageRepos, {namespace: "openshift"});
+      checkIfLoaded();
 
-      Logger.info("openshift image repos", $scope.openshiftImageRepos);
+      Logger.info("openshift image repos", openshiftImageRepos);
     });
 
 

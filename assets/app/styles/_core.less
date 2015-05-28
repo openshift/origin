@@ -143,6 +143,10 @@ html, body {
 // Create App
 // --------------------------------------------------
 
+ label.checkbox {
+  font-weight: normal;
+}
+
 .create-from-template,
 .create-from-image {
   .template-name {
@@ -162,7 +166,7 @@ html, body {
   .flow {
     border-top: 1px solid rgba(0, 0, 0, 0.15);
     display: table;
-    margin-top: @grid-gutter-width * 1.5;
+    margin-top: @grid-gutter-width;
     width: 100%;
     > .flow-block {
       display: inline-block;
@@ -183,6 +187,10 @@ html, body {
         }
       }
     }
+  }
+  .first-section .flow {
+    margin-top: (@grid-gutter-width / 2);
+    border-top: 0;
   }
 }
 

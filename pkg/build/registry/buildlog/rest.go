@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
@@ -60,19 +62,21 @@ var _ = rest.GetterWithOptions(&REST{})
 func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.Object, error) {
 	buildLogOpts, ok := opts.(*api.BuildLogOptions)
 	if !ok {
-		return nil, errors.NewBadRequest("Did not get an expected options object.")
+		return nil, errors.NewBadRequest("did not get an expected options.")
 	}
 	build, err := r.BuildRegistry.GetBuild(ctx, name)
 	if err != nil {
-		return nil, errors.NewNotFound("Build", name)
+		return nil, errors.NewNotFound("build", name)
 	}
 	switch build.Status {
 	// Build has not launched, wait til it runs
 	case api.BuildStatusNew, api.BuildStatusPending:
 		if buildLogOpts.NoWait {
+			glog.V(4).Infof("Build %s/%s is in %s state, nothing to retrieve", build.Namespace, name, build.Status)
 			// return empty content if not waiting for build
 			return &genericrest.LocationStreamer{}, nil
 		}
+		glog.V(4).Infof("Build %s/%s is in %s state, waiting for Build to start", build.Namespace, name, build.Status)
 		err := r.waitForBuild(ctx, build)
 		if err != nil {
 			return nil, err
@@ -80,11 +84,11 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 
 	// The build was cancelled
 	case api.BuildStatusCancelled:
-		return nil, fmt.Errorf("build %s was cancelled", build.Name)
+		return nil, fmt.Errorf("Build %s/%s was cancelled", build.Namespace, build.Name)
 
 	// An error occurred launching the build, return an error
 	case api.BuildStatusError:
-		return nil, fmt.Errorf("build %s is in an error state", build.Name)
+		return nil, fmt.Errorf("Build %s/%s is in an error state", build.Namespace, build.Name)
 	}
 	// The container should be the default build container, so setting it to blank
 	buildPodName := buildutil.GetBuildPodName(build)
@@ -116,15 +120,15 @@ func (r *REST) waitForBuild(ctx kapi.Context, build *api.Build) error {
 		for event := range ch {
 			obj, ok := event.Object.(*api.Build)
 			if !ok {
-				errchan <- fmt.Errorf("event object is not a build: %#v", event.Object)
+				errchan <- fmt.Errorf("event object is not a Build: %#v", event.Object)
 				break
 			}
 			switch obj.Status {
 			case api.BuildStatusCancelled:
-				errchan <- fmt.Errorf("build %s was cancelled", build.Name)
+				errchan <- fmt.Errorf("Build %s/%s was cancelled", build.Namespace, build.Name)
 				break
 			case api.BuildStatusError:
-				errchan <- fmt.Errorf("build %s is in an error state", build.Name)
+				errchan <- fmt.Errorf("Build %s/%s is in an error state", build.Namespace, build.Name)
 				break
 			case api.BuildStatusRunning, api.BuildStatusComplete, api.BuildStatusFailed:
 				done <- struct{}{}
@@ -138,7 +142,7 @@ func (r *REST) waitForBuild(ctx kapi.Context, build *api.Build) error {
 	case <-done:
 		return nil
 	case <-time.After(r.Timeout):
-		return fmt.Errorf("timed out waiting for build")
+		return fmt.Errorf("timed out waiting for Build %s/%s", build.Namespace, build.Name)
 	}
 }
 

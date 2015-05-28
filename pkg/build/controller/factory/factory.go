@@ -1,7 +1,7 @@
 package factory
 
 import (
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -41,7 +41,7 @@ func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.D
 		build.Message = err.Error()
 		now := kutil.Now()
 		build.CompletionTimestamp = &now
-		glog.V(3).Infof("Giving up retrying build %s/%s: %v", build.Namespace, build.Name, err)
+		glog.V(3).Infof("Giving up retrying Build %s/%s: %v", build.Namespace, build.Name, err)
 		if err := buildupdater.Update(build.Namespace, build); err != nil {
 			// retry update, but only on error other than NotFound
 			return !kerrors.IsNotFound(err)
@@ -97,6 +97,35 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	}
 }
 
+// CreateDeleteController constructs a BuildDeleteController
+func (factory *BuildControllerFactory) CreateDeleteController() controller.RunnableController {
+	client := ControllerClient{factory.KubeClient, factory.OSClient}
+	queue := cache.NewDeltaFIFO(cache.MetaNamespaceKeyFunc, nil, nil)
+	cache.NewReflector(&buildDeleteLW{client, queue}, &buildapi.Build{}, queue, 5*time.Minute).Run()
+
+	buildDeleteController := &buildcontroller.BuildDeleteController{
+		PodManager: client,
+	}
+
+	return &controller.RetryController{
+		Queue: queue,
+		RetryManager: controller.NewQueueRetryManager(
+			queue,
+			cache.MetaNamespaceKeyFunc,
+			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
+			kutil.NewTokenBucketRateLimiter(1, 10)),
+		Handle: func(obj interface{}) error {
+			deltas := obj.(cache.Deltas)
+			for _, delta := range deltas {
+				if delta.Type == cache.Deleted {
+					return buildDeleteController.HandleBuildDeletion(delta.Object.(*buildapi.Build))
+				}
+			}
+			return nil
+		},
+	}
+}
+
 // BuildPodControllerFactory construct BuildPodController objects
 type BuildPodControllerFactory struct {
 	OSClient     osclient.Interface
@@ -113,16 +142,8 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 	factory.buildStore = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore, 2*time.Minute).Run()
 
-	// Kubernetes does not currently synchronize Pod status in storage with a Pod's container
-	// states. Because of this, we can't receive events related to container (and thus Pod)
-	// state changes, such as Running -> Terminated. As a workaround, populate the FIFO with
-	// a polling implementation which relies on client calls to list Pods - the Get/List
-	// REST implementations will populate the synchronized container/pod status on-demand.
-	//
-	// TODO: Find a way to get watch events for Pod/container status updates. The polling
-	// strategy is horribly inefficient and should be addressed upstream somehow.
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewPoller(factory.pollPods, 10*time.Second, queue).RunUntil(factory.Stop)
+	cache.NewReflector(&podLW{client: factory.KubeClient}, &kapi.Pod{}, queue, 2*time.Minute).Run()
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildPodController := &buildcontroller.BuildPodController{
@@ -144,6 +165,37 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 		Handle: func(obj interface{}) error {
 			pod := obj.(*kapi.Pod)
 			return buildPodController.HandlePod(pod)
+		},
+	}
+}
+
+// Create constructs a BuildPodDeleteController
+func (factory *BuildPodControllerFactory) CreateDeleteController() controller.RunnableController {
+
+	client := ControllerClient{factory.KubeClient, factory.OSClient}
+	queue := cache.NewDeltaFIFO(cache.MetaNamespaceKeyFunc, nil, nil)
+	cache.NewReflector(&buildPodDeleteLW{client, queue}, &kapi.Pod{}, queue, 5*time.Minute).Run()
+
+	buildPodDeleteController := &buildcontroller.BuildPodDeleteController{
+		BuildStore:   factory.buildStore,
+		BuildUpdater: factory.BuildUpdater,
+	}
+
+	return &controller.RetryController{
+		Queue: queue,
+		RetryManager: controller.NewQueueRetryManager(
+			queue,
+			cache.MetaNamespaceKeyFunc,
+			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
+			kutil.NewTokenBucketRateLimiter(1, 10)),
+		Handle: func(obj interface{}) error {
+			deltas := obj.(cache.Deltas)
+			for _, delta := range deltas {
+				if delta.Type == cache.Deleted {
+					return buildPodDeleteController.HandleBuildPodDeletion(delta.Object.(*kapi.Pod))
+				}
+			}
+			return nil
 		},
 	}
 }
@@ -195,29 +247,6 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 	}
 }
 
-// pollPods lists pods for all builds in the buildStore which are pending or running and
-// returns an enumerator for cache.Poller. The poll scope is narrowed for efficiency.
-func (factory *BuildPodControllerFactory) pollPods() (cache.Enumerator, error) {
-	list := &kapi.PodList{}
-
-	for _, obj := range factory.buildStore.List() {
-		build := obj.(*buildapi.Build)
-
-		switch build.Status {
-		case buildapi.BuildStatusPending, buildapi.BuildStatusRunning:
-			podName := buildutil.GetBuildPodName(build)
-			pod, err := factory.KubeClient.Pods(build.Namespace).Get(podName)
-			if err != nil {
-				glog.V(2).Infof("Couldn't find pod %s for build %s: %#v", podName, build.Name, err)
-				continue
-			}
-			list.Items = append(list.Items, *pod)
-		}
-	}
-
-	return &podEnumerator{list}, nil
-}
-
 // podEnumerator allows a cache.Poller to enumerate items in an api.PodList
 type podEnumerator struct {
 	*kapi.PodList
@@ -253,7 +282,7 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.
 	case buildapi.CustomBuildStrategyType:
 		pod, err = f.CustomBuildStrategy.CreateBuildPod(build)
 	default:
-		return nil, errors.New("No strategy defined for type")
+		return nil, fmt.Errorf("no supported build strategy defined for Build %s/%s with type %s", build.Namespace, build.Name, build.Parameters.Strategy.Type)
 	}
 	if pod != nil {
 		if pod.Annotations == nil {
@@ -273,6 +302,21 @@ func panicIfStopped(ch <-chan struct{}, message interface{}) {
 	}
 }
 
+// podLW is a ListWatcher implementation for Pods.
+type podLW struct {
+	client kclient.Interface
+}
+
+// List lists all Pods.
+func (lw *podLW) List() (runtime.Object, error) {
+	return lw.client.Pods(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+}
+
+// Watch watches all Pods.
+func (lw *podLW) Watch(resourceVersion string) (watch.Interface, error) {
+	return lw.client.Pods(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+}
+
 // buildLW is a ListWatcher implementation for Builds.
 type buildLW struct {
 	client osclient.Interface
@@ -286,6 +330,60 @@ func (lw *buildLW) List() (runtime.Object, error) {
 // Watch watches all Builds.
 func (lw *buildLW) Watch(resourceVersion string) (watch.Interface, error) {
 	return lw.client.Builds(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+}
+
+// buildDeleteLW is a ListWatcher implementation that watches for builds being deleted
+type buildDeleteLW struct {
+	ControllerClient
+	store cache.Store
+}
+
+// List returns an empty list but adds delete events to the store for all Builds that have been deleted but still have pods.
+func (lw *buildDeleteLW) List() (runtime.Object, error) {
+	glog.V(5).Info("Checking for deleted builds")
+	podList, err := lw.KubeClient.Pods(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		glog.V(4).Infof("Failed to find any pods due to error %v", err)
+		return nil, err
+	}
+	for _, pod := range podList.Items {
+		if len(pod.Labels[buildapi.BuildLabel]) == 0 {
+			continue
+		}
+		glog.V(5).Infof("Found build pod %s/%s", pod.Namespace, pod.Name)
+
+		build, err := lw.Client.Builds(pod.Namespace).Get(pod.Labels[buildapi.BuildLabel])
+		if err != nil && !kerrors.IsNotFound(err) {
+			glog.V(4).Infof("Error getting build for pod %s/%s: %v", pod.Namespace, pod.Name, err)
+			return nil, err
+		}
+		if err != nil && kerrors.IsNotFound(err) {
+			build = nil
+		}
+
+		if build == nil {
+			deletedBuild := &buildapi.Build{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      pod.Labels[buildapi.BuildLabel],
+					Namespace: pod.Namespace,
+				},
+			}
+			glog.V(4).Infof("No build found for build pod %s/%s, deleting pod", pod.Namespace, pod.Name)
+			err := lw.store.Delete(deletedBuild)
+			if err != nil {
+				glog.V(4).Infof("Error queuing delete event: %v", err)
+			}
+		} else {
+			glog.V(5).Infof("Found build %s/%s for pod %s", build.Namespace, build.Name, pod.Name)
+		}
+	}
+	return &buildapi.BuildList{}, nil
+}
+
+// Watch watches all Builds.
+func (lw *buildDeleteLW) Watch(resourceVersion string) (watch.Interface, error) {
+	//return lw.client.Client.Builds(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+	return lw.Client.Builds(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 }
 
 // buildConfigLW is a ListWatcher implementation for BuildConfigs.
@@ -318,6 +416,58 @@ func (lw *imageStreamLW) Watch(resourceVersion string) (watch.Interface, error) 
 	return lw.client.ImageStreams(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 }
 
+// buildPodDeleteLW is a ListWatcher implementation that watches for Pods(that are associated with a Build) being deleted
+type buildPodDeleteLW struct {
+	ControllerClient
+	store cache.Store
+}
+
+// List lists all Pods associated with a Build.
+func (lw *buildPodDeleteLW) List() (runtime.Object, error) {
+	glog.V(5).Info("Checking for deleted build pods")
+	buildList, err := lw.Client.Builds(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		glog.V(4).Infof("Failed to find any builds due to error %v", err)
+		return nil, err
+	}
+	for _, build := range buildList.Items {
+		glog.V(5).Infof("Found build %s/%s", build.Namespace, build.Name)
+		if buildutil.IsBuildComplete(&build) {
+			glog.V(5).Infof("Ignoring build %s/%s because it is complete", build.Namespace, build.Name)
+			continue
+		}
+		pod, err := lw.KubeClient.Pods(build.Namespace).Get(buildutil.GetBuildPodName(&build))
+		if err != nil && !kerrors.IsNotFound(err) {
+			glog.V(4).Infof("Error getting pod for build %s/%s: %v", build.Namespace, build.Name, err)
+			return nil, err
+		}
+		if (err != nil && kerrors.IsNotFound(err)) || pod.Labels[buildapi.BuildLabel] != build.Name {
+			pod = nil
+		}
+		if pod == nil {
+			deletedPod := &kapi.Pod{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      buildutil.GetBuildPodName(&build),
+					Namespace: build.Namespace,
+				},
+			}
+			glog.V(4).Infof("No build pod found for build %s/%s, sending delete event for build pod", build.Namespace, build.Name)
+			err := lw.store.Delete(deletedPod)
+			if err != nil {
+				glog.V(4).Infof("Error queuing delete event: %v", err)
+			}
+		} else {
+			glog.V(5).Infof("Found build pod %s/%s for build %s", pod.Namespace, pod.Name, build.Name)
+		}
+	}
+	return &kapi.PodList{}, nil
+}
+
+// Watch watches all Pods for deletion
+func (lw *buildPodDeleteLW) Watch(resourceVersion string) (watch.Interface, error) {
+	return lw.KubeClient.Pods(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+}
+
 // ControllerClient implements the common interfaces needed for build controllers
 type ControllerClient struct {
 	KubeClient kclient.Interface
@@ -332,6 +482,11 @@ func (c ControllerClient) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod,
 // DeletePod destroys a pod using the Kubernetes client.
 func (c ControllerClient) DeletePod(namespace string, pod *kapi.Pod) error {
 	return c.KubeClient.Pods(namespace).Delete(pod.Name, nil)
+}
+
+// GetPod gets a pod using the Kubernetes client.
+func (c ControllerClient) GetPod(namespace, name string) (*kapi.Pod, error) {
+	return c.KubeClient.Pods(namespace).Get(name)
 }
 
 // GetImageStream retrieves an image repository by namespace and name

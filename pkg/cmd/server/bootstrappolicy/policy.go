@@ -156,8 +156,21 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet(authorizationapi.VerbAll),
-					Resources: util.NewStringSet(authorizationapi.ResourceAll),
+					// replicationControllerGetter
+					Verbs:     util.NewStringSet("get", "list"),
+					Resources: util.NewStringSet("replicationcontrollers"),
+				},
+				{
+					// RecreateDeploymentStrategy.replicationControllerClient
+					// RollingDeploymentStrategy.updaterClient
+					Verbs:     util.NewStringSet("get", "update"),
+					Resources: util.NewStringSet("replicationcontrollers"),
+				},
+				{
+					// RecreateDeploymentStrategy.hookExecutor
+					// RollingDeploymentStrategy.hookExecutor
+					Verbs:     util.NewStringSet("get", "list", "watch", "create"),
+					Resources: util.NewStringSet("pods"),
 				},
 			},
 		},
@@ -174,7 +187,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: DeleteTokensRoleName,
+				Name: OAuthTokenDeleterRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -220,6 +233,120 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: NodeProxierRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					// Used to build serviceLister
+					Verbs:     util.NewStringSet("list", "watch"),
+					Resources: util.NewStringSet("services", "endpoints"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: NodeRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					// Needed to build serviceLister, to populate env vars for services
+					Verbs:     util.NewStringSet("list", "watch"),
+					Resources: util.NewStringSet("services"),
+				},
+				{
+					// Nodes can register themselves
+					// TODO: restrict to creating a node with the same name they announce
+					Verbs:     util.NewStringSet("create", "get", "list", "watch"),
+					Resources: util.NewStringSet("nodes"),
+				},
+				{
+					// TODO: restrict to the bound node once supported
+					Verbs:     util.NewStringSet("update"),
+					Resources: util.NewStringSet("nodes/status"),
+				},
+
+				{
+					// TODO: restrict to the bound node as creator once supported
+					Verbs:     util.NewStringSet("create", "update"),
+					Resources: util.NewStringSet("events"),
+				},
+
+				{
+					// TODO: restrict to pods scheduled on the bound node once supported
+					Verbs:     util.NewStringSet("list", "watch"),
+					Resources: util.NewStringSet("pods"),
+				},
+				{
+					// TODO: remove once mirror pods are removed
+					// TODO: restrict deletion to mirror pods created by the bound node once supported
+					// Needed for the node to create/delete mirror pods
+					Verbs:     util.NewStringSet("get", "create", "delete"),
+					Resources: util.NewStringSet("pods"),
+				},
+				{
+					// TODO: restrict to pods scheduled on the bound node once supported
+					Verbs:     util.NewStringSet("update"),
+					Resources: util.NewStringSet("pods/status"),
+				},
+
+				{
+					// TODO: restrict to secrets used by pods scheduled on bound node once supported
+					// Needed for imagepullsecrets and secret volumes
+					Verbs:     util.NewStringSet("get"),
+					Resources: util.NewStringSet("secrets"),
+				},
+
+				{
+					// TODO: restrict to claims/volumes used by pods scheduled on bound node once supported
+					// Needed for persistent volumes
+					Verbs:     util.NewStringSet("get"),
+					Resources: util.NewStringSet("persistentvolumeclaims", "persistentvolumes"),
+				},
+			},
+		},
+
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: SDNReaderRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("get", "list", "watch"),
+					Resources: util.NewStringSet("hostsubnets"),
+				},
+				{
+					Verbs:     util.NewStringSet("list", "watch"),
+					Resources: util.NewStringSet("nodes"),
+				},
+				{
+					Verbs:     util.NewStringSet("get"),
+					Resources: util.NewStringSet("clusternetworks"),
+				},
+			},
+		},
+
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: SDNManagerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("get", "list", "watch", "create", "delete"),
+					Resources: util.NewStringSet("hostsubnets"),
+				},
+				{
+					Verbs:     util.NewStringSet("list", "watch"),
+					Resources: util.NewStringSet("nodes"),
+				},
+				{
+					Verbs:     util.NewStringSet("get", "create"),
+					Resources: util.NewStringSet("clusternetworks"),
+				},
+			},
+		},
+
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: WebHooksRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -257,8 +384,7 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 			RoleRef: kapi.ObjectReference{
 				Name: InternalComponentRoleName,
 			},
-			Users:  util.NewStringSet(InternalComponentUsername, InternalComponentKubeUsername),
-			Groups: util.NewStringSet(NodesGroup),
+			Users: util.NewStringSet(InternalComponentUsername),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -307,10 +433,10 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: DeleteTokensRoleBindingName,
+				Name: OAuthTokenDeleterRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name: DeleteTokensRoleName,
+				Name: OAuthTokenDeleterRoleName,
 			},
 			Groups: util.NewStringSet(AuthenticatedGroup, UnauthenticatedGroup),
 		},
@@ -340,6 +466,35 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 				Name: RegistryRoleName,
 			},
 			Groups: util.NewStringSet(RegistryGroup),
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: NodeRoleBindingName,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: NodeRoleName,
+			},
+			Groups: util.NewStringSet(NodesGroup),
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: NodeProxierRoleBindingName,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: NodeProxierRoleName,
+			},
+			// Allow node identities to run node proxies
+			Groups: util.NewStringSet(NodesGroup),
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: SDNReaderRoleBindingName,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: SDNReaderRoleName,
+			},
+			// Allow node identities to run SDN plugins
+			Groups: util.NewStringSet(NodesGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{

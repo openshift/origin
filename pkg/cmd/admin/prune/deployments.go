@@ -111,10 +111,10 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 	}
 
 	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Perform a deployment pruning dry-run, displaying what would be deleted but not actually deleting anything.")
-	cmd.Flags().BoolVar(&cfg.Orphans, "orphans", cfg.Orphans, "Prune all deployments where the associated deployment config no longer exists, the status is complete or failed, and the replica size is 0.")
+	cmd.Flags().BoolVar(&cfg.Orphans, "orphans", cfg.Orphans, "Prune all deployments where the associated DeploymentConfig no longer exists, the status is complete or failed, and the replica size is 0.")
 	cmd.Flags().DurationVar(&cfg.KeepYoungerThan, "keep-younger-than", cfg.KeepYoungerThan, "Specify the minimum age of a deployment for it to be considered a candidate for pruning.")
-	cmd.Flags().IntVar(&cfg.KeepComplete, "keep-complete", cfg.KeepComplete, "Per deployment config, specify the number of deployments whose status is complete that will be preserved whose replica size is 0.")
-	cmd.Flags().IntVar(&cfg.KeepFailed, "keep-failed", cfg.KeepFailed, "Per deployment config, specify the number of deployments whose status is failed that will be preserved whose replica size is 0.")
+	cmd.Flags().IntVar(&cfg.KeepComplete, "keep-complete", cfg.KeepComplete, "Per DeploymentConfig, specify the number of deployments whose status is complete that will be preserved whose replica size is 0.")
+	cmd.Flags().IntVar(&cfg.KeepFailed, "keep-failed", cfg.KeepFailed, "Per DeploymentConfig, specify the number of deployments whose status is failed that will be preserved whose replica size is 0.")
 
 	return cmd
 }

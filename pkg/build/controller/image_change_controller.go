@@ -46,7 +46,7 @@ func getImageStreamNameFromReference(ref *kapi.ObjectReference) string {
 
 // HandleImageRepo processes the next ImageStream event.
 func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) error {
-	glog.V(4).Infof("Build image change controller detected imagerepo change %s", repo.Status.DockerImageRepository)
+	glog.V(4).Infof("Build image change controller detected ImageStream change %s", repo.Status.DockerImageRepository)
 
 	// TODO: this is inefficient
 	for _, bc := range c.BuildConfigStore.List() {
@@ -92,6 +92,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 				util.HandleError(fmt.Errorf("unable to find tagged image: no image recorded for %s/%s:%s", repo.Namespace, repo.Name, tag))
 				continue
 			}
+			glog.V(4).Infof("Found ImageStream %s/%s with tag %s", repo.Namespace, repo.Name, tag)
 
 			// (must be different) to trigger a build
 			last := trigger.ImageChange.LastTriggeredImageID
@@ -115,15 +116,15 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			// TODO: Find a better mechanism to synchronize in a HA setup.
 			if err := c.BuildConfigUpdater.Update(originalConfig); err != nil {
 				// Cannot make an update to the original build config. Likely it has been changed by another process
-				glog.V(4).Infof("Cannot update build config %s when preparing to update LastTriggeredImageID: %v", config.Name, err)
+				glog.V(4).Infof("Cannot update BuildConfig %s/%s when preparing to update LastTriggeredImageID: %v", config.Namespace, config.Name, err)
 				return err
 			}
 
-			glog.V(4).Infof("Running build for buildConfig %s in namespace %s", config.Name, config.Namespace)
+			glog.V(4).Infof("Running build for BuildConfig %s/%s", config.Namespace, config.Name)
 			// instantiate new build
 			request := &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Name: config.Name}}
 			if _, err := c.BuildConfigInstantiator.Instantiate(config.Namespace, request); err != nil {
-				return fmt.Errorf("Error instantiating build from config %s: %v", config.Name, err)
+				return fmt.Errorf("error instantiating Build from BuildConfig %s/%s: %v", config.Namespace, config.Name, err)
 			}
 			// and update the config
 			if err := c.updateConfig(config); err != nil {
@@ -131,7 +132,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 				// is that we might rerun a build for the same "new" imageid change in the future,
 				// which is better than guaranteeing we run the build 2+ times by retrying it here.
 				return ImageChangeControllerFatalError{
-					Reason: fmt.Sprintf("Error updating buildConfig %s with new LastTriggeredImageID", config.Name),
+					Reason: fmt.Sprintf("error updating BuildConfig %s/%s with new LastTriggeredImageID", config.Namespace, config.Name),
 					Err:    err,
 				}
 			}
@@ -149,7 +150,7 @@ func (c *ImageChangeController) updateConfig(config *buildapi.BuildConfig) error
 		return err
 	}
 	if item == nil {
-		return fmt.Errorf("unable to retrieve build config %s/%s for updating", config.Namespace, config.Name)
+		return fmt.Errorf("unable to retrieve BuildConfig %s/%s for updating", config.Namespace, config.Name)
 	}
 	newConfig := item.(*buildapi.BuildConfig)
 	for i, trigger := range newConfig.Triggers {
@@ -159,6 +160,7 @@ func (c *ImageChangeController) updateConfig(config *buildapi.BuildConfig) error
 		change := trigger.ImageChange
 		change.LastTriggeredImageID = config.Triggers[i].ImageChange.LastTriggeredImageID
 	}
+	glog.V(4).Infof("BuildConfig %s/%s is about to be updated", config.Namespace, config.Name)
 
 	return c.BuildConfigUpdater.Update(newConfig)
 }

@@ -211,7 +211,7 @@ func (r *Etcd) WatchBuildConfigs(ctx kapi.Context, label labels.Selector, field 
 	return r.WatchList(makeBuildConfigListKey(ctx), version, func(obj runtime.Object) bool {
 		buildConfig, ok := obj.(*api.BuildConfig)
 		if !ok {
-			glog.Errorf("Unexpected object during buildConfig watch: %#v", obj)
+			glog.Errorf("Unexpected object during %s/%s BuildConfig watch: %#v", buildConfig.Namespace, buildConfig.Name, obj)
 			return false
 		}
 		fields := labels.Set{

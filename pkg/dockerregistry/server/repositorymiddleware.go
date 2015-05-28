@@ -48,7 +48,7 @@ func newRepository(repo distribution.Repository, options map[string]interface{})
 
 	nameParts := strings.SplitN(repo.Name(), "/", 2)
 	if len(nameParts) != 2 {
-		return nil, fmt.Errorf("Invalid repository name %q: it must be of the format <project>/<name>", repo.Name())
+		return nil, fmt.Errorf("invalid repository name %q: it must be of the format <project>/<name>", repo.Name())
 	}
 
 	return &repository{
@@ -192,12 +192,12 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 
 		client, ok := UserClientFrom(ctx)
 		if !ok {
-			log.Errorf("Error creating user client to auto provision image stream: OpenShift user client unavailable")
+			log.Errorf("Error creating user client to auto provision ImageStream: OpenShift user client unavailable")
 			return statusErr
 		}
 
 		if _, err := client.ImageStreams(r.namespace).Create(&stream); err != nil {
-			log.Errorf("Error auto provisioning image stream: %s", err)
+			log.Errorf("Error auto provisioning ImageStream: %s", err)
 			return statusErr
 		}
 
@@ -235,7 +235,7 @@ func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
 func (r *repository) getImageStream(ctx context.Context) (*imageapi.ImageStream, error) {
 	client, ok := UserClientFrom(ctx)
 	if !ok {
-		return nil, fmt.Errorf("Error retrieving image stream: OpenShift user client unavailable")
+		return nil, fmt.Errorf("error retrieving ImageStream: OpenShift user client unavailable")
 	}
 	return client.ImageStreams(r.namespace).Get(r.name)
 }
@@ -252,7 +252,7 @@ func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imageapi.ImageStreamTag, error) {
 	client, ok := UserClientFrom(ctx)
 	if !ok {
-		return nil, fmt.Errorf("Error retrieving image stream tag: OpenShift user client unavailable")
+		return nil, fmt.Errorf("error retrieving ImageStreamTag: OpenShift user client unavailable")
 	}
 	return client.ImageStreamTags(r.namespace).Get(r.name, tag)
 }
@@ -262,7 +262,7 @@ func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imagea
 func (r *repository) getImageStreamImage(ctx context.Context, dgst digest.Digest) (*imageapi.ImageStreamImage, error) {
 	client, ok := UserClientFrom(ctx)
 	if !ok {
-		return nil, fmt.Errorf("Error retrieving image stream image: OpenShift user client unavailable")
+		return nil, fmt.Errorf("error retrieving ImageStreamImage: OpenShift user client unavailable")
 	}
 	return client.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }

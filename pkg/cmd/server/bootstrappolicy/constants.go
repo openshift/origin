@@ -19,10 +19,9 @@ const (
 
 // groups
 const (
-	UnauthenticatedUsername       = "system:anonymous"
-	InternalComponentUsername     = "system:openshift-client"
-	InternalComponentKubeUsername = "system:kube-client"
-	DeployerUsername              = "system:openshift-deployer"
+	UnauthenticatedUsername   = "system:anonymous"
+	InternalComponentUsername = "system:openshift-client"
+	DeployerUsername          = "system:openshift-deployer"
 
 	AuthenticatedGroup   = "system:authenticated"
 	UnauthenticatedGroup = "system:unauthenticated"
@@ -48,8 +47,12 @@ const (
 	DeployerRoleName          = "system:deployer"
 	RouterRoleName            = "system:router"
 	RegistryRoleName          = "system:registry"
+	NodeRoleName              = "system:node"
+	NodeProxierRoleName       = "system:node-proxier"
+	SDNReaderRoleName         = "system:sdn-reader"
+	SDNManagerRoleName        = "system:sdn-manager"
 	InternalComponentRoleName = "system:component"
-	DeleteTokensRoleName      = "system:delete-tokens"
+	OAuthTokenDeleterRoleName = "system:oauth-token-deleter"
 	WebHooksRoleName          = "system:webhook"
 
 	OpenshiftSharedResourceViewRoleName = "shared-resource-viewer"
@@ -63,10 +66,14 @@ const (
 	ClusterAdminRoleBindingName      = ClusterAdminRoleName + "s"
 	ClusterReaderRoleBindingName     = ClusterReaderRoleName + "s"
 	BasicUserRoleBindingName         = BasicUserRoleName + "s"
-	DeleteTokensRoleBindingName      = DeleteTokensRoleName + "-binding"
+	OAuthTokenDeleterRoleBindingName = OAuthTokenDeleterRoleName + "s"
 	StatusCheckerRoleBindingName     = StatusCheckerRoleName + "-binding"
 	RouterRoleBindingName            = RouterRoleName + "s"
 	RegistryRoleBindingName          = RegistryRoleName + "s"
+	NodeRoleBindingName              = NodeRoleName + "s"
+	NodeProxierRoleBindingName       = NodeProxierRoleName + "s"
+	SDNReaderRoleBindingName         = SDNReaderRoleName + "s"
+	SDNManagerRoleBindingName        = SDNManagerRoleName + "s"
 	WebHooksRoleBindingName          = WebHooksRoleName + "s"
 
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"

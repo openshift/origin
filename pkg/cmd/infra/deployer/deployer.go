@@ -23,7 +23,7 @@ import (
 const (
 	deployer_long = `Perform a Deployment.
 
-This command makes calls to OpenShift to perform a deployment as described by a deployment config.`
+This command makes calls to OpenShift to perform a deployment as described by a DeploymentConfig.`
 )
 
 type config struct {
@@ -121,7 +121,7 @@ func getDeployerContext(controllerGetter replicationControllerGetter, namespace,
 		return nil, nil, err
 	}
 
-	glog.Infof("Found new deployment %s for config %s with latestVersion %d", newDeployment.Name, newConfig.Name, newConfig.LatestVersion)
+	glog.Infof("Found new Deployment %s for DeploymentConfig %s/%s with latestVersion %d", newDeployment.Name, newConfig.Namespace, newConfig.Name, newConfig.LatestVersion)
 
 	// Collect all deployments that predate the new one by comparing all old ReplicationControllers with
 	// encoded DeploymentConfigs to the new one by LatestVersion. Treat a failure to interpret a given
@@ -130,13 +130,13 @@ func getDeployerContext(controllerGetter replicationControllerGetter, namespace,
 	oldDeployments := []*kapi.ReplicationController{}
 
 	if allControllers, err = controllerGetter.List(newDeployment.Namespace, labels.Everything()); err != nil {
-		return nil, nil, fmt.Errorf("Unable to get list replication controllers in deployment namespace %s: %v", newDeployment.Namespace, err)
+		return nil, nil, fmt.Errorf("unable to get list replication controllers in deployment namespace %s: %v", newDeployment.Namespace, err)
 	}
 
 	glog.Infof("Inspecting %d potential prior deployments", len(allControllers.Items))
 	for i, controller := range allControllers.Items {
 		if oldName := deployutil.DeploymentConfigNameFor(&controller); oldName != newConfig.Name {
-			glog.Infof("Disregarding deployment %s (doesn't match target deploymentConfig %s)", controller.Name, oldName)
+			glog.Infof("Disregarding deployment %s (doesn't match target DeploymentConfig %s)", controller.Name, oldName)
 			continue
 		}
 

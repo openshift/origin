@@ -65,7 +65,7 @@ func (s Strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.Val
 	stream := obj.(*api.ImageStream)
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
-		return fielderrors.ValidationErrorList{kerrors.NewForbidden("imageStream", stream.Name, fmt.Errorf("Unable to update an image stream without a user on the context"))}
+		return fielderrors.ValidationErrorList{kerrors.NewForbidden("imageStream", stream.Name, fmt.Errorf("unable to update an ImageStream without a user on the context"))}
 	}
 	errs := s.tagVerifier.Verify(nil, stream, user.GetName())
 	errs = append(errs, s.tagsChanged(nil, stream)...)
@@ -173,7 +173,7 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 		if streamRefNamespace != stream.Namespace || tagRefStreamName != stream.Name {
 			obj, err := s.ImageStreamGetter.Get(kapi.WithNamespace(kapi.NewContext(), streamRefNamespace), tagRefStreamName)
 			if err != nil {
-				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, fmt.Sprintf("error retrieving image stream %s/%s: %v", streamRefNamespace, tagRefStreamName, err)))
+				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, fmt.Sprintf("error retrieving ImageStream %s/%s: %v", streamRefNamespace, tagRefStreamName, err)))
 				continue
 			}
 
@@ -230,7 +230,7 @@ func tagReferenceToTagEvent(stream *api.ImageStream, tagRef api.TagReference, ta
 	case "ImageStreamTag":
 		return api.LatestTaggedImage(stream, tagOrID), nil
 	default:
-		return nil, fmt.Errorf("Invalid from.kind %q: it must be ImageStreamImage or ImageStreamTag", tagRef.From.Kind)
+		return nil, fmt.Errorf("invalid from.kind %q: it must be ImageStreamImage or ImageStreamTag", tagRef.From.Kind)
 	}
 }
 
@@ -330,7 +330,7 @@ func (s Strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fiel
 
 	user, ok := kapi.UserFrom(ctx)
 	if !ok {
-		return fielderrors.ValidationErrorList{kerrors.NewForbidden("imageStream", stream.Name, fmt.Errorf("Unable to update an image stream without a user on the context"))}
+		return fielderrors.ValidationErrorList{kerrors.NewForbidden("imageStream", stream.Name, fmt.Errorf("unable to update an ImageStream without a user on the context"))}
 	}
 
 	oldStream := old.(*api.ImageStream)
@@ -372,7 +372,7 @@ func MatchImageStream(label labels.Selector, field fields.Selector) generic.Matc
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
 		ir, ok := obj.(*api.ImageStream)
 		if !ok {
-			return false, fmt.Errorf("not an image stream")
+			return false, fmt.Errorf("not an ImageStream")
 		}
 		fields := ImageStreamToSelectableFields(ir)
 		return label.Matches(labels.Set(ir.Labels)) && field.Matches(fields), nil

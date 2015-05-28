@@ -74,8 +74,7 @@ func TestStorage(t *testing.T) {
 func validNewImage() *api.Image {
 	return &api.Image{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:      "foo",
-			Namespace: kapi.NamespaceDefault,
+			Name: "foo",
 		},
 		DockerImageReference: "openshift/origin",
 	}
@@ -84,9 +83,9 @@ func validNewImage() *api.Image {
 func TestCreate(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	storage := NewREST(helper)
-	test := resttest.New(t, storage, fakeEtcdClient.SetError)
+	test := resttest.New(t, storage, fakeEtcdClient.SetError).ClusterScope()
 	image := validNewImage()
-	image.ObjectMeta = kapi.ObjectMeta{}
+	image.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo"}
 	test.TestCreate(
 		// valid
 		image,

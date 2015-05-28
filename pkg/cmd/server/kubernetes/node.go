@@ -186,6 +186,7 @@ func (c *NodeConfig) RunKubelet() {
 		AllowPrivileged:                true,
 		HostNetworkSources:             hostNetworkCapabilities,
 		HostnameOverride:               c.NodeHost,
+		RegisterNode:                   true,
 		RootDirectory:                  c.VolumeDir,
 		ConfigFile:                     c.PodManifestPath,
 		ManifestURL:                    "",

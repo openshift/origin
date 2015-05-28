@@ -166,8 +166,8 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return nil, fmt.Errorf("it is not possible to get ports from %s", kind)
 		}
 	}
-	w.Printer = func(mapping *meta.RESTMapping, noHeaders bool) (kubectl.ResourcePrinter, error) {
-		return describe.NewHumanReadablePrinter(noHeaders), nil
+	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace bool) (kubectl.ResourcePrinter, error) {
+		return describe.NewHumanReadablePrinter(noHeaders, withNamespace), nil
 	}
 
 	return w
@@ -202,7 +202,7 @@ func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpe
 	case *deployapi.DeploymentConfig:
 		template := t.Template.ControllerTemplate
 		if template.TemplateRef != nil {
-			return true, fmt.Errorf("deployment configs with references to pod templates (%s/%s) cannot be updated", template.TemplateRef.Namespace, template.TemplateRef.Name)
+			return true, fmt.Errorf("DeploymentConfigs with references to pod templates (%s/%s) cannot be updated", template.TemplateRef.Namespace, template.TemplateRef.Name)
 		}
 		if template.Template == nil {
 			template.Template = &api.PodTemplateSpec{}

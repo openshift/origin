@@ -22,50 +22,6 @@ func manualTrigger() []api.DeploymentTriggerPolicy {
 
 // TODO: test validation errors for ReplicationControllerTemplates
 
-func TestValidateDeploymentOK(t *testing.T) {
-	errs := ValidateDeployment(&api.Deployment{
-		ObjectMeta:         kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Strategy:           test.OkStrategy(),
-		ControllerTemplate: test.OkControllerTemplate(),
-	})
-	if len(errs) > 0 {
-		t.Errorf("Unxpected non-empty error list: %#v", errs)
-	}
-}
-
-func TestValidateDeploymentMissingFields(t *testing.T) {
-	errorCases := map[string]struct {
-		D api.Deployment
-		T fielderrors.ValidationErrorType
-		F string
-	}{
-		"missing strategy.type": {
-			api.Deployment{
-				ObjectMeta:         kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Strategy:           api.DeploymentStrategy{},
-				ControllerTemplate: test.OkControllerTemplate(),
-			},
-			fielderrors.ValidationErrorTypeRequired,
-			"strategy.type",
-		},
-	}
-
-	for k, v := range errorCases {
-		errs := ValidateDeployment(&v.D)
-		if len(errs) == 0 {
-			t.Errorf("Expected failure for scenario %s", k)
-		}
-		for i := range errs {
-			if errs[i].(*fielderrors.ValidationError).Type != v.T {
-				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
-			}
-			if errs[i].(*fielderrors.ValidationError).Field != v.F {
-				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
-			}
-		}
-	}
-}
-
 func TestValidateDeploymentConfigOK(t *testing.T) {
 	errs := ValidateDeploymentConfig(&api.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
@@ -384,6 +340,30 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			},
 			fielderrors.ValidationErrorTypeInvalid,
 			"template.strategy.rollingParams.timeoutSeconds",
+		},
+		"missing template.strategy.rollingParams.pre.failurePolicy": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Template: api.DeploymentTemplate{
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRolling,
+						RollingParams: &api.RollingDeploymentStrategyParams{
+							IntervalSeconds:     mkintp(1),
+							UpdatePeriodSeconds: mkintp(1),
+							TimeoutSeconds:      mkintp(20),
+							Pre: &api.LifecycleHook{
+								ExecNewPod: &api.ExecNewPodHook{
+									Command:       []string{"cmd"},
+									ContainerName: "container",
+								},
+							},
+						},
+					},
+					ControllerTemplate: test.OkControllerTemplate(),
+				},
+			},
+			fielderrors.ValidationErrorTypeRequired,
+			"template.strategy.rollingParams.pre.failurePolicy",
 		},
 	}
 

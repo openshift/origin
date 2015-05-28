@@ -107,9 +107,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		}
 
 		if len(groups) == 0 {
-			fmt.Fprintln(out, "\nYou have no services, deployment configs, or build configs. 'osc new-app' can be used to create applications from scratch from existing Docker images and templates.")
+			fmt.Fprintln(out, "\nYou have no Services, DeploymentConfigs, or BuildConfigs. 'osc new-app' can be used to create applications from scratch from existing Docker images and templates.")
 		} else {
-			fmt.Fprintln(out, "\nTo see more information about a service or deployment, use 'osc describe service <name>' or 'osc describe dc <name>'.")
+			fmt.Fprintln(out, "\nTo see more information about a Service or DeploymentConfig, use 'osc describe service <name>' or 'osc describe dc <name>'.")
 			fmt.Fprintln(out, "You can use 'osc get all' to see lists of each of the types described above.")
 		}
 

@@ -53,6 +53,10 @@ func (*okPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
 	return nil
 }
 
+func (*okPodManager) GetPod(namespace, name string) (*kapi.Pod, error) {
+	return &kapi.Pod{}, nil
+}
+
 type errPodManager struct{}
 
 func (*errPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
@@ -63,6 +67,10 @@ func (*errPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
 	return errors.New("DeletePod error!")
 }
 
+func (*errPodManager) GetPod(namespace, name string) (*kapi.Pod, error) {
+	return nil, errors.New("GetPod error!")
+}
+
 type errExistsPodManager struct{}
 
 func (*errExistsPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
@@ -71,6 +79,10 @@ func (*errExistsPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Po
 
 func (*errExistsPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
 	return kerrors.NewNotFound("kind", "name")
+}
+
+func (*errExistsPodManager) GetPod(namespace, name string) (*kapi.Pod, error) {
+	return nil, kerrors.NewNotFound("kind", "name")
 }
 
 type okImageStreamClient struct{}

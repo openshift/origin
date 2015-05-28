@@ -39,7 +39,7 @@ var STITempDirectoryCreator = &tempDirectoryCreator{}
 func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	data, err := bs.Codec.Encode(build)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode the build: %v", err)
+		return nil, fmt.Errorf("failed to encode the Build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 
 	containerEnv := []kapi.EnvVar{

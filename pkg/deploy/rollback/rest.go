@@ -80,7 +80,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	to, err := deployutil.DecodeDeploymentConfig(targetDeployment, s.codec)
 	if err != nil {
 		return nil, newInvalidDeploymentError(rollback,
-			fmt.Sprintf("Couldn't decode deploymentConfig from deployment: %v", err))
+			fmt.Sprintf("couldn't decode DeploymentConfig from Deployment: %v", err))
 	}
 
 	// Find the current ("from") version of the target deploymentConfig
@@ -88,10 +88,10 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return nil, newInvalidDeploymentError(rollback,
-				fmt.Sprintf("Couldn't find a current deploymentConfig %s/%s", targetDeployment.Namespace, to.Name))
+				fmt.Sprintf("couldn't find a current DeploymentConfig %s/%s", targetDeployment.Namespace, to.Name))
 		}
 		return nil, newInvalidDeploymentError(rollback,
-			fmt.Sprintf("Error finding current deploymentConfig %s/%s: %v", targetDeployment.Namespace, to.Name, err))
+			fmt.Sprintf("error finding current DeploymentConfig %s/%s: %v", targetDeployment.Namespace, to.Name, err))
 	}
 
 	return s.generator.GenerateRollback(from, to, &rollback.Spec)

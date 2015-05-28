@@ -48,7 +48,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project Test (example)\n",
-				"You have no services, deployment configs, or build configs.",
+				"You have no Services, DeploymentConfigs, or BuildConfigs.",
 			},
 		},
 		"empty service": {
@@ -102,7 +102,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			Time: mustParseTime("2015-04-06T21:20:03Z"),
 		},
-		"a/b test deployment config": {
+		"a/b test DeploymentConfig": {
 			Path: "../../../../test/fixtures/app-scenarios/new-project-two-deployment-configs.yaml",
 			Extra: []runtime.Object{
 				&projectapi.Project{

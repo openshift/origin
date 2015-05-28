@@ -1,11 +1,13 @@
 <!--
-  Expects the following variables:
-  pods - a hash of pod objects by id
+Expects the following variables:
+pods - a hash of pod objects by id
 -->
 <div class="component-block pod-container">
-  <div class="animate-repeat pod pod-{{pod.status.phase.toLowerCase()}} osc-object"  ng-repeat="pod in pods track by (pod | uid)" kind="Pod" resource="pod">
+  <div class="animate-repeat pod osc-object" ng-repeat="pod in pods track by (pod | uid)" kind="Pod" resource="pod"
+      ng-class="(pod | isTroubledPod) ? 'pod-warning' : ('pod-' + pod.status.phase.toLowerCase())">
     <div class="pod-text">
-      <strong>{{pod.status.phase}}</strong><div ng-if="pod.status.podIP">{{pod.status.podIP}}</div><div ng-if="!pod.status.podIP">allocating IP...</div>
+      <strong>{{pod.status.phase}}</strong>
+      <div ng-if="pod.status.podIP">{{pod.status.podIP}}</div><div ng-if="!pod.status.podIP">allocating IP...</div>
     </div>
   </div>
 </div>

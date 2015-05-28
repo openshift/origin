@@ -112,10 +112,10 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 	}
 
 	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Perform a build pruning dry-run, displaying what would be deleted but not actually deleting anything.")
-	cmd.Flags().BoolVar(&cfg.Orphans, "orphans", cfg.Orphans, "Prune all builds whose associated build config no longer exists and whose status is complete, failed, error, or canceled.")
-	cmd.Flags().DurationVar(&cfg.KeepYoungerThan, "keep-younger-than", cfg.KeepYoungerThan, "Specify the minimum age of a build for it to be considered a candidate for pruning.")
-	cmd.Flags().IntVar(&cfg.KeepComplete, "keep-complete", cfg.KeepComplete, "Per build configuration, specify the number of builds whose status is complete that will be preserved.")
-	cmd.Flags().IntVar(&cfg.KeepFailed, "keep-failed", cfg.KeepFailed, "Per build configuration, specify the number of builds whose status is failed, error, or canceled that will be preserved.")
+	cmd.Flags().BoolVar(&cfg.Orphans, "orphans", cfg.Orphans, "Prune all builds whose associated BuildConfig no longer exists and whose status is complete, failed, error, or canceled.")
+	cmd.Flags().DurationVar(&cfg.KeepYoungerThan, "keep-younger-than", cfg.KeepYoungerThan, "Specify the minimum age of a Build for it to be considered a candidate for pruning.")
+	cmd.Flags().IntVar(&cfg.KeepComplete, "keep-complete", cfg.KeepComplete, "Per BuildConfig, specify the number of builds whose status is complete that will be preserved.")
+	cmd.Flags().IntVar(&cfg.KeepFailed, "keep-failed", cfg.KeepFailed, "Per BuildConfig, specify the number of builds whose status is failed, error, or canceled that will be preserved.")
 
 	return cmd
 }

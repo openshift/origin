@@ -154,7 +154,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Options: options,
 
 		Authenticator:                 newAuthenticator(options, etcdHelper, serviceAccountTokenGetter, apiClientCAs),
-		Authorizer:                    newAuthorizer(policyCache, options.ProjectRequestConfig.ProjectRequestMessage),
+		Authorizer:                    newAuthorizer(policyCache, options.ProjectConfig.ProjectRequestMessage),
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		PolicyCache:               policyCache,

@@ -8,7 +8,7 @@
           </div>
           <div class="col-md-9">
             <osc-image-summary resource="template"></osc-image-summary>
-            <div ng-if="templateImages.length" class="images gutter-bottom">
+            <div ng-if="templateImages.length" class="images">
               <h2>Images</h2>
               <ul class="list-unstyled" ng-repeat="image in templateImages">
                 <li>
@@ -17,8 +17,8 @@
                 </li>
               </ul>
             </div>
+            <template-options class="first-section"></template-options>
             <labels labels="template.labels"></labels>
-            <template-options></template-options>
             <div class="project gutter-bottom">
             Items will be created in the <b>{{ projectDisplayName() }}</b> project.
             </div>

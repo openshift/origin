@@ -70,6 +70,7 @@ func (s *STIBuilder) Build() error {
 		return err
 	}
 	defer removeImage(s.dockerClient, tag)
+	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
 	if _, err = builder.Build(request); err != nil {
 		return err
 	}
@@ -77,7 +78,7 @@ func (s *STIBuilder) Build() error {
 	if len(dockerImageRef) != 0 {
 		ref, err := image.ParseDockerImageReference(dockerImageRef)
 		if err != nil {
-			glog.Fatalf("Build output does not have a valid Docker image reference: %v", err)
+			glog.Fatalf("Build %s/%s output does not have a valid DockerImageReference: %v", s.build.Namespace, s.build.Name, err)
 		}
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(

@@ -27,7 +27,9 @@ type DeploymentConfigChangeController struct {
 // fatalError is an error which can't be retried.
 type fatalError string
 
-func (e fatalError) Error() string { return "fatal error handling config: " + string(e) }
+func (e fatalError) Error() string {
+	return fmt.Sprintf("fatal error handling configuration: %s", string(e))
+}
 
 // Handle processes change triggers for config.
 func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentConfig) error {
@@ -40,7 +42,7 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 	}
 
 	if !hasChangeTrigger {
-		glog.V(4).Infof("Ignoring config %s; no change triggers detected", deployutil.LabelForDeploymentConfig(config))
+		glog.V(4).Infof("Ignoring DeploymentConfig %s/%s; no change triggers detected", config.Namespace, deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -48,11 +50,11 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 		_, _, err := c.generateDeployment(config)
 		if err != nil {
 			if kerrors.IsConflict(err) {
-				return fatalError(fmt.Sprintf("config %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
+				return fatalError(fmt.Sprintf("DeploymentConfig %s/%s updated since retrieval; aborting trigger: %v", config.Namespace, deployutil.LabelForDeploymentConfig(config), err))
 			}
-			return fmt.Errorf("couldn't create initial deployment for config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
+			return fmt.Errorf("couldn't create initial Deployment for DeploymentConfig %s/%s: %v", config.Namespace, deployutil.LabelForDeploymentConfig(config), err)
 		}
-		glog.V(4).Infof("Created initial deployment for config %s", deployutil.LabelForDeploymentConfig(config))
+		glog.V(4).Infof("Created initial Deployment for DeploymentConfig %s/%s", config.Namespace, deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -60,30 +62,30 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 	deployment, err := c.changeStrategy.getDeployment(config.Namespace, latestDeploymentName)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			glog.V(4).Infof("Ignoring config change for %s; no existing deployment found", deployutil.LabelForDeploymentConfig(config))
+			glog.V(2).Infof("Ignoring change for DeploymentConfig %s/%s; no existing Deployment found", config.Namespace, deployutil.LabelForDeploymentConfig(config))
 			return nil
 		}
-		return fmt.Errorf("couldn't retrieve deployment for %s: %v", deployutil.LabelForDeploymentConfig(config), err)
+		return fmt.Errorf("couldn't retrieve Deployment for DeploymentConfig %s/%s: %v", config.Namespace, deployutil.LabelForDeploymentConfig(config), err)
 	}
 
 	deployedConfig, err := c.decodeConfig(deployment)
 	if err != nil {
-		return fatalError(fmt.Sprintf("error decoding deploymentConfig from deployment %s for config %s: %v", deployutil.LabelForDeployment(deployment), deployutil.LabelForDeploymentConfig(config), err))
+		return fatalError(fmt.Sprintf("error decoding DeploymentConfig from Deployment %s for DeploymentConfig %s/%s: %v", deployutil.LabelForDeployment(deployment), config.Namespace, deployutil.LabelForDeploymentConfig(config), err))
 	}
 
 	if deployutil.PodSpecsEqual(config.Template.ControllerTemplate.Template.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec) {
-		glog.V(4).Infof("Ignoring config change for %s (latestVersion=%d); same as deployment %s", deployutil.LabelForDeploymentConfig(config), config.LatestVersion, deployutil.LabelForDeployment(deployment))
+		glog.V(2).Infof("Ignoring DeploymentConfig change for %s (latestVersion=%d); same as Deployment %s", deployutil.LabelForDeploymentConfig(config), config.LatestVersion, deployutil.LabelForDeployment(deployment))
 		return nil
 	}
 
 	fromVersion, toVersion, err := c.generateDeployment(config)
 	if err != nil {
 		if kerrors.IsConflict(err) {
-			return fatalError(fmt.Sprintf("config %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
+			return fatalError(fmt.Sprintf("DeploymentConfig %s/%s updated since retrieval; aborting trigger: %v", config.Namespace, deployutil.LabelForDeploymentConfig(config), err))
 		}
-		return fmt.Errorf("couldn't generate deployment for config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
+		return fmt.Errorf("couldn't generate deployment for DeploymentConfig %s/%s: %v", config.Namespace, deployutil.LabelForDeploymentConfig(config), err)
 	}
-	glog.V(4).Infof("Updated config %s from version %d to %d for existing deployment %s", deployutil.LabelForDeploymentConfig(config), fromVersion, toVersion, deployutil.LabelForDeployment(deployment))
+	glog.V(4).Infof("Updated DeploymentConfig %s/%s from version %d to %d for existing deployment %s", config.Namespace, deployutil.LabelForDeploymentConfig(config), fromVersion, toVersion, deployutil.LabelForDeployment(deployment))
 	return nil
 }
 

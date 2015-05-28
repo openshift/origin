@@ -38,22 +38,22 @@ func ValidateIPAddressRange(iprange string) error {
 	parts[3] = rangeEnd
 	endIP := strings.Join(parts, ".")
 	if ValidateIPAddress(endIP) != nil {
-		return fmt.Errorf("Invalid IP range end: %s [%s]", rangeEnd, endIP)
+		return fmt.Errorf("invalid IP range end: %s [%s]", rangeEnd, endIP)
 	}
 
 	// Lastly, ensure start <= end
 	start, err := strconv.Atoi(rangeStart)
 	if err != nil {
-		return fmt.Errorf("Invalid IP range start: %s [%s]", rangeStart, startIP)
+		return fmt.Errorf("invalid IP range start: %s [%s]", rangeStart, startIP)
 	}
 
 	end, err := strconv.Atoi(rangeEnd)
 	if err != nil {
-		return fmt.Errorf("Invalid IP range end: %s [%s]", rangeEnd, endIP)
+		return fmt.Errorf("invalid IP range end: %s [%s]", rangeEnd, endIP)
 	}
 
 	if start > end {
-		return fmt.Errorf("Invalid IP range %s-%s: start=%v > end=%v", startIP, endIP, start, end)
+		return fmt.Errorf("invalid IP range %s-%s: start=%v > end=%v", startIP, endIP, start, end)
 	}
 
 	return nil
