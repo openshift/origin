@@ -13,3 +13,10 @@ CONFIG_FILE=/etc/openshift/node/node-config.yaml
 # TODO: More elegant solution like this
 # https://github.com/coreos/flannel/blob/master/dist/mk-docker-opts.sh
 # DOCKER_NETWORK_OPTIONS='-b=lbr0 --mtu=1450'
+
+# Proxy configuration
+# OpenShift uses standard HTTP_PROXY environment variables. Be sure to set
+# NO_PROXY for your master
+#NO_PROXY=master.example.com
+#HTTP_PROXY=http://USER:PASSWORD@IPADDR:PORT
+#HTTPS_PROXY=https://USER:PASSWORD@IPADDR:PORT
