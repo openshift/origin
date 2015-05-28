@@ -88,7 +88,7 @@ func TestCreateInstantiate(t *testing.T) {
 		ServiceAccounts: mockBuilderServiceAccount(mockBuilderSecrets()),
 		Client: Client{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
-				return mockBuildConfig(mockSource(), mockSourceStrategyForImageRepository(), mockOutput()), nil
+				return mockBuildConfig(mockSource(), mockSourceStrategyForImageStreamTag(), mockOutput()), nil
 			},
 			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				return nil

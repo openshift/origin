@@ -213,9 +213,9 @@ type CustomBuildStrategy struct {
 	// TODO: Allow admins to enforce 'false' for this option
 	ExposeDockerSocket bool `json:"exposeDockerSocket,omitempty"`
 
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
-	From *kapi.ObjectReference `json:"from,omitempty"`
+	// From is reference to one of ImageStreamImage, ImageStreamTag or DockerImage
+	// from which the docker image should be pulled.
+	From *kapi.ObjectReference `json:"from,omitempty" description:"reference to one of ImageStreamImage, ImageStreamTag or DockerImage"`
 
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
@@ -229,10 +229,10 @@ type DockerBuildStrategy struct {
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty"`
 
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
-	// the resulting image will be used in the FROM line of the Dockerfile for this build.
-	From *kapi.ObjectReference `json:"from,omitempty"`
+	// From is reference to one of ImageStreamImage, ImageStreamTag or DockerImage
+	// from which the docker image should be pulled. The resulting image will be
+	// used in the FROM line of the Dockerfile for this build.
+	From *kapi.ObjectReference `json:"from,omitempty" description:"reference to one of ImageStreamImage, ImageStreamTag or DockerImage"`
 
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
@@ -242,9 +242,10 @@ type DockerBuildStrategy struct {
 
 // SourceBuildStrategy defines input parameters specific to an STI build.
 type SourceBuildStrategy struct {
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
-	// the docker image should be pulled
-	From *kapi.ObjectReference `json:"from,omitempty"`
+	// From is reference to one of ImageStreamImage, ImageStreamTag or DockerImage
+	// from which the docker image should be pulled. The resulting image will be
+	// used as the builder image for this build.
+	From *kapi.ObjectReference `json:"from,omitempty" description:"reference to one of ImageStreamImage, ImageStreamTag or DockerImage"`
 
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
@@ -265,11 +266,10 @@ type SourceBuildStrategy struct {
 // should produce.
 type BuildOutput struct {
 	// To defines an optional ImageStream to push the output of this build to. The namespace
-	// may be empty, in which case the named ImageStream will be retrieved from the namespace
-	// of the build. Kind must be set to 'ImageStream' and is the only supported value. If set,
-	// this field takes priority over DockerImageReference. This value will be used to look up
-	// a Docker image repository to push to. Failure to find the To will result in a build error.
-	To *kapi.ObjectReference `json:"to,omitempty"`
+	// may be empty, in which case the ImageStream will be looked for in the namespace of
+	// the build. Kind must be 'ImageStreamTag' or 'DockerImage'.  This value will be used
+	// to look up a Docker image repository to push to.
+	To *kapi.ObjectReference `json:"to,omitempty" description:"reference to ImageStreamTag or DockerImage"`
 
 	// PushSecret is the name of a Secret that would be used for setting
 	// up the authentication for executing the Docker push to authentication

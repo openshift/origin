@@ -89,6 +89,16 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 func TestBuildConfigValidationFailure(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "foo"},
+		Triggers: []buildapi.BuildTriggerPolicy{
+			buildapi.BuildTriggerPolicy{
+				Type:        buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{},
+			},
+			buildapi.BuildTriggerPolicy{
+				Type:        buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{},
+			},
+		},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -106,35 +116,7 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 			},
 		},
 	}
-	if result := ValidateBuildConfig(buildConfig); len(result) != 1 {
-		t.Errorf("Unexpected validation result %v", result)
-	}
-}
-
-func TestBuildConfigValidationOutputFailure(t *testing.T) {
-	buildConfig := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: ""},
-		Parameters: buildapi.BuildParameters{
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
-				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				DockerImageReference: "repository/data",
-				To: &kapi.ObjectReference{
-					Name: "other",
-				},
-			},
-		},
-	}
-	if result := ValidateBuildConfig(buildConfig); len(result) != 3 {
+	if result := ValidateBuildConfig(buildConfig); len(result) != 2 {
 		t.Errorf("Unexpected validation result %v", result)
 	}
 }
@@ -196,8 +178,8 @@ func TestValidateBuildParameters(t *testing.T) {
 		err string
 		*buildapi.BuildParameters
 	}{
-		{
-			string(fielderrors.ValidationErrorTypeInvalid) + "output.dockerImageReference",
+		{ // 0
+			string(fielderrors.ValidationErrorTypeInvalid) + "output.to.name",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -211,11 +193,14 @@ func TestValidateBuildParameters(t *testing.T) {
 					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
-					DockerImageReference: "some/long/value/with/no/meaning",
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "some/long/value/with/no/meaning",
+					},
 				},
 			},
 		},
-		{
+		{ // 1
 			string(fielderrors.ValidationErrorTypeInvalid) + "output.to.kind",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
@@ -237,8 +222,8 @@ func TestValidateBuildParameters(t *testing.T) {
 				},
 			},
 		},
-		{
-			string(fielderrors.ValidationErrorTypeRequired) + "output.to.name",
+		{ // 2
+			string(fielderrors.ValidationErrorTypeInvalid) + "output.to.kind",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -256,29 +241,7 @@ func TestValidateBuildParameters(t *testing.T) {
 				},
 			},
 		},
-		{
-			string(fielderrors.ValidationErrorTypeInvalid) + "output.to.name",
-			&buildapi.BuildParameters{
-				Source: buildapi.BuildSource{
-					Type: buildapi.BuildSourceGit,
-					Git: &buildapi.GitBuildSource{
-						URI: "http://github.com/my/repository",
-					},
-					ContextDir: "context",
-				},
-				Strategy: buildapi.BuildStrategy{
-					Type:           buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{},
-				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "not_a_valid_subdomain",
-						Namespace: "subdomain",
-					},
-				},
-			},
-		},
-		{
+		{ // 3
 			string(fielderrors.ValidationErrorTypeInvalid) + "output.to.namespace",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
@@ -294,13 +257,14 @@ func TestValidateBuildParameters(t *testing.T) {
 				},
 				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{
+						Kind:      "DockerImage",
 						Name:      "test",
 						Namespace: "not_a_valid_subdomain",
 					},
 				},
 			},
 		},
-		{
+		{ // 4
 			string(fielderrors.ValidationErrorTypeInvalid) + "strategy.type",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
@@ -311,11 +275,14 @@ func TestValidateBuildParameters(t *testing.T) {
 				},
 				Strategy: buildapi.BuildStrategy{Type: "invalid-type"},
 				Output: buildapi.BuildOutput{
-					DockerImageReference: "repository/data",
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},
-		{
+		{ // 5
 			string(fielderrors.ValidationErrorTypeRequired) + "strategy.type",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
@@ -326,13 +293,15 @@ func TestValidateBuildParameters(t *testing.T) {
 				},
 				Strategy: buildapi.BuildStrategy{},
 				Output: buildapi.BuildOutput{
-					DockerImageReference: "repository/data",
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},
-		// invalid because from is not specified in the
-		// sti strategy definition
-		{
+
+		{ // 6 - invalid because from is not specified in the sti strategy definition
 			string(fielderrors.ValidationErrorTypeRequired) + "strategy.stiStrategy.from",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
@@ -346,13 +315,14 @@ func TestValidateBuildParameters(t *testing.T) {
 					SourceStrategy: &buildapi.SourceBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
-					DockerImageReference: "repository/data",
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},
-		// invalid because from is not specified in the
-		// custom strategy definition
-		{
+		{ // 7 - invalid because from is not specified in the custom strategy definition
 			string(fielderrors.ValidationErrorTypeRequired) + "strategy.customStrategy.from",
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
@@ -366,21 +336,24 @@ func TestValidateBuildParameters(t *testing.T) {
 					CustomStrategy: &buildapi.CustomBuildStrategy{},
 				},
 				Output: buildapi.BuildOutput{
-					DockerImageReference: "repository/data",
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
 				},
 			},
 		},
 	}
 
-	for _, config := range errorCases {
+	for i, config := range errorCases {
 		errors := validateBuildParameters(config.BuildParameters)
 		if len(errors) != 1 {
-			t.Errorf("%s: Unexpected validation result: %v", config.err, errors)
+			t.Errorf("(%d) %s: Unexpected validation result: %v", i, config.err, errors)
 		}
 		err := errors[0].(*fielderrors.ValidationError)
 		errDesc := string(err.Type) + err.Field
 		if config.err != errDesc {
-			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, config.err, errDesc)
+			t.Errorf("(%d) unexpected validation result for %s: expected %s, got %s", i, err.Field, config.err, errDesc)
 		}
 	}
 }
@@ -389,7 +362,7 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 	testCases := []struct {
 		*buildapi.BuildParameters
 	}{
-		{
+		{ // 0
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -402,6 +375,7 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 					SourceStrategy: &buildapi.SourceBuildStrategy{
 						From: &kapi.ObjectReference{
 							Name: "reponame",
+							Kind: "ImageStreamTag",
 						},
 					},
 				},
@@ -410,7 +384,7 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 				},
 			},
 		},
-		{
+		{ // 1
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -423,6 +397,7 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 					CustomStrategy: &buildapi.CustomBuildStrategy{
 						From: &kapi.ObjectReference{
 							Name: "reponame",
+							Kind: "ImageStreamTag",
 						},
 					},
 				},
@@ -431,7 +406,7 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 				},
 			},
 		},
-		{
+		{ // 2
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -448,7 +423,7 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 				},
 			},
 		},
-		{
+		{ // 3
 			&buildapi.BuildParameters{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
@@ -461,6 +436,7 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 					DockerStrategy: &buildapi.DockerBuildStrategy{
 						From: &kapi.ObjectReference{
 							Name: "reponame",
+							Kind: "ImageStreamTag",
 						},
 					},
 				},
@@ -471,10 +447,10 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 		},
 	}
 
-	for _, config := range testCases {
+	for i, config := range testCases {
 		errors := validateBuildParameters(config.BuildParameters)
 		if len(errors) != 0 {
-			t.Errorf("Unexpected validation error: %v", errors)
+			t.Errorf("(%d) unexpected validation error: %v", i, errors)
 		}
 	}
 
@@ -581,6 +557,119 @@ func TestValidateTrigger(t *testing.T) {
 		}
 		if validationError.Field != test.expected[0].Field {
 			t.Errorf("%s: Unexpected error field: %s", desc, validationError.Field)
+		}
+	}
+}
+
+func TestValidateBuildStrategyFromKindOK(t *testing.T) {
+	sourceStrategy := &buildapi.BuildStrategy{
+		Type:           buildapi.SourceBuildStrategyType,
+		SourceStrategy: &buildapi.SourceBuildStrategy{},
+	}
+	dockerStrategy := &buildapi.BuildStrategy{
+		Type:           buildapi.DockerBuildStrategyType,
+		DockerStrategy: &buildapi.DockerBuildStrategy{},
+	}
+	customStrategy := &buildapi.BuildStrategy{
+		Type:           buildapi.CustomBuildStrategyType,
+		CustomStrategy: &buildapi.CustomBuildStrategy{},
+	}
+
+	validateError := func(strategy, kind string, errors fielderrors.ValidationErrorList) {
+		if len(errors) != 0 {
+			t.Errorf("%s, kind %s: unexpected errors %+v", strategy, kind, errors)
+		}
+	}
+	testCases := []kapi.ObjectReference{
+		{Kind: "ImageStreamImage", Name: "repo/image@id"},
+		{Kind: "ImageStreamTag", Name: "repo/image:tag"},
+		{Kind: "DockerImage", Name: "repo/image"},
+	}
+	for _, tc := range testCases {
+		sourceStrategy.SourceStrategy.From = &tc
+		validateError("SourceStrategy", tc.Kind, validateStrategy(sourceStrategy))
+
+		dockerStrategy.DockerStrategy.From = &tc
+		validateError("DockerStrategy", tc.Kind, validateStrategy(dockerStrategy))
+
+		customStrategy.CustomStrategy.From = &tc
+		validateError("CustomStrategy", tc.Kind, validateStrategy(customStrategy))
+	}
+}
+
+func TestValidateBuildStrategyFromKindErrors(t *testing.T) {
+	sourceStrategy := &buildapi.BuildStrategy{
+		Type:           buildapi.SourceBuildStrategyType,
+		SourceStrategy: &buildapi.SourceBuildStrategy{},
+	}
+	dockerStrategy := &buildapi.BuildStrategy{
+		Type:           buildapi.DockerBuildStrategyType,
+		DockerStrategy: &buildapi.DockerBuildStrategy{},
+	}
+	customStrategy := &buildapi.BuildStrategy{
+		Type:           buildapi.CustomBuildStrategyType,
+		CustomStrategy: &buildapi.CustomBuildStrategy{},
+	}
+
+	validateError := func(strategy, kind string, errors fielderrors.ValidationErrorList) {
+		expected := string(fielderrors.ValidationErrorTypeInvalid) + strategy + ".from.kind"
+		if len(errors) == 0 {
+			t.Errorf("%s, kind %s: expected errors, got none", strategy, kind)
+			return
+		}
+		err := errors[0].(*fielderrors.ValidationError)
+		actual := string(err.Type) + err.Field
+		if actual != expected {
+			t.Errorf("%s, kind %s: unexpected validation result expected %s, got %s", strategy, kind, expected, actual)
+		}
+	}
+	testCases := []kapi.ObjectReference{
+		{Kind: "ImageStream", Name: "repo/image"},
+		{Kind: "other", Name: "some_other_string"},
+		{Kind: "", Name: "<empty>"},
+	}
+	for _, tc := range testCases {
+		sourceStrategy.SourceStrategy.From = &tc
+		validateError("stiStrategy", tc.Kind, validateStrategy(sourceStrategy))
+
+		dockerStrategy.DockerStrategy.From = &tc
+		validateError("dockerStrategy", tc.Kind, validateStrategy(dockerStrategy))
+
+		customStrategy.CustomStrategy.From = &tc
+		validateError("customStrategy", tc.Kind, validateStrategy(customStrategy))
+	}
+}
+
+func TestValidateBuildOutputToKindOK(t *testing.T) {
+	testCases := []kapi.ObjectReference{
+		{Kind: "ImageStreamTag", Name: "repo/image:tag"},
+		{Kind: "DockerImage", Name: "repo/image"},
+	}
+	for _, tc := range testCases {
+		if errors := validateBuildOutput(&buildapi.BuildOutput{To: &tc}); len(errors) != 0 {
+			t.Errorf("Kind %s: unexpected errors %+v", tc.Kind, errors)
+		}
+	}
+}
+
+func TestValidateBuildOutputToKindErrors(t *testing.T) {
+	testCases := []kapi.ObjectReference{
+		{Kind: "ImageStream", Name: "repo/image"},
+		{Kind: "ImageStreamImage", Name: "repo/image"},
+		{Kind: "other", Name: "some_other_string"},
+		{Kind: "", Name: "<empty>"},
+	}
+	for _, tc := range testCases {
+		expected := string(fielderrors.ValidationErrorTypeInvalid) + "to.kind"
+		errors := validateBuildOutput(&buildapi.BuildOutput{To: &tc})
+		if len(errors) == 0 {
+			t.Errorf("Kind %s: expected errors, got none", tc.Kind)
+			continue
+		}
+		err := errors[0].(*fielderrors.ValidationError)
+		actual := string(err.Type) + err.Field
+		if actual != expected {
+			t.Errorf("Kind %s: unexpected validation result expected %s, got %s", tc.Kind, expected, actual)
 		}
 	}
 }
