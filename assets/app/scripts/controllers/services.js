@@ -35,8 +35,11 @@ angular.module('openshiftConsole')
     function routesByService(routes) {
         var routeMap = {};
         angular.forEach(routes, function(route, routeName){
-            routeMap[route.serviceName] = routeMap[route.serviceName] || {};
-            routeMap[route.serviceName][routeName] = route;
+          var to = route.spec.to;
+          if (to.kind === "Service") {
+            routeMap[to.name] = routeMap[to.name] || {};
+            routeMap[to.name][routeName] = route;
+          }
         });
         return routeMap;
     };

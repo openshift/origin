@@ -15,74 +15,49 @@
           <h2>{{buildConfigName}}</h2>
           <dl class="dl-horizontal left indent">
           <div>
-            
               <dt>Build strategy:</dt>
-              <dd>{{buildConfig.parameters.strategy.type}}</dd>
-
+              <dd>{{buildConfig.spec.strategy.type}}</dd>
           </div>
-          <div ng-switch="buildConfig.parameters.strategy.type">
-            <div ng-switch-when="STI">
-              <div ng-if="buildConfig.parameters.strategy.stiStrategy.image">
-
+          <div ng-switch="buildConfig.spec.strategy.type">
+            <div ng-switch-when="Source">
+              <div ng-if="buildConfig.spec.strategy.sourceStrategy.from">
                   <dt>Builder image:</dt>
-                  <dd>{{buildConfig.parameters.strategy.stiStrategy.image}}</dd>
-
-              </div>
-              <div ng-if="buildConfig.parameters.strategy.stiStrategy.from">
-                  <dt>Builder image stream:</dt>
-                  <dd>{{buildConfig.parameters.strategy.stiStrategy.from | imageRepoReference : buildConfig.parameters.strategy.stiStrategy.from.kind : buildConfig.parameters.strategy.stiStrategy.Tag}}
-                  </dd>                  
-
+                  <dd>{{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
               </div>
             </div>
             <div ng-switch-when="Docker">
-              <div ng-if="buildConfig.parameters.strategy.dockerStrategy.image">
-
-                  <dt>Builder image:</dt>
-                  <dd>{{buildConfig.parameters.strategy.dockerStrategy.image}}</dd>
-
-              </div>
-              <div ng-if="buildConfig.parameters.strategy.dockerStrategy.from">
+              <div ng-if="buildConfig.spec.strategy.dockerStrategy.from">
                 <dl class="dl-horizontal">
                   <dt>Builder image stream:</dt>
-                  <dd>{{buildConfig.parameters.strategy.dockerStrategy.from | imageRepoReference : buildConfig.parameters.strategy.dockerStrategy.from.kind : buildConfig.parameters.strategy.dockerStrategy.Tag}}
-                  </dd>                  
+                  <dd>{{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
                 </dl>
               </div>
             </div>
             <div ng-switch-when="Custom">
-              <div ng-if="buildConfig.parameters.strategy.customStrategy.image">
-                <dt>Builder image:</dt>
-                <dd>{{buildConfig.parameters.strategy.customStrategy.image}}</dd>
-              </div>
-              <div ng-if="buildConfig.parameters.strategy.customStrategy.from">
+              <div ng-if="buildConfig.spec.strategy.customStrategy.from">
                 <dt>Builder image stream:</dt>
-                <dd>{{buildConfig.parameters.strategy.customStrategy.from | imageRepoReference : buildConfig.parameters.strategy.customStrategy.from.kind : buildConfig.parameters.strategy.customStrategy.Tag}}
+                <dd>{{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
                 </dd>                  
               </div>
             </div>
           </div>
-          <div ng-if="buildConfig.parameters.source">
-            <div ng-if="buildConfig.parameters.source.type == 'Git'">
+          <div ng-if="buildConfig.spec.source">
+            <div ng-if="buildConfig.spec.source.type == 'Git'">
 
                 <dt>Source repo:</dt>
-                <dd ng-bind-html='buildConfig.parameters.source.git.uri | githubLink | linky'></dd>
+                <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink | linky'></dd>
 
             </div>
           </div>
-          <div ng-if="buildConfig.parameters.output">
-            <div ng-switch="buildConfig.parameters.output.to.kind">
-              <div ng-switch-when="ImageRepository">
-
-                  <dt>Output image repo [tag]:</dt>
-                    <dd>{{buildConfig.parameters.output.to | imageRepoReference : buildConfig.parameters.output.tag}}</dd>
-
-              </div>
+          <div ng-if="buildConfig.spec.output">
+            <div ng-if="buildConfig.spec.output.to">
+              <dt>Output to:</dt>
+              <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
             </div>
-            <div ng-if="!buildConfig.parameters.output.to && buildConfig.parameters.output.dockerImageReference">
+            <div ng-if="!buildConfig.spec.output.to && buildConfig.spec.output.dockerImageReference">
 
                 <dt>Output image:</dt>
-                <dd>{{buildConfig.parameters.output.dockerImageReference}}</dd>
+                <dd>{{buildConfig.spec.output.dockerImageReference}}</dd>
               
             </div>
           </div>
@@ -92,9 +67,10 @@
             <h3>Triggers:</h3>
             <dl class="dl-horizontal left indent">
 
-              <div ng-repeat="trigger in buildConfig.triggers">
+              <div ng-repeat="trigger in buildConfig.spec.triggers">
                 <div ng-switch="trigger.type">
                   <div ng-switch-when="github">
+                    
                       <dt>GitHub webhook URL
                       <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more 
                       <i class="fa fa-external-link"></i></span></a>
@@ -114,39 +90,39 @@
                       </dd>
                   </div>
                   <div ng-switch-when="imageChange">
-                    <div ng-switch="buildConfig.parameters.strategy.type">
-                      <div ng-switch-when="STI">
-                        <dl class="dl-horizontal" ng-if="buildConfig.parameters.strategy.stiStrategy.from&& buildConfig.parameters.strategy.stiStrategy.from.kind!='ImageStreamImage'">
+                    <div ng-switch="buildConfig.spec.strategy.type">
+                      <div ng-switch-when="Source">
+                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.sourceStrategy.from && buildConfig.spec.strategy.sourceStrategy.from.kind!='ImageStreamImage'">
                           <dt>
                             New image for:
                           </dt>
                           <dd>
-                            Image stream {{buildConfig.parameters.strategy.stiStrategy.from | imageRepoReference : buildConfig.parameters.strategy.stiStrategy.from.kind : buildConfig.parameters.strategy.stiStrategy.Tag}}
+                            Image stream {{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
                           </dd>
                         </dl>
                       </div>
                       <div ng-switch-when="Docker">
-                        <dl class="dl-horizontal" ng-if="buildConfig.parameters.strategy.dockerStrategy.from && buildConfig.parameters.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
+                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.dockerStrategy.from && buildConfig.spec.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
                            <dt>
                             New image for:
                           </dt>
                           <dd>
-                            Image stream {{buildConfig.parameters.strategy.dockerStrategy.from | imageRepoReference : buildConfig.parameters.strategy.dockerStrategy.from.kind : buildConfig.parameters.strategy.dockerStrategy.Tag}}
+                            Image stream {{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
                           </dd>
                           <br>
                         </dl>
                       </div>
                       <div ng-switch-when="Custom">
-                        <dl class="dl-horizontal" ng-if="buildConfig.parameters.strategy.customStrategy.from && buildConfig.parameters.strategy.customStrategy.from.kind!='ImageStreamImage'">
+                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.customStrategy.from && buildConfig.spec.strategy.customStrategy.from.kind!='ImageStreamImage'">
                           <dt>
                             New image for:
                           </dt>
                           <dd>
-                            Image stream {{buildConfig.parameters.strategy.customStrategy.from | imageRepoReference : buildConfig.parameters.strategy.customStrategy.from.kind : buildConfig.parameters.strategy.customStrategy.Tag}}
+                            Image stream {{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
                           </dd>
                            <br>
                         </dl>
-                      </div>                  
+                      </div>
                     </div>
                   </div>
                   <div ng-switch-default>{{trigger.type}}</div>
@@ -179,10 +155,10 @@
         </div>
         <div class="well" style="margin-bottom: 10px;" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true">
           <h3>{{build.metadata.name}}</h3>
-          <div>Created: <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></div>            
+          <div>Created: <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></div>
           <div>
-            <span style="margin-right: 5px;">Status: {{build.status}}</span>
-            <span ng-switch="build.status" class="hide-ng-leave">
+            <span style="margin-right: 5px;">Status: {{build.status.phase}}</span>
+            <span ng-switch="build.status.phase" class="hide-ng-leave">
               <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
               <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
               <span ng-switch-when="Error" class="fa fa-times text-danger" aria-hidden="true"></span>
@@ -192,54 +168,43 @@
           </div>
           <div>
             <span style="margin-right: 5px;">Duration: </span>
-            <span ng-switch="build.status" class="hide-ng-leave">
-              <span ng-switch-when="Complete">{{(build.startTimestamp || build.metadata.creationTimestamp) | duration : build.completionTimestamp}}</span>
-              <span ng-switch-when="Failed">{{build.startTimestamp | duration : build.completionTimestamp}}</span>
-              <span ng-switch-when="Running">running for <duration-until-now timestamp="build.startTimestamp"></duration-until-now></span>
+            <span ng-switch="build.status.phase" class="hide-ng-leave">
+              <span ng-switch-when="Complete">{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.completionTimestamp}}</span>
+              <span ng-switch-when="Failed">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+              <span ng-switch-when="Running">running for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
               <span ng-switch-when="New">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
               <span ng-switch-when="Pending">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
               <span ng-switch-default>
-                <span ng-if="build.startTimestamp">{{build.startTimestamp | duration : build.completionTimestamp}}</span>
-                <span ng-if="!build.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.completionTimestamp}}</span>
+                <span ng-if="build.status.startTimestamp">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                <span ng-if="!build.status.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.completionTimestamp}}</span>
               </span>
             </span>
-          </div>          
-          <div ng-if="buildConfig.parameters.strategy.type != build.parameters.strategy.type">
-            <div>Build strategy: {{build.parameters.strategy.type}}</div>
           </div>
-          <div ng-switch="build.parameters.strategy.type">
-            <div ng-switch-when="STI" ng-if="build.parameters.strategy.stiStrategy.image">
-              Builder image: {{build.parameters.strategy.stiStrategy.image}}
+          <div ng-if="buildConfig.spec.strategy.type != build.spec.strategy.type">
+            <div>Build strategy: {{build.spec.strategy.type}}</div>
+          </div>
+          <div ng-switch="build.spec.strategy.type">
+            <div ng-switch-when="Source" ng-if="build.spec.strategy.sourceStrategy.from">
+              Builder image: {{build.spec.strategy.sourceStrategy.from | imageObjectRef : build.metadata.namespace}}
             </div>
             <div ng-switch-when="Docker">
-              <div ng-if="build.parameters.strategy.dockerStrategy.image">
-                Builder image: {{build.parameters.strategy.dockerStrategy.image}}
+              <div ng-if="build.spec.strategy.dockerStrategy.from">
+                Builder image: {{build.spec.strategy.dockerStrategy.from | imageObjectRef : build.metadata.namespace}}
               </div>
             </div>
-            <div ng-switch-when="Custom" ng-if="build.parameters.strategy.customStrategy.image">
-              Builder image: {{build.parameters.strategy.customStrategy.image}}
+            <div ng-switch-when="Custom" ng-if="build.spec.strategy.customStrategy.from">
+              Builder image: {{build.spec.strategy.customStrategy.from | imageObjectRef : build.metadata.namespace}}
             </div>
-          </div>          
-          <div ng-if="build.parameters.source">
-            <div ng-if="build.parameters.source.type == 'Git'">
-              <div ng-if="buildConfig.parameters.source.git.uri != build.parameters.source.git.uri">
-                Source repo: <span ng-bind-html='build.parameters.source.git.uri | githubLink | linky'></span>
+          </div>
+          <div ng-if="build.spec.source">
+            <div ng-if="build.spec.source.type == 'Git'">
+              <div ng-if="buildConfig.spec.source.git.uri != build.spec.source.git.uri">
+                Source repo: <span ng-bind-html='build.spec.source.git.uri | githubLink | linky'></span>
               </div>
             </div>
             <!-- TODO add git ref details -->
           </div>
-          <div ng-if="build.parameters.output">
-            <div ng-if="buildConfig.parameters.output.to.kind != build.parameters.output.to.kind && buildConfig.parameters.output.to.name != build.parameters.output.to.name">
-              <div ng-switch="build.parameters.output.to.kind">
-                <div ng-switch-when="ImageRepository">
-                  Output image: {{buildConfig.parameters.output.to.name}}
-                </div>
-              </div>             
-            </div>
-            <div ng-if="!build.parameters.output.to && build.parameters.output.dockerImageReference && buildConfig.parameters.output.dockerImageReference != build.parameters.output.dockerImageReference">
-              Output image: {{build.parameters.output.dockerImageReference}}
-            </div>            
-          </div>
+          <div ng-if="build.spec.output.to">Output image: {{build.spec.output.to | imageObjectRef : build.metadata.namespace}}</div>
           <div>
             <button class="btn btn-default icon-restart" ng-click="cloneBuild(build.metadata.name)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Rebuild</button>
           </div>
@@ -280,35 +245,32 @@
               </span>
             </span>
           </div>          
-          <div>Build strategy: {{build.parameters.strategy.type}}</div>
-          <div ng-switch="build.parameters.strategy.type">
-            <div ng-switch-when="STI">
-              Builder image: {{build.parameters.strategy.stiStrategy.image}}
+          <div>Build strategy: {{build.spec.strategy.type}}</div>
+          <div ng-switch="build.spec.strategy.type">
+            <div ng-switch-when="Source">
+              Builder image: {{build.spec.strategy.sourceStrategy.image}}
             </div>
             <div ng-switch-when="Docker">
-              <div ng-if="build.parameters.strategy.dockerStrategy.image">
-                Builder image: {{build.parameters.strategy.dockerStrategy.image}}
+              <div ng-if="build.spec.strategy.dockerStrategy.image">
+                Builder image: {{build.spec.strategy.dockerStrategy.image}}
               </div>
             </div>
             <div ng-switch-when="Custom">
-              Builder image: {{build.parameters.strategy.customStrategy.image}}
+              Builder image: {{build.spec.strategy.customStrategy.image}}
             </div>
           </div>
-          <div ng-if="build.parameters.source">
-            <div ng-if="build.parameters.source.type == 'Git'">
-              Source repo: <span ng-bind-html='build.parameters.source.git.uri | githubLink | linky'></span>
+          <div ng-if="build.spec.source">
+            <div ng-if="build.spec.source.type == 'Git'">
+              Source repo: <span ng-bind-html='build.spec.source.git.uri | githubLink | linky'></span>
             </div>
             <!-- TODO add git ref details -->
           </div>
-          <div ng-if="build.parameters.output">
-            <div ng-switch="build.parameters.output.to.kind">
+          <div ng-if="build.spec.output">
+            <div ng-switch="build.spec.output.to.kind">
               <div ng-switch-when="ImageRepository">
-                Output image: {{build.parameters.output.to.name}}
+                Output image: {{build.spec.output.to.name}}
               </div>
             </div>
-            <div ng-if="!build.parameters.output.to && build.parameters.output.dockerImageReference">
-              Output image: {{build.parameters.output.dockerImageReference}}
-            </div>            
           </div>
         </div>
       </div>      

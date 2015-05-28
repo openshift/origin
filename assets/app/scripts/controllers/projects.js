@@ -33,7 +33,7 @@ angular.module('openshiftConsole')
 
     // Test if the user can submit project requests. Handle error notifications
     // ourselves because 403 responses are expected.
-    DataService.get("projectRequests", null, $scope, { errorNotification: false})
+    DataService.get("projectrequests", null, $scope, { errorNotification: false})
     .then(function() {
       $scope.canCreate = true;
     }, function(result) {

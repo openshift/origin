@@ -8,7 +8,16 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('OverviewController', function ($scope, DataService, annotationFilter, hashSizeFilter, LabelFilter, Logger, ImageStreamResolver) {
+  .controller('OverviewController',
+              function ($scope,
+                        DataService,
+                        annotationFilter,
+                        hashSizeFilter,
+                        imageObjectRefFilter,
+                        deploymentCausesFilter,
+                        LabelFilter,
+                        Logger,
+                        ImageStreamResolver) {
     $scope.pods = {};
     $scope.services = {};
     $scope.routesByService = {};
@@ -84,7 +93,11 @@ angular.module('openshiftConsole')
       var routeMap = $scope.routesByService = {};
       var displayRouteMap = $scope.displayRouteByService = {};
       angular.forEach(routes.by("metadata.name"), function(route, routeName){
-        var serviceName = route.serviceName;
+        if (route.spec.to.kind !== "Service") {
+          return;
+        }
+
+        var serviceName = route.spec.to.name;
         routeMap[serviceName] = routeMap[serviceName] || {};
         routeMap[serviceName][routeName] = route;
 
@@ -185,8 +198,7 @@ angular.module('openshiftConsole')
       $scope.deploymentConfigsByService = {"": {}};
       angular.forEach($scope.deploymentConfigs, function(deploymentConfig, depName){
         var foundMatch = false;
-        // TODO this is using the k8s v1beta1 ReplicationControllerState schema, replicaSelector will change to selector eventually
-        var depConfigSelector = new LabelSelector(deploymentConfig.template.controllerTemplate.replicaSelector);
+        var depConfigSelector = new LabelSelector(deploymentConfig.spec.selector);
         angular.forEach($scope.unfilteredServices, function(service, name){
           $scope.deploymentConfigsByService[name] = $scope.deploymentConfigsByService[name] || {};
 
@@ -233,35 +245,17 @@ angular.module('openshiftConsole')
       });
     };
 
-    function parseEncodedDeploymentConfig(deployment) {
-      var configJson = annotationFilter(deployment, 'encodedDeploymentConfig')
-      if (configJson) {
-        try {
-          var depConfig = $.parseJSON(configJson);
-          if (depConfig.apiVersion === "v1beta1") {
-            // TODO: will be slightly inaccurate for now
-            deployment.status = {details: depConfig.details};
-          } else {
-            deployment.status = depConfig.status;
-          }
-        }
-        catch (e) {
-          Logger.error("Failed to parse encoded deployment config", e);
-        }
-      }
-    }
-
     // Sets up subscription for deployments
     watches.push(DataService.watch("replicationcontrollers", $scope, function(deployments, action, deployment) {
       $scope.deployments = deployments.by("metadata.name");
       if (deployment) {
         if (action !== "DELETED") {
-          parseEncodedDeploymentConfig(deployment);
+          deployment.causes = deploymentCausesFilter(deployment);
         }
       }
       else {
-        angular.forEach($scope.deployments, function(dep) {
-          parseEncodedDeploymentConfig(dep);
+        angular.forEach($scope.deployments, function(deployment) {
+          deployment.causes = deploymentCausesFilter(deployment);
         });
       }
 
@@ -276,11 +270,11 @@ angular.module('openshiftConsole')
     }));
 
     // Sets up subscription for imageStreams
-    watches.push(DataService.watch("imageStreams", $scope, function(imageStreams) {
+    watches.push(DataService.watch("imagestreams", $scope, function(imageStreams) {
       $scope.imageStreams = imageStreams.by("metadata.name");
       ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
       ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
-      Logger.log("imageStreams (subscribe)", $scope.imageStreams);
+      Logger.log("imagestreams (subscribe)", $scope.imageStreams);
     }));
 
     function associateDeploymentConfigTriggersToBuild(deploymentConfig, build) {
@@ -289,28 +283,16 @@ angular.module('openshiftConsole')
         return;
       }
       // Make sure we have a build output
-      if (!build.parameters.output.to) {
+      if (!build.spec.output.to) {
         return;
       }
-      for (var i = 0; i < deploymentConfig.triggers.length; i++) {
-        var trigger = deploymentConfig.triggers[i];
+      for (var i = 0; i < deploymentConfig.spec.triggers.length; i++) {
+        var trigger = deploymentConfig.spec.triggers[i];
         if (trigger.type === "ImageChange") {
-          var triggerImage = trigger.imageChangeParams.from.name;
-          var buildImage = build.parameters.output.to.name;
-          if (triggerImage !== buildImage) {
-            continue;
-          }
-
-          var triggerNamespace = trigger.imageChangeParams.from.namespace || deploymentConfig.metadata.namespace;
-          var buildNamespace = build.parameters.output.to.namespace || build.metadata.namespace;
-          if (triggerNamespace !== buildNamespace) {
-            continue;
-          }
-
-          var triggerTag = trigger.imageChangeParams.tag;
-          var buildTag = build.parameters.output.tag || "latest";
-          if (triggerTag !== buildTag) {
-            continue;
+          var buildOutputImage = imageObjectRefFilter(build.spec.output.to, build.metadata.namespace);
+          var deploymentTriggerImage = imageObjectRefFilter(trigger.imageChangeParams.from, deploymentConfig.metadata.namespace);
+          if (buildOutputImage !== deploymentTriggerImage) {
+              continue;
           }
 
           trigger.builds = trigger.builds || {};
@@ -320,7 +302,7 @@ angular.module('openshiftConsole')
     };
 
     // Sets up subscription for deploymentConfigs, associates builds to triggers on deploymentConfigs
-    watches.push(DataService.watch("deploymentConfigs", $scope, function(deploymentConfigs, action, deploymentConfig) {
+    watches.push(DataService.watch("deploymentconfigs", $scope, function(deploymentConfigs, action, deploymentConfig) {
       $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
       if (!action) {
         angular.forEach($scope.deploymentConfigs, function(depConfig) {
@@ -339,7 +321,7 @@ angular.module('openshiftConsole')
       // Must be called after deploymentConfigsByService()
       updateShowGetStarted();
 
-      Logger.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
+      Logger.log("deploymentconfigs (subscribe)", $scope.deploymentConfigs);
     }));
 
     // Sets up subscription for builds, associates builds to triggers on deploymentConfigs

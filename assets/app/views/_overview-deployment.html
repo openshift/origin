@@ -11,7 +11,7 @@
   imagesByDockerReference - map[dockerReference][]Image. Optional.
   builds                  - map[buildId]build. Optional.
  -->
-<div class="osc-object components-panel deployment-block" 
+<div class="osc-object components-panel deployment-block"
      kind="ReplicationController" resource="rc"
      ng-init="isDeployment = (deploymentConfigId && (rc | annotation:'deploymentConfig') && (rc | annotation:'deploymentVersion'))">
 
@@ -44,12 +44,14 @@
 
     <div class="component meta-data">
       created <relative-timestamp timestamp="rc.metadata.creationTimestamp"></relative-timestamp
-      ><span ng-if="rc.status.details.causes.length"
-        ><span>, triggered by 
-          <span class="deployment-trigger" ng-repeat="cause in rc.status.details.causes">
+      ><span ng-if="rc.causes.length"
+        ><span>, triggered by
+          <span class="deployment-trigger" ng-repeat="cause in rc.causes">
             <span ng-switch="cause.type">
-              <span ng-switch-when="ImageChange">a new image for {{cause.imageTrigger.from | imageObjectRef}}</span>
+              <!-- FIXME: Do I need a default namespace? -->
+              <span ng-switch-when="ImageChange">a new image for {{cause.imageTrigger.from | imageObjectRef : null : true}}</span>
               <span ng-switch-when="ConfigChange">a config change</span>
+              <span ng-switch-default>{{cause.type}}</span>
             </span>
           </span>
         </span>

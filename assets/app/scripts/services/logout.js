@@ -23,7 +23,7 @@ angular.module('openshiftConsole')
         // Never trigger a login when deleting our token
         var opts = {http: {auth: {token: token, triggerLogin: false}}};
         // TODO: Change this to return a promise that "succeeds" even if the token delete fails?
-        return DataService.delete("oAuthAccessTokens", token, {}, opts);
+        return DataService.delete("oauthaccesstokens", token, {}, opts);
       },
     };
   };
