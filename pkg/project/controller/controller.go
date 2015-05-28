@@ -5,9 +5,9 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/project/api"
+	projectutil "github.com/openshift/origin/pkg/project/util"
 )
 
 // NamespaceController is responsible for participating in Kubernetes Namespace termination
@@ -33,7 +33,7 @@ func (c *NamespaceController) Handle(namespace *kapi.Namespace) (err error) {
 	}
 
 	// if we already processed this namespace, ignore it
-	if finalized(namespace) {
+	if projectutil.Finalized(namespace) {
 		return nil
 	}
 
@@ -44,41 +44,12 @@ func (c *NamespaceController) Handle(namespace *kapi.Namespace) (err error) {
 	}
 
 	// we have removed content, so mark it finalized by us
-	err = finalize(c.KubeClient, namespace)
+	_, err = projectutil.Finalize(c.KubeClient, namespace)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// finalized returns true if the spec.finalizers does not contain the project finalizer
-func finalized(namespace *kapi.Namespace) bool {
-	for i := range namespace.Spec.Finalizers {
-		if api.FinalizerProject == namespace.Spec.Finalizers[i] {
-			return false
-		}
-	}
-	return true
-}
-
-// finalize will finalize the namespace for kubernetes
-func finalize(kubeClient kclient.Interface, namespace *kapi.Namespace) error {
-	namespaceFinalize := kapi.Namespace{}
-	namespaceFinalize.ObjectMeta = namespace.ObjectMeta
-	namespaceFinalize.Spec = namespace.Spec
-	finalizerSet := util.NewStringSet()
-	for i := range namespace.Spec.Finalizers {
-		if namespace.Spec.Finalizers[i] != api.FinalizerProject {
-			finalizerSet.Insert(string(namespace.Spec.Finalizers[i]))
-		}
-	}
-	namespaceFinalize.Spec.Finalizers = make([]kapi.FinalizerName, 0, len(finalizerSet))
-	for _, value := range finalizerSet.List() {
-		namespaceFinalize.Spec.Finalizers = append(namespaceFinalize.Spec.Finalizers, kapi.FinalizerName(value))
-	}
-	_, err := kubeClient.Namespaces().Finalize(&namespaceFinalize)
-	return err
 }
 
 // deleteAllContent will purge all content in openshift in the specified namespace

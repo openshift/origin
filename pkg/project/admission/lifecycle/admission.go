@@ -19,6 +19,8 @@ package admission
 import (
 	"fmt"
 	"io"
+	"math/rand"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -30,17 +32,19 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/project/cache"
+	projectutil "github.com/openshift/origin/pkg/project/util"
 )
 
 // TODO: modify the upstream plug-in so this can be collapsed
 // need ability to specify a RESTMapper on upstream version
 func init() {
 	admission.RegisterPlugin("OriginNamespaceLifecycle", func(client client.Interface, config io.Reader) (admission.Interface, error) {
-		return NewLifecycle()
+		return NewLifecycle(client)
 	})
 }
 
 type lifecycle struct {
+	client client.Interface
 }
 
 // Admit enforces that a namespace must exist in order to associate content with it.
@@ -56,7 +60,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	}
 	mapping, err := latest.RESTMapper.RESTMapping(kind, defaultVersion)
 	if err != nil {
-		return err
+		return admission.NewForbidden(a, err)
 	}
 	if mapping.Scope.Name() != meta.RESTScopeNameNamespace {
 		return nil
@@ -75,28 +79,54 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 
 	projects, err := cache.GetProjectCache()
 	if err != nil {
-		return err
+		return admission.NewForbidden(a, err)
 	}
+
 	namespace, err := projects.GetNamespaceObject(a.GetNamespace())
 	if err != nil {
-		return apierrors.NewForbidden(kind, name, err)
+		return admission.NewForbidden(a, err)
 	}
 
 	if a.GetOperation() != "CREATE" {
 		return nil
 	}
 
-	if namespace.Status.Phase != kapi.NamespaceTerminating {
-		return nil
+	if namespace.Status.Phase == kapi.NamespaceTerminating {
+		return apierrors.NewForbidden(kind, name, fmt.Errorf("Namespace %s is terminating", a.GetNamespace()))
 	}
 
-	return apierrors.NewForbidden(kind, name, fmt.Errorf("namespace %s is terminating", a.GetNamespace()))
+	// in case of concurrency issues, we will retry this logic
+	numRetries := 10
+	interval := time.Duration(rand.Int63n(90)+int64(10)) * time.Millisecond
+	for retry := 1; retry <= numRetries; retry++ {
+
+		// associate this namespace with openshift
+		_, err = projectutil.Associate(e.client, namespace)
+		if err == nil {
+			break
+		}
+
+		// we have exhausted all reasonable efforts to retry so give up now
+		if retry == numRetries {
+			return admission.NewForbidden(a, err)
+		}
+
+		// get the latest namespace for the next pass in case of resource version updates
+		time.Sleep(interval)
+
+		// it's possible the namespace actually was deleted, so just forbid if this occurs
+		namespace, err = e.client.Namespaces().Get(a.GetNamespace())
+		if err != nil {
+			return admission.NewForbidden(a, err)
+		}
+	}
+	return nil
 }
 
 func (e *lifecycle) Handles(operation admission.Operation) bool {
 	return true
 }
 
-func NewLifecycle() (admission.Interface, error) {
-	return &lifecycle{}, nil
+func NewLifecycle(client client.Interface) (admission.Interface, error) {
+	return &lifecycle{client: client}, nil
 }

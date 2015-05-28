@@ -25,7 +25,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 			DeletionTimestamp: &now,
 		},
 		Spec: kapi.NamespaceSpec{
-			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, api.FinalizerProject},
+			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, api.FinalizerOrigin},
 		},
 		Status: kapi.NamespaceStatus{
 			Phase: kapi.NamespaceTerminating,
@@ -75,7 +75,7 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 			ResourceVersion: "1",
 		},
 		Spec: kapi.NamespaceSpec{
-			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, api.FinalizerProject},
+			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, api.FinalizerOrigin},
 		},
 		Status: kapi.NamespaceStatus{
 			Phase: kapi.NamespaceActive,
