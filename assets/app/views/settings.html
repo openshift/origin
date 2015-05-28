@@ -17,7 +17,8 @@
       </dl>
       <h2>
         <span>Quota</span>
-        <a href="javascript:;" style="margin-left: 5px; cursor: pointer;" class="small pficon pficon-help" data-container="body" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="Quota is enforced at the project level.  Once the maximum for the project has been reached no more of that resource can be allocated within the project."></a>
+        <i style="margin-left: 5px; cursor: help;" class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="Quota is enforced at the project level.  Once the maximum for the project has been reached no more of that resource can be allocated within the project."></i>
       </h2>
       <div ng-if="(quotas | hashSize) == 0"><em>{{emptyMessageQuotas}}</em></div>
       <table ng-if="(quotas | hashSize) > 0" class="table">
@@ -58,8 +59,9 @@
       </table>
       <h2>
         <span>Resource limits</span>
-        <a href="javascript:;" style="margin-left: 5px; cursor: pointer;" class="small pficon pficon-help" data-container="body" data-toggle="popover" data-placement="right" data-trigger="focus" data-content="Resource limits define minimum and maximum values that can be created for each resource type."></a>
-      </h2>      
+        <i style="margin-left: 5px; cursor: help;" class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="Resource limits define minimum and maximum values that can be created for each resource type."></i>
+      </h2>
       <div ng-if="(limitRanges | hashSize) == 0"><em>{{emptyMessageLimitRanges}}</em></div>
       <table ng-if="(limitRanges | hashSize) > 0" class="table">
         <thead>
