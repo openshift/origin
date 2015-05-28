@@ -97,13 +97,14 @@ type streamRef struct {
 func (g *BuildGenerator) FetchServiceAccountSecrets(namespace string) ([]kapi.Secret, error) {
 	// TODO: Check for the service account specified in the build config when it
 	//       will be added
-	if len(g.DefaultServiceAccountName) == 0 {
-		g.DefaultServiceAccountName = bootstrappolicy.BuilderServiceAccountName
+	serviceAccount := g.DefaultServiceAccountName
+	if len(serviceAccount) == 0 {
+		serviceAccount = bootstrappolicy.BuilderServiceAccountName
 	}
 	var result []kapi.Secret
-	sa, err := g.ServiceAccounts.ServiceAccounts(namespace).Get(g.DefaultServiceAccountName)
+	sa, err := g.ServiceAccounts.ServiceAccounts(namespace).Get(serviceAccount)
 	if err != nil {
-		return result, fmt.Errorf("Error getting push/pull secrets for service account %q: %v", namespace, g.DefaultServiceAccountName, err)
+		return result, fmt.Errorf("Error getting push/pull secrets for service account %q: %v", namespace, serviceAccount, err)
 	}
 	for _, ref := range sa.Secrets {
 		secret, err := g.Secrets.Secrets(namespace).Get(ref.Name)
@@ -183,12 +184,16 @@ func (g *BuildGenerator) createBuild(ctx kapi.Context, build *buildapi.Build) (*
 // the Strategy, or uses the Image field of the Strategy.
 // Takes a BuildConfig to base the build on, and an optional SourceRevision to build.
 func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.BuildConfig, revision *buildapi.SourceRevision) (*buildapi.Build, error) {
+	serviceAccount := g.DefaultServiceAccountName
+	if len(serviceAccount) == 0 {
+		serviceAccount = bootstrappolicy.BuilderServiceAccountName
+	}
 	// Need to copy the buildConfig here so that it doesn't share pointers with
 	// the build object which could be (will be) modified later.
 	obj, _ := kapi.Scheme.Copy(bc)
 	bcCopy := obj.(*buildapi.BuildConfig)
 	build := &buildapi.Build{
-		ServiceAccount: g.DefaultServiceAccountName,
+		ServiceAccount: serviceAccount,
 		Parameters: buildapi.BuildParameters{
 			Source:    bcCopy.Parameters.Source,
 			Strategy:  bcCopy.Parameters.Strategy,
