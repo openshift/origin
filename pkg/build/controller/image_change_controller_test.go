@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -22,7 +24,7 @@ func TestNewImageID(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename:newImageID123")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
@@ -50,7 +52,7 @@ func TestNewImageIDDefaultTag(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename:newImageID123")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
@@ -78,7 +80,7 @@ func TestNonExistentImageStream(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
@@ -99,7 +101,7 @@ func TestNewImageDifferentTagUpdate(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
@@ -122,7 +124,7 @@ func TestNewImageDifferentTagUpdate2(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
@@ -143,7 +145,7 @@ func TestNewDifferentImageUpdate(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
@@ -166,7 +168,7 @@ func TestSameStreamNameDifferentNamespaces(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
@@ -188,7 +190,7 @@ func TestBuildConfigWithDifferentTriggerType(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
@@ -211,7 +213,7 @@ func TestNoImageIDChange(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
@@ -233,7 +235,7 @@ func TestBuildConfigInstantiatorError(t *testing.T) {
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
 	bcInstantiator.err = fmt.Errorf("instantiating error")
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err == nil || !strings.Contains(err.Error(), "instantiating error") {
@@ -254,9 +256,8 @@ func TestBuildConfigUpdateError(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
-	bcUpdater.err = fmt.Errorf("error")
-	bcUpdater.errUpdateCount = 2
+	bcUpdater := bcInstantiator.buildConfigUpdater
+	bcUpdater.err = kerrors.NewConflict("BuildConfig", buildcfg.Name, errors.New("foo"))
 
 	err := controller.HandleImageRepo(imageStream)
 	if len(bcInstantiator.name) == 0 {
@@ -274,7 +275,7 @@ func TestNewImageIDNoDockerRepo(t *testing.T) {
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
 	bcInstantiator := controller.BuildConfigInstantiator.(*buildConfigInstantiator)
-	bcUpdater := controller.BuildConfigUpdater.(*mockBuildConfigUpdater)
+	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
 	if err != nil {
@@ -289,21 +290,14 @@ func TestNewImageIDNoDockerRepo(t *testing.T) {
 }
 
 type mockBuildConfigUpdater struct {
-	updateCount    int
-	buildcfg       *buildapi.BuildConfig
-	err            error
-	errUpdateCount int
+	updateCount int
+	buildcfg    *buildapi.BuildConfig
+	err         error
 }
 
 func (m *mockBuildConfigUpdater) Update(buildcfg *buildapi.BuildConfig) error {
 	m.buildcfg = buildcfg
 	m.updateCount++
-	if m.errUpdateCount > 0 {
-		if m.updateCount == m.errUpdateCount {
-			return m.err
-		}
-		return nil
-	}
 	return m.err
 }
 
@@ -366,10 +360,11 @@ func mockImage(name, dockerSpec string) *imageapi.Image {
 }
 
 type buildConfigInstantiator struct {
-	generator buildgenerator.BuildGenerator
-	name      string
-	newBuild  *buildapi.Build
-	err       error
+	generator          buildgenerator.BuildGenerator
+	buildConfigUpdater *mockBuildConfigUpdater
+	name               string
+	newBuild           *buildapi.Build
+	err                error
 }
 
 func (i *buildConfigInstantiator) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
@@ -383,6 +378,7 @@ func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *im
 		Secrets:    []kapi.ObjectReference{},
 	}
 	instantiator := &buildConfigInstantiator{}
+	instantiator.buildConfigUpdater = &mockBuildConfigUpdater{}
 	generator := buildgenerator.BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(),
 		ServiceAccounts: testclient.NewSimpleFake(&builderAccount),
@@ -391,7 +387,7 @@ func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *im
 				return buildcfg, nil
 			},
 			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
-				return nil
+				return instantiator.buildConfigUpdater.Update(buildConfig)
 			},
 			CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
 				instantiator.newBuild = build
@@ -418,6 +414,5 @@ func mockImageChangeController(buildcfg *buildapi.BuildConfig, imageStream *imag
 	return &ImageChangeController{
 		BuildConfigStore:        buildtest.NewFakeBuildConfigStore(buildcfg),
 		BuildConfigInstantiator: mockBuildConfigInstantiator(buildcfg, imageStream, image),
-		BuildConfigUpdater:      &mockBuildConfigUpdater{},
 	}
 }

@@ -57,6 +57,14 @@ func TestInstantiate(t *testing.T) {
 	}
 }
 
+// agoldste: I'm not sure the intent of this test. Using the previous logic for
+// the generator, which would try to update the build config before creating
+// the build, I can see why the UpdateBuildConfigFunc is set up to return an
+// error, but nothing is checking the value of instantiationCalls. We could
+// update this test to fail sooner, when the build is created, but that's
+// already handled by TestCreateBuildCreateError. We may just want to delete
+// this test.
+/*
 func TestInstantiateRetry(t *testing.T) {
 	instantiationCalls := 0
 	fakeSecrets := []runtime.Object{}
@@ -80,8 +88,8 @@ func TestInstantiateRetry(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "update-error") {
 		t.Errorf("Expected update-error, got different %v", err)
 	}
-
 }
+*/
 
 func TestInstantiateGetBuildConfigError(t *testing.T) {
 	generator := BuildGenerator{Client: Client{

@@ -127,8 +127,29 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	if err != nil {
 		return nil, err
 	}
+
 	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
-	return g.createBuild(ctx, newBuild)
+	updatedBuild, err := g.createBuild(ctx, newBuild)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(request.Image) > 0 {
+		for _, trigger := range bc.Triggers {
+			if trigger.Type != buildapi.ImageChangeBuildTriggerType {
+				continue
+			}
+
+			trigger.ImageChange.LastTriggeredImageID = request.Image
+		}
+	}
+
+	// need to update the BuildConfig because LastVersion and possibly LastTriggeredImageID changed
+	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
+		return nil, err
+	}
+
+	return updatedBuild, nil
 }
 
 // Clone returns clone of a Build
@@ -162,10 +183,6 @@ func (g *BuildGenerator) createBuild(ctx kapi.Context, build *buildapi.Build) (*
 // the Strategy, or uses the Image field of the Strategy.
 // Takes a BuildConfig to base the build on, and an optional SourceRevision to build.
 func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.BuildConfig, revision *buildapi.SourceRevision) (*buildapi.Build, error) {
-	builderSecrets, err := g.FetchServiceAccountSecrets(bc.Namespace)
-	if err != nil {
-		return nil, err
-	}
 	// Need to copy the buildConfig here so that it doesn't share pointers with
 	// the build object which could be (will be) modified later.
 	obj, _ := kapi.Scheme.Copy(bc)
@@ -187,14 +204,15 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 
 	build.Config = &kapi.ObjectReference{Kind: "BuildConfig", Name: bc.Name, Namespace: bc.Namespace}
 	build.Name = getNextBuildName(bc)
-	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
-		return nil, err
-	}
 	if build.Labels == nil {
 		build.Labels = make(map[string]string)
 	}
 	build.Labels[buildapi.BuildConfigLabel] = bcCopy.Name
 
+	builderSecrets, err := g.FetchServiceAccountSecrets(bc.Namespace)
+	if err != nil {
+		return nil, err
+	}
 	if build.Parameters.Output.PushSecret == nil {
 		build.Parameters.Output.PushSecret = g.resolveImageSecret(ctx, builderSecrets, build.Parameters.Output.To, bc.Namespace)
 	}

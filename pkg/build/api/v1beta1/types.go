@@ -455,6 +455,9 @@ type BuildRequest struct {
 
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty"`
+
+	// Image is the image that triggered this build.
+	Image string `json:"image,omitempty"`
 }
 
 // BuildLogOptions is the REST options for a build log
