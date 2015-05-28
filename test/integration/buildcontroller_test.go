@@ -12,11 +12,13 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 	watchapi "github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -27,15 +29,19 @@ var (
 
 	// ConcurrentBuildControllersTestWait is the time that TestConcurrentBuildControllers waits
 	// for any other changes to happen when testing whether only a single build got processed
-	ConcurrentBuildControllersTestWait = 15 * time.Second
+	ConcurrentBuildControllersTestWait = 5 * time.Second
 
 	// ConcurrentBuildPodControllersTestWait is the time that TestConcurrentBuildPodControllers waits
 	// after a state transition to make sure other state transitions don't occur unexpectedly
-	ConcurrentBuildPodControllersTestWait = 15 * time.Second
+	ConcurrentBuildPodControllersTestWait = 10 * time.Second
 
 	// BuildControllersWatchTimeout is used by all tests to wait for watch events. In case where only
 	// a single watch event is expected, the test will fail after the timeout.
-	BuildControllersWatchTimeout = 15 * time.Second
+	BuildControllersWatchTimeout = 5 * time.Second
+
+	// BuildServiceAccountWaitTimeout is used to determine how long to wait for the service account
+	// controllers to start up, and populate the service accounts in the test namespace
+	BuildServiceAccountWaitTimeout = 30 * time.Second
 )
 
 func init() {
@@ -299,6 +305,21 @@ func setupBuildControllerTest(additionalBuildControllers, additionalBuildPodCont
 		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
 	})
 	checkErr(t, err)
+
+	// Ensure the service accounts needed by build pods exist in the namespace
+	// The extra controllers tend to starve the service account controller
+	serviceAccounts := clusterAdminKubeClient.ServiceAccounts(testutil.Namespace())
+	err = wait.Poll(time.Second, BuildServiceAccountWaitTimeout, func() (bool, error) {
+		if _, err := serviceAccounts.Get(bootstrappolicy.DefaultServiceAccountName); err != nil {
+			return false, nil
+		}
+		if _, err := serviceAccounts.Get(bootstrappolicy.BuilderServiceAccountName); err != nil {
+			return false, nil
+		}
+		return true, nil
+	})
+	checkErr(t, err)
+
 	openshiftConfig, err := origin.BuildMasterConfig(*master)
 	checkErr(t, err)
 	for i := 0; i < additionalBuildControllers; i++ {
