@@ -253,9 +253,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     util.NewStringSet("list", "watch"),
 					Resources: util.NewStringSet("services"),
 				},
-
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
+					// Nodes can register themselves
+					// TODO: restrict to creating a node with the same name they announce
+					Verbs:     util.NewStringSet("create", "get", "list", "watch"),
 					Resources: util.NewStringSet("nodes"),
 				},
 				{

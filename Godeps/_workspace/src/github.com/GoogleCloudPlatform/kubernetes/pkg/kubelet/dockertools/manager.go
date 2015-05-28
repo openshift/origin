@@ -573,6 +573,8 @@ func (dm *DockerManager) runContainer(
 			labels[kubernetesContainerLabel] = container.Name
 		}
 	}
+	memoryLimit := container.Resources.Limits.Memory().Value()
+	cpuShares := milliCPUToShares(container.Resources.Limits.Cpu().MilliValue())
 	dockerOpts := docker.CreateContainerOptions{
 		Name: BuildDockerName(dockerName, container),
 		Config: &docker.Config{
@@ -580,10 +582,11 @@ func (dm *DockerManager) runContainer(
 			ExposedPorts: exposedPorts,
 			Hostname:     containerHostname,
 			Image:        container.Image,
-			Memory:       container.Resources.Limits.Memory().Value(),
-			CPUShares:    milliCPUToShares(container.Resources.Limits.Cpu().MilliValue()),
-			WorkingDir:   container.WorkingDir,
-			Labels:       labels,
+			// Memory and CPU are set here for older versions of Docker (pre-1.6).
+			Memory:     memoryLimit,
+			CPUShares:  cpuShares,
+			WorkingDir: container.WorkingDir,
+			Labels:     labels,
 		},
 	}
 
@@ -630,6 +633,9 @@ func (dm *DockerManager) runContainer(
 		Binds:        binds,
 		NetworkMode:  netMode,
 		IpcMode:      ipcMode,
+		// Memory and CPU are set here for newer versions of Docker (1.6+).
+		Memory:    memoryLimit,
+		CPUShares: cpuShares,
 	}
 	if len(opts.DNS) > 0 {
 		hc.DNS = opts.DNS
@@ -818,7 +824,7 @@ func (dm *DockerManager) podInfraContainerChanged(pod *api.Pod, podInfraContaine
 		Image: dm.PodInfraContainerImage,
 		Ports: ports,
 	}
-	return podInfraContainer.Hash != HashContainer(expectedPodInfraContainer), nil
+	return podInfraContainer.Hash != kubecontainer.HashContainer(expectedPodInfraContainer), nil
 }
 
 type dockerVersion docker.APIVersion
@@ -1349,7 +1355,7 @@ func (dm *DockerManager) computePodContainerChanges(pod *api.Pod, runningPod kub
 	}
 
 	for index, container := range pod.Spec.Containers {
-		expectedHash := HashContainer(&container)
+		expectedHash := kubecontainer.HashContainer(&container)
 
 		c := runningPod.FindContainerByName(container.Name)
 		if c == nil {

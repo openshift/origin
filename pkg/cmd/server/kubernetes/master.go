@@ -10,10 +10,9 @@ import (
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
-	minioncontroller "github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/nodecontroller"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/nodecontroller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
@@ -137,16 +136,9 @@ func (c *MasterConfig) RunResourceQuotaManager() {
 	resourceQuotaManager.Run(10 * time.Second)
 }
 
-func (c *MasterConfig) RunMinionController() {
-	nodeResources := &kapi.NodeResources{
-		Capacity: kapi.ResourceList{
-			kapi.ResourceCPU:    *resource.NewMilliQuantity(int64(1*1000), resource.DecimalSI),
-			kapi.ResourceMemory: *resource.NewQuantity(int64(3*1024*1024*1024), resource.BinarySI),
-		},
-	}
-
-	minionController := minioncontroller.NewNodeController(
-		nil, "", c.NodeHosts, nodeResources,
+func (c *MasterConfig) RunNodeController() {
+	controller := nodecontroller.NewNodeController(
+		nil, // TODO: reintroduce cloudprovider
 		c.KubeClient,
 		10,            // registerRetryCount
 		5*time.Minute, // podEvictionTimeout
@@ -160,7 +152,7 @@ func (c *MasterConfig) RunMinionController() {
 		nil,   // clusterCIDR
 		false, // allocateNodeCIDRs
 	)
-	minionController.Run(10*time.Second, true)
+	controller.Run(10 * time.Second)
 
 	glog.Infof("Started Kubernetes Minion Controller")
 }

@@ -93,6 +93,10 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	return apierrors.NewForbidden(kind, name, fmt.Errorf("namespace %s is terminating", a.GetNamespace()))
 }
 
+func (e *lifecycle) Handles(operation admission.Operation) bool {
+	return true
+}
+
 func NewLifecycle() (admission.Interface, error) {
 	return &lifecycle{}, nil
 }

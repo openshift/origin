@@ -25,14 +25,12 @@ import (
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/spf13/cobra"
 )
 
 const (
 	label_long = `Update the labels on a resource.
 
-A valid label value is consisted of letters and/or numbers with a max length of %[1]d characters.
 If --overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error.
 If --resource-version is specified, then updates will use this resource version, otherwise the existing resource-version will be used.`
 	label_example = `// Update pod 'foo' with the label 'unhealthy' and the value 'true'.
@@ -56,7 +54,7 @@ func NewCmdLabel(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "label [--overwrite] RESOURCE NAME KEY_1=VAL_1 ... KEY_N=VAL_N [--resource-version=version]",
 		Short:   "Update the labels on a resource",
-		Long:    fmt.Sprintf(label_long, util.LabelValueMaxLength),
+		Long:    label_long,
 		Example: label_example,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunLabel(f, out, cmd, args)
@@ -105,7 +103,7 @@ func parseLabels(spec []string) (map[string]string, []string, error) {
 	for _, labelSpec := range spec {
 		if strings.Index(labelSpec, "=") != -1 {
 			parts := strings.Split(labelSpec, "=")
-			if len(parts) != 2 || len(parts[1]) == 0 || !util.IsValidLabelValue(parts[1]) {
+			if len(parts) != 2 {
 				return nil, nil, fmt.Errorf("invalid label spec: %v", labelSpec)
 			}
 			labels[parts[0]] = parts[1]
@@ -187,7 +185,7 @@ func RunLabel(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 
 	labels, remove, err := parseLabels(labelArgs)
 	if err != nil {
-		return cmdutil.UsageError(cmd, err.Error())
+		return err
 	}
 
 	mapper, typer := f.Object()
@@ -222,7 +220,7 @@ func RunLabel(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []stri
 			return err
 		}
 
-		printer, err := f.PrinterForMapping(cmd, info.Mapping)
+		printer, err := f.PrinterForMapping(cmd, info.Mapping, false)
 		if err != nil {
 			return err
 		}

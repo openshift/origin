@@ -19,6 +19,11 @@ function cleanup()
 
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
+        echo
+        cat "${TEMP_DIR}/openshift.log"
+        echo
+        echo -------------------------------------
+        echo
     else
         if path=$(go tool -n pprof 2>&1); then
           echo
@@ -135,7 +140,8 @@ openshift start \
 OPENSHIFT_ON_PANIC=crash openshift start \
   --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
   --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-  1>&2 &
+  --loglevel=4 \
+  1>&2 2>"${TEMP_DIR}/openshift.log" &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
@@ -328,6 +334,8 @@ osc create -f test/integration/fixtures/test-image-stream.json
 osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 # make sure stream.status.dockerImageRepository IS set
 [ -n "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
+# ensure the registry rc has been created
+wait_for_command 'osc get rc docker-registry-1' "${TIME_MIN}"
 # delete the registry resources
 osc delete dc docker-registry
 osc delete svc docker-registry
@@ -357,7 +365,7 @@ osc delete imageStreams mongodb
 [ -z "$(osc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(osc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
 wait_for_command 'osc get imagestreamTags mysql:latest' "${TIME_MIN}"
-[ -n "$(osc get imagestreams mysql -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
+[ -n "$(osc get imagestreams mysql -t '{{ index .metadata.annotations "openshift.io/image.dockerRepositoryCheck"}}')" ]
 osc describe istag/mysql:latest
 [ "$(osc describe istag/mysql:latest | grep "Environment:")" ]
 [ "$(osc describe istag/mysql:latest | grep "Image Created:")" ]

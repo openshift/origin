@@ -116,6 +116,7 @@ type TokensController struct {
 	serviceAccountController *framework.Controller
 	secretController         *framework.Controller
 
+	// These are here so tests can inject a 'return true'.
 	serviceAccountsSynced func() bool
 	secretsSynced         func() bool
 }
