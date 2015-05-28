@@ -178,7 +178,7 @@ and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a
 Web Console
 -----------
 
-The OpenShift API server also hosts a web console. You can try it out at [http://localhost:8443/console](http://localhost:8443/console).
+The OpenShift API server also hosts a web console. You can try it out at [https://localhost:8443/console](https://localhost:8443/console).
 
 For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/dev_guide/console.html).
 
