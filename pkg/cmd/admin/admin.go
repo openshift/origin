@@ -16,6 +16,7 @@ import (
 	exregistry "github.com/openshift/origin/pkg/cmd/experimental/registry"
 	exrouter "github.com/openshift/origin/pkg/cmd/experimental/router"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -34,10 +35,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 		Use:   name,
 		Short: "Tools for managing an OpenShift cluster",
 		Long:  fmt.Sprintf(adminLong),
-		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(out)
-			c.Help()
-		},
+		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 
 	f := clientcmd.New(cmds.PersistentFlags())

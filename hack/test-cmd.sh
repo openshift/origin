@@ -292,8 +292,8 @@ echo "templates: ok"
 
 # help for given command through help command must be consistent
 [ "$(osc help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift cli help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift kubectl help get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift help cli get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift help kubectl get 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift help start 2>&1 | grep 'Start an OpenShift all-in-one server')" ]
 [ "$(openshift help start master 2>&1 | grep 'Start an OpenShift master')" ]
 [ "$(openshift help start node 2>&1 | grep 'Start an OpenShift node')" ]
@@ -307,6 +307,10 @@ echo "templates: ok"
 # commands that expect file paths must validate and error out correctly
 [ "$(osc login --certificate-authority=/path/to/invalid 2>&1 | grep 'no such file or directory')" ]
 
+# make sure that typoed commands come back with non-zero return codes
+[ "$(openshift admin policy TYPO; echo $? | grep '1')" ]
+[ "$(openshift admin TYPO; echo $? | grep '1')" ]
+[ "$(openshift cli TYPO; echo $? | grep '1')" ]
 osc get pods --match-server-version
 osc create -f examples/hello-openshift/hello-pod.json
 osc describe pod hello-openshift

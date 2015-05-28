@@ -12,6 +12,7 @@ import (
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -46,21 +47,19 @@ Note: This is a beta release of OpenShift and may change significantly.  See
     https://github.com/openshift/origin for the latest information on OpenShift.`
 
 func NewCommandCLI(name, fullName string) *cobra.Command {
+	in := os.Stdin
+	out := os.Stdout
+
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Client tools for OpenShift",
 		Long:  fmt.Sprintf(cli_long, fullName),
-		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(os.Stdout)
-			c.Help()
-		},
+		Run:   cmdutil.DefaultSubCommandRun(out),
 		BashCompletionFunction: bashCompletionFunc,
 	}
 
 	f := clientcmd.New(cmds.PersistentFlags())
-	in := os.Stdin
-	out := os.Stdout
 
 	cmds.AddCommand(cmd.NewCmdLogin(fullName, f, in, out))
 	cmds.AddCommand(cmd.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out))
