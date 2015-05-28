@@ -785,6 +785,7 @@ func (c *MasterConfig) RunDNSServer() {
 		glog.Fatalf("Could not start DNS: %v", err)
 	}
 	config.DnsAddr = c.Options.DNSConfig.BindAddress
+	config.NoRec = true // do not want to deploy an open resolver
 
 	_, port, err := net.SplitHostPort(c.Options.DNSConfig.BindAddress)
 	if err != nil {
