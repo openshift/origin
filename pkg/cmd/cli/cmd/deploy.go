@@ -240,10 +240,11 @@ func (c *retryDeploymentCommand) retry(config *deployapi.DeploymentConfig, out i
 		return fmt.Errorf("#%d is %s; only failed deployments can be retried", config.LatestVersion, status)
 	}
 
-	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
-	_, err = c.client.UpdateDeployment(deployment)
+	previousVersion := config.LatestVersion
+	config.LatestVersion++
+	_, err = c.client.UpdateDeploymentConfig(config)
 	if err == nil {
-		fmt.Fprintf(out, "retried #%d\n", config.LatestVersion)
+		fmt.Fprintf(out, "deployed #%d (retry of #%d)\n", config.LatestVersion, previousVersion)
 	}
 	return err
 }
