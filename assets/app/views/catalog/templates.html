@@ -1,6 +1,11 @@
 <div ng-controller="ProjectController">
   <div ng-controller="CatalogTemplatesController">
     <div class="container">
+      <ol class="breadcrumb">
+        <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
+        <li><a href="project/{{projectName}}/create">Create</a></li>
+        <li class="active"><strong>Select Template</strong></li>
+      </ol>
       <div class="row">
         <div class="col-md-12">
           <!-- TODO we don't need a breadcrumb yet
