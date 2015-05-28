@@ -55,7 +55,13 @@ function generate_script_config() {
 
   echo ""
   echo "vrrp_script $CHECK_SCRIPT_NAME {"
-  echo "   script \"</dev/tcp/${serviceip}/${port}\""
+
+  if [ "$port" = "0" ]; then
+    echo "   script \"true\""
+  else
+    echo "   script \"</dev/tcp/${serviceip}/${port}\""
+  fi
+
   echo "   interval $CHECK_INTERVAL_SECS"
   echo "}"
 }
