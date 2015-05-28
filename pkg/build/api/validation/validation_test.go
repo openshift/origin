@@ -529,6 +529,12 @@ func TestValidateTrigger(t *testing.T) {
 			},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("github", "", "long github description")},
 		},
+		"imageChange trigger without params": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.ImageChangeBuildTriggerType,
+			},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("imageChange")},
+		},
 		"valid github trigger": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: buildapi.GithubWebHookBuildTriggerType,
@@ -543,6 +549,20 @@ func TestValidateTrigger(t *testing.T) {
 				GenericWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
+			},
+		},
+		"valid imageChange trigger": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{
+					LastTriggeredImageID: "asdf1234",
+				},
+			},
+		},
+		"valid imageChange trigger with empty fields": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type:        buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{},
 			},
 		},
 	}
