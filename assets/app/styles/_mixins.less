@@ -37,3 +37,11 @@
      word-break: break-all; // firefox
      word-break: break-word; // webkit
   }
+
+// Linear-gradient stripes 
+.striped(@color: rgba(255,255,255,.15); @angle: 45deg) {
+  background-image: -webkit-linear-gradient(@angle, @color 25%, transparent 25%, transparent 50%, @color 50%, @color 75%, transparent 75%, transparent);
+  background-image: linear-gradient(@angle, @color 25%, transparent 25%, transparent 50%, @color 50%, @color 75%, transparent 75%, transparent);
+}
+
+

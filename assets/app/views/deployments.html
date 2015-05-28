@@ -85,7 +85,7 @@
               </dl>
             </div>
           
-            <div class="well" style="margin-bottom: 10px;" ng-repeat="deployment in deploymentsByDeploymentConfig[deploymentConfigName] | orderObjectsByDate : true">
+            <div class="well" ng-repeat="deployment in deploymentsByDeploymentConfig[deploymentConfigName] | orderObjectsByDate : true">
               <h3>
                 {{deployment.metadata.name}}
                 <span ng-if="(deployment | annotation:'deploymentVersion') == deploymentConfig.status.latestVersion">(latest)</span>
@@ -159,7 +159,7 @@
             </span>            
           </h2>
           <dl class="dl-horizontal left indent">
-            <div class="well" style="margin-bottom: 10px;" ng-repeat="deployment in deployments | orderObjectsByDate : true">
+            <div class="well" ng-repeat="deployment in deployments | orderObjectsByDate : true">
               <h3>
                 {{deployment.metadata.name}}
               </h3>
