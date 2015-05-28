@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"regexp"
-	"strings"
 	"testing"
 
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
@@ -311,9 +310,14 @@ func TestEvaluateLabels(t *testing.T) {
 }
 
 func TestProcessTemplateParameters(t *testing.T) {
-	var template api.Template
+	var template, expectedTemplate api.Template
 	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
 	if err := latest.Codec.DecodeInto(jsonData, &template); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectedData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook_list.json")
+	if err := latest.Codec.DecodeInto(expectedData, &expectedTemplate); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -334,10 +338,9 @@ func TestProcessTemplateParameters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
-	expect := `{"kind":"Template","apiVersion":"v1beta3","metadata":{"name":"guestbook-example","creationTimestamp":null,"annotations":{"description":"Example shows how to build a simple multi-tier application using Kubernetes and Docker"}},"objects":[{"apiVersion":"v1beta3","kind":"Route","metadata":{"creationTimestamp":null,"name":"frontend-route"},"spec":{"host":"guestbook.example.com","to":{"kind":"Service","name":"frontend-service"}},"status":{}},{"apiVersion":"v1beta3","kind":"Service","metadata":{"creationTimestamp":null,"name":"frontend-service"},"spec":{"portalIP":"","ports":[{"port":5432,"protocol":"TCP","targetPort":5432}],"selector":{"name":"frontend-service"},"sessionAffinity":"None"},"status":{}},{"apiVersion":"v1beta3","kind":"Service","metadata":{"creationTimestamp":null,"name":"redis-master"},"spec":{"portalIP":"","ports":[{"port":10000,"protocol":"TCP","targetPort":10000}],"selector":{"name":"redis-master"},"sessionAffinity":"None"},"status":{}},{"apiVersion":"v1beta3","kind":"Service","metadata":{"creationTimestamp":null,"name":"redis-slave"},"spec":{"portalIP":"","ports":[{"port":10001,"protocol":"TCP","targetPort":10001}],"selector":{"name":"redis-slave"},"sessionAffinity":"None"},"status":{}},{"apiVersion":"v1beta3","kind":"Pod","metadata":{"creationTimestamp":null,"labels":{"name":"redis-master"},"name":"redis-master"},"spec":{"containers":[{"capabilities":{},"env":[{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"dockerfile/redis","imagePullPolicy":"IfNotPresent","name":"master","ports":[{"containerPort":6379,"protocol":"TCP"}],"resources":{},"securityContext":{"capabilities":{},"privileged":false},"terminationMessagePath":"/dev/termination-log"}],"dnsPolicy":"ClusterFirst","restartPolicy":"Always","serviceAccount":""},"status":{}},{"apiVersion":"v1beta3","kind":"ReplicationController","metadata":{"creationTimestamp":null,"labels":{"name":"frontend-service"},"name":"guestbook"},"spec":{"replicas":3,"selector":{"name":"frontend-service"},"template":{"metadata":{"creationTimestamp":null,"labels":{"name":"frontend-service"}},"spec":{"containers":[{"capabilities":{},"env":[{"name":"ADMIN_USERNAME","value":"adminQ3H"},{"name":"ADMIN_PASSWORD","value":"dwNJiJwW"},{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"brendanburns/php-redis","imagePullPolicy":"IfNotPresent","name":"php-redis","ports":[{"containerPort":80,"hostPort":8000,"protocol":"TCP"}],"resources":{},"securityContext":{"capabilities":{},"privileged":false},"terminationMessagePath":"/dev/termination-log"}],"dnsPolicy":"ClusterFirst","restartPolicy":"Always","serviceAccount":""}}},"status":{"replicas":0}},{"apiVersion":"v1beta3","kind":"ReplicationController","metadata":{"creationTimestamp":null,"labels":{"name":"redis-slave"},"name":"redis-slave"},"spec":{"replicas":2,"selector":{"name":"redis-slave"},"template":{"metadata":{"creationTimestamp":null,"labels":{"name":"redis-slave"}},"spec":{"containers":[{"capabilities":{},"env":[{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"brendanburns/redis-slave","imagePullPolicy":"IfNotPresent","name":"slave","ports":[{"containerPort":6379,"hostPort":6380,"protocol":"TCP"}],"resources":{},"securityContext":{"capabilities":{},"privileged":false},"terminationMessagePath":"/dev/termination-log"}],"dnsPolicy":"ClusterFirst","restartPolicy":"Always","serviceAccount":""}}},"status":{"replicas":0}}],"parameters":[{"name":"ADMIN_USERNAME","description":"Guestbook administrator username","value":"adminQ3H","generate":"expression","from":"admin[A-Z0-9]{3}"},{"name":"ADMIN_PASSWORD","description":"Guestbook administrator password","value":"dwNJiJwW","generate":"expression","from":"[a-zA-Z0-9]{8}"},{"name":"REDIS_PASSWORD","description":"Redis password","value":"P8vxbV4C","generate":"expression","from":"[a-zA-Z0-9]{8}"},{"name":"SLAVE_SERVICE_NAME","description":"Slave Service name","value":"redis-slave"},{"name":"CUSTOM_PARAM1","value":"1"}]}`
+	exp, _ := v1beta3.Codec.Encode(&expectedTemplate)
 
-	expect = strings.Replace(expect, "\n", "", -1)
-	if string(result) != expect {
-		t.Errorf("unexpected output: %s", util.StringDiff(expect, string(result)))
+	if string(result) != string(exp) {
+		t.Errorf("unexpected output: %s", util.StringDiff(string(exp), string(result)))
 	}
 }
