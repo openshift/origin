@@ -331,25 +331,23 @@ func (g *BuildGenerator) resolveImageSecret(ctx kapi.Context, secrets []kapi.Sec
 		return nil
 	}
 	emptyKeyring := credentialprovider.BasicDockerKeyring{}
+	// Get the image pull spec from the image stream reference
+	imageSpec, err := g.resolveImageStreamReference(ctx, imageRef, buildNamespace)
+	if err != nil {
+		glog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
+		return nil
+	}
 	for _, secret := range secrets {
 		keyring, err := credentialprovider.MakeDockerKeyring([]kapi.Secret{secret}, &emptyKeyring)
 		if err != nil {
 			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
 			continue
 		}
-
-		// Get the image pull spec from the image stream reference
-		imageSpec, err := g.resolveImageStreamReference(ctx, imageRef, buildNamespace)
-		if err != nil {
-			glog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
-			continue
-		}
-
 		if _, found := keyring.Lookup(imageSpec); found {
 			return &kapi.LocalObjectReference{Name: secret.Name}
 		}
 	}
-	glog.V(2).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
+	glog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
 	return nil
 }
 
