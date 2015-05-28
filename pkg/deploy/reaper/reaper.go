@@ -15,12 +15,6 @@ import (
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 
-const (
-	shortInterval = time.Millisecond * 100
-	interval      = time.Second * 3
-	timeout       = time.Minute * 5
-)
-
 // ReaperFor returns the appropriate Reaper client depending on the provided
 // kind of resource (Replication controllers, pods, services, and deploymentConfigs
 // supported)
@@ -28,7 +22,7 @@ func ReaperFor(kind string, osc *client.Client, kc *kclient.Client) (kubectl.Rea
 	if kind != "DeploymentConfig" {
 		return kubectl.ReaperFor(kind, kc)
 	}
-	return &DeploymentConfigReaper{osc: osc, kc: kc, pollInterval: interval, timeout: timeout}, nil
+	return &DeploymentConfigReaper{osc: osc, kc: kc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}, nil
 }
 
 // DeploymentConfigReaper implements the Reaper interface for deploymentConfigs
@@ -56,8 +50,8 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *
 	if err != nil {
 		return "", err
 	}
-	retry := &kubectl.RetryParams{Interval: shortInterval, Timeout: reaper.timeout}
-	waitForReplicas := &kubectl.RetryParams{reaper.pollInterval, reaper.timeout}
+	retry := kubectl.NewRetryParams(reaper.pollInterval, reaper.timeout)
+	waitForReplicas := kubectl.NewRetryParams(reaper.pollInterval, reaper.timeout)
 	if err = scaler.Scale(namespace, name, 0, nil, retry, waitForReplicas); err != nil {
 		// The deploymentConfig may not have a replication controller to scale
 		// so we shouldn't error out here
