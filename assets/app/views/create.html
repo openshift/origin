@@ -21,6 +21,7 @@
                       ng-pattern="sourceURLPattern"
                       type="text"
                       required
+                      aria-describedby="from_source_help"
                       ng-model="from_source_url"></input>
                   </span>
                   <span class="input-group-btn">
@@ -28,6 +29,9 @@
                       ng-disabled="from_source_form.$invalid" value="">Next</button>
                   </span>
                 </div>
+                <div id="from_source_help" class="help-block">For example,
+                  <a href="#" ng-click="from_source_url = 'https://github.com/openshift/nodejs-ex'"
+                    >https://github.com/openshift/nodejs-ex</a></div>
                 <span class="text-danger" ng-if="from_source_form.$invalid && from_source_form.from_source_url.$touched">Source repository must be a URL</span>
               </div>
             </div>
