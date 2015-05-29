@@ -61,6 +61,9 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 	latestDeploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := c.changeStrategy.getDeployment(config.Namespace, latestDeploymentName)
 	if err != nil {
+		// If there's no deployment for the latest config, we have no basis of
+		// comparison. It's the responsibility of the deployment config controller
+		// to make the deployment for the config, so return early.
 		if kerrors.IsNotFound(err) {
 			glog.V(2).Infof("Ignoring change for DeploymentConfig %s; no existing Deployment found", deployutil.LabelForDeploymentConfig(config))
 			return nil
@@ -73,7 +76,8 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 		return fatalError(fmt.Sprintf("error decoding DeploymentConfig from Deployment %s for DeploymentConfig %s: %v", deployutil.LabelForDeployment(deployment), deployutil.LabelForDeploymentConfig(config), err))
 	}
 
-	if deployutil.PodSpecsEqual(config.Template.ControllerTemplate.Template.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec) {
+	newSpec, oldSpec := config.Template.ControllerTemplate.Template.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec
+	if kapi.Semantic.DeepEqual(oldSpec, newSpec) {
 		glog.V(2).Infof("Ignoring DeploymentConfig change for %s (latestVersion=%d); same as Deployment %s", deployutil.LabelForDeploymentConfig(config), config.LatestVersion, deployutil.LabelForDeployment(deployment))
 		return nil
 	}

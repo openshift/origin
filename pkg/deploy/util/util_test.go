@@ -57,38 +57,6 @@ func TestPodName(t *testing.T) {
 	}
 }
 
-func TestPodSpecsEqualTrue(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateA().Spec)
-
-	if !result {
-		t.Fatalf("Unexpected false result for PodSpecsEqual")
-	}
-}
-
-func TestPodSpecsJustLabelDiff(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateB().Spec)
-
-	if !result {
-		t.Fatalf("Unexpected false result for PodSpecsEqual")
-	}
-}
-
-func TestPodSpecsEqualContainerImageChange(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateC().Spec)
-
-	if result {
-		t.Fatalf("Unexpected true result for PodSpecsEqual")
-	}
-}
-
-func TestPodSpecsEqualAdditionalContainerInManifest(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateD().Spec)
-
-	if result {
-		t.Fatalf("Unexpected true result for PodSpecsEqual")
-	}
-}
-
 func TestMakeDeploymentOk(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, err := MakeDeployment(config, kapi.Codec)
