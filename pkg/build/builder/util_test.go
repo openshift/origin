@@ -1,6 +1,8 @@
 package builder
 
 import (
+	"bytes"
+	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -74,5 +76,24 @@ func TestGetBuildEnvVars(t *testing.T) {
 		if vars[k] != v {
 			t.Errorf("Expected: %s,%s, Got: %s,%s", k, v, k, vars[k])
 		}
+	}
+}
+
+func TestReadDNSConfig(t *testing.T) {
+	const sampleFile = `# /etc/resolv.conf
+
+domain localdomain
+nameserver 1.2.3.4
+nameserver 5.6.7.8
+search example.com test.local
+options ndots:5 timeout:10 attempts:3 rotate
+options attempts 3o
+`
+	dns, dnsSearch := readDNSConfig(bytes.NewBufferString(sampleFile))
+	if !reflect.DeepEqual(dns, []string{"1.2.3.4", "5.6.7.8"}) {
+		t.Errorf("Unexpected value for dns: %#v\n", dns)
+	}
+	if !reflect.DeepEqual(dnsSearch, []string{"example.com", "test.local"}) {
+		t.Errorf("Unexpected value for dnsSearch: %#v\n", dnsSearch)
 	}
 }

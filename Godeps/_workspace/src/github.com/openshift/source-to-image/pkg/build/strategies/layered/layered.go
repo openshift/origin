@@ -20,49 +20,49 @@ import (
 const defaultLocation = "/tmp"
 
 type Layered struct {
-	request *api.Request
+	config  *api.Config
 	docker  docker.Docker
 	fs      util.FileSystem
 	tar     tar.Tar
 	scripts build.ScriptsHandler
 }
 
-func New(request *api.Request, scripts build.ScriptsHandler) (*Layered, error) {
-	d, err := docker.New(request.DockerConfig, request.PullAuthentication)
+func New(config *api.Config, scripts build.ScriptsHandler) (*Layered, error) {
+	d, err := docker.New(config.DockerConfig, config.PullAuthentication)
 	if err != nil {
 		return nil, err
 	}
 	return &Layered{
 		docker:  d,
-		request: request,
+		config:  config,
 		fs:      util.NewFileSystem(),
 		tar:     tar.New(),
 		scripts: scripts,
 	}, nil
 }
 
-func getLocation(request *api.Request) string {
-	location := request.Location
+func getLocation(config *api.Config) string {
+	location := config.Location
 	if len(location) == 0 {
 		location = defaultLocation
 	}
 	return location
 }
 
-func (b *Layered) CreateDockerfile(request *api.Request) error {
+func (b *Layered) CreateDockerfile(config *api.Config) error {
 	buffer := bytes.Buffer{}
 
-	user, err := b.docker.GetImageUser(b.request.BaseImage)
+	user, err := b.docker.GetImageUser(b.config.BuilderImage)
 	if err != nil {
 		return err
 	}
 
 	locations := []string{
-		filepath.Join(getLocation(request), "scripts"),
-		filepath.Join(getLocation(request), "src"),
+		filepath.Join(getLocation(config), "scripts"),
+		filepath.Join(getLocation(config), "src"),
 	}
 
-	buffer.WriteString(fmt.Sprintf("FROM %s\n", b.request.BaseImage))
+	buffer.WriteString(fmt.Sprintf("FROM %s\n", b.config.BuilderImage))
 	buffer.WriteString(fmt.Sprintf("COPY scripts %s\n", locations[0]))
 	buffer.WriteString(fmt.Sprintf("COPY src %s\n", locations[1]))
 
@@ -74,7 +74,7 @@ func (b *Layered) CreateDockerfile(request *api.Request) error {
 		buffer.WriteString(fmt.Sprintf("USER %s\n", user))
 	}
 
-	uploadDir := filepath.Join(b.request.WorkingDir, "upload")
+	uploadDir := filepath.Join(b.config.WorkingDir, "upload")
 	if err := b.fs.WriteFile(filepath.Join(uploadDir, "Dockerfile"), buffer.Bytes()); err != nil {
 		return err
 	}
@@ -82,33 +82,33 @@ func (b *Layered) CreateDockerfile(request *api.Request) error {
 	return nil
 }
 
-func (b *Layered) SourceTar(request *api.Request) (io.ReadCloser, error) {
-	uploadDir := filepath.Join(request.WorkingDir, "upload")
-	tarFileName, err := b.tar.CreateTarFile(b.request.WorkingDir, uploadDir)
+func (b *Layered) SourceTar(config *api.Config) (io.ReadCloser, error) {
+	uploadDir := filepath.Join(config.WorkingDir, "upload")
+	tarFileName, err := b.tar.CreateTarFile(b.config.WorkingDir, uploadDir)
 	if err != nil {
 		return nil, err
 	}
 	return b.fs.Open(tarFileName)
 }
 
-func (b *Layered) Build(request *api.Request) (*api.Result, error) {
-	if err := b.CreateDockerfile(request); err != nil {
+func (b *Layered) Build(config *api.Config) (*api.Result, error) {
+	if err := b.CreateDockerfile(config); err != nil {
 		return nil, err
 	}
 
 	glog.V(2).Info("Creating application source code image")
-	tarStream, err := b.SourceTar(request)
+	tarStream, err := b.SourceTar(config)
 	if err != nil {
 		return nil, err
 	}
 	defer tarStream.Close()
 
-	newBaseImage := fmt.Sprintf("%s-%d", b.request.BaseImage, time.Now().UnixNano())
+	newBuilderImage := fmt.Sprintf("%s-%d", b.config.BuilderImage, time.Now().UnixNano())
 	outReader, outWriter := io.Pipe()
 	defer outReader.Close()
 	defer outWriter.Close()
 	opts := docker.BuildImageOptions{
-		Name:   newBaseImage,
+		Name:   newBuilderImage,
 		Stdin:  tarStream,
 		Stdout: outWriter,
 	}
@@ -130,23 +130,23 @@ func (b *Layered) Build(request *api.Request) (*api.Result, error) {
 		}
 	}(outReader)
 
-	glog.V(2).Infof("Building new image %s with scripts and sources already inside", newBaseImage)
+	glog.V(2).Infof("Building new image %s with scripts and sources already inside", newBuilderImage)
 	if err = b.docker.BuildImage(opts); err != nil {
 		return nil, err
 	}
 
-	// upon successful build we need to modify current request
-	b.request.LayeredBuild = true
+	// upon successful build we need to modify current config
+	b.config.LayeredBuild = true
 	// new image name
-	b.request.BaseImage = newBaseImage
+	b.config.BuilderImage = newBuilderImage
 	// the scripts are inside the image
-	b.request.ScriptsURL = "image://" + filepath.Join(getLocation(request), "scripts")
+	b.config.ScriptsURL = "image://" + filepath.Join(getLocation(config), "scripts")
 
-	glog.V(2).Infof("Building %s using sti-enabled image", b.request.Tag)
-	if err := b.scripts.Execute(api.Assemble, b.request); err != nil {
+	glog.V(2).Infof("Building %s using sti-enabled image", b.config.Tag)
+	if err := b.scripts.Execute(api.Assemble, b.config); err != nil {
 		switch e := err.(type) {
 		case errors.ContainerError:
-			return nil, errors.NewAssembleError(b.request.Tag, e.Output, e)
+			return nil, errors.NewAssembleError(b.config.Tag, e.Output, e)
 		default:
 			return nil, err
 		}
