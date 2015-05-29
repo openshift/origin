@@ -64,6 +64,7 @@ type RegistryConfig struct {
 	HostMount     string
 	DryRun        bool
 	Credentials   string
+	Selector      string
 
 	// TODO: accept environment values.
 }
@@ -91,6 +92,8 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 			err := RunCmdRegistry(f, cmd, out, cfg, args)
 			if err != errExit {
 				cmdutil.CheckErr(err)
+			} else {
+				os.Exit(1)
 			}
 		},
 	}
@@ -106,6 +109,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Check if the registry exists instead of creating.")
 	cmd.Flags().Bool("create", false, "deprecated; this is now the default behavior")
 	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the registry should use to contact the master.")
+	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run registries on a specific set of nodes.")
 
 	cmdutil.AddPrinterFlags(cmd)
 
@@ -138,6 +142,18 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 			return cmdutil.UsageError(cmd, "You may not pass negative labels in %q", cfg.Labels)
 		}
 		label = valid
+	}
+
+	nodeSelector := map[string]string{}
+	if len(cfg.Selector) > 0 {
+		valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Selector, ","))
+		if err != nil {
+			return err
+		}
+		if len(remove) > 0 {
+			return cmdutil.UsageError(cmd, "You may not pass negative labels in selector %q", cfg.Selector)
+		}
+		nodeSelector = valid
 	}
 
 	image := cfg.ImageTemplate.ExpandOrDie(cfg.Type)
@@ -209,6 +225,7 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		podTemplate := &kapi.PodTemplateSpec{
 			ObjectMeta: kapi.ObjectMeta{Labels: label},
 			Spec: kapi.PodSpec{
+				NodeSelector: nodeSelector,
 				Containers: []kapi.Container{
 					{
 						Name:  "registry",

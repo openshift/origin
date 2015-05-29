@@ -44,6 +44,19 @@ func podTemplateD() *kapi.PodTemplateSpec {
 	return t
 }
 
+func TestPodName(t *testing.T) {
+	deployment := &kapi.ReplicationController{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "testName",
+		},
+	}
+	expected := "testName-deploy"
+	actual := DeployerPodNameForDeployment(deployment)
+	if expected != actual {
+		t.Errorf("Unexpected pod name for deployment. Expected: %s Got: %s", expected, actual)
+	}
+}
+
 func TestPodSpecsEqualTrue(t *testing.T) {
 	result := PodSpecsEqual(podTemplateA().Spec, podTemplateA().Spec)
 

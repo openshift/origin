@@ -17,6 +17,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1beta1"
 	deployv3 "github.com/openshift/origin/pkg/deploy/api/v1beta3"
+	"github.com/openshift/origin/pkg/util/podname"
 )
 
 // Maps the latest annotation keys to all known previous key names. Keys not represented here
@@ -57,8 +58,12 @@ func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 	return config.Name + "-" + strconv.Itoa(config.LatestVersion)
 }
 
+// DeployerPodSuffix is the suffix added to pods created from a deployment
+const DeployerPodSuffix = "deploy"
+
+// DeployerPodNameForDeployment returns the name of a pod for a given deployment
 func DeployerPodNameForDeployment(deployment *api.ReplicationController) string {
-	return deployment.Name
+	return podname.GetName(deployment.Name, DeployerPodSuffix)
 }
 
 // LabelForDeployment builds a string identifier for a Deployment.

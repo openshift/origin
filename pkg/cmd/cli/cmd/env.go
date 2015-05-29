@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
@@ -32,6 +33,7 @@ import (
 	"github.com/spf13/cobra"
 
 	//ocutil "github.com/openshift/origin/pkg/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -257,6 +259,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	if err != nil {
 		return err
 	}
+
 	// only apply resource version locking on a single resource
 	if !one && len(resourceVersion) > 0 {
 		return cmdutil.UsageError(cmd, "--resource-version may only be used with a single resource")
@@ -327,7 +330,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		}
 		obj, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, true, data)
 		if err != nil {
-			fmt.Fprintf(cmd.Out(), "Error: %v\n", err)
+			handleUpdateError(cmd.Out(), err)
 			failed = true
 			continue
 		}
@@ -419,4 +422,24 @@ func selectString(s, spec string) bool {
 		}
 	}
 	return match
+}
+
+func handleUpdateError(out io.Writer, err error) {
+	errored := false
+	if statusError, ok := err.(*errors.StatusError); ok && errors.IsInvalid(err) {
+		errorDetails := statusError.Status().Details
+		if errorDetails.Kind == "Pod" {
+			for _, cause := range errorDetails.Causes {
+				if cause.Field == "spec" && strings.Contains(cause.Message, "may not update fields other than") {
+					fmt.Fprintf(out, "Error updating pod %q: may not update environment variables in a pod directly\n", errorDetails.ID)
+					errored = true
+					break
+				}
+			}
+		}
+	}
+
+	if !errored {
+		fmt.Fprintf(out, "Error: %v\n", err)
+	}
 }

@@ -29,16 +29,16 @@ func (projectStrategy) PrepareForCreate(obj runtime.Object) {
 	project := obj.(*api.Project)
 	hasProjectFinalizer := false
 	for i := range project.Spec.Finalizers {
-		if project.Spec.Finalizers[i] == api.FinalizerProject {
+		if project.Spec.Finalizers[i] == api.FinalizerOrigin {
 			hasProjectFinalizer = true
 			break
 		}
 	}
 	if !hasProjectFinalizer {
 		if len(project.Spec.Finalizers) == 0 {
-			project.Spec.Finalizers = []kapi.FinalizerName{api.FinalizerProject}
+			project.Spec.Finalizers = []kapi.FinalizerName{api.FinalizerOrigin}
 		} else {
-			project.Spec.Finalizers = append(project.Spec.Finalizers, api.FinalizerProject)
+			project.Spec.Finalizers = append(project.Spec.Finalizers, api.FinalizerOrigin)
 		}
 	}
 }

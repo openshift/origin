@@ -64,7 +64,8 @@ func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, ou
 				kcmdutil.CheckErr(err)
 			}
 
-			if err := opts.Validate(); err != nil {
+			checkNodeSelector := c.Flag("selector").Changed
+			if err := opts.Validate(checkNodeSelector); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
