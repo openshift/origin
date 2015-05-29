@@ -27,7 +27,7 @@ func TestDNS(t *testing.T) {
 	stop := make(chan struct{})
 	util.Until(func() {
 		m1 := &dns.Msg{
-			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
+			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: false},
 			Question: []dns.Question{{"kubernetes.default.svc.cluster.local.", dns.TypeA, dns.ClassINET}},
 		}
 		in, err := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
@@ -116,7 +116,6 @@ func TestDNS(t *testing.T) {
 	}
 	headless2IP := net.ParseIP("172.0.0.2")
 
-	// verify recursive DNS lookup is visible when expected
 	tests := []struct {
 		dnsQuestionName   string
 		recursionExpected bool
@@ -180,7 +179,7 @@ func TestDNS(t *testing.T) {
 		},
 		{
 			dnsQuestionName:   "www.google.com.",
-			recursionExpected: true,
+			recursionExpected: false,
 		},
 	}
 	for i, tc := range tests {
@@ -189,7 +188,7 @@ func TestDNS(t *testing.T) {
 			qType = dns.TypeSRV
 		}
 		m1 := &dns.Msg{
-			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: true},
+			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: false},
 			Question: []dns.Question{{tc.dnsQuestionName, qType, dns.ClassINET}},
 		}
 		ch := make(chan struct{})
