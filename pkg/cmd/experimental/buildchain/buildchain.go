@@ -20,12 +20,12 @@ import (
 )
 
 const (
-	buildChain_long = `Output build dependencies of a specific image stream.
+	buildChainLong = `Output build dependencies of a specific image stream.
 Supported output formats are json, dot, and ast. The default is set to json.
 Tag and namespace are optional and if they are not specified, 'latest' and the 
 default namespace will be used respectively.`
 
-	buildChain_example = `  // Build dependency tree for the specified image stream and tag
+	buildChainExample = `  // Build dependency tree for the specified image stream and tag
   $ openshift ex build-chain [image-stream]:[tag]
 
   // Build dependency trees for all tags in the specified image stream
@@ -90,8 +90,8 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [IMAGESTREAM:TAG | --all]", name),
 		Short:   "Output build dependencies of a specific ImageStream",
-		Long:    buildChain_long,
-		Example: buildChain_example,
+		Long:    buildChainLong,
+		Example: buildChainExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunBuildChain(f, cmd, args)
 			cmdutil.CheckErr(err)

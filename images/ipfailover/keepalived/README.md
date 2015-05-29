@@ -31,7 +31,7 @@ Pre-requisites/Prep Time
         [ -n "$OPENSHIFTCONFIG" ] ||  \
            export OPENSHIFTCONFIG=/openshift.local.config/master/admin.kubeconfig
         #  openshift kube get dc,rc,pods,se,mi,routes
-        openshift ex router arparp --create --replicas=2  \
+        osadm router arparp --create --replicas=2  \
                                    --credentials="${OPENSHIFTCONFIG}"
 
 

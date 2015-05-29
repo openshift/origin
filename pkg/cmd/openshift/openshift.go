@@ -8,19 +8,19 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/admin"
+	"github.com/openshift/origin/pkg/cmd/admin/registry"
+	"github.com/openshift/origin/pkg/cmd/admin/router"
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	"github.com/openshift/origin/pkg/cmd/experimental/bundlesecret"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
-	exregistry "github.com/openshift/origin/pkg/cmd/experimental/registry"
-	exrouter "github.com/openshift/origin/pkg/cmd/experimental/router"
 	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	"github.com/openshift/origin/pkg/cmd/infra/gitserver"
-	"github.com/openshift/origin/pkg/cmd/infra/router"
+	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -55,7 +55,7 @@ func CommandFor(basename string) *cobra.Command {
 
 	switch basename {
 	case "openshift-router":
-		cmd = router.NewCommandTemplateRouter(basename)
+		cmd = irouter.NewCommandTemplateRouter(basename)
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
 	case "openshift-sti-build":
@@ -123,7 +123,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	}
 
 	infra.AddCommand(
-		router.NewCommandTemplateRouter("router"),
+		irouter.NewCommandTemplateRouter("router"),
 		deployer.NewCommandDeployer("deploy"),
 		builder.NewCommandSTIBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
@@ -153,8 +153,8 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 
 	experimental.AddCommand(tokens.NewCmdTokens(tokens.TokenRecommendedCommandName, fullName+" "+tokens.TokenRecommendedCommandName, f, out))
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
-	experimental.AddCommand(exrouter.NewCmdRouter(f, fullName, "router", out))
-	experimental.AddCommand(exregistry.NewCmdRegistry(f, fullName, "registry", out))
+	experimental.AddCommand(router.NewCmdRouter(f, fullName, "router", out))
+	experimental.AddCommand(registry.NewCmdRegistry(f, fullName, "registry", out))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
 	experimental.AddCommand(bundlesecret.NewCmdBundleSecret(f, fullName, "bundle-secret", out))
 	experimental.AddCommand(cmd.NewCmdOptions(out))
