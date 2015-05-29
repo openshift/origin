@@ -395,7 +395,17 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		return err
 	}
 
-	content, err := latestconfigapi.WriteYAML(config)
+	// Roundtrip the config to v1 and back to ensure proper defaults are set.
+	ext, err := configapi.Scheme.ConvertToVersion(config, "v1")
+	if err != nil {
+		return err
+	}
+	internal, err := configapi.Scheme.ConvertToVersion(ext, "")
+	if err != nil {
+		return err
+	}
+
+	content, err := latestconfigapi.WriteYAML(internal)
 	if err != nil {
 		return err
 	}

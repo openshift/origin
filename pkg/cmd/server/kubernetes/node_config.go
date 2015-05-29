@@ -62,6 +62,10 @@ type NodeConfig struct {
 	// PodManifestCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data
 	// The interval needs to be a positive value
 	PodManifestCheckIntervalSeconds int64
+
+	// DockerExecHandler is the handler to use for executing
+	// commands in Docker containers.
+	DockerExecHandler dockertools.ExecHandler
 }
 
 func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error) {
@@ -98,6 +102,15 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		fileCheckInterval = options.PodManifestConfig.FileCheckIntervalSeconds
 	}
 
+	var dockerExecHandler dockertools.ExecHandler
+
+	switch options.DockerConfig.ExecHandlerName {
+	case configapi.DockerExecHandlerNative:
+		dockerExecHandler = &dockertools.NativeExecHandler{}
+	case configapi.DockerExecHandlerNsenter:
+		dockerExecHandler = &dockertools.NsenterExecHandler{}
+	}
+
 	config := &NodeConfig{
 		NodeHost:    options.NodeName,
 		BindAddress: options.ServingInfo.BindAddress,
@@ -119,6 +132,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 
 		PodManifestPath:                 path,
 		PodManifestCheckIntervalSeconds: fileCheckInterval,
+
+		DockerExecHandler: dockerExecHandler,
 	}
 
 	return config, nil
