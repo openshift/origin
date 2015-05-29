@@ -318,8 +318,8 @@ osc create -f test/integration/fixtures/test-service.json
 osc delete services frontend
 echo "services: ok"
 
-osc get minions
-echo "minions: ok"
+osc get nodes
+echo "nodes: ok"
 
 osc get images
 osc create -f test/integration/fixtures/test-image.json
@@ -521,7 +521,7 @@ openshift admin policy add-cluster-role-to-group cluster-admin system:unauthenti
 openshift admin policy remove-cluster-role-from-group cluster-admin system:unauthenticated
 openshift admin policy add-cluster-role-to-user cluster-admin system:no-user
 openshift admin policy remove-cluster-role-from-user cluster-admin system:no-user
-echo "ex policy: ok"
+echo "policy: ok"
 
 # Test the commands the UI projects page tells users to run
 # These should match what is described in projects.html
@@ -548,7 +548,7 @@ osc delete project recreated-project
 wait_for_command '! osc get project recreated-project' "${TIME_MIN}"
 osadm new-project recreated-project --admin="createuser2"
 osc describe policybinding ':default' -n recreated-project | grep createuser2
-echo "ex new-project: ok"
+echo "new-project: ok"
 
 # Test running a router
 [ ! "$(osadm router --dry-run | grep 'does not exist')" ]
