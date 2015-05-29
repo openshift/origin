@@ -8,7 +8,7 @@ import (
 )
 
 func TestGetBuildPodName(t *testing.T) {
-	if expected, actual := "mybuild", GetBuildPodName(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: "mybuild"}}); expected != actual {
+	if expected, actual := "mybuild-build", GetBuildPodName(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: "mybuild"}}); expected != actual {
 		t.Errorf("Expected %s, got %s", expected, actual)
 	}
 }

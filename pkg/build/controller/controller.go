@@ -41,6 +41,8 @@ type imageStreamClient interface {
 	GetImageStream(namespace, name string) (*imageapi.ImageStream, error)
 }
 
+// HandleBuild takes new builds and puts them in the pending state after
+// creating a corresponding pod
 func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	glog.V(4).Infof("Handling Build %s/%s", build.Namespace, build.Name)
 
@@ -139,9 +141,9 @@ type BuildPodController struct {
 	PodManager   podManager
 }
 
+// HandlePod updates the state of the build based on the pod state
 func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
-	// pod and build have the same name, so look up the build by the pod's name.
-	obj, exists, err := bc.BuildStore.Get(pod)
+	obj, exists, err := bc.BuildStore.Get(buildKey(pod))
 	if err != nil {
 		glog.V(4).Infof("Error getting Build for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		return err
@@ -234,14 +236,10 @@ type BuildPodDeleteController struct {
 	BuildUpdater buildclient.BuildUpdater
 }
 
+// HandleBuildPodDeletion sets the status of a build to error if the build pod has been deleted
 func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error {
 	glog.V(4).Infof("Handling deletion of build pod %s/%s", pod.Namespace, pod.Name)
-	// pod and build use the same name and same key function, so we can look up the
-	// build by the pod object.  Doing this "right" is actually uglier since
-	// we would ideally want to pass the build object to the keyFunc, but that
-	// would require us having the build.  Constructing the key by hand is
-	// also not ideal since the keyFunc could change.
-	obj, exists, err := bc.BuildStore.Get(pod)
+	obj, exists, err := bc.BuildStore.Get(buildKey(pod))
 	if err != nil {
 		glog.V(4).Infof("Error getting build for pod %s/%s", pod.Namespace, pod.Name)
 		return err
@@ -276,6 +274,7 @@ type BuildDeleteController struct {
 	PodManager podManager
 }
 
+// HandleBuildDeletion deletes a build pod if the corresponding build has been deleted
 func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) error {
 	glog.V(4).Infof("Handling deletion of build %s", build.Name)
 	podName := buildutil.GetBuildPodName(build)
@@ -298,4 +297,15 @@ func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) erro
 		return err
 	}
 	return nil
+}
+
+// buildKey returns a build object that can be used to lookup a build
+// in the cache store, given a pod for the build
+func buildKey(pod *kapi.Pod) *buildapi.Build {
+	return &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      buildutil.GetBuildName(pod),
+			Namespace: pod.Namespace,
+		},
+	}
 }
