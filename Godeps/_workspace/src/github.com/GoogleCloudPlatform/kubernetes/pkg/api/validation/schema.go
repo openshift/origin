@@ -50,6 +50,21 @@ type NullSchema struct{}
 
 func (NullSchema) ValidateBytes(data []byte) error { return nil }
 
+type FilenameInputSchema struct{}
+
+func (FilenameInputSchema) ValidateBytes(data []byte) error {
+	var obj interface{}
+	out, err := yaml.ToJSON(data)
+	if err != nil {
+		return err
+	}
+	data = out
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return err
+	}
+	return nil
+}
+
 type SwaggerSchema struct {
 	api swagger.ApiDeclaration
 }

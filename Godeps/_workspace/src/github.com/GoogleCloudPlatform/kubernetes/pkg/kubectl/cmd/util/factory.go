@@ -209,6 +209,9 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 				}
 				return &clientSwaggerSchema{client, api.Scheme}, nil
 			}
+			if filenameFlag := flags.Lookup("filename"); filenameFlag != nil && filenameFlag.Changed {
+				return validation.FilenameInputSchema{}, nil
+			}
 			return validation.NullSchema{}, nil
 		},
 		DefaultNamespace: func() (string, error) {
