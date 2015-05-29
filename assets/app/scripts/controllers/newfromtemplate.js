@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse, Navigate) {
+  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse, Navigate, failureObjectNameFilter) {
 
     function errorPage(message) {
       var redirect = URI('error').query({
@@ -110,7 +110,7 @@ angular.module('openshiftConsole')
                 if (result.failure.length > 0) {
                   result.failure.forEach(
                     function(failure) {
-                      var objectName = getFailureObjectName(failure) || "object";
+                      var objectName = failureObjectNameFilter(failure) || "object";
                       alerts.push({
                         type: "error",
                         message: "Cannot create " + objectName + ". ",
@@ -180,17 +180,4 @@ angular.module('openshiftConsole')
         Navigate.toErrorPage("Cannot create from template: the specified template could not be retrieved.");
       }
     );
-
-    function getFailureObjectName(failure) {
-      if (!failure.data || !failure.data.details) {
-        return null;
-      }
-
-      var details = failure.data.details;
-      if (details.kind) {
-        return (details.id) ? details.kind + " " + details.id : details.kind;
-      }
-
-      return details.id;
-    }
   });

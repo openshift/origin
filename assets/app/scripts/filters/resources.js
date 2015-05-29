@@ -385,4 +385,18 @@ angular.module('openshiftConsole')
     return function(projectName) {
       return Navigate.projectOverviewURL(projectName);
     };
+  })
+  .filter('failureObjectName', function() {
+    return function(failure) {
+      if (!failure.data || !failure.data.details) {
+        return null;
+      }
+
+      var details = failure.data.details;
+      if (details.kind) {
+        return (details.id) ? details.kind + " " + details.id : details.kind;
+      }
+
+      return details.id;
+    };
   });
