@@ -971,14 +971,7 @@ func (d *dockerExitError) ExitStatus() int {
 	return d.Inspect.ExitCode
 }
 
-// ExecInContainer uses nsenter to run the command inside the container identified by containerID.
-//
-// TODO:
-//  - match cgroups of container
-//  - should we support `docker exec`?
-//  - should we support nsenter in a container, running with elevated privs and --pid=host?
-//  - use strong type for containerId
-func (dm *DockerManager) ExecInContainer(containerId string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool) error {
+func (dm *DockerManager) nsEnterExec(containerId string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool) error {
 	nsenter, err := exec.LookPath("nsenter")
 	if err != nil {
 		return fmt.Errorf("exec unavailable - unable to locate nsenter")
@@ -1043,6 +1036,70 @@ func (dm *DockerManager) ExecInContainer(containerId string, cmd []string, stdin
 
 		return command.Run()
 	}
+}
+
+func (dm *DockerManager) nativeExec(containerId string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool) error {
+	createOpts := docker.CreateExecOptions{
+		Container:    containerId,
+		Cmd:          cmd,
+		AttachStdin:  stdin != nil,
+		AttachStdout: stdout != nil,
+		AttachStderr: stderr != nil,
+		Tty:          tty,
+	}
+	execObj, err := dm.client.CreateExec(createOpts)
+	if err != nil {
+		return fmt.Errorf("failed to exec in container - Exec setup failed - %v", err)
+	}
+	startOpts := docker.StartExecOptions{
+		Detach:       false,
+		InputStream:  stdin,
+		OutputStream: stdout,
+		ErrorStream:  stderr,
+		Tty:          tty,
+		RawTerminal:  tty,
+	}
+	err = dm.client.StartExec(execObj.ID, startOpts)
+	if err != nil {
+		return err
+	}
+	tick := time.Tick(2 * time.Second)
+	for {
+		inspect, err2 := dm.client.InspectExec(execObj.ID)
+		if err2 != nil {
+			return err2
+		}
+		if !inspect.Running {
+			if inspect.ExitCode != 0 {
+				err = &dockerExitError{inspect}
+			}
+			break
+		}
+		<-tick
+	}
+
+	return err
+}
+
+// ExecInContainer runs the command inside the container identified by containerID.
+//
+// TODO:
+//  - match cgroups of container
+//  - should we support `docker exec`?
+//  - should we support nsenter in a container, running with elevated privs and --pid=host?
+//  - use strong type for containerId
+func (dm *DockerManager) ExecInContainer(containerId string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool) error {
+	// TODO abstract this upwards, so the exec implementation can be chosen when
+	// creating the Kubelet
+
+	useNativeExec, err := dm.nativeExecSupportExists()
+	if err != nil {
+		return err
+	}
+	if useNativeExec {
+		return dm.nativeExec(containerId, cmd, stdin, stdout, stderr, tty)
+	}
+	return dm.nsEnterExec(containerId, cmd, stdin, stdout, stderr, tty)
 }
 
 // PortForward executes socat in the pod's network namespace and copies
