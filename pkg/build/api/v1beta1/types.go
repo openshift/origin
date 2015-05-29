@@ -16,6 +16,11 @@ type Build struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
+	// ServiceAccount is the name of the ServiceAccount to use to run the pod
+	// created by this build.
+	// The pod will be allowed to use secrets referenced by the ServiceAccount
+	ServiceAccount string `json:"serviceAccount,omitempty"`
+
 	// Parameters are all the inputs used to create the build pod.
 	Parameters BuildParameters `json:"parameters,omitempty"`
 
@@ -450,6 +455,9 @@ type BuildRequest struct {
 
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty"`
+
+	// TriggedByImage is the image name that triggered this build.
+	TriggedByImage string `json:"triggedByImage,omitempty"`
 }
 
 // BuildLogOptions is the REST options for a build log

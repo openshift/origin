@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -77,30 +79,36 @@ func mockImage(name, dockerSpec string) *imageapi.Image {
 func TestCreateInstantiate(t *testing.T) {
 	imageStream := mockImageStream("testImageStream", "registry.com/namespace/imagename", map[string]string{"test": "newImageID123"})
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
-
-	rest := InstantiateREST{&BuildGenerator{Client: Client{
-		GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
-			return mockBuildConfig(mockSource(), mockSourceStrategyForImageRepository(), mockOutput()), nil
-		},
-		UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
-			return nil
-		},
-		CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
-			return nil
-		},
-		GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
-			return &buildapi.Build{}, nil
-		},
-		GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
-			return imageStream, nil
-		},
-		GetImageStreamTagFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
-			return &imageapi.ImageStreamTag{*image, name}, nil
-		},
-		GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
-			return &imageapi.ImageStreamImage{Image: *image}, nil
-		},
-	}}}
+	fakeSecrets := []runtime.Object{}
+	for _, s := range mockBuilderSecrets() {
+		fakeSecrets = append(fakeSecrets, s)
+	}
+	rest := InstantiateREST{&BuildGenerator{
+		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
+		ServiceAccounts: mockBuilderServiceAccount(mockBuilderSecrets()),
+		Client: Client{
+			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mockBuildConfig(mockSource(), mockSourceStrategyForImageRepository(), mockOutput()), nil
+			},
+			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+				return nil
+			},
+			CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+				return nil
+			},
+			GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+				return &buildapi.Build{}, nil
+			},
+			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+				return imageStream, nil
+			},
+			GetImageStreamTagFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
+				return &imageapi.ImageStreamTag{*image, name}, nil
+			},
+			GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
+				return &imageapi.ImageStreamImage{Image: *image}, nil
+			},
+		}}}
 
 	_, err := rest.Create(kapi.NewDefaultContext(), &buildapi.BuildRequest{ObjectMeta: kapi.ObjectMeta{Name: "name"}})
 	if err != nil {

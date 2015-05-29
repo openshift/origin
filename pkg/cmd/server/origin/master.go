@@ -227,6 +227,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
+		ServiceAccounts: c.KubeClient(),
+		Secrets:         c.KubeClient(),
 	}
 	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
@@ -864,9 +866,8 @@ func (c *MasterConfig) RunBuildPodController() {
 // RunBuildImageChangeTriggerController starts the build image change trigger controller process.
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 	bcClient, _ := c.BuildControllerClients()
-	bcUpdater := buildclient.NewOSClientBuildConfigClient(bcClient)
 	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
-	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator, BuildConfigUpdater: bcUpdater}
+	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator}
 	factory.Create().Run()
 }
 

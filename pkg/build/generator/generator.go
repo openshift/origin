@@ -5,19 +5,25 @@ import (
 	"regexp"
 	"strings"
 
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/credentialprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // BuildGenerator is a central place responsible for generating new Build objects
 // from BuildConfigs and other Builds.
 type BuildGenerator struct {
-	Client GeneratorClient
+	Client                    GeneratorClient
+	DefaultServiceAccountName string
+	ServiceAccounts           kclient.ServiceAccountsNamespacer
+	Secrets                   kclient.SecretsNamespacer
 }
 
 // GeneratorClient is the API client used by the generator
@@ -86,6 +92,30 @@ type streamRef struct {
 	tag string
 }
 
+// FetchServiceAccountSecrets retrieves the Secrets used for pushing and pulling
+// images from private Docker registries.
+func (g *BuildGenerator) FetchServiceAccountSecrets(namespace string) ([]kapi.Secret, error) {
+	// TODO: Check for the service account specified in the build config when it
+	//       will be added
+	serviceAccount := g.DefaultServiceAccountName
+	if len(serviceAccount) == 0 {
+		serviceAccount = bootstrappolicy.BuilderServiceAccountName
+	}
+	var result []kapi.Secret
+	sa, err := g.ServiceAccounts.ServiceAccounts(namespace).Get(serviceAccount)
+	if err != nil {
+		return result, fmt.Errorf("Error getting push/pull secrets for service account %q: %v", namespace, serviceAccount, err)
+	}
+	for _, ref := range sa.Secrets {
+		secret, err := g.Secrets.Secrets(namespace).Get(ref.Name)
+		if err != nil {
+			continue
+		}
+		result = append(result, *secret)
+	}
+	return result, nil
+}
+
 // Instantiate returns new Build object based on a BuildRequest object
 func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating Build from BuildConfig %s/%s", request.Namespace, request.Name)
@@ -93,12 +123,34 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	if err != nil {
 		return nil, err
 	}
+
 	newBuild, err := g.generateBuildFromConfig(ctx, bc, request.Revision)
 	if err != nil {
 		return nil, err
 	}
+
 	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
-	return g.createBuild(ctx, newBuild)
+	updatedBuild, err := g.createBuild(ctx, newBuild)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(request.TriggedByImage) > 0 {
+		for _, trigger := range bc.Triggers {
+			if trigger.Type != buildapi.ImageChangeBuildTriggerType {
+				continue
+			}
+
+			trigger.ImageChange.LastTriggeredImageID = request.TriggedByImage
+		}
+	}
+
+	// need to update the BuildConfig because LastVersion and possibly LastTriggeredImageID changed
+	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
+		return nil, err
+	}
+
+	return updatedBuild, nil
 }
 
 // Clone returns clone of a Build
@@ -132,11 +184,16 @@ func (g *BuildGenerator) createBuild(ctx kapi.Context, build *buildapi.Build) (*
 // the Strategy, or uses the Image field of the Strategy.
 // Takes a BuildConfig to base the build on, and an optional SourceRevision to build.
 func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.BuildConfig, revision *buildapi.SourceRevision) (*buildapi.Build, error) {
+	serviceAccount := g.DefaultServiceAccountName
+	if len(serviceAccount) == 0 {
+		serviceAccount = bootstrappolicy.BuilderServiceAccountName
+	}
 	// Need to copy the buildConfig here so that it doesn't share pointers with
 	// the build object which could be (will be) modified later.
 	obj, _ := kapi.Scheme.Copy(bc)
 	bcCopy := obj.(*buildapi.BuildConfig)
 	build := &buildapi.Build{
+		ServiceAccount: serviceAccount,
 		Parameters: buildapi.BuildParameters{
 			Source:    bcCopy.Parameters.Source,
 			Strategy:  bcCopy.Parameters.Strategy,
@@ -149,15 +206,21 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		},
 		Status: buildapi.BuildStatusNew,
 	}
+
 	build.Config = &kapi.ObjectReference{Kind: "BuildConfig", Name: bc.Name, Namespace: bc.Namespace}
 	build.Name = getNextBuildName(bc)
-	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
-		return nil, err
-	}
 	if build.Labels == nil {
 		build.Labels = make(map[string]string)
 	}
 	build.Labels[buildapi.BuildConfigLabel] = bcCopy.Name
+
+	builderSecrets, err := g.FetchServiceAccountSecrets(bc.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	if build.Parameters.Output.PushSecret == nil {
+		build.Parameters.Output.PushSecret = g.resolveImageSecret(ctx, builderSecrets, build.Parameters.Output.To, bc.Namespace)
+	}
 
 	// If the Build is using a From reference instead of a resolved image, we need to resolve that From
 	// reference to a valid image so we can run the build.  Builds do not consume ImageStream references,
@@ -173,6 +236,9 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 			Kind: "DockerImage",
 			Name: image,
 		}
+		if build.Parameters.Strategy.SourceStrategy.PullSecret == nil {
+			build.Parameters.Strategy.SourceStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, build.Parameters.Strategy.SourceStrategy.From, bc.Namespace)
+		}
 	case build.Parameters.Strategy.Type == buildapi.DockerBuildStrategyType &&
 		build.Parameters.Strategy.DockerStrategy.From != nil:
 		image, err := g.resolveImageStreamReference(ctx, build.Parameters.Strategy.DockerStrategy.From, build.Config.Namespace)
@@ -183,6 +249,9 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 			Kind: "DockerImage",
 			Name: image,
 		}
+		if build.Parameters.Strategy.DockerStrategy.PullSecret == nil {
+			build.Parameters.Strategy.DockerStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, build.Parameters.Strategy.DockerStrategy.From, bc.Namespace)
+		}
 	case build.Parameters.Strategy.Type == buildapi.CustomBuildStrategyType &&
 		build.Parameters.Strategy.CustomStrategy.From != nil:
 		image, err := g.resolveImageStreamReference(ctx, build.Parameters.Strategy.CustomStrategy.From, build.Config.Namespace)
@@ -192,6 +261,9 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		build.Parameters.Strategy.CustomStrategy.From = &kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: image,
+		}
+		if build.Parameters.Strategy.CustomStrategy.PullSecret == nil {
+			build.Parameters.Strategy.CustomStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, build.Parameters.Strategy.CustomStrategy.From, bc.Namespace)
 		}
 		updateCustomImageEnv(build.Parameters.Strategy.CustomStrategy, image)
 	}
@@ -210,6 +282,19 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from *kap
 
 	glog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
 	switch from.Kind {
+	case "ImageStream":
+		// NOTE: The 'ImageStream' reference should be used only for the 'output' image
+		is, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), from.Name)
+		if err != nil {
+			glog.V(2).Infof("Error getting ImageStream %s/%s: %v", namespace, from.Name, err)
+			return "", err
+		}
+		image, err := imageapi.DockerImageReferenceForStream(is)
+		if err != nil {
+			glog.V(2).Infof("Error resolving Docker image reference for %s/%s: %v", namespace, from.Name, err)
+			return "", err
+		}
+		return image.String(), nil
 	case "ImageStreamImage":
 		image, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), from.Name)
 		if err != nil {
@@ -237,6 +322,33 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from *kap
 	default:
 		return "", fatalError{fmt.Errorf("Unknown From Kind %s", from.Kind)}
 	}
+}
+
+// resolveImageSecret looks up the Secrets provided by the Service Account and
+// attempt to find a best match for given image.
+func (g *BuildGenerator) resolveImageSecret(ctx kapi.Context, secrets []kapi.Secret, imageRef *kapi.ObjectReference, buildNamespace string) *kapi.LocalObjectReference {
+	if len(secrets) == 0 || imageRef == nil {
+		return nil
+	}
+	emptyKeyring := credentialprovider.BasicDockerKeyring{}
+	// Get the image pull spec from the image stream reference
+	imageSpec, err := g.resolveImageStreamReference(ctx, imageRef, buildNamespace)
+	if err != nil {
+		glog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
+		return nil
+	}
+	for _, secret := range secrets {
+		keyring, err := credentialprovider.MakeDockerKeyring([]kapi.Secret{secret}, &emptyKeyring)
+		if err != nil {
+			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			continue
+		}
+		if _, found := keyring.Lookup(imageSpec); found {
+			return &kapi.LocalObjectReference{Name: secret.Name}
+		}
+	}
+	glog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
+	return nil
 }
 
 // getNextBuildName returns name of the next build and increments BuildConfig's LastVersion.

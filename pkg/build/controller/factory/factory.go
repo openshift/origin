@@ -205,7 +205,6 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 type ImageChangeControllerFactory struct {
 	Client                  osclient.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
-	BuildConfigUpdater      buildclient.BuildConfigUpdater
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }
@@ -221,7 +220,6 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 
 	imageChangeController := &buildcontroller.ImageChangeController{
 		BuildConfigStore:        store,
-		BuildConfigUpdater:      factory.BuildConfigUpdater,
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
 		Stop: factory.Stop,
 	}
