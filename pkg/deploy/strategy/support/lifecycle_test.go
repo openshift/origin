@@ -104,14 +104,14 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	t.Logf("got expected error: %s", err)
 }
 
-func TestHookExecutor_buildContainerInvalidContainerRef(t *testing.T) {
+func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	hook := &deployapi.ExecNewPodHook{
 		ContainerName: "undefined",
 	}
 
 	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 
-	_, err := buildContainer(hook, deployment)
+	_, err := makeHookPod(hook, deployment)
 
 	if err == nil {
 		t.Fatalf("expected an error")
@@ -119,7 +119,7 @@ func TestHookExecutor_buildContainerInvalidContainerRef(t *testing.T) {
 	t.Logf("got expected error: %s", err)
 }
 
-func TestHookExecutor_buildContainerOk(t *testing.T) {
+func TestHookExecutor_makeHookPodOk(t *testing.T) {
 	hook := &deployapi.ExecNewPodHook{
 		ContainerName: "container1",
 		Command:       []string{"overridden"},
@@ -148,12 +148,12 @@ func TestHookExecutor_buildContainerOk(t *testing.T) {
 
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 
-	podSpec, err := buildContainer(hook, deployment)
+	pod, err := makeHookPod(hook, deployment)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	gotContainer := podSpec.Spec.Containers[0]
+	gotContainer := pod.Spec.Containers[0]
 
 	// Verify the correct image was selected
 	if e, a := deployment.Spec.Template.Spec.Containers[0].Image, gotContainer.Image; e != a {
@@ -200,7 +200,19 @@ func TestHookExecutor_buildContainerOk(t *testing.T) {
 	}
 
 	// Verify restart policy
-	if e, a := kapi.RestartPolicyNever, podSpec.Spec.RestartPolicy; e != a {
+	if e, a := kapi.RestartPolicyNever, pod.Spec.RestartPolicy; e != a {
 		t.Fatalf("expected restart policy %s, got %s", e, a)
+	}
+
+	// Verify correlation stuff
+	if l, e, a := deployapi.DeployerPodForDeploymentLabel,
+		deployment.Name,
+		pod.Labels[deployapi.DeployerPodForDeploymentLabel]; e != a {
+		t.Errorf("expected label %s=%s, got %s", l, e, a)
+	}
+	if l, e, a := deployapi.DeploymentAnnotation,
+		deployment.Name,
+		pod.Annotations[deployapi.DeploymentAnnotation]; e != a {
+		t.Errorf("expected annotation %s=%s, got %s", l, e, a)
 	}
 }

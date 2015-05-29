@@ -62,7 +62,7 @@ func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.R
 //   * Resources
 func (e *HookExecutor) executeExecNewPod(hook *deployapi.ExecNewPodHook, deployment *kapi.ReplicationController) error {
 	// Build a pod spec from the hook config and deployment
-	podSpec, err := buildContainer(hook, deployment)
+	podSpec, err := makeHookPod(hook, deployment)
 	if err != nil {
 		return err
 	}
@@ -93,8 +93,8 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.ExecNewPodHook, deploym
 	}
 }
 
-// buildContainer makes a pod spec from a hook and deployment.
-func buildContainer(hook *deployapi.ExecNewPodHook, deployment *kapi.ReplicationController) (*kapi.Pod, error) {
+// makeHookPod makes a pod spec from a hook and deployment.
+func makeHookPod(hook *deployapi.ExecNewPodHook, deployment *kapi.ReplicationController) (*kapi.Pod, error) {
 	var baseContainer *kapi.Container
 	for _, container := range deployment.Spec.Template.Spec.Containers {
 		if container.Name == hook.ContainerName {
@@ -132,11 +132,14 @@ func buildContainer(hook *deployapi.ExecNewPodHook, deployment *kapi.Replication
 	// Assigning to a variable since its address is required
 	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
 
-	podSpec := &kapi.Pod{
+	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: podName,
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: deployment.Name,
+			},
+			Labels: map[string]string{
+				deployapi.DeployerPodForDeploymentLabel: deployment.Name,
 			},
 		},
 		Spec: kapi.PodSpec{
@@ -155,7 +158,7 @@ func buildContainer(hook *deployapi.ExecNewPodHook, deployment *kapi.Replication
 		},
 	}
 
-	return podSpec, nil
+	return pod, nil
 }
 
 // HookExecutorPodClient abstracts access to pods.
