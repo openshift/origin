@@ -108,7 +108,7 @@ angular.module('openshiftConsole')
             {
               type: "error",
               message: "An error occurred while starting the build.",
-              details: "Status: " + result.status + ". " + result.data,
+              details: getErrorDetails(result)
             }
           ];
         }
@@ -132,7 +132,7 @@ angular.module('openshiftConsole')
             {
               type: "error",
               message: "An error occurred while rerunning the build.",
-              details: "Status: " + result.status + ". " + result.data,
+              details: getErrorDetails(result)
             }
           ];
         }
@@ -146,6 +146,20 @@ angular.module('openshiftConsole')
         updateFilterWarning();
       });
     });
+
+    function getErrorDetails(result) {
+      var error = result.data || {};
+      if (error.message) {
+        return error.message;
+      }
+
+      var status = result.status || error.status;
+      if (status) {
+        return "Status: " + status;
+      }
+
+      return "";
+    }
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
