@@ -88,6 +88,8 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 			err := RunCmdRouter(f, cmd, out, cfg, args)
 			if err != errExit {
 				cmdutil.CheckErr(err)
+			} else {
+				os.Exit(1)
 			}
 		},
 	}
