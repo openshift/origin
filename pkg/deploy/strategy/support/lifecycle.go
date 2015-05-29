@@ -17,6 +17,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	namer "github.com/openshift/origin/pkg/util/namer"
 )
 
 // HookExecutor executes a deployment lifecycle hook.
@@ -25,29 +26,28 @@ type HookExecutor struct {
 	PodClient HookExecutorPodClient
 }
 
-// Execute executes hook in the context of deployment.
-func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error {
-	for {
-		var err error
-		switch {
-		case hook.ExecNewPod != nil:
-			err = e.executeExecNewPod(hook.ExecNewPod, deployment)
-		}
+// Execute executes hook in the context of deployment. The label is used to
+// distinguish the kind of hook (e.g. pre, post).
+func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+	var err error
+	switch {
+	case hook.ExecNewPod != nil:
+		err = e.executeExecNewPod(hook, deployment, label)
+	}
 
-		if err == nil {
-			return nil
-		}
+	if err == nil {
+		return nil
+	}
 
-		switch hook.FailurePolicy {
-		case deployapi.LifecycleHookFailurePolicyAbort:
-			return fmt.Errorf("Hook failed, aborting: %s", err)
-		case deployapi.LifecycleHookFailurePolicyIgnore:
-			glog.Infof("Hook failed, ignoring: %s", err)
-			return nil
-		case deployapi.LifecycleHookFailurePolicyRetry:
-			glog.Infof("Hook failed, retrying: %s", err)
-			time.Sleep(retryPeriod)
-		}
+	// Retry failures are treated the same as Abort.
+	switch hook.FailurePolicy {
+	case deployapi.LifecycleHookFailurePolicyAbort, deployapi.LifecycleHookFailurePolicyRetry:
+		return fmt.Errorf("Hook failed, aborting: %s", err)
+	case deployapi.LifecycleHookFailurePolicyIgnore:
+		glog.Infof("Hook failed, ignoring: %s", err)
+		return nil
+	default:
+		return err
 	}
 }
 
@@ -60,14 +60,14 @@ func (e *HookExecutor) Execute(hook *deployapi.LifecycleHook, deployment *kapi.R
 //   * Environment (hook keys take precedence)
 //   * Working directory
 //   * Resources
-func (e *HookExecutor) executeExecNewPod(hook *deployapi.ExecNewPodHook, deployment *kapi.ReplicationController) error {
+func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
 	// Build a pod spec from the hook config and deployment
-	podSpec, err := makeHookPod(hook, deployment)
+	podSpec, err := makeHookPod(hook, deployment, label)
 	if err != nil {
 		return err
 	}
 
-	// Try to create the pod
+	// Try to create the pod.
 	pod, err := e.PodClient.CreatePod(deployment.Namespace, podSpec)
 	if err != nil {
 		if !kerrors.IsAlreadyExists(err) {
@@ -78,7 +78,6 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.ExecNewPodHook, deploym
 	}
 
 	// Wait for the pod to finish.
-	// TODO: Delete pod before returning?
 	nextPod := e.PodClient.PodWatch(pod.Namespace, pod.Name, pod.ResourceVersion)
 	glog.V(0).Infof("Waiting for hook pod %s/%s to complete", pod.Namespace, pod.Name)
 	for {
@@ -87,27 +86,24 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.ExecNewPodHook, deploym
 		case kapi.PodSucceeded:
 			return nil
 		case kapi.PodFailed:
-			// TODO: Add context
-			return fmt.Errorf("pod failed")
+			return fmt.Errorf(pod.Status.Message)
 		}
 	}
 }
 
 // makeHookPod makes a pod spec from a hook and deployment.
-func makeHookPod(hook *deployapi.ExecNewPodHook, deployment *kapi.ReplicationController) (*kapi.Pod, error) {
+func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) (*kapi.Pod, error) {
+	exec := hook.ExecNewPod
 	var baseContainer *kapi.Container
 	for _, container := range deployment.Spec.Template.Spec.Containers {
-		if container.Name == hook.ContainerName {
+		if container.Name == exec.ContainerName {
 			baseContainer = &container
 			break
 		}
 	}
 	if baseContainer == nil {
-		return nil, fmt.Errorf("no container named '%s' found in deployment template", hook.ContainerName)
+		return nil, fmt.Errorf("no container named '%s' found in deployment template", exec.ContainerName)
 	}
-
-	// Generate a name for the pod
-	podName := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("deployment-%s-hook-", deployment.Name))
 
 	// Build a merged environment; hook environment takes precedence over base
 	// container environment
@@ -116,7 +112,7 @@ func makeHookPod(hook *deployapi.ExecNewPodHook, deployment *kapi.ReplicationCon
 	for _, env := range baseContainer.Env {
 		envMap[env.Name] = env.Value
 	}
-	for _, env := range hook.Env {
+	for _, env := range exec.Env {
 		envMap[env.Name] = env.Value
 	}
 	for k, v := range envMap {
@@ -132,9 +128,15 @@ func makeHookPod(hook *deployapi.ExecNewPodHook, deployment *kapi.ReplicationCon
 	// Assigning to a variable since its address is required
 	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
 
+	// Let the kubelet manage retries if requested
+	restartPolicy := kapi.RestartPolicyNever
+	if hook.FailurePolicy == deployapi.LifecycleHookFailurePolicyRetry {
+		restartPolicy = kapi.RestartPolicyOnFailure
+	}
+
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: podName,
+			Name: namer.GetPodName(deployment.Name, label),
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: deployment.Name,
 			},
@@ -147,14 +149,14 @@ func makeHookPod(hook *deployapi.ExecNewPodHook, deployment *kapi.ReplicationCon
 				{
 					Name:       "lifecycle",
 					Image:      baseContainer.Image,
-					Command:    hook.Command,
+					Command:    exec.Command,
 					WorkingDir: baseContainer.WorkingDir,
 					Env:        mergedEnv,
 					Resources:  resources,
 				},
 			},
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
-			RestartPolicy:         kapi.RestartPolicyNever,
+			RestartPolicy:         restartPolicy,
 		},
 	}
 

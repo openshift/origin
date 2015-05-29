@@ -231,7 +231,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 			return nil
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, _ time.Duration) error {
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
 				return hookError
 			},
 		},
@@ -295,7 +295,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 			return nil
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, _ time.Duration) error {
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
 				return hookError
 			},
 		},
