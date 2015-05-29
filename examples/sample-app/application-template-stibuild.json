@@ -200,7 +200,7 @@
                 "ruby-helloworld"
               ],
               "from": {
-                "name": "origin-ruby-sample"
+                "name": "origin-ruby-sample:latest"
               },
               "lastTriggeredImage": ""
             }
