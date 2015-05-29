@@ -38,6 +38,7 @@ func NewSTIBuilder(client DockerClient, dockerSocket string, authCfg docker.Auth
 // Build executes the STI build
 func (s *STIBuilder) Build() error {
 	tag := s.build.Parameters.Output.DockerImageReference
+	dns, dnsSearch := getDNSConfig()
 	request := &stiapi.Config{
 		BuilderImage:  s.build.Parameters.Strategy.SourceStrategy.From.Name,
 		DockerConfig:  &stiapi.DockerConfig{Endpoint: s.dockerSocket},
@@ -48,6 +49,8 @@ func (s *STIBuilder) Build() error {
 		ScriptsURL:    s.build.Parameters.Strategy.SourceStrategy.Scripts,
 		Environment:   getBuildEnvVars(s.build),
 		Incremental:   s.build.Parameters.Strategy.SourceStrategy.Incremental,
+		DNS:           dns,
+		DNSSearch:     dnsSearch,
 	}
 
 	if s.build.Parameters.Revision != nil && s.build.Parameters.Revision.Git != nil &&
