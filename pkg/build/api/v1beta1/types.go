@@ -456,11 +456,8 @@ type BuildRequest struct {
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty"`
 
-	// Image is the image that triggered this build.
-	// BuildRequest gains this required field (Image) that the image change
-	// controller sets to tell the BuildGenerator what value to set for
-	// LastTriggeredImageID.
-	Image string `json:"image,omitempty"`
+	// TriggedByImage is the image name that triggered this build.
+	TriggedByImage string `json:"triggedByImage,omitempty"`
 }
 
 // BuildLogOptions is the REST options for a build log
