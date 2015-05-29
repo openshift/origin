@@ -41,11 +41,12 @@ Here's how to get set up:
 ----
 $ mkdir $HOME/go
 ----
-3. In your `.bashrc` file or `.bash_profile` file, set a GOPATH and update your PATH: +
+3. In your `.bashrc` file or `.bash_profile` file, set a GOPATH and a GOROOT and update your PATH: +
 +
 ----
-export GOPATH=$HOME/go
-export PATH=$PATH:$GOPATH/bin
+export GOROOT=$HOME/go
+export GOPATH=$HOME/<your_local_git_clone_dir>
+export PATH=$PATH:$GOROOT/bin
 ----
 4. Open up a new terminal or source the changes in your current terminal, and you're ready to code.
 
