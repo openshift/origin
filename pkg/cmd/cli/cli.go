@@ -92,7 +92,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	}
 	cmds.AddCommand(cmd.NewCmdConfig(fullName, "config"))
 	cmds.AddCommand(cmd.NewCmdOptions(out))
-	cmds.AddCommand(cmd.NewCmdResize(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdScale(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdStop(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdLabel(fullName, f, out))
 

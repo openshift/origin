@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
-	deployres "github.com/openshift/origin/pkg/deploy/resizer"
+	deploy "github.com/openshift/origin/pkg/deploy/scaler"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 
@@ -108,12 +108,12 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kDescriberFunc(mapping)
 	}
-	w.Resizer = func(mapping *meta.RESTMapping) (kubectl.Resizer, error) {
+	w.Scaler = func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
 		osc, kc, err := w.Clients()
 		if err != nil {
 			return nil, err
 		}
-		return deployres.ResizerFor(mapping.Kind, osc, kc)
+		return deploy.ScalerFor(mapping.Kind, osc, kc)
 	}
 	w.Reaper = func(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
 		osc, kc, err := w.Clients()

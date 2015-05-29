@@ -445,13 +445,13 @@ echo "edit: ok"
 osc delete all --all
 osc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
 wait_for_command 'osc get rc/ruby-hello-world-1' "${TIME_MIN}"
-# resize rc via deployment configuration
-osc resize dc ruby-hello-world --replicas=1
-# resize directly
-osc resize rc ruby-hello-world-1 --current-replicas=1 --replicas=5
+# scale rc via deployment configuration
+osc scale dc ruby-hello-world --replicas=1
+# scale directly
+osc scale rc ruby-hello-world-1 --current-replicas=1 --replicas=5
 [ "$(osc get rc/ruby-hello-world-1 | grep 5)" ]
 osc delete all -l app=ruby
-echo "resize: ok"
+echo "scale: ok"
 
 osc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | osc create -f -
 wait_for_command 'osc get rc/database-1' "${TIME_MIN}"
