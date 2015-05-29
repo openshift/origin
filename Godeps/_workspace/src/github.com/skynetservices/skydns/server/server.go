@@ -20,7 +20,7 @@ import (
 	"github.com/skynetservices/skydns/msg"
 )
 
-const Version = "2.2.0a"
+const Version = "2.4.0a"
 
 type server struct {
 	backend Backend
@@ -234,7 +234,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		}
 		// Set TTL to the minimum of the RRset and dedup the message, i.e.
 		// remove idential RRs.
-		m = dedup(m)
+		m = s.dedup(m)
 
 		minttl := s.config.Ttl
 		if len(m.Answer) > 1 {
@@ -264,7 +264,6 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 			m.Truncated = true
 		}
 		if err := w.WriteMsg(m); err != nil {
-			log.Printf("%s\n", m)
 			log.Printf("skydns: failure to return reply %q", err)
 		}
 	}()
@@ -340,7 +339,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		m.Answer = append(m.Answer, records...)
 		m.Extra = append(m.Extra, extra...)
 	case dns.TypeA, dns.TypeAAAA:
-		records, err := s.AddressRecords(q, name, nil, bufsize, dnssec)
+		records, err := s.AddressRecords(q, name, nil, bufsize, dnssec, false)
 		if err != nil {
 			if e, ok := err.(*etcd.EtcdError); ok {
 				if e.ErrorCode == 100 {
@@ -372,6 +371,18 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 			}
 		}
 		m.Answer = append(m.Answer, records...)
+	case dns.TypeMX:
+		records, extra, err := s.MXRecords(q, name, bufsize, dnssec)
+		if err != nil {
+			if e, ok := err.(*etcd.EtcdError); ok {
+				if e.ErrorCode == 100 {
+					s.NameError(m, req)
+					return
+				}
+			}
+		}
+		m.Answer = append(m.Answer, records...)
+		m.Extra = append(m.Extra, extra...)
 	default:
 		fallthrough // also catch other types, so that they return NODATA
 	case dns.TypeSRV:
@@ -401,11 +412,14 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	}
 }
 
-func (s *server) AddressRecords(q dns.Question, name string, previousRecords []dns.RR, bufsize uint16, dnssec bool) (records []dns.RR, err error) {
+func (s *server) AddressRecords(q dns.Question, name string, previousRecords []dns.RR, bufsize uint16, dnssec, both bool) (records []dns.RR, err error) {
 	services, err := s.backend.Records(name, false)
 	if err != nil {
 		return nil, err
 	}
+
+	services = msg.Group(services)
+
 	for _, serv := range services {
 		ip := net.ParseIP(serv.Host)
 		switch {
@@ -428,7 +442,7 @@ func (s *server) AddressRecords(q dns.Question, name string, previousRecords []d
 			}
 
 			nextRecords, err := s.AddressRecords(dns.Question{Name: dns.Fqdn(serv.Host), Qtype: q.Qtype, Qclass: q.Qclass},
-				strings.ToLower(dns.Fqdn(serv.Host)), append(previousRecords, newRecord), bufsize, dnssec)
+				strings.ToLower(dns.Fqdn(serv.Host)), append(previousRecords, newRecord), bufsize, dnssec, both)
 			if err == nil {
 				// Only have we found something we should add the CNAME and the IP addresses.
 				if len(nextRecords) > 0 {
@@ -455,9 +469,9 @@ func (s *server) AddressRecords(q dns.Question, name string, previousRecords []d
 
 			log.Printf("skydns: incomplete CNAME chain for %s", name)
 
-		case ip.To4() != nil && q.Qtype == dns.TypeA:
+		case ip.To4() != nil && (q.Qtype == dns.TypeA || both):
 			records = append(records, serv.NewA(q.Name, ip.To4()))
-		case ip.To4() == nil && q.Qtype == dns.TypeAAAA:
+		case ip.To4() == nil && (q.Qtype == dns.TypeAAAA || both):
 			records = append(records, serv.NewAAAA(q.Name, ip.To16()))
 		}
 	}
@@ -473,6 +487,8 @@ func (s *server) NSRecords(q dns.Question, name string) (records []dns.RR, extra
 	if err != nil {
 		return nil, nil, err
 	}
+
+	services = msg.Group(services)
 
 	for _, serv := range services {
 		ip := net.ParseIP(serv.Host)
@@ -493,12 +509,14 @@ func (s *server) NSRecords(q dns.Question, name string) (records []dns.RR, extra
 }
 
 // SRVRecords returns SRV records from etcd.
-// If the Target is not an name but an IP address, an name is created .
+// If the Target is not a name but an IP address, a name is created.
 func (s *server) SRVRecords(q dns.Question, name string, bufsize uint16, dnssec bool) (records []dns.RR, extra []dns.RR, err error) {
 	services, err := s.backend.Records(name, false)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	services = msg.Group(services)
 
 	// Looping twice to get the right weight vs priority
 	w := make(map[int]int)
@@ -527,24 +545,37 @@ func (s *server) SRVRecords(q dns.Question, name string, bufsize uint16, dnssec 
 		case ip == nil:
 			srv := serv.NewSRV(q.Name, weight)
 			records = append(records, srv)
-			if _, ok := lookup[srv.Target]; !ok {
-				if !dns.IsSubDomain(s.config.Domain, srv.Target) {
-					m1, e1 := s.Lookup(srv.Target, dns.TypeA, bufsize, dnssec)
-					if e1 == nil {
-						extra = append(extra, m1.Answer...)
-					}
-					m1, e1 = s.Lookup(srv.Target, dns.TypeAAAA, bufsize, dnssec)
-					if e1 == nil {
-						// If we have seen CNAME's we *assume* that they are already added.
-						for _, a := range m1.Answer {
-							if _, ok := a.(*dns.CNAME); !ok {
-								extra = append(extra, a)
-							}
+
+			if _, ok := lookup[srv.Target]; ok {
+				break
+			}
+
+			lookup[srv.Target] = true
+
+			if !dns.IsSubDomain(s.config.Domain, srv.Target) {
+				m1, e1 := s.Lookup(srv.Target, dns.TypeA, bufsize, dnssec)
+				if e1 == nil {
+					extra = append(extra, m1.Answer...)
+				}
+				m1, e1 = s.Lookup(srv.Target, dns.TypeAAAA, bufsize, dnssec)
+				if e1 == nil {
+					// If we have seen CNAME's we *assume* that they are already added.
+					for _, a := range m1.Answer {
+						if _, ok := a.(*dns.CNAME); !ok {
+							extra = append(extra, a)
 						}
 					}
 				}
+				break
 			}
-			lookup[srv.Target] = true
+			// Internal name, we should have some info on them, either v4 or v6
+			// Clients expect a complete answer, because we are a recursor in their
+			// view.
+			addr, e1 := s.AddressRecords(dns.Question{srv.Target, dns.ClassINET, dns.TypeA},
+				srv.Target, nil, bufsize, dnssec, true)
+			if e1 == nil {
+				extra = append(extra, addr...)
+			}
 		case ip.To4() != nil:
 			serv.Host = msg.Domain(serv.Key)
 			records = append(records, serv.NewSRV(q.Name, weight))
@@ -558,11 +589,72 @@ func (s *server) SRVRecords(q dns.Question, name string, bufsize uint16, dnssec 
 	return records, extra, nil
 }
 
+// MXRecords returns MX records from etcd.
+// If the Target is not a name but an IP address, a name is created.
+func (s *server) MXRecords(q dns.Question, name string, bufsize uint16, dnssec bool) (records []dns.RR, extra []dns.RR, err error) {
+	services, err := s.backend.Records(name, false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	lookup := make(map[string]bool)
+	for _, serv := range services {
+		if !serv.Mail {
+			continue
+		}
+		ip := net.ParseIP(serv.Host)
+		switch {
+		case ip == nil:
+			mx := serv.NewMX(q.Name)
+			records = append(records, mx)
+			if _, ok := lookup[mx.Mx]; ok {
+				break
+			}
+
+			lookup[mx.Mx] = true
+
+			if !dns.IsSubDomain(s.config.Domain, mx.Mx) {
+				m1, e1 := s.Lookup(mx.Mx, dns.TypeA, bufsize, dnssec)
+				if e1 == nil {
+					extra = append(extra, m1.Answer...)
+				}
+				m1, e1 = s.Lookup(mx.Mx, dns.TypeAAAA, bufsize, dnssec)
+				if e1 == nil {
+					// If we have seen CNAME's we *assume* that they are already added.
+					for _, a := range m1.Answer {
+						if _, ok := a.(*dns.CNAME); !ok {
+							extra = append(extra, a)
+						}
+					}
+				}
+				break
+			}
+			// Internal name
+			addr, e1 := s.AddressRecords(dns.Question{mx.Mx, dns.ClassINET, dns.TypeA},
+				mx.Mx, nil, bufsize, dnssec, true)
+			if e1 == nil {
+				extra = append(extra, addr...)
+			}
+		case ip.To4() != nil:
+			serv.Host = msg.Domain(serv.Key)
+			records = append(records, serv.NewMX(q.Name))
+			extra = append(extra, serv.NewA(serv.Host, ip.To4()))
+		case ip.To4() == nil:
+			serv.Host = msg.Domain(serv.Key)
+			records = append(records, serv.NewMX(q.Name))
+			extra = append(extra, serv.NewAAAA(serv.Host, ip.To16()))
+		}
+	}
+	return records, extra, nil
+}
+
 func (s *server) CNAMERecords(q dns.Question, name string) (records []dns.RR, err error) {
 	services, err := s.backend.Records(name, true)
 	if err != nil {
 		return nil, err
 	}
+
+	services = msg.Group(services)
 
 	if len(services) > 0 {
 		serv := services[0]
@@ -578,6 +670,8 @@ func (s *server) TXTRecords(q dns.Question, name string) (records []dns.RR, err 
 	if err != nil {
 		return nil, err
 	}
+
+	services = msg.Group(services)
 
 	for _, serv := range services {
 		if serv.Text == "" {
@@ -595,8 +689,6 @@ func (s *server) PTRRecords(q dns.Question) (records []dns.RR, err error) {
 		return nil, err
 	}
 
-	// If serv.Host is parseble as a IP address we should not return anything.
-	// TODO(miek).
 	records = append(records, serv.NewPTR(q.Name, serv.Ttl))
 	return records, nil
 }
@@ -681,18 +773,32 @@ func (s *server) RoundRobin(rrs []dns.RR) {
 
 // dedup will de-duplicate a message on a per section basis.
 // Multiple identical (same name, class, type and rdata) RRs will be coalesced into one.
-func dedup(m *dns.Msg) *dns.Msg {
+func (s *server) dedup(m *dns.Msg) *dns.Msg {
 	// Answer section
 	ma := make(map[string]dns.RR)
 	for _, a := range m.Answer {
-		// Or use Pack()... Think this function also could be places in go dns.
-		s := a.Header().Name
-		s += strconv.Itoa(int(a.Header().Class))
-		s += strconv.Itoa(int(a.Header().Rrtype))
-		for i := 1; i <= dns.NumField(a); i++ {
-			s += dns.Field(a, i)
+		// Or use Pack()... Think this function also could be placed in go dns.
+		s1 := a.Header().Name
+		s1 += strconv.Itoa(int(a.Header().Class))
+		s1 += strconv.Itoa(int(a.Header().Rrtype))
+		// there can only be one CNAME for an ownername
+		if a.Header().Rrtype == dns.TypeCNAME {
+			if _, ok := ma[s1]; ok {
+				// already exist, randomly overwrite if roundrobin is true
+				// Note: even with roundrobin *off* this depends on the
+				// order we get the names.
+				if s.config.RoundRobin && dns.Id()%2 == 0 {
+					ma[s1] = a
+					continue
+				}
+			}
+			ma[s1] = a
+			continue
 		}
-		ma[s] = a
+		for i := 1; i <= dns.NumField(a); i++ {
+			s1 += dns.Field(a, i)
+		}
+		ma[s1] = a
 	}
 	// Only is our map is smaller than the #RR in the answer section we should reset the RRs
 	// in the section it self
@@ -708,13 +814,25 @@ func dedup(m *dns.Msg) *dns.Msg {
 	// Additional section
 	me := make(map[string]dns.RR)
 	for _, e := range m.Extra {
-		s := e.Header().Name
-		s += strconv.Itoa(int(e.Header().Class))
-		s += strconv.Itoa(int(e.Header().Rrtype))
-		for i := 1; i <= dns.NumField(e); i++ {
-			s += dns.Field(e, i)
+		s1 := e.Header().Name
+		s1 += strconv.Itoa(int(e.Header().Class))
+		s1 += strconv.Itoa(int(e.Header().Rrtype))
+		// there can only be one CNAME for an ownername
+		if e.Header().Rrtype == dns.TypeCNAME {
+			if _, ok := me[s1]; ok {
+				// already exist, randomly overwrite if roundrobin is true
+				if s.config.RoundRobin && dns.Id()%2 == 0 {
+					me[s1] = e
+					continue
+				}
+			}
+			me[s1] = e
+			continue
 		}
-		me[s] = e
+		for i := 1; i <= dns.NumField(e); i++ {
+			s1 += dns.Field(e, i)
+		}
+		me[s1] = e
 	}
 
 	if len(me) < len(m.Extra) {
