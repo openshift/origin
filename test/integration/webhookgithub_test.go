@@ -47,6 +47,13 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	checkErr(t, err)
+
+	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
 	// create imagerepo
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
