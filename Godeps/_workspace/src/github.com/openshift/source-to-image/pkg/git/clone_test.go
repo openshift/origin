@@ -15,12 +15,12 @@ func TestCloneWithContext(t *testing.T) {
 	fs := &test.FakeFileSystem{}
 	c := &Clone{gh, fs}
 
-	fakeRequest := &api.Request{
+	fakeConfig := &api.Config{
 		Source:     "https://foo/bar.git",
 		ContextDir: "subdir",
 		Ref:        "ref1",
 	}
-	err := c.Download(fakeRequest)
+	err := c.Download(fakeConfig)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -45,12 +45,12 @@ func TestCloneLocalWithContext(t *testing.T) {
 	fs := &test.FakeFileSystem{}
 	c := &Clone{gh, fs}
 
-	fakeRequest := &api.Request{
+	fakeConfig := &api.Config{
 		Source:     "source",
 		ContextDir: "subdir",
 		Ref:        "ref1",
 	}
-	err := c.Download(fakeRequest)
+	err := c.Download(fakeConfig)
 	if err != nil {
 		t.Errorf("%v", err)
 	}

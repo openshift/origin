@@ -122,7 +122,7 @@ func NewTarTimeoutError() error {
 		Message:    fmt.Sprintf("timeout waiting for tar stream"),
 		Details:    nil,
 		ErrorCode:  TarTimeoutError,
-		Suggestion: "check the sti-helper script if it accepts tar stream for assemble and sends for save-artifacts",
+		Suggestion: "check the Source-To-Image scripts if it accepts tar stream for assemble and sends for save-artifacts",
 	}
 }
 
@@ -155,7 +155,7 @@ func NewInstallError(script string) error {
 		Message:    fmt.Sprintf("failed to install %v", script),
 		Details:    nil,
 		ErrorCode:  InstallError,
-		Suggestion: "provide URL with STI scripts with -s flag or check the image if it contains STI_SCRIPTS_URL variable set",
+		Suggestion: "provide URL with Source-To-Image scripts with -s flag or check the image if it contains io.openshift.sti.scripts-url label set",
 	}
 }
 
@@ -166,7 +166,7 @@ func NewInstallRequiredError(scripts []string) error {
 		Message:    fmt.Sprintf("failed to install %v", scripts),
 		Details:    nil,
 		ErrorCode:  InstallErrorRequired,
-		Suggestion: "provide URL with STI scripts with -s flag or check the image if it contains STI_SCRIPTS_URL variable set",
+		Suggestion: "provide URL with Source-To-Image scripts with -s flag or check the image if it contains io.openshift.sti.scripts-url label set",
 	}
 }
 

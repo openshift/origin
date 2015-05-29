@@ -2,11 +2,11 @@ package api
 
 import docker "github.com/fsouza/go-dockerclient"
 
-// Request contains essential fields for any request.
-type Request struct {
+// Config contains essential fields for performing build.
+type Config struct {
 
-	// BaseImage describes which image is used for building the result images.
-	BaseImage string
+	// BuilderImage describes which image is used for building the result images.
+	BuilderImage string
 
 	// DockerConfig describes how to access host docker daemon.
 	DockerConfig *DockerConfig
@@ -40,6 +40,10 @@ type Request struct {
 	// Environment is a map of environment variables to be passed to the image.
 	Environment map[string]string
 
+	// EnvironmentFile provides the path to a file with list of environment
+	// variables.
+	EnvironmentFile string
+
 	// CallbackURL is a URL which is called upon successful build to inform about that fact.
 	CallbackURL string
 
@@ -55,13 +59,8 @@ type Request struct {
 	// WorkingDir describes temporary directory used for downloading sources, scripts and tar operations.
 	WorkingDir string
 
-	// LayeredBuild describes if this is build which layered scripts and sources on top of BaseImage.
+	// LayeredBuild describes if this is build which layered scripts and sources on top of BuilderImage.
 	LayeredBuild bool
-
-	// InstallDestination allows to override the default destination of the STI
-	// scripts. It allows to place the scripts into application root directory
-	// (see ONBUILD strategy). The default value is "upload/scripts".
-	InstallDestination string
 
 	// Operate quietly. Progress and assemble script output are not reported, only fatal errors.
 	// (default: false).
@@ -70,6 +69,12 @@ type Request struct {
 	// Specify a relative directory inside the application repository that should
 	// be used as a root directory for the application.
 	ContextDir string
+
+	// DNS servers to use when running build container
+	DNS []string
+
+	// DNS search suffixes to use when running build container
+	DNSSearch []string
 }
 
 // DockerConfig contains the configuration for a Docker connection

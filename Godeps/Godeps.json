@@ -991,43 +991,43 @@
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
-			"Comment": "v0.5",
-			"Rev": "ac0b2512c9f933afa985b056a7f3cbce1942cacb"
+			"Comment": "v0.5.1-20-g06d3731",
+			"Rev": "06d37319e53c3d495a3e07c0e16d613776e14d38"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build",
-			"Comment": "v0.5",
-			"Rev": "ac0b2512c9f933afa985b056a7f3cbce1942cacb"
+			"Comment": "v0.5.1-20-g06d3731",
+			"Rev": "06d37319e53c3d495a3e07c0e16d613776e14d38"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/docker",
-			"Comment": "v0.5",
-			"Rev": "ac0b2512c9f933afa985b056a7f3cbce1942cacb"
+			"Comment": "v0.5.1-20-g06d3731",
+			"Rev": "06d37319e53c3d495a3e07c0e16d613776e14d38"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/errors",
-			"Comment": "v0.5",
-			"Rev": "ac0b2512c9f933afa985b056a7f3cbce1942cacb"
+			"Comment": "v0.5.1-20-g06d3731",
+			"Rev": "06d37319e53c3d495a3e07c0e16d613776e14d38"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/git",
-			"Comment": "v0.5",
-			"Rev": "ac0b2512c9f933afa985b056a7f3cbce1942cacb"
+			"Comment": "v0.5.1-20-g06d3731",
+			"Rev": "06d37319e53c3d495a3e07c0e16d613776e14d38"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scripts",
-			"Comment": "v0.5",
-			"Rev": "ac0b2512c9f933afa985b056a7f3cbce1942cacb"
+			"Comment": "v0.5.1-20-g06d3731",
+			"Rev": "06d37319e53c3d495a3e07c0e16d613776e14d38"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
-			"Comment": "v0.5",
-			"Rev": "ac0b2512c9f933afa985b056a7f3cbce1942cacb"
+			"Comment": "v0.5.1-20-g06d3731",
+			"Rev": "06d37319e53c3d495a3e07c0e16d613776e14d38"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util",
-			"Comment": "v0.5",
-			"Rev": "ac0b2512c9f933afa985b056a7f3cbce1942cacb"
+			"Comment": "v0.5.1-20-g06d3731",
+			"Rev": "06d37319e53c3d495a3e07c0e16d613776e14d38"
 		},
 		{
 			"ImportPath": "github.com/pkg/profile",
