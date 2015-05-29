@@ -93,9 +93,8 @@
             <dl class="dl-horizontal left indent">
 
               <div ng-repeat="trigger in buildConfig.triggers">
-                <span ng-switch="trigger.type">
-                  <span ng-switch-when="github">
-                    
+                <div ng-switch="trigger.type">
+                  <div ng-switch-when="github">
                       <dt>GitHub webhook URL
                       <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more 
                       <i class="fa fa-external-link"></i></span></a>
@@ -104,19 +103,17 @@
                         <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
                         <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
                       </dd>
-
-                  </span>
-                  <span ng-switch-when="generic">
-
+                  </div>
+                  <div ng-switch-when="generic">
                       <dt>Generic webhook URL
                         <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
+                      </dt>
                       <dd>
                         <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
                         <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard-button>
                       </dd>
-
-                  </span>
-                  <span ng-switch-when="imageChange">                    
+                  </div>
+                  <div ng-switch-when="imageChange">
                     <div ng-switch="buildConfig.parameters.strategy.type">
                       <div ng-switch-when="STI">
                         <dl class="dl-horizontal" ng-if="buildConfig.parameters.strategy.stiStrategy.from&& buildConfig.parameters.strategy.stiStrategy.from.kind!='ImageStreamImage'">
@@ -151,9 +148,9 @@
                         </dl>
                       </div>                  
                     </div>
-                  </span>
-                  <span ng-switch-default>{{trigger.type}}</span>
-                </span>
+                  </div>
+                  <div ng-switch-default>{{trigger.type}}</div>
+                </div>
               </div>
             </dl>
 
