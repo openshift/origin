@@ -206,7 +206,7 @@ func (c *deployLatestCommand) deploy(config *deployapi.DeploymentConfig, out io.
 		// Reject attempts to start a concurrent deployment.
 		status := deployutil.DeploymentStatusFor(deployment)
 		if status != deployapi.DeploymentStatusComplete && status != deployapi.DeploymentStatusFailed {
-			return fmt.Errorf("#%d is already in progress (%s)", config.LatestVersion, status)
+			return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.", config.LatestVersion, status)
 		}
 	}
 
@@ -228,16 +228,26 @@ type retryDeploymentCommand struct {
 // currently in a failed state.
 func (c *retryDeploymentCommand) retry(config *deployapi.DeploymentConfig, out io.Writer) error {
 	if config.LatestVersion == 0 {
-		return fmt.Errorf("no failed deployments found for %s/%s", config.Namespace, config.Name)
+		return fmt.Errorf("no deployments found for %s/%s", config.Namespace, config.Name)
 	}
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := c.client.GetDeployment(config.Namespace, deploymentName)
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return fmt.Errorf("Unable to find the latest deployment (#%d).\nYou can start a new deployment using the --latest option.", config.LatestVersion)
+		}
 		return err
 	}
 
 	if status := deployutil.DeploymentStatusFor(deployment); status != deployapi.DeploymentStatusFailed {
-		return fmt.Errorf("#%d is %s; only failed deployments can be retried", config.LatestVersion, status)
+		message := fmt.Sprintf("#%d is %s; only failed deployments can be retried.\n", config.LatestVersion, status)
+		if status == deployapi.DeploymentStatusComplete {
+			message += fmt.Sprintf("You can start a new deployment using the --latest option.")
+		} else {
+			message += fmt.Sprintf("Optionally, you can cancel this deployment using the --cancel option.", config.LatestVersion)
+		}
+
+		return fmt.Errorf(message)
 	}
 
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
