@@ -239,9 +239,14 @@ func (o MasterOptions) RunMaster() error {
 		return nil
 	}
 
-	errs := validation.ValidateMasterConfig(masterConfig)
-	if len(errs) != 0 {
-		return kerrors.NewInvalid("MasterConfig", o.ConfigFile, errs)
+	validationResults := validation.ValidateMasterConfig(masterConfig)
+	if len(validationResults.Warnings) != 0 {
+		for _, warning := range validationResults.Warnings {
+			glog.Warningf("%v", warning)
+		}
+	}
+	if len(validationResults.Errors) != 0 {
+		return kerrors.NewInvalid("MasterConfig", o.ConfigFile, validationResults.Errors)
 	}
 
 	if err := StartMaster(masterConfig); err != nil {

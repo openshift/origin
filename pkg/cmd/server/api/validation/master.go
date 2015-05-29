@@ -16,26 +16,56 @@ import (
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
-func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+type ValidationResults struct {
+	Warnings fielderrors.ValidationErrorList
+	Errors   fielderrors.ValidationErrorList
+}
+
+func (r *ValidationResults) Append(additionalResults ValidationResults) {
+	r.AddErrors(additionalResults.Errors...)
+	r.AddWarnings(additionalResults.Warnings...)
+}
+
+func (r *ValidationResults) AddErrors(errors ...error) {
+	if len(errors) == 0 {
+		return
+	}
+	r.Errors = append(r.Errors, errors...)
+}
+
+func (r *ValidationResults) AddWarnings(warnings ...error) {
+	if len(warnings) == 0 {
+		return
+	}
+	r.Warnings = append(r.Warnings, warnings...)
+}
+
+func (r ValidationResults) Prefix(prefix string) ValidationResults {
+	r.Warnings = r.Warnings.Prefix(prefix)
+	r.Errors = r.Errors.Prefix(prefix)
+	return r
+}
+
+func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
+	validationResults := ValidationResults{}
 
 	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
-		allErrs = append(allErrs, urlErrs...)
+		validationResults.AddErrors(urlErrs...)
 	}
 
 	if config.AssetConfig != nil {
-		allErrs = append(allErrs, ValidateAssetConfig(config.AssetConfig).Prefix("assetConfig")...)
+		validationResults.AddErrors(ValidateAssetConfig(config.AssetConfig).Prefix("assetConfig")...)
 		colocated := config.AssetConfig.ServingInfo.BindAddress == config.ServingInfo.BindAddress
 		if colocated {
 			publicURL, _ := url.Parse(config.AssetConfig.PublicURL)
 			if publicURL.Path == "/" {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
+				validationResults.AddErrors(fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
 			}
 		}
 
 		if config.OAuthConfig != nil {
 			if config.OAuthConfig.AssetPublicURL != config.AssetConfig.PublicURL {
-				allErrs = append(allErrs,
+				validationResults.AddErrors(
 					fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "must match oauthConfig.assetPublicURL"),
 					fielderrors.NewFieldInvalid("oauthConfig.assetPublicURL", config.OAuthConfig.AssetPublicURL, "must match assetConfig.publicURL"),
 				)
@@ -47,60 +77,83 @@ func ValidateMasterConfig(config *api.MasterConfig) fielderrors.ValidationErrorL
 	}
 
 	if config.DNSConfig != nil {
-		allErrs = append(allErrs, ValidateHostPort(config.DNSConfig.BindAddress, "bindAddress").Prefix("dnsConfig")...)
+		validationResults.AddErrors(ValidateHostPort(config.DNSConfig.BindAddress, "bindAddress").Prefix("dnsConfig")...)
 	}
 
 	if config.EtcdConfig != nil {
 		etcdConfigErrs := ValidateEtcdConfig(config.EtcdConfig).Prefix("etcdConfig")
-		allErrs = append(allErrs, etcdConfigErrs...)
+		validationResults.AddErrors(etcdConfigErrs...)
 
 		if len(etcdConfigErrs) == 0 {
 			// Validate the etcdClientInfo with the internal etcdConfig
-			allErrs = append(allErrs, ValidateEtcdConnectionInfo(config.EtcdClientInfo, config.EtcdConfig).Prefix("etcdClientInfo")...)
+			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, config.EtcdConfig).Prefix("etcdClientInfo")...)
 		} else {
 			// Validate the etcdClientInfo by itself
-			allErrs = append(allErrs, ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil).Prefix("etcdClientInfo")...)
+			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil).Prefix("etcdClientInfo")...)
 		}
 	} else {
 		// Validate the etcdClientInfo by itself
-		allErrs = append(allErrs, ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil).Prefix("etcdClientInfo")...)
+		validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, nil).Prefix("etcdClientInfo")...)
 	}
-	allErrs = append(allErrs, ValidateEtcdStorageConfig(config.EtcdStorageConfig).Prefix("etcdStorageConfig")...)
+	validationResults.AddErrors(ValidateEtcdStorageConfig(config.EtcdStorageConfig).Prefix("etcdStorageConfig")...)
 
-	allErrs = append(allErrs, ValidateImageConfig(config.ImageConfig).Prefix("imageConfig")...)
+	validationResults.AddErrors(ValidateImageConfig(config.ImageConfig).Prefix("imageConfig")...)
 
-	allErrs = append(allErrs, ValidateKubeletConnectionInfo(config.KubeletClientInfo).Prefix("kubeletClientInfo")...)
+	validationResults.AddErrors(ValidateKubeletConnectionInfo(config.KubeletClientInfo).Prefix("kubeletClientInfo")...)
 
 	builtInKubernetes := config.KubernetesMasterConfig != nil
 	if config.KubernetesMasterConfig != nil {
-		allErrs = append(allErrs, ValidateKubernetesMasterConfig(config.KubernetesMasterConfig).Prefix("kubernetesMasterConfig")...)
+		validationResults.Append(ValidateKubernetesMasterConfig(config.KubernetesMasterConfig).Prefix("kubernetesMasterConfig"))
 	}
 	if (config.KubernetesMasterConfig == nil) && (len(config.MasterClients.ExternalKubernetesKubeConfig) == 0) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("kubernetesMasterConfig", config.KubernetesMasterConfig, "either kubernetesMasterConfig or masterClients.externalKubernetesKubeConfig must have a value"))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("kubernetesMasterConfig", config.KubernetesMasterConfig, "either kubernetesMasterConfig or masterClients.externalKubernetesKubeConfig must have a value"))
 	}
 	if (config.KubernetesMasterConfig != nil) && (len(config.MasterClients.ExternalKubernetesKubeConfig) != 0) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("kubernetesMasterConfig", config.KubernetesMasterConfig, "kubernetesMasterConfig and masterClients.externalKubernetesKubeConfig are mutually exclusive"))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("kubernetesMasterConfig", config.KubernetesMasterConfig, "kubernetesMasterConfig and masterClients.externalKubernetesKubeConfig are mutually exclusive"))
 	}
 
-	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.DeployerKubeConfig, "deployerKubeConfig").Prefix("masterClients")...)
-	allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, "openShiftLoopbackKubeConfig").Prefix("masterClients")...)
+	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.DeployerKubeConfig, "deployerKubeConfig").Prefix("masterClients")...)
+	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, "openShiftLoopbackKubeConfig").Prefix("masterClients")...)
 
 	if len(config.MasterClients.ExternalKubernetesKubeConfig) > 0 {
-		allErrs = append(allErrs, ValidateKubeConfig(config.MasterClients.ExternalKubernetesKubeConfig, "externalKubernetesKubeConfig").Prefix("masterClients")...)
+		validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.ExternalKubernetesKubeConfig, "externalKubernetesKubeConfig").Prefix("masterClients")...)
 	}
 
-	allErrs = append(allErrs, ValidatePolicyConfig(config.PolicyConfig).Prefix("policyConfig")...)
+	validationResults.AddErrors(ValidatePolicyConfig(config.PolicyConfig).Prefix("policyConfig")...)
 	if config.OAuthConfig != nil {
-		allErrs = append(allErrs, ValidateOAuthConfig(config.OAuthConfig).Prefix("oauthConfig")...)
+		validationResults.AddErrors(ValidateOAuthConfig(config.OAuthConfig).Prefix("oauthConfig")...)
 	}
 
-	allErrs = append(allErrs, ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig")...)
+	validationResults.AddErrors(ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig")...)
 
-	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+	validationResults.AddErrors(ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
-	allErrs = append(allErrs, ValidateProjectConfig(config.ProjectConfig).Prefix("projectConfig")...)
+	validationResults.AddErrors(ValidateProjectConfig(config.ProjectConfig).Prefix("projectConfig")...)
 
-	return allErrs
+	validationResults.Append(ValidateAPILevels(config.APILevels, api.KnownOpenShiftAPILevels, api.DeadOpenShiftAPILevels, "apiLevels"))
+
+	return validationResults
+}
+
+func ValidateAPILevels(apiLevels []string, knownAPILevels, deadAPILevels []string, name string) ValidationResults {
+	validationResults := ValidationResults{}
+
+	if len(apiLevels) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired(name))
+	}
+
+	deadLevels := util.NewStringSet(deadAPILevels...)
+	knownLevels := util.NewStringSet(knownAPILevels...)
+	for i, apiLevel := range apiLevels {
+		if deadLevels.Has(apiLevel) {
+			validationResults.AddWarnings(fielderrors.NewFieldInvalid(fmt.Sprintf(name+"[%d]", i), apiLevel, "unsupported level"))
+		}
+		if !knownLevels.Has(apiLevel) {
+			validationResults.AddWarnings(fielderrors.NewFieldInvalid(fmt.Sprintf(name+"[%d]", i), apiLevel, "unknown level"))
+		}
+	}
+
+	return validationResults
 }
 
 func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.ValidationErrorList {
@@ -219,34 +272,36 @@ func ValidateKubeletConnectionInfo(config api.KubeletConnectionInfo) fielderrors
 	return allErrs
 }
 
-func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) ValidationResults {
+	validationResults := ValidationResults{}
 
 	if len(config.MasterIP) > 0 {
-		allErrs = append(allErrs, ValidateSpecifiedIP(config.MasterIP, "masterIP")...)
+		validationResults.AddErrors(ValidateSpecifiedIP(config.MasterIP, "masterIP")...)
 	}
 
 	if config.MasterCount < 1 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("masterCount", config.MasterCount, "must be a positive integer"))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("masterCount", config.MasterCount, "must be a positive integer"))
 	}
 
 	if len(config.ServicesSubnet) > 0 {
 		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.ServicesSubnet)); err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("servicesSubnet", config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("servicesSubnet", config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
 		}
 	}
 
 	if len(config.SchedulerConfigFile) > 0 {
-		allErrs = append(allErrs, ValidateFile(config.SchedulerConfigFile, "schedulerConfigFile")...)
+		validationResults.AddErrors(ValidateFile(config.SchedulerConfigFile, "schedulerConfigFile")...)
 	}
 
 	for i, nodeName := range config.StaticNodeNames {
 		if len(nodeName) == 0 {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("staticNodeName[%d]", i), nodeName, "may not be empty"))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid(fmt.Sprintf("staticNodeName[%d]", i), nodeName, "may not be empty"))
 		}
 	}
 
-	return allErrs
+	validationResults.Append(ValidateAPILevels(config.APILevels, api.KnownKubernetesAPILevels, api.DeadKubernetesAPILevels, "apiLevels"))
+
+	return validationResults
 }
 
 func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorList {

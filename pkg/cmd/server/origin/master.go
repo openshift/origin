@@ -292,8 +292,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"processedTemplates": templateregistry.NewREST(false),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
-		// DEPRECATED: remove with v1beta1
-		"templateConfigs": templateregistry.NewREST(true),
 
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
@@ -326,16 +324,25 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"clusterRoles":          clusterRoleStorage,
 	}
 
-	if err := c.api_v1beta1(storage).InstallREST(container); err != nil {
-		glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
+	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta1) {
+		// templateConfigs is only available in v1beta1
+		storage["templateConfigs"] = templateregistry.NewREST(true)
+
+		if err := c.api_v1beta1(storage).InstallREST(container); err != nil {
+			glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
+		}
 	}
 
-	if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
-		glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
+	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta3) {
+		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
+			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
+		}
 	}
 
-	if err := c.api_v1(storage).InstallREST(container); err != nil {
-		glog.Fatalf("Unable to initialize v1 API: %v", err)
+	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1) {
+		if err := c.api_v1(storage).InstallREST(container); err != nil {
+			glog.Fatalf("Unable to initialize v1 API: %v", err)
+		}
 	}
 
 	var root *restful.WebService

@@ -6,6 +6,15 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
+var (
+	KnownKubernetesAPILevels   = []string{"v1beta1", "v1beta2", "v1beta3", "v1"}
+	KnownOpenShiftAPILevels    = []string{"v1beta1", "v1beta3", "v1"}
+	DefaultKubernetesAPILevels = []string{"v1beta1", "v1beta2", "v1beta3", "v1"}
+	DefaultOpenShiftAPILevels  = []string{"v1beta1", "v1beta3", "v1"}
+	DeadKubernetesAPILevels    = []string{}
+	DeadOpenShiftAPILevels     = []string{}
+)
+
 // NodeConfig is the fully specified config starting an OpenShift node
 type NodeConfig struct {
 	api.TypeMeta
@@ -50,6 +59,9 @@ type MasterConfig struct {
 
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string
+
+	// APILevels is a list of API levels that should be enabled on startup: v1beta1, v1beta3, v1 as examples
+	APILevels []string
 
 	// MasterPublicURL is how clients can access the OpenShift API server
 	MasterPublicURL string
@@ -432,6 +444,8 @@ type EtcdConfig struct {
 }
 
 type KubernetesMasterConfig struct {
+	// APILevels is a list of API levels that should be enabled on startup: v1beta1, v1beta2, v1beta3, v1 as examples
+	APILevels []string
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string
 	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.

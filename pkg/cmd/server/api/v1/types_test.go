@@ -42,7 +42,8 @@ volumeDirectory: ""
 	// Before modifying this constant, ensure any changes have corresponding issues filed for:
 	// - documentation: https://github.com/openshift/openshift-docs/
 	// - install: https://github.com/openshift/openshift-ansible/
-	expectedSerializedMasterConfig = `apiVersion: v1
+	expectedSerializedMasterConfig = `apiLevels: null
+apiVersion: v1
 assetConfig:
   logoutURL: ""
   masterPublicURL: ""
@@ -89,6 +90,7 @@ kubeletClientInfo:
   keyFile: ""
   port: 0
 kubernetesMasterConfig:
+  apiLevels: null
   masterCount: 0
   masterIP: ""
   schedulerConfigFile: ""

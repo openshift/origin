@@ -1,19 +1,17 @@
 package validation
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
-
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-func ValidateAllInOneConfig(master *api.MasterConfig, node *api.NodeConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateAllInOneConfig(master *api.MasterConfig, node *api.NodeConfig) ValidationResults {
+	validationResults := ValidationResults{}
 
-	allErrs = append(allErrs, ValidateMasterConfig(master).Prefix("masterConfig")...)
+	validationResults.Append(ValidateMasterConfig(master).Prefix("masterConfig"))
 
-	allErrs = append(allErrs, ValidateNodeConfig(node).Prefix("nodeConfig")...)
+	validationResults.AddErrors(ValidateNodeConfig(node).Prefix("nodeConfig")...)
 
 	// Validation between the configs
 
-	return allErrs
+	return validationResults
 }

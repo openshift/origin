@@ -21,12 +21,11 @@ import (
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
-	MasterIP    net.IP
-	MasterPort  int
-	MasterCount int
+	Options configapi.KubernetesMasterConfig
+
+	MasterPort int
 
 	// TODO: remove, not used
-	NodeHosts []string
 	PortalNet *net.IPNet
 
 	RequestContextMapper kapi.RequestContextMapper
@@ -37,8 +36,6 @@ type MasterConfig struct {
 
 	Authorizer       authorizer.Authorizer
 	AdmissionControl admission.Interface
-
-	SchedulerConfigFile string
 }
 
 func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client) (*MasterConfig, error) {
@@ -76,10 +73,9 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	kmaster := &MasterConfig{
-		MasterIP:             net.ParseIP(options.KubernetesMasterConfig.MasterIP),
+		Options: *options.KubernetesMasterConfig,
+
 		MasterPort:           port,
-		MasterCount:          options.KubernetesMasterConfig.MasterCount,
-		NodeHosts:            options.KubernetesMasterConfig.StaticNodeNames,
 		PortalNet:            &portalNet,
 		RequestContextMapper: requestContextMapper,
 		EtcdHelper:           ketcdHelper,
@@ -87,7 +83,6 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		KubeletClientConfig:  kubeletClientConfig,
 		Authorizer:           apiserver.NewAlwaysAllowAuthorizer(),
 		AdmissionControl:     admissionController,
-		SchedulerConfigFile:  options.KubernetesMasterConfig.SchedulerConfigFile,
 	}
 
 	return kmaster, nil
