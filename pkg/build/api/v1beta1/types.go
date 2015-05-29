@@ -457,6 +457,9 @@ type BuildRequest struct {
 	Revision *SourceRevision `json:"revision,omitempty"`
 
 	// Image is the image that triggered this build.
+	// BuildRequest gains this required field (Image) that the image change
+	// controller sets to tell the BuildGenerator what value to set for
+	// LastTriggeredImageID.
 	Image string `json:"image,omitempty"`
 }
 
