@@ -40,7 +40,26 @@ type NodeConfig struct {
 	// PodManifestConfig holds the configuration for enabling the Kubelet to
 	// create pods based from a manifest file(s) placed locally on the node
 	PodManifestConfig *PodManifestConfig
+
+	// DockerConfig holds Docker related configuration options.
+	DockerConfig DockerConfig
 }
+
+// DockerConfig holds Docker related configuration options.
+type DockerConfig struct {
+	// ExecHandlerName is the name of the handler to use for executing
+	// commands in Docker containers.
+	ExecHandlerName DockerExecHandlerType
+}
+
+type DockerExecHandlerType string
+
+const (
+	// DockerExecHandlerNative uses Docker's exec API for executing commands in containers.
+	DockerExecHandlerNative DockerExecHandlerType = "native"
+	// DockerExecHandlerNative uses nsenter for executing commands in containers.
+	DockerExecHandlerNsenter DockerExecHandlerType = "nsenter"
+)
 
 type MasterConfig struct {
 	api.TypeMeta

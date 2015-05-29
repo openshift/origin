@@ -19,6 +19,8 @@ const (
 apiVersion: v1
 dnsDomain: ""
 dnsIP: ""
+dockerConfig:
+  execHandlerName: ""
 imageConfig:
   format: ""
   latest: false

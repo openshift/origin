@@ -1,6 +1,9 @@
 package validation
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
@@ -24,6 +27,22 @@ func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList 
 
 	if config.PodManifestConfig != nil {
 		allErrs = append(allErrs, ValidatePodManifestConfig(config.PodManifestConfig).Prefix("podManifestConfig")...)
+	}
+
+	allErrs = append(allErrs, ValidateDockerConfig(config.DockerConfig).Prefix("dockerConfig")...)
+
+	return allErrs
+}
+
+func ValidateDockerConfig(config api.DockerConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	switch config.ExecHandlerName {
+	case api.DockerExecHandlerNative, api.DockerExecHandlerNsenter:
+		// ok
+	default:
+		validValues := strings.Join([]string{string(api.DockerExecHandlerNative), string(api.DockerExecHandlerNsenter)}, ", ")
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("execHandlerName", config.ExecHandlerName, fmt.Sprintf("must be one of %s", validValues)))
 	}
 
 	return allErrs

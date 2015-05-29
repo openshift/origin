@@ -27,6 +27,11 @@ func init() {
 				obj.OpenShiftStoragePrefix = "openshift.io"
 			}
 		},
+		func(obj *DockerConfig) {
+			if len(obj.ExecHandlerName) == 0 {
+				obj.ExecHandlerName = DockerExecHandlerNative
+			}
+		},
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

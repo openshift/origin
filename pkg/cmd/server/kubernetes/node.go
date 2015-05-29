@@ -226,6 +226,7 @@ func (c *NodeConfig) RunKubelet() {
 		DockerDaemonContainer:     "",
 		ConfigureCBR0:             false,
 		MaxPods:                   200,
+		DockerExecHandler:         c.DockerExecHandler,
 	}
 	kapp.RunKubelet(&kcfg, nil)
 }
