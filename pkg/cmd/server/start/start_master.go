@@ -401,6 +401,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	openshiftConfig.RunProjectAuthorizationCache()
 	openshiftConfig.RunServiceAccountsController()
 	openshiftConfig.RunServiceAccountTokensController()
+	openshiftConfig.RunServiceAccountPullSecretsControllers()
 
 	openshiftConfig.RunSDNController()
 

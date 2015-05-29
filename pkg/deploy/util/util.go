@@ -13,7 +13,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1beta1"
 	deployv3 "github.com/openshift/origin/pkg/deploy/api/v1beta3"
-	"github.com/openshift/origin/pkg/util/podname"
+	"github.com/openshift/origin/pkg/util/namer"
 )
 
 // Maps the latest annotation keys to all known previous key names. Keys not represented here
@@ -59,7 +59,7 @@ const DeployerPodSuffix = "deploy"
 
 // DeployerPodNameForDeployment returns the name of a pod for a given deployment
 func DeployerPodNameForDeployment(deployment *api.ReplicationController) string {
-	return podname.GetName(deployment.Name, DeployerPodSuffix)
+	return namer.GetPodName(deployment.Name, DeployerPodSuffix)
 }
 
 // LabelForDeployment builds a string identifier for a Deployment.
