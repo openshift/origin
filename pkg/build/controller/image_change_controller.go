@@ -110,7 +110,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 				ObjectMeta: kapi.ObjectMeta{
 					Name: config.Name,
 				},
-				TriggedByImage: triggeredImage,
+				TriggeredByImage: triggeredImage,
 			}
 			if _, err := c.BuildConfigInstantiator.Instantiate(config.Namespace, request); err != nil {
 				if kerrors.IsConflict(err) {
