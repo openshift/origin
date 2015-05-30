@@ -98,8 +98,8 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		if deployutil.DeploymentNameFor(existingPod) != deployment.Name {
 			nextStatus = deployapi.DeploymentStatusFailed
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedUnrelatedDeploymentExists
-			c.recorder.Eventf(deployment, "failedCreate", "Error creating deployer pod for %s since another pod with the same name exists", deployutil.LabelForDeployment(deployment))
-			glog.V(2).Infof("Couldn't create deployer pod for %s since an unrelated pod with the same name exists", deployutil.LabelForDeployment(deployment))
+			c.recorder.Eventf(deployment, "failedCreate", "Error creating deployer pod for %s since another pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
+			glog.V(2).Infof("Couldn't create deployer pod for %s since an unrelated pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), existingPod.Name)
 			break
 		}
 
