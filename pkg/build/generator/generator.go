@@ -135,13 +135,13 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 		return nil, err
 	}
 
-	if len(request.TriggedByImage) > 0 {
+	if len(request.TriggeredByImage) > 0 {
 		for _, trigger := range bc.Triggers {
 			if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 				continue
 			}
 
-			trigger.ImageChange.LastTriggeredImageID = request.TriggedByImage
+			trigger.ImageChange.LastTriggeredImageID = request.TriggeredByImage
 		}
 	}
 
