@@ -1,26 +1,34 @@
 {
-  "apiVersion": "v1beta1",
   "kind": "Build",
+  "apiVersion": "v1beta3",
   "metadata": {
     "name": "testcustom",
+    "creationTimestamp": null,
     "labels": {
       "name": "testcustom"
     }
   },
-  "parameters": {
-    "output": {
-      "to": {
-        "name": "test"
-      },
-      "tag": "application",
-      "pushSecretName": "docker"
-    },
+  "spec": {
+    "source": {},
     "strategy": {
       "type": "Custom",
       "customStrategy": {
-        "exposeDockerSocket": true,
-        "image": "172.30.17.104:5000/foo/bar"
+        "from": {
+          "kind": "DockerImage",
+          "name": "172.30.17.104:5000/foo/bar"
+        },
+        "exposeDockerSocket": true
       }
-    }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:application"
+      }
+    },
+    "resources": {}
+  },
+  "status": {
+    "phase": ""
   }
 }

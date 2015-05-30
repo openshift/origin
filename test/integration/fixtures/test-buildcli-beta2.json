@@ -1,5 +1,7 @@
 {
-  "apiVersion": "v1beta1",
+  "kind": "List",
+  "apiVersion": "v1beta3",
+  "metadata": {},
   "items": [
     {
       "apiVersion": "v1beta1",
@@ -85,9 +87,9 @@
         },
         "strategy": {
           "stiStrategy": {
-	    "from": {
-	      "name": "ruby-20-centos-buildcli"
-	    },
+            "from": {
+              "name": "ruby-20-centos-buildcli"
+            },
             "tag": "invalid",
             "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin"
           },
@@ -107,6 +109,5 @@
         }
       ]
     }
-  ],
-  "kind": "List"
+  ]
 }

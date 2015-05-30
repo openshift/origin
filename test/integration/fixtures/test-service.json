@@ -1,12 +1,30 @@
 {
-  "apiVersion": "v1beta2",
-  "id": "frontend",
   "kind": "Service",
-  "port": 9998,
-  "selector": {
-    "name": "frontend"
+  "apiVersion": "v1beta3",
+  "metadata": {
+    "name": "frontend",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "frontend"
+    }
   },
-  "labels": {
-    "name": "frontend"
+  "spec": {
+    "ports": [
+      {
+        "protocol": "TCP",
+        "port": 9998,
+        "targetPort": 9998,
+        "nodePort": 0
+      }
+    ],
+    "selector": {
+      "name": "frontend"
+    },
+    "portalIP": "",
+    "type": "ClusterIP",
+    "sessionAffinity": "None"
+  },
+  "status": {
+    "loadBalancer": {}
   }
 }

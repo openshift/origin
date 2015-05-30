@@ -1,47 +1,22 @@
 {
   "kind": "Template",
-  "apiVersion": "v1beta1",
-  "labels": {
-    "template": "etcd"
-  },
+  "apiVersion": "v1beta3",
   "metadata": {
+    "name": "etcd",
+    "creationTimestamp": null,
     "annotations": {
       "description": "Example of clustered etcd",
-      "tags": "database,etcd",
-      "iconClass" : "icon-database"
-    },
-    "name": "etcd"
-  },
-  "parameters": [
-    {
-      "name": "ETCD_IMAGE",
-      "description": "The name of etcd Docker image to use",
-      "value": "openshift/etcd-20-centos7"
-    },
-    {
-      "name": "ETCD_NUM_MEMBERS",
-      "description": "Maximum number of members to launch (have to match with # of replicas)",
-      "value": "3"
-    },
-    {
-      "name": "ETCD_DISCOVERY",
-      "description": "A token used for etcd discovery",
-      "from": "http://etcd-discovery:2379/v2/keys/discovery/[a-z0-9]{40}",
-      "generate": "expression"
-    },
-    {
-      "name": "ETCD_CLUSTER_TOKEN",
-      "description": "A token etcd use to generate unique cluster ID and member ID",
-      "from": "etcd-cluster-[a-z0-9]{5}",
-      "generate": "expression"
+      "iconClass": "icon-database",
+      "tags": "database,etcd"
     }
-  ],
-  "items":[
+  },
+  "objects": [
     {
-      "apiVersion": "v1beta1",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "etcd"
+        "name": "etcd",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "${ETCD_IMAGE}",
@@ -56,6 +31,9 @@
             }
           }
         ]
+      },
+      "status": {
+        "dockerImageRepository": ""
       }
     },
     {
@@ -63,21 +41,29 @@
       "apiVersion": "v1beta3",
       "metadata": {
         "name": "etcd-discovery",
+        "creationTimestamp": null,
         "labels": {
           "name": "etcd-discovery"
         }
       },
       "spec": {
-        "portalIp": "None",
         "ports": [
           {
+            "protocol": "TCP",
             "port": 2379,
-            "targetPort": 2379
+            "targetPort": 2379,
+            "nodePort": 0
           }
         ],
         "selector": {
           "name": "etcd-discovery"
-        }
+        },
+        "portalIP": "None",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
       }
     },
     {
@@ -85,138 +71,204 @@
       "apiVersion": "v1beta3",
       "metadata": {
         "name": "etcd",
+        "creationTimestamp": null,
         "labels": {
           "name": "etcd"
         }
       },
       "spec": {
-        "portalIP": "None",
         "ports": [
           {
             "name": "client",
+            "protocol": "TCP",
             "port": 2379,
-            "targetPort": 2379
+            "targetPort": 2379,
+            "nodePort": 0
           },
           {
             "name": "server",
+            "protocol": "TCP",
             "port": 2380,
-            "targetPort": 2380
+            "targetPort": 2380,
+            "nodePort": 0
           }
         ],
         "selector": {
           "name": "etcd"
-        }
+        },
+        "portalIP": "None",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
       }
     },
     {
-      "apiVersion": "v1beta1",
       "kind": "DeploymentConfig",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "etcd-discovery"
+        "name": "etcd-discovery",
+        "creationTimestamp": null
       },
-      "template": {
-        "controllerTemplate": {
-          "podTemplate": {
-            "desiredState": {
-              "manifest": {
-                "containers":[
-                  {
-                    "name":  "discovery",
-                    "image": "${ETCD_IMAGE}",
-                    "command": ["etcd-discovery.sh"],
-                    "ports":[
-                      {
-                        "containerPort": 2379
-                      }
-                    ]
-                  }
-                ],
-                "version": "v1beta1"
-              }
-            },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "etcd-discovery"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
             "labels": {
               "name": "etcd-discovery"
             }
           },
-          "replicaSelector": {
-            "name": "etcd-discovery"
-          },
-          "replicas": 1
-        },
-        "strategy": {
-          "type": "Recreate"
-        }
-      },
-      "triggers": [
-        {
-          "type": "ConfigChange"
-        }
-      ]
-    },   
-    {
-      "apiVersion": "v1beta1",
-      "kind": "DeploymentConfig",
-      "metadata": {
-        "name": "etcd"
-      },
-      "template": {
-        "controllerTemplate": {
-          "podTemplate": {
-            "desiredState": {
-              "manifest": {
-                "containers":[
+          "spec": {
+            "containers": [
+              {
+                "name": "discovery",
+                "image": "${ETCD_IMAGE}",
+                "args": [
+                  "etcd-discovery.sh"
+                ],
+                "ports": [
                   {
-                    "name":  "member",
-                    "image": "${ETCD_IMAGE}",
-                    "env": [
-                      {
-                        "name": "ETCD_NUM_MEMBERS",
-                        "value": "${ETCD_NUM_MEMBERS}"
-                      },
-                      {
-                        "name": "ETCD_INITIAL_CLUSTER_STATE",
-                        "value": "new"
-                      },
-                      {
-                        "name": "ETCD_INITIAL_CLUSTER_TOKEN",
-                        "value": "${ETCD_CLUSTER_TOKEN}"
-                      },
-                      {
-                        "name": "ETCD_DISCOVERY",
-                        "value": "${ETCD_DISCOVERY}"
-                      }
-                    ],
-                    "ports":[
-                      {
-                        "containerPort": 2379
-                      },
-                      {
-                        "containerPort": 2380
-                      }
-                    ]
+                    "containerPort": 2379,
+                    "protocol": "TCP"
                   }
                 ],
-                "version": "v1beta1"
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
               }
-            },
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "etcd",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 3,
+        "selector": {
+          "name": "etcd"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
             "labels": {
               "name": "etcd"
             }
           },
-          "replicaSelector": {
-            "name": "etcd"
-          },
-          "replicas": 3
-        },
-        "strategy": {
-          "type": "Recreate"
+          "spec": {
+            "containers": [
+              {
+                "name": "member",
+                "image": "${ETCD_IMAGE}",
+                "ports": [
+                  {
+                    "containerPort": 2379,
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 2380,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ETCD_NUM_MEMBERS",
+                    "value": "${ETCD_NUM_MEMBERS}"
+                  },
+                  {
+                    "name": "ETCD_INITIAL_CLUSTER_STATE",
+                    "value": "new"
+                  },
+                  {
+                    "name": "ETCD_INITIAL_CLUSTER_TOKEN",
+                    "value": "${ETCD_CLUSTER_TOKEN}"
+                  },
+                  {
+                    "name": "ETCD_DISCOVERY",
+                    "value": "${ETCD_DISCOVERY}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
         }
       },
-      "triggers": [
-        {
-          "type": "ConfigChange"
-        }
-      ]
-    }    
-  ]
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "ETCD_IMAGE",
+      "description": "The name of etcd Docker image to use",
+      "value": "openshift/etcd-20-centos7"
+    },
+    {
+      "name": "ETCD_NUM_MEMBERS",
+      "description": "Maximum number of members to launch (have to match with # of replicas)",
+      "value": "3"
+    },
+    {
+      "name": "ETCD_DISCOVERY",
+      "description": "A token used for etcd discovery",
+      "generate": "expression",
+      "from": "http://etcd-discovery:2379/v2/keys/discovery/[a-z0-9]{40}"
+    },
+    {
+      "name": "ETCD_CLUSTER_TOKEN",
+      "description": "A token etcd use to generate unique cluster ID and member ID",
+      "generate": "expression",
+      "from": "etcd-cluster-[a-z0-9]{5}"
+    }
+  ],
+  "labels": {
+    "template": "etcd"
+  }
 }
