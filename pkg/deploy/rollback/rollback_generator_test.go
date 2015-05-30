@@ -7,7 +7,6 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 func TestGeneration(t *testing.T) {
@@ -110,5 +109,6 @@ func hasReplicationMetaDiff(a, b *deployapi.DeploymentConfig) bool {
 }
 
 func hasPodTemplateDiff(a, b *deployapi.DeploymentConfig) bool {
-	return !deployutil.PodSpecsEqual(a.Template.ControllerTemplate.Template.Spec, b.Template.ControllerTemplate.Template.Spec)
+	specA, specB := a.Template.ControllerTemplate.Template.Spec, b.Template.ControllerTemplate.Template.Spec
+	return !kapi.Semantic.DeepEqual(specA, specB)
 }

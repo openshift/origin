@@ -1,13 +1,9 @@
 package util
 
 import (
-	"encoding/json"
 	"fmt"
-	"hash/adler32"
 	"strconv"
 	"strings"
-
-	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -74,30 +70,6 @@ func LabelForDeployment(deployment *api.ReplicationController) string {
 // LabelForDeploymentConfig builds a string identifier for a DeploymentConfig.
 func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
 	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
-}
-
-// HashPodSpec hashes a PodSpec into a uint64.
-// TODO: Resources are currently ignored due to the formats not surviving encoding/decoding
-// in a consistent manner (e.g. 0 is represented sometimes as 0.000)
-func HashPodSpec(t api.PodSpec) uint64 {
-	// Ignore resources by making them uniformly empty
-	for i := range t.Containers {
-		t.Containers[i].Resources = api.ResourceRequirements{}
-	}
-
-	jsonString, err := json.Marshal(t)
-	if err != nil {
-		glog.Errorf("An error occurred marshalling pod state: %v", err)
-		return 0
-	}
-	hash := adler32.New()
-	fmt.Fprintf(hash, "%s", jsonString)
-	return uint64(hash.Sum32())
-}
-
-// PodSpecsEqual returns true if the given PodSpecs are the same.
-func PodSpecsEqual(a, b api.PodSpec) bool {
-	return HashPodSpec(a) == HashPodSpec(b)
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
