@@ -9,7 +9,8 @@ angular.module("openshiftConsole")
       Navigate, 
       NameGenerator, 
       ApplicationGenerator,
-      TaskList
+      TaskList,
+      failureObjectNameFilter
     ){
     function initAndValidate(scope){
 
@@ -121,12 +122,7 @@ angular.module("openshiftConsole")
                 if (result.failure.length > 0) {
                   result.failure.forEach(
                     function(failure) {
-                      var objectName = "";
-                      if (failure.data && failure.data.details) {
-                        objectName = failure.data.details.kind + " " + failure.data.details.id;
-                      } else {
-                        objectName = "object";
-                      }
+                      var objectName = failureObjectNameFilter(failure) || "object";
                       alerts.push({
                         type: "error",
                         message: "Cannot create " + objectName + ". ",
@@ -178,7 +174,6 @@ angular.module("openshiftConsole")
         );
 
     };
-
   }
 );
 
