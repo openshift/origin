@@ -1,28 +1,16 @@
 package v1beta3
 
 import (
-	"fmt"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	newer "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func init() {
-	err := api.Scheme.AddDefaultingFuncs(
-		func(obj *DeploymentTriggerImageChangeParams) {
-			if len(obj.From.Kind) == 0 {
-				obj.From.Kind = "ImageStreamTag"
-			}
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	err = api.Scheme.AddConversionFuncs(
+	err := api.Scheme.AddConversionFuncs(
 		func(in *DeploymentConfig, out *newer.DeploymentConfig, s conversion.Scope) error {
 			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 				return err
@@ -138,7 +126,6 @@ func init() {
 			}
 			return nil
 		},
-
 		func(in *DeploymentTriggerImageChangeParams, out *newer.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
 			out.Automatic = in.Automatic
 			out.ContainerNames = make([]string, len(in.ContainerNames))
@@ -146,24 +133,6 @@ func init() {
 			out.LastTriggeredImage = in.LastTriggeredImage
 			if err := s.Convert(&in.From, &out.From, 0); err != nil {
 				return err
-			}
-			switch in.From.Kind {
-			case "DockerImage":
-				ref, err := imageapi.ParseDockerImageReference(in.From.Name)
-				if err != nil {
-					return err
-				}
-				out.Tag = ref.Tag
-				ref.Tag, ref.ID = "", ""
-				out.RepositoryName = ref.String()
-			case "ImageStreamTag":
-				name, tag, ok := imageapi.SplitImageStreamTag(in.From.Name)
-				if !ok {
-					return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
-				}
-				out.From.Kind = "ImageStream"
-				out.From.Name = name
-				out.Tag = tag
 			}
 			return nil
 		},
@@ -178,37 +147,26 @@ func init() {
 			switch in.From.Kind {
 			case "ImageStream":
 				out.From.Kind = "ImageStreamTag"
-				tag := in.Tag
-				if len(tag) == 0 {
-					tag = imageapi.DefaultImageTag
-				}
-				out.From.Name = fmt.Sprintf("%s:%s", in.From.Name, tag)
+				out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, in.Tag)
 			}
 			return nil
 		},
-
 		func(in *DeploymentCauseImageTrigger, out *newer.DeploymentCauseImageTrigger, s conversion.Scope) error {
 			switch in.From.Kind {
-			case "DockerImage":
-				ref, err := imageapi.ParseDockerImageReference(in.From.Name)
-				if err != nil {
-					return err
+			case "ImageStreamTag":
+				name, tag, ok := imageapi.SplitImageStreamTag(in.From.Name)
+				if !ok {
+					return fielderrors.NewFieldInvalid("from.name", in.From.Name, "name format is invalid")
 				}
-				out.Tag = ref.Tag
-				ref.Tag, ref.ID = "", ""
-				out.RepositoryName = ref.Minimal().String()
+				out.RepositoryName = name
+				out.Tag = tag
 			}
 			return nil
 		},
 		func(in *newer.DeploymentCauseImageTrigger, out *DeploymentCauseImageTrigger, s conversion.Scope) error {
 			if len(in.RepositoryName) != 0 {
-				ref, err := imageapi.ParseDockerImageReference(in.RepositoryName)
-				if err != nil {
-					return err
-				}
-				ref.Tag = in.Tag
-				out.From.Kind = "DockerImage"
-				out.From.Name = ref.String()
+				out.From.Kind = "ImageStreamTag"
+				out.From.Name = imageapi.JoinImageStreamTag(in.RepositoryName, in.Tag)
 			}
 			return nil
 		},

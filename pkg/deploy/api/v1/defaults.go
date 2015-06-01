@@ -37,6 +37,11 @@ func init() {
 				obj.TimeoutSeconds = mkintp(120)
 			}
 		},
+		func(obj *DeploymentTriggerImageChangeParams) {
+			if len(obj.From.Kind) == 0 {
+				obj.From.Kind = "ImageStreamTag"
+			}
+		},
 	)
 	if err != nil {
 		panic(err)

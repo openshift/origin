@@ -1,9 +1,6 @@
 package validation
 
 import (
-	"fmt"
-	"strings"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -213,34 +210,46 @@ func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy) fielderrors.Val
 func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangeParams) fielderrors.ValidationErrorList {
 	errs := fielderrors.ValidationErrorList{}
 
-	if len(params.From.Name) != 0 {
-		if len(params.From.Kind) == 0 {
-			params.From.Kind = "ImageStream"
-		}
-		kinds := util.NewStringSet("ImageRepository", "ImageStream", "ImageStreamTag")
-		if !kinds.Has(params.From.Kind) {
-			msg := fmt.Sprintf("kind must be one of: %s", strings.Join(kinds.List(), ", "))
-			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, msg))
-		}
-
-		if !util.IsDNS1123Subdomain(params.From.Name) {
-			errs = append(errs, fielderrors.NewFieldInvalid("from.name", params.From.Name, "name must be a valid subdomain"))
-		}
-		if len(params.From.Namespace) != 0 && !util.IsDNS1123Subdomain(params.From.Namespace) {
-			errs = append(errs, fielderrors.NewFieldInvalid("from.namespace", params.From.Namespace, "namespace must be a valid subdomain"))
-		}
-
-		if len(params.RepositoryName) != 0 {
-			errs = append(errs, fielderrors.NewFieldInvalid("repositoryName", params.RepositoryName, "only one of 'from', 'repository' name may be specified"))
-		}
-	} else {
-		if len(params.RepositoryName) == 0 {
-			errs = append(errs, fielderrors.NewFieldRequired("from"))
-		}
-	}
-
 	if len(params.ContainerNames) == 0 {
 		errs = append(errs, fielderrors.NewFieldRequired("containerNames"))
+	}
+
+	// Everything below this line is to validate image references.
+
+	// Validate there's a reference of any kind
+	if len(params.RepositoryName) == 0 && len(params.From.Name) == 0 {
+		errs = append(errs, fielderrors.NewFieldRequired("from"))
+		return errs
+	}
+
+	// Enforce RepositoryName/From mutual exclusivity
+	if len(params.RepositoryName) > 0 && len(params.From.Name) > 0 {
+		errs = append(errs, fielderrors.NewFieldInvalid("repositoryName", params.RepositoryName, "only one of repositoryName or from.Name may be specified"))
+	}
+
+	// Validate RepositoryName usage
+	if len(params.RepositoryName) > 0 {
+		if len(params.Tag) == 0 {
+			errs = append(errs, fielderrors.NewFieldRequired("tag"))
+		}
+		// Nothing to validate for RepositoryName itself
+		return errs
+	}
+
+	// Validate ImageStreamTag usage
+	if params.From.Kind != "ImageStreamTag" {
+		errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, "kind must be 'ImageStreamTag'"))
+		return errs
+	}
+
+	if len(params.From.Name) == 0 {
+		errs = append(errs, fielderrors.NewFieldRequired("from.name"))
+	}
+
+	// Ensure ImageStreamTag references aren't used in conjunction with Tag
+	// (which should have been converted away).
+	if len(params.Tag) > 0 {
+		errs = append(errs, fielderrors.NewFieldInvalid("tag", params.Tag, "tag may not be specified when kind is ImageStreamTag"))
 	}
 
 	return errs
