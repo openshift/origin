@@ -29,6 +29,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator"
+	etcdallocator "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -85,6 +87,10 @@ import (
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
+	securitycontroller "github.com/openshift/origin/pkg/security/controller"
+	"github.com/openshift/origin/pkg/security/mcs"
+	"github.com/openshift/origin/pkg/security/uid"
+	"github.com/openshift/origin/pkg/security/uidallocator"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
@@ -987,6 +993,40 @@ func (c *MasterConfig) RunImageImportController() {
 	osclient := c.ImageImportControllerClient()
 	factory := imagecontroller.ImportControllerFactory{
 		Client: osclient,
+	}
+	controller := factory.Create()
+	controller.Run()
+}
+
+func (c *MasterConfig) RunSecurityAllocationController() {
+	uidRange, err := uid.ParseRange("1000000000-1999999999/10000") // provide 100k uid blocks
+	if err != nil {
+		glog.Fatalf("Unable to describe UID range: %v", err)
+	}
+	var etcdAlloc *etcdallocator.Etcd
+	uidAllocator := uidallocator.New(uidRange, func(max int, rangeSpec string) allocator.Interface {
+		mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
+		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", "uidallocation", c.EtcdHelper)
+		return etcdAlloc
+	})
+	mcsRange, err := mcs.ParseRange("/2") // use two labels
+	if err != nil {
+		glog.Fatalf("Unable to describe MCS category range: %v", err)
+	}
+
+	kclient := c.PrivilegedLoopbackKubernetesClient
+
+	repair := securitycontroller.NewRepair(time.Minute, kclient.Namespaces(), uidRange, etcdAlloc)
+	if err := repair.RunOnce(); err != nil {
+		// TODO: v scary, may need to use direct etcd calls?
+		glog.Fatalf("Unable to initialize namespaces: %v", err)
+	}
+
+	factory := securitycontroller.AllocationFactory{
+		UIDAllocator: uidAllocator,
+		MCSAllocator: securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, 5), // provide 5 labels per namespace
+		Client:       kclient.Namespaces(),
+		// TODO: reuse namespace cache
 	}
 	controller := factory.Create()
 	controller.Run()

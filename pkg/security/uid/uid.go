@@ -2,6 +2,7 @@ package uid
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Block struct {
@@ -9,7 +10,35 @@ type Block struct {
 	End   uint32
 }
 
+func ParseBlock(in string) (Block, error) {
+	if strings.Contains(in, "/") {
+		var start, size uint32
+		n, err := fmt.Sscanf(in, "%d/%d", &start, &size)
+		if err != nil {
+			return Block{}, err
+		}
+		if n != 2 {
+			return Block{}, fmt.Errorf("block not in the format \"<start>/<size>\"")
+		}
+		return Block{Start: start, End: start + size - 1}, nil
+	}
+
+	var start, end uint32
+	n, err := fmt.Sscanf(in, "%d-%d", &start, &end)
+	if err != nil {
+		return Block{}, err
+	}
+	if n != 2 {
+		return Block{}, fmt.Errorf("block not in the format \"<start>-<end>\"")
+	}
+	return Block{Start: start, End: end}, nil
+}
+
 func (b Block) String() string {
+	return fmt.Sprintf("%d/%d", b.Start, b.Size())
+}
+
+func (b Block) RangeString() string {
 	return fmt.Sprintf("%d-%d", b.Start, b.End)
 }
 
@@ -55,7 +84,7 @@ func (r *Range) Size() uint32 {
 }
 
 func (r *Range) String() string {
-	return fmt.Sprintf("%s/%d", r.block, r.size)
+	return fmt.Sprintf("%s/%d", r.block.RangeString(), r.size)
 }
 
 func (r *Range) BlockAt(offset uint32) (Block, bool) {

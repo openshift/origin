@@ -41,6 +41,11 @@ func New(r *uid.Range, factory allocator.AllocatorFactory) *Allocator {
 	}
 }
 
+// NewInMemory creates an in-memory Allocator
+func NewInMemory(r *uid.Range) *Allocator {
+	return New(r, allocator.NewContiguousAllocationInterface)
+}
+
 // Free returns the count of port left in the range.
 func (r *Allocator) Free() int {
 	return r.alloc.Free()

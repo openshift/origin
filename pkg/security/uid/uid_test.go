@@ -72,6 +72,20 @@ func TestParseRange(t *testing.T) {
 	}
 }
 
+func TestBlock(t *testing.T) {
+	b := Block{Start: 100, End: 109}
+	if b.String() != "100/10" {
+		t.Errorf("unexpected block string: %s", b.String())
+	}
+	b, err := ParseBlock("100-109")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.String() != "100/10" {
+		t.Errorf("unexpected block string: %s", b.String())
+	}
+}
+
 func TestOffset(t *testing.T) {
 	testCases := map[string]struct {
 		r         Range

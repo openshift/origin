@@ -399,6 +399,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	openshiftConfig.RunImageImportController()
 	openshiftConfig.RunOriginNamespaceController()
 	openshiftConfig.RunProjectAuthorizationCache()
+	openshiftConfig.RunSecurityAllocationController()
 	openshiftConfig.RunServiceAccountsController()
 	openshiftConfig.RunServiceAccountTokensController()
 	openshiftConfig.RunServiceAccountPullSecretsControllers()
