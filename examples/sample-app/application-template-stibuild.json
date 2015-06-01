@@ -200,6 +200,7 @@
                 "ruby-helloworld"
               ],
               "from": {
+                "kind": "ImageStreamTag",
                 "name": "origin-ruby-sample:latest"
               },
               "lastTriggeredImage": ""

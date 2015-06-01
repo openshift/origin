@@ -1,11 +1,14 @@
+apiVersion: v1beta3
 kind: ResourceQuota
 metadata:
+  creationTimestamp: null
   name: quota
 spec:
   hard:
     cpu: "1"
-    memory: "750Mi"
+    memory: 750Mi
     pods: "10"
     replicationcontrollers: "10"
     resourcequotas: "1"
     services: "10"
+status: {}

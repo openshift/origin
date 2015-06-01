@@ -1,6 +1,7 @@
 apiVersion: v1beta3
 kind: Pod
 metadata:
+  creationTimestamp: null
   name: pod-without-resources
 spec:
   containers:
@@ -8,8 +9,12 @@ spec:
     image: gcr.io/google_containers/serve_hostname
     imagePullPolicy: IfNotPresent
     name: kubernetes-serve-hostname
+    resources: {}
     securityContext:
       capabilities: {}
       privileged: false
+    terminationMessagePath: /dev/termination-log
   dnsPolicy: ClusterFirst
   restartPolicy: Always
+  serviceAccount: ""
+status: {}

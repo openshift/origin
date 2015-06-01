@@ -1,8 +1,4 @@
-#
-# A simple build config, deployment config, build, and service.
-#
-apiVersion: v1beta1
-creationTimestamp: null
+apiVersion: v1beta3
 items:
 - apiVersion: v1beta1
   kind: BuildConfig
@@ -110,4 +106,5 @@ items:
   sessionAffinity: None
   uid: 2b315406-dca0-11e4-aecc-7831c1b76042
 kind: List
-resourceVersion: 116
+metadata:
+  resourceVersion: "116"
