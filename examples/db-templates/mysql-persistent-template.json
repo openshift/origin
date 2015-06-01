@@ -2,12 +2,12 @@
   "kind": "Template",
   "apiVersion": "v1beta3",
   "metadata": {
-    "name": "mongodb",
+    "name": "mysql-persistent",
     "creationTimestamp": null,
     "annotations": {
-      "description": "This template creates a basic MongoDB database service",
-      "iconClass": "icon-mongodb",
-      "tags": "database,mongodb"
+      "description": "MySQL database service, with persistent storage. Scaling to more than one replica is not supported",
+      "iconClass": "icon-mysql-database",
+      "tags": "database,mysql"
     }
   },
   "objects": [
@@ -15,21 +15,21 @@
       "kind": "Service",
       "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mongodb",
+        "name": "mysql",
         "creationTimestamp": null
       },
       "spec": {
         "ports": [
           {
-            "name": "mongo",
+            "name": "mysql",
             "protocol": "TCP",
-            "port": 27017,
-            "targetPort": 27017,
+            "port": 3306,
+            "targetPort": 3306,
             "nodePort": 0
           }
         ],
         "selector": {
-          "name": "mongodb"
+          "name": "mysql"
         },
         "portalIP": "",
         "type": "ClusterIP",
@@ -40,10 +40,27 @@
       }
     },
     {
+      "kind": "PersistentVolumeClaim",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "mysql"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "${VOLUME_CAPACITY}"
+          }
+        }
+      }
+    },
+    {
       "kind": "DeploymentConfig",
       "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mongodb",
+        "name": "mysql",
         "creationTimestamp": null
       },
       "spec": {
@@ -57,11 +74,11 @@
             "imageChangeParams": {
               "automatic": true,
               "containerNames": [
-                "mongodb"
+                "mysql"
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mongodb:latest"
+                "name": "mysql:latest"
               },
               "lastTriggeredImage": ""
             }
@@ -72,41 +89,47 @@
         ],
         "replicas": 1,
         "selector": {
-          "name": "mongodb"
+          "name": "mysql"
         },
         "template": {
           "metadata": {
             "creationTimestamp": null,
             "labels": {
-              "name": "mongodb"
+              "name": "mysql"
             }
           },
           "spec": {
             "containers": [
               {
-                "name": "mongodb",
-                "image": "mongodb",
+                "name": "mysql",
+                "image": "mysql",
                 "ports": [
                   {
-                    "containerPort": 27017,
+                    "containerPort": 3306,
                     "protocol": "TCP"
                   }
                 ],
                 "env": [
                   {
-                    "name": "MONGODB_USER",
-                    "value": "${MONGODB_USER}"
+                    "name": "MYSQL_USER",
+                    "value": "${MYSQL_USER}"
                   },
                   {
-                    "name": "MONGODB_PASSWORD",
-                    "value": "${MONGODB_PASSWORD}"
+                    "name": "MYSQL_PASSWORD",
+                    "value": "${MYSQL_PASSWORD}"
                   },
                   {
-                    "name": "MONGODB_DATABASE",
-                    "value": "${MONGODB_DATABASE}"
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
                   }
                 ],
                 "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "mysql-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
                 "capabilities": {},
@@ -116,9 +139,16 @@
                 }
               }
             ],
+            "volumes": [
+              {
+                "name": "mysql-data",
+                "persistentVolumeClaim": {
+                  "claimName": "mysql"
+                }
+              }
+            ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
@@ -127,24 +157,29 @@
   ],
   "parameters": [
     {
-      "name": "MONGODB_USER",
-      "description": "database username",
+      "name": "MYSQL_USER",
+      "description": "Username for MySQL user that will be used for accessing the database",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}"
     },
     {
-      "name": "MONGODB_PASSWORD",
-      "description": "database password",
+      "name": "MYSQL_PASSWORD",
+      "description": "Password for the MySQL user",
       "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
+      "from": "[a-zA-Z0-9]{16}"
     },
     {
-      "name": "MONGODB_DATABASE",
-      "description": "database name",
+      "name": "MYSQL_DATABASE",
+      "description": "Database name",
       "value": "sampledb"
+    },
+    {
+      "name": "VOLUME_CAPACITY",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi",
+      "value": "512Mi"
     }
   ],
   "labels": {
-    "template": "mongodb-template"
+    "template": "mysql-persistent-template"
   }
 }

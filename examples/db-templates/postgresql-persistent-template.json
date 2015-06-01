@@ -2,10 +2,10 @@
   "kind": "Template",
   "apiVersion": "v1beta3",
   "metadata": {
-    "name": "postgresql",
+    "name": "postgresql-persistent",
     "creationTimestamp": null,
     "annotations": {
-      "description": "This template creates a basic PostgreSQL database service",
+      "description": "PostgreSQL database service, with persistent storage. Scaling to more than one replica is not supported",
       "iconClass": "icon-postgresql",
       "tags": "database,postgresql"
     }
@@ -37,6 +37,23 @@
       },
       "status": {
         "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "PersistentVolumeClaim",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "postgresql"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteMany"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "${VOLUME_CAPACITY}"
+          }
+        }
       }
     },
     {
@@ -107,6 +124,12 @@
                   }
                 ],
                 "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "postgresql-data",
+                    "mountPath": "/var/lib/pgsql/data"
+                  }
+                ],
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
                 "capabilities": {},
@@ -116,9 +139,16 @@
                 }
               }
             ],
+            "volumes": [
+              {
+                "name": "postgresql-data",
+                "persistentVolumeClaim": {
+                  "claimName": "postgresql"
+                }
+              }
+            ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
@@ -128,23 +158,28 @@
   "parameters": [
     {
       "name": "POSTGRESQL_USER",
-      "description": "database username",
+      "description": "Username for PostgreSQL user that will be used for accessing the database",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}"
     },
     {
       "name": "POSTGRESQL_PASSWORD",
-      "description": "database password",
+      "description": "Password for the PostgreSQL user",
       "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
+      "from": "[a-zA-Z0-9]{16}"
     },
     {
       "name": "POSTGRESQL_DATABASE",
-      "description": "database name",
+      "description": "Database name",
       "value": "sampledb"
+    },
+    {
+      "name": "VOLUME_CAPACITY",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi",
+      "value": "512Mi"
     }
   ],
   "labels": {
-    "template": "postgresql-template"
+    "template": "postgresql-persistent-template"
   }
 }
