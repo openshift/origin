@@ -15,14 +15,14 @@ import (
 
 	dockercmd "github.com/docker/docker/builder/command"
 	"github.com/docker/docker/builder/parser"
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	image "github.com/openshift/origin/pkg/image/api"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/source-to-image/pkg/git"
 	"github.com/openshift/source-to-image/pkg/tar"
+
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 // urlCheckTimeout is the timeout used to check the source URL
@@ -75,13 +75,9 @@ func (d *DockerBuilder) Build() error {
 
 	dockerImageRef := d.build.Parameters.Output.DockerImageReference
 	if len(dockerImageRef) != 0 {
-		ref, err := image.ParseDockerImageReference(dockerImageRef)
-		if err != nil {
-			glog.Fatalf("Build %s/%s output does not have a valid DockerImageReference: %v", d.build.Namespace, d.build.Name, err)
-		}
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
-			ref.Registry,
+			dockerImageRef,
 			dockercfg.PushAuthType,
 		)
 		if authPresent {

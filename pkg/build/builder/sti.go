@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/golang/glog"
-	image "github.com/openshift/origin/pkg/image/api"
 	stiapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
@@ -88,13 +87,9 @@ func (s *STIBuilder) Build() error {
 	}
 	dockerImageRef := s.build.Parameters.Output.DockerImageReference
 	if len(dockerImageRef) != 0 {
-		ref, err := image.ParseDockerImageReference(dockerImageRef)
-		if err != nil {
-			glog.Fatalf("Build %s/%s output does not have a valid DockerImageReference: %v", s.build.Namespace, s.build.Name, err)
-		}
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
-			ref.Registry,
+			dockerImageRef,
 			dockercfg.PushAuthType,
 		)
 		if authPresent {

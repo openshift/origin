@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/build/api"
@@ -15,7 +15,6 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
-	image "github.com/openshift/origin/pkg/image/api"
 )
 
 const DefaultDockerEndpoint = "unix:///var/run/docker.sock"
@@ -56,12 +55,8 @@ func run(builderFactory factoryFunc, scmAuths []scmauth.SCMAuth) {
 		output = false
 	}
 	if output {
-		ref, err := image.ParseDockerImageReference(build.Parameters.Output.DockerImageReference)
-		if err != nil {
-			glog.Fatalf("Build output does not have a valid DockerImageReference: %v", err)
-		}
 		authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(
-			ref.Registry,
+			build.Parameters.Output.DockerImageReference,
 			dockercfg.PullAuthType,
 		)
 	}
