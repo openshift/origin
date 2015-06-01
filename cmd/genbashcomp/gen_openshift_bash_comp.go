@@ -45,7 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 	outFile_openshift := outDir + "openshift"
-	openshift := openshift.NewCommandOpenShift()
+	openshift := openshift.NewCommandOpenShift("openshift")
 	openshift.GenBashCompletionFile(outFile_openshift)
 
 	outFile_osc := outDir + "osc"
