@@ -20,8 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/deploy/prune"
 )
 
-const deploymentsLongDesc = `
-`
+const deploymentsLongDesc = `%s %s - Remove older completed and failed deployments`
 
 const PruneDeploymentsRecommendedName = "deployments"
 
