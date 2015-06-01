@@ -124,33 +124,36 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 		return nil, err
 	}
 
-	newBuild, err := g.generateBuildFromConfig(ctx, bc, request.Revision)
-	if err != nil {
-		return nil, err
-	}
-
-	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
-	updatedBuild, err := g.createBuild(ctx, newBuild)
-	if err != nil {
-		return nil, err
-	}
-
 	if request.TriggeredByImage != nil {
 		for _, trigger := range bc.Triggers {
 			if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 				continue
 			}
-
+			if trigger.ImageChange.LastTriggeredImageID == request.TriggeredByImage.Name {
+				glog.V(2).Infof("Aborting imageid triggered build for BuildConfig %s/%s with imageid %s because the BuildConfig already matches this imageid", bc.Namespace, bc.Name, request.TriggeredByImage)
+				return nil, fmt.Errorf("Build config %s/%s has already instantiated a build for imageid %s", bc.Namespace, bc.Name, request.TriggeredByImage.Name)
+			}
 			trigger.ImageChange.LastTriggeredImageID = request.TriggeredByImage.Name
 		}
 	}
 
+	newBuild, err := g.generateBuildFromConfig(ctx, bc, request.Revision)
+	if err != nil {
+		return nil, err
+	}
+	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
+
 	// need to update the BuildConfig because LastVersion and possibly LastTriggeredImageID changed
 	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
+		glog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", bc.Namespace, bc.Name)
 		return nil, err
 	}
 
-	return updatedBuild, nil
+	// Ideally we would create the build *before* updating the BC to ensure that we don't set the LastTriggeredImageID
+	// on the BC and then fail to create the corresponding build, however doing things in that order allows for a race
+	// condition in which two builds get kicked off.  Doing it in this order ensures that we catch the race while
+	// updating the BC.
+	return g.createBuild(ctx, newBuild)
 }
 
 // Clone returns clone of a Build
