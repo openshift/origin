@@ -32,18 +32,19 @@ const (
 	newAppLong = `Create a new application in OpenShift by specifying source code, templates, and/or images.
 
 This command will try to build up the components of an application using images, templates,
-or code located on your system. It will lookup the images on the local Docker installation
-(if available), a Docker registry, or an OpenShift image stream. If you specify a source
-code URL, it will set up a build that takes your source code and converts it into an image
-that can run inside of a pod. The images will be deployed via a deployment configuration,
-and a service will be hooked up to the first public port of the app. You may either specify 
+or code that has a public repository located on your system. It will lookup the images on the 
+local Docker installation (if available), a Docker registry, or an OpenShift image stream. 
+If you specify a source code URL, it will set up a build that takes your source code and converts 
+it into an image that can run inside of a pod. Local source must be in a git repository that has 
+remote repository that the OpenShift instance can see. The images will be deployed via a deployment 
+configuration, and a service will be hooked up to the first public port of the app. You may either specify 
 components using the various existing flags or let new-app autodetect what kind of components
 you have provided.
 
 If you provide source code, you may need to run a build with 'start-build' after the
 application is created.`
 
-	newAppExample = `  // Create an application based on the source code in the current directory and a Docker image
+	newAppExample = `  // Create an application based on the source code in the current git repository (with a public remote) and a Docker image
   $ %[1]s new-app . --docker-image=repo/langimage
 
   // Create a NodeJS application based on the provided [image]~[source code] combination
