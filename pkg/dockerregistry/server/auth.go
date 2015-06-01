@@ -85,17 +85,16 @@ func (ac *authChallenge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Authorized handles checking whether the given request is authorized
 // for actions on resources allowed by openshift.
 func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...registryauth.Access) (context.Context, error) {
-	var (
-		client *client.Client
-		err    error
-	)
-
-	challenge := &authChallenge{realm: ac.realm}
-
 	req, err := ctxu.GetRequest(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	if req.URL.Path == "/healthz" {
+		return ctx, nil
+	}
+
+	challenge := &authChallenge{realm: ac.realm}
 
 	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
 	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
@@ -117,7 +116,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	}
 	bearerToken := osAuthParts[1]
 
-	client, err = NewUserOpenShiftClient(bearerToken)
+	client, err := NewUserOpenShiftClient(bearerToken)
 	if err != nil {
 		return nil, err
 	}
