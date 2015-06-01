@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -93,49 +92,42 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 
 	challenge := &authChallenge{realm: ac.realm}
 
-	if os.Getenv("DISABLE_USER_AUTH") == "true" {
-		client, err = NewRegistryOpenShiftClient()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		req, err := ctxu.GetRequest(ctx)
-		if err != nil {
-			return nil, err
-		}
+	req, err := ctxu.GetRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-		authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
-		if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
-			challenge.err = ErrTokenRequired
+	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
+	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
+		challenge.err = ErrTokenRequired
+		return nil, challenge
+	}
+	basicToken := authParts[1]
+
+	payload, err := base64.StdEncoding.DecodeString(basicToken)
+	if err != nil {
+		log.Errorf("Basic token decode failed: %s", err)
+		challenge.err = ErrTokenInvalid
+		return nil, challenge
+	}
+	osAuthParts := strings.SplitN(string(payload), ":", 2)
+	if len(osAuthParts) != 2 {
+		challenge.err = ErrOpenShiftTokenRequired
+		return nil, challenge
+	}
+	bearerToken := osAuthParts[1]
+
+	client, err = NewUserOpenShiftClient(bearerToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// In case of docker login, hits endpoint /v2
+	if len(accessRecords) == 0 {
+		err = verifyOpenShiftUser(client)
+		if err != nil {
+			challenge.err = err
 			return nil, challenge
-		}
-		basicToken := authParts[1]
-
-		payload, err := base64.StdEncoding.DecodeString(basicToken)
-		if err != nil {
-			log.Errorf("Basic token decode failed: %s", err)
-			challenge.err = ErrTokenInvalid
-			return nil, challenge
-		}
-		osAuthParts := strings.SplitN(string(payload), ":", 2)
-		if len(osAuthParts) != 2 {
-			challenge.err = ErrOpenShiftTokenRequired
-			return nil, challenge
-		}
-		bearerToken := osAuthParts[1]
-
-		client, err = NewUserOpenShiftClient(bearerToken)
-		if err != nil {
-			return nil, err
-		}
-
-		// In case of docker login, hits endpoint /v2
-		if len(accessRecords) == 0 {
-			err = verifyOpenShiftUser(client)
-			if err != nil {
-				challenge.err = err
-				return nil, challenge
-			}
 		}
 	}
 
