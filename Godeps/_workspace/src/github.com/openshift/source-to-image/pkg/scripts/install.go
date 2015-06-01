@@ -39,7 +39,7 @@ type installer struct {
 }
 
 // locationsOrder defines locations in which scripts are searched for in the following order:
-// - script found at the --scripts URL
+// - script found at the --scripts-url URL
 // - script found in the application source .sti/bin directory
 // - script found at the default image URL
 var locationsOrder = []string{api.UserScripts, api.SourceScripts, api.DefaultScripts}

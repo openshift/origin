@@ -15,17 +15,17 @@ import (
 
 type fakeSourceHandler struct{}
 
-func (*fakeSourceHandler) Prepare(r *api.Request) error {
+func (*fakeSourceHandler) Prepare(r *api.Config) error {
 	return nil
 }
 
-func (*fakeSourceHandler) Download(r *api.Request) error {
+func (*fakeSourceHandler) Download(r *api.Config) error {
 	return nil
 }
 
 type fakeCleaner struct{}
 
-func (*fakeCleaner) Cleanup(*api.Request) {}
+func (*fakeCleaner) Cleanup(*api.Config) {}
 
 func newFakeOnBuild() *OnBuild {
 	return &OnBuild{
@@ -57,9 +57,9 @@ func checkDockerfile(fs *test.FakeFileSystem, t *testing.T) {
 }
 
 func TestCreateDockerfile(t *testing.T) {
-	fakeRequest := &api.Request{
-		BaseImage:   "fake:onbuild",
-		Environment: map[string]string{"FOO": "BAR", "TEST": "A VALUE"},
+	fakeRequest := &api.Config{
+		BuilderImage: "fake:onbuild",
+		Environment:  map[string]string{"FOO": "BAR", "TEST": "A VALUE"},
 	}
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
@@ -78,8 +78,8 @@ func TestCreateDockerfile(t *testing.T) {
 }
 
 func TestCreateDockerfileWithAssemble(t *testing.T) {
-	fakeRequest := &api.Request{
-		BaseImage: "fake:onbuild",
+	fakeRequest := &api.Config{
+		BuilderImage: "fake:onbuild",
 	}
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{
@@ -102,9 +102,9 @@ func TestCreateDockerfileWithAssemble(t *testing.T) {
 }
 
 func TestBuild(t *testing.T) {
-	fakeRequest := &api.Request{
-		BaseImage: "fake:onbuild",
-		Tag:       "fakeapp",
+	fakeRequest := &api.Config{
+		BuilderImage: "fake:onbuild",
+		Tag:          "fakeapp",
 	}
 	b := newFakeOnBuild()
 	fakeFs := &test.FakeFileSystem{

@@ -21,7 +21,7 @@ type FakeSTI struct {
 	SetupError             error
 	ExistsCalled           bool
 	ExistsError            error
-	BuildRequest           *api.Request
+	BuildRequest           *api.Config
 	BuildResult            *api.Result
 	SaveArtifactsCalled    bool
 	SaveArtifactsError     error
@@ -32,14 +32,14 @@ type FakeSTI struct {
 	ExpectedError          bool
 	LayeredBuildCalled     bool
 	LayeredBuildError      error
-	PostExecuteLocation    string
+	PostExecuteDestination string
 	PostExecuteContainerID string
 	PostExecuteError       error
 }
 
 func newFakeBaseSTI() *STI {
 	return &STI{
-		request:   &api.Request{},
+		config:    &api.Config{},
 		result:    &api.Result{},
 		docker:    &test.FakeDocker{},
 		installer: &test.FakeInstaller{},
@@ -51,7 +51,7 @@ func newFakeBaseSTI() *STI {
 
 func newFakeSTI(f *FakeSTI) *STI {
 	s := &STI{
-		request:   &api.Request{},
+		config:    &api.Config{},
 		result:    &api.Result{},
 		docker:    &test.FakeDocker{},
 		installer: &test.FakeInstaller{},
@@ -68,23 +68,23 @@ func newFakeSTI(f *FakeSTI) *STI {
 	return s
 }
 
-func (f *FakeSTI) Cleanup(*api.Request) {
+func (f *FakeSTI) Cleanup(*api.Config) {
 	f.CleanupCalled = true
 }
 
-func (f *FakeSTI) Prepare(*api.Request) error {
+func (f *FakeSTI) Prepare(*api.Config) error {
 	f.PrepareCalled = true
 	f.SetupRequired = []string{api.Assemble, api.Run}
 	f.SetupOptional = []string{api.SaveArtifacts}
 	return nil
 }
 
-func (f *FakeSTI) Exists(*api.Request) bool {
+func (f *FakeSTI) Exists(*api.Config) bool {
 	f.ExistsCalled = true
 	return true
 }
 
-func (f *FakeSTI) Request() *api.Request {
+func (f *FakeSTI) Request() *api.Config {
 	return f.BuildRequest
 }
 
@@ -92,7 +92,7 @@ func (f *FakeSTI) Result() *api.Result {
 	return f.BuildResult
 }
 
-func (f *FakeSTI) Save(*api.Request) error {
+func (f *FakeSTI) Save(*api.Config) error {
 	f.SaveArtifactsCalled = true
 	return f.SaveArtifactsError
 }
@@ -101,11 +101,11 @@ func (f *FakeSTI) fetchSource() error {
 	return f.FetchSourceError
 }
 
-func (f *FakeSTI) Download(*api.Request) error {
+func (f *FakeSTI) Download(*api.Config) error {
 	return nil
 }
 
-func (f *FakeSTI) Execute(command string, r *api.Request) error {
+func (f *FakeSTI) Execute(command string, r *api.Config) error {
 	f.ExecuteCommand = command
 	return f.ExecuteError
 }
@@ -114,9 +114,9 @@ func (f *FakeSTI) wasExpectedError(text string) bool {
 	return f.ExpectedError
 }
 
-func (f *FakeSTI) PostExecute(id, location string) error {
+func (f *FakeSTI) PostExecute(id, destination string) error {
 	f.PostExecuteContainerID = id
-	f.PostExecuteLocation = location
+	f.PostExecuteDestination = destination
 	return f.PostExecuteError
 }
 
@@ -124,7 +124,7 @@ type FakeDockerBuild struct {
 	*FakeSTI
 }
 
-func (f *FakeDockerBuild) Build(*api.Request) (*api.Result, error) {
+func (f *FakeDockerBuild) Build(*api.Config) (*api.Result, error) {
 	f.LayeredBuildCalled = true
 	return nil, f.LayeredBuildError
 }
@@ -133,19 +133,19 @@ func TestBuild(t *testing.T) {
 	incrementalTest := []bool{false, true}
 	for _, incremental := range incrementalTest {
 		fh := &FakeSTI{
-			BuildRequest: &api.Request{Incremental: incremental},
+			BuildRequest: &api.Config{Incremental: incremental},
 			BuildResult:  &api.Result{},
 		}
 
 		builder := newFakeSTI(fh)
-		builder.Build(&api.Request{Incremental: incremental})
+		builder.Build(&api.Config{Incremental: incremental})
 
-		// Verify the right scripts were requested
+		// Verify the right scripts were configed
 		if !reflect.DeepEqual(fh.SetupRequired, []string{api.Assemble, api.Run}) {
-			t.Errorf("Unexpected required scripts requested: %#v", fh.SetupRequired)
+			t.Errorf("Unexpected required scripts configed: %#v", fh.SetupRequired)
 		}
 		if !reflect.DeepEqual(fh.SetupOptional, []string{api.SaveArtifacts}) {
-			t.Errorf("Unexpected optional scripts requested: %#v", fh.SetupOptional)
+			t.Errorf("Unexpected optional scripts configed: %#v", fh.SetupOptional)
 		}
 
 		// Verify that Exists was called
@@ -167,15 +167,15 @@ func TestBuild(t *testing.T) {
 
 func TestLayeredBuild(t *testing.T) {
 	fh := &FakeSTI{
-		BuildRequest: &api.Request{
-			BaseImage: "testimage",
+		BuildRequest: &api.Config{
+			BuilderImage: "testimage",
 		},
 		BuildResult:   &api.Result{},
 		ExecuteError:  stierr.NewContainerError("", 1, `/bin/sh: tar: not found`),
 		ExpectedError: true,
 	}
 	builder := newFakeSTI(fh)
-	builder.Build(&api.Request{BaseImage: "testimage"})
+	builder.Build(&api.Config{BuilderImage: "testimage"})
 	// Verify layered build
 	if !fh.LayeredBuildCalled {
 		t.Errorf("Layered build was not called.")
@@ -184,15 +184,15 @@ func TestLayeredBuild(t *testing.T) {
 
 func TestBuildErrorExecute(t *testing.T) {
 	fh := &FakeSTI{
-		BuildRequest: &api.Request{
-			BaseImage: "testimage",
+		BuildRequest: &api.Config{
+			BuilderImage: "testimage",
 		},
 		BuildResult:   &api.Result{},
 		ExecuteError:  errors.New("ExecuteError"),
 		ExpectedError: false,
 	}
 	builder := newFakeSTI(fh)
-	_, err := builder.Build(&api.Request{BaseImage: "testimage"})
+	_, err := builder.Build(&api.Config{BuilderImage: "testimage"})
 	if err == nil || err.Error() != "ExecuteError" {
 		t.Errorf("An error was expected, but got different %v", err)
 	}
@@ -238,7 +238,7 @@ func testBuildHandler() *STI {
 		git:             &test.FakeGit{},
 		fs:              &test.FakeFileSystem{},
 		tar:             &test.FakeTar{},
-		request:         &api.Request{},
+		config:          &api.Config{},
 		result:          &api.Result{},
 		callbackInvoker: &test.FakeCallbackInvoker{},
 	}
@@ -278,12 +278,12 @@ func TestPostExecute(t *testing.T) {
 		bh := testBuildHandler()
 		containerID := "test-container-id"
 		bh.result.Messages = []string{"one", "two"}
-		bh.request.CallbackURL = "https://my.callback.org/test"
-		bh.request.Tag = tc.tag
-		bh.request.Incremental = tc.incremental
+		bh.config.CallbackURL = "https://my.callback.org/test"
+		bh.config.Tag = tc.tag
+		bh.config.Incremental = tc.incremental
 		dh := bh.docker.(*test.FakeDocker)
 		if tc.previousImageID != "" {
-			bh.request.RemovePreviousImage = true
+			bh.config.RemovePreviousImage = true
 			bh.incremental = tc.incremental
 			bh.docker.(*test.FakeDocker).GetImageIDResult = tc.previousImageID
 		}
@@ -317,8 +317,8 @@ func TestPostExecute(t *testing.T) {
 			}
 		}
 		// Ensure Callback was called
-		if ci.CallbackURL != bh.request.CallbackURL {
-			t.Errorf("(%d) Unexpected callbackURL, expected %s, got %", i, bh.request.CallbackURL, ci.CallbackURL)
+		if ci.CallbackURL != bh.config.CallbackURL {
+			t.Errorf("(%d) Unexpected callbackURL, expected %s, got %", i, bh.config.CallbackURL, ci.CallbackURL)
 		}
 	}
 }
@@ -354,13 +354,13 @@ func TestExists(t *testing.T) {
 
 	for i, ti := range tests {
 		bh := testBuildHandler()
-		bh.request.WorkingDir = "/working-dir"
-		bh.request.Incremental = ti.incremental
-		bh.request.ForcePull = true
+		bh.config.WorkingDir = "/working-dir"
+		bh.config.Incremental = ti.incremental
+		bh.config.ForcePull = true
 		bh.installedScripts = map[string]bool{api.SaveArtifacts: ti.scriptInstalled}
 		bh.docker.(*test.FakeDocker).PullResult = ti.previousImage
 
-		incremental := bh.Exists(bh.request)
+		incremental := bh.Exists(bh.config)
 		if incremental != ti.expected {
 			t.Errorf("(%d) Unexpected incremental result: %v. Expected: %v",
 				i, incremental, ti.expected)
@@ -381,12 +381,12 @@ func TestExists(t *testing.T) {
 
 func TestSaveArtifacts(t *testing.T) {
 	bh := testBuildHandler()
-	bh.request.WorkingDir = "/working-dir"
-	bh.request.Tag = "image/tag"
+	bh.config.WorkingDir = "/working-dir"
+	bh.config.Tag = "image/tag"
 	fs := bh.fs.(*test.FakeFileSystem)
 	fd := bh.docker.(*test.FakeDocker)
 	th := bh.tar.(*test.FakeTar)
-	err := bh.Save(bh.request)
+	err := bh.Save(bh.config)
 	if err != nil {
 		t.Errorf("Unexpected error when saving artifacts: %v", err)
 	}
@@ -395,7 +395,7 @@ func TestSaveArtifacts(t *testing.T) {
 		t.Errorf("Mkdir was not called with the expected directory: %s",
 			fs.MkdirDir)
 	}
-	if fd.RunContainerOpts.Image != bh.request.Tag {
+	if fd.RunContainerOpts.Image != bh.config.Tag {
 		t.Errorf("Unexpected image sent to RunContainer: %s",
 			fd.RunContainerOpts.Image)
 	}
@@ -424,7 +424,7 @@ func TestSaveArtifactsRunError(t *testing.T) {
 			if te {
 				th.ExtractTarError = fmt.Errorf("tar error")
 			}
-			err := bh.Save(bh.request)
+			err := bh.Save(bh.config)
 			if !te && err != expected[i] {
 				t.Errorf("Unexpected error returned from saveArtifacts: %v", err)
 			} else if te && err != th.ExtractTarError {
@@ -440,7 +440,7 @@ func TestSaveArtifactsErrorBeforeStart(t *testing.T) {
 	expected := fmt.Errorf("run error")
 	fd.RunContainerError = expected
 	fd.RunContainerErrorBeforeStart = true
-	err := bh.Save(bh.request)
+	err := bh.Save(bh.config)
 	if err != expected {
 		t.Errorf("Unexpected error returned from saveArtifacts: %v", err)
 	}
@@ -451,7 +451,7 @@ func TestSaveArtifactsExtractError(t *testing.T) {
 	th := bh.tar.(*test.FakeTar)
 	expected := fmt.Errorf("extract error")
 	th.ExtractTarError = expected
-	err := bh.Save(bh.request)
+	err := bh.Save(bh.config)
 	if err != expected {
 		t.Errorf("Unexpected error returned from saveArtifacts: %v", err)
 	}
@@ -495,14 +495,14 @@ func TestFetchSource(t *testing.T) {
 		gh := bh.git.(*test.FakeGit)
 		fh := bh.fs.(*test.FakeFileSystem)
 
-		bh.request.WorkingDir = "/working-dir"
+		bh.config.WorkingDir = "/working-dir"
 		gh.ValidCloneSpecResult = ft.validCloneSpec
 		if ft.refSpecified {
-			bh.request.Ref = "a-branch"
+			bh.config.Ref = "a-branch"
 		}
-		bh.request.Source = "a-repo-source"
+		bh.config.Source = "a-repo-source"
 		expectedTargetDir := "/working-dir/upload/src"
-		bh.source.Download(bh.request)
+		bh.source.Download(bh.config)
 		if ft.cloneExpected {
 			if gh.CloneSource != "a-repo-source" {
 				t.Errorf("Clone was not called with the expected source.")
@@ -534,9 +534,9 @@ func TestPrepareOK(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
 	rh.SetScripts([]string{api.Assemble, api.Run}, []string{api.SaveArtifacts})
 	rh.fs.(*test.FakeFileSystem).WorkingDirResult = "/working-dir"
-	err := rh.Prepare(rh.request)
+	err := rh.Prepare(rh.config)
 	if err != nil {
-		t.Errorf("An error occurred setting up the request handler: %v", err)
+		t.Errorf("An error occurred setting up the config handler: %v", err)
 	}
 	if !rh.fs.(*test.FakeFileSystem).WorkingDirCalled {
 		t.Errorf("Working directory was not created.")
@@ -561,7 +561,7 @@ func TestPrepareOK(t *testing.T) {
 func TestPrepareErrorCreatingWorkingDir(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
 	rh.fs.(*test.FakeFileSystem).WorkingDirError = errors.New("WorkingDirError")
-	err := rh.Prepare(rh.request)
+	err := rh.Prepare(rh.config)
 	if err == nil || err.Error() != "WorkingDirError" {
 		t.Errorf("An error was expected for WorkingDir, but got different: %v", err)
 	}
@@ -570,7 +570,7 @@ func TestPrepareErrorCreatingWorkingDir(t *testing.T) {
 func TestPrepareErrorMkdirAll(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
 	rh.fs.(*test.FakeFileSystem).MkdirAllError = errors.New("MkdirAllError")
-	err := rh.Prepare(rh.request)
+	err := rh.Prepare(rh.config)
 	if err == nil || err.Error() != "MkdirAllError" {
 		t.Errorf("An error was expected for MkdirAll, but got different: %v", err)
 	}
@@ -580,7 +580,7 @@ func TestPrepareErrorRequiredDownloadAndInstall(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
 	rh.SetScripts([]string{api.Assemble, api.Run}, []string{api.SaveArtifacts})
 	rh.installer.(*test.FakeInstaller).Error = fmt.Errorf("%v", api.Assemble)
-	err := rh.Prepare(rh.request)
+	err := rh.Prepare(rh.config)
 	if err == nil || err.Error() != api.Assemble {
 		t.Errorf("An error was expected for required DownloadAndInstall, but got different: %v", err)
 	}
@@ -589,7 +589,7 @@ func TestPrepareErrorRequiredDownloadAndInstall(t *testing.T) {
 func TestPrepareErrorOptionalDownloadAndInstall(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
 	rh.SetScripts([]string{api.Assemble, api.Run}, []string{api.SaveArtifacts})
-	err := rh.Prepare(rh.request)
+	err := rh.Prepare(rh.config)
 	if err != nil {
 		t.Errorf("Unexpected error when downloading optional scripts: %v", err)
 	}
@@ -620,7 +620,7 @@ func TestGenerateConfigEnv(t *testing.T) {
 		"Key2": "Value2",
 		"Key3": "Value3",
 	}
-	rh.request.Environment = testEnv
+	rh.config.Environment = testEnv
 	result := rh.generateConfigEnv()
 	expected := []string{"Key1=Value1", "Key2=Value2", "Key3=Value3"}
 	if !equalArrayContents(result, expected) {
@@ -633,16 +633,16 @@ func TestExecuteOK(t *testing.T) {
 	rh := newFakeBaseSTI()
 	pe := &FakeSTI{}
 	rh.postExecutor = pe
-	rh.request.WorkingDir = "/working-dir"
-	rh.request.BaseImage = "test/image"
-	rh.request.ForcePull = true
+	rh.config.WorkingDir = "/working-dir"
+	rh.config.BuilderImage = "test/image"
+	rh.config.ForcePull = true
 	th := rh.tar.(*test.FakeTar)
 	th.CreateTarResult = "/working-dir/test.tar"
 	fd := rh.docker.(*test.FakeDocker)
 	fd.RunContainerContainerID = "1234"
 	fd.RunContainerCmd = []string{"one", "two"}
 
-	err := rh.Execute("test-command", rh.request)
+	err := rh.Execute("test-command", rh.config)
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)
 	}
@@ -664,7 +664,7 @@ func TestExecuteOK(t *testing.T) {
 	}
 	ro := fd.RunContainerOpts
 
-	if ro.Image != rh.request.BaseImage {
+	if ro.Image != rh.config.BuilderImage {
 		t.Errorf("Unexpected Image passed to RunContainer")
 	}
 	if ro.Stdin != fh.OpenFileResult {
@@ -681,15 +681,15 @@ func TestExecuteOK(t *testing.T) {
 		t.Errorf("PostExecutor not called with expected ID: %s",
 			pe.PostExecuteContainerID)
 	}
-	if !reflect.DeepEqual(pe.PostExecuteLocation, "test-command") {
-		t.Errorf("PostExecutor not called with expected command: %s", pe.PostExecuteLocation)
+	if !reflect.DeepEqual(pe.PostExecuteDestination, "test-command") {
+		t.Errorf("PostExecutor not called with expected command: %s", pe.PostExecuteDestination)
 	}
 }
 
 func TestExecuteErrorCreateTarFile(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
 	rh.tar.(*test.FakeTar).CreateTarError = errors.New("CreateTarError")
-	err := rh.Execute("test-command", rh.request)
+	err := rh.Execute("test-command", rh.config)
 	if err == nil || err.Error() != "CreateTarError" {
 		t.Errorf("An error was expected for CreateTarFile, but got different: %v", err)
 	}
@@ -698,7 +698,7 @@ func TestExecuteErrorCreateTarFile(t *testing.T) {
 func TestExecuteErrorOpenTarFile(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
 	rh.fs.(*test.FakeFileSystem).OpenError = errors.New("OpenTarError")
-	err := rh.Execute("test-command", rh.request)
+	err := rh.Execute("test-command", rh.config)
 	if err == nil || err.Error() != "OpenTarError" {
 		t.Errorf("An error was expected for OpenTarFile, but got different: %v", err)
 	}
@@ -707,13 +707,13 @@ func TestExecuteErrorOpenTarFile(t *testing.T) {
 func TestCleanup(t *testing.T) {
 	rh := newFakeBaseSTI()
 
-	rh.request.WorkingDir = "/working-dir"
+	rh.config.WorkingDir = "/working-dir"
 	preserve := []bool{false, true}
 	for _, p := range preserve {
-		rh.request.PreserveWorkingDir = p
+		rh.config.PreserveWorkingDir = p
 		rh.fs = &test.FakeFileSystem{}
 		rh.garbage = &build.DefaultCleaner{rh.fs, rh.docker}
-		rh.garbage.Cleanup(rh.request)
+		rh.garbage.Cleanup(rh.config)
 		removedDir := rh.fs.(*test.FakeFileSystem).RemoveDirName
 		if p && removedDir != "" {
 			t.Errorf("Expected working directory to be preserved, but it was removed.")

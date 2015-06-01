@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 
 	"github.com/golang/glog"
 
@@ -106,7 +107,9 @@ type FileURLReader struct{}
 
 // Read produces an io.Reader from a file URL
 func (*FileURLReader) Read(url *url.URL) (io.ReadCloser, error) {
-	return os.Open(url.Path)
+	// for some reason url.Host may contain information about the ./ or ../ when
+	// specifying relative path, thus using that value as well
+	return os.Open(filepath.Join(url.Host, url.Path))
 }
 
 // ImageReader just returns information the URL is from inside the image
