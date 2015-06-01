@@ -238,8 +238,8 @@ func TestBuildConfigInstantiatorError(t *testing.T) {
 	bcUpdater := bcInstantiator.buildConfigUpdater
 
 	err := controller.HandleImageRepo(imageStream)
-	if err == nil || !strings.Contains(err.Error(), "instantiating error") {
-		t.Fatalf("Expected error from HandleImageRepo")
+	if err == nil || !strings.Contains(err.Error(), "will be retried") {
+		t.Fatalf("Expected 'will be retried' from HandleImageRepo, got %s", err.Error())
 	}
 	if actual, expected := bcInstantiator.newBuild.Parameters.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
 		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
@@ -263,8 +263,8 @@ func TestBuildConfigUpdateError(t *testing.T) {
 	if len(bcInstantiator.name) == 0 {
 		t.Error("Expected build generation when new image was created!")
 	}
-	if _, ok := err.(ImageChangeControllerFatalError); !ok {
-		t.Error("Expected fatal error from HandleImageRepo")
+	if err == nil || !strings.Contains(err.Error(), "will be retried") {
+		t.Fatalf("Expected 'will be retried' from HandleImageRepo, got %s", err.Error())
 	}
 }
 
