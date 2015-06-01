@@ -90,6 +90,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		return nil, err
 	}
 
+	// TODO try to find a better way to handle this
 	if req.URL.Path == "/healthz" {
 		return ctx, nil
 	}
@@ -109,6 +110,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		challenge.err = ErrTokenInvalid
 		return nil, challenge
 	}
+
 	osAuthParts := strings.SplitN(string(payload), ":", 2)
 	if len(osAuthParts) != 2 {
 		challenge.err = ErrOpenShiftTokenRequired
@@ -131,7 +133,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	}
 
 	for _, access := range accessRecords {
-		log.Debugf("%s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
+		log.Debugf("OpenShift auth: checking for access to %s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
 
 		switch access.Resource.Type {
 		case "repository":
@@ -166,7 +168,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 					return nil, challenge
 				}
 
-				return WithUserClient(ctx, client), nil
+				return ctx, nil
 			default:
 				challenge.err = fmt.Errorf("Unknown action: %s", access.Action)
 				return nil, challenge
@@ -188,7 +190,7 @@ func verifyOpenShiftUser(client *client.Client) error {
 func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.Client) error {
 	sar := authorizationapi.SubjectAccessReview{
 		Verb:         verb,
-		Resource:     "imageStreams",
+		Resource:     "imagestreams/layers",
 		ResourceName: imageRepo,
 	}
 	response, err := client.SubjectAccessReviews(namespace).Create(&sar)

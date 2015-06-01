@@ -135,7 +135,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     util.NewStringSet("get"),
-					Resources: util.NewStringSet("imagestreams"),
+					Resources: util.NewStringSet("imagestreams/layers"),
 				},
 			},
 		},
@@ -146,7 +146,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     util.NewStringSet("get", "update"),
-					Resources: util.NewStringSet("imagestreams"),
+					Resources: util.NewStringSet("imagestreams/layers"),
 				},
 			},
 		},
@@ -221,13 +221,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Resources: util.NewStringSet("imagestreamimages", "imagestreamtags", "imagestreams"),
 				},
 				{
-					// TODO: remove "create" once we re-enable user authentication in the registry
-					Verbs:     util.NewStringSet("create", "update"),
+					Verbs:     util.NewStringSet("update"),
 					Resources: util.NewStringSet("imagestreams"),
 				},
 				{
 					Verbs:     util.NewStringSet("create"),
-					Resources: util.NewStringSet("imagerepositorymappings", "imagestreammappings"),
+					Resources: util.NewStringSet("imagestreammappings"),
 				},
 			},
 		},
