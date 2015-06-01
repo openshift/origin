@@ -3,6 +3,9 @@
 echo "Killing openshift all-in-one server ..."
 killall openshift
 
+echo "Unmounting volumes ..."
+findmnt -lo TARGET | grep openshift.local.volumes | xargs -r sudo umount
+
 echo "Cleaning up openshift runtime files ..."
 rm -rf openshift.local.*
 
