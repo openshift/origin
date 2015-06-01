@@ -172,7 +172,24 @@ _osadm_new-project()
     flags+=("--display-name=")
     flags+=("--help")
     flags+=("-h")
-    flags+=("--master-policy-namespace=")
+    flags+=("--node-selector=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_osadm_policy_who-can()
+{
+    last_command="osadm_policy_who-can"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -284,9 +301,60 @@ _osadm_policy_remove-group()
     must_have_one_noun=()
 }
 
-_osadm_policy_who-can()
+_osadm_policy_add-cluster-role-to-user()
 {
-    last_command="osadm_policy_who-can"
+    last_command="osadm_policy_add-cluster-role-to-user"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_osadm_policy_remove-cluster-role-from-user()
+{
+    last_command="osadm_policy_remove-cluster-role-from-user"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_osadm_policy_add-cluster-role-to-group()
+{
+    last_command="osadm_policy_add-cluster-role-to-group"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_osadm_policy_remove-cluster-role-from-group()
+{
+    last_command="osadm_policy_remove-cluster-role-from-group"
     commands=()
 
     flags=()
@@ -305,13 +373,17 @@ _osadm_policy()
 {
     last_command="osadm_policy"
     commands=()
+    commands+=("who-can")
     commands+=("add-role-to-user")
     commands+=("remove-role-from-user")
     commands+=("remove-user")
     commands+=("add-role-to-group")
     commands+=("remove-role-from-group")
     commands+=("remove-group")
-    commands+=("who-can")
+    commands+=("add-cluster-role-to-user")
+    commands+=("remove-cluster-role-from-user")
+    commands+=("add-cluster-role-to-group")
+    commands+=("remove-cluster-role-from-group")
 
     flags=()
     two_word_flags=()
@@ -387,6 +459,7 @@ _osadm_router()
     flags+=("--output-version=")
     flags+=("--ports=")
     flags+=("--replicas=")
+    flags+=("--selector=")
     flags+=("--template=")
     two_word_flags+=("-t")
     flags+=("--type=")
@@ -420,6 +493,7 @@ _osadm_registry()
     flags+=("--output-version=")
     flags+=("--ports=")
     flags+=("--replicas=")
+    flags+=("--selector=")
     flags+=("--template=")
     two_word_flags+=("-t")
     flags+=("--type=")
@@ -445,6 +519,36 @@ _osadm_build-chain()
     flags+=("-h")
     flags+=("--output=")
     two_word_flags+=("-o")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_osadm_manage-node()
+{
+    last_command="osadm_manage-node"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--dry-run")
+    flags+=("--evacuate")
+    flags+=("--force")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--list-pods")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--pod-selector=")
+    flags+=("--schedulable")
+    flags+=("--selector=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -509,7 +613,6 @@ _osadm_config_set-credentials()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--auth-path=")
     flags+=("--client-certificate=")
     flags+=("--client-key=")
     flags+=("--embed-certs")
@@ -619,6 +722,91 @@ _osadm_config()
     must_have_one_noun=()
 }
 
+_osadm_prune_builds()
+{
+    last_command="osadm_prune_builds"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--dry-run")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--keep-complete=")
+    flags+=("--keep-failed=")
+    flags+=("--keep-younger-than=")
+    flags+=("--orphans")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_osadm_prune_deployments()
+{
+    last_command="osadm_prune_deployments"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--dry-run")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--keep-complete=")
+    flags+=("--keep-failed=")
+    flags+=("--keep-younger-than=")
+    flags+=("--orphans")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_osadm_prune_images()
+{
+    last_command="osadm_prune_images"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--certificate-authority=")
+    flags+=("--dry-run")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--keep-tag-revisions=")
+    flags+=("--keep-younger-than=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_osadm_prune()
+{
+    last_command="osadm_prune"
+    commands=()
+    commands+=("builds")
+    commands+=("deployments")
+    commands+=("images")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _osadm_create-kubeconfig()
 {
     last_command="osadm_create-kubeconfig"
@@ -659,8 +847,31 @@ _osadm_create-bootstrap-policy-file()
     flags+=("--filename=")
     flags+=("--help")
     flags+=("-h")
-    flags+=("--master-namespace=")
     flags+=("--openshift-namespace=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_osadm_create-bootstrap-project-template()
+{
+    last_command="osadm_create-bootstrap-project-template"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--name=")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -710,6 +921,7 @@ _osadm_create-node-config()
     flags+=("--latest-images")
     flags+=("--listen=")
     flags+=("--master=")
+    flags+=("--network-plugin=")
     flags+=("--node=")
     flags+=("--node-client-certificate-authority=")
     flags+=("--node-dir=")
@@ -768,6 +980,26 @@ _osadm_create-api-client-config()
     flags+=("--signer-key=")
     flags+=("--signer-serial=")
     flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_osadm_create-key-pair()
+{
+    last_command="osadm_create-key-pair"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--overwrite")
+    flags+=("--private-key=")
+    flags+=("--public-key=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -846,13 +1078,17 @@ _osadm()
     commands+=("router")
     commands+=("registry")
     commands+=("build-chain")
+    commands+=("manage-node")
     commands+=("config")
+    commands+=("prune")
     commands+=("create-kubeconfig")
     commands+=("create-bootstrap-policy-file")
+    commands+=("create-bootstrap-project-template")
     commands+=("overwrite-policy")
     commands+=("create-node-config")
     commands+=("create-master-certs")
     commands+=("create-api-client-config")
+    commands+=("create-key-pair")
     commands+=("create-server-cert")
     commands+=("create-signer-cert")
     commands+=("options")
@@ -865,7 +1101,6 @@ _osadm()
     flags+=("--allow_dynamic_housekeeping")
     flags+=("--alsologtostderr")
     flags+=("--api-version=")
-    flags+=("--auth-path=")
     flags+=("--boot_id_file=")
     flags+=("--certificate-authority=")
     flags+=("--client-certificate=")
@@ -875,9 +1110,12 @@ _osadm()
     flags+=("--container_hints=")
     flags+=("--context=")
     flags+=("--docker=")
+    flags+=("--docker_only")
     flags+=("--docker_root=")
     flags+=("--docker_run=")
     flags+=("--enable_load_reader")
+    flags+=("--event_storage_age_limit=")
+    flags+=("--event_storage_event_limit=")
     flags+=("--global_housekeeping_interval=")
     flags+=("--google-json-key=")
     flags+=("--help")
@@ -897,6 +1135,22 @@ _osadm()
     two_word_flags+=("-n")
     flags+=("--server=")
     flags+=("--stderrthreshold=")
+    flags+=("--test.bench=")
+    flags+=("--test.benchmem")
+    flags+=("--test.benchtime=")
+    flags+=("--test.blockprofile=")
+    flags+=("--test.blockprofilerate=")
+    flags+=("--test.coverprofile=")
+    flags+=("--test.cpu=")
+    flags+=("--test.cpuprofile=")
+    flags+=("--test.memprofile=")
+    flags+=("--test.memprofilerate=")
+    flags+=("--test.outputdir=")
+    flags+=("--test.parallel=")
+    flags+=("--test.run=")
+    flags+=("--test.short")
+    flags+=("--test.timeout=")
+    flags+=("--test.v")
     flags+=("--token=")
     flags+=("--user=")
     flags+=("--v=")
