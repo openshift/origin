@@ -20,8 +20,8 @@ type Environment struct {
 
 // GetEnvironment gets the .sti/environment file located in the sources and
 // parse it into []environment
-func GetEnvironment(request *api.Request) ([]Environment, error) {
-	envPath := filepath.Join(request.WorkingDir, api.Source, ".sti", api.Environment)
+func GetEnvironment(config *api.Config) ([]Environment, error) {
+	envPath := filepath.Join(config.WorkingDir, api.Source, ".sti", api.Environment)
 	if _, err := os.Stat(envPath); os.IsNotExist(err) {
 		return nil, errors.New("no evironment file found in application sources")
 	}

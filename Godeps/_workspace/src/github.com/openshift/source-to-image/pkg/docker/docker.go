@@ -15,8 +15,14 @@ import (
 )
 
 const (
-	ScriptsURL = "STI_SCRIPTS_URL"
-	Location   = "STI_LOCATION"
+	ScriptsURLEnvironment = "STI_SCRIPTS_URL"
+	LocationEnvironment   = "STI_LOCATION"
+
+	ScriptsURLLabel  = "io.s2i.scripts-url"
+	DestinationLabel = "io.s2i.destination"
+
+	DefaultDestination = "/tmp"
+	DefaultTag         = "latest"
 )
 
 // Docker is the interface between STI and the Docker client
@@ -59,7 +65,7 @@ type stiDocker struct {
 }
 
 type PostExecutor interface {
-	PostExecute(containerID, location string) error
+	PostExecute(containerID, destination string) error
 }
 
 type PullResult struct {
@@ -74,7 +80,7 @@ type RunContainerOptions struct {
 	PullAuth        docker.AuthConfiguration
 	ExternalScripts bool
 	ScriptsURL      string
-	Location        string
+	Destination     string
 	Command         string
 	Env             []string
 	Stdin           io.Reader
@@ -123,6 +129,7 @@ func New(config *api.DockerConfig, auth docker.AuthConfiguration) (Docker, error
 
 // IsImageInLocalRegistry determines whether the supplied image is in the local registry.
 func (d *stiDocker) IsImageInLocalRegistry(name string) (bool, error) {
+	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 
 	if image != nil {
@@ -136,6 +143,7 @@ func (d *stiDocker) IsImageInLocalRegistry(name string) (bool, error) {
 // GetImageUser finds and retrieves the user associated with
 // an image if one has been specified
 func (d *stiDocker) GetImageUser(name string) (string, error) {
+	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
 		return "", errors.NewInspectImageError(name, err)
@@ -150,6 +158,7 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 // IsImageOnBuild provides information about whether the Docker image has
 // OnBuild instruction recorded in the Image Config.
 func (d *stiDocker) IsImageOnBuild(name string) bool {
+	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
 		return false
@@ -160,6 +169,7 @@ func (d *stiDocker) IsImageOnBuild(name string) bool {
 // CheckAndPull pulls an image into the local registry if not present
 // and returns the image metadata
 func (d *stiDocker) CheckAndPull(name string) (image *docker.Image, err error) {
+	name = getImageName(name)
 	if image, err = d.client.InspectImage(name); err != nil && err != docker.ErrNoSuchImage {
 		return nil, errors.NewInspectImageError(name, err)
 	}
@@ -173,6 +183,7 @@ func (d *stiDocker) CheckAndPull(name string) (image *docker.Image, err error) {
 
 // PullImage pulls an image into the local registry
 func (d *stiDocker) PullImage(name string) (image *docker.Image, err error) {
+	name = getImageName(name)
 	glog.V(1).Infof("Pulling image %s", name)
 	// TODO: Add authentication support
 	if err = d.client.PullImage(docker.PullImageOptions{Repository: name}, d.pullAuth); err != nil {
@@ -195,8 +206,30 @@ func (d *stiDocker) RemoveContainer(id string) error {
 	return d.client.RemoveContainer(opts)
 }
 
+// getImageName checks the image name and adds DefaultTag if none is specified
+func getImageName(name string) string {
+	_, tag := docker.ParseRepositoryTag(name)
+	if len(tag) == 0 {
+		return strings.Join([]string{name, DefaultTag}, ":")
+	}
+
+	return name
+}
+
+// getLabel gets label's value from the image metadata
+func getLabel(image *docker.Image, name string) string {
+	if value, ok := image.Config.Labels[name]; ok {
+		return value
+	}
+	if value, ok := image.ContainerConfig.Labels[name]; ok {
+		return value
+	}
+
+	return ""
+}
+
 // getVariable gets environment variable's value from the image metadata
-func (d *stiDocker) getVariable(image *docker.Image, name string) string {
+func getVariable(image *docker.Image, name string) string {
 	envName := name + "="
 	env := append(image.ContainerConfig.Env, image.Config.Env...)
 	for _, v := range env {
@@ -208,49 +241,72 @@ func (d *stiDocker) getVariable(image *docker.Image, name string) string {
 	return ""
 }
 
-// GetScriptsURL finds a STI_SCRIPTS_URL in the given image's metadata
+// GetScriptsURL finds a scripts-url label in the given image's metadata
 func (d *stiDocker) GetScriptsURL(image string) (string, error) {
 	imageMetadata, err := d.CheckAndPull(image)
 	if err != nil {
 		return "", err
 	}
 
-	scriptsURL := d.getVariable(imageMetadata, ScriptsURL)
+	return getScriptsURL(imageMetadata), nil
+}
+
+// getScriptsURL finds a scripts url label in the image metadata
+func getScriptsURL(image *docker.Image) string {
+	scriptsURL := getLabel(image, ScriptsURLLabel)
 	if len(scriptsURL) == 0 {
-		glog.Warningf("Image does not contain a value for the STI_SCRIPTS_URL environment variable")
+		scriptsURL = getVariable(image, ScriptsURLEnvironment)
+		if len(scriptsURL) != 0 {
+			glog.Warningf("BuilderImage uses deprecated environment variable %s, please migrate it to %s label instead!",
+				ScriptsURLEnvironment, ScriptsURLLabel)
+		}
+	}
+	if len(scriptsURL) == 0 {
+		glog.Warningf("Image does not contain a value for the %s label", ScriptsURLLabel)
 	} else {
-		glog.V(2).Infof("Image contains STI_SCRIPTS_URL set to '%s'", scriptsURL)
+		glog.V(2).Infof("Image contains %s set to '%s'", ScriptsURLLabel, scriptsURL)
 	}
 
-	return scriptsURL, nil
+	return scriptsURL
+}
+
+// getDestination finds a destination label in the image metadata
+func getDestination(image *docker.Image) string {
+	if val := getLabel(image, DestinationLabel); len(val) != 0 {
+		return val
+	}
+	if val := getVariable(image, LocationEnvironment); len(val) != 0 {
+		glog.Warningf("BuilderImage uses deprecated environment variable %s, please migrate it to %s label instead!",
+			LocationEnvironment, DestinationLabel)
+		return val
+	}
+
+	// default directory if none is specified
+	return DefaultDestination
 }
 
 // RunContainer creates and starts a container using the image specified in the options with the ability
 // to stream input or output
 func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	// get info about the specified image
+	image := getImageName(opts.Image)
 	var imageMetadata *docker.Image
 	if opts.PullImage {
-		imageMetadata, err = d.CheckAndPull(opts.Image)
+		imageMetadata, err = d.CheckAndPull(image)
 	} else {
-		imageMetadata, err = d.client.InspectImage(opts.Image)
+		imageMetadata, err = d.client.InspectImage(image)
 	}
 	if err != nil {
-		glog.Errorf("Unable to get image metadata for %s: %v", opts.Image, err)
+		glog.Errorf("Unable to get image metadata for %s: %v", image, err)
 		return err
 	}
 
 	// base directory for all STI commands
 	var commandBaseDir string
 	// untar operation destination directory
-	tarDestination := opts.Location
+	tarDestination := opts.Destination
 	if len(tarDestination) == 0 {
-		if val := d.getVariable(imageMetadata, Location); len(val) != 0 {
-			tarDestination = val
-		} else {
-			// default directory if none is specified
-			tarDestination = "/tmp"
-		}
+		tarDestination = getDestination(imageMetadata)
 	}
 	if opts.ExternalScripts {
 		// for external scripts we must always append 'scripts' because this is
@@ -261,7 +317,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		// for internal scripts we can have separate path for scripts and untar operation destination
 		scriptsURL := opts.ScriptsURL
 		if len(scriptsURL) == 0 {
-			scriptsURL = d.getVariable(imageMetadata, ScriptsURL)
+			scriptsURL = getScriptsURL(imageMetadata)
 		}
 		commandBaseDir = strings.TrimPrefix(scriptsURL, "image://")
 		glog.V(2).Infof("Base directory for STI scripts is '%s'. Untarring destination is '%s'.",
@@ -276,7 +332,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 			tarDestination, filepath.Join(commandBaseDir, string(opts.Command)))}
 	}
 	config := docker.Config{
-		Image: opts.Image,
+		Image: image,
 		Cmd:   cmd,
 	}
 
@@ -321,8 +377,10 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	wg := sync.WaitGroup{}
 	go func() {
 		wg.Add(1)
-		d.client.AttachToContainer(attachOpts)
-		wg.Done()
+		defer wg.Done()
+		if err := d.client.AttachToContainer(attachOpts); err != nil {
+			glog.Errorf("Unable to attach container with %v", attachOpts)
+		}
 	}()
 	attached <- <-attached
 
@@ -345,8 +403,10 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		}
 		go func() {
 			wg.Add(1)
-			d.client.AttachToContainer(attachOpts2)
-			wg.Done()
+			defer wg.Done()
+			if err := d.client.AttachToContainer(attachOpts2); err != nil {
+				glog.Errorf("Unable to attach container with %v", attachOpts2)
+			}
 		}()
 		attached2 <- <-attached2
 	}
@@ -383,6 +443,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 
 // GetImageID retrieves the ID of the image identified by name
 func (d *stiDocker) GetImageID(name string) (string, error) {
+	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
 		return "", err
