@@ -123,14 +123,15 @@ import (
 )
 
 const (
-	OpenShiftAPIPrefix        = "/osapi" // TODO: make configurable
+	LegacyOpenShiftAPIPrefix  = "/osapi" // TODO: make configurable
+	OpenShiftAPIPrefix        = "/oapi"  // TODO: make configurable
 	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
 	OpenShiftAPIV1Beta1       = "v1beta1"
 	OpenShiftAPIV1Beta3       = "v1beta3"
 	OpenShiftAPIV1            = "v1"
-	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
-	OpenShiftAPIPrefixV1Beta3 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
-	OpenShiftAPIPrefixV1      = "/oapi" + "/" + OpenShiftAPIV1
+	OpenShiftAPIPrefixV1Beta1 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
+	OpenShiftAPIPrefixV1Beta3 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
+	OpenShiftAPIPrefixV1      = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
 	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
@@ -371,7 +372,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		root = new(restful.WebService)
 		container.Add(root)
 	}
-	initAPIVersionRoute(root, "v1beta1", "v1beta3", "v1")
+	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, "v1beta1", "v1beta3")
+	initAPIVersionRoute(root, OpenShiftAPIPrefix, "v1")
 
 	return []string{
 		fmt.Sprintf("Started OpenShift API at %%s%s (deprecated)", OpenShiftAPIPrefixV1Beta1),
@@ -398,9 +400,9 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 }
 
 //initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
-func initAPIVersionRoute(root *restful.WebService, versions ...string) {
+func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
 	versionHandler := apiserver.APIVersionHandler(versions...)
-	root.Route(root.GET(OpenShiftAPIPrefix).To(versionHandler).
+	root.Route(root.GET(prefix).To(versionHandler).
 		Doc("list supported server API versions").
 		Produces(restful.MIME_JSON).
 		Consumes(restful.MIME_JSON))
@@ -581,6 +583,7 @@ func (c *MasterConfig) api_v1beta1(all map[string]rest.Storage) *apiserver.APIGr
 		storage[k] = v
 	}
 	version := c.defaultAPIGroupVersion()
+	version.Root = LegacyOpenShiftAPIPrefix
 	version.Storage = storage
 	version.Version = OpenShiftAPIV1Beta1
 	version.Codec = v1beta1.Codec
@@ -597,6 +600,7 @@ func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGr
 		storage[strings.ToLower(k)] = v
 	}
 	version := c.defaultAPIGroupVersion()
+	version.Root = LegacyOpenShiftAPIPrefix
 	version.Storage = storage
 	version.Version = OpenShiftAPIV1Beta3
 	version.Codec = v1beta3.Codec
@@ -1065,7 +1069,7 @@ func (c clientDeploymentInterface) GetDeployment(ctx api.Context, name string) (
 // namespacingFilter adds a filter that adds the namespace of the request to the context.  Not all requests will have namespaces,
 // but any that do will have the appropriate value added.
 func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
-	infoResolver := &apiserver.APIRequestInfoResolver{util.NewStringSet("api", "osapi"), latest.RESTMapper}
+	infoResolver := &apiserver.APIRequestInfoResolver{util.NewStringSet("api", "osapi", "oapi"), latest.RESTMapper}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, ok := contextMapper.Get(req)
