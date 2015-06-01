@@ -407,8 +407,8 @@ type BuildRequest struct {
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty"`
 
-	// TriggeredByImage is the image name that triggered this build.
-	TriggeredByImage string
+	// TriggeredByImage is the Image that triggered this build.
+	TriggeredByImage *kapi.ObjectReference
 }
 
 // BuildLogOptions is the REST options for a build log
