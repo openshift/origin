@@ -142,11 +142,16 @@ func (c *MasterConfig) RunResourceQuotaManager() {
 }
 
 func (c *MasterConfig) RunNodeController() {
+	podEvictionTimeout, err := time.ParseDuration(c.Options.PodEvictionTimeout)
+	if err != nil {
+		glog.Fatalf("Unable to parse PodEvictionTimeout: %v", err)
+	}
+
 	controller := nodecontroller.NewNodeController(
 		nil, // TODO: reintroduce cloudprovider
 		c.KubeClient,
-		10,            // registerRetryCount
-		5*time.Minute, // podEvictionTimeout
+		10, // registerRetryCount
+		podEvictionTimeout,
 
 		util.NewTokenBucketRateLimiter(0.1, 10), // deleting pods qps / burst
 
