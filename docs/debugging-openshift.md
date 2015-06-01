@@ -25,6 +25,15 @@ System Environment
 
   Containers need to be able to resolve hostnames, so if you run a local DNS server on your host, you should update your /etc/resolv.conf to instead use a DNS server that will be reachable from within running containers.  Google's "8.8.8.8" server is a popular choice.
 
+1. Save iptables rules before restarting iptables and restore them afterwards. If iptables have to be restarted, then the iptables rules should be saved and restored, otherwise the docker inserted rules would get lost.
+
+
+        $ iptables-save > /path/to/iptables.bkp
+        $ systemctl restart iptables
+        $ iptables-restore < /path/to/iptables.bkp
+  
+
+
 Build Failures
 --------------
 
