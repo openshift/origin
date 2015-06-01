@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -48,6 +47,7 @@ func getImageStreamNameFromReference(ref *kapi.ObjectReference) string {
 func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) error {
 	glog.V(4).Infof("Build image change controller detected ImageStream change %s", repo.Status.DockerImageRepository)
 
+	var err error
 	// TODO: this is inefficient
 	for _, bc := range c.BuildConfigStore.List() {
 		config := bc.(*buildapi.BuildConfig)
@@ -116,19 +116,10 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 				},
 			}
 			if _, err := c.BuildConfigInstantiator.Instantiate(config.Namespace, request); err != nil {
-				if kerrors.IsConflict(err) {
-					// This is not a retryable error. The worst case outcome of not updating the buildconfig
-					// is that we might rerun a build for the same "new" imageid change in the future,
-					// which is better than guaranteeing we run the build 2+ times by retrying it here.
-					return ImageChangeControllerFatalError{
-						Reason: fmt.Sprintf("unable to instantiate Build for BuildConfig %s/%s due to a conflicting update: %v", config.Namespace, config.Name, err),
-						Err:    err,
-					}
-				}
-
-				return fmt.Errorf("error instantiating Build from BuildConfig %s/%s: %v", config.Namespace, config.Name, err)
+				glog.V(4).Infof("error instantiating Build from BuildConfig %s/%s: %v", config.Namespace, config.Name, err)
+				err = fmt.Errorf("error instantiating Build from BuildConfig")
 			}
 		}
 	}
-	return nil
+	return err
 }
