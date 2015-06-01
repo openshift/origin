@@ -184,6 +184,10 @@ popd
 install -d -m 0755 %{buildroot}%{_prefix}/lib/systemd/system/openshift-node.service.d
 install -p -m 0644 rel-eng/openshift-sdn-ovs.conf %{buildroot}%{_prefix}/lib/systemd/system/openshift-node.service.d/
 
+# Install bash completions
+install -d -m 755 %{buildroot}/etc/bash_completion.d/
+install -p -m 644 rel-eng/completions/bash/* %{buildroot}/etc/bash_completion.d/
+
 %files
 %defattr(-,root,root,-)
 %doc README.md LICENSE
@@ -191,6 +195,7 @@ install -p -m 0644 rel-eng/openshift-sdn-ovs.conf %{buildroot}%{_prefix}/lib/sys
 %{_bindir}/osc
 %{_bindir}/osadm
 %{_sharedstatedir}/%{name}
+/etc/bash_completion.d/*
 
 %files master
 %defattr(-,root,root,-)
