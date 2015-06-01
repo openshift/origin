@@ -122,7 +122,6 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 			challenge.err = ErrOpenShiftTokenRequired
 			return nil, challenge
 		}
-		user := osAuthParts[0]
 		bearerToken := osAuthParts[1]
 
 		client, err = NewUserOpenShiftClient(bearerToken)
@@ -132,7 +131,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 
 		// In case of docker login, hits endpoint /v2
 		if len(accessRecords) == 0 {
-			err = verifyOpenShiftUser(user, client)
+			err = verifyOpenShiftUser(client)
 			if err != nil {
 				challenge.err = err
 				return nil, challenge
@@ -187,14 +186,9 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	return ctx, nil
 }
 
-func verifyOpenShiftUser(user string, client *client.Client) error {
-	userObj, err := client.Users().Get("~")
-	if err != nil {
+func verifyOpenShiftUser(client *client.Client) error {
+	if _, err := client.Users().Get("~"); err != nil {
 		log.Errorf("Get user failed with error: %s", err)
-		return ErrOpenShiftAccessDenied
-	}
-	if user != userObj.Name {
-		log.Errorf("Token valid but user name mismatch")
 		return ErrOpenShiftAccessDenied
 	}
 	return nil
