@@ -111,6 +111,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 	"github.com/openshift/origin/plugins/osdn"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 )
@@ -755,18 +756,36 @@ func (c *MasterConfig) RunServiceAccountsController() {
 
 func (c *MasterConfig) RunServiceAccountTokensController() {
 	if len(c.Options.ServiceAccountConfig.PrivateKeyFile) == 0 {
-		glog.Infof("Skipped starting Service Account Token Controller, no private key specified")
+		glog.Infof("Skipped starting Service Account Token Manager, no private key specified")
 		return
 	}
 
 	privateKey, err := serviceaccount.ReadPrivateKey(c.Options.ServiceAccountConfig.PrivateKeyFile)
 	if err != nil {
-		glog.Fatalf("Error reading signing key for service account token controller: %v", err)
+		glog.Fatalf("Error reading signing key for Service Account Token Manager: %v", err)
 	}
 	options := serviceaccount.DefaultTokenControllerOptions(serviceaccount.JWTTokenGenerator(privateKey))
 
 	serviceaccount.NewTokensController(c.KubeClient(), options).Run()
 	glog.Infof("Started Service Account Token Manager")
+}
+
+func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
+	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
+	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
+
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClient(), serviceaccountcontrollers.DockercfgControllerOptions{DefaultDockerURL: serviceaccountcontrollers.DefaultOpenshiftDockerURL})
+	dockercfgController.Run()
+
+	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
+		RegistryNamespace:   "default",
+		RegistryServiceName: "docker-registry",
+		DockercfgController: dockercfgController,
+		DefaultDockerURL:    serviceaccountcontrollers.DefaultOpenshiftDockerURL,
+	}
+	serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run()
+
+	glog.Infof("Started Service Account Pull Secret Controllers")
 }
 
 // RunPolicyCache starts the policy cache
