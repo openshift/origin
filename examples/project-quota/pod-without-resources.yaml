@@ -16,5 +16,4 @@ spec:
     terminationMessagePath: /dev/termination-log
   dnsPolicy: ClusterFirst
   restartPolicy: Always
-  serviceAccount: ""
 status: {}
