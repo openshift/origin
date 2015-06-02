@@ -18,8 +18,8 @@ import (
 )
 
 // RecreateDeploymentStrategy is a simple strategy appropriate as a default.
-// Its behavior is to increase the replica count of the new deployment to 1,
-// and to decrease the replica count of previous deployments to zero.
+// Its behavior is to decrease the replica count of previous deployments to zero,
+// and to increase the replica count of the new deployment to 1.
 //
 // A failure to disable any existing deployments will be considered a
 // deployment failure.
@@ -89,11 +89,6 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		glog.V(4).Infof("Deployment has no explicit desired replica count; using the config value %d", desiredReplicas)
 	}
 
-	// Scale up the new deployment.
-	if err = s.updateReplicas(deployment.Namespace, deployment.Name, desiredReplicas); err != nil {
-		return err
-	}
-
 	// Disable any old deployments.
 	glog.V(4).Infof("Found %d prior deployments to disable", len(oldDeployments))
 	allProcessed := true
@@ -102,6 +97,15 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 			glog.Errorf("%v", err)
 			allProcessed = false
 		}
+	}
+
+	if !allProcessed {
+		return fmt.Errorf("failed to disable all prior deployments for new Deployment %s", deployment.Name)
+	}
+
+	// Scale up the new deployment.
+	if err = s.updateReplicas(deployment.Namespace, deployment.Name, desiredReplicas); err != nil {
+		return err
 	}
 
 	// Execute any post-hook. Errors are logged and ignored.
@@ -114,10 +118,6 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		if err != nil {
 			glog.Infof("Post hook failed: %s", err)
 		}
-	}
-
-	if !allProcessed {
-		return fmt.Errorf("failed to disable all prior deployments for new Deployment %s", deployment.Name)
 	}
 
 	glog.Infof("Deployment %s successfully made active", deployment.Name)
