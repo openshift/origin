@@ -48,6 +48,13 @@ func getImageStreamNameFromReference(ref *kapi.ObjectReference) string {
 func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) error {
 	glog.V(4).Infof("Build image change controller detected ImageStream change %s", repo.Status.DockerImageRepository)
 
+	// Loop through all build configurations and record if there was an error
+	// instead of breaking the loop. The error will be returned in the end, so the
+	// retry controller can retry. Any BuildConfigs that were processed successfully
+	// should have had their LastTriggeredImageID updated, so the retry should result
+	// in a no-op for them.
+	hasError := false
+
 	// TODO: this is inefficient
 	for _, bc := range c.BuildConfigStore.List() {
 		config := bc.(*buildapi.BuildConfig)
@@ -117,18 +124,17 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			}
 			if _, err := c.BuildConfigInstantiator.Instantiate(config.Namespace, request); err != nil {
 				if kerrors.IsConflict(err) {
-					// This is not a retryable error. The worst case outcome of not updating the buildconfig
-					// is that we might rerun a build for the same "new" imageid change in the future,
-					// which is better than guaranteeing we run the build 2+ times by retrying it here.
-					return ImageChangeControllerFatalError{
-						Reason: fmt.Sprintf("unable to instantiate Build for BuildConfig %s/%s due to a conflicting update: %v", config.Namespace, config.Name, err),
-						Err:    err,
-					}
+					util.HandleError(fmt.Errorf("unable to instantiate Build for BuildConfig %s/%s due to a conflicting update: %v", config.Namespace, config.Name, err))
+				} else {
+					util.HandleError(fmt.Errorf("error instantiating Build from BuildConfig %s/%s: %v", config.Namespace, config.Name, err))
 				}
-
-				return fmt.Errorf("error instantiating Build from BuildConfig %s/%s: %v", config.Namespace, config.Name, err)
+				hasError = true
+				continue
 			}
 		}
+	}
+	if hasError {
+		return fmt.Errorf("an error occurred processing 1 or more build configurations; the image change trigger for image stream %s will be retried", repo.Status.DockerImageRepository)
 	}
 	return nil
 }
