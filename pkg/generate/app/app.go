@@ -282,6 +282,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 					ContainerNames: []string{name},
 					From: kapi.ObjectReference{
 						Name: name,
+						Kind: "ImageStream",
 					},
 					Tag: tag,
 				},
