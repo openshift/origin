@@ -46,7 +46,18 @@ func changeTemplateObjectsVersion(t *templateapi.Template) {
 	if errs := kruntime.DecodeList(t.Objects, api.Scheme); len(errs) > 0 {
 		log.Fatalf("Unable to decode Template objects: %v", errs)
 	}
-	for i, obj := range t.Objects {
+	changeRuntimeObjectsVersion(t.Objects)
+}
+
+func changeListObjectsVersion(list *api.List) {
+	if errs := kruntime.DecodeList(list.Items, api.Scheme); len(errs) > 0 {
+		log.Fatalf("Unable to decode List objects: %v", errs)
+	}
+	changeRuntimeObjectsVersion(list.Items)
+}
+
+func changeRuntimeObjectsVersion(objects []kruntime.Object) {
+	for i, obj := range objects {
 		_, kind, err := api.Scheme.ObjectVersionAndKind(obj)
 		if err != nil {
 			glog.Infof("Template.Objects[%d]: Unable to determine version and kind: %v", i, err)
@@ -63,7 +74,7 @@ func changeTemplateObjectsVersion(t *templateapi.Template) {
 			glog.Infof("Template.Objects[%d]: Unable to convert: %v", err)
 			continue
 		}
-		t.Objects[i] = outputObj
+		objects[i] = outputObj
 	}
 }
 
@@ -108,6 +119,9 @@ func main() {
 
 	if template, ok := obj.(*templateapi.Template); ok {
 		changeTemplateObjectsVersion(template)
+	}
+	if list, ok := obj.(*api.List); ok {
+		changeListObjectsVersion(list)
 	}
 
 	outData, err := api.Scheme.EncodeToVersion(obj, *outputVersion)
