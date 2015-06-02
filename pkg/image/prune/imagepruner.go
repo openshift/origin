@@ -636,10 +636,12 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 
 	var err error
 	for _, proto := range []string{"https", "http"} {
+		glog.V(4).Infof("Trying %s for %s", proto, url)
 		err = deleteFunc(proto, fmt.Sprintf("%s://%s", proto, url))
 		if err == nil {
 			return nil
 		}
+		glog.V(4).Infof("Error with %s for %s: %v", proto, url, err)
 	}
 	return err
 }

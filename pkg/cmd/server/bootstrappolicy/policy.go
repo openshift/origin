@@ -70,7 +70,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "pods/exec", "pods/portforward"),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "update"),
+					Verbs: util.NewStringSet("get", "update"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
 					Resources: util.NewStringSet("imagestreams/layers"),
 				},
 			},
@@ -138,7 +139,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get"),
+					Verbs: util.NewStringSet("get"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
 					Resources: util.NewStringSet("imagestreams/layers"),
 				},
 			},
@@ -149,7 +151,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "update"),
+					Verbs: util.NewStringSet("get", "update"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
 					Resources: util.NewStringSet("imagestreams/layers"),
 				},
 			},
