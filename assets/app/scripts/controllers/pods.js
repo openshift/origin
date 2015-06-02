@@ -22,11 +22,11 @@ angular.module('openshiftConsole')
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.unfilteredPods = pods.by("metadata.name");
+      $scope.pods = LabelFilter.getLabelSelector().select($scope.unfilteredPods);
+      $scope.emptyMessage = "No pods to show";
       ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredPods, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-      $scope.pods = LabelFilter.getLabelSelector().select($scope.unfilteredPods);
-      $scope.emptyMessage = "No pods to show";
       updateFilterWarning();
       Logger.log("pods (subscribe)", $scope.unfilteredPods);
     }));
