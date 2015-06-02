@@ -11,7 +11,9 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	docker "github.com/fsouza/go-dockerclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
@@ -475,12 +477,12 @@ func TestRunAll(t *testing.T) {
 	dockerResolver := app.DockerRegistryResolver{
 		Client: dockerregistry.NewClient(),
 	}
-
 	tests := []struct {
-		name        string
-		config      *AppConfig
-		expected    map[string][]string
-		expectedErr error
+		name           string
+		config         *AppConfig
+		expected       map[string][]string
+		expectedErr    error
+		expectInsecure util.StringSet
 	}{
 		{
 			name: "successful ruby app generation",
@@ -550,6 +552,47 @@ func TestRunAll(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			name: "insecure registry generation",
+			config: &AppConfig{
+				Components: util.StringList{"myrepo:5000/myco/example~https://github.com/openshift/ruby-hello-world"},
+				Strategy:   "source",
+				dockerResolver: app.DockerClientResolver{
+					Client: &dockertools.FakeDockerClient{
+						Images: []docker.APIImages{{RepoTags: []string{"myrepo:5000/myco/example"}}},
+						Image:  &docker.Image{ID: "example", Config: &docker.Config{Env: []string{}}},
+					},
+					Insecure: true,
+				},
+				imageStreamResolver: app.ImageStreamResolver{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateResolver: app.TemplateResolver{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{},
+				},
+				templateFileResolver: &app.TemplateFileResolver{},
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				searcher:         &simpleSearcher{dockerResolver},
+				typer:            kapi.Scheme,
+				osclient:         &client.Fake{},
+				originNamespace:  "default",
+				InsecureRegistry: true,
+			},
+			expected: map[string][]string{
+				"imageStream":      {"example", "ruby-hello-world"},
+				"buildConfig":      {"ruby-hello-world"},
+				"deploymentConfig": {"ruby-hello-world"},
+			},
+			expectedErr:    nil,
+			expectInsecure: util.NewStringSet("example"),
+		},
 	}
 
 	for _, test := range tests {
@@ -558,6 +601,7 @@ func TestRunAll(t *testing.T) {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
 		}
+		imageStreams := []*imageapi.ImageStream{}
 		got := map[string][]string{}
 		for _, obj := range res.List.Items {
 			switch tp := obj.(type) {
@@ -567,6 +611,7 @@ func TestRunAll(t *testing.T) {
 				got["service"] = append(got["service"], tp.Name)
 			case *imageapi.ImageStream:
 				got["imageStream"] = append(got["imageStream"], tp.Name)
+				imageStreams = append(imageStreams, tp)
 			case *deploy.DeploymentConfig:
 				got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
 			}
@@ -587,10 +632,24 @@ func TestRunAll(t *testing.T) {
 			sort.Strings(exp)
 
 			if !reflect.DeepEqual(g, exp) {
-				t.Errorf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
+				t.Errorf("%s: %s resource names mismatch! Expected %v, got %v", test.name, k, exp, g)
 				continue
 			}
 		}
+
+		if test.expectInsecure == nil {
+			continue
+		}
+		for _, stream := range imageStreams {
+			_, hasAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
+			if test.expectInsecure.Has(stream.Name) && !hasAnnotation {
+				t.Errorf("%s: Expected insecure annotation for stream: %s, but did not get one.", test.name, stream.Name)
+			}
+			if !test.expectInsecure.Has(stream.Name) && hasAnnotation {
+				t.Errorf("%s: Got insecure annotation for stream: %s, and was not expecting one.", test.name, stream.Name)
+			}
+		}
+
 	}
 }
 
