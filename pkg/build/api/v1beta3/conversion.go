@@ -338,6 +338,36 @@ func convert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *ImageChang
 	return nil
 }
 
+func convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *newer.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
+		return err
+	}
+	switch in.Type {
+	case newer.ImageChangeBuildTriggerType:
+		out.Type = ImageChangeBuildTriggerType
+	case newer.GenericWebHookBuildTriggerType:
+		out.Type = GenericWebHookBuildTriggerType
+	case newer.GitHubWebHookBuildTriggerType:
+		out.Type = GitHubWebHookBuildTriggerType
+	}
+	return nil
+}
+
+func convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPolicy, out *newer.BuildTriggerPolicy, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
+		return err
+	}
+	switch in.Type {
+	case ImageChangeBuildTriggerType:
+		out.Type = newer.ImageChangeBuildTriggerType
+	case GenericWebHookBuildTriggerType:
+		out.Type = newer.GenericWebHookBuildTriggerType
+	case GitHubWebHookBuildTriggerType:
+		out.Type = newer.GitHubWebHookBuildTriggerType
+	}
+	return nil
+}
+
 func init() {
 	err := kapi.Scheme.AddDefaultingFuncs(
 		func(obj *SourceBuildStrategy) {
@@ -383,6 +413,8 @@ func init() {
 		convert_v1beta3_BuildOutput_To_api_BuildOutput,
 		convert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger,
 		convert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger,
+		convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy,
+		convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
 	)
 
 	// Add field conversion funcs.

@@ -74,8 +74,8 @@ func (c *buildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPol
 		switch {
 		case trigger.GenericWebHook != nil:
 			return c.r.Get().Namespace(c.ns).Resource("buildConfigHooks").Name(name).Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
-		case trigger.GithubWebHook != nil:
-			return c.r.Get().Namespace(c.ns).Resource("buildConfigHooks").Name(name).Suffix(trigger.GithubWebHook.Secret, "github").URL(), nil
+		case trigger.GitHubWebHook != nil:
+			return c.r.Get().Namespace(c.ns).Resource("buildConfigHooks").Name(name).Suffix(trigger.GitHubWebHook.Secret, "github").URL(), nil
 		default:
 			return nil, ErrTriggerIsNotAWebHook
 		}
@@ -83,8 +83,8 @@ func (c *buildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPol
 	switch {
 	case trigger.GenericWebHook != nil:
 		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
-	case trigger.GithubWebHook != nil:
-		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GithubWebHook.Secret, "github").URL(), nil
+	case trigger.GitHubWebHook != nil:
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GitHubWebHook.Secret, "github").URL(), nil
 	default:
 		return nil, ErrTriggerIsNotAWebHook
 	}

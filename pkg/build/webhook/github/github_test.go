@@ -20,8 +20,8 @@ func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, err
 	return &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
-				Type: api.GithubWebHookBuildTriggerType,
-				GithubWebHook: &api.WebHookTrigger{
+				Type: api.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &api.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
@@ -210,8 +210,8 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 		buildCfg: &api.BuildConfig{
 			Triggers: []api.BuildTriggerPolicy{
 				{
-					Type: api.GithubWebHookBuildTriggerType,
-					GithubWebHook: &api.WebHookTrigger{
+					Type: api.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &api.WebHookTrigger{
 						Secret: "secret101",
 					},
 				},

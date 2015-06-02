@@ -485,7 +485,7 @@ oc get buildConfigs
 oc get bc
 oc get builds
 
-[[ $(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook Github"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta3/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/github") ]]
+[[ $(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook GitHub"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta3/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/github") ]]
 [[ $(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta3/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/generic") ]]
 oc start-build --list-webhooks='all' ruby-sample-build
 [[ $(oc start-build --list-webhooks='all' ruby-sample-build | grep --text "generic") ]]

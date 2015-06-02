@@ -930,13 +930,13 @@ func deepCopy_v1beta3_BuildStrategy(in buildapiv1beta3.BuildStrategy, out *build
 
 func deepCopy_v1beta3_BuildTriggerPolicy(in buildapiv1beta3.BuildTriggerPolicy, out *buildapiv1beta3.BuildTriggerPolicy, c *conversion.Cloner) error {
 	out.Type = in.Type
-	if in.GithubWebHook != nil {
-		out.GithubWebHook = new(buildapiv1beta3.WebHookTrigger)
-		if err := deepCopy_v1beta3_WebHookTrigger(*in.GithubWebHook, out.GithubWebHook, c); err != nil {
+	if in.GitHubWebHook != nil {
+		out.GitHubWebHook = new(buildapiv1beta3.WebHookTrigger)
+		if err := deepCopy_v1beta3_WebHookTrigger(*in.GitHubWebHook, out.GitHubWebHook, c); err != nil {
 			return err
 		}
 	} else {
-		out.GithubWebHook = nil
+		out.GitHubWebHook = nil
 	}
 	if in.GenericWebHook != nil {
 		out.GenericWebHook = new(buildapiv1beta3.WebHookTrigger)

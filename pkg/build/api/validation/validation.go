@@ -235,20 +235,13 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) fielderrors.Validatio
 		return allErrs
 	}
 
-	// Ensure that only parameters for the trigger's type are present
-	triggerPresence := map[buildapi.BuildTriggerType]bool{
-		buildapi.GithubWebHookBuildTriggerType:  trigger.GithubWebHook != nil,
-		buildapi.GenericWebHookBuildTriggerType: trigger.GenericWebHook != nil,
-	}
-	allErrs = append(allErrs, validateTriggerPresence(triggerPresence, trigger.Type)...)
-
 	// Validate each trigger type
 	switch trigger.Type {
-	case buildapi.GithubWebHookBuildTriggerType:
-		if trigger.GithubWebHook == nil {
+	case buildapi.GitHubWebHookBuildTriggerType:
+		if trigger.GitHubWebHook == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("github"))
 		} else {
-			allErrs = append(allErrs, validateWebHook(trigger.GithubWebHook).Prefix("github")...)
+			allErrs = append(allErrs, validateWebHook(trigger.GitHubWebHook).Prefix("github")...)
 		}
 	case buildapi.GenericWebHookBuildTriggerType:
 		if trigger.GenericWebHook == nil {
@@ -260,16 +253,8 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) fielderrors.Validatio
 		if trigger.ImageChange == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("imageChange"))
 		}
-	}
-	return allErrs
-}
-
-func validateTriggerPresence(params map[buildapi.BuildTriggerType]bool, t buildapi.BuildTriggerType) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	for triggerType, present := range params {
-		if triggerType != t && present {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(string(triggerType), "", "triggerType wasn't found"))
-		}
+	default:
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("type", trigger.Type, "invalid trigger type"))
 	}
 	return allErrs
 }

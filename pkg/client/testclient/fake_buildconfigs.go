@@ -33,8 +33,8 @@ func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTrigge
 	switch {
 	case trigger.GenericWebHook != nil:
 		return url.Parse(fmt.Sprintf("http://localhost/buildConfigHooks/%s/%s/generic", name, trigger.GenericWebHook.Secret))
-	case trigger.GithubWebHook != nil:
-		return url.Parse(fmt.Sprintf("http://localhost/buildConfigHooks/%s/%s/github", name, trigger.GithubWebHook.Secret))
+	case trigger.GitHubWebHook != nil:
+		return url.Parse(fmt.Sprintf("http://localhost/buildConfigHooks/%s/%s/github", name, trigger.GitHubWebHook.Secret))
 	default:
 		return nil, client.ErrTriggerIsNotAWebHook
 	}
