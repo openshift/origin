@@ -103,7 +103,7 @@ func (c *AssetConfig) buildHandler() (http.Handler, error) {
 
 	config := assets.WebConsoleConfig{
 		MasterAddr:        masterURL.Host,
-		MasterPrefix:      OpenShiftAPIPrefix,
+		MasterPrefix:      LegacyOpenShiftAPIPrefix, // TODO: change when the UI changes from v1beta3 to v1
 		KubernetesAddr:    masterURL.Host,
 		KubernetesPrefix:  KubernetesAPIPrefix,
 		OAuthAuthorizeURI: OpenShiftOAuthAuthorizeURL(masterURL.String()),
