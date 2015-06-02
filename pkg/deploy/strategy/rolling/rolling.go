@@ -104,8 +104,6 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	}
 
 	params := config.Template.Strategy.RollingParams
-	// TODO: Consider exposing this via the API.
-	hookRetryPeriod := 1 * time.Second
 
 	// Find the latest deployment (if any).
 	latest, err := s.findLatestDeployment(oldDeployments)
@@ -121,7 +119,7 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	if latest == nil {
 		// Execute any pre-hook.
 		if params.Pre != nil {
-			err := s.hookExecutor.Execute(params.Pre, deployment, hookRetryPeriod)
+			err := s.hookExecutor.Execute(params.Pre, deployment, "prehook")
 			if err != nil {
 				return fmt.Errorf("Pre hook failed: %s", err)
 			}
@@ -136,11 +134,7 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 
 		// Execute any post-hook. Errors are logged and ignored.
 		if params.Post != nil {
-			// TODO: handle this in defaulting/conversion/validation?
-			if params.Post.FailurePolicy == deployapi.LifecycleHookFailurePolicyAbort {
-				params.Post.FailurePolicy = deployapi.LifecycleHookFailurePolicyIgnore
-			}
-			err := s.hookExecutor.Execute(params.Post, deployment, hookRetryPeriod)
+			err := s.hookExecutor.Execute(params.Post, deployment, "posthook")
 			if err != nil {
 				glog.Errorf("Post hook failed: %s", err)
 			} else {
@@ -155,7 +149,7 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	// Prepare for a rolling update.
 	// Execute any pre-hook.
 	if params.Pre != nil {
-		err := s.hookExecutor.Execute(params.Pre, deployment, hookRetryPeriod)
+		err := s.hookExecutor.Execute(params.Pre, deployment, "prehook")
 		if err != nil {
 			return fmt.Errorf("Pre hook failed: %s", err)
 		}
@@ -216,11 +210,7 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 
 	// Execute any post-hook. Errors are logged and ignored.
 	if params.Post != nil {
-		// TODO: handle this in defaulting/conversion/validation?
-		if params.Post.FailurePolicy == deployapi.LifecycleHookFailurePolicyAbort {
-			params.Post.FailurePolicy = deployapi.LifecycleHookFailurePolicyIgnore
-		}
-		err := s.hookExecutor.Execute(params.Post, deployment, hookRetryPeriod)
+		err := s.hookExecutor.Execute(params.Post, deployment, "posthook")
 		if err != nil {
 			glog.Errorf("Post hook failed: %s", err)
 		} else {
@@ -296,14 +286,14 @@ func (w *rollingUpdaterWriter) Write(p []byte) (n int, err error) {
 
 // hookExecutor knows how to execute a deployment lifecycle hook.
 type hookExecutor interface {
-	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error
+	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error
 }
 
 // hookExecutorImpl is a pluggable hookExecutor.
 type hookExecutorImpl struct {
-	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error
+	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error
 }
 
-func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error {
-	return i.executeFunc(hook, deployment, retryPeriod)
+func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+	return i.executeFunc(hook, deployment, label)
 }
