@@ -20,8 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const buildsLongDesc = `
-`
+const buildsLongDesc = `%s %s - removes older completed and failed builds`
 
 const PruneBuildsRecommendedName = "builds"
 
