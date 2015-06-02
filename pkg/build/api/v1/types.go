@@ -321,8 +321,8 @@ type BuildTriggerPolicy struct {
 	// Type is the type of build trigger
 	Type BuildTriggerType `json:"type,omitempty" description:"type of build trigger"`
 
-	// GithubWebHook contains the parameters for a GitHub webhook type of trigger
-	GithubWebHook *WebHookTrigger `json:"github,omitempty" description:"parameters for a GitHub webhook type of trigger"`
+	// GitHubWebHook contains the parameters for a GitHub webhook type of trigger
+	GitHubWebHook *WebHookTrigger `json:"github,omitempty" description:"parameters for a GitHub webhook type of trigger"`
 
 	// GenericWebHook contains the parameters for a Generic webhook type of trigger
 	GenericWebHook *WebHookTrigger `json:"generic,omitempty" description:"parameters for a Generic webhook type of trigger"`
@@ -335,17 +335,20 @@ type BuildTriggerPolicy struct {
 type BuildTriggerType string
 
 const (
-	// GithubWebHookBuildTriggerType represents a trigger that launches builds on
+	// GitHubWebHookBuildTriggerType represents a trigger that launches builds on
 	// GitHub webhook invocations
-	GithubWebHookBuildTriggerType BuildTriggerType = "github"
+	GitHubWebHookBuildTriggerType           BuildTriggerType = "GitHub"
+	GitHubWebHookBuildTriggerTypeDeprecated BuildTriggerType = "github"
 
 	// GenericWebHookBuildTriggerType represents a trigger that launches builds on
 	// generic webhook invocations
-	GenericWebHookBuildTriggerType BuildTriggerType = "generic"
+	GenericWebHookBuildTriggerType           BuildTriggerType = "Generic"
+	GenericWebHookBuildTriggerTypeDeprecated BuildTriggerType = "generic"
 
 	// ImageChangeBuildTriggerType represents a trigger that launches builds on
 	// availability of a new version of an image
-	ImageChangeBuildTriggerType BuildTriggerType = "imageChange"
+	ImageChangeBuildTriggerType           BuildTriggerType = "ImageChange"
+	ImageChangeBuildTriggerTypeDeprecated BuildTriggerType = "imageChange"
 )
 
 // BuildList is a collection of Builds.
