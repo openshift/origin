@@ -343,8 +343,9 @@ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 # ensure the registry rc has been created
 wait_for_command 'osc get rc docker-registry-1' "${TIME_MIN}"
 # delete the registry resources
-osc delete dc docker-registry
 osc delete svc docker-registry
+osc delete dc docker-registry
+[ ! "$(osc get dc docker-registry)" ]
 [ ! "$(osc get rc docker-registry-1)" ]
 # done deleting registry resources
 osc delete imageStreams test
@@ -464,8 +465,8 @@ osc process -f examples/sample-app/application-template-dockerbuild.json -l app=
 wait_for_command 'osc get rc/database-1' "${TIME_MIN}"
 osc get dc/database
 osc stop dc/database
-[ ! "$(osc get rc/database-1)" ]
 [ ! "$(osc get dc/database)" ]
+[ ! "$(osc get rc/database-1)" ]
 echo "stop: ok"
 osc label bc ruby-sample-build acustom=label
 [ "$(osc describe bc/ruby-sample-build | grep 'acustom=label')" ]
