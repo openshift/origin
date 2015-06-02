@@ -14,6 +14,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -25,7 +26,7 @@ func NewCommandPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer
 		Use:   name,
 		Short: "Manage authorization policy",
 		Long:  `Manage authorization policy`,
-		Run:   runHelp,
+		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 
 	cmds.AddCommand(NewCmdWhoCan(WhoCanRecommendedName, fullName+" "+WhoCanRecommendedName, f, out))
@@ -43,10 +44,6 @@ func NewCommandPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer
 	cmds.AddCommand(NewCmdRemoveClusterRoleFromGroup(RemoveClusterRoleFromGroupRecommendedName, fullName+" "+RemoveClusterRoleFromGroupRecommendedName, f, out))
 
 	return cmds
-}
-
-func runHelp(cmd *cobra.Command, args []string) {
-	cmd.Help()
 }
 
 func getFlagString(cmd *cobra.Command, flag string) string {

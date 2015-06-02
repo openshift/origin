@@ -292,8 +292,8 @@ echo "templates: ok"
 
 # help for given command through help command must be consistent
 [ "$(osc help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift cli help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift kubectl help get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift help cli get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift help kubectl get 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift help start 2>&1 | grep 'Start an OpenShift all-in-one server')" ]
 [ "$(openshift help start master 2>&1 | grep 'Start an OpenShift master')" ]
 [ "$(openshift help start node 2>&1 | grep 'Start an OpenShift node')" ]
@@ -306,6 +306,12 @@ echo "templates: ok"
 
 # commands that expect file paths must validate and error out correctly
 [ "$(osc login --certificate-authority=/path/to/invalid 2>&1 | grep 'no such file or directory')" ]
+
+# make sure that typoed commands come back with non-zero return codes
+[ "$(openshift admin policy TYPO; echo $? | grep '1')" ]
+[ "$(openshift admin TYPO; echo $? | grep '1')" ]
+[ "$(openshift cli TYPO; echo $? | grep '1')" ]
+[ "$(osc policy TYPO; echo $? | grep '1')" ]
 
 osc get pods --match-server-version
 osc create -f examples/hello-openshift/hello-pod.json
@@ -521,6 +527,13 @@ openshift admin policy add-cluster-role-to-group cluster-admin system:unauthenti
 openshift admin policy remove-cluster-role-from-group cluster-admin system:unauthenticated
 openshift admin policy add-cluster-role-to-user cluster-admin system:no-user
 openshift admin policy remove-cluster-role-from-user cluster-admin system:no-user
+
+osc policy add-role-to-group cluster-admin system:unauthenticated
+osc policy add-role-to-user cluster-admin system:no-user
+osc policy remove-role-from-group cluster-admin system:unauthenticated
+osc policy remove-role-from-user cluster-admin system:no-user
+osc policy remove-group system:unauthenticated
+osc policy remove-user system:no-user
 echo "ex policy: ok"
 
 # Test the commands the UI projects page tells users to run
