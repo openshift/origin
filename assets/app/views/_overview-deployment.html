@@ -48,8 +48,9 @@
         ><span>, triggered by
           <span class="deployment-trigger" ng-repeat="cause in rc.causes">
             <span ng-switch="cause.type">
-              <!-- FIXME: Do I need a default namespace? -->
-              <span ng-switch-when="ImageChange">a new image for {{cause.imageTrigger.from | imageObjectRef : null : true}}</span>
+              <span ng-switch-when="ImageChange">
+                a new image <span ng-if="cause.imageTrigger.from">for {{cause.imageTrigger.from | imageObjectRef : null : true}}</span>
+              </span>
               <span ng-switch-when="ConfigChange">a config change</span>
               <span ng-switch-default>{{cause.type}}</span>
             </span>

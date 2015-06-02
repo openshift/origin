@@ -37,29 +37,19 @@
               <div ng-if="buildConfig.spec.strategy.customStrategy.from">
                 <dt>Builder image stream:</dt>
                 <dd>{{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                </dd>                  
+                </dd>
               </div>
             </div>
           </div>
           <div ng-if="buildConfig.spec.source">
             <div ng-if="buildConfig.spec.source.type == 'Git'">
-
                 <dt>Source repo:</dt>
                 <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink | linky'></dd>
-
             </div>
           </div>
-          <div ng-if="buildConfig.spec.output">
-            <div ng-if="buildConfig.spec.output.to">
-              <dt>Output to:</dt>
-              <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
-            </div>
-            <div ng-if="!buildConfig.spec.output.to && buildConfig.spec.output.dockerImageReference">
-
-                <dt>Output image:</dt>
-                <dd>{{buildConfig.spec.output.dockerImageReference}}</dd>
-              
-            </div>
+          <div ng-if="buildConfig.spec.output.to">
+            <dt>Output to:</dt>
+            <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
           </div>
           </dl>
 
@@ -169,14 +159,14 @@
           <div>
             <span style="margin-right: 5px;">Duration: </span>
             <span ng-switch="build.status.phase" class="hide-ng-leave">
-              <span ng-switch-when="Complete">{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.completionTimestamp}}</span>
+              <span ng-switch-when="Complete">{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
               <span ng-switch-when="Failed">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
               <span ng-switch-when="Running">running for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
               <span ng-switch-when="New">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
               <span ng-switch-when="Pending">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
               <span ng-switch-default>
                 <span ng-if="build.status.startTimestamp">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
-                <span ng-if="!build.status.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.completionTimestamp}}</span>
+                <span ng-if="!build.status.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.status.completionTimestamp}}</span>
               </span>
             </span>
           </div>
@@ -234,14 +224,14 @@
           <div>
             <span style="margin-right: 5px;">Duration: </span>
             <span ng-switch="build.status" class="hide-ng-leave">
-              <span ng-switch-when="Complete">{{(build.startTimestamp || build.metadata.creationTimestamp) | duration : build.completionTimestamp}}</span>
-              <span ng-switch-when="Failed">{{build.startTimestamp | duration : build.completionTimestamp}}</span>
-              <span ng-switch-when="Running">running for <duration-until-now timestamp="build.startTimestamp"></duration-until-now></span>
+              <span ng-switch-when="Complete">{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
+              <span ng-switch-when="Failed">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+              <span ng-switch-when="Running">running for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
               <span ng-switch-when="New">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
               <span ng-switch-when="Pending">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
               <span ng-switch-default>
-                <span ng-if="build.startTimestamp">{{build.startTimestamp | duration : build.completionTimestamp}}</span>
-                <span ng-if="!build.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.completionTimestamp}}</span>
+                <span ng-if="build.status.startTimestamp">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                <span ng-if="!build.status.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.status.completionTimestamp}}</span>
               </span>
             </span>
           </div>          
