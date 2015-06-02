@@ -46,6 +46,7 @@ import (
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
+	routeadmission "github.com/openshift/origin/pkg/route/admission"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 )
@@ -144,6 +145,14 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
 	admissionControlPluginNames := []string{"OriginNamespaceLifecycle"}
 	admissionController := admission.NewFromPlugins(privilegedLoopbackKubeClient, admissionControlPluginNames, "")
+
+	// This plugin must be manually initialized, it requires an openshift client which is not
+	// available via the factory interface normally used in NewFromPlugins.
+	routeAdmissionPlugin, err := routeadmission.NewRouteAdmissionPlugin(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient)
+	if err != nil {
+		return nil, err
+	}
+	admissionController = admission.NewChainHandler(admissionController, routeAdmissionPlugin)
 
 	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, client)
 	if err != nil {
