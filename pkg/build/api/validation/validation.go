@@ -44,8 +44,16 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErr
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", config.Namespace, "namespace must be a valid subdomain"))
 	}
 	allErrs = append(allErrs, validation.ValidateLabels(config.Labels, "labels")...)
-	for i := range config.Triggers {
-		allErrs = append(allErrs, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
+	// allow only one ImageChangeTrigger for now
+	ictCount := 0
+	for i, trg := range config.Triggers {
+		allErrs = append(allErrs, validateTrigger(&trg).PrefixIndex(i).Prefix("triggers")...)
+		if trg.Type == buildapi.ImageChangeBuildTriggerType {
+			ictCount++
+		}
+	}
+	if ictCount > 1 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("triggers", "", "only one ImageChangeTrigger is allowed"))
 	}
 	allErrs = append(allErrs, validateBuildParameters(&config.Parameters).Prefix("parameters")...)
 	allErrs = append(allErrs, validateBuildConfigOutput(&config.Parameters.Output).Prefix("parameters.output")...)
