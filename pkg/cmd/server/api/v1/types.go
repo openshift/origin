@@ -76,6 +76,9 @@ const (
 type MasterConfig struct {
 	v1.TypeMeta `json:",inline"`
 
+	// If Openshift is enabled
+	OpenshiftEnabled bool `json:"openshiftEnabled"`
+
 	// ServingInfo describes how to start serving
 	ServingInfo HTTPServingInfo `json:"servingInfo"`
 
