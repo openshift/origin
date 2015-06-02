@@ -14,7 +14,7 @@ import (
 	sti "github.com/openshift/source-to-image/pkg/build/strategies"
 	stidocker "github.com/openshift/source-to-image/pkg/docker"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 )
@@ -103,7 +103,6 @@ func (s *STIBuilder) Build() error {
 		}
 		glog.Infof("Pushing %s image ...", dockerImageRef)
 		if err := pushImage(s.dockerClient, tag, s.auth); err != nil {
-			glog.Errorf("Failed to push image: %v", err)
 			return fmt.Errorf("Failed to push image: %v", err)
 		}
 		glog.Infof("Successfully pushed %s", dockerImageRef)

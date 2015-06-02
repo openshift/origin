@@ -15,7 +15,7 @@ import (
 
 	dockercmd "github.com/docker/docker/builder/command"
 	"github.com/docker/docker/builder/parser"
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	image "github.com/openshift/origin/pkg/image/api"
 
@@ -90,8 +90,7 @@ func (d *DockerBuilder) Build() error {
 		}
 		glog.Infof("Pushing %s image ...", dockerImageRef)
 		if err := pushImage(d.dockerClient, tag, d.auth); err != nil {
-			glog.Errorf("Failed to push image: %v", err)
-			return nil
+			return fmt.Errorf("Failed to push image: %v", err)
 		}
 		glog.Infof("Successfully pushed %s", dockerImageRef)
 	}
