@@ -15,6 +15,8 @@ var (
 	DeadOpenShiftAPILevels     = []string{"v1beta1"}
 )
 
+type ExtendedArguments map[string][]string
+
 // NodeConfig is the fully specified config starting an OpenShift node
 type NodeConfig struct {
 	api.TypeMeta
@@ -52,6 +54,11 @@ type NodeConfig struct {
 
 	// DockerConfig holds Docker related configuration options.
 	DockerConfig DockerConfig
+
+	// KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's
+	// command line arguments.  These are not migrated or validated, so if you use them they may become invalid.
+	// These values override other settings in NodeConfig which may cause invalid configurations.
+	KubeletArguments ExtendedArguments
 }
 
 // DockerConfig holds Docker related configuration options.
