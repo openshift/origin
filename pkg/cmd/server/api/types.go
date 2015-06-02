@@ -10,9 +10,9 @@ var (
 	KnownKubernetesAPILevels   = []string{"v1beta1", "v1beta2", "v1beta3", "v1"}
 	KnownOpenShiftAPILevels    = []string{"v1beta1", "v1beta3", "v1"}
 	DefaultKubernetesAPILevels = []string{"v1beta1", "v1beta2", "v1beta3", "v1"}
-	DefaultOpenShiftAPILevels  = []string{"v1beta1", "v1beta3", "v1"}
+	DefaultOpenShiftAPILevels  = []string{"v1beta3", "v1"}
 	DeadKubernetesAPILevels    = []string{}
-	DeadOpenShiftAPILevels     = []string{}
+	DeadOpenShiftAPILevels     = []string{"v1beta1"}
 )
 
 // NodeConfig is the fully specified config starting an OpenShift node

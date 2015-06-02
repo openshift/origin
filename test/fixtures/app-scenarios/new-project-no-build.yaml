@@ -1,9 +1,6 @@
-#
-# A simple build config, deployment config, build, and service.
-#
 apiVersion: v1beta3
 items:
-- apiVersion: v1beta1
+- apiVersion: v1beta3
   kind: BuildConfig
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
@@ -12,29 +9,32 @@ items:
     resourceVersion: "74"
     selfLink: /osapi/v1beta1/buildConfigs/sinatra-example-2?namespace=example
     uid: 2b329842-dca0-11e4-aecc-7831c1b76042
-  parameters:
+  spec:
     output:
       to:
-        kind: ImageStream
-        name: sinatra-example-2
+        kind: ImageStreamTag
+        name: sinatra-example-2:latest
+    resources: {}
     source:
       git:
         uri: git://github.com/mfojtik/sinatra-example-2
       type: Git
     strategy:
-      stiStrategy:
-        builderImage: openshift/ruby-20-centos7
-        clean: true
-        image: openshift/ruby-20-centos7
-      type: STI
-  triggers:
-  - github:
-      secret: u5gRhTXiOJpOHxKSI1M6
-    type: github
-  - generic:
-      secret: IDO5sRS52tsUq5hczU6o
-    type: generic
-- apiVersion: v1beta1
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: openshift/ruby-20-centos7
+      type: Source
+    triggers:
+    - github:
+        secret: u5gRhTXiOJpOHxKSI1M6
+      type: github
+    - generic:
+        secret: IDO5sRS52tsUq5hczU6o
+      type: generic
+  status:
+    lastVersion: 0
+- apiVersion: v1beta3
   kind: DeploymentConfig
   metadata:
     creationTimestamp: 2015-04-06T21:02:00Z
@@ -43,49 +43,49 @@ items:
     resourceVersion: "75"
     selfLink: /osapi/v1beta1/deploymentConfigs/sinatra-example-2?namespace=example
     uid: 2b3380cb-dca0-11e4-aecc-7831c1b76042
-  template:
-    controllerTemplate:
-      podTemplate:
-        desiredState:
-          manifest:
-            containers:
-            - capabilities: {}
-              image: library/sinatra-example-2:latest
-              imagePullPolicy: PullAlways
-              name: sinatra-example-2
-              ports:
-              - containerPort: 8080
-                name: sinatra-example-2-tcp-8080
-                protocol: TCP
-              resources: {}
-              terminationMessagePath: /dev/termination-log
-            dnsPolicy: ClusterFirst
-            id: ""
-            restartPolicy:
-              always: {}
-            version: v1beta2
-            volumes: null
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: sinatra-example-2
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
         labels:
           deploymentconfig: sinatra-example-2
-      replicaSelector:
-        deploymentconfig: sinatra-example-2
-      replicas: 1
-    strategy:
-      type: Recreate
-  triggers:
-  - type: ConfigChange
-  - imageChangeParams:
-      automatic: true
-      containerNames:
-      - sinatra-example-2
-      from:
-        kind: ImageRepository
-        name: sinatra-example-2
-      lastTriggeredImage: ""
-      tag: latest
-    type: ImageChange
-- apiVersion: v1beta1
-  kind: ImageRepository
+      spec:
+        containers:
+        - capabilities: {}
+          image: library/sinatra-example-2:latest
+          imagePullPolicy: Always
+          name: sinatra-example-2
+          ports:
+          - containerPort: 8080
+            name: sinatra-example-2-tcp-8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - sinatra-example-2
+        from:
+          kind: ImageRepository
+          name: sinatra-example-2
+        lastTriggeredImage: ""
+      type: ImageChange
+  status: {}
+- apiVersion: v1beta3
+  kind: ImageStream
   metadata:
     creationTimestamp: 2015-04-06T21:18:56Z
     name: sinatra-example-2
@@ -93,21 +93,31 @@ items:
     resourceVersion: "689"
     selfLink: /osapi/v1beta1/imageRepositories/sinatra-example-2?namespace=example
     uid: 888d5256-dca2-11e4-aecc-7831c1b76043
-- apiVersion: v1beta1
-  containerPort: 8080
-  creationTimestamp: 2015-04-06T21:02:00Z
-  id: sinatra-example-2
+  spec: {}
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1beta3
   kind: Service
-  namespace: example
-  port: 8080
-  portalIP: 172.30.17.48
-  protocol: TCP
-  resourceVersion: 72
-  selector:
-    deploymentconfig: sinatra-example-2
-  selfLink: /api/v1beta1/services/sinatra-example-2?namespace=example
-  sessionAffinity: None
-  uid: 2b315406-dca0-11e4-aecc-7831c1b76042
+  metadata:
+    creationTimestamp: 2015-04-06T21:02:00Z
+    name: sinatra-example-2
+    namespace: example
+    resourceVersion: "72"
+    selfLink: /api/v1beta1/services/sinatra-example-2?namespace=example
+    uid: 2b315406-dca0-11e4-aecc-7831c1b76042
+  spec:
+    portalIP: 172.30.17.48
+    ports:
+    - nodePort: 0
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: sinatra-example-2
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
 kind: List
 metadata:
   resourceVersion: "116"

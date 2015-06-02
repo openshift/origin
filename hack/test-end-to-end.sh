@@ -251,7 +251,7 @@ fi
 
 wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/${KUBELET_HOST}" "apiserver(minions): " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta3/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift admin policy add-role-to-user view e2e-user --namespace=default
@@ -300,7 +300,7 @@ token=$(osc config view --flatten -o template -t '{{with index .users 0}}{{.user
 # TODO reenable this once we've got docker push secrets 100% ready
 #docker login -u e2e-user -p ${token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}
 # TODO remove the following line once we've got docker push secrets 100% ready
-echo '{"apiVersion": "v1beta1", "kind": "ImageStream", "metadata": {"name": "ruby-20-centos7"}}' | osc create -f -
+echo '{"apiVersion": "v1beta3", "kind": "ImageStream", "metadata": {"name": "ruby-20-centos7"}}' | osc create -f -
 
 docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
 docker push ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
