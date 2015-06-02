@@ -1,0 +1,7 @@
+Persistent Volume Claims (PVC) represent a request to use a persistent volume (PV) with a pod. When creating a pod 
+definition (or replication controller or deployment config) a developer may specify the amount of storage they need
+via a persistent volume reference. If an administrator has enabled and configured persistent volumes for use, they
+will be allocated on demand to pods that have similar requirements. Since volumes are created lazily, some pods 
+may be scheduled to a node before their volume is assigned. The node will detect this situation and wait to start
+the pod until the volume is bound. Events will be generated (visible by using the `describe` command on the pod)
+that indicate the pod is waiting for volumes.
