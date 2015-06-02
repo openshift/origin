@@ -74,6 +74,15 @@ angular.module('openshiftConsole')
     }
   };
 
+  var normalizeType = function(type) {
+     if (!type) return type;
+     var lower = type.toLowerCase();
+     if (type !== lower) {
+       Logger.warn('Non-lower case type "' + type + '"');
+     }
+
+     return lower;
+  }
 
   function DataService() {
     this._listCallbacksMap = {};
@@ -92,7 +101,7 @@ angular.module('openshiftConsole')
       self._watchWebsocketRetriesMap = {};
     });
 
-    this.osApiVersion = "v1beta1";
+    this.osApiVersion = "v1beta3";
     this.k8sApiVersion = "v1beta3";
 
   }
@@ -106,6 +115,7 @@ angular.module('openshiftConsole')
 //                    by attribute (e.g. data.by('metadata.name'))
 // opts:      options (currently none, placeholder)
   DataService.prototype.list = function(type, context, callback, opts) {
+    type = normalizeType(type);
     var callbacks = this._listCallbacks(type, context);
     callbacks.add(callback);
 
@@ -129,10 +139,11 @@ angular.module('openshiftConsole')
 // opts:      http - options to pass to the inner $http call
 // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
   DataService.prototype.delete = function(type, name, context, opts) {
+    type = normalizeType(type);
     opts = opts || {};
     var deferred = $q.defer();
     var self = this;
-  this._getNamespace(type, context, opts).then(function(ns){
+    this._getNamespace(type, context, opts).then(function(ns){
       $http(angular.extend({
         method: 'DELETE',
         url: self._urlForType(type, name, context, false, ns)
@@ -154,12 +165,13 @@ angular.module('openshiftConsole')
 
 // type:      API type (e.g. "pods")
 // name:      API name, the unique name for the object.
-//            In case the name of the Object is provided, expected format of 'type' parameter is 'type/subresource', eg: 'buildConfigs/instantiate'.
+//            In case the name of the Object is provided, expected format of 'type' parameter is 'type/subresource', eg: 'buildconfigs/instantiate'.
 // object:    API object data(eg. { kind: "Build", parameters: { ... } } )
 // context:   API context (e.g. {project: "..."})
 // opts:      http - options to pass to the inner $http call
 // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
   DataService.prototype.create = function(type, name, object, context, opts) {
+    type = normalizeType(type);
     opts = opts || {};
     var deferred = $q.defer();
     var self = this;
@@ -229,6 +241,8 @@ angular.module('openshiftConsole')
   DataService.prototype.get = function(type, name, context, opts) {
     if(this._objectType(type) !== undefined){
       type = this._objectType(type);
+    } else {
+      type = normalizeType(type);
     }
     opts = opts || {};
 
@@ -323,6 +337,7 @@ angular.module('openshiftConsole')
 //        var handle = DataService.watch(type,context,callback[,opts])
 //        DataService.unwatch(handle)
   DataService.prototype.watch = function(type, context, callback, opts) {
+    type = normalizeType(type);
     opts = opts || {};
     this._watchCallbacks(type, context).add(callback);
 
@@ -663,11 +678,11 @@ angular.module('openshiftConsole')
   var BUILD_HOOKS_URL = URL_ROOT_TEMPLATE + "{type}/{id}/{secret}/{hookType}{?q*}";
 
   // Set the api version the console is currently able to talk to
-  API_CFG.openshift.version = "v1beta1";
+  API_CFG.openshift.version = "v1beta3";
   API_CFG.k8s.version = "v1beta3";
 
   // Set whether namespace is a path or query parameter
-  API_CFG.openshift.namespacePath = false;
+  API_CFG.openshift.namespacePath = true;
   API_CFG.k8s.namespacePath = true;
 
   // TODO this is not the ideal, issue open to discuss adding
@@ -675,27 +690,25 @@ angular.module('openshiftConsole')
   // https://github.com/openshift/origin/issues/230
   var SERVER_TYPE_MAP = {
     builds:                    API_CFG.openshift,
-    buildConfigs:              API_CFG.openshift,
-    buildConfigHooks:          API_CFG.openshift,
-    deploymentConfigs:         API_CFG.openshift,
-    imageRepositories:         API_CFG.openshift, // DEPRECATED, leave here until removed from API
-    imageRepositoryTags:       API_CFG.openshift,
-    imageStreams:              API_CFG.openshift,
-    imageStreamImages:         API_CFG.openshift,
-    imageStreamTags:           API_CFG.openshift,    
-    oAuthAccessTokens:         API_CFG.openshift,
-    oAuthAuthorizeTokens:      API_CFG.openshift,
-    oAuthClients:              API_CFG.openshift,
-    oAuthClientAuthorizations: API_CFG.openshift,
+    buildconfigs:              API_CFG.openshift,
+    buildconfighooks:          API_CFG.openshift,
+    deploymentconfigs:         API_CFG.openshift,
+    imagestreams:              API_CFG.openshift,
+    imagestreamimages:         API_CFG.openshift,
+    imagestreamtags:           API_CFG.openshift,
+    oauthaccesstokens:         API_CFG.openshift,
+    oauthauthorizetokens:      API_CFG.openshift,
+    oauthclients:              API_CFG.openshift,
+    oauthclientauthorizations: API_CFG.openshift,
     policies:                  API_CFG.openshift,
-    policyBindings:            API_CFG.openshift,
+    policybindings:            API_CFG.openshift,
+    processedtemplates:        API_CFG.openshift,
     projects:                  API_CFG.openshift,
-    projectRequests:           API_CFG.openshift,
+    projectrequests:           API_CFG.openshift,
     roles:                     API_CFG.openshift,
-    roleBindings:              API_CFG.openshift,
+    rolebindings:              API_CFG.openshift,
     routes:                    API_CFG.openshift,
     templates:                 API_CFG.openshift,
-    templateConfigs:           API_CFG.openshift,
     users:                     API_CFG.openshift,
 
     events:                    API_CFG.k8s,
@@ -708,7 +721,7 @@ angular.module('openshiftConsole')
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {
 
-    // Parse the type parameter for type itself and subresource. Example: 'buildConfigs/instantiate'
+    // Parse the type parameter for type itself and subresource. Example: 'buildconfigs/instantiate'
     if(type.indexOf('/') !== -1){
       var typeWithSubresource = type.split("/");
       var type = typeWithSubresource[0];
@@ -786,19 +799,18 @@ angular.module('openshiftConsole')
 
   var OBJECT_KIND_MAP = {
     Build:                    "builds",
-    BuildConfig:              "buildConfigs",
-    DeploymentConfig:         "deploymentConfigs",
-    ImageRepository:          "imageRepositories", // DEPRECATED, leave here until removed from API
-    ImageStream:              "imageStreams",
-    OAuthAccessToken:         "oAuthAccessTokens",
-    OAuthAuthorizeToken:      "oAuthAuthorizeTokens",
-    OAuthClient:              "oAuthClients",
-    OAuthClientAuthorization: "oAuthClientAuthorizations",
+    BuildConfig:              "buildconfigs",
+    DeploymentConfig:         "deploymentconfigs",
+    ImageStream:              "imagestreams",
+    OAuthAccessToken:         "oauthaccesstokens",
+    OAuthAuthorizeToken:      "oauthauthorizetokens",
+    OAuthClient:              "oauthclients",
+    OAuthClientAuthorization: "oauthclientauthorizations",
     Policy:                   "policies",
-    PolicyBinding:            "policyBindings",
+    PolicyBinding:            "policybindings",
     Project:                  "projects",
     Role:                     "roles",
-    RoleBinding:              "roleBindings",
+    RoleBinding:              "rolebindings",
     Route:                    "routes",
     User:                     "users",
 

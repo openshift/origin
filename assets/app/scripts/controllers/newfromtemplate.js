@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse, Navigate, failureObjectNameFilter) {
+  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse, Navigate, imageObjectRefFilter, failureObjectNameFilter) {
 
     function errorPage(message) {
       var redirect = URI('error').query({
@@ -17,15 +17,15 @@ angular.module('openshiftConsole')
       $location.url(redirect);
     }
 
-    var dcContainers = $parse('template.controllerTemplate.podTemplate.desiredState.manifest.containers');
-    var stiBuilderImage = $parse('parameters.strategy.stiStrategy.image');
-    var outputImage = $parse('parameters.output.to.name || parameters.output.DockerImageReference');
+    var dcContainers = $parse('spec.template.spec.containers');
+    var stiBuilderImage = $parse('spec.strategy.sourceStrategy.from');
+    var outputImage = $parse('spec.output.to');
 
     function deploymentConfigImages(dc) {
       var images = [];
       var containers = dcContainers(dc);
       if (containers) {
-        containers.forEach(function(container) {
+        angular.forEach(containers, function(container) {
           images.push(container.image);
         });
       }
@@ -36,13 +36,13 @@ angular.module('openshiftConsole')
       var images = [];
       var dcImages = [];
       var outputImages = {};
-      data.items.forEach(function(item) {
+      angular.forEach(data.objects, function(item) {
         if (item.kind === "BuildConfig") {
-          var builder = stiBuilderImage(item);
+          var builder = imageObjectRefFilter(stiBuilderImage(item), $scope.projectName);
           if(builder) {
             images.push({ name: builder });
           }
-          var output = outputImage(item);
+          var output = imageObjectRefFilter(outputImage(item), $scope.projectName);
           if (output) {
             outputImages[output] = true;
           }
@@ -92,7 +92,7 @@ angular.module('openshiftConsole')
     };
 
     $scope.createFromTemplate = function() {
-      DataService.create("templateConfigs", null, $scope.template, $scope).then(
+      DataService.create("processedtemplates", null, $scope.template, $scope).then(
         function(config) { // success
           var titles = {
             started: "Creating " + $scope.templateDisplayName() + " in project " + $scope.projectDisplayName(),
@@ -103,7 +103,7 @@ angular.module('openshiftConsole')
           var helpLinks = getHelpLinks($scope.template);
           TaskList.add(titles, helpLinks, function() {
             var d = $q.defer();
-            DataService.createList(config.items, $scope).then(
+            DataService.createList(config.objects, $scope).then(
               function(result) {
                 var alerts = [];
                 var hasErrors = false;

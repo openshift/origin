@@ -47,10 +47,10 @@ angular.module("openshiftConsole")
         replicas: 1
       };
 
-      DataService.get("imageStreams", scope.imageName, scope, {namespace: scope.namespace}).then(function(imageRepo){
+      DataService.get("imagestreams", scope.imageName, scope, {namespace: scope.namespace}).then(function(imageRepo){
           scope.imageRepo = imageRepo;
           var imageName = scope.imageTag;
-          DataService.get("imageStreamTags", imageRepo.metadata.name + ":" + imageName, {namespace: scope.namespace}).then(function(image){
+          DataService.get("imagestreamtags", imageRepo.metadata.name + ":" + imageName, {namespace: scope.namespace}).then(function(image){
               scope.image = image;
               angular.forEach(image.dockerImageMetadata.ContainerConfig.Env, function(entry){
                 var pair = entry.split("=");

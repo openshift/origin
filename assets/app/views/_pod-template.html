@@ -20,26 +20,26 @@
             <span class="fa fa-refresh" aria-hidden="true"></span>
             <span>Build: {{build.metadata.labels.buildconfig}} (<span class="small" title="{{build.metadata.name}}">{{build.metadata.name}}</span>)</span>
           </div>
-          <div ng-if="build.parameters.source">
+          <div ng-if="build.spec.source">
             <span class="fa fa-code" aria-hidden="true"></span>
             <span>Source:
-              <span ng-switch="build.parameters.source.type">
+              <span ng-switch="build.spec.source.type">
                 <span ng-switch-when="Git">
-                  <span ng-if="build.parameters.revision">
-                    {{build.parameters.revision.git.message}}
-                    <span ng-if="build.parameters.revision.git.commit">
-                      (<span title="{{build.parameters.revision.git.commit}}" class="small">{{build.parameters.revision.git.commit.substr(0, 10)}}</span>)
+                  <span ng-if="build.spec.revision">
+                    {{build.spec.revision.git.message}}
+                    <span ng-if="build.spec.revision.git.commit">
+                      (<span title="{{build.spec.revision.git.commit}}" class="small">{{build.spec.revision.git.commit.substr(0, 10)}}</span>)
                     </span>
-                    <span ng-if="build.parameters.revision.git.author">
-                      authored by {{build.parameters.revision.git.author.name}}
+                    <span ng-if="build.spec.revision.git.author">
+                      authored by {{build.spec.revision.git.author.name}}
                     </span>
                   </span>
-                  <span ng-if="!build.parameters.revision">
-                    <a href="{{build.parameters.source.git.uri}}" target="_blank" data-toggle="tooltip" data-placement="right" title="This is a Git URL that can be used with `git clone`">Git</a>
+                  <span ng-if="!build.spec.revision">
+                    <a href="{{build.spec.source.git.uri}}" target="_blank" data-toggle="tooltip" data-placement="right" title="This is a Git URL that can be used with `git clone`">Git</a>
                   </span>
                 </span>
                 <span ng-switch-default>
-                  {{build.parameters.source.type || 'Unknown'}}
+                  {{build.spec.source.type || 'Unknown'}}
                 </span>
               </span>
             </span>
