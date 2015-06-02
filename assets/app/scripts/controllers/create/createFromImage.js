@@ -132,7 +132,7 @@ angular.module("openshiftConsole")
                     }
                   );
                 } else {
-                  alerts.push({ type: "success", message: "All resource for application " + $scope.name +
+                  alerts.push({ type: "success", message: "All resources for application " + $scope.name +
                     " were created successfully."});
                 }
                 d.resolve({alerts: alerts, hasErrors: hasErrors});
