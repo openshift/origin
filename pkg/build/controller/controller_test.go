@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -96,15 +97,31 @@ func (*okImageStreamClient) GetImageStream(namespace, name string) (*imageapi.Im
 	}, nil
 }
 
+func (*okImageStreamClient) GetImageStreamTag(namespace, name, tag string) (*imageapi.ImageStreamTag, error) {
+	return &imageapi.ImageStreamTag{
+		Image: imageapi.Image{
+			DockerImageReference: "image/repo:tag",
+		},
+	}, nil
+}
+
 type errImageStreamClient struct{}
 
 func (*errImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
 	return nil, errors.New("GetImageStream error!")
 }
 
+func (*errImageStreamClient) GetImageStreamTag(namespace, name, tag string) (*imageapi.ImageStreamTag, error) {
+	return nil, errors.New("GetImageStreamTag error!")
+}
+
 type errNotFoundImageStreamClient struct{}
 
 func (*errNotFoundImageStreamClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
+	return nil, kerrors.NewNotFound("ImageStream", name)
+}
+
+func (*errNotFoundImageStreamClient) GetImageStreamTag(namespace, name, tag string) (*imageapi.ImageStreamTag, error) {
 	return nil, kerrors.NewNotFound("ImageStream", name)
 }
 
@@ -178,141 +195,67 @@ func TestHandleBuild(t *testing.T) {
 	type handleBuildTest struct {
 		inStatus      buildapi.BuildStatus
 		outStatus     buildapi.BuildStatus
+		outSpec       string
+		outError      string
 		buildOutput   buildapi.BuildOutput
 		buildStrategy BuildStrategy
 		buildUpdater  buildclient.BuildUpdater
 		imageClient   imageStreamClient
 		podManager    podManager
-		outputSpec    string
 	}
 
 	tests := []handleBuildTest{
+		// no status changes, output does not matter
 		{ // 0
-			inStatus:  buildapi.BuildStatusNew,
-			outStatus: buildapi.BuildStatusPending,
-			buildOutput: buildapi.BuildOutput{
-				DockerImageReference: "repository/dataBuild",
-			},
-		},
-		{ // 1
 			inStatus:  buildapi.BuildStatusPending,
 			outStatus: buildapi.BuildStatusPending,
-			buildOutput: buildapi.BuildOutput{
-				DockerImageReference: "repository/dataBuild",
-			},
 		},
-		{ // 2
+		{ // 1
 			inStatus:  buildapi.BuildStatusRunning,
 			outStatus: buildapi.BuildStatusRunning,
-			buildOutput: buildapi.BuildOutput{
-				DockerImageReference: "repository/dataBuild",
-			},
 		},
-		{ // 3
+		{ // 2
 			inStatus:  buildapi.BuildStatusComplete,
 			outStatus: buildapi.BuildStatusComplete,
-			buildOutput: buildapi.BuildOutput{
-				DockerImageReference: "repository/dataBuild",
-			},
 		},
-		{ // 4
+		{ // 3
 			inStatus:  buildapi.BuildStatusFailed,
 			outStatus: buildapi.BuildStatusFailed,
-			buildOutput: buildapi.BuildOutput{
-				DockerImageReference: "repository/dataBuild",
-			},
 		},
-		{ // 5
+		{ // 4
 			inStatus:  buildapi.BuildStatusError,
 			outStatus: buildapi.BuildStatusError,
-			buildOutput: buildapi.BuildOutput{
-				DockerImageReference: "repository/dataBuild",
-			},
 		},
-		{ // 6
+		{ // 5
+			inStatus:  buildapi.BuildStatusCancelled,
+			outStatus: buildapi.BuildStatusCancelled,
+		},
+
+		// test status changes
+		{ // 6 - new -> pending, output does not matter
+			inStatus:  buildapi.BuildStatusNew,
+			outStatus: buildapi.BuildStatusPending,
+		},
+		{ // 7 - new -> error from build strategy, output does not matter
 			inStatus:      buildapi.BuildStatusNew,
-			outStatus:     buildapi.BuildStatusError,
+			outStatus:     buildapi.BuildStatusPending,
 			buildStrategy: &errStrategy{},
-			buildOutput: buildapi.BuildOutput{
-				DockerImageReference: "repository/dataBuild",
-			},
+			outError:      "the strategy failed to create a build pod for Build",
 		},
-		{ // 7
+		{ // 8  - new -> error from pod manager, output does not matter
 			inStatus:   buildapi.BuildStatusNew,
-			outStatus:  buildapi.BuildStatusError,
+			outStatus:  buildapi.BuildStatusPending,
 			podManager: &errPodManager{},
-			buildOutput: buildapi.BuildOutput{
-				DockerImageReference: "repository/dataBuild",
-			},
+			outError:   "failed to create pod for Build",
 		},
-		{ // 8
+		{ // 9 - new -> pending from pod manager - build exists error, output does not matter
 			inStatus:   buildapi.BuildStatusNew,
 			outStatus:  buildapi.BuildStatusPending,
 			podManager: &errExistsPodManager{},
-			buildOutput: buildapi.BuildOutput{
-				DockerImageReference: "repository/dataBuild",
-			},
 		},
-		{ // 9
+		{ // 10 - new -> pending from build update error, output does not matter
 			inStatus:     buildapi.BuildStatusNew,
 			outStatus:    buildapi.BuildStatusPending,
-			buildUpdater: &errBuildUpdater{},
-			buildOutput: buildapi.BuildOutput{
-				DockerImageReference: "repository/dataBuild",
-			},
-		},
-		{ // 10
-			inStatus:  buildapi.BuildStatusNew,
-			outStatus: buildapi.BuildStatusPending,
-			buildOutput: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Name: "foo",
-				},
-			},
-			outputSpec: "image/repo",
-		},
-		{ // 11
-			inStatus:  buildapi.BuildStatusNew,
-			outStatus: buildapi.BuildStatusPending,
-			buildOutput: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Name:      "foo",
-					Namespace: "bar",
-				},
-			},
-			outputSpec: "image/repo",
-		},
-		{ // 12
-			inStatus:    buildapi.BuildStatusNew,
-			outStatus:   buildapi.BuildStatusError,
-			imageClient: &errNotFoundImageStreamClient{},
-			buildOutput: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Name: "foo",
-				},
-			},
-		},
-		{ // 13
-			inStatus:    buildapi.BuildStatusNew,
-			outStatus:   buildapi.BuildStatusError,
-			imageClient: &errImageStreamClient{},
-			buildOutput: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Name: "foo",
-				},
-			},
-		},
-		{ // 14
-			inStatus:  buildapi.BuildStatusNew,
-			outStatus: buildapi.BuildStatusPending,
-			buildOutput: buildapi.BuildOutput{
-				To: &kapi.ObjectReference{
-					Name:      "foo",
-					Namespace: "bar",
-				},
-			},
-			outputSpec: "image/repo",
-			// an error updating the build is not reported as an error.
 			buildUpdater: &errBuildUpdater{},
 		},
 	}
@@ -335,28 +278,25 @@ func TestHandleBuild(t *testing.T) {
 
 		err := ctrl.HandleBuild(build)
 
-		// ensure we return an error for cases where expected output is an error.
-		// these will be retried by the retrycontroller
-		if tc.inStatus != buildapi.BuildStatusError && tc.outStatus == buildapi.BuildStatusError {
-			if err == nil {
-				t.Errorf("(%d) Expected an error from HandleBuild, got none!", i)
-			}
-			continue
+		if len(tc.outError) != 0 && err != nil && !strings.Contains(err.Error(), tc.outError) {
+			t.Errorf("(%d) Expected error '%s', got %v", i, tc.outError, err)
 		}
-
-		if err != nil {
+		if len(tc.outError) != 0 && err == nil {
+			t.Errorf("(%d) Expected error '%s', got nil", i, tc.outError)
+		}
+		if len(tc.outError) == 0 && err != nil {
 			t.Errorf("(%d) Unexpected error %v", i, err)
 		}
 		if build.Status != tc.outStatus {
-			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status)
+			t.Errorf("(%d) Expected %s, got %s", i, tc.outStatus, build.Status)
 		}
 		if tc.inStatus != buildapi.BuildStatusError && build.Status == buildapi.BuildStatusError && len(build.Message) == 0 {
 			t.Errorf("(%d) errored build should set message: %#v", i, build)
 		}
-		if len(tc.outputSpec) != 0 {
+		if len(tc.outSpec) != 0 {
 			build := ctrl.BuildStrategy.(*okStrategy).build
-			if build.Parameters.Output.DockerImageReference != tc.outputSpec {
-				t.Errorf("(%d) expected build sent to strategy to have docker spec %q: %#v", i, tc.outputSpec, build)
+			if e, a := tc.outSpec, build.Parameters.Output.DockerImageReference; e != a {
+				t.Errorf("(%d) expected docker spec %s, got %s", i, e, a)
 			}
 		}
 	}

@@ -487,7 +487,12 @@ func (c ControllerClient) GetPod(namespace, name string) (*kapi.Pod, error) {
 	return c.KubeClient.Pods(namespace).Get(name)
 }
 
-// GetImageStream retrieves an image repository by namespace and name
+// GetImageStream retrieves an ImageStream by namespace and name
 func (c ControllerClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
 	return c.Client.ImageStreams(namespace).Get(name)
+}
+
+// GetImageStreamTag retrieves an ImageStreamTag by namespace and name
+func (c ControllerClient) GetImageStreamTag(namespace, name, tag string) (*imageapi.ImageStreamTag, error) {
+	return c.Client.ImageStreamTags(namespace).Get(name, tag)
 }

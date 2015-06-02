@@ -4,110 +4,107 @@
   "metadata": {},
   "items": [
     {
-      "apiVersion": "v1beta1",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "ruby-20-centos-buildcli"
+        "name": "ruby-20-centos-buildcli",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/ruby-20-centos",
         "tags": [
           {
-            "name": "valid",
-            "dockerImageReference": "openshift/ruby-20-centos7:success"
+            "name": "valid"
           }
         ]
+      },
+      "status": {
+        "dockerImageRepository": ""
       }
     },
     {
-      "apiVersion": "v1beta1",
       "kind": "BuildConfig",
-      "labels": {
-        "name": "ruby-sample-build"
-      },
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "ruby-sample-build-validtag"
+        "name": "ruby-sample-build-validtag",
+        "creationTimestamp": null
       },
-      "parameters": {
-        "output": {
-          "to": {
-            "name": "origin-ruby-sample"
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
           }
-        },
+        ],
         "source": {
+          "type": "Git",
           "git": {
             "uri": "git://github.com/openshift/ruby-hello-world.git"
-          },
-          "type": "Git"
+          }
         },
         "strategy": {
-          "stiStrategy": {
+          "type": "Source",
+          "sourceStrategy": {
             "from": {
-              "name": "ruby-20-centos-buildcli"
+              "kind": "ImageStreamTag",
+              "name": "ruby-20-centos-buildcli:valid"
             },
-            "tag": "valid",
-            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin"
-          },
-          "type": "STI"
-        }
+            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin",
+            "incremental": true
+          }
+        },
+        "output": {
+          "to": {
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "resources": {}
       },
-      "triggers": [
-        {
-          "imageChange": {
-            "from": {
-              "name": "ruby-20-centos-buildcli"
-            },
-            "image": "openshift/ruby-20-centos",
-            "tag": "valid"
-          },
-          "type": "imageChange"
-        }
-      ]
+      "status": {
+        "lastVersion": 0
+      }
     },
     {
-      "apiVersion": "v1beta1",
       "kind": "BuildConfig",
-      "labels": {
-        "name": "ruby-sample-build"
-      },
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "ruby-sample-build-invalidtag"
+        "name": "ruby-sample-build-invalidtag",
+        "creationTimestamp": null
       },
-      "parameters": {
-        "output": {
-          "to": {
-            "name": "origin-ruby-sample"
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
           }
-        },
+        ],
         "source": {
+          "type": "Git",
           "git": {
             "uri": "git://github.com/openshift/ruby-hello-world.git"
-          },
-          "type": "Git"
+          }
         },
         "strategy": {
-          "stiStrategy": {
+          "type": "Source",
+          "sourceStrategy": {
             "from": {
-              "name": "ruby-20-centos-buildcli"
+              "kind": "ImageStreamTag",
+              "name": "ruby-20-centos-buildcli:invalid"
             },
-            "tag": "invalid",
-            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin"
-          },
-          "type": "STI"
-        }
+            "scripts": "https://raw.githubusercontent.com/openshift/ruby-20-centos/master/.sti/bin",
+            "incremental": true
+          }
+        },
+        "output": {
+          "to": {
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "resources": {}
       },
-      "triggers": [
-        {
-          "imageChange": {
-            "from": {
-              "name": "ruby-20-centos-buildcli"
-            },
-            "image": "openshift/ruby-20-centos",
-            "tag": "invalid"
-          },
-          "type": "imageChange"
-        }
-      ]
+      "status": {
+        "lastVersion": 0
+      }
     }
   ]
 }

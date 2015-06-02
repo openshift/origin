@@ -39,6 +39,7 @@ type podManager interface {
 
 type imageStreamClient interface {
 	GetImageStream(namespace, name string) (*imageapi.ImageStream, error)
+	GetImageStreamTag(namespace, name, tag string) (*imageapi.ImageStreamTag, error)
 }
 
 // HandleBuild takes new builds and puts them in the pending state after
@@ -52,7 +53,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	}
 
 	if err := bc.nextBuildStatus(build); err != nil {
-		return fmt.Errorf("Build failed with error %s/%s: %v", build.Namespace, build.Name, err)
+		return fmt.Errorf("Build %s/%s failed with error: %v", build.Namespace, build.Name, err)
 	}
 
 	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
@@ -76,36 +77,8 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 		return nil
 	}
 
-	// lookup the destination from the referenced image repository
-	spec := build.Parameters.Output.DockerImageReference
-	if ref := build.Parameters.Output.To; ref != nil {
-		// TODO: security, ensure that the reference image stream is actually visible
-		namespace := ref.Namespace
-		if len(namespace) == 0 {
-			namespace = build.Namespace
-		}
-
-		repo, err := bc.ImageStreamClient.GetImageStream(namespace, ref.Name)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return fmt.Errorf("the referenced output ImageStream %s/%s does not exist", namespace, ref.Name)
-			}
-			return fmt.Errorf("the referenced output ImageStream %s/%s could not be found by Build %s/%s: %v", namespace, ref.Name, build.Namespace, build.Name, err)
-		}
-		if len(repo.Status.DockerImageRepository) == 0 {
-			return fmt.Errorf("the ImageStream %s/%s cannot be used as the output for Build %s/%s because the integrated Docker registry is not configured, or the user forgot to set a valid external registry", namespace, ref.Name, build.Namespace, build.Name)
-		}
-		if len(build.Parameters.Output.Tag) == 0 {
-			spec = repo.Status.DockerImageRepository
-		} else {
-			spec = fmt.Sprintf("%s:%s", repo.Status.DockerImageRepository, build.Parameters.Output.Tag)
-		}
-	}
-
 	// set the expected build parameters, which will be saved if no error occurs
 	build.Status = buildapi.BuildStatusPending
-	// override DockerImageReference in the strategy for the copy we send to the server
-	build.Parameters.Output.DockerImageReference = spec
 
 	copy, err := kapi.Scheme.Copy(build)
 	if err != nil {

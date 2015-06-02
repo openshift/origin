@@ -270,60 +270,64 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		}
 		updateCustomImageEnv(build.Parameters.Strategy.CustomStrategy, image)
 	}
+
+	// lookup the destination from the referenced image repository
+	if build.Parameters.Output.To != nil {
+		if build.Parameters.Output.To.Kind == "ImageStreamImage" {
+			return nil, fatalError{fmt.Errorf("ImageStreamImage is not allowed in Output.To")}
+		}
+		image, err := g.resolveImageStreamReference(ctx, build.Parameters.Output.To, bc.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		build.Parameters.Output.To = &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: image,
+		}
+	}
+
 	return build, nil
 }
 
 // resolveImageStreamReference looks up the ImageStream[Tag/Image] and converts it to a
 // docker pull spec that can be used in an Image field.
-func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from *kapi.ObjectReference, defaultNamespace string) (string, error) {
+func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, ref *kapi.ObjectReference, defaultNamespace string) (string, error) {
 	var namespace string
-	if len(from.Namespace) != 0 {
-		namespace = from.Namespace
+	if len(ref.Namespace) != 0 {
+		namespace = ref.Namespace
 	} else {
 		namespace = defaultNamespace
 	}
 
-	glog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
-	switch from.Kind {
-	case "ImageStream":
-		// NOTE: The 'ImageStream' reference should be used only for the 'output' image
-		is, err := g.Client.GetImageStream(kapi.WithNamespace(ctx, namespace), from.Name)
-		if err != nil {
-			glog.V(2).Infof("Error getting ImageStream %s/%s: %v", namespace, from.Name, err)
-			return "", err
-		}
-		image, err := imageapi.DockerImageReferenceForStream(is)
-		if err != nil {
-			glog.V(2).Infof("Error resolving Docker image reference for %s/%s: %v", namespace, from.Name, err)
-			return "", err
-		}
-		return image.String(), nil
+	glog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", ref.Name, ref.Kind, namespace)
+	switch ref.Kind {
 	case "ImageStreamImage":
-		image, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), from.Name)
+		image, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), ref.Name)
 		if err != nil {
-			glog.V(2).Infof("Error ImageStreamReference %s in namespace %s: %v", from.Name, namespace, err)
+			glog.V(2).Infof("Error resolving ImageStreamImage %s in namespace %s: %v", ref.Name, namespace, err)
 			if errors.IsNotFound(err) {
 				return "", err
 			}
 			return "", fatalError{err}
 		}
-		glog.V(4).Infof("Resolved ImageStreamReference %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
+		glog.V(4).Infof("Resolved ImageStreamImage %s to image %s with reference %s in namespace %s", ref.Name, image.Name, image.DockerImageReference, namespace)
 		return image.DockerImageReference, nil
 	case "ImageStreamTag":
-		image, err := g.Client.GetImageStreamTag(kapi.WithNamespace(ctx, namespace), from.Name)
+		image, err := g.Client.GetImageStreamTag(kapi.WithNamespace(ctx, namespace), ref.Name)
 		if err != nil {
-			glog.V(2).Infof("Error resolving ImageStreamTag reference %s in namespace %s: %v", from.Name, namespace, err)
+			glog.V(2).Infof("Error resolving ImageStreamTag reference %s in namespace %s: %v", ref.Name, namespace, err)
 			if errors.IsNotFound(err) {
 				return "", err
 			}
 			return "", fatalError{err}
 		}
-		glog.V(4).Infof("Resolved ImageStreamTag %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
+		glog.V(4).Infof("Resolved ImageStreamTag %s to image %s with reference %s in namespace %s", ref.Name, image.Name, image.DockerImageReference, namespace)
 		return image.DockerImageReference, nil
 	case "DockerImage":
-		return from.Name, nil
+		glog.V(4).Infof("Resolved DockerImage with reference %s", ref.Name)
+		return ref.Name, nil
 	default:
-		return "", fatalError{fmt.Errorf("Unknown From Kind %s", from.Kind)}
+		return "", fatalError{fmt.Errorf("Unknown From Kind %s", ref.Kind)}
 	}
 }
 

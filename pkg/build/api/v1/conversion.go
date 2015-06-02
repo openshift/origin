@@ -33,6 +33,11 @@ func init() {
 				obj.ImageChange = &ImageChangeTrigger{}
 			}
 		},
+		func(obj *BuildStrategy) {
+			if obj.Type == DockerBuildStrategyType && obj.DockerStrategy == nil {
+				obj.DockerStrategy = &DockerBuildStrategy{}
+			}
+		},
 	)
 	if err != nil {
 		panic(err)
@@ -49,7 +54,6 @@ func init() {
 			if err := s.Convert(in, &out.Status, 0); err != nil {
 				return err
 			}
-			in.ServiceAccount = out.Spec.ServiceAccount
 			return s.Convert(&in.Status, &out.Status.Phase, 0)
 		},
 		func(in *Build, out *newer.Build, s conversion.Scope) error {
@@ -62,7 +66,6 @@ func init() {
 			if err := s.Convert(&in.Spec, &out.Parameters, 0); err != nil {
 				return err
 			}
-			in.Spec.ServiceAccount = out.ServiceAccount
 			return s.Convert(&in.Status.Phase, &out.Status, 0)
 		},
 
