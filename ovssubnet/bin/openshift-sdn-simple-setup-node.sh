@@ -55,9 +55,9 @@ if ! grep -q "^DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'" /etc/sysconfi
 then
     cat <<EOF > /etc/sysconfig/docker-network
 # This file has been modified by openshift-sdn. Please modify the
-# DOCKER_NETWORK_OPTIONS variable in the /etc/sysconfig/openshift-sdn-node,
-# /etc/sysconfig/openshift-sdn-master or /etc/sysconfig/openshift-sdn
-# files (depending on your setup).
+# DOCKER_NETWORK_OPTIONS variable in /etc/sysconfig/openshift-node if this
+# is an integrated install or /etc/sysconfig/openshift-sdn-node if this is a
+# standalone install.
 
 DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'
 EOF
