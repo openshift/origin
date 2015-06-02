@@ -386,7 +386,7 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 	}
 	masterHost, _, err := net.SplitHostPort(masterAddr.Host)
 	if err != nil {
-
+		masterHost = masterAddr.Host
 	}
 	masterIP := ""
 	if ip := net.ParseIP(masterHost); ip != nil {

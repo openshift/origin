@@ -451,6 +451,7 @@ type KubernetesMasterConfig struct {
 	ServicesSubnet      string   `json:"servicesSubnet"`
 	StaticNodeNames     []string `json:"staticNodeNames"`
 	SchedulerConfigFile string   `json:"schedulerConfigFile"`
+	PodEvictionTimeout  string   `json:"podEvictionTimeout"`
 }
 
 type CertInfo struct {

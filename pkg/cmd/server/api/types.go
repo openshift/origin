@@ -473,8 +473,11 @@ type KubernetesMasterConfig struct {
 	ServicesSubnet string
 	// StaticNodeNames is the list of nodes that are statically known
 	StaticNodeNames []string
-	// SchedulerConfigFile points to a file that describes how to set up the scheduler.  If empty, you get the default scheduling rules.
+	// SchedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.
 	SchedulerConfigFile string
+	// PodEvictionTimeout controls grace period for deleting pods on failed nodes.
+	// It takes valid time duration string. If empty, you get the default pod eviction timeout.
+	PodEvictionTimeout string
 }
 
 type CertInfo struct {

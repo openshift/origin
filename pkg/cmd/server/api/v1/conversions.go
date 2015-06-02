@@ -20,6 +20,9 @@ func init() {
 			if len(obj.APILevels) == 0 {
 				obj.APILevels = newer.DefaultKubernetesAPILevels
 			}
+			if len(obj.PodEvictionTimeout) == 0 {
+				obj.PodEvictionTimeout = "5m"
+			}
 		},
 		func(obj *EtcdStorageConfig) {
 			if len(obj.KubernetesStorageVersion) == 0 {

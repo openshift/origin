@@ -95,6 +95,7 @@ kubernetesMasterConfig:
   apiLevels: null
   masterCount: 0
   masterIP: ""
+  podEvictionTimeout: ""
   schedulerConfigFile: ""
   servicesSubnet: ""
   staticNodeNames: null
