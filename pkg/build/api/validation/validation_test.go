@@ -105,8 +105,18 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 				DockerImageReference: "repository/data",
 			},
 		},
+		Triggers: []buildapi.BuildTriggerPolicy{
+			{
+				Type:        buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{},
+			},
+			{
+				Type:        buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{},
+			},
+		},
 	}
-	if result := ValidateBuildConfig(buildConfig); len(result) != 1 {
+	if result := ValidateBuildConfig(buildConfig); len(result) != 2 {
 		t.Errorf("Unexpected validation result %v", result)
 	}
 }
