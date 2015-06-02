@@ -69,6 +69,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "pods/exec", "pods/portforward"),
 				},
+				{
+					Verbs:     util.NewStringSet("get", "update"),
+					Resources: util.NewStringSet("imagestreams/layers"),
+				},
 			},
 		},
 		{
@@ -147,6 +151,25 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					Verbs:     util.NewStringSet("get", "update"),
 					Resources: util.NewStringSet("imagestreams/layers"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ImagePrunerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("delete"),
+					Resources: util.NewStringSet("images"),
+				},
+				{
+					Verbs:     util.NewStringSet("get", "list"),
+					Resources: util.NewStringSet("images", "imagestreams", "pods", "replicationcontrollers", "buildconfigs", "builds", "deploymentconfigs"),
+				},
+				{
+					Verbs:     util.NewStringSet("update"),
+					Resources: util.NewStringSet("imagestreams/status"),
 				},
 			},
 		},

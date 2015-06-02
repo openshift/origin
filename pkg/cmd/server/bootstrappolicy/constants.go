@@ -44,6 +44,7 @@ const (
 	StatusCheckerRoleName     = "cluster-status"
 	ImagePullerRoleName       = "system:image-puller"
 	ImageBuilderRoleName      = "system:image-builder"
+	ImagePrunerRoleName       = "system:image-pruner"
 	DeployerRoleName          = "system:deployer"
 	RouterRoleName            = "system:router"
 	RegistryRoleName          = "system:registry"
