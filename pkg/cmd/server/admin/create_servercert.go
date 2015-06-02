@@ -25,6 +25,7 @@ type CreateServerCertOptions struct {
 
 	Hostnames util.StringList
 	Overwrite bool
+	ClientAuth bool
 	Output    cmdutil.Output
 }
 
@@ -70,6 +71,7 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 
 	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
 	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
+	flags.BoolVar(&options.ClientAuth, "clientauth", true, "Generate a certificate that's valid for both Client and Server uses.")
 
 	return cmd
 }
@@ -109,9 +111,17 @@ func (o CreateServerCertOptions) CreateServerCert() (*crypto.TLSCertificateConfi
 	var ca *crypto.TLSCertificateConfig
 	written := true
 	if o.Overwrite {
-		ca, err = signerCert.MakeServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
+		if o.ClientAuth {
+			ca, err = signerCert.MakeClientServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
+		} else {
+			ca, err = signerCert.MakeServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
+		}
 	} else {
-		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
+		if o.ClientAuth {
+			ca, written, err = signerCert.EnsureClientServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
+		} else {
+			ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
+		}
 	}
 	if written {
 		fmt.Fprintf(o.Output.Get(), "Generated new server certificate as %s, key as %s\n", o.CertFile, o.KeyFile)
