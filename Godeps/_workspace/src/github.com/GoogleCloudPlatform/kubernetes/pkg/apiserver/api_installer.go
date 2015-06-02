@@ -536,7 +536,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 			addProxyRoute(ws, "POST", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
 			addProxyRoute(ws, "DELETE", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
 			addProxyRoute(ws, "HEAD", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
-			addProxyRoute(ws, "TRACE", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
+			addProxyRoute(ws, "OPTIONS", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
+			// TODO: swagger does not support TRACE
+			//addProxyRoute(ws, "TRACE", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
 		case "CONNECT":
 			for _, method := range connecter.ConnectMethods() {
 				route := ws.Method(method).Path(action.Path).
