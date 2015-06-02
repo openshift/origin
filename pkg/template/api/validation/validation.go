@@ -12,6 +12,26 @@ import (
 
 var parameterNameExp = regexp.MustCompile(`^[a-zA-Z0-9\_]+$`)
 
+// totalParametersSizeLimitB is the total size limit for the template
+// parameters names, values, froms and descriptions
+// TODO: This constant was copied from k8s totalAnnotationSizeLimitB, we
+//       should make the upstream public with a better name and re-use it
+const totalPrametersSizeLimitB int = 64 * (1 << 10) // 64 kB
+
+// ValidateParametersSize validates the total size of all parameters names,
+// descriptions, froms and values.
+func ValidateParametersSize(params []api.Parameter) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	var totalSize int64
+	for i := range params {
+		totalSize += (int64)(len(params[i].Name)) + (int64)(len(params[i].Description)) + (int64)(len(params[i].Value)) + (int64)(len(params[i].From))
+	}
+	if totalSize > (int64)(totalPrametersSizeLimitB) {
+		allErrs = append(allErrs, fielderrors.NewFieldTooLong("parameters", "", totalPrametersSizeLimitB))
+	}
+	return allErrs
+}
+
 // ValidateParameter tests if required fields in the Parameter are set.
 func ValidateParameter(param *api.Parameter) (errs fielderrors.ValidationErrorList) {
 	if len(param.Name) == 0 {
@@ -48,6 +68,7 @@ func validateTemplateBody(template *api.Template) (errs fielderrors.ValidationEr
 		paramErr := ValidateParameter(&template.Parameters[i])
 		errs = append(errs, paramErr.PrefixIndex(i).Prefix("parameters")...)
 	}
+	errs = append(errs, ValidateParametersSize(template.Parameters)...)
 	errs = append(errs, validation.ValidateLabels(template.ObjectLabels, "labels")...)
 	return
 }
