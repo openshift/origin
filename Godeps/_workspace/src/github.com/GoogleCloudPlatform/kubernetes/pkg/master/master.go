@@ -67,9 +67,10 @@ import (
 	ipallocator "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/ipallocator"
 	serviceaccountetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/serviceaccount/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	//"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	sccetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/securitycontextconstraints/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/portallocator"
 	"github.com/emicklei/go-restful"
@@ -261,7 +262,7 @@ func setDefaults(c *Config) {
 		hostIP, err := util.ChooseHostInterface()
 		if err != nil {
 			glog.Fatalf("Unable to find suitable network address.error='%v' . "+
-				"Will try again in 5 seconds. Set the public address directly to avoid this wait.", err)
+						"Will try again in 5 seconds. Set the public address directly to avoid this wait.", err)
 			time.Sleep(5 * time.Second)
 		}
 		c.PublicAddress = hostIP
@@ -359,10 +360,10 @@ func New(c *Config) *Master {
 	}
 	// Use CurlyRouter to be able to use regular expressions in paths. Regular expressions are required in paths for example for proxy (where the path is proxy/{kind}/{name}/{*})
 	m.handlerContainer.Router(restful.CurlyRouter{})
-	m.muxHelper = &apiserver.MuxHelper{m.mux, []string{}}
+m.muxHelper = &apiserver.MuxHelper{m.mux, []string{}}
 
-	m.init(c)
-	return m
+m.init(c)
+return m
 }
 
 // HandleWithAuth adds an http.Handler for pattern to an http.ServeMux
@@ -429,6 +430,8 @@ func (m *Master) init(c *Config) {
 	persistentVolumeStorage, persistentVolumeStatusStorage := pvetcd.NewStorage(c.EtcdHelper)
 	persistentVolumeClaimStorage, persistentVolumeClaimStatusStorage := pvcetcd.NewStorage(c.EtcdHelper)
 
+	securityContextConstraintsStorage := sccetcd.NewStorage(c.EtcdHelper)
+
 	namespaceStorage, namespaceStatusStorage, namespaceFinalizeStorage := namespaceetcd.NewStorage(c.EtcdHelper)
 	m.namespaceRegistry = namespace.NewRegistry(namespaceStorage)
 
@@ -444,20 +447,20 @@ func (m *Master) init(c *Config) {
 
 	var portalRangeRegistry service.RangeRegistry
 	portalAllocator := ipallocator.NewAllocatorCIDRRange(m.portalNet, func(max int, rangeSpec string) allocator.Interface {
-		mem := allocator.NewAllocationMap(max, rangeSpec)
-		etcd := etcdallocator.NewEtcd(mem, "/ranges/serviceips", "serviceipallocation", c.EtcdHelper)
-		portalRangeRegistry = etcd
-		return etcd
-	})
+			mem := allocator.NewAllocationMap(max, rangeSpec)
+			etcd := etcdallocator.NewEtcd(mem, "/ranges/serviceips", "serviceipallocation", c.EtcdHelper)
+			portalRangeRegistry = etcd
+			return etcd
+		})
 	m.portalAllocator = portalRangeRegistry
 
 	var serviceNodePortRegistry service.RangeRegistry
 	serviceNodePortAllocator := portallocator.NewPortAllocatorCustom(m.serviceNodePorts, func(max int, rangeSpec string) allocator.Interface {
-		mem := allocator.NewAllocationMap(max, rangeSpec)
-		etcd := etcdallocator.NewEtcd(mem, "/ranges/servicenodeports", "servicenodeportallocation", c.EtcdHelper)
-		serviceNodePortRegistry = etcd
-		return etcd
-	})
+			mem := allocator.NewAllocationMap(max, rangeSpec)
+			etcd := etcdallocator.NewEtcd(mem, "/ranges/servicenodeports", "servicenodeportallocation", c.EtcdHelper)
+			serviceNodePortRegistry = etcd
+			return etcd
+		})
 	m.serviceNodePortAllocator = serviceNodePortRegistry
 
 	controllerStorage := controlleretcd.NewREST(c.EtcdHelper)
@@ -492,6 +495,7 @@ func (m *Master) init(c *Config) {
 		"namespaces/finalize":           namespaceFinalizeStorage,
 		"secrets":                       secretStorage,
 		"serviceAccounts":               serviceAccountStorage,
+		"securityContextConstraints":    securityContextConstraintsStorage,
 		"persistentVolumes":             persistentVolumeStorage,
 		"persistentVolumes/status":      persistentVolumeStatusStorage,
 		"persistentVolumeClaims":        persistentVolumeClaimStorage,
@@ -544,9 +548,9 @@ func (m *Master) init(c *Config) {
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(m.muxHelper)
 	}
-	/*if c.EnableUISupport {
-		ui.InstallSupport(m.mux)
-	}*/
+	if c.EnableUISupport {
+		ui.InstallSupport(m.muxHelper, m.enableSwaggerSupport)
+	}
 
 	if c.EnableProfiling {
 		m.mux.HandleFunc("/debug/pprof/", pprof.Index)
