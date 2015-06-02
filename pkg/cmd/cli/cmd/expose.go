@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
@@ -23,7 +24,7 @@ labels from the object it exposes.`
 $ %[1]s expose service nginx
 
 // Create a route and specify your own label and route name
-$ %[1]s expose service nginx --labels name=myroute --name=fromdowntown
+$ %[1]s expose service nginx -l name=myroute --name=fromdowntown
 
 // Expose a deployment configuration as a service and use the specified port
 $ %[1]s expose dc ruby-hello-world --port=8080 --generator=services/v1`
@@ -94,7 +95,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 
 		supportsTCP := false
 		for _, port := range svc.Spec.Ports {
-			if port.Protocol == "TCP" {
+			if strings.ToUpper(string(port.Protocol)) == "TCP" {
 				supportsTCP = true
 				break
 			}
