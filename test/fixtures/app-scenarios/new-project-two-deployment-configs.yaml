@@ -1,5 +1,4 @@
-apiVersion: v1beta1
-creationTimestamp: null
+apiVersion: v1beta3
 items:
 - apiVersion: v1beta1
   kind: BuildConfig
@@ -58,6 +57,17 @@ items:
       to:
         kind: ImageStream
         name: sinatra-app-example
+    revision:
+      git:
+        author:
+          email: someguy@outhere.com
+          name: Roy Programmer
+        commit: 7a4f354721b0c9717e46f2e132b269b495d43e2b
+        commiter:
+          email: openshiftbot@redhat.com
+          name: openshiftbot
+        message: Prepare v1beta3 Template types
+      type: git
     source:
       git:
         uri: git://github.com/mfojtik/sinatra-app-example
@@ -68,17 +78,6 @@ items:
         clean: true
         image: openshift/ruby-20-centos7
       type: STI
-    revision:
-      type: git
-      git:
-        commit: 7a4f354721b0c9717e46f2e132b269b495d43e2b
-        message: Prepare v1beta3 Template types
-        commiter:
-          name: openshiftbot
-          email: openshiftbot@redhat.com
-        author:
-          name: Roy Programmer
-          email: someguy@outhere.com
   startTimestamp: 2015-04-06T21:19:03Z
   status: Running
 - apiVersion: v1beta1
@@ -197,3 +196,4 @@ items:
   sessionAffinity: None
   uid: 2b315406-dca0-11e4-aecc-7831c1b76042
 kind: List
+metadata: {}
