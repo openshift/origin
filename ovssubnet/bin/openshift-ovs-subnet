@@ -1,20 +1,29 @@
 #!/bin/bash
 set -ex
 
+lock_file=/var/lock/openshift-sdn.lock
+
 action=$1
 pod_namespace=$2
 pod_name=$3
 net_container=$4
 
-source /etc/openshift-sdn/config.env
-cluster_subnet=${OPENSHIFT_CLUSTER_SUBNET}
-tap_ip=${OPENSHIFT_SDN_TAP1_ADDR}
+lockwrap() {
+    (
+    flock 200
+    "$@"
+    ) 200>${lock_file}
+}
 
 Init() {
     true
 }
 
 Setup() {
+    source /etc/openshift-sdn/config.env
+    cluster_subnet=${OPENSHIFT_CLUSTER_SUBNET}
+    tap_ip=${OPENSHIFT_SDN_TAP1_ADDR}
+
     pid=$(docker inspect --format "{{.State.Pid}}" ${net_container})
     ipaddr=$(docker inspect --format "{{.NetworkSettings.IPAddress}}" ${net_container})
     new_ip=$ipaddr
@@ -34,6 +43,10 @@ Setup() {
 }
 
 Teardown() {
+    source /etc/openshift-sdn/config.env
+    cluster_subnet=${OPENSHIFT_CLUSTER_SUBNET}
+    tap_ip=${OPENSHIFT_SDN_TAP1_ADDR}
+
     pid=$(docker inspect --format "{{.State.Pid}}" ${net_container})
     veth_ifindex=$(nsenter -n -t $pid -- ethtool -S eth0 | sed -n -e 's/.*peer_ifindex: //p')
     veth_host=$(ip link show | sed -ne "s/^$veth_ifindex: \([^:]*\).*/\1/p")
@@ -44,13 +57,13 @@ Teardown() {
 
 case "$action" in
     init)
-	Init
+	lockwrap Init
 	;;
     setup)
-	Setup
+	lockwrap Setup
 	;;
     teardown)
-	Teardown
+	lockwrap Teardown
 	;;
     *)
         echo "Bad input: $@"
