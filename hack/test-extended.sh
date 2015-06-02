@@ -144,12 +144,12 @@ wait_for_url "https://${OS_MASTER_ADDR}/api/v1beta1/minions/127.0.0.1" "" 0.25 8
 # Start the Docker registry (172.30.17.101:5000)
 start_docker_registry
 
-wait_for_command '[[ "$(osc get endpoints docker-registry -t "{{ if .endpoints}}{{ len .endpoints }}{{ else }}0{{ end }}" 2>/dev/null || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_command '[[ "$(osc get endpoints docker-registry -t "{{ if .subsets}}{{ len .subsets }}{{ else }}0{{ end }}" 2>/dev/null || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 REGISTRY_ADDR=$(osc get --output-version=v1beta1 --template="{{ .portalIP }}:{{.port }}" \
   service docker-registry)
 echo "[INFO] Verifying the docker-registry is up at ${REGISTRY_ADDR}"
-wait_for_url_timed "http://${REGISTRY_ADDR}" "" $((2*TIME_MIN))
+wait_for_url_timed "http://${REGISTRY_ADDR}/v2/" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 # TODO: We need to pre-push the images that we use for builds to avoid getting
 #       "409 - Image already exists" during the 'push' when the Build finishes.
