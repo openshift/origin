@@ -385,7 +385,10 @@ angular.module('openshiftConsole')
       }
       else if (this._watchWebsockets(type, context)){
         // watchWebsockets may not have been set up yet if the projectPromise never resolves
-        this._watchWebsockets(type, context).close();
+        var ws = this._watchWebsockets(type, context);
+        // Make sure the onclose listener doesn't reopen this websocket.
+        ws.unwatch = true;
+        ws.close();
         this._watchWebsockets(type, context, null);
       }
 
@@ -633,6 +636,12 @@ angular.module('openshiftConsole')
   };
 
   DataService.prototype._watchOpOnClose = function(type, context, event) {
+    // If unwatch is set on the event.target (the websocket), don't
+    // attempt to re-establish the connection.
+    if (event.target && event.target.unwatch) {
+      return;
+    }
+
     // Attempt to re-establish the connection in cases
     // where the socket close was unexpected, i.e. the event's
     // wasClean attribute is false
