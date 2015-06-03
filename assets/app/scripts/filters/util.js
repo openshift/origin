@@ -154,10 +154,13 @@ angular.module('openshiftConsole')
     };
   })
   .filter('githubLink', function() {
-    return function(link) {
+    return function(link, commit) {
       var m = link.match(/^(?:https?:\/\/|git:\/\/|git\+ssh:\/\/|git\+https:\/\/)?(?:[^@]+@)?github\.com[:\/]([^\/]+\/[^\/]+?)(?:\.git(#.*)?)?$/);
       if (m) {
         link = "https://github.com/" + m[1];
+        if (commit) {
+          link += "/commit/" + commit;
+        }
       }
       return link;
     };
