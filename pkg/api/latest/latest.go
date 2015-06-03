@@ -103,8 +103,12 @@ func OriginKind(kind, apiVersion string) bool {
 
 func init() {
 	kubeMapper := klatest.RESTMapper
+
+	// list of versions we support on the server, in preferred order
+	versions := []string{"v1beta3", "v1beta1", "v1"}
+
 	originMapper := kmeta.NewDefaultRESTMapper(
-		Versions,
+		versions,
 		func(version string) (*kmeta.VersionInterfaces, bool) {
 			interfaces, err := InterfacesFor(version)
 			if err != nil {
@@ -113,9 +117,6 @@ func init() {
 			return interfaces, true
 		},
 	)
-
-	// list of versions we support on the server, in preferred order
-	versions := []string{"v1beta3", "v1beta1", "v1"}
 
 	// versions that used mixed case URL formats
 	versionMixedCase := map[string]bool{

@@ -155,7 +155,7 @@ export HOME="${FAKE_HOME_DIR}"
 
 wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/${KUBELET_HOST}" "apiserver(minions): " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta3/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
@@ -449,14 +449,15 @@ osc delete all -l app=guestbook
 echo "edit: ok"
 
 osc delete all --all
-osc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
-wait_for_command 'osc get rc/ruby-hello-world-1' "${TIME_MIN}"
+osc create -f test/integration/fixtures/test-deployment-config.json
+osc deploy test-deployment-config --latest
+wait_for_command 'osc get rc/test-deployment-config-1' "${TIME_MIN}"
 # scale rc via deployment configuration
-osc scale dc ruby-hello-world --replicas=1
+osc scale dc test-deployment-config --replicas=1
 # scale directly
-osc scale rc ruby-hello-world-1 --current-replicas=1 --replicas=5
-[ "$(osc get rc/ruby-hello-world-1 | grep 5)" ]
-osc delete all -l app=ruby
+osc scale rc test-deployment-config-1 --current-replicas=1 --replicas=5
+[ "$(osc get rc/test-deployment-config-1 | grep 5)" ]
+osc delete all --all
 echo "scale: ok"
 
 osc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | osc create -f -
@@ -476,16 +477,16 @@ osc get buildConfigs
 osc get bc
 osc get builds
 
-[[ $(osc describe buildConfigs ruby-sample-build --api-version=v1beta1 | grep --text "Webhook Github"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github") ]]
-[[ $(osc describe buildConfigs ruby-sample-build --api-version=v1beta1 | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic") ]]
+[[ $(osc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook Github"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta3/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/github") ]]
+[[ $(osc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta3/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/generic") ]]
 osc start-build --list-webhooks='all' ruby-sample-build
 [[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "generic") ]]
 [[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "github") ]]
 [[ $(osc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101") ]]
 [ ! "$(osc start-build --list-webhooks='blah')" ]
-webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta1 | head -n 1)
-osc start-build --from-webhook="${webhook}"
 webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta3 | head -n 1)
+osc start-build --from-webhook="${webhook}"
+webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1 | head -n 1)
 osc start-build --from-webhook="${webhook}"
 osc get builds
 osc delete all -l build=docker

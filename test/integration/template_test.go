@@ -21,7 +21,7 @@ func TestTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, version := range []string{"v1beta1", "v1beta3"} {
+	for _, version := range []string{"v1", "v1beta3"} {
 		config, err := testutil.GetClusterAdminClientConfig(path)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)

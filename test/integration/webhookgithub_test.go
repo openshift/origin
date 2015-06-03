@@ -20,8 +20,6 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 )
 
-const whPrefix = "/osapi/v1beta1/buildConfigHooks/"
-
 func init() {
 	testutil.RequireEtcd()
 }
@@ -98,8 +96,8 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
-		"/osapi/v1beta1/buildConfigs/pushbuild/webhooks/secret101/github?namespace=" + testutil.Namespace(),
+		"/osapi/v1beta3/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 
 		// trigger build event sending push notification
@@ -193,8 +191,8 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
-		"/osapi/v1beta1/buildConfigs/pushbuild/webhooks/secret101/github?namespace=" + testutil.Namespace(),
+		"/osapi/v1beta3/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 
 		// trigger build event sending push notification
