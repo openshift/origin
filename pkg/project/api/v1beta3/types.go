@@ -11,9 +11,11 @@ type ProjectList struct {
 	Items         []Project `json:"items"`
 }
 
-// These are internal finalizer values to Origin
 const (
+	// These are internal finalizer values to Origin
 	FinalizerOrigin kapi.FinalizerName = "openshift.io/origin"
+
+	ProjectNodeSelectorParam string = "openshift.io/node-selector"
 )
 
 // ProjectSpec describes the attributes on a Project

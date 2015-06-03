@@ -54,7 +54,12 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 			if options.Client, _, err = f.Clients(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
-			if err := options.Run(); err != nil {
+
+			// We can't depend on len(options.NodeSelector) > 0 as node-selector="" is valid
+			// and we want to populate node selector as project annotation only if explicitly set by user
+			useNodeSelector := cmd.Flag("node-selector").Changed
+
+			if err := options.Run(useNodeSelector); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 		},
@@ -64,7 +69,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 	cmd.Flags().StringVar(&options.AdminUser, "admin", "", "project admin username")
 	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "project display name")
 	cmd.Flags().StringVar(&options.Description, "description", "", "project description")
-	cmd.Flags().StringVar(&options.NodeSelector, "node-selector", "", "Restrict pods onto nodes matching given label selector. Format: '<key1>=<value1>, <key2>=<value2>...'")
+	cmd.Flags().StringVar(&options.NodeSelector, "node-selector", "", "Restrict pods onto nodes matching given label selector. Format: '<key1>=<value1>, <key2>=<value2>...'. Specifying \"\" means any node, not default. If unspecified, cluster default node selector will be used.")
 
 	return cmd
 }
@@ -78,7 +83,7 @@ func (o *NewProjectOptions) complete(args []string) error {
 	return nil
 }
 
-func (o *NewProjectOptions) Run() error {
+func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 	if _, err := o.Client.Projects().Get(o.ProjectName); err != nil {
 		if !kerrors.IsNotFound(err) {
 			return err
@@ -92,7 +97,9 @@ func (o *NewProjectOptions) Run() error {
 	project.Annotations = make(map[string]string)
 	project.Annotations["description"] = o.Description
 	project.Annotations["displayName"] = o.DisplayName
-	project.Annotations["openshift.io/node-selector"] = o.NodeSelector
+	if useNodeSelector {
+		project.Annotations[projectapi.ProjectNodeSelectorParam] = o.NodeSelector
+	}
 	project, err := o.Client.Projects().Create(project)
 	if err != nil {
 		return err

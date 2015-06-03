@@ -59,9 +59,9 @@ func validateNodeSelector(p *api.Project) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
 	if len(p.Annotations) > 0 {
-		if selector, ok := p.Annotations["openshift.io/node-selector"]; ok {
+		if selector, ok := p.Annotations[api.ProjectNodeSelectorParam]; ok {
 			if _, err := labelselector.Parse(selector); err != nil {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("nodeSelector", p.Annotations["openshift.io/node-selector"], "must be a valid label selector"))
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("nodeSelector", p.Annotations[api.ProjectNodeSelectorParam], "must be a valid label selector"))
 			}
 		}
 	}

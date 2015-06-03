@@ -131,8 +131,8 @@ func TestProjectIsNamespace(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "new-project",
 			Annotations: map[string]string{
-				"displayName":                "Hello World",
-				"openshift.io/node-selector": "env=test",
+				"displayName":                       "Hello World",
+				projectapi.ProjectNodeSelectorParam: "env=test",
 			},
 		},
 	}
@@ -152,8 +152,8 @@ func TestProjectIsNamespace(t *testing.T) {
 	if project.Annotations["displayName"] != namespace.Annotations["displayName"] {
 		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations["displayName"], namespace.Annotations["displayName"])
 	}
-	if project.Annotations["openshift.io/node-selector"] != namespace.Annotations["openshift.io/node-selector"] {
-		t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations["openshift.io/node-selector"], namespace.Annotations["openshift.io/node-selector"])
+	if project.Annotations[projectapi.ProjectNodeSelectorParam] != namespace.Annotations[projectapi.ProjectNodeSelectorParam] {
+		t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations[projectapi.ProjectNodeSelectorParam], namespace.Annotations[projectapi.ProjectNodeSelectorParam])
 	}
 }
 
