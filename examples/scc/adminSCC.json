@@ -1,0 +1,22 @@
+{
+  "kind": "SecurityContextConstraints",
+  "apiVersion":"v1beta3",
+
+  "metadata": {
+    "name": "scc-admin",
+    "labels": {
+      "name": "scc-admin"
+    }
+  },
+
+  "allowPrivilegedContainer": true,
+  "allowHostDirVolumePlugin": true,
+  "runAsUser": {
+    "type": "RunAsAny"
+  },
+  "seLinuxContext": {
+    "type": "RunAsAny"
+  },
+  "users": [],
+  "groups": ["system:cluster-admins", "system:serviceaccounts:test"]
+}

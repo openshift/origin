@@ -19,6 +19,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	allocator "github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/uid"
+
+	"github.com/golang/glog"
 )
 
 func init() {
@@ -53,7 +55,7 @@ func NewConstraint(kclient client.Interface) kadmission.Interface {
 	reflector.Run()
 
 	return &constraint{
-		Handler: kadmission.NewHandler(kadmission.Create, kadmission.Update),
+		Handler: kadmission.NewHandler(kadmission.Create),
 		client:  kclient,
 		store:   store,
 	}
@@ -81,6 +83,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	}
 
 	// get all constraints that are usable by the user
+	glog.V(4).Infof("scc: using user info %v for pod %s", a.GetUserInfo(), pod.Name)
 	matchedConstraints, err := getMatchingSecurityContextConstraints(c.store, a.GetUserInfo())
 	if err != nil {
 		return kadmission.NewForbidden(a, err)
@@ -93,6 +96,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 		}
 
 		userInfo := serviceaccount.UserInfo(a.GetNamespace(), serviceAccount.Name, string(serviceAccount.UID))
+		glog.V(4).Infof("scc: using sa user info %v for pod %s", userInfo, pod.Name)
 		saConstraints, err := getMatchingSecurityContextConstraints(c.store, userInfo)
 		if err != nil {
 			return kadmission.NewForbidden(a, err)
@@ -151,6 +155,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 		providers[constraint.Name] = provider
 	}
 
+	glog.V(4).Infof("scc: found providers %#v for pod %s", providers, pod.Name)
 	for i, container := range pod.Spec.Containers {
 		context, providerName, err := c.getSecurityContextForContainer(pod, i, providers)
 		if err != nil {
@@ -194,6 +199,7 @@ func (c *constraint) getSecurityContextForContainer(pod *kapi.Pod, containerInde
 		if len(errs) == 0 {
 			return context, providerName, nil
 		}
+		glog.V(4).Infof("provider %s produced errors %v for pod %s container %s", providerName, errs, pod.Name, container.Name)
 	}
 
 	// If we have reached this code, we couldn't find an SCC that matched

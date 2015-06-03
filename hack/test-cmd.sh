@@ -157,6 +157,10 @@ wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kube
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/${KUBELET_HOST}" "apiserver(minions): " 0.25 80
 
+# setup SCCs
+OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" openshift cli create -f examples/scc/saSCC.json
+OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" openshift cli create -f examples/scc/adminSCC.json
+
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 

@@ -175,6 +175,13 @@ function wait_for_build() {
   set -e
 }
 
+# Wait for pre-allocation of scc values to a namespace
+# $1 namespace
+function wait_for_scc() {
+	wait_for_command '[[ "$(osc get namespace default -t "{{index .metadata.annotations \"openshift.io/sa.scc.mcs\"}}" || echo "0")" != "0" ]]' $((1*TIME_MIN))
+	wait_for_command '[[ "$(osc get namespace default -t "{{index .metadata.annotations \"openshift.io/sa.scc.uid-range\"}}" || echo "0")" != "0" ]]' $((1*TIME_MIN))
+}
+
 # Setup
 stop_openshift_server
 echo "[INFO] `openshift version`"
@@ -253,6 +260,11 @@ wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INF
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/${KUBELET_HOST}" "apiserver(minions): " 0.25 80
 
+# create the default security context constraints for the cluster
+echo "[INFO] Creating security context constraints"
+openshift cli create -f examples/scc/saSCC.json
+openshift cli create -f examples/scc/adminSCC.json
+
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift admin policy add-role-to-user view e2e-user --namespace=default
 
@@ -261,6 +273,14 @@ openshift admin new-project test --description="This is an example project to de
 openshift admin new-project docker --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 openshift admin new-project custom --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 openshift admin new-project cache --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
+
+# check each namespace for allocated uids and mcs labels
+echo "[INFO] Waiting for allocated uids and mcs labels"
+wait_for_scc test
+wait_for_scc docker
+wait_for_scc custom
+wait_for_scc cache
+echo "[INFO] Allocation finished"
 
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
@@ -271,7 +291,7 @@ openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-ro
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
-openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images="${USE_IMAGES}"
+openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
 
 echo "[INFO] Pre-pulling and pushing ruby-20-centos7"
 docker pull openshift/ruby-20-centos7:latest
@@ -356,7 +376,7 @@ validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_AP
 # Remote command execution
 echo "[INFO] Validating exec"
 registry_pod=$(osc get pod | grep deployment=docker-registry | grep docker-registry | awk '{print $1}')
-osc exec -p ${registry_pod} whoami | grep root
+osc exec -p ${registry_pod} id | grep 10000
 
 # Port forwarding
 echo "[INFO] Validating port-forward"
