@@ -37,6 +37,16 @@ describe("CreateController", function(){
     expect(match).not.toBeNull();
   });
 
+  it("invalid http URL with user and password containing space", function(){
+    var match = 'http://user:pa ss@example.com/dir1/dir2'.match($scope.sourceURLPattern)
+    expect(match).toBeNull();
+  });
+
+  it("valid http URL with user and password with special characters", function(){
+    var match = 'https://user:my!password@example.com/gerrit/p/myrepo.git'.match($scope.sourceURLPattern)
+    expect(match).not.toBeNull();
+  });
+
   it("valid http URL with port", function(){
     var match = 'http://example.com:8080/dir1/dir2'.match($scope.sourceURLPattern)
     expect(match).not.toBeNull();
