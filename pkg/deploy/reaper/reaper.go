@@ -11,14 +11,8 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/deploy/api"
-	deployres "github.com/openshift/origin/pkg/deploy/resizer"
+	deploy "github.com/openshift/origin/pkg/deploy/scaler"
 	"github.com/openshift/origin/pkg/deploy/util"
-)
-
-const (
-	shortInterval = time.Millisecond * 100
-	interval      = time.Second * 3
-	timeout       = time.Minute * 5
 )
 
 // ReaperFor returns the appropriate Reaper client depending on the provided
@@ -28,7 +22,7 @@ func ReaperFor(kind string, osc *client.Client, kc *kclient.Client) (kubectl.Rea
 	if kind != "DeploymentConfig" {
 		return kubectl.ReaperFor(kind, kc)
 	}
-	return &DeploymentConfigReaper{osc: osc, kc: kc, pollInterval: interval, timeout: timeout}, nil
+	return &DeploymentConfigReaper{osc: osc, kc: kc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}, nil
 }
 
 // DeploymentConfigReaper implements the Reaper interface for deploymentConfigs
@@ -38,7 +32,7 @@ type DeploymentConfigReaper struct {
 	pollInterval, timeout time.Duration
 }
 
-// Stop resizes a replication controller via its deployment configuration down to
+// Stop scales a replication controller via its deployment configuration down to
 // zero replicas, waits for all of them to get deleted and then deletes both the
 // replication controller and its deployment configuration.
 func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *kapi.DeleteOptions) (string, error) {
@@ -52,14 +46,14 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *
 	if err != nil {
 		return "", err
 	}
-	resizer, err := deployres.ResizerFor("DeploymentConfig", reaper.osc, reaper.kc)
+	scaler, err := deploy.ScalerFor("DeploymentConfig", reaper.osc, reaper.kc)
 	if err != nil {
 		return "", err
 	}
-	retry := &kubectl.RetryParams{Interval: shortInterval, Timeout: reaper.timeout}
-	waitForReplicas := &kubectl.RetryParams{reaper.pollInterval, reaper.timeout}
-	if err = resizer.Resize(namespace, name, 0, nil, retry, waitForReplicas); err != nil {
-		// The deploymentConfig may not have a replication controller to resize
+	retry := kubectl.NewRetryParams(reaper.pollInterval, reaper.timeout)
+	waitForReplicas := kubectl.NewRetryParams(reaper.pollInterval, reaper.timeout)
+	if err = scaler.Scale(namespace, name, 0, nil, retry, waitForReplicas); err != nil {
+		// The deploymentConfig may not have a replication controller to scale
 		// so we shouldn't error out here
 		glog.V(2).Info(err)
 	}

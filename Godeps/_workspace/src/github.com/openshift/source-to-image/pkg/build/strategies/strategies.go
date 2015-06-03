@@ -10,41 +10,41 @@ import (
 )
 
 // GetStrategy decides what build strategy will be used for the STI build.
-func GetStrategy(request *api.Request) (build.Builder, error) {
-	image, err := GetBaseImage(request)
+func GetStrategy(config *api.Config) (build.Builder, error) {
+	image, err := GetBuilderImage(config)
 	if err != nil {
 		return nil, err
 	}
 
 	if image.OnBuild {
-		return onbuild.New(request)
+		return onbuild.New(config)
 	}
 
-	return sti.New(request)
+	return sti.New(config)
 }
 
-// GetBaseImage processes the request and performs operations necessary to make
-// the Docker image specified as BaseImage available locally.
+// GetBuilderImage processes the config and performs operations necessary to make
+// the Docker image specified as BuilderImage available locally.
 // It returns information about the base image, containing metadata necessary
 // for choosing the right STI build strategy.
-func GetBaseImage(request *api.Request) (*docker.PullResult, error) {
-	d, err := docker.New(request.DockerConfig, request.PullAuthentication)
+func GetBuilderImage(config *api.Config) (*docker.PullResult, error) {
+	d, err := docker.New(config.DockerConfig, config.PullAuthentication)
 	result := docker.PullResult{}
 	if err != nil {
 		return nil, err
 	}
 
 	var image *dockerclient.Image
-	if request.ForcePull {
-		image, err = d.PullImage(request.BaseImage)
+	if config.ForcePull {
+		image, err = d.PullImage(config.BuilderImage)
 	} else {
-		image, err = d.CheckAndPull(request.BaseImage)
+		image, err = d.CheckAndPull(config.BuilderImage)
 	}
 
 	if err != nil {
 		return nil, err
 	}
 	result.Image = image
-	result.OnBuild = d.IsImageOnBuild(request.BaseImage)
+	result.OnBuild = d.IsImageOnBuild(config.BuilderImage)
 	return &result, nil
 }

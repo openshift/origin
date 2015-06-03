@@ -199,7 +199,7 @@ the new object will re-use the labels from the object it exposes.
 # Expose a service as a route
 $ osc expose service frontend
 # Expose a deployment config as a service and use the specified port and name
-$ osc expose dc ruby-heloo-world --port=8080 --name=myservice --generator=services/v1
+$ osc expose dc ruby-hello-world --port=8080 --name=myservice --generator=services/v1
 ```
 
 osc process
@@ -232,7 +232,7 @@ $ osc start-build --from-build=ruby-sample-build-275d3373-c252-11e4-bc79-080027c
 $ osc start-build --from-build=ruby-sample-build-275d3373-c252-11e4-bc79-080027c5bfa9 --follow 
 ```
 
-osc resize
+osc scale
 ------------------
 
 This command sets a new size for a Replication Controller either directly or via its Deployment Configuration.
@@ -241,8 +241,8 @@ This command sets a new size for a Replication Controller either directly or via
 
 ```bash
 # n is the highest deployment number for the dc ruby-hello-world
-$ osc resize rc ruby-hello-world-n  --replicas=3
-$ osc resize dc ruby-hello-world --current-replicas=3 --replicas=5
+$ osc scale rc ruby-hello-world-n  --replicas=3
+$ osc scale dc ruby-hello-world --current-replicas=3 --replicas=5
 ```
 
 osc build-logs

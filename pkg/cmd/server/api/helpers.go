@@ -11,6 +11,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -333,4 +334,14 @@ func IsOAuthIdentityProvider(provider IdentityProvider) bool {
 	}
 
 	return false
+}
+
+func HasOpenShiftAPILevel(config MasterConfig, apiLevel string) bool {
+	apiLevelSet := util.NewStringSet(config.APILevels...)
+	return apiLevelSet.Has(apiLevel)
+}
+
+func HasKubernetesAPILevel(config KubernetesMasterConfig, apiLevel string) bool {
+	apiLevelSet := util.NewStringSet(config.APILevels...)
+	return apiLevelSet.Has(apiLevel)
 }

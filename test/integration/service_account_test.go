@@ -221,3 +221,62 @@ func getServiceAccountToken(client *kclient.Client, ns, name string) (string, er
 	}
 	return "", nil
 }
+
+func TestAutomaticCreationOfPullSecrets(t *testing.T) {
+	saNamespace := api.NamespaceDefault
+	saName := serviceaccountadmission.DefaultServiceAccountName
+
+	_, clusterAdminConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Get a service account token
+	saToken, err := waitForServiceAccountToken(clusterAdminKubeClient, saNamespace, saName, 20, time.Second)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(saToken) == 0 {
+		t.Errorf("token was not created")
+	}
+
+	// Get the matching dockercfg secret
+	saPullSecret, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, saNamespace, saName, 20, time.Second)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(saPullSecret) == 0 {
+		t.Errorf("pull secret was not created")
+	}
+}
+
+func waitForServiceAccountPullSecret(client *kclient.Client, ns, name string, attempts int, interval time.Duration) (string, error) {
+	for i := 0; i <= attempts; i++ {
+		time.Sleep(interval)
+		token, err := getServiceAccountPullSecret(client, ns, name)
+		if err != nil {
+			return "", err
+		}
+		if len(token) > 0 {
+			return token, nil
+		}
+	}
+	return "", nil
+}
+
+func getServiceAccountPullSecret(client *kclient.Client, ns, name string) (string, error) {
+	secrets, err := client.Secrets(ns).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return "", err
+	}
+	for _, secret := range secrets.Items {
+		if secret.Type == api.SecretTypeDockercfg && secret.Annotations[api.ServiceAccountNameKey] == name {
+			return string(secret.Data[api.DockerConfigKey]), nil
+		}
+	}
+	return "", nil
+}

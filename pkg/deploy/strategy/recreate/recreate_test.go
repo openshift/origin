@@ -223,7 +223,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 			},
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, _ time.Duration) error {
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
 				return nil
 			},
 		},
@@ -264,7 +264,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 			},
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, _ time.Duration) error {
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
 				return fmt.Errorf("hook execution failure")
 			},
 		},
@@ -296,7 +296,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 			},
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, _ time.Duration) error {
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
 				return nil
 			},
 		},
@@ -337,7 +337,7 @@ func TestRecreate_deploymentPostHookFailureIgnored(t *testing.T) {
 			},
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, _ time.Duration) error {
+			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
 				return fmt.Errorf("hook execution failure")
 			},
 		},

@@ -37,7 +37,9 @@ type Config struct {
 	// Round robin A/AAAA replies. Default is true.
 	RoundRobin bool `json:"round_robin,omitempty"`
 	// List of ip:port, seperated by commas of recursive nameservers to forward queries to.
-	Nameservers []string      `json:"nameservers,omitempty"`
+	Nameservers []string `json:"nameservers,omitempty"`
+	// Never provide a recursive service.
+	NoRec       bool          `json:norec,omitempty"`
 	ReadTimeout time.Duration `json:"read_timeout,omitempty"`
 	// Default priority on SRV records when none is given. Defaults to 10.
 	Priority uint16 `json:"priority"`
@@ -63,7 +65,7 @@ type Config struct {
 
 	// some predefined string "constants"
 	localDomain string // "local.dns." + config.Domain
-	dnsDomain   string // "dns". + config.Domain
+	dnsDomain   string // "ns.dns". + config.Domain
 
 	// Stub zones support. Pointer to a map that we refresh when we see
 	// an update. Map contains domainname -> nameserver:port
@@ -141,7 +143,7 @@ func SetDefaults(config *Config) error {
 		config.PrivKey = p
 	}
 	config.localDomain = appendDomain("local.dns", config.Domain)
-	config.dnsDomain = appendDomain("dns", config.Domain)
+	config.dnsDomain = appendDomain("ns.dns", config.Domain)
 	stubmap := make(map[string][]string)
 	config.stub = &stubmap
 	return nil

@@ -18,8 +18,8 @@ import (
 )
 
 // RecreateDeploymentStrategy is a simple strategy appropriate as a default.
-// Its behavior is to increase the replica count of the new deployment to 1,
-// and to decrease the replica count of previous deployments to zero.
+// Its behavior is to decrease the replica count of previous deployments to zero,
+// and to increase the replica count of the new deployment to 1.
 //
 // A failure to disable any existing deployments will be considered a
 // deployment failure.
@@ -68,7 +68,7 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 	params := deploymentConfig.Template.Strategy.RecreateParams
 	// Execute any pre-hook.
 	if params != nil && params.Pre != nil {
-		err := s.hookExecutor.Execute(params.Pre, deployment, s.retryPeriod)
+		err := s.hookExecutor.Execute(params.Pre, deployment, "prehook")
 		if err != nil {
 			return fmt.Errorf("Pre hook failed: %s", err)
 		}
@@ -89,11 +89,6 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		glog.V(4).Infof("Deployment has no explicit desired replica count; using the config value %d", desiredReplicas)
 	}
 
-	// Scale up the new deployment.
-	if err = s.updateReplicas(deployment.Namespace, deployment.Name, desiredReplicas); err != nil {
-		return err
-	}
-
 	// Disable any old deployments.
 	glog.V(4).Infof("Found %d prior deployments to disable", len(oldDeployments))
 	allProcessed := true
@@ -104,20 +99,23 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 		}
 	}
 
-	// Execute any post-hook. Errors are logged and ignored.
-	if params != nil && params.Post != nil {
-		// TODO: handle this in defaulting/conversion/validation?
-		if params.Post.FailurePolicy == deployapi.LifecycleHookFailurePolicyAbort {
-			params.Post.FailurePolicy = deployapi.LifecycleHookFailurePolicyIgnore
-		}
-		err := s.hookExecutor.Execute(params.Post, deployment, s.retryPeriod)
-		if err != nil {
-			glog.Infof("Post hook failed: %s", err)
-		}
-	}
-
 	if !allProcessed {
 		return fmt.Errorf("failed to disable all prior deployments for new Deployment %s", deployment.Name)
+	}
+
+	// Scale up the new deployment.
+	if err = s.updateReplicas(deployment.Namespace, deployment.Name, desiredReplicas); err != nil {
+		return err
+	}
+
+	// Execute any post-hook. Errors are logged and ignored.
+	if params != nil && params.Post != nil {
+		err := s.hookExecutor.Execute(params.Post, deployment, "posthook")
+		if err != nil {
+			glog.Errorf("Post hook failed: %s", err)
+		} else {
+			glog.Infof("Post hook finished")
+		}
 	}
 
 	glog.Infof("Deployment %s successfully made active", deployment.Name)
@@ -177,14 +175,14 @@ func (r *realReplicationControllerClient) updateReplicationController(namespace 
 
 // hookExecutor knows how to execute a deployment lifecycle hook.
 type hookExecutor interface {
-	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error
+	Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error
 }
 
 // hookExecutorImpl is a pluggable hookExecutor.
 type hookExecutorImpl struct {
-	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error
+	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error
 }
 
-func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, retryPeriod time.Duration) error {
-	return i.executeFunc(hook, deployment, retryPeriod)
+func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
+	return i.executeFunc(hook, deployment, label)
 }

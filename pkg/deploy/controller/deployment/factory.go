@@ -72,6 +72,19 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 			updatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return factory.KubeClient.Pods(namespace).Update(pod)
 			},
+			// Find deployer pods using the label they should all have which
+			// correlates them to the named deployment.
+			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
+				labelSel, err := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeployerPodForDeploymentLabel, name))
+				if err != nil {
+					return []kapi.Pod{}, err
+				}
+				pods, err := factory.KubeClient.Pods(namespace).List(labelSel, fields.Everything())
+				if err != nil {
+					return []kapi.Pod{}, err
+				}
+				return pods.Items, nil
+			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return factory.makeContainer(strategy)

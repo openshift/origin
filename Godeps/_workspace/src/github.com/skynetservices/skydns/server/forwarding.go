@@ -15,6 +15,17 @@ import (
 // ServeDNSForward forwards a request to a nameservers and returns the response.
 func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) {
 	StatsForwardCount.Inc(1)
+
+	if s.config.NoRec {
+		m := new(dns.Msg)
+		m.SetReply(req)
+		m.SetRcode(req, dns.RcodeServerFailure)
+		m.Authoritative = false
+		m.RecursionAvailable = false
+		w.WriteMsg(m)
+		return
+	}
+
 	if len(s.config.Nameservers) == 0 || dns.CountLabel(req.Question[0].Name) < s.config.Ndots {
 		if len(s.config.Nameservers) == 0 {
 			log.Printf("skydns: can not forward, no nameservers defined")
@@ -107,6 +118,7 @@ func (s *server) Lookup(n string, t, bufsize uint16, dnssec bool) (*dns.Msg, err
 	nsid := int(m.Id) % len(s.config.Nameservers)
 	try := 0
 Redo:
+	// Move this to use s.udpClient/s.tcpClient code instead of allocating a new client for every query.
 	r, _, err := c.Exchange(m, s.config.Nameservers[nsid])
 	if err == nil {
 		if r.Rcode != dns.RcodeSuccess {

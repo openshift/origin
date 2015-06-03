@@ -1,13 +1,10 @@
 apiVersion: v1beta3
-kind: List
 items:
 - apiVersion: v1beta3
   kind: DeploymentConfig
   metadata:
     name: gitserver
   spec:
-    triggers:
-    - type: ConfigChange
     replicas: 1
     selector:
       run-container: gitserver
@@ -17,13 +14,9 @@ items:
           run-container: gitserver
       spec:
         containers:
-        - name: gitserver
-          image: openshift/origin-gitserver
-          ports:
-          - containerPort: 8080
-          env:
+        - env:
           - name: PUBLIC_URL
-            value: "http://gitserver.myproject.local:8080" # TODO: this needs to be resolved from env
+            value: http://gitserver.myproject.local:8080
           - name: GIT_HOME
             value: /var/lib/git
           - name: HOOK_PATH
@@ -35,40 +28,43 @@ items:
           - name: ALLOW_LAZY_CREATE
             value: "yes"
           - name: AUTOLINK_CONFIG
-            value: /var/lib/gitsecrets/admin.kubeconfig # TODO: use the service account secret
+            value: /var/lib/gitsecrets/admin.kubeconfig
           - name: AUTOLINK_NAMESPACE
-            #value: # TODO: use env generation
           - name: AUTOLINK_HOOK
-            value:
+            value: null
           - name: REQUIRE_GIT_AUTH
-            #value: user:password # if set, authentication is required to push to this server
-          #- name: GIT_INITIAL_CLONE_1
-          #  value:
           - name: OPENSHIFTCONFIG
-            value: /var/lib/gitsecrets/admin.kubeconfig # TODO: use the service account secret
+            value: /var/lib/gitsecrets/admin.kubeconfig
+          image: openshift/origin-gitserver
+          name: gitserver
+          ports:
+          - containerPort: 8080
           volumeMounts:
-          - name: config
-            mountPath: /var/lib/gitsecrets/
+          - mountPath: /var/lib/gitsecrets/
+            name: config
             readOnly: true
         volumes:
         - name: config
           secret:
             secretName: gitserver-config
+    triggers:
+    - type: ConfigChange
 - apiVersion: v1beta3
   kind: Secret
   metadata:
     name: gitserver-config
   spec:
     data:
-      # Needs to be populated
-      admin.kubeconfig:
+      admin.kubeconfig: null
 - apiVersion: v1beta3
   kind: Service
   metadata:
     name: gitserver
   spec:
-    selector:
-      run-container: gitserver
     ports:
     - port: 8080
       targetPort: 8080
+    selector:
+      run-container: gitserver
+kind: List
+metadata: {}

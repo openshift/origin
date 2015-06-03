@@ -100,6 +100,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 		},
 		"../test/templates/fixtures": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation
+			"guestbook_list":  &templateapi.Template{},
 			"guestbook":       &templateapi.Template{},
 		},
 	}

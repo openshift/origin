@@ -1,4 +1,4 @@
-package podname
+package namer
 
 import (
 	"math/rand"
@@ -24,7 +24,7 @@ func TestGetName(t *testing.T) {
 			{
 				base:     longName,
 				suffix:   "deploy",
-				expected: longName[:244] + "-" + hash(longName+"-deploy"),
+				expected: longName[:util.DNS1123SubdomainMaxLength-16] + "-" + hash(longName) + "-deploy",
 			},
 			{
 				base:     shortName,
@@ -49,12 +49,12 @@ func TestGetName(t *testing.T) {
 			{
 				base:     longName,
 				suffix:   "",
-				expected: longName[:244] + "-" + hash(longName+"-"),
+				expected: longName[:util.DNS1123SubdomainMaxLength-10] + "-" + hash(longName) + "-",
 			},
 		}
 
 		for _, test := range tests {
-			result := GetName(test.base, test.suffix)
+			result := GetName(test.base, test.suffix, util.DNS1123SubdomainMaxLength)
 			if result != test.expected {
 				t.Errorf("Got unexpected result. Expected: %s Got: %s", test.expected, result)
 			}
@@ -64,14 +64,14 @@ func TestGetName(t *testing.T) {
 
 func TestGetNameIsDifferent(t *testing.T) {
 	shortName := randSeq(32)
-	deployerName := GetName(shortName, "deploy")
-	builderName := GetName(shortName, "build")
+	deployerName := GetName(shortName, "deploy", util.DNS1123SubdomainMaxLength)
+	builderName := GetName(shortName, "build", util.DNS1123SubdomainMaxLength)
 	if deployerName == builderName {
 		t.Errorf("Expecting names to be different: %s\n", deployerName)
 	}
 	longName := randSeq(util.DNS1123SubdomainMaxLength + 10)
-	deployerName = GetName(longName, "deploy")
-	builderName = GetName(longName, "build")
+	deployerName = GetName(longName, "deploy", util.DNS1123SubdomainMaxLength)
+	builderName = GetName(longName, "build", util.DNS1123SubdomainMaxLength)
 	if deployerName == builderName {
 		t.Errorf("Expecting names to be different: %s\n", deployerName)
 	}

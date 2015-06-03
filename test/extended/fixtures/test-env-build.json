@@ -1,18 +1,14 @@
 {
-  "apiVersion": "v1beta1",
   "kind": "Build",
+  "apiVersion": "v1beta3",
   "metadata": {
     "name": "test",
+    "creationTimestamp": null,
     "labels": {
       "name": "test"
     }
   },
-  "parameters": {
-    "output": {
-      "to": {
-        "name": "test"
-      }
-    },
+  "spec": {
     "source": {
       "type": "Git",
       "git": {
@@ -21,10 +17,24 @@
       "contextDir": "test/extended/fixtures/sti-environment-build-app"
     },
     "strategy": {
-      "type": "STI",
-      "stiStrategy": {
-        "image": "openshift/ruby-20-centos7"
+      "type": "Source",
+      "sourceStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "openshift/ruby-20-centos7"
+        },
+        "incremental": true
       }
-    }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
+      }
+    },
+    "resources": {}
+  },
+  "status": {
+    "phase": ""
   }
 }

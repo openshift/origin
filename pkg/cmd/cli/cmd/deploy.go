@@ -12,6 +12,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
@@ -36,7 +37,7 @@ type DeployOptions struct {
 }
 
 const (
-	deployLong = `View, start and restart deployments.
+	deployLong = `View, start, cancel, and retry deployments.
 
 If no options are given, view the latest deployment.
 
@@ -49,6 +50,7 @@ NOTE: This command is still under active development and is subject to change.`
   $ %[1]s deploy frontend --latest
 
   // Retry the latest failed deployment based on the 'frontend' DeploymentConfig
+  // The deployer pod and any hook pods are deleted for the latest failed deployment
   $ %[1]s deploy frontend --retry
 
   // Cancel the in-progress deployment based on the 'frontend' DeploymentConfig
@@ -156,6 +158,17 @@ func (o DeployOptions) RunDeploy() error {
 		UpdateDeploymentFn: func(deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 			return o.kubeClient.ReplicationControllers(deployment.Namespace).Update(deployment)
 		},
+
+		ListDeployerPodsForFn: func(namespace, deploymentName string) (*kapi.PodList, error) {
+			selector, err := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeployerPodForDeploymentLabel, deploymentName))
+			if err != nil {
+				return nil, err
+			}
+			return o.kubeClient.Pods(namespace).List(selector, fields.Everything())
+		},
+		DeletePodFn: func(pod *kapi.Pod) error {
+			return o.kubeClient.Pods(pod.Namespace).Delete(pod.Name, nil)
+		},
 	}
 
 	switch {
@@ -186,6 +199,9 @@ type deployCommandClient interface {
 	ListDeploymentsForConfig(namespace, configName string) (*kapi.ReplicationControllerList, error)
 	UpdateDeploymentConfig(*deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	UpdateDeployment(*kapi.ReplicationController) (*kapi.ReplicationController, error)
+
+	ListDeployerPodsFor(namespace, deploymentName string) (*kapi.PodList, error)
+	DeletePod(pod *kapi.Pod) error
 }
 
 // deployLatestCommand can launch new deployments.
@@ -206,7 +222,7 @@ func (c *deployLatestCommand) deploy(config *deployapi.DeploymentConfig, out io.
 		// Reject attempts to start a concurrent deployment.
 		status := deployutil.DeploymentStatusFor(deployment)
 		if status != deployapi.DeploymentStatusComplete && status != deployapi.DeploymentStatusFailed {
-			return fmt.Errorf("#%d is already in progress (%s)", config.LatestVersion, status)
+			return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.", config.LatestVersion, status)
 		}
 	}
 
@@ -228,19 +244,44 @@ type retryDeploymentCommand struct {
 // currently in a failed state.
 func (c *retryDeploymentCommand) retry(config *deployapi.DeploymentConfig, out io.Writer) error {
 	if config.LatestVersion == 0 {
-		return fmt.Errorf("no failed deployments found for %s/%s", config.Namespace, config.Name)
+		return fmt.Errorf("no deployments found for %s/%s", config.Namespace, config.Name)
 	}
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := c.client.GetDeployment(config.Namespace, deploymentName)
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return fmt.Errorf("Unable to find the latest deployment (#%d).\nYou can start a new deployment using the --latest option.", config.LatestVersion)
+		}
 		return err
 	}
 
 	if status := deployutil.DeploymentStatusFor(deployment); status != deployapi.DeploymentStatusFailed {
-		return fmt.Errorf("#%d is %s; only failed deployments can be retried", config.LatestVersion, status)
+		message := fmt.Sprintf("#%d is %s; only failed deployments can be retried.\n", config.LatestVersion, status)
+		if status == deployapi.DeploymentStatusComplete {
+			message += fmt.Sprintf("You can start a new deployment using the --latest option.")
+		} else {
+			message += fmt.Sprintf("Optionally, you can cancel this deployment using the --cancel option.", config.LatestVersion)
+		}
+
+		return fmt.Errorf(message)
+	}
+
+	// Delete the deployer pod as well as the deployment hooks pods, if any
+	pods, err := c.client.ListDeployerPodsFor(config.Namespace, deploymentName)
+	if err != nil {
+		return fmt.Errorf("Failed to list deployer/hook pods for deployment #%d: %v", config.LatestVersion, err)
+	}
+	for _, pod := range pods.Items {
+		err := c.client.DeletePod(&pod)
+		if err != nil {
+			return fmt.Errorf("Failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.LatestVersion, err)
+		}
 	}
 
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
+	// clear out the cancellation flag as well as any previous status-reason annotation
+	delete(deployment.Annotations, deployapi.DeploymentStatusReasonAnnotation)
+	delete(deployment.Annotations, deployapi.DeploymentCancelledAnnotation)
 	_, err = c.client.UpdateDeployment(deployment)
 	if err == nil {
 		fmt.Fprintf(out, "retried #%d\n", config.LatestVersion)
@@ -296,6 +337,9 @@ type deployCommandClientImpl struct {
 	ListDeploymentsForConfigFn func(namespace, configName string) (*kapi.ReplicationControllerList, error)
 	UpdateDeploymentConfigFn   func(*deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	UpdateDeploymentFn         func(*kapi.ReplicationController) (*kapi.ReplicationController, error)
+
+	ListDeployerPodsForFn func(namespace, deploymentName string) (*kapi.PodList, error)
+	DeletePodFn           func(pod *kapi.Pod) error
 }
 
 func (c *deployCommandClientImpl) GetDeployment(namespace, name string) (*kapi.ReplicationController, error) {
@@ -312,4 +356,12 @@ func (c *deployCommandClientImpl) UpdateDeploymentConfig(config *deployapi.Deplo
 
 func (c *deployCommandClientImpl) UpdateDeployment(deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 	return c.UpdateDeploymentFn(deployment)
+}
+
+func (c *deployCommandClientImpl) ListDeployerPodsFor(namespace, deploymentName string) (*kapi.PodList, error) {
+	return c.ListDeployerPodsForFn(namespace, deploymentName)
+}
+
+func (c *deployCommandClientImpl) DeletePod(pod *kapi.Pod) error {
+	return c.DeletePodFn(pod)
 }

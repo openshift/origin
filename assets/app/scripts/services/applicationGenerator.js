@@ -82,7 +82,7 @@ angular.module("openshiftConsole")
       }
 
       var resources = {
-        imageRepo: scope._generateImageRepo(input),
+        imageStream: scope._generateImageStream(input),
         buildConfig: scope._generateBuildConfig(input, imageSpec, input.labels),
         deploymentConfig: scope._generateDeploymentConfig(input, imageSpec, ports, input.labels),
         service: scope._generateService(input, input.name, scope._getFirstPort(ports))
@@ -100,7 +100,12 @@ angular.module("openshiftConsole")
           name: name,
           labels: input.labels
         },
-        serviceName: serviceName
+        spec: {
+          to: {
+            kind: "Service",
+            name: serviceName
+          }
+        }
       };
     };
 
@@ -119,37 +124,34 @@ angular.module("openshiftConsole")
           name: input.name,
           labels: labels
         },
-        template: {
-            controllerTemplate: {
-              podTemplate: {
-                desiredState: {
-                  manifest: {
-                    containers: [
-                      {
-                        image: imageSpec.toString(),
-                        name: input.name,
-                        ports: ports,
-                        env: env
-                      }
-                    ],
-                    version: k8sApiVersion
-                  }
-                },
-                labels: labels
-              },
-              replicaSelector: {
-                deploymentconfig: input.name
-              },
-              replicas: input.scaling.replicas
-            },
-            strategy: {
-                type: "Recreate"
-            }
+        spec: {
+          strategy: {
+              type: "Recreate"
           },
-        triggers: []
+          replicas: input.scaling.replicas,
+          selector: {
+            deploymentconfig: input.name
+          },
+          triggers: [],
+          template: {
+            metadata: {
+              labels: labels
+            },
+            spec: {
+              containers: [
+                {
+                  image: imageSpec.toString(),
+                  name: input.name,
+                  ports: ports,
+                  env: env
+                }
+              ]
+            }
+          }
+        }
       };
       if(input.deploymentConfig.deployOnNewImage){
-        deploymentConfig.triggers.push(
+        deploymentConfig.spec.triggers.push(
           {
             type: "ImageChange",
             imageChangeParams: {
@@ -158,21 +160,20 @@ angular.module("openshiftConsole")
                 input.name
               ],
               from: {
-                name: imageSpec.name
-              },
-              tag: imageSpec.tag
+                kind: "ImageStreamTag",
+                name: imageSpec.toString()
+              }
             }
           }
         );
       }
       if(input.deploymentConfig.deployOnConfigChange){
-        deploymentConfig.triggers.push({type: "ConfigChange"});
+        deploymentConfig.spec.triggers.push({type: "ConfigChange"});
       }
       return deploymentConfig;
     };
 
     scope._generateBuildConfig = function(input, imageSpec, labels){
-      var dockerSpec = input.imageRepo.status.dockerImageRepository + ":" + input.imageTag;
       var triggers = [
         {
           generic: {
@@ -203,7 +204,7 @@ angular.module("openshiftConsole")
           name: input.name,
           labels: labels
         },
-        parameters: {
+        spec: {
           output: {
             to: {
               name: imageSpec.name
@@ -217,20 +218,24 @@ angular.module("openshiftConsole")
             type: "Git"
           },
           strategy: {
-            type: "STI",
-            stiStrategy: {
-              image: dockerSpec
+            type: "Source",
+            sourceStrategy: {
+              from: {
+                kind: "ImageStreamTag",
+                name: input.imageName + ":" + input.imageTag,
+                namespace: input.namespace
+              }
             }
-          }
-        },
-        triggers: triggers
+          },
+          triggers: triggers
+        }
       };
     };
 
-    scope._generateImageRepo = function(input){
+    scope._generateImageStream = function(input){
       return {
         apiVersion: osApiVersion,
-        kind: "ImageRepository",
+        kind: "ImageStream",
         metadata: {
           name: input.name,
           labels: input.labels

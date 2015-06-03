@@ -24,8 +24,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const imagesLongDesc = `
-`
+const imagesLongDesc = `%s %s - prunes images`
 
 const PruneImagesRecommendedName = "images"
 

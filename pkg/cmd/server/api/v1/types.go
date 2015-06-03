@@ -39,7 +39,26 @@ type NodeConfig struct {
 	// PodManifestConfig holds the configuration for enabling the Kubelet to
 	// create pods based from a manifest file(s) placed locally on the node
 	PodManifestConfig *PodManifestConfig `json:"podManifestConfig"`
+
+	// DockerConfig holds Docker related configuration options.
+	DockerConfig DockerConfig `json:"dockerConfig"`
 }
+
+// DockerConfig holds Docker related configuration options.
+type DockerConfig struct {
+	// ExecHandlerName is the name of the handler to use for executing
+	// commands in Docker containers.
+	ExecHandlerName DockerExecHandlerType `json:"execHandlerName"`
+}
+
+type DockerExecHandlerType string
+
+const (
+	// DockerExecHandlerNative uses Docker's exec API for executing commands in containers.
+	DockerExecHandlerNative DockerExecHandlerType = "native"
+	// DockerExecHandlerNative uses nsenter for executing commands in containers.
+	DockerExecHandlerNsenter DockerExecHandlerType = "nsenter"
+)
 
 type MasterConfig struct {
 	v1.TypeMeta `json:",inline"`
@@ -49,6 +68,9 @@ type MasterConfig struct {
 
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string `json:"corsAllowedOrigins"`
+
+	// APILevels is a list of API levels that should be enabled on startup: v1beta1, v1beta3, v1 as examples
+	APILevels []string `json:"apiLevels"`
 
 	// MasterPublicURL is how clients can access the OpenShift API server
 	MasterPublicURL string `json:"masterPublicURL"`
@@ -421,12 +443,15 @@ type EtcdConfig struct {
 }
 
 type KubernetesMasterConfig struct {
-	MasterIP string `json:"masterIP"`
+	// APILevels is a list of API levels that should be enabled on startup: v1beta1, v1beta2, v1beta3, v1 as examples
+	APILevels []string `json:"apiLevels"`
+	MasterIP  string   `json:"masterIP"`
 	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.
 	MasterCount         int      `json:"masterCount"`
 	ServicesSubnet      string   `json:"servicesSubnet"`
 	StaticNodeNames     []string `json:"staticNodeNames"`
 	SchedulerConfigFile string   `json:"schedulerConfigFile"`
+	PodEvictionTimeout  string   `json:"podEvictionTimeout"`
 }
 
 type CertInfo struct {

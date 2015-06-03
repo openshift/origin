@@ -136,6 +136,12 @@ const (
 	// annotation value is the name of the deployer Pod which will act upon the ReplicationController
 	// to implement the deployment behavior.
 	DeploymentPodAnnotation = "openshift.io/deployer-pod.name"
+	// DeployerPodForDeploymentLabel is a label which groups pods related to a
+	// deployment. The value is a deployment name. The deployer pod and hook pods
+	// created by the internal strategies will have this label. Custom
+	// strategies can apply this label to any pods they create, enabling
+	// platform-provided cancellation and garbage collection support.
+	DeployerPodForDeploymentLabel = "openshift.io/deployer-pod-for.name"
 	// DeploymentPhaseAnnotation is an annotation name used to retrieve the DeploymentPhase of
 	// a deployment.
 	DeploymentPhaseAnnotation = "openshift.io/deployment.phase"

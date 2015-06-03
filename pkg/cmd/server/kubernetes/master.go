@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/namespace"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 const (
@@ -54,7 +56,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	}
 
 	masterConfig := &master.Config{
-		PublicAddress: c.MasterIP,
+		PublicAddress: net.ParseIP(c.Options.MasterIP),
 		ReadWritePort: c.MasterPort,
 		ReadOnlyPort:  c.MasterPort,
 
@@ -70,14 +72,17 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		KubeletClient:    kubeletClient,
 		APIPrefix:        KubeAPIPrefix,
 
-		EnableV1: true,
-
 		EnableCoreControllers: true,
 
-		MasterCount: c.MasterCount,
+		MasterCount: c.Options.MasterCount,
 
 		Authorizer:       c.Authorizer,
 		AdmissionControl: c.AdmissionControl,
+
+		DisableV1Beta1: !configapi.HasKubernetesAPILevel(c.Options, "v1beta1"),
+		DisableV1Beta2: !configapi.HasKubernetesAPILevel(c.Options, "v1beta2"),
+		DisableV1Beta3: !configapi.HasKubernetesAPILevel(c.Options, "v1beta3"),
+		EnableV1:       configapi.HasKubernetesAPILevel(c.Options, "v1"),
 	}
 	_ = master.New(masterConfig)
 
@@ -137,11 +142,16 @@ func (c *MasterConfig) RunResourceQuotaManager() {
 }
 
 func (c *MasterConfig) RunNodeController() {
+	podEvictionTimeout, err := time.ParseDuration(c.Options.PodEvictionTimeout)
+	if err != nil {
+		glog.Fatalf("Unable to parse PodEvictionTimeout: %v", err)
+	}
+
 	controller := nodecontroller.NewNodeController(
 		nil, // TODO: reintroduce cloudprovider
 		c.KubeClient,
-		10,            // registerRetryCount
-		5*time.Minute, // podEvictionTimeout
+		10, // registerRetryCount
+		podEvictionTimeout,
 
 		util.NewTokenBucketRateLimiter(0.1, 10), // deleting pods qps / burst
 
@@ -162,8 +172,8 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 	var configData []byte
 
 	configFactory := factory.NewConfigFactory(c.KubeClient)
-	if _, err := os.Stat(c.SchedulerConfigFile); err == nil {
-		configData, err = ioutil.ReadFile(c.SchedulerConfigFile)
+	if _, err := os.Stat(c.Options.SchedulerConfigFile); err == nil {
+		configData, err = ioutil.ReadFile(c.Options.SchedulerConfigFile)
 		if err != nil {
 			return nil, fmt.Errorf("Unable to read scheduler config: %v", err)
 		}

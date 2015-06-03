@@ -15,11 +15,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
 )
-
-const whPrefix = "/osapi/v1beta1/buildConfigHooks/"
 
 func init() {
 	testutil.RequireEtcd()
@@ -43,6 +42,13 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	checkErr(t, err)
+
+	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -90,8 +96,8 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
-		"/osapi/v1beta1/buildConfigs/pushbuild/webhooks/secret101/github?namespace=" + testutil.Namespace(),
+		"/osapi/v1beta3/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 
 		// trigger build event sending push notification
@@ -100,8 +106,11 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 		event := <-watch.ResultChan()
 		actual := event.Object.(*buildapi.Build)
 
-		if actual.Status != buildapi.BuildStatusNew {
-			t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
+		// FIXME: I think the build creation is fast and in some situlation we miss
+		// the BuildStatusNew here. Note that this is not a bug, in future we should
+		// move this to use go routine to capture all events.
+		if actual.Status != buildapi.BuildStatusNew && actual.Status != buildapi.BuildStatusPending {
+			t.Errorf("Expected %s or %s, got %s", buildapi.BuildStatusNew, buildapi.BuildStatusPending, actual.Status)
 		}
 
 		if actual.Parameters.Strategy.DockerStrategy.From.Name != "originalImage" {
@@ -126,8 +135,15 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	checkErr(t, err)
+
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -175,8 +191,8 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
-		"/osapi/v1beta1/buildConfigs/pushbuild/webhooks/secret101/github?namespace=" + testutil.Namespace(),
+		"/osapi/v1beta3/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 
 		// trigger build event sending push notification
@@ -185,8 +201,11 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 		event := <-watch.ResultChan()
 		actual := event.Object.(*buildapi.Build)
 
-		if actual.Status != buildapi.BuildStatusNew {
-			t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
+		// FIXME: I think the build creation is fast and in some situlation we miss
+		// the BuildStatusNew here. Note that this is not a bug, in future we should
+		// move this to use go routine to capture all events.
+		if actual.Status != buildapi.BuildStatusNew && actual.Status != buildapi.BuildStatusPending {
+			t.Errorf("Expected %s or %s, got %s", buildapi.BuildStatusNew, buildapi.BuildStatusPending, actual.Status)
 		}
 
 		if actual.Parameters.Strategy.SourceStrategy.From.Name != "registry:3000/integration/imageStream:success" {

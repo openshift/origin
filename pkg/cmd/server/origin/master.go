@@ -29,6 +29,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator"
+	etcdallocator "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -85,6 +87,10 @@ import (
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
+	securitycontroller "github.com/openshift/origin/pkg/security/controller"
+	"github.com/openshift/origin/pkg/security/mcs"
+	"github.com/openshift/origin/pkg/security/uid"
+	"github.com/openshift/origin/pkg/security/uidallocator"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
@@ -111,19 +117,21 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 	"github.com/openshift/origin/plugins/osdn"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 )
 
 const (
-	OpenShiftAPIPrefix        = "/osapi" // TODO: make configurable
+	LegacyOpenShiftAPIPrefix  = "/osapi" // TODO: make configurable
+	OpenShiftAPIPrefix        = "/oapi"  // TODO: make configurable
 	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
 	OpenShiftAPIV1Beta1       = "v1beta1"
 	OpenShiftAPIV1Beta3       = "v1beta3"
 	OpenShiftAPIV1            = "v1"
-	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
-	OpenShiftAPIPrefixV1Beta3 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
-	OpenShiftAPIPrefixV1      = "/oapi" + "/" + OpenShiftAPIV1
+	OpenShiftAPIPrefixV1Beta1 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
+	OpenShiftAPIPrefixV1Beta3 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
+	OpenShiftAPIPrefixV1      = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
 	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
@@ -227,6 +235,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
+		ServiceAccounts: c.KubeClient(),
+		Secrets:         c.KubeClient(),
 	}
 	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
@@ -292,8 +302,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 
 		"processedTemplates": templateregistry.NewREST(false),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
-		// DEPRECATED: remove with v1beta1
-		"templateConfigs": templateregistry.NewREST(true),
 
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
@@ -326,16 +334,25 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"clusterRoles":          clusterRoleStorage,
 	}
 
-	if err := c.api_v1beta1(storage).InstallREST(container); err != nil {
-		glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
+	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta1) {
+		// templateConfigs is only available in v1beta1
+		storage["templateConfigs"] = templateregistry.NewREST(true)
+
+		if err := c.api_v1beta1(storage).InstallREST(container); err != nil {
+			glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
+		}
 	}
 
-	if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
-		glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
+	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta3) {
+		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
+			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
+		}
 	}
 
-	if err := c.api_v1(storage).InstallREST(container); err != nil {
-		glog.Fatalf("Unable to initialize v1 API: %v", err)
+	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1) {
+		if err := c.api_v1(storage).InstallREST(container); err != nil {
+			glog.Fatalf("Unable to initialize v1 API: %v", err)
+		}
 	}
 
 	var root *restful.WebService
@@ -355,7 +372,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		root = new(restful.WebService)
 		container.Add(root)
 	}
-	initAPIVersionRoute(root, "v1beta1", "v1beta3", "v1")
+	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, "v1beta1", "v1beta3")
+	initAPIVersionRoute(root, OpenShiftAPIPrefix, "v1")
 
 	return []string{
 		fmt.Sprintf("Started OpenShift API at %%s%s (deprecated)", OpenShiftAPIPrefixV1Beta1),
@@ -382,9 +400,9 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 }
 
 //initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
-func initAPIVersionRoute(root *restful.WebService, versions ...string) {
+func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
 	versionHandler := apiserver.APIVersionHandler(versions...)
-	root.Route(root.GET(OpenShiftAPIPrefix).To(versionHandler).
+	root.Route(root.GET(prefix).To(versionHandler).
 		Doc("list supported server API versions").
 		Produces(restful.MIME_JSON).
 		Consumes(restful.MIME_JSON))
@@ -476,9 +494,10 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 
 	// install swagger
 	swaggerConfig := swagger.Config{
-		WebServicesUrl: c.Options.MasterPublicURL,
-		WebServices:    append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
-		ApiPath:        swaggerAPIPrefix,
+		WebServicesUrl:   c.Options.MasterPublicURL,
+		WebServices:      append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
+		ApiPath:          swaggerAPIPrefix,
+		PostBuildHandler: customizeSwaggerDefinition,
 	}
 	// log nothing from swagger
 	swagger.LogInfo = func(format string, v ...interface{}) {}
@@ -565,6 +584,7 @@ func (c *MasterConfig) api_v1beta1(all map[string]rest.Storage) *apiserver.APIGr
 		storage[k] = v
 	}
 	version := c.defaultAPIGroupVersion()
+	version.Root = LegacyOpenShiftAPIPrefix
 	version.Storage = storage
 	version.Version = OpenShiftAPIV1Beta1
 	version.Codec = v1beta1.Codec
@@ -581,6 +601,7 @@ func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGr
 		storage[strings.ToLower(k)] = v
 	}
 	version := c.defaultAPIGroupVersion()
+	version.Root = LegacyOpenShiftAPIPrefix
 	version.Storage = storage
 	version.Version = OpenShiftAPIV1Beta3
 	version.Codec = v1beta3.Codec
@@ -746,18 +767,36 @@ func (c *MasterConfig) RunServiceAccountsController() {
 
 func (c *MasterConfig) RunServiceAccountTokensController() {
 	if len(c.Options.ServiceAccountConfig.PrivateKeyFile) == 0 {
-		glog.Infof("Skipped starting Service Account Token Controller, no private key specified")
+		glog.Infof("Skipped starting Service Account Token Manager, no private key specified")
 		return
 	}
 
 	privateKey, err := serviceaccount.ReadPrivateKey(c.Options.ServiceAccountConfig.PrivateKeyFile)
 	if err != nil {
-		glog.Fatalf("Error reading signing key for service account token controller: %v", err)
+		glog.Fatalf("Error reading signing key for Service Account Token Manager: %v", err)
 	}
 	options := serviceaccount.DefaultTokenControllerOptions(serviceaccount.JWTTokenGenerator(privateKey))
 
 	serviceaccount.NewTokensController(c.KubeClient(), options).Run()
 	glog.Infof("Started Service Account Token Manager")
+}
+
+func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
+	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
+	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
+
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClient(), serviceaccountcontrollers.DockercfgControllerOptions{DefaultDockerURL: serviceaccountcontrollers.DefaultOpenshiftDockerURL})
+	dockercfgController.Run()
+
+	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
+		RegistryNamespace:   "default",
+		RegistryServiceName: "docker-registry",
+		DockercfgController: dockercfgController,
+		DefaultDockerURL:    serviceaccountcontrollers.DefaultOpenshiftDockerURL,
+	}
+	serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run()
+
+	glog.Infof("Started Service Account Pull Secret Controllers")
 }
 
 // RunPolicyCache starts the policy cache
@@ -776,6 +815,7 @@ func (c *MasterConfig) RunDNSServer() {
 		glog.Fatalf("Could not start DNS: %v", err)
 	}
 	config.DnsAddr = c.Options.DNSConfig.BindAddress
+	config.NoRec = true // do not want to deploy an open resolver
 
 	_, port, err := net.SplitHostPort(c.Options.DNSConfig.BindAddress)
 	if err != nil {
@@ -857,9 +897,8 @@ func (c *MasterConfig) RunBuildPodController() {
 // RunBuildImageChangeTriggerController starts the build image change trigger controller process.
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 	bcClient, _ := c.BuildControllerClients()
-	bcUpdater := buildclient.NewOSClientBuildConfigClient(bcClient)
 	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
-	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator, BuildConfigUpdater: bcUpdater}
+	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator}
 	factory.Create().Run()
 }
 
@@ -964,6 +1003,40 @@ func (c *MasterConfig) RunImageImportController() {
 	controller.Run()
 }
 
+func (c *MasterConfig) RunSecurityAllocationController() {
+	uidRange, err := uid.ParseRange("1000000000-1999999999/10000") // provide 100k uid blocks
+	if err != nil {
+		glog.Fatalf("Unable to describe UID range: %v", err)
+	}
+	var etcdAlloc *etcdallocator.Etcd
+	uidAllocator := uidallocator.New(uidRange, func(max int, rangeSpec string) allocator.Interface {
+		mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
+		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", "uidallocation", c.EtcdHelper)
+		return etcdAlloc
+	})
+	mcsRange, err := mcs.ParseRange("/2") // use two labels
+	if err != nil {
+		glog.Fatalf("Unable to describe MCS category range: %v", err)
+	}
+
+	kclient := c.PrivilegedLoopbackKubernetesClient
+
+	repair := securitycontroller.NewRepair(time.Minute, kclient.Namespaces(), uidRange, etcdAlloc)
+	if err := repair.RunOnce(); err != nil {
+		// TODO: v scary, may need to use direct etcd calls?
+		glog.Fatalf("Unable to initialize namespaces: %v", err)
+	}
+
+	factory := securitycontroller.AllocationFactory{
+		UIDAllocator: uidAllocator,
+		MCSAllocator: securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, 5), // provide 5 labels per namespace
+		Client:       kclient.Namespaces(),
+		// TODO: reuse namespace cache
+	}
+	controller := factory.Create()
+	controller.Run()
+}
+
 // ensureCORSAllowedOrigins takes a string list of origins and attempts to covert them to CORS origin
 // regexes, or exits if it cannot.
 func (c *MasterConfig) ensureCORSAllowedOrigins() []*regexp.Regexp {
@@ -997,7 +1070,7 @@ func (c clientDeploymentInterface) GetDeployment(ctx api.Context, name string) (
 // namespacingFilter adds a filter that adds the namespace of the request to the context.  Not all requests will have namespaces,
 // but any that do will have the appropriate value added.
 func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
-	infoResolver := &apiserver.APIRequestInfoResolver{util.NewStringSet("api", "osapi"), latest.RESTMapper}
+	infoResolver := &apiserver.APIRequestInfoResolver{util.NewStringSet("api", "osapi", "oapi"), latest.RESTMapper}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, ok := contextMapper.Get(req)

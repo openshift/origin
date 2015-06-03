@@ -229,9 +229,6 @@ func New(c *kclient.Config) (*Client, error) {
 // SetOpenShiftDefaults sets the default settings on the passed
 // client configuration
 func SetOpenShiftDefaults(config *kclient.Config) error {
-	if config.Prefix == "" {
-		config.Prefix = "/osapi"
-	}
 	if len(config.UserAgent) == 0 {
 		config.UserAgent = DefaultOpenShiftUserAgent()
 	}
@@ -239,6 +236,14 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 		// Clients default to the preferred code API version
 		// TODO: implement version negotiation (highest version supported by server)
 		config.Version = latest.Version
+	}
+	if config.Prefix == "" {
+		switch config.Version {
+		case "v1beta3", "v1beta1":
+			config.Prefix = "/osapi"
+		default:
+			config.Prefix = "/oapi"
+		}
 	}
 	version := config.Version
 	versionInterfaces, err := latest.InterfacesFor(version)

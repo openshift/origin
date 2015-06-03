@@ -1,5 +1,7 @@
 {
-  "apiVersion": "v1beta1",
+  "kind": "List",
+  "apiVersion": "v1beta3",
+  "metadata": {},
   "items": [
     {
       "annotations": {},
@@ -142,6 +144,5 @@
       },
       "sessionAffinity": "None"
     }
-  ],
-  "kind": "List"
+  ]
 }

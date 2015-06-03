@@ -17,7 +17,7 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
-    watches.push(DataService.watch("imageStreams", $scope, function(imageStreams) {
+    watches.push(DataService.watch("imagestreams", $scope, function(imageStreams) {
       $scope.unfilteredImageStreams = imageStreams.by("metadata.name");
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredImageStreams, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
@@ -25,7 +25,7 @@ angular.module('openshiftConsole')
       $scope.emptyMessage = "No image streams to show";
       updateFilterWarning();
       Logger.log("image streams (subscribe)", $scope.imageStreams);
-    })); 
+    }));
 
     function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.imageStreams) && !$.isEmptyObject($scope.unfilteredImageStreams)) {
@@ -45,7 +45,7 @@ angular.module('openshiftConsole')
         $scope.imageStreams = labelSelector.select($scope.unfilteredImageStreams);
         updateFilterWarning();
       });
-    });  
+    });
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);

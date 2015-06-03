@@ -116,7 +116,7 @@ Find more information at https://github.com/GoogleCloudPlatform/kubernetes.`,
 	cmds.AddCommand(NewCmdNamespace(out))
 	cmds.AddCommand(NewCmdLog(f, out))
 	cmds.AddCommand(NewCmdRollingUpdate(f, out))
-	cmds.AddCommand(NewCmdResize(f, out))
+	cmds.AddCommand(NewCmdScale(f, out))
 
 	cmds.AddCommand(NewCmdExec(f, in, out, err))
 	cmds.AddCommand(NewCmdPortForward(f))

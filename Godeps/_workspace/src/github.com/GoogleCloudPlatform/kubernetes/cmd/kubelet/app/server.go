@@ -110,6 +110,7 @@ type KubeletServer struct {
 	DockerDaemonContainer          string
 	ConfigureCBR0                  bool
 	MaxPods                        int
+	DockerExecHandler              string
 
 	// Flags intended for testing
 
@@ -171,6 +172,7 @@ func NewKubeletServer() *KubeletServer {
 		ContainerRuntime:            "docker",
 		DockerDaemonContainer:       "/docker-daemon",
 		ConfigureCBR0:               false,
+		DockerExecHandler:           "native",
 	}
 }
 
@@ -231,6 +233,7 @@ func (s *KubeletServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.DockerDaemonContainer, "docker-daemon-container", s.DockerDaemonContainer, "Optional resource-only container in which to place the Docker Daemon. Empty for no container (Default: /docker-daemon).")
 	fs.BoolVar(&s.ConfigureCBR0, "configure-cbr0", s.ConfigureCBR0, "If true, kubelet will configure cbr0 based on Node.Spec.PodCIDR.")
 	fs.IntVar(&s.MaxPods, "max-pods", 100, "Number of Pods that can run on this Kubelet.")
+	fs.StringVar(&s.DockerExecHandler, "docker-exec-handler", s.DockerExecHandler, "Handler to use when executing a command in a container. Valid values are 'native' and 'nsenter'. Defaults to 'native'.")
 
 	// Flags intended for testing, not recommended used in production environments.
 	fs.BoolVar(&s.ReallyCrashForTesting, "really-crash-for-testing", s.ReallyCrashForTesting, "If true, when panics occur crash. Intended for testing.")
@@ -304,6 +307,17 @@ func (s *KubeletServer) Run(_ []string) error {
 		mounter = &mount.NsenterMounter{}
 	}
 
+	var dockerExecHandler dockertools.ExecHandler
+	switch s.DockerExecHandler {
+	case "native":
+		dockerExecHandler = &dockertools.NativeExecHandler{}
+	case "nsenter":
+		dockerExecHandler = &dockertools.NsenterExecHandler{}
+	default:
+		glog.Warningf("Unknown Docker exec handler %q; defaulting to native", s.DockerExecHandler)
+		dockerExecHandler = &dockertools.NativeExecHandler{}
+	}
+
 	kcfg := KubeletConfig{
 		Address:                        s.Address,
 		AllowPrivileged:                s.AllowPrivileged,
@@ -349,6 +363,7 @@ func (s *KubeletServer) Run(_ []string) error {
 		DockerDaemonContainer:     s.DockerDaemonContainer,
 		ConfigureCBR0:             s.ConfigureCBR0,
 		MaxPods:                   s.MaxPods,
+		DockerExecHandler:         dockerExecHandler,
 	}
 
 	if err := RunKubelet(&kcfg, nil); err != nil {
@@ -514,6 +529,7 @@ func SimpleKubelet(client *client.Client,
 		Mounter:                   mount.New(),
 		DockerDaemonContainer:     "/docker-daemon",
 		MaxPods:                   32,
+		DockerExecHandler:         &dockertools.NativeExecHandler{},
 	}
 	return &kcfg
 }
@@ -650,6 +666,7 @@ type KubeletConfig struct {
 	DockerDaemonContainer          string
 	ConfigureCBR0                  bool
 	MaxPods                        int
+	DockerExecHandler              dockertools.ExecHandler
 }
 
 func createAndInitKubelet(kc *KubeletConfig) (k KubeletBootstrap, pc *config.PodConfig, err error) {
@@ -702,7 +719,8 @@ func createAndInitKubelet(kc *KubeletConfig) (k KubeletBootstrap, pc *config.Pod
 		kc.Mounter,
 		kc.DockerDaemonContainer,
 		kc.ConfigureCBR0,
-		kc.MaxPods)
+		kc.MaxPods,
+		kc.DockerExecHandler)
 
 	if err != nil {
 		return nil, nil, err

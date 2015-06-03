@@ -66,6 +66,25 @@ func NewAllocationMap(max int, rangeSpec string) *AllocationBitmap {
 	return &a
 }
 
+func NewContiguousAllocationMap(max int, rangeSpec string) *AllocationBitmap {
+	a := AllocationBitmap{
+		strategy:  contiguousScanStrategy,
+		allocated: big.NewInt(0),
+		count:     0,
+		max:       max,
+		rangeSpec: rangeSpec,
+	}
+	return &a
+}
+
+func NewRandomAllocationInterface(max int, rangeSpec string) Interface {
+	return NewAllocationMap(max, rangeSpec)
+}
+
+func NewContiguousAllocationInterface(max int, rangeSpec string) Interface {
+	return NewContiguousAllocationMap(max, rangeSpec)
+}
+
 // Allocate attempts to reserve the provided item.
 // Returns true if it was allocated, false if it was already in use
 func (r *AllocationBitmap) Allocate(offset int) (bool, error) {
@@ -160,6 +179,20 @@ func randomScanStrategy(allocated *big.Int, max, count int) (int, bool) {
 	offset := rand.Intn(max)
 	for i := 0; i < max; i++ {
 		at := (offset + i) % max
+		if allocated.Bit(at) == 0 {
+			return at, true
+		}
+	}
+	return 0, false
+}
+
+// contiguousScanStrategy tries to allocate starting at 0 and filling in any gaps
+func contiguousScanStrategy(allocated *big.Int, max, count int) (int, bool) {
+	if count >= max {
+		return 0, false
+	}
+	for i := 0; i < max; i++ {
+		at := i % max
 		if allocated.Bit(at) == 0 {
 			return at, true
 		}

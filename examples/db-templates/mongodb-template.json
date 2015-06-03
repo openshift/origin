@@ -1,127 +1,150 @@
 {
-  "apiVersion": "v1beta1",
   "kind": "Template",
+  "apiVersion": "v1beta3",
   "metadata": {
+    "name": "mongodb",
+    "creationTimestamp": null,
     "annotations": {
       "description": "This template creates a basic MongoDB database service",
-      "tags": "database,mongodb",
-      "iconClass" : "icon-mongodb"
-    },
-    "name": "mongodb"
-  },
-  "parameters": [
-    {
-      "description": "database username",
-      "from": "user[A-Z0-9]{3}",
-      "generate": "expression",
-      "name": "MONGODB_USER"
-    },
-    {
-      "description": "database password",
-      "from": "[a-zA-Z0-9]{8}",
-      "generate": "expression",
-      "name": "MONGODB_PASSWORD"
-    },
-    {
-      "description": "database name",
-      "name": "MONGODB_DATABASE",
-      "value": "sampledb"
+      "iconClass": "icon-mongodb",
+      "tags": "database,mongodb"
     }
-  ],
-  "labels": {
-    "template": "mongodb-template"
   },
-  "items": [
+  "objects": [
     {
-      "apiVersion": "v1beta3",
       "kind": "Service",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mongodb"
+        "name": "mongodb",
+        "creationTimestamp": null
       },
       "spec": {
         "ports": [
           {
             "name": "mongo",
-            "port": 27017,
             "protocol": "TCP",
-            "targetPort": 27017
+            "port": 27017,
+            "targetPort": 27017,
+            "nodePort": 0
           }
         ],
         "selector": {
           "name": "mongodb"
-        }
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
       }
     },
     {
-      "apiVersion": "v1beta1",
       "kind": "DeploymentConfig",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mongodb"
+        "name": "mongodb",
+        "creationTimestamp": null
       },
-      "template": {
-        "controllerTemplate": {
-          "podTemplate": {
-            "desiredState": {
-              "manifest": {
-                "containers": [
-                  {
-                    "env": [
-                      {
-                        "name": "MONGODB_USER",
-                        "value": "${MONGODB_USER}"
-                      },
-                      {
-                        "name": "MONGODB_PASSWORD",
-                        "value": "${MONGODB_PASSWORD}"
-                      },
-                      {
-                        "name": "MONGODB_DATABASE",
-                        "value": "${MONGODB_DATABASE}"
-                      }
-                    ],
-                    "image": "mongodb",
-                    "name": "mongodb",
-                    "ports": [
-                      {
-                        "containerPort": 27017
-                      }
-                    ]
-                  }
-                ],
-                "version": "v1beta1"
-              }
-            },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "mongodb"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "mongodb:latest"
+              },
+              "lastTriggeredImage": ""
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "mongodb"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
             "labels": {
               "name": "mongodb"
             }
           },
-          "replicaSelector": {
-            "name": "mongodb"
-          },
-          "replicas": 1
-        },
-        "strategy": {
-          "type": "Recreate"
+          "spec": {
+            "containers": [
+              {
+                "name": "mongodb",
+                "image": "mongodb",
+                "ports": [
+                  {
+                    "containerPort": 27017,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MONGODB_USER",
+                    "value": "${MONGODB_USER}"
+                  },
+                  {
+                    "name": "MONGODB_PASSWORD",
+                    "value": "${MONGODB_PASSWORD}"
+                  },
+                  {
+                    "name": "MONGODB_DATABASE",
+                    "value": "${MONGODB_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccount": ""
+          }
         }
       },
-      "triggers": [
-        {
-          "imageChangeParams": {
-            "automatic": true,
-            "containerNames": [
-              "mongodb"
-            ],
-            "from": {
-              "name": "mongodb"
-            },
-            "tag": "latest"
-          },
-          "type": "ImageChange"
-        },
-        {
-          "type": "ConfigChange"
-        }
-      ]
+      "status": {}
     }
-  ]
+  ],
+  "parameters": [
+    {
+      "name": "MONGODB_USER",
+      "description": "database username",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}"
+    },
+    {
+      "name": "MONGODB_PASSWORD",
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}"
+    },
+    {
+      "name": "MONGODB_DATABASE",
+      "description": "database name",
+      "value": "sampledb"
+    }
+  ],
+  "labels": {
+    "template": "mongodb-template"
+  }
 }

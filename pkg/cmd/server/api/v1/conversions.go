@@ -8,9 +8,20 @@ import (
 
 func init() {
 	err := newer.Scheme.AddDefaultingFuncs(
+		func(obj *MasterConfig) {
+			if len(obj.APILevels) == 0 {
+				obj.APILevels = newer.DefaultOpenShiftAPILevels
+			}
+		},
 		func(obj *KubernetesMasterConfig) {
 			if obj.MasterCount == 0 {
 				obj.MasterCount = 1
+			}
+			if len(obj.APILevels) == 0 {
+				obj.APILevels = newer.DefaultKubernetesAPILevels
+			}
+			if len(obj.PodEvictionTimeout) == 0 {
+				obj.PodEvictionTimeout = "5m"
 			}
 		},
 		func(obj *EtcdStorageConfig) {
@@ -25,6 +36,11 @@ func init() {
 			}
 			if len(obj.OpenShiftStoragePrefix) == 0 {
 				obj.OpenShiftStoragePrefix = "openshift.io"
+			}
+		},
+		func(obj *DockerConfig) {
+			if len(obj.ExecHandlerName) == 0 {
+				obj.ExecHandlerName = DockerExecHandlerNative
 			}
 		},
 	)

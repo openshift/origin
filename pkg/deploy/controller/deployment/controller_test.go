@@ -524,7 +524,8 @@ func TestHandle_cancelNew(t *testing.T) {
 // TestHandle_cancelPendingRunning ensures that deployer pods are terminated
 // for deployments in post-New phases.
 func TestHandle_cancelPendingRunning(t *testing.T) {
-	var updatedPod *kapi.Pod
+	deployerPodCount := 3
+	updatedPods := []kapi.Pod{}
 
 	controller := &DeploymentController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
@@ -542,8 +543,15 @@ func TestHandle_cancelPendingRunning(t *testing.T) {
 				return ttlNonZeroPod(), nil
 			},
 			updatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				updatedPod = pod
+				updatedPods = append(updatedPods, *pod)
 				return pod, nil
+			},
+			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
+				pods := []kapi.Pod{}
+				for i := 0; i < deployerPodCount; i++ {
+					pods = append(pods, *ttlNonZeroPod())
+				}
+				return pods, nil
 			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
@@ -558,6 +566,7 @@ func TestHandle_cancelPendingRunning(t *testing.T) {
 	}
 
 	for _, status := range cases {
+		updatedPods = []kapi.Pod{}
 		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
 		deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
@@ -566,8 +575,13 @@ func TestHandle_cancelPendingRunning(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if e, a := int64(1), *updatedPod.Spec.ActiveDeadlineSeconds; e != a {
-			t.Errorf("expected ActiveDeadlineSeconds %d, got %d", e, a)
+		if e, a := len(updatedPods), deployerPodCount; e != a {
+			t.Fatalf("expected %d updated pods, got %d", e, a)
+		}
+		for _, pod := range updatedPods {
+			if e, a := int64(1), *pod.Spec.ActiveDeadlineSeconds; e != a {
+				t.Errorf("expected ActiveDeadlineSeconds %d, got %d", e, a)
+			}
 		}
 	}
 }

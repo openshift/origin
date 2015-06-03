@@ -6,6 +6,15 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
+var (
+	KnownKubernetesAPILevels   = []string{"v1beta1", "v1beta2", "v1beta3", "v1"}
+	KnownOpenShiftAPILevels    = []string{"v1beta1", "v1beta3", "v1"}
+	DefaultKubernetesAPILevels = []string{"v1beta1", "v1beta2", "v1beta3", "v1"}
+	DefaultOpenShiftAPILevels  = []string{"v1beta3", "v1"}
+	DeadKubernetesAPILevels    = []string{}
+	DeadOpenShiftAPILevels     = []string{"v1beta1"}
+)
+
 // NodeConfig is the fully specified config starting an OpenShift node
 type NodeConfig struct {
 	api.TypeMeta
@@ -40,7 +49,26 @@ type NodeConfig struct {
 	// PodManifestConfig holds the configuration for enabling the Kubelet to
 	// create pods based from a manifest file(s) placed locally on the node
 	PodManifestConfig *PodManifestConfig
+
+	// DockerConfig holds Docker related configuration options.
+	DockerConfig DockerConfig
 }
+
+// DockerConfig holds Docker related configuration options.
+type DockerConfig struct {
+	// ExecHandlerName is the name of the handler to use for executing
+	// commands in Docker containers.
+	ExecHandlerName DockerExecHandlerType
+}
+
+type DockerExecHandlerType string
+
+const (
+	// DockerExecHandlerNative uses Docker's exec API for executing commands in containers.
+	DockerExecHandlerNative DockerExecHandlerType = "native"
+	// DockerExecHandlerNative uses nsenter for executing commands in containers.
+	DockerExecHandlerNsenter DockerExecHandlerType = "nsenter"
+)
 
 type MasterConfig struct {
 	api.TypeMeta
@@ -50,6 +78,9 @@ type MasterConfig struct {
 
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string
+
+	// APILevels is a list of API levels that should be enabled on startup: v1beta1, v1beta3, v1 as examples
+	APILevels []string
 
 	// MasterPublicURL is how clients can access the OpenShift API server
 	MasterPublicURL string
@@ -432,6 +463,8 @@ type EtcdConfig struct {
 }
 
 type KubernetesMasterConfig struct {
+	// APILevels is a list of API levels that should be enabled on startup: v1beta1, v1beta2, v1beta3, v1 as examples
+	APILevels []string
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string
 	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.
@@ -440,8 +473,11 @@ type KubernetesMasterConfig struct {
 	ServicesSubnet string
 	// StaticNodeNames is the list of nodes that are statically known
 	StaticNodeNames []string
-	// SchedulerConfigFile points to a file that describes how to set up the scheduler.  If empty, you get the default scheduling rules.
+	// SchedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.
 	SchedulerConfigFile string
+	// PodEvictionTimeout controls grace period for deleting pods on failed nodes.
+	// It takes valid time duration string. If empty, you get the default pod eviction timeout.
+	PodEvictionTimeout string
 }
 
 type CertInfo struct {

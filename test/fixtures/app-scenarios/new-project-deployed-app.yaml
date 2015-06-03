@@ -1,9 +1,7 @@
-apiVersion: v1beta1
-creationTimestamp: null
+apiVersion: v1beta3
 items:
-- apiVersion: v1beta1
+- apiVersion: v1beta3
   kind: BuildConfig
-  lastVersion: 1
   metadata:
     creationTimestamp: 2015-04-07T04:12:17Z
     labels:
@@ -14,36 +12,36 @@ items:
     resourceVersion: "284"
     selfLink: /osapi/v1beta1/buildConfigs/ruby-sample-build?namespace=example
     uid: 471cb30a-dcdc-11e4-968a-080027c5bfa9
-  parameters:
+  spec:
     output:
       to:
-        kind: ImageStream
-        name: origin-ruby-sample
+        kind: ImageStreamTag
+        name: origin-ruby-sample:latest
+    resources: {}
     source:
       git:
         uri: git://github.com/openshift/ruby-hello-world.git
       type: Git
     strategy:
-      stiStrategy:
-        builderImage: openshift/ruby-20-centos7
-        image: openshift/ruby-20-centos7
-      type: STI
-  triggers:
-  - github:
-      secret: secret101
-    type: github
-  - generic:
-      secret: secret101
-    type: generic
-  - imageChange:
-      lastTriggeredImageID: openshift/ruby-20-centos7:latest
-    type: imageChange
-- apiVersion: v1beta1
-  completionTimestamp: 2015-04-07T04:13:01Z
-  config:
-    kind: BuildConfig
-    name: ruby-sample-build
-    namespace: example
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: openshift/ruby-20-centos7
+        incremental: true
+      type: Source
+    triggers:
+    - github:
+        secret: secret101
+      type: github
+    - generic:
+        secret: secret101
+      type: generic
+    - imageChange:
+        lastTriggeredImageID: openshift/ruby-20-centos7:latest
+      type: imageChange
+  status:
+    lastVersion: 1
+- apiVersion: v1beta3
   kind: Build
   metadata:
     creationTimestamp: 2015-04-07T04:12:18Z
@@ -56,171 +54,153 @@ items:
     resourceVersion: "376"
     selfLink: /osapi/v1beta1/builds/ruby-sample-build-1?namespace=example
     uid: 47cdfff5-dcdc-11e4-968a-080027c5bfa9
-  parameters:
+  spec:
     output:
-      dockerImageReference: 172.30.17.139:5000/test/origin-ruby-sample
-      imageTag: test/origin-ruby-sample
-      registry: 172.30.17.139:5000
       to:
-        kind: ImageStream
-        name: origin-ruby-sample
+        kind: ImageStreamTag
+        name: origin-ruby-sample:latest
+    resources: {}
     source:
       git:
         uri: git://github.com/openshift/ruby-hello-world.git
       type: Git
     strategy:
-      stiStrategy:
-        builderImage: openshift/ruby-20-centos7:latest
-        image: openshift/ruby-20-centos7:latest
-      type: STI
-  startTimestamp: 2015-04-07T04:12:21Z
-  status: Complete
-- annotations:
-    deploymentConfig: database
-    deploymentStatus: Running
-    deploymentVersion: "2"
-    encodedDeploymentConfig: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"openshift/mysql-55-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
-    pod: deploy-database-19m1he
-  apiVersion: v1beta1
-  creationTimestamp: 2015-04-07T04:12:18Z
-  currentState:
-    podTemplate:
-      desiredState:
-        manifest:
-          containers: null
-          id: ""
-          restartPolicy: {}
-          version: ""
-          volumes: null
-    replicas: 2
-  desiredState:
-    podTemplate:
-      annotations:
-        deployment: database-2
-        deploymentConfig: database
-        deploymentVersion: "2"
-      desiredState:
-        manifest:
-          containers:
-          - capabilities: {}
-            env:
-            - key: MYSQL_USER
-              name: MYSQL_USER
-              value: user1CY
-            - key: MYSQL_PASSWORD
-              name: MYSQL_PASSWORD
-              value: FfyXmsGG
-            - key: MYSQL_DATABASE
-              name: MYSQL_DATABASE
-              value: root
-            image: openshift/mysql-55-centos7
-            imagePullPolicy: PullIfNotPresent
-            name: ruby-helloworld-database
-            ports:
-            - containerPort: 3306
-              protocol: TCP
-            resources: {}
-            terminationMessagePath: /dev/termination-log
-          dnsPolicy: ClusterFirst
-          id: ""
-          restartPolicy:
-            always: {}
-          version: v1beta2
-          volumes: null
-      labels:
-        deployment: database-2
-        deploymentconfig: database
-        name: database
-        template: application-template-stibuild
-    replicaSelector:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: openshift/ruby-20-centos7:latest
+        incremental: true
+      type: Source
+  status:
+    completionTimestamp: 2015-04-07T04:13:01Z
+    config:
+      kind: BuildConfig
+      name: ruby-sample-build
+      namespace: example
+    phase: Complete
+    startTimestamp: 2015-04-07T04:12:21Z
+- apiVersion: v1beta3
+  kind: ReplicationController
+  metadata:
+    annotations:
+      deploymentConfig: database
+      deploymentStatus: Running
+      deploymentVersion: "2"
+      encodedDeploymentConfig: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"openshift/mysql-55-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
+      pod: deploy-database-19m1he
+    creationTimestamp: 2015-04-07T04:12:18Z
+    labels:
+      template: application-template-stibuild
+    name: database-2
+    namespace: example
+    resourceVersion: "318"
+    selfLink: /api/v1beta1/replicationControllers/database-1?namespace=example
+    uid: 473d4a73-dcdc-11e4-968a-080027c5bfa9
+  spec:
+    replicas: 1
+    selector:
       deployment: database-2
       deploymentconfig: database
       name: database
-    replicas: 1
-  id: database-2
+    template:
+      metadata:
+        annotations:
+          deployment: database-2
+          deploymentConfig: database
+          deploymentVersion: "2"
+        creationTimestamp: null
+        labels:
+          deployment: database-2
+          deploymentconfig: database
+          name: database
+          template: application-template-stibuild
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: openshift/mysql-55-centos7
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld-database
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    replicas: 2
+- apiVersion: v1beta3
   kind: ReplicationController
-  labels:
-    template: application-template-stibuild
-  namespace: example
-  resourceVersion: 318
-  selfLink: /api/v1beta1/replicationControllers/database-1?namespace=example
-  uid: 473d4a73-dcdc-11e4-968a-080027c5bfa9
-- annotations:
-    deploymentConfig: database
-    deploymentStatus: Complete
-    deploymentVersion: "1"
-    encodedDeploymentConfig: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"openshift/mysql-55-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
-    pod: deploy-database-19m1he
-  apiVersion: v1beta1
-  creationTimestamp: 2015-04-07T04:12:17Z
-  currentState:
-    podTemplate:
-      desiredState:
-        manifest:
-          containers: null
-          id: ""
-          restartPolicy: {}
-          version: ""
-          volumes: null
+  metadata:
+    annotations:
+      deploymentConfig: database
+      deploymentStatus: Complete
+      deploymentVersion: "1"
+      encodedDeploymentConfig: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"database","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/database","uid":"4725b5d3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"271","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ConfigChange"}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"database"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld-database","image":"openshift/mysql-55-centos7","ports":[{"containerPort":3306,"protocol":"TCP"}],"env":[{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"database","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ConfigChange"}]}}'
+      pod: deploy-database-19m1he
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
+    name: database-1
+    namespace: example
+    resourceVersion: "318"
+    selfLink: /api/v1beta1/replicationControllers/database-1?namespace=example
+    uid: 473d4a73-dcdc-11e4-968a-080027c5bfa9
+  spec:
     replicas: 1
-  desiredState:
-    podTemplate:
-      annotations:
-        deployment: database-1
-        deploymentConfig: database
-        deploymentVersion: "1"
-      desiredState:
-        manifest:
-          containers:
-          - capabilities: {}
-            env:
-            - key: MYSQL_USER
-              name: MYSQL_USER
-              value: user1CY
-            - key: MYSQL_PASSWORD
-              name: MYSQL_PASSWORD
-              value: FfyXmsGG
-            - key: MYSQL_DATABASE
-              name: MYSQL_DATABASE
-              value: root
-            image: openshift/mysql-55-centos7
-            imagePullPolicy: PullIfNotPresent
-            name: ruby-helloworld-database
-            ports:
-            - containerPort: 3306
-              protocol: TCP
-            resources: {}
-            terminationMessagePath: /dev/termination-log
-          dnsPolicy: ClusterFirst
-          id: ""
-          restartPolicy:
-            always: {}
-          version: v1beta2
-          volumes: null
-      labels:
-        deployment: database-1
-        deploymentconfig: database
-        name: database
-        template: application-template-stibuild
-    replicaSelector:
+    selector:
       deployment: database-1
       deploymentconfig: database
       name: database
+    template:
+      metadata:
+        annotations:
+          deployment: database-1
+          deploymentConfig: database
+          deploymentVersion: "1"
+        creationTimestamp: null
+        labels:
+          deployment: database-1
+          deploymentconfig: database
+          name: database
+          template: application-template-stibuild
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: openshift/mysql-55-centos7
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld-database
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
     replicas: 1
-  id: database-1
-  kind: ReplicationController
-  labels:
-    template: application-template-stibuild
-  namespace: example
-  resourceVersion: 318
-  selfLink: /api/v1beta1/replicationControllers/database-1?namespace=example
-  uid: 473d4a73-dcdc-11e4-968a-080027c5bfa9
-- apiVersion: v1beta1
-  details:
-    causes:
-    - type: ConfigChange
+- apiVersion: v1beta3
   kind: DeploymentConfig
-  latestVersion: 1
   metadata:
     creationTimestamp: 2015-04-07T04:12:17Z
     labels:
@@ -230,199 +210,180 @@ items:
     resourceVersion: "271"
     selfLink: /osapi/v1beta1/deploymentConfigs/database?namespace=example
     uid: 4725b5d3-dcdc-11e4-968a-080027c5bfa9
-  template:
-    controllerTemplate:
-      podTemplate:
-        desiredState:
-          manifest:
-            containers:
-            - capabilities: {}
-              env:
-              - key: MYSQL_USER
-                name: MYSQL_USER
-                value: user1CY
-              - key: MYSQL_PASSWORD
-                name: MYSQL_PASSWORD
-                value: FfyXmsGG
-              - key: MYSQL_DATABASE
-                name: MYSQL_DATABASE
-                value: root
-              image: openshift/mysql-55-centos7
-              imagePullPolicy: PullIfNotPresent
-              name: ruby-helloworld-database
-              ports:
-              - containerPort: 3306
-                protocol: TCP
-              resources: {}
-              terminationMessagePath: /dev/termination-log
-            dnsPolicy: ClusterFirst
-            id: ""
-            restartPolicy:
-              always: {}
-            version: v1beta2
-            volumes: null
+  spec:
+    replicas: 1
+    selector:
+      name: database
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
         labels:
           name: database
           template: application-template-stibuild
-      replicaSelector:
-        name: database
-      replicas: 1
-    strategy:
-      type: Recreate
-  triggers:
-  - type: ConfigChange
-- annotations:
-    deploymentConfig: frontend
-    deploymentStatus: Failed
-    openshift.io/deployment.status-reason: unable to contact server
-    deploymentVersion: "2"
-    encodedDeploymentConfig: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageRepository","name":"origin-ruby-sample"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
-    pod: deploy-frontend-17mza9
-  apiVersion: v1beta1
-  creationTimestamp: 2015-04-07T04:12:53Z
-  desiredState:
-    podTemplate:
-      annotations:
-        deployment: frontend-2
-        deploymentConfig: frontend
-        deploymentVersion: "2"
-      desiredState:
-        manifest:
-          containers:
-          - capabilities: {}
-            env:
-            - key: ADMIN_USERNAME
-              name: ADMIN_USERNAME
-              value: adminNPX
-            - key: ADMIN_PASSWORD
-              name: ADMIN_PASSWORD
-              value: 7q1IdEao
-            - key: MYSQL_USER
-              name: MYSQL_USER
-              value: user1CY
-            - key: MYSQL_PASSWORD
-              name: MYSQL_PASSWORD
-              value: FfyXmsGG
-            - key: MYSQL_DATABASE
-              name: MYSQL_DATABASE
-              value: root
-            image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
-            imagePullPolicy: PullIfNotPresent
-            name: ruby-helloworld
-            ports:
-            - containerPort: 8080
-              protocol: TCP
-            resources: {}
-            terminationMessagePath: /dev/termination-log
-          dnsPolicy: ClusterFirst
-          id: ""
-          restartPolicy:
-            always: {}
-          version: v1beta2
-          volumes: null
-      labels:
-        deployment: frontend-2
-        deploymentconfig: frontend
-        name: frontend
-        template: application-template-stibuild
-    replicaSelector:
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: openshift/mysql-55-centos7
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld-database
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - type: ConfigChange
+  status:
+    details:
+      causes:
+      - type: ConfigChange
+    latestVersion: 1
+- apiVersion: v1beta3
+  kind: ReplicationController
+  metadata:
+    annotations:
+      deploymentConfig: frontend
+      deploymentStatus: Failed
+      deploymentVersion: "2"
+      encodedDeploymentConfig: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageRepository","name":"origin-ruby-sample"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
+      openshift.io/deployment.status-reason: unable to contact server
+      pod: deploy-frontend-17mza9
+    creationTimestamp: 2015-04-07T04:12:53Z
+    labels:
+      template: application-template-stibuild
+    name: frontend-2
+    namespace: example
+    resourceVersion: "379"
+    selfLink: /api/v1beta1/replicationControllers/frontend-2?namespace=example
+    uid: 5c9cd4ec-dcdc-11e4-968a-080027c5bfa9
+  spec:
+    replicas: 1
+    selector:
       deployment: frontend-2
       deploymentconfig: frontend
       name: frontend
-    replicas: 1
-  id: frontend-2
+    template:
+      metadata:
+        annotations:
+          deployment: frontend-2
+          deploymentConfig: frontend
+          deploymentVersion: "2"
+        creationTimestamp: null
+        labels:
+          deployment: frontend-2
+          deploymentconfig: frontend
+          name: frontend
+          template: application-template-stibuild
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: ADMIN_USERNAME
+            value: adminNPX
+          - name: ADMIN_PASSWORD
+            value: 7q1IdEao
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
+    replicas: 0
+- apiVersion: v1beta3
   kind: ReplicationController
-  labels:
-    template: application-template-stibuild
-  namespace: example
-  resourceVersion: 379
-  selfLink: /api/v1beta1/replicationControllers/frontend-2?namespace=example
-  uid: 5c9cd4ec-dcdc-11e4-968a-080027c5bfa9
-- annotations:
-    deploymentConfig: frontend
-    deploymentStatus: Complete
-    deploymentVersion: "1"
-    encodedDeploymentConfig: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageRepository","name":"origin-ruby-sample"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
-    pod: deploy-frontend-17mza9
-  apiVersion: v1beta1
-  creationTimestamp: 2015-04-07T04:12:53Z
-  currentState:
-    podTemplate:
-      desiredState:
-        manifest:
-          containers: null
-          id: ""
-          restartPolicy: {}
-          version: ""
-          volumes: null
+  metadata:
+    annotations:
+      deploymentConfig: frontend
+      deploymentStatus: Complete
+      deploymentVersion: "1"
+      encodedDeploymentConfig: '{"kind":"DeploymentConfig","apiVersion":"v1beta1","metadata":{"name":"frontend","namespace":"test","selfLink":"/osapi/v1beta1/watch/deploymentConfigs/frontend","uid":"471f24e3-dcdc-11e4-968a-080027c5bfa9","resourceVersion":"346","creationTimestamp":"2015-04-07T04:12:17Z","labels":{"template":"application-template-stibuild"}},"triggers":[{"type":"ImageChange","imageChangeParams":{"automatic":true,"containerNames":["ruby-helloworld"],"from":{"kind":"ImageRepository","name":"origin-ruby-sample"},"tag":"latest","lastTriggeredImage":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58"}}],"template":{"strategy":{"type":"Recreate"},"controllerTemplate":{"replicas":1,"replicaSelector":{"name":"frontend"},"podTemplate":{"desiredState":{"manifest":{"version":"v1beta2","id":"","volumes":null,"containers":[{"name":"ruby-helloworld","image":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","ports":[{"containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ADMIN_USERNAME","key":"ADMIN_USERNAME","value":"adminNPX"},{"name":"ADMIN_PASSWORD","key":"ADMIN_PASSWORD","value":"7q1IdEao"},{"name":"MYSQL_USER","key":"MYSQL_USER","value":"user1CY"},{"name":"MYSQL_PASSWORD","key":"MYSQL_PASSWORD","value":"FfyXmsGG"},{"name":"MYSQL_DATABASE","key":"MYSQL_DATABASE","value":"root"}],"resources":{},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"PullIfNotPresent","capabilities":{}}],"restartPolicy":{"always":{}},"dnsPolicy":"ClusterFirst"}},"labels":{"name":"frontend","template":"application-template-stibuild"}}}},"latestVersion":1,"details":{"causes":[{"type":"ImageChange","imageTrigger":{"repositoryName":"172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58","tag":"latest"}}]}}'
+      pod: deploy-frontend-17mza9
+    creationTimestamp: 2015-04-07T04:12:53Z
+    labels:
+      template: application-template-stibuild
+    name: frontend-1
+    namespace: example
+    resourceVersion: "378"
+    selfLink: /api/v1beta1/replicationControllers/frontend-1?namespace=example
+    uid: 5c9cd4ec-dcdc-11e4-968a-080027c5bfa9
+  spec:
     replicas: 1
-  desiredState:
-    podTemplate:
-      annotations:
-        deployment: frontend-1
-        deploymentConfig: frontend
-        deploymentVersion: "1"
-      desiredState:
-        manifest:
-          containers:
-          - capabilities: {}
-            env:
-            - key: ADMIN_USERNAME
-              name: ADMIN_USERNAME
-              value: adminNPX
-            - key: ADMIN_PASSWORD
-              name: ADMIN_PASSWORD
-              value: 7q1IdEao
-            - key: MYSQL_USER
-              name: MYSQL_USER
-              value: user1CY
-            - key: MYSQL_PASSWORD
-              name: MYSQL_PASSWORD
-              value: FfyXmsGG
-            - key: MYSQL_DATABASE
-              name: MYSQL_DATABASE
-              value: root
-            image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
-            imagePullPolicy: PullIfNotPresent
-            name: ruby-helloworld
-            ports:
-            - containerPort: 8080
-              protocol: TCP
-            resources: {}
-            terminationMessagePath: /dev/termination-log
-          dnsPolicy: ClusterFirst
-          id: ""
-          restartPolicy:
-            always: {}
-          version: v1beta2
-          volumes: null
-      labels:
-        deployment: frontend-1
-        deploymentconfig: frontend
-        name: frontend
-        template: application-template-stibuild
-    replicaSelector:
+    selector:
       deployment: frontend-1
       deploymentconfig: frontend
       name: frontend
+    template:
+      metadata:
+        annotations:
+          deployment: frontend-1
+          deploymentConfig: frontend
+          deploymentVersion: "1"
+        creationTimestamp: null
+        labels:
+          deployment: frontend-1
+          deploymentconfig: frontend
+          name: frontend
+          template: application-template-stibuild
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: ADMIN_USERNAME
+            value: adminNPX
+          - name: ADMIN_PASSWORD
+            value: 7q1IdEao
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+  status:
     replicas: 1
-  id: frontend-1
-  kind: ReplicationController
-  labels:
-    template: application-template-stibuild
-  namespace: example
-  resourceVersion: 378
-  selfLink: /api/v1beta1/replicationControllers/frontend-1?namespace=example
-  uid: 5c9cd4ec-dcdc-11e4-968a-080027c5bfa9
-- apiVersion: v1beta1
-  details:
-    causes:
-    - imageTrigger:
-        repositoryName: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
-        tag: latest
-      type: ImageChange
+- apiVersion: v1beta3
   kind: DeploymentConfig
-  latestVersion: 3
   metadata:
     creationTimestamp: 2015-04-07T04:12:17Z
     labels:
@@ -432,95 +393,113 @@ items:
     resourceVersion: "346"
     selfLink: /osapi/v1beta1/deploymentConfigs/frontend?namespace=example
     uid: 471f24e3-dcdc-11e4-968a-080027c5bfa9
-  template:
-    controllerTemplate:
-      podTemplate:
-        desiredState:
-          manifest:
-            containers:
-            - capabilities: {}
-              env:
-              - key: ADMIN_USERNAME
-                name: ADMIN_USERNAME
-                value: adminNPX
-              - key: ADMIN_PASSWORD
-                name: ADMIN_PASSWORD
-                value: 7q1IdEao
-              - key: MYSQL_USER
-                name: MYSQL_USER
-                value: user1CY
-              - key: MYSQL_PASSWORD
-                name: MYSQL_PASSWORD
-                value: FfyXmsGG
-              - key: MYSQL_DATABASE
-                name: MYSQL_DATABASE
-                value: root
-              image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
-              imagePullPolicy: PullIfNotPresent
-              name: ruby-helloworld
-              ports:
-              - containerPort: 8080
-                protocol: TCP
-              resources: {}
-              terminationMessagePath: /dev/termination-log
-            dnsPolicy: ClusterFirst
-            id: ""
-            restartPolicy:
-              always: {}
-            version: v1beta2
-            volumes: null
+  spec:
+    replicas: 1
+    selector:
+      name: frontend
+    strategy:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
         labels:
           name: frontend
           template: application-template-stibuild
-      replicaSelector:
-        name: frontend
-      replicas: 1
-    strategy:
-      type: Recreate
-  triggers:
-  - imageChangeParams:
-      automatic: true
-      containerNames:
-      - ruby-helloworld
-      from:
-        kind: ImageRepository
-        name: origin-ruby-sample
-      lastTriggeredImage: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
-      tag: latest
-    type: ImageChange
-- apiVersion: v1beta1
-  containerPort: 3306
-  creationTimestamp: 2015-04-07T04:12:17Z
-  id: database
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: ADMIN_USERNAME
+            value: adminNPX
+          - name: ADMIN_PASSWORD
+            value: 7q1IdEao
+          - name: MYSQL_USER
+            value: user1CY
+          - name: MYSQL_PASSWORD
+            value: FfyXmsGG
+          - name: MYSQL_DATABASE
+            value: root
+          image: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
+          imagePullPolicy: IfNotPresent
+          name: ruby-helloworld
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ruby-helloworld
+        from:
+          kind: ImageRepository
+          name: origin-ruby-sample
+        lastTriggeredImage: 172.30.17.139:5000/test/origin-ruby-sample:73214fafa244cb8abbe55273dac5d237a589a5fc7ac09926a1756a42c21e8a58
+      type: ImageChange
+  status:
+    details:
+      causes:
+      - imageTrigger:
+          from:
+            kind: DockerImage
+            name: 172.30.17.139:5000/test/origin-ruby-sample:latest
+        type: ImageChange
+    latestVersion: 3
+- apiVersion: v1beta3
   kind: Service
-  labels:
-    template: application-template-stibuild
-  namespace: example
-  port: 5434
-  portalIP: 172.30.17.240
-  protocol: TCP
-  resourceVersion: 269
-  selector:
+  metadata:
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
     name: database
-  selfLink: /api/v1beta1/services/database?namespace=example
-  sessionAffinity: None
-  uid: 47210cbb-dcdc-11e4-968a-080027c5bfa9
-- apiVersion: v1beta1
-  containerPort: 8080
-  creationTimestamp: 2015-04-07T04:12:17Z
-  id: frontend
+    namespace: example
+    resourceVersion: "269"
+    selfLink: /api/v1beta1/services/database?namespace=example
+    uid: 47210cbb-dcdc-11e4-968a-080027c5bfa9
+  spec:
+    portalIP: 172.30.17.240
+    ports:
+    - nodePort: 0
+      port: 5434
+      protocol: TCP
+      targetPort: 3306
+    selector:
+      name: database
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1beta3
   kind: Service
-  labels:
-    template: application-template-stibuild
-  namespace: example
-  port: 5432
-  portalIP: 172.30.17.154
-  protocol: TCP
-  resourceVersion: 263
-  selector:
+  metadata:
+    creationTimestamp: 2015-04-07T04:12:17Z
+    labels:
+      template: application-template-stibuild
     name: frontend
-  selfLink: /api/v1beta1/services/frontend?namespace=example
-  sessionAffinity: None
-  uid: 4704cf56-dcdc-11e4-968a-080027c5bfa9
+    namespace: example
+    resourceVersion: "263"
+    selfLink: /api/v1beta1/services/frontend?namespace=example
+    uid: 4704cf56-dcdc-11e4-968a-080027c5bfa9
+  spec:
+    portalIP: 172.30.17.154
+    ports:
+    - nodePort: 0
+      port: 5432
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: frontend
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
 kind: List
-resourceVersion: 592
+metadata:
+  resourceVersion: "592"

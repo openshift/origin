@@ -55,7 +55,13 @@ function generate_script_config() {
 
   echo ""
   echo "vrrp_script $CHECK_SCRIPT_NAME {"
-  echo "   script \"</dev/tcp/${serviceip}/${port}\""
+
+  if [ "$port" = "0" ]; then
+    echo "   script \"true\""
+  else
+    echo "   script \"</dev/tcp/${serviceip}/${port}\""
+  fi
+
   echo "   interval $CHECK_INTERVAL_SECS"
   echo "}"
 }
@@ -250,6 +256,7 @@ $(generate_vrrp_sync_groups "$HA_CONFIG_NAME" "$vips")
   idx=$((idx + 1))
 
   local counter=1
+  local previous="none"
 
   for vip in ${vips}; do
     local offset=$((RANDOM % 32))
@@ -259,7 +266,14 @@ $(generate_vrrp_sync_groups "$HA_CONFIG_NAME" "$vips")
 
     if [ $n -eq 0 ]; then
       instancetype="master"
-      priority=$((255 - $ipslot))
+      if [ "$previous" = "master" ]; then
+        #  Inverse priority + reset, so that we can flip-flop priorities.
+        priority=$((ipslot + 1))
+        previous="flip-flop"
+      else
+        priority=$((255 - $ipslot))
+        previous=$instancetype
+      fi
     fi
 
     generate_vrrpd_instance_config "$HA_CONFIG_NAME" "$counter" "$vip"  \

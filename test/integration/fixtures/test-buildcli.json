@@ -1,5 +1,7 @@
 {
-  "apiVersion": "v1beta1",
+  "kind": "List",
+  "apiVersion": "v1beta3",
+  "metadata": {},
   "items": [
     {
       "apiVersion": "v1beta1",
@@ -101,6 +103,5 @@
         }
       ]
     }
-  ],
-  "kind": "List"
+  ]
 }
