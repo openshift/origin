@@ -8,7 +8,7 @@ import (
 type ProjectList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Project `json:"items"`
+	Items         []Project `json:"items" description:"list of projects"`
 }
 
 // These are internal finalizer values to Origin
@@ -42,5 +42,5 @@ type Project struct {
 type ProjectRequest struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
-	DisplayName     string `json:"displayName,omitempty"`
+	DisplayName     string `json:"displayName,omitempty" description:"display name to apply to a project"`
 }
