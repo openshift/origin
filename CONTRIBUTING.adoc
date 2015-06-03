@@ -7,11 +7,11 @@ OpenShift Developers <dev@lists.openshift.redhat.com>
 
 The OpenShift 3 architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/GoogleCloudPlatform/kubernetes[Kubernetes] to deliver a powerful new Platform as a Service system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.
 
-There are multiple ways to start coding OpenShift.
+There are multiple ways to start coding and testing OpenShift.
 
-* <<download-from-github>>
-* <<develop-locally-on-your-host>>
-* <<develop-on-virtual-machine-using-vagrant>>
+* <<download-from-github>> (for testing)
+* <<develop-locally-on-your-host>> (for coding)
+* <<develop-on-virtual-machine-using-vagrant>> (for coding)
 
 == Download from GitHub
 
@@ -39,16 +39,36 @@ Here's how to get set up:
 2. Next, create a Go workspace directory: +
 +
 ----
-$ mkdir $HOME/go
+$ mkdir $HOME/goworkspace
 ----
-3. In your `.bashrc` file or `.bash_profile` file, set a GOPATH and a GOROOT and update your PATH: +
+3. In your `.bashrc` file or `.bash_profile` file, set a GOPATH and update your PATH: +
 +
 ----
-export GOROOT=$HOME/go
-export GOPATH=$HOME/<your_local_git_clone_dir>
-export PATH=$PATH:$GOROOT/bin
+export GOPATH=$HOME/goworkspace
+export PATH=$PATH:$GOPATH/bin
 ----
-4. Open up a new terminal or source the changes in your current terminal, and you're ready to code.
+4. Clone the project and change into the directory: +
++
+----
+$ mkdir -p $GOPATH/src/github.com/openshift
+$ cd $GOPATH/src/github.com/openshift
+$ git clone git://github.com/openshift/origin
+$ cd origin
+----
+5. Open up a new terminal or source the changes in your current terminal, and you're ready to code.
+6. Run a build: +
++
+----
+$ cd $GOPATH/src/github.com/openshift/origin
+$ hack/build-go.sh
+----
+7. Start an OpenShift all-in-one server (includes everything you need to try OpenShift). You need root privilege for starting OpenShift.:  +
++
+----
+$ cd $GOPATH/src/github.com/openshift/origin/_output/local/go/bin
+$ sudo ./openshift start
+----
+8. On your system, try browsing to: https://localhost:8443/console
 
 == Develop on virtual machine using Vagrant
 
@@ -73,12 +93,12 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
         $ vagrant ssh
 
-6.  Run a build:
+6.  Run a build in the SSH:
 
         $ cd /data/src/github.com/openshift/origin
         $ hack/build-go.sh
 
-7.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
+7.  Start an OpenShift all-in-one server in the SSH (includes everything you need to try OpenShift)
 
         $ sudo systemctl start openshift
 
