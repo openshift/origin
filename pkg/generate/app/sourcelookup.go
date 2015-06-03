@@ -123,15 +123,15 @@ func (r *SourceRepository) LocalPath() (string, error) {
 		if r.localDir, err = ioutil.TempDir("", "gen"); err != nil {
 			return "", err
 		}
-		localUrl := r.url
-		ref := localUrl.Fragment
-		localUrl.Fragment = ""
-		if err = gitRepo.Clone(r.localDir, localUrl.String()); err != nil {
-			return "", fmt.Errorf("cannot clone repository %s: %v", localUrl.String(), err)
+		localURL := r.url
+		ref := localURL.Fragment
+		localURL.Fragment = ""
+		if err = gitRepo.Clone(r.localDir, localURL.String()); err != nil {
+			return "", fmt.Errorf("cannot clone repository %s: %v", localURL.String(), err)
 		}
 		if len(ref) > 0 {
 			if err = gitRepo.Checkout(r.localDir, ref); err != nil {
-				return "", fmt.Errorf("cannot checkout ref %s of repository %s: %v", ref, localUrl.String(), err)
+				return "", fmt.Errorf("cannot checkout ref %s of repository %s: %v", ref, localURL.String(), err)
 			}
 		}
 		r.localDir = filepath.Join(r.localDir, r.contextDir)
