@@ -2,9 +2,12 @@ package clientcmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -58,7 +61,9 @@ func EnvVarsFromConfig(config *kclient.Config) []api.EnvVar {
 	}
 }
 
-func (cfg *Config) bindEnv() {
+func (cfg *Config) bindEnv() error {
+	var err error
+
 	if value, ok := util.GetEnv("KUBERNETES_MASTER"); ok && !cfg.KubernetesAddr.Provided {
 		cfg.KubernetesAddr.Set(value)
 	}
@@ -67,6 +72,13 @@ func (cfg *Config) bindEnv() {
 	}
 	if value, ok := util.GetEnv("BEARER_TOKEN"); ok && len(cfg.CommonConfig.BearerToken) == 0 {
 		cfg.CommonConfig.BearerToken = value
+	}
+	if value, ok := util.GetEnv("BEARER_TOKEN_FILE"); ok && len(cfg.CommonConfig.BearerToken) == 0 {
+		if tokenData, tokenErr := ioutil.ReadFile(value); err == nil {
+			cfg.CommonConfig.BearerToken = strings.TrimSpace(string(tokenData))
+		} else {
+			err = fmt.Errorf("Error reading BEARER_TOKEN_FILE %q: %v", value, tokenErr)
+		}
 	}
 
 	if value, ok := util.GetEnv("OPENSHIFT_CA_FILE"); ok && len(cfg.CommonConfig.CAFile) == 0 {
@@ -90,10 +102,15 @@ func (cfg *Config) bindEnv() {
 	if value, ok := util.GetEnv("OPENSHIFT_INSECURE"); ok && len(value) != 0 {
 		cfg.CommonConfig.Insecure = value == "true"
 	}
+
+	return err
 }
 
 func (cfg *Config) KubeConfig() *kclient.Config {
-	cfg.bindEnv()
+	err := cfg.bindEnv()
+	if err != nil {
+		glog.Error(err)
+	}
 
 	kaddr := cfg.KubernetesAddr
 	if !kaddr.Provided {
@@ -107,7 +124,10 @@ func (cfg *Config) KubeConfig() *kclient.Config {
 }
 
 func (cfg *Config) OpenShiftConfig() *kclient.Config {
-	cfg.bindEnv()
+	err := cfg.bindEnv()
+	if err != nil {
+		glog.Error(err)
+	}
 
 	osConfig := cfg.CommonConfig
 	osConfig.Host = cfg.MasterAddr.String()
