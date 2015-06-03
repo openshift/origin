@@ -49,11 +49,11 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErr
 	for i, trg := range config.Triggers {
 		allErrs = append(allErrs, validateTrigger(&trg).PrefixIndex(i).Prefix("triggers")...)
 		if trg.Type == buildapi.ImageChangeBuildTriggerType {
-			ictCount++
+			if ictCount++; ictCount > 1 {
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("triggers", config.Triggers, "only one ImageChange trigger is allowed"))
+				break
+			}
 		}
-	}
-	if ictCount > 1 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("triggers", "", "only one ImageChangeTrigger is allowed"))
 	}
 	allErrs = append(allErrs, validateBuildParameters(&config.Parameters).Prefix("parameters")...)
 	allErrs = append(allErrs, validateBuildConfigOutput(&config.Parameters.Output).Prefix("parameters.output")...)

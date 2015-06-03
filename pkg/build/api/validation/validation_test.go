@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -86,9 +87,42 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 	}
 }
 
-func TestBuildConfigValidationFailure(t *testing.T) {
+func TestBuildConfigValidationFailureRequiredName(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "foo"},
+		Parameters: buildapi.BuildParameters{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
+				ContextDir: "context",
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
+			},
+			Output: buildapi.BuildOutput{
+				DockerImageReference: "repository/data",
+			},
+		},
+	}
+	errors := ValidateBuildConfig(buildConfig)
+	if len(errors) != 1 {
+		t.Fatalf("Unexpected validation errors %v", errors)
+	}
+	err := errors[0].(*fielderrors.ValidationError)
+	if err.Type != fielderrors.ValidationErrorTypeRequired {
+		t.Errorf("Unexpected error type, expected %s, got %s", fielderrors.ValidationErrorTypeRequired, err.Type)
+	}
+	if err.Field != "name" {
+		t.Errorf("Unexpected field name expected name, got %s", err.Field)
+	}
+}
+
+func TestBuildConfigValidationFailureTooManyICT(t *testing.T) {
+	buildConfig := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "foo"},
 		Parameters: buildapi.BuildParameters{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
@@ -116,8 +150,19 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 			},
 		},
 	}
-	if result := ValidateBuildConfig(buildConfig); len(result) != 2 {
-		t.Errorf("Unexpected validation result %v", result)
+	errors := ValidateBuildConfig(buildConfig)
+	if len(errors) != 1 {
+		t.Fatalf("Unexpected validation errors %v", errors)
+	}
+	err := errors[0].(*fielderrors.ValidationError)
+	if err.Type != fielderrors.ValidationErrorTypeInvalid {
+		t.Errorf("Unexpected error type, expected %s, got %s", fielderrors.ValidationErrorTypeInvalid, err.Type)
+	}
+	if err.Field != "triggers" {
+		t.Errorf("Unexpected field name expected triggers, got %s", err.Field)
+	}
+	if !strings.Contains(err.Detail, "only one ImageChange trigger is allowed") {
+		t.Errorf("Unexpected error details: %s", err.Detail)
 	}
 }
 
