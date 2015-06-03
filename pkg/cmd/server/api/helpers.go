@@ -108,7 +108,6 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.ServiceAccountConfig.PublicKeyFiles[i])
 	}
 
-	refs = append(refs, &config.MasterClients.DeployerKubeConfig)
 	refs = append(refs, &config.MasterClients.OpenShiftLoopbackKubeConfig)
 	refs = append(refs, &config.MasterClients.ExternalKubernetesKubeConfig)
 

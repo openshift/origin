@@ -413,15 +413,6 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: DeployerRoleBindingName,
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: DeployerRoleName,
-			},
-			Users: util.NewStringSet(DeployerUsername),
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
 				Name: ClusterAdminRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{

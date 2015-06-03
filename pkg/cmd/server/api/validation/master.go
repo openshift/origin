@@ -113,7 +113,6 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("kubernetesMasterConfig", config.KubernetesMasterConfig, "kubernetesMasterConfig and masterClients.externalKubernetesKubeConfig are mutually exclusive"))
 	}
 
-	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.DeployerKubeConfig, "deployerKubeConfig").Prefix("masterClients")...)
 	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, "openShiftLoopbackKubeConfig").Prefix("masterClients")...)
 
 	if len(config.MasterClients.ExternalKubernetesKubeConfig) > 0 {
@@ -125,7 +124,7 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 		validationResults.AddErrors(ValidateOAuthConfig(config.OAuthConfig).Prefix("oauthConfig")...)
 	}
 
-	validationResults.AddErrors(ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig")...)
+	validationResults.Append(ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig"))
 
 	validationResults.AddErrors(ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
@@ -177,47 +176,50 @@ func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.Validat
 	return allErrs
 }
 
-func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubernetes bool) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubernetes bool) ValidationResults {
+	validationResults := ValidationResults{}
 
 	managedNames := util.NewStringSet(config.ManagedNames...)
 	if !managedNames.Has(bootstrappolicy.BuilderServiceAccountName) {
-		// TODO: warn that default builder service account won't be auto-created
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("managedNames", "", fmt.Sprintf("missing %q, which will require manual creation in each namespace before builds can run", bootstrappolicy.BuilderServiceAccountName)))
+	}
+	if !managedNames.Has(bootstrappolicy.DeployerServiceAccountName) {
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("managedNames", "", fmt.Sprintf("missing %q, which will require manual creation in each namespace before deployments can run", bootstrappolicy.DeployerServiceAccountName)))
 	}
 	if builtInKubernetes && !managedNames.Has(bootstrappolicy.DefaultServiceAccountName) {
-		// TODO: warn that default service account won't be auto-created
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("managedNames", "", fmt.Sprintf("missing %q, which will prevent creation of pods that do not specify a valid service account", bootstrappolicy.DefaultServiceAccountName)))
 	}
 
 	for i, name := range config.ManagedNames {
 		if ok, msg := kvalidation.ValidateServiceAccountName(name, false); !ok {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("", i), name, msg))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid(fmt.Sprintf("managedNames[%d]", i), name, msg))
 		}
 	}
 
 	if len(config.PrivateKeyFile) > 0 {
 		if fileErrs := ValidateFile(config.PrivateKeyFile, "privateKeyFile"); len(fileErrs) > 0 {
-			allErrs = append(allErrs, fileErrs...)
+			validationResults.AddErrors(fileErrs...)
 		} else if privateKey, err := serviceaccount.ReadPrivateKey(config.PrivateKeyFile); err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("privateKeyFile", config.PrivateKeyFile, err.Error()))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("privateKeyFile", config.PrivateKeyFile, err.Error()))
 		} else if err := privateKey.Validate(); err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("privateKeyFile", config.PrivateKeyFile, err.Error()))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("privateKeyFile", config.PrivateKeyFile, err.Error()))
 		}
 	} else if builtInKubernetes {
-		// TODO: warn that no service account tokens will be generated
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("privateKeyFile", "", "no service account tokens will be generated, which could prevent builds and deployments from working"))
 	}
 
 	if len(config.PublicKeyFiles) == 0 {
-		// TODO: warn that no service accounts will be able to authenticate
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("publicKeyFiles", "", "no service account tokens will be accepted by the API, which will prevent builds and deployments from working"))
 	}
 	for i, publicKeyFile := range config.PublicKeyFiles {
 		if fileErrs := ValidateFile(publicKeyFile, fmt.Sprintf("publicKeyFiles[%d]", i)); len(fileErrs) > 0 {
-			allErrs = append(allErrs, fileErrs...)
+			validationResults.AddErrors(fileErrs...)
 		} else if _, err := serviceaccount.ReadPublicKey(publicKeyFile); err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("publicKeyFiles[%d]", i), publicKeyFile, err.Error()))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid(fmt.Sprintf("publicKeyFiles[%d]", i), publicKeyFile, err.Error()))
 		}
 	}
 
-	return allErrs
+	return validationResults
 }
 
 func ValidateAssetConfig(config *api.AssetConfig) fielderrors.ValidationErrorList {

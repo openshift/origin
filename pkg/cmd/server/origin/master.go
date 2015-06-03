@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -33,6 +34,7 @@ import (
 	etcdallocator "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	serviceaccountadmission "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1"
@@ -984,18 +986,20 @@ func (c *MasterConfig) RunDeploymentController() error {
 	if err != nil {
 		return err
 	}
-	// TODO eliminate these environment variables once we figure out what they do
-	env := []api.EnvVar{
-		{Name: "KUBERNETES_MASTER", Value: kclientConfig.Host},
-		{Name: "OPENSHIFT_MASTER", Value: kclientConfig.Host},
-	}
-	env = append(env, clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())...)
+	// TODO eliminate these environment variables once service accounts provide a kubeconfig that includes all of this info
+	env := clientcmd.EnvVars(
+		kclientConfig.Host,
+		kclientConfig.CAData,
+		kclientConfig.Insecure,
+		path.Join(serviceaccountadmission.DefaultAPITokenMountPath, kapi.ServiceAccountTokenKey),
+	)
 
 	factory := deploycontroller.DeploymentControllerFactory{
-		KubeClient:    kclient,
-		Codec:         latest.Codec,
-		Environment:   env,
-		DeployerImage: c.ImageFor("deployer"),
+		KubeClient:     kclient,
+		Codec:          latest.Codec,
+		Environment:    env,
+		DeployerImage:  c.ImageFor("deployer"),
+		ServiceAccount: bootstrappolicy.DeployerServiceAccountName,
 	}
 
 	controller := factory.Create()

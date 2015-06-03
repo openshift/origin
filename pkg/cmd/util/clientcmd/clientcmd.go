@@ -48,17 +48,23 @@ func (cfg *Config) Bind(flags *pflag.FlagSet) {
 	BindClientConfigSecurityFlags(&cfg.CommonConfig, flags)
 }
 
-func EnvVarsFromConfig(config *kclient.Config) []api.EnvVar {
-	insecure := "false"
-	if config.Insecure {
-		insecure = "true"
+func EnvVars(host string, caData []byte, insecure bool, bearerTokenFile string) []api.EnvVar {
+	envvars := []api.EnvVar{
+		{Name: "KUBERNETES_MASTER", Value: host},
+		{Name: "OPENSHIFT_MASTER", Value: host},
 	}
-	return []api.EnvVar{
-		{Name: "OPENSHIFT_CA_DATA", Value: string(config.CAData)},
-		{Name: "OPENSHIFT_CERT_DATA", Value: string(config.CertData)},
-		{Name: "OPENSHIFT_KEY_DATA", Value: string(config.KeyData)},
-		{Name: "OPENSHIFT_INSECURE", Value: insecure},
+
+	if len(bearerTokenFile) > 0 {
+		envvars = append(envvars, api.EnvVar{Name: "BEARER_TOKEN_FILE", Value: bearerTokenFile})
 	}
+
+	if len(caData) > 0 {
+		envvars = append(envvars, api.EnvVar{Name: "OPENSHIFT_CA_DATA", Value: string(caData)})
+	} else if insecure {
+		envvars = append(envvars, api.EnvVar{Name: "OPENSHIFT_INSECURE", Value: "true"})
+	}
+
+	return envvars
 }
 
 func (cfg *Config) bindEnv() error {

@@ -30,5 +30,15 @@ func GetBootstrapServiceAccountProjectRoleBindings(namespace string) []authoriza
 			},
 			Users: util.NewStringSet(serviceaccount.MakeUsername(namespace, BuilderServiceAccountName)),
 		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      DeployerRoleBindingName,
+				Namespace: namespace,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: DeployerRoleName,
+			},
+			Users: util.NewStringSet(serviceaccount.MakeUsername(namespace, DeployerServiceAccountName)),
+		},
 	}
 }
