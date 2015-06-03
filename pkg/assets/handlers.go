@@ -184,6 +184,7 @@ func GeneratedConfigHandler(config WebConsoleConfig, h http.Handler) http.Handle
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.TrimPrefix(r.URL.Path, "/") == "config.js" {
 			w.Header().Add("Cache-Control", "no-cache, no-store")
+			w.Header().Add("Content-Type", "application/json")
 			if err := configTemplate.Execute(w, config); err != nil {
 				glog.Errorf("Unable to render config template: %v", err)
 			}
