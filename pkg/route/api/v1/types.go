@@ -9,15 +9,15 @@ type Route struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RouteSpec   `json:"spec"`
-	Status RouteStatus `json:"status"`
+	Spec   RouteSpec   `json:"spec" description:"desired state of the route"`
+	Status RouteStatus `json:"status" description:"current state of the route"`
 }
 
 // RouteList is a collection of Routes.
 type RouteList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Route `json:"items"`
+	Items         []Route `json:"items" description:"list of routes"`
 }
 
 // RouteSpec describes the route the user wishes to exist.
@@ -28,16 +28,16 @@ type RouteSpec struct {
 	// Optional: Alias/DNS that points to the service
 	// Can be host or host:port
 	// host and port are combined to follow the net/url URL struct
-	Host string `json:"host"`
+	Host string `json:"host" description:"optional: alias/dns that points to the service, can be host or host:port"`
 	// Optional: Path that the router watches for, to route traffic for to the service
-	Path string `json:"path,omitempty"`
+	Path string `json:"path,omitempty" description:"optional: path that the router watches to route traffic to the service"`
 
 	// An object the route points to. Only the Service kind is allowed, and it will
 	// be defaulted to Service.
-	To kapi.ObjectReference `json:"to"`
+	To kapi.ObjectReference `json:"to" description:"an object the route points to.  only the service kind is allowed, and it will be defaulted to a service."`
 
 	// TLS provides the ability to configure certificates and termination for the route
-	TLS *TLSConfig `json:"tls,omitempty"`
+	TLS *TLSConfig `json:"tls,omitempty" description:"provides the ability to configure certificates and termination for the route"`
 }
 
 /*
@@ -66,29 +66,29 @@ type RouteStatus struct{}
 type RouterShard struct {
 	// Shard name uniquely identifies a router shard in the "set" of
 	// routers used for routing traffic to the services.
-	ShardName string `json:"shardName"`
+	ShardName string `json:"shardName" description:"uniquely identifies a router shard in the set of routers used for routing traffic to the services"`
 
 	// The DNS suffix for the shard ala: shard-1.v3.openshift.com
-	DNSSuffix string `json:"dnsSuffix"`
+	DNSSuffix string `json:"dnsSuffix" description:"DNS suffix for the shard (i.e. shard-1.v3.openshift.com)"`
 }
 
 // TLSConfig defines config used to secure a route and provide termination
 type TLSConfig struct {
 	// Termination indicates termination type.  If termination type is not set, any termination config will be ignored
-	Termination TLSTerminationType `json:"termination,omitempty"`
+	Termination TLSTerminationType `json:"termination,omitempty" description:"indicates termination type.  if not set, any termination config will be ignored"`
 
 	// Certificate provides certificate contents
-	Certificate string `json:"certificate,omitempty"`
+	Certificate string `json:"certificate,omitempty" description:"provides certificate contents"`
 
 	// Key provides key file contents
-	Key string `json:"key,omitempty"`
+	Key string `json:"key,omitempty" description:"provides key file contents"`
 
 	// CACertificate provides the cert authority certificate contents
-	CACertificate string `json:"caCertificate,omitempty"`
+	CACertificate string `json:"caCertificate,omitempty" description:"provides the cert authority certificate contents"`
 
 	// DestinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt
 	// termination this file should be provided in order to have routers use it for health checks on the secure connection
-	DestinationCACertificate string `json:"destinationCACertificate,omitempty"`
+	DestinationCACertificate string `json:"destinationCACertificate,omitempty" description:"provides the contents of the ca certificate of the final destination.  When using re-encrypt termination this file should be provided in order to have routers use it for health checks on the secure connection"`
 }
 
 // TLSTerminationType dictates where the secure communication will stop
