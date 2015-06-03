@@ -57,7 +57,6 @@ func init() {
 
 			out.Resources = util.StringSet{}
 			out.Resources.Insert(in.Resources...)
-			out.Resources.Insert(in.ResourceKinds...)
 
 			out.Verbs = util.StringSet{}
 			out.Verbs.Insert(in.Verbs...)
