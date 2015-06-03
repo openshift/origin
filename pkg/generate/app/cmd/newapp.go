@@ -39,8 +39,9 @@ type AppConfig struct {
 	Groups             util.StringList
 	Environment        util.StringList
 
-	Name        string
-	TypeOfBuild string
+	Name         string
+	TypeOfBuild  string
+	OutputDocker bool
 
 	dockerResolver       app.Resolver
 	imageStreamResolver  app.Resolver
@@ -372,7 +373,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if len(c.Name) > 0 {
 					source.Name = c.Name
 				}
-				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, strategy, source); err != nil {
+				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 			} else {
@@ -445,22 +446,40 @@ type AppResult struct {
 
 	BuildNames []string
 	HasSource  bool
+	Namespace  string
 }
 
-// Run executes the provided config.
-func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
+// RunAll executes the provided config to generate all objects.
+func (c *AppConfig) RunAll(out io.Writer) (*AppResult, error) {
 	components, repositories, environment, parameters, err := c.validate()
 	if err != nil {
 		return nil, err
 	}
-
-	hasSource := len(repositories) != 0
-	hasComponents := len(components) != 0
-
-	if !hasSource && !hasComponents {
+	if len(repositories) == 0 && len(components) == 0 {
 		return nil, ErrNoInputs
 	}
 
+	return c.run(out, app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew},
+		components, repositories, environment, parameters)
+}
+
+// RunBuilds executes the provided config to generate just builds.
+func (c *AppConfig) RunBuilds(out io.Writer) (*AppResult, error) {
+	components, repositories, environment, parameters, err := c.validate()
+	if err != nil {
+		return nil, err
+	}
+	if len(repositories) == 0 {
+		return nil, ErrNoInputs
+	}
+
+	return c.run(out, app.Acceptors{app.NewAcceptBuildConfigs(c.typer), app.NewAcceptUnique(c.typer), app.AcceptNew},
+		components, repositories, environment, parameters)
+}
+
+// run executes the provided config applying provided acceptors.
+func (c *AppConfig) run(out io.Writer, acceptors app.Acceptors, components app.ComponentReferences,
+	repositories []*app.SourceRepository, environment, parameters cmdutil.Environment) (*AppResult, error) {
 	if err := c.resolve(components); err != nil {
 		return nil, err
 	}
@@ -488,9 +507,8 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
-	acceptUnique := app.NewAcceptUnique(c.typer)
 	for _, p := range pipelines {
-		accepted, err := p.Objects(accept, app.Acceptors{acceptUnique, app.AcceptNew})
+		accepted, err := p.Objects(accept, acceptors)
 		if err != nil {
 			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
 		}
@@ -516,7 +534,8 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 	return &AppResult{
 		List:       &kapi.List{Items: objects},
 		BuildNames: buildNames,
-		HasSource:  hasSource,
+		HasSource:  len(repositories) != 0,
+		Namespace:  c.originNamespace,
 	}, nil
 }
 

@@ -38,7 +38,7 @@ func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
 
 // NewBuildPipeline creates a new pipeline with components that are
 // expected to be built
-func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, source *SourceRef) (*Pipeline, error) {
+func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy *BuildStrategyRef, source *SourceRef) (*Pipeline, error) {
 	name, ok := NameSuggestions{source, input}.SuggestName()
 	if !ok {
 		name = fmt.Sprintf("app%d", rand.Intn(10000))
@@ -51,7 +51,7 @@ func NewBuildPipeline(from string, input *ImageRef, strategy *BuildStrategyRef, 
 		},
 
 		OutputImage:   true,
-		AsImageStream: true,
+		AsImageStream: !outputDocker,
 	}
 	if input != nil {
 		// TODO: assumes that build doesn't change the image metadata. In the future
@@ -309,6 +309,30 @@ func objectMetaData(raw interface{}) (runtime.Object, *kapi.ObjectMeta, error) {
 		return nil, nil, err
 	}
 	return obj, meta, nil
+}
+
+type acceptBuildConfigs struct {
+	typer runtime.ObjectTyper
+}
+
+// Accept accepts just BuildConfigs
+func (a *acceptBuildConfigs) Accept(from interface{}) bool {
+	obj, _, err := objectMetaData(from)
+	if err != nil {
+		return false
+	}
+	_, kind, err := a.typer.ObjectVersionAndKind(obj)
+	if err != nil {
+		return false
+	}
+	return kind == "BuildConfig"
+}
+
+// NewAcceptBuildConfigs creates an acceptor accepting only BuildConfig objects.
+func NewAcceptBuildConfigs(typer runtime.ObjectTyper) Acceptor {
+	return &acceptBuildConfigs{
+		typer: typer,
+	}
 }
 
 // Acceptors is a list of acceptors that behave like a single acceptor.

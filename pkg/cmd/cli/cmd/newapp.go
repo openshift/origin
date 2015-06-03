@@ -32,12 +32,12 @@ const (
 	newAppLong = `Create a new application in OpenShift by specifying source code, templates, and/or images.
 
 This command will try to build up the components of an application using images, templates,
-or code that has a public repository located on your system. It will lookup the images on the 
-local Docker installation (if available), a Docker registry, or an OpenShift image stream. 
-If you specify a source code URL, it will set up a build that takes your source code and converts 
-it into an image that can run inside of a pod. Local source must be in a git repository that has 
-remote repository that the OpenShift instance can see. The images will be deployed via a deployment 
-configuration, and a service will be hooked up to the first public port of the app. You may either specify 
+or code that has a public repository. It will lookup the images on the local Docker installation
+(if available), a Docker registry, or an OpenShift image stream.
+If you specify a source code URL, it will set up a build that takes your source code and converts
+it into an image that can run inside of a pod. Local source must be in a git repository that has a
+remote repository that the OpenShift instance can see. The images will be deployed via a deployment
+configuration, and a service will be connected to the first public port of the app. You may either specify
 components using the various existing flags or let new-app autodetect what kind of components
 you have provided.
 
@@ -115,6 +115,59 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 
 // RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+	if err := setupAppConfig(f, c, args, config); err != nil {
+		return err
+	}
+
+	result, err := config.RunAll(out)
+	if err != nil {
+		if errs, ok := err.(errors.Aggregate); ok {
+			if len(errs.Errors()) == 1 {
+				err = errs.Errors()[0]
+			}
+		}
+		if err == newcmd.ErrNoInputs {
+			// TODO: suggest things to the user
+			return cmdutil.UsageError(c, "You must specify one or more images, image streams, templates or source code locations to create an application.")
+		}
+		return err
+	}
+
+	if err := setLabels(c, result); err != nil {
+		return err
+	}
+	if len(cmdutil.GetFlagString(c, "output")) != 0 {
+		return f.Factory.PrintObject(c, result.List, out)
+	}
+	if err := createObjects(f, out, result); err != nil {
+		return err
+	}
+
+	hasMissingRepo := false
+	for _, item := range result.List.Items {
+		switch t := item.(type) {
+		case *kapi.Service:
+			portMappings := "."
+			if len(t.Spec.Ports) > 0 {
+				portMappings = fmt.Sprintf(" with port mappings %s.", describeServicePorts(t.Spec))
+			}
+			fmt.Fprintf(c.Out(), "Service %q created at %s%s\n", t.Name, t.Spec.PortalIP, portMappings)
+		case *buildapi.BuildConfig:
+			fmt.Fprintf(c.Out(), "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
+		case *imageapi.ImageStream:
+			if len(t.Status.DockerImageRepository) == 0 {
+				if hasMissingRepo {
+					continue
+				}
+				hasMissingRepo = true
+				fmt.Fprintf(c.Out(), "WARNING: We created an ImageStream %q, but it does not look like a Docker registry has been integrated with the OpenShift server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
+			}
+		}
+	}
+	return nil
+}
+
+func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	namespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -141,20 +194,10 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 		return cmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
 	}
 
-	result, err := config.Run(out)
-	if err != nil {
-		if errs, ok := err.(errors.Aggregate); ok {
-			if len(errs.Errors()) == 1 {
-				err = errs.Errors()[0]
-			}
-		}
-		if err == newcmd.ErrNoInputs {
-			// TODO: suggest things to the user
-			return cmdutil.UsageError(c, "You must specify one or more images, image streams, templates or source code locations to create an application.")
-		}
-		return err
-	}
+	return nil
+}
 
+func setLabels(c *cobra.Command, result *newcmd.AppResult) error {
 	label := cmdutil.GetFlagString(c, "labels")
 	if len(label) != 0 {
 		lbl, err := ctl.ParseLabels(label)
@@ -169,10 +212,10 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 		}
 	}
 
-	if len(cmdutil.GetFlagString(c, "output")) != 0 {
-		return f.Factory.PrintObject(c, result.List, out)
-	}
+	return nil
+}
 
+func createObjects(f *clientcmd.Factory, out io.Writer, result *newcmd.AppResult) error {
 	// TODO: Validate everything before building
 	mapper, typer := f.Factory.Object()
 	bulk := configcmd.Bulk{
@@ -182,31 +225,10 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 
 		After: configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
 	}
-	if errs := bulk.Create(result.List, namespace); len(errs) != 0 {
+	if errs := bulk.Create(result.List, result.Namespace); len(errs) != 0 {
 		return errExit
 	}
 
-	hasMissingRepo := false
-	for _, item := range result.List.Items {
-		switch t := item.(type) {
-		case *kapi.Service:
-			portMappings := "."
-			if len(t.Spec.Ports) > 0 {
-				portMappings = fmt.Sprintf(" with port mappings %s.", describeServicePorts(t.Spec))
-			}
-			fmt.Fprintf(c.Out(), "Service %q created at %s%s\n", t.Name, t.Spec.PortalIP, portMappings)
-		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
-		case *imageapi.ImageStream:
-			if len(t.Status.DockerImageRepository) == 0 {
-				if hasMissingRepo {
-					continue
-				}
-				hasMissingRepo = true
-				fmt.Fprintf(c.Out(), "WARNING: We created an ImageStream %q, but it does not look like a Docker registry has been integrated with the OpenShift server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
-			}
-		}
-	}
 	return nil
 }
 
