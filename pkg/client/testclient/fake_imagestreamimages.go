@@ -17,7 +17,7 @@ type FakeImageStreamImages struct {
 
 var _ client.ImageStreamImageInterface = &FakeImageStreamImages{}
 
-func (c *FakeImageStreamImages) Get(name, id string) (result *imageapi.ImageStreamImage, err error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "get-imagestream-image", Value: fmt.Sprintf("%s@%s", name, id)})
-	return &imageapi.ImageStreamImage{}, nil
+func (c *FakeImageStreamImages) Get(name, id string) (*imageapi.ImageStreamImage, error) {
+	obj, err := c.Fake.Invokes(FakeAction{Action: "get-imagestream-image", Value: fmt.Sprintf("%s@%s", name, id)}, &imageapi.ImageStreamImage{})
+	return obj.(*imageapi.ImageStreamImage), err
 }

@@ -9,6 +9,8 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
 
@@ -17,11 +19,13 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+// DockerClient is the local interface for the docker client
 type DockerClient interface {
 	ListImages(opts docker.ListImagesOptions) ([]docker.APIImages, error)
 	InspectImage(name string) (*docker.Image, error)
 }
 
+// DockerClientResolver finds local docker images locally that match a search value
 type DockerClientResolver struct {
 	Client DockerClient
 
@@ -34,6 +38,7 @@ type DockerClientResolver struct {
 	Insecure bool
 }
 
+// Resolve searches all images in local docker server for an image that matches the passed in value
 func (r DockerClientResolver) Resolve(value string) (*ComponentMatch, error) {
 	ref, err := imageapi.ParseDockerImageReference(value)
 	if err != nil {
@@ -128,12 +133,14 @@ func (r DockerClientResolver) lookup(value string) (*ComponentMatch, error) {
 	}, nil
 }
 
+// DockerRegistryResolver searches for images in a given docker registry
 type DockerRegistryResolver struct {
 	Client dockerregistry.Client
 
 	AllowInsecure bool
 }
 
+// Resolve searches the docker registry for repositories matching the passed in value
 func (r DockerRegistryResolver) Resolve(value string) (*ComponentMatch, error) {
 	ref, err := imageapi.ParseDockerImageReference(value)
 	if err != nil {
@@ -257,12 +264,14 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 	return matches
 }
 
+// ImageStreamResolver searches the openshift server image streams for images matching a particular name
 type ImageStreamResolver struct {
 	Client            client.ImageStreamsNamespacer
 	ImageStreamImages client.ImageStreamImagesNamespacer
 	Namespaces        []string
 }
 
+// Resolve will attempt to find an imagestream with a name that matches the passed in value
 func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 	ref, err := imageapi.ParseDockerImageReference(value)
 	if err != nil || len(ref.Registry) != 0 {
@@ -288,12 +297,16 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 		ref.Namespace = namespace
 		latest := imageapi.LatestTaggedImage(repo, searchTag)
 		if latest == nil {
-			return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("no image recorded for %s/%s:%s", repo.Namespace, repo.Name, searchTag)}
+			// continue searching in the next namespace
+			glog.V(2).Infof("no image recorded for %s/%s:%s", repo.Namespace, repo.Name, searchTag)
+			continue
 		}
 		imageStreamImage, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(ref.Name, latest.Image)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q is set, but image %q has been removed", searchTag, latest.Image)}
+				// continue searching in the next namespace
+				glog.V(2).Infof("tag %q is set, but image %q has been removed", searchTag, latest.Image)
+				continue
 			}
 			return nil, err
 		}
@@ -316,6 +329,7 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 	return nil, ErrNoMatch{value: value}
 }
 
+// Searcher will return potentially multiple matches for a set of search strings
 type Searcher interface {
 	Search(terms []string) ([]*ComponentMatch, error)
 }
@@ -347,5 +361,137 @@ func InputImageFromMatch(match *ComponentMatch) (*ImageRef, error) {
 
 	default:
 		return nil, fmt.Errorf("no image or image stream, can't setup a build")
+	}
+}
+
+// ImageStreamByAnnotationResolver resolves image streams based on 'supports' annotations
+// found in tagged images belonging to the stream
+type ImageStreamByAnnotationResolver struct {
+	Client            client.ImageStreamsNamespacer
+	ImageStreamImages client.ImageStreamImagesNamespacer
+	Namespaces        []string
+
+	imageStreams map[string]*imageapi.ImageStreamList
+}
+
+const supportsAnnotationKey = "supports"
+
+// NewImageStreamByAnnotationResolver creates a new ImageStreamByAnnotationResolver
+func NewImageStreamByAnnotationResolver(streamClient client.ImageStreamsNamespacer, imageClient client.ImageStreamImagesNamespacer, namespaces []string) Resolver {
+	return &ImageStreamByAnnotationResolver{
+		Client:            streamClient,
+		ImageStreamImages: imageClient,
+		Namespaces:        namespaces,
+		imageStreams:      make(map[string]*imageapi.ImageStreamList),
+	}
+}
+
+func (r *ImageStreamByAnnotationResolver) getImageStreams(namespace string) ([]imageapi.ImageStream, error) {
+	imageStreamList, ok := r.imageStreams[namespace]
+	if !ok {
+		var err error
+		imageStreamList, err = r.Client.ImageStreams(namespace).List(labels.Everything(), fields.Everything())
+		if err != nil {
+			return nil, err
+		}
+		r.imageStreams[namespace] = imageStreamList
+	}
+	return imageStreamList.Items, nil
+}
+
+func matchSupportsAnnotation(value, annotation string) (float32, bool) {
+	valueBase := strings.Split(value, ":")[0]
+	parts := strings.Split(annotation, ",")
+
+	// attempt an exact match first
+	for _, p := range parts {
+		if value == p {
+			return 0.0, true
+		}
+	}
+
+	// attempt a partial match
+	for _, p := range parts {
+		partBase := strings.Split(p, ":")[0]
+		if valueBase == partBase {
+			return 0.5, true
+		}
+	}
+
+	return 0, false
+}
+
+func (r *ImageStreamByAnnotationResolver) annotationMatches(stream *imageapi.ImageStream, value string) []*ComponentMatch {
+	if stream.Spec.Tags == nil {
+		glog.Infof("No tags found on image, returning nil")
+		return nil
+	}
+	matches := []*ComponentMatch{}
+	for tag, tagref := range stream.Spec.Tags {
+		if tagref.Annotations == nil {
+			continue
+		}
+		supports, ok := tagref.Annotations[supportsAnnotationKey]
+		if !ok {
+			continue
+		}
+		score, ok := matchSupportsAnnotation(value, supports)
+		if !ok {
+			continue
+		}
+		latest := imageapi.LatestTaggedImage(stream, tag)
+		if latest == nil {
+			continue
+		}
+		imageStream, err := r.ImageStreamImages.ImageStreamImages(stream.Namespace).Get(stream.Name, latest.Image)
+		if err != nil {
+			glog.V(2).Infof("Could not retrieve image stream image for stream %q, tag %q: %v", stream.Name, tag, err)
+			continue
+		}
+		if imageStream == nil {
+			continue
+		}
+		imageData := imageStream.Image
+		match := &ComponentMatch{
+			Value:       value,
+			Name:        stream.Name,
+			Argument:    fmt.Sprintf("--image=%q", value),
+			Description: fmt.Sprintf("Image stream %s in project %s, tracks %q", stream.Name, stream.Namespace, stream.Status.DockerImageRepository),
+			Builder:     IsBuilderImage(&imageData.DockerImageMetadata),
+			Score:       score,
+
+			ImageStream: stream,
+			Image:       &imageData.DockerImageMetadata,
+			ImageTag:    imageapi.DefaultImageTag,
+		}
+		matches = append(matches, match)
+	}
+	return matches
+}
+
+// Resolve finds image stream images using their 'supports' annotation
+func (r *ImageStreamByAnnotationResolver) Resolve(value string) (*ComponentMatch, error) {
+	matches := ScoredComponentMatches{}
+	for _, namespace := range r.Namespaces {
+		streams, err := r.getImageStreams(namespace)
+		if err != nil {
+			return nil, err
+		}
+		for i := range streams {
+			matches = append(matches, r.annotationMatches(&streams[i], value)...)
+		}
+	}
+	switch len(matches) {
+	case 0:
+		return nil, ErrNoMatch{value: value}
+	case 1:
+		return matches[0], nil
+	default:
+		exact := matches.Exact()
+		if len(exact) == 1 {
+			return exact[0], nil
+		}
+		sort.Sort(matches)
+		return nil, ErrMultipleMatches{Image: value, Matches: matches}
 	}
 }
