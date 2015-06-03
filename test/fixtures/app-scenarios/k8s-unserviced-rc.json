@@ -4,145 +4,168 @@
   "metadata": {},
   "items": [
     {
-      "annotations": {},
-      "apiVersion": "v1beta1",
-      "desiredState": {
-        "podTemplate": {
-          "desiredState": {
-            "manifest": {
-              "containers": [
-                {
-                  "capabilities": {},
-                  "env": [
-                    {
-                      "key": "MYSQL_ROOT_PASSWORD",
-                      "name": "MYSQL_ROOT_PASSWORD",
-                      "value": "rQHfVnTo"
-                    },
-                    {
-                      "key": "MYSQL_DATABASE",
-                      "name": "MYSQL_DATABASE",
-                      "value": "root"
-                    }
-                  ],
-                  "image": "mysql",
-                  "imagePullPolicy": "PullIfNotPresent",
-                  "name": "ruby-helloworld-database",
-                  "ports": [
-                    {
-                      "containerPort": 3306,
-                      "protocol": "TCP"
-                    }
-                  ]
-                }
-              ],
-              "dnsPolicy": "ClusterFirst",
-              "id": "",
-              "restartPolicy": {
-                "always": {}
-              },
-              "version": "v1beta2",
-              "volumes": null
-            }
-          },
-          "labels": {
-            "name": "database",
-            "template": "ruby-helloworld-sample"
-          }
-        },
-        "replicaSelector": {
+      "kind": "ReplicationController",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "database-rc-1",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
           "name": "database"
         },
-        "replicas": 1
-      },
-      "id": "database-rc-1",
-      "kind": "ReplicationController",
-      "labels": {
-        "template": "ruby-helloworld-sample"
-      }
-    },
-    {
-      "annotations": {},
-      "apiVersion": "v1beta1",
-      "desiredState": {
-        "podTemplate": {
-          "desiredState": {
-            "manifest": {
-              "containers": [
-                {
-                  "capabilities": {},
-                  "env": [
-                    {
-                      "key": "ADMIN_USERNAME",
-                      "name": "ADMIN_USERNAME",
-                      "value": "admin6TM"
-                    },
-                    {
-                      "key": "ADMIN_PASSWORD",
-                      "name": "ADMIN_PASSWORD",
-                      "value": "xImx1tHR"
-                    },
-                    {
-                      "key": "MYSQL_ROOT_PASSWORD",
-                      "name": "MYSQL_ROOT_PASSWORD",
-                      "value": "rQHfVnTo"
-                    },
-                    {
-                      "key": "MYSQL_DATABASE",
-                      "name": "MYSQL_DATABASE",
-                      "value": "root"
-                    }
-                  ],
-                  "image": "openshift/ruby-hello-world",
-                  "imagePullPolicy": "PullIfNotPresent",
-                  "name": "ruby-helloworld",
-                  "ports": [
-                    {
-                      "containerPort": 8080,
-                      "protocol": "TCP"
-                    }
-                  ]
-                }
-              ],
-              "dnsPolicy": "ClusterFirst",
-              "id": "",
-              "restartPolicy": {
-                "always": {}
-              },
-              "version": "v1beta2",
-              "volumes": null
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "database",
+              "template": "ruby-helloworld-sample"
             }
           },
-          "labels": {
-            "name": "frontend",
-            "template": "ruby-helloworld-sample"
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld-database",
+                "image": "mysql",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "value": "rQHfVnTo"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "root"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
           }
-        },
-        "replicaSelector": {
-          "name": "frontend"
-        },
-        "replicas": 3
+        }
       },
-      "id": "frontend-rc-1",
-      "kind": "ReplicationController",
-      "labels": {
-        "template": "ruby-helloworld-sample"
+      "status": {
+        "replicas": 0
       }
     },
     {
-      "apiVersion": "v1beta1",
-      "containerPort": 3306,
-      "id": "database-rc",
+      "kind": "ReplicationController",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "frontend-rc-1",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        }
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "name": "frontend"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "frontend",
+              "template": "ruby-helloworld-sample"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld",
+                "image": "openshift/ruby-hello-world",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ADMIN_USERNAME",
+                    "value": "admin6TM"
+                  },
+                  {
+                    "name": "ADMIN_PASSWORD",
+                    "value": "xImx1tHR"
+                  },
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "value": "rQHfVnTo"
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "root"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {
+        "replicas": 0
+      }
+    },
+    {
       "kind": "Service",
-      "labels": {
-        "template": "ruby-helloworld-sample"
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "database-rc",
+        "creationTimestamp": null,
+        "labels": {
+          "template": "ruby-helloworld-sample"
+        }
       },
-      "port": 5434,
-      "protocol": "TCP",
-      "selector": {
-        "name": "database"
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 5434,
+            "targetPort": 3306,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "database"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
       },
-      "sessionAffinity": "None"
+      "status": {
+        "loadBalancer": {}
+      }
     }
   ]
 }
