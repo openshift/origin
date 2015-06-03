@@ -81,7 +81,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 		Long:    newAppLong,
 		Example: fmt.Sprintf(newAppExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			err := RunNewApplication(f, out, c, args, config)
+			err := RunNewApplication(fullName, f, out, c, args, config)
 			if err == errExit {
 				os.Exit(1)
 			}
@@ -99,7 +99,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().Var(&config.Groups, "group", "Indicate components that should be grouped together as <comp1>+<comp2>.")
 	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into each container.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated application artifacts")
-	cmd.Flags().StringVar(&config.TypeOfBuild, "build", "", "Specify the type of build to use if you don't want to detect (docker|source).")
+	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
 
 	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
@@ -114,7 +114,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 }
 
 // RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
-func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	if err := setupAppConfig(f, c, args, config); err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func RunNewApplication(f *clientcmd.Factory, out io.Writer, c *cobra.Command, ar
 			}
 			fmt.Fprintf(c.Out(), "Service %q created at %s%s\n", t.Name, t.Spec.PortalIP, portMappings)
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
+			fmt.Fprintf(c.Out(), "A build was created - you can run `%s start-build %s` to start it.\n", fullName, t.Name)
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
 				if hasMissingRepo {

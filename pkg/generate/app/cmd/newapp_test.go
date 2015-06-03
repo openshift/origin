@@ -388,7 +388,7 @@ func TestResolve(t *testing.T) {
 		{
 			name: "Successful docker build",
 			cfg: AppConfig{
-				TypeOfBuild: "docker",
+				Strategy: "docker",
 			},
 			components: app.ComponentReferences{
 				app.ComponentReference(&app.ComponentInput{

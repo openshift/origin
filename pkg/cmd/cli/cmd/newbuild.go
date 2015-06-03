@@ -48,7 +48,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 		Long:    newBuildLong,
 		Example: fmt.Sprintf(newBuildExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			err := RunNewBuild(f, out, c, args, config)
+			err := RunNewBuild(fullName, f, out, c, args, config)
 			if err == errExit {
 				os.Exit(1)
 			}
@@ -60,7 +60,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd.Flags().VarP(&config.ImageStreams, "image", "i", "Name of an OpenShift image stream to to use as a builder.")
 	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to use as a builder.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts")
-	cmd.Flags().StringVar(&config.TypeOfBuild, "build", "", "Specify the type of build to use if you don't want to detect (docker|source).")
+	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
 	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Force the Build output to be DockerImage.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
 	cmdutil.AddPrinterFlags(cmd)
@@ -69,7 +69,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 }
 
 // RunNewBuild contains all the necessary functionality for the OpenShift cli new-build command
-func RunNewBuild(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	if err := setupAppConfig(f, c, args, config); err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func RunNewBuild(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []s
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "A build was created - you can run `osc start-build %s` to start it.\n", t.Name)
+			fmt.Fprintf(c.Out(), "A build was created - you can run `%s start-build %s` to start it.\n", fullName, t.Name)
 		}
 	}
 
