@@ -21,6 +21,12 @@
           }
         ],
         "resources": {},
+        "volumeMounts": [
+          {
+            "name":"tmp",
+            "mountPath":"/tmp"
+          }
+        ],
         "terminationMessagePath": "/dev/termination-log",
         "imagePullPolicy": "IfNotPresent",
         "capabilities": {},
@@ -28,6 +34,12 @@
           "capabilities": {},
           "privileged": false
         }
+      }
+    ],
+    "volumes": [
+      {
+        "name":"tmp",
+        "emptyDir": {}
       }
     ],
     "restartPolicy": "Always",
