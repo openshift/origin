@@ -50,6 +50,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
+	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
@@ -117,6 +118,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 	"github.com/openshift/origin/plugins/osdn"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
@@ -552,8 +554,12 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
-	// Attempt to create the required policy rules now, and then stick in a forever loop to make sure they are always available
+	// Create required policy rules if needed
 	c.ensureComponentAuthorizationRules()
+	// Bind default roles for service accounts in the default namespace if needed
+	c.ensureDefaultNamespaceServiceAccountRoles()
+
+	// Ensure the shared resource namespace stays created
 	c.ensureOpenShiftSharedResourcesNamespace()
 	go util.Forever(func() {
 		c.ensureOpenShiftSharedResourcesNamespace()
@@ -664,6 +670,62 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 
 	} else {
 		glog.V(2).Infof("Ignoring bootstrap policy file because cluster policy found")
+	}
+}
+
+// ensureDefaultNamespaceServiceAccountRoles initializes roles for service accounts in the default namespace
+func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
+	const ServiceAccountRolesInitializedAnnotation = "openshift.io/sa.initialized-roles"
+
+	// Wait for the default namespace
+	var defaultNamespace *kapi.Namespace
+	for i := 0; i < 30; i++ {
+		ns, err := c.KubeClient().Namespaces().Get(kapi.NamespaceDefault)
+		if err == nil {
+			defaultNamespace = ns
+			break
+		}
+		if kapierror.IsNotFound(err) {
+			time.Sleep(time.Second)
+			continue
+		}
+		glog.Errorf("Error adding service account roles to default namespace: %v", err)
+		return
+	}
+	if defaultNamespace == nil {
+		glog.Errorf("Default namespace not found, could not initialize default service account roles")
+		return
+	}
+
+	// Short-circuit if we're already initialized
+	if defaultNamespace.Annotations[ServiceAccountRolesInitializedAnnotation] == "true" {
+		return
+	}
+
+	hasErrors := false
+	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(kapi.NamespaceDefault) {
+		addRole := &policy.RoleModificationOptions{
+			RoleName:            binding.RoleRef.Name,
+			RoleNamespace:       binding.RoleRef.Namespace,
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(kapi.NamespaceDefault, c.ServiceAccountRoleBindingClient()),
+			Users:               binding.Users.List(),
+			Groups:              binding.Groups.List(),
+		}
+		if err := addRole.AddRole(); err != nil {
+			glog.Errorf("Could not add service accounts to the %v role in the %v namespace: %v\n", binding.RoleRef.Name, kapi.NamespaceDefault, err)
+			hasErrors = true
+		}
+	}
+
+	// If we had errors, don't register initialization so we can try again
+	if !hasErrors {
+		if defaultNamespace.Annotations == nil {
+			defaultNamespace.Annotations = map[string]string{}
+		}
+		defaultNamespace.Annotations[ServiceAccountRolesInitializedAnnotation] = "true"
+		if _, err := c.KubeClient().Namespaces().Update(defaultNamespace); err != nil {
+			glog.Errorf("Error recording adding service account roles to default namespace: %v", err)
+		}
 	}
 }
 

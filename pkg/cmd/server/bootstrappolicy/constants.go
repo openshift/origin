@@ -69,6 +69,8 @@ const (
 	BasicUserRoleBindingName         = BasicUserRoleName + "s"
 	OAuthTokenDeleterRoleBindingName = OAuthTokenDeleterRoleName + "s"
 	StatusCheckerRoleBindingName     = StatusCheckerRoleName + "-binding"
+	ImagePullerRoleBindingName       = ImagePullerRoleName + "s"
+	ImageBuilderRoleBindingName      = ImageBuilderRoleName + "s"
 	RouterRoleBindingName            = RouterRoleName + "s"
 	RegistryRoleBindingName          = RegistryRoleName + "s"
 	NodeRoleBindingName              = NodeRoleName + "s"

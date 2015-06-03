@@ -306,6 +306,13 @@ func (c *MasterConfig) PolicyClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
+// ServiceAccountRoleBindingClient returns the client object used to bind roles to service accounts
+// It must have the following capabilities:
+//  get, list, update, create policyBindings in all namespaces
+func (c *MasterConfig) ServiceAccountRoleBindingClient() *osclient.Client {
+	return c.PrivilegedLoopbackOpenShiftClient
+}
+
 // SdnClient returns the sdn client object
 // It must have the capability to get/list/watch/create/delete
 // HostSubnets. And have the capability to get ClusterNetwork.
