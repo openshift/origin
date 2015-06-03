@@ -464,8 +464,8 @@ osc process -f examples/sample-app/application-template-dockerbuild.json -l app=
 wait_for_command 'osc get rc/database-1' "${TIME_MIN}"
 osc get dc/database
 osc stop dc/database
-[ ! "$(osc get rc/database-1)" ]
-[ ! "$(osc get dc/database)" ]
+wait_for_command '[[ ! $(osc get rc/database-1) ]]' "${TIME_MIN}"
+wait_for_command '[[ ! $(osc get dc/database) ]]' "${TIME_MIN}"
 echo "stop: ok"
 osc label bc ruby-sample-build acustom=label
 [ "$(osc describe bc/ruby-sample-build | grep 'acustom=label')" ]
