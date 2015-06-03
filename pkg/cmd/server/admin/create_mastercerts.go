@@ -184,11 +184,9 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *GetSign
 			APIServerURL:       o.APIServerURL,
 			PublicAPIServerURL: o.PublicAPIServerURL,
 			APIServerCAFile:    getSignerCertOptions.CertFile,
-			ServerNick:         "master",
 
 			CertFile: clientCertInfo.CertLocation.CertFile,
 			KeyFile:  clientCertInfo.CertLocation.KeyFile,
-			UserNick: clientCertInfo.User,
 
 			ContextNamespace: kapi.NamespaceDefault,
 

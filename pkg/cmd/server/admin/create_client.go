@@ -134,11 +134,9 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		APIServerURL:       o.APIServerURL,
 		PublicAPIServerURL: o.PublicAPIServerURL,
 		APIServerCAFile:    clientCopyOfCAFile,
-		ServerNick:         "master",
 
 		CertFile: clientCertFile,
 		KeyFile:  clientKeyFile,
-		UserNick: o.User,
 
 		ContextNamespace: kapi.NamespaceDefault,
 
