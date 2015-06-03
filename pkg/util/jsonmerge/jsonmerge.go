@@ -53,11 +53,11 @@ func RequireKeyUnchanged(key string) PreconditionFunc {
 // if either document is in error.
 func NewDelta(from, to []byte) (*Delta, error) {
 	d := &Delta{}
-	before, err := yaml.ToJSON(from)
+	before, err := yaml.ToJSON(from, false)
 	if err != nil {
 		return nil, err
 	}
-	after, err := yaml.ToJSON(to)
+	after, err := yaml.ToJSON(to, false)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func NewDelta(from, to []byte) (*Delta, error) {
 // IsConflicting will be true if the changes overlap, otherwise a
 // generic error will be returned.
 func (d *Delta) Apply(latest []byte) ([]byte, error) {
-	base, err := yaml.ToJSON(latest)
+	base, err := yaml.ToJSON(latest, false)
 	if err != nil {
 		return nil, err
 	}
