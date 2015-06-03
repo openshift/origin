@@ -11,7 +11,7 @@ type ImageList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
 
-	Items []Image `json:"items"`
+	Items []Image `json:"items" description:"list of image objects"`
 }
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
