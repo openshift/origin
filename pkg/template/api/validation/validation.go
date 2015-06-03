@@ -13,21 +13,21 @@ import (
 var parameterNameExp = regexp.MustCompile(`^[a-zA-Z0-9\_]+$`)
 
 // totalParametersSizeLimitB is the total size limit for the template
-// parameters names, values, froms and descriptions
+// parameters names and descriptions.
 // TODO: This constant was copied from k8s totalAnnotationSizeLimitB, we
 //       should make the upstream public with a better name and re-use it
-const totalPrametersSizeLimitB int = 64 * (1 << 10) // 64 kB
+const totalParametersSizeLimitB int = 64 * 1024 // 64 kB
 
 // ValidateParametersSize validates the total size of all parameters names,
-// descriptions, froms and values.
+// descriptions.
 func ValidateParametersSize(params []api.Parameter) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	var totalSize int64
 	for i := range params {
-		totalSize += (int64)(len(params[i].Name)) + (int64)(len(params[i].Description)) + (int64)(len(params[i].Value)) + (int64)(len(params[i].From))
+		totalSize += (int64)(len(params[i].Name)) + (int64)(len(params[i].Description))
 	}
-	if totalSize > (int64)(totalPrametersSizeLimitB) {
-		allErrs = append(allErrs, fielderrors.NewFieldTooLong("parameters", "", totalPrametersSizeLimitB))
+	if totalSize > (int64)(totalParametersSizeLimitB) {
+		allErrs = append(allErrs, fielderrors.NewFieldTooLong("parameters", "", totalParametersSizeLimitB))
 	}
 	return allErrs
 }
