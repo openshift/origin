@@ -16,7 +16,7 @@
     "moment": "2.8.4",
     "patternfly": "1.1.2",
     "hawtio-core": "2.0.11",
-    "hawtio-core-navigation": "2.0.33",
+    "hawtio-core-navigation": "2.0.48",
     "hawtio-extension-service": "2.0.2",
     "lodash": "3.2.0",
     "jquery": "2.1.3",
