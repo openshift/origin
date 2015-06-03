@@ -9,17 +9,17 @@ type User struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
-	FullName string `json:"fullName,omitempty"`
+	FullName string `json:"fullName,omitempty" description:"full name of user"`
 
-	Identities []string `json:"identities"`
+	Identities []string `json:"identities" description:"list of identities"`
 
-	Groups []string `json:"groups"`
+	Groups []string `json:"groups" description:"list of groups"`
 }
 
 type UserList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []User `json:"items"`
+	Items         []User `json:"items" description:"list of users"`
 }
 
 type Identity struct {
@@ -27,30 +27,30 @@ type Identity struct {
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
 	// ProviderName is the source of identity information
-	ProviderName string `json:"providerName"`
+	ProviderName string `json:"providerName" description:"source of identity information"`
 
 	// ProviderUserName uniquely represents this identity in the scope of the provider
-	ProviderUserName string `json:"providerUserName"`
+	ProviderUserName string `json:"providerUserName" description:"uniquely represents this identity in the scope of the provider"`
 
 	// User is a reference to the user this identity is associated with
 	// Both Name and UID must be set
-	User kapi.ObjectReference `json:"user"`
+	User kapi.ObjectReference `json:"user" description:"reference to the user this identity is associated with.  both name and uid must be set"`
 
-	Extra map[string]string `json:"extra,omitempty"`
+	Extra map[string]string `json:"extra,omitempty" description:"extra information for this identity"`
 }
 
 type IdentityList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Identity `json:"items"`
+	Items         []Identity `json:"items" description:"list of identities"`
 }
 
 type UserIdentityMapping struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
-	Identity kapi.ObjectReference `json:"identity,omitempty"`
-	User     kapi.ObjectReference `json:"user,omitempty"`
+	Identity kapi.ObjectReference `json:"identity,omitempty" description:"reference to an identity"`
+	User     kapi.ObjectReference `json:"user,omitempty" description:"reference to a user"`
 }
 
 func (*User) IsAnAPIObject()                {}
