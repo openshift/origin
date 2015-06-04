@@ -1,12 +1,15 @@
 package login
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 
 	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
@@ -82,7 +85,7 @@ func (c *Confirm) handleConfirmForm(w http.ResponseWriter, req *http.Request) {
 
 	csrf, err := c.csrf.Generate(w, req)
 	if err != nil {
-		glog.Errorf("Unable to generate CSRF token: %v", err)
+		util.HandleError(fmt.Errorf("unable to generate CSRF token: %v", err))
 	}
 	form.Values.CSRF = csrf
 
@@ -128,7 +131,7 @@ func (r confirmTemplateRenderer) Render(form ConfirmForm, w http.ResponseWriter,
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	if err := confirmTemplate.Execute(w, form); err != nil {
-		glog.Errorf("Unable render confirm template: %v", err)
+		util.HandleError(fmt.Errorf("unable render confirm template: %v", err))
 	}
 }
 

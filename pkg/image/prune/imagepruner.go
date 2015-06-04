@@ -140,7 +140,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 
 		manifest := imageapi.DockerImageManifest{}
 		if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
-			glog.Errorf("Unable to extract manifest from image: %v. This image's layers won't be pruned if the image is pruned now.", err)
+			util.HandleError(fmt.Errorf("unable to extract manifest from image: %v. This image's layers won't be pruned if the image is pruned now.", err))
 			continue
 		}
 
@@ -262,7 +262,7 @@ func addPodSpecToGraph(g graph.Graph, spec *kapi.PodSpec, predecessor gonum.Node
 
 		ref, err := imageapi.ParseDockerImageReference(container.Image)
 		if err != nil {
-			glog.Errorf("Unable to parse DockerImageReference %q: %v", container.Image, err)
+			util.HandleError(fmt.Errorf("unable to parse DockerImageReference %q: %v", container.Image, err))
 			continue
 		}
 
@@ -435,7 +435,7 @@ func pruneImages(g graph.Graph, imageNodes []*graph.ImageNode, pruneImage ImageP
 		glog.V(4).Infof("Image has only weak references - pruning")
 
 		if err := pruneImage(imageNode.Image); err != nil {
-			glog.Errorf("Error pruning image %q: %v", imageNode.Image.Name, err)
+			util.HandleError(fmt.Errorf("error pruning image %q: %v", imageNode.Image.Name, err))
 		}
 
 		for _, n := range g.Predecessors(imageNode) {
@@ -446,7 +446,7 @@ func pruneImages(g graph.Graph, imageNodes []*graph.ImageNode, pruneImage ImageP
 				glog.V(4).Infof("Pruning image from stream %s", repoName)
 				updatedStream, err := pruneStream(stream, imageNode.Image)
 				if err != nil {
-					glog.Errorf("Error pruning image from stream: %v", err)
+					util.HandleError(fmt.Errorf("error pruning image from stream: %v", err))
 					continue
 				}
 
@@ -454,13 +454,13 @@ func pruneImages(g graph.Graph, imageNodes []*graph.ImageNode, pruneImage ImageP
 
 				ref, err := imageapi.DockerImageReferenceForStream(stream)
 				if err != nil {
-					glog.Errorf("Error constructing DockerImageReference for %q: %v", repoName, err)
+					util.HandleError(fmt.Errorf("error constructing DockerImageReference for %q: %v", repoName, err))
 					continue
 				}
 
 				glog.V(4).Infof("Invoking pruneManifest for registry %q, repo %q, image %q", ref.Registry, repoName, imageNode.Image.Name)
 				if err := pruneManifest(ref.Registry, repoName, imageNode.Image.Name); err != nil {
-					glog.Errorf("Error pruning manifest for registry %q, repo %q, image %q: %v", ref.Registry, repoName, imageNode.Image.Name, err)
+					util.HandleError(fmt.Errorf("error pruning manifest for registry %q, repo %q, image %q: %v", ref.Registry, repoName, imageNode.Image.Name, err))
 				}
 			}
 		}
@@ -547,7 +547,7 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, pruneLayer L
 
 			ref, err := imageapi.DockerImageReferenceForStream(stream)
 			if err != nil {
-				glog.Errorf("Error constructing DockerImageReference for %q: %v", streamName, err)
+				util.HandleError(fmt.Errorf("error constructing DockerImageReference for %q: %v", streamName, err))
 				continue
 			}
 
@@ -555,14 +555,14 @@ func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, pruneLayer L
 				registries.Insert(ref.Registry)
 				glog.V(4).Infof("Invoking pruneBlob with registry=%q, blob=%q", ref.Registry, layerNode.Layer)
 				if err := pruneBlob(ref.Registry, layerNode.Layer); err != nil {
-					glog.Errorf("Error invoking pruneBlob: %v", err)
+					util.HandleError(fmt.Errorf("error invoking pruneBlob: %v", err))
 				}
 			}
 
 			repoName := fmt.Sprintf("%s/%s", ref.Namespace, ref.Name)
 			glog.V(4).Infof("Invoking pruneLayer with registry=%q, repo=%q, layer=%q", ref.Registry, repoName, layerNode.Layer)
 			if err := pruneLayer(ref.Registry, repoName, layerNode.Layer); err != nil {
-				glog.Errorf("Error invoking pruneLayer: %v", err)
+				util.HandleError(fmt.Errorf("error invoking pruneLayer: %v", err))
 			}
 		}
 	}

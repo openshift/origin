@@ -11,6 +11,7 @@ import (
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
@@ -80,7 +81,7 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 	if desired, hasDesired := deployment.Annotations[deployapi.DesiredReplicasAnnotation]; hasDesired {
 		val, err := strconv.Atoi(desired)
 		if err != nil {
-			glog.Errorf("Deployment has an invalid desired replica count '%s'; falling back to config value %d", desired, desiredReplicas)
+			util.HandleError(fmt.Errorf("deployment has an invalid desired replica count '%s'; falling back to config value %d", desired, desiredReplicas))
 		} else {
 			glog.V(4).Infof("Deployment has an explicit desired replica count %d", val)
 			desiredReplicas = val
@@ -94,7 +95,7 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 	allProcessed := true
 	for _, oldDeployment := range oldDeployments {
 		if err = s.updateReplicas(oldDeployment.Namespace, oldDeployment.Name, 0); err != nil {
-			glog.Errorf("%v", err)
+			util.HandleError(fmt.Errorf("%v", err))
 			allProcessed = false
 		}
 	}
@@ -112,7 +113,7 @@ func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationControll
 	if params != nil && params.Post != nil {
 		err := s.hookExecutor.Execute(params.Post, deployment, "posthook")
 		if err != nil {
-			glog.Errorf("Post hook failed: %s", err)
+			util.HandleError(fmt.Errorf("post hook failed: %s", err))
 		} else {
 			glog.Infof("Post hook finished")
 		}
@@ -134,7 +135,7 @@ func (s *RecreateDeploymentStrategy) updateReplicas(namespace, name string, repl
 			return fmt.Errorf("couldn't successfully update Deployment %s/%s replica count to %d (timeout exceeded)", namespace, name, replicaCount)
 		default:
 			if deployment, err = s.client.getReplicationController(namespace, name); err != nil {
-				glog.Errorf("Couldn't get Deployment %s/%s: %v", namespace, name, err)
+				util.HandleError(fmt.Errorf("couldn't get Deployment %s/%s: %v", namespace, name, err))
 			} else {
 				deployment.Spec.Replicas = replicaCount
 				glog.V(4).Infof("Updating Deployment %s/%s replica count to %d", namespace, name, replicaCount)
@@ -145,7 +146,7 @@ func (s *RecreateDeploymentStrategy) updateReplicas(namespace, name string, repl
 				if kerrors.IsConflict(err) {
 					continue
 				}
-				glog.Errorf("Error updating Deployment %s/%s replica count to %d: %v", namespace, name, replicaCount, err)
+				util.HandleError(fmt.Errorf("error updating Deployment %s/%s replica count to %d: %v", namespace, name, replicaCount, err))
 			}
 
 			time.Sleep(s.retryPeriod)

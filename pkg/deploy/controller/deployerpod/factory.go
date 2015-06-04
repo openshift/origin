@@ -1,6 +1,7 @@
 package deployerpod
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -112,7 +113,7 @@ func pollPods(deploymentStore cache.Store, kClient kclient.Interface) (cache.Enu
 					deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedDeployerPodNoLongerExists
 
 					if _, err := kClient.ReplicationControllers(deployment.Namespace).Update(deployment); err != nil {
-						glog.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
+						kutil.HandleError(fmt.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err))
 					}
 					glog.V(2).Infof("Updated deployment %s status from %s to %s", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus)
 				}

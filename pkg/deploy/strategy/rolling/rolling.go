@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -136,7 +137,7 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 		if params.Post != nil {
 			err := s.hookExecutor.Execute(params.Post, deployment, "posthook")
 			if err != nil {
-				glog.Errorf("Post hook failed: %s", err)
+				util.HandleError(fmt.Errorf("post hook failed: %s", err))
 			} else {
 				glog.Infof("Post hook finished")
 			}
@@ -151,7 +152,7 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	if params.Pre != nil {
 		err := s.hookExecutor.Execute(params.Pre, deployment, "prehook")
 		if err != nil {
-			return fmt.Errorf("Pre hook failed: %s", err)
+			return fmt.Errorf("pre hook failed: %s", err)
 		}
 		glog.Infof("Pre hook finished")
 	}
@@ -212,7 +213,7 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	if params.Post != nil {
 		err := s.hookExecutor.Execute(params.Post, deployment, "posthook")
 		if err != nil {
-			glog.Errorf("Post hook failed: %s", err)
+			util.HandleError(fmt.Errorf("Post hook failed: %s", err))
 		} else {
 			glog.Info("Post hook finished")
 		}

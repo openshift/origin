@@ -10,7 +10,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
-	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
@@ -229,7 +228,7 @@ func (s *REST) createOrUpdate(ctx kapi.Context, obj runtime.Object, forceCreate 
 	// If this fails, log the error, but continue, because Update is no longer re-entrant
 	if oldUser != nil && removeIdentityFromUser(identity, oldUser) {
 		if _, err := s.userRegistry.UpdateUser(ctx, oldUser); err != nil {
-			glog.Errorf("Error removing identity reference %s from user %s: %v", identity.Name, oldUser.Name, err)
+			util.HandleError(fmt.Errorf("error removing identity reference %s from user %s: %v", identity.Name, oldUser.Name, err))
 		}
 	}
 
@@ -258,7 +257,7 @@ func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
 	// At this point, the mapping for the identity no longer exists
 	if unsetIdentityUser(identity) {
 		if _, err := s.identityRegistry.UpdateIdentity(ctx, identity); err != nil {
-			glog.Errorf("Error removing user reference %s from identity %s: %v", user.Name, identity.Name, err)
+			util.HandleError(fmt.Errorf("error removing user reference %s from identity %s: %v", user.Name, identity.Name, err))
 		}
 	}
 

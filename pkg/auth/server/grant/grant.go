@@ -1,6 +1,7 @@
 package grant
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -8,6 +9,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -257,7 +259,7 @@ func (r grantTemplateRenderer) Render(form Form, w http.ResponseWriter, req *htt
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	if err := grantTemplate.Execute(w, form); err != nil {
-		glog.Errorf("Unable to render grant template: %v", err)
+		util.HandleError(fmt.Errorf("unable to render grant template: %v", err))
 	}
 }
 
