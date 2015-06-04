@@ -73,10 +73,10 @@ func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
 }
 
 // ConfigSelector matches all the deployments of the provided DeploymentConfig
-func ConfigSelector(config *deployapi.DeploymentConfig, list []api.ReplicationController) []api.ReplicationController {
+func ConfigSelector(name string, list []api.ReplicationController) []api.ReplicationController {
 	matches := []api.ReplicationController{}
 	for _, rc := range list {
-		if DeploymentConfigNameFor(&rc) == config.Name {
+		if DeploymentConfigNameFor(&rc) == name {
 			matches = append(matches, rc)
 		}
 	}

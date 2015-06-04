@@ -8,27 +8,33 @@ import (
 	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 
 	"github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/deploy/api"
+	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
+
+func mkdeployment(version int) kapi.ReplicationController {
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codec)
+	return *deployment
+}
 
 func TestStop(t *testing.T) {
 	fakeClients := []*testclient.Fake{
-		testclient.NewSimpleFake(&api.DeploymentConfig{
-			LatestVersion: 1,
-		}),
-		testclient.NewSimpleFake(&api.DeploymentConfig{
-			LatestVersion: 5,
-		}),
+		testclient.NewSimpleFake(deploytest.OkDeploymentConfig(1)),
+		testclient.NewSimpleFake(deploytest.OkDeploymentConfig(5)),
 	}
 	fakeKClients := []*ktestclient.Fake{
-		ktestclient.NewSimpleFake(&kapi.ReplicationController{}),
 		ktestclient.NewSimpleFake(&kapi.ReplicationControllerList{
 			Items: []kapi.ReplicationController{
-				{},
-				{},
-				{},
-				{},
-				{},
+				mkdeployment(1),
+			},
+		}),
+		ktestclient.NewSimpleFake(&kapi.ReplicationControllerList{
+			Items: []kapi.ReplicationController{
+				mkdeployment(1),
+				mkdeployment(2),
+				mkdeployment(3),
+				mkdeployment(4),
+				mkdeployment(5),
 			},
 		}),
 	}
@@ -47,13 +53,11 @@ func TestStop(t *testing.T) {
 		{
 			testName:  "simple stop",
 			namespace: "default",
-			name:      "foo",
+			name:      "config",
 			osc:       fakeClients[0],
 			kc:        fakeKClients[0],
 			reaper:    &DeploymentConfigReaper{osc: fakeClients[0], kc: fakeKClients[0], pollInterval: time.Millisecond, timeout: time.Millisecond},
 			expected: []string{
-				"get-deploymentconfig",
-				"update-deploymentconfig",
 				"delete-deploymentconfig",
 			},
 			kexpected: []string{
@@ -63,18 +67,16 @@ func TestStop(t *testing.T) {
 				"get-replicationController",
 				"delete-replicationController",
 			},
-			output: "foo stopped",
+			output: "config stopped",
 		},
 		{
 			testName:  "stop multiple controllers",
 			namespace: "default",
-			name:      "foo",
+			name:      "config",
 			osc:       fakeClients[1],
 			kc:        fakeKClients[1],
 			reaper:    &DeploymentConfigReaper{osc: fakeClients[1], kc: fakeKClients[1], pollInterval: time.Millisecond, timeout: time.Millisecond},
 			expected: []string{
-				"get-deploymentconfig",
-				"update-deploymentconfig",
 				"delete-deploymentconfig",
 			},
 			kexpected: []string{
@@ -100,7 +102,7 @@ func TestStop(t *testing.T) {
 				"get-replicationController",
 				"delete-replicationController",
 			},
-			output: "foo stopped",
+			output: "config stopped",
 		},
 	}
 

@@ -11,7 +11,6 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -36,14 +35,7 @@ type DeploymentConfigReaper struct {
 // zero replicas, waits for all of them to get deleted and then deletes both the
 // replication controller and its deployment configuration.
 func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *kapi.DeleteOptions) (string, error) {
-	dc, err := reaper.osc.DeploymentConfigs(namespace).Get(name)
-	if err != nil {
-		return "", err
-	}
-	// Disable dc triggers while reaping
-	dc.Triggers = []api.DeploymentTriggerPolicy{}
-	dc, err = reaper.osc.DeploymentConfigs(namespace).Update(dc)
-	if err != nil {
+	if err := reaper.osc.DeploymentConfigs(namespace).Delete(name); err != nil {
 		return "", err
 	}
 	rcList, err := reaper.kc.ReplicationControllers(namespace).List(labels.Everything())
@@ -55,14 +47,12 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *
 		return "", err
 	}
 	// Remove all the deployments of the configuration
-	for _, rc := range util.ConfigSelector(dc, rcList.Items) {
+	for _, rc := range util.ConfigSelector(name, rcList.Items) {
 		if _, err = rcReaper.Stop(rc.Namespace, rc.Name, gracePeriod); err != nil {
 			// Better not error out here...
 			glog.Infof("Cannot delete ReplicationController %s/%s: %v", rc.Namespace, rc.Name, err)
 		}
 	}
-	if err = reaper.osc.DeploymentConfigs(namespace).Delete(name); err != nil {
-		return "", err
-	}
+
 	return fmt.Sprintf("%s stopped", name), nil
 }
