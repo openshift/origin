@@ -19,6 +19,7 @@ func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 		{"labels", false},
 		{"default-name", true},
 		{"name", false},
+		{"hostname", false},
 	}
 }
 
@@ -50,6 +51,7 @@ func (RouteGenerator) Generate(params map[string]string) (runtime.Object, error)
 			Name:   name,
 			Labels: labels,
 		},
+		Host:        params["hostname"],
 		ServiceName: params["default-name"],
 	}, nil
 }
