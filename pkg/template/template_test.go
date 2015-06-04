@@ -339,8 +339,8 @@ func TestProcessTemplateParameters(t *testing.T) {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
 	exp, _ := v1beta3.Codec.Encode(&expectedTemplate)
-
 	if string(result) != string(exp) {
+		fmt.Printf("--- GOT:\n%s\n---\n", string(result))
 		t.Errorf("unexpected output: %s", util.StringDiff(string(exp), string(result)))
 	}
 }
