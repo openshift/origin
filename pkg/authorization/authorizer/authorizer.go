@@ -100,7 +100,7 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.C
 		}
 
 		for _, rule := range role.Rules {
-			matches, err := attributes.RuleMatches(rule)
+			matches, err := attributes.RuleMatches(ctx, a, rule)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -124,7 +124,7 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(ctx kapi.Context, pass
 	allRules, ruleRetrievalError := a.ruleResolver.GetEffectivePolicyRules(ctx)
 
 	for _, rule := range allRules {
-		matches, err := attributes.RuleMatches(rule)
+		matches, err := attributes.RuleMatches(ctx, a, rule)
 		if err != nil {
 			return false, "", err
 		}

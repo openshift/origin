@@ -5,6 +5,7 @@ import (
 	"path"
 	"strings"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -20,7 +21,7 @@ type DefaultAuthorizationAttributes struct {
 	URL               string
 }
 
-func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.PolicyRule) (bool, error) {
+func (a DefaultAuthorizationAttributes) RuleMatches(ctx kapi.Context, authorizer Authorizer, rule authorizationapi.PolicyRule) (bool, error) {
 	if a.IsNonResourceURL() {
 		if a.nonResourceMatches(rule) {
 			if a.verbMatches(rule.Verbs) {
@@ -38,9 +39,12 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 			if a.nameMatches(rule.ResourceNames) {
 				// this rule matches the request, so we should check the additional restrictions to be sure that it's allowed
 				if rule.AttributeRestrictions.Object != nil {
-					switch rule.AttributeRestrictions.Object.(type) {
+					switch typedRestriction := rule.AttributeRestrictions.Object.(type) {
 					case (*authorizationapi.IsPersonalSubjectAccessReview):
 						return IsPersonalAccessReview(a)
+					case (*authorizationapi.IsVerbAllowedOnBaseResource):
+
+						return IsVerbAllowedOnBaseResource(ctx, authorizer, typedRestriction, a)
 					default:
 						return false, fmt.Errorf("unable to interpret: %#v", rule.AttributeRestrictions.Object)
 					}

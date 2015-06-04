@@ -69,6 +69,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "pods/exec", "pods/portforward"),
 				},
+				{
+					Verbs:     util.NewStringSet("get"),
+					Resources: util.NewStringSet("pods/exec"),
+				},
 			},
 		},
 		{
@@ -83,6 +87,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet(authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects", "pods/exec", "pods/portforward"),
+				},
+				{
+					Verbs:                 util.NewStringSet("get"),
+					Resources:             util.NewStringSet("pods/exec"),
+					AttributeRestrictions: runtime.EmbeddedObject{&authorizationapi.IsVerbAllowedOnBaseResource{Verb: "update"}},
 				},
 			},
 		},

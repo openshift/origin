@@ -29,8 +29,11 @@ func init() {
 		&ClusterPolicyBindingList{},
 		&ClusterRoleBindingList{},
 		&ClusterRoleList{},
+		&IsVerbAllowedOnBaseResource{},
 	)
 }
+
+func (*IsVerbAllowedOnBaseResource) IsAnAPIObject() {}
 
 func (*ClusterRole) IsAnAPIObject()              {}
 func (*ClusterPolicy) IsAnAPIObject()            {}

@@ -51,6 +51,12 @@ const (
 	KubeStatusGroupName  = ResourceGroupPrefix + ":allkube-status"
 )
 
+/*
+Other resources:
+ 1.  pods/exec - this allows command execution on a given pod/container.  This is not included directly in any list, because it implies the power to destroy a pod.  You'll note that the bootstrap policy
+     places additional restrictions on this resource
+*/
+
 var (
 	GroupsToResources = map[string][]string{
 		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone"},
@@ -94,6 +100,14 @@ type PolicyRule struct {
 // IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed
 type IsPersonalSubjectAccessReview struct {
 	kapi.TypeMeta
+}
+
+// IsVerbAllowedOnBaseResource checks to see if the user can perform the specified verb on the base resource with the current name (if provided).
+type IsVerbAllowedOnBaseResource struct {
+	kapi.TypeMeta
+
+	// Verb is the verb to check
+	Verb string
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.

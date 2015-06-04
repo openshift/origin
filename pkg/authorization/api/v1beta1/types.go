@@ -38,6 +38,14 @@ type IsPersonalSubjectAccessReview struct {
 	kapi.TypeMeta `json:",inline"`
 }
 
+// IsVerbAllowedOnBaseResource checks to see if the user can perform the specified verb on the base resource with the current name (if provided).
+type IsVerbAllowedOnBaseResource struct {
+	kapi.TypeMeta `json:",inline"`
+
+	// Verb is the verb to check
+	Verb string `json:"verb"`
+}
+
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
 	kapi.TypeMeta   `json:",inline"`
