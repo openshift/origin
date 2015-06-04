@@ -31,7 +31,7 @@ const imagesLongDesc = `%s %s - prunes images`
 const PruneImagesRecommendedName = "images"
 
 type pruneImagesConfig struct {
-	DryRun             bool
+	Confirm            bool
 	KeepYoungerThan    time.Duration
 	TagRevisionsToKeep int
 	CABundle           string
@@ -39,7 +39,7 @@ type pruneImagesConfig struct {
 
 func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	cfg := &pruneImagesConfig{
-		DryRun:             true,
+		Confirm:            false,
 		KeepYoungerThan:    60 * time.Minute,
 		TagRevisionsToKeep: 3,
 	}
@@ -138,8 +138,8 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 				manifestPruneFunc    prune.ManifestPruneFunc
 			)
 
-			switch cfg.DryRun {
-			case false:
+			switch cfg.Confirm {
+			case true:
 				imagePruneFunc = func(image *imageapi.Image) error {
 					describingImagePruneFunc(image)
 					return prune.DeletingImagePruneFunc(osClient.Images())(image)
@@ -171,7 +171,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 		},
 	}
 
-	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Perform a build pruning dry-run, displaying what would be deleted but not actually deleting anything.")
+	cmd.Flags().BoolVar(&cfg.Confirm, "confirm", cfg.Confirm, "Specify that image pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
 	cmd.Flags().DurationVar(&cfg.KeepYoungerThan, "keep-younger-than", cfg.KeepYoungerThan, "Specify the minimum age of a build for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(&cfg.TagRevisionsToKeep, "keep-tag-revisions", cfg.TagRevisionsToKeep, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
 	cmd.Flags().StringVar(&cfg.CABundle, "certificate-authority", cfg.CABundle, "The path to a certificate authority bundle to use when communicating with the OpenShift-managed registries. Defaults to the certificate authority data from the current user's config file.")

@@ -25,7 +25,7 @@ const deploymentsLongDesc = `%s %s - Remove older completed and failed deploymen
 const PruneDeploymentsRecommendedName = "deployments"
 
 type pruneDeploymentConfig struct {
-	DryRun          bool
+	Confirm         bool
 	KeepYoungerThan time.Duration
 	Orphans         bool
 	KeepComplete    int
@@ -34,7 +34,7 @@ type pruneDeploymentConfig struct {
 
 func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	cfg := &pruneDeploymentConfig{
-		DryRun:          true,
+		Confirm:         false,
 		KeepYoungerThan: 60 * time.Minute,
 		KeepComplete:    5,
 		KeepFailed:      1,
@@ -85,8 +85,8 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 				return nil
 			}
 
-			switch cfg.DryRun {
-			case false:
+			switch cfg.Confirm {
+			case true:
 				deploymentPruneFunc = func(deployment *kapi.ReplicationController) error {
 					describingPruneDeploymentFunc(deployment)
 					err := kclient.ReplicationControllers(deployment.Namespace).Delete(deployment.Name)
@@ -109,7 +109,7 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 		},
 	}
 
-	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Perform a deployment pruning dry-run, displaying what would be deleted but not actually deleting anything.")
+	cmd.Flags().BoolVar(&cfg.Confirm, "confirm", cfg.Confirm, "Specify that deployment pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
 	cmd.Flags().BoolVar(&cfg.Orphans, "orphans", cfg.Orphans, "Prune all deployments where the associated DeploymentConfig no longer exists, the status is complete or failed, and the replica size is 0.")
 	cmd.Flags().DurationVar(&cfg.KeepYoungerThan, "keep-younger-than", cfg.KeepYoungerThan, "Specify the minimum age of a deployment for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(&cfg.KeepComplete, "keep-complete", cfg.KeepComplete, "Per DeploymentConfig, specify the number of deployments whose status is complete that will be preserved whose replica size is 0.")
