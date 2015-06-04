@@ -9,9 +9,6 @@ items:
       template: application-template-stibuild
     name: ruby-sample-build
     namespace: example
-    resourceVersion: "284"
-    selfLink: /osapi/v1beta1/buildConfigs/ruby-sample-build?namespace=example
-    uid: 471cb30a-dcdc-11e4-968a-080027c5bfa9
   spec:
     output:
       to:
@@ -51,9 +48,6 @@ items:
       template: application-template-stibuild
     name: ruby-sample-build-1
     namespace: example
-    resourceVersion: "376"
-    selfLink: /osapi/v1beta1/builds/ruby-sample-build-1?namespace=example
-    uid: 47cdfff5-dcdc-11e4-968a-080027c5bfa9
   spec:
     output:
       to:
@@ -93,9 +87,6 @@ items:
       template: application-template-stibuild
     name: database-2
     namespace: example
-    resourceVersion: "318"
-    selfLink: /api/v1beta1/replicationControllers/database-1?namespace=example
-    uid: 473d4a73-dcdc-11e4-968a-080027c5bfa9
   spec:
     replicas: 1
     selector:
@@ -153,9 +144,6 @@ items:
       template: application-template-stibuild
     name: database-1
     namespace: example
-    resourceVersion: "318"
-    selfLink: /api/v1beta1/replicationControllers/database-1?namespace=example
-    uid: 473d4a73-dcdc-11e4-968a-080027c5bfa9
   spec:
     replicas: 1
     selector:
@@ -207,9 +195,6 @@ items:
       template: application-template-stibuild
     name: database
     namespace: example
-    resourceVersion: "271"
-    selfLink: /osapi/v1beta1/deploymentConfigs/database?namespace=example
-    uid: 4725b5d3-dcdc-11e4-968a-080027c5bfa9
   spec:
     replicas: 1
     selector:
@@ -268,9 +253,6 @@ items:
       template: application-template-stibuild
     name: frontend-2
     namespace: example
-    resourceVersion: "379"
-    selfLink: /api/v1beta1/replicationControllers/frontend-2?namespace=example
-    uid: 5c9cd4ec-dcdc-11e4-968a-080027c5bfa9
   spec:
     replicas: 1
     selector:
@@ -332,9 +314,6 @@ items:
       template: application-template-stibuild
     name: frontend-1
     namespace: example
-    resourceVersion: "378"
-    selfLink: /api/v1beta1/replicationControllers/frontend-1?namespace=example
-    uid: 5c9cd4ec-dcdc-11e4-968a-080027c5bfa9
   spec:
     replicas: 1
     selector:
@@ -390,9 +369,6 @@ items:
       template: application-template-stibuild
     name: frontend
     namespace: example
-    resourceVersion: "346"
-    selfLink: /osapi/v1beta1/deploymentConfigs/frontend?namespace=example
-    uid: 471f24e3-dcdc-11e4-968a-080027c5bfa9
   spec:
     replicas: 1
     selector:
@@ -460,9 +436,6 @@ items:
       template: application-template-stibuild
     name: database
     namespace: example
-    resourceVersion: "269"
-    selfLink: /api/v1beta1/services/database?namespace=example
-    uid: 47210cbb-dcdc-11e4-968a-080027c5bfa9
   spec:
     portalIP: 172.30.17.240
     ports:
@@ -484,9 +457,6 @@ items:
       template: application-template-stibuild
     name: frontend
     namespace: example
-    resourceVersion: "263"
-    selfLink: /api/v1beta1/services/frontend?namespace=example
-    uid: 4704cf56-dcdc-11e4-968a-080027c5bfa9
   spec:
     portalIP: 172.30.17.154
     ports:

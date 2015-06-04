@@ -4,7 +4,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	userapi "github.com/openshift/origin/pkg/user/api"
-	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
 )
 
 // UsersInterface has methods to work with User resources

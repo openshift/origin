@@ -54,8 +54,7 @@
           }
         ],
         "restartPolicy": "Always",
-        "dnsPolicy": "ClusterFirst",
-        "serviceAccount": ""
+        "dnsPolicy": "ClusterFirst"
       }
     }
   },
