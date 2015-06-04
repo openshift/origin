@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"testing"
 
 	testutil "github.com/openshift/origin/test/util"
@@ -60,6 +61,7 @@ func TestPolicyCommands(t *testing.T) {
 		BindingNamespace: projectName,
 		Client:           haroldClient,
 		Users:            []string{"valerie"},
+		Out:              ioutil.Discard,
 	}
 	if err := removeValerie.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -80,6 +82,7 @@ func TestPolicyCommands(t *testing.T) {
 		BindingNamespace: projectName,
 		Client:           haroldClient,
 		Groups:           []string{"my-group"},
+		Out:              ioutil.Discard,
 	}
 	if err := removeMyGroup.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

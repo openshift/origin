@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -27,10 +28,12 @@ type RemoveFromProjectOptions struct {
 
 	Groups []string
 	Users  []string
+
+	Out io.Writer
 }
 
 func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &RemoveFromProjectOptions{}
+	options := &RemoveFromProjectOptions{Out: out}
 
 	cmd := &cobra.Command{
 		Use:   name + " GROUP [GROUP ...]",
@@ -51,7 +54,7 @@ func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, o
 }
 
 func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &RemoveFromProjectOptions{}
+	options := &RemoveFromProjectOptions{Out: out}
 
 	cmd := &cobra.Command{
 		Use:   name + " USER [USER ...]",
@@ -96,11 +99,19 @@ func (o *RemoveFromProjectOptions) Run() error {
 	}
 	sort.Sort(authorizationapi.PolicyBindingSorter(bindingList.Items))
 
+	usersRemoved := util.StringSet{}
+	groupsRemoved := util.StringSet{}
+
 	for _, currPolicyBinding := range bindingList.Items {
 		for _, currBinding := range authorizationapi.SortRoleBindings(currPolicyBinding.RoleBindings, true) {
-			if !currBinding.Groups.HasAny(o.Groups...) && !currBinding.Users.HasAny(o.Users...) {
+			bindingHasGroups := len(o.Groups) > 0 && currBinding.Groups.HasAny(o.Groups...)
+			bindingHasUsers := len(o.Users) > 0 && currBinding.Users.HasAny(o.Users...)
+			if !bindingHasGroups && !bindingHasUsers {
 				continue
 			}
+
+			existingGroups := util.NewStringSet(currBinding.Groups.List()...)
+			existingUsers := util.NewStringSet(currBinding.Users.List()...)
 
 			currBinding.Groups.Delete(o.Groups...)
 			currBinding.Users.Delete(o.Users...)
@@ -109,7 +120,27 @@ func (o *RemoveFromProjectOptions) Run() error {
 			if err != nil {
 				return err
 			}
+
+			roleDisplayName := fmt.Sprintf("%s/%s", currBinding.RoleRef.Namespace, currBinding.RoleRef.Name)
+			if len(currBinding.RoleRef.Namespace) == 0 {
+				roleDisplayName = currBinding.RoleRef.Name
+			}
+			if diff := existingGroups.Difference(currBinding.Groups); len(diff) != 0 {
+				fmt.Fprintf(o.Out, "Removing %s from groups %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
+				groupsRemoved.Insert(diff.List()...)
+			}
+			if diff := existingUsers.Difference(currBinding.Users); len(diff) != 0 {
+				fmt.Fprintf(o.Out, "Removing %s from users %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
+				usersRemoved.Insert(diff.List()...)
+			}
 		}
+	}
+
+	if diff := util.NewStringSet(o.Groups...).Difference(groupsRemoved); len(diff) != 0 {
+		fmt.Fprintf(o.Out, "Groups %v were not bound to roles in project %s.\n", diff.List(), o.BindingNamespace)
+	}
+	if diff := util.NewStringSet(o.Users...).Difference(usersRemoved); len(diff) != 0 {
+		fmt.Fprintf(o.Out, "Users %v were not bound to roles in project %s.\n", diff.List(), o.BindingNamespace)
 	}
 
 	return nil
