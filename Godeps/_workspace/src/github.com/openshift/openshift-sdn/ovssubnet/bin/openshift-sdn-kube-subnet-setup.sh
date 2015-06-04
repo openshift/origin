@@ -62,7 +62,7 @@ function setup() {
     lineno=$(iptables -nvL INPUT --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}')
     iptables -I INPUT $lineno -p udp -m multiport --dports 4789 -m comment --comment "001 vxlan incoming" -j ACCEPT
     iptables -I INPUT $((lineno+1)) -i ${TUN} -m comment --comment "traffic from docker for internet" -j ACCEPT
-    fwd_lineno=$(iptables -nvL FORWARD --line-numbers | grep "reject-with icmp-host-prohibited" tail -n 1 | awk '{print $1}')
+    fwd_lineno=$(iptables -nvL FORWARD --line-numbers | grep "reject-with icmp-host-prohibited" | tail -n 1 | awk '{print $1}')
     iptables -I FORWARD $fwd_lineno -d ${cluster_subnet} -j ACCEPT
     iptables -I FORWARD $fwd_lineno -s ${cluster_subnet} -j ACCEPT
 
@@ -85,6 +85,12 @@ EOF
     fi
     systemctl daemon-reload
     systemctl restart docker.service
+
+    # disable iptables for lbr0
+    # for kernel version 3.18+, module br_netfilter needs to be loaded upfront
+    # for older ones, br_netfilter may not exist, but is covered by bridge (bridge-utils)
+    modprobe br_netfilter || true 
+    sysctl -w net.bridge.bridge-nf-call-iptables=0
 
     # delete the subnet routing entry created because of lbr0
     ip route del ${subnet} dev lbr0 proto kernel scope link src ${subnet_gateway} || true
