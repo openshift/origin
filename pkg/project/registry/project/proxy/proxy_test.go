@@ -74,7 +74,7 @@ func TestCreateInvalidProject(t *testing.T) {
 	storage := NewREST(mockClient.Namespaces(), &mockLister{})
 	_, err := storage.Create(nil, &api.Project{
 		ObjectMeta: kapi.ObjectMeta{
-			Annotations: map[string]string{"displayName": "h\t\ni"},
+			Annotations: map[string]string{"openshift.io/display-name": "h\t\ni"},
 		},
 	})
 	if !errors.IsInvalid(err) {

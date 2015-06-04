@@ -12,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
 )
@@ -74,7 +75,7 @@ func convertProject(project *api.Project) *kapi.Namespace {
 	if namespace.Annotations == nil {
 		namespace.Annotations = map[string]string{}
 	}
-	namespace.Annotations["displayName"] = project.Annotations["displayName"]
+	namespace.Annotations[projectapi.ProjectDisplayName] = project.Annotations[projectapi.ProjectDisplayName]
 	return namespace
 }
 

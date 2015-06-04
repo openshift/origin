@@ -17,8 +17,8 @@ func TestProjectConversion(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "foo",
 			Annotations: map[string]string{
-				"description": "This is a description",
-				"displayName": "hi",
+				"openshift.io/description":  "This is a description",
+				"openshift.io/display-name": "hi",
 			},
 		},
 	}
@@ -27,8 +27,8 @@ func TestProjectConversion(t *testing.T) {
 		ObjectMeta: v1beta3.ObjectMeta{
 			Name: "foo",
 			Annotations: map[string]string{
-				"description": "This is a description",
-				"displayName": "hi",
+				"openshift.io/description":  "This is a description",
+				"openshift.io/display-name": "hi",
 			},
 		},
 	}

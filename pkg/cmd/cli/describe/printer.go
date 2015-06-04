@@ -302,7 +302,7 @@ func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer, withNa
 }
 
 func printProject(project *projectapi.Project, w io.Writer, withNamespace bool) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", project.Name, project.Annotations["displayName"], project.Status.Phase)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", project.Name, project.Annotations[projectapi.ProjectDisplayName], project.Status.Phase)
 	return err
 }
 

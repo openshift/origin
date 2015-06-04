@@ -54,7 +54,7 @@ func (p *ProjectCache) GetNodeSelector(namespace *kapi.Namespace) string {
 	selector := ""
 	found := false
 	if len(namespace.ObjectMeta.Annotations) > 0 {
-		if ns, ok := namespace.ObjectMeta.Annotations[projectapi.ProjectNodeSelectorParam]; ok {
+		if ns, ok := namespace.ObjectMeta.Annotations[projectapi.ProjectNodeSelector]; ok {
 			selector = ns
 			found = true
 		}

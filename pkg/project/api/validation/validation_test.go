@@ -18,8 +18,8 @@ func TestValidateProject(t *testing.T) {
 			project: api.Project{
 				ObjectMeta: kapi.ObjectMeta{
 					Annotations: map[string]string{
-						"description": "This is a description",
-						"displayName": "hi",
+						"openshift.io/description":  "This is a description",
+						"openshift.io/display-name": "hi",
 					},
 				},
 			},
@@ -32,8 +32,8 @@ func TestValidateProject(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "141-.124.$",
 					Annotations: map[string]string{
-						"description": "This is a description",
-						"displayName": "hi",
+						"openshift.io/description":  "This is a description",
+						"openshift.io/display-name": "hi",
 					},
 				},
 			},
@@ -92,8 +92,8 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "foo",
 					Annotations: map[string]string{
-						"description": "This is a description",
-						"displayName": "hi",
+						"openshift.io/description":  "This is a description",
+						"openshift.io/display-name": "hi",
 					},
 				},
 			},
@@ -107,8 +107,8 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						"description": "This is a description",
-						"displayName": "h\t\ni",
+						"openshift.io/description":  "This is a description",
+						"openshift.io/display-name": "h\t\ni",
 					},
 				},
 			},
@@ -122,7 +122,7 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						api.ProjectNodeSelectorParam: "infra=true, env = test",
+						"openshift.io/node-selector": "infra=true, env = test",
 					},
 				},
 			},
@@ -135,7 +135,7 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						api.ProjectNodeSelectorParam: "infra, env = $test",
+						"openshift.io/node-selector": "infra, env = $test",
 					},
 				},
 			},
@@ -155,8 +155,8 @@ func TestValidateProject(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "foo",
 			Annotations: map[string]string{
-				"description": "This is a description",
-				"displayName": "hi",
+				"openshift.io/description":  "This is a description",
+				"openshift.io/display-name": "hi",
 			},
 		},
 	}

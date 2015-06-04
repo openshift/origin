@@ -7,6 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
@@ -26,8 +27,9 @@ func ValidateProject(project *api.Project) fielderrors.ValidationErrorList {
 	if len(project.Namespace) > 0 {
 		result = append(result, fielderrors.NewFieldInvalid("namespace", project.Namespace, "must be the empty-string"))
 	}
-	if !validateNoNewLineOrTab(project.Annotations["displayName"]) {
-		result = append(result, fielderrors.NewFieldInvalid("displayName", project.Annotations["displayName"], "may not contain a new line or tab"))
+	if !validateNoNewLineOrTab(project.Annotations[projectapi.ProjectDisplayName]) {
+		result = append(result, fielderrors.NewFieldInvalid(projectapi.ProjectDisplayName,
+			project.Annotations[projectapi.ProjectDisplayName], "may not contain a new line or tab"))
 	}
 	result = append(result, validateNodeSelector(project)...)
 	return result
@@ -59,9 +61,10 @@ func validateNodeSelector(p *api.Project) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
 	if len(p.Annotations) > 0 {
-		if selector, ok := p.Annotations[api.ProjectNodeSelectorParam]; ok {
+		if selector, ok := p.Annotations[projectapi.ProjectNodeSelector]; ok {
 			if _, err := labelselector.Parse(selector); err != nil {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("nodeSelector", p.Annotations[api.ProjectNodeSelectorParam], "must be a valid label selector"))
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("nodeSelector",
+					p.Annotations[projectapi.ProjectNodeSelector], "must be a valid label selector"))
 			}
 		}
 	}
