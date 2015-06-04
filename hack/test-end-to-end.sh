@@ -36,6 +36,7 @@ fi
 
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
+TEST_MORE="${TEST_MORE:-true}"
 
 if [[ -z "${BASETMPDIR-}" ]]; then
 	TMPDIR="${TMPDIR:-"/tmp"}"
@@ -362,6 +363,16 @@ osc exec -p ${registry_pod} whoami | grep root
 echo "[INFO] Validating port-forward"
 osc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
 wait_for_url_timed "http://localhost:5001/healthz" "[INFO] Docker registry says: " $((10*TIME_SEC))
+
+# Additional e2e tests can be found in hack/more-end-to-end-tests
+if [[ "$TEST_MORE" == "true" ]]; then
+    echo "[INFO] Running more e2e tests..."
+    for i in ${OS_ROOT}/hack/more-end-to-end-tests/*
+    do
+        source $i
+    done
+fi
+
 
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then
