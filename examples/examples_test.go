@@ -4,10 +4,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
+	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/golang/glog"
@@ -89,7 +90,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"test-deployment-config":    &deployapi.DeploymentConfig{},
 			"test-image":                &imageapi.Image{},
 			"test-image-stream":         &imageapi.ImageStream{},
-			"test-image-stream-mapping": &imageapi.ImageStreamMapping{},
+			"test-image-stream-mapping": nil, // skip &imageapi.ImageStreamMapping{},
 			"test-route":                &routeapi.Route{},
 			"test-service":              &kapi.Service{},
 			"test-buildcli":             &kapi.List{},
@@ -119,9 +120,9 @@ func TestExampleObjectSchemas(t *testing.T) {
 				t.Errorf("%s did not decode correctly: %v\n%s", path, err, string(data))
 				return
 			}
-			if errors := validation.ValidateObject(expectedType); len(errors) > 0 {
-				t.Errorf("%s did not validate correctly: %v", path, errors)
-			}
+
+			validateObject(path, expectedType, t)
+
 		})
 		if err != nil {
 			t.Errorf("Expected no error, Got %v", err)
@@ -130,6 +131,57 @@ func TestExampleObjectSchemas(t *testing.T) {
 			t.Errorf("Expected %d examples, Got %d", len(expected), tested)
 		}
 	}
+}
+
+func validateObject(path string, obj runtime.Object, t *testing.T) {
+	// if an object requires a namespace server side, be sure that it is filled in for validation
+	if validation.HasObjectMeta(obj) {
+		namespaceRequired, err := validation.GetRequiresNamespace(obj)
+		if err != nil {
+			t.Errorf("Expected no error, Got %v", err)
+			return
+		}
+
+		if namespaceRequired {
+			objectMeta, err := kapi.ObjectMetaFor(obj)
+			if err != nil {
+				t.Errorf("Expected no error, Got %v", err)
+				return
+			}
+
+			objectMeta.Namespace = kapi.NamespaceDefault
+		}
+	}
+
+	switch typedObj := obj.(type) {
+	case *kapi.Pod:
+		if errors := kvalidation.ValidatePod(typedObj); len(errors) > 0 {
+			t.Errorf("%s did not validate correctly: %v", path, errors)
+		}
+
+	case *kapi.Service:
+		if errors := kvalidation.ValidateService(typedObj); len(errors) > 0 {
+			t.Errorf("%s did not validate correctly: %v", path, errors)
+		}
+
+	case *kapi.List, *imageapi.ImageStreamList:
+		if list, err := runtime.ExtractList(typedObj); err == nil {
+			runtime.DecodeList(list, kapi.Scheme)
+			for i := range list {
+				validateObject(path, list[i], t)
+			}
+
+		} else {
+			t.Errorf("Expected no error, Got %v", err)
+
+		}
+
+	default:
+		if errors := validation.Validator.Validate(obj); len(errors) > 0 {
+			t.Errorf("%s with %v did not validate correctly: %v", path, reflect.TypeOf(obj), errors)
+		}
+	}
+
 }
 
 func TestReadme(t *testing.T) {

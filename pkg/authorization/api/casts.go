@@ -22,7 +22,6 @@ func ToPolicy(in *ClusterPolicy) *Policy {
 
 	ret := &Policy{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = ""
 	ret.LastModified = in.LastModified
 	ret.Roles = ToRoleMap(in.Roles)
 
@@ -54,7 +53,6 @@ func ToRole(in *ClusterRole) *Role {
 
 	ret := &Role{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = ""
 	ret.Rules = in.Rules
 
 	return ret
@@ -76,7 +74,6 @@ func ToClusterPolicy(in *Policy) *ClusterPolicy {
 
 	ret := &ClusterPolicy{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = ""
 	ret.LastModified = in.LastModified
 	ret.Roles = ToClusterRoleMap(in.Roles)
 
@@ -108,7 +105,6 @@ func ToClusterRole(in *Role) *ClusterRole {
 
 	ret := &ClusterRole{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = ""
 	ret.Rules = in.Rules
 
 	return ret
@@ -132,7 +128,6 @@ func ToPolicyBinding(in *ClusterPolicyBinding) *PolicyBinding {
 
 	ret := &PolicyBinding{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = ""
 	ret.LastModified = in.LastModified
 	ret.PolicyRef = ToPolicyRef(in.PolicyRef)
 	ret.RoleBindings = ToRoleBindingMap(in.RoleBindings)
@@ -142,7 +137,7 @@ func ToPolicyBinding(in *ClusterPolicyBinding) *PolicyBinding {
 
 func ToPolicyRef(in kapi.ObjectReference) kapi.ObjectReference {
 	ret := kapi.ObjectReference{}
-	ret.Namespace = ""
+
 	ret.Name = in.Name
 	return ret
 }
@@ -172,7 +167,6 @@ func ToRoleBinding(in *ClusterRoleBinding) *RoleBinding {
 
 	ret := &RoleBinding{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = ""
 	ret.Users = in.Users
 	ret.Groups = in.Groups
 	ret.RoleRef = ToRoleRef(in.RoleRef)
@@ -181,7 +175,7 @@ func ToRoleBinding(in *ClusterRoleBinding) *RoleBinding {
 
 func ToRoleRef(in kapi.ObjectReference) kapi.ObjectReference {
 	ret := kapi.ObjectReference{}
-	ret.Namespace = ""
+
 	ret.Name = in.Name
 	return ret
 }
@@ -202,7 +196,6 @@ func ToClusterPolicyBinding(in *PolicyBinding) *ClusterPolicyBinding {
 
 	ret := &ClusterPolicyBinding{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = ""
 	ret.LastModified = in.LastModified
 	ret.PolicyRef = ToClusterPolicyRef(in.PolicyRef)
 	ret.RoleBindings = ToClusterRoleBindingMap(in.RoleBindings)
@@ -212,7 +205,7 @@ func ToClusterPolicyBinding(in *PolicyBinding) *ClusterPolicyBinding {
 
 func ToClusterPolicyRef(in kapi.ObjectReference) kapi.ObjectReference {
 	ret := kapi.ObjectReference{}
-	ret.Namespace = ""
+
 	ret.Name = in.Name
 	return ret
 }
@@ -242,7 +235,6 @@ func ToClusterRoleBinding(in *RoleBinding) *ClusterRoleBinding {
 
 	ret := &ClusterRoleBinding{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Namespace = ""
 	ret.Users = in.Users
 	ret.Groups = in.Groups
 	ret.RoleRef = ToClusterRoleRef(in.RoleRef)
@@ -252,7 +244,7 @@ func ToClusterRoleBinding(in *RoleBinding) *ClusterRoleBinding {
 
 func ToClusterRoleRef(in kapi.ObjectReference) kapi.ObjectReference {
 	ret := kapi.ObjectReference{}
-	ret.Namespace = ""
+
 	ret.Name = in.Name
 	return ret
 }

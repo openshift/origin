@@ -117,9 +117,6 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 	if !ok {
 		return nil, false, fmt.Errorf("not a route: %#v", obj)
 	}
-	if len(route.Name) == 0 {
-		return nil, false, fmt.Errorf("name is unspecified: %#v", route)
-	}
 	if !kapi.ValidNamespace(ctx, &route.ObjectMeta) {
 		return nil, false, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
 	}

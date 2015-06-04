@@ -203,14 +203,14 @@ func TestValidateImageStream(t *testing.T) {
 			namespace: "foo",
 			name:      "foo/bar",
 			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldInvalid("metadata.name", "foo/bar", `may not contain "/"`),
+				fielderrors.NewFieldInvalid("metadata.name", "foo/bar", `name may not contain "/"`),
 			},
 		},
 		"no percent in Name": {
 			namespace: "foo",
 			name:      "foo%%bar",
 			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldInvalid("metadata.name", "foo%%bar", `may not contain "%"`),
+				fielderrors.NewFieldInvalid("metadata.name", "foo%%bar", `name may not contain "%"`),
 			},
 		},
 		"other invalid name": {

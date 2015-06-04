@@ -64,7 +64,7 @@ import (
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
-	deployrollback "github.com/openshift/origin/pkg/deploy/rollback"
+	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	"github.com/openshift/origin/pkg/image/registry/image"

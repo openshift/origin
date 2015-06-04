@@ -17,25 +17,15 @@ import (
 //       upstream and fix when it goes in.
 
 func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) fielderrors.ValidationErrorList {
-	errs := fielderrors.ValidationErrorList{}
-	if len(config.Name) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("name"))
-	} else if !util.IsDNS1123Subdomain(config.Name) {
-		errs = append(errs, fielderrors.NewFieldInvalid("name", config.Name, "name must be a valid subdomain"))
-	}
-	if len(config.Namespace) == 0 {
-		errs = append(errs, fielderrors.NewFieldRequired("namespace"))
-	} else if !util.IsDNS1123Subdomain(config.Namespace) {
-		errs = append(errs, fielderrors.NewFieldInvalid("namespace", config.Namespace, "namespace must be a valid subdomain"))
-	}
-	errs = append(errs, validation.ValidateLabels(config.Labels, "labels")...)
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
 
 	for i := range config.Triggers {
-		errs = append(errs, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
+		allErrs = append(allErrs, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
 	}
-	errs = append(errs, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
-	errs = append(errs, validation.ValidateReplicationControllerSpec(&config.Template.ControllerTemplate).Prefix("template.controllerTemplate")...)
-	return errs
+	allErrs = append(allErrs, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
+	allErrs = append(allErrs, validation.ValidateReplicationControllerSpec(&config.Template.ControllerTemplate).Prefix("template.controllerTemplate")...)
+	return allErrs
 }
 
 func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) fielderrors.ValidationErrorList {

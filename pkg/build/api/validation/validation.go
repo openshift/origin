@@ -3,11 +3,12 @@ package validation
 import (
 	"net/url"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	oapi "github.com/openshift/origin/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -15,17 +16,8 @@ import (
 // ValidateBuild tests required fields for a Build.
 func ValidateBuild(build *buildapi.Build) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if len(build.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
-	} else if !util.IsDNS1123Subdomain(build.Name) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", build.Name, "name must be a valid subdomain"))
-	}
-	if len(build.Namespace) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("namespace"))
-	} else if !util.IsDNS1123Subdomain(build.Namespace) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", build.Namespace, "namespace must be a valid subdomain"))
-	}
-	allErrs = append(allErrs, validation.ValidateLabels(build.Labels, "labels")...)
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
+
 	allErrs = append(allErrs, validateBuildParameters(&build.Parameters).Prefix("parameters")...)
 	return allErrs
 }
@@ -33,17 +25,8 @@ func ValidateBuild(build *buildapi.Build) fielderrors.ValidationErrorList {
 // ValidateBuildConfig tests required fields for a Build.
 func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if len(config.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
-	} else if !util.IsDNS1123Subdomain(config.Name) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", config.Name, "name must be a valid subdomain"))
-	}
-	if len(config.Namespace) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("namespace"))
-	} else if !util.IsDNS1123Subdomain(config.Namespace) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", config.Namespace, "namespace must be a valid subdomain"))
-	}
-	allErrs = append(allErrs, validation.ValidateLabels(config.Labels, "labels")...)
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
+
 	// allow only one ImageChangeTrigger for now
 	ictCount := 0
 	for i, trg := range config.Triggers {
@@ -63,9 +46,8 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErr
 // ValidateBuildRequest validates a BuildRequest object
 func ValidateBuildRequest(request *buildapi.BuildRequest) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if len(request.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
-	}
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&request.ObjectMeta, true, oapi.MinimalNameRequirements).Prefix("metadata")...)
+
 	if request.Revision != nil {
 		allErrs = append(allErrs, validateRevision(request.Revision).Prefix("revision")...)
 	}
