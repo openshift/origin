@@ -2,6 +2,7 @@ package prune
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/prune"
@@ -49,10 +51,10 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) > 0 {
-				glog.Fatalf("No arguments are allowed to this command")
+				glog.Fatal("No arguments are allowed to this command")
 			}
 
-			osClient, kClient, err := f.Clients()
+			osClient, kClient, registryClient, err := getClients(f, cfg)
 			cmdutil.CheckErr(err)
 
 			allImages, err := osClient.Images().List(labels.Everything(), fields.Everything())
@@ -136,30 +138,6 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 				manifestPruneFunc    prune.ManifestPruneFunc
 			)
 
-			// get the client config so we can get the TLS config
-			clientConfig, err := f.OpenShiftClientConfig.ClientConfig()
-			cmdutil.CheckErr(err)
-
-			tlsConfig, err := kclient.TLSConfigFor(clientConfig)
-			cmdutil.CheckErr(err)
-
-			// if the user specified a CA on the command line, add it to the
-			// client config's CA roots
-			if len(cfg.CABundle) > 0 {
-				data, err := ioutil.ReadFile(cfg.CABundle)
-				cmdutil.CheckErr(err)
-				if tlsConfig.RootCAs == nil {
-					tlsConfig.RootCAs = x509.NewCertPool()
-				}
-				tlsConfig.RootCAs.AppendCertsFromPEM(data)
-			}
-
-			registryClient := &http.Client{
-				Transport: &http.Transport{
-					TLSClientConfig: tlsConfig,
-				},
-			}
-
 			switch cfg.DryRun {
 			case false:
 				imagePruneFunc = func(image *imageapi.Image) error {
@@ -199,4 +177,82 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	cmd.Flags().StringVar(&cfg.CABundle, "certificate-authority", cfg.CABundle, "The path to a certificate authority bundle to use when communicating with the OpenShift-managed registries. Defaults to the certificate authority data from the current user's config file.")
 
 	return cmd
+}
+
+func getClients(f *clientcmd.Factory, cfg *pruneImagesConfig) (*client.Client, *kclient.Client, *http.Client, error) {
+	clientConfig, err := f.OpenShiftClientConfig.ClientConfig()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	var (
+		token          string
+		osClient       *client.Client
+		kClient        *kclient.Client
+		registryClient *http.Client
+	)
+
+	switch {
+	case len(clientConfig.BearerToken) > 0:
+		osClient, kClient, err = f.Clients()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		token = clientConfig.BearerToken
+	default:
+		err = errors.New("You must use a client config with a token")
+		return nil, nil, nil, err
+	}
+
+	// copy the config
+	registryClientConfig := *clientConfig
+
+	// zero out everything we don't want to use
+	registryClientConfig.BearerToken = ""
+	registryClientConfig.CertFile = ""
+	registryClientConfig.CertData = []byte{}
+	registryClientConfig.KeyFile = ""
+	registryClientConfig.KeyData = []byte{}
+
+	// we have to set a username to something for the Docker login
+	// but it's not actually used
+	registryClientConfig.Username = "unused"
+
+	// set the "password" to be the token
+	registryClientConfig.Password = token
+
+	tlsConfig, err := kclient.TLSConfigFor(&registryClientConfig)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// if the user specified a CA on the command line, add it to the
+	// client config's CA roots
+	if len(cfg.CABundle) > 0 {
+		data, err := ioutil.ReadFile(cfg.CABundle)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		if tlsConfig.RootCAs == nil {
+			tlsConfig.RootCAs = x509.NewCertPool()
+		}
+
+		tlsConfig.RootCAs.AppendCertsFromPEM(data)
+	}
+
+	transport := http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+
+	wrappedTransport, err := kclient.HTTPWrappersForConfig(&registryClientConfig, &transport)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	registryClient = &http.Client{
+		Transport: wrappedTransport,
+	}
+
+	return osClient, kClient, registryClient, nil
 }
