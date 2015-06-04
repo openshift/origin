@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"strings"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
@@ -102,7 +102,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 
 		supportsTCP := false
 		for _, port := range svc.Spec.Ports {
-			if strings.ToUpper(string(port.Protocol)) == "TCP" {
+			if port.Protocol == kapi.ProtocolTCP {
 				supportsTCP = true
 				break
 			}
