@@ -193,7 +193,7 @@ os::build::setup_env() {
   os::build::create_gopath_tree
 
   if [[ -z "$(which go)" ]]; then
-    echo <<EOF
+    cat <<EOF
 
 Can't find 'go' in PATH, please fix and retry.
 See http://golang.org/doc/install for installation instructions.
@@ -209,7 +209,7 @@ EOF
     local go_version
     go_version=($(go version))
     if [[ "${go_version[2]}" < "go1.4" ]]; then
-      echo <<EOF
+      cat <<EOF
 
 Detected go version: ${go_version[*]}.
 OpenShift and Kubernetes requires go version 1.4 or greater.
