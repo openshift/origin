@@ -3,10 +3,11 @@
   about-title="labels"
   about="Labels are used to organize, group, or select objects and resources, such as pods."
   >
+  <div ng-if="(labels | hashSize) !== 0 || $parent.expand" class="help-block">Each label is applied to each created resource.</div>
   <div ng-show="$parent.expand">
     
     <osc-key-values
-      key-title="Labels"
+      key-title="Name"
       entries="labels"
       key-validator="label"
       value-validator="label"
@@ -19,9 +20,6 @@
     </osc-key-values>
   </div>
   <div ng-hide="$parent.expand">
-    <div ng-if="(labels | hashSize) == 0">
-      <strong>None</strong>
-    </div>
     <osc-key-values
       key-title="Labels"
       entries="labels"
