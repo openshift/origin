@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/GoogleCloudPlatform/kubernetes/cmd/kubelet/app"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -31,7 +30,7 @@ func NewKubeletCommand(name, fullName string, out io.Writer) *cobra.Command {
 			util.InitLogs()
 			defer util.FlushLogs()
 
-			if err := s.Run(pflag.CommandLine.Args()); err != nil {
+			if err := s.Run(nil); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}

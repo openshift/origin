@@ -5,6 +5,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
+type ExtendedArguments map[string][]string
+
 // NodeConfig is the fully specified config starting an OpenShift node
 type NodeConfig struct {
 	v1.TypeMeta `json:",inline"`
@@ -42,6 +44,11 @@ type NodeConfig struct {
 
 	// DockerConfig holds Docker related configuration options.
 	DockerConfig DockerConfig `json:"dockerConfig"`
+
+	// KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's
+	// command line arguments.  These are not migrated or validated, so if you use them they may become invalid.
+	// These values override other settings in NodeConfig which may cause invalid configurations.
+	KubeletArguments ExtendedArguments `json:"kubeletArguments,omitempty"`
 }
 
 // DockerConfig holds Docker related configuration options.
