@@ -51,7 +51,7 @@ var annotationMap = map[string][]string{
 
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
-	return config.Name + "-" + strconv.Itoa(config.LatestVersion)
+	return fmt.Sprintf("%s-%d", config.Name, config.LatestVersion)
 }
 
 // DeployerPodSuffix is the suffix added to pods created from a deployment
@@ -70,6 +70,17 @@ func LabelForDeployment(deployment *api.ReplicationController) string {
 // LabelForDeploymentConfig builds a string identifier for a DeploymentConfig.
 func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
 	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
+}
+
+// ConfigSelector matches all the deployments of the provided DeploymentConfig
+func ConfigSelector(name string, list []api.ReplicationController) []api.ReplicationController {
+	matches := []api.ReplicationController{}
+	for _, rc := range list {
+		if DeploymentConfigNameFor(&rc) == name {
+			matches = append(matches, rc)
+		}
+	}
+	return matches
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned

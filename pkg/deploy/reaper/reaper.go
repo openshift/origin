@@ -7,11 +7,10 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/deploy/api"
-	deploy "github.com/openshift/origin/pkg/deploy/scaler"
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -36,34 +35,24 @@ type DeploymentConfigReaper struct {
 // zero replicas, waits for all of them to get deleted and then deletes both the
 // replication controller and its deployment configuration.
 func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *kapi.DeleteOptions) (string, error) {
-	dc, err := reaper.osc.DeploymentConfigs(namespace).Get(name)
+	if err := reaper.osc.DeploymentConfigs(namespace).Delete(name); err != nil {
+		return "", err
+	}
+	rcList, err := reaper.kc.ReplicationControllers(namespace).List(labels.Everything())
 	if err != nil {
 		return "", err
 	}
-	// Disable dc triggers while reaping
-	dc.Triggers = []api.DeploymentTriggerPolicy{}
-	dc, err = reaper.osc.DeploymentConfigs(namespace).Update(dc)
+	rcReaper, err := kubectl.ReaperFor("ReplicationController", reaper.kc)
 	if err != nil {
 		return "", err
 	}
-	scaler, err := deploy.ScalerFor("DeploymentConfig", reaper.osc, reaper.kc)
-	if err != nil {
-		return "", err
+	// Remove all the deployments of the configuration
+	for _, rc := range util.ConfigSelector(name, rcList.Items) {
+		if _, err = rcReaper.Stop(rc.Namespace, rc.Name, gracePeriod); err != nil {
+			// Better not error out here...
+			glog.Infof("Cannot delete ReplicationController %s/%s: %v", rc.Namespace, rc.Name, err)
+		}
 	}
-	retry := kubectl.NewRetryParams(reaper.pollInterval, reaper.timeout)
-	waitForReplicas := kubectl.NewRetryParams(reaper.pollInterval, reaper.timeout)
-	if err = scaler.Scale(namespace, name, 0, nil, retry, waitForReplicas); err != nil {
-		// The deploymentConfig may not have a replication controller to scale
-		// so we shouldn't error out here
-		glog.V(2).Info(err)
-	}
-	if err = reaper.kc.ReplicationControllers(namespace).Delete(util.LatestDeploymentNameForConfig(dc)); err != nil {
-		// The deploymentConfig may not have a replication controller to delete
-		// so we shouldn't error out here
-		glog.V(2).Info(err)
-	}
-	if err = reaper.osc.DeploymentConfigs(namespace).Delete(name); err != nil {
-		return "", err
-	}
+
 	return fmt.Sprintf("%s stopped", name), nil
 }
