@@ -5,6 +5,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -35,9 +36,22 @@ type DeploymentConfigReaper struct {
 // zero replicas, waits for all of them to get deleted and then deletes both the
 // replication controller and its deployment configuration.
 func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *kapi.DeleteOptions) (string, error) {
-	if err := reaper.osc.DeploymentConfigs(namespace).Delete(name); err != nil {
+	// If the config is already deleted, it may still have associated
+	// deployments which didn't get cleaned up during prior calls to Stop. If
+	// the config can't be found, still make an attempt to clean up the
+	// deployments.
+	//
+	// It's important to delete the config first to avoid an undesirable side
+	// effect which can cause the deployment to be re-triggered upon the
+	// config's deletion. See https://github.com/openshift/origin/issues/2721
+	// for more details.
+	err := reaper.osc.DeploymentConfigs(namespace).Delete(name)
+	configNotFound := kerrors.IsNotFound(err)
+	if err != nil && !configNotFound {
 		return "", err
 	}
+
+	// Clean up deployments related to the config.
 	rcList, err := reaper.kc.ReplicationControllers(namespace).List(labels.Everything())
 	if err != nil {
 		return "", err
@@ -46,8 +60,13 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *
 	if err != nil {
 		return "", err
 	}
-	// Remove all the deployments of the configuration
-	for _, rc := range util.ConfigSelector(name, rcList.Items) {
+
+	// If there is neither a config nor any deployments, we can return NotFound.
+	deployments := util.ConfigSelector(name, rcList.Items)
+	if configNotFound && len(deployments) == 0 {
+		return "", kerrors.NewNotFound("DeploymentConfig", name)
+	}
+	for _, rc := range deployments {
 		if _, err = rcReaper.Stop(rc.Namespace, rc.Name, gracePeriod); err != nil {
 			// Better not error out here...
 			glog.Infof("Cannot delete ReplicationController %s/%s: %v", rc.Namespace, rc.Name, err)
