@@ -60,14 +60,9 @@ func TestAddEndpoints(t *testing.T) {
 		if len(su.EndpointTable) != 1 {
 			t.Errorf("Expected endpoint table to contain 1 entry")
 		} else {
-			actualEp, ok := su.EndpointTable[endpoint.ID]
-
-			if !ok {
-				t.Errorf("Endpoint %s was not found", endpoint.ID)
-			} else {
-				if endpoint.IP != actualEp.IP || endpoint.Port != actualEp.Port {
-					t.Errorf("Expected endpoint %v did not match actual endpoint %v", endpoint, actualEp)
-				}
+			actualEp := su.EndpointTable[0]
+			if endpoint.IP != actualEp.IP || endpoint.Port != actualEp.Port {
+				t.Errorf("Expected endpoint %v did not match actual endpoint %v", endpoint, actualEp)
 			}
 		}
 	}

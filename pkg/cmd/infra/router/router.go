@@ -14,6 +14,8 @@ import (
 	"github.com/openshift/origin/pkg/util/proc"
 	"github.com/openshift/origin/pkg/version"
 	templateplugin "github.com/openshift/origin/plugins/router/template"
+
+	ktypes "github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 )
 
 const (
@@ -28,6 +30,7 @@ type templateRouterConfig struct {
 	TemplateFile       string
 	ReloadScript       string
 	DefaultCertificate string
+	RouterService      ktypes.NamespacedName
 }
 
 // NewCommndTemplateRouter provides CLI handler for the template router backend
@@ -44,6 +47,13 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 			defaultCert := util.Env("DEFAULT_CERTIFICATE", "")
 			if len(defaultCert) > 0 {
 				cfg.DefaultCertificate = defaultCert
+			}
+
+			routerSvcNamespace := util.Env("ROUTER_SERVICE_NAMESPACE", "")
+			routerSvcName := util.Env("ROUTER_SERVICE_NAME", "")
+			cfg.RouterService = ktypes.NamespacedName{
+				Namespace: routerSvcNamespace,
+				Name:      routerSvcName,
 			}
 
 			plugin, err := makeTemplatePlugin(cfg)
@@ -76,7 +86,7 @@ func makeTemplatePlugin(cfg *templateRouterConfig) (*templateplugin.TemplatePlug
 		return nil, errors.New("Reload script must be specified")
 	}
 
-	return templateplugin.NewTemplatePlugin(cfg.TemplateFile, cfg.ReloadScript, cfg.DefaultCertificate)
+	return templateplugin.NewTemplatePlugin(cfg.TemplateFile, cfg.ReloadScript, cfg.DefaultCertificate, cfg.RouterService)
 }
 
 // start launches the load balancer.
