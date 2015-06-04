@@ -42,8 +42,8 @@ func openshiftFallback(name string, exact bool) (string, bool) {
 	if name == "openshift.default.svc" {
 		return "kubernetes.default.svc.", true
 	}
-	if name == "openshift.default.endpoints" {
-		return "kubernetes.default.endpoints.", true
+	if name == "_endpoints.openshift.default.svc" {
+		return "_endpoints.kubernetes.default.", true
 	}
 	return "", false
 }
