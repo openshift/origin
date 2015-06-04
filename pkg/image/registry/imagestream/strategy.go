@@ -194,6 +194,8 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 		api.AddTagEventToImageStream(stream, tag, *event)
 	}
 
+	updateTrackingTags(old, stream)
+
 	// use a consistent timestamp on creation
 	if old == nil && !stream.CreationTimestamp.IsZero() {
 		for tag, list := range stream.Status.Tags {
@@ -205,6 +207,38 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 	}
 
 	return errs
+}
+
+// updateTrackingTags keeps tracking tags in sync (only for same-stream tracking).
+func updateTrackingTags(old, stream *api.ImageStream) {
+	for tag, tagRef := range stream.Spec.Tags {
+		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" {
+			continue
+		}
+
+		tagRefStreamName, tagToTrack, err := parseFromReference(stream, tagRef.From)
+		if err != nil {
+			// err is already handled in tagsChanged
+			continue
+		}
+
+		streamRefNamespace := tagRef.From.Namespace
+		if len(streamRefNamespace) == 0 {
+			streamRefNamespace = stream.Namespace
+		}
+		if streamRefNamespace != stream.Namespace || tagRefStreamName != stream.Name {
+			// we only update tracking tags for the current stream
+			continue
+		}
+
+		revision := api.LatestTaggedImage(stream, tagToTrack)
+		if revision == nil {
+			// trying to track a tag that doesn't exist
+			continue
+		}
+
+		api.AddTagEventToImageStream(stream, tag, *revision)
+	}
 }
 
 func tagReferenceToTagEvent(stream *api.ImageStream, tagRef api.TagReference, tagOrID string) (*api.TagEvent, error) {
