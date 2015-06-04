@@ -62,7 +62,7 @@ function setup() {
     lineno=$(iptables -nvL INPUT --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}')
     iptables -I INPUT $lineno -p udp -m multiport --dports 4789 -m comment --comment "001 vxlan incoming" -j ACCEPT
     iptables -I INPUT $((lineno+1)) -i ${TUN} -m comment --comment "traffic from docker for internet" -j ACCEPT
-    fwd_lineno=$(iptables -nvL FORWARD --line-numbers | grep "reject-with icmp-host-prohibited" tail -n 1 | awk '{print $1}')
+    fwd_lineno=$(iptables -nvL FORWARD --line-numbers | grep "reject-with icmp-host-prohibited" | tail -n 1 | awk '{print $1}')
     iptables -I FORWARD $fwd_lineno -d ${cluster_subnet} -j ACCEPT
     iptables -I FORWARD $fwd_lineno -s ${cluster_subnet} -j ACCEPT
 

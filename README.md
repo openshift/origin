@@ -46,7 +46,7 @@ To add a node to the cluster, do the following on the node:
 Back on the master, to finally register the node:
 
 	Create a json file for the new minion resource
-        $ cat <<EOF > mininon-1.json
+        $ cat <<EOF > minion-1.json
 	{
 		"kind":"Minion", 
 		"id":"openshift-minion-1",
