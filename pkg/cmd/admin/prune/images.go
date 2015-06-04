@@ -31,10 +31,11 @@ const imagesLongDesc = `%s %s - prunes images`
 const PruneImagesRecommendedName = "images"
 
 type pruneImagesConfig struct {
-	Confirm            bool
-	KeepYoungerThan    time.Duration
-	TagRevisionsToKeep int
-	CABundle           string
+	Confirm             bool
+	KeepYoungerThan     time.Duration
+	TagRevisionsToKeep  int
+	CABundle            string
+	RegistryUrlOverride string
 }
 
 func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
@@ -164,6 +165,21 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 				}
 				manifestPruneFunc = func(registryURL, repo, manifest string) error {
 					return nil
+				}
+			}
+
+			if len(cfg.RegistryUrlOverride) > 0 {
+				originalLayerPruneFunc := layerPruneFunc
+				layerPruneFunc = func(registryURL, repo, layer string) error {
+					return originalLayerPruneFunc(cfg.RegistryUrlOverride, repo, layer)
+				}
+				originalBlobPruneFunc := blobPruneFunc
+				blobPruneFunc = func(registryURL, blob string) error {
+					return originalBlobPruneFunc(cfg.RegistryUrlOverride, blob)
+				}
+				originalManifestPruneFunc := manifestPruneFunc
+				manifestPruneFunc = func(registryURL, repo, manifest string) error {
+					return originalManifestPruneFunc(cfg.RegistryUrlOverride, repo, manifest)
 				}
 			}
 
