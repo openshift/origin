@@ -108,6 +108,13 @@ function cleanup()
 	echo
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
+		echo "[INFO] Deleting test constructs"
+		osc delete -n test all --all
+		osc delete -n docker all --all
+		osc delete -n custom all --all
+		osc delete -n cache all --all
+		osc delete -n default all --all
+
 		echo "[INFO] Tearing down test"
 		pids="$(jobs -pr)"
 		echo "[INFO] Children: ${pids}"
