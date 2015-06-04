@@ -44,6 +44,7 @@ cp -f "${imagedir}/dockerregistry" images/dockerregistry/bin
 
 # builds an image and tags it two ways - with latest, and with the release tag
 function image {
+  set -x
   echo "--- $1 ---"
   docker build -t $1:latest $2
   docker tag $1:latest $1:${OS_RELEASE_COMMIT}
@@ -56,6 +57,7 @@ image openshift/origin                       images/origin
 image openshift/origin-haproxy-router        images/router/haproxy
 image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived
 image openshift/origin-docker-registry       images/dockerregistry
+image openshift/origin-registry-proxy        images/registryproxy
 # images that depend on openshift/origin
 image openshift/origin-deployer              images/deployer
 image openshift/origin-docker-builder        images/builder/docker/docker-builder
