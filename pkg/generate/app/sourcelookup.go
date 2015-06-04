@@ -184,6 +184,10 @@ type SourceRepositoryEnumerator struct {
 	Tester    dockerfile.Tester
 }
 
+// ErrNoLanguageDetected is the error returned when no language can be detected by all
+// source code detectors.
+var ErrNoLanguageDetected = fmt.Errorf("No language matched the source repository")
+
 // Detect extracts source code information about the provided source repository
 func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, error) {
 	info := &SourceRepositoryInfo{
@@ -208,6 +212,9 @@ func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, e
 			return nil, err
 		}
 		info.Dockerfile = dockerfile
+	}
+	if info.Dockerfile == nil && len(info.Types) == 0 {
+		return nil, ErrNoLanguageDetected
 	}
 	return info, nil
 }
