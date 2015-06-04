@@ -271,7 +271,7 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 }
 
 // AddRoute adds a route for the given id
-func (r *templateRouter) AddRoute(id string, route *routeapi.Route) {
+func (r *templateRouter) AddRoute(id string, route *routeapi.Route) bool {
 	frontend, _ := r.FindServiceUnit(id)
 
 	backendKey := r.routeKey(route)
@@ -323,6 +323,7 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route) {
 	//create or replace
 	frontend.ServiceAliasConfigs[backendKey] = config
 	r.state[id] = frontend
+	return true
 }
 
 // RemoveRoute removes the given route for the given id.
@@ -342,12 +343,13 @@ func (r *templateRouter) RemoveRoute(id string, route *routeapi.Route) {
 }
 
 // AddEndpoints adds new Endpoints for the given id.
-func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
+func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
 	frontend, _ := r.FindServiceUnit(id)
 
 	//only make the change if there is a difference
 	if reflect.DeepEqual(frontend.EndpointTable, endpoints) {
-		return
+		glog.V(4).Infof("Ignoring change for %s, endpoints are the same", id)
+		return false
 	}
 
 	frontend.EndpointTable = endpoints
@@ -357,6 +359,8 @@ func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
 		r.peerEndpoints = frontend.EndpointTable
 		glog.V(4).Infof("Peer endpoints updated to: %#v", r.peerEndpoints)
 	}
+
+	return true
 }
 
 // cleanUpServiceAliasConfig performs any necessary steps to clean up a service alias config before deleting it from

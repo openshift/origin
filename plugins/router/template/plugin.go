@@ -31,13 +31,15 @@ type router interface {
 	// FindServiceUnit finds the service with the given id.
 	FindServiceUnit(id string) (v ServiceUnit, ok bool)
 
-	// AddEndpoints adds new Endpoints for the given id.
-	AddEndpoints(id string, endpoints []Endpoint)
+	// AddEndpoints adds new Endpoints for the given id.Returns true if a change was made
+	// and the state should be stored with Commit().
+	AddEndpoints(id string, endpoints []Endpoint) bool
 	// DeleteEndpoints deletes the endpoints for the frontend with the given id.
 	DeleteEndpoints(id string)
 
-	// AddRoute adds a route for the given id
-	AddRoute(id string, route *routeapi.Route)
+	// AddRoute adds a route for the given id.  Returns true if a change was made
+	// and the state should be stored with Commit().
+	AddRoute(id string, route *routeapi.Route) bool
 	// RemoveRoute removes the given route for the given id.
 	RemoveRoute(id string, route *routeapi.Route)
 
@@ -76,18 +78,18 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 		p.Router.CreateServiceUnit(key)
 	}
 
-	// clear existing endpoints
-	p.Router.DeleteEndpoints(key)
-
 	switch eventType {
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying endpoints for %s", key)
 		routerEndpoints := createRouterEndpoints(endpoints)
 		key := endpointsKey(*endpoints)
-		p.Router.AddEndpoints(key, routerEndpoints)
+		commit := p.Router.AddEndpoints(key, routerEndpoints)
+		if commit {
+			return p.Router.Commit()
+		}
 	}
 
-	return p.Router.Commit()
+	return nil
 }
 
 // HandleRoute processes watch events on the Route resource.
@@ -101,13 +103,16 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 	switch eventType {
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying routes for %s", key)
-		p.Router.AddRoute(key, route)
+		commit := p.Router.AddRoute(key, route)
+		if commit {
+			return p.Router.Commit()
+		}
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting routes for %s", key)
 		p.Router.RemoveRoute(key, route)
+		return p.Router.Commit()
 	}
-
-	return p.Router.Commit()
+	return nil
 }
 
 // routeKey returns the internal router key to use for the given Route.
