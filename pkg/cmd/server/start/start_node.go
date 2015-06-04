@@ -246,11 +246,11 @@ func StartNode(config configapi.NodeConfig) error {
 		return err
 	}
 
+	RunSDNController(config)
 	nodeConfig.EnsureVolumeDir()
 	nodeConfig.EnsureDocker(docker.NewHelper())
 	nodeConfig.RunProxy()
 	nodeConfig.RunKubelet()
-	RunSDNController(config)
 	go daemon.SdNotify("READY=1")
 
 	return nil
