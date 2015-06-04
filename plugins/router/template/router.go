@@ -155,7 +155,7 @@ func (r *templateRouter) writeConfig() error {
 	//write out any certificate files that don't exist
 	for _, serviceUnit := range r.state {
 		for k, cfg := range serviceUnit.ServiceAliasConfigs {
-			err := r.certManager.WriteCertificatesForConfig(&cfg)
+			err := r.writeCertificates(&cfg)
 			if err != nil {
 				glog.Errorf("Error writing certificates for %s: %v", serviceUnit.Name, err)
 				return err
