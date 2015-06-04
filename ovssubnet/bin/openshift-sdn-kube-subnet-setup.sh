@@ -72,9 +72,8 @@ function setup() {
         DOCKER_NETWORK_OPTIONS='-b=lbr0 --mtu=1450'
     fi
 
-    if ! grep -q "^DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'" /etc/sysconfig/docker-network
-    then
-        cat <<EOF > /etc/sysconfig/docker-network
+    mkdir -p /run/openshift-sdn
+    cat <<EOF > /run/openshift-sdn/docker-network
 # This file has been modified by openshift-sdn. Please modify the
 # DOCKER_NETWORK_OPTIONS variable in /etc/sysconfig/openshift-node if this
 # is an integrated install or /etc/sysconfig/openshift-sdn-node if this is a
@@ -82,7 +81,7 @@ function setup() {
 
 DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'
 EOF
-    fi
+
     systemctl daemon-reload
     systemctl restart docker.service
 
