@@ -244,8 +244,10 @@ func TestIsDefaultRegistryMatch(t *testing.T) {
 		{true: "docker.io/foo/bar"},
 		{true: "index.docker.io/foo/bar"},
 		{true: "foo"},
+		{false: ""},
 		{false: "registry.tld/foo/bar"},
 		{false: "registry:5000/foo/bar"},
+		{false: "myhostdocker.io/foo/bar"},
 	}
 	for _, sample := range samples {
 		for expected, imageName := range sample {
