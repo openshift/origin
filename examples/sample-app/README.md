@@ -135,7 +135,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ openshift ex registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ osadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
           docker-registry # the service
           docker-registry # the deployment config
 
@@ -374,7 +374,7 @@ the ip address shown below with the correct one for your environment.
             $ docker pull openshift/origin-haproxy-router
 
             $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
-            $ openshift ex router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+            $ osadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
               router # the service
               router # the deployment config
 

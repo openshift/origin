@@ -324,8 +324,8 @@ osc create -f test/integration/fixtures/test-service.json
 osc delete services frontend
 echo "services: ok"
 
-osc get minions
-echo "minions: ok"
+osc get nodes
+echo "nodes: ok"
 
 osc get images
 osc create -f test/integration/fixtures/test-image.json
@@ -519,16 +519,16 @@ osc create -f examples/hello-openshift/hello-pod.json
 osc delete pods hello-openshift
 echo "manage-node: ok"
 
-openshift admin policy add-role-to-group cluster-admin system:unauthenticated
-openshift admin policy add-role-to-user cluster-admin system:no-user
-openshift admin policy remove-role-from-group cluster-admin system:unauthenticated
-openshift admin policy remove-role-from-user cluster-admin system:no-user
-openshift admin policy remove-group system:unauthenticated
-openshift admin policy remove-user system:no-user
-openshift admin policy add-cluster-role-to-group cluster-admin system:unauthenticated
-openshift admin policy remove-cluster-role-from-group cluster-admin system:unauthenticated
-openshift admin policy add-cluster-role-to-user cluster-admin system:no-user
-openshift admin policy remove-cluster-role-from-user cluster-admin system:no-user
+osadm policy add-role-to-group cluster-admin system:unauthenticated
+osadm policy add-role-to-user cluster-admin system:no-user
+osadm policy remove-role-from-group cluster-admin system:unauthenticated
+osadm policy remove-role-from-user cluster-admin system:no-user
+osadm policy remove-group system:unauthenticated
+osadm policy remove-user system:no-user
+osadm policy add-cluster-role-to-group cluster-admin system:unauthenticated
+osadm policy remove-cluster-role-from-group cluster-admin system:unauthenticated
+osadm policy add-cluster-role-to-user cluster-admin system:no-user
+osadm policy remove-cluster-role-from-user cluster-admin system:no-user
 
 osc policy add-role-to-group cluster-admin system:unauthenticated
 osc policy add-role-to-user cluster-admin system:no-user
@@ -536,7 +536,7 @@ osc policy remove-role-from-group cluster-admin system:unauthenticated
 osc policy remove-role-from-user cluster-admin system:no-user
 osc policy remove-group system:unauthenticated
 osc policy remove-user system:no-user
-echo "ex policy: ok"
+echo "policy: ok"
 
 # Test the commands the UI projects page tells users to run
 # These should match what is described in projects.html
@@ -563,21 +563,21 @@ osc delete project recreated-project
 wait_for_command '! osc get project recreated-project' "${TIME_MIN}"
 osadm new-project recreated-project --admin="createuser2"
 osc describe policybinding ':default' -n recreated-project | grep createuser2
-echo "ex new-project: ok"
+echo "new-project: ok"
 
 # Test running a router
 [ ! "$(osadm router --dry-run | grep 'does not exist')" ]
 [ "$(osadm router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
 osadm router --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(osadm router | grep 'service exists')" ]
-echo "ex router: ok"
+echo "router: ok"
 
 # Test running a registry
 [ ! "$(osadm registry --dry-run | grep 'does not exist')"]
 [ "$(osadm registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
 osadm registry --create --credentials="${OPENSHIFTCONFIG}"
 [ "$(osadm registry | grep 'service exists')" ]
-echo "ex registry: ok"
+echo "registry: ok"
 
 # Test building a dependency tree
 osc process -f examples/sample-app/application-template-stibuild.json -l build=sti | osc create -f -

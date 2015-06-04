@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const cli_long = `OpenShift Client.
+const cliLong = `OpenShift Client.
 
 The OpenShift client exposes commands for managing your applications, as well as lower level
 tools to interact with each component of your system.
@@ -55,7 +55,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Client tools for OpenShift",
-		Long:  fmt.Sprintf(cli_long, fullName),
+		Long:  fmt.Sprintf(cliLong, fullName),
 		Run:   cmdutil.DefaultSubCommandRun(out),
 		BashCompletionFunction: bashCompletionFunc,
 	}
@@ -83,7 +83,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdEdit(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdUpdate(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdDelete(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdLog(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdLogs(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdExec(fullName, f, os.Stdin, out, os.Stderr))
 	cmds.AddCommand(cmd.NewCmdPortForward(fullName, f))
 	cmds.AddCommand(cmd.NewCmdProxy(fullName, f, out))

@@ -105,11 +105,11 @@ osadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
 start_docker_registry() {
   mkdir -p ${BASETMPDIR}/.registry
   echo "[INFO] Creating Router ..."
-  openshift ex router --create --credentials="${OPENSHIFTCONFIG}" \
+  osadm router --create --credentials="${OPENSHIFTCONFIG}" \
     --images='openshift/origin-${component}:latest' &>/dev/null
 
   echo "[INFO] Creating Registry ..."
-  openshift ex registry --create --credentials="${OPENSHIFTCONFIG}" \
+  osadm registry --create --credentials="${OPENSHIFTCONFIG}" \
     --mount-host="${BASETMPDIR}/.registry" \
     --images='openshift/origin-${component}:latest' &>/dev/null
 }
