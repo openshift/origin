@@ -98,9 +98,9 @@ function cleanup()
 
 	echo "[INFO] Dumping build log to ${LOG_DIR}"
 
-	osc get -n test builds --output-version=v1beta1 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >"${LOG_DIR}/stibuild.log"
-	osc get -n docker builds --output-version=v1beta1 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
-	osc get -n custom builds --output-version=v1beta1 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >"${LOG_DIR}/custombuild.log"
+	osc get -n test builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >"${LOG_DIR}/stibuild.log"
+	osc get -n docker builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
+	osc get -n custom builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >"${LOG_DIR}/custombuild.log"
 
 	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
 	set_curl_args 0 1
@@ -149,14 +149,14 @@ function wait_for_app() {
 
 	echo "[INFO] Waiting for database service to start"
 	wait_for_command "osc get -n $1 services | grep database" $((20*TIME_SEC))
-	DB_IP=$(osc get -n $1 --output-version=v1beta1 --template="{{ .portalIP }}" service database)
+	DB_IP=$(osc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service database)
 
 	echo "[INFO] Waiting for frontend pod to start"
 	wait_for_command "osc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
 
 	echo "[INFO] Waiting for frontend service to start"
 	wait_for_command "osc get -n $1 services | grep frontend" $((20*TIME_SEC))
-	FRONTEND_IP=$(osc get -n $1 --output-version=v1beta1 --template="{{ .portalIP }}" service frontend)
+	FRONTEND_IP=$(osc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service frontend)
 
 	echo "[INFO] Waiting for database to start..."
 	wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
@@ -174,7 +174,7 @@ function wait_for_app() {
 function wait_for_build() {
 	echo "[INFO] Waiting for $1 namespace build to complete"
 	wait_for_command "osc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "osc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`osc get -n $1 builds --output-version=v1beta1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	BUILD_ID=`osc get -n $1 builds --output-version=v1beta3 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} finished"
   # TODO: fix
   set +e
@@ -291,7 +291,7 @@ echo "[INFO] Pulled ruby-20-centos7"
 
 echo "[INFO] Waiting for Docker registry pod to start"
 # TODO: simplify when #4702 is fixed upstream
-wait_for_command '[[ "$(osc get endpoints docker-registry --output-version=v1beta1 -t "{{ if .endpoints }}{{ len .endpoints }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_command '[[ "$(osc get endpoints docker-registry --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 # services can end up on any IP.	Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(osc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
@@ -352,20 +352,20 @@ wait_for_app "test"
 #echo "[INFO] Applying Docker application config"
 #osc create -n docker -f "${DOCKER_CONFIG_FILE}"
 #echo "[INFO] Invoking generic web hook to trigger new docker build using curl"
-#curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=docker && sleep 3
+#curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta3/namespaces/docker/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 #wait_for_build "docker"
 #wait_for_app "docker"
 
 #echo "[INFO] Applying Custom application config"
 #osc create -n custom -f "${CUSTOM_CONFIG_FILE}"
 #echo "[INFO] Invoking generic web hook to trigger new custom build using curl"
-#curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic?namespace=custom && sleep 3
+#curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta3/namespaces/custom/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 #wait_for_build "custom"
 #wait_for_app "custom"
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-wait_for_command '[[ "$(osc get endpoints router --output-version=v1beta1 -t "{{ if .endpoints }}{{ len .endpoints }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_command '[[ "$(osc get endpoints router --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
