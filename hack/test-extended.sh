@@ -59,7 +59,10 @@ start_server() {
     SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
   done <<< "${ALL_IP_ADDRESSES}"
 
-  echo "[INFO] Create certificates for the OpenShift master"
+  GO_OUT="${OS_ROOT}/_output/local/go/bin"
+  # set path so OpenShift is available
+  export PATH=$GO_OUT:$PATH
+	echo "[INFO] Create certificates for the OpenShift master"
   env "PATH=${PATH}" openshift admin create-master-certs \
     --overwrite=false \
     --cert-dir="${MASTER_CONFIG_DIR}" \
@@ -144,12 +147,21 @@ wait_for_url "https://${OS_MASTER_ADDR}/api/v1beta1/minions/127.0.0.1" "" 0.25 8
 # Start the Docker registry (172.30.17.101:5000)
 start_docker_registry
 
-wait_for_command '[[ "$(osc get endpoints docker-registry -t "{{ if .endpoints}}{{ len .endpoints }}{{ else }}0{{ end }}" 2>/dev/null || echo "0")" != "0" ]]' $((5*TIME_MIN))
+# TODO: simplify when #4702 is fixed upstream
+wait_for_command '[[ "$(osc get endpoints docker-registry --output-version=v1beta1 -t "{{ if .endpoints }}{{ len .endpoints }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
-REGISTRY_ADDR=$(osc get --output-version=v1beta1 --template="{{ .portalIP }}:{{.port }}" \
-  service docker-registry)
+# services can end up on any IP.        Make sure we get the IP we need for the docker registry
+REGISTRY_ADDR=$(osc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
+
 echo "[INFO] Verifying the docker-registry is up at ${REGISTRY_ADDR}"
-wait_for_url_timed "http://${REGISTRY_ADDR}" "" $((2*TIME_MIN))
+wait_for_url_timed "http://${REGISTRY_ADDR}/v2/" "[INFO] Docker registry says: " $((2*TIME_MIN))
+
+#wait_for_command '[[ "$(osc get endpoints docker-registry -t "{{ if .endpoints}}{{ len .endpoints }}{{ else }}0{{ end }}" 2>/dev/null || echo "0")" != "0" ]]' $((5*TIME_MIN))
+
+#REGISTRY_ADDR=$(osc get --output-version=v1beta1 --template="{{ .portalIP }}:{{.port }}" \
+#  service docker-registry)
+#echo "[INFO] Verifying the docker-registry is up at ${REGISTRY_ADDR}"
+#wait_for_url_timed "http://${REGISTRY_ADDR}" "" $((2*TIME_MIN))
 
 # TODO: We need to pre-push the images that we use for builds to avoid getting
 #       "409 - Image already exists" during the 'push' when the Build finishes.
