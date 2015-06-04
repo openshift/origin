@@ -8,8 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/admin"
-	"github.com/openshift/origin/pkg/cmd/admin/registry"
-	"github.com/openshift/origin/pkg/cmd/admin/router"
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
@@ -153,8 +151,6 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 
 	experimental.AddCommand(tokens.NewCmdTokens(tokens.TokenRecommendedCommandName, fullName+" "+tokens.TokenRecommendedCommandName, f, out))
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
-	experimental.AddCommand(router.NewCmdRouter(f, fullName, "router", out))
-	experimental.AddCommand(registry.NewCmdRegistry(f, fullName, "registry", out))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
 	experimental.AddCommand(bundlesecret.NewCmdBundleSecret(f, fullName, "bundle-secret", out))
 	experimental.AddCommand(cmd.NewCmdOptions(out))
