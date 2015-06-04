@@ -86,6 +86,12 @@ EOF
     systemctl daemon-reload
     systemctl restart docker.service
 
+    # disable iptables for lbr0
+    # for kernel version 3.18+, module br_netfilter needs to be loaded upfront
+    # for older ones, br_netfilter may not exist, but is covered by bridge (bridge-utils)
+    modprobe br_netfilter || true 
+    sysctl -w net.bridge.bridge-nf-call-iptables=0
+
     # delete the subnet routing entry created because of lbr0
     ip route del ${subnet} dev lbr0 proto kernel scope link src ${subnet_gateway} || true
 
