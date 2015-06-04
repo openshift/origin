@@ -382,7 +382,7 @@ func MatchImageStream(label labels.Selector, field fields.Selector) generic.Matc
 // ImageStreamToSelectableFields returns a label set that represents the object.
 func ImageStreamToSelectableFields(ir *api.ImageStream) labels.Set {
 	return labels.Set{
-		"name": ir.Name,
+		"metadata.name":                ir.Name,
 		"spec.dockerImageRepository":   ir.Spec.DockerImageRepository,
 		"status.dockerImageRepository": ir.Status.DockerImageRepository,
 	}

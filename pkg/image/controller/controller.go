@@ -13,11 +13,6 @@ import (
 	"github.com/openshift/origin/pkg/image/api"
 )
 
-const dockerImageRepositoryCheckAnnotation = "openshift.io/image.dockerRepositoryCheck"
-
-// insecureRepositoryAnnotation may be set true on an image stream to allow insecure access to pull content.
-const insecureRepositoryAnnotation = "openshift.io/image.insecureRepository"
-
 type ImportController struct {
 	repositories client.ImageStreamsNamespacer
 	mappings     client.ImageStreamMappingsNamespacer
@@ -29,7 +24,7 @@ func needsImport(repo *api.ImageStream) bool {
 	if len(repo.Spec.DockerImageRepository) == 0 {
 		return false
 	}
-	if repo.Annotations != nil && len(repo.Annotations[dockerImageRepositoryCheckAnnotation]) != 0 {
+	if repo.Annotations != nil && len(repo.Annotations[api.DockerImageRepositoryCheckAnnotation]) != 0 {
 		return false
 	}
 	return true
@@ -68,7 +63,7 @@ func (c *ImportController) Next(repo *api.ImageStream) error {
 		return c.done(repo, err.Error(), retryCount)
 	}
 
-	insecure := repo.Annotations != nil && repo.Annotations[insecureRepositoryAnnotation] == "true"
+	insecure := repo.Annotations != nil && repo.Annotations[api.InsecureRepositoryAnnotation] == "true"
 
 	conn, err := c.client.Connect(ref.Registry, insecure)
 	if err != nil {
@@ -194,7 +189,7 @@ func (c *ImportController) done(repo *api.ImageStream, reason string, retry int)
 	if repo.Annotations == nil {
 		repo.Annotations = make(map[string]string)
 	}
-	repo.Annotations[dockerImageRepositoryCheckAnnotation] = reason
+	repo.Annotations[api.DockerImageRepositoryCheckAnnotation] = reason
 	if _, err := c.repositories.ImageStreams(repo.Namespace).Update(repo); err != nil && !errors.IsNotFound(err) {
 		if errors.IsConflict(err) && retry > 0 {
 			if repo, err := c.repositories.ImageStreams(repo.Namespace).Get(repo.Name); err == nil {

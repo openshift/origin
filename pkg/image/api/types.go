@@ -13,7 +13,18 @@ type ImageList struct {
 	Items []Image `json:"items"`
 }
 
-const ManagedByOpenShiftAnnotation = "openshift.io/image.managed"
+const (
+	// ManagedByOpenShiftAnnotation indicates that an image is managed by OpenShift's registry.
+	ManagedByOpenShiftAnnotation = "openshift.io/image.managed"
+
+	// DockerImageRepositoryCheckAnnotation indicates that OpenShift has
+	// attempted to import tag and image information from an external Docker
+	// image repository.
+	DockerImageRepositoryCheckAnnotation = "openshift.io/image.dockerRepositoryCheck"
+
+	// InsecureRepositoryAnnotation may be set true on an image stream to allow insecure access to pull content.
+	InsecureRepositoryAnnotation = "openshift.io/image.insecureRepository"
+)
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
