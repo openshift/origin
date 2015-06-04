@@ -10635,10 +10635,12 @@
       "$ref": "v1.ObjectMeta"
      },
      "spec": {
-      "$ref": "v1.BuildSpec"
+      "$ref": "v1.BuildSpec",
+      "description": "specification of the desired behavior for a build"
      },
      "status": {
-      "$ref": "v1.BuildStatus"
+      "$ref": "v1.BuildStatus",
+      "description": "most recently observed status of a build as populated by the system"
      }
     }
    },
@@ -10661,10 +10663,12 @@
       "$ref": "v1.ObjectMeta"
      },
      "spec": {
-      "$ref": "v1.BuildConfigSpec"
+      "$ref": "v1.BuildConfigSpec",
+      "description": "holds all the input necessary to produce a new build, and the conditions when to trigger them"
      },
      "status": {
-      "$ref": "v1.BuildConfigStatus"
+      "$ref": "v1.BuildConfigStatus",
+      "description": "holds any relevant information about a build config derived by the system"
      }
     }
    },
@@ -10682,7 +10686,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.BuildConfig"
-      }
+      },
+      "description": "list of build configs"
      },
      "kind": {
       "type": "string",
@@ -10701,29 +10706,35 @@
     ],
     "properties": {
      "output": {
-      "$ref": "v1.BuildOutput"
+      "$ref": "v1.BuildOutput",
+      "description": "describes the output of a build that a strategy should produce"
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
       "description": "the desired compute resources the build should have"
      },
      "revision": {
-      "$ref": "v1.SourceRevision"
+      "$ref": "v1.SourceRevision",
+      "description": "specific revision in the source repository"
      },
      "serviceAccount": {
-      "type": "string"
+      "type": "string",
+      "description": "the name of the service account to use to run pods created by the build, pod will be allowed to use secrets referenced by the service account"
      },
      "source": {
-      "$ref": "v1.BuildSource"
+      "$ref": "v1.BuildSource",
+      "description": "describes the source control management system in use"
      },
      "strategy": {
-      "$ref": "v1.BuildStrategy"
+      "$ref": "v1.BuildStrategy",
+      "description": "defines how to perform a build"
      },
      "triggers": {
       "type": "array",
       "items": {
        "$ref": "v1.BuildTriggerPolicy"
-      }
+      },
+      "description": "determines how new builds can be launched from a build config.  if no triggers are defined, a new build can only occur as a result of an explicit client build creation."
      }
     }
    },
@@ -10735,7 +10746,8 @@
     "properties": {
      "lastVersion": {
       "type": "integer",
-      "format": "int32"
+      "format": "int32",
+      "description": "used to inform about number of last triggered build"
      }
     }
    },
@@ -10753,7 +10765,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.Build"
-      }
+      },
+      "description": "list of builds"
      },
      "kind": {
       "type": "string",
@@ -10788,7 +10801,8 @@
       "description": "supported type: dockercfg"
      },
      "to": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "The optional image stream to push the output of this build.  The namespace may be empty, in which case, the image stream will be looked up based on the namespace of the build."
      }
     }
    },
@@ -10807,10 +10821,12 @@
       "$ref": "v1.ObjectMeta"
      },
      "revision": {
-      "$ref": "v1.SourceRevision"
+      "$ref": "v1.SourceRevision",
+      "description": "information from the source for a specific repo snapshot"
      },
      "triggeredByImage": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "image that triggered this build"
      }
     }
    },
@@ -10818,17 +10834,20 @@
     "id": "v1.BuildSource",
     "properties": {
      "contextDir": {
-      "type": "string"
+      "type": "string",
+      "description": "specifies sub-directory where the source code for the application exists, allows for sources to be built from a directory other than the root of a repository"
      },
      "git": {
-      "$ref": "v1.GitBuildSource"
+      "$ref": "v1.GitBuildSource",
+      "description": "optional information about git build source"
      },
      "sourceSecret": {
       "$ref": "v1.LocalObjectReference",
       "description": "supported auth methods are: ssh-privatekey"
      },
      "type": {
-      "type": "string"
+      "type": "string",
+      "description": "type of source control management system"
      }
     }
    },
@@ -10839,23 +10858,28 @@
     ],
     "properties": {
      "output": {
-      "$ref": "v1.BuildOutput"
+      "$ref": "v1.BuildOutput",
+      "description": "describes the output of a build that a strategy should produce"
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
       "description": "the desired compute resources the build should have"
      },
      "revision": {
-      "$ref": "v1.SourceRevision"
+      "$ref": "v1.SourceRevision",
+      "description": "specific revision in the source repository"
      },
      "serviceAccount": {
-      "type": "string"
+      "type": "string",
+      "description": "the name of the service account to use to run pods created by the build, pod will be allowed to use secrets referenced by the service account"
      },
      "source": {
-      "$ref": "v1.BuildSource"
+      "$ref": "v1.BuildSource",
+      "description": "describes the source control management system in use"
      },
      "strategy": {
-      "$ref": "v1.BuildStrategy"
+      "$ref": "v1.BuildStrategy",
+      "description": "defines how to perform a build"
      }
     }
    },
@@ -10866,27 +10890,34 @@
     ],
     "properties": {
      "cancelled": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "describes if a canceling event was triggered for the build"
      },
      "completionTimestamp": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "server time when the pod running this build stopped running"
      },
      "config": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "reference to build config from which this build was derived"
      },
      "duration": {
-      "$ref": "time.Duration"
+      "$ref": "time.Duration",
+      "description": "amount of time the build has been running"
      },
      "message": {
-      "type": "string"
+      "type": "string",
+      "description": "human-readable message indicating details about why the build has this status"
      },
      "phase": {
-      "type": "string"
+      "type": "string",
+      "description": "observed point in the build lifecycle"
      },
      "startTimestamp": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "server time when this build started running in a pod"
      }
     }
    },
@@ -10897,16 +10928,20 @@
     ],
     "properties": {
      "customStrategy": {
-      "$ref": "v1.CustomBuildStrategy"
+      "$ref": "v1.CustomBuildStrategy",
+      "description": "holds parameters to the Custom build strategy"
      },
      "dockerStrategy": {
-      "$ref": "v1.DockerBuildStrategy"
+      "$ref": "v1.DockerBuildStrategy",
+      "description": "holds parameters for the Docker build strategy"
      },
      "sourceStrategy": {
-      "$ref": "v1.SourceBuildStrategy"
+      "$ref": "v1.SourceBuildStrategy",
+      "description": "holds parameters to the Source build strategy"
      },
      "type": {
-      "type": "string"
+      "type": "string",
+      "description": "identifies the type of build strategy"
      }
     }
    },
@@ -10914,16 +10949,20 @@
     "id": "v1.BuildTriggerPolicy",
     "properties": {
      "generic": {
-      "$ref": "v1.WebHookTrigger"
+      "$ref": "v1.WebHookTrigger",
+      "description": "parameters for a Generic webhook type of trigger"
      },
      "github": {
-      "$ref": "v1.WebHookTrigger"
+      "$ref": "v1.WebHookTrigger",
+      "description": "parameters for a GitHub webhook type of trigger"
      },
      "imageChange": {
-      "$ref": "v1.ImageChangeTrigger"
+      "$ref": "v1.ImageChangeTrigger",
+      "description": "parameters for an ImageChange type of trigger"
      },
      "type": {
-      "type": "string"
+      "type": "string",
+      "description": "type of build trigger"
      }
     }
    },
@@ -10993,7 +11032,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.ClusterNetwork"
-      }
+      },
+      "description": "list of cluster networks"
      },
      "kind": {
       "type": "string",
@@ -11021,7 +11061,8 @@
      },
      "lastModified": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "last time any part of the object was created, updated, or deleted"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -11030,7 +11071,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.NamedClusterRole"
-      }
+      },
+      "description": "all the roles held by this policy, mapped by role name"
      }
     }
    },
@@ -11052,19 +11094,22 @@
      },
      "lastModified": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "last time any part of the object was created, updated, or deleted"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
      },
      "policyRef": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "reference to the cluster policy that this cluster policy binding's role bindings may reference"
      },
      "roleBindings": {
       "type": "array",
       "items": {
        "$ref": "v1.NamedClusterRoleBinding"
-      }
+      },
+      "description": "all the role bindings held by this policy, mapped by role name"
      }
     }
    },
@@ -11082,7 +11127,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.ClusterPolicyBinding"
-      }
+      },
+      "description": "list of cluster policy bindings"
      },
      "kind": {
       "type": "string",
@@ -11107,7 +11153,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.ClusterPolicy"
-      }
+      },
+      "description": "list of cluster policies"
      },
      "kind": {
       "type": "string",
@@ -11139,7 +11186,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.PolicyRule"
-      }
+      },
+      "description": "list of policy rules"
      }
     }
    },
@@ -11159,7 +11207,8 @@
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "all the groups directly bound to the role"
      },
      "kind": {
       "type": "string",
@@ -11169,13 +11218,15 @@
       "$ref": "v1.ObjectMeta"
      },
      "roleRef": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "reference to the policy role"
      },
      "userNames": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "all user names directly bound to the role"
      }
     }
    },
@@ -11193,7 +11244,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.ClusterRoleBinding"
-      }
+      },
+      "description": "list of cluster role bindings"
      },
      "kind": {
       "type": "string",
@@ -11218,7 +11270,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.ClusterRole"
-      }
+      },
+      "description": "list of cluster roles"
      },
      "kind": {
       "type": "string",
@@ -11343,6 +11396,30 @@
      }
     }
    },
+   "v1.CustomBuildStrategy": {
+    "id": "v1.CustomBuildStrategy",
+    "properties": {
+     "env": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.EnvVar"
+      },
+      "description": "additional environment variables you want to pass into a builder container"
+     },
+     "exposeDockerSocket": {
+      "type": "boolean",
+      "description": "allow running Docker commands (and build Docker images) from inside the container"
+     },
+     "from": {
+      "$ref": "v1.ObjectReference",
+      "description": "reference to an image stream, image stream tag, or image stream image from which the Docker image should be pulled"
+     },
+     "pullSecret": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "supported type: dockercfg"
+     }
+    }
+   },
    "v1.CustomDeploymentStrategyParams": {
     "id": "v1.CustomDeploymentStrategyParams",
     "properties": {
@@ -11377,7 +11454,8 @@
       "description": "version of the schema the object should have"
      },
      "gracePeriodSeconds": {
-      "$ref": "int64",
+      "type": "integer",
+      "format": "int64",
       "description": "the duration in seconds to wait before deleting this object; defaults to a per object value if not specified; zero means delete immediately"
      },
      "kind": {
@@ -11651,6 +11729,23 @@
      }
     }
    },
+   "v1.DockerBuildStrategy": {
+    "id": "v1.DockerBuildStrategy",
+    "properties": {
+     "from": {
+      "$ref": "v1.ObjectReference",
+      "description": "reference to image stream, image stream tag, or image stream image from which docker image should be pulled, resulting image will be used in the FROM line for the Dockerfile for this build"
+     },
+     "noCache": {
+      "type": "boolean",
+      "description": "if true, indicates that the Docker build must be executed with the --no-cache=true flag"
+     },
+     "pullSecret": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "supported type: dockercfg"
+     }
+    }
+   },
    "v1.EmptyDirVolumeSource": {
     "id": "v1.EmptyDirVolumeSource",
     "properties": {
@@ -11761,6 +11856,19 @@
      }
     }
    },
+   "v1.GitBuildSource": {
+    "id": "v1.GitBuildSource",
+    "properties": {
+     "ref": {
+      "type": "string",
+      "description": "identifies the branch/tag/ref to build"
+     },
+     "uri": {
+      "type": "string",
+      "description": "points to the source that will be built, structure of the source will depend on the type of build to run"
+     }
+    }
+   },
    "v1.GitRepoVolumeSource": {
     "id": "v1.GitRepoVolumeSource",
     "required": [
@@ -11775,6 +11883,27 @@
      "revision": {
       "type": "string",
       "description": "commit hash for the specified revision"
+     }
+    }
+   },
+   "v1.GitSourceRevision": {
+    "id": "v1.GitSourceRevision",
+    "properties": {
+     "author": {
+      "$ref": "v1.SourceControlUser",
+      "description": "author of a specific commit"
+     },
+     "commit": {
+      "type": "string",
+      "description": "hash identifying a specific commit"
+     },
+     "committer": {
+      "$ref": "v1.SourceControlUser",
+      "description": "committer of a specific commit"
+     },
+     "message": {
+      "type": "string",
+      "description": "description of a specific commit"
      }
     }
    },
@@ -11895,7 +12024,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.HostSubnet"
-      }
+      },
+      "description": "list of host subnets"
      },
      "kind": {
       "type": "string",
@@ -11951,7 +12081,8 @@
       "description": "version of the schema the object should have"
      },
      "extra": {
-      "type": "any"
+      "type": "any",
+      "description": "extra information for this identity"
      },
      "kind": {
       "type": "string",
@@ -11961,13 +12092,16 @@
       "$ref": "v1.ObjectMeta"
      },
      "providerName": {
-      "type": "string"
+      "type": "string",
+      "description": "source of identity information"
      },
      "providerUserName": {
-      "type": "string"
+      "type": "string",
+      "description": "uniquely represents this identity in the scope of the provider"
      },
      "user": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "reference to the user this identity is associated with.  both name and uid must be set"
      }
     }
    },
@@ -11985,7 +12119,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.Identity"
-      }
+      },
+      "description": "list of identities"
      },
      "kind": {
       "type": "string",
@@ -12004,16 +12139,20 @@
       "description": "version of the schema the object should have"
      },
      "dockerImageManifest": {
-      "type": "string"
+      "type": "string",
+      "description": "raw JSON of the manifest"
      },
      "dockerImageMetadata": {
-      "type": "string"
+      "type": "string",
+      "description": "metadata about this image"
      },
      "dockerImageMetadataVersion": {
-      "type": "string"
+      "type": "string",
+      "description": "conveys version of the object, if empty defaults to '1.0'"
      },
      "dockerImageReference": {
-      "type": "string"
+      "type": "string",
+      "description": "string that can be used to pull this image"
      },
      "kind": {
       "type": "string",
@@ -12028,7 +12167,8 @@
     "id": "v1.ImageChangeTrigger",
     "properties": {
      "lastTriggeredImageID": {
-      "type": "string"
+      "type": "string",
+      "description": "used internally to save last used image ID for build"
      }
     }
    },
@@ -12075,10 +12215,12 @@
       "$ref": "v1.ObjectMeta"
      },
      "spec": {
-      "$ref": "v1.ImageStreamSpec"
+      "$ref": "v1.ImageStreamSpec",
+      "description": "desired state of the stream"
      },
      "status": {
-      "$ref": "v1.ImageStreamStatus"
+      "$ref": "v1.ImageStreamStatus",
+      "description": "current state of the stream as observed by the system"
      }
     }
    },
@@ -12093,19 +12235,24 @@
       "description": "version of the schema the object should have"
      },
      "dockerImageManifest": {
-      "type": "string"
+      "type": "string",
+      "description": "raw JSON of the manifest"
      },
      "dockerImageMetadata": {
-      "type": "string"
+      "type": "string",
+      "description": "metadata about this image"
      },
      "dockerImageMetadataVersion": {
-      "type": "string"
+      "type": "string",
+      "description": "conveys version of the object, if empty defaults to '1.0'"
      },
      "dockerImageReference": {
-      "type": "string"
+      "type": "string",
+      "description": "string that can be used to pull this image"
      },
      "imageName": {
-      "type": "string"
+      "type": "string",
+      "description": "name of image"
      },
      "kind": {
       "type": "string",
@@ -12130,7 +12277,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.ImageStream"
-      }
+      },
+      "description": "list of image stream objects"
      },
      "kind": {
       "type": "string",
@@ -12153,7 +12301,8 @@
       "description": "version of the schema the object should have"
      },
      "image": {
-      "$ref": "v1.Image"
+      "$ref": "v1.Image",
+      "description": "a Docker image"
      },
      "kind": {
       "type": "string",
@@ -12163,7 +12312,8 @@
       "$ref": "v1.ObjectMeta"
      },
      "tag": {
-      "type": "string"
+      "type": "string",
+      "description": "string value this image can be located with inside the repository"
      }
     }
    },
@@ -12171,13 +12321,15 @@
     "id": "v1.ImageStreamSpec",
     "properties": {
      "dockerImageRepository": {
-      "type": "string"
+      "type": "string",
+      "description": "optional field if specified this stream is backed by a Docker repository on this server"
      },
      "tags": {
       "type": "array",
       "items": {
        "$ref": "v1.NamedTagReference"
-      }
+      },
+      "description": "map arbitrary string values to specific image locators"
      }
     }
    },
@@ -12188,13 +12340,15 @@
     ],
     "properties": {
      "dockerImageRepository": {
-      "type": "string"
+      "type": "string",
+      "description": "represents the effective location this stream may be accessed at, may be empty until the server determines where the repository is located"
      },
      "tags": {
       "type": "array",
       "items": {
        "$ref": "v1.NamedTagEventList"
-      }
+      },
+      "description": "historical record of images associated with each tag, the first entry is the currently tagged image"
      }
     }
    },
@@ -12209,19 +12363,24 @@
       "description": "version of the schema the object should have"
      },
      "dockerImageManifest": {
-      "type": "string"
+      "type": "string",
+      "description": "raw JSON of the manifest"
      },
      "dockerImageMetadata": {
-      "type": "string"
+      "type": "string",
+      "description": "metadata about this image"
      },
      "dockerImageMetadataVersion": {
-      "type": "string"
+      "type": "string",
+      "description": "conveys version of the object, if empty defaults to '1.0'"
      },
      "dockerImageReference": {
-      "type": "string"
+      "type": "string",
+      "description": "string that can be used to pull this image"
      },
      "imageName": {
-      "type": "string"
+      "type": "string",
+      "description": "name of image"
      },
      "kind": {
       "type": "string",
@@ -12312,10 +12471,12 @@
     ],
     "properties": {
      "name": {
-      "type": "string"
+      "type": "string",
+      "description": "name of the cluster role"
      },
      "role": {
-      "$ref": "v1.ClusterRole"
+      "$ref": "v1.ClusterRole",
+      "description": "the cluster role"
      }
     }
    },
@@ -12327,10 +12488,12 @@
     ],
     "properties": {
      "name": {
-      "type": "string"
+      "type": "string",
+      "description": "name of the cluster role binding"
      },
      "roleBinding": {
-      "$ref": "v1.ClusterRoleBinding"
+      "$ref": "v1.ClusterRoleBinding",
+      "description": "the cluster role binding"
      }
     }
    },
@@ -12342,10 +12505,12 @@
     ],
     "properties": {
      "name": {
-      "type": "string"
+      "type": "string",
+      "description": "name of the role"
      },
      "role": {
-      "$ref": "v1.Role"
+      "$ref": "v1.Role",
+      "description": "the role"
      }
     }
    },
@@ -12357,10 +12522,12 @@
     ],
     "properties": {
      "name": {
-      "type": "string"
+      "type": "string",
+      "description": "name of the roleBinding"
      },
      "roleBinding": {
-      "$ref": "v1.RoleBinding"
+      "$ref": "v1.RoleBinding",
+      "description": "the roleBinding"
      }
     }
    },
@@ -12375,10 +12542,12 @@
       "type": "array",
       "items": {
        "$ref": "v1.TagEvent"
-      }
+      },
+      "description": "list of tag events related to the tag"
      },
      "tag": {
-      "type": "string"
+      "type": "string",
+      "description": "the tag"
      }
     }
    },
@@ -12389,13 +12558,16 @@
     ],
     "properties": {
      "annotations": {
-      "type": "any"
+      "type": "any",
+      "description": "annotations associated with images using this tag"
      },
      "from": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "a reference to an image stream tag or image stream this tag should track"
      },
      "name": {
-      "type": "string"
+      "type": "string",
+      "description": "name of tag"
      }
     }
    },
@@ -12407,14 +12579,17 @@
       "description": "version of the schema the object should have"
      },
      "authorizeToken": {
-      "type": "string"
+      "type": "string",
+      "description": "contains the token that authorized this token"
      },
      "clientName": {
-      "type": "string"
+      "type": "string",
+      "description": "references the client that created this token"
      },
      "expiresIn": {
       "type": "integer",
-      "format": "int64"
+      "format": "int64",
+      "description": "is the seconds from creation time before this token expires"
      },
      "kind": {
       "type": "string",
@@ -12424,22 +12599,27 @@
       "$ref": "v1.ObjectMeta"
      },
      "redirectURI": {
-      "type": "string"
+      "type": "string",
+      "description": "redirection URI associated with the token"
      },
      "refreshToken": {
-      "type": "string"
+      "type": "string",
+      "description": "optional value by which this token can be renewed"
      },
      "scopes": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "list of requested scopes"
      },
      "userName": {
-      "type": "string"
+      "type": "string",
+      "description": "user name associated with this token"
      },
      "userUID": {
-      "type": "string"
+      "type": "string",
+      "description": "unique UID associated with this token"
      }
     }
    },
@@ -12457,7 +12637,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.OAuthAccessToken"
-      }
+      },
+      "description": "list of oauth access tokens"
      },
      "kind": {
       "type": "string",
@@ -12476,11 +12657,13 @@
       "description": "version of the schema the object should have"
      },
      "clientName": {
-      "type": "string"
+      "type": "string",
+      "description": "references the client that created this token"
      },
      "expiresIn": {
       "type": "integer",
-      "format": "int64"
+      "format": "int64",
+      "description": "seconds from creation time before this token expires"
      },
      "kind": {
       "type": "string",
@@ -12490,22 +12673,27 @@
       "$ref": "v1.ObjectMeta"
      },
      "redirectURI": {
-      "type": "string"
+      "type": "string",
+      "description": "redirection URI associated with the token"
      },
      "scopes": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "list of requested scopes"
      },
      "state": {
-      "type": "string"
+      "type": "string",
+      "description": "state data from request"
      },
      "userName": {
-      "type": "string"
+      "type": "string",
+      "description": "user name associated with this token"
      },
      "userUID": {
-      "type": "string"
+      "type": "string",
+      "description": "unique UID associated with this token.  userUID and userName must both match for this token to be valid"
      }
     }
    },
@@ -12523,7 +12711,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.OAuthAuthorizeToken"
-      }
+      },
+      "description": "list of oauth authorization tokens"
      },
      "kind": {
       "type": "string",
@@ -12552,13 +12741,16 @@
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "valid redirection URIs associated with a client"
      },
      "respondWithChallenges": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects"
      },
      "secret": {
-      "type": "string"
+      "type": "string",
+      "description": "unique secret associated with a client"
      }
     }
    },
@@ -12570,7 +12762,8 @@
       "description": "version of the schema the object should have"
      },
      "clientName": {
-      "type": "string"
+      "type": "string",
+      "description": "references the client that created this authorization"
      },
      "kind": {
       "type": "string",
@@ -12583,13 +12776,16 @@
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "list of granted scopes"
      },
      "userName": {
-      "type": "string"
+      "type": "string",
+      "description": "user name that authorized this client"
      },
      "userUID": {
-      "type": "string"
+      "type": "string",
+      "description": "unique UID associated with this authorization. userUID and userName must both match for this authorization to be valid"
      }
     }
    },
@@ -12607,7 +12803,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.OAuthClientAuthorization"
-      }
+      },
+      "description": "list of oauth client authorizations"
      },
      "kind": {
       "type": "string",
@@ -12632,7 +12829,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.OAuthClient"
-      }
+      },
+      "description": "list of oauth clients"
      },
      "kind": {
       "type": "string",
@@ -12746,19 +12944,24 @@
     ],
     "properties": {
      "description": {
-      "type": "string"
+      "type": "string",
+      "description": "optional: describes the parameter"
      },
      "from": {
-      "type": "string"
+      "type": "string",
+      "description": "input value for the generator"
      },
      "generate": {
-      "type": "string"
+      "type": "string",
+      "description": "optional: generate specifies the generator to be used to generate random string from an input value specified by the from field.  the result string is stored in the value field. if not specified, the value field is untouched"
      },
      "name": {
-      "type": "string"
+      "type": "string",
+      "description": "name of the parameter"
      },
      "value": {
-      "type": "string"
+      "type": "string",
+      "description": "optional: holds the parameter data.  if specified, the generator is ignored.  the value replaces all occurrences of the parameter ${Name} expression during template to config transformation"
      }
     }
    },
@@ -12782,7 +12985,8 @@
     ],
     "properties": {
      "activeDeadlineSeconds": {
-      "$ref": "int64"
+      "type": "integer",
+      "format": "int64"
      },
      "containers": {
       "type": "array",
@@ -12823,7 +13027,8 @@
       "description": "name of the ServiceAccount to use to run this pod"
      },
      "terminationGracePeriodSeconds": {
-      "$ref": "int64",
+      "type": "integer",
+      "format": "int64",
       "description": "optional duration in seconds the pod needs to terminate gracefully; may be decreased in delete request; value must be non-negative integer; the value zero indicates delete immediately; if this value is not set, the default grace period will be used instead; the grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal; set this value longer than the expected cleanup time for your process"
      },
      "volumes": {
@@ -12865,7 +13070,8 @@
      },
      "lastModified": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "last time that any part of the policy was created, updated, or deleted"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -12874,7 +13080,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.NamedRole"
-      }
+      },
+      "description": "roles held by this policy"
      }
     }
    },
@@ -12896,19 +13103,22 @@
      },
      "lastModified": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "last time that any part of the object was created, updated, or deleted"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
      },
      "policyRef": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "reference to the policy that contains all the Roles that this object's roleBindings may reference"
      },
      "roleBindings": {
       "type": "array",
       "items": {
        "$ref": "v1.NamedRoleBinding"
-      }
+      },
+      "description": "all roleBindings held by this policyBinding"
      }
     }
    },
@@ -12926,7 +13136,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.PolicyBinding"
-      }
+      },
+      "description": "list of policy bindings"
      },
      "kind": {
       "type": "string",
@@ -12951,7 +13162,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.Policy"
-      }
+      },
+      "description": "list of policies"
      },
      "kind": {
       "type": "string",
@@ -12970,37 +13182,36 @@
     ],
     "properties": {
      "attributeRestrictions": {
-      "type": "string"
+      "type": "string",
+      "description": "vary depending on what the authorizer supports.  If the authorizer does not recognize how to handle the specified value, it should report an error."
      },
      "nonResourceURLs": {
       "type": "array",
       "items": {
        "type": "string"
-      }
-     },
-     "resourceKinds": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
+      },
+      "description": "set of partial urls that a user should have access to. *s are allowed, but only as the full, final step in the path."
      },
      "resourceNames": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "optional white list of names that the rule applies to.  An empty set means that everything is allowed."
      },
      "resources": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "list of resources this rule applies to.  * represents all resources."
      },
      "verbs": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "list of verbs that apply to ALL the resourceKinds and attributeRestrictions contained in this rule.  The verb * represents all kinds."
      }
     }
    },
@@ -13069,7 +13280,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.Project"
-      }
+      },
+      "description": "list of projects"
      },
      "kind": {
       "type": "string",
@@ -13087,8 +13299,13 @@
       "type": "string",
       "description": "version of the schema the object should have"
      },
+     "description": {
+      "type": "string",
+      "description": "description to apply to a proejct"
+     },
      "displayName": {
-      "type": "string"
+      "type": "string",
+      "description": "display name to apply to a project"
      },
      "kind": {
       "type": "string",
@@ -13193,20 +13410,24 @@
       "description": "version of the schema the object should have"
      },
      "content": {
-      "type": "string"
+      "type": "string",
+      "description": "actual content of the request for a create or update"
      },
      "kind": {
       "type": "string",
       "description": "kind of object, in CamelCase; cannot be updated"
      },
      "resource": {
-      "type": "string"
+      "type": "string",
+      "description": "one of the existing resource types"
      },
      "resourceName": {
-      "type": "string"
+      "type": "string",
+      "description": "name of the resource being requested for a get or delete operation"
      },
      "verb": {
-      "type": "string"
+      "type": "string",
+      "description": "one of get, list, watch, create, update, delete"
      }
     }
    },
@@ -13244,7 +13465,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.PolicyRule"
-      }
+      },
+      "description": "all the rules for this role"
      }
     }
    },
@@ -13264,7 +13486,8 @@
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "all the groups directly bound to the role"
      },
      "kind": {
       "type": "string",
@@ -13274,13 +13497,15 @@
       "$ref": "v1.ObjectMeta"
      },
      "roleRef": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "a reference to a role"
      },
      "userNames": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "all the usernames directly bound to the role"
      }
     }
    },
@@ -13298,7 +13523,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.RoleBinding"
-      }
+      },
+      "description": "list of role bindings"
      },
      "kind": {
       "type": "string",
@@ -13323,7 +13549,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.Role"
-      }
+      },
+      "description": "list of roles"
      },
      "kind": {
       "type": "string",
@@ -13338,7 +13565,8 @@
     "id": "v1.RollingDeploymentStrategyParams",
     "properties": {
      "intervalSeconds": {
-      "$ref": "int64",
+      "type": "integer",
+      "format": "int64",
       "description": "the time to wait between polling deployment status after update"
      },
      "post": {
@@ -13350,11 +13578,13 @@
       "description": "a hook executed before the strategy starts the deployment"
      },
      "timeoutSeconds": {
-      "$ref": "int64",
+      "type": "integer",
+      "format": "int64",
       "description": "the time to wait for updates before giving up"
      },
      "updatePeriodSeconds": {
-      "$ref": "int64",
+      "type": "integer",
+      "format": "int64",
       "description": "the time to wait between individual pod updates"
      }
     }
@@ -13378,10 +13608,12 @@
       "$ref": "v1.ObjectMeta"
      },
      "spec": {
-      "$ref": "v1.RouteSpec"
+      "$ref": "v1.RouteSpec",
+      "description": "desired state of the route"
      },
      "status": {
-      "$ref": "v1.RouteStatus"
+      "$ref": "v1.RouteStatus",
+      "description": "current state of the route"
      }
     }
    },
@@ -13393,16 +13625,20 @@
     ],
     "properties": {
      "host": {
-      "type": "string"
+      "type": "string",
+      "description": "optional: alias/dns that points to the service, can be host or host:port"
      },
      "path": {
-      "type": "string"
+      "type": "string",
+      "description": "optional: path that the router watches to route traffic to the service"
      },
      "tls": {
-      "$ref": "v1.TLSConfig"
+      "$ref": "v1.TLSConfig",
+      "description": "provides the ability to configure certificates and termination for the route"
      },
      "to": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "an object the route points to.  only the service kind is allowed, and it will be defaulted to a service."
      }
     }
    },
@@ -13451,11 +13687,12 @@
       "description": "the linux capabilites that should be added or removed"
      },
      "privileged": {
-      "$ref": "bool",
+      "type": "boolean",
       "description": "run the container in privileged mode"
      },
      "runAsUser": {
-      "$ref": "int64",
+      "type": "integer",
+      "format": "int64",
       "description": "the user id that runs the first process in the container"
      },
      "seLinuxOptions": {
@@ -13464,14 +13701,57 @@
      }
     }
    },
+   "v1.SourceBuildStrategy": {
+    "id": "v1.SourceBuildStrategy",
+    "properties": {
+     "env": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.EnvVar"
+      },
+      "description": "additional environment variables you want to pass into a builder container"
+     },
+     "from": {
+      "$ref": "v1.ObjectReference",
+      "description": "reference to an image stream, image stream tag, or image stream image from which the Docker image should be pulled"
+     },
+     "incremental": {
+      "type": "boolean",
+      "description": "forces the source build to do incremental builds if true"
+     },
+     "pullSecret": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "supported type: dockercfg"
+     },
+     "scripts": {
+      "type": "string",
+      "description": "location of the source scripts"
+     }
+    }
+   },
+   "v1.SourceControlUser": {
+    "id": "v1.SourceControlUser",
+    "properties": {
+     "email": {
+      "type": "string",
+      "description": "e-mail of the source control user"
+     },
+     "name": {
+      "type": "string",
+      "description": "name of the source control user"
+     }
+    }
+   },
    "v1.SourceRevision": {
     "id": "v1.SourceRevision",
     "properties": {
      "git": {
-      "$ref": "v1.GitSourceRevision"
+      "$ref": "v1.GitSourceRevision",
+      "description": "information about git-based build source"
      },
      "type": {
-      "type": "string"
+      "type": "string",
+      "description": "type of the build source"
      }
     }
    },
@@ -13570,29 +13850,35 @@
       "description": "version of the schema the object should have"
      },
      "content": {
-      "type": "string"
+      "type": "string",
+      "description": "actual content of the request for create and update"
      },
      "groups": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "optional, list of groups to which the user belongs"
      },
      "kind": {
       "type": "string",
       "description": "kind of object, in CamelCase; cannot be updated"
      },
      "resource": {
-      "type": "string"
+      "type": "string",
+      "description": "one of the existing resource types"
      },
      "resourceName": {
-      "type": "string"
+      "type": "string",
+      "description": "name of the resource being requested for a get or delete"
      },
      "user": {
-      "type": "string"
+      "type": "string",
+      "description": "optional, if both user and groups are empty, the current authenticated user is used"
      },
      "verb": {
-      "type": "string"
+      "type": "string",
+      "description": "one of get, list, watch, create, update, delete"
      }
     }
    },
@@ -13612,19 +13898,24 @@
     "id": "v1.TLSConfig",
     "properties": {
      "caCertificate": {
-      "type": "string"
+      "type": "string",
+      "description": "provides the cert authority certificate contents"
      },
      "certificate": {
-      "type": "string"
+      "type": "string",
+      "description": "provides certificate contents"
      },
      "destinationCACertificate": {
-      "type": "string"
+      "type": "string",
+      "description": "provides the contents of the ca certificate of the final destination.  When using re-encrypt termination this file should be provided in order to have routers use it for health checks on the secure connection"
      },
      "key": {
-      "type": "string"
+      "type": "string",
+      "description": "provides key file contents"
      },
      "termination": {
-      "type": "string"
+      "type": "string",
+      "description": "indicates termination type.  if not set, any termination config will be ignored"
      }
     }
    },
@@ -13638,13 +13929,16 @@
     "properties": {
      "created": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "when the event was created"
      },
      "dockerImageReference": {
-      "type": "string"
+      "type": "string",
+      "description": "the string that can be used to pull this image"
      },
      "image": {
-      "type": "string"
+      "type": "string",
+      "description": "the image"
      }
     }
    },
@@ -13663,7 +13957,8 @@
       "description": "kind of object, in CamelCase; cannot be updated"
      },
      "labels": {
-      "type": "any"
+      "type": "any",
+      "description": "optional: list of lables that are applied to every object during the template to config transformation"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -13672,13 +13967,15 @@
       "type": "array",
       "items": {
        "$ref": "runtime.RawExtension"
-      }
+      },
+      "description": "list of objects to include in the template"
      },
      "parameters": {
       "type": "array",
       "items": {
        "$ref": "v1.Parameter"
-      }
+      },
+      "description": "optional: list of parameters used during template to config transformation"
      }
     }
    },
@@ -13696,7 +13993,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.Template"
-      }
+      },
+      "description": "list of templates"
      },
      "kind": {
       "type": "string",
@@ -13719,19 +14017,22 @@
       "description": "version of the schema the object should have"
      },
      "fullName": {
-      "type": "string"
+      "type": "string",
+      "description": "full name of user"
      },
      "groups": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "list of groups"
      },
      "identities": {
       "type": "array",
       "items": {
        "type": "string"
-      }
+      },
+      "description": "list of identities"
      },
      "kind": {
       "type": "string",
@@ -13750,7 +14051,8 @@
       "description": "version of the schema the object should have"
      },
      "identity": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "reference to an identity"
      },
      "kind": {
       "type": "string",
@@ -13760,7 +14062,8 @@
       "$ref": "v1.ObjectMeta"
      },
      "user": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "reference to a user"
      }
     }
    },
@@ -13778,7 +14081,8 @@
       "type": "array",
       "items": {
        "$ref": "v1.User"
-      }
+      },
+      "description": "list of users"
      },
      "kind": {
       "type": "string",
@@ -13871,7 +14175,8 @@
     "id": "v1.WebHookTrigger",
     "properties": {
      "secret": {
-      "type": "string"
+      "type": "string",
+      "description": "secret used to validate requests"
      }
     }
    }

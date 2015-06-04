@@ -9952,7 +9952,8 @@
       "description": "version of the schema the object should have"
      },
      "gracePeriodSeconds": {
-      "$ref": "int64",
+      "type": "integer",
+      "format": "int64",
       "description": "the duration in seconds to wait before deleting this object; defaults to a per object value if not specified; zero means delete immediately"
      },
      "kind": {
@@ -11185,7 +11186,8 @@
     ],
     "properties": {
      "activeDeadlineSeconds": {
-      "$ref": "int64"
+      "type": "integer",
+      "format": "int64"
      },
      "containers": {
       "type": "array",
@@ -11226,7 +11228,8 @@
       "description": "name of the ServiceAccount to use to run this pod"
      },
      "terminationGracePeriodSeconds": {
-      "$ref": "int64",
+      "type": "integer",
+      "format": "int64",
       "description": "optional duration in seconds the pod needs to terminate gracefully; may be decreased in delete request; value must be non-negative integer; the value zero indicates delete immediately; if this value is not set, the default grace period will be used instead; the grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal; set this value longer than the expected cleanup time for your process"
      },
      "volumes": {
@@ -11470,7 +11473,8 @@
     "id": "v1.ReplicationControllerSpec",
     "properties": {
      "replicas": {
-      "$ref": "int",
+      "type": "integer",
+      "format": "int32",
       "description": "number of replicas desired; defaults to 1"
      },
      "selector": {
@@ -11680,11 +11684,12 @@
       "description": "the linux capabilites that should be added or removed"
      },
      "privileged": {
-      "$ref": "bool",
+      "type": "boolean",
       "description": "run the container in privileged mode"
      },
      "runAsUser": {
-      "$ref": "int64",
+      "type": "integer",
+      "format": "int64",
       "description": "the user id that runs the first process in the container"
      },
      "seLinuxOptions": {
