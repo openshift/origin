@@ -1,15 +1,22 @@
-= Contributing to OpenShift 3
+= Contributing to OpenShift
 OpenShift Developers <dev@lists.openshift.redhat.com>
 :data-uri:
 :icons:
 :toc2:
 :sectanchors:
 
-The OpenShift 3 architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/GoogleCloudPlatform/kubernetes[Kubernetes] to deliver a powerful new Platform as a Service system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.
+The OpenShift architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/GoogleCloudPlatform/kubernetes[Kubernetes] to deliver a powerful new https://www.youtube.com/watch?v=aZ40GobvA1c[Platform-as-a-Service] system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.  Kubernetes is included in this repo for ease of development, and the version we include is periodically updated.
 
-There are multiple ways to start coding OpenShift.
+To get started you can either:
 
 * <<download-from-github>>
+
+Or if you are interested in development, start with:
+
+* <<openshift-development>>
+
+And choose between:
+
 * <<develop-locally-on-your-host>>
 * <<develop-on-virtual-machine-using-vagrant>>
 
@@ -23,7 +30,12 @@ The tar file for each platform contains a single binary `openshift` which is the
 * Use `osc -h <server> ...` to connect to an OpenShift server
 * Use `openshift help` to see more about the commands in the binary
 
-== Develop locally on your host
+
+== OpenShift Development
+
+To get started, https://help.github.com/articles/fork-a-repo[fork] the https://github.com/openshift/origin[origin repo]
+
+=== Develop locally on your host
 
 You can develop OpenShift 3 on Windows, Mac, or Linux, but you'll need Docker installed on Linux to actually launch containers.
 
@@ -47,9 +59,17 @@ $ mkdir $HOME/go
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
 ----
-4. Open up a new terminal or source the changes in your current terminal, and you're ready to code.
+4. Open up a new terminal or source the changes in your current terminal.  Then clone this repo:
 
-== Develop on virtual machine using Vagrant
+        $ mkdir -p $GOPATH/src/github.com/openshift
+        $ cd $GOPATH/src/github.com/openshift
+        $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
+        $ git remote add upstream git://github.com/openshift/origin
+        $ cd origin
+
+5.  From here, you can follow https://github.com/openshift/origin/#start-developing[Start Developing] from the README.
+
+=== Develop on virtual machine using Vagrant
 
 To facilitate rapid development we've put together a Vagrantfile you can use to stand up a development environment.
 
@@ -61,7 +81,8 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
         $ mkdir -p $GOPATH/src/github.com/openshift
         $ cd $GOPATH/src/github.com/openshift
-        $ git clone git://github.com/openshift/origin
+        $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
+        $ git remote add upstream git://github.com/openshift/origin
         $ cd origin
 
 4.  Bring up the VM:
@@ -75,7 +96,7 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 6.  Run a build:
 
         $ cd /data/src/github.com/openshift/origin
-        $ hack/build-go.sh
+        $ make build
 
 7.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
 
@@ -83,11 +104,13 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
 8.  On your host system, try browsing to: https://localhost:8443/console
 
+9.  From here, you can follow https://github.com/openshift/origin/#start-developing[Start Developing] from the README.
+
+TIP: To ensure you get the latest image.  First run `vagrant box remove fedora_inst` and `vagrant box remove fedora_deps`.
+
 TIP: See https://github.com/openshift/vagrant-openshift for more advanced options
 
-TIP: In some cases (eg. after git pull), you might run `make clean` in the `origin` directory to clean up outdated compiled files.
-
-== Ensure virtual box interfaces are not managed by Network Manager
+==== Ensure virtual box interfaces are not managed by Network Manager
 
 If you are developing on a Linux host, then you need to ensure that Network Manager is ignoring the
 virtual box interfaces, otherwise they cause issues with multi-vm networking.
@@ -96,55 +119,40 @@ Follow these steps to ensure that virtual box interfaces are unmanaged:
 
 1. Check the status of Network Manager devices:
 
-	$ nmcli d
+   $ nmcli d
 
 2. If any devices whose name start with vboxnet* are not unmanaged, then they need to be added to
    NetworkManager configuration to be ignored.
 
-	$ cat /etc/NetworkManager/NetworkManager.conf
+   $ cat /etc/NetworkManager/NetworkManager.conf
 
         [keyfile]
         unmanaged-devices=mac:0a:00:27:00:00:00;mac:0a:00:27:00:00:01;mac:0a:00:27:00:00:02
 
 3. One can use the following command to help generate the configuration:
 
-	$ ip link list | grep vboxnet  -A 1 | grep link/ether | awk '{print "mac:" $2}' |  paste -sd ";" -
+   $ ip link list | grep vboxnet  -A 1 | grep link/ether | awk '{print "mac:" $2}' |  paste -sd ";" -
 
 4. Reload the Network Manager configuration:
 
     $ sudo nmcli con reload
+
 
 == Development: What's on the Menu?
 Right now you can see what's happening with OpenShift development at:
 
 https://github.com/openshift/origin[github.com/openshift/origin]
 
-Here's a quick summary of what we're doing there:
-
-=== The OpenShift Origin Repo
-This repo contains the OpenShift 3 https://www.youtube.com/watch?v=aZ40GobvA1c[Platform-as-a-Service], built on Kubernetes, along with some script-based examples of the +openshift+ utility in action. Kubernetes is included in this repo for ease of development, and the version we include is periodically updated. In the future it will be possible to run OpenShift on top of an existing system.
-
-*Hacking OpenShift Origin:* +
-To get started, https://help.github.com/articles/fork-a-repo[fork] the https://help.github.com/articles/fork-a-repo[origin repo] and then set up a local copy:
-
-----
-$ go get github.com/openshift/origin
-$ cd $GOPATH/src/github.com/openshift/origin
-$ git remote add <YOUR_GITHUB_USERNAME> git@github.com:<YOUR_GITHUB_USERNAME>/origin
-----
-
-From here, you can follow the https://github.com/openshift/origin/#getting-started[Getting Started section] of the README for a brief tour of OpenShift 3 functionality, which includes single and multi-container pod examples.
-
 Ready to play with some code? Hop down and read up on our link:#_the_roadmap[roadmap] for ideas on where you can contribute.
 
 *If you are interested in contributing to Kubernetes directly:* +
 https://github.com/GoogleCloudPlatform/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/GoogleCloudPlatform/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].
 
-=== Troubleshooting
+== Troubleshooting
 
 If you run into difficulties running OpenShift, start by reading through the https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md[troubleshooting guide].
 
-=== The Roadmap
+== The Roadmap
 The OpenShift project roadmap lives https://trello.com/b/nlLwlKoz/openshift-origin-roadmap[on Trello]. Of particular interest to those who want to get involved with the OpenShift 3 architecture are the following topics:
 
 * https://trello.com/c/uqNIamJi[Orchestration]
