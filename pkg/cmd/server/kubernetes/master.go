@@ -86,12 +86,21 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	}
 	_ = master.New(masterConfig)
 
-	return []string{
-		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta1),
-		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta3),
-		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta3),
-		fmt.Sprintf("Started Kubernetes API at %%s%s (experimental)", KubeAPIPrefixV1),
+	messages := []string{}
+	if !masterConfig.DisableV1Beta1 {
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta1))
 	}
+	if !masterConfig.DisableV1Beta2 {
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta2))
+	}
+	if !masterConfig.DisableV1Beta3 {
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta3))
+	}
+	if masterConfig.EnableV1 {
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s (experimental)", KubeAPIPrefixV1))
+	}
+
+	return messages
 }
 
 func (c *MasterConfig) RunNamespaceController() {

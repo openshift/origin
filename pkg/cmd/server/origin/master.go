@@ -336,6 +336,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"clusterRoles":          clusterRoleStorage,
 	}
 
+	messages := []string{}
+	legacyAPIVersions := []string{}
+	currentAPIVersions := []string{}
+
 	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta1) {
 		// templateConfigs is only available in v1beta1
 		storage["templateConfigs"] = templateregistry.NewREST(true)
@@ -343,18 +347,24 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		if err := c.api_v1beta1(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
 		}
+		messages = append(messages, fmt.Sprintf("Started OpenShift API at %%s%s (deprecated)", OpenShiftAPIPrefixV1Beta1))
+		legacyAPIVersions = append(legacyAPIVersions, OpenShiftAPIV1Beta1)
 	}
 
 	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta3) {
 		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
 		}
+		messages = append(messages, fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta3))
+		legacyAPIVersions = append(legacyAPIVersions, OpenShiftAPIV1Beta3)
 	}
 
 	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1) {
 		if err := c.api_v1(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1 API: %v", err)
 		}
+		messages = append(messages, fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1))
+		currentAPIVersions = append(currentAPIVersions, OpenShiftAPIV1)
 	}
 
 	var root *restful.WebService
@@ -370,18 +380,16 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			svc.Doc("OpenShift REST API, version v1").ApiVersion("v1")
 		}
 	}
+
 	if root == nil {
 		root = new(restful.WebService)
 		container.Add(root)
 	}
-	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, "v1beta1", "v1beta3")
-	initAPIVersionRoute(root, OpenShiftAPIPrefix, "v1")
 
-	return []string{
-		fmt.Sprintf("Started OpenShift API at %%s%s (deprecated)", OpenShiftAPIPrefixV1Beta1),
-		fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta3),
-		fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1),
-	}
+	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, legacyAPIVersions...)
+	initAPIVersionRoute(root, OpenShiftAPIPrefix, currentAPIVersions...)
+
+	return messages
 }
 
 func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []string {
@@ -403,6 +411,10 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 
 //initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
 func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
+	if len(versions) == 0 {
+		return
+	}
+
 	versionHandler := apiserver.APIVersionHandler(versions...)
 	root.Route(root.GET(prefix).To(versionHandler).
 		Doc("list supported server API versions").
