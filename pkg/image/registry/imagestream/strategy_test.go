@@ -623,6 +623,102 @@ func TestTagsChanged(t *testing.T) {
 	}
 }
 
+func TestTrackingTagUpdate(t *testing.T) {
+	original := api.ImageStream{
+		Spec: api.ImageStreamSpec{
+			Tags: map[string]api.TagReference{
+				"tracking": {
+					From: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "2.0",
+					},
+				},
+			},
+		},
+		Status: api.ImageStreamStatus{
+			Tags: map[string]api.TagEventList{
+				"tracking": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "foo/bar@sha256:1234",
+							Image:                "1234",
+						},
+					},
+				},
+				"2.0": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "foo/bar@sha256:1234",
+							Image:                "1234",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	updated := api.ImageStream{
+		Spec: api.ImageStreamSpec{
+			Tags: map[string]api.TagReference{
+				"tracking": {
+					From: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "2.0",
+					},
+				},
+			},
+		},
+		Status: api.ImageStreamStatus{
+			Tags: map[string]api.TagEventList{
+				"tracking": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "foo/bar@sha256:1234",
+							Image:                "1234",
+						},
+					},
+				},
+				"2.0": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "foo/bar@sha256:5678",
+							Image:                "5678",
+						},
+						{
+							DockerImageReference: "foo/bar@sha256:1234",
+							Image:                "1234",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	s := &Strategy{}
+	errs := s.tagsChanged(&original, &updated)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %#v", errs)
+	}
+
+	latestEvent, ok := updated.Status.Tags["tracking"]
+	if !ok {
+		t.Fatal("unable to find status.tags[tracking]")
+	}
+
+	revisions := latestEvent.Items
+	if len(revisions) != 2 {
+		t.Fatalf("expected 2 revisions, got %#v", revisions)
+	}
+
+	if e, a := "foo/bar@sha256:5678", revisions[0].DockerImageReference; e != a {
+		t.Errorf("DockerImageReference: expected %s, got %s", e, a)
+	}
+
+	if e, a := "5678", revisions[0].Image; e != a {
+		t.Errorf("Image: expected %s, got %s", e, a)
+	}
+}
+
 func TestTagRefChanged(t *testing.T) {
 	tests := map[string]struct {
 		old, next api.TagReference
