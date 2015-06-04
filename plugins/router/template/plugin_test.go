@@ -31,7 +31,7 @@ func (r *TestRouter) CreateServiceUnit(id string) {
 	su := ServiceUnit{
 		Name:                id,
 		ServiceAliasConfigs: make(map[string]ServiceAliasConfig),
-		EndpointTable:       make(map[string]Endpoint),
+		EndpointTable:       []Endpoint{},
 	}
 
 	r.State[id] = su
@@ -49,8 +49,8 @@ func (r *TestRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	su, _ := r.FindServiceUnit(id)
 
 	for _, ep := range endpoints {
-		newEndpoint := Endpoint{ep.ID, ep.IP, ep.Port}
-		su.EndpointTable[ep.ID] = newEndpoint
+		newEndpoint := Endpoint{ep.ID, ep.IP, ep.Port, "foo"}
+		su.EndpointTable = append(su.EndpointTable, newEndpoint)
 	}
 
 	r.State[id] = su
@@ -62,7 +62,7 @@ func (r *TestRouter) DeleteEndpoints(id string) {
 	if su, ok := r.FindServiceUnit(id); !ok {
 		return
 	} else {
-		su.EndpointTable = make(map[string]Endpoint)
+		su.EndpointTable = []Endpoint{}
 		r.State[id] = su
 	}
 }
@@ -126,8 +126,8 @@ func TestHandleEndpoints(t *testing.T) {
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name: "foo/test", //service name from kapi.endpoints object
-				EndpointTable: map[string]Endpoint{
-					"1.1.1.1:345": {
+				EndpointTable: []Endpoint{
+					{
 						ID:   "1.1.1.1:345",
 						IP:   "1.1.1.1",
 						Port: "345",
@@ -150,8 +150,8 @@ func TestHandleEndpoints(t *testing.T) {
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name: "foo/test",
-				EndpointTable: map[string]Endpoint{
-					"2.2.2.2:8080": {
+				EndpointTable: []Endpoint{
+					{
 						ID:   "2.2.2.2:8080",
 						IP:   "2.2.2.2",
 						Port: "8080",
@@ -174,7 +174,7 @@ func TestHandleEndpoints(t *testing.T) {
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name:          "foo/test",
-				EndpointTable: map[string]Endpoint{},
+				EndpointTable: []Endpoint{},
 			},
 		},
 	}
@@ -195,11 +195,7 @@ func TestHandleEndpoints(t *testing.T) {
 			t.Errorf("TestHandleEndpoints test case %s failed.  Couldn't find expected service unit with name %s", tc.name, tc.expectedServiceUnit.Name)
 		} else {
 			for expectedKey, expectedEp := range tc.expectedServiceUnit.EndpointTable {
-				actualEp, ok := su.EndpointTable[expectedKey]
-
-				if !ok {
-					t.Errorf("TestHandleEndpoints test case %s failed.  Couldn't find expected endpoint %s in endpoint table", tc.name, expectedKey)
-				}
+				actualEp := su.EndpointTable[expectedKey]
 
 				if expectedEp.ID != actualEp.ID || expectedEp.IP != actualEp.IP || expectedEp.Port != actualEp.Port {
 					t.Errorf("TestHandleEndpoints test case %s failed.  Expected endpoint didn't match actual endpoint %v : %v", tc.name, expectedEp, actualEp)

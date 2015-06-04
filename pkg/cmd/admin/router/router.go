@@ -222,12 +222,14 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		}
 
 		env := app.Environment{
-			"OPENSHIFT_MASTER":    config.Host,
-			"OPENSHIFT_CA_DATA":   string(config.CAData),
-			"OPENSHIFT_KEY_DATA":  string(config.KeyData),
-			"OPENSHIFT_CERT_DATA": string(config.CertData),
-			"OPENSHIFT_INSECURE":  insecure,
-			"DEFAULT_CERTIFICATE": defaultCert,
+			"OPENSHIFT_MASTER":         config.Host,
+			"OPENSHIFT_CA_DATA":        string(config.CAData),
+			"OPENSHIFT_KEY_DATA":       string(config.KeyData),
+			"OPENSHIFT_CERT_DATA":      string(config.CertData),
+			"OPENSHIFT_INSECURE":       insecure,
+			"DEFAULT_CERTIFICATE":      defaultCert,
+			"ROUTER_SERVICE_NAME":      name,
+			"ROUTER_SERVICE_NAMESPACE": namespace,
 		}
 
 		objects := []runtime.Object{
