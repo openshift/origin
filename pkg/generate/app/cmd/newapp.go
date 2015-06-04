@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
@@ -32,6 +34,7 @@ type AppConfig struct {
 	ImageStreams       util.StringList
 	DockerImages       util.StringList
 	Templates          util.StringList
+	TemplateFiles      util.StringList
 	TemplateParameters util.StringList
 	Groups             util.StringList
 	Environment        util.StringList
@@ -39,14 +42,17 @@ type AppConfig struct {
 	Name        string
 	TypeOfBuild string
 
-	dockerResolver      app.Resolver
-	imageStreamResolver app.Resolver
-	templateResolver    app.Resolver
+	dockerResolver       app.Resolver
+	imageStreamResolver  app.Resolver
+	templateResolver     app.Resolver
+	templateFileResolver app.Resolver
 
 	searcher app.Searcher
 	detector app.Detector
 
-	typer runtime.ObjectTyper
+	typer        runtime.ObjectTyper
+	mapper       meta.RESTMapper
+	clientMapper resource.ClientMapper
 
 	osclient        client.Interface
 	originNamespace string
@@ -63,7 +69,7 @@ type errlist interface {
 }
 
 // NewAppConfig returns a new AppConfig
-func NewAppConfig(typer runtime.ObjectTyper) *AppConfig {
+func NewAppConfig(typer runtime.ObjectTyper, mapper meta.RESTMapper, clientMapper resource.ClientMapper) *AppConfig {
 	dockerResolver := app.DockerRegistryResolver{
 		Client: dockerregistry.NewClient(),
 	}
@@ -75,6 +81,8 @@ func NewAppConfig(typer runtime.ObjectTyper) *AppConfig {
 		dockerResolver: dockerResolver,
 		searcher:       &simpleSearcher{dockerResolver},
 		typer:          typer,
+		mapper:         mapper,
+		clientMapper:   clientMapper,
 	}
 }
 
@@ -93,12 +101,18 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespac
 	c.imageStreamResolver = app.ImageStreamResolver{
 		Client:            osclient,
 		ImageStreamImages: osclient,
-		Namespaces:        []string{originNamespace, "default"},
+		Namespaces:        []string{originNamespace, "openshift"},
 	}
 	c.templateResolver = app.TemplateResolver{
 		Client: osclient,
 		TemplateConfigsNamespacer: osclient,
-		Namespaces:                []string{originNamespace, "openshift", "default"},
+		Namespaces:                []string{originNamespace, "openshift"},
+	}
+	c.templateFileResolver = &app.TemplateFileResolver{
+		Typer:        c.typer,
+		Mapper:       c.mapper,
+		ClientMapper: c.clientMapper,
+		Namespace:    originNamespace,
 	}
 }
 
@@ -112,6 +126,8 @@ func (c *AppConfig) AddArguments(args []string) []string {
 		case app.IsPossibleSourceRepository(s):
 			c.SourceRepositories = append(c.SourceRepositories, s)
 		case app.IsComponentReference(s):
+			c.Components = append(c.Components, s)
+		case app.IsPossibleTemplateFile(s):
 			c.Components = append(c.Components, s)
 		default:
 			if len(s) == 0 {
@@ -144,10 +160,16 @@ func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository
 		input.Resolver = c.templateResolver
 		return input
 	})
+	b.AddComponents(c.TemplateFiles, func(input *app.ComponentInput) app.ComponentReference {
+		input.Argument = fmt.Sprintf("--file=%q", input.From)
+		input.Resolver = c.templateFileResolver
+		return input
+	})
 	b.AddComponents(c.Components, func(input *app.ComponentInput) app.ComponentReference {
 		input.Resolver = app.PerfectMatchWeightedResolver{
 			app.WeightedResolver{Resolver: c.imageStreamResolver, Weight: 0.0},
 			app.WeightedResolver{Resolver: c.templateResolver, Weight: 0.0},
+			app.WeightedResolver{Resolver: c.templateFileResolver, Weight: 0.0},
 			app.WeightedResolver{Resolver: c.dockerResolver, Weight: 2.0},
 		}
 		return input

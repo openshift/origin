@@ -63,13 +63,17 @@ application is created.`
   $ %[1]s new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin
 
   // Create an application from a remote repository and specify a context directory
-  $ %[1]s new-app https://github.com/youruser/yourgitrepo --context-dir=src/build`
+  $ %[1]s new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
+ 
+  // Create an application based on a template file, explicitly setting a parameter value
+  $ %[1]s new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin`
 )
 
 // NewCmdNewApplication implements the OpenShift cli new-app command
 func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	_, typer := f.Object()
-	config := newcmd.NewAppConfig(typer)
+	mapper, typer := f.Object()
+	clientMapper := f.ClientMapperForCommand()
+	config := newcmd.NewAppConfig(typer, mapper, clientMapper)
 
 	cmd := &cobra.Command{
 		Use:     "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
@@ -90,6 +94,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().VarP(&config.ImageStreams, "image", "i", "Name of an OpenShift image stream to use in the app.")
 	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to include in the app.")
 	cmd.Flags().Var(&config.Templates, "template", "Name of an OpenShift stored template to use in the app.")
+	cmd.Flags().VarP(&config.TemplateFiles, "file", "f", "Path to a template file to use for the app.")
 	cmd.Flags().VarP(&config.TemplateParameters, "param", "p", "Specify a list of key value pairs (eg. -p FOO=BAR,BAR=FOO) to set/override parameter values in the template.")
 	cmd.Flags().Var(&config.Groups, "group", "Indicate components that should be grouped together as <comp1>+<comp2>.")
 	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into each container.")

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	"github.com/golang/glog"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -212,7 +212,7 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 				imperfect = append(imperfect, m)
 			}
 		case err != nil:
-			return nil, err
+			glog.V(2).Infof("Error from resolver: %v\n", err)
 		}
 		group = nil
 	}
@@ -260,7 +260,7 @@ func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
 		}
 	}
 	if len(errs) != 0 {
-		return nil, errors.NewAggregate(errs)
+		glog.V(2).Infof("Errors occurred during resolution: %#v", errs)
 	}
 	switch len(candidates) {
 	case 0:

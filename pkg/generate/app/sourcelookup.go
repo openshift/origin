@@ -16,12 +16,11 @@ import (
 var (
 	argumentGit         = regexp.MustCompile("^(http://|https://|git@|git://).*(?:#([a-zA-Z0-9]*))?$")
 	argumentGitProtocol = regexp.MustCompile("^(git@|git://)")
-	argumentPath        = regexp.MustCompile("^\\.|^\\/[^/]+")
 )
 
 // IsPossibleSourceRepository checks whether the provided string is a source repository or not
 func IsPossibleSourceRepository(s string) bool {
-	return IsRemoteRepository(s) || argumentPath.MatchString(s)
+	return IsRemoteRepository(s) || isDirectory(s)
 }
 
 // IsRemoteRepository checks whether the provided string is a remote repository or not
