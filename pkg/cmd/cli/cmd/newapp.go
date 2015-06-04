@@ -54,7 +54,7 @@ application is created.`
   $ %[1]s new-app mysql -l db=mysql
 
   // Use a MySQL image in a private registry to create an app and override application artifacts' names
-  $ %[1]s new-app --image=myregistry.com/mycompany/mysql --name=private
+  $ %[1]s new-app --docker-image=myregistry.com/mycompany/mysql --name=private
 
   // Create an application from a remote repository using its beta2 branch
   $ %[1]s new-app https://github.com/openshift/ruby-hello-world#beta2
