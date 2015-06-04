@@ -1,5 +1,5 @@
 {
-  "kind": "Config",
+  "kind": "List",
   "apiVersion": "v1beta3",
   "metadata": {},
   "items": [
@@ -30,7 +30,8 @@
       "kind": "DeploymentConfig",
       "apiVersion": "v1beta3",
       "metadata": {
-        "name": "jenkins"
+        "name": "jenkins",
+        "creationTimestamp": null
       },
       "spec": {
         "strategy": {

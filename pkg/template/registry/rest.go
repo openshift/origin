@@ -15,7 +15,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/golang/glog"
 
-	config "github.com/openshift/origin/pkg/config/api"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
@@ -73,14 +72,12 @@ func MatchTemplate(label labels.Selector, field fields.Selector) generic.Matcher
 
 // REST implements RESTStorage interface for processing Template objects.
 type REST struct {
-	legacyReturn bool
 }
 
 // NewREST creates new RESTStorage interface for processing Template objects. If
 // legacyReturn is used, a Config object is returned. Otherwise, a List is returned
-// TODO: remove support for Config when v1beta1 is removed.
-func NewREST(legacyReturn bool) *REST {
-	return &REST{legacyReturn}
+func NewREST() *REST {
+	return &REST{}
 }
 
 // New returns a new Template
@@ -110,8 +107,5 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, errors.NewInvalid("template", tpl.Name, errs)
 	}
 
-	if s.legacyReturn {
-		return &config.Config{Items: tpl.Objects}, nil
-	}
 	return tpl, nil
 }

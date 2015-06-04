@@ -170,7 +170,6 @@ type testBuildOpenshift struct {
 	KubeClient *kclient.Client
 	Client     *osclient.Client
 	server     *httptest.Server
-	whPrefix   string
 	stop       chan struct{}
 	lock       sync.Mutex
 }
@@ -291,15 +290,6 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	if err := version.InstallREST(handlerContainer); err != nil {
 		t.Fatalf("unable to install REST: %v", err)
 	}
-
-	openshift.whPrefix = "/osapi/v1beta1/buildConfigHooks/"
-	bcClient := buildclient.NewOSClientBuildConfigClient(osClient)
-	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
-		webhook.NewController(bcClient, buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
-			map[string]webhook.Plugin{
-				"github":  github.New(),
-				"generic": generic.New(),
-			})))
 
 	bcFactory := buildcontrollerfactory.BuildControllerFactory{
 		OSClient:     osClient,

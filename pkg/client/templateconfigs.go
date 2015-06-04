@@ -1,8 +1,6 @@
 package client
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -31,34 +29,9 @@ func newTemplateConfigs(c *Client, namespace string) TemplateConfigInterface {
 	}
 }
 
-// resourceName returns templates's URL resource name based on resource version.
-// Uses "templateConfigs" as the URL resource name for v1beta1 and v1beta2.
-func (c *templateConfigs) resourceName() string {
-	if kapi.PreV1Beta3(c.r.APIVersion()) {
-		return "templateConfigs"
-	}
-	return "processedTemplates"
-}
-
 // Create process the Template and returns its current state
 func (c *templateConfigs) Create(in *templateapi.Template) (*templateapi.Template, error) {
-	if kapi.PreV1Beta3(c.r.APIVersion()) {
-		// TODO: path is deprecated, remove
-		config := &kapi.List{}
-		if err := c.r.Post().Namespace(c.ns).Resource(c.resourceName()).Body(in).Do().Into(config); err != nil {
-			return nil, err
-		}
-		// TODO: support copy instead of mutating the in, once we have a way to deep copy runtime.Object
-		// in upstream.
-		/*t, err := kapi.Scheme.Copy(in)
-		if err != nil {
-			return nil, err
-		}*/
-		template := in
-		template.Objects = config.Items
-		return template, nil
-	}
 	template := &templateapi.Template{}
-	err := c.r.Post().Namespace(c.ns).Resource(c.resourceName()).Body(in).Do().Into(template)
+	err := c.r.Post().Namespace(c.ns).Resource("processedTemplates").Body(in).Do().Into(template)
 	return template, err
 }

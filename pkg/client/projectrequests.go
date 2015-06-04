@@ -33,13 +33,13 @@ func newProjectRequests(c *Client) *projectRequests {
 // Create creates a new Project
 func (c *projectRequests) Create(p *projectapi.ProjectRequest) (result *projectapi.Project, err error) {
 	result = &projectapi.Project{}
-	err = c.r.Post().Resource("projectrequests").Body(p).Do().Into(result)
+	err = c.r.Post().Resource("projectRequests").Body(p).Do().Into(result)
 	return
 }
 
 // List returns a status object indicating that a user can call the Create or an error indicating why not
 func (c *projectRequests) List(label labels.Selector, field fields.Selector) (result *kapi.Status, err error) {
 	result = &kapi.Status{}
-	err = c.r.Get().Resource("projectrequests").LabelsSelectorParam(label).FieldsSelectorParam(field).Do().Into(result)
+	err = c.r.Get().Resource("projectRequests").LabelsSelectorParam(label).FieldsSelectorParam(field).Do().Into(result)
 	return result, err
 }

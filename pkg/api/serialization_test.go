@@ -18,11 +18,9 @@ import (
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	build "github.com/openshift/origin/pkg/build/api"
-	config "github.com/openshift/origin/pkg/config/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
 	template "github.com/openshift/origin/pkg/template/api"
@@ -54,15 +52,11 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *image.ImageRepositoryMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion != "v1beta1" {
-				j.DockerImageRepository = ""
-			}
+			j.DockerImageRepository = ""
 		},
 		func(j *image.ImageStreamMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion != "v1beta1" {
-				j.DockerImageRepository = ""
-			}
+			j.DockerImageRepository = ""
 		},
 		func(j *image.TagReference, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
@@ -100,25 +94,13 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			c.FuzzNoCustom(j)
 			specs := []string{"", "a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.DockerImageReference = specs[c.Intn(len(specs))]
-			if forVersion != "v1beta1" {
-				j.Tag, j.DockerImageReference = "", ""
-				if j.To != nil && (len(j.To.Kind) == 0 || j.To.Kind == "ImageStream") {
-					j.To.Kind = "ImageStream"
-					j.Tag = image.DefaultImageTag
-				}
-				if j.To != nil && strings.Contains(j.To.Name, ":") {
-					j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
-				}
-			} else {
-				if j.To == nil {
-					j.Tag = ""
-					j.DockerImageReference = ""
-				} else {
-					if len(j.Tag) == 0 {
-						j.Tag = image.DefaultImageTag
-					}
-					j.DockerImageReference = ""
-				}
+			j.Tag, j.DockerImageReference = "", ""
+			if j.To != nil && (len(j.To.Kind) == 0 || j.To.Kind == "ImageStream") {
+				j.To.Kind = "ImageStream"
+				j.Tag = image.DefaultImageTag
+			}
+			if j.To != nil && strings.Contains(j.To.Name, ":") {
+				j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
 			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
@@ -166,11 +148,6 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				ref.Tag, ref.ID = "", ""
 				j.RepositoryName = ref.String()
 			}
-		},
-		func(j *config.Config, c fuzz.Continue) {
-			c.Fuzz(&j.ListMeta)
-			// TODO: replace with structured type definition
-			j.Items = []runtime.Object{}
 		},
 		func(j *runtime.EmbeddedObject, c fuzz.Continue) {
 			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.
@@ -270,7 +247,6 @@ func TestSpecificKind(t *testing.T) {
 	seed := int64(2703387474910584091) //rand.Int63()
 	fuzzInternalObject(t, "", item, seed)
 	roundTrip(t, osapi.Codec, item)
-	roundTrip(t, v1beta1.Codec, item)
 	roundTrip(t, v1beta3.Codec, item)
 	roundTrip(t, v1.Codec, item)
 }
@@ -302,10 +278,6 @@ func TestTypes(t *testing.T) {
 			}
 			fuzzInternalObject(t, "", item, seed)
 			roundTrip(t, osapi.Codec, item)
-			if _, ok := skipV1beta1[kind]; !ok {
-				fuzzInternalObject(t, "v1beta1", item, seed)
-				roundTrip(t, v1beta1.Codec, item)
-			}
 			if _, ok := skipV1beta3[kind]; !ok {
 				fuzzInternalObject(t, "v1beta3", item, seed)
 				roundTrip(t, v1beta3.Codec, item)

@@ -239,7 +239,7 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 	}
 	if config.Prefix == "" {
 		switch config.Version {
-		case "v1beta3", "v1beta1":
+		case "v1beta3":
 			config.Prefix = "/osapi"
 		default:
 			config.Prefix = "/oapi"
@@ -253,7 +253,6 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 	if config.Codec == nil {
 		config.Codec = versionInterfaces.Codec
 	}
-	config.LegacyBehavior = (config.Version == "v1beta1")
 	return nil
 }
 

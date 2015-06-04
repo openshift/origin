@@ -236,7 +236,6 @@ func TestWebhookGithubPing(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		openshift.whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
 		"/osapi/v1beta3/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 		// trigger build event sending push notification

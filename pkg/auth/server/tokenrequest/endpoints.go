@@ -113,14 +113,14 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 {{ else }}
   <h3>Here is your brand new OAuth access token:</h3>
   <pre>{{.OAuthJSON}}</pre>
-  
+
   <h3>How do I use this token?</h3>
   <pre>osc login --token={{.AccessToken}} --server={{.PublicMasterURL}}</pre>
   <pre>curl -H "Authorization: Bearer {{.AccessToken}}" &hellip;</pre>
-  
+
   <h3>How do I delete this token when I'm done?</h3>
   <pre>osc delete oauthaccesstoken {{.AccessToken}}</pre>
-  <pre>curl -X DELETE &hellip;/osapi/v1beta3/oAuthAccessTokens/{{.AccessToken}}</pre>
+  <pre>curl -X DELETE &hellip;/oapi/v1/oauthaccesstokens/{{.AccessToken}}</pre>
 {{ end }}
 
 <br><br>

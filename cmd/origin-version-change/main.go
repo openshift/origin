@@ -22,7 +22,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	configapi "github.com/openshift/origin/pkg/config/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -111,9 +110,6 @@ func main() {
 		changeObjectsVersion(template.Objects)
 	}
 	if list, ok := obj.(*api.List); ok {
-		changeObjectsVersion(list.Items)
-	}
-	if list, ok := obj.(*configapi.Config); ok {
 		changeObjectsVersion(list.Items)
 	}
 

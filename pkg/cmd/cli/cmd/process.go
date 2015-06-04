@@ -19,7 +19,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	configapi "github.com/openshift/origin/pkg/config/api"
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
 )
@@ -217,12 +216,6 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	switch {
 	case raw:
 		result = obj
-	// legacy support - when using older api versions, output a Config
-	case kapi.PreV1Beta3(outputVersion):
-		result = &configapi.Config{
-			ListMeta: kapi.ListMeta{},
-			Items:    obj.Objects,
-		}
 	// display the processed template instead of the objects
 	default:
 		result = &kapi.List{

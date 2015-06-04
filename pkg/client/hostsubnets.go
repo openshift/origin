@@ -4,7 +4,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
-	_ "github.com/openshift/origin/pkg/sdn/api/v1beta3"
 )
 
 // HostSubnetInterface has methods to work with HostSubnet resources

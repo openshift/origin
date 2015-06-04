@@ -32,7 +32,7 @@ func TestMultiRESTMapperVersionAndKindForResource(t *testing.T) {
 
 func TestMultiRESTMapperRESTMapping(t *testing.T) {
 	mapper := latest.RESTMapper
-	mapping, err := mapper.RESTMapping("Pod", "v1beta1")
+	mapping, err := mapper.RESTMapping("Pod", "v1beta3")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestMultiRESTMapperRESTMapping(t *testing.T) {
 		t.Errorf("Expected Kind to be Pod and Codec and MetadataAccessor not nil")
 	}
 
-	mapping, err = mapper.RESTMapping("Unknown", "v1beta1")
+	mapping, err = mapper.RESTMapping("Unknown", "v1")
 	if err == nil {
 		t.Errorf("Expected error for 'unknown' Kind")
 	}

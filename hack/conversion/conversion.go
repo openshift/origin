@@ -14,9 +14,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	//"github.com/openshift/origin/pkg/api"
-	_ "github.com/openshift/origin/pkg/api/v1beta1"
-	_ "github.com/openshift/origin/pkg/api/v1beta3"
+	_ "github.com/openshift/origin/pkg/api/latest"
 )
 
 var (

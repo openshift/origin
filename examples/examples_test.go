@@ -14,7 +14,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/validation"
-	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -71,7 +70,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"application-template-custombuild": &templateapi.Template{},
 		},
 		"../examples/jenkins": {
-			"jenkins-config":       &configapi.Config{},
+			"jenkins-config":       &kapi.List{},
 			"application-template": &templateapi.Template{},
 		},
 		"../examples/image-repositories": {
