@@ -247,16 +247,19 @@ export HOME="${FAKE_HOME_DIR}"
 # This directory must exist so Docker can store credentials in $HOME/.dockercfg
 mkdir -p ${FAKE_HOME_DIR}
 
+export OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+CLUSTER_ADMIN_CONTEXT=$(osc config view --flatten -o template -t '{{index . "current-context"}}')
+
 if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
 	export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
 	export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 
 	# Make osc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
-	export OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 	sudo chmod -R a+rwX "${OPENSHIFTCONFIG}"
 	echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
 fi
+
 
 wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
@@ -316,7 +319,7 @@ docker push ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
 echo "[INFO] Pushed ruby-20-centos7"
 
 echo "[INFO] Back to 'master' context with 'admin' user..."
-osc project default
+osc project ${CLUSTER_ADMIN_CONTEXT}
 
 # The build requires a dockercfg secret in the builder service account in order
 # to be able to push to the registry.  Make sure it exists first.
