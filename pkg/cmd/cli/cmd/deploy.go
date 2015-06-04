@@ -145,11 +145,13 @@ func (o DeployOptions) RunDeploy() error {
 			return o.kubeClient.ReplicationControllers(namespace).Get(name)
 		},
 		ListDeploymentsForConfigFn: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-			selector, err := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeploymentConfigLabel, configName))
+			rcs, err := o.kubeClient.ReplicationControllers(namespace).List(labels.Everything())
 			if err != nil {
 				return nil, err
 			}
-			return o.kubeClient.ReplicationControllers(namespace).List(selector)
+			return &kapi.ReplicationControllerList{
+				Items: deployutil.ConfigSelector(configName, rcs.Items),
+			}, nil
 		},
 
 		UpdateDeploymentConfigFn: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
@@ -300,6 +302,10 @@ func (c *cancelDeploymentCommand) cancel(config *deployapi.DeploymentConfig, out
 	if err != nil {
 		return err
 	}
+	if len(deployments.Items) == 0 {
+		fmt.Fprintln(out, "no deployments found to cancel")
+		return nil
+	}
 	failedCancellations := []string{}
 	for _, deployment := range deployments.Items {
 		status := deployutil.DeploymentStatusFor(&deployment)
@@ -319,9 +325,11 @@ func (c *cancelDeploymentCommand) cancel(config *deployapi.DeploymentConfig, out
 			if err == nil {
 				fmt.Fprintf(out, "cancelled #%d\n", config.LatestVersion)
 			} else {
-				fmt.Fprintf(out, "couldn't cancel deployment %d (status: %s): %v", deployutil.DeploymentVersionFor(&deployment), status, err)
+				fmt.Fprintf(out, "couldn't cancel deployment %d (status: %s): %v\n", deployutil.DeploymentVersionFor(&deployment), status, err)
 				failedCancellations = append(failedCancellations, strconv.Itoa(deployutil.DeploymentVersionFor(&deployment)))
 			}
+		default:
+			fmt.Fprintln(out, "no active deployments to cancel")
 		}
 	}
 	if len(failedCancellations) == 0 {
