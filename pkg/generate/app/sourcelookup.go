@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	"github.com/openshift/origin/pkg/generate/dockerfile"
@@ -28,12 +29,13 @@ func IsRemoteRepository(s string) bool {
 	return argumentGit.MatchString(s) || argumentGitProtocol.MatchString(s)
 }
 
-// SourceRepository represents an code repository that may be the target of a build.
+// SourceRepository represents a code repository that may be the target of a build.
 type SourceRepository struct {
-	location  string
-	url       url.URL
-	localDir  string
-	remoteURL *url.URL
+	location   string
+	url        url.URL
+	localDir   string
+	remoteURL  *url.URL
+	contextDir string
 
 	usedBy          []ComponentReference
 	buildWithDocker bool
@@ -89,7 +91,7 @@ func (r *SourceRepository) LocalPath() (string, error) {
 	}
 	switch {
 	case r.url.Scheme == "file":
-		r.localDir = r.url.Path
+		r.localDir = filepath.Join(r.url.Path, r.contextDir)
 	default:
 		gitRepo := git.NewRepository()
 		var err error
@@ -107,6 +109,7 @@ func (r *SourceRepository) LocalPath() (string, error) {
 				return "", fmt.Errorf("cannot checkout ref %s of repository %s: %v", ref, localUrl.String(), err)
 			}
 		}
+		r.localDir = filepath.Join(r.localDir, r.contextDir)
 	}
 	return r.localDir, nil
 }
@@ -134,6 +137,16 @@ func (r *SourceRepository) RemoteURL() (*url.URL, error) {
 		r.remoteURL = &r.url
 	}
 	return r.remoteURL, nil
+}
+
+// SetContextDir sets the context directory to use for the source repository
+func (r *SourceRepository) SetContextDir(dir string) {
+	r.contextDir = dir
+}
+
+// ContextDir returns the context directory of the source repository
+func (r *SourceRepository) ContextDir() string {
+	return r.contextDir
 }
 
 // SourceRepositoryInfo contains info about a source repository
@@ -217,12 +230,12 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 		source := &SourceRef{
 			URL:        remoteUrl,
 			Ref:        remoteUrl.Fragment,
-			ContextDir: "",
+			ContextDir: repo.ContextDir(),
 		}
 		return strategy, source, nil
 	}
 
-	srcRef, err := NewSourceRefGenerator().FromGitURL(repo.location)
+	srcRef, err := NewSourceRefGenerator().FromGitURL(repo.location, repo.ContextDir())
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s: %v", repo.location, err)
 	}

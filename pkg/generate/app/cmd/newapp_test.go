@@ -502,6 +502,40 @@ func TestRun(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			name: "app generation using context dir",
+			config: &AppConfig{
+				SourceRepositories: util.StringList{"https://github.com/openshift/sti-ruby"},
+				ContextDir:         "2.0/test/rack-test-app",
+				dockerResolver:     dockerResolver,
+				imageStreamResolver: app.ImageStreamResolver{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateResolver: app.TemplateResolver{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				searcher:        &simpleSearcher{dockerResolver},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"imageStream":      {"sti-ruby", "ruby-20-centos7"},
+				"buildConfig":      {"sti-ruby"},
+				"deploymentConfig": {"sti-ruby"},
+				"service":          {"sti-ruby"},
+			},
+			expectedErr: nil,
+		},
 	}
 
 	for _, test := range tests {
