@@ -300,3 +300,30 @@ func mappedAnnotationFor(obj runtime.Object, key string) string {
 	}
 	return ""
 }
+
+// DeploymentsByLatestVersionAsc sorts deployments by LatestVersion ascending.
+type DeploymentsByLatestVersionAsc []api.ReplicationController
+
+func (d DeploymentsByLatestVersionAsc) Len() int {
+	return len(d)
+}
+func (d DeploymentsByLatestVersionAsc) Swap(i, j int) {
+	d[i], d[j] = d[j], d[i]
+}
+func (d DeploymentsByLatestVersionAsc) Less(i, j int) bool {
+	return DeploymentVersionFor(&d[i]) < DeploymentVersionFor(&d[j])
+}
+
+// DeploymentsByLatestVersionAsc sorts deployments by LatestVersion
+// descending.
+type DeploymentsByLatestVersionDesc []api.ReplicationController
+
+func (d DeploymentsByLatestVersionDesc) Len() int {
+	return len(d)
+}
+func (d DeploymentsByLatestVersionDesc) Swap(i, j int) {
+	d[i], d[j] = d[j], d[i]
+}
+func (d DeploymentsByLatestVersionDesc) Less(i, j int) bool {
+	return DeploymentVersionFor(&d[j]) < DeploymentVersionFor(&d[i])
+}

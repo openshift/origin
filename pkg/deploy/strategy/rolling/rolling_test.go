@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	// kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 
 	api "github.com/openshift/origin/pkg/api/latest"
@@ -27,7 +27,7 @@ func TestRolling_deployInitial(t *testing.T) {
 			},
 		},
 		initialStrategy: &testStrategy{
-			deployFn: func(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
+			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
 				initialStrategyInvoked = true
 				return nil
 			},
@@ -36,12 +36,13 @@ func TestRolling_deployInitial(t *testing.T) {
 			t.Fatalf("unexpected call to rollingUpdate")
 			return nil
 		},
+		getUpdateAcceptor: getUpdateAcceptor,
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
 	config.Template.Strategy = deploytest.OkRollingStrategy()
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
-	err := strategy.Deploy(deployment, []*kapi.ReplicationController{})
+	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -80,7 +81,7 @@ func TestRolling_deployRolling(t *testing.T) {
 			},
 		},
 		initialStrategy: &testStrategy{
-			deployFn: func(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
+			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
 				return nil
 			},
@@ -89,9 +90,10 @@ func TestRolling_deployRolling(t *testing.T) {
 			rollingConfig = config
 			return nil
 		},
+		getUpdateAcceptor: getUpdateAcceptor,
 	}
 
-	err := strategy.Deploy(deployment, []*kapi.ReplicationController{latest})
+	err := strategy.Deploy(latest, deployment, 2)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -134,74 +136,6 @@ func TestRolling_deployRolling(t *testing.T) {
 	}
 }
 
-func TestRolling_findLatestDeployment(t *testing.T) {
-	deployments := map[string]*kapi.ReplicationController{}
-	for i := 1; i <= 10; i++ {
-		config := deploytest.OkDeploymentConfig(i)
-		config.Template.Strategy = deploytest.OkRollingStrategy()
-		deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
-		deployments[deployment.Name] = deployment
-	}
-
-	strategy := &RollingDeploymentStrategy{
-		codec: api.Codec,
-		client: &rollingUpdaterClient{
-			GetReplicationControllerFn: func(namespace, name string) (*kapi.ReplicationController, error) {
-				deployment, found := deployments[name]
-				if !found {
-					return nil, kerrors.NewNotFound("ReplicationController", name)
-				}
-				return deployment, nil
-			},
-		},
-	}
-
-	type scenario struct {
-		old    []string
-		latest string
-	}
-
-	scenarios := []scenario{
-		{
-			old: []string{
-				"config-1",
-				"config-2",
-				"config-3",
-			},
-			latest: "config-3",
-		},
-		{
-			old: []string{
-				"config-3",
-				"config-1",
-				"config-7",
-			},
-			latest: "config-7",
-		},
-	}
-
-	for _, scenario := range scenarios {
-		old := []*kapi.ReplicationController{}
-		for _, oldName := range scenario.old {
-			old = append(old, deployments[oldName])
-		}
-		found, err := strategy.findLatestDeployment(old)
-		if err != nil {
-			t.Errorf("unexpected error for scenario: %v: %v", scenario, err)
-			continue
-		}
-
-		if found == nil {
-			t.Errorf("expected to find a deployment for scenario: %v", scenario)
-			continue
-		}
-
-		if e, a := scenario.latest, found.Name; e != a {
-			t.Errorf("expected latest %s, got %s for scenario: %v", e, a, scenario)
-		}
-	}
-}
-
 func TestRolling_deployRollingHooks(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Template.Strategy = deploytest.OkRollingStrategy()
@@ -222,7 +156,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 			},
 		},
 		initialStrategy: &testStrategy{
-			deployFn: func(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
+			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
 				return nil
 			},
@@ -235,6 +169,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 				return hookError
 			},
 		},
+		getUpdateAcceptor: getUpdateAcceptor,
 	}
 
 	cases := []struct {
@@ -257,7 +192,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 		if tc.hookShouldFail {
 			hookError = fmt.Errorf("hook failure")
 		}
-		err := strategy.Deploy(deployment, []*kapi.ReplicationController{latest})
+		err := strategy.Deploy(latest, deployment, 2)
 		if err != nil && tc.deploymentShouldFail {
 			t.Logf("got expected error: %v", err)
 		}
@@ -287,7 +222,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 			},
 		},
 		initialStrategy: &testStrategy{
-			deployFn: func(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
+			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
 				return nil
 			},
 		},
@@ -299,6 +234,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 				return hookError
 			},
 		},
+		getUpdateAcceptor: getUpdateAcceptor,
 	}
 
 	cases := []struct {
@@ -320,7 +256,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 		if tc.hookShouldFail {
 			hookError = fmt.Errorf("hook failure")
 		}
-		err := strategy.Deploy(deployment, []*kapi.ReplicationController{})
+		err := strategy.Deploy(nil, deployment, 2)
 		if err != nil && tc.deploymentShouldFail {
 			t.Logf("got expected error: %v", err)
 		}
@@ -334,11 +270,11 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 }
 
 type testStrategy struct {
-	deployFn func(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error
+	deployFn func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error
 }
 
-func (s *testStrategy) Deploy(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
-	return s.deployFn(deployment, oldDeployments)
+func (s *testStrategy) DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
+	return s.deployFn(from, to, desiredReplicas, updateAcceptor)
 }
 
 func mkintp(i int) *int64 {
@@ -369,4 +305,20 @@ func rollingParams(preFailurePolicy, postFailurePolicy deployapi.LifecycleHookFa
 		Pre:                 pre,
 		Post:                post,
 	}
+}
+
+func getUpdateAcceptor(timeout time.Duration) kubectl.UpdateAcceptor {
+	return &testAcceptor{
+		acceptFn: func(deployment *kapi.ReplicationController) error {
+			return nil
+		},
+	}
+}
+
+type testAcceptor struct {
+	acceptFn func(*kapi.ReplicationController) error
+}
+
+func (t *testAcceptor) Accept(deployment *kapi.ReplicationController) error {
+	return t.acceptFn(deployment)
 }

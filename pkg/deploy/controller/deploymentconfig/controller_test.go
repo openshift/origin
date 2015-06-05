@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -81,6 +80,7 @@ func TestHandle_updateOk(t *testing.T) {
 	type existing struct {
 		version  int
 		replicas int
+		status   deployapi.DeploymentStatus
 	}
 
 	type scenario struct {
@@ -90,14 +90,29 @@ func TestHandle_updateOk(t *testing.T) {
 	}
 
 	scenarios := []scenario{
-		// No existing deployments
 		{1, 1, []existing{}},
-		// A single existing deployment
-		{2, 1, []existing{{1, 1}}},
-		// An active and deactivated existing deployment
-		{3, 2, []existing{{2, 2}, {1, 0}}},
-		// An active and deactivated existing deployment with weird ordering
-		{4, 3, []existing{{1, 0}, {2, 0}, {3, 3}}},
+		{2, 1, []existing{
+			{1, 1, deployapi.DeploymentStatusComplete},
+		}},
+		{3, 4, []existing{
+			{1, 0, deployapi.DeploymentStatusComplete},
+			{2, 4, deployapi.DeploymentStatusComplete},
+		}},
+		{3, 4, []existing{
+			{1, 4, deployapi.DeploymentStatusComplete},
+			{2, 1, deployapi.DeploymentStatusFailed},
+		}},
+		{4, 2, []existing{
+			{1, 0, deployapi.DeploymentStatusComplete},
+			{2, 0, deployapi.DeploymentStatusFailed},
+			{3, 2, deployapi.DeploymentStatusComplete},
+		}},
+		// Scramble the order of the previous to ensure we still get it right.
+		{4, 2, []existing{
+			{2, 0, deployapi.DeploymentStatusFailed},
+			{3, 2, deployapi.DeploymentStatusComplete},
+			{1, 0, deployapi.DeploymentStatusComplete},
+		}},
 	}
 
 	for _, scenario := range scenarios {
@@ -107,7 +122,7 @@ func TestHandle_updateOk(t *testing.T) {
 		for _, e := range scenario.existing {
 			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), api.Codec)
 			d.Spec.Replicas = e.replicas
-			d.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
+			d.Annotations[deployapi.DeploymentStatusAnnotation] = string(e.status)
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}
 		err := controller.Handle(config)
@@ -120,8 +135,12 @@ func TestHandle_updateOk(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if e, a := strconv.Itoa(scenario.expectedReplicas), deployed.Annotations[deployapi.DesiredReplicasAnnotation]; e != a {
-			t.Errorf("expected desired replicas %s, got %s", e, a)
+		desired, hasDesired := deployutil.DeploymentDesiredReplicas(deployed)
+		if !hasDesired {
+			t.Fatalf("expected desired replicas")
+		}
+		if e, a := scenario.expectedReplicas, desired; e != a {
+			t.Errorf("expected desired replicas %d, got %d", e, a)
 		}
 	}
 }

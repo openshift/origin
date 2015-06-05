@@ -3,9 +3,11 @@ package support
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -258,5 +260,96 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 
 	if e, a := kapi.RestartPolicyOnFailure, pod.Spec.RestartPolicy; e != a {
 		t.Errorf("expected pod restart policy %s, got %s", e, a)
+	}
+}
+
+func TestFirstContainerReady_scenarios(t *testing.T) {
+	type containerReady struct {
+		name  string
+		ready bool
+	}
+	scenarios := []struct {
+		name             string
+		specContainers   []string
+		initialReadiness []containerReady
+		updatedReadiness []containerReady
+		accept           bool
+	}{
+		{
+			"all ready",
+			[]string{"1", "2"},
+			[]containerReady{{"1", false}, {"2", false}},
+			[]containerReady{{"1", true}, {"2", true}},
+			true,
+		},
+		{
+			"none ready",
+			[]string{"1", "2"},
+			[]containerReady{{"1", false}, {"2", false}},
+			[]containerReady{{"1", false}, {"2", false}},
+			false,
+		},
+		{
+			"some ready",
+			[]string{"1", "2"},
+			[]containerReady{{"1", false}, {"2", false}},
+			[]containerReady{{"1", true}, {"2", false}},
+			false,
+		},
+	}
+	for _, s := range scenarios {
+		t.Logf("running scenario: %s", s.name)
+		mkpod := func(name string, readiness []containerReady) kapi.Pod {
+			containers := []kapi.Container{}
+			for _, c := range s.specContainers {
+				containers = append(containers, kapi.Container{Name: c})
+			}
+			containerStatuses := []kapi.ContainerStatus{}
+			for _, r := range readiness {
+				containerStatuses = append(containerStatuses, kapi.ContainerStatus{Name: r.name, Ready: r.ready})
+			}
+			return kapi.Pod{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: name,
+				},
+				Spec: kapi.PodSpec{
+					Containers: containers,
+				},
+				Status: kapi.PodStatus{
+					ContainerStatuses: containerStatuses,
+				},
+			}
+		}
+		store := cache.NewStore(cache.MetaNamespaceKeyFunc)
+		ready := &FirstContainerReady{
+			podsForDeployment: func(deployment *kapi.ReplicationController) (*kapi.PodList, error) {
+				return &kapi.PodList{
+					Items: []kapi.Pod{
+						mkpod(deployment.Name+"-pod", s.initialReadiness),
+					},
+				}, nil
+			},
+			getPodStore: func(namespace, name string) (cache.Store, chan struct{}) {
+				return store, make(chan struct{})
+			},
+			timeout:  10 * time.Millisecond,
+			interval: 1 * time.Millisecond,
+		}
+
+		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+		deployment.Spec.Replicas = 1
+		pod := mkpod(deployment.Name+"-pod", s.updatedReadiness)
+		store.Add(&pod)
+
+		err := ready.Accept(deployment)
+
+		if s.accept && err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !s.accept && err == nil {
+			t.Fatalf("expected an error")
+		} else {
+			t.Logf("got expected error: %s", err)
+		}
 	}
 }

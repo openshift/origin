@@ -2,14 +2,13 @@ package recreate
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -19,28 +18,36 @@ import (
 )
 
 // RecreateDeploymentStrategy is a simple strategy appropriate as a default.
-// Its behavior is to decrease the replica count of previous deployments to zero,
-// and to increase the replica count of the new deployment to 1.
+// Its behavior is to scale down the last deployment to 0, and to scale up the
+// new deployment to 1.
 //
 // A failure to disable any existing deployments will be considered a
 // deployment failure.
 type RecreateDeploymentStrategy struct {
-	// client is used to interact with ReplicatonControllers.
-	client replicationControllerClient
+	// getReplicationController knows how to get a replication controller.
+	getReplicationController func(namespace, name string) (*kapi.ReplicationController, error)
+	// scaler is used to scale replication controllers.
+	scaler kubectl.Scaler
 	// codec is used to decode DeploymentConfigs contained in deployments.
 	codec runtime.Codec
 	// hookExecutor can execute a lifecycle hook.
 	hookExecutor hookExecutor
-
+	// retryTimeout is how long to wait for the replica count update to succeed
+	// before giving up.
 	retryTimeout time.Duration
-	retryPeriod  time.Duration
+	// retryPeriod is how often to try updating the replica count.
+	retryPeriod time.Duration
 }
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
 func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec) *RecreateDeploymentStrategy {
+	scaler, _ := kubectl.ScalerFor("ReplicationController", kubectl.NewScalerClient(client))
 	return &RecreateDeploymentStrategy{
-		client: &realReplicationControllerClient{client},
+		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
+			return client.ReplicationControllers(namespace).Get(name)
+		},
+		scaler: scaler,
 		codec:  codec,
 		hookExecutor: &stratsupport.HookExecutor{
 			PodClient: &stratsupport.HookExecutorPodClientImpl{
@@ -52,126 +59,94 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec
 				},
 			},
 		},
-		retryTimeout: 10 * time.Second,
+		retryTimeout: 120 * time.Second,
 		retryPeriod:  1 * time.Second,
 	}
 }
 
 // Deploy makes deployment active and disables oldDeployments.
-func (s *RecreateDeploymentStrategy) Deploy(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
-	var err error
-	var deploymentConfig *deployapi.DeploymentConfig
+func (s *RecreateDeploymentStrategy) Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
+	return s.DeployWithAcceptor(from, to, desiredReplicas, nil)
+}
 
-	if deploymentConfig, err = deployutil.DecodeDeploymentConfig(deployment, s.codec); err != nil {
-		return fmt.Errorf("couldn't decode DeploymentConfig from Deployment %s: %v", deployment.Name, err)
+// DeployWithAcceptor scales down from and then scales up to. If
+// updateAcceptor is provided and the desired replica count is >1, the first
+// replica of to is rolled out and validated before performing the full scale
+// up.
+//
+// This is currently only used in conjunction with the rolling update strategy
+// for initial deployments.
+func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
+	config, err := deployutil.DecodeDeploymentConfig(to, s.codec)
+	if err != nil {
+		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)
 	}
 
-	params := deploymentConfig.Template.Strategy.RecreateParams
+	params := config.Template.Strategy.RecreateParams
+	retryParams := kubectl.NewRetryParams(s.retryPeriod, s.retryTimeout)
+	waitParams := kubectl.NewRetryParams(s.retryPeriod, s.retryTimeout)
+
 	// Execute any pre-hook.
 	if params != nil && params.Pre != nil {
-		err := s.hookExecutor.Execute(params.Pre, deployment, "prehook")
-		if err != nil {
+		if err := s.hookExecutor.Execute(params.Pre, to, "prehook"); err != nil {
 			return fmt.Errorf("Pre hook failed: %s", err)
-		}
-	}
-
-	// Prefer to use an explicitly set desired replica count, falling back to
-	// the value defined on the config.
-	desiredReplicas := deploymentConfig.Template.ControllerTemplate.Replicas
-	if desired, hasDesired := deployment.Annotations[deployapi.DesiredReplicasAnnotation]; hasDesired {
-		val, err := strconv.Atoi(desired)
-		if err != nil {
-			util.HandleError(fmt.Errorf("deployment has an invalid desired replica count '%s'; falling back to config value %d", desired, desiredReplicas))
 		} else {
-			glog.V(4).Infof("Deployment has an explicit desired replica count %d", val)
-			desiredReplicas = val
-		}
-	} else {
-		glog.V(4).Infof("Deployment has no explicit desired replica count; using the config value %d", desiredReplicas)
-	}
-
-	// Disable any old deployments.
-	glog.V(4).Infof("Found %d prior deployments to disable", len(oldDeployments))
-	allProcessed := true
-	for _, oldDeployment := range oldDeployments {
-		if err = s.updateReplicas(oldDeployment.Namespace, oldDeployment.Name, 0); err != nil {
-			util.HandleError(fmt.Errorf("%v", err))
-			allProcessed = false
+			glog.Infof("Pre hook finished")
 		}
 	}
 
-	if !allProcessed {
-		return fmt.Errorf("failed to disable all prior deployments for new Deployment %s", deployment.Name)
+	// Scale down the from deployment.
+	if from != nil {
+		_, err := s.scaleAndWait(from, 0, retryParams, waitParams)
+		if err != nil {
+			return fmt.Errorf("couldn't scale down 'from' deployment %s: %v", deployutil.LabelForDeployment(from), err)
+		}
 	}
 
-	// Scale up the new deployment.
-	if err = s.updateReplicas(deployment.Namespace, deployment.Name, desiredReplicas); err != nil {
+	// If an UpdateAcceptor is provided and we're trying to scale up to more
+	// than one replica, scale up to 1 and validate the replica, aborting if the
+	// replica isn't acceptable.
+	if updateAcceptor != nil && desiredReplicas > 1 {
+		glog.Infof("Validating first replica of %s", to.Name)
+		updatedTo, err := s.scaleAndWait(to, 1, retryParams, waitParams)
+		if err != nil {
+			return err
+		}
+		if err := updateAcceptor.Accept(updatedTo); err != nil {
+			return fmt.Errorf("First replica rejected for %s: %v", to.Name, err)
+		}
+		to = updatedTo
+	}
+
+	// Complete the scale up.
+	updatedTo, err := s.scaleAndWait(to, desiredReplicas, retryParams, waitParams)
+	if err != nil {
 		return err
 	}
+	to = updatedTo
 
 	// Execute any post-hook. Errors are logged and ignored.
 	if params != nil && params.Post != nil {
-		err := s.hookExecutor.Execute(params.Post, deployment, "posthook")
-		if err != nil {
+		if err := s.hookExecutor.Execute(params.Post, to, "posthook"); err != nil {
 			util.HandleError(fmt.Errorf("post hook failed: %s", err))
 		} else {
 			glog.Infof("Post hook finished")
 		}
 	}
 
-	glog.Infof("Deployment %s successfully made active", deployment.Name)
+	glog.Infof("Deployment %s successfully made active", to.Name)
 	return nil
 }
 
-// updateReplicas attempts to set the given deployment's replicaCount using retry logic.
-func (s *RecreateDeploymentStrategy) updateReplicas(namespace, name string, replicaCount int) error {
-	var err error
-	var deployment *kapi.ReplicationController
-
-	timeout := time.After(s.retryTimeout)
-	for {
-		select {
-		case <-timeout:
-			return fmt.Errorf("couldn't successfully update Deployment %s/%s replica count to %d (timeout exceeded)", namespace, name, replicaCount)
-		default:
-			if deployment, err = s.client.getReplicationController(namespace, name); err != nil {
-				util.HandleError(fmt.Errorf("couldn't get Deployment %s/%s: %v", namespace, name, err))
-			} else {
-				deployment.Spec.Replicas = replicaCount
-				glog.V(4).Infof("Updating Deployment %s/%s replica count to %d", namespace, name, replicaCount)
-				if _, err = s.client.updateReplicationController(namespace, deployment); err == nil {
-					return nil
-				}
-				// For conflict errors, retry immediately
-				if kerrors.IsConflict(err) {
-					continue
-				}
-				util.HandleError(fmt.Errorf("error updating Deployment %s/%s replica count to %d: %v", namespace, name, replicaCount, err))
-			}
-
-			time.Sleep(s.retryPeriod)
-		}
+func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationController, replicas int, retry *kubectl.RetryParams, wait *kubectl.RetryParams) (*kapi.ReplicationController, error) {
+	if err := s.scaler.Scale(deployment.Namespace, deployment.Name, uint(replicas), &kubectl.ScalePrecondition{-1, ""}, retry, wait); err != nil {
+		return nil, err
 	}
-}
-
-// replicationControllerClient provides access to ReplicationControllers.
-type replicationControllerClient interface {
-	getReplicationController(namespace, name string) (*kapi.ReplicationController, error)
-	updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error)
-}
-
-// realReplicationControllerClient is a replicationControllerClient which uses
-// a Kube client.
-type realReplicationControllerClient struct {
-	client kclient.Interface
-}
-
-func (r *realReplicationControllerClient) getReplicationController(namespace string, name string) (*kapi.ReplicationController, error) {
-	return r.client.ReplicationControllers(namespace).Get(name)
-}
-
-func (r *realReplicationControllerClient) updateReplicationController(namespace string, ctrl *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return r.client.ReplicationControllers(namespace).Update(ctrl)
+	updatedDeployment, err := s.getReplicationController(deployment.Namespace, deployment.Name)
+	if err != nil {
+		return nil, err
+	}
+	return updatedDeployment, nil
 }
 
 // hookExecutor knows how to execute a deployment lifecycle hook.
