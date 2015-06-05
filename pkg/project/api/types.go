@@ -11,8 +11,8 @@ type ProjectList struct {
 	Items []Project
 }
 
-// These are internal finalizer values to Origin
 const (
+	// These are internal finalizer values to Origin
 	FinalizerOrigin kapi.FinalizerName = "openshift.io/origin"
 )
 
@@ -40,4 +40,16 @@ type ProjectRequest struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta
 	DisplayName string
+	Description string
 }
+
+// These constants represent annotations keys affixed to projects
+const (
+	// ProjectDisplayName is an annotation that stores the name displayed when querying for projects
+	ProjectDisplayName = "openshift.io/display-name"
+	// ProjectDescription is an annotatoion that holds the description of the project
+	ProjectDescription = "openshift.io/description"
+	// ProjectNodeSelector is an annotation that holds the node selector;
+	// the node selector annotation determines which nodes will have pods from this project scheduled to them
+	ProjectNodeSelector = "openshift.io/node-selector"
+)

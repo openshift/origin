@@ -309,3 +309,13 @@ requirements the version is not updated. You will need to either update the
 Version, %commit, and %ldflags values on your own or you may use
 [tito](https://github.com/dgoodwin/tito) to build
 and tag releases.
+
+## Swagger API Documentation
+
+OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://swagger.io) which aims to make it easier to document and write clients for RESTful APIs.  When you start OpenShift, the Swagger API endpoint is exposed at `https://localhost:8443/swaggerapi`. The Swagger UI makes it easy to view your documentation - to view the docs for your local version of OpenShift start the server with CORS enabled:
+
+    $ openshift start --cors-allowed-origins=.*
+
+and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1beta3 to see the schemas (and to try the API directly).
+
+Note: Hosted API documentation can be found [here](http://docs.openshift.org/latest/rest_api/openshift_v1.html).

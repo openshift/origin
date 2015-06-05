@@ -162,6 +162,15 @@ func NewRange(prefix string, n, k uint) (*Range, error) {
 	}, nil
 }
 
+// ParseRange converts a string value representing an SELinux category
+// range into a Range object, extracting the prefix -- which may include the
+// user, type, and role of the range, the number of labels to use, and the
+// maximum category to use.  The input string is expected to be in the format:
+//
+//   <prefix>/<numLabels>[,<maxCategory>]
+//
+// If the maximum category is not specified, it is defaulted to the maximum
+// number of SELinux categories (1024).
 func ParseRange(in string) (*Range, error) {
 	seg := strings.SplitN(in, "/", 2)
 	if len(seg) != 2 {

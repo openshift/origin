@@ -11,8 +11,8 @@ type ProjectList struct {
 	Items         []Project `json:"items"`
 }
 
-// These are internal finalizer values to Origin
 const (
+	// These are internal finalizer values to Origin
 	FinalizerOrigin kapi.FinalizerName = "openshift.io/origin"
 )
 
@@ -44,4 +44,5 @@ type ProjectRequest struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 	DisplayName     string `json:"displayName,omitempty"`
+	Description     string `json:"description,omitempty"`
 }

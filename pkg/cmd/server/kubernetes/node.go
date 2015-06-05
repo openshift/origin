@@ -1,27 +1,21 @@
 package kubernetes
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
-	kapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kubelet/app"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/cadvisor"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
 	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	kexec "github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/mount"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
@@ -129,106 +123,18 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 // RunKubelet starts the Kubelet.
 func (c *NodeConfig) RunKubelet() {
 	// TODO: clean this up and make it more formal (service named 'dns'?). Use multiple ports.
-	clusterDNS := c.ClusterDNS
+	clusterDNS := c.KubeletConfig.ClusterDNS
 	if clusterDNS == nil {
 		if service, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
 			if ip, ok := firstIP(service, 53); ok {
 				if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", ip, 53), 50*time.Millisecond, 0, 2); err == nil {
-					clusterDNS = net.ParseIP(ip)
+					c.KubeletConfig.ClusterDNS = util.IP(net.ParseIP(ip))
 				}
 			}
 		}
 	}
-
-	cadvisorInterface, err := cadvisor.New(4194)
-	if err != nil {
-		glog.Fatalf("Error instantiating cadvisor: %v", err)
-	}
-
-	hostNetworkCapabilities := []string{kubelet.ApiserverSource, kubelet.FileSource}
-
-	imageGCPolicy := kubelet.ImageGCPolicy{
-		HighThresholdPercent: 90,
-		LowThresholdPercent:  80,
-	}
-	diskSpacePolicy := kubelet.DiskSpacePolicy{
-		DockerFreeDiskMB: 256,
-		RootFreeDiskMB:   256,
-	}
-	kubeAddress, kubePortStr, err := net.SplitHostPort(c.BindAddress)
-	if err != nil {
-		glog.Fatalf("Cannot parse node address: %v", err)
-	}
-	kubePort, err := strconv.Atoi(kubePortStr)
-	if err != nil {
-		glog.Fatalf("Cannot parse node port: %v", err)
-	}
-
-	var tlsOptions *kubelet.TLSOptions
-	if c.TLS {
-		tlsOptions = &kubelet.TLSOptions{
-			Config: &tls.Config{
-				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-				MinVersion: tls.VersionTLS10,
-				// RequireAndVerifyClientCert lets us limit requests to ones with a valid client certificate
-				ClientAuth: tls.RequireAndVerifyClientCert,
-				ClientCAs:  c.ClientCAs,
-			},
-			CertFile: c.KubeletCertFile,
-			KeyFile:  c.KubeletKeyFile,
-		}
-	}
-
-	kcfg := kapp.KubeletConfig{
-		Address: util.IP(net.ParseIP(kubeAddress)),
-		// Allow privileged containers
-		// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-		AllowPrivileged:                true,
-		HostNetworkSources:             hostNetworkCapabilities,
-		HostnameOverride:               c.NodeHost,
-		RegisterNode:                   true,
-		RootDirectory:                  c.VolumeDir,
-		ConfigFile:                     c.PodManifestPath,
-		ManifestURL:                    "",
-		FileCheckFrequency:             time.Duration(c.PodManifestCheckIntervalSeconds) * time.Second,
-		HTTPCheckFrequency:             0,
-		PodInfraContainerImage:         c.ImageFor("pod"),
-		SyncFrequency:                  10 * time.Second,
-		RegistryPullQPS:                0.0,
-		RegistryBurst:                  10,
-		MinimumGCAge:                   10 * time.Second,
-		MaxPerPodContainerCount:        5,
-		MaxContainerCount:              100,
-		ClusterDomain:                  c.ClusterDomain,
-		ClusterDNS:                     util.IP(clusterDNS),
-		Runonce:                        false,
-		Port:                           uint(kubePort),
-		ReadOnlyPort:                   0,
-		CadvisorInterface:              cadvisorInterface,
-		EnableServer:                   true,
-		EnableDebuggingHandlers:        true,
-		DockerClient:                   c.DockerClient,
-		KubeClient:                     c.Client,
-		MasterServiceNamespace:         kapi.NamespaceDefault,
-		VolumePlugins:                  kapp.ProbeVolumePlugins(),
-		NetworkPlugins:                 kapp.ProbeNetworkPlugins(),
-		NetworkPluginName:              c.NetworkPluginName,
-		StreamingConnectionIdleTimeout: 5 * time.Minute,
-		TLSOptions:                     tlsOptions,
-		ImageGCPolicy:                  imageGCPolicy,
-		DiskSpacePolicy:                diskSpacePolicy,
-		Cloud:                          nil,
-		NodeStatusUpdateFrequency: 15 * time.Second,
-		ResourceContainer:         "/kubelet",
-		CgroupRoot:                "",
-		ContainerRuntime:          "docker",
-		Mounter:                   mount.New(),
-		DockerDaemonContainer:     "",
-		ConfigureCBR0:             false,
-		MaxPods:                   200,
-		DockerExecHandler:         c.DockerExecHandler,
-	}
-	kapp.RunKubelet(&kcfg, nil)
+	c.KubeletConfig.DockerClient = c.DockerClient
+	glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
 }
 
 // RunProxy starts the proxy

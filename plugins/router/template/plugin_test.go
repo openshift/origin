@@ -2,6 +2,7 @@ package templaterouter
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -31,7 +32,7 @@ func (r *TestRouter) CreateServiceUnit(id string) {
 	su := ServiceUnit{
 		Name:                id,
 		ServiceAliasConfigs: make(map[string]ServiceAliasConfig),
-		EndpointTable:       make(map[string]Endpoint),
+		EndpointTable:       []Endpoint{},
 	}
 
 	r.State[id] = su
@@ -44,16 +45,17 @@ func (r *TestRouter) FindServiceUnit(id string) (v ServiceUnit, ok bool) {
 }
 
 // AddEndpoints adds the endpoints to the service unit identified by id
-func (r *TestRouter) AddEndpoints(id string, endpoints []Endpoint) {
+func (r *TestRouter) AddEndpoints(id string, endpoints []Endpoint) bool {
 	r.Committed = false //expect any call to this method to subsequently call commit
 	su, _ := r.FindServiceUnit(id)
 
-	for _, ep := range endpoints {
-		newEndpoint := Endpoint{ep.ID, ep.IP, ep.Port}
-		su.EndpointTable[ep.ID] = newEndpoint
+	// simulate the logic that compares endpoints
+	if reflect.DeepEqual(su.EndpointTable, endpoints) {
+		return false
 	}
-
+	su.EndpointTable = endpoints
 	r.State[id] = su
+	return true
 }
 
 // DeleteEndpoints removes all endpoints from the service unit
@@ -62,13 +64,13 @@ func (r *TestRouter) DeleteEndpoints(id string) {
 	if su, ok := r.FindServiceUnit(id); !ok {
 		return
 	} else {
-		su.EndpointTable = make(map[string]Endpoint)
+		su.EndpointTable = []Endpoint{}
 		r.State[id] = su
 	}
 }
 
 // AddRoute adds a ServiceAliasConfig for the route to the ServiceUnit identified by id
-func (r *TestRouter) AddRoute(id string, route *routeapi.Route) {
+func (r *TestRouter) AddRoute(id string, route *routeapi.Route) bool {
 	r.Committed = false //expect any call to this method to subsequently call commit
 	su, _ := r.FindServiceUnit(id)
 	routeKey := r.routeKey(route)
@@ -80,6 +82,7 @@ func (r *TestRouter) AddRoute(id string, route *routeapi.Route) {
 
 	su.ServiceAliasConfigs[routeKey] = config
 	r.State[id] = su
+	return true
 }
 
 // RemoveRoute removes the service alias config for Route from the ServiceUnit
@@ -126,8 +129,8 @@ func TestHandleEndpoints(t *testing.T) {
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name: "foo/test", //service name from kapi.endpoints object
-				EndpointTable: map[string]Endpoint{
-					"1.1.1.1:345": {
+				EndpointTable: []Endpoint{
+					{
 						ID:   "1.1.1.1:345",
 						IP:   "1.1.1.1",
 						Port: "345",
@@ -150,8 +153,8 @@ func TestHandleEndpoints(t *testing.T) {
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name: "foo/test",
-				EndpointTable: map[string]Endpoint{
-					"2.2.2.2:8080": {
+				EndpointTable: []Endpoint{
+					{
 						ID:   "2.2.2.2:8080",
 						IP:   "2.2.2.2",
 						Port: "8080",
@@ -174,7 +177,7 @@ func TestHandleEndpoints(t *testing.T) {
 			},
 			expectedServiceUnit: &ServiceUnit{
 				Name:          "foo/test",
-				EndpointTable: map[string]Endpoint{},
+				EndpointTable: []Endpoint{},
 			},
 		},
 	}
@@ -195,11 +198,7 @@ func TestHandleEndpoints(t *testing.T) {
 			t.Errorf("TestHandleEndpoints test case %s failed.  Couldn't find expected service unit with name %s", tc.name, tc.expectedServiceUnit.Name)
 		} else {
 			for expectedKey, expectedEp := range tc.expectedServiceUnit.EndpointTable {
-				actualEp, ok := su.EndpointTable[expectedKey]
-
-				if !ok {
-					t.Errorf("TestHandleEndpoints test case %s failed.  Couldn't find expected endpoint %s in endpoint table", tc.name, expectedKey)
-				}
+				actualEp := su.EndpointTable[expectedKey]
 
 				if expectedEp.ID != actualEp.ID || expectedEp.IP != actualEp.IP || expectedEp.Port != actualEp.Port {
 					t.Errorf("TestHandleEndpoints test case %s failed.  Expected endpoint didn't match actual endpoint %v : %v", tc.name, expectedEp, actualEp)
@@ -289,4 +288,72 @@ func TestHandleRoute(t *testing.T) {
 		}
 	}
 
+}
+
+func TestUnchangingEndpointsDoesNotCommit(t *testing.T) {
+	router := newTestRouter(make(map[string]ServiceUnit))
+	plugin := TemplatePlugin{Router: router}
+	endpoints := &kapi.Endpoints{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "foo",
+			Name:      "test",
+		},
+		Subsets: []kapi.EndpointSubset{{
+			Addresses: []kapi.EndpointAddress{{IP: "1.1.1.1"}, {IP: "2.2.2.2"}},
+			Ports:     []kapi.EndpointPort{{Port: 0}},
+		}},
+	}
+	changedEndpoints := &kapi.Endpoints{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "foo",
+			Name:      "test",
+		},
+		Subsets: []kapi.EndpointSubset{{
+			Addresses: []kapi.EndpointAddress{{IP: "3.3.3.3"}, {IP: "2.2.2.2"}},
+			Ports:     []kapi.EndpointPort{{Port: 0}},
+		}},
+	}
+
+	testCases := []struct {
+		name         string
+		event        watch.EventType
+		endpoints    *kapi.Endpoints
+		expectCommit bool
+	}{
+		{
+			name:         "initial add",
+			event:        watch.Added,
+			endpoints:    endpoints,
+			expectCommit: true,
+		},
+		{
+			name:         "mod with no change",
+			event:        watch.Modified,
+			endpoints:    endpoints,
+			expectCommit: false,
+		},
+		{
+			name:         "add with change",
+			event:        watch.Added,
+			endpoints:    changedEndpoints,
+			expectCommit: true,
+		},
+		{
+			name:         "add with no change",
+			event:        watch.Added,
+			endpoints:    changedEndpoints,
+			expectCommit: false,
+		},
+	}
+
+	for _, v := range testCases {
+		err := plugin.HandleEndpoints(v.event, v.endpoints)
+		if err != nil {
+			t.Errorf("%s had unexecpected error in handle endpoints %v", v.name, err)
+			continue
+		}
+		if router.Committed != v.expectCommit {
+			t.Errorf("%s expected router commit to be %v but found %v", v.name, v.expectCommit, router.Committed)
+		}
+	}
 }

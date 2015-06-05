@@ -45,7 +45,7 @@ you to run all of the components of an OpenShift system on a server with Docker.
 
 will start OpenShift listening on all interfaces, launch an etcd server to store persistent
 data, and launch the Kubernetes system components. The server will run in the foreground until
-you terminate the process.  This command delegates to "openshift start master" and 
+you terminate the process.  This command delegates to "openshift start master" and
 "openshift start node".
 
 Note: starting OpenShift without passing the --master address will attempt to find the IP
@@ -86,7 +86,7 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 						os.Exit(255)
 					}
 				}
-				glog.Fatal(err)
+				glog.Fatalf("OpenShift could not start: %v", err)
 			}
 		},
 	}

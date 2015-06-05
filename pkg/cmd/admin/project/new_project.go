@@ -9,6 +9,7 @@ import (
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	errorsutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -54,17 +55,22 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 			if options.Client, _, err = f.Clients(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
-			if err := options.Run(); err != nil {
+
+			// We can't depend on len(options.NodeSelector) > 0 as node-selector="" is valid
+			// and we want to populate node selector as project annotation only if explicitly set by user
+			useNodeSelector := cmd.Flag("node-selector").Changed
+
+			if err := options.Run(useNodeSelector); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&options.AdminRole, "admin-role", bootstrappolicy.AdminRoleName, "project admin role name in the cluster policy")
-	cmd.Flags().StringVar(&options.AdminUser, "admin", "", "project admin username")
-	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "project display name")
-	cmd.Flags().StringVar(&options.Description, "description", "", "project description")
-	cmd.Flags().StringVar(&options.NodeSelector, "node-selector", "", "Restrict pods onto nodes matching given label selector. Format: '<key1>=<value1>, <key2>=<value2>...'")
+	cmd.Flags().StringVar(&options.AdminRole, "admin-role", bootstrappolicy.AdminRoleName, "Project admin role name in the cluster policy")
+	cmd.Flags().StringVar(&options.AdminUser, "admin", "", "Project admin username")
+	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "Project display name")
+	cmd.Flags().StringVar(&options.Description, "description", "", "Project description")
+	cmd.Flags().StringVar(&options.NodeSelector, "node-selector", "", "Restrict pods onto nodes matching given label selector. Format: '<key1>=<value1>, <key2>=<value2>...'. Specifying \"\" means any node, not default. If unspecified, cluster default node selector will be used.")
 
 	return cmd
 }
@@ -78,7 +84,7 @@ func (o *NewProjectOptions) complete(args []string) error {
 	return nil
 }
 
-func (o *NewProjectOptions) Run() error {
+func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 	if _, err := o.Client.Projects().Get(o.ProjectName); err != nil {
 		if !kerrors.IsNotFound(err) {
 			return err
@@ -90,14 +96,19 @@ func (o *NewProjectOptions) Run() error {
 	project := &projectapi.Project{}
 	project.Name = o.ProjectName
 	project.Annotations = make(map[string]string)
-	project.Annotations["description"] = o.Description
-	project.Annotations["displayName"] = o.DisplayName
-	project.Annotations["openshift.io/node-selector"] = o.NodeSelector
+	project.Annotations[projectapi.ProjectDescription] = o.Description
+	project.Annotations[projectapi.ProjectDisplayName] = o.DisplayName
+	if useNodeSelector {
+		project.Annotations[projectapi.ProjectNodeSelector] = o.NodeSelector
+	}
 	project, err := o.Client.Projects().Create(project)
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("Created project %v\n", o.ProjectName)
+
+	errs := []error{}
 	if len(o.AdminUser) != 0 {
 		adduser := &policy.RoleModificationOptions{
 			RoleName:            o.AdminRole,
@@ -106,11 +117,24 @@ func (o *NewProjectOptions) Run() error {
 		}
 
 		if err := adduser.AddRole(); err != nil {
-			fmt.Printf("The project %v was created, but %v could not be added to the %v role.\n", o.ProjectName, o.AdminUser, o.AdminRole)
-			fmt.Printf("To add the user to the existing project, run\n\n\tosadm policy add-role-to-user --namespace=%v %v %v\n", o.ProjectName, o.AdminRole, o.AdminUser)
-			return err
+			fmt.Printf("%v could not be added to the %v role: %v\n", o.AdminUser, o.AdminRole, err)
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(o.ProjectName) {
+		addRole := &policy.RoleModificationOptions{
+			RoleName:            binding.RoleRef.Name,
+			RoleNamespace:       binding.RoleRef.Namespace,
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(o.ProjectName, o.Client),
+			Users:               binding.Users.List(),
+			Groups:              binding.Groups.List(),
+		}
+		if err := addRole.AddRole(); err != nil {
+			fmt.Printf("Could not add service accounts to the %v role: %v\n", binding.RoleRef.Name, err)
+			errs = append(errs, err)
+		}
+	}
+
+	return errorsutil.NewAggregate(errs)
 }

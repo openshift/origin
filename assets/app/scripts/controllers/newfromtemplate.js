@@ -8,7 +8,9 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse, Navigate, imageObjectRefFilter, failureObjectNameFilter) {
+  .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse, Navigate, $filter, imageObjectRefFilter, failureObjectNameFilter) {
+    var displayNameFilter = $filter('displayName');
+
 
     function errorPage(message) {
       var redirect = URI('error').query({
@@ -84,11 +86,11 @@ angular.module('openshiftConsole')
     }
 
     $scope.projectDisplayName = function() {
-      return (this.project && this.project.displayName) || this.projectName;
+      return displayNameFilter(this.project) || this.projectName;
     };
 
     $scope.templateDisplayName = function() {
-      return (this.template.annotations && this.template.annotations.displayName) || this.template.metadata.name;
+      return displayNameFilter(this.template);
     };
 
     $scope.createFromTemplate = function() {

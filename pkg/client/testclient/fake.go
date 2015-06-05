@@ -1,9 +1,11 @@
 package testclient
 
 import (
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 )
 
@@ -20,6 +22,17 @@ type Fake struct {
 	// ReactFn is an optional function that will be invoked with the provided action
 	// and return a response.
 	ReactFn ktestclient.ReactionFunc
+}
+
+// NewSimpleFake returns a client that will respond with the provided objects
+func NewSimpleFake(objects ...runtime.Object) *Fake {
+	o := ktestclient.NewObjects(kapi.Scheme, kapi.Scheme)
+	for _, obj := range objects {
+		if err := o.Add(obj); err != nil {
+			panic(err)
+		}
+	}
+	return &Fake{ReactFn: ktestclient.ObjectReaction(o, latest.RESTMapper)}
 }
 
 // Invokes registers the passed fake action and reacts on it if a ReactFn
@@ -167,7 +180,6 @@ func (c *Fake) SubjectAccessReviews(namespace string) client.SubjectAccessReview
 // OAuthAccessTokens provides a fake REST client for OAuthAccessTokens
 func (c *Fake) OAuthAccessTokens() client.OAuthAccessTokenInterface {
 	return &FakeOAuthAccessTokens{Fake: c}
-
 }
 
 // ClusterSubjectAccessReviews provides a fake REST client for ClusterSubjectAccessReviews

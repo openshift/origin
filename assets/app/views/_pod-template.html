@@ -25,17 +25,17 @@
             <span>Source:
               <span ng-switch="build.spec.source.type">
                 <span ng-switch-when="Git">
-                  <span ng-if="build.spec.revision">
+                  <span ng-if="build.spec.revision.git.commit">
                     {{build.spec.revision.git.message}}
-                    <span ng-if="build.spec.revision.git.commit">
-                      (<span title="{{build.spec.revision.git.commit}}" class="small">{{build.spec.revision.git.commit.substr(0, 10)}}</span>)
-                    </span>
+                    (<osc-git-link 
+                      uri="build.spec.source.git.uri"
+                      commit="build.spec.revision.git.commit">{{build.spec.revision.git.commit | limitTo:7}}</osc-git-link>)
                     <span ng-if="build.spec.revision.git.author">
                       authored by {{build.spec.revision.git.author.name}}
                     </span>
                   </span>
-                  <span ng-if="!build.spec.revision">
-                    <a href="{{build.spec.source.git.uri}}" target="_blank" data-toggle="tooltip" data-placement="right" title="This is a Git URL that can be used with `git clone`">Git</a>
+                  <span ng-if="!build.spec.revision.git.commit">
+                    <osc-git-link uri="build.spec.source.git.uri">{{build.spec.source.git.uri}}</osc-git-link>
                   </span>
                 </span>
                 <span ng-switch-default>

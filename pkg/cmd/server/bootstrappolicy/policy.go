@@ -69,6 +69,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "pods/exec", "pods/portforward"),
 				},
+				{
+					Verbs: util.NewStringSet("get", "update"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
+					Resources: util.NewStringSet("imagestreams/layers"),
+				},
 			},
 		},
 		{
@@ -134,8 +139,9 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get"),
-					Resources: util.NewStringSet("imagestreams"),
+					Verbs: util.NewStringSet("get"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
+					Resources: util.NewStringSet("imagestreams/layers"),
 				},
 			},
 		},
@@ -145,8 +151,28 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "update"),
-					Resources: util.NewStringSet("imagestreams"),
+					Verbs: util.NewStringSet("get", "update"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
+					Resources: util.NewStringSet("imagestreams/layers"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ImagePrunerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("delete"),
+					Resources: util.NewStringSet("images"),
+				},
+				{
+					Verbs:     util.NewStringSet("get", "list"),
+					Resources: util.NewStringSet("images", "imagestreams", "pods", "replicationcontrollers", "buildconfigs", "builds", "deploymentconfigs"),
+				},
+				{
+					Verbs:     util.NewStringSet("update"),
+					Resources: util.NewStringSet("imagestreams/status"),
 				},
 			},
 		},
@@ -221,13 +247,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Resources: util.NewStringSet("imagestreamimages", "imagestreamtags", "imagestreams"),
 				},
 				{
-					// TODO: remove "create" once we re-enable user authentication in the registry
-					Verbs:     util.NewStringSet("create", "update"),
+					Verbs:     util.NewStringSet("update"),
 					Resources: util.NewStringSet("imagestreams"),
 				},
 				{
 					Verbs:     util.NewStringSet("create"),
-					Resources: util.NewStringSet("imagerepositorymappings", "imagestreammappings"),
+					Resources: util.NewStringSet("imagestreammappings"),
 				},
 			},
 		},

@@ -60,14 +60,79 @@ func TestAddEndpoints(t *testing.T) {
 		if len(su.EndpointTable) != 1 {
 			t.Errorf("Expected endpoint table to contain 1 entry")
 		} else {
-			actualEp, ok := su.EndpointTable[endpoint.ID]
+			actualEp := su.EndpointTable[0]
+			if endpoint.IP != actualEp.IP || endpoint.Port != actualEp.Port {
+				t.Errorf("Expected endpoint %v did not match actual endpoint %v", endpoint, actualEp)
+			}
+		}
+	}
+}
 
-			if !ok {
-				t.Errorf("Endpoint %s was not found", endpoint.ID)
-			} else {
-				if endpoint.IP != actualEp.IP || endpoint.Port != actualEp.Port {
-					t.Errorf("Expected endpoint %v did not match actual endpoint %v", endpoint, actualEp)
-				}
+// Test that AddEndpoints returns true and false correctly for changed endpoints.
+func TestAddEndpointDuplicates(t *testing.T) {
+	router := newFakeTemplateRouter()
+	suKey := "test"
+	router.CreateServiceUnit(suKey)
+	if _, ok := router.FindServiceUnit(suKey); !ok {
+		t.Fatalf("Unable to find serivce unit %s after creation", suKey)
+	}
+
+	endpoint := Endpoint{
+		ID:   "ep1",
+		IP:   "1.1.1.1",
+		Port: "80",
+	}
+	endpoint2 := Endpoint{
+		ID:   "ep2",
+		IP:   "2.2.2.2",
+		Port: "8080",
+	}
+	endpoint3 := Endpoint{
+		ID:   "ep3",
+		IP:   "3.3.3.3",
+		Port: "8888",
+	}
+
+	testCases := []struct {
+		name      string
+		endpoints []Endpoint
+		expected  bool
+	}{
+		{
+			name:      "initial add",
+			endpoints: []Endpoint{endpoint, endpoint2},
+			expected:  true,
+		},
+		{
+			name:      "add same endpoints",
+			endpoints: []Endpoint{endpoint, endpoint2},
+			expected:  false,
+		},
+		{
+			name:      "add changed endpoints",
+			endpoints: []Endpoint{endpoint3, endpoint2},
+			expected:  true,
+		},
+	}
+
+	for _, v := range testCases {
+		added := router.AddEndpoints(suKey, v.endpoints)
+		if added != v.expected {
+			t.Errorf("%s expected to return %v but got %v", v.name, v.expected, added)
+		}
+		su, ok := router.FindServiceUnit(suKey)
+		if !ok {
+			t.Errorf("%s was unable to find created service unit %s", v.name, suKey)
+			continue
+		}
+		if len(su.EndpointTable) != len(v.endpoints) {
+			t.Errorf("%s expected endpoint table to contain %d entries but found %v", v.name, len(v.endpoints), su.EndpointTable)
+			continue
+		}
+		for i, ep := range su.EndpointTable {
+			expected := v.endpoints[i]
+			if expected.IP != ep.IP || expected.Port != ep.Port {
+				t.Errorf("%s expected endpoint %v did not match actual endpoint %v", v.name, endpoint, ep)
 			}
 		}
 	}
@@ -152,7 +217,11 @@ func TestAddRoute(t *testing.T) {
 	suKey := "test"
 	router.CreateServiceUnit(suKey)
 
-	router.AddRoute(suKey, route)
+	// add route always returns true
+	added := router.AddRoute(suKey, route)
+	if !added {
+		t.Fatalf("expected AddRoute to return true but got false")
+	}
 
 	su, ok := router.FindServiceUnit(suKey)
 

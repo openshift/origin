@@ -14,7 +14,7 @@ angular.module('openshiftConsole')
 
     $scope.templatesByTag = {};
 
-    $scope.sourceURLPattern = /^((ftp|http|https|git):\/\/(\w+:{0,1}\w*@)|git@)?([^\s@]+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/;
+    $scope.sourceURLPattern = /^((ftp|http|https|git):\/\/(\w+:{0,1}[^\s@]*@)|git@)?([^\s@]+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/;
 
     DataService.list("templates", $scope, function(templates) {
       $scope.projectTemplates = templates.by("metadata.name");

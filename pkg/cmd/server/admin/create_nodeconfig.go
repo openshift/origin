@@ -323,11 +323,9 @@ func (o CreateNodeConfigOptions) MakeKubeConfig(clientCertFile, clientKeyFile, c
 	createKubeConfigOptions := CreateKubeConfigOptions{
 		APIServerURL:    o.APIServerURL,
 		APIServerCAFile: clientCopyOfCAFile,
-		ServerNick:      "master",
 
 		CertFile: clientCertFile,
 		KeyFile:  clientKeyFile,
-		UserNick: "node",
 
 		ContextNamespace: kapi.NamespaceDefault,
 

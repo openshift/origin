@@ -108,6 +108,13 @@ function cleanup()
 	echo
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
+		echo "[INFO] Deleting test constructs"
+		osc delete -n test all --all
+		osc delete -n docker all --all
+		osc delete -n custom all --all
+		osc delete -n cache all --all
+		osc delete -n default all --all
+
 		echo "[INFO] Tearing down test"
 		pids="$(jobs -pr)"
 		echo "[INFO] Children: ${pids}"
@@ -237,6 +244,11 @@ sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift
 OS_PID=$!
 
 export HOME="${FAKE_HOME_DIR}"
+# This directory must exist so Docker can store credentials in $HOME/.dockercfg
+mkdir -p ${FAKE_HOME_DIR}
+
+export OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+CLUSTER_ADMIN_CONTEXT=$(osc config view --flatten -o template -t '{{index . "current-context"}}')
 
 if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
@@ -244,10 +256,10 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 
 	# Make osc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
-	export OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 	sudo chmod -R a+rwX "${OPENSHIFTCONFIG}"
 	echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
 fi
+
 
 wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
@@ -285,7 +297,7 @@ wait_for_command '[[ "$(osc get endpoints docker-registry --output-version=v1bet
 DOCKER_REGISTRY=$(osc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
-wait_for_url_timed "http://${DOCKER_REGISTRY}/v2/" "[INFO] Docker registry says: " $((2*TIME_MIN))
+wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
 [ "$(dig @${API_HOST} "docker-registry.default.local." A)" ]
 
@@ -297,17 +309,22 @@ osc project cache
 token=$(osc config view --flatten -o template -t '{{with index .users 0}}{{.user.token}}{{end}}')
 [[ -n ${token} ]]
 
-# TODO reenable this once we've got docker push secrets 100% ready
-#docker login -u e2e-user -p ${token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}
-# TODO remove the following line once we've got docker push secrets 100% ready
-echo '{"apiVersion": "v1beta3", "kind": "ImageStream", "metadata": {"name": "ruby-20-centos7"}}' | osc create -f -
+echo "[INFO] Docker login as e2e-user to ${DOCKER_REGISTRY}"
+docker login -u e2e-user -p ${token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}
+echo "[INFO] Docker login successful"
 
+echo "[INFO] Tagging and pushing ruby-20-centos7 to ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest"
 docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
 docker push ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
 echo "[INFO] Pushed ruby-20-centos7"
 
 echo "[INFO] Back to 'master' context with 'admin' user..."
-osc project default
+osc project ${CLUSTER_ADMIN_CONTEXT}
+
+# The build requires a dockercfg secret in the builder service account in order
+# to be able to push to the registry.  Make sure it exists first.
+echo "[INFO] Waiting for dockercfg secrets to be generated in project 'test' before building"
+wait_for_command "osc get -n test serviceaccount/builder -o yaml | grep dockercfg > /dev/null" $((60*TIME_SEC))
 
 # Process template and create
 echo "[INFO] Submitting application template json for processing..."

@@ -100,13 +100,14 @@ func (r *repository) ExistsByTag(ctx context.Context, tag string) (bool, error) 
 
 // Get retrieves the manifest with digest `dgst`.
 func (r *repository) Get(ctx context.Context, dgst digest.Digest) (*manifest.SignedManifest, error) {
-	_, err := r.getImageStreamImage(ctx, dgst)
-	if err != nil {
+	if _, err := r.getImageStreamImage(ctx, dgst); err != nil {
+		log.Errorf("Error retrieving ImageStreamImage %s/%s@%s: %v", r.namespace, r.name, dgst.String(), err)
 		return nil, err
 	}
-	// TODO: we already fetched it above
+
 	image, err := r.getImage(dgst)
 	if err != nil {
+		log.Errorf("Error retrieving image %s: %v", dgst.String(), err)
 		return nil, err
 	}
 
@@ -233,16 +234,10 @@ func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
 
 // getImageStream retrieves the ImageStream for r.
 func (r *repository) getImageStream(ctx context.Context) (*imageapi.ImageStream, error) {
-	client, ok := UserClientFrom(ctx)
-	if !ok {
-		return nil, fmt.Errorf("error retrieving ImageStream: OpenShift user client unavailable")
-	}
-	return client.ImageStreams(r.namespace).Get(r.name)
+	return r.registryClient.ImageStreams(r.namespace).Get(r.name)
 }
 
-// getImage retrieves the Image with digest `dgst`. This uses the registry's
-// credentials and should ONLY be called after verifying the user has access
-// to the image stream the imgae belongs to.
+// getImage retrieves the Image with digest `dgst`.
 func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 	return r.registryClient.Images().Get(dgst.String())
 }
@@ -250,21 +245,13 @@ func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 // getImageStreamTag retrieves the Image with tag `tag` for the ImageStream
 // associated with r.
 func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imageapi.ImageStreamTag, error) {
-	client, ok := UserClientFrom(ctx)
-	if !ok {
-		return nil, fmt.Errorf("error retrieving ImageStreamTag: OpenShift user client unavailable")
-	}
-	return client.ImageStreamTags(r.namespace).Get(r.name, tag)
+	return r.registryClient.ImageStreamTags(r.namespace).Get(r.name, tag)
 }
 
 // getImageStreamImage retrieves the Image with digest `dgst` for the ImageStream
-// associated with r. This ensures the user has access to the image.
+// associated with r. This ensures the image belongs to the image stream.
 func (r *repository) getImageStreamImage(ctx context.Context, dgst digest.Digest) (*imageapi.ImageStreamImage, error) {
-	client, ok := UserClientFrom(ctx)
-	if !ok {
-		return nil, fmt.Errorf("error retrieving ImageStreamImage: OpenShift user client unavailable")
-	}
-	return client.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
+	return r.registryClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
 
 // manifestFromImage converts an Image to a SignedManifest.

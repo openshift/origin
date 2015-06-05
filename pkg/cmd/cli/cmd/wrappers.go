@@ -113,20 +113,20 @@ func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 }
 
 const (
-	log_long = `Print the logs for a container in a pod. If the pod has only one container, the container name is optional.`
+	logsLong = `Print the logs for a container in a pod. If the pod has only one container, the container name is optional.`
 
-	log_example = `  // Returns snapshot of ruby-container logs from pod 123456-7890.
-  $ %[1]s log 123456-7890 ruby-container
+	logsExample = `  // Returns snapshot of ruby-container logs from pod 123456-7890.
+  $ %[1]s logs 123456-7890 ruby-container
 
   // Starts streaming of ruby-container logs from pod 123456-7890.
-  $ %[1]s log -f 123456-7890 ruby-container`
+  $ %[1]s logs -f 123456-7890 ruby-container`
 )
 
-// NewCmdLog is a wrapper for the Kubernetes cli log command
-func NewCmdLog(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+// NewCmdLogs is a wrapper for the Kubernetes cli logs command
+func NewCmdLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdLog(f.Factory, out)
-	cmd.Long = log_long
-	cmd.Example = fmt.Sprintf(log_example, fullName)
+	cmd.Long = logsLong
+	cmd.Example = fmt.Sprintf(logsExample, fullName)
 	return cmd
 }
 

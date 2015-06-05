@@ -5,13 +5,13 @@ import (
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/deploy/api"
-	deploy "github.com/openshift/origin/pkg/deploy/scaler"
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -36,34 +36,42 @@ type DeploymentConfigReaper struct {
 // zero replicas, waits for all of them to get deleted and then deletes both the
 // replication controller and its deployment configuration.
 func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *kapi.DeleteOptions) (string, error) {
-	dc, err := reaper.osc.DeploymentConfigs(namespace).Get(name)
+	// If the config is already deleted, it may still have associated
+	// deployments which didn't get cleaned up during prior calls to Stop. If
+	// the config can't be found, still make an attempt to clean up the
+	// deployments.
+	//
+	// It's important to delete the config first to avoid an undesirable side
+	// effect which can cause the deployment to be re-triggered upon the
+	// config's deletion. See https://github.com/openshift/origin/issues/2721
+	// for more details.
+	err := reaper.osc.DeploymentConfigs(namespace).Delete(name)
+	configNotFound := kerrors.IsNotFound(err)
+	if err != nil && !configNotFound {
+		return "", err
+	}
+
+	// Clean up deployments related to the config.
+	rcList, err := reaper.kc.ReplicationControllers(namespace).List(labels.Everything())
 	if err != nil {
 		return "", err
 	}
-	// Disable dc triggers while reaping
-	dc.Triggers = []api.DeploymentTriggerPolicy{}
-	dc, err = reaper.osc.DeploymentConfigs(namespace).Update(dc)
+	rcReaper, err := kubectl.ReaperFor("ReplicationController", reaper.kc)
 	if err != nil {
 		return "", err
 	}
-	scaler, err := deploy.ScalerFor("DeploymentConfig", reaper.osc, reaper.kc)
-	if err != nil {
-		return "", err
+
+	// If there is neither a config nor any deployments, we can return NotFound.
+	deployments := util.ConfigSelector(name, rcList.Items)
+	if configNotFound && len(deployments) == 0 {
+		return "", kerrors.NewNotFound("DeploymentConfig", name)
 	}
-	retry := kubectl.NewRetryParams(reaper.pollInterval, reaper.timeout)
-	waitForReplicas := kubectl.NewRetryParams(reaper.pollInterval, reaper.timeout)
-	if err = scaler.Scale(namespace, name, 0, nil, retry, waitForReplicas); err != nil {
-		// The deploymentConfig may not have a replication controller to scale
-		// so we shouldn't error out here
-		glog.V(2).Info(err)
+	for _, rc := range deployments {
+		if _, err = rcReaper.Stop(rc.Namespace, rc.Name, gracePeriod); err != nil {
+			// Better not error out here...
+			glog.Infof("Cannot delete ReplicationController %s/%s: %v", rc.Namespace, rc.Name, err)
+		}
 	}
-	if err = reaper.kc.ReplicationControllers(namespace).Delete(util.LatestDeploymentNameForConfig(dc)); err != nil {
-		// The deploymentConfig may not have a replication controller to delete
-		// so we shouldn't error out here
-		glog.V(2).Info(err)
-	}
-	if err = reaper.osc.DeploymentConfigs(namespace).Delete(name); err != nil {
-		return "", err
-	}
+
 	return fmt.Sprintf("%s stopped", name), nil
 }

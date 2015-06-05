@@ -16,9 +16,9 @@ angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
         podId = podId + ':' + port;
       }
       kubeProxyURI.segment(apiVersion)
-                  .segment('proxy')
                   .segment('namespaces').segment(namespace)
-                  .segment('pods').segment(podId);
+                  .segment('pods').segment(podId)
+                  .segment('proxy');
       return kubeProxyURI;
     };
   })

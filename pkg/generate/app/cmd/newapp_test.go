@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -22,6 +24,18 @@ import (
 )
 
 func TestAddArguments(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "test-newapp")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	testDir := filepath.Join(tmpDir, "test/one/two/three")
+	err = os.MkdirAll(testDir, 0777)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
 	tests := map[string]struct {
 		args       []string
 		env        util.StringList
@@ -36,8 +50,8 @@ func TestAddArguments(t *testing.T) {
 			unknown:    []string{},
 		},
 		"source": {
-			args:    []string{".", "./test/one/two/three", "/var/go/src/test", "git://server/repo.git"},
-			repos:   util.StringList{".", "./test/one/two/three", "/var/go/src/test", "git://server/repo.git"},
+			args:    []string{".", testDir, "git://server/repo.git"},
+			repos:   util.StringList{".", testDir, "git://server/repo.git"},
 			unknown: []string{},
 		},
 		"env": {
@@ -499,6 +513,40 @@ func TestRun(t *testing.T) {
 				"buildConfig":      {"ruby-hello-world"},
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "app generation using context dir",
+			config: &AppConfig{
+				SourceRepositories: util.StringList{"https://github.com/openshift/sti-ruby"},
+				ContextDir:         "2.0/test/rack-test-app",
+				dockerResolver:     dockerResolver,
+				imageStreamResolver: app.ImageStreamResolver{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateResolver: app.TemplateResolver{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				searcher:        &simpleSearcher{dockerResolver},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"imageStream":      {"sti-ruby", "ruby-20-centos7"},
+				"buildConfig":      {"sti-ruby"},
+				"deploymentConfig": {"sti-ruby"},
+				"service":          {"sti-ruby"},
 			},
 			expectedErr: nil,
 		},

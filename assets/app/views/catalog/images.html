@@ -13,7 +13,7 @@
       </div>
       <div ng-if="!builders.length">
         <div ng-if="!loaded">Loading...</div>
-        <div ng-if="loaded">There are no builder images to select from.  To add a builder to your project run <code>osc create -f &lt;image_repository_file&gt; -n {{projectName}}</code></div>
+        <div ng-if="loaded">There are no builder images to select from. To add a builder to your project, run <code>osc create -f &lt;image_stream_file&gt; -n {{projectName}}</code></div>
       </div>
       <div ng-if="builders.length">
         <div class="row">

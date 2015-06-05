@@ -135,7 +135,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ openshift ex registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ osadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
           docker-registry # the service
           docker-registry # the deployment config
 
@@ -289,11 +289,9 @@ This section covers how to perform all the steps of building, deploying, and upd
 
      If you want to see the build logs of a complete build, use the
      command below (substituting your build name from the "osc get builds"
-     output). Notice that for now only cluster admins can run the `build-logs`
-     command, so we have to explicitly tell the command to use the `master`
-     context from the $OPENSHIFTCONFIG config file:
+     output). 
 
-         $ osc build-logs ruby-sample-build-1 --context=master -n test
+         $ osc build-logs ruby-sample-build-1 -n test
 
     The creation of the new image in the Docker registry will
     automatically trigger a deployment of the application, creating a
@@ -374,7 +372,7 @@ the ip address shown below with the correct one for your environment.
             $ docker pull openshift/origin-haproxy-router
 
             $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
-            $ openshift ex router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+            $ osadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
               router # the service
               router # the deployment config
 

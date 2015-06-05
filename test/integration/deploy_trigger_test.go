@@ -115,10 +115,6 @@ func TestTriggers_imageChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting OpenShift cluster admin client: %v", err)
 	}
-	kubeClusterAdminClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("error getting OpenShift cluster admin client: %v", err)
-	}
 	openshiftClusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
@@ -133,11 +129,11 @@ func TestTriggers_imageChange(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = testutil.Namespace()
 
-	watch, err := kubeClusterAdminClient.ReplicationControllers(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
+	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
-	defer watch.Stop()
+	defer configWatch.Stop()
 
 	if imageStream, err = openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Couldn't create ImageStream: %v", err)
@@ -171,91 +167,38 @@ func TestTriggers_imageChange(t *testing.T) {
 		for {
 			select {
 			case event := <-imageWatch.ResultChan():
-				ir := event.Object.(*imageapi.ImageStream)
-				if _, ok := ir.Status.Tags["latest"]; ok {
-					t.Logf("ImageStream now has Status with tags: %#v", ir.Status.Tags)
+				stream := event.Object.(*imageapi.ImageStream)
+				if _, ok := stream.Status.Tags["latest"]; ok {
+					t.Logf("ImageStream %s now has Status with tags: %#v", stream.Name, stream.Status.Tags)
 					break statusLoop
 				} else {
-					t.Log("Still waiting for latest tag status on imagestream")
+					t.Logf("Still waiting for latest tag status on ImageStream %s", stream.Name)
 				}
 			}
 		}
 	}
 
-	createTagEvent("sha256:00000000000000000000000000000001")
-
 	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
-	var deployment *kapi.ReplicationController
-	// expecting a new RC
-	t.Log("Waiting for a new replication controller")
-waitForNewRC:
+	createTagEvent("sha256:00000000000000000000000000000001")
+
+	var newConfig *deployapi.DeploymentConfig
+	t.Log("Waiting for a new deployment config in response to ImageStream update")
+waitForNewConfig:
 	for {
 		select {
-		case event := <-watch.ResultChan():
-			if event.Type == watchapi.Added {
-				deployment = event.Object.(*kapi.ReplicationController)
-				break waitForNewRC
-			}
-		}
-	}
-
-	if e, a := config.Name, deployutil.DeploymentConfigNameFor(deployment); e != a {
-		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
-	}
-
-	// expecting RC update from new to pending
-	t.Log("Waiting for deployment status to be set to pending")
-waitForPendingStatus:
-	for {
-		select {
-		case event := <-watch.ResultChan():
+		case event := <-configWatch.ResultChan():
 			if event.Type == watchapi.Modified {
-				deployment = event.Object.(*kapi.ReplicationController)
-				break waitForPendingStatus
-			}
-		}
-	}
-	if e, a := deployapi.DeploymentStatusPending, deployutil.DeploymentStatusFor(deployment); e != a {
-		t.Fatalf("expected deployment status %q, got %q", e, a)
-	}
-
-	// before we update the config, we need to update the state of the existing deployment
-	// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
-	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
-	// update the deployment
-	if _, err = kubeClusterAdminClient.ReplicationControllers(testutil.Namespace()).Update(deployment); err != nil {
-		t.Fatalf("Error updating existing deployment: %v", err)
-	}
-
-	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Generate(config.Name); err != nil {
-		t.Fatalf("Error generating config: %v", err)
-	}
-
-	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Update(config); err != nil {
-		t.Fatalf("Couldn't create updated DeploymentConfig: %v", err)
-	}
-
-	createTagEvent("sha256:00000000000000000000000000000002")
-
-	var newDeployment *kapi.ReplicationController
-	// expecting new RC for new deployment
-	t.Log("Waiting for a new replication controller for the new deployment")
-waitForNewDeployment:
-	for {
-		select {
-		case event := <-watch.ResultChan():
-			if event.Type == watchapi.Added {
-				newDeployment = event.Object.(*kapi.ReplicationController)
-				break waitForNewDeployment
+				newConfig = event.Object.(*deployapi.DeploymentConfig)
+				break waitForNewConfig
 			}
 		}
 	}
 
-	if newDeployment.Name == deployment.Name {
-		t.Fatalf("expected new deployment; old=%s, new=%s", deployment.Name, newDeployment.Name)
+	if e, a := 1, newConfig.LatestVersion; e != a {
+		t.Fatalf("expected config version %d, got %d", e, a)
 	}
 }
 

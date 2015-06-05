@@ -69,8 +69,8 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		projectDisplayName = projectRequest.DisplayName
 	}
 
-	if len(projectRequest.Annotations["description"]) > 0 {
-		projectDescription = projectRequest.Annotations["description"]
+	if len(projectRequest.Description) > 0 {
+		projectDescription = projectRequest.Description
 	}
 	if userInfo, exists := kapi.UserFrom(ctx); exists {
 		projectAdmin = userInfo.GetName()

@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"strings"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
@@ -26,6 +26,9 @@ $ %[1]s expose service nginx
 // Create a route and specify your own label and route name
 $ %[1]s expose service nginx -l name=myroute --name=fromdowntown
 
+// Create a route and specify a hostname
+$ %[1]s expose service nginx --hostname=www.example.com
+
 // Expose a deployment configuration as a service and use the specified port
 $ %[1]s expose dc ruby-hello-world --port=8080 --generator=services/v1`
 )
@@ -42,6 +45,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 		err = kcmd.RunExpose(f.Factory, out, cmd, args)
 		cmdutil.CheckErr(err)
 	}
+	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	return cmd
 }
 
@@ -50,6 +54,9 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 // to be exposed as routes.
 func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	if cmdutil.GetFlagString(cmd, "generator") != "route/v1" {
+		if len(cmdutil.GetFlagString(cmd, "hostname")) > 0 {
+			return fmt.Errorf("cannot use --hostname without generating a route")
+		}
 		return nil
 	}
 	namespace, err := f.DefaultNamespace()
@@ -95,7 +102,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 
 		supportsTCP := false
 		for _, port := range svc.Spec.Ports {
-			if strings.ToUpper(string(port.Protocol)) == "TCP" {
+			if port.Protocol == kapi.ProtocolTCP {
 				supportsTCP = true
 				break
 			}

@@ -282,6 +282,10 @@ angular.module('openshiftConsole')
       if (!deploymentConfig || !build) {
         return;
       }
+      // Make sure the deployment config has triggers.
+      if (!deploymentConfig.spec.triggers) {
+        return;
+      }
       // Make sure we have a build output
       if (!build.spec.output.to) {
         return;

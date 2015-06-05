@@ -247,7 +247,6 @@ func StartNode(config configapi.NodeConfig) error {
 	}
 
 	RunSDNController(config)
-
 	nodeConfig.EnsureVolumeDir()
 	nodeConfig.EnsureDocker(docker.NewHelper())
 	nodeConfig.RunProxy()

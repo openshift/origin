@@ -22,7 +22,9 @@ angular.module('openshiftConsole')
       "pod": ["openshift.io/deployer-pod.name"],
       "deploymentStatus": ["openshift.io/deployment.phase"],
       "encodedDeploymentConfig": ["openshift.io/encoded-deployment-config"],
-      "deploymentVersion": ["openshift.io/deployment-config.latest-version"]
+      "deploymentVersion": ["openshift.io/deployment-config.latest-version"],
+      "displayName": ["openshift.io/display-name"],
+      "description": ["openshift.io/description"]
     };
     return function(resource, key) {
       if (resource && resource.spec && resource.spec.tags && key.indexOf(".") !== -1){
@@ -35,7 +37,7 @@ angular.module('openshiftConsole')
           if(tagName === tag.name && tag.annotations){
             return tag.annotations[tagKey];
           }
-        }
+        } 
       }
       if (resource && resource.metadata && resource.metadata.annotations) {
         // If the key's already in the annotation map, return it.
@@ -182,7 +184,8 @@ angular.module('openshiftConsole')
   })  
   .filter('buildForImage', function() {
     return function(image, builds) {
-      // TODO concerned that this gets called anytime any data is changed on the scope, whether its relevant changes or not
+      // TODO concerned that this gets called anytime any data is changed on the scope,
+      // whether its relevant changes or not
       var envVars = image.dockerImageMetadata.Config.Env;
       for (var i = 0; i < envVars.length; i++) {
         var keyValue = envVars[i].split("=");
@@ -206,7 +209,8 @@ angular.module('openshiftConsole')
   })
   .filter('isWebRoute', function(){
     return function(route){
-       //TODO: implement when we can tell if routes are http(s) or not web related which will drive links in view
+       //TODO: implement when we can tell if routes are http(s) or not web related which will drive
+       // links in view
        return true;
     };
   })

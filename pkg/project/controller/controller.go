@@ -2,6 +2,7 @@ package controller
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -104,7 +105,7 @@ func deleteTemplates(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.Templates(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -118,7 +119,7 @@ func deleteRoutes(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.Routes(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -132,7 +133,7 @@ func deleteRoles(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.Roles(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -146,7 +147,7 @@ func deleteRoleBindings(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.RoleBindings(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -160,7 +161,7 @@ func deletePolicyBindings(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.PolicyBindings(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -174,7 +175,7 @@ func deletePolicies(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.Policies(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -188,7 +189,7 @@ func deleteImageStreams(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.ImageStreams(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -202,7 +203,7 @@ func deleteDeploymentConfigs(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.DeploymentConfigs(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -216,7 +217,7 @@ func deleteBuilds(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.Builds(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -230,7 +231,7 @@ func deleteBuildConfigs(client osclient.Interface, ns string) error {
 	}
 	for i := range items.Items {
 		err := client.BuildConfigs(ns).Delete(items.Items[i].Name)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}

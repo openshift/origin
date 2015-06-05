@@ -122,6 +122,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		for _, existing := range existingDeployments.Items {
 			desiredReplicas += existing.Spec.Replicas
 		}
+		glog.V(4).Infof("Desired replicas for %s adjusted to %d based on %d existing deployments", deployutil.LabelForDeploymentConfig(config), desiredReplicas, len(existingDeployments.Items))
 	}
 	deployment.Annotations[deployapi.DesiredReplicasAnnotation] = strconv.Itoa(desiredReplicas)
 

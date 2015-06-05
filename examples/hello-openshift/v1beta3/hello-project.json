@@ -8,8 +8,8 @@
       "name": "hello-openshift-project"
     },
     "annotations": {
-      "description": "This is an example project to demonstrate OpenShift v3",
-      "displayName": "Hello OpenShift"
+      "openshift.io/description": "This is an example project to demonstrate OpenShift v3",
+      "openshift.io/display-name": "Hello OpenShift"
     }
   },
   "spec": {},

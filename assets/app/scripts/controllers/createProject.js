@@ -14,9 +14,7 @@ angular.module('openshiftConsole')
         DataService.create('projectrequests', null, {
           name: $scope.name,
           displayName: $scope.displayName,
-          annotations: {
-            description: $scope.description
-          }
+          description: $scope.description
         }, $scope).then(function(data) { // Success
           Navigate.toProjectOverview(data.metadata.name);
         }, function(result) { // Failure

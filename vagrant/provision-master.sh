@@ -67,7 +67,8 @@ pushd /vagrant
       --certificate-authority="${CERT_DIR}/ca.crt" \
       --signer-cert="${CERT_DIR}/ca.crt" \
       --signer-key="${CERT_DIR}/ca.key" \
-      --signer-serial="${CERT_DIR}/ca.serial.txt"
+      --signer-serial="${CERT_DIR}/ca.serial.txt" \
+      --volume-dir="/tmp/openshift.local.volumes"
   done
 
 popd

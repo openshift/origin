@@ -329,3 +329,114 @@ func TestAddExistingImageAndTag(t *testing.T) {
 		t.Fatalf("Unexpected non-error creating mapping: %#v", err)
 	}
 }
+
+func TestTrackingTags(t *testing.T) {
+	etcdClient, etcdHelper, storage := setup(t)
+	_ = etcdClient
+
+	stream := api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "default",
+			Name:      "stream",
+		},
+		Spec: api.ImageStreamSpec{
+			Tags: map[string]api.TagReference{
+				"tracking": {
+					From: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "2.0",
+					},
+				},
+				"tracking2": {
+					From: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "2.0",
+					},
+				},
+			},
+		},
+		Status: api.ImageStreamStatus{
+			Tags: map[string]api.TagEventList{
+				"tracking": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "foo/bar@sha256:1234",
+							Image:                "1234",
+						},
+					},
+				},
+				"nontracking": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "bar/baz@sha256:9999",
+							Image:                "9999",
+						},
+					},
+				},
+				"2.0": {
+					Items: []api.TagEvent{
+						{
+							DockerImageReference: "foo/bar@sha256:1234",
+							Image:                "1234",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := etcdHelper.CreateObj("/imagerepositories/default/stream", &stream, nil, 0); err != nil {
+		t.Fatalf("Unable to create stream: %v", err)
+	}
+
+	image := &api.Image{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "5678",
+		},
+		DockerImageReference: "foo/bar@sha256:5678",
+	}
+
+	mapping := api.ImageStreamMapping{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: "default",
+			Name:      "stream",
+		},
+		Image: *image,
+		Tag:   "2.0",
+	}
+
+	_, err := storage.Create(kapi.NewDefaultContext(), &mapping)
+	if err != nil {
+		t.Fatalf("Unexpected error creating mapping: %v", err)
+	}
+
+	if err := etcdHelper.ExtractObj("/imagerepositories/default/stream", &stream, false); err != nil {
+		t.Fatalf("error extracting updated stream: %v", err)
+	}
+
+	for _, trackingTag := range []string{"tracking", "tracking2"} {
+		tracking := api.LatestTaggedImage(&stream, trackingTag)
+		if tracking == nil {
+			t.Fatalf("unexpected nil %s TagEvent", trackingTag)
+		}
+
+		if e, a := image.DockerImageReference, tracking.DockerImageReference; e != a {
+			t.Errorf("dockerImageReference: expected %s, got %s", e, a)
+		}
+		if e, a := image.Name, tracking.Image; e != a {
+			t.Errorf("image: expected %s, got %s", e, a)
+		}
+	}
+
+	nonTracking := api.LatestTaggedImage(&stream, "nontracking")
+	if nonTracking == nil {
+		t.Fatal("unexpected nil nontracking TagEvent")
+	}
+
+	if e, a := "bar/baz@sha256:9999", nonTracking.DockerImageReference; e != a {
+		t.Errorf("dockerImageReference: expected %s, got %s", e, a)
+	}
+	if e, a := "9999", nonTracking.Image; e != a {
+		t.Errorf("image: expected %s, got %s", e, a)
+	}
+}

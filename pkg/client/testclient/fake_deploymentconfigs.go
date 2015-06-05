@@ -36,8 +36,8 @@ func (c *FakeDeploymentConfigs) Update(config *deployapi.DeploymentConfig) (*dep
 }
 
 func (c *FakeDeploymentConfigs) Delete(name string) error {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-deploymentconfig"})
-	return nil
+	_, err := c.Fake.Invokes(FakeAction{Action: "delete-deploymentconfig"}, nil)
+	return err
 }
 
 func (c *FakeDeploymentConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
