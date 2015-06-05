@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -23,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/template"
+	"github.com/openshift/origin/pkg/util/namer"
 )
 
 // AppConfig contains all the necessary configuration for an application
@@ -366,9 +368,34 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) (app.Comp
 	return refs, errors.NewAggregate(errs)
 }
 
+func ensureValidUniqueName(names map[string]int, name string) (string, error) {
+	// Ensure that name meets length requirements
+	if len(name) < 2 {
+		return "", fmt.Errorf("invalid name: %s", name)
+	}
+	if len(name) > util.DNS1123SubdomainMaxLength {
+		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, util.DNS1123SubdomainMaxLength)
+		name = name[:util.DNS1123SubdomainMaxLength]
+	}
+
+	// Make all names lowercase
+	name = strings.ToLower(name)
+
+	count, existing := names[name]
+	if !existing {
+		names[name] = 0
+		return name, nil
+	}
+	count++
+	names[name] = count
+	newName := namer.GetName(name, strconv.Itoa(count), util.DNS1123SubdomainMaxLength)
+	return newName, nil
+}
+
 // buildPipelines converts a set of resolved, valid references into pipelines.
 func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
 	pipelines := app.PipelineGroup{}
+	names := map[string]int{}
 	for _, group := range components.Group() {
 		glog.V(2).Infof("found group: %#v", group)
 		common := app.PipelineGroup{}
@@ -391,12 +418,24 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if len(c.Name) > 0 {
 					source.Name = c.Name
 				}
+				if name, ok := (app.NameSuggestions{source, input}).SuggestName(); ok {
+					source.Name, err = ensureValidUniqueName(names, name)
+					if err != nil {
+						return nil, err
+					}
+				}
 				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 			} else {
 				glog.V(2).Infof("will include %q", ref)
 				input, err := app.InputImageFromMatch(ref.Input().Match)
+				if name, ok := input.SuggestName(); ok {
+					input.ObjectName, err = ensureValidUniqueName(names, name)
+					if err != nil {
+						return nil, err
+					}
+				}
 				if err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
