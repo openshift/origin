@@ -173,7 +173,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		MasterClients: configapi.MasterClients{
-			DeployerKubeConfig:           admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), "openshift-deployer"),
 			OpenShiftLoopbackKubeConfig:  admin.DefaultKubeConfigFilename(args.ConfigDir.Value(), "openshift-client"),
 			ExternalKubernetesKubeConfig: args.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath,
 		},
@@ -229,10 +228,11 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	}
 
 	if builtInKubernetes {
-		// When we start Kubernetes, we're responsible for generating the default account
+		// When we start Kubernetes, we're responsible for generating all the managed service accounts
 		config.ServiceAccountConfig.ManagedNames = []string{
 			bootstrappolicy.DefaultServiceAccountName,
 			bootstrappolicy.BuilderServiceAccountName,
+			bootstrappolicy.DeployerServiceAccountName,
 		}
 		// We also need the private key file to give to the token generator
 		config.ServiceAccountConfig.PrivateKeyFile = admin.DefaultServiceAccountPrivateKeyFile(args.ConfigDir.Value())
@@ -241,11 +241,12 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			admin.DefaultServiceAccountPublicKeyFile(args.ConfigDir.Value()),
 		}
 	} else {
-		// When running against an external Kubernetes, we're only responsible for the builder account.
+		// When running against an external Kubernetes, we're only responsible for the builder and deployer accounts.
 		// We don't have the private key, but we need to get the public key to authenticate signed tokens.
 		// TODO: JTL: take arg for public key(s)?
 		config.ServiceAccountConfig.ManagedNames = []string{
 			bootstrappolicy.BuilderServiceAccountName,
+			bootstrappolicy.DeployerServiceAccountName,
 		}
 		config.ServiceAccountConfig.PublicKeyFiles = []string{}
 	}

@@ -213,8 +213,6 @@ type ServingInfo struct {
 }
 
 type MasterClients struct {
-	// DeployerKubeConfig is a .kubeconfig filename for depoyment pods to use
-	DeployerKubeConfig string `json:"deployerKubeConfig"`
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string `json:"openshiftLoopbackKubeConfig"`
 	// ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to kubernetes

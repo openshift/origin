@@ -87,8 +87,6 @@ type MasterConfig struct {
 	// PrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from system components
 	// To apply different access control to a system component, create a client config specifically for that component.
 	PrivilegedLoopbackClientConfig kclient.Config
-	// DeployerPrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
-	DeployerOSClientConfig kclient.Config
 
 	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
 	// It should only be accessed via the *Client() helper methods.
@@ -124,10 +122,6 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 	privilegedLoopbackOpenShiftClient, privilegedLoopbackClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig)
-	if err != nil {
-		return nil, err
-	}
-	_, deployerOSClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.DeployerKubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +167,6 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ClientCAs:    clientCAs,
 		APIClientCAs: apiClientCAs,
 
-		DeployerOSClientConfig:             *deployerOSClientConfig,
 		PrivilegedLoopbackClientConfig:     *privilegedLoopbackClientConfig,
 		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
@@ -360,12 +353,6 @@ func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
 // DeploymentControllerClients returns the deployment controller client object
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
-}
-
-// DeployerClientConfig returns the client configuration a Deployer instance launched in a pod
-// should use when making API calls.
-func (c *MasterConfig) DeployerClientConfig() *kclient.Config {
-	return &c.DeployerOSClientConfig
 }
 
 func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {

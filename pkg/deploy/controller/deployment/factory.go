@@ -26,6 +26,8 @@ type DeploymentControllerFactory struct {
 	KubeClient kclient.Interface
 	// Codec is used for encoding/decoding.
 	Codec runtime.Codec
+	// ServiceAccount is the service account name to run deployer pods as
+	ServiceAccount string
 	// Environment is a set of environment which should be injected into all deployer pod containers.
 	Environment []kapi.EnvVar
 	// DeployerImage specifies which Docker image can support the default strategies.
@@ -51,6 +53,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
 
 	deployController := &DeploymentController{
+		serviceAccount: factory.ServiceAccount,
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return factory.KubeClient.ReplicationControllers(namespace).Get(name)

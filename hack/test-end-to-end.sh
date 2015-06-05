@@ -318,7 +318,7 @@ docker tag -f openshift/ruby-20-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-20-
 docker push ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
 echo "[INFO] Pushed ruby-20-centos7"
 
-echo "[INFO] Back to 'master' context with 'admin' user..."
+echo "[INFO] Back to 'default' project with 'admin' user..."
 osc project ${CLUSTER_ADMIN_CONTEXT}
 
 # The build requires a dockercfg secret in the builder service account in order
@@ -338,12 +338,7 @@ osc project test
 echo "[INFO] Applying STI application config"
 osc create -f "${STI_CONFIG_FILE}"
 
-
-# this needs to be done before waiting for the build because right now only cluster-admins can see build logs, because that uses proxy
-echo "[INFO] Back to 'master' context with 'admin' user..."
-osc project default
-
-# Trigger build
+# Wait for build which should have triggered automatically
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
 #osc start-build -n test ruby-sample-build --follow
 wait_for_build "test"
@@ -362,6 +357,9 @@ wait_for_app "test"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta3/namespaces/custom/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 #wait_for_build "custom"
 #wait_for_app "custom"
+
+echo "[INFO] Back to 'default' project with 'admin' user..."
+osc project ${CLUSTER_ADMIN_CONTEXT}
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream

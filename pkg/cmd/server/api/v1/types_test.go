@@ -100,7 +100,6 @@ kubernetesMasterConfig:
   servicesSubnet: ""
   staticNodeNames: null
 masterClients:
-  deployerKubeConfig: ""
   externalKubernetesKubeConfig: ""
   openshiftLoopbackKubeConfig: ""
 masterPublicURL: ""

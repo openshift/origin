@@ -25,6 +25,8 @@ import (
 //
 // Use the DeploymentControllerFactory to create this controller.
 type DeploymentController struct {
+	// serviceAccount to create deployment pods with
+	serviceAccount string
 	// deploymentClient provides access to deployments.
 	deploymentClient deploymentClient
 	// podClient provides access to pods.
@@ -210,6 +212,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 			},
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
 			RestartPolicy:         kapi.RestartPolicyNever,
+			ServiceAccount:        c.serviceAccount,
 		},
 	}
 

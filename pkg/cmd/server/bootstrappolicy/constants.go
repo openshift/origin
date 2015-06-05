@@ -7,8 +7,9 @@ const (
 
 // users
 const (
-	DefaultServiceAccountName = "default"
-	BuilderServiceAccountName = "builder"
+	DefaultServiceAccountName  = "default"
+	BuilderServiceAccountName  = "builder"
+	DeployerServiceAccountName = "deployer"
 
 	RouterUnqualifiedUsername   = "openshift-router"
 	RegistryUnqualifiedUsername = "openshift-registry"
@@ -21,7 +22,6 @@ const (
 const (
 	UnauthenticatedUsername   = "system:anonymous"
 	InternalComponentUsername = "system:openshift-client"
-	DeployerUsername          = "system:openshift-deployer"
 
 	AuthenticatedGroup   = "system:authenticated"
 	UnauthenticatedGroup = "system:unauthenticated"
