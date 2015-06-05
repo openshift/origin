@@ -16,7 +16,7 @@
         <span ng-switch-when="Failed">failed.</span>
         <span ng-switch-when="Error">encountered an error.</span>
         <span ng-switch-when="Cancelled">was cancelled.</span>
-        <span ng-switch-default>is {{build.status | lowercase}}.
+        <span ng-switch-default>is {{build.status.phase | lowercase}}.
           <span ng-if="trigger.imageChangeParams.automatic">
             A new deployment will be created automatically once the build completes.
           </span>
