@@ -393,6 +393,42 @@ oc describe "${imagename}"
 [ "$(oc describe ${imagename} | grep "Image Name:")" ]
 echo "imageStreams: ok"
 
+# oc tag
+# start with an empty target image stream
+echo '{"apiVersion":"v1", "kind": "ImageStream", "metadata": {"name":"tagtest"}}' | oc create -f -
+echo '{"apiVersion":"v1", "kind": "ImageStream", "metadata": {"name":"tagtest2"}}' | oc create -f -
+
+oc tag mysql:latest tagtest:tag1
+[ "$(oc get is/tagtest -t '{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
+
+oc tag mysql@${name} tagtest:tag2
+[ "$(oc get is/tagtest -t '{{(index .spec.tags 1).from.kind}}')" == "ImageStreamImage" ]
+
+oc tag mysql:notfound tagtest:tag3
+[ "$(oc get is/tagtest -t '{{(index .spec.tags 2).from.kind}}')" == "DockerImage" ]
+
+oc tag --source=imagestreamtag mysql:latest tagtest:tag4
+[ "$(oc get is/tagtest -t '{{(index .spec.tags 3).from.kind}}')" == "ImageStreamTag" ]
+
+oc tag --source=istag mysql:latest tagtest:tag5
+[ "$(oc get is/tagtest -t '{{(index .spec.tags 4).from.kind}}')" == "ImageStreamTag" ]
+
+oc tag --source=imagestreamimage mysql@${name} tagtest:tag6
+[ "$(oc get is/tagtest -t '{{(index .spec.tags 5).from.kind}}')" == "ImageStreamImage" ]
+
+oc tag --source=isimage mysql@${name} tagtest:tag7
+[ "$(oc get is/tagtest -t '{{(index .spec.tags 6).from.kind}}')" == "ImageStreamImage" ]
+
+oc tag --source=docker mysql:latest tagtest:tag8
+[ "$(oc get is/tagtest -t '{{(index .spec.tags 7).from.kind}}')" == "DockerImage" ]
+
+oc tag mysql:latest tagtest:zzz tagtest2:zzz
+[ "$(oc get is/tagtest -t '{{(index .spec.tags 8).from.kind}}')" == "ImageStreamTag" ]
+[ "$(oc get is/tagtest2 -t '{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
+
+oc delete is/tagtest is/tagtest2
+echo "tag: ok"
+
 [ "$(oc new-app library/php mysql -o yaml | grep 3306)" ]
 [ ! "$(oc new-app unknownhubimage -o yaml)" ]
 # verify we can generate a Docker image based component "mongodb" directly
