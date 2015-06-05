@@ -204,6 +204,8 @@ type VolumeSource struct {
 	RBD *RBDVolumeSource `json:"rbd,omitempty" description:"rados block volume that will be mounted on the host machine; see http://releases.k8s.io/v1.0.0/examples/rbd/README.md"`
 	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
 	CephFS *CephFSVolumeSource `json:"cephfs,omitempty" description:"Ceph filesystem that will be mounted on the host machine"`
+	// Metadata represents an host volume which contains pod's metadata
+	Metadata *MetadataVolumeSource `json:"metadata,omitempty" description:"Metadata volume containing information about the pod"`
 }
 
 type PersistentVolumeClaimVolumeSource struct {
@@ -1947,6 +1949,20 @@ type ComponentStatusList struct {
 	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#metadata"`
 
 	Items []ComponentStatus `json:"items" description:"list of component status objects"`
+}
+
+// MetadataVolumeSource represents a volume containing metadata about a pod.
+type MetadataVolumeSource struct {
+	// Items is a list of metadata file name
+	Items []MetadataFile `json:"items,omitempty" description:"list of metadata files"`
+}
+
+// MetadataFile expresses information about a file holding pod metadata.
+type MetadataFile struct {
+	// Required: Name is the name of the file
+	Name string `json:"name" description:"the name of the file to be created"`
+	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+	FieldRef ObjectFieldSelector `json:"fieldRef" description:"selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"`
 }
 
 // SecurityContext holds security configuration that will be applied to a container.  SecurityContext

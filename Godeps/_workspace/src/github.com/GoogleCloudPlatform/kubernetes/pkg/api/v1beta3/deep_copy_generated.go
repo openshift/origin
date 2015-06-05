@@ -761,6 +761,28 @@ func deepCopy_v1beta3_LocalObjectReference(in LocalObjectReference, out *LocalOb
 	return nil
 }
 
+func deepCopy_v1beta3_MetadataFile(in MetadataFile, out *MetadataFile, c *conversion.Cloner) error {
+	out.Name = in.Name
+	if err := deepCopy_v1beta3_ObjectFieldSelector(in.FieldRef, &out.FieldRef, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_MetadataVolumeSource(in MetadataVolumeSource, out *MetadataVolumeSource, c *conversion.Cloner) error {
+	if in.Items != nil {
+		out.Items = make([]MetadataFile, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_v1beta3_MetadataFile(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_v1beta3_NFSVolumeSource(in NFSVolumeSource, out *NFSVolumeSource, c *conversion.Cloner) error {
 	out.Server = in.Server
 	out.Path = in.Path
@@ -2189,6 +2211,14 @@ func deepCopy_v1beta3_VolumeSource(in VolumeSource, out *VolumeSource, c *conver
 	} else {
 		out.CephFS = nil
 	}
+	if in.Metadata != nil {
+		out.Metadata = new(MetadataVolumeSource)
+		if err := deepCopy_v1beta3_MetadataVolumeSource(*in.Metadata, out.Metadata, c); err != nil {
+			return err
+		}
+	} else {
+		out.Metadata = nil
+	}
 	return nil
 }
 
@@ -2268,6 +2298,8 @@ func init() {
 		deepCopy_v1beta3_LoadBalancerIngress,
 		deepCopy_v1beta3_LoadBalancerStatus,
 		deepCopy_v1beta3_LocalObjectReference,
+		deepCopy_v1beta3_MetadataFile,
+		deepCopy_v1beta3_MetadataVolumeSource,
 		deepCopy_v1beta3_NFSVolumeSource,
 		deepCopy_v1beta3_Namespace,
 		deepCopy_v1beta3_NamespaceList,
