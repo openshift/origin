@@ -332,7 +332,7 @@ type IdentityProvider struct {
 	// UseAsLogin indicates whether to use this identity provider for unauthenticated browsers to login against
 	UseAsLogin bool
 	// Provider contains the information about how to set up a specific identity provider
-	Provider runtime.EmbeddedObject
+	Provider runtime.Object
 }
 
 type BasicAuthPasswordIdentityProvider struct {

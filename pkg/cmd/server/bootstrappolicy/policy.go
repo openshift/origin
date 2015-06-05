@@ -2,7 +2,6 @@ package bootstrappolicy
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -111,7 +110,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{Verbs: util.NewStringSet("list"), Resources: util.NewStringSet("projectrequests")},
 				{Verbs: util.NewStringSet("list", "get"), Resources: util.NewStringSet("clusterroles")},
 				{Verbs: util.NewStringSet("list"), Resources: util.NewStringSet("projects")},
-				{Verbs: util.NewStringSet("create"), Resources: util.NewStringSet("subjectaccessreviews"), AttributeRestrictions: runtime.EmbeddedObject{&authorizationapi.IsPersonalSubjectAccessReview{}}},
+				{Verbs: util.NewStringSet("create"), Resources: util.NewStringSet("subjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			},
 		},
 		{

@@ -108,7 +108,7 @@ func TestOAuthRequestHeader(t *testing.T) {
 		Name:            "requestheader",
 		UseAsChallenger: false,
 		UseAsLogin:      false,
-		Provider: runtime.EmbeddedObject{
+		Provider: runtime.Object{
 			&configapi.RequestHeaderIdentityProvider{
 				ClientCA: caFile.Name(),
 				Headers:  []string{"My-Remote-User", "SSO-User"},

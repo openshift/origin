@@ -75,7 +75,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) fielderrors
 	if !api.IsIdentityProviderType(identityProvider.Provider) {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("provider", identityProvider.Provider, fmt.Sprintf("%v is invalid in this context", identityProvider.Provider)))
 	} else {
-		switch provider := identityProvider.Provider.Object.(type) {
+		switch provider := identityProvider.Provider.(type) {
 		case (*api.RequestHeaderIdentityProvider):
 			allErrs = append(allErrs, ValidateRequestHeaderIdentityProvider(provider, identityProvider)...)
 
