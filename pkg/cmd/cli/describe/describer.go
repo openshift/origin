@@ -897,7 +897,7 @@ const policyRuleHeadings = "Verbs\tResources\tResource Names\tNon-Resource URLs\
 
 func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
 	extensionString := ""
-	if rule.AttributeRestrictions != (runtime.EmbeddedObject{}) {
+	if rule.AttributeRestrictions != (runtime.Object{}) {
 		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions.Object)
 
 		buffer := new(bytes.Buffer)

@@ -172,8 +172,8 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			// TODO: replace with structured type definition
 			j.Items = []runtime.Object{}
 		},
-		func(j *runtime.EmbeddedObject, c fuzz.Continue) {
-			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.
+		func(j *runtime.Object, c fuzz.Continue) {
+			// runtime.Object causes a panic inside of fuzz because runtime.Object isn't handled.
 		},
 		func(t *time.Time, c fuzz.Continue) {
 			// This is necessary because the standard fuzzed time.Time object is

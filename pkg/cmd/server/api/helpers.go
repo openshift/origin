@@ -305,7 +305,7 @@ func IsPasswordAuthenticator(provider IdentityProvider) bool {
 	return false
 }
 
-func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
+func IsIdentityProviderType(provider runtime.Object) bool {
 	switch provider.Object.(type) {
 	case
 		(*RequestHeaderIdentityProvider),
