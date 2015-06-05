@@ -305,6 +305,7 @@ wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry s
 # This is required to be able to push to the registry!
 echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
 oc login -u e2e-user -p pass
+[ "$(oc whoami | grep 'e2e-user')" ]
 oc project cache
 token=$(oc config view --flatten -o template -t '{{with index .users 0}}{{.user.token}}{{end}}')
 [[ -n ${token} ]]
@@ -320,6 +321,7 @@ echo "[INFO] Pushed ruby-20-centos7"
 
 echo "[INFO] Back to 'default' project with 'admin' user..."
 oc project ${CLUSTER_ADMIN_CONTEXT}
+[ "$(oc whoami | grep 'system:admin')" ]
 
 # The build requires a dockercfg secret in the builder service account in order
 # to be able to push to the registry.  Make sure it exists first.
