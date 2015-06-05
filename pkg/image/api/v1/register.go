@@ -17,12 +17,6 @@ func init() {
 		&ImageStreamTag{},
 		&ImageStreamImage{},
 	)
-	// Legacy names are supported
-	api.Scheme.AddKnownTypeWithName("v1", "ImageRepository", &ImageStream{})
-	api.Scheme.AddKnownTypeWithName("v1", "ImageRepositoryList", &ImageStreamList{})
-	api.Scheme.AddKnownTypeWithName("v1", "ImageRepositoryMapping", &ImageStreamMapping{})
-	api.Scheme.AddKnownTypeWithName("v1", "ImageRepositoryTag", &ImageStreamTag{})
-	api.Scheme.AddKnownTypeWithName("v1", "ImageRepositoryImage", &ImageStreamImage{})
 }
 
 func (*Image) IsAnAPIObject()              {}
@@ -31,3 +25,4 @@ func (*ImageStream) IsAnAPIObject()        {}
 func (*ImageStreamList) IsAnAPIObject()    {}
 func (*ImageStreamMapping) IsAnAPIObject() {}
 func (*ImageStreamTag) IsAnAPIObject()     {}
+func (*ImageStreamImage) IsAnAPIObject()   {}

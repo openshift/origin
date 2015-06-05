@@ -58,7 +58,7 @@ type ImageStreamSpec struct {
 	Tags []NamedTagReference `json:"tags,omitempty" description:"map arbitrary string values to specific image locators"`
 }
 
-// NamedTagReference specifies optional annotations for images using this tag and an optional reference to another ImageStreamTag or ImageStreamImage this tag should track.
+// NamedTagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.
 type NamedTagReference struct {
 	Name        string                `json:"name" description:"name of tag"`
 	Annotations map[string]string     `json:"annotations,omitempty" description:"annotations associated with images using this tag"`
@@ -81,7 +81,7 @@ type NamedTagEventList struct {
 	Items []TagEvent `json:"items" description:"list of tag events related to the tag"`
 }
 
-// TagEvent is used by ImageRepositoryStatus to keep a historical record of images associated with a tag.
+// TagEvent is used by ImageStreamStatus to keep a historical record of images associated with a tag.
 type TagEvent struct {
 	// When the TagEvent was created
 	Created util.Time `json:"created" description:"when the event was created"`
@@ -103,23 +103,22 @@ type ImageStreamMapping struct {
 	Tag string `json:"tag" description:"string value this image can be located with inside the repository"`
 }
 
-// ImageRepositoryTag exists to allow calls to `osc get imageRepositoryTag ...` to function.
-//
-// ImageRepositoryTag is DEPRECATED; use ImageStreamTag instead.
-type ImageRepositoryTag struct {
-	Image
-}
-
-// ImageStreamTag exists to allow calls to `osc get imageStreamTag ...` to function.
+// ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.
 type ImageStreamTag struct {
-	Image     `json:",inline"`
-	ImageName string `json:"imageName" description:"name of image"`
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	// The Image associated with the ImageStream and tag.
+	Image Image `json:"image" description:"the image associated with the ImageStream and tag"`
 }
 
-// ImageStreamImage exists to allow calls to `osc get imageStreamImage ...` to function.
+// ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {
-	Image     `json:",inline"`
-	ImageName string `json:"imageName" description:"name of image"`
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	// The Image associated with the ImageStream and image name.
+	Image Image `json:"image" description:"the image associated with the ImageStream and image name"`
 }
 
 // DockerImageReference points to a Docker image.
