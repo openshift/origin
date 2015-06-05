@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"reflect"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -139,13 +138,30 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 			return err
 		}
 
-		var ok bool
-		templateObj, ok = obj.(*api.Template)
-		if !ok {
-			return fmt.Errorf("cannot convert input to Template: ", reflect.TypeOf(obj))
+		// FIXME: For now, only the first Template item is processed.
+		// When the input is provided in STDIN then all Template objects are loaded
+		// into api.List items, which assumes that we will process them
+		// sequentially. However, this is not (yet) supported as we will have to
+		// deal with multiple parameters set by different templates.
+		switch t := obj.(type) {
+		case *kapi.List:
+			if len(t.Items) == 0 {
+				return fmt.Errorf("no valid Template items found in the input")
+			}
+			if len(t.Items) > 1 {
+				return fmt.Errorf("you can pass only one Template using standard input")
+			}
+			var ok bool
+			if templateObj, ok = t.Items[0].(*api.Template); !ok {
+				return fmt.Errorf("cannot convert input to Template: %v", t)
+			}
+		case *api.Template:
+			templateObj = t
+		default:
+			return fmt.Errorf("cannot convert input to Template: %v", t)
 		}
-		templateObj.CreationTimestamp = util.Now()
 
+		templateObj.CreationTimestamp = util.Now()
 		version, kind, err := kapi.Scheme.ObjectVersionAndKind(templateObj)
 		if err != nil {
 			return err
