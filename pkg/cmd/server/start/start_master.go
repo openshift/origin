@@ -398,6 +398,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 				kubeConfig.RunResourceQuotaManager()
 				kubeConfig.RunNamespaceController()
 				kubeConfig.RunPersistentVolumeClaimBinder()
+				kubeConfig.RunPersistentVolumeClaimRecycler()
 			}
 
 			openshiftConfig.RunBuildController()
