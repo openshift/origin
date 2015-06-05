@@ -1,0 +1,27 @@
+//
+// Topology Graph overrides
+// --------------------------------------------------
+//
+// Some styling comes from upstream topology-graph.css
+
+kubernetes-topology-graph {
+  height: 700px;
+}
+
+.kube-topology {
+
+  g.DeploymentConfig text {
+    font-family: FontAwesome;
+    fill: #969696;
+    font-size: 21px;
+  }
+
+  // These links are rendered dotted
+  line.ServiceReplicationController,
+  line.ServiceDeploymentConfig,
+  line.ReplicationControllerPod {
+    stroke-dasharray: 1, 3;
+    strake-linecap: round;
+  }
+
+}

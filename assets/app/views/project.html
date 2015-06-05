@@ -53,6 +53,36 @@
 
       </div>
 
+      <div ng-if="overviewMode == 'topology' && !renderOptions.showGetStarted">
+        <kubernetes-topology-graph bottom-of-window="1" items="topologyItems"
+          relations="topologyRelations" kinds="topologyKinds" selection="topologySelection">
+	</kubernetes-topology-graph>
+        <svg class="kube-topology" hidden>
+	  <defs>
+            <g class="Pod" id="vertex-Pod">
+              <circle r="16"></circle>
+              <text y="6" x="0.5">&#xf1b3;</text>
+            </g>
+            <g class="Service" id="vertex-Service">
+              <circle r="16"></circle>
+              <image height="27" width="27" x="-13" y="-13" xlink:href="images/service-icon.svg"></image>
+            </g>
+            <g class="ReplicationController" id="vertex-ReplicationController">
+              <circle r="16"></circle>
+              <image height="25" width="25" x="-12" y="-13" xlink:href="images/replicator-icon.svg"></image>
+            </g>
+            <g class="DeploymentConfig" id="vertex-DeploymentConfig">
+              <circle r="16"></circle>
+              <text y="8">&#xf013;</text>
+            </g>
+            <g class="Route" id="vertex-Route">
+              <circle r="16"></circle>
+              <image height="26" width="26" x="-13" y="-13" xlink:href="images/route-icon.svg"></image>
+            </g>
+          </defs>
+        </svg>
+      </div>
+
       <div ng-if="overviewMode == 'tiles'">
 
         <!-- TODO handle multiple services mapping to the same deploymentConfig/deployment/pod -->
@@ -214,9 +244,6 @@
           <overview-monopod pod="pod"></overview-monopod>
 
         </section>
-      </div>
-
-      <div ng-if="overviewMode == 'topology' && !renderOptions.showGetStarted">
       </div>
 
     </div>
