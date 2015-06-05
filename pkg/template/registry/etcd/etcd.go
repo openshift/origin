@@ -7,6 +7,7 @@ import (
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/registry"
@@ -58,4 +59,9 @@ func (r *REST) NewList() runtime.Object {
 // List obtains a list of templates with labels that match selector.
 func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
 	return r.Etcd.ListPredicate(ctx, registry.MatchTemplate(label, field))
+}
+
+// Watch begins watching for new, changed, or deleted templates.
+func (r *REST) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.WatchPredicate(ctx, registry.MatchTemplate(label, field), resourceVersion)
 }
