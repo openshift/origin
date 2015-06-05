@@ -45,7 +45,7 @@ You can develop OpenShift 3 on Windows, Mac, or Linux, but you'll need Docker in
 Here's how to get set up:
 
 1. For Go, Git and optionally also Docker, follow the links below to get to installation information for these tools: +
-** http://golang.org/doc/install[Installing Go]. You must install Go 1.4.
+** http://golang.org/doc/install[Installing Go]. You must install Go 1.4 and NOT use $HOME/go directory for Go installation.
 ** http://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Installing Git]
 ** https://docs.docker.com/installation/#installation[Installing Docker]. NOTE: OpenShift now requires at least Docker 1.6. RPMs for CentOS 7 are not yet available in the default yum repositories. If you're running CentOS, please see the link:README.md#docker-16[README] for information on where to get Docker 1.6 RPMs for your platform.
 2. Next, create a Go workspace directory: +
@@ -93,12 +93,12 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
         $ vagrant ssh
 
-6.  Run a build:
+6.  Run a build in SSH:
 
         $ cd /data/src/github.com/openshift/origin
         $ make build
 
-7.  Start an OpenShift all-in-one server (includes everything you need to try OpenShift)
+7.  Start an OpenShift all-in-one server in SSH (includes everything you need to try OpenShift)
 
         $ sudo systemctl start openshift
 
