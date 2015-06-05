@@ -356,6 +356,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		container.Add(root)
 	}
 
+	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
 	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, legacyAPIVersions...)
 	initAPIVersionRoute(root, OpenShiftAPIPrefix, currentAPIVersions...)
 
@@ -407,6 +408,7 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 				"/api",
 				"/api/v1beta3",
 				"/api/v1",
+				"/controllers",
 				"/healthz",
 				"/healthz/ping",
 				"/logs/",

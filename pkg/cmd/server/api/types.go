@@ -75,6 +75,11 @@ const (
 	DockerExecHandlerNative DockerExecHandlerType = "native"
 	// DockerExecHandlerNative uses nsenter for executing commands in containers.
 	DockerExecHandlerNsenter DockerExecHandlerType = "nsenter"
+
+	// ControllersDisabled indicates no controllers should be enabled.
+	ControllersDisabled = "none"
+	// ControllersAll indicates all controllers should be started.
+	ControllersAll = "*"
 )
 
 type MasterConfig struct {
@@ -91,6 +96,15 @@ type MasterConfig struct {
 
 	// MasterPublicURL is how clients can access the OpenShift API server
 	MasterPublicURL string
+
+	// Controllers is a list of the controllers that should be started. If set to "none", no controllers
+	// will start automatically. The default value is "*" which will start all controllers. When
+	// using "*", you may exclude controllers by prepending a "-" in front of their name. No other
+	// values are recognized at this time.
+	Controllers string
+	// PauseControllers instructs the master to not automatically start controllers, but instead
+	// to wait until a notification to the server is received before launching them.
+	PauseControllers bool
 
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the

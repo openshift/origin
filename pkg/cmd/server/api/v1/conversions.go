@@ -12,6 +12,9 @@ func init() {
 			if len(obj.APILevels) == 0 {
 				obj.APILevels = newer.DefaultOpenShiftAPILevels
 			}
+			if len(obj.Controllers) == 0 {
+				obj.Controllers = ControllersAll
+			}
 		},
 		func(obj *KubernetesMasterConfig) {
 			if obj.MasterCount == 0 {
