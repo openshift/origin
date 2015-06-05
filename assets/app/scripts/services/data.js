@@ -663,6 +663,18 @@ angular.module('openshiftConsole')
   };
 
   DataService.prototype._listOpComplete = function(resource, context, data) {
+    // Here we normalize all items to have a kind property.
+    // One of the warts in the kubernetes REST API is that items retrieved
+    // via GET on a list resource won't have a kind property set.
+    // See: https://github.com/kubernetes/kubernetes/issues/3030
+    if (data.kind && data.kind.indexOf("List") === data.kind.length - 4) {
+      angular.forEach(data.items, function(item) {
+        if (!item.kind) {
+          item.kind = data.kind.slice(0, -4);
+        }
+      });
+    }
+
     this._resourceVersion(resource, context, data.resourceVersion || data.metadata.resourceVersion);
     this._data(resource, context, data.items);
     this._listCallbacks(resource, context).fire(this._data(resource, context));
