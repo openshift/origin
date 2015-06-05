@@ -323,7 +323,27 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route) bool {
 	//create or replace
 	frontend.ServiceAliasConfigs[backendKey] = config
 	r.state[id] = frontend
+	r.cleanUpdates(id, backendKey)
 	return true
+}
+
+// cleanUpdates ensures the route is only under a single service key.  Backends are keyed
+// by route namespace and name.  Frontends are keyed by service namespace name.  This accounts
+// for times when someone updates the service name on a route which leaves the existing old service
+// in state.
+// TODO: remove this when we refactor the model to use existing objects and integrate this into
+// the api somehow.
+func (r *templateRouter) cleanUpdates(frontendKey string, backendKey string) {
+	for k, v := range r.state {
+		if k == frontendKey {
+			continue
+		}
+		for routeKey := range v.ServiceAliasConfigs {
+			if routeKey == backendKey {
+				delete(v.ServiceAliasConfigs, backendKey)
+			}
+		}
+	}
 }
 
 // RemoveRoute removes the given route for the given id.
