@@ -191,8 +191,8 @@ type NodeFunc func(g Interface, n graph.Node) bool
 // the new graph as needed. If true is returned, the existing edge will be added to the graph.
 type EdgeFunc func(g Interface, head, tail graph.Node, edgeKind int) bool
 
-// Subgraph returns the directed subgraph with only the nodes and edges that match the
-// provided functions.
+// EdgeSubgraph returns the directed subgraph with only the edges that match the
+// provided function.
 func (g Graph) EdgeSubgraph(edgeFn EdgeFunc) Graph {
 	out := New()
 	for _, node := range g.NodeList() {
@@ -247,8 +247,9 @@ func ExistingDirectEdge(g Interface, head, tail graph.Node, edgeKind int) bool {
 	return edgeKind != ReferencedByGraphEdgeKind && g.NodeExists(head) && g.NodeExists(tail)
 }
 
-// ExistingDirectEdge returns true if both nodes exist in the graph already and the edge kind is
-// not ReferencedByGraphEdgeKind (the generic reverse edge kind).
+// ReverseExistingDirectEdge reverses the order of the edge and drops the existing edge only if
+// both head and tail already exist in the graph and the edge kind is not ReferencedByGraphEdgeKind
+// (the generic reverse edge kind).
 func ReverseExistingDirectEdge(g Interface, head, tail graph.Node, edgeKind int) bool {
 	return ExistingDirectEdge(g, head, tail, edgeKind) && ReverseGraphEdge(g, head, tail, edgeKind)
 }

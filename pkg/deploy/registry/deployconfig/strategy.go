@@ -23,6 +23,7 @@ type strategy struct {
 // Strategy is the default logic that applies when creating and updating DeploymentConfig objects.
 var Strategy = strategy{kapi.Scheme, kapi.SimpleNameGenerator}
 
+// NamespaceScoped is true for DeploymentConfig objects.
 func (strategy) NamespaceScoped() bool {
 	return true
 }

@@ -26,10 +26,21 @@ import (
 // a fully specified config later on.  If you need something not set here, then create a fully specified config file and pass that as argument
 // to starting the master.
 type MasterArgs struct {
+	// MasterAddr is the master address for use by OpenShift components (host, host:port, or URL).
+	// Scheme and port default to the --listen scheme and port. When unset, attempt to use the first
+	// public IPv4 non-loopback address registered on this host.
 	MasterAddr flagtypes.Addr
-	EtcdAddr   flagtypes.Addr
-	PortalNet  flagtypes.IPNet
-	// addresses for external clients
+
+	// EtcdAddr is the address of the etcd server (host, host:port, or URL). If specified, no built-in
+	// etcd will be started.
+	EtcdAddr flagtypes.Addr
+
+	// PortalNet is a CIDR notation IP range from which to assign portal IPs. This must not overlap
+	// with any IP ranges assigned to nodes for pods.
+	PortalNet flagtypes.IPNet
+
+	// MasterPublicAddr is the master address for use by public clients, if different (host, host:port,
+	// or URL). Defaults to same as --master.
 	MasterPublicAddr flagtypes.Addr
 
 	PauseControllers bool
@@ -37,11 +48,17 @@ type MasterArgs struct {
 	// DNSBindAddr exposed for integration tests to set
 	DNSBindAddr flagtypes.Addr
 
+	// EtcdDir is the etcd data directory.
 	EtcdDir   string
 	ConfigDir *util.StringFlag
 
+	// NodeList contains the hostnames of each node. This currently must be specified
+	// up front. Comma delimited list
 	NodeList util.StringList
 
+	// CORSAllowedOrigins is a list of allowed origins for CORS, comma separated.
+	// An allowed origin can be a regular expression to support subdomain matching.
+	// CORS is enabled for localhost, 127.0.0.1, and the asset server by default.
 	CORSAllowedOrigins util.StringList
 
 	ListenArg          *ListenArg
@@ -88,9 +105,12 @@ func NewDefaultMasterArgs() *MasterArgs {
 	return config
 }
 
+// GetPolicyFile returns the policy filepath for master
 func (args MasterArgs) GetPolicyFile() string {
 	return path.Join(args.ConfigDir.Value(), "policy.json")
 }
+
+// GetConfigFileToWrite returns the configuration filepath for master
 func (args MasterArgs) GetConfigFileToWrite() string {
 	return path.Join(args.ConfigDir.Value(), "master-config.yaml")
 }
@@ -531,16 +551,19 @@ func (args MasterArgs) GetMasterPublicAddress() (*url.URL, error) {
 	return args.GetMasterAddress()
 }
 
+// GetEtcdBindAddress derives the etcd bind address by using the bind address and
+// the default etcd port
 func (args MasterArgs) GetEtcdBindAddress() string {
-	// Derive the etcd bind address by using the bind address and the default etcd port
 	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(args.EtcdAddr.DefaultPort))
 }
 
+// GetEtcdPeerBindAddress derives the etcd peer address by using the bind address
+// and the default etcd peering port
 func (args MasterArgs) GetEtcdPeerBindAddress() string {
-	// Derive the etcd peer address by using the bind address and the default etcd peering port
 	return net.JoinHostPort(args.ListenArg.ListenAddr.Host, "7001")
 }
 
+// GetEtcdAddress returns the address for etcd
 func (args MasterArgs) GetEtcdAddress() (*url.URL, error) {
 	if args.EtcdAddr.Provided {
 		return args.EtcdAddr.URL, nil

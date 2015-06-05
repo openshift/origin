@@ -9,14 +9,14 @@ type Route struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
-	// Required: Alias/DNS that points to the service
+	// Host is an alias/DNS that points to the service. Required
 	// Can be host or host:port
 	// host and port are combined to follow the net/url URL struct
 	Host string `json:"host"`
-	// Optional: Path that the router watches for, to route traffic for to the service
+	// Path that the router watches for, to route traffic for to the service. Optional
 	Path string `json:"path,omitempty"`
 
-	// the name of the service that this route points to
+	// ServiceName is the name of the service that this route points to
 	ServiceName string `json:"serviceName"`
 
 	//TLS provides the ability to configure certificates and termination for the route
@@ -27,18 +27,20 @@ type Route struct {
 type RouteList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Route `json:"items"`
+
+	// Items is a list of routes
+	Items []Route `json:"items"`
 }
 
 // RouterShard has information of a routing shard and is used to
 // generate host names and routing table entries when a routing shard is
 // allocated for a specific route.
 type RouterShard struct {
-	// Shard name uniquely identifies a router shard in the "set" of
+	// ShardName uniquely identifies a router shard in the "set" of
 	// routers used for routing traffic to the services.
 	ShardName string
 
-	// The DNS suffix for the shard ala: shard-1.v3.openshift.com
+	// DNSSuffix for the shard ala: shard-1.v3.openshift.com
 	DNSSuffix string
 }
 

@@ -27,7 +27,7 @@ type AuthenticationRedirector interface {
 
 // AuthenticationErrorHandler reacts to authentication errors
 type AuthenticationErrorHandler interface {
-	// AuthenticationNeeded reacts to authentication errors, returns true if the response was written,
+	// AuthenticationError reacts to authentication errors, returns true if the response was written,
 	// and returns any unhandled error (which should be the original error in most cases)
 	AuthenticationError(error, http.ResponseWriter, *http.Request) (handled bool, err error)
 }
@@ -55,7 +55,7 @@ type GrantHandler interface {
 
 // GrantErrorHandler reacts to grant errors
 type GrantErrorHandler interface {
-	// AuthenticationNeeded reacts to grant errors, returns true if the response was written,
+	// GrantError reacts to grant errors, returns true if the response was written,
 	// and returns any unhandled error (which could be the original error)
 	GrantError(error, http.ResponseWriter, *http.Request) (handled bool, err error)
 }

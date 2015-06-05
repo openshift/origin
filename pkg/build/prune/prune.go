@@ -9,8 +9,8 @@ import (
 // PruneFunc is a function that is invoked for each item during Prune
 type PruneFunc func(build *buildapi.Build) error
 
-// PruneTask is an object that knows how to execute a single iteration of a Prune
 type PruneTasker interface {
+	// PruneTask is an object that knows how to execute a single iteration of a Prune
 	PruneTask() error
 }
 

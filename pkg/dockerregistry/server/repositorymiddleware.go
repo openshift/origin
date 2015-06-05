@@ -114,7 +114,7 @@ func (r *repository) Get(ctx context.Context, dgst digest.Digest) (*manifest.Sig
 	return r.manifestFromImage(image)
 }
 
-// Get retrieves the named manifest, if it exists.
+// GetByTag retrieves the named manifest with the provided tag
 func (r *repository) GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error) {
 	imageStreamTag, err := r.getImageStreamTag(ctx, tag)
 	if err != nil {

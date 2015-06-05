@@ -29,7 +29,7 @@ func NewPolicyBindingRegistry(bindings []authorizationapi.PolicyBinding, err err
 	return &PolicyBindingRegistry{bindingMap, err}
 }
 
-// ListPolicies obtains list of ListPolicyBinding that match a selector.
+// ListPolicyBindings obtains a list of policyBinding that match a selector.
 func (r *PolicyBindingRegistry) ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err

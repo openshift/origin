@@ -48,7 +48,7 @@ func RelativizeClientConfigPaths(cfg *clientcmdapi.Config, base string) (err err
 
 var validURLSchemes = []string{"https://", "http://", "tcp://"}
 
-// Opinionated normalization of a string that represents a URL. Returns the URL provided matching the format
+// NormalizeServerURL is opinionated normalization of a string that represents a URL. Returns the URL provided matching the format
 // expected when storing a URL in a config. Sets a scheme and port if not present, removes unnecessary trailing
 // slashes, etc. Can be used to normalize a URL provided by user input.
 func NormalizeServerURL(s string) (string, error) {

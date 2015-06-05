@@ -18,14 +18,14 @@ import (
 	"github.com/openshift/origin/pkg/ipfailover"
 )
 
-//  IP Failover configurator plugin for keepalived sidecar.
+// KeepalivedPlugin is an IP Failover configurator plugin for keepalived sidecar.
 type KeepalivedPlugin struct {
 	Name    string
 	Factory *clientcmd.Factory
 	Options *ipfailover.IPFailoverConfigCmdOptions
 }
 
-//  Create a new IPFailoverConfigurator (keepalived) plugin instance.
+// NewIPFailoverConfiguratorPlugin creates a new IPFailoverConfigurator (keepalived) plugin instance.
 func NewIPFailoverConfiguratorPlugin(name string, f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions) (*KeepalivedPlugin, error) {
 	glog.V(4).Infof("Creating new KeepAlived plugin: %q", name)
 
@@ -38,7 +38,7 @@ func NewIPFailoverConfiguratorPlugin(name string, f *clientcmd.Factory, options 
 	return p, nil
 }
 
-//  Get the port to monitor for the IP Failover configuration.
+// GetWatchPort gets the port to monitor for the IP Failover configuration.
 func (p *KeepalivedPlugin) GetWatchPort() (int, error) {
 	port := p.Options.WatchPort
 	if port < 1 {
@@ -50,7 +50,7 @@ func (p *KeepalivedPlugin) GetWatchPort() (int, error) {
 	return port, nil
 }
 
-//  Get the selector associated with this IP Failover configurator plugin.
+// GetSelector gets the selector associated with this IP Failover configurator plugin.
 func (p *KeepalivedPlugin) GetSelector() (map[string]string, error) {
 	labels := make(map[string]string, 0)
 
@@ -72,7 +72,7 @@ func (p *KeepalivedPlugin) GetSelector() (map[string]string, error) {
 	return labels, nil
 }
 
-//  Get the namespace associated with this IP Failover configurator plugin.
+// GetNamespace gets the namespace associated with this IP Failover configurator plugin.
 func (p *KeepalivedPlugin) GetNamespace() (string, error) {
 	namespace, err := p.Factory.OpenShiftClientConfig.Namespace()
 	if err != nil {
@@ -84,7 +84,7 @@ func (p *KeepalivedPlugin) GetNamespace() (string, error) {
 	return namespace, nil
 }
 
-//  Get the deployment config associated with this IP Failover configurator plugin.
+// GetDeploymentConfig gets the deployment config associated with this IP Failover configurator plugin.
 func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, error) {
 	osClient, _, err := p.Factory.Clients()
 	if err != nil {
@@ -110,7 +110,7 @@ func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, e
 	return dc, nil
 }
 
-//  Generate the config and services for this IP Failover configuration plugin.
+// Generate the config and services for this IP Failover configuration plugin.
 func (p *KeepalivedPlugin) Generate() (*kapi.List, error) {
 	selector, err := p.GetSelector()
 	if err != nil {
@@ -129,7 +129,7 @@ func (p *KeepalivedPlugin) Generate() (*kapi.List, error) {
 	return configList, nil
 }
 
-//  Create the config and services associated with this IP Failover configuration.
+// Create the config and services associated with this IP Failover configuration.
 func (p *KeepalivedPlugin) Create(out io.Writer) error {
 	namespace, err := p.GetNamespace()
 	if err != nil {

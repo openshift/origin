@@ -51,7 +51,7 @@ var (
 	identityColumns            = []string{"NAME", "IDP NAME", "IDP USER NAME", "USER NAME", "USER UID"}
 	userIdentityMappingColumns = []string{"NAME", "IDENTITY", "USER NAME", "USER UID"}
 
-	// known custom role extensions
+	// IsPersonalSubjectAccessReviewColumns contains known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 
 	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
@@ -279,6 +279,7 @@ func printProject(project *projectapi.Project, w io.Writer, withNamespace bool) 
 	return err
 }
 
+// SortableProjects is a list of projects that can be sorted
 type SortableProjects []projectapi.Project
 
 func (list SortableProjects) Len() int {

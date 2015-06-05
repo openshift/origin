@@ -24,12 +24,15 @@ type KubeConnectionArgs struct {
 	ClientConfigLoadingRules clientcmd.ClientConfigLoadingRules
 }
 
+// BindKubeConnectionArgs binds values to the given arguments by using flags
 func BindKubeConnectionArgs(args *KubeConnectionArgs, flags *pflag.FlagSet, prefix string) {
 	// TODO remove entirely
 	flags.Var(&args.KubernetesAddr, prefix+"kubernetes", "removed in favor of --"+prefix+"kubeconfig")
 	flags.StringVar(&args.ClientConfigLoadingRules.ExplicitPath, prefix+"kubeconfig", "", "Path to the kubeconfig file to use for requests to the Kubernetes API.")
 }
 
+// NewDefaultKubeConnectionArgs returns a new set of default connection
+// arguments for Kubernetes
 func NewDefaultKubeConnectionArgs() *KubeConnectionArgs {
 	config := &KubeConnectionArgs{}
 

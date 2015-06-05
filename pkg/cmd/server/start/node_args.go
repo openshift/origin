@@ -24,18 +24,21 @@ import (
 // a fully specified config later on.  If you need something not set here, then create a fully specified config file and pass that as argument
 // to starting the master.
 type NodeArgs struct {
+	// NodeName is the hostname to identify this node with the master.
 	NodeName string
 
 	MasterCertDir string
 	ConfigDir     util.StringFlag
 
 	AllowDisabledDocker bool
-	VolumeDir           string
+	// VolumeDir is the volume storage directory.
+	VolumeDir string
 
 	DefaultKubernetesURL *url.URL
 	ClusterDomain        string
 	ClusterDNS           net.IP
 
+	// NetworkPluginName is the network plugin to be called for configuring networking for pods.
 	NetworkPluginName string
 
 	ListenArg          *ListenArg

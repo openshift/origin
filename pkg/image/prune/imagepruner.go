@@ -581,6 +581,7 @@ func DeletingImagePruneFunc(images client.ImageInterface) ImagePruneFunc {
 	}
 }
 
+// DeletingImageStreamPruneFunc returns an ImageStreamPruneFunc that deletes the imageStream.
 func DeletingImageStreamPruneFunc(streams client.ImageStreamsNamespacer) ImageStreamPruneFunc {
 	return func(stream *imageapi.ImageStream, image *imageapi.Image) (*imageapi.ImageStream, error) {
 		glog.V(4).Infof("Checking if ImageStream %s/%s has references to image in status.tags", stream.Namespace, stream.Name)
@@ -647,7 +648,7 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 }
 
 // DeletingLayerPruneFunc returns a LayerPruneFunc that uses registryClient to
-// send a layer deletion request to the regsitry.
+// send a layer deletion request to the registry.
 //
 // The request URL is http://registryURL/admin/<repo>/layers/<digest> and it is
 // a DELETE request.
@@ -658,6 +659,8 @@ func DeletingLayerPruneFunc(registryClient *http.Client) LayerPruneFunc {
 	}
 }
 
+// DeletingBlobPruneFunc returns a BlobPruneFunc that uses registryClient to
+// send a blob deletion request to the registry.
 func DeletingBlobPruneFunc(registryClient *http.Client) BlobPruneFunc {
 	return func(registryURL, blob string) error {
 		glog.V(4).Infof("Pruning registry %q, blob %q", registryURL, blob)
@@ -665,6 +668,8 @@ func DeletingBlobPruneFunc(registryClient *http.Client) BlobPruneFunc {
 	}
 }
 
+// DeletingManifestPruneFunc returns a ManifestPruneFunc that uses registryClient to
+// send a manifest deletion request to the registry.
 func DeletingManifestPruneFunc(registryClient *http.Client) ManifestPruneFunc {
 	return func(registryURL, repoName, manifest string) error {
 		glog.V(4).Infof("Pruning manifest for registry %q, repo %q, manifest %q", registryURL, repoName, manifest)

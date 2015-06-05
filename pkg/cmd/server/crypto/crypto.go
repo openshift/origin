@@ -115,7 +115,7 @@ type CA struct {
 	Config     *TLSCertificateConfig
 }
 
-// Return CA, whether it was created (as opposed to pre-existing), and any error
+// EnsureCA returns a CA, whether it was created (as opposed to pre-existing), and any error
 func EnsureCA(certFile, keyFile, serialFile, name string) (*CA, bool, error) {
 	if ca, err := GetCA(certFile, keyFile, serialFile); err == nil {
 		return ca, false, err

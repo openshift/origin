@@ -105,6 +105,7 @@ func NewDataSet(deploymentConfigs []*deployapi.DeploymentConfig, deployments []*
 	}
 }
 
+// GetDeploymentConfig gets the configuration for the given deployment
 func (d *dataSet) GetDeploymentConfig(controller *kapi.ReplicationController) (*deployapi.DeploymentConfig, bool, error) {
 	name := deployutil.DeploymentConfigNameFor(controller)
 	if len(name) == 0 {
@@ -120,6 +121,7 @@ func (d *dataSet) GetDeploymentConfig(controller *kapi.ReplicationController) (*
 	return deploymentConfig, exists, err
 }
 
+// ListDeploymentConfigs returns a list of DeploymentConfigs
 func (d *dataSet) ListDeploymentConfigs() ([]*deployapi.DeploymentConfig, error) {
 	results := []*deployapi.DeploymentConfig{}
 	for _, item := range d.deploymentConfigStore.List() {
@@ -128,6 +130,7 @@ func (d *dataSet) ListDeploymentConfigs() ([]*deployapi.DeploymentConfig, error)
 	return results, nil
 }
 
+// ListDeployments returns a list of deployments
 func (d *dataSet) ListDeployments() ([]*kapi.ReplicationController, error) {
 	results := []*kapi.ReplicationController{}
 	for _, item := range d.deploymentIndexer.List() {
@@ -136,6 +139,7 @@ func (d *dataSet) ListDeployments() ([]*kapi.ReplicationController, error) {
 	return results, nil
 }
 
+// ListDeploymentsByDeploymentConfig returns a list of deployments for the provided configuration
 func (d *dataSet) ListDeploymentsByDeploymentConfig(deploymentConfig *deployapi.DeploymentConfig) ([]*kapi.ReplicationController, error) {
 	results := []*kapi.ReplicationController{}
 	key := &kapi.ReplicationController{

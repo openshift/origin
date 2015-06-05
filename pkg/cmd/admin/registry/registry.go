@@ -73,6 +73,7 @@ var errExit = fmt.Errorf("exit")
 
 const defaultLabel = "docker-registry=default"
 
+// NewCmdRegistry implements the OpenShift cli registry command
 func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	cfg := &RegistryConfig{
 		ImageTemplate: variable.NewDefaultImageTemplate(),
@@ -116,6 +117,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	return cmd
 }
 
+// RunCmdRegistry contains all the necessary functionality for the OpenShift cli registry command
 func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *RegistryConfig, args []string) error {
 	var name string
 	switch len(args) {

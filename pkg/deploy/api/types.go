@@ -32,7 +32,7 @@ type DeploymentStrategy struct {
 	RecreateParams *RecreateDeploymentStrategyParams `json:"recreateParams,omitempty"`
 	// RollingParams are the input to the Rolling deployment strategy.
 	RollingParams *RollingDeploymentStrategyParams `json:"rollingParams,omitempty"`
-	// Compute resource requirements to execute the deployment
+	// Resources contains resource requirements to execute the deployment
 	Resources kapi.ResourceRequirements `json:"resources,omitempty"`
 }
 
@@ -181,13 +181,13 @@ const (
 	DeploymentFailedDeployerPodNoLongerExists = "The deployment failed as the deployer pod no longer exists"
 )
 
-// This constant represents the maximum duration that a deployment is allowed to run
+// MaxDeploymentDurationSeconds represents the maximum duration that a deployment is allowed to run
 // This is set as the default value for ActiveDeadlineSeconds for the deployer pod
 // Currently set to 6 hours
 const MaxDeploymentDurationSeconds int64 = 21600
 
-// This constant represents the value for the DeploymentCancelledAnnotation annotation
-// that signifies that the deployment should be cancelled
+// DeploymentCancelledAnnotationValue represents the value for the DeploymentCancelledAnnotation
+// annotation that signifies that the deployment should be cancelled
 const DeploymentCancelledAnnotationValue = "true"
 
 // DeploymentConfig represents a configuration for a single deployment (represented as a
@@ -222,6 +222,7 @@ type DeploymentTemplate struct {
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
 type DeploymentTriggerPolicy struct {
+	// Type of the trigger
 	Type DeploymentTriggerType `json:"type,omitempty"`
 	// ImageChangeParams represents the parameters for the ImageChange trigger.
 	ImageChangeParams *DeploymentTriggerImageChangeParams `json:"imageChangeParams,omitempty"`
@@ -264,9 +265,9 @@ type DeploymentTriggerImageChangeParams struct {
 
 // DeploymentDetails captures information about the causes of a deployment.
 type DeploymentDetails struct {
-	// The user specified change message, if this deployment was triggered manually by the user
+	// Message is the user specified change message, if this deployment was triggered manually by the user
 	Message string `json:"message,omitempty"`
-	// Extended data associated with all the causes for creating a new deployment
+	// Causes are extended data associated with all the causes for creating a new deployment
 	Causes []*DeploymentCause `json:"causes,omitempty"`
 }
 
@@ -290,7 +291,9 @@ type DeploymentCauseImageTrigger struct {
 type DeploymentConfigList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []DeploymentConfig `json:"items"`
+
+	// Items is a list of deployment configs
+	Items []DeploymentConfig `json:"items"`
 }
 
 // DeploymentConfigRollback provides the input to rollback generation.

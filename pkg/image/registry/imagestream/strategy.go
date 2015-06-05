@@ -33,7 +33,7 @@ type Strategy struct {
 	ImageStreamGetter ResourceGetter
 }
 
-// Strategy is the default logic that applies when creating and updating
+// NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
 func NewStrategy(defaultRegistry DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry) Strategy {
 	return Strategy{

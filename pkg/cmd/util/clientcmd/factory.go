@@ -183,6 +183,7 @@ func getPorts(spec api.PodSpec) []string {
 	return result
 }
 
+// UpdatePodSpecForObject update the pod specification for the provided object
 // TODO: move to upstream
 func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {
 	// TODO: replace with a swagger schema based approach (identify pod template via schema introspection)

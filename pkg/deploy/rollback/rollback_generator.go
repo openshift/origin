@@ -12,7 +12,7 @@ import (
 // in a configurable way.
 type RollbackGenerator struct{}
 
-// Generate creates a new DeploymentConfig by merging to onto from based on the options provided
+// GenerateRollback creates a new DeploymentConfig by merging to onto from based on the options provided
 // by spec. The LatestVersion of the result is unconditionally incremented, as rollback candidates are
 // should be possible to be deployed manually regardless of other system behavior such as triggering.
 func (g *RollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {

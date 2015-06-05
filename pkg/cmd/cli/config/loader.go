@@ -24,7 +24,7 @@ const (
 var OldRecommendedHomeFile = path.Join(os.Getenv("HOME"), ".config/openshift/.config")
 var RecommendedHomeFile = path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName)
 
-// File priority loading rules for OpenShift.
+// NewOpenShiftClientConfigLoadingRules returns file priority loading rules for OpenShift.
 // 1. --config value
 // 2. if OPENSHIFTCONFIG env var has a value, use it. Otherwise, ~/.config/openshift/config file
 func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules {

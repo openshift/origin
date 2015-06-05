@@ -52,12 +52,14 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	return messages
 }
 
+// RunNamespaceController starts the Kubernetes Namespace Manager
 func (c *MasterConfig) RunNamespaceController() {
 	namespaceController := namespace.NewNamespaceManager(c.KubeClient, 5*time.Minute)
 	namespaceController.Run()
 	glog.Infof("Started Kubernetes Namespace Manager")
 }
 
+// RunPersistentVolumeClaimBinder starts the Kubernetes Persistent Volume Claim Binder
 func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(c.KubeClient, 5*time.Minute)
 	binder.Run()
@@ -94,11 +96,13 @@ func (c *MasterConfig) RunScheduler() {
 	glog.Infof("Started Kubernetes Scheduler")
 }
 
+// RunResourceQuotaManager starts the resource quota manager
 func (c *MasterConfig) RunResourceQuotaManager() {
 	resourceQuotaManager := resourcequota.NewResourceQuotaManager(c.KubeClient)
 	resourceQuotaManager.Run(10 * time.Second)
 }
 
+// RunNodeController starts the node controller
 func (c *MasterConfig) RunNodeController() {
 	podEvictionTimeout, err := time.ParseDuration(c.Options.PodEvictionTimeout)
 	if err != nil {

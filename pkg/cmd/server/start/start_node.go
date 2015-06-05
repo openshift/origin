@@ -29,7 +29,7 @@ type NodeOptions struct {
 	Output     io.Writer
 }
 
-const node_long = `Start an OpenShift node.
+const nodeLong = `Start an OpenShift node.
 This command helps you launch an OpenShift node.  Running
 
   $ openshift start node --master=<masterIP>
@@ -37,14 +37,14 @@ This command helps you launch an OpenShift node.  Running
 will start an OpenShift node that attempts to connect to the master on the provided IP. The
 node will run in the foreground until you terminate the process.`
 
-// NewCommandStartMaster provides a CLI handler for 'start' command
+// NewCommandStartNode provides a CLI handler for 'start node' command
 func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
 	options := &NodeOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "node",
 		Short: "Launch OpenShift node",
-		Long:  node_long,
+		Long:  nodeLong,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
 				fmt.Println(err.Error())

@@ -143,7 +143,7 @@ var (
 
 // APIInstaller installs additional API components into this server
 type APIInstaller interface {
-	// Returns an array of strings describing what was installed
+	// InstallAPI returns an array of strings describing what was installed
 	InstallAPI(*restful.Container) []string
 }
 
@@ -369,7 +369,7 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 	return []string{}
 }
 
-//initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
+// initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
 func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
 	if len(versions) == 0 {
 		return
@@ -799,6 +799,7 @@ func (c *MasterConfig) RunOriginNamespaceController() {
 	controller.Run()
 }
 
+// RunServiceAccountsController starts the service account controller
 func (c *MasterConfig) RunServiceAccountsController() {
 	if len(c.Options.ServiceAccountConfig.ManagedNames) == 0 {
 		glog.Infof("Skipped starting Service Account Manager, no managed names specified")
@@ -810,6 +811,7 @@ func (c *MasterConfig) RunServiceAccountsController() {
 	glog.Infof("Started Service Account Manager")
 }
 
+// RunServiceAccountTokensController starts the service account token controller
 func (c *MasterConfig) RunServiceAccountTokensController() {
 	if len(c.Options.ServiceAccountConfig.PrivateKeyFile) == 0 {
 		glog.Infof("Skipped starting Service Account Token Manager, no private key specified")
@@ -826,6 +828,7 @@ func (c *MasterConfig) RunServiceAccountTokensController() {
 	glog.Infof("Started Service Account Token Manager")
 }
 
+// RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
 func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
 	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
@@ -854,6 +857,7 @@ func (c *MasterConfig) RunAssetServer() {
 
 }
 
+// RunDNSServer starts the DNS server
 func (c *MasterConfig) RunDNSServer() {
 	config, err := dns.NewServerDefaults()
 	if err != nil {
@@ -992,6 +996,7 @@ func (c *MasterConfig) RunDeployerPodController() {
 	controller.Run()
 }
 
+// RunDeploymentConfigController starts the deployment config controller process.
 func (c *MasterConfig) RunDeploymentConfigController() {
 	osclient, kclient := c.DeploymentConfigControllerClients()
 	factory := deployconfigcontroller.DeploymentConfigControllerFactory{
@@ -1003,6 +1008,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	controller.Run()
 }
 
+// RunDeploymentConfigChangeController starts the deployment config change controller process.
 func (c *MasterConfig) RunDeploymentConfigChangeController() {
 	osclient, kclient := c.DeploymentConfigChangeControllerClients()
 	factory := configchangecontroller.DeploymentConfigChangeControllerFactory{
@@ -1014,6 +1020,7 @@ func (c *MasterConfig) RunDeploymentConfigChangeController() {
 	controller.Run()
 }
 
+// RunDeploymentImageChangeTriggerController starts the image change trigger controller process.
 func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	osclient := c.DeploymentImageChangeControllerClient()
 	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
@@ -1021,7 +1028,7 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	controller.Run()
 }
 
-// SDN controller runs openshift-sdn if the said network plugin is provided
+// RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	if c.Options.NetworkConfig.NetworkPluginName == osdn.NetworkPluginName() {
 		osdn.Master(*c.SdnClient(), *c.KubeClient(), c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
@@ -1045,6 +1052,7 @@ func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocati
 	return factory.Create(plugin)
 }
 
+// RunImageImportController starts the image import trigger controller process.
 func (c *MasterConfig) RunImageImportController() {
 	osclient := c.ImageImportControllerClient()
 	factory := imagecontroller.ImportControllerFactory{
@@ -1054,6 +1062,7 @@ func (c *MasterConfig) RunImageImportController() {
 	controller.Run()
 }
 
+// RunSecurityAllocationController starts the security allocation controller process.
 func (c *MasterConfig) RunSecurityAllocationController() {
 	alloc := c.Options.ProjectConfig.SecurityAllocator
 	if alloc == nil {
@@ -1121,6 +1130,7 @@ type clientDeploymentInterface struct {
 	KubeClient kclient.Interface
 }
 
+// GetDeployment returns the deployment with the provided context and name
 func (c clientDeploymentInterface) GetDeployment(ctx api.Context, name string) (*api.ReplicationController, error) {
 	return c.KubeClient.ReplicationControllers(api.NamespaceValue(ctx)).Get(name)
 }

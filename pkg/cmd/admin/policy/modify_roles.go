@@ -34,6 +34,7 @@ type RoleModificationOptions struct {
 	Groups []string
 }
 
+// NewCmdAddRoleToGroup implements the OpenShift cli add-role-to-group command
 func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
@@ -57,6 +58,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 	return cmd
 }
 
+// NewCmdAddRoleToUser implements the OpenShift cli add-role-to-user command
 func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
@@ -80,6 +82,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 	return cmd
 }
 
+// NewCmdRemoveRoleFromGroup implements the OpenShift cli remove-role-from-group command
 func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
@@ -103,6 +106,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 	return cmd
 }
 
+// NewCmdRemoveRoleFromUser implements the OpenShift cli remove-role-from-user command
 func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
@@ -126,13 +130,14 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 	return cmd
 }
 
+// NewCmdAddClusterRoleToGroup implements the OpenShift cli add-cluster-role-to-group command
 func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <group> [group]...",
-		Short: "add groups to a role for all projects in the cluster",
-		Long:  `add groups to a role for all projects in the cluster`,
+		Short: "Add groups to a role for all projects in the cluster",
+		Long:  `Add groups to a role for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, &options.Groups, "group", false); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -147,6 +152,7 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 	return cmd
 }
 
+// NewCmdAddClusterRoleToUser implements the OpenShift cli add-cluster-role-to-user command
 func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
@@ -168,6 +174,7 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 	return cmd
 }
 
+// NewCmdRemoveClusterRoleFromGroup implements the OpenShift cli remove-cluster-role-from-group command
 func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
@@ -189,6 +196,7 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 	return cmd
 }
 
+// NewCmdRemoveClusterRoleFromUser implements the OpenShift cli remove-cluster-role-from-user command
 func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 

@@ -22,7 +22,7 @@ func TryListen(hostPort string) (bool, error) {
 	return true, nil
 }
 
-// WaitForDial attempts to connect to the given address, closing and returning nil on the first successful connection.
+// WaitForSuccessfulDial attempts to connect to the given address, closing and returning nil on the first successful connection.
 func WaitForSuccessfulDial(https bool, network, address string, timeout, interval time.Duration, retries int) error {
 	var (
 		conn net.Conn

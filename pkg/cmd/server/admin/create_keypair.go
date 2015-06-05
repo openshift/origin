@@ -29,7 +29,7 @@ type CreateKeyPairOptions struct {
 	Output    io.Writer
 }
 
-const create_key_pair_long = `
+const createKeyPairLong = `
 Create a 2048-bit RSA key pair, and generate PEM-encoded public/private key files.
 
 Example: Creating service account signing and authenticating key files:
@@ -44,7 +44,7 @@ func NewCommandCreateKeyPair(commandName string, fullName string, out io.Writer)
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a public/private key pair",
-		Long:  fmt.Sprintf(create_key_pair_long, fullName),
+		Long:  fmt.Sprintf(createKeyPairLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))

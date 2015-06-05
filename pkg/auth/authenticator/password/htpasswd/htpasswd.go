@@ -181,7 +181,7 @@ func testMD5Password(password, hash string) (bool, error) {
 		return false, errors.New("Malformed MD5 hash: missing hash")
 	}
 
-	testhash := string(apr_md5([]byte(password), []byte(salt)))
+	testhash := string(aprMD5([]byte(password), []byte(salt)))
 	match := testhash == hash
 
 	return match, nil

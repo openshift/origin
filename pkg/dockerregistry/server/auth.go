@@ -69,7 +69,7 @@ func (ac *authChallenge) Error() string {
 	return ac.err.Error()
 }
 
-// ServeHttp handles writing the challenge response
+// ServeHTTP handles writing the challenge response
 // by setting the challenge header and status code.
 func (ac *authChallenge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// WWW-Authenticate response challenge header.

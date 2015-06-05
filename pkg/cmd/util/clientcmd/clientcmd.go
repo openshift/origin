@@ -17,13 +17,18 @@ import (
 
 const ConfigSyntax = " --master=<addr>"
 
+// Config contains all the necessary bits for client configuration
 type Config struct {
-	MasterAddr     flagtypes.Addr
+	// MasterAddr is the address the master can be reached on (host, host:port, or URL).
+	MasterAddr flagtypes.Addr
+	// KubernetesAddr is the address of the Kubernetes server (host, host:port, or URL).
+	// If omitted defaults to the master.
 	KubernetesAddr flagtypes.Addr
-	// ClientConfig is the shared base config for both the openshift config and kubernetes config
+	// CommonConfig is the shared base config for both the OpenShift config and Kubernetes config
 	CommonConfig kclient.Config
 }
 
+// NewConfig returns a new configuration
 func NewConfig() *Config {
 	return &Config{
 		MasterAddr:     flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
@@ -32,7 +37,7 @@ func NewConfig() *Config {
 	}
 }
 
-// BindClientConfig adds flags for the supplied client config
+// BindClientConfigSecurityFlags adds flags for the supplied client config
 func BindClientConfigSecurityFlags(config *kclient.Config, flags *pflag.FlagSet) {
 	flags.BoolVar(&config.Insecure, "insecure-skip-tls-verify", config.Insecure, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
 	flags.StringVar(&config.CertFile, "client-certificate", config.CertFile, "Path to a client key file for TLS.")
@@ -41,6 +46,7 @@ func BindClientConfigSecurityFlags(config *kclient.Config, flags *pflag.FlagSet)
 	flags.StringVar(&config.BearerToken, "token", config.BearerToken, "If present, the bearer token for this request.")
 }
 
+// Bind binds configuration values to the passed flagset
 func (cfg *Config) Bind(flags *pflag.FlagSet) {
 	flags.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL).")
 	flags.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If omitted defaults to the master.")
@@ -112,6 +118,7 @@ func (cfg *Config) bindEnv() error {
 	return err
 }
 
+// KubeConfig returns the Kubernetes configuration
 func (cfg *Config) KubeConfig() *kclient.Config {
 	err := cfg.bindEnv()
 	if err != nil {
@@ -129,6 +136,7 @@ func (cfg *Config) KubeConfig() *kclient.Config {
 	return &kConfig
 }
 
+// OpenShiftConfig returns the OpenShift configuration
 func (cfg *Config) OpenShiftConfig() *kclient.Config {
 	err := cfg.bindEnv()
 	if err != nil {
@@ -141,6 +149,7 @@ func (cfg *Config) OpenShiftConfig() *kclient.Config {
 	return &osConfig
 }
 
+// Clients returns an OpenShift and a Kubernetes client from a given configuration
 func (cfg *Config) Clients() (osclient.Interface, kclient.Interface, error) {
 	cfg.bindEnv()
 

@@ -56,9 +56,9 @@ type RoleBinding struct {
 	// GroupNames holds all the groups directly bound to the role
 	GroupNames []string `json:"groupNames" description:"all the groups directly bound to the role"`
 
-	// Since Policy is a singleton, this is sufficient knowledge to locate a role
-	// RoleRefs can only reference the current namespace and the global namespace
+	// RoleRef can only reference the current namespace and the global namespace
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
+	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	RoleRef kapi.ObjectReference `json:"roleRef" description:"a reference to a role"`
 }
 
@@ -96,9 +96,9 @@ type ResourceAccessReviewResponse struct {
 
 	// Namespace is the namespace used for the access review
 	Namespace string `json:"namespace,omitempty" description:"namespace used for the access review"`
-	// Users is the list of users who can perform the action
+	// UsersSlice is the list of users who can perform the action
 	UsersSlice []string `json:"users" description:"list of users who can perform the action"`
-	// Groups is the list of groups who can perform the action
+	// GroupsSlice is the list of groups who can perform the action
 	GroupsSlice []string `json:"groups" description:"list of groups who can perform the action"`
 }
 
@@ -147,9 +147,9 @@ type SubjectAccessReview struct {
 	Verb string `json:"verb" description:"one of get, list, watch, create, update, delete"`
 	// Resource is one of the existing resource types
 	Resource string `json:"resource" description:"one of the existing resource types"`
-	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
+	// User is optional. If both User and Groups are empty, the current authenticated user is used.
 	User string `json:"user" description:"optional, if both user and groups are empty, the current authenticated user is used"`
-	// Groups is optional.  Groups is the list of groups to which the User belongs.
+	// GroupsSlice is optional. Groups is the list of groups to which the User belongs.
 	GroupsSlice []string `json:"groups" description:"optional, list of groups to which the user belongs"`
 	// Content is the actual content of the request for create and update
 	Content kruntime.RawExtension `json:"content,omitempty" description:"actual content of the request for create and update"`
@@ -161,28 +161,36 @@ type SubjectAccessReview struct {
 type PolicyList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Policy `json:"items" description:"list of policies"`
+
+	// Items is a list of Policies
+	Items []Policy `json:"items" description:"list of policies"`
 }
 
 // PolicyBindingList is a collection of PolicyBindings
 type PolicyBindingList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []PolicyBinding `json:"items" description:"list of policy bindings"`
+
+	// Items is a list of PolicyBindings
+	Items []PolicyBinding `json:"items" description:"list of policy bindings"`
 }
 
 // RoleBindingList is a collection of RoleBindings
 type RoleBindingList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []RoleBinding `json:"items" description:"list of role bindings"`
+
+	// Items is a list of RoleBindings
+	Items []RoleBinding `json:"items" description:"list of role bindings"`
 }
 
 // RoleList is a collection of Roles
 type RoleList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Role `json:"items" description:"list of roles"`
+
+	// Items is a list of Roles
+	Items []Role `json:"items" description:"list of roles"`
 }
 
 // ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
@@ -206,9 +214,9 @@ type ClusterRoleBinding struct {
 	// GroupNames holds all the groups directly bound to the role
 	GroupNames []string `json:"groupNames" description:"all the groups directly bound to the role"`
 
-	// Since Policy is a singleton, this is sufficient knowledge to locate a role
-	// ClusterRoleRefs can only reference the current namespace and the global namespace
+	// RoleRef can only reference the current namespace and the global namespace
 	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.
+	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	RoleRef kapi.ObjectReference `json:"roleRef" description:"reference to the policy role"`
 }
 
@@ -221,7 +229,7 @@ type ClusterPolicy struct {
 	// LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
 	LastModified kutil.Time `json:"lastModified" description:"last time any part of the object was created, updated, or deleted"`
 
-	// ClusterRoles holds all the ClusterRoles held by this ClusterPolicy, mapped by ClusterRole.Name
+	// Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by ClusterRole.Name
 	Roles []NamedClusterRole `json:"roles" description:"all the roles held by this policy, mapped by role name"`
 }
 
@@ -254,26 +262,34 @@ type NamedClusterRoleBinding struct {
 type ClusterPolicyList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []ClusterPolicy `json:"items" description:"list of cluster policies"`
+
+	// Items is a list of ClusterPolicies
+	Items []ClusterPolicy `json:"items" description:"list of cluster policies"`
 }
 
 // ClusterPolicyBindingList is a collection of ClusterPolicyBindings
 type ClusterPolicyBindingList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []ClusterPolicyBinding `json:"items" description:"list of cluster policy bindings"`
+
+	// Items is a list of ClusterPolicyBindings
+	Items []ClusterPolicyBinding `json:"items" description:"list of cluster policy bindings"`
 }
 
 // ClusterRoleBindingList is a collection of ClusterRoleBindings
 type ClusterRoleBindingList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []ClusterRoleBinding `json:"items" description:"list of cluster role bindings"`
+
+	// Items is a list of ClusterRoleBindings
+	Items []ClusterRoleBinding `json:"items" description:"list of cluster role bindings"`
 }
 
 // ClusterRoleList is a collection of ClusterRoles
 type ClusterRoleList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []ClusterRole `json:"items" description:"list of cluster roles"`
+
+	// Items is a list of ClusterRoles
+	Items []ClusterRole `json:"items" description:"list of cluster roles"`
 }

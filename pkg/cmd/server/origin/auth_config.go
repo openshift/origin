@@ -23,7 +23,7 @@ import (
 type AuthConfig struct {
 	Options configapi.OAuthConfig
 
-	// Valid redirectURI prefixes to direct browsers to the web console
+	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
 	AssetPublicAddresses []string
 	MasterRoots          *x509.CertPool
 	EtcdHelper           tools.EtcdHelper

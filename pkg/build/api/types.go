@@ -26,7 +26,7 @@ type Build struct {
 	// Status is the current status of the build.
 	Status BuildStatus `json:"status,omitempty"`
 
-	// A human readable message indicating details about why the build has this status
+	// Message is a human readable message indicating details about why the build has this status
 	Message string `json:"message,omitempty"`
 
 	// Cancelled describes if a cancelling event was triggered for the build.
@@ -113,10 +113,13 @@ const (
 
 // BuildSource is the SCM used for the build
 type BuildSource struct {
+	// Type of source control management system
 	Type BuildSourceType `json:"type,omitempty"`
-	Git  *GitBuildSource `json:"git,omitempty"`
 
-	// Specify the sub-directory where the source code for the application exists.
+	// Git contains optional information about git build source
+	Git *GitBuildSource `json:"git,omitempty"`
+
+	// ContextDir specifies the sub-directory where the source code for the application exists.
 	// This allows to have buildable sources in directory other than root of
 	// repository.
 	ContextDir string `json:"contextDir,omitempty"`
@@ -131,8 +134,11 @@ type BuildSource struct {
 
 // SourceRevision is the revision or commit information from the source for the build
 type SourceRevision struct {
-	Type BuildSourceType    `json:"type,omitempty"`
-	Git  *GitSourceRevision `json:"git,omitempty"`
+	// Type of the build source
+	Type BuildSourceType `json:"type,omitempty"`
+
+	// Git contains information about git-based build source
+	Git *GitSourceRevision `json:"git,omitempty"`
 }
 
 // GitSourceRevision is the commit information from a git source for a build
@@ -162,7 +168,10 @@ type GitBuildSource struct {
 
 // SourceControlUser defines the identity of a user of source control
 type SourceControlUser struct {
-	Name  string `json:"name,omitempty"`
+	// Name of the source control user
+	Name string `json:"name,omitempty"`
+
+	// Email of the source control user
 	Email string `json:"email,omitempty"`
 }
 
@@ -205,7 +214,7 @@ const (
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategy struct {
-	// Additional environment variables you want to pass into a builder container
+	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
 
 	// ExposeDockerSocket will allow running Docker commands (and build Docker images) from
@@ -251,7 +260,7 @@ type SourceBuildStrategy struct {
 	// registries
 	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
 
-	// Additional environment variables you want to pass into a builder container
+	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty"`
 
 	// Scripts is the location of STI scripts
@@ -357,14 +366,18 @@ const (
 type BuildList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Build `json:"items"`
+
+	// Items is a list of builds
+	Items []Build `json:"items"`
 }
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []BuildConfig `json:"items"`
+
+	// Items is a list of build configs
+	Items []BuildConfig `json:"items"`
 }
 
 // GenericWebHookEvent is the payload expected for a generic webhook post
