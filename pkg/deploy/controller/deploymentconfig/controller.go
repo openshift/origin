@@ -9,6 +9,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -84,7 +85,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			deploymentForCancellation.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 			deploymentForCancellation.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
 			if _, err := c.deploymentClient.updateDeployment(deploymentForCancellation.Namespace, deploymentForCancellation); err != nil {
-				glog.Errorf("couldn't cancel Deployment %s: %v", deployutil.LabelForDeployment(deploymentForCancellation), err)
+				util.HandleError(fmt.Errorf("couldn't cancel Deployment %s: %v", deployutil.LabelForDeployment(deploymentForCancellation), err))
 			}
 			glog.V(4).Infof("Cancelled Deployment %s for DeploymentConfig %s", deployutil.LabelForDeployment(deploymentForCancellation), deployutil.LabelForDeploymentConfig(config))
 		}

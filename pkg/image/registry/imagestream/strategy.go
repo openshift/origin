@@ -187,7 +187,7 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 		}
 
 		if event == nil {
-			glog.Errorf("unable to find tag event for %#v", tagRef.From)
+			util.HandleError(fmt.Errorf("unable to find tag event for %#v", tagRef.From))
 			continue
 		}
 

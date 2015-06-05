@@ -9,7 +9,8 @@ import (
 	"path"
 
 	"github.com/RangelReale/osincli"
-	"github.com/golang/glog"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/auth/server/login"
 )
@@ -86,7 +87,7 @@ func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.
 
 func renderToken(w io.Writer, data tokenData) {
 	if err := tokenTemplate.Execute(w, data); err != nil {
-		glog.Errorf("Unable to render token template: %v", err)
+		util.HandleError(fmt.Errorf("unable to render token template: %v", err))
 	}
 }
 

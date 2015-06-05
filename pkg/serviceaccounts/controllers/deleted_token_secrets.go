@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 )
@@ -92,7 +93,7 @@ func (e *DockercfgTokenDeletedController) secretDeleted(obj interface{}) {
 	// remove the reference token secrets
 	for _, dockercfgSecret := range dockercfgSecrets {
 		if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name); err != nil {
-			glog.Error(err)
+			util.HandleError(err)
 		}
 	}
 }

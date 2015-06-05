@@ -1,11 +1,13 @@
 package osinserver
 
 import (
+	"fmt"
 	"net/http"
 	"path"
 
 	"github.com/RangelReale/osin"
-	"github.com/golang/glog"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 const (
@@ -94,7 +96,7 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.IsError && resp.InternalError != nil {
-		glog.Errorf("Internal error: %s", resp.InternalError)
+		util.HandleError(fmt.Errorf("internal error: %s", resp.InternalError))
 	}
 	osin.OutputJSON(resp, w, r)
 }
@@ -111,7 +113,7 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 		s.server.FinishAccessRequest(resp, r, ar)
 	}
 	if resp.IsError && resp.InternalError != nil {
-		glog.Errorf("Internal error: %s", resp.InternalError)
+		util.HandleError(fmt.Errorf("internal error: %s", resp.InternalError))
 	}
 	osin.OutputJSON(resp, w, r)
 }

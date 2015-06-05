@@ -17,7 +17,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
-	"github.com/golang/glog"
 )
 
 const DefaultOpenshiftDockerURL = "docker-registry.default.svc.cluster.local:5000"
@@ -114,7 +113,7 @@ func (e *DockerRegistryServiceController) serviceAdded(obj interface{}) {
 	}
 
 	if err := e.handleLocationChange(e.getServiceLocation(service)); err != nil {
-		glog.Error(err)
+		util.HandleError(err)
 	}
 }
 
@@ -131,7 +130,7 @@ func (e *DockerRegistryServiceController) serviceUpdated(oldObj interface{}, new
 	}
 
 	if err := e.handleLocationChange(e.getServiceLocation(newService)); err != nil {
-		glog.Error(err)
+		util.HandleError(err)
 	}
 }
 
@@ -146,7 +145,7 @@ func (e *DockerRegistryServiceController) serviceDeleted(obj interface{}) {
 	}
 
 	if err := e.handleLocationChange(e.defaultDockerURL); err != nil {
-		glog.Error(err)
+		util.HandleError(err)
 	}
 }
 
@@ -162,14 +161,14 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 	for _, dockercfgSecret := range dockercfgSecrets {
 		dockercfg := &credentialprovider.DockerConfig{}
 		if err := json.Unmarshal(dockercfgSecret.Data[api.DockerConfigKey], dockercfg); err != nil {
-			glog.Error(err)
+			util.HandleError(err)
 			continue
 		}
 
 		dockercfgMap := map[string]credentialprovider.DockerConfigEntry(*dockercfg)
 		keys := util.KeySet(reflect.ValueOf(dockercfgMap))
 		if len(keys) != 1 {
-			glog.Error(err)
+			util.HandleError(err)
 			continue
 		}
 		oldKey := keys.List()[0]
@@ -186,13 +185,13 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 
 		dockercfgContent, err := json.Marshal(dockercfg)
 		if err != nil {
-			glog.Error(err)
+			util.HandleError(err)
 			continue
 		}
 		dockercfgSecret.Data[api.DockerConfigKey] = dockercfgContent
 
 		if _, err := e.client.Secrets(dockercfgSecret.Namespace).Update(dockercfgSecret); err != nil {
-			glog.Error(err)
+			util.HandleError(err)
 			continue
 		}
 	}

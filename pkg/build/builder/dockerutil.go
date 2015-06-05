@@ -1,8 +1,11 @@
 package builder
 
 import (
+	"fmt"
 	"os"
 	"time"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -41,7 +44,7 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		if retries == DefaultPushRetryCount {
 			return err
 		}
-		glog.Errorf("Push for image %s failed, will retry in %ds ...", name, DefaultPushRetryDelay)
+		util.HandleError(fmt.Errorf("push for image %s failed, will retry in %ds ...", name, DefaultPushRetryDelay))
 		glog.Flush()
 		time.Sleep(DefaultPushRetryDelay)
 	}
