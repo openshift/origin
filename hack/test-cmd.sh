@@ -320,6 +320,20 @@ echo "templates: ok"
 [ "$(openshift admin TYPO; echo $? | grep '1')" ]
 [ "$(openshift cli TYPO; echo $? | grep '1')" ]
 [ "$(oc policy TYPO; echo $? | grep '1')" ]
+[ "$(oc secrets TYPO; echo $? | grep '1')" ]
+
+
+oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org
+# can't use a go template here because the output needs to be base64 decoded.  base64 isn't installed by default in all distros
+oc describe secrets/dockercfg | grep "dockercfg:" | awk '{print $2}' > ${HOME}/.dockercfg
+oc secrets new from-file ${HOME}/.dockercfg
+# check to make sure the type was correctly auto-detected
+[ "$(oc get secret/from-file -t "{{ .type }}" | grep "kubernetes.io/dockercfg")" ]
+# make sure the -o works correctly
+[ "$(oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o yaml | grep "kubernetes.io/dockercfg")" ]
+[ "$(oc secrets new from-file ${HOME}/.dockercfg -o yaml | grep "kubernetes.io/dockercfg")" ]
+echo "secrets: ok"
+
 
 oc get pods --match-server-version
 oc create -f examples/hello-openshift/hello-pod.json

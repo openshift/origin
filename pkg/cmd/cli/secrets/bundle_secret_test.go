@@ -1,4 +1,4 @@
-package bundlesecret
+package secrets
 
 import (
 	"io/ioutil"
@@ -9,7 +9,6 @@ import (
 )
 
 func TestValidate(t *testing.T) {
-
 	tests := []struct {
 		testName string
 		args     []string
@@ -32,8 +31,8 @@ func TestValidate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		options := NewDefaultOptions()
-		options.Complete(test.args)
+		options := NewCreateSecretOptions()
+		options.Complete(test.args, nil)
 		err := options.Validate()
 		if err != nil && !test.expErr {
 			t.Errorf("%s: unexpected error: %v", test.testName, err)
@@ -42,7 +41,6 @@ func TestValidate(t *testing.T) {
 }
 
 func TestCreateSecret(t *testing.T) {
-
 	tests := []struct {
 		testName string
 		args     []string
@@ -79,15 +77,15 @@ func TestCreateSecret(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		options := NewDefaultOptions()
-		options.Complete(test.args)
+		options := NewCreateSecretOptions()
+		options.Complete(test.args, nil)
 		options.Quiet = test.quiet
 
 		err := options.Validate()
 		if err != nil {
 			t.Errorf("unexpected error")
 		}
-		_, err = options.CreateSecret()
+		_, err = options.BundleSecret()
 		if err != nil && !test.expErr {
 			t.Errorf("%s: unexpected error: %s", test.testName, err)
 		}
@@ -102,7 +100,7 @@ func TestSecretTypeSpecified(t *testing.T) {
 		Stderr:         ioutil.Discard,
 	}
 
-	secret, err := options.CreateSecret()
+	secret, err := options.BundleSecret()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -117,7 +115,7 @@ func TestSecretTypeDiscovered(t *testing.T) {
 		Stderr:  ioutil.Discard,
 	}
 
-	secret, err := options.CreateSecret()
+	secret, err := options.BundleSecret()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

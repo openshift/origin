@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
+	"github.com/openshift/origin/pkg/cmd/cli/secrets"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -117,7 +118,8 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 				cmd.NewCmdUpdate(fullName, f, out),
 				cmd.NewCmdProcess(fullName, f, out),
 				cmd.NewCmdExport(fullName, f, os.Stdin, out),
-				policy.NewCommandPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
+				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
+				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, out, fullName+" edit"),
 			},
 		},
 		{

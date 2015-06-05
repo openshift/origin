@@ -2,7 +2,6 @@ package policy
 
 import (
 	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -13,7 +12,7 @@ import (
 
 const PolicyRecommendedName = "policy"
 
-func NewCommandPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
@@ -32,11 +31,4 @@ func NewCommandPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer
 	cmds.AddCommand(adminpolicy.NewCmdRemoveGroupFromProject(adminpolicy.RemoveGroupRecommendedName, fullName+" "+adminpolicy.RemoveGroupRecommendedName, f, out))
 
 	return cmds
-}
-
-func runHelp(cmd *cobra.Command, args []string) {
-	cmd.Help()
-
-	// make sure that we exit with non-zero status so that typoed commands don't look like they were successful
-	os.Exit(1)
 }
