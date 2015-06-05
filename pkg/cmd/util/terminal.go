@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -95,15 +94,4 @@ func readInputFromReader(r io.Reader) string {
 func IsTerminal(r io.Reader) bool {
 	file, ok := r.(*os.File)
 	return ok && term.IsTerminal(file.Fd())
-}
-
-type Output struct {
-	Out io.Writer
-}
-
-func (o Output) Get() io.Writer {
-	if o.Out != nil {
-		return o.Out
-	}
-	return ioutil.Discard
 }

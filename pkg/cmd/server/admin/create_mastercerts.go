@@ -13,7 +13,6 @@ import (
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const CreateMasterCertsCommandName = "create-master-certs"
@@ -72,11 +71,11 @@ type CreateMasterCertsOptions struct {
 	PublicAPIServerURL string
 
 	Overwrite bool
-	Output    cmdutil.Output
+	Output    io.Writer
 }
 
 func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateMasterCertsOptions{Output: cmdutil.Output{out}}
+	options := &CreateMasterCertsOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -92,7 +91,6 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -128,7 +126,7 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 }
 
 func (o CreateMasterCertsOptions) CreateMasterCerts() error {
-	glog.V(2).Infof("Creating all certs with: %#v", o)
+	glog.V(4).Infof("Creating all certs with: %#v", o)
 
 	signerCertOptions := CreateSignerCertOptions{
 		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),

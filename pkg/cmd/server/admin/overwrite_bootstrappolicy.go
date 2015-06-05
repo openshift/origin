@@ -69,7 +69,6 @@ func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, cre
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 

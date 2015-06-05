@@ -2,7 +2,6 @@ package admin
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -18,7 +17,6 @@ import (
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const CreateKubeConfigCommandName = "create-kubeconfig"
@@ -34,11 +32,11 @@ type CreateKubeConfigOptions struct {
 	ContextNamespace string
 
 	KubeConfigFile string
-	Output         cmdutil.Output
+	Output         io.Writer
 }
 
 func NewCommandCreateKubeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateKubeConfigOptions{Output: cmdutil.Output{out}}
+	options := &CreateKubeConfigOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -84,7 +82,6 @@ users:
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -126,7 +123,7 @@ func (o CreateKubeConfigOptions) Validate(args []string) error {
 }
 
 func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error) {
-	glog.V(2).Infof("creating a .kubeconfig with: %#v", o)
+	glog.V(4).Infof("creating a .kubeconfig with: %#v", o)
 
 	// read all the refenced filenames
 	caData, err := ioutil.ReadFile(o.APIServerCAFile)
@@ -200,7 +197,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 		CurrentContext: contextNick,
 	}
 
-	fmt.Fprintf(o.Output.Get(), "Generating '%s' API client config as %s\n", userNick, o.KubeConfigFile)
+	glog.V(3).Infof("Generating '%s' API client config as %s\n", userNick, o.KubeConfigFile)
 	// Ensure the parent dir exists
 	if err := os.MkdirAll(filepath.Dir(o.KubeConfigFile), os.FileMode(0755)); err != nil {
 		return nil, err

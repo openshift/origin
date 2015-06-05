@@ -12,7 +12,6 @@ import (
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const CreateClientCommandName = "create-api-client-config"
@@ -28,7 +27,7 @@ type CreateClientOptions struct {
 	APIServerCAFile    string
 	APIServerURL       string
 	PublicAPIServerURL string
-	Output             cmdutil.Output
+	Output             io.Writer
 }
 
 const createClientLong = `
@@ -40,7 +39,7 @@ master as the provided user.
 `
 
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateClientOptions{GetSignerCertOptions: &GetSignerCertOptions{}, Output: cmdutil.Output{out}}
+	options := &CreateClientOptions{GetSignerCertOptions: &GetSignerCertOptions{}, Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -56,7 +55,6 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -102,7 +100,7 @@ func (o CreateClientOptions) Validate(args []string) error {
 }
 
 func (o CreateClientOptions) CreateClientFolder() error {
-	glog.V(2).Infof("creating a .kubeconfig with: %#v", o)
+	glog.V(4).Infof("creating a .kubeconfig with: %#v", o)
 
 	clientCertFile := DefaultCertFilename(o.ClientDir, o.User)
 	clientKeyFile := DefaultKeyFilename(o.ClientDir, o.User)
