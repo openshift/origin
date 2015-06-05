@@ -158,7 +158,7 @@ func TestStop(t *testing.T) {
 			t.Errorf("%s: expected an error", test.testName)
 		}
 		if len(test.osc.Actions) != len(test.expected) {
-			t.Errorf("%s: unexpected actions: %v, expected %v", test.testName, test.osc.Actions, test.expected)
+			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.osc.Actions, test.expected)
 		}
 		for j, fake := range test.osc.Actions {
 			if fake.Action != test.expected[j] {
@@ -166,7 +166,7 @@ func TestStop(t *testing.T) {
 			}
 		}
 		if len(test.kc.Actions) != len(test.kexpected) {
-			t.Errorf("%s: unexpected actions: %v, expected %v", test.testName, test.kc.Actions, test.kexpected)
+			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.kc.Actions, test.kexpected)
 		}
 		for j, fake := range test.kc.Actions {
 			if fake.Action != test.kexpected[j] {
