@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 
 	newer "github.com/openshift/origin/pkg/image/api"
@@ -153,77 +152,6 @@ func init() {
 		},
 		func(in *ImageStreamMapping, out *newer.ImageStreamMapping, s conversion.Scope) error {
 			return s.DefaultConvert(in, out, conversion.SourceToDest)
-		},
-
-		// convert internal deprecated ImageRepository objects to Stream objects
-		func(in *newer.ImageRepository, out *ImageStream, s conversion.Scope) error {
-			if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-				return err
-			}
-			out.Spec.DockerImageRepository = in.DockerImageRepository
-			for tag, value := range in.Tags {
-				out.Spec.Tags = append(out.Spec.Tags, NamedTagReference{
-					Name: tag,
-					From: &v1.ObjectReference{
-						Name: value,
-					},
-				})
-			}
-			return s.Convert(&in.Status, &out.Status, 0)
-		},
-		func(in *ImageStream, out *newer.ImageRepository, s conversion.Scope) error {
-			if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-				return err
-			}
-
-			out.DockerImageRepository = in.Spec.DockerImageRepository
-			if in.Spec.Tags != nil && out.Tags == nil {
-				out.Tags = make(map[string]string)
-			}
-			for _, namedTagReference := range in.Spec.Tags {
-				if namedTagReference.From != nil {
-					out.Tags[namedTagReference.Name] = namedTagReference.From.Name
-				}
-			}
-
-			return s.Convert(&in.Status, &out.Status, 0)
-		},
-		func(in *ImageStreamMapping, out *newer.ImageRepositoryMapping, s conversion.Scope) error {
-			if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-				return err
-			}
-			out.Tag = in.Tag
-			return s.Convert(&in.Image, &out.Image, 0)
-		},
-		func(in *newer.ImageRepositoryStatus, out *ImageStreamStatus, s conversion.Scope) error {
-			out.DockerImageRepository = in.DockerImageRepository
-			return s.Convert(&in.Tags, &out.Tags, 0)
-		},
-		func(in *ImageStreamStatus, out *newer.ImageRepositoryStatus, s conversion.Scope) error {
-			out.DockerImageRepository = in.DockerImageRepository
-			out.Tags = make(map[string]newer.TagEventList)
-			return s.Convert(&in.Tags, &out.Tags, 0)
-		},
-		func(in *newer.ImageRepositoryMapping, out *ImageStreamMapping, s conversion.Scope) error {
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames)
-		},
-		func(in *newer.ImageRepositoryList, out *ImageStreamList, s conversion.Scope) error {
-			if err := s.Convert(&in.ListMeta, &out.ListMeta, 0); err != nil {
-				return err
-			}
-			return s.Convert(&in.Items, &out.Items, 0)
-		},
-		func(in *ImageStreamList, out *newer.ImageRepositoryList, s conversion.Scope) error {
-			if err := s.Convert(&in.ListMeta, &out.ListMeta, 0); err != nil {
-				return err
-			}
-			return s.Convert(&in.Items, &out.Items, 0)
-		},
-		func(in *newer.ImageRepositoryTag, out *ImageStreamTag, s conversion.Scope) error {
-			return s.Convert(&in.Image, &out.Image, conversion.IgnoreMissingFields)
-		},
-		func(in *ImageStreamTag, out *newer.ImageRepositoryTag, s conversion.Scope) error {
-			return s.Convert(&in.Image, &out.Image, conversion.IgnoreMissingFields)
 		},
 	)
 	if err != nil {

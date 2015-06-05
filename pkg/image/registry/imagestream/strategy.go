@@ -145,17 +145,18 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 		if oldRef, ok := oldTags[tag]; ok && !tagRefChanged(oldRef, tagRef, stream.Namespace) {
 			continue
 		}
-		if len(tagRef.DockerImageReference) > 0 {
-			event, err := tagReferenceToTagEvent(stream, tagRef, "")
-			if err != nil {
-				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].dockerImageReference", tag), tagRef.DockerImageReference, err.Error()))
-				continue
-			}
-			api.AddTagEventToImageStream(stream, tag, *event)
+
+		if tagRef.From == nil {
 			continue
 		}
 
-		if tagRef.From == nil {
+		if tagRef.From.Kind == "DockerImage" && len(tagRef.From.Name) > 0 {
+			event, err := tagReferenceToTagEvent(stream, tagRef, "")
+			if err != nil {
+				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from", tag), tagRef.From, err.Error()))
+				continue
+			}
+			api.AddTagEventToImageStream(stream, tag, *event)
 			continue
 		}
 
@@ -208,14 +209,13 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 }
 
 func tagReferenceToTagEvent(stream *api.ImageStream, tagRef api.TagReference, tagOrID string) (*api.TagEvent, error) {
-	if len(tagRef.DockerImageReference) > 0 {
+	switch tagRef.From.Kind {
+	case "DockerImage":
 		return &api.TagEvent{
 			Created:              util.Now(),
-			DockerImageReference: tagRef.DockerImageReference,
+			DockerImageReference: tagRef.From.Name,
 		}, nil
-	}
 
-	switch tagRef.From.Kind {
 	case "ImageStreamImage":
 		ref, err := api.DockerImageReferenceForStream(stream)
 		if err != nil {
@@ -235,10 +235,6 @@ func tagReferenceToTagEvent(stream *api.ImageStream, tagRef api.TagReference, ta
 }
 
 func tagRefChanged(old, next api.TagReference, streamNamespace string) bool {
-	if len(next.DockerImageReference) > 0 {
-		// DockerImageReference possibly changed
-		return next.DockerImageReference != old.DockerImageReference
-	}
 	if next.From == nil {
 		// both fields in next are empty
 		return false

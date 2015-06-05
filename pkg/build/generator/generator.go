@@ -299,7 +299,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from *kap
 		}
 		return image.String(), nil
 	case "ImageStreamImage":
-		image, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), from.Name)
+		imageStreamImage, err := g.Client.GetImageStreamImage(kapi.WithNamespace(ctx, namespace), from.Name)
 		if err != nil {
 			glog.V(2).Infof("Error ImageStreamReference %s in namespace %s: %v", from.Name, namespace, err)
 			if errors.IsNotFound(err) {
@@ -307,10 +307,11 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from *kap
 			}
 			return "", fatalError{err}
 		}
+		image := imageStreamImage.Image
 		glog.V(4).Infof("Resolved ImageStreamReference %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
 		return image.DockerImageReference, nil
 	case "ImageStreamTag":
-		image, err := g.Client.GetImageStreamTag(kapi.WithNamespace(ctx, namespace), from.Name)
+		imageStreamTag, err := g.Client.GetImageStreamTag(kapi.WithNamespace(ctx, namespace), from.Name)
 		if err != nil {
 			glog.V(2).Infof("Error resolving ImageStreamTag reference %s in namespace %s: %v", from.Name, namespace, err)
 			if errors.IsNotFound(err) {
@@ -318,6 +319,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from *kap
 			}
 			return "", fatalError{err}
 		}
+		image := imageStreamTag.Image
 		glog.V(4).Infof("Resolved ImageStreamTag %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
 		return image.DockerImageReference, nil
 	case "DockerImage":

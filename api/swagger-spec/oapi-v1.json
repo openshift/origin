@@ -12227,32 +12227,16 @@
    "v1.ImageStreamImage": {
     "id": "v1.ImageStreamImage",
     "required": [
-     "imageName"
+     "image"
     ],
     "properties": {
      "apiVersion": {
       "type": "string",
       "description": "version of the schema the object should have"
      },
-     "dockerImageManifest": {
-      "type": "string",
-      "description": "raw JSON of the manifest"
-     },
-     "dockerImageMetadata": {
-      "type": "string",
-      "description": "metadata about this image"
-     },
-     "dockerImageMetadataVersion": {
-      "type": "string",
-      "description": "conveys version of the object, if empty defaults to '1.0'"
-     },
-     "dockerImageReference": {
-      "type": "string",
-      "description": "string that can be used to pull this image"
-     },
-     "imageName": {
-      "type": "string",
-      "description": "name of image"
+     "image": {
+      "$ref": "v1.Image",
+      "description": "the image associated with the ImageStream and image name"
      },
      "kind": {
       "type": "string",
@@ -12355,32 +12339,16 @@
    "v1.ImageStreamTag": {
     "id": "v1.ImageStreamTag",
     "required": [
-     "imageName"
+     "image"
     ],
     "properties": {
      "apiVersion": {
       "type": "string",
       "description": "version of the schema the object should have"
      },
-     "dockerImageManifest": {
-      "type": "string",
-      "description": "raw JSON of the manifest"
-     },
-     "dockerImageMetadata": {
-      "type": "string",
-      "description": "metadata about this image"
-     },
-     "dockerImageMetadataVersion": {
-      "type": "string",
-      "description": "conveys version of the object, if empty defaults to '1.0'"
-     },
-     "dockerImageReference": {
-      "type": "string",
-      "description": "string that can be used to pull this image"
-     },
-     "imageName": {
-      "type": "string",
-      "description": "name of image"
+     "image": {
+      "$ref": "v1.Image",
+      "description": "the image associated with the ImageStream and tag"
      },
      "kind": {
       "type": "string",

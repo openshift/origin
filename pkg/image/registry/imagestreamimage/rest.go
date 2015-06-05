@@ -95,9 +95,6 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		if err != nil {
 			return nil, err
 		}
-		isi := api.ImageStreamImage{Image: *imageWithMetadata}
-		isi.ImageName = imageName
-		isi.Namespace = kapi.NamespaceValue(ctx)
 
 		if d, err := digest.ParseDigest(imageName); err == nil {
 			imageName = d.Hex()
@@ -105,7 +102,15 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		if len(imageName) > 7 {
 			imageName = imageName[:7]
 		}
-		isi.Name = fmt.Sprintf("%s@%s", name, imageName)
+
+		isi := api.ImageStreamImage{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace: kapi.NamespaceValue(ctx),
+				Name:      fmt.Sprintf("%s@%s", name, imageName),
+			},
+			Image: *imageWithMetadata,
+		}
+
 		return &isi, nil
 	case 0:
 		return nil, errors.NewNotFound("imageStreamImage", imageID)

@@ -67,7 +67,7 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 
 	imageToTag := make(map[string][]string)
 	for tag, image := range tags {
-		if specTag, ok := stream.Spec.Tags[tag]; ok && (len(specTag.DockerImageReference) != 0 || specTag.From != nil) {
+		if specTag, ok := stream.Spec.Tags[tag]; ok && specTag.From != nil {
 			// spec tag is set to track another tag - do not import
 			continue
 		}

@@ -58,7 +58,7 @@ type ImageStreamSpec struct {
 	Tags []NamedTagReference `json:"tags,omitempty"`
 }
 
-// NamedTagReference allows a user to TODO.
+// NamedTagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.
 type NamedTagReference struct {
 	Name        string                `json:"name"`
 	Annotations map[string]string     `json:"annotations,omitempty"`
@@ -103,20 +103,13 @@ type ImageStreamMapping struct {
 	Tag string `json:"tag"`
 }
 
-// ImageRepositoryTag exists to allow calls to `osc get imageRepositoryTag ...` to function.
-//
-// ImageRepositoryTag is DEPRECATED; use ImageStreamTag instead.
-type ImageRepositoryTag struct {
-	Image
-}
-
-// ImageStreamTag exists to allow calls to `osc get imageStreamTag ...` to function.
+// ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.
 type ImageStreamTag struct {
 	Image     `json:",inline"`
 	ImageName string `json:"imageName"`
 }
 
-// ImageStreamImage exists to allow calls to `osc get imageStreamImage ...` to function.
+// ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {
 	Image     `json:",inline"`
 	ImageName string `json:"imageName"`

@@ -121,7 +121,7 @@ func TestListImageStreamsError(t *testing.T) {
 func TestListImageStreamsEmptyList(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.ChangeIndex = 1
-	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagestreams/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{},
 		E: fakeEtcdClient.NewError(tools.EtcdErrorCodeNotFound),
 	}
@@ -143,7 +143,7 @@ func TestListImageStreamsPopulatedList(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
-	fakeEtcdClient.Data["/imagerepositories/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagestreams/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -195,7 +195,7 @@ func TestCreateImageStreamOK(t *testing.T) {
 	}
 
 	actual := &api.ImageStream{}
-	if err := helper.ExtractObj("/imagerepositories/default/foo", actual, false); err != nil {
+	if err := helper.ExtractObj("/imagestreams/default/foo", actual, false); err != nil {
 		t.Fatalf("unexpected extraction error: %v", err)
 	}
 	if actual.Name != stream.Name {
@@ -248,7 +248,7 @@ func TestCreateImageStreamSpecTagsFromSet(t *testing.T) {
 		if len(otherNamespace) == 0 {
 			otherNamespace = "default"
 		}
-		fakeEtcdClient.Data[fmt.Sprintf("/imagerepositories/%s/other", otherNamespace)] = tools.EtcdResponseWithError{
+		fakeEtcdClient.Data[fmt.Sprintf("/imagestreams/%s/other", otherNamespace)] = tools.EtcdResponseWithError{
 			R: &etcd.Response{
 				Node: &etcd.Node{
 					Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
@@ -305,7 +305,7 @@ func TestCreateImageStreamSpecTagsFromSet(t *testing.T) {
 		}
 
 		actual := &api.ImageStream{}
-		if err := helper.ExtractObj("/imagerepositories/default/foo", actual, false); err != nil {
+		if err := helper.ExtractObj("/imagestreams/default/foo", actual, false); err != nil {
 			t.Fatalf("%s: unexpected extraction error: %v", name, err)
 		}
 		if e, a := fmt.Sprintf("%s/other:latest", otherNamespace), actual.Status.Tags["other"].Items[0].DockerImageReference; e != a {
@@ -352,7 +352,7 @@ func TestUpdateRegistryErrorSaving(t *testing.T) {
 
 func TestUpdateImageStreamOK(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	fakeEtcdClient.Data["/imagerepositories/default/bar"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagestreams/default/bar"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
@@ -414,7 +414,7 @@ func TestUpdateImageStreamSpecTagsFromSet(t *testing.T) {
 		}
 		storage, _ := NewREST(helper, noDefaultRegistry, sarRegistry)
 
-		fakeEtcdClient.Data["/imagerepositories/default/foo"] = tools.EtcdResponseWithError{
+		fakeEtcdClient.Data["/imagestreams/default/foo"] = tools.EtcdResponseWithError{
 			R: &etcd.Response{
 				Node: &etcd.Node{
 					Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
@@ -429,7 +429,7 @@ func TestUpdateImageStreamSpecTagsFromSet(t *testing.T) {
 		if len(otherNamespace) == 0 {
 			otherNamespace = "default"
 		}
-		fakeEtcdClient.Data[fmt.Sprintf("/imagerepositories/%s/other", otherNamespace)] = tools.EtcdResponseWithError{
+		fakeEtcdClient.Data[fmt.Sprintf("/imagestreams/%s/other", otherNamespace)] = tools.EtcdResponseWithError{
 			R: &etcd.Response{
 				Node: &etcd.Node{
 					Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
@@ -486,7 +486,7 @@ func TestUpdateImageStreamSpecTagsFromSet(t *testing.T) {
 		}
 
 		actual := &api.ImageStream{}
-		if err := helper.ExtractObj("/imagerepositories/default/foo", actual, false); err != nil {
+		if err := helper.ExtractObj("/imagestreams/default/foo", actual, false); err != nil {
 			t.Fatalf("%s: unexpected extraction error: %v", name, err)
 		}
 		if e, a := fmt.Sprintf("%s/other:latest", otherNamespace), actual.Status.Tags["other"].Items[0].DockerImageReference; e != a {
@@ -497,7 +497,7 @@ func TestUpdateImageStreamSpecTagsFromSet(t *testing.T) {
 
 func TestDeleteImageStream(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	fakeEtcdClient.Data["/imagerepositories/default/foo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagestreams/default/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
@@ -524,7 +524,7 @@ func TestDeleteImageStream(t *testing.T) {
 
 func TestUpdateImageStreamConflictingNamespace(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	fakeEtcdClient.Data["/imagerepositories/legal-name/bar"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data["/imagestreams/legal-name/bar"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
@@ -980,7 +980,7 @@ func TestEtcdListImageStreamsInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Data["/imagerepositories/alfa"] = tools.EtcdResponseWithError{
+	fakeClient.Data["/imagestreams/alfa"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -992,7 +992,7 @@ func TestEtcdListImageStreamsInDifferentNamespaces(t *testing.T) {
 		},
 		E: nil,
 	}
-	fakeClient.Data["/imagerepositories/bravo"] = tools.EtcdResponseWithError{
+	fakeClient.Data["/imagestreams/bravo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -1030,8 +1030,8 @@ func TestEtcdGetImageStreamInDifferentNamespaces(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	namespaceAlfa := kapi.WithNamespace(kapi.NewContext(), "alfa")
 	namespaceBravo := kapi.WithNamespace(kapi.NewContext(), "bravo")
-	fakeClient.Set("/imagerepositories/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
-	fakeClient.Set("/imagerepositories/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/imagestreams/alfa/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
+	fakeClient.Set("/imagestreams/bravo/foo", runtime.EncodeOrDie(latest.Codec, &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
 
 	alfaFoo, err := registry.GetImageStream(namespaceAlfa, "foo")

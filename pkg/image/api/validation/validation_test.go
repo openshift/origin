@@ -249,19 +249,6 @@ func TestValidateImageStream(t *testing.T) {
 				fielderrors.NewFieldInvalid("spec.dockerImageRepository", "a-|///bbb", "the docker pull spec \"a-|///bbb\" must be two or three segments separated by slashes"),
 			},
 		},
-		"both dockerImageReference and from set": {
-			namespace: "namespace",
-			name:      "foo",
-			specTags: map[string]api.TagReference{
-				"tag": {
-					DockerImageReference: "abc",
-					From:                 &kapi.ObjectReference{},
-				},
-			},
-			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldInvalid("spec.tags[tag]", "", "only 1 of dockerImageReference or from may be set"),
-			},
-		},
 		"status tag missing dockerImageReference": {
 			namespace: "namespace",
 			name:      "foo",
@@ -284,7 +271,10 @@ func TestValidateImageStream(t *testing.T) {
 			name:      "foo",
 			specTags: map[string]api.TagReference{
 				"tag": {
-					DockerImageReference: "abc",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "abc",
+					},
 				},
 				"other": {
 					From: &kapi.ObjectReference{

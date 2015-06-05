@@ -248,14 +248,24 @@ func TestControllerWithSpecTags(t *testing.T) {
 		"no tracking": {
 			expectUpdate: true,
 		},
-		"dockerImageReference": {
-			dockerImageReference: "some/repo",
-			expectUpdate:         false,
+		"docker image": {
+			from: &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: "some/repo",
+			},
+			expectUpdate: false,
 		},
-		"from tracking": {
+		"from image stream tag": {
 			from: &kapi.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: "2.0",
+			},
+			expectUpdate: false,
+		},
+		"from image stream image": {
+			from: &kapi.ObjectReference{
+				Kind: "ImageStreamImage",
+				Name: "foo@sha256:1234",
 			},
 			expectUpdate: false,
 		},
@@ -281,8 +291,7 @@ func TestControllerWithSpecTags(t *testing.T) {
 				DockerImageRepository: "foo/bar",
 				Tags: map[string]api.TagReference{
 					api.DefaultImageTag: {
-						DockerImageReference: test.dockerImageReference,
-						From:                 test.from,
+						From: test.from,
 					},
 				},
 			},

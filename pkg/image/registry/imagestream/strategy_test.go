@@ -121,7 +121,10 @@ func TestTagVerifier(t *testing.T) {
 		"nil from": {
 			newTags: map[string]api.TagReference{
 				api.DefaultImageTag: {
-					DockerImageReference: "registry/old/stream:latest",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry/old/stream:latest",
+					},
 				},
 			},
 			expectSar: false,
@@ -304,7 +307,14 @@ func TestTagsChanged(t *testing.T) {
 		"single tag update, preserves history": {
 			stream:   "registry:5000/ns/stream",
 			previous: map[string]api.TagReference{},
-			tags:     map[string]api.TagReference{"t1": {DockerImageReference: "registry:5000/ns/stream:t1"}},
+			tags: map[string]api.TagReference{
+				"t1": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:5000/ns/stream:t1",
+					},
+				},
+			},
 			existingTagHistory: map[string]api.TagEventList{
 				"t2": {Items: []api.TagEvent{
 					{
@@ -335,16 +345,33 @@ func TestTagsChanged(t *testing.T) {
 			expectedTagHistory: map[string]api.TagEventList{},
 		},
 		"tag to missing ignored on create": {
-			stream:             "registry:5000/ns/stream",
-			tags:               map[string]api.TagReference{"t1": {DockerImageReference: "t2"}},
+			stream: "registry:5000/ns/stream",
+			tags: map[string]api.TagReference{
+				"t1": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "t2",
+					},
+				},
+			},
 			existingTagHistory: make(map[string]api.TagEventList),
 			expectedTagHistory: map[string]api.TagEventList{},
 		},
 		"new tags, no history": {
 			stream: "registry:5000/ns/stream",
 			tags: map[string]api.TagReference{
-				"t1": {DockerImageReference: "registry:5000/ns/stream:t1"},
-				"t2": {DockerImageReference: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+				"t1": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:5000/ns/stream:t1",
+					},
+				},
+				"t2": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+					},
+				},
 			},
 			existingTagHistory: make(map[string]api.TagEventList),
 			expectedTagHistory: map[string]api.TagEventList{
@@ -364,12 +391,32 @@ func TestTagsChanged(t *testing.T) {
 		"no-op": {
 			stream: "registry:5000/ns/stream",
 			previous: map[string]api.TagReference{
-				"t1": {DockerImageReference: "v1image1"},
-				"t2": {DockerImageReference: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+				"t1": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "v1image1",
+					},
+				},
+				"t2": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+					},
+				},
 			},
 			tags: map[string]api.TagReference{
-				"t1": {DockerImageReference: "v1image1"},
-				"t2": {DockerImageReference: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+				"t1": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "v1image1",
+					},
+				},
+				"t2": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+					},
+				},
 			},
 			existingTagHistory: map[string]api.TagEventList{
 				"t1": {Items: []api.TagEvent{
@@ -403,13 +450,38 @@ func TestTagsChanged(t *testing.T) {
 		"new tag copies existing history": {
 			stream: "registry:5000/ns/stream",
 			previous: map[string]api.TagReference{
-				"t1": {DockerImageReference: "t1"},
-				"t3": {DockerImageReference: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+				"t1": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "t1",
+					},
+				},
+				"t3": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+					},
+				},
 			},
 			tags: map[string]api.TagReference{
-				"t1": {DockerImageReference: "registry:5000/ns/stream:v1image1"},
-				"t2": {DockerImageReference: "registry:5000/ns/stream:v1image1"},
-				"t3": {DockerImageReference: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+				"t1": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:5000/ns/stream:v1image1",
+					},
+				},
+				"t2": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:5000/ns/stream:v1image1",
+					},
+				},
+				"t3": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+					},
+				},
 			},
 			existingTagHistory: map[string]api.TagEventList{
 				"t1": {Items: []api.TagEvent{
@@ -634,13 +706,13 @@ func TestTagRefChanged(t *testing.T) {
 			expected: false,
 		},
 		"same ref": {
-			old:      api.TagReference{DockerImageReference: "foo"},
-			next:     api.TagReference{DockerImageReference: "foo"},
+			old:      api.TagReference{From: &kapi.ObjectReference{Kind: "DockerImage", Name: "foo"}},
+			next:     api.TagReference{From: &kapi.ObjectReference{Kind: "DockerImage", Name: "foo"}},
 			expected: false,
 		},
 		"different ref": {
-			old:      api.TagReference{DockerImageReference: "foo"},
-			next:     api.TagReference{DockerImageReference: "bar"},
+			old:      api.TagReference{From: &kapi.ObjectReference{Kind: "DockerImage", Name: "foo"}},
+			next:     api.TagReference{From: &kapi.ObjectReference{Kind: "DockerImage", Name: "bar"}},
 			expected: true,
 		},
 		"no kind, no name": {
