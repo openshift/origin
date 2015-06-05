@@ -199,6 +199,9 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			DefaultNodeSelector:    "",
 			ProjectRequestMessage:  "",
 			ProjectRequestTemplate: "",
+
+			// Allocator defaults on
+			SecurityAllocator: &configapi.SecurityAllocator{},
 		},
 
 		NetworkConfig: configapi.NetworkConfig{

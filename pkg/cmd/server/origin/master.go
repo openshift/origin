@@ -1082,7 +1082,14 @@ func (c *MasterConfig) RunImageImportController() {
 }
 
 func (c *MasterConfig) RunSecurityAllocationController() {
-	uidRange, err := uid.ParseRange("1000000000-1999999999/10000") // provide 100k uid blocks
+	alloc := c.Options.ProjectConfig.SecurityAllocator
+	if alloc == nil {
+		glog.V(3).Infof("Security allocator is disabled - no UIDs assigned to projects")
+		return
+	}
+
+	// TODO: move range initialization to run_config
+	uidRange, err := uid.ParseRange(alloc.UIDAllocatorRange)
 	if err != nil {
 		glog.Fatalf("Unable to describe UID range: %v", err)
 	}
@@ -1092,7 +1099,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", "uidallocation", c.EtcdHelper)
 		return etcdAlloc
 	})
-	mcsRange, err := mcs.ParseRange("/2") // use two labels
+	mcsRange, err := mcs.ParseRange(alloc.MCSAllocatorRange)
 	if err != nil {
 		glog.Fatalf("Unable to describe MCS category range: %v", err)
 	}
@@ -1107,7 +1114,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 
 	factory := securitycontroller.AllocationFactory{
 		UIDAllocator: uidAllocator,
-		MCSAllocator: securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, 5), // provide 5 labels per namespace
+		MCSAllocator: securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, alloc.MCSLabelsPerProject),
 		Client:       kclient.Namespaces(),
 		// TODO: reuse namespace cache
 	}

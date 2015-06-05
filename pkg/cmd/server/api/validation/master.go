@@ -14,6 +14,8 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/security/mcs"
+	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
@@ -336,5 +338,16 @@ func ValidateProjectConfig(config api.ProjectConfig) fielderrors.ValidationError
 		}
 	}
 
+	if alloc := config.SecurityAllocator; alloc != nil {
+		if _, err := uid.ParseRange(alloc.UIDAllocatorRange); err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("uidAllocatorRange", alloc.UIDAllocatorRange, err.Error()))
+		}
+		if _, err := mcs.ParseRange(alloc.MCSAllocatorRange); err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("mcsAllocatorRange", alloc.MCSAllocatorRange, err.Error()))
+		}
+		if alloc.MCSLabelsPerProject <= 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("mcsLabelsPerProject", alloc.MCSLabelsPerProject, "must be a positive integer"))
+		}
+	}
 	return allErrs
 }

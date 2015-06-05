@@ -131,6 +131,31 @@ type ProjectConfig struct {
 	// It is in the format namespace/template and it is optional.
 	// If it is not specified, a default template is used.
 	ProjectRequestTemplate string `json:"projectRequestTemplate"`
+
+	// SecurityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.
+	SecurityAllocator *SecurityAllocator `json:"securityAllocator"`
+}
+
+type SecurityAllocator struct {
+	// UIDAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the
+	// block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks
+	// before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the
+	// ranges Docker images will use once user namespaces are started).
+	UIDAllocatorRange string `json:"uidAllocatorRange"`
+	// MCSAllocatorRange defines the range of MCS categories that will be assigned to namespaces. The format is
+	// "<prefix>/<numberOfLabels>[,<maxCategory>]". The default is "s0/2" and will allocate from c0 -> c1023, which means a total of 535k labels
+	// are available (1024 choose 2 ~ 535k). If this value is changed after startup, new projects may receive labels that are already allocated
+	// to other projects. Prefix may be any valid SELinux set of terms (including user, role, and type), although leaving them as the default
+	// will allow the server to set them automatically.
+	//
+	// Examples:
+	// * s0:/2     - Allocate labels from s0:c0,c0 to s0:c511,c511
+	// * s0:/2,512 - Allocate labels from s0:c0,c0,c0 to s0:c511,c511,511
+	//
+	MCSAllocatorRange string `json:"mcsAllocatorRange"`
+	// MCSLabelsPerProject defines the number of labels that should be reserved per project. The default is 5 to match the default UID and MCS
+	// ranges (100k namespaces, 535k/5 labels).
+	MCSLabelsPerProject int `json:"mcsLabelsPerProject"`
 }
 
 type PolicyConfig struct {
