@@ -9,7 +9,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	build "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -22,7 +23,7 @@ func testImageInfo() *imageapi.DockerImage {
 func TestWithType(t *testing.T) {
 	out := &Generated{
 		Items: []runtime.Object{
-			&build.BuildConfig{
+			&buildapi.BuildConfig{
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "foo",
 				},
@@ -35,7 +36,7 @@ func TestWithType(t *testing.T) {
 		},
 	}
 
-	builds := []build.BuildConfig{}
+	builds := []buildapi.BuildConfig{}
 	if !out.WithType(&builds) {
 		t.Errorf("expected true")
 	}
@@ -43,7 +44,7 @@ func TestWithType(t *testing.T) {
 		t.Errorf("unexpected slice: %#v", builds)
 	}
 
-	buildPtrs := []*build.BuildConfig{}
+	buildPtrs := []*buildapi.BuildConfig{}
 	if out.WithType(&buildPtrs) {
 		t.Errorf("expected false")
 	}
@@ -74,13 +75,37 @@ func TestSimpleBuildConfig(t *testing.T) {
 			Name:      "origin",
 		},
 	}
-	build = &BuildRef{Source: source, Output: output}
+	base := &ImageRef{
+		DockerImageReference: imageapi.DockerImageReference{
+			Namespace: "openshift",
+			Name:      "ruby",
+		},
+		Info:          testImageInfo(),
+		AsImageStream: true,
+	}
+	strategy := &BuildStrategyRef{IsDockerBuild: false, Base: base}
+	build = &BuildRef{Source: source, Output: output, Strategy: strategy}
 	config, err = build.BuildConfig()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if config.Name != "origin" || config.Parameters.Output.To.Name != "origin" {
 		t.Errorf("unexpected name: %#v", config)
+	}
+	if len(config.Triggers) != 3 {
+		t.Errorf("unexpected number of triggers: %v\n", config.Triggers)
+	}
+	imageChangeTrigger := false
+	for _, trigger := range config.Triggers {
+		if trigger.Type == buildapi.ImageChangeBuildTriggerType {
+			imageChangeTrigger = true
+			if trigger.ImageChange == nil {
+				t.Errorf("invalid image change trigger found: %#v", trigger)
+			}
+		}
+	}
+	if !imageChangeTrigger {
+		t.Errorf("expecting image change trigger in build config")
 	}
 }
 
@@ -101,6 +126,17 @@ func TestSimpleDeploymentConfig(t *testing.T) {
 	}
 	if config.Name != "origin" || len(config.Triggers) != 2 || config.Template.ControllerTemplate.Template.Spec.Containers[0].Image != image.String() {
 		t.Errorf("unexpected value: %#v", config)
+	}
+	for _, trigger := range config.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+			from := trigger.ImageChangeParams.From
+			if from.Kind != "ImageStream" {
+				t.Errorf("unexpected from kind in image change trigger")
+			}
+			if from.Name != "origin" && from.Namespace != "openshift" {
+				t.Errorf("unexpected  from name and namespace in image change trigger: %s, %s", from.Name, from.Namespace)
+			}
+		}
 	}
 }
 

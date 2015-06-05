@@ -351,3 +351,12 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 		glog.V(5).Infof("stream updated? %t", updated)
 	}
 }
+
+// NameAndTag returns an image name with a tag. If the tag is blank then
+// DefaultImageTag is used.
+func NameAndTag(name, tag string) string {
+	if len(tag) == 0 {
+		tag = DefaultImageTag
+	}
+	return fmt.Sprintf("%s:%s", name, tag)
+}
