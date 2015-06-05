@@ -9,7 +9,9 @@ type Route struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RouteSpec   `json:"spec" description:"desired state of the route"`
+	// Spec is the desired state of the route
+	Spec RouteSpec `json:"spec" description:"desired state of the route"`
+	// Status is the current state of the route
 	Status RouteStatus `json:"status" description:"current state of the route"`
 }
 
@@ -17,7 +19,9 @@ type Route struct {
 type RouteList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Route `json:"items" description:"list of routes"`
+
+	// Items is a list of routes
+	Items []Route `json:"items" description:"list of routes"`
 }
 
 // RouteSpec describes the route the user wishes to exist.
@@ -25,14 +29,14 @@ type RouteSpec struct {
 	// Ports are the ports that the user wishes to expose.
 	//Ports []RoutePort `json:"ports,omitempty"`
 
-	// Optional: Alias/DNS that points to the service
+	// Host is an alias/DNS that points to the service. Optional
 	// Can be host or host:port
 	// host and port are combined to follow the net/url URL struct
 	Host string `json:"host" description:"optional: alias/dns that points to the service, can be host or host:port"`
-	// Optional: Path that the router watches for, to route traffic for to the service
+	// Path that the router watches for, to route traffic for to the service. Optional
 	Path string `json:"path,omitempty" description:"optional: path that the router watches to route traffic to the service"`
 
-	// An object the route points to. Only the Service kind is allowed, and it will
+	// To is an object the route points to. Only the Service kind is allowed, and it will
 	// be defaulted to Service.
 	To kapi.ObjectReference `json:"to" description:"an object the route points to.  only the service kind is allowed, and it will be defaulted to a service."`
 
@@ -46,11 +50,11 @@ type RoutePort struct {
 	// this field be set. Routers may decide which names to expose.
 	Name string `json:"name"`
 
-	// Optional: the name of the target endpoint port.
+	// TargetName is the name of the target endpoint port. Optional
 	TargetName string `json:"targetName"`
 
-	// Optional: the value of the target endpoint port to expose. May be omitted if
-	// name is set, and vice versa.
+	// TargetPort is the value of the target endpoint port to expose. May be omitted if
+	// name is set, and vice versa. Optional
 	TargetPort util.IntOrString `json:"targetPort"`
 }
 */
@@ -64,11 +68,11 @@ type RouteStatus struct{}
 // Caveat: This is WIP and will likely undergo modifications when sharding
 //         support is added.
 type RouterShard struct {
-	// Shard name uniquely identifies a router shard in the "set" of
+	// ShardName uniquely identifies a router shard in the "set" of
 	// routers used for routing traffic to the services.
 	ShardName string `json:"shardName" description:"uniquely identifies a router shard in the set of routers used for routing traffic to the services"`
 
-	// The DNS suffix for the shard ala: shard-1.v3.openshift.com
+	// DNSSuffix for the shard ala: shard-1.v3.openshift.com
 	DNSSuffix string `json:"dnsSuffix" description:"DNS suffix for the shard (i.e. shard-1.v3.openshift.com)"`
 }
 

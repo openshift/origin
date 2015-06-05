@@ -32,7 +32,7 @@ type DeploymentStrategy struct {
 	RecreateParams *RecreateDeploymentStrategyParams `json:"recreateParams,omitempty" description:"input to the Recreate deployment strategy"`
 	// RollingParams are the input to the Rolling deployment strategy.
 	RollingParams *RollingDeploymentStrategyParams `json:"rollingParams,omitempty" description:"input to the Rolling deployment strategy"`
-	// Compute resource requirements to execute the deployment
+	// Resources contains resource requirements to execute the deployment
 	Resources kapi.ResourceRequirements `json:"resources,omitempty" description:"resource requirements to execute the deployment"`
 }
 
@@ -48,7 +48,7 @@ const (
 	DeploymentStrategyTypeRolling DeploymentStrategyType = "Rolling"
 )
 
-// CustomParams are the input to the Custom deployment strategy.
+// CustomDeploymentStrategyParams are the input to the Custom deployment strategy.
 type CustomDeploymentStrategyParams struct {
 	// Image specifies a Docker image which can carry out a deployment.
 	Image string `json:"image,omitempty" description:"a Docker image which can carry out a deployment"`
@@ -70,7 +70,7 @@ type RecreateDeploymentStrategyParams struct {
 	Post *LifecycleHook `json:"post,omitempty" description:"a hook executed after the strategy finishes the deployment"`
 }
 
-// Handler defines a specific deployment lifecycle action.
+// LifecycleHook defines a specific deployment lifecycle action.
 type LifecycleHook struct {
 	// FailurePolicy specifies what action to take if the hook fails.
 	FailurePolicy LifecycleHookFailurePolicy `json:"failurePolicy" description:"what action to take if the hook fails"`
@@ -78,7 +78,7 @@ type LifecycleHook struct {
 	ExecNewPod *ExecNewPodHook `json:"execNewPod,omitempty" description:"options for an ExecNewPodHook"`
 }
 
-// HandlerFailurePolicy describes possibles actions to take if a hook fails.
+// LifecycleHookFailurePolicy describes possibles actions to take if a hook fails.
 type LifecycleHookFailurePolicy string
 
 const (
@@ -175,9 +175,11 @@ const (
 type DeploymentConfig struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
+
 	// Spec represents a desired deployment state and how to deploy to it.
 	Spec DeploymentConfigSpec `json:"spec" description:"a desired deployment state and how to deploy it"`
-	// Status represents a desired deployment state and how to deploy to it.
+
+	// Status represents the current deployment state.
 	Status DeploymentConfigStatus `json:"status" description:"the current state of the latest deployment"`
 }
 
@@ -210,17 +212,19 @@ type DeploymentConfigSpec struct {
 	Template *kapi.PodTemplateSpec `json:"template,omitempty" description:"describes the pod that will be created if insufficient replicas are detected; takes precedence over a template reference"`
 }
 
+// DeploymentConfigStatus represents the current deployment state.
 type DeploymentConfigStatus struct {
 	// LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig
 	// is out of sync.
 	LatestVersion int `json:"latestVersion,omitempty" description:"used to determine whether the current deployment is out of sync"`
-	// The reasons for the update to this deployment config.
+	// Details are the reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
 	Details *DeploymentDetails `json:"details,omitempty" description:"reasons for the last update to the config"`
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
 type DeploymentTriggerPolicy struct {
+	// Type of the trigger
 	Type DeploymentTriggerType `json:"type,omitempty" description:"the type of the trigger"`
 	// ImageChangeParams represents the parameters for the ImageChange trigger.
 	ImageChangeParams *DeploymentTriggerImageChangeParams `json:"imageChangeParams,omitempty" description:"input to the ImageChange trigger"`
@@ -255,17 +259,17 @@ type DeploymentTriggerImageChangeParams struct {
 
 // DeploymentDetails captures information about the causes of a deployment.
 type DeploymentDetails struct {
-	// The user specified change message, if this deployment was triggered manually by the user
+	// Message is the user specified change message, if this deployment was triggered manually by the user
 	Message string `json:"message,omitempty" description:"a user specified change message"`
-	// Extended data associated with all the causes for creating a new deployment
+	// Causes are extended data associated with all the causes for creating a new deployment
 	Causes []*DeploymentCause `json:"causes,omitempty" description:"extended data associated with all the causes for creating a new deployment"`
 }
 
 // DeploymentCause captures information about a particular cause of a deployment.
 type DeploymentCause struct {
-	// The type of the trigger that resulted in the creation of a new deployment
+	// Type of the trigger that resulted in the creation of a new deployment
 	Type DeploymentTriggerType `json:"type" description:"the type of trigger that resulted in a new deployment"`
-	// The image trigger details, if this trigger was fired based on an image change
+	// ImageTrigger contains the image trigger details, if this trigger was fired based on an image change
 	ImageTrigger *DeploymentCauseImageTrigger `json:"imageTrigger,omitempty" description:"image trigger details (if applicable)"`
 }
 
@@ -277,11 +281,13 @@ type DeploymentCauseImageTrigger struct {
 	From kapi.ObjectReference `json:"from" description:"a reference the changed object which triggered a deployment"`
 }
 
-// A DeploymentConfigList is a collection of deployment configs.
+// DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []DeploymentConfig `json:"items" description:"a list of deployment configs"`
+
+	// Items is a list of deployment configs
+	Items []DeploymentConfig `json:"items" description:"a list of deployment configs"`
 }
 
 // DeploymentConfigRollback provides the input to rollback generation.

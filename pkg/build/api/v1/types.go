@@ -55,7 +55,7 @@ type BuildStatus struct {
 	// Cancelled describes if a cancelling event was triggered for the build.
 	Cancelled bool `json:"cancelled,omitempty" description:"describes if a canceling event was triggered for the build"`
 
-	// A human-readable message indicating details about why the build has this status
+	// Message is a human-readable message indicating details about why the build has this status
 	Message string `json:"message,omitempty" description:"human-readable message indicating details about why the build has this status"`
 
 	// StartTimestamp is a timestamp representing the server time when this Build started
@@ -115,10 +115,13 @@ const (
 
 // BuildSource is the SCM used for the build
 type BuildSource struct {
+	// Type of source control management system
 	Type BuildSourceType `json:"type,omitempty" description:"type of source control management system"`
-	Git  *GitBuildSource `json:"git,omitempty" description:"optional information about git build source"`
 
-	// Specify the sub-directory where the source code for the application exists.
+	// Git contains optional information about git build source
+	Git *GitBuildSource `json:"git,omitempty" description:"optional information about git build source"`
+
+	// ContextDir specifies the sub-directory where the source code for the application exists.
 	// This allows to have buildable sources in directory other than root of
 	// repository.
 	ContextDir string `json:"contextDir,omitempty" description:"specifies sub-directory where the source code for the application exists, allows for sources to be built from a directory other than the root of a repository"`
@@ -133,8 +136,11 @@ type BuildSource struct {
 
 // SourceRevision is the revision or commit information from the source for the build
 type SourceRevision struct {
-	Type BuildSourceType    `json:"type,omitempty" description:"type of the build source"`
-	Git  *GitSourceRevision `json:"git,omitempty" description:"information about git-based build source"`
+	// Type of the build source
+	Type BuildSourceType `json:"type,omitempty" description:"type of the build source"`
+
+	// Git contains information about git-based build source
+	Git *GitSourceRevision `json:"git,omitempty" description:"information about git-based build source"`
 }
 
 // GitSourceRevision is the commit information from a git source for a build
@@ -164,7 +170,10 @@ type GitBuildSource struct {
 
 // SourceControlUser defines the identity of a user of source control
 type SourceControlUser struct {
-	Name  string `json:"name,omitempty" description:"name of the source control user"`
+	// Name of the source control user
+	Name string `json:"name,omitempty" description:"name of the source control user"`
+
+	// Email of the source control user
 	Email string `json:"email,omitempty" description:"e-mail of the source control user"`
 }
 
@@ -210,7 +219,7 @@ type CustomBuildStrategy struct {
 	// registries
 	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
 
-	// Additional environment variables you want to pass into a builder container
+	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
 
 	// ExposeDockerSocket will allow running Docker commands (and build Docker images) from
@@ -247,7 +256,7 @@ type SourceBuildStrategy struct {
 	// registries
 	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" description:"supported type: dockercfg"`
 
-	// Additional environment variables you want to pass into a builder container
+	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
 
 	// Scripts is the location of Source scripts
@@ -294,6 +303,7 @@ type BuildConfigSpec struct {
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy `json:"triggers" description:"determines how new builds can be launched from a build config.  if no triggers are defined, a new build can only occur as a result of an explicit client build creation."`
 
+	// BuildSpec is the desired build specification
 	BuildSpec `json:",inline" description:"the desired build specification"`
 }
 
@@ -355,14 +365,18 @@ const (
 type BuildList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Build `json:"items" description:"list of builds"`
+
+	// Items is a list of builds
+	Items []Build `json:"items" description:"list of builds"`
 }
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []BuildConfig `json:"items" description:"list of build configs"`
+
+	// Items is a list of build configs
+	Items []BuildConfig `json:"items" description:"list of build configs"`
 }
 
 // GenericWebHookEvent is the payload expected for a generic webhook post
