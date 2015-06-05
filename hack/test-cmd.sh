@@ -223,28 +223,16 @@ export OPENSHIFTCONFIG="${HOME}/.config/openshift/non-default-config"
 
 # from this point every command will use config from the OPENSHIFTCONFIG env var
 
-<<<<<<< HEAD
 oc get templates
 oc create -f examples/sample-app/application-template-dockerbuild.json
 oc get templates
 oc get templates ruby-helloworld-sample
+oc get template ruby-helloworld-sample -o json | oc process -f -
 oc process ruby-helloworld-sample
 oc describe templates ruby-helloworld-sample
 [ "$(oc describe templates ruby-helloworld-sample | grep -E "BuildConfig.*ruby-sample-build")" ]
 oc delete templates ruby-helloworld-sample
 oc get templates
-=======
-osc get templates
-osc create -f examples/sample-app/application-template-dockerbuild.json
-osc get templates
-osc get templates ruby-helloworld-sample
-osc get template ruby-helloworld-sample -o json | osc process -f -
-osc process ruby-helloworld-sample
-osc describe templates ruby-helloworld-sample
-[ "$(osc describe templates ruby-helloworld-sample | grep -E "BuildConfig.*ruby-sample-build")" ]
-osc delete templates ruby-helloworld-sample
-osc get templates
->>>>>>> 4e038de... Add process from stdin to hack/test-cmd.sh
 # TODO: create directly from template
 echo "templates: ok"
 

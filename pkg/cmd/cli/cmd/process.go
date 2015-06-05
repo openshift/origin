@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -13,7 +14,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -21,26 +21,6 @@ import (
 	"github.com/openshift/origin/pkg/template"
 	"github.com/openshift/origin/pkg/template/api"
 )
-
-// injectUserVars injects user specified variables into the Template
-func injectUserVars(cmd *cobra.Command, t *api.Template) {
-	values := util.StringList{}
-	values.Set(kcmdutil.GetFlagString(cmd, "value"))
-	for _, keypair := range values {
-		p := strings.SplitN(keypair, "=", 2)
-		if len(p) != 2 {
-			glog.Errorf("Invalid parameter assignment '%s'", keypair)
-			continue
-		}
-		if v := template.GetParameterByName(t, p[0]); v != nil {
-			v.Value = p[1]
-			v.Generate = ""
-			template.AddParameter(t, *v)
-		} else {
-			glog.Errorf("Unknown parameter name '%s'", p[0])
-		}
-	}
-}
 
 const (
 	processLong = `Process template into a list of resources specified in filename or stdin
@@ -57,7 +37,10 @@ JSON and YAML formats are accepted.`
   $ %[1]s process foo
 
   // Convert template.json into resource list
-  $ cat template.json | %[1]s process -f -`
+  $ cat template.json | %[1]s process -f -
+
+  // Combine multiple templates into single resource list
+  $ cat template.json second_template.json | %[1]s process -f -`
 )
 
 // NewCmdProcess implements the OpenShift cli process command
@@ -78,7 +61,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
 
-	cmd.Flags().StringP("output", "o", "", "Output format. One of: describe|json|yaml|template|templatefile.")
+	cmd.Flags().StringP("output", "o", "json", "Output format. One of: describe|json|yaml|template|templatefile.")
 	cmd.Flags().Bool("raw", false, "If true output the processed template instead of the template's objects. Implied by -o describe")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
 	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=template or -o=templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
@@ -110,130 +93,145 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	}
 
 	var (
-		templateObj *api.Template
-		mapping     *meta.RESTMapping
+		objects []runtime.Object
+		infos   []*resource.Info
+		mapping *meta.RESTMapping
 	)
 
+	version, kind, err := mapper.VersionAndKindForResource("template")
+	if mapping, err = mapper.RESTMapping(kind, version); err != nil {
+		return err
+	}
+
+	// When storedTemplate is not empty, then we fetch the template from the
+	// server, otherwise we require to set the `-f` parameter.
 	if len(storedTemplate) > 0 {
-		templateObj, err = client.Templates(namespace).Get(storedTemplate)
+		templateObj, err := client.Templates(namespace).Get(storedTemplate)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return fmt.Errorf("template %q could not be found", storedTemplate)
 			}
 			return err
 		}
-
-		version, kind, err := mapper.VersionAndKindForResource("template")
-		if mapping, err = mapper.RESTMapping(kind, version); err != nil {
-			return err
-		}
+		templateObj.CreationTimestamp = util.Now()
+		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
-		infos, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+		infos, err = resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 			NamespaceParam(namespace).RequireNamespace().
 			FilenameParam(filename).
 			Do().
 			Infos()
-
 		if err != nil {
 			return err
 		}
+	}
 
-		// FIXME: This code will get the first template resource in the list and
-		// process it. We don't support processing multiple templates at once, so
-		// other templates at input will be ignored.
-		for _, info := range infos {
-			if obj, ok := info.Object.(*api.Template); ok {
-				templateObj = obj
-				break
+	outputFormat := kcmdutil.GetFlagString(cmd, "output")
+
+	for i := range infos {
+		obj, ok := infos[i].Object.(*api.Template)
+		if !ok {
+			fmt.Fprintf(cmd.Out(), "unable to parse %q, not a valid Template but %s\n", obj.Name, reflect.TypeOf(obj))
+			continue
+		}
+
+		// If 'parameters' flag is set it does not do processing but only print
+		// the template parameters to console for inspection.
+		// If multiple templates are passed, this will print combined output for all
+		// templates.
+		if kcmdutil.GetFlagBool(cmd, "parameters") {
+			if len(infos) > 1 {
+				fmt.Fprintf(out, "\n%s:\n", obj.Name)
+			}
+			if err := describe.PrintTemplateParameters(obj.Parameters, out); err != nil {
+				fmt.Fprintf(cmd.Out(), "error printing parameters for %q: %v\n", obj.Name, err)
+			}
+			continue
+		}
+
+		if label := kcmdutil.GetFlagString(cmd, "labels"); len(label) > 0 {
+			lbl, err := kubectl.ParseLabels(label)
+			if err != nil {
+				fmt.Fprintf(cmd.Out(), "error parsing labels: %v\n", err)
+				continue
+			}
+			if obj.ObjectLabels == nil {
+				obj.ObjectLabels = make(map[string]string)
+			}
+			for key, value := range lbl {
+				obj.ObjectLabels[key] = value
 			}
 		}
 
-		if templateObj == nil {
-			return fmt.Errorf("no valid Template items found in the input")
+		// Override the values for the current template parameters
+		// when user specify the --value
+		if cmd.Flag("value").Changed {
+			injectUserVars(cmd, obj)
 		}
 
-		templateObj.CreationTimestamp = util.Now()
-		version, kind, err := kapi.Scheme.ObjectVersionAndKind(templateObj)
+		resultObj, err := client.TemplateConfigs(namespace).Create(obj)
 		if err != nil {
-			return err
+			fmt.Fprintf(cmd.Out(), "error processing the template %q: %v\n", obj.Name, err)
+			continue
 		}
-		if mapping, err = mapper.RESTMapping(kind, version); err != nil {
-			return err
+
+		if outputFormat == "describe" {
+			if s, err := (&describe.TemplateDescriber{
+				MetadataAccessor: meta.NewAccessor(),
+				ObjectTyper:      kapi.Scheme,
+				ObjectDescriber:  nil,
+			}).DescribeTemplate(resultObj); err != nil {
+				fmt.Fprintf(cmd.Out(), "error describing %q: %v\n", obj.Name, err)
+			} else {
+				fmt.Fprintf(out, s)
+			}
+			continue
 		}
+		objects = append(objects, resultObj.Objects...)
 	}
 
-	if cmd.Flag("value").Changed {
-		injectUserVars(cmd, templateObj)
-	}
-
-	// If 'parameters' flag is set it does not do processing but only print
-	// the template parameters to console for inspection.
-	if kcmdutil.GetFlagBool(cmd, "parameters") == true {
-		err = describe.PrintTemplateParameters(templateObj.Parameters, out)
-		if err != nil {
-			return err
-		}
+	// Do not print the processed templates when asked to only show parameters or
+	// describe.
+	if kcmdutil.GetFlagBool(cmd, "parameters") || outputFormat == "describe" {
 		return nil
 	}
 
-	label := kcmdutil.GetFlagString(cmd, "labels")
-	if len(label) != 0 {
-		lbl, err := kubectl.ParseLabels(label)
-		if err != nil {
-			return err
-		}
-		if templateObj.ObjectLabels == nil {
-			templateObj.ObjectLabels = make(map[string]string)
-		}
-		for key, value := range lbl {
-			templateObj.ObjectLabels[key] = value
-		}
-	}
-
-	// TODO: use AsVersionedObjects to generate the runtime.Objects, because
-	// some objects may not exist in the destination version but they should
-	// still be transformed.
-	obj, err := client.TemplateConfigs(namespace).Create(templateObj)
-	if err != nil {
-		return err
-	}
-
-	outputVersion := kcmdutil.OutputVersion(cmd, mapping.APIVersion)
-	raw := kcmdutil.GetFlagBool(cmd, "raw")
-	outputFormat := kcmdutil.GetFlagString(cmd, "output")
-	if len(outputFormat) == 0 {
-		outputFormat = "json"
-	}
-
-	if outputFormat == "describe" {
-		s, err := (&describe.TemplateDescriber{
-			MetadataAccessor: meta.NewAccessor(),
-			ObjectTyper:      kapi.Scheme,
-			ObjectDescriber:  nil,
-		}).DescribeTemplate(obj)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(out, s)
-		return nil
-	}
-
-	// use generic output
-	var result runtime.Object
-	switch {
-	case raw:
-		result = obj
-	// display the processed template instead of the objects
-	default:
-		result = &kapi.List{
-			ListMeta: kapi.ListMeta{},
-			Items:    obj.Objects,
-		}
-	}
 	p, _, err := kubectl.GetPrinter(outputFormat, "")
 	if err != nil {
 		return err
 	}
-	p = kubectl.NewVersionedPrinter(p, kapi.Scheme, outputVersion)
-	return p.PrintObj(result, out)
+	p = kubectl.NewVersionedPrinter(p, kapi.Scheme, kcmdutil.OutputVersion(cmd, mapping.APIVersion))
+
+	// use generic output
+	if kcmdutil.GetFlagBool(cmd, "raw") {
+		for i := range objects {
+			p.PrintObj(objects[i], out)
+		}
+		return nil
+	}
+
+	return p.PrintObj(&kapi.List{
+		ListMeta: kapi.ListMeta{},
+		Items:    objects,
+	}, out)
+}
+
+// injectUserVars injects user specified variables into the Template
+func injectUserVars(cmd *cobra.Command, t *api.Template) {
+	values := util.StringList{}
+	values.Set(kcmdutil.GetFlagString(cmd, "value"))
+	for _, keypair := range values {
+		p := strings.SplitN(keypair, "=", 2)
+		if len(p) != 2 {
+			fmt.Fprintf(cmd.Out(), "invalid parameter assignment in %q: %q\n", t.Name, keypair)
+			continue
+		}
+		if v := template.GetParameterByName(t, p[0]); v != nil {
+			v.Value = p[1]
+			v.Generate = ""
+			template.AddParameter(t, *v)
+		} else {
+			fmt.Fprintf(cmd.Out(), "unknown parameter name %q\n", p[0])
+		}
+	}
 }
