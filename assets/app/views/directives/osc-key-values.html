@@ -5,16 +5,15 @@
           <input class="form-control" type="text" name="key" placeholder="{{keyTitle}}" ng-model="key" 
                  osc-input-validator="key">
         </div>
-        <span class="separator">{{delimiter}}</span>
         <div class="form-group" ng-class="{'has-error': form.value.$error.oscValueValid}">
           <input class="form-control" 
-                 type="text" 
+                 type="text"
                  name="value" 
                  placeholder="Value"
                  ng-model="value" 
                  osc-input-validator="value">
         </div>
-        <button class="btn btn-default" ng-click="addEntry()" ng-disabled="form.key.$error.oscKeyValid || form.value.$error.oscValueValid">Add {{keyTitle}}</button>
+        <button class="btn btn-default" ng-click="addEntry()" ng-disabled="form.key.$error.oscKeyValid || form.value.$error.oscValueValid">Add</button>
         <div class="has-error" ng-show="form.key.$error.oscKeyValid">
           <span class="help-block">Please enter a valid key
             <span class="help action-inline" ng-if="keyValidationTooltip">
@@ -68,10 +67,13 @@
         </li>
       </ul>
     </div>
-    <ul class="labels-readonly label-list list-unstyled" ng-hide="editable">
-      <li ng-repeat="(key,value) in entries">
-        <span class="key truncate">{{key}}</span>
-        <span class="value truncate">{{ value }}</span>
-      </li>
-    </ul>
+    <div ng-hide="editable">
+      <div ng-if="(entries | hashSize) === 0"><strong>None</strong></div>
+      <ul ng-if="(entries | hashSize) !== 0" class="labels-readonly label-list list-unstyled">
+        <li ng-repeat="(key,value) in entries">
+          <span class="key truncate">{{key}}</span>
+          <span class="value truncate">{{ value }}</span>
+        </li>
+      </ul>
+    </div>
 </div>
