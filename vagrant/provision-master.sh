@@ -42,6 +42,7 @@ popd
 echo "Generating certs"
 pushd /vagrant
   SERVER_CONFIG_DIR="`pwd`/openshift.local.config"
+  VOLUMES_DIR="`pwd`/openshift.local.volumes"
   MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
   CERT_DIR="${MASTER_CONFIG_DIR}"
 
@@ -68,7 +69,7 @@ pushd /vagrant
       --signer-cert="${CERT_DIR}/ca.crt" \
       --signer-key="${CERT_DIR}/ca.key" \
       --signer-serial="${CERT_DIR}/ca.serial.txt" \
-      --volume-dir="/tmp/openshift.local.volumes"
+      --volume-dir="${VOLUMES_DIR}_${minion}"
   done
 
 popd
