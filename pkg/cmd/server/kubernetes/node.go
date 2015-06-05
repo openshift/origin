@@ -134,6 +134,8 @@ func (c *NodeConfig) RunKubelet() {
 		}
 	}
 	c.KubeletConfig.DockerClient = c.DockerClient
+	// updated by NodeConfig.EnsureVolumeDir
+	c.KubeletConfig.RootDirectory = c.VolumeDir
 	glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
 }
 
