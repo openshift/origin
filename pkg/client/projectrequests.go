@@ -6,7 +6,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	_ "github.com/openshift/origin/pkg/user/api/v1beta1"
 )
 
 // ProjectRequestsInterface has methods to work with ProjectRequest resources in a namespace

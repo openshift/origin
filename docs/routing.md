@@ -109,49 +109,80 @@ Configuration files (to be created in the vagrant home directory)
 pod.json
 
     {
-      "id": "hello-pod",
       "kind": "Pod",
-      "apiVersion": "v1beta1",
-      "desiredState": {
-        "manifest": {
-          "version": "v1beta1",
-          "id": "hello-openshift",
-          "containers": [{
-            "name": "hello-openshift",
-            "image": "openshift/hello-openshift",
-            "ports": [{
-              "containerPort": 8080
-            }]
-          }]
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "hello-pod",
+        "labels": {
+          "name": "hello-openshift"
         }
       },
-      "labels": {
-        "name": "hello-openshift"
+      "spec": {
+        "containers": [
+          {
+            "name": "hello-openshift",
+            "image": "openshift/hello-openshift",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
       }
     }
 
 service.json
 
     {
-      "id": "hello-openshift",
       "kind": "Service",
-      "apiVersion": "v1beta1",
-      "port": 27017,
-      "selector": {
+      "apiVersion": "v1beta3",
+      "metadata": {
         "name": "hello-openshift"
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 27017,
+            "targetPort": 0,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "hello-openshift"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
       }
     }
-
+    
 route.json
 
     {
-      "id": "hello-route",
       "kind": "Route",
-      "apiVersion": "v1beta1",
-      "host": "hello-openshift.v3.rhcloud.com",
-      "serviceName": "hello-openshift",
+      "apiVersion": "v1beta3",
       "metadata": {
         "name": "hello-route"
+      },
+      "spec": {
+        "host": "hello-openshift.v3.rhcloud.com",
+        "to": {
+          "kind": "Service",
+          "name": "hello-openshift"
+        }
       }
     }
 

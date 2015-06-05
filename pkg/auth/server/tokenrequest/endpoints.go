@@ -119,7 +119,7 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
   
   <h3>How do I delete this token when I'm done?</h3>
   <pre>osc delete oauthaccesstoken {{.AccessToken}}</pre>
-  <pre>curl -X DELETE &hellip;/osapi/v1beta1/oAuthAccessTokens/{{.AccessToken}}</pre>
+  <pre>curl -X DELETE &hellip;/osapi/v1beta3/oAuthAccessTokens/{{.AccessToken}}</pre>
 {{ end }}
 
 <br><br>

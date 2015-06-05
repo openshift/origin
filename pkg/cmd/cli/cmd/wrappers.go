@@ -65,7 +65,7 @@ JSON and YAML formats are accepted.`
   $ cat pod.json | %[1]s update -f -
 
   // Update a pod by downloading it, applying the patch, then updating. Requires apiVersion be specified.
-  $ %[1]s update pods my-pod --patch='{ "apiVersion": "v1beta1", "desiredState": { "manifest": [{ "cpu": 100 }]}}'`
+  $ %[1]s update pods my-pod --patch='{ "apiVersion": "v1beta3", "spec": { "manifest": { "dnsPolicy": "ClusterFirst" }}}'`
 )
 
 // NewCmdUpdate is a wrapper for the Kubernetes cli update command
@@ -221,7 +221,7 @@ const (
   $ %[1]s proxy --port=8011 --www=./local/www/
 
   // Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
-  // This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta1/pods/
+  // This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta3/pods/
   $ %[1]s proxy --api-prefix=k8s-api`
 )
 

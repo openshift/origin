@@ -6,9 +6,6 @@ items:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-example-2
     namespace: example
-    resourceVersion: "74"
-    selfLink: /osapi/v1beta1/buildConfigs/sinatra-example-2?namespace=example
-    uid: 2b329842-dca0-11e4-aecc-7831c1b76042
   spec:
     output:
       to:
@@ -40,9 +37,6 @@ items:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-example-2
     namespace: example
-    resourceVersion: "75"
-    selfLink: /osapi/v1beta1/deploymentConfigs/sinatra-example-2?namespace=example
-    uid: 2b3380cb-dca0-11e4-aecc-7831c1b76042
   spec:
     replicas: 1
     selector:
@@ -90,9 +84,6 @@ items:
     creationTimestamp: 2015-04-06T21:18:56Z
     name: sinatra-example-2
     namespace: example
-    resourceVersion: "689"
-    selfLink: /osapi/v1beta1/imageRepositories/sinatra-example-2?namespace=example
-    uid: 888d5256-dca2-11e4-aecc-7831c1b76043
   spec: {}
   status:
     dockerImageRepository: ""
@@ -102,9 +93,6 @@ items:
     creationTimestamp: 2015-04-06T21:02:00Z
     name: sinatra-example-2
     namespace: example
-    resourceVersion: "72"
-    selfLink: /api/v1beta1/services/sinatra-example-2?namespace=example
-    uid: 2b315406-dca0-11e4-aecc-7831c1b76042
   spec:
     portalIP: 172.30.17.48
     ports:

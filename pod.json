@@ -1,24 +1,35 @@
 {
   "kind": "Pod",
-  "apiVersion": "v1beta1",
-  "id": "openshift",
-  "desiredState": {
-    "manifest": {
-      "version": "v1beta2",
-      "containers": [
-        {
-          "name": "origin",
-          "image": "openshift/origin",
-          "ports": [{
-              "containerPort": 8443,
-          }],
-          "command": ["start", "master"],
-          "imagePullPolicy": "PullIfNotPresent"
+  "apiVersion": "v1beta3",
+  "metadata": {
+    "name": "openshift"
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "origin",
+        "image": "openshift/origin",
+        "args": [
+          "start",
+          "master"
+        ],
+        "ports": [
+          {
+            "containerPort": 8443,
+            "protocol": "TCP"
+          }
+        ],
+        "resources": {},
+        "terminationMessagePath": "/dev/termination-log",
+        "imagePullPolicy": "IfNotPresent",
+        "capabilities": {},
+        "securityContext": {
+          "capabilities": {},
+          "privileged": false
         }
-      ],
-      "restartPolicy": {
-        "always": {}
       }
-    }
+    ],
+    "restartPolicy": "Always",
+    "dnsPolicy": "ClusterFirst"
   }
 }

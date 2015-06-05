@@ -162,9 +162,6 @@
       "metadata": {
         "name": "frontend",
         "namespace": "test",
-        "selfLink": "/osapi/v1beta1/deploymentConfigs/frontend?namespace=test",
-        "uid": "c61716d8-f03f-11e4-a3ce-28d2444e470d",
-        "resourceVersion": "60",
         "creationTimestamp": "2015-05-01T20:22:22Z",
         "labels": {
           "template": "application-template-stibuild"
@@ -328,9 +325,6 @@
       "metadata": {
         "name": "database",
         "namespace": "test",
-        "selfLink": "/osapi/v1beta1/deploymentConfigs/database?namespace=test",
-        "uid": "c62455ff-f03f-11e4-a3ce-28d2444e470d",
-        "resourceVersion": "64",
         "creationTimestamp": "2015-05-01T20:22:22Z",
         "labels": {
           "template": "application-template-stibuild"

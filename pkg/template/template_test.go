@@ -110,19 +110,24 @@ func TestParameterGenerators(t *testing.T) {
 func TestProcessValueEscape(t *testing.T) {
 	var template api.Template
 	if err := latest.Codec.DecodeInto([]byte(`{
-		"kind":"Template", "apiVersion":"v1beta1",
-		"items": [
-			{
-				"kind": "Service", "apiVersion": "v1beta3${VALUE}",
-				"metadata": {
-					"labels": {
-						"key1": "${VALUE}",
-						"key2": "$${VALUE}"
-					}
-				}
-			}
-		]
-	}`), &template); err != nil {
+  "kind": "Template",
+  "apiVersion": "v1beta3",
+  "metadata": {
+    "creationTimestamp": null
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1beta3${VALUE}",
+      "metadata": {
+        "labels": {
+          "key1": "${VALUE}",
+          "key2": "$${VALUE}"
+        }
+      }
+    }
+  ]
+}`), &template); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -159,8 +164,8 @@ func TestEvaluateLabels(t *testing.T) {
 	}{
 		"no labels": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1beta1",
-				"items": [
+				"kind":"Template", "apiVersion":"v1beta3",
+				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1beta3",
 						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
@@ -179,8 +184,8 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"one different label": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1beta1",
-				"items": [
+				"kind":"Template", "apiVersion":"v1beta3",
+				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1beta3",
 						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
@@ -201,8 +206,8 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"when the root object has labels and no metadata": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1beta1",
-				"items": [
+				"kind":"Template", "apiVersion":"v1beta3",
+				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1beta1",
 						"labels": {
@@ -226,8 +231,8 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"when the root object has labels and metadata": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1beta1",
-				"items": [
+				"kind":"Template", "apiVersion":"v1beta3",
+				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1beta1",
 						"metadata": {},
@@ -253,8 +258,8 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"overwrites label": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1beta1",
-				"items": [
+				"kind":"Template", "apiVersion":"v1beta3",
+				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1beta3",
 						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
