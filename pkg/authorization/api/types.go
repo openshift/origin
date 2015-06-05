@@ -81,7 +81,7 @@ type PolicyRule struct {
 	Verbs kutil.StringSet
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-	AttributeRestrictions kruntime.EmbeddedObject
+	AttributeRestrictions kruntime.Object
 	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
 	Resources kutil.StringSet
 	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
@@ -173,7 +173,7 @@ type ResourceAccessReview struct {
 	// Resource is one of the existing resource types
 	Resource string
 	// Content is the actual content of the request for create and update
-	Content kruntime.EmbeddedObject
+	Content kruntime.Object
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
 	ResourceName string
 }
@@ -203,7 +203,7 @@ type SubjectAccessReview struct {
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
 	Groups kutil.StringSet
 	// Content is the actual content of the request for create and update
-	Content kruntime.EmbeddedObject
+	Content kruntime.Object
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
 	ResourceName string
 }

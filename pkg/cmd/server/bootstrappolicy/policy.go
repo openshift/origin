@@ -111,7 +111,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{Verbs: util.NewStringSet("list"), Resources: util.NewStringSet("projectrequests")},
 				{Verbs: util.NewStringSet("list", "get"), Resources: util.NewStringSet("clusterroles")},
 				{Verbs: util.NewStringSet("list"), Resources: util.NewStringSet("projects")},
-				{Verbs: util.NewStringSet("create"), Resources: util.NewStringSet("subjectaccessreviews"), AttributeRestrictions: runtime.EmbeddedObject{&authorizationapi.IsPersonalSubjectAccessReview{}}},
+				{Verbs: util.NewStringSet("create"), Resources: util.NewStringSet("subjectaccessreviews"), AttributeRestrictions: runtime.Object{&authorizationapi.IsPersonalSubjectAccessReview{}}},
 			},
 		},
 		{

@@ -32,7 +32,7 @@ func TestHTPasswd(t *testing.T) {
 		Name:            "htpasswd",
 		UseAsChallenger: true,
 		UseAsLogin:      true,
-		Provider: runtime.EmbeddedObject{
+		Provider: runtime.Object{
 			&configapi.HTPasswdPasswordIdentityProvider{
 				File: htpasswdFile.Name(),
 			},
