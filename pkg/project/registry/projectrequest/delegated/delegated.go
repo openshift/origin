@@ -61,17 +61,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	projectName := projectRequest.Name
-	projectDisplayName := projectName
-	projectDescription := projectDisplayName
 	projectAdmin := ""
-
-	if len(projectRequest.DisplayName) > 0 {
-		projectDisplayName = projectRequest.DisplayName
-	}
-
-	if len(projectRequest.Description) > 0 {
-		projectDescription = projectRequest.Description
-	}
 	if userInfo, exists := kapi.UserFrom(ctx); exists {
 		projectAdmin = userInfo.GetName()
 	}
@@ -86,9 +76,9 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		case ProjectAdminUserParam:
 			template.Parameters[i].Value = projectAdmin
 		case ProjectDescriptionParam:
-			template.Parameters[i].Value = projectDescription
+			template.Parameters[i].Value = projectRequest.Description
 		case ProjectDisplayNameParam:
-			template.Parameters[i].Value = projectDisplayName
+			template.Parameters[i].Value = projectRequest.DisplayName
 		case ProjectNameParam:
 			template.Parameters[i].Value = projectName
 		}
