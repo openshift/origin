@@ -107,3 +107,24 @@ fi
 # Set up the OPENSHIFTCONFIG environment variable for use by osc
 echo 'export OPENSHIFTCONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /root/.bash_profile
 echo 'export OPENSHIFTCONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /home/vagrant/.bash_profile
+
+# wait for openshift-master to come alive
+export OPENSHIFTCONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig
+while true; do
+  if ! /usr/bin/openshift cli get nodes; then
+    echo "Master not ready yet, check again in a while.."
+    sleep 1
+  else
+    break
+  fi
+done
+
+# register the nodes
+pushd /vagrant
+  SERVER_CONFIG_DIR="`pwd`/openshift.local.config"
+  for (( i=0; i<${#MINION_NAMES[@]}; i++)); do
+    minion=${MINION_NAMES[$i]}
+    echo "Registering node ${minion}"
+    /usr/bin/openshift cli create -f "${SERVER_CONFIG_DIR}/node-${minion}/node-registration.json"
+  done
+popd
