@@ -214,8 +214,8 @@
           <h3>{{build.metadata.name}}</h3>
           <div>Created: <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></div>            
           <div>
-            <span style="margin-right: 5px;">Status: {{build.status}}</span>          
-            <span ng-switch="build.status" class="hide-ng-leave">
+            <span style="margin-right: 5px;">Status: {{build.status.phase}}</span>          
+            <span ng-switch="build.status.phase" class="hide-ng-leave">
               <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
               <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
               <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
@@ -223,7 +223,7 @@
           </div>
           <div>
             <span style="margin-right: 5px;">Duration: </span>
-            <span ng-switch="build.status" class="hide-ng-leave">
+            <span ng-switch="build.status.phase" class="hide-ng-leave">
               <span ng-switch-when="Complete">{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
               <span ng-switch-when="Failed">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
               <span ng-switch-when="Running">running for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
