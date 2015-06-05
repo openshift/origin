@@ -115,7 +115,7 @@ func TestMissingEvent(t *testing.T) {
 	}
 }
 
-func TestWrongGithubEvent(t *testing.T) {
+func TestWrongGitHubEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
 		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
@@ -149,7 +149,7 @@ func TestJsonPushEventError(t *testing.T) {
 	post("X-GitHub-Event", "push", []byte{}, server.URL+"/build100/secret101/github", http.StatusBadRequest, t)
 }
 
-func TestJsonGithubPushEvent(t *testing.T) {
+func TestJsonGitHubPushEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
 		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()

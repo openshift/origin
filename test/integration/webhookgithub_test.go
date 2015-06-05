@@ -24,7 +24,7 @@ func init() {
 	testutil.RequireEtcd()
 }
 
-func TestWebhookGithubPushWithImage(t *testing.T) {
+func TestWebhookGitHubPushWithImage(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -122,7 +122,7 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 	}
 }
 
-func TestWebhookGithubPushWithImageStream(t *testing.T) {
+func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -220,7 +220,7 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 	}
 }
 
-func TestWebhookGithubPing(t *testing.T) {
+func TestWebhookGitHubPing(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
