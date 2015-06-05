@@ -192,6 +192,15 @@ func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames util.StringSe
 	return certConfig, false, nil
 }
 
+func (ca *CA) EnsureClientServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, bool, error) {
+	certConfig, err := GetServerCert(certFile, keyFile, hostnames)
+	if err != nil {
+		certConfig, err = ca.MakeClientServerCert(certFile, keyFile, hostnames)
+		return certConfig, true, err
+	}
+	return certConfig, false, nil
+}
+
 func GetServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, error) {
 	server, err := GetTLSCertificateConfig(certFile, keyFile)
 	if err != nil {
@@ -215,6 +224,21 @@ func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames util.StringSet)
 
 	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
 	serverTemplate, _ := newServerCertificateTemplate(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List())
+	serverCrt, _ := ca.signCertificate(serverTemplate, serverPublicKey)
+	server := &TLSCertificateConfig{
+		Certs: append([]*x509.Certificate{serverCrt}, ca.Config.Certs...),
+		Key:   serverPrivateKey,
+	}
+	if err := server.writeCertConfig(certFile, keyFile); err != nil {
+		return server, err
+	}
+	return server, nil
+}
+
+func (ca *CA) MakeClientServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, error) {
+	glog.V(2).Infof("Generating server certificate in %s, key in %s", certFile, keyFile)
+	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
+	serverTemplate, _ := newClientServerCertificateTemplate(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List())
 	serverCrt, _ := ca.signCertificate(serverTemplate, serverPublicKey)
 	server := &TLSCertificateConfig{
 		Certs: append([]*x509.Certificate{serverCrt}, ca.Config.Certs...),
@@ -317,6 +341,27 @@ func newServerCertificateTemplate(subject pkix.Name, hosts []string) (*x509.Cert
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	template.IPAddresses, template.DNSNames = IPAddressesDNSNames(hosts)
+
+	return template, nil
+}
+
+// Can be used for peering setups like etcd peering
+func newClientServerCertificateTemplate(subject pkix.Name, hosts []string) (*x509.Certificate, error) {
+	template := &x509.Certificate{
+		Subject: subject,
+
+		SignatureAlgorithm: x509.SHA256WithRSA,
+
+		NotBefore:    time.Now().Add(-1 * time.Second),
+		NotAfter:     time.Now().Add(lifetime),
+		SerialNumber: big.NewInt(1),
+
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
 	}
 
