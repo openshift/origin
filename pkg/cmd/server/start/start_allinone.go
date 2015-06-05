@@ -33,7 +33,7 @@ type AllInOneOptions struct {
 	MasterConfigFile string
 	NodeConfigFile   string
 
-	Output cmdutil.Output
+	Output io.Writer
 }
 
 const allInOne_long = `Start an OpenShift all-in-one server
@@ -58,7 +58,7 @@ You may also pass --kubeconfig=<path> to connect to an external Kubernetes clust
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
 func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
-	options := &AllInOneOptions{Output: cmdutil.Output{out}}
+	options := &AllInOneOptions{Output: out}
 
 	cmds := &cobra.Command{
 		Use:   "start",

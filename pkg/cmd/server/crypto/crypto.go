@@ -203,7 +203,7 @@ func GetServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCert
 	missingIps := ipsNotInSlice(ips, cert.IPAddresses)
 	missingDns := stringsNotInSlice(dns, cert.DNSNames)
 	if len(missingIps) == 0 && len(missingDns) == 0 {
-		glog.V(2).Infof("Found existing server certificate in %s", certFile)
+		glog.V(4).Infof("Found existing server certificate in %s", certFile)
 		return server, nil
 	}
 
@@ -211,7 +211,7 @@ func GetServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCert
 }
 
 func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, error) {
-	glog.V(2).Infof("Generating server certificate in %s, key in %s", certFile, keyFile)
+	glog.V(4).Infof("Generating server certificate in %s, key in %s", certFile, keyFile)
 
 	serverPublicKey, serverPrivateKey, _ := NewKeyPair()
 	serverTemplate, _ := newServerCertificateTemplate(pkix.Name{CommonName: hostnames.List()[0]}, hostnames.List())
@@ -237,7 +237,7 @@ func (ca *CA) EnsureClientCertificate(certFile, keyFile string, u user.Info) (*T
 }
 
 func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info) (*TLSCertificateConfig, error) {
-	glog.V(2).Infof("Generating client cert in %s and key in %s", certFile, keyFile)
+	glog.V(4).Infof("Generating client cert in %s and key in %s", certFile, keyFile)
 	// ensure parent dirs
 	if err := os.MkdirAll(filepath.Dir(certFile), os.FileMode(0755)); err != nil {
 		return nil, err

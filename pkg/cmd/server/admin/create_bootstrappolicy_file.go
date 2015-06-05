@@ -47,7 +47,6 @@ func NewCommandCreateBootstrapPolicyFile(commandName string, fullName string, ou
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 

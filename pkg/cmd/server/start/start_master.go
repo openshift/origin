@@ -35,7 +35,7 @@ type MasterOptions struct {
 
 	CreateCertificates bool
 	ConfigFile         string
-	Output             cmdutil.Output
+	Output             io.Writer
 }
 
 const master_long = `Start an OpenShift master.
@@ -65,7 +65,7 @@ You may also pass --kubeconfig=<path> to connect to an external Kubernetes clust
 
 // NewCommandStartMaster provides a CLI handler for 'start' command
 func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
-	options := &MasterOptions{Output: cmdutil.Output{out}}
+	options := &MasterOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "master",
@@ -89,9 +89,9 @@ func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
 			if err := options.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(options.Output.Get(), "Invalid %s %s\n", details.Kind, details.ID)
+						fmt.Fprintf(options.Output, "Invalid %s %s\n", details.Kind, details.ID)
 						for _, cause := range details.Causes {
-							fmt.Fprintln(options.Output.Get(), cause.Message)
+							fmt.Fprintln(options.Output, cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -100,7 +100,6 @@ func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	options.MasterArgs = NewDefaultMasterArgs()
 
@@ -184,6 +183,7 @@ func (o MasterOptions) RunMaster() error {
 	startUsingConfigFile := !o.IsWriteConfigOnly() && o.IsRunFromConfig()
 
 	if !startUsingConfigFile && o.CreateCertificates {
+		glog.V(2).Infof("Generating master configuration")
 		if err := o.CreateCerts(); err != nil {
 			return err
 		}
@@ -234,7 +234,7 @@ func (o MasterOptions) RunMaster() error {
 			return err
 		}
 
-		fmt.Fprintf(o.Output.Get(), "Wrote master config to: %s\n", o.MasterArgs.GetConfigFileToWrite())
+		fmt.Fprintf(o.Output, "Wrote master config to: %s\n", o.MasterArgs.GetConfigFileToWrite())
 
 		return nil
 	}
@@ -346,8 +346,6 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	}
 
 	if openshiftMasterConfig.KubernetesMasterConfig != nil {
-		glog.Infof("Static Nodes: %v", openshiftMasterConfig.KubernetesMasterConfig.StaticNodeNames)
-
 		kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(*openshiftMasterConfig, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient())
 		if err != nil {
 			return err

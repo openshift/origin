@@ -163,6 +163,8 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 
 		APIServerURL:       masterURL.String(),
 		PublicAPIServerURL: publicMasterURL.String(),
+
+		Output: os.Stderr,
 	}
 
 	if err := createMasterCerts.Validate(nil); err != nil {

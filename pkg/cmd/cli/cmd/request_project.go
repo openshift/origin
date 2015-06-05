@@ -67,7 +67,6 @@ func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	cmd.Flags().StringVar(&options.DisplayName, "display-name", "", "Project display name")
 	cmd.Flags().StringVar(&options.Description, "description", "", "Project description")
