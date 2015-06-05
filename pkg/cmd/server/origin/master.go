@@ -1088,7 +1088,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", "uidallocation", c.EtcdHelper)
 		return etcdAlloc
 	})
-	mcsRange, err := mcs.ParseRange("/2") // use two labels
+	mcsRange, err := mcs.ParseRange("s0/2") // use two labels
 	if err != nil {
 		glog.Fatalf("Unable to describe MCS category range: %v", err)
 	}

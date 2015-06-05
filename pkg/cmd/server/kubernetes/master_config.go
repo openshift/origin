@@ -60,7 +60,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// in-order list of plug-ins that should intercept admission decisions
 	// TODO: Push node environment support to upstream in future
 	// TODO: JTL: update serviceaccount admission plugin to limit secrets to the ones held by the serviceaccount
-	admissionControlPluginNames := []string{"NamespaceExists", "NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "ResourceQuota"}
+	admissionControlPluginNames := []string{"NamespaceExists", "NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "ResourceQuota"}
 	admissionController := admission.NewFromPlugins(kubeClient, admissionControlPluginNames, "")
 
 	_, portString, err := net.SplitHostPort(options.ServingInfo.BindAddress)
