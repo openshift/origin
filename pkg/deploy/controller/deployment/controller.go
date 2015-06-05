@@ -8,6 +8,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -138,18 +139,29 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		// Nothing to do in this terminal state.
 		glog.V(4).Infof("Ignoring deployment %s (status %s)", deployutil.LabelForDeployment(deployment), currentStatus)
 	case deployapi.DeploymentStatusComplete:
-		// Automatically clean up successful pods.
-		// TODO: Could probably do a lookup here to skip the delete call, but it's
-		// not worth adding yet since (delete retries will only normally occur
-		// during full a re-sync).
-		podName := deployutil.DeployerPodNameFor(deployment)
-		if err := c.podClient.deletePod(deployment.Namespace, podName); err != nil {
-			if !kerrors.IsNotFound(err) {
-				return fmt.Errorf("couldn't delete completed deployer pod %s/%s for deployment %s: %v", deployment.Namespace, podName, deployutil.LabelForDeployment(deployment), err)
+		// now list any pods in the namespace that have the specified label
+		deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
+		if err != nil {
+			return fmt.Errorf("couldn't fetch deployer pods for %s after successful completion: %v", deployutil.LabelForDeployment(deployment), err)
+		}
+		glog.V(4).Infof("Deleting %d deployer pods for deployment %s", len(deployerPods), deployutil.LabelForDeployment(deployment))
+		cleanedAll := true
+		for _, deployerPod := range deployerPods {
+			if err := c.podClient.deletePod(deployerPod.Namespace, deployerPod.Name); err != nil {
+				if !kerrors.IsNotFound(err) {
+					// if the pod deletion failed, then log the error and continue
+					// we will try to delete any remaining deployer pods and return an error later
+					kutil.HandleError(fmt.Errorf("couldn't delete completed deployer pod %s/%s for deployment %s: %v", deployment.Namespace, deployerPod.Name, deployutil.LabelForDeployment(deployment), err))
+					cleanedAll = false
+				}
+				// Already deleted
+			} else {
+				glog.V(4).Infof("Deleted completed deployer pod %s/%s for deployment %s", deployment.Namespace, deployerPod.Name, deployutil.LabelForDeployment(deployment))
 			}
-			// Already deleted
-		} else {
-			glog.V(4).Infof("Deleted completed deployer pod %s/%s for deployment %s", deployment.Namespace, podName, deployutil.LabelForDeployment(deployment))
+		}
+
+		if !cleanedAll {
+			return fmt.Errorf("couldn't clean up all deployer pods for %s", deployutil.LabelForDeployment(deployment))
 		}
 	}
 
