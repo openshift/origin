@@ -304,7 +304,7 @@ func init() {
 			if len(in.DockerImageReference) != 0 {
 				out.To = &kapi_v1beta3.ObjectReference{
 					Kind: "DockerImage",
-					Name: in.DockerImageReference,
+					Name: imageapi.JoinImageStreamTag(in.DockerImageReference, in.Tag),
 				}
 			}
 			return nil
@@ -325,7 +325,13 @@ func init() {
 			}
 			if in.To != nil && in.To.Kind == "DockerImage" {
 				out.To = nil
-				out.DockerImageReference = in.To.Name
+				if ref, err := imageapi.ParseDockerImageReference(in.To.Name); err == nil {
+					out.Tag = ref.Tag
+					ref.Tag = ""
+					out.DockerImageReference = ref.String()
+				} else {
+					out.DockerImageReference = in.To.Name
+				}
 			}
 			return nil
 		},

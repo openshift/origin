@@ -95,17 +95,14 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 		if len(repo.Status.DockerImageRepository) == 0 {
 			return fmt.Errorf("the ImageStream %s/%s cannot be used as the output for Build %s/%s because the integrated Docker registry is not configured, or the user forgot to set a valid external registry", namespace, ref.Name, build.Namespace, build.Name)
 		}
-		if len(build.Parameters.Output.Tag) == 0 {
-			spec = repo.Status.DockerImageRepository
-		} else {
-			spec = fmt.Sprintf("%s:%s", repo.Status.DockerImageRepository, build.Parameters.Output.Tag)
-		}
+		spec = repo.Status.DockerImageRepository
 	}
 
 	// set the expected build parameters, which will be saved if no error occurs
 	build.Status = buildapi.BuildStatusPending
 	// override DockerImageReference in the strategy for the copy we send to the server
 	build.Parameters.Output.DockerImageReference = spec
+	build.Parameters.Output.To = nil
 
 	copy, err := kapi.Scheme.Copy(build)
 	if err != nil {
