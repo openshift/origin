@@ -128,7 +128,7 @@ func TestDNS(t *testing.T) {
 			expect:          []*net.IP{&masterIP},
 		},
 		{ // resolving endpoints of a service works
-			dnsQuestionName: "kubernetes.default.endpoints.cluster.local.",
+			dnsQuestionName: "_endpoints.kubernetes.default.svc.cluster.local.",
 			expect:          []*net.IP{&localIP},
 		},
 		{ // openshift override works
