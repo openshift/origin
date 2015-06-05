@@ -10,7 +10,7 @@
       <dl class="dl-horizontal left">
         <dt>Display name:</dt>
         <dd ng-if="project | displayName: true">{{project | displayName: true}}</dd>
-        <dd ng-if="!project | displayName: true"><em>No display name</em></dd>
+        <dd ng-if="!(project | displayName: true)"><em>No display name</em></dd>
         <dt>Description:</dt>
         <dd ng-if="project | description">{{project | description}}</dd>
         <dd ng-if="!(project | description)"><em>No description</em></dd>
