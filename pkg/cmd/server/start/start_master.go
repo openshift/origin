@@ -389,9 +389,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	openshiftConfig.RunBuildController()
 	openshiftConfig.RunBuildPodController()
 	openshiftConfig.RunBuildImageChangeTriggerController()
-	if err := openshiftConfig.RunDeploymentController(); err != nil {
-		return err
-	}
+	openshiftConfig.RunDeploymentController()
 	openshiftConfig.RunDeployerPodController()
 	openshiftConfig.RunDeploymentConfigController()
 	openshiftConfig.RunDeploymentConfigChangeController()

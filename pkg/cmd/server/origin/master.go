@@ -282,8 +282,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"imageStreamTags":     imageStreamTagStorage,
 
 		"deploymentConfigs":         deployConfigStorage,
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
-		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec),
+		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec),
 
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
@@ -526,12 +526,8 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	c.ensureComponentAuthorizationRules()
 	// Bind default roles for service accounts in the default namespace if needed
 	c.ensureDefaultNamespaceServiceAccountRoles()
-
-	// Ensure the shared resource namespace stays created
+	// Create the shared resource namespace
 	c.ensureOpenShiftSharedResourcesNamespace()
-	go util.Forever(func() {
-		c.ensureOpenShiftSharedResourcesNamespace()
-	}, 10*time.Second)
 }
 
 func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
@@ -924,12 +920,12 @@ func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 }
 
 // RunDeploymentController starts the deployment controller process.
-func (c *MasterConfig) RunDeploymentController() error {
+func (c *MasterConfig) RunDeploymentController() {
 	_, kclient := c.DeploymentControllerClients()
 
 	_, kclientConfig, err := configapi.GetKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig)
 	if err != nil {
-		return err
+		glog.Fatalf("Unable to initialize deployment controller: %v", err)
 	}
 	// TODO eliminate these environment variables once service accounts provide a kubeconfig that includes all of this info
 	env := clientcmd.EnvVars(
@@ -941,7 +937,7 @@ func (c *MasterConfig) RunDeploymentController() error {
 
 	factory := deploycontroller.DeploymentControllerFactory{
 		KubeClient:     kclient,
-		Codec:          latest.Codec,
+		Codec:          c.EtcdHelper.Codec,
 		Environment:    env,
 		DeployerImage:  c.ImageFor("deployer"),
 		ServiceAccount: bootstrappolicy.DeployerServiceAccountName,
@@ -949,8 +945,6 @@ func (c *MasterConfig) RunDeploymentController() error {
 
 	controller := factory.Create()
 	controller.Run()
-
-	return nil
 }
 
 // RunDeployerPodController starts the deployer pod controller process.
@@ -969,7 +963,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	factory := deployconfigcontroller.DeploymentConfigControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
-		Codec:      latest.Codec,
+		Codec:      c.EtcdHelper.Codec,
 	}
 	controller := factory.Create()
 	controller.Run()
@@ -980,7 +974,7 @@ func (c *MasterConfig) RunDeploymentConfigChangeController() {
 	factory := configchangecontroller.DeploymentConfigChangeControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
-		Codec:      latest.Codec,
+		Codec:      c.EtcdHelper.Codec,
 	}
 	controller := factory.Create()
 	controller.Run()
