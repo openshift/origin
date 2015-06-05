@@ -163,32 +163,36 @@ func (self *Scheme) runtimeObjectToRawExtensionArray(in *[]Object, out *[]RawExt
 	_, outVersion, scheme := self.fromScope(s)
 
 	for i := range src {
-		switch t := src[i].(type) {
-		case *Unknown:
-			// TODO: this should be decoupled from the scheme (since it is JSON specific)
-			dest[i].RawJSON = t.RawJSON
-		case *Unstructured:
-			// TODO: this should be decoupled from the scheme (since it is JSON specific)
-			data, err := json.Marshal(t.Object)
-			if err != nil {
-				return err
-			}
-			dest[i].RawJSON = data
-		default:
-			version := outVersion
-			// if the object exists
-			if inVersion, _, err := scheme.ObjectVersionAndKind(src[i]); err == nil && len(inVersion) != 0 {
-				version = inVersion
-			}
-			data, err := scheme.EncodeToVersion(src[i], version)
-			if err != nil {
-				return err
-			}
-			dest[i].RawJSON = data
-		}
+
 	}
 	*out = dest
 	return nil
+}
+
+func (self *Scheme) runtimeObjectToRawExtension(in *Object, out *RawExtension, s conversion.Scope) error {
+	switch t := src[i].(type) {
+	case *Unknown:
+		// TODO: this should be decoupled from the scheme (since it is JSON specific)
+		dest[i].RawJSON = t.RawJSON
+	case *Unstructured:
+		// TODO: this should be decoupled from the scheme (since it is JSON specific)
+		data, err := json.Marshal(t.Object)
+		if err != nil {
+			return err
+		}
+		dest[i].RawJSON = data
+	default:
+		version := outVersion
+		// if the object exists
+		if inVersion, _, err := scheme.ObjectVersionAndKind(src[i]); err == nil && len(inVersion) != 0 {
+			version = inVersion
+		}
+		data, err := scheme.EncodeToVersion(src[i], version)
+		if err != nil {
+			return err
+		}
+		dest[i].RawJSON = data
+	}
 }
 
 // rawExtensionToRuntimeObjectArray attempts to decode objects from the array - if they are unrecognized objects,

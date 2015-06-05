@@ -3,7 +3,6 @@ package authorizer
 import (
 	"fmt"
 	"path"
-	"reflect"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -38,7 +37,7 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 		if a.resourceMatches(allowedResourceTypes) {
 			if a.nameMatches(rule.ResourceNames) {
 				// this rule matches the request, so we should check the additional restrictions to be sure that it's allowed
-				if !reflect.ValueOf(rule.AttributeRestrictions).IsNil() {
+				if rule.AttributeRestrictions != nil {
 					switch rule.AttributeRestrictions.(type) {
 					case (*authorizationapi.IsPersonalSubjectAccessReview):
 						return IsPersonalAccessReview(a)
