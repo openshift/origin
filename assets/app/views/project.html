@@ -2,6 +2,16 @@
   <project-page class="project-overview-page">
     <div ng-controller="OverviewController">
       <tasks></tasks>
+      <div ng-if="!renderOptions.showGetStarted" class="actions pull-right">
+        <div class="btn-group">
+          <label class="btn btn-default" ng-model="$parent.overviewMode" btn-radio="'tiles'" title="Tile View">
+            <i class="fa fa-th-list"></i>
+          </label>
+          <label class="btn btn-default" ng-model="$parent.overviewMode" btn-radio="'topology'" title="Topology View">
+            <i class="fa fa-share-alt"></i>
+          </label>
+        </div>
+      </div>
       <div ng-if="!renderOptions.showGetStarted" class="page-header page-header-bleed-right">
         <h1 title="{{project | displayName}}">Project {{project | displayName}}</h1>
       </div>
@@ -43,7 +53,7 @@
 
       </div>
 
-      <div>
+      <div ng-if="overviewMode == 'tiles'">
 
         <!-- TODO handle multiple services mapping to the same deploymentConfig/deployment/pod -->
         <section ng-repeat="(serviceId, service) in services" class="components components-group">
@@ -206,6 +216,8 @@
         </section>
       </div>
 
+      <div ng-if="overviewMode == 'topology' && !renderOptions.showGetStarted">
+      </div>
 
     </div>
   </project-page>
