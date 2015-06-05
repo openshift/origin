@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -30,6 +31,8 @@ func TestPushSecretName(t *testing.T) {
 	namespace := testutil.RandomNamespace("secret")
 	client, _ := testutil.GetClusterAdminClient(testutil.KubeConfigPath())
 	kclient, _ := testutil.GetClusterAdminKubeClient(testutil.KubeConfigPath())
+
+	testutil.CreateNamespace(testutil.KubeConfigPath(), namespace)
 
 	stream := testutil.CreateSampleImageStream(namespace)
 	if stream == nil {
@@ -64,7 +67,10 @@ func TestPushSecretName(t *testing.T) {
 	// Custom build will copy the dockercfg file into the application image.
 	customBuild := testutil.GetBuildFixture("fixtures/test-custom-build.json")
 	imageName := fmt.Sprintf("%s/%s/%s", os.Getenv("REGISTRY_ADDR"), namespace, stream.Name)
-	customBuild.Parameters.Strategy.CustomStrategy.Image = imageName
+	customBuild.Parameters.Strategy.CustomStrategy.From = &kapi.ObjectReference{
+		Kind: "DockerImage",
+		Name: imageName,
+	}
 	newCustomBuild, err := client.Builds(namespace).Create(customBuild)
 	if err != nil {
 		t.Fatalf("Unable to create Build %s: %v", dockerBuild.Name, err)
@@ -87,6 +93,8 @@ func TestSTIEnvironmentBuild(t *testing.T) {
 
 	build := testutil.GetBuildFixture("fixtures/test-env-build.json")
 	client, _ := testutil.GetClusterAdminClient(testutil.KubeConfigPath())
+
+	testutil.CreateNamespace(testutil.KubeConfigPath(), namespace)
 
 	stream := testutil.CreateSampleImageStream(namespace)
 	if stream == nil {
