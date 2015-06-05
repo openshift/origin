@@ -76,13 +76,17 @@
     <div class="component-label">Pod Template</div>
 
     <pod-template
-      pod-template="rc.spec.template" 
+      pod-template="rc.spec.template"
       images-by-docker-reference="imagesByDockerReference"
       builds="builds">
     </pod-template>
 
-    <!-- TODO: surface spec.replicas/status.replicas here? -->
-    <div class="component-label">Pods</div>
+    <div class="component-label">
+      Pods
+      <span ng-if="rc.status.replicas === rc.spec.replicas" class="component-label-details">({{rc.status.replicas}})</span>
+      <span ng-if="rc.status.replicas !== rc.spec.replicas" class="component-label-details">({{rc.status.replicas}} current, {{rc.spec.replicas || 0}} desired)</span>
+    </div>
+
     <pods pods="pods"></pods>
   </div>
 
