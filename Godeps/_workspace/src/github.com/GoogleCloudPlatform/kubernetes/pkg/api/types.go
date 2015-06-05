@@ -207,6 +207,8 @@ type VolumeSource struct {
 	PersistentVolumeClaimVolumeSource *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty"`
 	// RBD represents a Rados Block Device mount on the host that shares a pod's lifetime
 	RBD *RBDVolumeSource `json:"rbd"`
+	// Metadata represents metadata about the pod that should populate this volume
+	Metadata *MetadataVolumeSource `json:"metadata"`
 }
 
 // Similar to VolumeSource but meant for the administrator who creates PVs.
@@ -508,6 +510,20 @@ type RBDVolumeSource struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty"`
+}
+
+// MetadataVolumeSource represents a volume containing metadata about a pod.
+type MetadataVolumeSource struct {
+	// Items is a list of metadata file name
+	Items []MetadataFile `json:"items",omitempty"`
+}
+
+// MetadataFile represents information to create the file containing the pod field
+type MetadataFile struct {
+	// Required: Name is the name of the file
+	Name string `json:"name,omitempty"`
+	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+	FieldRef ObjectFieldSelector `json:"fieldRef"`
 }
 
 // ContainerPort represents a network port in a single container

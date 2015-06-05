@@ -32,6 +32,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/glusterfs"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/host_path"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/iscsi"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/metadata"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/nfs"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/persistent_claim"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/rbd"
@@ -64,7 +65,7 @@ func ProbeVolumePlugins() []volume.VolumePlugin {
 	allPlugins = append(allPlugins, glusterfs.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, persistent_claim.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, rbd.ProbeVolumePlugins()...)
-
+	allPlugins = append(allPlugins, metadata.ProbeVolumePlugins()...)
 	return allPlugins
 }
 

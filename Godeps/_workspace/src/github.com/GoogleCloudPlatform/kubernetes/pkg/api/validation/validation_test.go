@@ -435,6 +435,29 @@ func TestValidateVolumes(t *testing.T) {
 		{Name: "secret", VolumeSource: api.VolumeSource{Secret: &api.SecretVolumeSource{"my-secret"}}},
 		{Name: "glusterfs", VolumeSource: api.VolumeSource{Glusterfs: &api.GlusterfsVolumeSource{"host1", "path", false}}},
 		{Name: "rbd", VolumeSource: api.VolumeSource{RBD: &api.RBDVolumeSource{CephMonitors: []string{"foo"}, RBDImage: "bar", FSType: "ext4"}}},
+		{Name: "metadata", VolumeSource: api.VolumeSource{Metadata: &api.MetadataVolumeSource{Items: []api.MetadataFile{
+			{Name: "labels", FieldRef: api.ObjectFieldSelector{
+				APIVersion: "v1beta3",
+				FieldPath:  "metadata.labels"}},
+			{Name: "annotations", FieldRef: api.ObjectFieldSelector{
+				APIVersion: "v1beta3",
+				FieldPath:  "metadata.annotations"}},
+			{Name: "namespace", FieldRef: api.ObjectFieldSelector{
+				APIVersion: "v1beta3",
+				FieldPath:  "metadata.namespace"}},
+			{Name: "name", FieldRef: api.ObjectFieldSelector{
+				APIVersion: "v1beta3",
+				FieldPath:  "metadata.name"}},
+			{Name: "path/withslash/andslash", FieldRef: api.ObjectFieldSelector{
+				APIVersion: "v1beta3",
+				FieldPath:  "metadata.labels"}},
+			{Name: "path/./withdot", FieldRef: api.ObjectFieldSelector{
+				APIVersion: "v1beta3",
+				FieldPath:  "metadata.labels"}},
+			{Name: "path/with..dot", FieldRef: api.ObjectFieldSelector{
+				APIVersion: "v1beta3",
+				FieldPath:  "metadata.labels"}},
+		}}}},
 	}
 	names, errs := validateVolumes(successCase)
 	if len(errs) != 0 {
@@ -450,6 +473,21 @@ func TestValidateVolumes(t *testing.T) {
 	emptyPath := api.VolumeSource{Glusterfs: &api.GlusterfsVolumeSource{"host", "", false}}
 	emptyMon := api.VolumeSource{RBD: &api.RBDVolumeSource{CephMonitors: []string{}, RBDImage: "bar", FSType: "ext4"}}
 	emptyImage := api.VolumeSource{RBD: &api.RBDVolumeSource{CephMonitors: []string{"foo"}, RBDImage: "", FSType: "ext4"}}
+	emptyPathName := api.VolumeSource{Metadata: &api.MetadataVolumeSource{[]api.MetadataFile{{Name: "",
+		FieldRef: api.ObjectFieldSelector{
+			APIVersion: "v1beta3",
+			FieldPath:  "metadata.labels"}}},
+	}}
+	absolutePathName := api.VolumeSource{Metadata: &api.MetadataVolumeSource{[]api.MetadataFile{{Name: "/absolutepath",
+		FieldRef: api.ObjectFieldSelector{
+			APIVersion: "v1beta3",
+			FieldPath:  "metadata.labels"}}},
+	}}
+	dotDotPathName := api.VolumeSource{Metadata: &api.MetadataVolumeSource{[]api.MetadataFile{{Name: "../../passwd",
+		FieldRef: api.ObjectFieldSelector{
+			APIVersion: "v1beta3",
+			FieldPath:  "metadata.labels"}}},
+	}}
 	errorCases := map[string]struct {
 		V []api.Volume
 		T errors.ValidationErrorType
@@ -465,6 +503,9 @@ func TestValidateVolumes(t *testing.T) {
 		"empty path":           {[]api.Volume{{Name: "badpath", VolumeSource: emptyPath}}, errors.ValidationErrorTypeRequired, "[0].source.glusterfs.path"},
 		"empty mon":            {[]api.Volume{{Name: "badmon", VolumeSource: emptyMon}}, errors.ValidationErrorTypeRequired, "[0].source.rbd.monitors"},
 		"empty image":          {[]api.Volume{{Name: "badimage", VolumeSource: emptyImage}}, errors.ValidationErrorTypeRequired, "[0].source.rbd.image"},
+		"empty metatada path":  {[]api.Volume{{Name: "emptyname", VolumeSource: emptyPathName}}, errors.ValidationErrorTypeRequired, "[0].source.metadata.name"},
+		"absolute path":        {[]api.Volume{{Name: "absolutepath", VolumeSource: absolutePathName}}, errors.ValidationErrorTypeForbidden, "[0].source.metadata.name"},
+		"dot dot path":         {[]api.Volume{{Name: "dotdotpath", VolumeSource: dotDotPathName}}, errors.ValidationErrorTypeForbidden, "[0].source.metadata.name"},
 	}
 	for k, v := range errorCases {
 		_, errs := validateVolumes(v.V)
@@ -630,6 +671,32 @@ func TestValidateEnv(t *testing.T) {
 				},
 			}},
 			expectedError: "[0].valueFrom.fieldRef.fieldPath: invalid value 'metadata.whoops': error converting fieldPath",
+		},
+		{
+			name: "invalid fieldPath labels",
+			envs: []api.EnvVar{{
+				Name: "labels",
+				ValueFrom: &api.EnvVarSource{
+					FieldRef: &api.ObjectFieldSelector{
+						FieldPath:  "metadata.labels",
+						APIVersion: "v1beta3",
+					},
+				},
+			}},
+			expectedError: "[0].valueFrom.fieldRef.fieldPath: unsupported value 'metadata.labels'",
+		},
+		{
+			name: "invalid fieldPath annotations",
+			envs: []api.EnvVar{{
+				Name: "abc",
+				ValueFrom: &api.EnvVarSource{
+					FieldRef: &api.ObjectFieldSelector{
+						FieldPath:  "metadata.annotations",
+						APIVersion: "v1beta3",
+					},
+				},
+			}},
+			expectedError: "[0].valueFrom.fieldRef.fieldPath: unsupported value 'metadata.annotations'",
 		},
 		{
 			name: "unsupported fieldPath",
