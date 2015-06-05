@@ -76,12 +76,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
-		if len(project.Annotations[projectapi.ProjectDisplayName]) > 0 &&
-			project.Annotations[projectapi.ProjectDisplayName] != namespace {
-			fmt.Fprintf(out, "In project %s (%s)\n", project.Annotations[projectapi.ProjectDisplayName], namespace)
-		} else {
-			fmt.Fprintf(out, "In project %s\n", namespace)
-		}
+		fmt.Fprintf(out, "In project %s\n", projectapi.DisplayNameAndNameForProject(project))
 
 		for _, group := range groups {
 			if len(group.Builds) != 0 {
@@ -132,7 +127,7 @@ func printLines(out io.Writer, indent string, depth int, lines ...string) {
 func describeDeploymentInServiceGroup(deploy graph.DeploymentFlow) []string {
 	includeLastPass := deploy.Deployment.ActiveDeployment == nil
 	if len(deploy.Images) == 1 {
-		lines := []string{fmt.Sprintf("%s deploys %s", deploy.Deployment.Name, describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace))}
+		lines := []string{fmt.Sprintf("%s deploys %s %s", deploy.Deployment.Name, describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 		if len(lines[0]) > 120 && strings.Contains(lines[0], " <- ") {
 			segments := strings.SplitN(lines[0], " <- ", 2)
 			lines[0] = segments[0] + " <-"
@@ -142,13 +137,22 @@ func describeDeploymentInServiceGroup(deploy graph.DeploymentFlow) []string {
 		lines = append(lines, describeDeployments(deploy.Deployment, 3)...)
 		return lines
 	}
-	lines := []string{fmt.Sprintf("%s deploys:", deploy.Deployment.Name)}
+
+	lines := []string{fmt.Sprintf("%s deploys: %s", deploy.Deployment.Name, describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 	for _, image := range deploy.Images {
 		lines = append(lines, describeImageInPipeline(image, deploy.Deployment.Namespace))
 		lines = append(lines, describeAdditionalBuildDetail(image.Build, includeLastPass)...)
 		lines = append(lines, describeDeployments(deploy.Deployment, 3)...)
 	}
 	return lines
+}
+
+func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
+	if len(dc.Triggers) == 0 {
+		return "(manual)"
+	}
+
+	return ""
 }
 
 func describeStandaloneBuildGroup(pipeline graph.ImagePipeline, namespace string) []string {

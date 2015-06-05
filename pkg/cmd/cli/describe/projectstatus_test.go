@@ -40,7 +40,7 @@ func TestProjectStatus(t *testing.T) {
 						Name:      "example",
 						Namespace: "",
 						Annotations: map[string]string{
-							"openshift.io/display-name": "Test",
+							projectapi.ProjectDisplayName: "Test",
 						},
 					},
 				},
