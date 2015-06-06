@@ -10,110 +10,179 @@ import (
 	newer "github.com/openshift/origin/pkg/authorization/api"
 )
 
+func convert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	out.Groups = util.NewStringSet(in.GroupsSlice...)
+
+	return nil
+}
+
+func convert_api_SubjectAccessReview_To_v1_SubjectAccessReview(in *newer.SubjectAccessReview, out *SubjectAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	out.GroupsSlice = in.Groups.List()
+
+	return nil
+}
+
+func convert_v1_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse(in *ResourceAccessReviewResponse, out *newer.ResourceAccessReviewResponse, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	out.Users = util.NewStringSet(in.UsersSlice...)
+	out.Groups = util.NewStringSet(in.GroupsSlice...)
+
+	return nil
+}
+
+func convert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse(in *newer.ResourceAccessReviewResponse, out *ResourceAccessReviewResponse, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	out.UsersSlice = in.Users.List()
+	out.GroupsSlice = in.Groups.List()
+
+	return nil
+}
+
+func convert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
+	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+		return err
+	}
+
+	out.Resources = util.StringSet{}
+	out.Resources.Insert(in.Resources...)
+
+	out.Verbs = util.StringSet{}
+	out.Verbs.Insert(in.Verbs...)
+
+	out.ResourceNames = util.NewStringSet(in.ResourceNames...)
+
+	out.NonResourceURLs = util.NewStringSet(in.NonResourceURLsSlice...)
+
+	return nil
+}
+
+func convert_api_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
+	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
+		return err
+	}
+
+	out.Resources = []string{}
+	out.Resources = append(out.Resources, in.Resources.List()...)
+
+	out.Verbs = []string{}
+	out.Verbs = append(out.Verbs, in.Verbs.List()...)
+
+	out.ResourceNames = in.ResourceNames.List()
+
+	out.NonResourceURLsSlice = in.NonResourceURLs.List()
+
+	return nil
+}
+
+func convert_v1_Policy_To_api_Policy(in *Policy, out *newer.Policy, s conversion.Scope) error {
+	out.LastModified = in.LastModified
+	out.Roles = make(map[string]newer.Role)
+	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+}
+
+func convert_api_Policy_To_v1_Policy(in *newer.Policy, out *Policy, s conversion.Scope) error {
+	out.LastModified = in.LastModified
+	out.Roles = make([]NamedRole, 0, 0)
+	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+}
+
+func convert_v1_RoleBinding_To_api_RoleBinding(in *RoleBinding, out *newer.RoleBinding, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+
+	out.Users = util.NewStringSet(in.UserNames...)
+	out.Groups = util.NewStringSet(in.GroupNames...)
+
+	return nil
+}
+
+func convert_api_RoleBinding_To_v1_RoleBinding(in *newer.RoleBinding, out *RoleBinding, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+
+	out.UserNames = in.Users.List()
+	out.GroupNames = in.Groups.List()
+
+	return nil
+}
+
+func convert_v1_PolicyBinding_To_api_PolicyBinding(in *PolicyBinding, out *newer.PolicyBinding, s conversion.Scope) error {
+	out.LastModified = in.LastModified
+	out.RoleBindings = make(map[string]newer.RoleBinding)
+	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+}
+
+func convert_api_PolicyBinding_To_v1_PolicyBinding(in *newer.PolicyBinding, out *PolicyBinding, s conversion.Scope) error {
+	out.LastModified = in.LastModified
+	out.RoleBindings = make([]NamedRoleBinding, 0, 0)
+	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+}
+
+// and now the globals
+func convert_v1_ClusterPolicy_To_api_ClusterPolicy(in *ClusterPolicy, out *newer.ClusterPolicy, s conversion.Scope) error {
+	out.LastModified = in.LastModified
+	out.Roles = make(map[string]newer.ClusterRole)
+	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+}
+
+func convert_api_ClusterPolicy_To_v1_ClusterPolicy(in *newer.ClusterPolicy, out *ClusterPolicy, s conversion.Scope) error {
+	out.LastModified = in.LastModified
+	out.Roles = make([]NamedClusterRole, 0, 0)
+	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+}
+
+func convert_v1_ClusterRoleBinding_To_api_ClusterRoleBinding(in *ClusterRoleBinding, out *newer.ClusterRoleBinding, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+
+	out.Users = util.NewStringSet(in.UserNames...)
+	out.Groups = util.NewStringSet(in.GroupNames...)
+
+	return nil
+}
+
+func convert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding(in *newer.ClusterRoleBinding, out *ClusterRoleBinding, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+
+	out.UserNames = in.Users.List()
+	out.GroupNames = in.Groups.List()
+
+	return nil
+}
+
+func convert_v1_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in *ClusterPolicyBinding, out *newer.ClusterPolicyBinding, s conversion.Scope) error {
+	out.LastModified = in.LastModified
+	out.RoleBindings = make(map[string]newer.ClusterRoleBinding)
+	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+}
+
+func convert_api_ClusterPolicyBinding_To_v1_ClusterPolicyBinding(in *newer.ClusterPolicyBinding, out *ClusterPolicyBinding, s conversion.Scope) error {
+	out.LastModified = in.LastModified
+	out.RoleBindings = make([]NamedClusterRoleBinding, 0, 0)
+	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+}
+
 func init() {
 	err := api.Scheme.AddConversionFuncs(
-		func(in *SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-				return err
-			}
-
-			out.Groups = util.NewStringSet(in.GroupsSlice...)
-
-			return nil
-		},
-		func(in *newer.SubjectAccessReview, out *SubjectAccessReview, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-				return err
-			}
-
-			out.GroupsSlice = in.Groups.List()
-
-			return nil
-		},
-		func(in *ResourceAccessReviewResponse, out *newer.ResourceAccessReviewResponse, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-				return err
-			}
-
-			out.Users = util.NewStringSet(in.UsersSlice...)
-			out.Groups = util.NewStringSet(in.GroupsSlice...)
-
-			return nil
-		},
-		func(in *newer.ResourceAccessReviewResponse, out *ResourceAccessReviewResponse, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-				return err
-			}
-
-			out.UsersSlice = in.Users.List()
-			out.GroupsSlice = in.Groups.List()
-
-			return nil
-		},
-		func(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
-			if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
-				return err
-			}
-
-			out.Resources = util.StringSet{}
-			out.Resources.Insert(in.Resources...)
-
-			out.Verbs = util.StringSet{}
-			out.Verbs.Insert(in.Verbs...)
-
-			out.ResourceNames = util.NewStringSet(in.ResourceNames...)
-
-			out.NonResourceURLs = util.NewStringSet(in.NonResourceURLsSlice...)
-
-			return nil
-		},
-		func(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
-			if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
-				return err
-			}
-
-			out.Resources = []string{}
-			out.Resources = append(out.Resources, in.Resources.List()...)
-
-			out.Verbs = []string{}
-			out.Verbs = append(out.Verbs, in.Verbs.List()...)
-
-			out.ResourceNames = in.ResourceNames.List()
-
-			out.NonResourceURLsSlice = in.NonResourceURLs.List()
-
-			return nil
-		},
-		func(in *Policy, out *newer.Policy, s conversion.Scope) error {
-			out.LastModified = in.LastModified
-			out.Roles = make(map[string]newer.Role)
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-		},
-		func(in *newer.Policy, out *Policy, s conversion.Scope) error {
-			out.LastModified = in.LastModified
-			out.Roles = make([]NamedRole, 0, 0)
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-		},
-		func(in *RoleBinding, out *newer.RoleBinding, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
-				return err
-			}
-
-			out.Users = util.NewStringSet(in.UserNames...)
-			out.Groups = util.NewStringSet(in.GroupNames...)
-
-			return nil
-		},
-		func(in *newer.RoleBinding, out *RoleBinding, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
-				return err
-			}
-
-			out.UserNames = in.Users.List()
-			out.GroupNames = in.Groups.List()
-
-			return nil
-		},
 		func(in *[]NamedRole, out *map[string]newer.Role, s conversion.Scope) error {
 			for _, curr := range *in {
 				newRole := &newer.Role{}
@@ -145,16 +214,7 @@ func init() {
 
 			return nil
 		},
-		func(in *PolicyBinding, out *newer.PolicyBinding, s conversion.Scope) error {
-			out.LastModified = in.LastModified
-			out.RoleBindings = make(map[string]newer.RoleBinding)
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-		},
-		func(in *newer.PolicyBinding, out *PolicyBinding, s conversion.Scope) error {
-			out.LastModified = in.LastModified
-			out.RoleBindings = make([]NamedRoleBinding, 0, 0)
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-		},
+
 		func(in *[]NamedRoleBinding, out *map[string]newer.RoleBinding, s conversion.Scope) error {
 			for _, curr := range *in {
 				newRoleBinding := &newer.RoleBinding{}
@@ -187,37 +247,6 @@ func init() {
 			return nil
 		},
 
-		// and now the globals
-		func(in *ClusterPolicy, out *newer.ClusterPolicy, s conversion.Scope) error {
-			out.LastModified = in.LastModified
-			out.Roles = make(map[string]newer.ClusterRole)
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-		},
-		func(in *newer.ClusterPolicy, out *ClusterPolicy, s conversion.Scope) error {
-			out.LastModified = in.LastModified
-			out.Roles = make([]NamedClusterRole, 0, 0)
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-		},
-		func(in *ClusterRoleBinding, out *newer.ClusterRoleBinding, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
-				return err
-			}
-
-			out.Users = util.NewStringSet(in.UserNames...)
-			out.Groups = util.NewStringSet(in.GroupNames...)
-
-			return nil
-		},
-		func(in *newer.ClusterRoleBinding, out *ClusterRoleBinding, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields|conversion.AllowDifferentFieldTypeNames); err != nil {
-				return err
-			}
-
-			out.UserNames = in.Users.List()
-			out.GroupNames = in.Groups.List()
-
-			return nil
-		},
 		func(in *[]NamedClusterRole, out *map[string]newer.ClusterRole, s conversion.Scope) error {
 			for _, curr := range *in {
 				newRole := &newer.ClusterRole{}
@@ -248,16 +277,6 @@ func init() {
 			}
 
 			return nil
-		},
-		func(in *ClusterPolicyBinding, out *newer.ClusterPolicyBinding, s conversion.Scope) error {
-			out.LastModified = in.LastModified
-			out.RoleBindings = make(map[string]newer.ClusterRoleBinding)
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
-		},
-		func(in *newer.ClusterPolicyBinding, out *ClusterPolicyBinding, s conversion.Scope) error {
-			out.LastModified = in.LastModified
-			out.RoleBindings = make([]NamedClusterRoleBinding, 0, 0)
-			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 		},
 		func(in *[]NamedClusterRoleBinding, out *map[string]newer.ClusterRoleBinding, s conversion.Scope) error {
 			for _, curr := range *in {
@@ -290,6 +309,25 @@ func init() {
 
 			return nil
 		},
+
+		convert_v1_SubjectAccessReview_To_api_SubjectAccessReview,
+		convert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
+		convert_v1_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse,
+		convert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse,
+		convert_v1_PolicyRule_To_api_PolicyRule,
+		convert_api_PolicyRule_To_v1_PolicyRule,
+		convert_v1_Policy_To_api_Policy,
+		convert_api_Policy_To_v1_Policy,
+		convert_v1_RoleBinding_To_api_RoleBinding,
+		convert_api_RoleBinding_To_v1_RoleBinding,
+		convert_v1_PolicyBinding_To_api_PolicyBinding,
+		convert_api_PolicyBinding_To_v1_PolicyBinding,
+		convert_v1_ClusterPolicy_To_api_ClusterPolicy,
+		convert_api_ClusterPolicy_To_v1_ClusterPolicy,
+		convert_v1_ClusterRoleBinding_To_api_ClusterRoleBinding,
+		convert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding,
+		convert_v1_ClusterPolicyBinding_To_api_ClusterPolicyBinding,
+		convert_api_ClusterPolicyBinding_To_v1_ClusterPolicyBinding,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

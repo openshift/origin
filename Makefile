@@ -60,6 +60,8 @@ check-test: export KUBE_RACE=  -race
 check-test: build check
 check-test:
 	hack/verify-gofmt.sh
+	hack/verify-generated-deep-copies.sh
+	hack/verify-generated-conversions.sh
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration.sh
 .PHONY: check-test
