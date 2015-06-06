@@ -387,7 +387,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 }
 
 func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvider) (external.Provider, error) {
-	switch provider := identityProvider.Provider.Object.(type) {
+	switch provider := identityProvider.Provider.(type) {
 	case (*configapi.GitHubIdentityProvider):
 		return github.NewProvider(identityProvider.Name, provider.ClientID, provider.ClientSecret), nil
 
@@ -434,7 +434,7 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.IdentityProvider) (authenticator.Password, error) {
 	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
 
-	switch provider := identityProvider.Provider.Object.(type) {
+	switch provider := identityProvider.Provider.(type) {
 	case (*configapi.AllowAllPasswordIdentityProvider):
 		return allowanypassword.New(identityProvider.Name, identityMapper), nil
 
@@ -487,7 +487,7 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 			authRequestHandlers = append(authRequestHandlers, basicauthrequest.NewBasicAuthAuthentication(passwordAuthenticator, true))
 
 		} else {
-			switch provider := identityProvider.Provider.Object.(type) {
+			switch provider := identityProvider.Provider.(type) {
 			case (*configapi.RequestHeaderIdentityProvider):
 				var authRequestHandler authenticator.Request
 

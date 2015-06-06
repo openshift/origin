@@ -236,7 +236,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		Name:            "basicauth",
 		UseAsChallenger: true,
 		UseAsLogin:      true,
-		Provider: runtime.EmbeddedObject{
+		Provider: runtime.Object{
 			&configapi.BasicAuthPasswordIdentityProvider{
 				RemoteConnectionInfo: configapi.RemoteConnectionInfo{
 					URL: fmt.Sprintf("https://%s", remoteAddr),

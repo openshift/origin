@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -332,9 +331,7 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 			Name:            "anypassword",
 			UseAsChallenger: true,
 			UseAsLogin:      true,
-			Provider: runtime.EmbeddedObject{
-				&configapi.AllowAllPasswordIdentityProvider{},
-			},
+			Provider:        &configapi.AllowAllPasswordIdentityProvider{},
 		},
 	)
 

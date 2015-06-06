@@ -74,7 +74,7 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		}
 
 		for _, identityProvider := range config.OAuthConfig.IdentityProviders {
-			switch provider := identityProvider.Provider.Object.(type) {
+			switch provider := identityProvider.Provider.(type) {
 			case (*RequestHeaderIdentityProvider):
 				refs = append(refs, &provider.ClientCA)
 
@@ -245,7 +245,7 @@ func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 	if options.OAuthConfig != nil {
 		for _, identityProvider := range options.OAuthConfig.IdentityProviders {
 
-			switch provider := identityProvider.Provider.Object.(type) {
+			switch provider := identityProvider.Provider.(type) {
 			case (*RequestHeaderIdentityProvider):
 				caFile := provider.ClientCA
 				if len(caFile) == 0 {
@@ -291,7 +291,7 @@ func GetKubeletClientConfig(options MasterConfig) *kclient.KubeletConfig {
 }
 
 func IsPasswordAuthenticator(provider IdentityProvider) bool {
-	switch provider.Provider.Object.(type) {
+	switch provider.Provider.(type) {
 	case
 		(*BasicAuthPasswordIdentityProvider),
 		(*AllowAllPasswordIdentityProvider),
@@ -304,8 +304,8 @@ func IsPasswordAuthenticator(provider IdentityProvider) bool {
 	return false
 }
 
-func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
-	switch provider.Object.(type) {
+func IsIdentityProviderType(provider runtime.Object) bool {
+	switch provider.(type) {
 	case
 		(*RequestHeaderIdentityProvider),
 		(*BasicAuthPasswordIdentityProvider),
@@ -323,7 +323,7 @@ func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
 }
 
 func IsOAuthIdentityProvider(provider IdentityProvider) bool {
-	switch provider.Provider.Object.(type) {
+	switch provider.Provider.(type) {
 	case
 		(*OpenIDIdentityProvider),
 		(*GitHubIdentityProvider),
