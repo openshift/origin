@@ -78,7 +78,6 @@ import (
 	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
-	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
@@ -259,7 +258,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	}
 	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient)
 
-	bcClient, _ := c.BuildControllerClients()
+	bcClient := c.BuildConfigWebHookClient()
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
 		buildConfigRegistry,
 		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
@@ -545,6 +544,10 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	c.ensureDefaultSecurityContextConstraints()
 	// Bind default roles for service accounts in the default namespace if needed
 	c.ensureDefaultNamespaceServiceAccountRoles()
+
+	// Create the infra namespace
+	c.ensureOpenShiftInfraNamespace()
+
 	// Create the shared resource namespace
 	c.ensureOpenShiftSharedResourcesNamespace()
 }
@@ -608,18 +611,53 @@ func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
 
 // ensureOpenShiftSharedResourcesNamespace is called as part of global policy initialization to ensure shared namespace exists
 func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
-	namespace, err := c.KubeClient().Namespaces().Get(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace)
-	if err != nil {
-		namespace = &kapi.Namespace{
+	if _, err := c.KubeClient().Namespaces().Get(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace); kapierror.IsNotFound(err) {
+		namespace := &kapi.Namespace{
 			ObjectMeta: kapi.ObjectMeta{Name: c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace},
-			Spec: kapi.NamespaceSpec{
-				Finalizers: []kapi.FinalizerName{projectapi.FinalizerOrigin},
-			},
 		}
-		kapi.FillObjectMetaSystemFields(api.NewContext(), &namespace.ObjectMeta)
 		_, err = c.KubeClient().Namespaces().Create(namespace)
 		if err != nil {
 			glog.Errorf("Error creating namespace: %v due to %v\n", namespace, err)
+		}
+	}
+}
+
+// ensureOpenShiftInfraNamespace is called as part of global policy initialization to ensure infra namespace exists
+func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
+	ns := c.Options.PolicyConfig.OpenShiftInfrastructureNamespace
+
+	// Ensure namespace exists
+	_, err := c.KubeClient().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: ns}})
+	if err != nil && !kapierror.IsConflict(err) {
+		glog.Errorf("Error creating namespace %s: %v", ns, err)
+	}
+
+	// Ensure service accounts exist
+	serviceAccounts := []string{c.BuildControllerServiceAccount, c.DeploymentControllerServiceAccount, c.ReplicationControllerServiceAccount}
+	for _, serviceAccountName := range serviceAccounts {
+		_, err := c.KubeClient().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: serviceAccountName}})
+		if err != nil && !kapierror.IsConflict(err) {
+			glog.Errorf("Error creating service account %s/%s: %v", ns, serviceAccountName, err)
+		}
+	}
+
+	// Ensure service account cluster role bindings exist
+	clusterRolesToUsernames := map[string][]string{
+		bootstrappolicy.BuildControllerRoleName:       {serviceaccount.MakeUsername(ns, c.BuildControllerServiceAccount)},
+		bootstrappolicy.DeploymentControllerRoleName:  {serviceaccount.MakeUsername(ns, c.DeploymentControllerServiceAccount)},
+		bootstrappolicy.ReplicationControllerRoleName: {serviceaccount.MakeUsername(ns, c.ReplicationControllerServiceAccount)},
+	}
+	roleAccessor := policy.NewClusterRoleBindingAccessor(c.ServiceAccountRoleBindingClient())
+	for clusterRole, usernames := range clusterRolesToUsernames {
+		addRole := &policy.RoleModificationOptions{
+			RoleName:            clusterRole,
+			RoleBindingAccessor: roleAccessor,
+			Users:               usernames,
+		}
+		if err := addRole.AddRole(); err != nil {
+			glog.Errorf("Could not add %v users to the %v cluster role: %v\n", ns, usernames, clusterRole, err)
+		} else {
+			glog.V(2).Infof("Added %v users to the %v cluster role: %v\n", usernames, clusterRole, err)
 		}
 	}
 }
@@ -939,7 +977,7 @@ func (c *MasterConfig) RunBuildController() {
 
 // RunBuildPodController starts the build/pod status sync loop for build status
 func (c *MasterConfig) RunBuildPodController() {
-	osclient, kclient := c.BuildControllerClients()
+	osclient, kclient := c.BuildPodControllerClients()
 	factory := buildcontrollerfactory.BuildPodControllerFactory{
 		OSClient:     osclient,
 		KubeClient:   kclient,
@@ -953,7 +991,7 @@ func (c *MasterConfig) RunBuildPodController() {
 
 // RunBuildImageChangeTriggerController starts the build image change trigger controller process.
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
-	bcClient, _ := c.BuildControllerClients()
+	bcClient, _ := c.BuildImageChangeTriggerControllerClients()
 	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
 	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator}
 	factory.Create().Run()
@@ -989,7 +1027,7 @@ func (c *MasterConfig) RunDeploymentController() {
 
 // RunDeployerPodController starts the deployer pod controller process.
 func (c *MasterConfig) RunDeployerPodController() {
-	_, kclient := c.DeploymentControllerClients()
+	_, kclient := c.DeployerPodControllerClients()
 	factory := deployerpodcontroller.DeployerPodControllerFactory{
 		KubeClient: kclient,
 	}
@@ -1024,7 +1062,7 @@ func (c *MasterConfig) RunDeploymentConfigChangeController() {
 
 // RunDeploymentImageChangeTriggerController starts the image change trigger controller process.
 func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
-	osclient := c.DeploymentImageChangeControllerClient()
+	osclient := c.DeploymentImageChangeTriggerControllerClient()
 	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
 	controller := factory.Create()
 	controller.Run()
@@ -1032,16 +1070,18 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
+	osclient, kclient := c.SDNControllerClients()
 	if c.Options.NetworkConfig.NetworkPluginName == osdn.NetworkPluginName() {
-		osdn.Master(*c.SdnClient(), *c.KubeClient(), c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
+		osdn.Master(*osclient, *kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
 	}
 }
 
 // RouteAllocator returns a route allocation controller.
 func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocationController {
+	osclient, kclient := c.RouteAllocatorClients()
 	factory := routeallocationcontroller.RouteAllocationControllerFactory{
-		OSClient:   c.PrivilegedLoopbackOpenShiftClient,
-		KubeClient: c.KubeClient(),
+		OSClient:   osclient,
+		KubeClient: kclient,
 	}
 
 	subdomain := env("OPENSHIFT_ROUTE_SUBDOMAIN", OpenShiftRouteSubdomain)
@@ -1074,6 +1114,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 
 	// TODO: move range initialization to run_config
 	uidRange, err := uid.ParseRange(alloc.UIDAllocatorRange)
+
 	if err != nil {
 		glog.Fatalf("Unable to describe UID range: %v", err)
 	}
@@ -1088,7 +1129,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 		glog.Fatalf("Unable to describe MCS category range: %v", err)
 	}
 
-	kclient := c.PrivilegedLoopbackKubernetesClient
+	kclient := c.SecurityAllocationControllerClient()
 
 	repair := securitycontroller.NewRepair(time.Minute, kclient.Namespaces(), uidRange, etcdAlloc)
 	if err := repair.RunOnce(); err != nil {

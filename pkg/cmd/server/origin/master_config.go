@@ -3,6 +3,7 @@ package origin
 import (
 	"crypto/rsa"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -48,6 +49,7 @@ import (
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
+	"github.com/openshift/origin/pkg/serviceaccounts"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 )
@@ -102,6 +104,13 @@ type MasterConfig struct {
 	// To apply different access control to a system component, create a separate client/config specifically
 	// for that component.
 	PrivilegedLoopbackOpenShiftClient *osclient.Client
+
+	// BuildControllerServiceAccount is the name of the service account in the infra namespace to use to run the build controller
+	BuildControllerServiceAccount string
+	// DeploymentControllerServiceAccount is the name of the service account in the infra namespace to use to run the deployment controller
+	DeploymentControllerServiceAccount string
+	// ReplicationControllerServiceAccount is the name of the service account in the infra namespace to use to run the replication controller
+	ReplicationControllerServiceAccount string
 }
 
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
@@ -178,6 +187,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PrivilegedLoopbackClientConfig:     *privilegedLoopbackClientConfig,
 		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
+
+		BuildControllerServiceAccount:       bootstrappolicy.InfraBuildControllerServiceAccountName,
+		DeploymentControllerServiceAccount:  bootstrappolicy.InfraDeploymentControllerServiceAccountName,
+		ReplicationControllerServiceAccount: bootstrappolicy.InfraReplicationControllerServiceAccountName,
 	}
 
 	return config, nil
@@ -310,7 +323,7 @@ func (c *MasterConfig) PolicyClient() *osclient.Client {
 
 // ServiceAccountRoleBindingClient returns the client object used to bind roles to service accounts
 // It must have the following capabilities:
-//  get, list, update, create policyBindings in all namespaces
+//  get, list, update, create policyBindings and clusterPolicyBindings in all namespaces
 func (c *MasterConfig) ServiceAccountRoleBindingClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
@@ -339,13 +352,27 @@ func (c *MasterConfig) BuildLogClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient
 }
 
-// WebHookClient returns the webhook client object
-func (c *MasterConfig) WebHookClient() *osclient.Client {
+// BuildConfigWebHookClient returns the webhook client object
+func (c *MasterConfig) BuildConfigWebHookClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // BuildControllerClients returns the build controller client objects
 func (c *MasterConfig) BuildControllerClients() (*osclient.Client, *kclient.Client) {
+	osClient, kClient, err := c.GetServiceAccountClients(c.BuildControllerServiceAccount)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return osClient, kClient
+}
+
+// BuildPodControllerClients returns the build pod controller client objects
+func (c *MasterConfig) BuildPodControllerClients() (*osclient.Client, *kclient.Client) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+}
+
+// BuildImageChangeTriggerControllerClients returns the build image change trigger controller client objects
+func (c *MasterConfig) BuildImageChangeTriggerControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
@@ -361,17 +388,34 @@ func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
 
 // DeploymentControllerClients returns the deployment controller client object
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+	osClient, kClient, err := c.GetServiceAccountClients(c.DeploymentControllerServiceAccount)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return osClient, kClient
 }
 
+func (c *MasterConfig) DeployerPodControllerClients() (*osclient.Client, *kclient.Client) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+}
 func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
-func (c *MasterConfig) DeploymentImageChangeControllerClient() *osclient.Client {
+func (c *MasterConfig) DeploymentImageChangeTriggerControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
+}
+
+func (c *MasterConfig) SecurityAllocationControllerClient() *kclient.Client {
+	return c.PrivilegedLoopbackKubernetesClient
+}
+func (c *MasterConfig) SDNControllerClients() (*osclient.Client, *kclient.Client) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+}
+func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, *kclient.Client) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
 // OriginNamespaceControllerClients returns a client for openshift and kubernetes.
@@ -388,4 +432,18 @@ func NewEtcdHelper(client *etcdclient.Client, version, prefix string) (oshelper 
 		return tools.EtcdHelper{}, err
 	}
 	return tools.NewEtcdHelper(client, interfaces.Codec, prefix), nil
+}
+
+// GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the
+// named service account in the infra namespace
+func (c *MasterConfig) GetServiceAccountClients(name string) (*osclient.Client, *kclient.Client, error) {
+	if len(name) == 0 {
+		return nil, nil, errors.New("No service account name specified")
+	}
+	return serviceaccounts.Clients(
+		c.PrivilegedLoopbackClientConfig,
+		&serviceaccounts.ClientLookupTokenRetriever{c.PrivilegedLoopbackKubernetesClient},
+		c.Options.PolicyConfig.OpenShiftInfrastructureNamespace,
+		name,
+	)
 }

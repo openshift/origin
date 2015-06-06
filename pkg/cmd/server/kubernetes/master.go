@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/nodecontroller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
@@ -67,8 +68,8 @@ func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 }
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
-func (c *MasterConfig) RunReplicationController() {
-	controllerManager := controller.NewReplicationManager(c.KubeClient, controller.BurstReplicas)
+func (c *MasterConfig) RunReplicationController(client *client.Client) {
+	controllerManager := controller.NewReplicationManager(client, controller.BurstReplicas)
 	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
 	glog.Infof("Started Kubernetes Replication Manager")
 }

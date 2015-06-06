@@ -390,9 +390,19 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		go func() {
 			openshiftConfig.ControllerPlug.WaitForStart()
 			glog.Infof("Master controllers starting (%s)", openshiftMasterConfig.Controllers)
+
+			// Start these first, because they provide credentials for other controllers' clients
+			openshiftConfig.RunServiceAccountsController()
+			openshiftConfig.RunServiceAccountTokensController()
+
 			if kubeConfig != nil {
+				_, rcClient, err := openshiftConfig.GetServiceAccountClients(openshiftConfig.ReplicationControllerServiceAccount)
+				if err != nil {
+					glog.Fatalf("Could not get client for replication controller: %v", err)
+				}
+
 				kubeConfig.RunScheduler()
-				kubeConfig.RunReplicationController()
+				kubeConfig.RunReplicationController(rcClient)
 				kubeConfig.RunEndpointController()
 				kubeConfig.RunNodeController()
 				kubeConfig.RunResourceQuotaManager()
@@ -411,8 +421,6 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 			openshiftConfig.RunImageImportController()
 			openshiftConfig.RunOriginNamespaceController()
 			openshiftConfig.RunSecurityAllocationController()
-			openshiftConfig.RunServiceAccountsController()
-			openshiftConfig.RunServiceAccountTokensController()
 			openshiftConfig.RunServiceAccountPullSecretsControllers()
 			openshiftConfig.RunSDNController()
 		}()
