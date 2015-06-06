@@ -316,7 +316,7 @@ angular.module('openshiftConsole')
 
 // type:      API type (e.g. "pods")
 // context:   API context (e.g. {project: "..."})
-// callback:  function to be called with the initial list of the requested type,
+// callback:  optional function to be called with the initial list of the requested type,
 //            and when updates are received, parameters passed to the callback:
 //            Data:   a Data object containing the (context-qualified) results
 //                    which includes a helper method for returning a map indexed
@@ -339,7 +339,16 @@ angular.module('openshiftConsole')
   DataService.prototype.watch = function(type, context, callback, opts) {
     type = normalizeType(type);
     opts = opts || {};
-    this._watchCallbacks(type, context).add(callback);
+
+    if (callback) {
+      // If we were given a callback, add it
+      this._watchCallbacks(type, context).add(callback);
+    }
+    else if (!this._watchCallbacks(type, context).has()) {
+      // We can be called with no callback in order to re-run a list/watch sequence for existing callbacks
+      // If there are no existing callbacks, return
+      return {};
+    }
 
     var existingWatchOpts = this._watchOptions(type, context);
     if (existingWatchOpts) {
@@ -353,7 +362,9 @@ angular.module('openshiftConsole')
     }
 
     if (this._watchInFlight(type, context) && this._resourceVersion(type, context)) {
-      callback(this._data(type, context));
+      if (callback) {
+        callback(this._data(type, context));
+      }
     }
     else if (this._listInFlight(type, context)) {
       // no-op, our callback will get called when listOperation completes
@@ -377,7 +388,9 @@ angular.module('openshiftConsole')
     var callback = handle.callback;
     var opts = handle.opts;
     var callbacks = this._watchCallbacks(type, context);
-    callbacks.remove(callback);
+    if (callback) {
+      callbacks.remove(callback);
+    }
     if (!callbacks.has()) {
       if (opts && opts.poll) {
         clearTimeout(this._watchPollTimeouts(type, context));
@@ -387,7 +400,7 @@ angular.module('openshiftConsole')
         // watchWebsockets may not have been set up yet if the projectPromise never resolves
         var ws = this._watchWebsockets(type, context);
         // Make sure the onclose listener doesn't reopen this websocket.
-        ws.unwatch = true;
+        ws.shouldClose = true;
         ws.close();
         this._watchWebsockets(type, context, null);
       }
@@ -504,7 +517,7 @@ angular.module('openshiftConsole')
   DataService.prototype._uniqueKeyForTypeContext = function(type, context) {
     // Note: when we start handling selecting multiple projects this
     // will change to include all relevant scope
-    return type + context.projectName;
+    return type + "/" + context.projectName;
   };
 
   DataService.prototype._startListOp = function(type, context) {
@@ -620,6 +633,14 @@ angular.module('openshiftConsole')
     try {
       var eventData = $.parseJSON(event.data);
 
+      if (eventData.type == "ERROR") {
+        Logger.log("Watch window expired for type/context", type, context);
+        if (event.target) {
+          event.target.shouldRelist = true;
+        }
+        return;
+      }
+
       this._resourceVersion(type, context, eventData.object.resourceVersion || eventData.object.metadata.resourceVersion);
       // TODO do we reset all the by() indices, or simply update them, since we should know what keys are there?
       // TODO let the data object handle its own update
@@ -636,42 +657,80 @@ angular.module('openshiftConsole')
   };
 
   DataService.prototype._watchOpOnClose = function(type, context, event) {
-    // If unwatch is set on the event.target (the websocket), don't
-    // attempt to re-establish the connection.
-    if (event.target && event.target.unwatch) {
+    var eventWS = event.target;
+    if (!eventWS) {
+      Logger.log("Skipping reopen, no eventWS in event", event);
       return;
     }
 
-    // Attempt to re-establish the connection in cases
-    // where the socket close was unexpected, i.e. the event's
-    // wasClean attribute is false
-    var retry = this._watchWebsocketRetries(type, context) || 0;
-    if (!event.wasClean && this._watchCallbacks(type, context).has()) {
-      if (retry < 5) {
-        this._watchWebsocketRetries(type, context, retry + 1);
-        setTimeout(
-          $.proxy(this, "_startWatchOp", type, context, this._resourceVersion(type, context)),
-          1000
-        );
-      }
-      else {
-        Notification.error(
-          "Server connection interrupted.",
-          {
-            id: "websocket_retry_halted",
-            mustDismiss: true,
-            actions: {
-              "refresh" : {
-                label: "Refresh",
-                action: function() {
-                  window.location.reload();
-                }
-              }
-            }
-          }
-        );
-      }
+    var registeredWS = this._watchWebsockets(type, context);
+    if (!registeredWS) {
+      Logger.log("Skipping reopen, no registeredWS for type/context", type, context);
+      return;
     }
+
+    // Don't reopen a web socket that is no longer registered for this type/context
+    if (eventWS !== registeredWS) {
+      Logger.log("Skipping reopen, eventWS does not match registeredWS", eventWS, registeredWS);
+      return;
+    }
+
+    // We are the registered web socket for this type/context, and we are no longer in flight
+    // Unlock this type/context in case we decide not to reopen
+    this._watchInFlight(type, context, false);
+
+    // Don't reopen web sockets we closed ourselves
+    if (eventWS.shouldClose) {
+      Logger.log("Skipping reopen, eventWS was explicitly closed", eventWS);
+      return;
+    }
+
+    // Don't reopen clean closes (for example, navigating away from the page to example.com)
+    if (event.wasClean) {
+      Logger.log("Skipping reopen, clean close", event);
+      return;
+    }
+
+    // Don't reopen if no one is listening for this data any more
+    if (!this._watchCallbacks(type, context).has()) {
+      Logger.log("Skipping reopen, no listeners registered for type/context", type, context);
+      return;
+    }
+
+    // Don't reopen if we've failed this type/context 5+ times in a row
+    var retries = this._watchWebsocketRetries(type, context) || 0;
+    if (retries >= 5) {
+      Logger.log("Skipping reopen, already retried type/context 5+ times", type, context, retries);
+      Notification.error("Server connection interrupted.", {
+        id: "websocket_retry_halted",
+        mustDismiss: true,
+        actions: {
+          refresh: {label: "Refresh", action: function() { window.location.reload(); }}
+        }
+      });
+      return;
+    }
+
+    // Keep track of this failure
+    this._watchWebsocketRetries(type, context, retries + 1);
+
+    // If our watch window expired, we have to relist to get a new resource version to watch from
+    if (eventWS.shouldRelist) {
+      Logger.log("Relisting for type/context", type, context);
+      // Restart a watch() from the beginning, which triggers a list/watch sequence
+      // The watch() call is responsible for setting _watchInFlight back to true
+      this.watch(type, context);
+      return;
+    }
+
+    // Attempt to re-establish the connection after a one second back-off
+    // Re-mark ourselves as in-flight to prevent other callers from jumping in in the meantime
+    Logger.log("Rewatching for type/context", type, context);
+    this._watchInFlight(type, context, true);
+    setTimeout(
+      $.proxy(this, "_startWatchOp", type, context, this._resourceVersion(type, context)),
+      1000
+    );
   };
 
   var URL_ROOT_TEMPLATE = "{protocol}://{+serverUrl}{+apiPrefix}/{apiVersion}/";
