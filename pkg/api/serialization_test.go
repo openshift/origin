@@ -50,17 +50,24 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.DockerImageMetadataVersion = []string{"pre012", "1.0"}[c.Rand.Intn(2)]
 			j.DockerImageReference = c.RandString()
 		},
-		func(j *image.ImageRepositoryMapping, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			j.DockerImageRepository = ""
-		},
 		func(j *image.ImageStreamMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.DockerImageRepository = ""
 		},
+		func(j *image.ImageStreamImage, c fuzz.Continue) {
+			c.Fuzz(&j.Image)
+			// because we de-embedded Image from ImageStreamImage, in order to round trip
+			// successfully, the ImageStreamImage's ObjectMeta must match the Image's.
+			j.ObjectMeta = j.Image.ObjectMeta
+		},
+		func(j *image.ImageStreamTag, c fuzz.Continue) {
+			c.Fuzz(&j.Image)
+			// because we de-embedded Image from ImageStreamTag, in order to round trip
+			// successfully, the ImageStreamTag's ObjectMeta must match the Image's.
+			j.ObjectMeta = j.Image.ObjectMeta
+		},
 		func(j *image.TagReference, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.DockerImageReference = ""
 			if j.From != nil {
 				specs := []string{"", "ImageStreamTag", "ImageStreamImage"}
 				j.From.Kind = specs[c.Intn(len(specs))]
@@ -224,12 +231,8 @@ var skipStandardVersions = map[string][]string{
 	"DockerImage": {"pre012", "1.0"},
 }
 var skipV1beta1 = map[string]struct{}{}
-var skipV1beta3 = map[string]struct{}{
-	"ImageRepository": {},
-}
-var skipV1 = map[string]struct{}{
-	"ImageRepository": {},
-}
+var skipV1beta3 = map[string]struct{}{}
+var skipV1 = map[string]struct{}{}
 
 const fuzzIters = 20
 
@@ -238,7 +241,7 @@ func TestSpecificKind(t *testing.T) {
 	api.Scheme.Log(t)
 	defer api.Scheme.Log(nil)
 
-	kind := "ImageRepositoryList"
+	kind := "ImageStreamTag"
 	item, err := api.Scheme.New("", kind)
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)

@@ -126,7 +126,10 @@ func mockImageStream2(tag string) *imageapi.ImageStream {
 			DockerImageRepository: "registry:8080/openshift/test-image-trigger",
 			Tags: map[string]imageapi.TagReference{
 				tag: {
-					DockerImageReference: "registry:8080/openshift/test-image-trigger:" + tag,
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:8080/openshift/test-image-trigger:" + tag,
+					},
 				},
 			},
 		},

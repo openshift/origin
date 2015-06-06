@@ -123,9 +123,9 @@ func (r *repository) GetByTag(ctx context.Context, tag string) (*manifest.Signed
 	}
 	image := &imageStreamTag.Image
 
-	dgst, err := digest.ParseDigest(imageStreamTag.ImageName)
+	dgst, err := digest.ParseDigest(imageStreamTag.Image.Name)
 	if err != nil {
-		log.Errorf("Error parsing digest %q: %v", imageStreamTag.ImageName, err)
+		log.Errorf("Error parsing digest %q: %v", imageStreamTag.Image.Name, err)
 		return nil, err
 	}
 

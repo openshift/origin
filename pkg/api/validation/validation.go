@@ -45,20 +45,8 @@ func ValidateObject(obj runtime.Object) (errors []error) {
 	case *imageapi.Image:
 		t.Namespace = ""
 		errors = imagev.ValidateImage(t)
-	case *imageapi.ImageRepository:
-		s := &imageapi.ImageStream{}
-		if err := kapi.Scheme.Convert(&t, &s); err != nil {
-			return []error{err}
-		}
-		return imagev.ValidateImageStream(s)
 	case *imageapi.ImageStream:
 		errors = imagev.ValidateImageStream(t)
-	case *imageapi.ImageRepositoryMapping:
-		m := &imageapi.ImageStreamMapping{}
-		if err := kapi.Scheme.Convert(&t, &m); err != nil {
-			return []error{err}
-		}
-		return imagev.ValidateImageStreamMapping(m)
 	case *imageapi.ImageStreamMapping:
 		errors = imagev.ValidateImageStreamMapping(t)
 	case *deployapi.DeploymentConfig:

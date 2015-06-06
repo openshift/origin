@@ -211,13 +211,13 @@ middleware:
 	if e, a := fmt.Sprintf("test@%s", dgst.Hex()[:7]), image.Name; e != a {
 		t.Errorf("image name: expected %q, got %q", e, a)
 	}
-	if e, a := dgst.String(), image.ImageName; e != a {
+	if e, a := dgst.String(), image.Image.Name; e != a {
 		t.Errorf("image name: expected %q, got %q", e, a)
 	}
-	if e, a := fmt.Sprintf("127.0.0.1:5000/%s/%s@%s", testutil.Namespace(), stream.Name, dgst.String()), image.DockerImageReference; e != a {
+	if e, a := fmt.Sprintf("127.0.0.1:5000/%s/%s@%s", testutil.Namespace(), stream.Name, dgst.String()), image.Image.DockerImageReference; e != a {
 		t.Errorf("image dockerImageReference: expected %q, got %q", e, a)
 	}
-	if e, a := "foo", image.DockerImageMetadata.ID; e != a {
+	if e, a := "foo", image.Image.DockerImageMetadata.ID; e != a {
 		t.Errorf("image dockerImageMetadata.ID: expected %q, got %q", e, a)
 	}
 

@@ -270,7 +270,14 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 			Name: name,
 		},
 		Spec: imageapi.ImageStreamSpec{
-			Tags: map[string]imageapi.TagReference{imageapi.DefaultImageTag: {DockerImageReference: r.DockerImageReference.String()}},
+			Tags: map[string]imageapi.TagReference{
+				imageapi.DefaultImageTag: {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: r.DockerImageReference.String(),
+					},
+				},
+			},
 		},
 	}
 	if !r.OutputImage {

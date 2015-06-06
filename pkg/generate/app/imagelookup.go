@@ -279,13 +279,14 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 		if latest == nil {
 			return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("no image recorded for %s/%s:%s", repo.Namespace, repo.Name, searchTag)}
 		}
-		imageData, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(ref.Name, latest.Image)
+		imageStreamImage, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(ref.Name, latest.Image)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("tag %q is set, but image %q has been removed", searchTag, latest.Image)}
 			}
 			return nil, err
 		}
+		imageData := imageStreamImage.Image
 
 		ref.Registry = ""
 		return &ComponentMatch{

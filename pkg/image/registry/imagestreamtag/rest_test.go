@@ -211,7 +211,7 @@ func TestGetImageStreamTag(t *testing.T) {
 		}
 
 		if testCase.repo != nil {
-			fakeEtcdClient.Data["/imagerepositories/default/test"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data["/imagestreams/default/test"] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: &etcd.Node{
 						Value:         runtime.EncodeOrDie(latest.Codec, testCase.repo),
@@ -220,7 +220,7 @@ func TestGetImageStreamTag(t *testing.T) {
 				},
 			}
 		} else {
-			fakeEtcdClient.Data["/imagerepositories/default/test"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data["/imagestreams/default/test"] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: nil,
 				},
@@ -249,7 +249,7 @@ func TestGetImageStreamTag(t *testing.T) {
 			if e, a := "test:latest", actual.Name; e != a {
 				t.Errorf("%s: name: expected %v, got %v", name, e, a)
 			}
-			if e, a := map[string]string{"size": "large", "color": "blue"}, actual.Annotations; !reflect.DeepEqual(e, a) {
+			if e, a := map[string]string{"size": "large", "color": "blue"}, actual.Image.Annotations; !reflect.DeepEqual(e, a) {
 				t.Errorf("%s: annotations: expected %v, got %v", name, e, a)
 			}
 		}
@@ -358,7 +358,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 	for name, testCase := range tests {
 		fakeEtcdClient, helper, storage := setup(t)
 		if testCase.repo != nil {
-			fakeEtcdClient.Data["/imagerepositories/default/test"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data["/imagestreams/default/test"] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: &etcd.Node{
 						Value:         runtime.EncodeOrDie(latest.Codec, testCase.repo),
@@ -367,7 +367,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 				},
 			}
 		} else {
-			fakeEtcdClient.Data["/imagerepositories/default/test"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data["/imagestreams/default/test"] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: nil,
 				},
@@ -394,7 +394,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		}
 
 		updatedRepo := &api.ImageStream{}
-		if err := helper.ExtractObj("/imagerepositories/default/test", updatedRepo, false); err != nil {
+		if err := helper.ExtractObj("/imagestreams/default/test", updatedRepo, false); err != nil {
 			t.Fatalf("%s: error retrieving updated repo: %s", name, err)
 		}
 		expected := map[string]api.TagReference{

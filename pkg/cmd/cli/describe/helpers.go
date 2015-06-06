@@ -165,9 +165,12 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 		specTag := ""
 		if ok {
 			if tagRef.From != nil {
-				specTag = fmt.Sprintf("%s/%s", tagRef.From.Namespace, tagRef.From.Name)
-			} else if len(tagRef.DockerImageReference) != 0 {
-				specTag = tagRef.DockerImageReference
+				switch tagRef.From.Kind {
+				case "ImageStreamTag", "ImageStreamImage":
+					specTag = fmt.Sprintf("%s/%s", tagRef.From.Namespace, tagRef.From.Name)
+				case "DockerImage":
+					specTag = tagRef.From.Name
+				}
 			}
 		} else {
 			specTag = "<pushed>"

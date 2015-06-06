@@ -21,8 +21,7 @@ type REST struct {
 
 // NewREST returns a new REST.
 func NewREST(h tools.EtcdHelper, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST) {
-	//TODO change to imageStreams at release time
-	prefix := "/imagerepositories"
+	prefix := "/imagestreams"
 	store := etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ImageStream{} },
 		NewListFunc: func() runtime.Object { return &api.ImageStreamList{} },

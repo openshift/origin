@@ -464,7 +464,7 @@ func (d *ImageStreamTagDescriber) Describe(namespace, name string) (string, erro
 		return "", err
 	}
 
-	return describeImage(&imageStreamTag.Image, imageStreamTag.ImageName)
+	return describeImage(&imageStreamTag.Image, imageStreamTag.Image.Name)
 }
 
 // ImageStreamImageDescriber generates information about a ImageStreamImage (Image).
@@ -481,7 +481,7 @@ func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, er
 		return "", err
 	}
 
-	return describeImage(&imageStreamImage.Image, imageStreamImage.ImageName)
+	return describeImage(&imageStreamImage.Image, imageStreamImage.Image.Name)
 }
 
 // ImageStreamDescriber generates information about a ImageStream

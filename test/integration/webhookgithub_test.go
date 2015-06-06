@@ -59,7 +59,10 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 			DockerImageRepository: "registry:3000/integration/imageStream",
 			Tags: map[string]imageapi.TagReference{
 				"validTag": {
-					DockerImageReference: "registry:3000/integration/imageStream:success",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:3000/integration/imageStream:success",
+					},
 				},
 			},
 		},
@@ -154,7 +157,10 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 			DockerImageRepository: "registry:3000/integration/imageStream",
 			Tags: map[string]imageapi.TagReference{
 				"validTag": {
-					DockerImageReference: "registry:3000/integration/imageStream:success",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:3000/integration/imageStream:success",
+					},
 				},
 			},
 		},

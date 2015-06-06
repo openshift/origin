@@ -73,9 +73,6 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"jenkins-config":       &kapi.List{},
 			"application-template": &templateapi.Template{},
 		},
-		"../examples/image-repositories": {
-			"image-repositories": &imageapi.ImageRepositoryList{},
-		},
 		"../examples/image-streams": {
 			"image-streams-centos7": &imageapi.ImageStreamList{},
 			"image-streams-rhel7":   &imageapi.ImageStreamList{},
@@ -86,16 +83,14 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"mongodb-template":    &templateapi.Template{},
 		},
 		"../test/integration/fixtures": {
-			"test-deployment-config":        &deployapi.DeploymentConfig{},
-			"test-image":                    &imageapi.Image{},
-			"test-image-repository":         &imageapi.ImageRepository{},
-			"test-image-repository-mapping": &imageapi.ImageRepositoryMapping{},
-			"test-image-stream":             &imageapi.ImageStream{},
-			"test-image-stream-mapping":     &imageapi.ImageStreamMapping{},
-			"test-route":                    &routeapi.Route{},
-			"test-service":                  &kapi.Service{},
-			"test-buildcli":                 &kapi.List{},
-			"test-buildcli-beta2":           &kapi.List{},
+			"test-deployment-config":    &deployapi.DeploymentConfig{},
+			"test-image":                &imageapi.Image{},
+			"test-image-stream":         &imageapi.ImageStream{},
+			"test-image-stream-mapping": &imageapi.ImageStreamMapping{},
+			"test-route":                &routeapi.Route{},
+			"test-service":              &kapi.Service{},
+			"test-buildcli":             &kapi.List{},
+			"test-buildcli-beta2":       &kapi.List{},
 		},
 		"../test/templates/fixtures": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation

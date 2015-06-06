@@ -75,8 +75,12 @@ func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorLis
 		}
 	}
 	for tag, tagRef := range stream.Spec.Tags {
-		if len(tagRef.DockerImageReference) > 0 && tagRef.From != nil {
-			result = append(result, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s]", tag), "", "only 1 of dockerImageReference or from may be set"))
+		if tagRef.From != nil {
+			switch tagRef.From.Kind {
+			case "DockerImage", "ImageStreamImage", "ImageStreamTag":
+			default:
+				result = append(result, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.kind", tag), tagRef.From.Kind, "valid values are 'DockerImage', 'ImageStreamImage', 'ImageStreamTag'"))
+			}
 		}
 	}
 	for tag, history := range stream.Status.Tags {

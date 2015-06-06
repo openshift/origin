@@ -191,7 +191,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "test:newer" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newer" || fromTag.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
@@ -199,7 +199,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "test:newest" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newest" || fromTag.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
@@ -226,7 +226,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "test:newer" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newer" || fromTag.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
@@ -234,14 +234,14 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "test:newest" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:newest" || fromTag.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 	fromTag, err = clusterAdminClient.ImageStreamTags(testutil.Namespace()).Get(stream.Name, "anothertag")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if fromTag.Name != "test:anothertag" || fromTag.UID == "" || fromTag.DockerImageReference != "some/other/name" {
+	if fromTag.Name != "test:anothertag" || fromTag.UID == "" || fromTag.Image.DockerImageReference != "some/other/name" {
 		t.Errorf("unexpected object: %#v", fromTag)
 	}
 
