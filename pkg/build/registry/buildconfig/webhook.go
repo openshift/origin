@@ -52,7 +52,7 @@ func (c *controller) ServeHTTP(w http.ResponseWriter, req *http.Request, ctx kap
 	revision, proceed, err := plugin.Extract(config, secret, "", req)
 	switch err {
 	case webhook.ErrSecretMismatch, webhook.ErrHookNotEnabled:
-		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", plugin, name))
+		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	case nil:
 	default:
 		return errors.NewInternalError(fmt.Errorf("hook failed: %v", err))
