@@ -451,7 +451,7 @@ When Authorizer.Authorize() is called, it will see a
 ```
 Based on this information, the authorizer will know that it has to locate and evaluate something called, "sameMinionRestriction".  The code could be as simple as:
 ```
-// psuedo code
+// pseudo code
 switch policyRule.AttributeRestrictions.(type){
 case "sameMinionRestriction":
 	// check to see if the user is kubelet, if not fail

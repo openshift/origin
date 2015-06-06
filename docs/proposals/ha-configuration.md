@@ -31,7 +31,7 @@ instance(s) from the traffic mix. Otherwise, a certain subset of requests
      required to perform any manual interaction to update the upstream
      "discovery" sources (e.g. DNS). The cluster should service all the
      assigned virtual IPs when atleast a single node is available - and
-     this should be inspite of the fact that the current available
+     this should be in spite of the fact that the current available
      resources are not sufficient to reach "critical mass" aka the
      desired state.
 
