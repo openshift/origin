@@ -54,11 +54,28 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 			continue
 		}
 
+		// The tag will be either on the ImageStream reference or on params
+		// itself (if RepositoryName is being used).
+		// TODO: Remove params.Tag and RepositoryName stuff after v1
+		fromTag := params.Tag
+		tagField := fmt.Sprintf("triggers[%d].imageChange.tag", i)
+		tagFieldValue := params.Tag
+		if len(params.From.Name) > 0 {
+			tagField := fmt.Sprintf("triggers[%d].imageChange.from.name", i)
+			tagFieldValue = params.From.Name
+			// Use the tag encoded in the ImageStream name
+			_, tag, ok := imageapi.SplitImageStreamTag(params.From.Name)
+			if !ok {
+				errs = append(errs, fielderrors.NewFieldInvalid(tagField, params.From.Name, "couldn't extract tag from name"))
+				continue
+			}
+			fromTag = tag
+		}
+
 		// Find the latest tag event for the trigger tag
-		latestEvent := imageapi.LatestTaggedImage(imageStream, params.Tag)
+		latestEvent := imageapi.LatestTaggedImage(imageStream, fromTag)
 		if latestEvent == nil {
-			f := fmt.Sprintf("triggers[%d].imageChange.tag", i)
-			errs = append(errs, fielderrors.NewFieldInvalid(f, params.Tag, fmt.Sprintf("no image recorded for %s/%s:%s", imageStream.Namespace, imageStream.Name, params.Tag)))
+			errs = append(errs, fielderrors.NewFieldInvalid(tagField, tagFieldValue, fmt.Sprintf("no image recorded for %s/%s:%s", imageStream.Namespace, imageStream.Name, fromTag)))
 			continue
 		}
 
@@ -114,12 +131,16 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 func (g *DeploymentConfigGenerator) findImageStream(config *deployapi.DeploymentConfig, params *deployapi.DeploymentTriggerImageChangeParams) (*imageapi.ImageStream, error) {
 	// Try to find the repo by ObjectReference
 	if len(params.From.Name) > 0 {
+		name, _, ok := imageapi.SplitImageStreamTag(params.From.Name)
+		if !ok {
+			return nil, fmt.Errorf("couldn't extract ImageStream name from reference %s", params.From.Name)
+		}
 		namespace := params.From.Namespace
 		if len(namespace) == 0 {
 			namespace = config.Namespace
 		}
 
-		return g.Client.GetImageStream(kapi.WithNamespace(kapi.NewContext(), namespace), params.From.Name)
+		return g.Client.GetImageStream(kapi.WithNamespace(kapi.NewContext(), namespace), name)
 	}
 
 	// Fall back to a list based lookup on RepositoryName

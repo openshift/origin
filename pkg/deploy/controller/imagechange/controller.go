@@ -47,13 +47,30 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 
 			// Check if the image repo matches the trigger
 			if !triggerMatchesImage(config, params, imageRepo) {
+				glog.V(4).Infof("ImageStream %s change doesn't match triggers for config '%s' with params %#v", imageRepo.Name, config.Name, params)
 				continue
 			}
 
+			// The tag will be either on the ImageStream reference or on params
+			// itself (if RepositoryName is being used).
+			fromTag := ""
+			if len(params.From.Name) > 0 {
+				// Use the tag encoded in the ImageStream name
+				_, tag, ok := imageapi.SplitImageStreamTag(params.From.Name)
+				if !ok {
+					// TODO: record an event?
+					glog.V(2).Infof("Couldn't extract tag name from ImageStream %s", params.From.Name)
+					continue
+				}
+				fromTag = tag
+			} else {
+				// Deprecated: should only be used in conjunction with params.RepositoryName
+				fromTag = params.Tag
+			}
 			// Find the latest tag event for the trigger tag
-			latestEvent := imageapi.LatestTaggedImage(imageRepo, params.Tag)
+			latestEvent := imageapi.LatestTaggedImage(imageRepo, fromTag)
 			if latestEvent == nil {
-				glog.V(2).Infof("Couldn't find latest tag event for tag %s in ImageStream %s", params.Tag, labelForRepo(imageRepo))
+				glog.V(2).Infof("Couldn't find latest tag event for tag %s in ImageStream %#v", fromTag, imageRepo)
 				continue
 			}
 
@@ -93,12 +110,16 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 // - The namespace of the trigger is preferred over the config's namespace.
 func triggerMatchesImage(config *deployapi.DeploymentConfig, params *deployapi.DeploymentTriggerImageChangeParams, repo *imageapi.ImageStream) bool {
 	if len(params.From.Name) > 0 {
+		fromName, _, ok := imageapi.SplitImageStreamTag(params.From.Name)
+		if !ok {
+			return false
+		}
 		namespace := params.From.Namespace
 		if len(namespace) == 0 {
 			namespace = config.Namespace
 		}
 
-		return repo.Namespace == namespace && repo.Name == params.From.Name
+		return repo.Namespace == namespace && repo.Name == fromName
 	}
 
 	// This is an invalid state (as one of From.Name or RepositoryName is required), but
