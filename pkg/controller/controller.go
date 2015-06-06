@@ -51,7 +51,7 @@ func (c *RetryController) handleOne(resource interface{}) {
 		c.Retry(resource, err)
 		return
 	}
-	c.RetryManager.Forget(resource)
+	c.Forget(resource)
 }
 
 // RetryManager knows how to retry processing of a resource, and how to forget
@@ -70,6 +70,16 @@ type RetryManager interface {
 // RetryFunc should return true if the given object and error should be retried after
 // the provided number of times.
 type RetryFunc func(obj interface{}, err error, retries Retry) bool
+
+// RetryNever is a RetryFunc implementation that will never retry
+func RetryNever(obj interface{}, err error, retries Retry) bool {
+	return false
+}
+
+// RetryNever is a RetryFunc implementation that will always retry
+func RetryAlways(obj interface{}, err error, retries Retry) bool {
+	return true
+}
 
 // QueueRetryManager retries a resource by re-queueing it into a ReQueue as long as
 // retryFunc returns true.
