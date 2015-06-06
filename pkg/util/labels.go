@@ -10,7 +10,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
-	configapi "github.com/openshift/origin/pkg/config/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
@@ -91,17 +90,6 @@ func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
 	}
 
 	return nil
-}
-
-// AddConfigLabels adds new label(s) to all resources defined in the given Config.
-func AddConfigLabels(c *configapi.Config, labels labels.Set) fielderrors.ValidationErrorList {
-	itemErrors := fielderrors.ValidationErrorList{}
-	for i, in := range c.Items {
-		if err := AddObjectLabels(in, labels); err != nil {
-			ReportError(&itemErrors, i, *fielderrors.NewFieldInvalid("labels", err, fmt.Sprintf("error applying labels %v to %v", labels, in)))
-		}
-	}
-	return itemErrors.Prefix("objects")
 }
 
 // MergeInto merges items from a src map into a dst map.

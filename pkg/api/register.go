@@ -6,7 +6,6 @@ import (
 
 	_ "github.com/openshift/origin/pkg/authorization/api"
 	_ "github.com/openshift/origin/pkg/build/api"
-	_ "github.com/openshift/origin/pkg/config/api"
 	_ "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/image/api"
 	_ "github.com/openshift/origin/pkg/oauth/api"

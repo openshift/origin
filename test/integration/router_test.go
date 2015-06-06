@@ -13,11 +13,14 @@ import (
 	"testing"
 	"time"
 
+	dockerClient "github.com/fsouza/go-dockerclient"
 	"golang.org/x/net/websocket"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
-	dockerClient "github.com/fsouza/go-dockerclient"
+	watchjson "github.com/GoogleCloudPlatform/kubernetes/pkg/watch/json"
+
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	tr "github.com/openshift/origin/test/integration/router"
 	testutil "github.com/openshift/origin/test/util"
@@ -219,10 +222,6 @@ func TestRouter(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: tc.serviceName,
 				},
-				TypeMeta: kapi.TypeMeta{
-					Kind:       "Endpoints",
-					APIVersion: "v1beta3",
-				},
 				Subsets: tc.endpoints,
 			},
 		}
@@ -230,10 +229,6 @@ func TestRouter(t *testing.T) {
 		routeEvent := &watch.Event{
 			Type: tc.routeEventType,
 			Object: &routeapi.Route{
-				TypeMeta: kapi.TypeMeta{
-					Kind:       "Route",
-					APIVersion: "v1beta1",
-				},
 				Host:        tc.routeAlias,
 				Path:        tc.routePath,
 				ServiceName: tc.serviceName,
@@ -326,10 +321,6 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Name:      "myService",
 				Namespace: "default",
 			},
-			TypeMeta: kapi.TypeMeta{
-				Kind:       "Endpoints",
-				APIVersion: "v1beta3",
-			},
 			Subsets: []kapi.EndpointSubset{httpEndpoint},
 		},
 	}
@@ -339,10 +330,6 @@ func TestRouterPathSpecificity(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name:      "path",
 				Namespace: "default",
-			},
-			TypeMeta: kapi.TypeMeta{
-				Kind:       "Route",
-				APIVersion: "v1beta1",
 			},
 			Host:        "www.example.com",
 			Path:        "/test",
@@ -366,10 +353,6 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Name:      "host",
 				Namespace: "default",
 			},
-			TypeMeta: kapi.TypeMeta{
-				Kind:       "Route",
-				APIVersion: "v1beta1",
-			},
 			Host:        "www.example.com",
 			ServiceName: "myService",
 		},
@@ -387,10 +370,6 @@ func TestRouterPathSpecificity(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name:      "path",
 				Namespace: "default",
-			},
-			TypeMeta: kapi.TypeMeta{
-				Kind:       "Route",
-				APIVersion: "v1beta1",
 			},
 			Host:        "www.example.com",
 			Path:        "/test",
@@ -440,10 +419,6 @@ func TestRouterDuplications(t *testing.T) {
 				Name:      "myService",
 				Namespace: "default",
 			},
-			TypeMeta: kapi.TypeMeta{
-				Kind:       "Endpoints",
-				APIVersion: "v1beta3",
-			},
 			Subsets: []kapi.EndpointSubset{httpEndpoint},
 		},
 	}
@@ -453,10 +428,6 @@ func TestRouterDuplications(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name:      "example",
 				Namespace: "default",
-			},
-			TypeMeta: kapi.TypeMeta{
-				Kind:       "Route",
-				APIVersion: "v1beta1",
 			},
 			Host:        "www.example.com",
 			ServiceName: "myService",
@@ -468,10 +439,6 @@ func TestRouterDuplications(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name:      "example2",
 				Namespace: "default",
-			},
-			TypeMeta: kapi.TypeMeta{
-				Kind:       "Route",
-				APIVersion: "v1beta1",
 			},
 			Host:        "www.example2.com",
 			ServiceName: "myService",
@@ -600,7 +567,8 @@ func getRoute(routerUrl string, hostName string, protocol string, expectedRespon
 
 // eventString marshals the event into a string
 func eventString(e *watch.Event) string {
-	s, _ := json.Marshal(e)
+	obj, _ := watchjson.Object(v1beta3.Codec, e)
+	s, _ := json.Marshal(obj)
 	return string(s)
 }
 

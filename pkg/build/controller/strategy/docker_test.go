@@ -7,7 +7,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 
-	"github.com/openshift/origin/pkg/api/v1beta3"
+	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -15,7 +15,7 @@ import (
 func TestDockerCreateBuildPod(t *testing.T) {
 	strategy := DockerBuildStrategy{
 		Image: "docker-test-image",
-		Codec: v1beta3.Codec,
+		Codec: latest.Codec,
 	}
 
 	expected := mockDockerBuild()
@@ -65,7 +65,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if !kapi.Semantic.DeepEqual(container.Resources, expected.Parameters.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
 	}
-	buildJSON, _ := v1beta3.Codec.Encode(expected)
+	buildJSON, _ := latest.Codec.Encode(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}

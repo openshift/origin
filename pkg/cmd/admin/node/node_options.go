@@ -186,8 +186,6 @@ func (n *NodeOptions) GetPrinters(kind, version string) (kubectl.ResourcePrinter
 
 func GetPodHostFieldLabel(apiVersion string) string {
 	switch apiVersion {
-	case "v1beta1", "v1beta2":
-		return "DesiredState.Host"
 	default:
 		return "spec.host"
 	}

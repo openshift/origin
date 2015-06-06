@@ -32,8 +32,6 @@ import (
 
 const (
 	KubeAPIPrefix        = "/api"
-	KubeAPIPrefixV1Beta1 = "/api/v1beta1"
-	KubeAPIPrefixV1Beta2 = "/api/v1beta2"
 	KubeAPIPrefixV1Beta3 = "/api/v1beta3"
 	KubeAPIPrefixV1      = "/api/v1"
 )
@@ -79,20 +77,12 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 		Authorizer:       c.Authorizer,
 		AdmissionControl: c.AdmissionControl,
 
-		DisableV1Beta1: !configapi.HasKubernetesAPILevel(c.Options, "v1beta1"),
-		DisableV1Beta2: !configapi.HasKubernetesAPILevel(c.Options, "v1beta2"),
 		DisableV1Beta3: !configapi.HasKubernetesAPILevel(c.Options, "v1beta3"),
 		EnableV1:       configapi.HasKubernetesAPILevel(c.Options, "v1"),
 	}
 	_ = master.New(masterConfig)
 
 	messages := []string{}
-	if !masterConfig.DisableV1Beta1 {
-		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta1))
-	}
-	if !masterConfig.DisableV1Beta2 {
-		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta2))
-	}
 	if !masterConfig.DisableV1Beta3 {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta3))
 	}

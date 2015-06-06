@@ -7,12 +7,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	config "github.com/openshift/origin/pkg/config/api"
 	template "github.com/openshift/origin/pkg/template/api"
 )
 
 func TestNewRESTInvalidType(t *testing.T) {
-	storage := NewREST(true)
+	storage := NewREST()
 	_, err := storage.Create(nil, &kapi.Pod{})
 	if err == nil {
 		t.Errorf("Expected type error.")
@@ -24,7 +23,7 @@ func TestNewRESTInvalidType(t *testing.T) {
 }
 
 func TestNewRESTDefaultsName(t *testing.T) {
-	storage := NewREST(true)
+	storage := NewREST()
 	obj, err := storage.Create(nil, &template.Template{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test",
@@ -33,14 +32,14 @@ func TestNewRESTDefaultsName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, ok := obj.(*config.Config)
+	_, ok := obj.(*template.Template)
 	if !ok {
 		t.Fatalf("unexpected return object: %#v", obj)
 	}
 }
 
 func TestNewRESTInvalidParameter(t *testing.T) {
-	storage := NewREST(true)
+	storage := NewREST()
 	_, err := storage.Create(nil, &template.Template{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test",
@@ -63,7 +62,7 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 		"label1": "value1",
 		"label2": "value2",
 	}
-	storage := NewREST(true)
+	storage := NewREST()
 	obj, err := storage.Create(nil, &template.Template{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test",
@@ -89,11 +88,11 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	config, ok := obj.(*config.Config)
+	config, ok := obj.(*template.Template)
 	if !ok {
 		t.Fatalf("unexpected return object: %#v", obj)
 	}
-	svc, ok := config.Items[0].(*kapi.Service)
+	svc, ok := config.Objects[0].(*kapi.Service)
 	if !ok {
 		t.Fatalf("Unexpected object in config: %#v", svc)
 	}
@@ -113,7 +112,7 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 		"label1": "value1",
 		"label2": "value2",
 	}
-	storage := NewREST(false)
+	storage := NewREST()
 	obj, err := storage.Create(nil, &template.Template{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test",

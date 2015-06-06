@@ -65,7 +65,7 @@ JSON and YAML formats are accepted.`
   $ cat pod.json | %[1]s update -f -
 
   // Update a pod by downloading it, applying the patch, then updating. Requires apiVersion be specified.
-  $ %[1]s update pods my-pod --patch='{ "apiVersion": "v1beta3", "spec": { "manifest": { "dnsPolicy": "ClusterFirst" }}}'`
+  $ %[1]s update pods my-pod --patch='{ "apiVersion": "v1", "spec": { "containers": [{ "image": "myimage" }]}}'`
 )
 
 // NewCmdUpdate is a wrapper for the Kubernetes cli update command

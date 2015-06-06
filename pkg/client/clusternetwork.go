@@ -2,7 +2,6 @@ package client
 
 import (
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
-	_ "github.com/openshift/origin/pkg/sdn/api/v1beta3"
 )
 
 // ClusterNetworkingInterface has methods to work with ClusterNetwork resources

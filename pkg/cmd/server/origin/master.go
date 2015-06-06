@@ -38,7 +38,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
@@ -68,9 +67,6 @@ import (
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagerepository"
-	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
-	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
@@ -130,10 +126,8 @@ const (
 	LegacyOpenShiftAPIPrefix  = "/osapi" // TODO: make configurable
 	OpenShiftAPIPrefix        = "/oapi"  // TODO: make configurable
 	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
-	OpenShiftAPIV1Beta1       = "v1beta1"
 	OpenShiftAPIV1Beta3       = "v1beta3"
 	OpenShiftAPIV1            = "v1"
-	OpenShiftAPIPrefixV1Beta1 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
 	OpenShiftAPIPrefixV1Beta3 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
 	OpenShiftAPIPrefixV1      = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
 	OpenShiftRouteSubdomain   = "router.default.local"
@@ -141,11 +135,8 @@ const (
 )
 
 var (
-	excludedV1Beta3Types = util.NewStringSet(
-		"templateConfigs", "deployments", "buildLogs",
-		"imageRepositories", "imageRepositories/status", "imageRepositoryMappings", "imageRepositoryTags",
-	)
-	excludedV1Types = excludedV1Beta3Types
+	excludedV1Beta3Types = util.NewStringSet()
+	excludedV1Types      = excludedV1Beta3Types
 )
 
 // APIInstaller installs additional API components into this server
@@ -217,15 +208,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	imageStreamStorage, imageStreamStatusStorage := imagestreametcd.NewREST(c.EtcdHelper, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
-	imageStreamMappingRegistry := imagestreammapping.NewRegistry(imageStreamMappingStorage)
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
-
-	imageRepositoryStorage, imageRepositoryStatusStorage := imagerepository.NewREST(imageStreamRegistry)
-	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageStreamMappingRegistry)
-	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageStreamTagRegistry)
 
 	routeAllocator := c.RouteAllocator()
 
@@ -286,25 +272,20 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"buildConfigs":             buildConfigStorage,
 		"buildConfigs/webhooks":    buildConfigWebHooks,
 		"buildConfigs/instantiate": buildConfigInstantiate,
-		"buildLogs":                buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient),
 		"builds/log":               buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient),
 
-		"images":                   imageStorage,
-		"imageStreams":             imageStreamStorage,
-		"imageStreams/status":      imageStreamStatusStorage,
-		"imageStreamImages":        imageStreamImageStorage,
-		"imageStreamMappings":      imageStreamMappingStorage,
-		"imageStreamTags":          imageStreamTagStorage,
-		"imageRepositories":        imageRepositoryStorage,
-		"imageRepositories/status": imageRepositoryStatusStorage,
-		"imageRepositoryMappings":  imageRepositoryMappingStorage,
-		"imageRepositoryTags":      imageRepositoryTagStorage,
+		"images":              imageStorage,
+		"imageStreams":        imageStreamStorage,
+		"imageStreams/status": imageStreamStatusStorage,
+		"imageStreamImages":   imageStreamImageStorage,
+		"imageStreamMappings": imageStreamMappingStorage,
+		"imageStreamTags":     imageStreamTagStorage,
 
 		"deploymentConfigs":         deployConfigStorage,
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
-		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec),
+		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec),
 
-		"processedTemplates": templateregistry.NewREST(false),
+		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
 
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
@@ -342,17 +323,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	legacyAPIVersions := []string{}
 	currentAPIVersions := []string{}
 
-	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta1) {
-		// templateConfigs is only available in v1beta1
-		storage["templateConfigs"] = templateregistry.NewREST(true)
-
-		if err := c.api_v1beta1(storage).InstallREST(container); err != nil {
-			glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
-		}
-		messages = append(messages, fmt.Sprintf("Started OpenShift API at %%s%s (deprecated)", OpenShiftAPIPrefixV1Beta1))
-		legacyAPIVersions = append(legacyAPIVersions, OpenShiftAPIV1Beta1)
-	}
-
 	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta3) {
 		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
@@ -374,8 +344,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		switch svc.RootPath() {
 		case "/":
 			root = svc
-		case OpenShiftAPIPrefixV1Beta1:
-			svc.Doc("OpenShift REST API, version v1beta1").ApiVersion("v1beta1")
 		case OpenShiftAPIPrefixV1Beta3:
 			svc.Doc("OpenShift REST API, version v1beta3").ApiVersion("v1beta3")
 		case OpenShiftAPIPrefixV1:
@@ -395,19 +363,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 }
 
 func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []string {
-	bcClient, _ := c.BuildControllerClients()
-	bcGetterUpdater := buildclient.NewOSClientBuildConfigClient(bcClient)
-	handler := webhook.NewController(
-		bcGetterUpdater,
-		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
-		map[string]webhook.Plugin{
-			"generic": generic.New(),
-			"github":  github.New(),
-		})
-
-	// TODO: deprecated, remove when v1beta1 is dropped
-	prefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
-	container.Handle(prefix, http.StripPrefix(prefix, handler))
 	return []string{}
 }
 
@@ -450,16 +405,15 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 			// TODO once we have a MuxHelper we will not need to hardcode this list of paths
 			object := api.RootPaths{Paths: []string{
 				"/api",
-				"/api/v1beta1",
 				"/api/v1beta3",
-				"/api/v1beta3",
+				"/api/v1",
 				"/healthz",
 				"/healthz/ping",
 				"/logs/",
 				"/metrics",
 				"/osapi",
-				"/osapi/v1beta1",
 				"/osapi/v1beta3",
+				"/oapi",
 				"/oapi/v1",
 				"/swaggerapi/",
 			}}
@@ -572,12 +526,8 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	c.ensureComponentAuthorizationRules()
 	// Bind default roles for service accounts in the default namespace if needed
 	c.ensureDefaultNamespaceServiceAccountRoles()
-
-	// Ensure the shared resource namespace stays created
+	// Create the shared resource namespace
 	c.ensureOpenShiftSharedResourcesNamespace()
-	go util.Forever(func() {
-		c.ensureOpenShiftSharedResourcesNamespace()
-	}, 10*time.Second)
 }
 
 func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
@@ -594,21 +544,6 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		Admit:   c.AdmissionControl,
 		Context: c.getRequestContextMapper(),
 	}
-}
-
-// api_v1beta1 returns the resources and codec for API version v1beta1.
-func (c *MasterConfig) api_v1beta1(all map[string]rest.Storage) *apiserver.APIGroupVersion {
-	storage := make(map[string]rest.Storage)
-	for k, v := range all {
-		storage[strings.ToLower(k)] = v
-		storage[k] = v
-	}
-	version := c.defaultAPIGroupVersion()
-	version.Root = LegacyOpenShiftAPIPrefix
-	version.Storage = storage
-	version.Version = OpenShiftAPIV1Beta1
-	version.Codec = v1beta1.Codec
-	return version
 }
 
 // api_v1beta3 returns the resources and codec for API version v1beta3.
@@ -928,6 +863,12 @@ func (c *MasterConfig) RunBuildController() {
 	dockerImage := c.ImageFor("docker-builder")
 	stiImage := c.ImageFor("sti-builder")
 
+	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
+	interfaces, err := latest.InterfacesFor(storageVersion)
+	if err != nil {
+		glog.Fatalf("Unable to load storage version %s: %v", storageVersion, err)
+	}
+
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
 		OSClient:     osclient,
@@ -936,17 +877,17 @@ func (c *MasterConfig) RunBuildController() {
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: v1beta1.Codec,
+			Codec: interfaces.Codec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: v1beta1.Codec,
+			Codec: interfaces.Codec,
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: v1beta1.Codec,
+			Codec: interfaces.Codec,
 		},
 	}
 
@@ -979,12 +920,12 @@ func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 }
 
 // RunDeploymentController starts the deployment controller process.
-func (c *MasterConfig) RunDeploymentController() error {
+func (c *MasterConfig) RunDeploymentController() {
 	_, kclient := c.DeploymentControllerClients()
 
 	_, kclientConfig, err := configapi.GetKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig)
 	if err != nil {
-		return err
+		glog.Fatalf("Unable to initialize deployment controller: %v", err)
 	}
 	// TODO eliminate these environment variables once service accounts provide a kubeconfig that includes all of this info
 	env := clientcmd.EnvVars(
@@ -996,7 +937,7 @@ func (c *MasterConfig) RunDeploymentController() error {
 
 	factory := deploycontroller.DeploymentControllerFactory{
 		KubeClient:     kclient,
-		Codec:          latest.Codec,
+		Codec:          c.EtcdHelper.Codec,
 		Environment:    env,
 		DeployerImage:  c.ImageFor("deployer"),
 		ServiceAccount: bootstrappolicy.DeployerServiceAccountName,
@@ -1004,8 +945,6 @@ func (c *MasterConfig) RunDeploymentController() error {
 
 	controller := factory.Create()
 	controller.Run()
-
-	return nil
 }
 
 // RunDeployerPodController starts the deployer pod controller process.
@@ -1024,7 +963,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	factory := deployconfigcontroller.DeploymentConfigControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
-		Codec:      latest.Codec,
+		Codec:      c.EtcdHelper.Codec,
 	}
 	controller := factory.Create()
 	controller.Run()
@@ -1035,7 +974,7 @@ func (c *MasterConfig) RunDeploymentConfigChangeController() {
 	factory := configchangecontroller.DeploymentConfigChangeControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
-		Codec:      latest.Codec,
+		Codec:      c.EtcdHelper.Codec,
 	}
 	controller := factory.Create()
 	controller.Run()
