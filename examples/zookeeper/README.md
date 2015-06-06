@@ -28,7 +28,7 @@ It is not really required, but it will speed up the launch of the pods.
 You can import this template to OpenShift using:
 
 ```
-$ osc create -f examples/zookeeper/template.json
+$ oc create -f examples/zookeeper/template.json
 ```
 
 Then you can navigate to OpenShift UI and click the 'Create' button on top right
@@ -37,7 +37,7 @@ and choose 'Browse templates...'. Choose the 'zookeeper' and hit create.
 Another way, is to use the CLI only:
 
 ```
-$ osc process -f examples/zookeeper/template.json | osc create -f -
+$ oc process -f examples/zookeeper/template.json | oc create -f -
 ```
 
 ### How does it work

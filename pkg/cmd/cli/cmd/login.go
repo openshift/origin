@@ -191,7 +191,7 @@ func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
 	}
 
 	if newFileCreated {
-		fmt.Fprintln(options.Out, "Welcome to OpenShift! See 'osc help' to get started.")
+		fmt.Fprintln(options.Out, "Welcome to OpenShift! See 'oc help' to get started.")
 	}
 	return nil
 }

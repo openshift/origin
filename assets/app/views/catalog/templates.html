@@ -16,7 +16,7 @@
           <h1>Select a template</h1>
         </div>
       </div>
-      <div ng-if="!templates.length">There are no templates to select from.  To add a template to your project run <code>osc create -f &lt;template_file&gt; -n {{projectName}}</code></div>
+      <div ng-if="!templates.length">There are no templates to select from.  To add a template to your project run <code>oc create -f &lt;template_file&gt; -n {{projectName}}</code></div>
       <div ng-if="templates.length">
         <div class="row">
           <catalog-template template="template" project="projectName" ng-repeat-start="template in templates | orderBy : 'metadata.name'"></catalog-template>

@@ -18,16 +18,16 @@ import (
 // ReaperFor returns the appropriate Reaper client depending on the provided
 // kind of resource (Replication controllers, pods, services, and deploymentConfigs
 // supported)
-func ReaperFor(kind string, osc *client.Client, kc *kclient.Client) (kubectl.Reaper, error) {
+func ReaperFor(kind string, oc *client.Client, kc *kclient.Client) (kubectl.Reaper, error) {
 	if kind != "DeploymentConfig" {
 		return kubectl.ReaperFor(kind, kc)
 	}
-	return &DeploymentConfigReaper{osc: osc, kc: kc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}, nil
+	return &DeploymentConfigReaper{oc: oc, kc: kc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}, nil
 }
 
 // DeploymentConfigReaper implements the Reaper interface for deploymentConfigs
 type DeploymentConfigReaper struct {
-	osc                   client.Interface
+	oc                    client.Interface
 	kc                    kclient.Interface
 	pollInterval, timeout time.Duration
 }
@@ -45,7 +45,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *
 	// effect which can cause the deployment to be re-triggered upon the
 	// config's deletion. See https://github.com/openshift/origin/issues/2721
 	// for more details.
-	err := reaper.osc.DeploymentConfigs(namespace).Delete(name)
+	err := reaper.oc.DeploymentConfigs(namespace).Delete(name)
 	configNotFound := kerrors.IsNotFound(err)
 	if err != nil && !configNotFound {
 		return "", err

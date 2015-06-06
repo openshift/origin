@@ -36,7 +36,7 @@ func TestStop(t *testing.T) {
 		testName  string
 		namespace string
 		name      string
-		osc       *testclient.Fake
+		oc        *testclient.Fake
 		kc        *ktestclient.Fake
 		expected  []string
 		kexpected []string
@@ -47,7 +47,7 @@ func TestStop(t *testing.T) {
 			testName:  "simple stop",
 			namespace: "default",
 			name:      "config",
-			osc:       testclient.NewSimpleFake(deploytest.OkDeploymentConfig(1)),
+			oc:        testclient.NewSimpleFake(deploytest.OkDeploymentConfig(1)),
 			kc:        ktestclient.NewSimpleFake(mkdeploymentlist(1)),
 			expected: []string{
 				"delete-deploymentconfig",
@@ -66,7 +66,7 @@ func TestStop(t *testing.T) {
 			testName:  "stop multiple controllers",
 			namespace: "default",
 			name:      "config",
-			osc:       testclient.NewSimpleFake(deploytest.OkDeploymentConfig(5)),
+			oc:        testclient.NewSimpleFake(deploytest.OkDeploymentConfig(5)),
 			kc:        ktestclient.NewSimpleFake(mkdeploymentlist(1, 2, 3, 4, 5)),
 			expected: []string{
 				"delete-deploymentconfig",
@@ -101,7 +101,7 @@ func TestStop(t *testing.T) {
 			testName:  "no config, some deployments",
 			namespace: "default",
 			name:      "config",
-			osc:       testclient.NewSimpleFake(notfound()),
+			oc:        testclient.NewSimpleFake(notfound()),
 			kc:        ktestclient.NewSimpleFake(mkdeploymentlist(1)),
 			expected: []string{
 				"delete-deploymentconfig",
@@ -120,7 +120,7 @@ func TestStop(t *testing.T) {
 			testName:  "no config, no deployments",
 			namespace: "default",
 			name:      "config",
-			osc:       testclient.NewSimpleFake(notfound()),
+			oc:        testclient.NewSimpleFake(notfound()),
 			kc:        ktestclient.NewSimpleFake(&kapi.ReplicationControllerList{}),
 			expected: []string{
 				"delete-deploymentconfig",
@@ -135,7 +135,7 @@ func TestStop(t *testing.T) {
 			testName:  "config, no deployments",
 			namespace: "default",
 			name:      "config",
-			osc:       testclient.NewSimpleFake(deploytest.OkDeploymentConfig(5)),
+			oc:        testclient.NewSimpleFake(deploytest.OkDeploymentConfig(5)),
 			kc:        ktestclient.NewSimpleFake(&kapi.ReplicationControllerList{}),
 			expected: []string{
 				"delete-deploymentconfig",
@@ -149,7 +149,7 @@ func TestStop(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		reaper := &DeploymentConfigReaper{osc: test.osc, kc: test.kc, pollInterval: time.Millisecond, timeout: time.Millisecond}
+		reaper := &DeploymentConfigReaper{oc: test.oc, kc: test.kc, pollInterval: time.Millisecond, timeout: time.Millisecond}
 		out, err := reaper.Stop(test.namespace, test.name, nil)
 		if !test.err && err != nil {
 			t.Errorf("%s: unexpected error: %v", test.testName, err)
@@ -157,10 +157,10 @@ func TestStop(t *testing.T) {
 		if test.err && err == nil {
 			t.Errorf("%s: expected an error", test.testName)
 		}
-		if len(test.osc.Actions) != len(test.expected) {
-			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.osc.Actions, test.expected)
+		if len(test.oc.Actions) != len(test.expected) {
+			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.oc.Actions, test.expected)
 		}
-		for j, fake := range test.osc.Actions {
+		for j, fake := range test.oc.Actions {
 			if fake.Action != test.expected[j] {
 				t.Errorf("%s: unexpected action: %s, expected %s", test.testName, fake.Action, test.expected[j])
 			}

@@ -43,21 +43,21 @@ users:
 export OPENSHIFTCONFIG=.kubeconfig
 echo "${KUBECONFIG_CREDENTIALS}" > "${OPENSHIFTCONFIG}"
 
-TEST_ENDPOINT=`osc get services -n test | grep frontend-test | awk '{print $4":"$5}'`
+TEST_ENDPOINT=`oc get services -n test | grep frontend-test | awk '{print $4":"$5}'`
 
-REGISTRY_ENDPOINT=`osc get services | grep docker-registry | awk '{print $4":"$5}'`
+REGISTRY_ENDPOINT=`oc get services | grep docker-registry | awk '{print $4":"$5}'`
 
 # clean up existing test deployment
 set +e
 echo "Removing old test deployment"
-TEST_RC_ID=`osc get -n test replicationController | grep frontend-test | awk '{print $1}'`
+TEST_RC_ID=`oc get -n test replicationController | grep frontend-test | awk '{print $1}'`
 if [ ! -z $TEST_RC_ID ]; then
-  osc delete -n test replicationController $TEST_RC_ID
+  oc delete -n test replicationController $TEST_RC_ID
 fi
 
-TEST_POD_ID=`osc get pod -n test | grep frontend-test | awk '{print $1}'`
+TEST_POD_ID=`oc get pod -n test | grep frontend-test | awk '{print $1}'`
 if [ ! -z $TEST_POD_ID ]; then
-  osc delete pod -n test $TEST_POD_ID
+  oc delete pod -n test $TEST_POD_ID
 fi
 set -e
 
@@ -66,7 +66,7 @@ sleep 5
 
 # trigger a build
 echo "Triggering new application build and deployment"
-osc start-build -n test ruby-test-build
+oc start-build -n test ruby-test-build
 
 # check that the build test image deployed successfully
 set +e

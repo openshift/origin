@@ -109,18 +109,18 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		return kDescriberFunc(mapping)
 	}
 	w.Scaler = func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
-		osc, kc, err := w.Clients()
+		oc, kc, err := w.Clients()
 		if err != nil {
 			return nil, err
 		}
-		return deploy.ScalerFor(mapping.Kind, osc, kc)
+		return deploy.ScalerFor(mapping.Kind, oc, kc)
 	}
 	w.Reaper = func(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
-		osc, kc, err := w.Clients()
+		oc, kc, err := w.Clients()
 		if err != nil {
 			return nil, err
 		}
-		return deployreaper.ReaperFor(mapping.Kind, osc, kc)
+		return deployreaper.ReaperFor(mapping.Kind, oc, kc)
 	}
 	w.Generator = func(name string) (kubectl.Generator, bool) {
 		generator, ok := generators[name]

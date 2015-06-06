@@ -78,7 +78,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdExpose(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdGet(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdDescribe(fullName, f, out))
-	// Deprecate 'osc apply' with 'osc create' command.
+	// Deprecate 'oc apply' with 'oc create' command.
 	cmds.AddCommand(applyToCreate(cmd.NewCmdCreate(fullName, f, out)))
 	cmds.AddCommand(cmd.NewCmdProcess(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdEdit(fullName, f, out))
@@ -132,7 +132,7 @@ func applyToCreate(dst *cobra.Command) *cobra.Command {
 	oldRun := dst.Run
 	dst.Run = func(c *cobra.Command, args []string) {
 		calledApply := false
-		calledApply = calledApply || len(os.Args) >= 2 && os.Args[1] == "apply" // `osc apply`
+		calledApply = calledApply || len(os.Args) >= 2 && os.Args[1] == "apply" // `oc apply`
 		calledApply = calledApply || len(os.Args) >= 3 && os.Args[2] == "apply" // `openshift cli apply`
 		if calledApply {
 			glog.Errorf("DEPRECATED: The 'apply' command is now deprecated, use 'create' instead.")

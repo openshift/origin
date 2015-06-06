@@ -127,7 +127,7 @@ func endpointsKey(endpoints kapi.Endpoints) string {
 
 // peerServiceKey may be used by the underlying router when handling endpoints to identify
 // endpoints that belong to its peers.  THIS MUST FOLLOW THE KEY STRATEGY OF endpointsKey.  It
-// receives a NamespacedName that is created from the service that is added by the osadm command
+// receives a NamespacedName that is created from the service that is added by the oadm command
 func peerEndpointsKey(namespacedName ktypes.NamespacedName) string {
 	return fmt.Sprintf("%s/%s", namespacedName.Namespace, namespacedName.Name)
 }

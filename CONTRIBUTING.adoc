@@ -27,7 +27,7 @@ The OpenShift team periodically publishes binaries to Github on https://github.c
 The tar file for each platform contains a single binary `openshift` which is the all-in-one OpenShift installation.
 
 * Use `sudo openshift start` to launch the server.  Root access is required to create services due to the need to modify IPTables.  See issue: https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.
-* Use `osc -h <server> ...` to connect to an OpenShift server
+* Use `oc -h <server> ...` to connect to an OpenShift server
 * Use `openshift help` to see more about the commands in the binary
 
 

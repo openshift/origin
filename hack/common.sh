@@ -57,10 +57,10 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-docker-build
   openshift-gitserver
   origin
+  oc
   osc
-  os
-  osadm
   oadm
+  osadm
   kubectl
   kubernetes
   kubelet
@@ -70,8 +70,8 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   kube-scheduler
 )
 readonly OPENSHIFT_BINARY_COPY=(
-  osc
-  osadm
+  oc
+  oadm
 )
 
 # os::build::binaries_from_targets take a list of build targets and return the

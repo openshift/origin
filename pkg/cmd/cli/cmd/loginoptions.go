@@ -313,7 +313,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 	case 0:
 		fmt.Fprintf(o.Out, `You don't have any projects. You can try to create a new project, by running
 
-    $ osc new-project <projectname>
+    $ oc new-project <projectname>
 
 `)
 		o.Project = o.DefaultNamespace
@@ -344,7 +344,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 			return err
 		}
 
-		fmt.Fprintf(o.Out, "\nYou have access to the following projects and can switch between them with 'osc project <projectname>':\n\n")
+		fmt.Fprintf(o.Out, "\nYou have access to the following projects and can switch between them with 'oc project <projectname>':\n\n")
 		for _, p := range projects.List() {
 			if o.Project == p {
 				fmt.Fprintf(o.Out, "  * %s (current)\n", p)

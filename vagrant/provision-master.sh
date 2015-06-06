@@ -105,7 +105,7 @@ if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
   $(dirname $0)/provision-master-sdn.sh $@
 fi
 
-# Set up the OPENSHIFTCONFIG environment variable for use by osc
+# Set up the OPENSHIFTCONFIG environment variable for use by oc
 echo 'export OPENSHIFTCONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /root/.bash_profile
 echo 'export OPENSHIFTCONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /home/vagrant/.bash_profile
 

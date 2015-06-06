@@ -148,7 +148,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 
 		// launch the editor
 		edit := editor.NewDefaultEditor()
-		edited, file, err := edit.LaunchTempFile("osc-edit-", ext, buf)
+		edited, file, err := edit.LaunchTempFile("oc-edit-", ext, buf)
 		if err != nil {
 			return preservedFile(err, results.file, cmd.Out())
 		}

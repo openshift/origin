@@ -21,7 +21,7 @@ function detect {
   fi
 
   # TODO: make it easier to find the build config name created
-  # by osc new-app
+  # by oc new-app
   name=$(basename "${url}")
   name="${name%.*}"
 
@@ -30,13 +30,13 @@ function detect {
   fi
   echo "detect: found language ${lang} for ${name}"
 
-  if ! osc=$(which osc); then
-    echo "detect: osc is not installed"
+  if ! oc=$(which oc); then
+    echo "detect: oc is not installed"
     addkey openshift.io.detect 1
     exit 0
   fi
-  osc new-app "${lang}~${url}"
-  if webhook=$(osc start-build --list-webhooks="generic" "${name}" | head -n 1); then
+  oc new-app "${lang}~${url}"
+  if webhook=$(oc start-build --list-webhooks="generic" "${name}" | head -n 1); then
     addkey openshift.io.webhook "${webhook}"
   fi
   addkey openshift.io.detect 1
@@ -48,7 +48,7 @@ detect
 
 if webhook=$(key openshift.io.webhook); then
   # TODO: print output from the server about the hook status
-  osc start-build --from-webhook="${webhook}"
+  oc start-build --from-webhook="${webhook}"
   # TODO: follow logs
   echo "build: started"
 fi

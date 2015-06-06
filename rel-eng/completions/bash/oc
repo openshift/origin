@@ -156,14 +156,14 @@ __handle_word()
     __handle_word
 }
 
-# call osc get $1,
+# call oc get $1,
 __osc_parse_get()
 {
 
     local template
     template="{{ range .items  }}{{ .metadata.name }} {{ end }}"
     local osc_out
-    if osc_out=$(osc get -o template --template="${template}" "$1" 2>/dev/null); then
+    if osc_out=$(oc get -o template --template="${template}" "$1" 2>/dev/null); then
         COMPREPLY=( $( compgen -W "${osc_out[*]}" -- "$cur" ) )
     fi
 }
@@ -189,7 +189,7 @@ __osc_get_containers()
     fi
     local last=${nouns[${len} -1]}
     local osc_out
-    if osc_out=$(osc get -o template --template="${template}" pods "${last}" 2>/dev/null); then
+    if osc_out=$(oc get -o template --template="${template}" pods "${last}" 2>/dev/null); then
         COMPREPLY=( $( compgen -W "${osc_out[*]}" -- "$cur" ) )
     fi
 }
@@ -1146,7 +1146,7 @@ _osc_label()
 
 _osc()
 {
-    last_command="osc"
+    last_command="oc"
     commands=()
     commands+=("login")
     commands+=("logout")
@@ -1256,7 +1256,7 @@ __start_osc()
     local two_word_flags=()
     local flags_with_completion=()
     local flags_completion=()
-    local commands=("osc")
+    local commands=("oc")
     local must_have_one_flag=()
     local must_have_one_noun=()
     local last_command
@@ -1265,5 +1265,5 @@ __start_osc()
     __handle_word
 }
 
-complete -F __start_osc osc
+complete -F __start_osc oc
 # ex: ts=4 sw=4 et filetype=sh

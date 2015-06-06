@@ -14,21 +14,21 @@ Steps
 
 2. Start the Jenkins services
 
-        $ osc create -n test -f jenkins-config.json
+        $ oc create -n test -f jenkins-config.json
         
 3. Create the application configuration
 
-        $ osc process -n test -f application-template.json | osc create -n test -f -
+        $ oc process -n test -f application-template.json | oc create -n test -f -
  
 4. Locate the Jenkins service endpoint and go to it in your browser:
 
-        $ osc get services -n test jenkins --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}"
+        $ oc get services -n test jenkins --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}"
 
     Once it is available, proceed to the next step.
     
 5. Create the Jenkins job named rubyJob:
 
-        $ JENKINS_ENDPOINT=`osc get services -n test jenkins --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}"`
+        $ JENKINS_ENDPOINT=`oc get services -n test jenkins --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}"`
         $ cat job.xml | curl -X POST -H "Content-Type: application/xml" -H "Expect: " --data-binary @- http://$JENKINS_ENDPOINT/createItem?name=rubyJob
 
 6. Add API credentials to the Jenkins build:
@@ -51,5 +51,5 @@ Steps
 
 8. Confirm both the test and production services are available by browsing to both services:
 
-        $ osc get services -n test | grep frontend
+        $ oc get services -n test | grep frontend
    

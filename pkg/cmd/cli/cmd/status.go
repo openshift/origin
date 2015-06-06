@@ -14,8 +14,8 @@ import (
 
 const (
 	statusLong = `Show a high level overview of the current project. Links components by their relationships.
-For more information about individual items, use the describe command (e.g. osc describe buildConfig,
-osc describe deploymentConfig, osc describe service).`
+For more information about individual items, use the describe command (e.g. oc describe buildConfig,
+oc describe deploymentConfig, oc describe service).`
 
 	statusExample = `  // Show an overview of the current project
   $ %[1]s status`

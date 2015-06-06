@@ -193,7 +193,7 @@ FROM candidate
 RUN mkdir -p /var/lib/openshift
 
 ADD bin/openshift        /usr/bin/openshift
-RUN ln -s /usr/bin/openshift /usr/bin/osc && \
+RUN ln -s /usr/bin/openshift /usr/bin/oc && \
 
 ENV HOME /root
 WORKDIR /var/lib/openshift
@@ -207,7 +207,7 @@ FROM other/image
 RUN mkdir -p /var/lib/openshift
 
 ADD bin/openshift        /usr/bin/openshift
-RUN ln -s /usr/bin/openshift /usr/bin/osc && \
+RUN ln -s /usr/bin/openshift /usr/bin/oc && \
 
 ENV HOME /root
 WORKDIR /var/lib/openshift

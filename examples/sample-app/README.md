@@ -5,7 +5,7 @@ This is a set of configuration files and scripts which work with OpenShift 3 to 
 
 This example assumes you have successfully built the `openshift`
 binary executable (normally located under origin/\_output/local/go/bin),
-you have that and its symlink/copy `osc` in your `PATH` and root's,
+you have that and its symlink/copy `oc` in your `PATH` and root's,
 and Docker is installed and working.  See
 https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc.
 
@@ -88,7 +88,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 - - -
 **NOTE**
 
-* All commands assume the `osc` binary/symlink is in your path.
+* All commands assume the `oc` binary/symlink is in your path.
 * All commands assume that you are working from the `sample-app` directory in your local environment.
     * If you are working from a local git repo, this might be `$GOPATH/src/github.com/<username>/origin/examples/sample-app`
     * **VAGRANT USERS**: `cd /data/src/github.com/openshift/origin/examples/sample-app`
@@ -122,7 +122,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     need to accept the server certificates and present its own client
     certificate. These are generated as part of the `openshift start`
     command in whatever the current directory is at the time. You will
-    need to point osc and curl at the appropriate certificates in order
+    need to point oc and curl at the appropriate certificates in order
     to connect to OpenShift. Assuming you are running as a user other
     than root, you will also need to make the .kubeconfig readable by
     that user. (Note: this is just for example purposes; in a real
@@ -135,7 +135,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ osadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
           docker-registry # the service
           docker-registry # the deployment config
 
@@ -147,7 +147,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 5. Confirm the registry is started (this can take a few minutes):
 
-        $ osc describe service docker-registry --config=openshift.local.config/master/admin.kubeconfig
+        $ oc describe service docker-registry --config=openshift.local.config/master/admin.kubeconfig
 
     You should see:
 
@@ -158,14 +158,14 @@ This section covers how to perform all the steps of building, deploying, and upd
         Endpoints:  172.17.0.60:5000
         No events.
 
-    If "Endpoints" is listed as `<none>`, your registry hasn't started yet.  You can run `osc get pods` to
+    If "Endpoints" is listed as `<none>`, your registry hasn't started yet.  You can run `oc get pods` to
     see the registry pod and if there are any issues. Once the pod has started, the IP of the pod will
     be added to the docker-registry service list so that it's reachable from other places.
 
 
 6. Confirm the registry is accessible (you may need to run this more than once):
 
-        $ curl -H 'Accept: application/json' -v `osc get service docker-registry --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}/v2/" --config=openshift.local.config/master/admin.kubeconfig`
+        $ curl -H 'Accept: application/json' -v `oc get service docker-registry --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}/v2/" --config=openshift.local.config/master/admin.kubeconfig`
 
     You should see:
 
@@ -174,12 +174,12 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 7. Bind a user names `test-admin` to the `view` role in the default namespace so you can observe progress in the web console
 
-        $ osadm policy add-role-to-user view test-admin --config=openshift.local.config/master/admin.kubeconfig
+        $ oadm policy add-role-to-user view test-admin --config=openshift.local.config/master/admin.kubeconfig
 
 
 9. Login as `test-admin` using any password
 
-        $ osc login --certificate-authority=openshift.local.config/master/ca.crt
+        $ oc login --certificate-authority=openshift.local.config/master/ca.crt
 
 
 9. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
@@ -195,7 +195,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 10. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
 
-        $ osc new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3"
+        $ oc new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3"
 
 
 11. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
@@ -242,7 +242,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 15. Submit the application template for processing (generating shared parameters requested in the template)
     and then request creation of the processed template:
 
-        $ osc process -f application-template-stibuild.json | osc create -f -
+        $ oc process -f application-template-stibuild.json | oc create -f -
 
     This will define a number of related OpenShift entities in the project:
 
@@ -265,16 +265,16 @@ This section covers how to perform all the steps of building, deploying, and upd
  * If you setup the GitHub webhook, push a change to `app.rb` in your ruby sample repository.
  * Otherwise you can request a new build by running:
 
-            $ osc start-build ruby-sample-build
+            $ oc start-build ruby-sample-build
 
 
 17. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
 
-        $ osc get builds
+        $ oc get builds
 
     You can add the --watch flag to wait for updates until the build completes:
 
-        $ osc get builds --watch
+        $ oc get builds --watch
 
     Sample output:
 
@@ -288,10 +288,10 @@ This section covers how to perform all the steps of building, deploying, and upd
      the image will be lost.)
 
      If you want to see the build logs of a complete build, use the
-     command below (substituting your build name from the "osc get builds"
+     command below (substituting your build name from the "oc get builds"
      output). 
 
-         $ osc build-logs ruby-sample-build-1 -n test
+         $ oc build-logs ruby-sample-build-1 -n test
 
     The creation of the new image in the Docker registry will
     automatically trigger a deployment of the application, creating a
@@ -300,7 +300,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 18. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
 
-        $ osc get pods
+        $ oc get pods
 
     Sample output:
 
@@ -312,7 +312,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 19. Determine the IP for the frontend service:
 
-        $ osc get services
+        $ oc get services
 
     Sample output:
 
@@ -343,7 +343,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
-            $ osc start-build ruby-sample-build
+            $ oc start-build ruby-sample-build
 
 
 22. Repeat step 17 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
@@ -357,7 +357,7 @@ OpenShift also provides features that live outside the deployment life cycle lik
 
 1.  Your sample app has been created with a secure route which can be viewed by performing a `GET` on the route api object.
 
-            $ osc get routes
+            $ oc get routes
             NAME                HOST/PORT           PATH                SERVICE             LABELS
             route-edge          www.example.com                         frontend            template=application-template-stibuild
 
@@ -372,23 +372,23 @@ the ip address shown below with the correct one for your environment.
             $ docker pull openshift/origin-haproxy-router
 
             $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
-            $ osadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+            $ oadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
               router # the service
               router # the deployment config
 
 
 3.  Switch to the `default` project to watch for router to start
-            $ osc project default
+            $ oc project default
 
 4.  Wait for the router to start.
 
-            $ osc describe dc router
+            $ oc describe dc router
             # watch for the number of deployed pods to go to 1
 
 
 5.  *Optional:* View the logs of the router.
 
-            $ osc log router-1-<podrandom-suffix>
+            $ oc log router-1-<podrandom-suffix>
 
 
 6.  Curl the url, substituting the ip address shown for the correct value in your environment.
@@ -417,7 +417,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - List the existing services:
 
-        $ osc get services
+        $ oc get services
 
     Sample output:
 
@@ -428,7 +428,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - To remove the **frontend** service use the command:
 
-        $ osc delete service frontend
+        $ oc delete service frontend
 
     Sample output:
 
@@ -436,7 +436,7 @@ In addition to creating resources, you can delete resources based on IDs. For ex
 
   - Check the service was removed:
 
-        $ osc get services
+        $ oc get services
 
     Sample output:
 
@@ -455,7 +455,7 @@ Another interesting example is deleting a pod.
 
   - List available pods:
 
-        $ osc get pods
+        $ oc get pods
 
     Sample output:
 
@@ -466,7 +466,7 @@ Another interesting example is deleting a pod.
 
   - Delete the **frontend** pod by specifying its ID:
 
-        $ osc delete pod frontend-1-lb4c4
+        $ oc delete pod frontend-1-lb4c4
 
   - Verify that the pod has been removed by listing the available pods. This also stopped the associated Docker container, you can check using the command:
 

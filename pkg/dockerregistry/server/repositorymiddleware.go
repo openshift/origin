@@ -226,7 +226,7 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 }
 
 // Delete deletes the manifest with digest `dgst`. Note: Image resources
-// in OpenShift are deleted via 'osadm prune images'. This function deletes
+// in OpenShift are deleted via 'oadm prune images'. This function deletes
 // the content related to the manifest in the registry's storage (signatures).
 func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
 	return r.Repository.Manifests().Delete(ctx, dgst)

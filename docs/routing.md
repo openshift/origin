@@ -31,12 +31,12 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ export PATH=/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH
     [vagrant@openshiftdev origin]$ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start &
 
-    If running in https mode, ensure osc can authenticate to the master
+    If running in https mode, ensure oc can authenticate to the master
     [vagrant@openshiftdev origin]$ export OPENSHIFTCONFIG=/data/src/github.com/openshift/origin/openshift.local.config/master/admin.kubeconfig
     [vagrant@openshiftdev origin]$ sudo chmod a+r "$OPENSHIFTCONFIG"
     [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.config/master/openshift-router.kubeconfig
-    [vagrant@openshiftdev origin]$ osadm router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig"
-    [vagrant@openshiftdev origin]$ osc get pods
+    [vagrant@openshiftdev origin]$ oadm router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig"
+    [vagrant@openshiftdev origin]$ oc get pods
 
 #### Clustered vagrant environment
 
@@ -44,7 +44,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     $ export OPENSHIFT_DEV_CLUSTER=true
     $ vagrant up
     $ vagrant ssh master
-    [vagrant@openshift-master ~]$ osadm router --create --credentials="${OPENSHIFTCONFIG}"
+    [vagrant@openshift-master ~]$ oadm router --create --credentials="${OPENSHIFTCONFIG}"
 
 
 
@@ -56,12 +56,12 @@ In order to run the router in a deployed environment the following conditions mu
 * The machine may or may not be registered with the master.  Optimally it will not serve pods while also serving as the router
 * The machine must not have services running on it that bind to host port 80 since this is what the router uses for traffic
 
-To install the router pod you use the `osadm router` command line, passing the flags `--create` and `--credentials=<kubeconfig_file>`.
+To install the router pod you use the `oadm router` command line, passing the flags `--create` and `--credentials=<kubeconfig_file>`.
 The credentials flag controls the identity that the router will use to talk to the master (and the address of the master) so in most
 environments you can use the `${CONFIG_DIR}/master/openshift-client.kubeconfig` file. Once you run this command you can check the configuration
-of the router by running `osc get dc router` to check the deployment status.
+of the router by running `oc get dc router` to check the deployment status.
 
-`osadm router` offers other options for deploying routers - run `osadm router --help` for more details.
+`oadm router` offers other options for deploying routers - run `oadm router --help` for more details.
 
 ### Manually
 
@@ -85,19 +85,19 @@ To test your route independent of DNS you can send a host header to the router. 
 
     $ ..... vagrant up with single machine instructions .......
     $ ..... create config files listed below in ~ ........
-    [vagrant@openshiftdev origin]$ osc create -f ~/pod.json
-    [vagrant@openshiftdev origin]$ osc create -f ~/service.json
-    [vagrant@openshiftdev origin]$ osc create -f ~/route.json
+    [vagrant@openshiftdev origin]$ oc create -f ~/pod.json
+    [vagrant@openshiftdev origin]$ oc create -f ~/service.json
+    [vagrant@openshiftdev origin]$ oc create -f ~/route.json
     [vagrant@openshiftdev origin]$ curl -H "Host:hello-openshift.v3.rhcloud.com" <vm ip>
     Hello OpenShift!
 
     $ ..... vagrant up with cluster instructions .....
     $ ..... create config files listed below in ~ ........
-    [vagrant@openshift-master ~]$ osc create -f ~/pod.json
-    [vagrant@openshift-master ~]$ osc create -f ~/service.json
-    [vagrant@openshift-master ~]$ osc create -f ~/route.json
+    [vagrant@openshift-master ~]$ oc create -f ~/pod.json
+    [vagrant@openshift-master ~]$ oc create -f ~/service.json
+    [vagrant@openshift-master ~]$ oc create -f ~/route.json
     # take note of what minion number the router is deployed on
-    [vagrant@openshift-master ~]$ osc get pods
+    [vagrant@openshift-master ~]$ oc get pods
     [vagrant@openshift-master ~]$ curl -H "Host:hello-openshift.v3.rhcloud.com" openshift-minion-<1,2>
     Hello OpenShift!
 
