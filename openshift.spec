@@ -83,7 +83,7 @@ Requires:       %{name} = %{version}-%{release}
 
 %package pod
 Summary:        OpenShift Pod
-Requires:       openshift = %{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
 
 %description pod
 %{summary}
@@ -91,7 +91,7 @@ Requires:       openshift = %{version}-%{release}
 %package sdn-ovs
 Summary:          OpenShift SDN Plugin for Open vSwitch
 Requires:         openvswitch >= 2.3.1
-Requires:         openshift-node = %{version}-%{release}
+Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
 Requires:         ethtool
 
