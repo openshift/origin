@@ -42,6 +42,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
@@ -71,6 +72,8 @@ type MasterConfig struct {
 	AdmissionControl admission.Interface
 
 	TLS bool
+
+	ControllerPlug plug.Plug
 
 	// a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
@@ -159,6 +162,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		AdmissionControl: admissionController,
 
 		TLS: configapi.UseTLS(options.ServingInfo),
+
+		ControllerPlug: plug.NewPlug(!options.PauseControllers),
 
 		ImageFor:            imageTemplate.ExpandOrDie,
 		EtcdHelper:          etcdHelper,

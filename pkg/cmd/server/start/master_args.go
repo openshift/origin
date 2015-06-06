@@ -32,6 +32,8 @@ type MasterArgs struct {
 	// addresses for external clients
 	MasterPublicAddr flagtypes.Addr
 
+	PauseControllers bool
+
 	// DNSBindAddr exposed for integration tests to set
 	DNSBindAddr flagtypes.Addr
 
@@ -58,6 +60,7 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 	flags.Var(&args.EtcdAddr, prefix+"etcd", "The address of the etcd server (host, host:port, or URL). If specified, no built-in etcd will be started.")
 	flags.Var(&args.PortalNet, prefix+"portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 	flags.Var(&args.DNSBindAddr, prefix+"dns", "The address to listen for DNS requests on.")
+	flags.BoolVar(&args.PauseControllers, prefix+"pause", false, "If true, wait for a signal before starting the controllers.")
 
 	flags.StringVar(&args.EtcdDir, prefix+"etcd-dir", "openshift.local.etcd", "The etcd data directory.")
 
@@ -157,6 +160,8 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		EtcdConfig:             etcdConfig,
 
 		OAuthConfig: oauthConfig,
+
+		PauseControllers: args.PauseControllers,
 
 		AssetConfig: &configapi.AssetConfig{
 			ServingInfo: configapi.ServingInfo{

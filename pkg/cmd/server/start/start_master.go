@@ -317,6 +317,12 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	if err != nil {
 		return err
 	}
+
+	go func() {
+		openshiftConfig.ControllerPlug.WaitForStop()
+		glog.Fatalf("Master shutdown requested")
+	}()
+
 	// Must start policy caching immediately
 	openshiftConfig.RunPolicyCache()
 	openshiftConfig.RunProjectCache()
@@ -345,8 +351,9 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		}
 	}
 
+	var kubeConfig *kubernetes.MasterConfig
 	if openshiftMasterConfig.KubernetesMasterConfig != nil {
-		kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(*openshiftMasterConfig, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient())
+		kubeConfig, err = kubernetes.BuildKubernetesMasterConfig(*openshiftMasterConfig, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient())
 		if err != nil {
 			return err
 		}
@@ -355,13 +362,6 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		openshiftConfig.Run([]origin.APIInstaller{kubeConfig}, unprotectedInstallers)
 		go daemon.SdNotify("READY=1")
 
-		kubeConfig.RunScheduler()
-		kubeConfig.RunReplicationController()
-		kubeConfig.RunEndpointController()
-		kubeConfig.RunNodeController()
-		kubeConfig.RunResourceQuotaManager()
-		kubeConfig.RunNamespaceController()
-		kubeConfig.RunPersistentVolumeClaimBinder()
 	} else {
 		_, kubeConfig, err := configapi.GetKubeClient(openshiftMasterConfig.MasterClients.ExternalKubernetesKubeConfig)
 		if err != nil {
@@ -384,23 +384,40 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	if openshiftMasterConfig.DNSConfig != nil {
 		openshiftConfig.RunDNSServer()
 	}
-	openshiftConfig.RunBuildController()
-	openshiftConfig.RunBuildPodController()
-	openshiftConfig.RunBuildImageChangeTriggerController()
-	openshiftConfig.RunDeploymentController()
-	openshiftConfig.RunDeployerPodController()
-	openshiftConfig.RunDeploymentConfigController()
-	openshiftConfig.RunDeploymentConfigChangeController()
-	openshiftConfig.RunDeploymentImageChangeTriggerController()
-	openshiftConfig.RunImageImportController()
-	openshiftConfig.RunOriginNamespaceController()
-	openshiftConfig.RunProjectAuthorizationCache()
-	openshiftConfig.RunSecurityAllocationController()
-	openshiftConfig.RunServiceAccountsController()
-	openshiftConfig.RunServiceAccountTokensController()
-	openshiftConfig.RunServiceAccountPullSecretsControllers()
 
-	openshiftConfig.RunSDNController()
+	openshiftConfig.RunProjectAuthorizationCache()
+
+	if openshiftMasterConfig.Controllers != configapi.ControllersDisabled {
+		go func() {
+			openshiftConfig.ControllerPlug.WaitForStart()
+			glog.Infof("Master controllers starting (%s)", openshiftMasterConfig.Controllers)
+			if kubeConfig != nil {
+				kubeConfig.RunScheduler()
+				kubeConfig.RunReplicationController()
+				kubeConfig.RunEndpointController()
+				kubeConfig.RunNodeController()
+				kubeConfig.RunResourceQuotaManager()
+				kubeConfig.RunNamespaceController()
+				kubeConfig.RunPersistentVolumeClaimBinder()
+			}
+
+			openshiftConfig.RunBuildController()
+			openshiftConfig.RunBuildPodController()
+			openshiftConfig.RunBuildImageChangeTriggerController()
+			openshiftConfig.RunDeploymentController()
+			openshiftConfig.RunDeployerPodController()
+			openshiftConfig.RunDeploymentConfigController()
+			openshiftConfig.RunDeploymentConfigChangeController()
+			openshiftConfig.RunDeploymentImageChangeTriggerController()
+			openshiftConfig.RunImageImportController()
+			openshiftConfig.RunOriginNamespaceController()
+			openshiftConfig.RunSecurityAllocationController()
+			openshiftConfig.RunServiceAccountsController()
+			openshiftConfig.RunServiceAccountTokensController()
+			openshiftConfig.RunServiceAccountPullSecretsControllers()
+			openshiftConfig.RunSDNController()
+		}()
+	}
 
 	return nil
 }
