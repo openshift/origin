@@ -37,9 +37,9 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 	cache.NewReflector(lw, &api.ImageStream{}, q, 2*time.Minute).Run()
 
 	c := &ImportController{
-		client:       dockerregistry.NewClient(),
-		repositories: f.Client,
-		mappings:     f.Client,
+		client:   dockerregistry.NewClient(),
+		streams:  f.Client,
+		mappings: f.Client,
 	}
 
 	return &controller.RetryController{
