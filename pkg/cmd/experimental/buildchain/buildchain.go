@@ -116,7 +116,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		return cmdutil.UsageError(cmd, "Must pass nothing, an ImageStream name:tag combination, or specify the --all flag")
 	}
 
-	osc, _, err := f.Clients()
+	oc, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 	}
 	namespaces := make([]string, 0)
 	if all {
-		projectList, err := osc.Projects().List(labels.Everything(), fields.Everything())
+		projectList, err := oc.Projects().List(labels.Everything(), fields.Everything())
 		if err != nil {
 			return err
 		}
@@ -147,7 +147,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 	// Get all build configurations
 	buildConfigList := make([]buildapi.BuildConfig, 0)
 	for _, namespace := range namespaces {
-		cfgList, err := osc.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
+		cfgList, err := oc.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
 		if err != nil {
 			return err
 		}
@@ -163,7 +163,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		}
 
 		// Validate the specified image stream
-		is, err := osc.ImageStreams(namespace).Get(name)
+		is, err := oc.ImageStreams(namespace).Get(name)
 		if err != nil {
 			return err
 		}

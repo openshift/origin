@@ -67,11 +67,11 @@ The simplest way to run OpenShift Origin is in a Docker container:
 Once the container is started, you can jump into a console inside the container and run the CLI.
 
     $ sudo docker exec -it openshift-origin bash
-    $ osc --help
+    $ oc --help
 
 If you just want to experiment with the API without worrying about security privileges, you can disable authorization checks by running this from the host system.  This command grants full access to anyone.
 
-    $ sudo docker exec -it openshift-origin bash -c "osadm policy add-cluster-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.config/master/admin.kubeconfig"
+    $ sudo docker exec -it openshift-origin bash -c "oadm policy add-cluster-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.config/master/admin.kubeconfig"
 
 
 ### Start Developing
@@ -94,7 +94,7 @@ Once setup with a Go development environment and Docker, you can:
 
         $ cd $GOPATH/src/github.com/openshift/origin
         $ export OPENSHIFTCONFIG=`pwd`/openshift.local.config/master/admin.kubeconfig 
-        $ _output/local/go/bin/osc create -f examples/hello-openshift/hello-pod.json
+        $ _output/local/go/bin/oc create -f examples/hello-openshift/hello-pod.json
 
 
 4. In your browser, go to [https://localhost:6001](https://localhost:6001) and you should see 'Welcome to OpenShift' after a little while once the pod has started correctly.

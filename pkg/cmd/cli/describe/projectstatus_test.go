@@ -164,8 +164,8 @@ func TestProjectStatus(t *testing.T) {
 		for _, obj := range test.Extra {
 			o.Add(obj)
 		}
-		osc, kc := testclient.NewFixtureClients(o)
-		d := ProjectStatusDescriber{C: osc, K: kc}
+		oc, kc := testclient.NewFixtureClients(o)
+		d := ProjectStatusDescriber{C: oc, K: kc}
 		out, err := d.Describe("example", "")
 		if !test.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)

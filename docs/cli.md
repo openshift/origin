@@ -1,10 +1,10 @@
-osc command line interface
+oc command line interface
 ==============================
 
-The `osc` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s). `osc` is an alias for `openshift cli`.
+The `oc` command line tool is used to interact with the [OpenShift](http://openshift.github.io) and [Kubernetes](http://kubernetes.io/) HTTP API(s). `oc` is an alias for `openshift cli`.
 
-`osc` is *verb focused*. The base verbs are *[get](#osc-get)*, *[create](#osc-create)*, *[delete](#osc-delete)*,
-*[update](#osc-update)*, and *[describe](#osc-describe)*. These verbs can be used to manage both Kubernetes and
+`oc` is *verb focused*. The base verbs are *[get](#oc-get)*, *[create](#oc-create)*, *[delete](#oc-delete)*,
+*[update](#oc-update)*, and *[describe](#oc-describe)*. These verbs can be used to manage both Kubernetes and
 OpenShift resources.
 
 Some verbs support the `-f` flag, which accepts regular file path, URL or '-' for
@@ -29,7 +29,7 @@ Common Flags
 | --insecure-skip-tls-verify | Skip SSL certificate validation (will make HTTPS insecure) |
 | --help (-h)                | Display help for specified command |
 
-osc get
+oc get
 -----------
 
 This command can be used for displaying one or many resources. Possible
@@ -41,16 +41,16 @@ events).
 #### Examples
 
 ```
-$ osc get pods
-$ osc get replicationController 1234-56-7890-234234-456456
-$ osc get service database
-$ osc get -f json pods
+$ oc get pods
+$ oc get replicationController 1234-56-7890-234234-456456
+$ oc get service database
+$ oc get -f json pods
 ```
 
 #### Output formatting
 
 You can control the output format by using the `-o format` flag. By default, 
-`osc` uses human-friendly printer format for console. You can also 
+`oc` uses human-friendly printer format for console. You can also 
 control what API version will be used to print the resource by using the
 `--output-version` flag. By default, it uses the latest API version.
 
@@ -66,21 +66,21 @@ Available formats include:
 An example of using `-o template` to retrieve the *name* of the first build:
 
 ```
-$ osc get builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"
+$ oc get builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"
 ```
 
 #### Selectors
 
-`osc get` provides also *selectors* that you can use to filter the output
+`oc get` provides also *selectors* that you can use to filter the output
 by applying key-value pairs that will be matched with the resource labels:
 
 ```
-$ osc get pods -s template=production
+$ oc get pods -s template=production
 ```
 
 This command will return only pods whose `labels` include `"template": "production"`
 
-osc create
+oc create
 --------------
 
 This command can be used to create resources. It does not require pointers about
@@ -90,12 +90,12 @@ After successful creation, the resource name will be printed to the console.
 #### Examples
 
 ```
-$ osc create -f pod.json
-$ cat pod.json | osc create -f -
-$ osc create -f http://server/pod.json
+$ oc create -f pod.json
+$ cat pod.json | oc create -f -
+$ oc create -f http://server/pod.json
 ```
 
-osc update
+oc update
 ---------------
 
 This command can be used to update existing resources.
@@ -103,12 +103,12 @@ This command can be used to update existing resources.
 #### Examples
 
 ```
-$ osc update -f pod.json
-$ cat pod.json | osc update -f -
-$ osc update -f http://server/pod.json
+$ oc update -f pod.json
+$ cat pod.json | oc update -f -
+$ oc update -f http://server/pod.json
 ```
 
-osc delete
+oc delete
 --------------
 
 This command deletes a specified resource.
@@ -116,23 +116,23 @@ This command deletes a specified resource.
 #### Examples
 
 ```
-$ osc delete -f pod.json
-$ osc delete pod 1234-56-7890-234234-456456
+$ oc delete -f pod.json
+$ oc delete pod 1234-56-7890-234234-456456
 ```
 
-osc describe
+oc describe
 ----------------
 
-This command is a wordier version of `osc get` which also integrates other
+This command is a wordier version of `oc get` which also integrates other
 information that's related to a given resource.
 
 #### Examples
 
 ```
-$ osc describe service frontend
+$ oc describe service frontend
 ```
 
-osc label
+oc label
 ----------------
 
 This command adds labels to a provided resource. 
@@ -141,10 +141,10 @@ It can also overwrite the existing labels by using the `--overwrite` flag.
 #### Examples
 
 ```
-$ osc label service frontend foo=bar
+$ oc label service frontend foo=bar
 ```
 
-osc stop
+oc stop
 ----------------
 
 This command gracefully shuts down a resource by id or filename. 
@@ -154,37 +154,37 @@ If the resource is resizable, it will be resized to 0 before deletion.
 #### Examples
 
 ```
-$ osc stop service frontend
+$ oc stop service frontend
 ```
 
-osc namespace
+oc namespace
 -----------------
 
-This command sets the default namespace used for all `osc` commands.
+This command sets the default namespace used for all `oc` commands.
 
 #### Examples
 
 ```
-$ osc namespace myuser
+$ oc namespace myuser
 ```
 
-osc log
+oc log
 ------------
 
 This command dumps the logs from a given Pod container. You can list the
 containers from a Pod using the following command:
 
 ```
-$ osc get -o yaml pod POD_ID
+$ oc get -o yaml pod POD_ID
 ```
 
 #### Examples
 
 ```
-$ osc log frontend-pod mysql-container
+$ oc log frontend-pod mysql-container
 ```
 
-osc expose
+oc expose
 ------------
 
 This command looks up a service and exposes it as a route. There is also
@@ -197,12 +197,12 @@ the new object will re-use the labels from the object it exposes.
 
 ```bash
 # Expose a service as a route
-$ osc expose service frontend
+$ oc expose service frontend
 # Expose a deployment config as a service and use the specified port and name
-$ osc expose dc ruby-hello-world --port=8080 --name=myservice --generator=services/v1
+$ oc expose dc ruby-hello-world --port=8080 --name=myservice --generator=services/v1
 ```
 
-osc process
+oc process
 ---------------
 
 This command processes a Template into a valid Config resource. The processing
@@ -213,11 +213,11 @@ found in [examples/sample-app/application-template-stibuild.json](https://github
 #### Examples
 
 ```
-$ osc process -f examples/sample-app/application-template-stibuild.json > config.json
-$ osc process -f template.json | osc create -f -
+$ oc process -f examples/sample-app/application-template-stibuild.json > config.json
+$ oc process -f template.json | oc create -f -
 ```
 
-osc start-build
+oc start-build
 ------------------
 
 This command will manually start a build by specifying either a buildConfig or
@@ -227,12 +227,12 @@ the logs of the build if the `--follow` flag is specified.
 #### Examples
 
 ```
-$ osc start-build ruby-sample-build
-$ osc start-build --from-build=ruby-sample-build-275d3373-c252-11e4-bc79-080027c5bfa9
-$ osc start-build --from-build=ruby-sample-build-275d3373-c252-11e4-bc79-080027c5bfa9 --follow 
+$ oc start-build ruby-sample-build
+$ oc start-build --from-build=ruby-sample-build-275d3373-c252-11e4-bc79-080027c5bfa9
+$ oc start-build --from-build=ruby-sample-build-275d3373-c252-11e4-bc79-080027c5bfa9 --follow 
 ```
 
-osc scale
+oc scale
 ------------------
 
 This command sets a new size for a Replication Controller either directly or via its Deployment Configuration.
@@ -241,11 +241,11 @@ This command sets a new size for a Replication Controller either directly or via
 
 ```bash
 # n is the highest deployment number for the dc ruby-hello-world
-$ osc scale rc ruby-hello-world-n  --replicas=3
-$ osc scale dc ruby-hello-world --current-replicas=3 --replicas=5
+$ oc scale rc ruby-hello-world-n  --replicas=3
+$ oc scale dc ruby-hello-world --current-replicas=3 --replicas=5
 ```
 
-osc build-logs
+oc build-logs
 ------------------
 
 > **NOTE**: This command will be later replaced by upstream (see: [kubectl log](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/kubectl-log.md#kubectl-log)).
@@ -255,11 +255,11 @@ debug broken Build. If the build is still running, this command can stream the
 logs from the container to console. You can obtain a list of builds by using:
 
 ```
-$ osc get builds
+$ oc get builds
 ```
 
 #### Examples
 
 ```
-$ osc build-logs rubyapp-build
+$ oc build-logs rubyapp-build
 ```

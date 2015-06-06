@@ -19,12 +19,12 @@ type DeploymentConfigScaler struct {
 
 // ScalerFor returns the appropriate Scaler client depending on the provided
 // kind of resource (Replication controllers and deploymentConfigs supported)
-func ScalerFor(kind string, osc client.Interface, kc kclient.Interface) (kubectl.Scaler, error) {
+func ScalerFor(kind string, oc client.Interface, kc kclient.Interface) (kubectl.Scaler, error) {
 	if kind != "DeploymentConfig" {
 		return kubectl.ScalerFor(kind, kubectl.NewScalerClient(kc))
 
 	}
-	return &DeploymentConfigScaler{NewScalerClient(osc, kc)}, nil
+	return &DeploymentConfigScaler{NewScalerClient(oc, kc)}, nil
 }
 
 // Scale updates a replication controller created by the DeploymentConfig with the provided namespace/name,
@@ -74,14 +74,14 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 
 // NewScalerClient returns a new Scaler client bundling both the OpenShift and
 // Kubernetes clients
-func NewScalerClient(osc client.Interface, kc kclient.Interface) kubectl.ScalerClient {
-	return &realScalerClient{osc: osc, kc: kc}
+func NewScalerClient(oc client.Interface, kc kclient.Interface) kubectl.ScalerClient {
+	return &realScalerClient{oc: oc, kc: kc}
 }
 
 // realScalerClient is a ScalerClient which uses an OpenShift and a Kube client.
 type realScalerClient struct {
-	osc client.Interface
-	kc  kclient.Interface
+	oc client.Interface
+	kc kclient.Interface
 }
 
 var rcName string
@@ -89,7 +89,7 @@ var rcName string
 // GetReplicationController returns the most recent replication controller associated with the deploymentConfig
 // with the provided namespace/name combination
 func (c *realScalerClient) GetReplicationController(namespace, name string) (*kapi.ReplicationController, error) {
-	dc, err := c.osc.DeploymentConfigs(namespace).Get(name)
+	dc, err := c.oc.DeploymentConfigs(namespace).Get(name)
 	if err != nil {
 		return nil, err
 	}

@@ -8,7 +8,7 @@ System Environment
 
 1. Run as root
 
-   Currently OpenShift v3 must be started as root in order to manipulate your iptables configuration.  The openshift commands (e.g. `osc create`) do not need to be run as root.
+   Currently OpenShift v3 must be started as root in order to manipulate your iptables configuration.  The openshift commands (e.g. `oc create`) do not need to be run as root.
 
 1. Properly configure or disable firewalld
 
@@ -39,11 +39,11 @@ Build Failures
 
 To investigate a build failure, first check the build logs.  You can view the build logs via
 
-    $ osc build-logs [build_id]
+    $ oc build-logs [build_id]
         
 and you can get the build id via:
 
-    $ osc get builds
+    $ oc get builds
 
 the build id is in the first column.
 
@@ -74,7 +74,7 @@ If it's not running, you will instead see:
 
 If it's not running, you can launch it via:
 
-    $ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
+    $ oadm registry --create --credentials="${OPENSHIFTCONFIG}"
 
 Probing Containers
 ------------------
@@ -128,8 +128,8 @@ If you find yourself still stuck, before seeking help in #openshift on freenode.
 
     If you are getting "forbidden" messages or 403 status codes that you aren't expecting, you should gather the policy bindings, roles, and rules being used for the namespace you are trying to access.  Run the following commands, substituting `<project-namespace>` with the namespace you're trying to access.
 
-        $ osc describe policy default --namespace=master
-        $ osc describe policybindings master --namespace=master
-        $ osc describe policy default --namespace=<project-namespace>
-        $ osc describe policybindings master --namespace=<project-namespace>
-        $ osc describe policybindings <project-namespace> --namespace=<project-namespace>
+        $ oc describe policy default --namespace=master
+        $ oc describe policybindings master --namespace=master
+        $ oc describe policy default --namespace=<project-namespace>
+        $ oc describe policybindings master --namespace=<project-namespace>
+        $ oc describe policybindings <project-namespace> --namespace=<project-namespace>

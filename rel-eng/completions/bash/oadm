@@ -1070,7 +1070,7 @@ _osadm_options()
 
 _osadm()
 {
-    last_command="osadm"
+    last_command="oadm"
     commands=()
     commands+=("new-project")
     commands+=("policy")
@@ -1171,7 +1171,7 @@ __start_osadm()
     local two_word_flags=()
     local flags_with_completion=()
     local flags_completion=()
-    local commands=("osadm")
+    local commands=("oadm")
     local must_have_one_flag=()
     local must_have_one_noun=()
     local last_command
@@ -1180,5 +1180,5 @@ __start_osadm()
     __handle_word
 }
 
-complete -F __start_osadm osadm
+complete -F __start_osadm oadm
 # ex: ts=4 sw=4 et filetype=sh

@@ -31,7 +31,7 @@ Pre-requisites/Prep Time
         [ -n "$OPENSHIFTCONFIG" ] ||  \
            export OPENSHIFTCONFIG=/openshift.local.config/master/admin.kubeconfig
         #  openshift kube get dc,rc,pods,se,mi,routes
-        osadm router arparp --create --replicas=2  \
+        oadm router arparp --create --replicas=2  \
                                    --credentials="${OPENSHIFTCONFIG}"
 
 
@@ -67,12 +67,12 @@ Pre-requisites/Prep Time
 
         $ vagrant ssh minion-1
         #  Add user and project.
-        osadm policy add-role-to-user view test-admin
-        osadm new-project test --display-name="Failover Sample" \
+        oadm policy add-role-to-user view test-admin
+        oadm new-project test --display-name="Failover Sample" \
            --description="Router Failover" --admin=test-admin
         #  Create a test app using the template.
         cd /vagrant/hack/exp/router-failover
-        osc create -n test -f conf/hello-openshift-template.json
+        oc create -n test -f conf/hello-openshift-template.json
 
         echo "Wait for the app to startup and check app is reachable."
         for ip in 10.245.2.3 10.245.2.4; do

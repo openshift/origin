@@ -121,7 +121,6 @@ type ImageStreamMapping struct {
 	Tag string
 }
 
-// ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.
 type ImageStreamTag struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta

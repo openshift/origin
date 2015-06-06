@@ -48,11 +48,11 @@ func main() {
 	openshift := openshift.NewCommandOpenShift("openshift")
 	openshift.GenBashCompletionFile(outFile_openshift)
 
-	outFile_osc := outDir + "osc"
-	osc := cli.NewCommandCLI("osc", "openshift cli")
-	osc.GenBashCompletionFile(outFile_osc)
+	outFile_osc := outDir + "oc"
+	oc := cli.NewCommandCLI("oc", "openshift cli")
+	oc.GenBashCompletionFile(outFile_osc)
 
-	outFile_osadm := outDir + "osadm"
-	osadm := admin.NewCommandAdmin("osadm", "openshift admin", ioutil.Discard)
-	osadm.GenBashCompletionFile(outFile_osadm)
+	outFile_osadm := outDir + "oadm"
+	oadm := admin.NewCommandAdmin("oadm", "openshift admin", ioutil.Discard)
+	oadm.GenBashCompletionFile(outFile_osadm)
 }

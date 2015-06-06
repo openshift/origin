@@ -98,9 +98,9 @@ function cleanup()
 
 	echo "[INFO] Dumping build log to ${LOG_DIR}"
 
-	osc get -n test builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n test >"${LOG_DIR}/stibuild.log"
-	osc get -n docker builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
-	osc get -n custom builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l osc build-logs -n custom >"${LOG_DIR}/custombuild.log"
+	oc get -n test builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n test >"${LOG_DIR}/stibuild.log"
+	oc get -n docker builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
+	oc get -n custom builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n custom >"${LOG_DIR}/custombuild.log"
 
 	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
 	set_curl_args 0 1
@@ -109,11 +109,11 @@ function cleanup()
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
 		echo "[INFO] Deleting test constructs"
-		osc delete -n test all --all
-		osc delete -n docker all --all
-		osc delete -n custom all --all
-		osc delete -n cache all --all
-		osc delete -n default all --all
+		oc delete -n test all --all
+		oc delete -n docker all --all
+		oc delete -n custom all --all
+		oc delete -n cache all --all
+		oc delete -n default all --all
 
 		echo "[INFO] Tearing down test"
 		pids="$(jobs -pr)"
@@ -145,18 +145,18 @@ trap "cleanup" EXIT
 function wait_for_app() {
 	echo "[INFO] Waiting for app in namespace $1"
 	echo "[INFO] Waiting for database pod to start"
-	wait_for_command "osc get -n $1 pods -l name=database | grep -i Running" $((60*TIME_SEC))
+	wait_for_command "oc get -n $1 pods -l name=database | grep -i Running" $((60*TIME_SEC))
 
 	echo "[INFO] Waiting for database service to start"
-	wait_for_command "osc get -n $1 services | grep database" $((20*TIME_SEC))
-	DB_IP=$(osc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service database)
+	wait_for_command "oc get -n $1 services | grep database" $((20*TIME_SEC))
+	DB_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service database)
 
 	echo "[INFO] Waiting for frontend pod to start"
-	wait_for_command "osc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
+	wait_for_command "oc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
 
 	echo "[INFO] Waiting for frontend service to start"
-	wait_for_command "osc get -n $1 services | grep frontend" $((20*TIME_SEC))
-	FRONTEND_IP=$(osc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service frontend)
+	wait_for_command "oc get -n $1 services | grep frontend" $((20*TIME_SEC))
+	FRONTEND_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service frontend)
 
 	echo "[INFO] Waiting for database to start..."
 	wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
@@ -173,12 +173,12 @@ function wait_for_app() {
 # $1 namespace
 function wait_for_build() {
 	echo "[INFO] Waiting for $1 namespace build to complete"
-	wait_for_command "osc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "osc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`osc get -n $1 builds --output-version=v1beta3 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	wait_for_command "oc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
+	BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} finished"
   # TODO: fix
   set +e
-	osc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
+	oc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
   set -e
 }
 
@@ -220,7 +220,7 @@ openshift admin create-node-config \
 	--signer-key="${MASTER_CONFIG_DIR}/ca.key" \
 	--signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
 
-osadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
+oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
 
 # create openshift config
 openshift start \
@@ -248,14 +248,14 @@ export HOME="${FAKE_HOME_DIR}"
 mkdir -p ${FAKE_HOME_DIR}
 
 export OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-CLUSTER_ADMIN_CONTEXT=$(osc config view --flatten -o template -t '{{index . "current-context"}}')
+CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template -t '{{index . "current-context"}}')
 
 if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
 	export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
 	export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 
-	# Make osc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
+	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
 	sudo chmod -R a+rwX "${OPENSHIFTCONFIG}"
 	echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
 fi
@@ -291,10 +291,10 @@ echo "[INFO] Pulled ruby-20-centos7"
 
 echo "[INFO] Waiting for Docker registry pod to start"
 # TODO: simplify when #4702 is fixed upstream
-wait_for_command '[[ "$(osc get endpoints docker-registry --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 # services can end up on any IP.	Make sure we get the IP we need for the docker registry
-DOCKER_REGISTRY=$(osc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
+DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
 wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry says: " $((2*TIME_MIN))
@@ -304,9 +304,9 @@ wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry s
 # Client setup (log in as e2e-user and set 'test' as the default project)
 # This is required to be able to push to the registry!
 echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
-osc login -u e2e-user -p pass
-osc project cache
-token=$(osc config view --flatten -o template -t '{{with index .users 0}}{{.user.token}}{{end}}')
+oc login -u e2e-user -p pass
+oc project cache
+token=$(oc config view --flatten -o template -t '{{with index .users 0}}{{.user.token}}{{end}}')
 [[ -n ${token} ]]
 
 echo "[INFO] Docker login as e2e-user to ${DOCKER_REGISTRY}"
@@ -319,63 +319,63 @@ docker push ${DOCKER_REGISTRY}/cache/ruby-20-centos7:latest
 echo "[INFO] Pushed ruby-20-centos7"
 
 echo "[INFO] Back to 'default' project with 'admin' user..."
-osc project ${CLUSTER_ADMIN_CONTEXT}
+oc project ${CLUSTER_ADMIN_CONTEXT}
 
 # The build requires a dockercfg secret in the builder service account in order
 # to be able to push to the registry.  Make sure it exists first.
 echo "[INFO] Waiting for dockercfg secrets to be generated in project 'test' before building"
-wait_for_command "osc get -n test serviceaccount/builder -o yaml | grep dockercfg > /dev/null" $((60*TIME_SEC))
+wait_for_command "oc get -n test serviceaccount/builder -o yaml | grep dockercfg > /dev/null" $((60*TIME_SEC))
 
 # Process template and create
 echo "[INFO] Submitting application template json for processing..."
-osc process -n test -f examples/sample-app/application-template-stibuild.json > "${STI_CONFIG_FILE}"
-osc process -n docker -f examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
-osc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
+oc process -n test -f examples/sample-app/application-template-stibuild.json > "${STI_CONFIG_FILE}"
+oc process -n docker -f examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
+oc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
 
 echo "[INFO] Back to 'test' context with 'e2e-user' user"
-osc project test
+oc project test
 
 echo "[INFO] Applying STI application config"
-osc create -f "${STI_CONFIG_FILE}"
+oc create -f "${STI_CONFIG_FILE}"
 
 # Wait for build which should have triggered automatically
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
-#osc start-build -n test ruby-sample-build --follow
+#oc start-build -n test ruby-sample-build --follow
 wait_for_build "test"
 wait_for_app "test"
 
 #echo "[INFO] Applying Docker application config"
-#osc create -n docker -f "${DOCKER_CONFIG_FILE}"
+#oc create -n docker -f "${DOCKER_CONFIG_FILE}"
 #echo "[INFO] Invoking generic web hook to trigger new docker build using curl"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta3/namespaces/docker/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 #wait_for_build "docker"
 #wait_for_app "docker"
 
 #echo "[INFO] Applying Custom application config"
-#osc create -n custom -f "${CUSTOM_CONFIG_FILE}"
+#oc create -n custom -f "${CUSTOM_CONFIG_FILE}"
 #echo "[INFO] Invoking generic web hook to trigger new custom build using curl"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/osapi/v1beta3/namespaces/custom/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 #wait_for_build "custom"
 #wait_for_app "custom"
 
 echo "[INFO] Back to 'default' project with 'admin' user..."
-osc project ${CLUSTER_ADMIN_CONTEXT}
+oc project ${CLUSTER_ADMIN_CONTEXT}
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-wait_for_command '[[ "$(osc get endpoints router --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
 # Remote command execution
 echo "[INFO] Validating exec"
-registry_pod=$(osc get pod | grep deployment=docker-registry | grep docker-registry | awk '{print $1}')
-osc exec -p ${registry_pod} whoami | grep root
+registry_pod=$(oc get pod | grep deployment=docker-registry | grep docker-registry | awk '{print $1}')
+oc exec -p ${registry_pod} whoami | grep root
 
 # Port forwarding
 echo "[INFO] Validating port-forward"
-osc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
+oc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
 wait_for_url_timed "http://localhost:5001/healthz" "[INFO] Docker registry says: " $((10*TIME_SEC))
 
 # UI e2e tests can be found in assets/test/e2e
