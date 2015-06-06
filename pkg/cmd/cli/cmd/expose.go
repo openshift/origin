@@ -36,6 +36,7 @@ $ %[1]s expose dc ruby-hello-world --port=8080 --generator=services/v1`
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
 func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdExposeService(f.Factory, out)
+	cmd.Short = "Expose a replicated application as a service or route"
 	cmd.Long = exposeLong
 	cmd.Example = fmt.Sprintf(exposeExample, fullName)
 	cmd.Flags().Set("generator", "route/v1")

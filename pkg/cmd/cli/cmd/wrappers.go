@@ -250,6 +250,7 @@ $ %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo`
 // NewCmdScale is a wrapper for the Kubernetes cli scale command
 func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdScale(f.Factory, out)
+	cmd.Short = "Change the number of pods in a deployment"
 	cmd.Long = scaleLong
 	cmd.Example = fmt.Sprintf(scaleExample, fullName)
 	return cmd

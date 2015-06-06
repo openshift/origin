@@ -17,22 +17,22 @@ import (
 const (
 	newBuildLong = `Create a new build in OpenShift by specifying source code.
 
-This command will try to create a build configuration (BuildConfig) for your application using images and
+This command will try to create a build configuration for your application using images and
 code that has a public repository. It will lookup the images on the local Docker installation
 (if available), a Docker registry, or an OpenShift image stream.
 If you specify a source code URL, it will set up a build that takes your source code and converts
 it into an image that can run inside of a pod. Local source must be in a git repository that has a
 remote repository that the OpenShift instance can see.
 
-Once the BuildConfig is created you may need to run a build with 'start-build'.`
+Once the build configuration is created you may need to run a build with 'start-build'.`
 
-	newBuildExample = `  // Create a BuildConfig based on the source code in the current git repository (with a public remote) and a Docker image
+	newBuildExample = `  // Create a build config based on the source code in the current git repository (with a public remote) and a Docker image
   $ %[1]s new-build . --docker-image=repo/langimage
 
-  // Create a NodeJS BuildConfig based on the provided [image]~[source code] combination
+  // Create a NodeJS build config based on the provided [image]~[source code] combination
   $ %[1]s new-build openshift/nodejs-010-centos7~https://bitbucket.com/user/nodejs-app
 
-  // Create a BuildConfig from a remote repository using its beta2 branch
+  // Create a build config from a remote repository using its beta2 branch
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world#beta2`
 )
 
@@ -44,7 +44,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 
 	cmd := &cobra.Command{
 		Use:     "new-build (IMAGE | IMAGESTREAM | PATH | URL ...)",
-		Short:   "Create a new BuildConfig",
+		Short:   "Create a new build configuration",
 		Long:    newBuildLong,
 		Example: fmt.Sprintf(newBuildExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
@@ -83,7 +83,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.
 		}
 		if err == newcmd.ErrNoInputs {
 			// TODO: suggest things to the user
-			return cmdutil.UsageError(c, "You must specify one or more images, image streams and source code locations to create a BuildConfig.")
+			return cmdutil.UsageError(c, "You must specify one or more images, image streams and source code locations to create a build configuration.")
 		}
 		return err
 	}
@@ -101,7 +101,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "A build was created - you can run `%s start-build %s` to start it.\n", fullName, t.Name)
+			fmt.Fprintf(c.Out(), "A build configuration was created - you can run `%s start-build %s` to start it.\n", fullName, t.Name)
 		}
 	}
 

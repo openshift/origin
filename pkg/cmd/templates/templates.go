@@ -36,19 +36,19 @@ const (
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
 	mainUsageTemplate = vars + `{{ $cmd := . }}{{if and .Runnable (ne .UseLine "") (ne .UseLine $rootCmd)}}
-Usage: 
+Usage:
   {{.UseLine}}{{if .HasFlags}} [options]{{end}}{{if .HasExample}}
 
 Examples:
 {{ .Example }}{{end}}{{ if .HasRunnableSubCommands}}
-{{end}}{{end}}{{ if .HasRunnableSubCommands}}
-Available Commands: {{range .Commands}}{{if and .Runnable (ne .Name "options")}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}
-{{ if or $localNotPersistentFlags.HasFlags $explicitlyExposedFlags.HasFlags}}
+{{end}}{{end}}{{ if .HasRunnableSubCommands}}{{range cmdGroups . .Commands}}
+{{.Message}}{{range .Commands}}{{if and .Runnable (ne .Name "options")}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
+{{end}}{{end}}{{ if or $localNotPersistentFlags.HasFlags $explicitlyExposedFlags.HasFlags}}
 Options:
 {{ if $localNotPersistentFlags.HasFlags}}{{flagsUsages $localNotPersistentFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}{{end}}{{ if not $isRootCmd}}
 Use "{{$rootCmd}} --help" for a list of all commands available in {{$rootCmd}}.{{end}}{{ if .HasSubCommands }}
-Use "{{$rootCmd}} <command> --help" for more information about a given command.{{end}}{{ if $optionsCmdFor}}
+Use "{{$rootCmd}} help <command>" for more information about a given command.{{end}}{{ if $optionsCmdFor}}
 Use "{{$optionsCmdFor}}" for a list of global command-line options (applies to all commands).{{end}}`
 
 	optionsHelpTemplate = ``
