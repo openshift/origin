@@ -388,7 +388,7 @@ func TestResolve(t *testing.T) {
 		{
 			name: "Successful docker build",
 			cfg: AppConfig{
-				TypeOfBuild: "docker",
+				Strategy: "docker",
 			},
 			components: app.ComponentReferences{
 				app.ComponentReference(&app.ComponentInput{
@@ -471,7 +471,7 @@ func TestDetectSource(t *testing.T) {
 	}
 }
 
-func TestRun(t *testing.T) {
+func TestRunAll(t *testing.T) {
 	dockerResolver := app.DockerRegistryResolver{
 		Client: dockerregistry.NewClient(),
 	}
@@ -553,7 +553,7 @@ func TestRun(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		res, err := test.config.Run(os.Stdout)
+		res, err := test.config.RunAll(os.Stdout)
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -569,6 +569,87 @@ func TestRun(t *testing.T) {
 				got["imageStream"] = append(got["imageStream"], tp.Name)
 			case *deploy.DeploymentConfig:
 				got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
+			}
+		}
+
+		if len(test.expected) != len(got) {
+			t.Errorf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
+			continue
+		}
+
+		for k, exp := range test.expected {
+			g, ok := got[k]
+			if !ok {
+				t.Errorf("%s: Didn't find expected kind %s", test.name, k)
+			}
+
+			sort.Strings(g)
+			sort.Strings(exp)
+
+			if !reflect.DeepEqual(g, exp) {
+				t.Errorf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
+				continue
+			}
+		}
+	}
+}
+
+func TestRunBuild(t *testing.T) {
+	dockerResolver := app.DockerRegistryResolver{
+		Client: dockerregistry.NewClient(),
+	}
+
+	tests := []struct {
+		name        string
+		config      *AppConfig
+		expected    map[string][]string
+		expectedErr error
+	}{
+		{
+			name: "successful ruby app generation",
+			config: &AppConfig{
+				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
+				OutputDocker:       true,
+
+				dockerResolver: dockerResolver,
+				imageStreamResolver: app.ImageStreamResolver{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateResolver: app.TemplateResolver{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				searcher:        &simpleSearcher{dockerResolver},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"ruby-hello-world"},
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		res, err := test.config.RunBuilds(os.Stdout)
+		if err != test.expectedErr {
+			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
+			continue
+		}
+		got := map[string][]string{}
+		for _, obj := range res.List.Items {
+			switch tp := obj.(type) {
+			case *buildapi.BuildConfig:
+				got["buildConfig"] = append(got["buildConfig"], tp.Name)
 			}
 		}
 

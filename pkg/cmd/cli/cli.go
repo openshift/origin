@@ -68,6 +68,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 	cmds.AddCommand(cmd.NewCmdRequestProject("new-project", fullName+" new-project", fullName+" login", fullName+" project", f, out))
 	cmds.AddCommand(cmd.NewCmdNewApplication(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdStatus(fullName, f, out))
+	cmds.AddCommand(cmd.NewCmdNewBuild(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdStartBuild(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdCancelBuild(fullName, f, out))
 	cmds.AddCommand(cmd.NewCmdBuildLogs(fullName, f, out))

@@ -3,6 +3,7 @@ package app
 import (
 	"log"
 	"net/url"
+	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -53,7 +54,7 @@ func TestWithType(t *testing.T) {
 	}
 }
 
-func TestSimpleBuildConfig(t *testing.T) {
+func TestBuildConfigNoOutput(t *testing.T) {
 	url, err := url.Parse("https://github.com/openshift/origin.git")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -67,7 +68,16 @@ func TestSimpleBuildConfig(t *testing.T) {
 	if config.Name != "origin" {
 		t.Errorf("unexpected name: %#v", config)
 	}
+	if !reflect.DeepEqual(config.Parameters.Output, buildapi.BuildOutput{}) {
+		t.Errorf("unexpected build output: %#v", config.Parameters.Output)
+	}
+}
 
+func TestBuildConfigOutput(t *testing.T) {
+	url, err := url.Parse("https://github.com/openshift/origin.git")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	output := &ImageRef{
 		DockerImageReference: imageapi.DockerImageReference{
 			Registry:  "myregistry",
@@ -83,29 +93,43 @@ func TestSimpleBuildConfig(t *testing.T) {
 		Info:          testImageInfo(),
 		AsImageStream: true,
 	}
-	strategy := &BuildStrategyRef{IsDockerBuild: false, Base: base}
-	build = &BuildRef{Source: source, Output: output, Strategy: strategy}
-	config, err = build.BuildConfig()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	tests := []struct {
+		asImageStream bool
+		expectedKind  string
+	}{
+		{true, ""},
+		{false, "DockerImage"},
 	}
-	if config.Name != "origin" || config.Parameters.Output.To.Name != "origin" {
-		t.Errorf("unexpected name: %#v", config)
-	}
-	if len(config.Triggers) != 3 {
-		t.Errorf("unexpected number of triggers: %v\n", config.Triggers)
-	}
-	imageChangeTrigger := false
-	for _, trigger := range config.Triggers {
-		if trigger.Type == buildapi.ImageChangeBuildTriggerType {
-			imageChangeTrigger = true
-			if trigger.ImageChange == nil {
-				t.Errorf("invalid image change trigger found: %#v", trigger)
+	for i, test := range tests {
+		output.AsImageStream = test.asImageStream
+		source := &SourceRef{URL: url}
+		strategy := &BuildStrategyRef{IsDockerBuild: false, Base: base}
+		build := &BuildRef{Source: source, Output: output, Strategy: strategy}
+		config, err := build.BuildConfig()
+		if err != nil {
+			t.Fatalf("(%d) unexpected error: %v", i, err)
+		}
+		if config.Name != "origin" {
+			t.Errorf("(%d) unexpected name: %s", i, config.Name)
+		}
+		if config.Parameters.Output.To.Name != "origin" || config.Parameters.Output.To.Kind != test.expectedKind {
+			t.Errorf("(%d) unexpected output image: %s/%s", i, config.Parameters.Output.To.Kind, config.Parameters.Output.To.Name)
+		}
+		if len(config.Triggers) != 3 {
+			t.Errorf("(%d) unexpected number of triggers %d: %#v\n", i, len(config.Triggers), config.Triggers)
+		}
+		imageChangeTrigger := false
+		for _, trigger := range config.Triggers {
+			if trigger.Type == buildapi.ImageChangeBuildTriggerType {
+				imageChangeTrigger = true
+				if trigger.ImageChange == nil {
+					t.Errorf("invalid image change trigger found: %#v", i, trigger)
+				}
 			}
 		}
-	}
-	if !imageChangeTrigger {
-		t.Errorf("expecting image change trigger in build config")
+		if !imageChangeTrigger {
+			t.Errorf("expecting image change trigger in build config")
+		}
 	}
 }
 

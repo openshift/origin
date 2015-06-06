@@ -39,8 +39,9 @@ type AppConfig struct {
 	Groups             util.StringList
 	Environment        util.StringList
 
-	Name        string
-	TypeOfBuild string
+	Name         string
+	Strategy     string
+	OutputDocker bool
 
 	dockerResolver       app.Resolver
 	imageStreamResolver  app.Resolver
@@ -181,7 +182,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository
 		repos[0].SetContextDir(c.ContextDir)
 	}
 
-	if len(c.TypeOfBuild) != 0 && len(repos) == 0 {
+	if len(c.Strategy) != 0 && len(repos) == 0 {
 		errs = append(errs, fmt.Errorf("when --build is specified you must provide at least one source code location"))
 	}
 
@@ -210,7 +211,7 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 		}
 		switch input := ref.Input(); {
 		case !input.ExpectToBuild && input.Match.Builder:
-			if c.TypeOfBuild != "docker" {
+			if c.Strategy != "docker" {
 				glog.Infof("Image %q is a builder, so a repository will be expected unless you also specify --build=docker", input)
 				input.ExpectToBuild = true
 			}
@@ -219,7 +220,7 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 			errs = append(errs, fmt.Errorf("template with source code explicitly attached is not supported - you must either specify the template and source code separately or attach an image to the source code using the '[image]~[code]' form"))
 			continue
 		case input.ExpectToBuild && !input.Match.Builder:
-			if len(c.TypeOfBuild) == 0 {
+			if len(c.Strategy) == 0 {
 				errs = append(errs, fmt.Errorf("none of the images that match %q can build source code - check whether this is the image you want to use, then use --build=source to build using source or --build=docker to treat this as a Docker base image and set up a layered Docker build", ref))
 				continue
 			}
@@ -288,7 +289,7 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) (app.Comp
 			errs = append(errs, err)
 			continue
 		}
-		if info.Dockerfile != nil {
+		if info.Dockerfile != nil && (len(c.Strategy) == 0 || c.Strategy == "docker") {
 			// TODO: this should be using the reference builder flow, possibly by moving detectSource up before other steps
 			/*if from, ok := info.Dockerfile.GetDirective("FROM"); ok {
 				input, _, err := NewComponentInput(from[0])
@@ -372,7 +373,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if len(c.Name) > 0 {
 					source.Name = c.Name
 				}
-				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, strategy, source); err != nil {
+				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 			} else {
@@ -445,22 +446,40 @@ type AppResult struct {
 
 	BuildNames []string
 	HasSource  bool
+	Namespace  string
 }
 
-// Run executes the provided config.
-func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
+// RunAll executes the provided config to generate all objects.
+func (c *AppConfig) RunAll(out io.Writer) (*AppResult, error) {
 	components, repositories, environment, parameters, err := c.validate()
 	if err != nil {
 		return nil, err
 	}
-
-	hasSource := len(repositories) != 0
-	hasComponents := len(components) != 0
-
-	if !hasSource && !hasComponents {
+	if len(repositories) == 0 && len(components) == 0 {
 		return nil, ErrNoInputs
 	}
 
+	return c.run(out, app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew},
+		components, repositories, environment, parameters)
+}
+
+// RunBuilds executes the provided config to generate just builds.
+func (c *AppConfig) RunBuilds(out io.Writer) (*AppResult, error) {
+	components, repositories, environment, parameters, err := c.validate()
+	if err != nil {
+		return nil, err
+	}
+	if len(repositories) == 0 {
+		return nil, ErrNoInputs
+	}
+
+	return c.run(out, app.Acceptors{app.NewAcceptBuildConfigs(c.typer), app.NewAcceptUnique(c.typer), app.AcceptNew},
+		components, repositories, environment, parameters)
+}
+
+// run executes the provided config applying provided acceptors.
+func (c *AppConfig) run(out io.Writer, acceptors app.Acceptors, components app.ComponentReferences,
+	repositories []*app.SourceRepository, environment, parameters cmdutil.Environment) (*AppResult, error) {
 	if err := c.resolve(components); err != nil {
 		return nil, err
 	}
@@ -488,9 +507,8 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
-	acceptUnique := app.NewAcceptUnique(c.typer)
 	for _, p := range pipelines {
-		accepted, err := p.Objects(accept, app.Acceptors{acceptUnique, app.AcceptNew})
+		accepted, err := p.Objects(accept, acceptors)
 		if err != nil {
 			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
 		}
@@ -516,7 +534,8 @@ func (c *AppConfig) Run(out io.Writer) (*AppResult, error) {
 	return &AppResult{
 		List:       &kapi.List{Items: objects},
 		BuildNames: buildNames,
-		HasSource:  hasSource,
+		HasSource:  len(repositories) != 0,
+		Namespace:  c.originNamespace,
 	}, nil
 }
 
