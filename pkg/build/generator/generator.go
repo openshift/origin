@@ -94,13 +94,7 @@ type streamRef struct {
 
 // FetchServiceAccountSecrets retrieves the Secrets used for pushing and pulling
 // images from private Docker registries.
-func (g *BuildGenerator) FetchServiceAccountSecrets(namespace string) ([]kapi.Secret, error) {
-	// TODO: Check for the service account specified in the build config when it
-	//       will be added
-	serviceAccount := g.DefaultServiceAccountName
-	if len(serviceAccount) == 0 {
-		serviceAccount = bootstrappolicy.BuilderServiceAccountName
-	}
+func (g *BuildGenerator) FetchServiceAccountSecrets(namespace, serviceAccount string) ([]kapi.Secret, error) {
 	var result []kapi.Secret
 	sa, err := g.ServiceAccounts.ServiceAccounts(namespace).Get(serviceAccount)
 	if err != nil {
@@ -187,7 +181,10 @@ func (g *BuildGenerator) createBuild(ctx kapi.Context, build *buildapi.Build) (*
 // the Strategy, or uses the Image field of the Strategy.
 // Takes a BuildConfig to base the build on, and an optional SourceRevision to build.
 func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.BuildConfig, revision *buildapi.SourceRevision) (*buildapi.Build, error) {
-	serviceAccount := g.DefaultServiceAccountName
+	serviceAccount := bc.Parameters.ServiceAccount
+	if len(serviceAccount) == 0 {
+		serviceAccount = g.DefaultServiceAccountName
+	}
 	if len(serviceAccount) == 0 {
 		serviceAccount = bootstrappolicy.BuilderServiceAccountName
 	}
@@ -196,13 +193,13 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	obj, _ := kapi.Scheme.Copy(bc)
 	bcCopy := obj.(*buildapi.BuildConfig)
 	build := &buildapi.Build{
-		ServiceAccount: serviceAccount,
 		Parameters: buildapi.BuildParameters{
-			Source:    bcCopy.Parameters.Source,
-			Strategy:  bcCopy.Parameters.Strategy,
-			Output:    bcCopy.Parameters.Output,
-			Revision:  revision,
-			Resources: bcCopy.Parameters.Resources,
+			ServiceAccount: serviceAccount,
+			Source:         bcCopy.Parameters.Source,
+			Strategy:       bcCopy.Parameters.Strategy,
+			Output:         bcCopy.Parameters.Output,
+			Revision:       revision,
+			Resources:      bcCopy.Parameters.Resources,
 		},
 		ObjectMeta: kapi.ObjectMeta{
 			Labels: bcCopy.Labels,
@@ -217,7 +214,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	}
 	build.Labels[buildapi.BuildConfigLabel] = bcCopy.Name
 
-	builderSecrets, err := g.FetchServiceAccountSecrets(bc.Namespace)
+	builderSecrets, err := g.FetchServiceAccountSecrets(bc.Namespace, serviceAccount)
 	if err != nil {
 		return nil, err
 	}

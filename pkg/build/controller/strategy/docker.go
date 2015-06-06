@@ -38,7 +38,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			Labels:    getPodLabels(build),
 		},
 		Spec: kapi.PodSpec{
-			ServiceAccount: build.ServiceAccount,
+			ServiceAccount: build.Parameters.ServiceAccount,
 			Containers: []kapi.Container{
 				{
 					Name:  "docker-build",

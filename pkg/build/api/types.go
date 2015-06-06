@@ -20,11 +20,6 @@ type Build struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 
-	// ServiceAccount is the name of the ServiceAccount to use to run the pod
-	// created by this build.
-	// The pod will be allowed to use secrets referenced by the ServiceAccount
-	ServiceAccount string `json:"serviceAccount,omitempty"`
-
 	// Parameters are all the inputs used to create the build pod.
 	Parameters BuildParameters `json:"parameters,omitempty"`
 
@@ -57,6 +52,11 @@ type Build struct {
 
 // BuildParameters encapsulates all the inputs necessary to represent a build.
 type BuildParameters struct {
+	// ServiceAccount is the name of the ServiceAccount to use to run the pod
+	// created by this build.
+	// The pod will be allowed to use secrets referenced by the ServiceAccount
+	ServiceAccount string `json:"serviceAccount,omitempty"`
+
 	// Source describes the SCM in use.
 	Source BuildSource `json:"source,omitempty"`
 

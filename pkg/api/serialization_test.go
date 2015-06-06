@@ -178,7 +178,16 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 	return item
 }
 
-func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
+func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
+	// Make a copy of the originalItem to give to conversion functions
+	// This lets us know if conversion messed with the input object
+	deepCopy, err := conversion.DeepCopy(originalItem)
+	if err != nil {
+		t.Errorf("Could not copy object: %v", err)
+		return
+	}
+	item := deepCopy.(runtime.Object)
+
 	name := reflect.TypeOf(item).Elem().Name()
 	data, err := codec.Encode(item)
 	if err != nil {
@@ -192,7 +201,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 
 	obj2, err := codec.Decode(data)
 	if err != nil {
-		t.Errorf("0: %v: %v\nCodec: %v\nData: %s\nSource: %#v", name, err, codec, string(data), item)
+		t.Errorf("0: %v: %v\nCodec: %v\nData: %s\nSource: %#v", name, err, codec, string(data), originalItem)
 		return
 	}
 	if reflect.TypeOf(item) != reflect.TypeOf(obj2) {
@@ -203,8 +212,8 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		}
 		obj2 = obj2conv
 	}
-	if !api.Semantic.DeepEqual(item, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, util.ObjectDiff(item, obj2), codec, string(data), util.ObjectGoPrintSideBySide(item, obj2))
+	if !api.Semantic.DeepEqual(originalItem, obj2) {
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, util.ObjectDiff(originalItem, obj2), codec, string(data), util.ObjectGoPrintSideBySide(originalItem, obj2))
 		return
 	}
 
@@ -214,8 +223,8 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		t.Errorf("2: %v: %v", name, err)
 		return
 	}
-	if !api.Semantic.DeepEqual(item, obj3) {
-		t.Errorf("3: %v: diff: %v\nCodec: %v", name, util.ObjectDiff(item, obj3), codec)
+	if !api.Semantic.DeepEqual(originalItem, obj3) {
+		t.Errorf("3: %v: diff: %v\nCodec: %v", name, util.ObjectDiff(originalItem, obj3), codec)
 		return
 	}
 }
