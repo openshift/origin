@@ -65,7 +65,7 @@ JSON and YAML formats are accepted.`
 func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "process (TEMPLATE | -f FILENAME) [-v=KEY=VALUE]",
-		Short:   "Process template into list of resources",
+		Short:   "Process a template into list of resources",
 		Long:    processLong,
 		Example: fmt.Sprintf(processExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

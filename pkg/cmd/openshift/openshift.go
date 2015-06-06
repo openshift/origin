@@ -86,7 +86,9 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = NewCommandOpenShift("openshift")
 	}
 
-	templates.UseMainTemplates(cmd)
+	if cmd.UsageFunc() == nil {
+		templates.UseMainTemplates(cmd)
+	}
 	flagtypes.GLog(cmd.PersistentFlags())
 
 	return cmd

@@ -10,9 +10,49 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+type CommandGroup struct {
+	Message  string
+	Commands []*cobra.Command
+}
+
+type CommandGroups []CommandGroup
+
+func (g CommandGroups) Add(c *cobra.Command) {
+	for _, group := range g {
+		for _, command := range group.Commands {
+			c.AddCommand(command)
+		}
+	}
+}
+
+func (g CommandGroups) Has(c *cobra.Command) bool {
+	for _, group := range g {
+		for _, command := range group.Commands {
+			if command == c {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func AddAdditionalCommands(g CommandGroups, message string, cmds []*cobra.Command) CommandGroups {
+	group := CommandGroup{Message: message}
+	for _, c := range cmds {
+		if !g.Has(c) {
+			group.Commands = append(group.Commands, c)
+		}
+	}
+	if len(group.Commands) == 0 {
+		return g
+	}
+	return append(g, group)
+}
+
 type Templater struct {
 	UsageTemplate string
 	Exposed       []string
+	CommandGroups
 }
 
 func (templater *Templater) UsageFunc() func(*cobra.Command) error {
@@ -26,6 +66,7 @@ func (templater *Templater) UsageFunc() func(*cobra.Command) error {
 			"rpad":                rpad,
 			"flagsNotIntersected": flagsNotIntersected,
 			"flagsUsages":         flagsUsages,
+			"cmdGroups":           templater.cmdGroups,
 			"rootCmd":             rootCmdName,
 			"isRootCmd":           isRootCmd,
 			"optionsCmdFor":       optionsCmdFor,
@@ -47,9 +88,24 @@ func (templater *Templater) UsageFunc() func(*cobra.Command) error {
 	}
 }
 
-func UseMainTemplates(cmd *cobra.Command) {
+func (templater *Templater) cmdGroups(c *cobra.Command, all []*cobra.Command) []CommandGroup {
+	if len(templater.CommandGroups) > 0 && isRootCmd(c) {
+		return AddAdditionalCommands(templater.CommandGroups, "Other Commands:", all)
+	}
+	return []CommandGroup{
+		{
+			Message:  "Available Commands:",
+			Commands: all,
+		},
+	}
+}
+
+func UseMainTemplates(cmd *cobra.Command, groups ...CommandGroup) {
 	cmd.SetHelpTemplate(MainHelpTemplate())
-	templater := &Templater{UsageTemplate: MainUsageTemplate()}
+	templater := &Templater{
+		UsageTemplate: MainUsageTemplate(),
+		CommandGroups: groups,
+	}
 	cmd.SetUsageFunc(templater.UsageFunc())
 }
 

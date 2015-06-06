@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	adminpolicy "github.com/openshift/origin/pkg/cmd/admin/policy"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -18,7 +19,7 @@ func NewCommandPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer
 		Use:   name,
 		Short: "Manage authorization policy",
 		Long:  `Manage authorization policy`,
-		Run:   runHelp,
+		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 
 	cmds.AddCommand(adminpolicy.NewCmdWhoCan(adminpolicy.WhoCanRecommendedName, fullName+" "+adminpolicy.WhoCanRecommendedName, f, out))
