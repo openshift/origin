@@ -44,7 +44,6 @@ func init() {
 			if err := s.Convert(in, &out.Status, 0); err != nil {
 				return err
 			}
-			in.ServiceAccount = out.Spec.ServiceAccount
 			return s.Convert(&in.Status, &out.Status.Phase, 0)
 		},
 		func(in *Build, out *newer.Build, s conversion.Scope) error {
@@ -57,7 +56,6 @@ func init() {
 			if err := s.Convert(&in.Spec, &out.Parameters, 0); err != nil {
 				return err
 			}
-			in.Spec.ServiceAccount = out.ServiceAccount
 			return s.Convert(&in.Status.Phase, &out.Status, 0)
 		},
 
@@ -123,6 +121,7 @@ func init() {
 		},
 
 		func(in *newer.BuildParameters, out *BuildSpec, s conversion.Scope) error {
+			out.ServiceAccount = in.ServiceAccount
 			if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 				return err
 			}
@@ -144,6 +143,7 @@ func init() {
 			return nil
 		},
 		func(in *BuildSpec, out *newer.BuildParameters, s conversion.Scope) error {
+			out.ServiceAccount = in.ServiceAccount
 			if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 				return err
 			}
@@ -166,6 +166,7 @@ func init() {
 		},
 
 		func(in *newer.BuildParameters, out *BuildConfigSpec, s conversion.Scope) error {
+			out.ServiceAccount = in.ServiceAccount
 			if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 				return err
 			}
@@ -187,6 +188,7 @@ func init() {
 			return nil
 		},
 		func(in *BuildConfigSpec, out *newer.BuildParameters, s conversion.Scope) error {
+			out.ServiceAccount = in.ServiceAccount
 			if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 				return err
 			}

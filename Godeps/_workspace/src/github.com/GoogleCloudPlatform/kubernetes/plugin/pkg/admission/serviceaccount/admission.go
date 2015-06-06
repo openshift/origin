@@ -107,7 +107,7 @@ func NewServiceAccount(cl client.Interface) *serviceAccount {
 	return &serviceAccount{
 		Handler: admission.NewHandler(admission.Create),
 		// TODO: enable this once we've swept secret usage to account for adding secret references to service accounts
-		LimitSecretReferences: false,
+		LimitSecretReferences: true,
 		// Auto mount service account API token secrets
 		MountServiceAccountToken: true,
 
