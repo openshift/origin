@@ -81,7 +81,7 @@ func ReadYAMLFile(filename string, obj runtime.Object) error {
 	if err != nil {
 		return err
 	}
-	data, err = kyaml.ToJSON(data)
+	data, err = kyaml.ToJSON(data, false)
 	if err != nil {
 		return err
 	}

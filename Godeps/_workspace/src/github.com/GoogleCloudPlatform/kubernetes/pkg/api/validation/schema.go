@@ -65,7 +65,7 @@ func NewSwaggerSchemaFromBytes(data []byte) (Schema, error) {
 
 func (s *SwaggerSchema) ValidateBytes(data []byte) error {
 	var obj interface{}
-	out, err := yaml.ToJSON(data)
+	out, err := yaml.ToJSON(data, false)
 	if err != nil {
 		return err
 	}
