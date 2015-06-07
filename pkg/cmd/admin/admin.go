@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
@@ -62,6 +63,9 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	cmds.AddCommand(admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, out))
 	cmds.AddCommand(admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, out))
 	cmds.AddCommand(admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, out))
+
+	// TODO: use groups
+	templates.ActsAsRootCommand(cmds)
 
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName))

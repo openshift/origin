@@ -62,11 +62,12 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 
 	f := clientcmd.New(cmds.PersistentFlags())
 
+	loginCmd := cmd.NewCmdLogin(fullName, f, in, out)
 	groups := templates.CommandGroups{
 		{
 			Message: "Basic Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdLogin(fullName, f, in, out),
+				loginCmd,
 				cmd.NewCmdRequestProject("new-project", fullName+" new-project", fullName+" login", fullName+" project", f, out),
 				cmd.NewCmdNewApplication(fullName, f, out),
 				cmd.NewCmdStatus(fullName, f, out),
@@ -126,7 +127,8 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 		},
 	}
 	groups.Add(cmds)
-	templates.UseMainTemplates(cmds, groups...)
+	templates.ActsAsRootCommand(cmds, groups...).
+		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify")
 
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName))

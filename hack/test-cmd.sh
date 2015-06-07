@@ -275,6 +275,7 @@ echo "templates: ok"
 [ "$(oc --help 2>&1 | grep 'OpenShift Client')" ]
 [ "$(oc login --help 2>&1 | grep 'Options')" ]
 [ "! $(oc login --help 2>&1 | grep 'Global Options')" ]
+[ "$(oc login --help 2>&1 | grep 'insecure-skip-tls-verify')" ]
 [ "$(openshift cli --help 2>&1 | grep 'OpenShift Client')" ]
 [ "$(openshift kubectl --help 2>&1 | grep 'Kubernetes cluster')" ]
 [ "$(oadm --help 2>&1 | grep 'OpenShift Administrative Commands')" ]
