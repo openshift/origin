@@ -40,9 +40,10 @@ Usage:
   {{.UseLine}}{{if .HasFlags}} [options]{{end}}{{if .HasExample}}
 
 Examples:
-{{ .Example }}{{end}}{{ if .HasRunnableSubCommands}}
+{{ .Example | trimRight}}
+{{end}}{{ if .HasRunnableSubCommands}}
 {{end}}{{end}}{{ if .HasRunnableSubCommands}}{{range cmdGroups . .Commands}}
-{{.Message}}{{range .Commands}}{{if and .Runnable (ne .Name "options")}}
+{{.Message}}{{range .Commands}}{{if .Runnable}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
 {{end}}{{end}}{{ if or $localNotPersistentFlags.HasFlags $explicitlyExposedFlags.HasFlags}}
 Options:

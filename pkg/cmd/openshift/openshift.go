@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -33,10 +34,7 @@ OpenShift helps you build, deploy, and manage your applications. To start an all
   $ openshift start &
 
 OpenShift is built around Docker and the Kubernetes cluster container manager.  You must have
-Docker installed on this machine to start your server.
-
-Note: This is a beta release of OpenShift and may change significantly.  See
-    https://github.com/openshift/origin for the latest information on OpenShift.`
+Docker installed on this machine to start your server.`
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
@@ -87,7 +85,7 @@ func CommandFor(basename string) *cobra.Command {
 	}
 
 	if cmd.UsageFunc() == nil {
-		templates.UseMainTemplates(cmd)
+		templates.ActsAsRootCommand(cmd)
 	}
 	flagtypes.GLog(cmd.PersistentFlags())
 
@@ -102,10 +100,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		Use:   name,
 		Short: "OpenShift helps you build, deploy, and manage your cloud applications",
 		Long:  openshift_long,
-		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(out)
-			c.Help()
-		},
+		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
@@ -132,6 +127,9 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root.AddCommand(infra)
 
 	root.AddCommand(cmd.NewCmdOptions(out))
+
+	// TODO: add groups
+	templates.ActsAsRootCommand(root)
 
 	return root
 }
