@@ -528,6 +528,11 @@ type KubernetesMasterConfig struct {
 	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not
 	// start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.
 	APIServerArguments ExtendedArguments `json:"apiServerArguments"`
+	// ControllerArguments are key value pairs that will be passed directly to the Kube controller manager that match the
+	// controller manager's command line arguments.  These are not migrated, but if you reference a value that does not exist
+	// the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid
+	// configurations.
+	ControllerArguments ExtendedArguments `json:"controllerArguments"`
 }
 
 type CertInfo struct {
