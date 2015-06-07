@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
+// TODO: this should just be two return arrays, no need to be clever
 type ValidationResults struct {
 	Warnings fielderrors.ValidationErrorList
 	Errors   fielderrors.ValidationErrorList
@@ -49,6 +50,8 @@ func (r ValidationResults) Prefix(prefix string) ValidationResults {
 
 func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 	validationResults := ValidationResults{}
+
+	validationResults.AddErrors(ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
 	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
 		validationResults.AddErrors(urlErrs...)
@@ -126,7 +129,7 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 
 	validationResults.Append(ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig"))
 
-	validationResults.AddErrors(ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+	validationResults.AddErrors(ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
 	validationResults.AddErrors(ValidateProjectConfig(config.ProjectConfig).Prefix("projectConfig")...)
 
@@ -225,7 +228,7 @@ func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubern
 func ValidateAssetConfig(config *api.AssetConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+	allErrs = append(allErrs, ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
 	if len(config.LogoutURL) > 0 {
 		_, urlErrs := ValidateURL(config.LogoutURL, "logoutURL")
@@ -289,6 +292,12 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) Validati
 	if len(config.ServicesSubnet) > 0 {
 		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.ServicesSubnet)); err != nil {
 			validationResults.AddErrors(fielderrors.NewFieldInvalid("servicesSubnet", config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
+		}
+	}
+
+	if len(config.ServicesNodePortRange) > 0 {
+		if _, err := util.ParsePortRange(strings.TrimSpace(config.ServicesNodePortRange)); err != nil {
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("servicesNodePortRange", config.ServicesNodePortRange, "must be a valid port range (e.g. 30000-32000)"))
 		}
 	}
 

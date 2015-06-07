@@ -161,7 +161,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 		AdmissionControl: admissionController,
 
-		TLS: configapi.UseTLS(options.ServingInfo),
+		TLS: configapi.UseTLS(options.ServingInfo.ServingInfo),
 
 		ControllerPlug: plug.NewPlug(!options.PauseControllers),
 
@@ -226,7 +226,7 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper tools.EtcdHelper
 		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
 	}
 
-	if configapi.UseTLS(config.ServingInfo) {
+	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
 		// build cert authenticator
 		// TODO: add "system:" prefix in authenticator, limit cert to username
 		// TODO: add "system:" prefix to groups in authenticator, limit cert to group name

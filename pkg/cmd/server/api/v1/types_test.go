@@ -55,6 +55,8 @@ assetConfig:
     certFile: ""
     clientCA: ""
     keyFile: ""
+    maxRequestsInFlight: 0
+    requestTimeoutSeconds: 0
 corsAllowedOrigins: null
 dnsConfig:
   bindAddress: ""
@@ -93,10 +95,12 @@ kubeletClientInfo:
   port: 0
 kubernetesMasterConfig:
   apiLevels: null
+  apiServerArguments: null
   masterCount: 0
   masterIP: ""
   podEvictionTimeout: ""
   schedulerConfigFile: ""
+  servicesNodePortRange: ""
   servicesSubnet: ""
   staticNodeNames: null
 masterClients:
@@ -211,6 +215,8 @@ servingInfo:
   certFile: ""
   clientCA: ""
   keyFile: ""
+  maxRequestsInFlight: 0
+  requestTimeoutSeconds: 0
 `
 )
 

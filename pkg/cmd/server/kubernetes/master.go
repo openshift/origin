@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/nodecontroller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
@@ -27,7 +25,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/namespace"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 const (
@@ -36,58 +33,20 @@ const (
 	KubeAPIPrefixV1      = "/api/v1"
 )
 
-// TODO: Longer term we should read this from some config store, rather than a flag.
-func (c *MasterConfig) EnsurePortalFlags() {
-	if c.PortalNet == nil {
-		glog.Fatal("No --portal-net specified")
-	}
-}
-
 // InstallAPI starts a Kubernetes master and registers the supported REST APIs
 // into the provided mux, then returns an array of strings indicating what
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
 func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
-	kubeletClient, err := kclient.NewKubeletClient(c.KubeletClientConfig)
-	if err != nil {
-		glog.Fatalf("Unable to configure Kubelet client: %v", err)
-	}
-
-	masterConfig := &master.Config{
-		PublicAddress: net.ParseIP(c.Options.MasterIP),
-		ReadWritePort: c.MasterPort,
-		ReadOnlyPort:  c.MasterPort,
-
-		EtcdHelper: c.EtcdHelper,
-
-		EventTTL: 2 * time.Hour,
-
-		PortalNet: c.PortalNet,
-
-		RequestContextMapper: c.RequestContextMapper,
-
-		RestfulContainer: container,
-		KubeletClient:    kubeletClient,
-		APIPrefix:        KubeAPIPrefix,
-
-		EnableCoreControllers: true,
-
-		MasterCount: c.Options.MasterCount,
-
-		Authorizer:       c.Authorizer,
-		AdmissionControl: c.AdmissionControl,
-
-		DisableV1Beta3: !configapi.HasKubernetesAPILevel(c.Options, "v1beta3"),
-		EnableV1:       configapi.HasKubernetesAPILevel(c.Options, "v1"),
-	}
-	_ = master.New(masterConfig)
+	c.Master.RestfulContainer = container
+	_ = master.New(c.Master)
 
 	messages := []string{}
-	if !masterConfig.DisableV1Beta3 {
-		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta3))
+	if !c.Master.DisableV1Beta3 {
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s (deprecated)", KubeAPIPrefixV1Beta3))
 	}
-	if masterConfig.EnableV1 {
-		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s (experimental)", KubeAPIPrefixV1))
+	if c.Master.EnableV1 {
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1))
 	}
 
 	return messages

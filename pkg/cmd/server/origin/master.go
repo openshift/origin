@@ -494,11 +494,22 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		handler = contextHandler
 	}
 
+	if c.Options.ServingInfo.MaxRequestsInFlight > 0 {
+		longRunningRE := regexp.MustCompile("[.*\\/watch$][^\\/proxy.*]")
+		sem := make(chan bool, c.Options.ServingInfo.MaxRequestsInFlight)
+		handler = apiserver.MaxInFlightLimit(sem, longRunningRE, handler)
+	}
+
+	timeout := c.Options.ServingInfo.RequestTimeoutSeconds
+	if timeout == -1 {
+		timeout = 0
+	}
+
 	server := &http.Server{
 		Addr:           c.Options.ServingInfo.BindAddress,
 		Handler:        handler,
-		ReadTimeout:    5 * time.Minute,
-		WriteTimeout:   5 * time.Minute,
+		ReadTimeout:    time.Duration(timeout) * time.Second,
+		WriteTimeout:   time.Duration(timeout) * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
