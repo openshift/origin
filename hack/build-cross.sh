@@ -18,6 +18,7 @@ os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 # images "FROM scratch".
 OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
 CGO_ENABLED=0 OS_GOFLAGS="-a" os::build::build_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}"
+CGO_ENABLED=0 OS_GOFLAGS="-a -installsuffix cgo" os::build::build_binaries "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
 
 # Make the primary client/server release.
 OS_RELEASE_ARCHIVE="openshift-origin"
