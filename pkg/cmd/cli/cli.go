@@ -72,6 +72,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 				cmd.NewCmdNewApplication(fullName, f, out),
 				cmd.NewCmdStatus(fullName, f, out),
 				cmd.NewCmdProject(fullName+" project", f, out),
+				cmd.NewCmdTypes(fullName, f, out),
 			},
 		},
 		{
