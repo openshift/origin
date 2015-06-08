@@ -2,6 +2,8 @@ package deployment
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -348,9 +350,8 @@ func TestHandle_noop(t *testing.T) {
 // TestHandle_cleanupPodOk ensures that deployer pods are cleaned up for
 // deployments in a completed state.
 func TestHandle_cleanupPodOk(t *testing.T) {
-	podName := "pod"
-	deletedPodName := ""
-	deletedPodNamespace := ""
+	deployerPodNames := []string{"pod1", "pod2", "pod3"}
+	deletedPodNames := []string{}
 
 	controller := &DeploymentController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
@@ -368,9 +369,17 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 				return nil, nil
 			},
 			deletePodFunc: func(namespace, name string) error {
-				deletedPodNamespace = namespace
-				deletedPodName = name
+				deletedPodNames = append(deletedPodNames, name)
 				return nil
+			},
+			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
+				pods := []kapi.Pod{}
+				for _, podName := range deployerPodNames {
+					pod := *ttlNonZeroPod()
+					pod.Name = podName
+					pods = append(pods, pod)
+				}
+				return pods, nil
 			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
@@ -384,24 +393,22 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
-	deployment.Annotations[deployapi.DeploymentPodAnnotation] = podName
 	err := controller.Handle(deployment)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if e, a := deployment.Namespace, deletedPodNamespace; e != a {
-		t.Fatalf("expected deleted pod namespace %s, got %s", e, a)
+	sort.Strings(deployerPodNames)
+	sort.Strings(deletedPodNames)
+	if !reflect.DeepEqual(deletedPodNames, deletedPodNames) {
+		t.Fatalf("pod deletions - expected: %v, actual: %v", deployerPodNames, deletedPodNames)
 	}
 
-	if e, a := podName, deletedPodName; e != a {
-		t.Fatalf("expected deleted pod name %s, got %s", e, a)
-	}
 }
 
-// TestHandle_cleanupPodNoop ensures that repeated attempts to clean up an
-// already-deleted deployer pod for a completed deployment safely do nothing.
+// TestHandle_cleanupPodNoop ensures that an attempt to delete pods are not made
+// if the deployer pods are not listed based on a label query
 func TestHandle_cleanupPodNoop(t *testing.T) {
 	controller := &DeploymentController{
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
@@ -419,7 +426,11 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 				return nil, nil
 			},
 			deletePodFunc: func(namespace, name string) error {
-				return kerrors.NewNotFound("Pod", name)
+				t.Fatalf("unexpected call to delete pod")
+				return nil
+			},
+			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
+				return []kapi.Pod{}, nil
 			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
@@ -433,7 +444,6 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
-	deployment.Annotations[deployapi.DeploymentPodAnnotation] = "pod"
 	err := controller.Handle(deployment)
 
 	if err != nil {
@@ -462,6 +472,9 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 			deletePodFunc: func(namespace, name string) error {
 				return kerrors.NewInternalError(fmt.Errorf("test error"))
 			},
+			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
+				return []kapi.Pod{{}}, nil
+			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			t.Fatalf("unexpected call to make container")
@@ -474,7 +487,6 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
-	deployment.Annotations[deployapi.DeploymentPodAnnotation] = "pod"
 	err := controller.Handle(deployment)
 
 	if err == nil {
