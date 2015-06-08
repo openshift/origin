@@ -260,6 +260,9 @@ func expandResourceShortcut(resource string) string {
 		"is":      "imageStreams",
 		"istag":   "imageStreamTags",
 		"isimage": "imageStreamImages",
+		"sa":      "serviceAccounts",
+		"pv":      "persistentVolumes",
+		"pvc":     "persistentVolumeClaims",
 	}
 	if expanded, ok := shortForms[resource]; ok {
 		return expanded
