@@ -415,6 +415,7 @@ func TestDetectSource(t *testing.T) {
 	dockerResolver := app.DockerRegistryResolver{
 		Client: dockerregistry.NewClient(),
 	}
+	mocks := app.MockSourceRepositories()
 	tests := []struct {
 		name         string
 		cfg          *AppConfig
@@ -432,7 +433,7 @@ func TestDetectSource(t *testing.T) {
 				dockerResolver: dockerResolver,
 				searcher:       &simpleSearcher{dockerResolver},
 			},
-			repositories: []*app.SourceRepository{app.MockSourceRepositories()[1]},
+			repositories: []*app.SourceRepository{mocks[1]},
 			expectedRefs: app.ComponentReferences{
 				app.ComponentReference(&app.ComponentInput{
 					Match: &app.ComponentMatch{
@@ -443,7 +444,7 @@ func TestDetectSource(t *testing.T) {
 							}},
 					},
 					ExpectToBuild: true,
-					Uses:          app.MockSourceRepositories()[1],
+					Uses:          mocks[1],
 				},
 				)},
 			expectedErr: "",
@@ -464,7 +465,7 @@ func TestDetectSource(t *testing.T) {
 			t.Fatalf("%s: Refs amount doesn't match. Expected %d, got %d", test.name, len(test.expectedRefs), len(refs))
 		}
 		for i, ref := range refs {
-			if reflect.DeepEqual(ref, test.expectedRefs[i]) {
+			if !reflect.DeepEqual(ref, test.expectedRefs[i]) {
 				t.Errorf("%s: Refs don't match. Expected %v, got %v", test.name, test.expectedRefs[i], ref)
 			}
 		}
