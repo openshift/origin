@@ -44,6 +44,9 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	testutil "github.com/openshift/origin/test/util"
+
+	buildclonestorage "github.com/openshift/origin/pkg/build/registry/clone/generator"
+	buildinstantiatestorage "github.com/openshift/origin/pkg/build/registry/instantiate/generator"
 )
 
 func init() {
@@ -247,7 +250,6 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
 	}
-	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
 		buildConfigRegistry,
@@ -260,10 +262,10 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	storage := map[string]rest.Storage{
 		"builds":                   buildStorage,
-		"builds/clone":             buildClone,
 		"buildConfigs":             buildConfigStorage,
 		"buildConfigs/webhooks":    buildConfigWebHooks,
-		"buildConfigs/instantiate": buildConfigInstantiate,
+		"builds/clone":             buildclonestorage.NewStorage(buildGenerator),
+		"buildConfigs/instantiate": buildinstantiatestorage.NewStorage(buildGenerator),
 		"imageStreams":             imageStreamStorage,
 		"imageStreams/status":      imageStreamStatus,
 		"imageStreamTags":          imageStreamTagStorage,
