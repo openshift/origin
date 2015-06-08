@@ -753,6 +753,34 @@ func convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in *api.Lo
 	return nil
 }
 
+func convert_api_MetadataFile_To_v1beta3_MetadataFile(in *api.MetadataFile, out *MetadataFile, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.MetadataFile))(in)
+	}
+	out.Name = in.Name
+	if err := convert_api_ObjectFieldSelector_To_v1beta3_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_api_MetadataVolumeSource_To_v1beta3_MetadataVolumeSource(in *api.MetadataVolumeSource, out *MetadataVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.MetadataVolumeSource))(in)
+	}
+	if in.Items != nil {
+		out.Items = make([]MetadataFile, len(in.Items))
+		for i := range in.Items {
+			if err := convert_api_MetadataFile_To_v1beta3_MetadataFile(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func convert_api_NFSVolumeSource_To_v1beta3_NFSVolumeSource(in *api.NFSVolumeSource, out *NFSVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.NFSVolumeSource))(in)
@@ -2221,6 +2249,14 @@ func convert_api_VolumeSource_To_v1beta3_VolumeSource(in *api.VolumeSource, out 
 	} else {
 		out.RBD = nil
 	}
+	if in.Metadata != nil {
+		out.Metadata = new(MetadataVolumeSource)
+		if err := convert_api_MetadataVolumeSource_To_v1beta3_MetadataVolumeSource(in.Metadata, out.Metadata, s); err != nil {
+			return err
+		}
+	} else {
+		out.Metadata = nil
+	}
 	return nil
 }
 
@@ -2949,6 +2985,34 @@ func convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in *LocalO
 		defaulting.(func(*LocalObjectReference))(in)
 	}
 	out.Name = in.Name
+	return nil
+}
+
+func convert_v1beta3_MetadataFile_To_api_MetadataFile(in *MetadataFile, out *api.MetadataFile, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*MetadataFile))(in)
+	}
+	out.Name = in.Name
+	if err := convert_v1beta3_ObjectFieldSelector_To_api_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_v1beta3_MetadataVolumeSource_To_api_MetadataVolumeSource(in *MetadataVolumeSource, out *api.MetadataVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*MetadataVolumeSource))(in)
+	}
+	if in.Items != nil {
+		out.Items = make([]api.MetadataFile, len(in.Items))
+		for i := range in.Items {
+			if err := convert_v1beta3_MetadataFile_To_api_MetadataFile(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -4420,6 +4484,14 @@ func convert_v1beta3_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api
 	} else {
 		out.RBD = nil
 	}
+	if in.Metadata != nil {
+		out.Metadata = new(api.MetadataVolumeSource)
+		if err := convert_v1beta3_MetadataVolumeSource_To_api_MetadataVolumeSource(in.Metadata, out.Metadata, s); err != nil {
+			return err
+		}
+	} else {
+		out.Metadata = nil
+	}
 	return nil
 }
 
@@ -4468,6 +4540,8 @@ func init() {
 		convert_api_LoadBalancerIngress_To_v1beta3_LoadBalancerIngress,
 		convert_api_LoadBalancerStatus_To_v1beta3_LoadBalancerStatus,
 		convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference,
+		convert_api_MetadataFile_To_v1beta3_MetadataFile,
+		convert_api_MetadataVolumeSource_To_v1beta3_MetadataVolumeSource,
 		convert_api_NFSVolumeSource_To_v1beta3_NFSVolumeSource,
 		convert_api_NamespaceList_To_v1beta3_NamespaceList,
 		convert_api_NamespaceSpec_To_v1beta3_NamespaceSpec,
@@ -4580,6 +4654,8 @@ func init() {
 		convert_v1beta3_LoadBalancerIngress_To_api_LoadBalancerIngress,
 		convert_v1beta3_LoadBalancerStatus_To_api_LoadBalancerStatus,
 		convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference,
+		convert_v1beta3_MetadataFile_To_api_MetadataFile,
+		convert_v1beta3_MetadataVolumeSource_To_api_MetadataVolumeSource,
 		convert_v1beta3_NFSVolumeSource_To_api_NFSVolumeSource,
 		convert_v1beta3_NamespaceList_To_api_NamespaceList,
 		convert_v1beta3_NamespaceSpec_To_api_NamespaceSpec,
