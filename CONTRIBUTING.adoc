@@ -64,8 +64,9 @@ export PATH=$PATH:$GOPATH/bin
         $ mkdir -p $GOPATH/src/github.com/openshift
         $ cd $GOPATH/src/github.com/openshift
         $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
-        $ git remote add upstream git://github.com/openshift/origin
         $ cd origin
+        $ git remote add upstream git://github.com/openshift/origin
+        
 
 5.  From here, you can follow https://github.com/openshift/origin/#start-developing[Start Developing] from the README.
 
