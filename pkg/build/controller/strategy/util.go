@@ -13,9 +13,9 @@ import (
 // container
 const (
 	dockerSocketPath          = "/var/run/docker.sock"
-	DockerPushSecretMountPath = "/var/run/secrets/push"
-	DockerPullSecretMountPath = "/var/run/secrets/pull"
-	sourceSecretMountPath     = "/var/run/secrets/source"
+	DockerPushSecretMountPath = "/var/run/secrets/openshift.io/push"
+	DockerPullSecretMountPath = "/var/run/secrets/openshift.io/pull"
+	sourceSecretMountPath     = "/var/run/secrets/openshift.io/source"
 )
 
 var whitelistEnvVarNames = []string{"BUILD_LOGLEVEL"}
