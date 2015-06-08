@@ -830,7 +830,7 @@ angular.module('openshiftConsole')
       template = namespaceInPath ? URL_NAMESPACED_WATCH_LIST : URL_WATCH_LIST;
     }
     else if (id) {
-      if (type === "buildConfigHooks") {
+      if (type === "buildconfighooks") {
         templateOptions.secret = params.secret;
         templateOptions.hookType = params.hookType;
         params = angular.copy(params);
@@ -860,7 +860,8 @@ angular.module('openshiftConsole')
       var opts = angular.copy(options);
       delete opts.type;
       delete opts.id;
-      return this._urlForType(options.type, options.id, null, false, opts).toString();
+      var type = normalizeType(options.type);
+      return this._urlForType(type, options.id, null, false, opts).toString();
     }
     return null;
   };
