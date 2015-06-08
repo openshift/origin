@@ -160,38 +160,45 @@ func (self *Scheme) runtimeObjectToRawExtensionArray(in *[]Object, out *[]RawExt
 	src := *in
 	dest := make([]RawExtension, len(src))
 
-	_, outVersion, scheme := self.fromScope(s)
-
 	for i := range src {
-
+		err := self.runtimeObjectToRawExtension(src[i], &dest[i], s)
+		if err != nil {
+			return err
+		}
 	}
 	*out = dest
 	return nil
 }
 
-func (self *Scheme) runtimeObjectToRawExtension(in *Object, out *RawExtension, s conversion.Scope) error {
-	switch t := src[i].(type) {
+// runtimeObjectToRawExtension takes an Object and encodes it as RawExtension in the output version defined by
+// the conversion.Scope. See comment for runtimeObjectToRawExtensionArray
+func (self *Scheme) runtimeObjectToRawExtension(in Object, out *RawExtension, s conversion.Scope) error {
+	_, outVersion, scheme := self.fromScope(s)
+	switch t := in.(type) {
 	case *Unknown:
 		// TODO: this should be decoupled from the scheme (since it is JSON specific)
-		dest[i].RawJSON = t.RawJSON
+		(*out).RawJSON = t.RawJSON
+		return nil
 	case *Unstructured:
 		// TODO: this should be decoupled from the scheme (since it is JSON specific)
 		data, err := json.Marshal(t.Object)
 		if err != nil {
 			return err
 		}
-		dest[i].RawJSON = data
+		(*out).RawJSON = data
+		return nil
 	default:
 		version := outVersion
 		// if the object exists
-		if inVersion, _, err := scheme.ObjectVersionAndKind(src[i]); err == nil && len(inVersion) != 0 {
+		if inVersion, _, err := scheme.ObjectVersionAndKind(in); err == nil && len(inVersion) != 0 {
 			version = inVersion
 		}
-		data, err := scheme.EncodeToVersion(src[i], version)
+		data, err := scheme.EncodeToVersion(in, version)
 		if err != nil {
 			return err
 		}
-		dest[i].RawJSON = data
+		(*out).RawJSON = data
+		return nil
 	}
 }
 
@@ -201,23 +208,30 @@ func (self *Scheme) rawExtensionToRuntimeObjectArray(in *[]RawExtension, out *[]
 	src := *in
 	dest := make([]Object, len(src))
 
-	_, _, scheme := self.fromScope(s)
-
 	for i := range src {
-		data := src[i].RawJSON
-		version, kind, err := scheme.raw.DataVersionAndKind(data)
+		err := self.rawExtensionToRuntimeObject(&src[i], dest[i], s)
 		if err != nil {
 			return err
 		}
-		dest[i] = &Unknown{
-			TypeMeta: TypeMeta{
-				APIVersion: version,
-				Kind:       kind,
-			},
-			RawJSON: data,
-		}
 	}
 	*out = dest
+	return nil
+}
+
+func (self *Scheme) rawExtensionToRuntimeObject(in *RawExtension, out Object, s conversion.Scope) error {
+	_, _, scheme := self.fromScope(s)
+	data := (*in).RawJSON
+	version, kind, err := scheme.raw.DataVersionAndKind(data)
+	if err != nil {
+		return err
+	}
+	out = &Unknown{
+		TypeMeta: TypeMeta{
+			APIVersion: version,
+			Kind:       kind,
+		},
+		RawJSON: data,
+	}
 	return nil
 }
 
@@ -231,6 +245,8 @@ func NewScheme() *Scheme {
 		s.rawExtensionToEmbeddedObject,
 		s.runtimeObjectToRawExtensionArray,
 		s.rawExtensionToRuntimeObjectArray,
+		s.rawExtensionToRuntimeObject,
+		s.runtimeObjectToRawExtension,
 	); err != nil {
 		panic(err)
 	}
