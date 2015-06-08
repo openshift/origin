@@ -141,7 +141,7 @@ func (templater *templater) UsageFunc(exposedFlags ...string) func(*cobra.Comman
 
 func (templater *templater) cmdGroups(c *cobra.Command, all []*cobra.Command) []CommandGroup {
 	all = filter(all, "options")
-	if len(templater.CommandGroups) > 0 {
+	if len(templater.CommandGroups) > 0 && templater.isRootCmd(c) {
 		return AddAdditionalCommands(templater.CommandGroups, "Other Commands:", all)
 	}
 	return []CommandGroup{
