@@ -54,7 +54,7 @@ func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorL
 			util.ReportError(&templateErrors, i, *fielderrors.NewFieldNotSupported("parameters", err))
 		}
 		stripNamespace(newItem)
-		if err := addLabels(newItem, template.ObjectLabels); err != nil {
+		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
 			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("labels", err, "label could not be applied"))
 		}
 		template.Objects[i] = newItem
@@ -84,90 +84,6 @@ func stripNamespace(obj runtime.Object) {
 			return
 		}
 	}
-}
-
-func addLabels(obj runtime.Object, labels map[string]string) error {
-	if labels == nil {
-		return nil
-	}
-
-	// Remove namespace from the item
-	if meta, err := meta.Accessor(obj); err == nil {
-		existing := meta.Labels()
-		if existing == nil {
-			existing = make(map[string]string)
-		}
-		if err := util.MergeInto(existing, labels, util.OverwriteExistingDstKey); err != nil {
-			return err
-		}
-		meta.SetLabels(existing)
-		return nil
-	}
-	// TODO: allow meta.Accessor to handle runtime.Unstructured
-	if unstruct, ok := obj.(*runtime.Unstructured); ok && unstruct.Object != nil {
-		// the presence of "metadata" is sufficient for us to apply the rules for Kube-like
-		// objects.
-		// TODO: add swagger detection to allow this to happen more effectively
-		if obj, ok := unstruct.Object["metadata"]; ok {
-			if m, ok := obj.(map[string]interface{}); ok {
-
-				existing := make(map[string]string)
-				if l, ok := m["labels"]; ok {
-					if found, ok := extractLabels(l); ok {
-						existing = found
-					}
-				}
-				if err := util.MergeInto(existing, labels, util.OverwriteExistingDstKey); err != nil {
-					return err
-				}
-				m["labels"] = mapToGeneric(existing)
-			}
-			return nil
-		}
-
-		// only attempt to set root labels if a root object called labels exists
-		// TODO: add swagger detection to allow this to happen more effectively
-		if obj, ok := unstruct.Object["labels"]; ok {
-			existing := make(map[string]string)
-			if found, ok := extractLabels(obj); ok {
-				existing = found
-			}
-			if err := util.MergeInto(existing, labels, util.OverwriteExistingDstKey); err != nil {
-				return err
-			}
-			unstruct.Object["labels"] = mapToGeneric(existing)
-			return nil
-		}
-	}
-	return nil
-}
-
-// extractLabels extracts a map[string]string from a map[string]interface{}
-func extractLabels(obj interface{}) (map[string]string, bool) {
-	lm, ok := obj.(map[string]interface{})
-	if !ok {
-		return nil, false
-	}
-	existing := make(map[string]string)
-	for k, v := range lm {
-		switch t := v.(type) {
-		case string:
-			existing[k] = t
-		}
-	}
-	return existing, true
-}
-
-// mapToGeneric converts a map[string]string into a map[string]interface{}
-func mapToGeneric(obj map[string]string) map[string]interface{} {
-	if obj == nil {
-		return nil
-	}
-	res := make(map[string]interface{})
-	for k, v := range obj {
-		res[k] = v
-	}
-	return res
 }
 
 // AddParameter adds new custom parameter to the Template. It overrides
