@@ -92,7 +92,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			tag := strings.Split(from.Name, ":")[1]
 			latest := imageapi.LatestTaggedImage(repo, tag)
 			if latest == nil {
-				util.HandleError(fmt.Errorf("unable to find tagged image: no image recorded for %s/%s:%s", repo.Namespace, repo.Name, tag))
+				glog.V(4).Infof("unable to find tagged image: no image recorded for %s/%s:%s", repo.Namespace, repo.Name, tag)
 				continue
 			}
 			glog.V(4).Infof("Found ImageStream %s/%s with tag %s", repo.Namespace, repo.Name, tag)
