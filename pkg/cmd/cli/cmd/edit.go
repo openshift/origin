@@ -60,7 +60,7 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 	var filenames util.StringList
 	cmd := &cobra.Command{
 		Use:     "edit (RESOURCE/NAME | -f FILENAME)",
-		Short:   "Edit a resource on the server and apply the update.",
+		Short:   "Edit a resource on the server",
 		Long:    editLong,
 		Example: fmt.Sprintf(editExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

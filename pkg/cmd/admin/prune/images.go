@@ -47,7 +47,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "Prune images",
+		Short: "Remove unreferenced images",
 		Long:  fmt.Sprintf(imagesLongDesc, parentName, name),
 
 		Run: func(cmd *cobra.Command, args []string) {

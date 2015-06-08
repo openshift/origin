@@ -89,7 +89,7 @@ func NewEdge(fullname, to string) *Edge {
 func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [IMAGESTREAM:TAG | --all]", name),
-		Short:   "Output build dependencies of a specific ImageStream",
+		Short:   "Output build dependencies of a specific image stream",
 		Long:    buildChainLong,
 		Example: buildChainExample,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -98,8 +98,8 @@ func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Comm
 		},
 	}
 
-	cmd.Flags().Bool("all", false, "Build dependency trees for all ImageStreams")
-	cmd.Flags().Bool("all-tags", false, "Build dependency trees for all tags of a specific ImageStream")
+	cmd.Flags().Bool("all", false, "Build dependency trees for all image streams")
+	cmd.Flags().Bool("all-tags", false, "Build dependency trees for all tags of a specific image stream")
 	cmd.Flags().StringP("output", "o", "json", "Output format of dependency tree(s)")
 	return cmd
 }

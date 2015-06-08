@@ -43,7 +43,7 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "Remove older completed and failed builds",
+		Short: "Remove completed and failed builds",
 		Long:  fmt.Sprintf(buildsLongDesc, parentName, name),
 
 		Run: func(cmd *cobra.Command, args []string) {

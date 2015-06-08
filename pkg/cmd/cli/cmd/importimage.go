@@ -30,7 +30,7 @@ have tag and image information imported.`
 func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "import-image IMAGESTREAM",
-		Short:   "Imports tag and image information from an external Docker image repository.",
+		Short:   "Imports images from a Docker registry",
 		Long:    importImageLong,
 		Example: fmt.Sprintf(importImageExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -67,12 +67,12 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 		{
 			Message: "Basic Commands:",
 			Commands: []*cobra.Command{
+				cmd.NewCmdTypes(fullName, f, out),
 				loginCmd,
 				cmd.NewCmdRequestProject("new-project", fullName+" new-project", fullName+" login", fullName+" project", f, out),
 				cmd.NewCmdNewApplication(fullName, f, out),
 				cmd.NewCmdStatus(fullName, f, out),
 				cmd.NewCmdProject(fullName+" project", f, out),
-				cmd.NewCmdTypes(fullName, f, out),
 			},
 		},
 		{
