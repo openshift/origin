@@ -228,7 +228,7 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 
 // GetAPIServerCertCAPool returns the cert pool containing the roots for the API server cert
 func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
-	if !UseTLS(options.ServingInfo) {
+	if !UseTLS(options.ServingInfo.ServingInfo) {
 		return x509.NewCertPool(), nil
 	}
 
@@ -236,7 +236,7 @@ func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 }
 
 func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo) {
+	if !UseTLS(options.ServingInfo.ServingInfo) {
 		return nil, nil
 	}
 
@@ -264,7 +264,7 @@ func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 }
 
 func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo) {
+	if !UseTLS(options.ServingInfo.ServingInfo) {
 		return nil, nil
 	}
 

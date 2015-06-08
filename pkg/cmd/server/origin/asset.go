@@ -58,15 +58,20 @@ func (c *AssetConfig) Run() {
 		})
 	}
 
+	timeout := c.Options.ServingInfo.RequestTimeoutSeconds
+	if timeout == -1 {
+		timeout = 0
+	}
+
 	server := &http.Server{
 		Addr:           c.Options.ServingInfo.BindAddress,
 		Handler:        mux,
-		ReadTimeout:    5 * time.Minute,
-		WriteTimeout:   5 * time.Minute,
+		ReadTimeout:    time.Duration(timeout) * time.Second,
+		WriteTimeout:   time.Duration(timeout) * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	isTLS := configapi.UseTLS(c.Options.ServingInfo)
+	isTLS := configapi.UseTLS(c.Options.ServingInfo.ServingInfo)
 
 	go util.Forever(func() {
 		if isTLS {

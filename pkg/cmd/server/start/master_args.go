@@ -150,8 +150,10 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	etcdClientInfo := admin.DefaultMasterEtcdClientCertInfo(args.ConfigDir.Value())
 
 	config := &configapi.MasterConfig{
-		ServingInfo: configapi.ServingInfo{
-			BindAddress: args.ListenArg.ListenAddr.URL.Host,
+		ServingInfo: configapi.HTTPServingInfo{
+			ServingInfo: configapi.ServingInfo{
+				BindAddress: args.ListenArg.ListenAddr.URL.Host,
+			},
 		},
 		CORSAllowedOrigins: corsAllowedOrigins.List(),
 		MasterPublicURL:    masterPublicAddr.String(),
@@ -164,8 +166,10 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		PauseControllers: args.PauseControllers,
 
 		AssetConfig: &configapi.AssetConfig{
-			ServingInfo: configapi.ServingInfo{
-				BindAddress: args.GetAssetBindAddress(),
+			ServingInfo: configapi.HTTPServingInfo{
+				ServingInfo: configapi.ServingInfo{
+					BindAddress: args.GetAssetBindAddress(),
+				},
 			},
 
 			LogoutURL:       "",

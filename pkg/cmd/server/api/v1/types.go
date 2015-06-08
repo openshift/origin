@@ -76,7 +76,7 @@ type MasterConfig struct {
 	v1.TypeMeta `json:",inline"`
 
 	// ServingInfo describes how to start serving
-	ServingInfo ServingInfo `json:"servingInfo"`
+	ServingInfo HTTPServingInfo `json:"servingInfo"`
 
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string `json:"corsAllowedOrigins"`
@@ -251,6 +251,15 @@ type ServingInfo struct {
 	ClientCA string `json:"clientCA"`
 }
 
+type HTTPServingInfo struct {
+	ServingInfo `json:",inline"`
+	// MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.
+	MaxRequestsInFlight int `json:"maxRequestsInFlight"`
+	// RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if
+	// -1 there is no limit on requests.
+	RequestTimeoutSeconds int `json:"requestTimeoutSeconds"`
+}
+
 type MasterClients struct {
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string `json:"openshiftLoopbackKubeConfig"`
@@ -264,7 +273,7 @@ type DNSConfig struct {
 }
 
 type AssetConfig struct {
-	ServingInfo ServingInfo `json:"servingInfo"`
+	ServingInfo HTTPServingInfo `json:"servingInfo"`
 
 	// PublicURL is where you can find the asset server (TODO do we really need this?)
 	PublicURL string `json:"publicURL"`
@@ -491,11 +500,17 @@ type KubernetesMasterConfig struct {
 	APILevels []string `json:"apiLevels"`
 	MasterIP  string   `json:"masterIP"`
 	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.
-	MasterCount         int      `json:"masterCount"`
-	ServicesSubnet      string   `json:"servicesSubnet"`
-	StaticNodeNames     []string `json:"staticNodeNames"`
-	SchedulerConfigFile string   `json:"schedulerConfigFile"`
-	PodEvictionTimeout  string   `json:"podEvictionTimeout"`
+	MasterCount    int    `json:"masterCount"`
+	ServicesSubnet string `json:"servicesSubnet"`
+	// ServicesNodePortRange is the range to use for assigning service public ports on a host.
+	ServicesNodePortRange string   `json:"servicesNodePortRange"`
+	StaticNodeNames       []string `json:"staticNodeNames"`
+	SchedulerConfigFile   string   `json:"schedulerConfigFile"`
+	PodEvictionTimeout    string   `json:"podEvictionTimeout"`
+	// APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's
+	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not
+	// start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.
+	APIServerArguments ExtendedArguments `json:"apiServerArguments"`
 }
 
 type CertInfo struct {

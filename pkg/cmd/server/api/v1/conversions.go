@@ -15,6 +15,9 @@ func init() {
 			if len(obj.Controllers) == 0 {
 				obj.Controllers = ControllersAll
 			}
+			if obj.ServingInfo.RequestTimeoutSeconds == 0 {
+				obj.ServingInfo.RequestTimeoutSeconds = 60 * 60
+			}
 		},
 		func(obj *KubernetesMasterConfig) {
 			if obj.MasterCount == 0 {
@@ -23,19 +26,22 @@ func init() {
 			if len(obj.APILevels) == 0 {
 				obj.APILevels = newer.DefaultKubernetesAPILevels
 			}
+			if len(obj.ServicesNodePortRange) == 0 {
+				obj.ServicesNodePortRange = "30000-32767"
+			}
 			if len(obj.PodEvictionTimeout) == 0 {
 				obj.PodEvictionTimeout = "5m"
 			}
 		},
 		func(obj *EtcdStorageConfig) {
 			if len(obj.KubernetesStorageVersion) == 0 {
-				obj.KubernetesStorageVersion = "v1beta3"
+				obj.KubernetesStorageVersion = "v1"
 			}
 			if len(obj.KubernetesStoragePrefix) == 0 {
 				obj.KubernetesStoragePrefix = "kubernetes.io"
 			}
 			if len(obj.OpenShiftStorageVersion) == 0 {
-				obj.OpenShiftStorageVersion = "v1beta3"
+				obj.OpenShiftStorageVersion = "v1"
 			}
 			if len(obj.OpenShiftStoragePrefix) == 0 {
 				obj.OpenShiftStoragePrefix = "openshift.io"

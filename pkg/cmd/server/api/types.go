@@ -86,7 +86,7 @@ type MasterConfig struct {
 	api.TypeMeta
 
 	// ServingInfo describes how to start serving
-	ServingInfo ServingInfo
+	ServingInfo HTTPServingInfo
 
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string
@@ -262,6 +262,15 @@ type ServingInfo struct {
 	ClientCA string
 }
 
+type HTTPServingInfo struct {
+	ServingInfo
+	// MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.
+	MaxRequestsInFlight int
+	// RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if
+	// -1 there is no limit on requests.
+	RequestTimeoutSeconds int
+}
+
 type MasterClients struct {
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string
@@ -275,7 +284,7 @@ type DNSConfig struct {
 }
 
 type AssetConfig struct {
-	ServingInfo ServingInfo
+	ServingInfo HTTPServingInfo
 
 	// PublicURL is where you can find the asset server (TODO do we really need this?)
 	PublicURL string
@@ -515,6 +524,8 @@ type KubernetesMasterConfig struct {
 	MasterCount int
 	// ServicesSubnet is the subnet to use for assigning service IPs
 	ServicesSubnet string
+	// ServicesNodePortRange is the range to use for assigning service public ports on a host.
+	ServicesNodePortRange string
 	// StaticNodeNames is the list of nodes that are statically known
 	StaticNodeNames []string
 	// SchedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.
@@ -522,6 +533,10 @@ type KubernetesMasterConfig struct {
 	// PodEvictionTimeout controls grace period for deleting pods on failed nodes.
 	// It takes valid time duration string. If empty, you get the default pod eviction timeout.
 	PodEvictionTimeout string
+	// APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's
+	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not
+	// start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.
+	APIServerArguments ExtendedArguments
 }
 
 type CertInfo struct {

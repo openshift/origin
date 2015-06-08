@@ -357,7 +357,6 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		if err != nil {
 			return err
 		}
-		kubeConfig.EnsurePortalFlags()
 
 		openshiftConfig.Run([]origin.APIInstaller{kubeConfig}, unprotectedInstallers)
 		go daemon.SdNotify("READY=1")
