@@ -228,6 +228,7 @@ oc get templates
 oc create -f examples/sample-app/application-template-dockerbuild.json
 oc get templates
 oc get templates ruby-helloworld-sample
+oc get template ruby-helloworld-sample -o json | oc process -f -
 oc process ruby-helloworld-sample
 oc describe templates ruby-helloworld-sample
 [ "$(oc describe templates ruby-helloworld-sample | grep -E "BuildConfig.*ruby-sample-build")" ]
