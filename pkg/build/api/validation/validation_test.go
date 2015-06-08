@@ -544,61 +544,67 @@ func TestValidateTrigger(t *testing.T) {
 			trigger:  buildapi.BuildTriggerPolicy{},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("type")},
 		},
-		"github type with no github webhook": {
-			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GithubWebHookBuildTriggerType},
+		"trigger with unknown type": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: "UnknownTriggerType",
+			},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("type", "", "")},
+		},
+		"GitHub type with no github webhook": {
+			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GitHubWebHookBuildTriggerType},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("github")},
 		},
-		"github trigger with no secret": {
+		"GitHub trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
-				Type:          buildapi.GithubWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{},
+				Type:          buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildapi.WebHookTrigger{},
 			},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("github.secret")},
 		},
-		"github trigger with generic webhook": {
+		"GitHub trigger with generic webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
-				Type: buildapi.GithubWebHookBuildTriggerType,
+				Type: buildapi.GitHubWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
-			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("generic", "", "long description")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("github")},
 		},
-		"generic trigger with no generic webhook": {
+		"Generic trigger with no generic webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GenericWebHookBuildTriggerType},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("generic")},
 		},
-		"generic trigger with no secret": {
+		"Generic trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:           buildapi.GenericWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{},
 			},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("generic.secret")},
 		},
-		"generic trigger with github webhook": {
+		"Generic trigger with github webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: buildapi.GenericWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{
+				GitHubWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
-			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("github", "", "long github description")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("generic")},
 		},
-		"imageChange trigger without params": {
+		"ImageChange trigger without params": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: buildapi.ImageChangeBuildTriggerType,
 			},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("imageChange")},
 		},
-		"valid github trigger": {
+		"valid GitHub trigger": {
 			trigger: buildapi.BuildTriggerPolicy{
-				Type: buildapi.GithubWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{
+				Type: buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
 		},
-		"valid generic trigger": {
+		"valid Generic trigger": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: buildapi.GenericWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{
@@ -606,7 +612,7 @@ func TestValidateTrigger(t *testing.T) {
 				},
 			},
 		},
-		"valid imageChange trigger": {
+		"valid ImageChange trigger": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: buildapi.ImageChangeBuildTriggerType,
 				ImageChange: &buildapi.ImageChangeTrigger{
@@ -614,7 +620,7 @@ func TestValidateTrigger(t *testing.T) {
 				},
 			},
 		},
-		"valid imageChange trigger with empty fields": {
+		"valid ImageChange trigger with empty fields": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:        buildapi.ImageChangeBuildTriggerType,
 				ImageChange: &buildapi.ImageChangeTrigger{},
@@ -626,6 +632,14 @@ func TestValidateTrigger(t *testing.T) {
 		if len(test.expected) == 0 {
 			if len(errors) != 0 {
 				t.Errorf("%s: Got unexpected validation errors: %#v", desc, errors)
+			}
+			continue
+		}
+		if len(errors) != 1 {
+			t.Errorf("%s: Expected one validation error, got %d", desc, len(errors))
+			for i, err := range errors {
+				validationError := err.(*fielderrors.ValidationError)
+				t.Errorf("  %d. %v", i+1, validationError)
 			}
 			continue
 		}

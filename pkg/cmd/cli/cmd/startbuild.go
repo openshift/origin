@@ -189,7 +189,7 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 			if prefix {
 				hookType = "generic "
 			}
-		case t.GithubWebHook != nil && github:
+		case t.GitHubWebHook != nil && github:
 			if prefix {
 				hookType = "github "
 			}

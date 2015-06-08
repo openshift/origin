@@ -129,9 +129,9 @@ func webhookURL(c *buildapi.BuildConfig, cli client.BuildConfigsNamespacer) map[
 	for _, trigger := range c.Triggers {
 		whTrigger := ""
 		switch trigger.Type {
-		case "github":
-			whTrigger = trigger.GithubWebHook.Secret
-		case "generic":
+		case buildapi.GitHubWebHookBuildTriggerType:
+			whTrigger = trigger.GitHubWebHook.Secret
+		case buildapi.GenericWebHookBuildTriggerType:
 			whTrigger = trigger.GenericWebHook.Secret
 		}
 		if len(whTrigger) == 0 {

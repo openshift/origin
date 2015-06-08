@@ -922,13 +922,13 @@ func deepCopy_api_BuildStrategy(in buildapi.BuildStrategy, out *buildapi.BuildSt
 
 func deepCopy_api_BuildTriggerPolicy(in buildapi.BuildTriggerPolicy, out *buildapi.BuildTriggerPolicy, c *conversion.Cloner) error {
 	out.Type = in.Type
-	if in.GithubWebHook != nil {
-		out.GithubWebHook = new(buildapi.WebHookTrigger)
-		if err := deepCopy_api_WebHookTrigger(*in.GithubWebHook, out.GithubWebHook, c); err != nil {
+	if in.GitHubWebHook != nil {
+		out.GitHubWebHook = new(buildapi.WebHookTrigger)
+		if err := deepCopy_api_WebHookTrigger(*in.GitHubWebHook, out.GitHubWebHook, c); err != nil {
 			return err
 		}
 	} else {
-		out.GithubWebHook = nil
+		out.GitHubWebHook = nil
 	}
 	if in.GenericWebHook != nil {
 		out.GenericWebHook = new(buildapi.WebHookTrigger)

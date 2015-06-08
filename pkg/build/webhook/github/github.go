@@ -35,13 +35,13 @@ type pushEvent struct {
 
 // Extract services webhooks from github.com
 func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, proceed bool, err error) {
-	trigger, ok := webhook.FindTriggerPolicy(api.GithubWebHookBuildTriggerType, buildCfg)
+	trigger, ok := webhook.FindTriggerPolicy(api.GitHubWebHookBuildTriggerType, buildCfg)
 	if !ok {
 		err = webhook.ErrHookNotEnabled
 		return
 	}
 	glog.V(4).Infof("Checking if the provided secret for BuildConfig %s/%s matches", buildCfg.Namespace, buildCfg.Name)
-	if trigger.GithubWebHook.Secret != secret {
+	if trigger.GitHubWebHook.Secret != secret {
 		err = webhook.ErrSecretMismatch
 		return
 	}

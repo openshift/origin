@@ -321,8 +321,8 @@ type BuildTriggerPolicy struct {
 	// Type is the type of build trigger
 	Type BuildTriggerType `json:"type,omitempty"`
 
-	// GithubWebHook contains the parameters for a GitHub webhook type of trigger
-	GithubWebHook *WebHookTrigger `json:"github,omitempty"`
+	// GitHubWebHook contains the parameters for a GitHub webhook type of trigger
+	GitHubWebHook *WebHookTrigger `json:"github,omitempty"`
 
 	// GenericWebHook contains the parameters for a Generic webhook type of trigger
 	GenericWebHook *WebHookTrigger `json:"generic,omitempty"`
@@ -335,9 +335,9 @@ type BuildTriggerPolicy struct {
 type BuildTriggerType string
 
 const (
-	// GithubWebHookBuildTriggerType represents a trigger that launches builds on
+	// GitHubWebHookBuildTriggerType represents a trigger that launches builds on
 	// GitHub webhook invocations
-	GithubWebHookBuildTriggerType BuildTriggerType = "github"
+	GitHubWebHookBuildTriggerType BuildTriggerType = "github"
 
 	// GenericWebHookBuildTriggerType represents a trigger that launches builds on
 	// generic webhook invocations
