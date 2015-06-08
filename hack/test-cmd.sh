@@ -560,6 +560,8 @@ echo "ui-project-commands: ok"
 # Expose service as a route
 oc delete svc/frontend
 oc create -f test/integration/fixtures/test-service.json
+[ ! "$(oc expose service frontend --create-external-load-balancer)" ]
+[ ! "$(oc expose service frontend --port=40 --type=NodePort)" ]
 oc expose service frontend
 [ "$(oc get route frontend | grep 'name=frontend')" ]
 oc delete svc,route -l name=frontend
