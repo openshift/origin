@@ -1,4 +1,4 @@
-package tokens
+package cmd
 
 import (
 	"fmt"

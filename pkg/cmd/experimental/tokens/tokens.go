@@ -33,7 +33,6 @@ func NewCmdTokens(name, fullName string, f *osclientcmd.Factory, out io.Writer) 
 
 	cmds.AddCommand(NewCmdValidateToken(f))
 	cmds.AddCommand(NewCmdRequestToken(f))
-	cmds.AddCommand(NewCmdWhoAmI(WhoAmIRecommendedCommandName, fullName+" "+WhoAmIRecommendedCommandName, f, out))
 
 	return cmds
 }

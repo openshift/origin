@@ -16,7 +16,6 @@ import (
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
-	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/user/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -102,7 +101,7 @@ func TestLogin(t *testing.T) {
 	// 	t.Fatalf("unexpected error: %v", err)
 	// }
 
-	userWhoamiOptions := tokens.WhoAmIOptions{oClient.Users(), ioutil.Discard}
+	userWhoamiOptions := cmd.WhoAmIOptions{oClient.Users(), ioutil.Discard}
 	retrievedUser, err := userWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -111,7 +110,7 @@ func TestLogin(t *testing.T) {
 		t.Errorf("expected %v, got %v", retrievedUser.Name, username)
 	}
 
-	adminWhoamiOptions := tokens.WhoAmIOptions{clusterAdminClient.Users(), ioutil.Discard}
+	adminWhoamiOptions := cmd.WhoAmIOptions{clusterAdminClient.Users(), ioutil.Discard}
 	retrievedAdmin, err := adminWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

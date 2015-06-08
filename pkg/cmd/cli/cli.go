@@ -123,6 +123,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 			Commands: []*cobra.Command{
 				cmd.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out),
 				cmd.NewCmdConfig(fullName, "config"),
+				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, out),
 			},
 		},
 	}
