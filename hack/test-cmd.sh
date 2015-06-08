@@ -332,6 +332,14 @@ oc secrets new from-file ${HOME}/.dockercfg
 # make sure the -o works correctly
 [ "$(oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o yaml | grep "kubernetes.io/dockercfg")" ]
 [ "$(oc secrets new from-file ${HOME}/.dockercfg -o yaml | grep "kubernetes.io/dockercfg")" ]
+
+# attach secrets to service account
+# single secret with prefix
+oc secrets add serviceaccounts/deployer secrets/dockercfg
+# don't add the same secret twice
+oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file
+# make sure we can add as as pull secret
+oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file --for=pull
 echo "secrets: ok"
 
 
