@@ -49,7 +49,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 
 	cmd := &cobra.Command{
 		Use:     "start-build (BUILDCONFIG | --from-build=BUILD)",
-		Short:   "Starts a new build from existing Build or BuildConfig",
+		Short:   "Starts a new build",
 		Long:    startBuildLong,
 		Example: fmt.Sprintf(startBuildExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

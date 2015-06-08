@@ -30,8 +30,8 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 
 	cmd := &cobra.Command{
 		Use:   "who-can VERB RESOURCE",
-		Short: "Indicates which users can perform the action on the resource.",
-		Long:  `Indicates which users can perform the action on the resource.`,
+		Short: "List who can perform the specified action on a resource",
+		Long:  "List who can perform the specified action on a resource",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.complete(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))

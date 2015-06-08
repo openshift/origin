@@ -65,7 +65,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 
 	cmd := &cobra.Command{
 		Use:     "deploy DEPLOYMENTCONFIG",
-		Short:   "View, start and restart deployments.",
+		Short:   "View, start and restart deployments",
 		Long:    deployLong,
 		Example: fmt.Sprintf(deployExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -267,6 +267,7 @@ echo "templates: ok"
 [ ! "$(oc 2>&1 | grep 'Options')" ]
 [ ! "$(oc 2>&1 | grep 'Global Options')" ]
 [ "$(openshift cli 2>&1 | grep 'OpenShift Client')" ]
+[ "$(oc types | grep 'Deployment Config')" ]
 [ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
 [ "$(oadm 2>&1 | grep 'OpenShift Administrative Commands')" ]
 [ "$(openshift admin 2>&1 | grep 'OpenShift Administrative Commands')" ]

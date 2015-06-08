@@ -51,7 +51,7 @@ func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, ou
 
 	cmd := &cobra.Command{
 		Use:     commandName,
-		Short:   "Manage node operations: schedulable, evacuate, list-pods",
+		Short:   "Manage nodes - list pods, evacuate, or mark ready",
 		Long:    manageNodeLong,
 		Example: fmt.Sprintf(manageNodeExample, fullName),
 		Run: func(c *cobra.Command, args []string) {

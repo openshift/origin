@@ -50,7 +50,7 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 
 	cmd := &cobra.Command{
 		Use:     "rollback DEPLOYMENT",
-		Short:   "Revert part of an application back to a previous deployment.",
+		Short:   "Revert part of an application back to a previous deployment",
 		Long:    rollbackLong,
 		Example: fmt.Sprintf(rollbackExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
