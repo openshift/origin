@@ -74,7 +74,7 @@ func (rs *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	route, ok := obj.(*api.Route)
 	if !ok {
-		return nil, fmt.Errorf("not a route: %#v", obj)
+		return nil, errors.NewBadRequest(fmt.Sprintf("not a route: %#v", obj))
 	}
 	if !kapi.ValidNamespace(ctx, &route.ObjectMeta) {
 		return nil, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
@@ -82,7 +82,7 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 
 	shard, err := rs.allocator.AllocateRouterShard(route)
 	if err != nil {
-		return nil, fmt.Errorf("allocation error: %s for route: %#v", err, obj)
+		return nil, errors.NewInternalError(fmt.Errorf("allocation error: %s for route: %#v", err, obj))
 	}
 
 	if route.Annotations == nil {
@@ -115,7 +115,7 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, er
 func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	route, ok := obj.(*api.Route)
 	if !ok {
-		return nil, false, fmt.Errorf("not a route: %#v", obj)
+		return nil, false, errors.NewBadRequest(fmt.Sprintf("not a route: %#v", obj))
 	}
 	if !kapi.ValidNamespace(ctx, &route.ObjectMeta) {
 		return nil, false, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))

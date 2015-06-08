@@ -1,7 +1,6 @@
 package useridentitymapping
 
 import (
-	"errors"
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -44,7 +43,7 @@ func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
-		return nil, errors.New("invalid type")
+		return nil, kerrs.NewBadRequest("invalid type")
 	}
 	Strategy.PrepareForCreate(mapping)
 	createdMapping, _, err := s.createOrUpdate(ctx, obj, true)
@@ -57,7 +56,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	mapping, ok := obj.(*api.UserIdentityMapping)
 	if !ok {
-		return nil, false, errors.New("invalid type")
+		return nil, false, kerrs.NewBadRequest("invalid type")
 	}
 	Strategy.PrepareForUpdate(mapping, nil)
 	return s.createOrUpdate(ctx, mapping, false)
