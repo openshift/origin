@@ -46,6 +46,17 @@ func init() {
 				obj.ExecHandlerName = DockerExecHandlerNative
 			}
 		},
+		func(obj *SecurityAllocator) {
+			if len(obj.UIDAllocatorRange) == 0 {
+				obj.UIDAllocatorRange = "1000000000-1999999999/10000"
+			}
+			if len(obj.MCSAllocatorRange) == 0 {
+				obj.MCSAllocatorRange = "s0:/2"
+			}
+			if obj.MCSLabelsPerProject == 0 {
+				obj.MCSLabelsPerProject = 5
+			}
+		},
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

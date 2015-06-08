@@ -202,6 +202,7 @@ projectConfig:
   defaultNodeSelector: ""
   projectRequestMessage: ""
   projectRequestTemplate: ""
+  securityAllocator: null
 serviceAccountConfig:
   managedNames: null
   privateKeyFile: ""
