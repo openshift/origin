@@ -275,7 +275,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					// Needed to build serviceLister, to populate env vars for services
-					Verbs:     util.NewStringSet("list", "watch"),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet("services"),
 				},
 				{
@@ -298,7 +298,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				{
 					// TODO: restrict to pods scheduled on the bound node once supported
-					Verbs:     util.NewStringSet("list", "watch"),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet("pods"),
 				},
 				{
@@ -316,7 +316,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				{
 					// TODO: restrict to secrets used by pods scheduled on bound node once supported
-					// Needed for imagepullsecrets and secret volumes
+					// Needed for imagepullsecrets, rbd/ceph and secret volumes
 					Verbs:     util.NewStringSet("get"),
 					Resources: util.NewStringSet("secrets"),
 				},
@@ -326,6 +326,13 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					// Needed for persistent volumes
 					Verbs:     util.NewStringSet("get"),
 					Resources: util.NewStringSet("persistentvolumeclaims", "persistentvolumes"),
+				},
+				{
+					// TODO: restrict to namespaces of pods scheduled on bound node once supported
+					// TODO: change glusterfs to use DNS lookup so this isn't needed?
+					// Needed for glusterfs volumes
+					Verbs:     util.NewStringSet("get"),
+					Resources: util.NewStringSet("endpoints"),
 				},
 			},
 		},
@@ -340,7 +347,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Resources: util.NewStringSet("hostsubnets"),
 				},
 				{
-					Verbs:     util.NewStringSet("list", "watch"),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet("nodes"),
 				},
 				{
@@ -360,7 +367,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Resources: util.NewStringSet("hostsubnets"),
 				},
 				{
-					Verbs:     util.NewStringSet("list", "watch"),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet("nodes"),
 				},
 				{
