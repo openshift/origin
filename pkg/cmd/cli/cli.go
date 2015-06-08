@@ -115,6 +115,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 				cmd.NewCmdCreate(fullName, f, out),
 				cmd.NewCmdUpdate(fullName, f, out),
 				cmd.NewCmdProcess(fullName, f, out),
+				cmd.NewCmdExport(fullName, f, os.Stdin, out),
 				policy.NewCommandPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
 			},
 		},
