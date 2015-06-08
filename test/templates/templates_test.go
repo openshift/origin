@@ -66,7 +66,7 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	handlerContainer := master.NewHandlerContainer(osMux)
 	version := apiserver.APIGroupVersion{
-		Root:    "/osapi",
+		Root:    "/oapi",
 		Version: latest.Version,
 
 		Mapper: latest.RESTMapper,

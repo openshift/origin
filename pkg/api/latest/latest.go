@@ -19,7 +19,7 @@ import (
 )
 
 // Version is the string that represents the current external default version.
-const Version = "v1beta3"
+const Version = "v1"
 
 // OldestVersion is the string that represents the oldest server version supported,
 // for client code that wants to hardcode the lowest common denominator.
@@ -29,7 +29,7 @@ const OldestVersion = "v1beta3"
 // may be assumed to be least feature rich to most feature rich, and clients may
 // choose to prefer the latter items in the list over the former items when presented
 // with a set of versions to choose.
-var Versions = []string{"v1beta3", "v1"}
+var Versions = []string{"v1", "v1beta3"}
 
 // Codec is the default codec for serializing output that should use
 // the latest supported version.  Use this Codec when writing to

@@ -329,6 +329,9 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 		APIPrefix:        "/api",
 		AdmissionControl: admit.NewAlwaysAdmit(),
 		RestfulContainer: handlerContainer,
+		DisableV1Beta1:   true,
+		DisableV1Beta2:   true,
+		EnableV1:         true,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
@@ -378,8 +381,8 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	}
 
 	version := &apiserver.APIGroupVersion{
-		Root:    "/osapi",
-		Version: "v1beta3",
+		Root:    "/oapi",
+		Version: "v1",
 
 		Storage: storage,
 		Codec:   latest.Codec,

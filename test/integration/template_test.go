@@ -5,7 +5,7 @@ package integration
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta1"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
@@ -27,6 +27,7 @@ func TestTemplate(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		config.Version = version
+		config.Prefix = ""
 		c, err := client.New(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -40,13 +41,15 @@ func TestTemplate(t *testing.T) {
 				},
 			},
 			Objects: []runtime.Object{
-				&v1beta1.Service{
-					TypeMeta: v1beta1.TypeMeta{
-						ID:        "${NAME}-tester",
+				&v1beta3.Service{
+					ObjectMeta: v1beta3.ObjectMeta{
+						Name:      "${NAME}-tester",
 						Namespace: "somevalue",
 					},
-					PortalIP:        "1.2.3.4",
-					SessionAffinity: "some-bad-${VALUE}",
+					Spec: v1beta3.ServiceSpec{
+						PortalIP:        "1.2.3.4",
+						SessionAffinity: "some-bad-${VALUE}",
+					},
 				},
 			},
 		}
@@ -61,21 +64,24 @@ func TestTemplate(t *testing.T) {
 		if err := runtime.DecodeList(obj.Objects, runtime.UnstructuredJSONScheme); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
+		svc := obj.Objects[0].(*runtime.Unstructured).Object
+		spec := svc["spec"].(map[string]interface{})
+		meta := svc["metadata"].(map[string]interface{})
 		// keep existing values
-		if obj.Objects[0].(*runtime.Unstructured).Object["portalIP"] != "1.2.3.4" {
-			t.Fatalf("unexpected object: %#v", obj)
+		if spec["portalIP"] != "1.2.3.4" {
+			t.Fatalf("unexpected object: %#v", svc)
 		}
 		// replace a value
-		if obj.Objects[0].(*runtime.Unstructured).Object["id"] != "test-tester" {
-			t.Fatalf("unexpected object: %#v", obj)
+		if meta["name"] != "test-tester" {
+			t.Fatalf("unexpected object: %#v", svc)
 		}
 		// clear namespace
-		if obj.Objects[0].(*runtime.Unstructured).Object["namespace"] != "" {
-			t.Fatalf("unexpected object: %#v", obj)
+		if meta["namespace"] != "" {
+			t.Fatalf("unexpected object: %#v", svc)
 		}
 		// preserve values exactly
-		if obj.Objects[0].(*runtime.Unstructured).Object["sessionAffinity"] != "some-bad-${VALUE}" {
-			t.Fatalf("unexpected object: %#v", obj)
+		if spec["sessionAffinity"] != "some-bad-${VALUE}" {
+			t.Fatalf("unexpected object: %#v", svc)
 		}
 	}
 }

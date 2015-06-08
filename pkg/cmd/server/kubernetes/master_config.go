@@ -111,6 +111,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
 		AdmissionControl: admissionController,
 
+		DisableV1Beta1: true,
+		DisableV1Beta2: true,
 		DisableV1Beta3: !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1beta3"),
 		EnableV1:       configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1"),
 	}

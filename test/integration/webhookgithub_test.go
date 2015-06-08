@@ -99,7 +99,6 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		"/osapi/v1beta3/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 
@@ -197,7 +196,6 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		"/osapi/v1beta3/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 
@@ -242,7 +240,7 @@ func TestWebhookGithubPing(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		"/osapi/v1beta3/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 		// trigger build event sending push notification
 		postFile(&http.Client{}, "ping", "pingevent.json", openshift.server.URL+s, http.StatusOK, t)
