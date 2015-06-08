@@ -14,18 +14,22 @@
         "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/ruby-20-rhel7",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "2.0",
             "annotations": {
               "description": "Build and run Ruby 2.0 applications",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "version": "2.0"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
-      },
-      "status": {
-        "dockerImageRepository": ""
       }
     },
     {
@@ -39,18 +43,22 @@
         "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/nodejs-010-rhel7",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "0.10",
             "annotations": {
               "description": "Build and run NodeJS 0.10 applications",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
               "version": "0.10"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
-      },
-      "status": {
-        "dockerImageRepository": ""
       }
     },
     {
@@ -64,18 +72,22 @@
         "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/perl-516-rhel7",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "5.16",
             "annotations": {
               "description": "Build and run Perl 5.16 applications",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "version": "5.16"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
-      },
-      "status": {
-        "dockerImageRepository": ""
       }
     },
     {
@@ -89,18 +101,22 @@
         "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/php-55-rhel7",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "5.5",
             "annotations": {
               "description": "Build and run PHP 5.5 applications",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "version": "5.5"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
-      },
-      "status": {
-        "dockerImageRepository": ""
       }
     },
     {
@@ -114,18 +130,22 @@
         "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/python-33-rhel7",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "3.3",
             "annotations": {
               "description": "Build and run Python 3.3 applications",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "version": "3.3"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
-      },
-      "status": {
-        "dockerImageRepository": ""
       }
     },
     {
@@ -140,11 +160,15 @@
         "tags": [
           {
             "name": "latest"
+          },
+          {
+            "name": "5.5",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
+            }
           }
         ]
-      },
-      "status": {
-        "dockerImageRepository": ""
       }
     },
     {
@@ -159,11 +183,15 @@
         "tags": [
           {
             "name": "latest"
+          },
+          {
+            "name": "9.2",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
+            }
           }
         ]
-      },
-      "status": {
-        "dockerImageRepository": ""
       }
     },
     {
@@ -178,11 +206,15 @@
         "tags": [
           {
             "name": "latest"
+          },
+          {
+            "name": "2.4",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
+            }
           }
         ]
-      },
-      "status": {
-        "dockerImageRepository": ""
       }
     }
   ]
