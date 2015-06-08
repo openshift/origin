@@ -286,6 +286,9 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) (app.Comp
 		}
 		info, err := c.detector.Detect(path)
 		if err != nil {
+			if err == app.ErrNoLanguageDetected {
+				err = fmt.Errorf("no language was detected for repository at %q; please specify a builder image to use with your repository: [builder-image]~%s", repo, repo)
+			}
 			errs = append(errs, err)
 			continue
 		}
