@@ -23,13 +23,15 @@ defaults
   # Long timeout for WebSocket connections.
   timeout tunnel 1h
 
-listen stats :1936
+{{ if and (and (ne .StatsUser "") (ne .StatsPassword "")) (gt .StatsPort 0) }}
+listen stats :{{.StatsPort}}
     mode http
     stats enable
     stats hide-version
     stats realm Haproxy\ Statistics
     stats uri /
-    stats auth admin:cEVu2hUb
+    stats auth {{.StatsUser}}:{{.StatsPassword}}
+{{ end }}
 
 frontend public
   bind :80
