@@ -2,12 +2,12 @@
   "kind": "Template",
   "apiVersion": "v1beta3",
   "metadata": {
-    "name": "mysql",
+    "name": "postgresql-ephemeral",
     "creationTimestamp": null,
     "annotations": {
-      "description": "This template creates a basic MySQL database service",
-      "iconClass": "icon-mysql-database",
-      "tags": "database,mysql"
+      "description": "PostgreSQL database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "iconClass": "icon-postgresql",
+      "tags": "database,postgresql"
     }
   },
   "objects": [
@@ -15,21 +15,21 @@
       "kind": "Service",
       "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mysql",
+        "name": "postgresql",
         "creationTimestamp": null
       },
       "spec": {
         "ports": [
           {
-            "name": "mysql",
+            "name": "postgresql",
             "protocol": "TCP",
-            "port": 3306,
-            "targetPort": 3306,
+            "port": 5432,
+            "targetPort": 5432,
             "nodePort": 0
           }
         ],
         "selector": {
-          "name": "mysql"
+          "name": "postgresql"
         },
         "portalIP": "",
         "type": "ClusterIP",
@@ -43,7 +43,7 @@
       "kind": "DeploymentConfig",
       "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mysql",
+        "name": "postgresql",
         "creationTimestamp": null
       },
       "spec": {
@@ -57,11 +57,11 @@
             "imageChangeParams": {
               "automatic": true,
               "containerNames": [
-                "mysql"
+                "postgresql"
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:latest"
+                "name": "postgresql:latest"
               },
               "lastTriggeredImage": ""
             }
@@ -72,38 +72,38 @@
         ],
         "replicas": 1,
         "selector": {
-          "name": "mysql"
+          "name": "postgresql"
         },
         "template": {
           "metadata": {
             "creationTimestamp": null,
             "labels": {
-              "name": "mysql"
+              "name": "postgresql"
             }
           },
           "spec": {
             "containers": [
               {
-                "name": "mysql",
-                "image": "mysql",
+                "name": "postgresql",
+                "image": "postgresql",
                 "ports": [
                   {
-                    "containerPort": 3306,
+                    "containerPort": 5432,
                     "protocol": "TCP"
                   }
                 ],
                 "env": [
                   {
-                    "name": "MYSQL_USER",
-                    "value": "${MYSQL_USER}"
+                    "name": "POSTGRESQL_USER",
+                    "value": "${POSTGRESQL_USER}"
                   },
                   {
-                    "name": "MYSQL_PASSWORD",
-                    "value": "${MYSQL_PASSWORD}"
+                    "name": "POSTGRESQL_PASSWORD",
+                    "value": "${POSTGRESQL_PASSWORD}"
                   },
                   {
-                    "name": "MYSQL_DATABASE",
-                    "value": "${MYSQL_DATABASE}"
+                    "name": "POSTGRESQL_DATABASE",
+                    "value": "${POSTGRESQL_DATABASE}"
                   }
                 ],
                 "resources": {},
@@ -117,8 +117,7 @@
               }
             ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
@@ -127,24 +126,24 @@
   ],
   "parameters": [
     {
-      "name": "MYSQL_USER",
-      "description": "database username",
+      "name": "POSTGRESQL_USER",
+      "description": "Username for PostgreSQL user that will be used for accessing the database",
       "generate": "expression",
       "from": "user[A-Z0-9]{3}"
     },
     {
-      "name": "MYSQL_PASSWORD",
-      "description": "database password",
+      "name": "POSTGRESQL_PASSWORD",
+      "description": "Password for the PostgreSQL user",
       "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
+      "from": "[a-zA-Z0-9]{16}"
     },
     {
-      "name": "MYSQL_DATABASE",
-      "description": "database name",
+      "name": "POSTGRESQL_DATABASE",
+      "description": "Database name",
       "value": "sampledb"
     }
   ],
   "labels": {
-    "template": "mysql-template"
+    "template": "postgresql-ephemeral-template"
   }
 }
