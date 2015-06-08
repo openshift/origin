@@ -99,6 +99,9 @@ import (
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
+	buildclonestorage "github.com/openshift/origin/pkg/build/registry/clone/generator"
+	buildinstantiatestorage "github.com/openshift/origin/pkg/build/registry/instantiate/generator"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
@@ -228,7 +231,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		ServiceAccounts: c.KubeClient(),
 		Secrets:         c.KubeClient(),
 	}
-	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
 	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
@@ -268,10 +270,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	// initialize OpenShift API
 	storage := map[string]rest.Storage{
 		"builds":                   buildStorage,
-		"builds/clone":             buildClone,
 		"buildConfigs":             buildConfigStorage,
 		"buildConfigs/webhooks":    buildConfigWebHooks,
-		"buildConfigs/instantiate": buildConfigInstantiate,
+		"builds/clone":             buildclonestorage.NewStorage(buildGenerator),
+		"buildConfigs/instantiate": buildinstantiatestorage.NewStorage(buildGenerator),
 		"builds/log":               buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient),
 
 		"images":              imageStorage,

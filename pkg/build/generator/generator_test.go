@@ -9,12 +9,12 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	mocks "github.com/openshift/origin/pkg/build/generator/test"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -38,17 +38,6 @@ const (
 	latestDockerReference = "latestDockerReference"
 )
 
-var (
-	encode = func(src string) []byte {
-		return []byte(src)
-	}
-	sampleDockerConfigs = map[string][]byte{
-		"hub":  encode(`{"https://index.docker.io/v1/":{"auth": "Zm9vOmJhcgo=", "email": ""}}`),
-		"ipv4": encode(`{"https://1.1.1.1:5000/v1/":{"auth": "Zm9vOmJhcgo=", "email": ""}}`),
-		"host": encode(`{"https://registry.host/v1/":{"auth": "Zm9vOmJhcgo=", "email": ""}}`),
-	}
-)
-
 func TestInstantiate(t *testing.T) {
 	generator := mockBuildGenerator()
 	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
@@ -68,15 +57,15 @@ func TestInstantiate(t *testing.T) {
 func TestInstantiateRetry(t *testing.T) {
 	instantiationCalls := 0
 	fakeSecrets := []runtime.Object{}
-	for _, s := range mockBuilderSecrets() {
+	for _, s := range mocks.MockBuilderSecrets() {
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	generator := BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
-		ServiceAccounts: mockBuilderServiceAccount(mockBuilderSecrets()),
+		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
-				return mockBuildConfig(mockSource(), mockSourceStrategyForImageRepository(), mockOutput()), nil
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
 			},
 			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				instantiationCalls++
@@ -115,12 +104,12 @@ func TestInstantiateGetBuildConfigError(t *testing.T) {
 
 func TestInstantiateGenerateBuildError(t *testing.T) {
 	fakeSecrets := []runtime.Object{}
-	for _, s := range mockBuilderSecrets() {
+	for _, s := range mocks.MockBuilderSecrets() {
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	generator := BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
-		ServiceAccounts: mockBuilderServiceAccount(mockBuilderSecrets()),
+		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
 				return nil, fmt.Errorf("get-error")
@@ -226,9 +215,9 @@ func TestCreateBuildCreateError(t *testing.T) {
 }
 
 func TestGenerateBuildFromConfig(t *testing.T) {
-	source := mockSource()
+	source := mocks.MockSource()
 	strategy := mockDockerStrategyForDockerImage(originalImage)
-	output := mockOutput()
+	output := mocks.MockOutput()
 	resources := mockResources()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
@@ -292,9 +281,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 }
 
 func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T) {
-	source := mockSource()
-	strategy := mockSourceStrategyForImageRepository()
-	output := mockOutput()
+	source := mocks.MockSource()
+	strategy := mocks.MockSourceStrategyForImageRepository()
+	output := mocks.MockOutput()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
@@ -312,12 +301,12 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 		},
 	}
 	fakeSecrets := []runtime.Object{}
-	for _, s := range mockBuilderSecrets() {
+	for _, s := range mocks.MockBuilderSecrets() {
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	generator := BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
-		ServiceAccounts: mockBuilderServiceAccount(mockBuilderSecrets()),
+		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
@@ -369,9 +358,9 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 }
 
 func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T) {
-	source := mockSource()
+	source := mocks.MockSource()
 	strategy := mockDockerStrategyForImageRepository()
-	output := mockOutput()
+	output := mocks.MockOutput()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
@@ -389,12 +378,12 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 		},
 	}
 	fakeSecrets := []runtime.Object{}
-	for _, s := range mockBuilderSecrets() {
+	for _, s := range mocks.MockBuilderSecrets() {
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	generator := BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
-		ServiceAccounts: mockBuilderServiceAccount(mockBuilderSecrets()),
+		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
@@ -445,9 +434,9 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 }
 
 func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T) {
-	source := mockSource()
+	source := mocks.MockSource()
 	strategy := mockCustomStrategyForImageRepository()
-	output := mockOutput()
+	output := mocks.MockOutput()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
@@ -465,12 +454,12 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 		},
 	}
 	fakeSecrets := []runtime.Object{}
-	for _, s := range mockBuilderSecrets() {
+	for _, s := range mocks.MockBuilderSecrets() {
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	generator := BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
-		ServiceAccounts: mockBuilderServiceAccount(mockBuilderSecrets()),
+		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
@@ -521,9 +510,9 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 }
 
 func TestGenerateBuildFromBuild(t *testing.T) {
-	source := mockSource()
+	source := mocks.MockSource()
 	strategy := mockDockerStrategyForImageRepository()
-	output := mockOutput()
+	output := mocks.MockOutput()
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build",
@@ -551,10 +540,10 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 }
 
 func TestSubstituteImageCustomAllMatch(t *testing.T) {
-	source := mockSource()
+	source := mocks.MockSource()
 	strategy := mockCustomStrategyForDockerImage(originalImage)
-	output := mockOutput()
-	bc := mockBuildConfig(source, strategy, output)
+	output := mocks.MockOutput()
+	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
 	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
 	if err != nil {
@@ -585,10 +574,10 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 }
 
 func TestSubstituteImageCustomAllMismatch(t *testing.T) {
-	source := mockSource()
+	source := mocks.MockSource()
 	strategy := mockCustomStrategyForDockerImage(originalImage)
-	output := mockOutput()
-	bc := mockBuildConfig(source, strategy, output)
+	output := mocks.MockOutput()
+	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
 	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
 	if err != nil {
@@ -604,10 +593,10 @@ func TestSubstituteImageCustomAllMismatch(t *testing.T) {
 }
 
 func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
-	source := mockSource()
+	source := mocks.MockSource()
 	strategy := mockCustomStrategyForImageRepository()
-	output := mockOutput()
-	bc := mockBuildConfig(source, strategy, output)
+	output := mocks.MockOutput()
+	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
 	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
 	if err != nil {
@@ -632,10 +621,10 @@ func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
 }
 
 func TestSubstituteImageCustomBaseMatchEnvMissing(t *testing.T) {
-	source := mockSource()
+	source := mocks.MockSource()
 	strategy := mockCustomStrategyForImageRepository()
-	output := mockOutput()
-	bc := mockBuildConfig(source, strategy, output)
+	output := mocks.MockOutput()
+	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
 	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
 	if err != nil {
@@ -660,10 +649,10 @@ func TestSubstituteImageCustomBaseMatchEnvMissing(t *testing.T) {
 }
 
 func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
-	source := mockSource()
+	source := mocks.MockSource()
 	strategy := mockCustomStrategyForImageRepository()
-	output := mockOutput()
-	bc := mockBuildConfig(source, strategy, output)
+	output := mocks.MockOutput()
+	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
 	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
 	if err != nil {
@@ -682,7 +671,7 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 }
 
 func TestGetNextBuildName(t *testing.T) {
-	bc := mockBuildConfig(mockSource(), mockSourceStrategyForImageRepository(), mockOutput())
+	bc := mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput())
 	if expected, actual := bc.Name+"-1", getNextBuildName(bc); expected != actual {
 		t.Errorf("Wrong buildName, expected %s, got %s", expected, actual)
 	}
@@ -775,16 +764,6 @@ func mockResources() kapi.ResourceRequirements {
 	return res
 }
 
-func mockSource() buildapi.BuildSource {
-	return buildapi.BuildSource{
-		Type: buildapi.BuildSourceGit,
-		Git: &buildapi.GitBuildSource{
-			URI: "http://test.repository/namespace/name",
-			Ref: "test-tag",
-		},
-	}
-}
-
 func mockDockerStrategyForNilImage() buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
 		Type: buildapi.DockerBuildStrategyType,
@@ -833,19 +812,6 @@ func mockCustomStrategyForDockerImage(name string) buildapi.BuildStrategy {
 	}
 }
 
-func mockSourceStrategyForImageRepository() buildapi.BuildStrategy {
-	return buildapi.BuildStrategy{
-		Type: buildapi.SourceBuildStrategyType,
-		SourceStrategy: &buildapi.SourceBuildStrategy{
-			From: &kapi.ObjectReference{
-				Kind:      "ImageStreamTag",
-				Name:      imageRepoName + ":" + tagName,
-				Namespace: imageRepoNamespace,
-			},
-		},
-	}
-}
-
 func mockCustomStrategyForImageRepository() buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
 		Type: buildapi.CustomBuildStrategyType,
@@ -859,36 +825,11 @@ func mockCustomStrategyForImageRepository() buildapi.BuildStrategy {
 	}
 }
 
-func mockOutput() buildapi.BuildOutput {
-	return buildapi.BuildOutput{
-		DockerImageReference: "http://localhost:5000/test/image-tag",
-	}
-}
-
 func mockOutputWithImageName(name string) buildapi.BuildOutput {
 	return buildapi.BuildOutput{
 		To: &kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: name,
-		},
-	}
-}
-
-func mockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrategy, output buildapi.BuildOutput) *buildapi.BuildConfig {
-	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "test-build-config",
-		},
-		Parameters: buildapi.BuildParameters{
-			Source: source,
-			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitSourceRevision{
-					Commit: "1234",
-				},
-			},
-			Strategy: strategy,
-			Output:   output,
 		},
 	}
 }
@@ -914,15 +855,15 @@ func mockBuild(source buildapi.BuildSource, strategy buildapi.BuildStrategy, out
 
 func mockBuildGenerator() *BuildGenerator {
 	fakeSecrets := []runtime.Object{}
-	for _, s := range mockBuilderSecrets() {
+	for _, s := range mocks.MockBuilderSecrets() {
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	return &BuildGenerator{
 		Secrets:         testclient.NewSimpleFake(fakeSecrets...),
-		ServiceAccounts: mockBuilderServiceAccount(mockBuilderSecrets()),
+		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: Client{
 			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
-				return mockBuildConfig(mockSource(), mockSourceStrategyForImageRepository(), mockOutput()), nil
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
 			},
 			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
 				return nil
@@ -979,7 +920,7 @@ func mockBuildGenerator() *BuildGenerator {
 }
 
 func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
-	source := mockSource()
+	source := mocks.MockSource()
 	revision := &buildapi.SourceRevision{
 		Type: buildapi.BuildSourceGit,
 		Git: &buildapi.GitSourceRevision{
@@ -990,16 +931,16 @@ func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
 		// FIXME: This image pull spec does not return ANY registry, but it should
 		// return the hub.
 		//"docker.io/secret2/image":     {".dockercfg": sampleDockerConfigs["hub"]},
-		"secret1/image":               {".dockercfg": sampleDockerConfigs["hub"]},
-		"1.1.1.1:5000/secret3/image":  {".dockercfg": sampleDockerConfigs["ipv4"]},
-		"registry.host/secret4/image": {".dockercfg": sampleDockerConfigs["host"]},
+		"secret1/image":               {".dockercfg": mocks.SampleDockerConfigs["hub"]},
+		"1.1.1.1:5000/secret3/image":  {".dockercfg": mocks.SampleDockerConfigs["ipv4"]},
+		"registry.host/secret4/image": {".dockercfg": mocks.SampleDockerConfigs["host"]},
 	}
 	for imageName := range dockerCfgTable {
 		// Setup the BuildGenerator
 		strategy := mockDockerStrategyForDockerImage(imageName)
 		output := mockOutputWithImageName(imageName)
 		generator := mockBuildGenerator()
-		bc := mockBuildConfig(source, strategy, output)
+		bc := mocks.MockBuildConfig(source, strategy, output)
 		build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, revision)
 
 		if build.Parameters.Output.PushSecret == nil {
@@ -1020,35 +961,4 @@ func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
 			t.Fatalf("Unexpected error %v", err)
 		}
 	}
-}
-
-func mockBuilderSecrets() (secrets []*kapi.Secret) {
-	i := 1
-	for name, conf := range sampleDockerConfigs {
-		secrets = append(secrets, &kapi.Secret{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: name,
-			},
-			Type: kapi.SecretTypeDockercfg,
-			Data: map[string][]byte{".dockercfg": conf},
-		})
-		i++
-	}
-	return secrets
-}
-
-func mockBuilderServiceAccount(secrets []*kapi.Secret) kclient.ServiceAccountsNamespacer {
-	var (
-		secretRefs  []kapi.ObjectReference
-		fakeObjects []runtime.Object
-	)
-	for _, secret := range secrets {
-		secretRefs = append(secretRefs, kapi.ObjectReference{Name: secret.Name, Kind: "Secret"})
-		fakeObjects = append(fakeObjects, secret)
-	}
-	fakeObjects = append(fakeObjects, &kapi.ServiceAccount{
-		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName},
-		Secrets:    secretRefs,
-	})
-	return testclient.NewSimpleFake(fakeObjects...)
 }
