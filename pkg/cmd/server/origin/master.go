@@ -363,6 +363,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
 	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, legacyAPIVersions...)
 	initAPIVersionRoute(root, OpenShiftAPIPrefix, currentAPIVersions...)
+	initReadinessCheckRoute(root, "healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
 
 	return messages
 }
@@ -382,6 +383,22 @@ func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...st
 		Doc("list supported server API versions").
 		Produces(restful.MIME_JSON).
 		Consumes(restful.MIME_JSON))
+}
+
+// initReadinessCheckRoute initializes an HTTP endpoint for readiness checking
+func initReadinessCheckRoute(root *restful.WebService, path string, readyFunc func() bool) {
+	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
+		if readyFunc() {
+			resp.ResponseWriter.WriteHeader(http.StatusOK)
+			resp.ResponseWriter.Write([]byte("ok"))
+
+		} else {
+			resp.ResponseWriter.WriteHeader(http.StatusServiceUnavailable)
+		}
+	}).Doc("return the readiness state of OpenShift").
+		Returns(http.StatusOK, "if OpenShift is ready", nil).
+		Returns(http.StatusServiceUnavailable, "if OpenShift is not ready", nil).
+		Produces(restful.MIME_JSON))
 }
 
 // If we know the location of the asset server, redirect to it when / is requested
@@ -417,6 +434,7 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 				"/healthz/ping",
 				"/logs/",
 				"/metrics",
+				"/ready",
 				"/osapi",
 				"/osapi/v1beta3",
 				"/oapi",
@@ -429,7 +447,7 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", restful.MIME_JSON)
 			w.WriteHeader(http.StatusOK)
 			w.Write(output)
 		} else {
@@ -778,7 +796,7 @@ func forbidden(reason, apiVersion string, w http.ResponseWriter, req *http.Reque
 		_ = json.Indent(formatted, output, "", "  ")
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", restful.MIME_JSON)
 	w.WriteHeader(http.StatusForbidden)
 	w.Write(formatted.Bytes())
 }
