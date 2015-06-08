@@ -230,23 +230,23 @@ func TestValidateSuccess(t *testing.T) {
 		pod *api.Pod
 		scc *api.SecurityContextConstraints
 	}{
-		"userSCC": {
+		"pass user must run as SCC": {
 			pod: userPod,
 			scc: userSCC,
 		},
-		"seLinuxSCC": {
+		"pass seLinux must run as SCC": {
 			pod: seLinuxPod,
 			scc: seLinuxSCC,
 		},
-		"privSCC": {
+		"pass priv validating SCC": {
 			pod: privPod,
 			scc: privSCC,
 		},
-		"capsSCC": {
+		"pass caps validating SCC": {
 			pod: capsPod,
 			scc: capsSCC,
 		},
-		"hostDirSCC": {
+		"pass hostDir validating SCC": {
 			pod: hostDirPod,
 			scc: hostDirSCC,
 		},

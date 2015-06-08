@@ -23,6 +23,7 @@ import (
 
 // runAsAny implements the SELinuxSecurityContextConstraintsStrategy interface.
 type runAsAny struct{}
+var _ SELinuxSecurityContextConstraintsStrategy = &runAsAny{}
 
 // NewRunAsAny provides a strategy that will return the configured se linux context or nil.
 func NewRunAsAny(options *api.SELinuxContextStrategyOptions) (SELinuxSecurityContextConstraintsStrategy, error) {

@@ -31,7 +31,10 @@ type simpleProvider struct {
 	runAsUserStrategy user.RunAsUserSecurityContextConstraintsStrategy
 	seLinuxStrategy   selinux.SELinuxSecurityContextConstraintsStrategy
 }
+// ensure we implement the interface correctly.
+var _ Provider = &simpleProvider{}
 
+// NewSimpleProvider creates a new SecurityContextConstraintsProvider instance.
 func NewSimpleProvider(scc *api.SecurityContextConstraints) (SecurityContextConstraintsProvider, error) {
 	if scc == nil {
 		return nil, fmt.Errorf("NewSimpleProvider requires a SecurityContextConstraints")
@@ -63,7 +66,7 @@ func NewSimpleProvider(scc *api.SecurityContextConstraints) (SecurityContextCons
 	case api.SELinuxStrategyRunAsAny:
 		seLinuxStrat, err = selinux.NewRunAsAny(&scc.SELinuxContext)
 	default:
-		err = fmt.Errorf("Unrecognized SELinuxcontext strategy type %s", scc.SELinuxContext.Type)
+		err = fmt.Errorf("Unrecognized SELinuxContext strategy type %s", scc.SELinuxContext.Type)
 	}
 	if err != nil {
 		return nil, err

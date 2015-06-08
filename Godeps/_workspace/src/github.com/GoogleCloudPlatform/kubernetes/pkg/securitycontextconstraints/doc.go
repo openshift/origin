@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package securitycontextconstraints contains security context constraints api implementations
+// Package securitycontextconstraints contains security context constraints api implementations.
 package securitycontextconstraints

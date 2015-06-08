@@ -24,6 +24,7 @@ import (
 )
 
 type nonRoot struct{}
+var _ RunAsUserSecurityContextConstraintsStrategy = &nonRoot{}
 
 func NewRunAsNonRoot(options *api.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
 	return &nonRoot{}, nil

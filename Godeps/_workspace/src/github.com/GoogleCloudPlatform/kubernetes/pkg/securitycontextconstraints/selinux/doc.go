@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package selinux contains security context constraints SELinux strategy implementations
+// Package selinux contains security context constraints SELinux strategy implementations.
 package selinux

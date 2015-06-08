@@ -47,6 +47,19 @@ func TestRunAsAnyGenerate(t *testing.T) {
 }
 
 func TestRunAsAnyValidate(t *testing.T) {
+	s, err := NewRunAsAny(&api.SELinuxContextStrategyOptions {
+			SELinuxOptions: &SELinuxOptions{
+				Level: "foo",
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error initializing NewRunAsAny %v", err)
+	}
+	errs := s.Validate(nil, nil)
+	if len(errs) != 0 {
+		t.Errorf("unexpected errors validating with ")
+	}
 	s, err := NewRunAsAny(&api.SELinuxContextStrategyOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewRunAsAny %v", err)

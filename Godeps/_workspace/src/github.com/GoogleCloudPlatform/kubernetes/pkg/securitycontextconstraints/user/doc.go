@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package user contains security context constraints user strategy implementations
+// Package user contains security context constraints user strategy implementations.
 package user

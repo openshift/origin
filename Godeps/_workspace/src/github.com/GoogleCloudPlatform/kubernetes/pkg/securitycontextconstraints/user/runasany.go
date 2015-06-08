@@ -23,6 +23,7 @@ import (
 
 // runAsAny implements the interface RunAsUserSecurityContextConstraintsStrategy.
 type runAsAny struct{}
+var _ RunAsUserSecurityContextConstraintsStrategy = &runAsAny{}
 
 // NewRunAsAny provides a strategy that will return nil.
 func NewRunAsAny(options *api.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
