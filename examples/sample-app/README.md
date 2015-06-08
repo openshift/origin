@@ -132,6 +132,9 @@ This section covers how to perform all the steps of building, deploying, and upd
         $ export CURL_CA_BUNDLE=`pwd`/openshift.local.config/master/ca.crt
         $ sudo chmod a+rwX openshift.local.config/master/admin.kubeconfig
 
+      **VAGRANT USERS**: The correct path to `admin.kubeconfig` in Vagrant is `/openshift.local.config/master/admin.kubeconfig` so you will have to use that everywhere `admin.kubeconfig` is used:
+
+
 4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
