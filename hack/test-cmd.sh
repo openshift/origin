@@ -385,9 +385,9 @@ oc describe istag/mysql:latest
 [ "$(oc describe istag/mysql:latest | grep "Environment:")" ]
 [ "$(oc describe istag/mysql:latest | grep "Image Created:")" ]
 [ "$(oc describe istag/mysql:latest | grep "Image Name:")" ]
-name=$(oc get istag/mysql:latest -t '{{ .imageName }}')
+name=$(oc get istag/mysql:latest -t '{{ .image.metadata.name }}')
 imagename="isimage/mysql@${name:0:7}"
-oc describe ${imagename}
+oc describe "${imagename}"
 [ "$(oc describe ${imagename} | grep "Environment:")" ]
 [ "$(oc describe ${imagename} | grep "Image Created:")" ]
 [ "$(oc describe ${imagename} | grep "Image Name:")" ]

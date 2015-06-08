@@ -7,7 +7,7 @@ import (
 )
 
 func TestRESTRootScope(t *testing.T) {
-	for _, v := range [][]string{{"v1beta2"}, {"v1beta3"}, {"v1"}} {
+	for _, v := range [][]string{{"v1beta3"}, {"v1"}} {
 		mapping, err := RESTMapper.RESTMapping("Node", v...)
 		if err != nil {
 			t.Fatal(err)

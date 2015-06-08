@@ -83,8 +83,8 @@ func TestProjectIsNamespace(t *testing.T) {
 		"projects": projectregistry.NewREST(kubeClient.Namespaces(), nil),
 	}
 	osVersion := &apiserver.APIGroupVersion{
-		Root:    "/osapi",
-		Version: "v1beta3",
+		Root:    "/oapi",
+		Version: "v1",
 
 		Storage: originStorage,
 		Codec:   latest.Codec,
