@@ -455,6 +455,10 @@
 			"Rev": "496be63c0078ce7323aede59005adbd3e9eef8c7"
 		},
 		{
+			"ImportPath": "github.com/MakeNowJust/heredoc",
+			"Rev": "1d91351acdc1cb2f2c995864674b754134b86ca7"
+		},
+		{
 			"ImportPath": "github.com/RangelReale/osin",
 			"Rev": "a9958a122a90a3b069389d394284283c19d58913"
 		},
