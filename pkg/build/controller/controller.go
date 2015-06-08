@@ -276,7 +276,7 @@ func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) erro
 	glog.V(4).Infof("Handling deletion of build %s", build.Name)
 	podName := buildutil.GetBuildPodName(build)
 	pod, err := bc.PodManager.GetPod(build.Namespace, podName)
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		glog.V(2).Infof("Failed to find pod with name %s for Build %s in namespace %s due to error: %v", podName, build.Name, build.Namespace, err)
 		return err
 	}
@@ -289,7 +289,7 @@ func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) erro
 		return nil
 	}
 	err = bc.PodManager.DeletePod(build.Namespace, pod)
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		glog.V(2).Infof("Failed to delete pod %s/%s for Build %s due to error: %v", build.Namespace, podName, build.Name, err)
 		return err
 	}

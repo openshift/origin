@@ -112,7 +112,7 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
+			controller.RetryNever,
 			kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			deltas := obj.(cache.Deltas)
@@ -186,7 +186,7 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
+			controller.RetryNever,
 			kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			deltas := obj.(cache.Deltas)
