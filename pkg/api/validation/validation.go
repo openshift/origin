@@ -25,10 +25,15 @@ type RuntimeObjectsValidator struct {
 }
 
 type RuntimeObjectValidatorInfo struct {
-	validator     RuntimeObjectValidator
-	isNamespaced  bool
-	hasObjectMeta bool
-	updateAllowed bool
+	Validator     RuntimeObjectValidator
+	IsNamespaced  bool
+	HasObjectMeta bool
+	UpdateAllowed bool
+}
+
+func (v *RuntimeObjectsValidator) GetInfo(obj runtime.Object) (RuntimeObjectValidatorInfo, bool) {
+	ret, ok := v.typeToValidator[reflect.TypeOf(obj)]
+	return ret, ok
 }
 
 func (v *RuntimeObjectsValidator) Register(obj runtime.Object, validateFunction interface{}, validateUpdateFunction interface{}) error {
@@ -67,7 +72,7 @@ func (v *RuntimeObjectsValidator) Validate(obj runtime.Object) fielderrors.Valid
 		return allErrs
 	}
 
-	allErrs = append(allErrs, specificValidationInfo.validator.Validate(obj)...)
+	allErrs = append(allErrs, specificValidationInfo.Validator.Validate(obj)...)
 	return allErrs
 }
 
@@ -87,11 +92,11 @@ func (v *RuntimeObjectsValidator) ValidateUpdate(obj, old runtime.Object) fielde
 		return allErrs
 	}
 
-	allErrs = append(allErrs, specificValidationInfo.validator.ValidateUpdate(obj, old)...)
+	allErrs = append(allErrs, specificValidationInfo.Validator.ValidateUpdate(obj, old)...)
 
 	// no errors so far, make sure that the new object is actually valid against the original validator
 	if len(allErrs) == 0 {
-		allErrs = append(allErrs, specificValidationInfo.validator.Validate(obj)...)
+		allErrs = append(allErrs, specificValidationInfo.Validator.Validate(obj)...)
 	}
 
 	return allErrs

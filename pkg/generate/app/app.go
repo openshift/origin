@@ -162,6 +162,7 @@ type ImageRef struct {
 	imageapi.DockerImageReference
 	AsImageStream bool
 	OutputImage   bool
+	Insecure      bool
 
 	Stream *imageapi.ImageStream
 	Info   *imageapi.DockerImage
@@ -283,6 +284,11 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 	if !r.OutputImage {
 		stream.Spec.DockerImageRepository = r.String()
 		stream.Spec.Tags = map[string]imageapi.TagReference{}
+		if r.Insecure {
+			stream.ObjectMeta.Annotations = map[string]string{
+				imageapi.InsecureRepositoryAnnotation: "true",
+			}
+		}
 	}
 
 	return stream, nil

@@ -39,9 +39,10 @@ type AppConfig struct {
 	Groups             util.StringList
 	Environment        util.StringList
 
-	Name         string
-	Strategy     string
-	OutputDocker bool
+	Name             string
+	Strategy         string
+	InsecureRegistry bool
+	OutputDocker     bool
 
 	dockerResolver       app.Resolver
 	imageStreamResolver  app.Resolver
@@ -87,11 +88,25 @@ func NewAppConfig(typer runtime.ObjectTyper, mapper meta.RESTMapper, clientMappe
 	}
 }
 
+func (c *AppConfig) dockerRegistryResolver() app.Resolver {
+	return app.DockerRegistryResolver{
+		Client:        dockerregistry.NewClient(),
+		AllowInsecure: c.InsecureRegistry,
+	}
+}
+
+func (c *AppConfig) ensureDockerResolver() {
+	if c.dockerResolver == nil {
+		c.dockerResolver = c.dockerRegistryResolver()
+	}
+}
+
 // SetDockerClient sets the passed Docker client in the application configuration
 func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 	c.dockerResolver = app.DockerClientResolver{
 		Client:           dockerclient,
-		RegistryResolver: c.dockerResolver,
+		RegistryResolver: c.dockerRegistryResolver(),
+		Insecure:         c.InsecureRegistry,
 	}
 }
 
@@ -454,6 +469,7 @@ type AppResult struct {
 
 // RunAll executes the provided config to generate all objects.
 func (c *AppConfig) RunAll(out io.Writer) (*AppResult, error) {
+	c.ensureDockerResolver()
 	components, repositories, environment, parameters, err := c.validate()
 	if err != nil {
 		return nil, err

@@ -42,7 +42,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	f := clientcmd.New(cmds.PersistentFlags())
 
 	cmds.AddCommand(project.NewCmdNewProject(project.NewProjectRecommendedName, fullName+" "+project.NewProjectRecommendedName, f, out))
-	cmds.AddCommand(policy.NewCommandPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out))
+	cmds.AddCommand(policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out))
 	cmds.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
 	cmds.AddCommand(router.NewCmdRouter(f, fullName, "router", out))
 	cmds.AddCommand(registry.NewCmdRegistry(f, fullName, "registry", out))

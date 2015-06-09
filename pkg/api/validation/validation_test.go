@@ -17,7 +17,7 @@ import (
 
 func TestNameFunc(t *testing.T) {
 	for apiType, validationInfo := range Validator.typeToValidator {
-		if !validationInfo.hasObjectMeta {
+		if !validationInfo.HasObjectMeta {
 			continue
 		}
 
@@ -28,7 +28,7 @@ func TestNameFunc(t *testing.T) {
 		for _, illegalName := range api.NameMayNotBe {
 			apiObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: illegalName}))
 
-			errList := validationInfo.validator.Validate(apiValue.Interface().(runtime.Object))
+			errList := validationInfo.Validator.Validate(apiValue.Interface().(runtime.Object))
 			_, requiredMessage := api.MinimalNameRequirements(illegalName, false)
 
 			if len(errList) == 0 {
@@ -65,7 +65,7 @@ func TestNameFunc(t *testing.T) {
 
 			apiObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: illegalName}))
 
-			errList := validationInfo.validator.Validate(apiValue.Interface().(runtime.Object))
+			errList := validationInfo.Validator.Validate(apiValue.Interface().(runtime.Object))
 			_, requiredMessage := api.MinimalNameRequirements(illegalName, false)
 
 			if len(errList) == 0 {
@@ -99,21 +99,21 @@ func TestNameFunc(t *testing.T) {
 
 func TestObjectMeta(t *testing.T) {
 	for apiType, validationInfo := range Validator.typeToValidator {
-		if !validationInfo.hasObjectMeta {
+		if !validationInfo.HasObjectMeta {
 			continue
 		}
 
 		apiValue := reflect.New(apiType.Elem())
 		apiObjectMeta := apiValue.Elem().FieldByName("ObjectMeta")
 
-		if validationInfo.isNamespaced {
+		if validationInfo.IsNamespaced {
 			apiObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: getValidName(apiType)}))
 		} else {
 			apiObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: getValidName(apiType), Namespace: kapi.NamespaceDefault}))
 		}
 
-		errList := validationInfo.validator.Validate(apiValue.Interface().(runtime.Object))
-		requiredErrors := validation.ValidateObjectMeta(apiObjectMeta.Addr().Interface().(*kapi.ObjectMeta), validationInfo.isNamespaced, api.MinimalNameRequirements).Prefix("metadata")
+		errList := validationInfo.Validator.Validate(apiValue.Interface().(runtime.Object))
+		requiredErrors := validation.ValidateObjectMeta(apiObjectMeta.Addr().Interface().(*kapi.ObjectMeta), validationInfo.IsNamespaced, api.MinimalNameRequirements).Prefix("metadata")
 
 		if len(errList) == 0 {
 			t.Errorf("expected errors %v in %v not found amongst %v.  You probably need to call kube/validation.ValidateObjectMeta in your validator.", requiredErrors, apiType.Elem(), errList)
@@ -164,10 +164,10 @@ func getValidName(apiType reflect.Type) string {
 // 4. mismatched UID
 func TestObjectMetaUpdate(t *testing.T) {
 	for apiType, validationInfo := range Validator.typeToValidator {
-		if !validationInfo.hasObjectMeta {
+		if !validationInfo.HasObjectMeta {
 			continue
 		}
-		if !validationInfo.updateAllowed {
+		if !validationInfo.UpdateAllowed {
 			continue
 		}
 
@@ -183,7 +183,7 @@ func TestObjectMetaUpdate(t *testing.T) {
 		newObj := newAPIValue.Interface().(runtime.Object)
 		newObjMeta := newAPIObjectMeta.Addr().Interface().(*kapi.ObjectMeta)
 
-		errList := validationInfo.validator.ValidateUpdate(newObj, oldObj)
+		errList := validationInfo.Validator.ValidateUpdate(newObj, oldObj)
 		requiredErrors := validation.ValidateObjectMetaUpdate(newObjMeta, oldObjMeta).Prefix("metadata")
 
 		if len(errList) == 0 {

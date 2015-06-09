@@ -40,6 +40,8 @@ func TestBuildConfigStrategy(t *testing.T) {
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)
 	}
+
+	buildConfig.ResourceVersion = "foo"
 	errs = Strategy.ValidateUpdate(ctx, buildConfig, buildConfig)
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)

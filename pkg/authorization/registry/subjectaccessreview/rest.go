@@ -1,14 +1,16 @@
 package subjectaccessreview
 
 import (
-	"errors"
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kutilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
@@ -31,7 +33,10 @@ func (r *REST) New() runtime.Object {
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	subjectAccessReview, ok := obj.(*authorizationapi.SubjectAccessReview)
 	if !ok {
-		return nil, fmt.Errorf("not a subjectAccessReview: %#v", obj)
+		return nil, kerrors.NewBadRequest(fmt.Sprintf("not a subjectAccessReview: %#v", obj))
+	}
+	if err := kutilerrors.NewAggregate(authorizationvalidation.ValidateSubjectAccessReview(subjectAccessReview)); err != nil {
+		return nil, err
 	}
 
 	var userToCheck user.Info
@@ -39,7 +44,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		// if no user or group was specified, use the info from the context
 		ctxUser, exists := kapi.UserFrom(ctx)
 		if !exists {
-			return nil, errors.New("user missing from context")
+			return nil, kerrors.NewBadRequest("user missing from context")
 		}
 		userToCheck = ctxUser
 

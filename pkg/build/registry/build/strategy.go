@@ -75,8 +75,7 @@ func (strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.Valid
 
 // ValidateUpdate is the default update validation for an end user.
 func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
-	// TODO: distinguish updates from create, for now, this is preserving old implementation behavior
-	return validation.ValidateBuild(obj.(*api.Build))
+	return validation.ValidateBuildUpdate(obj.(*api.Build), old.(*api.Build))
 }
 
 // CheckGracefulDelete allows a build to be gracefully deleted.

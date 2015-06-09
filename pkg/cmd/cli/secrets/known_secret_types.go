@@ -1,4 +1,4 @@
-package bundlesecret
+package secrets
 
 import (
 	"reflect"

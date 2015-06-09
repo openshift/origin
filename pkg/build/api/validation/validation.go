@@ -22,6 +22,14 @@ func ValidateBuild(build *buildapi.Build) fielderrors.ValidationErrorList {
 	return allErrs
 }
 
+func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&build.ObjectMeta, &older.ObjectMeta).Prefix("metadata")...)
+
+	allErrs = append(allErrs, ValidateBuild(build)...)
+	return allErrs
+}
+
 // ValidateBuildConfig tests required fields for a Build.
 func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
@@ -40,6 +48,14 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErr
 	}
 	allErrs = append(allErrs, validateBuildParameters(&config.Parameters).Prefix("parameters")...)
 	allErrs = append(allErrs, validateBuildConfigOutput(&config.Parameters.Output).Prefix("parameters.output")...)
+	return allErrs
+}
+
+func ValidateBuildConfigUpdate(config *buildapi.BuildConfig, older *buildapi.BuildConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&config.ObjectMeta, &older.ObjectMeta).Prefix("metadata")...)
+
+	allErrs = append(allErrs, ValidateBuildConfig(config)...)
 	return allErrs
 }
 

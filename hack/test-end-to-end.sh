@@ -372,7 +372,7 @@ validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_AP
 
 # Remote command execution
 echo "[INFO] Validating exec"
-registry_pod=$(oc get pod | grep deployment=docker-registry | grep docker-registry | awk '{print $1}')
+registry_pod=$(oc get pod -l deploymentconfig=docker-registry -t '{{(index .items 0).metadata.name}}')
 oc exec -p ${registry_pod} whoami | grep root
 
 # Port forwarding

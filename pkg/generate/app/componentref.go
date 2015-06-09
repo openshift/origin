@@ -116,6 +116,7 @@ type ComponentMatch struct {
 	Name        string
 	Description string
 	Score       float32
+	Insecure    bool
 
 	Builder     bool
 	Image       *imageapi.DockerImage

@@ -123,7 +123,7 @@ func TestBuildConfigOutput(t *testing.T) {
 			if trigger.Type == buildapi.ImageChangeBuildTriggerType {
 				imageChangeTrigger = true
 				if trigger.ImageChange == nil {
-					t.Errorf("invalid image change trigger found: %#v", i, trigger)
+					t.Errorf("(%d) invalid image change trigger found: %#v", i, trigger)
 				}
 			}
 		}

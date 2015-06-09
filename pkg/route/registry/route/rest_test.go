@@ -205,14 +205,26 @@ func TestUpdateRouteBadObject(t *testing.T) {
 }
 
 func TestUpdateRouteMissingID(t *testing.T) {
-	storage := REST{}
+	mockRegistry := test.NewRouteRegistry()
+	mockAllocator := ractest.NewTestRouteAllocationController()
+	mockRegistry.Routes = &api.RouteList{
+		Items: []api.Route{
+			{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+			},
+		},
+	}
+	storage := REST{
+		registry:  mockRegistry,
+		allocator: mockAllocator,
+	}
 
 	obj, created, err := storage.Update(kapi.NewDefaultContext(), &api.Route{})
 	if obj != nil || created {
 		t.Errorf("Expected nil, got %v", obj)
 	}
-	if strings.Index(err.Error(), "name: required value") == -1 {
-		t.Errorf("Expected 'name: required value' error, got %v", err)
+	if strings.Index(err.Error(), "not found") == -1 {
+		t.Errorf("Expected 'not found' error, got %v", err)
 	}
 }
 
@@ -240,7 +252,7 @@ func TestUpdateRouteOK(t *testing.T) {
 	mockRepositoryRegistry.Routes = &api.RouteList{
 		Items: []api.Route{
 			{
-				ObjectMeta:  kapi.ObjectMeta{Name: "bar"},
+				ObjectMeta:  kapi.ObjectMeta{Name: "bar", Namespace: kapi.NamespaceDefault},
 				Host:        "www.frontend.com",
 				ServiceName: "rubyservice",
 			},
@@ -253,7 +265,7 @@ func TestUpdateRouteOK(t *testing.T) {
 	}
 
 	obj, created, err := storage.Update(kapi.NewDefaultContext(), &api.Route{
-		ObjectMeta:  kapi.ObjectMeta{Name: "bar"},
+		ObjectMeta:  kapi.ObjectMeta{Name: "bar", ResourceVersion: "foo"},
 		Host:        "www.newfrontend.com",
 		ServiceName: "newrubyservice",
 	})
@@ -268,6 +280,7 @@ func TestUpdateRouteOK(t *testing.T) {
 	if route == nil {
 		t.Errorf("Nil route returned: %#v", route)
 		t.Errorf("Expected Route, got %#v", obj)
+		return
 	}
 	if route.Name != "bar" {
 		t.Errorf("Unexpected route returned: %#v", route)
