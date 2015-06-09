@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -159,7 +160,20 @@ func RunTag(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []stri
 
 		target, err := isc.Get(destName)
 		if err != nil {
-			return err
+			if !kerrors.IsNotFound(err) {
+				return err
+			}
+
+			// try to create the target if it doesn't exist
+			target = &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: destName,
+				},
+			}
+			target, err = isc.Create(target)
+			if err != nil {
+				return nil
+			}
 		}
 
 		if target.Spec.Tags == nil {
