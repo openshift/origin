@@ -381,6 +381,10 @@ func (ac *AuthorizationCache) List(userInfo user.Info) (*kapi.NamespaceList, err
 	return namespaceList, nil
 }
 
+func (ac *AuthorizationCache) ReadyForAccess() bool {
+	return len(ac.lastState) > 0
+}
+
 // skipReview returns true if the request was satisfied by the lastKnown
 func skipReview(request *reviewRequest, lastKnownValue *reviewRecord) bool {
 
