@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -29,7 +30,7 @@ func (r *REST) New() runtime.Object {
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	resourceAccessReview, ok := obj.(*authorizationapi.ResourceAccessReview)
 	if !ok {
-		return nil, fmt.Errorf("not a resourceAccessReview: %#v", obj)
+		return nil, errors.NewBadRequest(fmt.Sprintf("not a resourceAccessReview: %#v", obj))
 	}
 
 	namespace := kapi.NamespaceValue(ctx)

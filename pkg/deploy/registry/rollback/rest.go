@@ -59,7 +59,7 @@ func (s *REST) New() runtime.Object {
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	rollback, ok := obj.(*deployapi.DeploymentConfigRollback)
 	if !ok {
-		return nil, fmt.Errorf("not a rollback spec: %#v", obj)
+		return nil, kerrors.NewBadRequest(fmt.Sprintf("not a rollback spec: %#v", obj))
 	}
 
 	if errs := validation.ValidateDeploymentConfigRollback(rollback); len(errs) > 0 {
