@@ -69,8 +69,8 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 	}
 
 	// wait for the project authorization cache to catch the change.  It is on a one second period
-	waitForProject(t, haroldClient, "hammer-project", 5*time.Second, 10)
-	waitForProject(t, markClient, "mallet-project", 5*time.Second, 10)
+	waitForProject(t, haroldClient, "hammer-project", 1*time.Second, 10)
+	waitForProject(t, markClient, "mallet-project", 1*time.Second, 10)
 }
 
 // waitForProject will execute a client list of projects looking for the project with specified name

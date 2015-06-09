@@ -8,10 +8,91 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	client "github.com/openshift/origin/pkg/client/testclient"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/client"
 )
+
+// MockReadOnlyPolicyClient implements the ReadOnlyPolicyCache interface for testing
+type MockReadOnlyPolicyClient struct{}
+
+// Following methods enable the MockReadOnlyPolicyClient to implement the ReadOnlyPolicyCache interface
+
+// Policies gives access to a read-only policy interface
+func (this *MockReadOnlyPolicyClient) ReadOnlyPolicies(namespace string) client.ReadOnlyPolicyInterface {
+	return MockReadOnlyPolicyGetter{}
+}
+
+type MockReadOnlyPolicyGetter struct{}
+
+func (this MockReadOnlyPolicyGetter) List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error) {
+	return &authorizationapi.PolicyList{}, nil
+}
+
+func (this MockReadOnlyPolicyGetter) Get(name string) (*authorizationapi.Policy, error) {
+	return &authorizationapi.Policy{}, nil
+}
+
+// ClusterPolicies gives access to a read-only cluster policy interface
+func (this *MockReadOnlyPolicyClient) ReadOnlyClusterPolicies() client.ReadOnlyClusterPolicyInterface {
+	return MockReadOnlyClusterPolicyGetter{}
+}
+
+type MockReadOnlyClusterPolicyGetter struct{}
+
+func (this MockReadOnlyClusterPolicyGetter) List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyList, error) {
+	return &authorizationapi.ClusterPolicyList{}, nil
+}
+
+func (this MockReadOnlyClusterPolicyGetter) Get(name string) (*authorizationapi.ClusterPolicy, error) {
+	return &authorizationapi.ClusterPolicy{}, nil
+}
+
+// PolicyBindings gives access to a read-only policy binding interface
+func (this *MockReadOnlyPolicyClient) ReadOnlyPolicyBindings(namespace string) client.ReadOnlyPolicyBindingInterface {
+	return MockReadOnlyPolicyBindingGetter{}
+}
+
+type MockReadOnlyPolicyBindingGetter struct{}
+
+func (this MockReadOnlyPolicyBindingGetter) List(label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
+	return &authorizationapi.PolicyBindingList{}, nil
+}
+
+func (this MockReadOnlyPolicyBindingGetter) Get(name string) (*authorizationapi.PolicyBinding, error) {
+	return &authorizationapi.PolicyBinding{}, nil
+}
+
+// ClusterPolicyBindings gives access to a read-only cluster policy binding interface
+func (this *MockReadOnlyPolicyClient) ReadOnlyClusterPolicyBindings() client.ReadOnlyClusterPolicyBindingInterface {
+	return MockReadOnlyClusterPolicyBindingGetter{}
+}
+
+type MockReadOnlyClusterPolicyBindingGetter struct{}
+
+func (this MockReadOnlyClusterPolicyBindingGetter) List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error) {
+	return &authorizationapi.ClusterPolicyBindingList{}, nil
+}
+
+func (this MockReadOnlyClusterPolicyBindingGetter) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
+	return &authorizationapi.ClusterPolicyBinding{}, nil
+}
+
+// LastSyncResourceVersion returns the resource version for the last sync performed
+func (this *MockReadOnlyPolicyClient) LastSyncResourceVersion() string {
+	return ""
+}
+
+func (this *MockReadOnlyPolicyClient) GetPolicy(ctx kapi.Context, name string) (*authorizationapi.Policy, error) {
+	return &authorizationapi.Policy{}, nil
+}
+
+func (this *MockReadOnlyPolicyClient) ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error) {
+	return &authorizationapi.PolicyBindingList{}, nil
+}
 
 // mockReview implements the Review interface for test cases
 type mockReview struct {
@@ -96,7 +177,6 @@ func TestSyncNamespace(t *testing.T) {
 		},
 	}
 	mockKubeClient := testclient.NewSimpleFake(&namespaceList)
-	mockOriginClient := &client.Fake{}
 
 	reviewer := &mockReviewer{
 		expectedResults: map[string]*mockReview{
@@ -115,7 +195,9 @@ func TestSyncNamespace(t *testing.T) {
 		},
 	}
 
-	authorizationCache := NewAuthorizationCache(reviewer, mockKubeClient.Namespaces(), mockOriginClient, mockOriginClient, mockOriginClient, mockOriginClient)
+	mockPolicyCache := &MockReadOnlyPolicyClient{}
+
+	authorizationCache := NewAuthorizationCache(reviewer, mockKubeClient.Namespaces(), mockPolicyCache)
 	// we prime the data we need here since we are not running reflectors
 	for i := range namespaceList.Items {
 		authorizationCache.namespaceStore.Add(&namespaceList.Items[i])
