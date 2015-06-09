@@ -29,6 +29,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator"
 	etcdallocator "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator/etcd"
@@ -537,6 +539,8 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 
 	// Create required policy rules if needed
 	c.ensureComponentAuthorizationRules()
+	// Ensure the default SCCs are created
+	c.ensureDefaultSecurityContextConstraints()
 	// Bind default roles for service accounts in the default namespace if needed
 	c.ensureDefaultNamespaceServiceAccountRoles()
 	// Create the shared resource namespace
@@ -687,6 +691,23 @@ func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
 		defaultNamespace.Annotations[ServiceAccountRolesInitializedAnnotation] = "true"
 		if _, err := c.KubeClient().Namespaces().Update(defaultNamespace); err != nil {
 			glog.Errorf("Error recording adding service account roles to default namespace: %v", err)
+		}
+	}
+}
+
+func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
+	sccList, err := c.KubeClient().SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		glog.Errorf("Unable to initialize security context constraints: %v", err)
+	}
+	if len(sccList.Items) > 0 {
+		return
+	}
+	glog.Infof("No security context constraints detected, adding defaults")
+	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints() {
+		_, err = c.KubeClient().SecurityContextConstraints().Create(&scc)
+		if err != nil {
+			glog.Errorf("Unable to create default security context constraint %s.  Got error: %v", scc.Name, err)
 		}
 	}
 }
