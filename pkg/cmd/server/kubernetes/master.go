@@ -3,8 +3,8 @@ package kubernetes
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
-	"time"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -54,14 +54,14 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 
 // RunNamespaceController starts the Kubernetes Namespace Manager
 func (c *MasterConfig) RunNamespaceController() {
-	namespaceController := namespace.NewNamespaceManager(c.KubeClient, 5*time.Minute)
+	namespaceController := namespace.NewNamespaceManager(c.KubeClient, c.ControllerManager.NamespaceSyncPeriod)
 	namespaceController.Run()
 	glog.Infof("Started Kubernetes Namespace Manager")
 }
 
 // RunPersistentVolumeClaimBinder starts the Kubernetes Persistent Volume Claim Binder
 func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
-	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(c.KubeClient, 5*time.Minute)
+	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod)
 	binder.Run()
 	glog.Infof("Started Kubernetes Persistent Volume Claim Binder")
 }
@@ -69,14 +69,14 @@ func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController() {
 	controllerManager := controller.NewReplicationManager(c.KubeClient, controller.BurstReplicas)
-	go controllerManager.Run(5, util.NeverStop)
+	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
 	glog.Infof("Started Kubernetes Replication Manager")
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunEndpointController() {
 	endpoints := service.NewEndpointController(c.KubeClient)
-	go endpoints.Run(5, util.NeverStop)
+	go endpoints.Run(c.ControllerManager.ConcurrentEndpointSyncs, util.NeverStop)
 
 	glog.Infof("Started Kubernetes Endpoint Controller")
 }
@@ -99,34 +99,30 @@ func (c *MasterConfig) RunScheduler() {
 // RunResourceQuotaManager starts the resource quota manager
 func (c *MasterConfig) RunResourceQuotaManager() {
 	resourceQuotaManager := resourcequota.NewResourceQuotaManager(c.KubeClient)
-	resourceQuotaManager.Run(10 * time.Second)
+	resourceQuotaManager.Run(c.ControllerManager.ResourceQuotaSyncPeriod)
 }
 
 // RunNodeController starts the node controller
 func (c *MasterConfig) RunNodeController() {
-	podEvictionTimeout, err := time.ParseDuration(c.Options.PodEvictionTimeout)
-	if err != nil {
-		glog.Fatalf("Unable to parse PodEvictionTimeout: %v", err)
-	}
-
+	s := c.ControllerManager
 	controller := nodecontroller.NewNodeController(
-		nil, // TODO: reintroduce cloudprovider
+		c.CloudProvider,
 		c.KubeClient,
-		10, // registerRetryCount
-		podEvictionTimeout,
+		s.RegisterRetryCount,
+		s.PodEvictionTimeout,
 
-		util.NewTokenBucketRateLimiter(0.1, 10), // deleting pods qps / burst
+		util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst),
 
-		40*time.Second, // monitor grace
-		1*time.Minute,  // startup grace
-		10*time.Second, // monitor period
+		s.NodeMonitorGracePeriod,
+		s.NodeStartupGracePeriod,
+		s.NodeMonitorPeriod,
 
-		nil,   // clusterCIDR
-		false, // allocateNodeCIDRs
+		(*net.IPNet)(&s.ClusterCIDR),
+		s.AllocateNodeCIDRs,
 	)
-	controller.Run(10 * time.Second)
+	controller.Run(s.NodeSyncPeriod)
 
-	glog.Infof("Started Kubernetes Minion Controller")
+	glog.Infof("Started Kubernetes Node Controller")
 }
 
 func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
@@ -137,11 +133,11 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 	if _, err := os.Stat(c.Options.SchedulerConfigFile); err == nil {
 		configData, err = ioutil.ReadFile(c.Options.SchedulerConfigFile)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to read scheduler config: %v", err)
+			return nil, fmt.Errorf("unable to read scheduler config: %v", err)
 		}
 		err = latestschedulerapi.Codec.DecodeInto(configData, &policy)
 		if err != nil {
-			return nil, fmt.Errorf("Invalid scheduler configuration: %v", err)
+			return nil, fmt.Errorf("invalid scheduler configuration: %v", err)
 		}
 
 		return configFactory.CreateFromConfig(policy)

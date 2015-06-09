@@ -566,7 +566,7 @@ func RunKubelet(kcfg *KubeletConfig, builder KubeletBuilder) error {
 	kcfg.Hostname = util.GetHostname(kcfg.HostnameOverride)
 	eventBroadcaster := record.NewBroadcaster()
 	kcfg.Recorder = eventBroadcaster.NewRecorder(api.EventSource{Component: "kubelet", Host: kcfg.Hostname})
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(glog.V(3).Infof)
 	if kcfg.KubeClient != nil {
 		glog.V(4).Infof("Sending events to api server.")
 		eventBroadcaster.StartRecordingToSink(kcfg.KubeClient.Events(""))

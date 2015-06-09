@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/cmd/kube-apiserver/app"
+	cmapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-controller-manager/app"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
@@ -25,10 +27,12 @@ import (
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
-	Options configapi.KubernetesMasterConfig
-
-	Master     *master.Config
+	Options    configapi.KubernetesMasterConfig
 	KubeClient *kclient.Client
+
+	Master            *master.Config
+	ControllerManager *cmapp.CMServer
+	CloudProvider     cloudprovider.Interface
 }
 
 func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client) (*MasterConfig, error) {
@@ -69,6 +73,11 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		return nil, err
 	}
 
+	podEvictionTimeout, err := time.ParseDuration(options.KubernetesMasterConfig.PodEvictionTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse PodEvictionTimeout: %v", err)
+	}
+
 	server := app.NewAPIServer()
 	server.EventTTL = 2 * time.Hour
 	server.PortalNet = util.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
@@ -82,6 +91,20 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	// proper errors
 	if err := cmdflags.Resolve(options.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
+	}
+
+	cmserver := cmapp.NewCMServer()
+	cmserver.PodEvictionTimeout = podEvictionTimeout
+	// resolve extended arguments
+	// TODO: this should be done in config validation (along with the above) so we can provide
+	// proper errors
+	if err := cmdflags.Resolve(options.KubernetesMasterConfig.ControllerArguments, cmserver.AddFlags); len(err) > 0 {
+		return nil, kerrors.NewAggregate(err)
+	}
+
+	cloud, err := cloudprovider.InitCloudProvider(cmserver.CloudProvider, cmserver.CloudConfigFile)
+	if err != nil {
+		return nil, err
 	}
 
 	admissionController := admission.NewFromPlugins(kubeClient, strings.Split(server.AdmissionControl, ","), server.AdmissionControlConfigFile)
@@ -119,8 +142,11 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 
 	kmaster := &MasterConfig{
 		Options:    *options.KubernetesMasterConfig,
-		Master:     m,
 		KubeClient: kubeClient,
+
+		Master:            m,
+		ControllerManager: cmserver,
+		CloudProvider:     cloud,
 	}
 
 	return kmaster, nil
