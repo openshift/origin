@@ -293,38 +293,44 @@ func TestHandle_existingDeployments(t *testing.T) {
 	}
 
 	type scenario struct {
-		version   int
-		existing  []existing
-		errorType reflect.Type
+		version          int
+		existing         []existing
+		errorType        reflect.Type
+		expectDeployment bool
 	}
 
 	transientErrorType := reflect.TypeOf(transientError(""))
 	scenarios := []scenario{
 		// No existing deployments
-		{1, []existing{}, nil},
+		{1, []existing{}, nil, true},
 		// A single existing completed deployment
-		{2, []existing{{1, deployapi.DeploymentStatusComplete, false}}, nil},
+		{2, []existing{{1, deployapi.DeploymentStatusComplete, false}}, nil, true},
 		// A single existing failed deployment
-		{2, []existing{{1, deployapi.DeploymentStatusFailed, false}}, nil},
+		{2, []existing{{1, deployapi.DeploymentStatusFailed, false}}, nil, true},
 		// Multiple existing completed/failed deployments
-		{3, []existing{{2, deployapi.DeploymentStatusFailed, false}, {1, deployapi.DeploymentStatusComplete, false}}, nil},
+		{3, []existing{{2, deployapi.DeploymentStatusFailed, false}, {1, deployapi.DeploymentStatusComplete, false}}, nil, true},
 
 		// A single existing deployment in the default state
-		{2, []existing{{1, "", false}}, transientErrorType},
+		{2, []existing{{1, "", false}}, transientErrorType, false},
 		// A single existing new deployment
-		{2, []existing{{1, deployapi.DeploymentStatusNew, false}}, transientErrorType},
+		{2, []existing{{1, deployapi.DeploymentStatusNew, false}}, transientErrorType, false},
 		// A single existing pending deployment
-		{2, []existing{{1, deployapi.DeploymentStatusPending, false}}, transientErrorType},
+		{2, []existing{{1, deployapi.DeploymentStatusPending, false}}, transientErrorType, false},
 		// A single existing running deployment
-		{2, []existing{{1, deployapi.DeploymentStatusRunning, false}}, transientErrorType},
+		{2, []existing{{1, deployapi.DeploymentStatusRunning, false}}, transientErrorType, false},
 		// Multiple existing deployments with one in new/pending/running
-		{4, []existing{{3, deployapi.DeploymentStatusRunning, false}, {2, deployapi.DeploymentStatusComplete, false}, {1, deployapi.DeploymentStatusFailed, false}}, transientErrorType},
+		{4, []existing{{3, deployapi.DeploymentStatusRunning, false}, {2, deployapi.DeploymentStatusComplete, false}, {1, deployapi.DeploymentStatusFailed, false}}, transientErrorType, false},
+
+		// Latest deployment exists and has already failed/completed
+		{2, []existing{{2, deployapi.DeploymentStatusFailed, false}, {1, deployapi.DeploymentStatusComplete, false}}, nil, false},
+		// Latest deployment exists and is in new/pending/running state
+		{2, []existing{{2, deployapi.DeploymentStatusRunning, false}, {1, deployapi.DeploymentStatusComplete, false}}, nil, false},
 
 		// Multiple existing deployments with more than one in new/pending/running
-		{4, []existing{{3, deployapi.DeploymentStatusNew, false}, {2, deployapi.DeploymentStatusRunning, true}, {1, deployapi.DeploymentStatusFailed, false}}, transientErrorType},
+		{4, []existing{{3, deployapi.DeploymentStatusNew, false}, {2, deployapi.DeploymentStatusRunning, true}, {1, deployapi.DeploymentStatusFailed, false}}, transientErrorType, false},
 		// Multiple existing deployments with more than one in new/pending/running
 		// Latest deployment has already failed
-		{6, []existing{{5, deployapi.DeploymentStatusFailed, false}, {4, deployapi.DeploymentStatusRunning, false}, {3, deployapi.DeploymentStatusNew, true}, {2, deployapi.DeploymentStatusComplete, false}, {1, deployapi.DeploymentStatusNew, true}}, transientErrorType},
+		{6, []existing{{5, deployapi.DeploymentStatusFailed, false}, {4, deployapi.DeploymentStatusRunning, false}, {3, deployapi.DeploymentStatusNew, true}, {2, deployapi.DeploymentStatusComplete, false}, {1, deployapi.DeploymentStatusNew, true}}, transientErrorType, false},
 	}
 
 	for _, scenario := range scenarios {
@@ -341,12 +347,13 @@ func TestHandle_existingDeployments(t *testing.T) {
 		}
 		err := controller.Handle(config)
 
+		if scenario.expectDeployment && deployed == nil {
+			t.Fatalf("expected a deployment")
+		}
+
 		if scenario.errorType == nil {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
-			}
-			if deployed == nil {
-				t.Fatalf("expected a deployment")
 			}
 		} else {
 			if err == nil {
