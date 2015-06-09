@@ -26,10 +26,10 @@ Reference: https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/ku
 func NewCmdConfig(parentName, name string) *cobra.Command {
 	pathOptions := &config.PathOptions{
 		GlobalFile:       cmdconfig.RecommendedHomeFile,
-		EnvVar:           cmdconfig.OpenShiftConfigPathEnvVar,
+		EnvVar:           cmdconfig.KubernetesConfigPathEnvVar,
 		ExplicitFileFlag: cmdconfig.OpenShiftConfigFlagName,
 
-		GlobalFileSubpath: cmdconfig.OpenShiftConfigHomeDirFileName,
+		GlobalFileSubpath: cmdconfig.KubernetesConfigHomeDirFileName,
 
 		LoadingRules: cmdconfig.NewOpenShiftClientConfigLoadingRules(),
 	}

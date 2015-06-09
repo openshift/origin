@@ -14,25 +14,33 @@ import (
 )
 
 const (
-	OpenShiftConfigPathEnvVar      = "OPENSHIFTCONFIG"
-	OpenShiftConfigFlagName        = "config"
-	OpenShiftConfigHomeDir         = ".config/openshift"
-	OpenShiftConfigHomeFileName    = "config"
-	OpenShiftConfigHomeDirFileName = OpenShiftConfigHomeDir + "/" + OpenShiftConfigHomeFileName
+	KubernetesConfigPathEnvVar      = "KUBECONFIG"
+	OpenShiftConfigFlagName         = "config"
+	KubernetesConfigHomeDir         = ".kube"
+	OpenShiftConfigHomeDir          = ".config/openshift"
+	KubernetesConfigHomeFileName    = "config"
+	KubernetesConfigHomeDirFileName = KubernetesConfigHomeDir + "/" + KubernetesConfigHomeFileName
 )
 
-var OldRecommendedHomeFile = path.Join(os.Getenv("HOME"), ".config/openshift/.config")
-var RecommendedHomeFile = path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName)
+var OldEnvironmentVar = "OPENSHIFTCONFIG"
+var OldRecommendedHomeFile = path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDir, "config")
+var RecommendedHomeFile = path.Join(os.Getenv("HOME"), KubernetesConfigHomeDirFileName)
 
 // NewOpenShiftClientConfigLoadingRules returns file priority loading rules for OpenShift.
 // 1. --config value
-// 2. if OPENSHIFTCONFIG env var has a value, use it. Otherwise, ~/.config/openshift/config file
+// 2. if OPENSHIFTCONFIG env var has a value, use it.
+// 3. if KUBECONFIG env var has a value, use it.
+// 4. Use combined .kube/config and migrate .config/openshift if present
 func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules {
 	chain := []string{}
 	migrationRules := map[string]string{}
 
-	envVarFile := os.Getenv(OpenShiftConfigPathEnvVar)
-	if len(envVarFile) != 0 {
+	oldEnvVarFile := os.Getenv(OldEnvironmentVar)
+	envVarFile := os.Getenv(KubernetesConfigPathEnvVar)
+
+	if len(oldEnvVarFile) != 0 {
+		chain = append(chain, filepath.SplitList(oldEnvVarFile)...)
+	} else if len(envVarFile) != 0 {
 		chain = append(chain, filepath.SplitList(envVarFile)...)
 	} else {
 		chain = append(chain, RecommendedHomeFile)
@@ -47,9 +55,9 @@ func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules 
 
 func NewPathOptions(cmd *cobra.Command) *kubecmdconfig.PathOptions {
 	return &kubecmdconfig.PathOptions{
-		GlobalFile: path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName),
+		GlobalFile: path.Join(os.Getenv("HOME"), KubernetesConfigHomeDirFileName),
 
-		EnvVar:           OpenShiftConfigPathEnvVar,
+		EnvVar:           KubernetesConfigPathEnvVar,
 		ExplicitFileFlag: OpenShiftConfigFlagName,
 
 		LoadingRules: &kclientcmd.ClientConfigLoadingRules{
