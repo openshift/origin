@@ -100,15 +100,17 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 
 	// set the expected build parameters, which will be saved if no error occurs
 	build.Status = buildapi.BuildStatusPending
-	// override DockerImageReference in the strategy for the copy we send to the server
-	build.Parameters.Output.DockerImageReference = spec
-	build.Parameters.Output.To = nil
 
+	// Make a copy to avoid mutating the build from this point on
 	copy, err := kapi.Scheme.Copy(build)
 	if err != nil {
 		return fmt.Errorf("unable to copy Build: %v", err)
 	}
 	buildCopy := copy.(*buildapi.Build)
+
+	// override DockerImageReference in the strategy for the copy we send to the build pod
+	buildCopy.Parameters.Output.DockerImageReference = spec
+	buildCopy.Parameters.Output.To = nil
 
 	// invoke the strategy to get a build pod
 	podSpec, err := bc.BuildStrategy.CreateBuildPod(buildCopy)
