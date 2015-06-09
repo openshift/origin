@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -17,12 +17,21 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+type DockerClient interface {
+	ListImages(opts docker.ListImagesOptions) ([]docker.APIImages, error)
+	InspectImage(name string) (*docker.Image, error)
+}
+
 type DockerClientResolver struct {
-	Client *docker.Client
+	Client DockerClient
 
 	// Optional, will delegate resolution to the registry if no local
 	// exact matches are found.
 	RegistryResolver Resolver
+
+	// Insecure, if true will add an annotation to generated ImageStream
+	// so that the image can be pulled properly
+	Insecure bool
 }
 
 func (r DockerClientResolver) Resolve(value string) (*ComponentMatch, error) {
@@ -73,6 +82,7 @@ func (r DockerClientResolver) Resolve(value string) (*ComponentMatch, error) {
 		}
 		updated.Score = match.Score
 		updated.ImageTag = ref.Tag
+		updated.Insecure = r.Insecure
 		matches[i] = updated
 	}
 
@@ -114,6 +124,7 @@ func (r DockerClientResolver) lookup(value string) (*ComponentMatch, error) {
 		Builder:     IsBuilderImage(dockerImage),
 		Score:       0.0,
 		Image:       dockerImage,
+		Insecure:    r.Insecure,
 	}, nil
 }
 
@@ -331,6 +342,7 @@ func InputImageFromMatch(match *ComponentMatch) (*ImageRef, error) {
 		}
 		input.AsImageStream = true
 		input.Info = match.Image
+		input.Insecure = match.Insecure
 		return input, nil
 
 	default:
