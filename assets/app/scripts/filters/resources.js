@@ -199,11 +199,11 @@ angular.module('openshiftConsole')
   .filter('webhookURL', function(DataService) {
     return function(buildConfig, type, secret, project) {
       return DataService.url({
-        type: "buildconfighooks",
+        type: "buildconfigs/webhooks",
         id: buildConfig,
         namespace: project,
         secret: secret,
-        hookType: type,
+        hookType: type
       });
     };
   })

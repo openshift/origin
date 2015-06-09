@@ -737,21 +737,15 @@ angular.module('openshiftConsole')
   var URL_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/{type}{?q*}";
   var URL_GET_LIST = URL_ROOT_TEMPLATE + "{type}{?q*}";
   var URL_GET_OBJECT = URL_ROOT_TEMPLATE + "{type}/{id}{?q*}";
-  var URL_OBJECT_SUBRESOURCE = URL_ROOT_TEMPLATE + "{type}/{id}/{subresource}{?q*}";
+  var URL_OBJECT_SUBRESOURCE = URL_ROOT_TEMPLATE + "{type}/{id}{/subresource*}{?q*}";
   var URL_NAMESPACED_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/namespaces/{namespace}/{type}{?q*}";
   var URL_NAMESPACED_GET_LIST = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}{?q*}";
   var URL_NAMESPACED_GET_OBJECT = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}/{id}{?q*}";
-  var URL_NAMESPACED_OBJECT_SUBRESOURCE = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}/{id}/{subresource}{?q*}";
-  // TODO is there a better way to get this template instead of building it, introspection?
-  var BUILD_HOOKS_URL = URL_ROOT_TEMPLATE + "{type}/{id}/{secret}/{hookType}{?q*}";
+  var URL_NAMESPACED_OBJECT_SUBRESOURCE = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}/{id}{/subresource*}{?q*}";
 
   // Set the api version the console is currently able to talk to
   API_CFG.openshift.version = "v1beta3";
   API_CFG.k8s.version = "v1beta3";
-
-  // Set whether namespace is a path or query parameter
-  API_CFG.openshift.namespacePath = true;
-  API_CFG.k8s.namespacePath = true;
 
   // TODO this is not the ideal, issue open to discuss adding
   // an introspection endpoint that would give us this mapping
@@ -759,7 +753,6 @@ angular.module('openshiftConsole')
   var SERVER_TYPE_MAP = {
     builds:                    API_CFG.openshift,
     buildconfigs:              API_CFG.openshift,
-    buildconfighooks:          API_CFG.openshift,
     deploymentconfigs:         API_CFG.openshift,
     imagestreams:              API_CFG.openshift,
     imagestreamimages:         API_CFG.openshift,
@@ -796,6 +789,12 @@ angular.module('openshiftConsole')
       var subresource = typeWithSubresource[1];
     }
 
+    var typeInfo = SERVER_TYPE_MAP[type];
+    if (!typeInfo) {
+    	Logger.error("_urlForType called with unknown type", type, arguments)
+    	return null;
+    }
+
     var protocol;
     params = params || {};
     if (isWebsocket) {
@@ -809,7 +808,7 @@ angular.module('openshiftConsole')
       params.namespace = context.namespace;
     }
 
-    var namespaceInPath = params.namespace && SERVER_TYPE_MAP[type].namespacePath;
+    var namespaceInPath = params.namespace;
     var namespace = null;
     if (namespaceInPath) {
       namespace = params.namespace;
@@ -819,9 +818,9 @@ angular.module('openshiftConsole')
     var template;
     var templateOptions = {
       protocol: protocol,
-      serverUrl: SERVER_TYPE_MAP[type].hostPort,
-      apiPrefix: SERVER_TYPE_MAP[type].prefix,
-      apiVersion: SERVER_TYPE_MAP[type].version,
+      serverUrl: typeInfo.hostPort,
+      apiPrefix: typeInfo.prefix,
+      apiVersion: typeInfo.version,
       type: type,
       id: id,
       namespace: namespace
@@ -830,13 +829,12 @@ angular.module('openshiftConsole')
       template = namespaceInPath ? URL_NAMESPACED_WATCH_LIST : URL_WATCH_LIST;
     }
     else if (id) {
-      if (type === "buildconfighooks") {
-        templateOptions.secret = params.secret;
-        templateOptions.hookType = params.hookType;
+      if (type === "buildconfigs" && subresource == "webhooks") {
+        templateOptions.subresource = [subresource, params.secret, params.hookType];
         params = angular.copy(params);
         delete params.secret;
         delete params.hookType;
-        template = BUILD_HOOKS_URL;
+        template = namespaceInPath ? URL_NAMESPACED_OBJECT_SUBRESOURCE : URL_OBJECT_SUBRESOURCE;
       }
       else if (subresource) {
         templateOptions.subresource = subresource;
@@ -860,8 +858,12 @@ angular.module('openshiftConsole')
       var opts = angular.copy(options);
       delete opts.type;
       delete opts.id;
+      delete opts.isWebsocket;
       var type = normalizeType(options.type);
-      return this._urlForType(type, options.id, null, false, opts).toString();
+      var u = this._urlForType(type, options.id, null, !!options.isWebsocket, opts);
+      if (u) {
+      	return u.toString();
+      }
     }
     return null;
   };
