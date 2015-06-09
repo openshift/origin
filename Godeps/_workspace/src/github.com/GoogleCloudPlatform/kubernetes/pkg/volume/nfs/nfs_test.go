@@ -42,6 +42,9 @@ func TestCanSupport(t *testing.T) {
 	if plug.CanSupport(&volume.Spec{Name: "foo", VolumeSource: api.VolumeSource{}}) {
 		t.Errorf("Expected false")
 	}
+	if !plug.CanSupport(&volume.Spec{Name: "foo", PersistentVolumeSource: api.PersistentVolumeSource{NFS: &api.NFSVolumeSource{}}}) {
+		t.Errorf("Expected true")
+	}
 }
 
 func TestGetAccessModes(t *testing.T) {
