@@ -86,8 +86,11 @@ func (cfg *Config) bindEnv() error {
 		cfg.CommonConfig.BearerToken = value
 	}
 	if value, ok := util.GetEnv("BEARER_TOKEN_FILE"); ok && len(cfg.CommonConfig.BearerToken) == 0 {
-		if tokenData, tokenErr := ioutil.ReadFile(value); err == nil {
+		if tokenData, tokenErr := ioutil.ReadFile(value); tokenErr == nil {
 			cfg.CommonConfig.BearerToken = strings.TrimSpace(string(tokenData))
+			if len(cfg.CommonConfig.BearerToken) == 0 {
+				err = fmt.Errorf("BEARER_TOKEN_FILE %q was empty", value)
+			}
 		} else {
 			err = fmt.Errorf("Error reading BEARER_TOKEN_FILE %q: %v", value, tokenErr)
 		}
