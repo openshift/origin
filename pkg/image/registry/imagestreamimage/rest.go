@@ -9,7 +9,6 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -69,21 +68,7 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		return nil, errors.NewNotFound("imageStreamImage", imageID)
 	}
 
-	set := util.NewStringSet()
-	for _, history := range repo.Status.Tags {
-		for _, tagging := range history.Items {
-			if d, err := digest.ParseDigest(tagging.Image); err == nil {
-				if strings.HasPrefix(d.Hex(), imageID) || strings.HasPrefix(tagging.Image, imageID) {
-					set.Insert(tagging.Image)
-				}
-				continue
-			}
-			if strings.HasPrefix(tagging.Image, imageID) {
-				set.Insert(tagging.Image)
-			}
-		}
-	}
-
+	set := api.ResolveImageID(repo, imageID)
 	switch len(set) {
 	case 1:
 		imageName := set.List()[0]
