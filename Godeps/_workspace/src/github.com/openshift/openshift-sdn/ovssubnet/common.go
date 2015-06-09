@@ -20,6 +20,7 @@ type OvsController struct {
 	hostName        string
 	subnetAllocator *netutils.SubnetAllocator
 	sig             chan struct{}
+	ready           chan struct{}
 	flowController  FlowController
 }
 
@@ -29,23 +30,23 @@ type FlowController interface {
 	DelOFRules(minionIP, localIP string) error
 }
 
-func NewKubeController(sub api.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
-	kubeController, err := NewController(sub, hostname, selfIP)
+func NewKubeController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
+	kubeController, err := NewController(sub, hostname, selfIP, ready)
 	if err == nil {
 		kubeController.flowController = kube.NewFlowController()
 	}
 	return kubeController, err
 }
 
-func NewDefaultController(sub api.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
-	defaultController, err := NewController(sub, hostname, selfIP)
+func NewDefaultController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
+	defaultController, err := NewController(sub, hostname, selfIP, ready)
 	if err == nil {
 		defaultController.flowController = lbr.NewFlowController()
 	}
 	return defaultController, err
 }
 
-func NewController(sub api.SubnetRegistry, hostname string, selfIP string) (*OvsController, error) {
+func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
 	if selfIP == "" {
 		addrs, err := net.LookupIP(hostname)
 		if err != nil {
@@ -59,8 +60,7 @@ func NewController(sub api.SubnetRegistry, hostname string, selfIP string) (*Ovs
 			}
 		}
 		if selfIP == "" {
-			log.Errorf("Failed to lookup valid IP Address for %s (%v)", hostname, addrs)
-			return nil, err
+			return nil, fmt.Errorf("failed to lookup valid IP Address for %s (%v)", hostname, addrs)
 		}
 	}
 	log.Infof("Self IP: %s.", selfIP)
@@ -71,6 +71,7 @@ func NewController(sub api.SubnetRegistry, hostname string, selfIP string) (*Ovs
 		localSubnet:     nil,
 		subnetAllocator: nil,
 		sig:             make(chan struct{}),
+		ready:           ready,
 	}, nil
 }
 
@@ -204,29 +205,33 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 		log.Errorf("Failed to get subnet for this host: %v", err)
 		return err
 	}
+
 	// call flow controller's setup
-	if err == nil {
-		if !skipsetup {
-			// Assume we are working with IPv4
-			containerNetwork, err := oc.subnetRegistry.GetContainerNetwork()
-			if err != nil {
-				log.Errorf("Failed to obtain ContainerNetwork: %v", err)
-				return err
-			}
-			err = oc.flowController.Setup(oc.localSubnet.Sub, containerNetwork)
-			if err != nil {
-				return err
-			}
-		}
-		subnets, err := oc.subnetRegistry.GetSubnets()
+	if !skipsetup {
+		// Assume we are working with IPv4
+		containerNetwork, err := oc.subnetRegistry.GetContainerNetwork()
 		if err != nil {
-			log.Errorf("Could not fetch existing subnets: %v", err)
+			log.Errorf("Failed to obtain ContainerNetwork: %v", err)
+			return err
 		}
-		for _, s := range *subnets {
-			oc.flowController.AddOFRules(s.Minion, s.Sub, oc.localIP)
+		err = oc.flowController.Setup(oc.localSubnet.Sub, containerNetwork)
+		if err != nil {
+			return err
 		}
-		go oc.watchCluster()
 	}
+	subnets, err := oc.subnetRegistry.GetSubnets()
+	if err != nil {
+		log.Errorf("Could not fetch existing subnets: %v", err)
+	}
+	for _, s := range *subnets {
+		oc.flowController.AddOFRules(s.Minion, s.Sub, oc.localIP)
+	}
+	go oc.watchCluster()
+
+	if oc.ready != nil {
+		close(oc.ready)
+	}
+
 	return err
 }
 
