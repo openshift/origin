@@ -68,7 +68,7 @@ func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 }
 
 func (c *MasterConfig) RunPersistentVolumeClaimRecycler() {
-	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(c.KubeClient, 5*time.Minute, kctrl.ProbeRecyclableVolumePlugins())
+	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod, kctrl.ProbeRecyclableVolumePlugins())
 	if err != nil {
 		glog.Fatalf("Could not start PersistentVolumeRecycler: %+v", err)
 	}
