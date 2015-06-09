@@ -35,6 +35,9 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		Name: repository,
 		Tag:  tag,
 	}
+	if glog.V(5) {
+		opts.OutputStream = os.Stderr
+	}
 	var err error
 	for retries := 0; retries <= DefaultPushRetryCount; retries++ {
 		err = client.PushImage(opts, authConfig)

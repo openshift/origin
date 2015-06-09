@@ -52,6 +52,23 @@ type templateRouter struct {
 	peerEndpointsKey string
 	// peerEndpoints will contain an endpoint slice of the peers
 	peerEndpoints []Endpoint
+	// if the router can expose statistics it should expose them with this user for auth
+	statsUser string
+	// if the router can expose statistics it should expose them with this password for auth
+	statsPassword string
+	// if the router can expose statistics it should expose them with this port
+	statsPort int
+}
+
+// templateRouterCfg holds all configuration items required to initialize the template router
+type templateRouterCfg struct {
+	templates          map[string]*template.Template
+	reloadScriptPath   string
+	defaultCertificate string
+	statsUser          string
+	statsPassword      string
+	statsPort          int
+	peerEndpointsKey   string
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
@@ -63,11 +80,17 @@ type templateData struct {
 	DefaultCertificate string
 	// peers
 	PeerEndpoints []Endpoint
+	//username to expose stats with (if the template supports it)
+	StatsUser string
+	//password to expose stats with (if the template supports it)
+	StatsPassword string
+	//port to expose stats with (if the template supports it)
+	StatsPort int
 }
 
-func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath, defaultCertificate string, peerEndpointsKey string) (*templateRouter, error) {
+func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 	glog.Infof("Creating a new template router")
-	glog.Infof("Router will use %s service to identify peers", peerEndpointsKey)
+	glog.Infof("Router will use %s service to identify peers", cfg.peerEndpointsKey)
 	certManagerConfig := &certificateManagerConfig{
 		certKeyFunc:     generateCertKey,
 		caCertKeyFunc:   generateCACertKey,
@@ -81,13 +104,16 @@ func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath
 	}
 
 	router := &templateRouter{
-		templates:              templates,
-		reloadScriptPath:       reloadScriptPath,
+		templates:              cfg.templates,
+		reloadScriptPath:       cfg.reloadScriptPath,
 		state:                  map[string]ServiceUnit{},
 		certManager:            certManager,
-		defaultCertificate:     defaultCertificate,
+		defaultCertificate:     cfg.defaultCertificate,
 		defaultCertificatePath: "",
-		peerEndpointsKey:       peerEndpointsKey,
+		statsUser:              cfg.statsUser,
+		statsPassword:          cfg.statsPassword,
+		statsPort:              cfg.statsPort,
+		peerEndpointsKey:       cfg.peerEndpointsKey,
 		peerEndpoints:          []Endpoint{},
 	}
 	if err := router.writeDefaultCert(); err != nil {
@@ -185,7 +211,15 @@ func (r *templateRouter) writeConfig() error {
 			return err
 		}
 
-		err = template.Execute(file, templateData{r.state, r.defaultCertificatePath, r.peerEndpoints})
+		data := templateData{
+			State:              r.state,
+			DefaultCertificate: r.defaultCertificatePath,
+			PeerEndpoints:      r.peerEndpoints,
+			StatsUser:          r.statsUser,
+			StatsPassword:      r.statsPassword,
+			StatsPort:          r.statsPort,
+		}
+		err = template.Execute(file, data)
 		if err != nil {
 			glog.Errorf("Error executing template for file %v: %v", path, err)
 			return err

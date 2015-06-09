@@ -96,6 +96,7 @@ kubeletClientInfo:
 kubernetesMasterConfig:
   apiLevels: null
   apiServerArguments: null
+  controllerArguments: null
   masterCount: 0
   masterIP: ""
   podEvictionTimeout: ""

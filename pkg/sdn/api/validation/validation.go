@@ -30,7 +30,7 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) fielderrors.Valid
 
 func ValidateClusterNetworkUpdate(obj *sdnapi.ClusterNetwork, old *sdnapi.ClusterNetwork) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&old.ObjectMeta, &obj.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
 
 	if obj.Network != old.Network {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("Network", obj.Network, "cannot change the cluster's network CIDR midflight."))
@@ -57,7 +57,7 @@ func ValidateHostSubnet(hs *sdnapi.HostSubnet) fielderrors.ValidationErrorList {
 
 func ValidateHostSubnetUpdate(obj *sdnapi.HostSubnet, old *sdnapi.HostSubnet) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&old.ObjectMeta, &obj.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
 
 	if obj.Subnet != old.Subnet {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("subnet", obj.Subnet, "cannot change the subnet lease midflight."))

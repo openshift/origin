@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
@@ -40,6 +41,8 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd.Long = exposeLong
 	cmd.Example = fmt.Sprintf(exposeExample, fullName)
 	cmd.Flags().Set("generator", "route/v1")
+	cmd.Flag("generator").Usage = "The name of the API generator to use. Default is 'route/v1'."
+	cmd.Flag("generator").DefValue = "route/v1"
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		err := validate(cmd, f, args)
 		cmdutil.CheckErr(err)
@@ -60,6 +63,10 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		}
 		return nil
 	}
+	if err := validateFlags(cmd); err != nil {
+		return err
+	}
+
 	namespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -116,4 +123,47 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	}
 
 	return nil
+}
+
+// validateFlags filters out flags that are not supposed to be used
+// when generating a route
+func validateFlags(cmd *cobra.Command) error {
+	invalidFlags := []string{}
+
+	if len(cmdutil.GetFlagString(cmd, "type")) != 0 {
+		invalidFlags = append(invalidFlags, "--type")
+	}
+	if len(cmdutil.GetFlagString(cmd, "selector")) != 0 {
+		invalidFlags = append(invalidFlags, "--selector")
+	}
+	if len(cmdutil.GetFlagString(cmd, "container-port")) != 0 {
+		invalidFlags = append(invalidFlags, "--container-port")
+	}
+	if len(cmdutil.GetFlagString(cmd, "target-port")) != 0 {
+		invalidFlags = append(invalidFlags, "--target-port")
+	}
+	if len(cmdutil.GetFlagString(cmd, "public-ip")) != 0 {
+		invalidFlags = append(invalidFlags, "--public-ip")
+	}
+	if cmdutil.GetFlagInt(cmd, "port") != -1 {
+		invalidFlags = append(invalidFlags, "--port")
+	}
+	if cmdutil.GetFlagBool(cmd, "create-external-load-balancer") {
+		invalidFlags = append(invalidFlags, "--create-external-load-balancer")
+	}
+
+	msg := ""
+	switch len(invalidFlags) {
+	case 0:
+		return nil
+
+	case 1:
+		msg = invalidFlags[0]
+
+	default:
+		commaSeparated, last := invalidFlags[:len(invalidFlags)-1], invalidFlags[len(invalidFlags)-1]
+		msg = fmt.Sprintf("%s or %s", strings.Join(commaSeparated, ","), last)
+	}
+
+	return fmt.Errorf("cannot use %s when generating a route", msg)
 }

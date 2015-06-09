@@ -39,7 +39,7 @@ func ValidateTemplate(template *api.Template) (allErrs fielderrors.ValidationErr
 
 // ValidateTemplateUpdate tests if required fields in the template are set during an update
 func ValidateTemplateUpdate(template, oldTemplate *api.Template) fielderrors.ValidationErrorList {
-	allErrs := validation.ValidateObjectMetaUpdate(&oldTemplate.ObjectMeta, &template.ObjectMeta).Prefix("metadata")
+	allErrs := validation.ValidateObjectMetaUpdate(&template.ObjectMeta, &oldTemplate.ObjectMeta).Prefix("metadata")
 	return allErrs
 }
 

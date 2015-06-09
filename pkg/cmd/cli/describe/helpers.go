@@ -154,10 +154,15 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 		fmt.Fprintf(out, "Tags:\t<none>\n")
 		return
 	}
-	fmt.Fprint(out, "Tags:\n  Tag\tSpec\tCreated\tPullSpec\tImage\n")
+	fmt.Fprint(out, "\nTag\tSpec\tCreated\tPullSpec\tImage\n")
 	sortedTags := []string{}
 	for k := range stream.Status.Tags {
 		sortedTags = append(sortedTags, k)
+	}
+	for k := range stream.Spec.Tags {
+		if _, ok := stream.Status.Tags[k]; !ok {
+			sortedTags = append(sortedTags, k)
+		}
 	}
 	sort.Strings(sortedTags)
 	for _, tag := range sortedTags {
@@ -165,37 +170,50 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 		specTag := ""
 		if ok {
 			if tagRef.From != nil {
+				namePair := ""
+				if len(tagRef.From.Namespace) > 0 && tagRef.From.Namespace != stream.Namespace {
+					namePair = fmt.Sprintf("%s/%s", tagRef.From.Namespace, tagRef.From.Name)
+				} else {
+					namePair = tagRef.From.Name
+				}
+
 				switch tagRef.From.Kind {
 				case "ImageStreamTag", "ImageStreamImage":
-					specTag = fmt.Sprintf("%s/%s", tagRef.From.Namespace, tagRef.From.Name)
+					specTag = namePair
 				case "DockerImage":
 					specTag = tagRef.From.Name
+				default:
+					specTag = fmt.Sprintf("<unknown %s> %s", tagRef.From.Kind, namePair)
 				}
 			}
 		} else {
 			specTag = "<pushed>"
 		}
-		for _, event := range stream.Status.Tags[tag].Items {
-			d := timeNowFn().Sub(event.Created.Time)
-			image := event.Image
-			ref, err := imageapi.ParseDockerImageReference(event.DockerImageReference)
-			if err == nil {
-				if ref.ID == image {
-					image = ""
+		if taglist, ok := stream.Status.Tags[tag]; ok {
+			for _, event := range taglist.Items {
+				d := timeNowFn().Sub(event.Created.Time)
+				image := event.Image
+				ref, err := imageapi.ParseDockerImageReference(event.DockerImageReference)
+				if err == nil {
+					if ref.ID == image {
+						image = ""
+					}
+				}
+				fmt.Fprintf(out, "%s\t%s\t%s ago\t%s\t%v\n",
+					tag,
+					specTag,
+					units.HumanDuration(d),
+					event.DockerImageReference,
+					image)
+				if tag != "" {
+					tag = ""
+				}
+				if specTag != "" {
+					specTag = ""
 				}
 			}
-			fmt.Fprintf(out, "  %s \t%s \t%s ago \t%s \t%v\n",
-				tag,
-				specTag,
-				units.HumanDuration(d),
-				event.DockerImageReference,
-				image)
-			if tag != "" {
-				tag = ""
-			}
-			if specTag != "" {
-				specTag = ""
-			}
+		} else {
+			fmt.Fprintf(out, "%s\t%s\t\t<not available>\t<not available>\n", tag, specTag)
 		}
 	}
 }

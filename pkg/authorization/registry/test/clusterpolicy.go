@@ -139,7 +139,7 @@ func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx kapi.Context, id string)
 }
 
 func (r *ClusterPolicyRegistry) WatchClusterPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return nil, errors.New("unsupported")
+	return nil, errors.New("unsupported action for test registry")
 }
 
 func addClusterPolicy(policies map[string]map[string]authorizationapi.ClusterPolicy, policy authorizationapi.ClusterPolicy) {

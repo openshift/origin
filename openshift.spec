@@ -47,7 +47,7 @@ Requires(postun): systemd
 %package node
 Summary:        OpenShift Node
 Requires:       %{name} = %{version}-%{release}
-Requires:       docker-io >= 1.6.0
+Requires:       docker-io >= 1.6.2
 Requires:       tuned-profiles-openshift-node
 Requires:       util-linux
 Requires:       socat

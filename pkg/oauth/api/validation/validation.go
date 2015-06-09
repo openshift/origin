@@ -65,7 +65,7 @@ func ValidateClientUpdate(client *api.OAuthClient, oldClient *api.OAuthClient) f
 	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, ValidateClient(client)...)
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldClient.ObjectMeta, &client.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&client.ObjectMeta, &oldClient.ObjectMeta).Prefix("metadata")...)
 
 	return allErrs
 }
@@ -114,7 +114,7 @@ func ValidateClientAuthorization(clientAuthorization *api.OAuthClientAuthorizati
 func ValidateClientAuthorizationUpdate(newAuth *api.OAuthClientAuthorization, oldAuth *api.OAuthClientAuthorization) fielderrors.ValidationErrorList {
 	allErrs := ValidateClientAuthorization(newAuth)
 
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldAuth.ObjectMeta, &newAuth.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&newAuth.ObjectMeta, &oldAuth.ObjectMeta).Prefix("metadata")...)
 
 	if oldAuth.ClientName != newAuth.ClientName {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("clientName", newAuth.ClientName, "clientName is not a mutable field"))

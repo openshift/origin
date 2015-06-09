@@ -29,6 +29,7 @@ import (
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	policycache "github.com/openshift/origin/pkg/authorization/cache"
+	policyclient "github.com/openshift/origin/pkg/authorization/client"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
@@ -63,7 +64,7 @@ type MasterConfig struct {
 	Authorizer                    authorizer.Authorizer
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
-	PolicyCache               *policycache.PolicyCache
+	PolicyCache               policycache.ReadOnlyCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
 
 	// RequestContextMapper maps requests to contexts
@@ -135,7 +136,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
 
-	policyCache := newPolicyCache(etcdHelper)
+	policyCache, policyClient := newReadOnlyCacheAndClient(etcdHelper)
 	requestContextMapper := kapi.NewRequestContextMapper()
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
@@ -153,11 +154,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		Options: options,
 
 		Authenticator:                 newAuthenticator(options, etcdHelper, serviceAccountTokenGetter, apiClientCAs),
-		Authorizer:                    newAuthorizer(policyCache, options.ProjectConfig.ProjectRequestMessage),
+		Authorizer:                    newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage),
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		PolicyCache:               policyCache,
-		ProjectAuthorizationCache: newProjectAuthorizationCache(privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClient),
+		ProjectAuthorizationCache: newProjectAuthorizationCache(privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClient, policyClient),
 
 		RequestContextMapper: requestContextMapper,
 
@@ -252,28 +253,29 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper tools.EtcdHelper
 	return ret
 }
 
-func newProjectAuthorizationCache(openshiftClient *osclient.Client, kubeClient *kclient.Client) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(openshiftClient *osclient.Client, kubeClient *kclient.Client,
+	policyClient policyclient.ReadOnlyPolicyClient) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		projectauth.NewReviewer(openshiftClient),
 		kubeClient.Namespaces(),
-		openshiftClient,
-		openshiftClient,
-		openshiftClient,
-		openshiftClient,
+		policyClient,
 	)
 }
 
-func newPolicyCache(etcdHelper tools.EtcdHelper) *policycache.PolicyCache {
+// newReadOnlyCacheAndClient returns a ReadOnlyCache for administrative interactions with the cache holding policies and bindings on a project
+// and cluster level as well as a ReadOnlyPolicyClient for use in the project authorization cache and authorizer to query for the same data
+func newReadOnlyCacheAndClient(etcdHelper tools.EtcdHelper) (cache policycache.ReadOnlyCache, client policyclient.ReadOnlyPolicyClient) {
 	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(etcdHelper))
 	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(etcdHelper))
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicyetcd.NewStorage(etcdHelper))
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterpolicybindingetcd.NewStorage(etcdHelper))
 
-	return policycache.NewPolicyCache(policyBindingRegistry, policyRegistry, clusterPolicyBindingRegistry, clusterPolicyRegistry)
+	cache, client = policycache.NewReadOnlyCacheAndClient(policyBindingRegistry, policyRegistry, clusterPolicyBindingRegistry, clusterPolicyRegistry)
+	return
 }
 
-func newAuthorizer(policyCache *policycache.PolicyCache, projectRequestDenyMessage string) authorizer.Authorizer {
-	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyCache, policyCache, policyCache, policyCache), authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
+func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectRequestDenyMessage string) authorizer.Authorizer {
+	authorizer := authorizer.NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyClient, policyClient, policyClient, policyClient), authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage))
 	return authorizer
 }
 

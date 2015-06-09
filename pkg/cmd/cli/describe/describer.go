@@ -499,8 +499,8 @@ func (d *ImageStreamDescriber) Describe(namespace, name string) (string, error) 
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageStream.ObjectMeta)
+		formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
 		formatImageStreamTags(out, imageStream)
-		formatString(out, "Registry", imageStream.Status.DockerImageRepository)
 		return nil
 	})
 }
