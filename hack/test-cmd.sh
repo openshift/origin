@@ -440,7 +440,14 @@ oc tag mysql:latest tagtest:zzz tagtest2:zzz
 [ "$(oc get is/tagtest -t '{{(index .spec.tags 8).from.kind}}')" == "ImageStreamTag" ]
 [ "$(oc get is/tagtest2 -t '{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
 
-oc delete is/tagtest is/tagtest2
+# test creating streams that don't exist
+[ -z "$(oc get imageStreams tagtest3 -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(oc get imageStreams tagtest4 -t "{{.status.dockerImageRepository}}")" ]
+oc tag mysql:latest tagtest3:latest tagtest4:latest
+[ "$(oc get is/tagtest3 -t '{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
+[ "$(oc get is/tagtest4 -t '{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
+
+oc delete is/tagtest is/tagtest2 is/tagtest3 is/tagtest4
 echo "tag: ok"
 
 [ "$(oc new-app library/php mysql -o yaml | grep 3306)" ]
