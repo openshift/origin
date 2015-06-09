@@ -8,18 +8,18 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the rel-eng directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c7d5afe16c89707646d4b7d5777a6148120d6a70
+%global commit 17d25d212fff69ddc62efc5b6d93e3f55bd156f3
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # OpenShift specific ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 5+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.5.4-457-gc7d5afe -X github.com/openshift/origin/pkg/version.commitFromGit c7d5afe -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 496be63 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.17.1-804-g496be63
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 5+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.5.4.0-35-g17d25d2 -X github.com/openshift/origin/pkg/version.commitFromGit 17d25d2 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitCommit 496be63 -X github.com/GoogleCloudPlatform/kubernetes/pkg/version.gitVersion v0.17.1-804-g496be63
 }
 
 Name:           openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the rel-eng directory of this project
-Version:        0.5.4.0
+Version:        0.6.0.0
 Release:        0%{?dist}
 Summary:        Open Source Platform as a Service by Red Hat
 License:        ASL 2.0
@@ -270,6 +270,60 @@ fi
 %{_bindir}/pod
 
 %changelog
+* Tue Jun 09 2015 Scott Dodson <sdodson@redhat.com> 0.6.0.0
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- Merge pull request #2952 from stevekuznetsov/skuznets/issue/1902
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #3021 from ncdc/oc-tag-create-target-stream
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #3019 from liggitt/deployer
+  (dmcphers+openshiftbot@redhat.com)
+- Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
+- Merge pull request #2963 from derekwaynecarr/cherry_pick_9032
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2714 from csrwng/insecure_registry
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #3017 from markturansky/patch_9282
+  (dmcphers+openshiftbot@redhat.com)
+- 'oc tag': create target stream if not found (agoldste@redhat.com)
+- Update e2e test for new get pod output (decarr@redhat.com)
+- Merge pull request #3014 from ncdc/resolve-short-isimage-refs
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #3010 from deads2k/force-update-validation
+  (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM Decrease columns and refactor get pods layout (decarr@redhat.com)
+- Support insecure registries (cewong@redhat.com)
+- Fix deployer log message (jliggitt@redhat.com)
+- Merge pull request #3012 from markturansky/patch_8530
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2966 from bparees/rest_errors
+  (dmcphers+openshiftbot@redhat.com)
+- Expand short isimage id refs (agoldste@redhat.com)
+- UPSTREAM: Add available volumes to index when not present
+  (mturansk@redhat.com)
+- Merge pull request #2866 from deads2k/create-osc-secrets
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2967 from ncdc/add-tag-command
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #3009 from markturansky/patch_9069
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #3004 from markturansky/patch_8732
+  (dmcphers+openshiftbot@redhat.com)
+- Merge pull request #2944 from childsb/patch-1
+  (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: GCEPD mounting on Atomic (mturansk@redhat.com)
+- Adding a "/ready" endpoint for OpenShift (steve.kuznetsov@gmail.com)
+- storage unit test to confirm validation (deads@redhat.com)
+- add validateUpdate for API types (deads@redhat.com)
+- add secrets subcommand to osc (deads@redhat.com)
+- Add tag command (agoldste@redhat.com)
+- UPSTREAM: Adds ISCSI to PV and fixes a nil pointer issue
+  (mturansk@redhat.com)
+- return valid http status objects on rest errors (bparees@redhat.com)
+- UPSTREAM: Normalize and fix PV support across volumes (mturansk@redhat.com)
+- UPSTREAM: kube: update describer for dockercfg secrets (deads@redhat.com)
+- Update CONTRIBUTING.adoc (bchilds@redhat.com)
+
 * Tue Jun 09 2015 Scott Dodson <sdodson@redhat.com> 0.5.4.0
 - Merge remote-tracking branch 'upstream/master' (sdodson@redhat.com)
 - Merge pull request #2997 from spadgett/obj-describer-1.0.1
