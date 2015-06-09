@@ -80,10 +80,10 @@ func newNetworkManager() (NetworkManager, error) {
 	}
 
 	if opts.kube {
-		return ovssubnet.NewKubeController(sub, string(host), opts.ip)
+		return ovssubnet.NewKubeController(sub, string(host), opts.ip, nil)
 	}
 	// default OVS controller
-	return ovssubnet.NewDefaultController(sub, string(host), opts.ip)
+	return ovssubnet.NewDefaultController(sub, string(host), opts.ip, nil)
 }
 
 func newSubnetRegistry() (api.SubnetRegistry, error) {
