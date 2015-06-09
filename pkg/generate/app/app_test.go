@@ -97,7 +97,7 @@ func TestBuildConfigOutput(t *testing.T) {
 		asImageStream bool
 		expectedKind  string
 	}{
-		{true, ""},
+		{true, "ImageStreamTag"},
 		{false, "DockerImage"},
 	}
 	for i, test := range tests {
@@ -112,7 +112,7 @@ func TestBuildConfigOutput(t *testing.T) {
 		if config.Name != "origin" {
 			t.Errorf("(%d) unexpected name: %s", i, config.Name)
 		}
-		if config.Parameters.Output.To.Name != "origin" || config.Parameters.Output.To.Kind != test.expectedKind {
+		if config.Parameters.Output.To.Name != "origin:latest" || config.Parameters.Output.To.Kind != test.expectedKind {
 			t.Errorf("(%d) unexpected output image: %s/%s", i, config.Parameters.Output.To.Kind, config.Parameters.Output.To.Name)
 		}
 		if len(config.Triggers) != 3 {

@@ -315,7 +315,7 @@ type acceptBuildConfigs struct {
 	typer runtime.ObjectTyper
 }
 
-// Accept accepts just BuildConfigs
+// Accept accepts BuildConfigs and ImageStreams
 func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 	obj, _, err := objectMetaData(from)
 	if err != nil {
@@ -325,10 +325,11 @@ func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	return kind == "BuildConfig"
+	return kind == "BuildConfig" || kind == "ImageStream"
 }
 
-// NewAcceptBuildConfigs creates an acceptor accepting only BuildConfig objects.
+// NewAcceptBuildConfigs creates an acceptor accepting BuildConfig objects
+// and ImageStreams objects.
 func NewAcceptBuildConfigs(typer runtime.ObjectTyper) Acceptor {
 	return &acceptBuildConfigs{
 		typer: typer,
