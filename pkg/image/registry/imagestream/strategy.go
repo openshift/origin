@@ -222,12 +222,21 @@ func tagReferenceToTagEvent(stream *api.ImageStream, tagRef api.TagReference, ta
 		if err != nil {
 			return nil, err
 		}
-		ref.ID = tagOrID
-		return &api.TagEvent{
-			Created:              util.Now(),
-			DockerImageReference: ref.String(),
-			Image:                ref.ID,
-		}, nil
+
+		resolvedIDs := api.ResolveImageID(stream, tagOrID)
+		switch len(resolvedIDs) {
+		case 1:
+			ref.ID = resolvedIDs.List()[0]
+			return &api.TagEvent{
+				Created:              util.Now(),
+				DockerImageReference: ref.String(),
+				Image:                ref.ID,
+			}, nil
+		case 0:
+			return nil, fmt.Errorf("no images match the prefix %q", tagOrID)
+		default:
+			return nil, fmt.Errorf("multiple images match the prefix %q: %s", tagOrID, strings.Join(resolvedIDs.List(), ", "))
+		}
 	case "ImageStreamTag":
 		return api.LatestTaggedImage(stream, tagOrID), nil
 	default:

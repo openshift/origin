@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/docker/distribution/digest"
 	"github.com/golang/glog"
 )
@@ -358,4 +359,23 @@ func NameAndTag(name, tag string) string {
 		tag = DefaultImageTag
 	}
 	return fmt.Sprintf("%s:%s", name, tag)
+}
+
+// ResolveImageID returns a StringSet of all the image IDs in stream that start with imageID.
+func ResolveImageID(stream *ImageStream, imageID string) util.StringSet {
+	set := util.NewStringSet()
+	for _, history := range stream.Status.Tags {
+		for _, tagging := range history.Items {
+			if d, err := digest.ParseDigest(tagging.Image); err == nil {
+				if strings.HasPrefix(d.Hex(), imageID) || strings.HasPrefix(tagging.Image, imageID) {
+					set.Insert(tagging.Image)
+				}
+				continue
+			}
+			if strings.HasPrefix(tagging.Image, imageID) {
+				set.Insert(tagging.Image)
+			}
+		}
+	}
+	return set
 }
