@@ -45,6 +45,8 @@ func TestBuildStrategy(t *testing.T) {
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)
 	}
+
+	build.ResourceVersion = "foo"
 	errs = Strategy.ValidateUpdate(ctx, build, build)
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)

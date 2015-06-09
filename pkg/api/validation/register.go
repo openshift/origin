@@ -25,6 +25,9 @@ import (
 )
 
 func init() {
+	Validator.Register(&authorizationapi.SubjectAccessReview{}, authorizationvalidation.ValidateSubjectAccessReview, nil)
+	Validator.Register(&authorizationapi.ResourceAccessReview{}, authorizationvalidation.ValidateResourceAccessReview, nil)
+
 	Validator.Register(&authorizationapi.Policy{}, authorizationvalidation.ValidateLocalPolicy, authorizationvalidation.ValidateLocalPolicyUpdate)
 	Validator.Register(&authorizationapi.PolicyBinding{}, authorizationvalidation.ValidateLocalPolicyBinding, authorizationvalidation.ValidateLocalPolicyBindingUpdate)
 	Validator.Register(&authorizationapi.Role{}, authorizationvalidation.ValidateLocalRole, authorizationvalidation.ValidateLocalRoleUpdate)
@@ -35,14 +38,16 @@ func init() {
 	Validator.Register(&authorizationapi.ClusterRole{}, authorizationvalidation.ValidateClusterRole, authorizationvalidation.ValidateClusterRoleUpdate)
 	Validator.Register(&authorizationapi.ClusterRoleBinding{}, authorizationvalidation.ValidateClusterRoleBinding, authorizationvalidation.ValidateClusterRoleBindingUpdate)
 
-	Validator.Register(&buildapi.Build{}, buildvalidation.ValidateBuild, nil)
-	Validator.Register(&buildapi.BuildConfig{}, buildvalidation.ValidateBuildConfig, nil)
+	Validator.Register(&buildapi.Build{}, buildvalidation.ValidateBuild, buildvalidation.ValidateBuildUpdate)
+	Validator.Register(&buildapi.BuildConfig{}, buildvalidation.ValidateBuildConfig, buildvalidation.ValidateBuildConfigUpdate)
+	Validator.Register(&buildapi.BuildRequest{}, buildvalidation.ValidateBuildRequest, nil)
 
 	Validator.Register(&deployapi.DeploymentConfig{}, deployvalidation.ValidateDeploymentConfig, deployvalidation.ValidateDeploymentConfigUpdate)
 	Validator.Register(&deployapi.DeploymentConfigRollback{}, deployvalidation.ValidateDeploymentConfigRollback, nil)
 
 	Validator.Register(&imageapi.Image{}, imagevalidation.ValidateImage, nil)
 	Validator.Register(&imageapi.ImageStream{}, imagevalidation.ValidateImageStream, imagevalidation.ValidateImageStreamUpdate)
+	Validator.Register(&imageapi.ImageStreamMapping{}, imagevalidation.ValidateImageStreamMapping, nil)
 
 	Validator.Register(&oauthapi.OAuthAccessToken{}, oauthvalidation.ValidateAccessToken, nil)
 	Validator.Register(&oauthapi.OAuthAuthorizeToken{}, oauthvalidation.ValidateAuthorizeToken, nil)
@@ -52,7 +57,7 @@ func init() {
 	Validator.Register(&projectapi.Project{}, projectvalidation.ValidateProject, projectvalidation.ValidateProjectUpdate)
 	Validator.Register(&projectapi.ProjectRequest{}, projectvalidation.ValidateProjectRequest, nil)
 
-	Validator.Register(&routeapi.Route{}, routevalidation.ValidateRoute, nil)
+	Validator.Register(&routeapi.Route{}, routevalidation.ValidateRoute, routevalidation.ValidateRouteUpdate)
 
 	Validator.Register(&sdnapi.ClusterNetwork{}, sdnvalidation.ValidateClusterNetwork, sdnvalidation.ValidateClusterNetworkUpdate)
 	Validator.Register(&sdnapi.HostSubnet{}, sdnvalidation.ValidateHostSubnet, sdnvalidation.ValidateHostSubnetUpdate)

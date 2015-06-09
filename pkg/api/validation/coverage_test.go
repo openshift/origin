@@ -26,13 +26,9 @@ var KnownValidationExceptions = []reflect.Type{
 // MissingValidationExceptions is the list of types that were missing validation methods when I started
 // You should never add to this list
 var MissingValidationExceptions = []reflect.Type{
-	reflect.TypeOf(&buildapi.BuildLogOptions{}),              // TODO, looks like this one should have validation
-	reflect.TypeOf(&buildapi.BuildLog{}),                     // TODO, I have no idea what this is doing
-	reflect.TypeOf(&buildapi.BuildRequest{}),                 // TODO, looks to be used internally, but needs review
-	reflect.TypeOf(&imageapi.ImageStreamMapping{}),           // TODO, looks like this one should have validation
-	reflect.TypeOf(&imageapi.DockerImage{}),                  // TODO, I think this type is ok to skip validation (internal), but needs review
-	reflect.TypeOf(&authorizationapi.SubjectAccessReview{}),  // TODO, this one should have validation
-	reflect.TypeOf(&authorizationapi.ResourceAccessReview{}), // TODO, this one should have validation
+	reflect.TypeOf(&buildapi.BuildLogOptions{}), // TODO, looks like this one should have validation
+	reflect.TypeOf(&buildapi.BuildLog{}),        // TODO, I have no idea what this is doing
+	reflect.TypeOf(&imageapi.DockerImage{}),     // TODO, I think this type is ok to skip validation (internal), but needs review
 }
 
 func TestCoverage(t *testing.T) {

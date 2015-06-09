@@ -121,7 +121,11 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 		return nil, false, errors.NewConflict("route", route.Namespace, fmt.Errorf("Route.Namespace does not match the provided context"))
 	}
 
-	if errs := validation.ValidateRoute(route); len(errs) > 0 {
+	old, err := rs.Get(ctx, route.Name)
+	if err != nil {
+		return nil, false, err
+	}
+	if errs := validation.ValidateRouteUpdate(route, old.(*api.Route)); len(errs) > 0 {
 		return nil, false, errors.NewInvalid("route", route.Name, errs)
 	}
 
@@ -129,7 +133,7 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bo
 	// TODO: Call ValidateRouteUpdate->ValidateObjectMetaUpdate
 	// TODO: In the UpdateStrategy.PrepareForUpdate, set the HostGeneratedAnnotationKey annotation to "false" if the updated route object modifies the host
 
-	err := rs.registry.UpdateRoute(ctx, route)
+	err = rs.registry.UpdateRoute(ctx, route)
 	if err != nil {
 		return nil, false, err
 	}

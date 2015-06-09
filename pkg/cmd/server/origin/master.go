@@ -158,7 +158,7 @@ func (fn APIInstallFunc) InstallAPI(container *restful.Container) []string {
 	return fn(container)
 }
 
-func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []string {
+func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
 	svcCache := service.NewServiceResolverCache(c.KubeClient().Services(api.NamespaceDefault).Get)
 	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
@@ -269,7 +269,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		},
 	)
 
-	// initialize OpenShift API
 	storage := map[string]rest.Storage{
 		"builds":                   buildStorage,
 		"buildConfigs":             buildConfigStorage,
@@ -322,6 +321,13 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
 	}
+
+	return storage
+}
+
+func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []string {
+	// initialize OpenShift API
+	storage := c.GetRestStorage()
 
 	messages := []string{}
 	legacyAPIVersions := []string{}
