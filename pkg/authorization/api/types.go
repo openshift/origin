@@ -64,7 +64,7 @@ var (
 		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews", "subjectaccessreviews"},
 		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, TemplateGroupName, "routes"},
 		OpenshiftAllGroupName:       {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, SDNGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects"},
-		OpenshiftStatusGroupName:    {"imagerepositories/status"},
+		OpenshiftStatusGroupName:    {"imagestreams/status"},
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
 		KubeInternalsGroupName: {"minions", "nodes", "bindings", "events", "namespaces"},
