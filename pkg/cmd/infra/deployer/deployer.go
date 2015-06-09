@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	deployer_long = `Perform a Deployment.
+	deployerLong = `Perform a Deployment.
 
 This command makes calls to OpenShift to perform a deployment as described by a DeploymentConfig.`
 )
@@ -46,7 +46,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
 		Short: "Run the OpenShift deployer",
-		Long:  deployer_long,
+		Long:  deployerLong,
 		Run: func(c *cobra.Command, args []string) {
 			_, kClient, err := cfg.Config.Clients()
 			if err != nil {

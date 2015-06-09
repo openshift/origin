@@ -13,10 +13,10 @@ import (
 )
 
 var (
-	// Number of retries of pushing the built Docker image into configured
-	// repository
+	// DefaultPushRetryCount is the number of retries of pushing the built Docker image
+	// into a configured repository
 	DefaultPushRetryCount = 2
-	// Time to wait before triggering a push retry
+	// DefaultPushRetryDelay is the time to wait before triggering a push retry
 	DefaultPushRetryDelay = 10 * time.Second
 )
 

@@ -27,7 +27,7 @@ type CreateServerCertOptions struct {
 	Output    io.Writer
 }
 
-const create_server_long = `
+const createServerLong = `
 Create a key and server certificate valid for the specified hostnames,
 signed by the specified CA. These are useful for securing infrastructure
 components such as the router, authentication server, etc.
@@ -48,7 +48,7 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a signed server certificate and key",
-		Long:  fmt.Sprintf(create_server_long, fullName),
+		Long:  fmt.Sprintf(createServerLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))

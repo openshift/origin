@@ -66,7 +66,7 @@ type MasterConfig struct {
 	PolicyCache               *policycache.PolicyCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
 
-	// Map requests to contexts
+	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
 
 	AdmissionControl admission.Interface
@@ -91,13 +91,15 @@ type MasterConfig struct {
 	// To apply different access control to a system component, create a client config specifically for that component.
 	PrivilegedLoopbackClientConfig kclient.Config
 
-	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
-	// It should only be accessed via the *Client() helper methods.
-	// To apply different access control to a system component, create a separate client/config specifically for that component.
+	// PrivilegedLoopbackKubernetesClient is the client used to call Kubernetes APIs from system components,
+	// built from KubeClientConfig. It should only be accessed via the *Client() helper methods. To apply
+	// different access control to a system component, create a separate client/config specifically for
+	// that component.
 	PrivilegedLoopbackKubernetesClient *kclient.Client
-	// osClient is the client used to call OpenShift APIs from system components, built from PrivilegedLoopbackClientConfig.
-	// It should only be accessed via the *Client() helper methods.
-	// To apply different access control to a system component, create a separate client/config specifically for that component.
+	// PrivilegedLoopbackOpenShiftClient is the client used to call OpenShift APIs from system components,
+	// built from PrivilegedLoopbackClientConfig. It should only be accessed via the *Client() helper methods.
+	// To apply different access control to a system component, create a separate client/config specifically
+	// for that component.
 	PrivilegedLoopbackOpenShiftClient *osclient.Client
 }
 

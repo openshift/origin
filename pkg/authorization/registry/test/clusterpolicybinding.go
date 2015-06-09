@@ -29,7 +29,7 @@ func NewClusterPolicyBindingRegistry(bindings []authorizationapi.ClusterPolicyBi
 	return &ClusterPolicyBindingRegistry{bindingMap, err}
 }
 
-// ListClusterPolicies obtains list of ListClusterPolicyBinding that match a selector.
+// ListClusterPolicyBindings obtains list of clusterPolicyBindings that match a selector.
 func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err

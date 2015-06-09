@@ -27,7 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const openshift_long = `OpenShift Application Platform.
+const openshiftLong = `OpenShift Application Platform.
 
 OpenShift helps you build, deploy, and manage your applications. To start an all-in-one server, run:
 
@@ -99,7 +99,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root := &cobra.Command{
 		Use:   name,
 		Short: "OpenShift helps you build, deploy, and manage your cloud applications",
-		Long:  openshift_long,
+		Long:  openshiftLong,
 		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 

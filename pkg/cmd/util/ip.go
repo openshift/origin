@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-// NoDefaultIP means no suitable non-loopback address can be found.
+// ErrorNoDefaultIP is returned when no suitable non-loopback address can be found.
 var ErrorNoDefaultIP = errors.New("no suitable IP address")
 
 // DefaultLocalIP4 returns an IPv4 address that this host can be reached

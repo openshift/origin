@@ -66,8 +66,8 @@ type DockerImageManifest struct {
 
 // DockerFSLayer is a container struct for BlobSums defined in an image manifest
 type DockerFSLayer struct {
-	// TODO make this digest.Digest once docker/distribution is in Godeps
 	// DockerBlobSum is the tarsum of the referenced filesystem image layer
+	// TODO make this digest.Digest once docker/distribution is in Godeps
 	DockerBlobSum string `json:"blobSum"`
 }
 

@@ -59,6 +59,7 @@ func newCounter(c prometheus.Counter) server.Counter {
 	return counter{c}
 }
 
+// Inc increases the counter with the given value
 func (c counter) Inc(val int64) {
 	c.Counter.Add(float64(val))
 }

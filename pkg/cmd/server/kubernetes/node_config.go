@@ -24,20 +24,20 @@ import (
 // NodeConfig represents the required parameters to start the OpenShift node
 // through Kubernetes. All fields are required.
 type NodeConfig struct {
-	// The address to bind to
+	// BindAddress is the address to bind to
 	BindAddress string
-	// The directory that volumes will be stored under
+	// VolumeDir is the directory that volumes will be stored under
 	VolumeDir string
-	// If true, the Kubelet will ignore errors from Docker
+	// AllowDisabledDocker if true, will make the Kubelet ignore errors from Docker
 	AllowDisabledDocker bool
-	// A client to connect to the master.
+	// Client to connect to the master.
 	Client *client.Client
-	// A client to connect to Docker
+	// DockerClient is a client to connect to Docker
 	DockerClient dockertools.DockerInterface
 
-	// The KubeletServer configuration
+	// KubeletServer contains the KubeletServer configuration
 	KubeletServer *kapp.KubeletServer
-	// The configuration for the kubelet, fully initialized
+	// KubeletConfig is the configuration for the kubelet, fully initialized
 	KubeletConfig *kapp.KubeletConfig
 }
 

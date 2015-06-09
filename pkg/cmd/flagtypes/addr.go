@@ -21,17 +21,17 @@ type Addr struct {
 	DefaultPort   int
 	AllowPrefix   bool
 
-	// If Set has been invoked this value is true
+	// Provided will be true if Set is invoked
 	Provided bool
-	// The exact value provided on the flag
+	// Value is the exact value provided on the flag
 	Value string
 
-	// A URL that represents the user input. The Host field is guaranteed
+	// URL represents the user input. The Host field is guaranteed
 	// to be set if Provided is true
 	URL *url.URL
-	// The hostname or IP portion of the user input
+	// Host is the hostname or IP portion of the user input
 	Host string
-	// The port portion of the user input. Will be 0 if no port was found
+	// Port is the port portion of the user input. Will be 0 if no port was found
 	// and no default port could be established.
 	Port int
 }

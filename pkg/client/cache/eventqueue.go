@@ -235,7 +235,7 @@ func (eq *EventQueue) Get(obj interface{}) (item interface{}, exists bool, err e
 	return eq.GetByKey(key)
 }
 
-// Get returns the requested item, or sets exists=false.
+// GetByKey returns the requested item, or sets exists=false.
 func (eq *EventQueue) GetByKey(key string) (item interface{}, exists bool, err error) {
 	eq.lock.RLock()
 	defer eq.lock.RUnlock()

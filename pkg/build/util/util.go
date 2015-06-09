@@ -57,6 +57,7 @@ func NameFromImageStream(namespace string, ref *kapi.ObjectReference, tag string
 	return ret
 }
 
+// IsBuildComplete returns whether the provided build is complete or not
 func IsBuildComplete(build *buildapi.Build) bool {
 	if build.Status != buildapi.BuildStatusRunning && build.Status != buildapi.BuildStatusPending && build.Status != buildapi.BuildStatusNew {
 		return true

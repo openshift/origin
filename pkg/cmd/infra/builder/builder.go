@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	stiBuilder_long = `Perform a Source-to-Image Build.
+	stiBuilderLong = `Perform a Source-to-Image Build.
 
 This command executes a Source-to-Image build using arguments passed via the environment.
 It expects to be run inside of a container.`
 
-	dockerBuilder_long = `Perform a Docker Build.
+	dockerBuilderLong = `Perform a Docker Build.
 
 This command executes a Docker build using arguments passed via the environment.
 It expects to be run inside of a container.`
@@ -24,7 +24,7 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Run an OpenShift Source-to-Images build",
-		Long:  stiBuilder_long,
+		Long:  stiBuilderLong,
 		Run: func(c *cobra.Command, args []string) {
 			cmd.RunSTIBuild()
 		},
@@ -39,7 +39,7 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Run an OpenShift Docker build",
-		Long:  dockerBuilder_long,
+		Long:  dockerBuilderLong,
 		Run: func(c *cobra.Command, args []string) {
 			cmd.RunDockerBuild()
 		},

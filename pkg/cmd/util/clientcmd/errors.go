@@ -20,6 +20,7 @@ You can also run this command again providing the path to a config file directly
 `
 )
 
+// GetPrettyMessageFor prettifys the message of the provided error
 func GetPrettyMessageFor(err error) string {
 	if err == nil {
 		return ""
@@ -38,18 +39,22 @@ func GetPrettyMessageFor(err error) string {
 	return err.Error()
 }
 
+// IsNoServerFound checks whether the provided error is a 'no server found' error or not
 func IsNoServerFound(err error) bool {
 	return detectReason(err) == noServerFoundReason
 }
 
+// IsConfigurationInvalid checks whether the provided error is a 'invalid configuration' error or not
 func IsConfigurationInvalid(err error) bool {
 	return detectReason(err) == configurationInvalidReason
 }
 
+// IsCertificateAuthorityUnknown checks whether the provided error is a 'certificate authority unknown' error or not
 func IsCertificateAuthorityUnknown(err error) bool {
 	return detectReason(err) == certificateAuthorityUnknownReason
 }
 
+// IsForbidden checks whether the provided error is a 'forbidden' error or not
 func IsForbidden(err error) bool {
 	return kerrors.IsForbidden(err)
 }

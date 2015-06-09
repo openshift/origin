@@ -165,8 +165,7 @@ func SplitImageStreamTag(nameAndTag string) (name string, tag string, ok bool) {
 	return name, tag, len(parts) == 2
 }
 
-// SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.
-// It returns false if the tag was not properly specified in the name.
+// JoinImageStreamTag turns a name and tag into the name of an ImageStreamTag
 func JoinImageStreamTag(name, tag string) string {
 	if len(tag) == 0 {
 		tag = DefaultImageTag

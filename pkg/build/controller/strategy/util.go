@@ -9,9 +9,8 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// dockerSocketPath is the default path for the Docker socket inside the builder
-// container
 const (
+	// dockerSocketPath is the default path for the Docker socket inside the builder container
 	dockerSocketPath          = "/var/run/docker.sock"
 	DockerPushSecretMountPath = "/var/run/secrets/openshift.io/push"
 	DockerPullSecretMountPath = "/var/run/secrets/openshift.io/pull"

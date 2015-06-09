@@ -28,7 +28,7 @@ func NewPolicyRegistry(policies []authorizationapi.Policy, err error) *PolicyReg
 	return &PolicyRegistry{policyMap, err}
 }
 
-// ListPolicies obtains list of ListPolicy that match a selector.
+// ListPolicies obtains a list of policies that match a selector.
 func (r *PolicyRegistry) ListPolicies(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err

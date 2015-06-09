@@ -86,7 +86,7 @@ func GetContextNickname(namespace, clusterNick, userNick string) (string, error)
 	return namespace + "/" + clusterNick + "/" + tokens[0], nil
 }
 
-// CreatePartialConfig takes a clientCfg and builds a config (kubeconfig style) from it.
+// CreateConfig takes a clientCfg and builds a config (kubeconfig style) from it.
 func CreateConfig(namespace string, clientCfg *client.Config) (*clientcmdapi.Config, error) {
 	clusterNick, err := GetClusterNicknameFromConfig(clientCfg)
 	if err != nil {

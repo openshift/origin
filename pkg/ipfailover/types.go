@@ -5,26 +5,26 @@ import (
 )
 
 const (
-	// Default IP Failover resource name.
+	// DefaultName is the default IP Failover resource name.
 	DefaultName = "ipfailover"
 
-	// Default IP Failover type.
+	// DefaultType is the default IP Failover type.
 	DefaultType = "keepalived"
 
-	// Default service port.
+	// DefaultServicePort is the default service port.
 	DefaultServicePort = 1985
 
-	// Default IP Failover watched port number.
+	// DefaultWatchPort is the default IP Failover watched port number.
 	DefaultWatchPort = 80
 
-	// Default resource selector.
+	// DefaultSelector is the default resource selector.
 	DefaultSelector = "ipfailover=<name>"
 
-	// Default network interface.
+	// DefaultInterface is the default network interface.
 	DefaultInterface = "eth0"
 )
 
-// Options supported by the IP Failover admin command.
+// IPFailoverConfigCmdOptions are options supported by the IP Failover admin command.
 type IPFailoverConfigCmdOptions struct {
 	Type          string
 	ImageTemplate variable.ImageTemplate

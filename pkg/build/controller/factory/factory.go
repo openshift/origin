@@ -169,7 +169,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 	}
 }
 
-// Create constructs a BuildPodDeleteController
+// CreateDeleteController constructs a BuildPodDeleteController
 func (factory *BuildPodControllerFactory) CreateDeleteController() controller.RunnableController {
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}

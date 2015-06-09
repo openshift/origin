@@ -13,7 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
-// Service Accessor is the interface used by the ServiceResolver to access
+// ServiceAccessor is the interface used by the ServiceResolver to access
 // services.
 type ServiceAccessor interface {
 	client.ServicesNamespacer

@@ -295,6 +295,7 @@ type hookExecutorImpl struct {
 	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error
 }
 
+// Execute executes the provided lifecycle hook
 func (i *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, label string) error {
 	return i.executeFunc(hook, deployment, label)
 }

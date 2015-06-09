@@ -142,14 +142,14 @@ func labelForRepo(imageRepo *imageapi.ImageStream) string {
 	return fmt.Sprintf("%s/%s", imageRepo.Namespace, imageRepo.Name)
 }
 
-// ImageChangeControllerDeploymentConfigClient abstracts access to DeploymentConfigs.
+// deploymentConfigClient abstracts access to DeploymentConfigs.
 type deploymentConfigClient interface {
 	listDeploymentConfigs() ([]*deployapi.DeploymentConfig, error)
 	updateDeploymentConfig(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	generateDeploymentConfig(namespace, name string) (*deployapi.DeploymentConfig, error)
 }
 
-// ImageChangeControllerDeploymentConfigClientImpl is a pluggable ChangeStrategy.
+// deploymentConfigClientImpl is a pluggable deploymentConfigClient.
 type deploymentConfigClientImpl struct {
 	listDeploymentConfigsFunc    func() ([]*deployapi.DeploymentConfig, error)
 	generateDeploymentConfigFunc func(namespace, name string) (*deployapi.DeploymentConfig, error)

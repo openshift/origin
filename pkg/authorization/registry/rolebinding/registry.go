@@ -30,9 +30,9 @@ type Storage interface {
 	rest.CreaterUpdater
 	rest.GracefulDeleter
 
-	// CreateRoleBinding creates a new policyRoleBinding.  Skipping the escalation check should only be done during bootstrapping procedures where no users are currently bound.
+	// CreateRoleBindingWithEscalation creates a new policyRoleBinding.  Skipping the escalation check should only be done during bootstrapping procedures where no users are currently bound.
 	CreateRoleBindingWithEscalation(ctx kapi.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
-	// UpdateRoleBinding updates a policyRoleBinding.  Skipping the escalation check should only be done during bootstrapping procedures where no users are currently bound.
+	// UpdateRoleBindingWithEscalation updates a policyRoleBinding.  Skipping the escalation check should only be done during bootstrapping procedures where no users are currently bound.
 	UpdateRoleBindingWithEscalation(ctx kapi.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error)
 }
 

@@ -59,6 +59,7 @@ syntax.`
   $ env | grep RAILS_ | %[1]s env -e - dc/registry`
 )
 
+// NewCmdEnv implements the OpenShift cli env command
 func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
 	var filenames util.StringList
 	var env util.StringList
@@ -180,6 +181,7 @@ func readEnv(r io.Reader) ([]kapi.EnvVar, error) {
 	return env, nil
 }
 
+// RunEnv contains all the necessary functionality for the OpenShift cli env command
 func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames util.StringList) error {
 	resources, envArgs := []string{}, []string{}
 	first := true

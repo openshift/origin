@@ -38,7 +38,7 @@ type MasterOptions struct {
 	Output             io.Writer
 }
 
-const master_long = `Start an OpenShift master.
+const masterLong = `Start an OpenShift master.
 
 This command helps you launch an OpenShift master.  Running
 
@@ -63,14 +63,14 @@ You may also pass --etcd=<address> to connect to an external etcd server.
 
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
-// NewCommandStartMaster provides a CLI handler for 'start' command
+// NewCommandStartMaster provides a CLI handler for 'start master' command
 func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
 	options := &MasterOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "master",
 		Short: "Launch OpenShift master",
-		Long:  master_long,
+		Long:  masterLong,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
 				fmt.Println(err.Error())

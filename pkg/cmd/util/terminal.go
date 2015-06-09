@@ -11,13 +11,13 @@ import (
 	"github.com/golang/glog"
 )
 
-// Takes an io.Reader and prompt for user input if it's a terminal, returning the result.
+// PromptForString takes an io.Reader and prompts for user input if it's a terminal, returning the result.
 func PromptForString(r io.Reader, format string, a ...interface{}) string {
 	fmt.Printf(format, a...)
 	return readInput(r)
 }
 
-// Prompt for user input by disabling echo in terminal, useful for password prompt.
+// PromptForPasswordString prompts for user input by disabling echo in terminal, useful for password prompt.
 func PromptForPasswordString(r io.Reader, format string, a ...interface{}) string {
 	if file, ok := r.(*os.File); ok {
 		inFd := file.Fd()
@@ -47,7 +47,7 @@ func PromptForPasswordString(r io.Reader, format string, a ...interface{}) strin
 	return PromptForString(r, format, a...)
 }
 
-// Prompt for user input of a boolean value. The accepted values are:
+// PromptForBool prompts for user input of a boolean value. The accepted values are:
 //   yes, y, true, 	t, 1 (not case sensitive)
 //   no, 	n, false, f, 0 (not case sensitive)
 // A valid answer is mandatory so it will keep asking until an answer is provided.
@@ -63,7 +63,7 @@ func PromptForBool(r io.Reader, format string, a ...interface{}) bool {
 	return PromptForBool(r, format, a...)
 }
 
-// Prompt for user input but take a default in case nothing is provided.
+// PromptForStringWithDefault prompts for user input but take a default in case nothing is provided.
 func PromptForStringWithDefault(r io.Reader, def string, format string, a ...interface{}) string {
 	s := PromptForString(r, format, a...)
 	if len(s) == 0 {
@@ -91,6 +91,7 @@ func readInputFromReader(r io.Reader) string {
 	return result
 }
 
+// IsTerminal returns whether the passed io.Reader is a terminal or not
 func IsTerminal(r io.Reader) bool {
 	file, ok := r.(*os.File)
 	return ok && term.IsTerminal(file.Fd())

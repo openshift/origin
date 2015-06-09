@@ -21,15 +21,16 @@ type NodeConfig struct {
 	// MasterKubeConfig is a filename for the .kubeconfig file that describes how to connect this node to the master
 	MasterKubeConfig string `json:"masterKubeConfig"`
 
-	// domain suffix
+	// DNSDomain holds the domain suffix
 	DNSDomain string `json:"dnsDomain"`
-	// ip
+
+	// DNSIP holds the IP
 	DNSIP string `json:"dnsIP"`
 
 	// NetworkPluginName is a string specifying the networking plugin
 	NetworkPluginName string `json:"networkPluginName"`
 
-	// VolumeDir is the directory that volumes will be stored under
+	// VolumeDirectory is the directory that volumes will be stored under
 	VolumeDirectory string `json:"volumeDirectory"`
 
 	// ImageConfig holds options that describe how to build image names for system components
@@ -63,7 +64,7 @@ type DockerExecHandlerType string
 const (
 	// DockerExecHandlerNative uses Docker's exec API for executing commands in containers.
 	DockerExecHandlerNative DockerExecHandlerType = "native"
-	// DockerExecHandlerNative uses nsenter for executing commands in containers.
+	// DockerExecHandlerNsenter uses nsenter for executing commands in containers.
 	DockerExecHandlerNsenter DockerExecHandlerType = "nsenter"
 
 	// ControllersDisabled indicates no controllers should be enabled.
@@ -123,8 +124,10 @@ type MasterConfig struct {
 	// MasterClients holds all the client connection information for controllers and other system components
 	MasterClients MasterClients `json:"masterClients"`
 
+	// ImageConfig holds options that describe how to build image names for system components
 	ImageConfig ImageConfig `json:"imageConfig"`
 
+	// PolicyConfig holds information about where to locate critical pieces of bootstrapping policy
 	PolicyConfig PolicyConfig `json:"policyConfig"`
 
 	// ProjectConfig holds information about project creation and defaults
@@ -244,7 +247,7 @@ type EtcdStorageConfig struct {
 type ServingInfo struct {
 	// BindAddress is the ip:port to serve on
 	BindAddress string `json:"bindAddress"`
-	// ServerCert is the TLS cert info for serving secure traffic.
+	// CertInfo is the TLS cert info for serving secure traffic.
 	// this is anonymous so that we can inline it for serialization
 	CertInfo `json:",inline"`
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
@@ -296,10 +299,13 @@ type OAuthConfig struct {
 	// AssetPublicURL is used for building valid client redirect URLs for external access
 	AssetPublicURL string `json:"assetPublicURL"`
 
+	//IdentityProviders is an ordered list of ways for a user to identify themselves
 	IdentityProviders []IdentityProvider `json:"identityProviders"`
 
+	// GrantConfig describes how to handle grants
 	GrantConfig GrantConfig `json:"grantConfig"`
 
+	// SessionConfig hold information about configuring sessions.
 	SessionConfig *SessionConfig `json:"sessionConfig"`
 
 	TokenConfig TokenConfig `json:"tokenConfig"`
@@ -323,9 +329,9 @@ type ServiceAccountConfig struct {
 }
 
 type TokenConfig struct {
-	// Max age of authorize tokens
+	// AuthorizeTokenMaxAgeSeconds defines the maximum age of authorize tokens
 	AuthorizeTokenMaxAgeSeconds int32 `json:"authorizeTokenMaxAgeSeconds"`
-	// Max age of access tokens
+	// AccessTokenMaxAgeSeconds defines the maximum age of access tokens
 	AccessTokenMaxAgeSeconds int32 `json:"accessTokenMaxAgeSeconds"`
 }
 
@@ -344,15 +350,16 @@ type SessionConfig struct {
 type SessionSecrets struct {
 	v1.TypeMeta `json:",inline"`
 
+	// Secrets is a list of secrets
 	// New sessions are signed and encrypted using the first secret.
 	// Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.
 	Secrets []SessionSecret `json:"secrets"`
 }
 
 type SessionSecret struct {
-	// Signing secret, used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.
+	// Authentication is used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.
 	Authentication string `json:"authentication"`
-	// Encrypting secret, used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-
+	// Encryption is used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-
 	Encryption string `json:"encryption"`
 }
 
@@ -370,6 +377,7 @@ type IdentityProvider struct {
 type BasicAuthPasswordIdentityProvider struct {
 	v1.TypeMeta `json:",inline"`
 
+	// RemoteConnectionInfo contains information about how to connect to the external basic auth server
 	RemoteConnectionInfo `json:",inline"`
 }
 
@@ -384,14 +392,17 @@ type DenyAllPasswordIdentityProvider struct {
 type HTPasswdPasswordIdentityProvider struct {
 	v1.TypeMeta `json:",inline"`
 
+	// File is a reference to your htpasswd file
 	File string `json:"file"`
 }
 
 type RequestHeaderIdentityProvider struct {
 	v1.TypeMeta `json:",inline"`
 
-	ClientCA string   `json:"clientCA"`
-	Headers  []string `json:"headers"`
+	// ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.
+	ClientCA string `json:"clientCA"`
+	// Headers is the set of headers to check for identity information
+	Headers []string `json:"headers"`
 }
 
 type GitHubIdentityProvider struct {
@@ -498,15 +509,21 @@ type EtcdConfig struct {
 type KubernetesMasterConfig struct {
 	// APILevels is a list of API levels that should be enabled on startup: v1beta3 and v1 as examples
 	APILevels []string `json:"apiLevels"`
-	MasterIP  string   `json:"masterIP"`
+	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
+	MasterIP string `json:"masterIP"`
 	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.
-	MasterCount    int    `json:"masterCount"`
+	MasterCount int `json:"masterCount"`
+	// ServicesSubnet is the subnet to use for assigning service IPs
 	ServicesSubnet string `json:"servicesSubnet"`
 	// ServicesNodePortRange is the range to use for assigning service public ports on a host.
-	ServicesNodePortRange string   `json:"servicesNodePortRange"`
-	StaticNodeNames       []string `json:"staticNodeNames"`
-	SchedulerConfigFile   string   `json:"schedulerConfigFile"`
-	PodEvictionTimeout    string   `json:"podEvictionTimeout"`
+	ServicesNodePortRange string `json:"servicesNodePortRange"`
+	// StaticNodeNames is the list of nodes that are statically known
+	StaticNodeNames []string `json:"staticNodeNames"`
+	// SchedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.
+	SchedulerConfigFile string `json:"schedulerConfigFile"`
+	// PodEvictionTimeout controls grace period for deleting pods on failed nodes.
+	// It takes valid time duration string. If empty, you get the default pod eviction timeout.
+	PodEvictionTimeout string `json:"podEvictionTimeout"`
 	// APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's
 	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not
 	// start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.
@@ -514,8 +531,10 @@ type KubernetesMasterConfig struct {
 }
 
 type CertInfo struct {
+	// CertFile is a file containing a PEM-encoded certificate
 	CertFile string `json:"certFile"`
-	KeyFile  string `json:"keyFile"`
+	// KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile
+	KeyFile string `json:"keyFile"`
 }
 
 type PodManifestConfig struct {

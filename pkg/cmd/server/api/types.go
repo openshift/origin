@@ -31,9 +31,10 @@ type NodeConfig struct {
 	// MasterKubeConfig is a filename for the .kubeconfig file that describes how to connect this node to the master
 	MasterKubeConfig string
 
-	// domain suffix
+	// DNSDomain holds the domain suffix
 	DNSDomain string
-	// ip
+
+	// DNSIP holds the IP
 	DNSIP string
 
 	// NetworkPluginName is a string specifying the networking plugin
@@ -73,7 +74,7 @@ type DockerExecHandlerType string
 const (
 	// DockerExecHandlerNative uses Docker's exec API for executing commands in containers.
 	DockerExecHandlerNative DockerExecHandlerType = "native"
-	// DockerExecHandlerNative uses nsenter for executing commands in containers.
+	// DockerExecHandlerNsenter uses nsenter for executing commands in containers.
 	DockerExecHandlerNsenter DockerExecHandlerType = "nsenter"
 
 	// ControllersDisabled indicates no controllers should be enabled.
@@ -337,9 +338,9 @@ type ServiceAccountConfig struct {
 }
 
 type TokenConfig struct {
-	// Max age of authorize tokens
+	// AuthorizeTokenMaxAgeSeconds defines the maximum age of authorize tokens
 	AuthorizeTokenMaxAgeSeconds int32
-	// Max age of access tokens
+	// AccessTokenMaxAgeSeconds defines the maximum age of access tokens
 	AccessTokenMaxAgeSeconds int32
 }
 
@@ -358,15 +359,16 @@ type SessionConfig struct {
 type SessionSecrets struct {
 	api.TypeMeta
 
+	// Secrets is a list of secrets
 	// New sessions are signed and encrypted using the first secret.
 	// Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.
 	Secrets []SessionSecret
 }
 
 type SessionSecret struct {
-	// Signing secret, used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.
+	// Authentication is used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.
 	Authentication string
-	// Encrypting secret, used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-192, or AES-256.
+	// Encryption is used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-192, or AES-256.
 	Encryption string
 }
 

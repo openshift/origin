@@ -70,6 +70,7 @@ var errExit = fmt.Errorf("exit")
 
 const defaultLabel = "router=<name>"
 
+// NewCmdRouter implements the OpenShift cli router command
 func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	cfg := &RouterConfig{
 		ImageTemplate: variable.NewDefaultImageTemplate(),
@@ -122,6 +123,7 @@ func loadDefaultCert(file string) (string, error) {
 	return string(bytes), err
 }
 
+// RunCmdRouter contains all the necessary functionality for the OpenShift cli router command
 func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *RouterConfig, args []string) error {
 	var name string
 	switch len(args) {

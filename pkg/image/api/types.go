@@ -83,7 +83,7 @@ type TagReference struct {
 
 // ImageStreamStatus contains information about the state of this image stream.
 type ImageStreamStatus struct {
-	// Represents the effective location this stream may be accessed at. May be empty until the server
+	// DockerImageRepository represents the effective location this stream may be accessed at. May be empty until the server
 	// determines where the repository is located
 	DockerImageRepository string
 	// A historical record of images associated with each tag. The first entry in the TagEvent array is

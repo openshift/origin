@@ -145,7 +145,7 @@ func generateNodeSelector(name string, selector map[string]string) map[string]st
 	return selector
 }
 
-//  Generate the IP Failover deployment configuration.
+// GenerateDeploymentConfig generates an IP Failover deployment configuration.
 func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigCmdOptions, selector map[string]string) (*dapi.DeploymentConfig, error) {
 	containers, err := generateContainerConfig(name, options)
 	if err != nil {

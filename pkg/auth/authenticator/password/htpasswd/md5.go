@@ -31,7 +31,7 @@ import "crypto/md5"
 
 const itoa64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
-// word_outputs is a slice of tuples to be combined into a single uint64 and passed to to64.
+// wordOutputs is a slice of tuples to be combined into a single uint64 and passed to to64.
 // Each tuple is a slice of chunks.
 // Each chunk is a pair of an offset and a number of bits to shift.
 //
@@ -41,7 +41,7 @@ const itoa64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 // l = (final[ 3]<<16) | (final[ 9]<<8) | final[15]; to64(p, l, 4); p += 4;
 // l = (final[ 4]<<16) | (final[10]<<8) | final[ 5]; to64(p, l, 4); p += 4;
 // l =                    final[11]                ; to64(p, l, 2); p += 2;
-var word_outputs = [][][2]int{
+var wordOutputs = [][][2]int{
 	{{0, 16}, {6, 8}, {12, 0}},
 	{{1, 16}, {7, 8}, {13, 0}},
 	{{2, 16}, {8, 8}, {14, 0}},
@@ -53,7 +53,7 @@ var word_outputs = [][][2]int{
 var magic = []byte("$apr1$")
 
 // From http://svn.apache.org/viewvc/apr/apr-util/branches/1.3.x/crypto/apr_md5.c
-func apr_md5(password, salt []byte) []byte {
+func aprMD5(password, salt []byte) []byte {
 	// Time to make the doughnuts...
 	ctx := md5.New()
 	// The password first, since that is what is most unknown
@@ -121,7 +121,7 @@ func apr_md5(password, salt []byte) []byte {
 	result = append(result, salt...)
 	result = append(result, '$')
 
-	for _, word := range word_outputs {
+	for _, word := range wordOutputs {
 		l := uint64(0)
 		for _, chunk := range word {
 			index := chunk[0]
