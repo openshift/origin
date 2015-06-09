@@ -665,6 +665,9 @@ func startKubelet(k KubeletBootstrap, podCfg *config.PodConfig, kc *KubeletConfi
 func makePodSourceConfig(kc *KubeletConfig) *config.PodConfig {
 	// source of all configuration
 	cfg := config.NewPodConfig(config.PodConfigNotificationSnapshotAndUpdates, kc.Recorder)
+	if kc.StartUpdates != nil {
+		cfg.Wait(kc.StartUpdates)
+	}
 
 	// define file config source
 	if kc.ConfigFile != "" {
@@ -739,6 +742,7 @@ type KubeletConfig struct {
 	PodCIDR                        string
 	MaxPods                        int
 	DockerExecHandler              dockertools.ExecHandler
+	StartUpdates                   <-chan struct{}
 }
 
 func createAndInitKubelet(kc *KubeletConfig) (k KubeletBootstrap, pc *config.PodConfig, err error) {
