@@ -20,8 +20,8 @@ import (
 
 const PolicyRecommendedName = "policy"
 
-// NewCommandPolicy implements the OpenShift cli policy command
-func NewCommandPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+// NewCmdPolicy implements the OpenShift cli policy command
+func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
