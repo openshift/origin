@@ -18,17 +18,17 @@
       left: -5px;
       i {
         color: #ccc;
-        transform: rotate(137deg);
+        .rotate(137deg);
         font-size: 9px;
         position: absolute;
       }
       &:before {
         content: '\f111';
-        font: normal normal normal 7px/1 FontAwesome;
+        font: normal normal normal 6px/1 FontAwesome;
         display: inline-block;
         color: #fff;
         position: absolute;
-        left: 1px;
+        left: 2px;
         top:1px;
       }
     }
@@ -60,12 +60,10 @@
       .flex-display(@display: flex);
       .flex-direction(@direction: row);
       .flex-wrap(@wrap: wrap);
-
       @media (max-width: @screen-sm-min) {
         /* Switch to vertical layout at small sizes */
         .flex-direction(@direction: column);
       }
-
       &.pod-template-container {
         margin-top: 5px;
       }
@@ -73,18 +71,31 @@
         margin: 4px 0 6px;
       }
       .component {
-        .flex(@columns: 1);
+        @media (min-width: @screen-sm-min) {
+          // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
+          .flex(@columns: 1);
+        }
         h2,h3 {
           margin: 0 0 5px;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         &.meta-data {
-          .flex(@columns: 1);
+          @media (min-width: @screen-sm-min) {
+            // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
+            .flex(@columns: 1);
+          }
           text-align: right;
           line-height: 1.3em;
           .align-self(@align: left);
           color: @gray-light;
+          @media (min-width: @screen-sm-min) and (max-width: @screen-sm-max), (max-width: 380px) {
+            // block display multiple port mappings at specific widths to prevent breaking of layout, but also prevent wrapping when not needed
+            // 380px is the min width at which 2 port mappings can be displayed inline without extending beyond their box, so stack them when viewport is <380
+            .port-mappings {
+              display: block;
+            }
+          }
         }
 
         @media (max-width: @screen-sm-min) {
@@ -167,7 +178,7 @@
       border-radius: @border-radius-md;
       padding: 5px;
       position: relative;
-      margin: 10px 0;
+      margin: 10px 0 6px;
       text-align: left;
       &:first-child {
         margin-top: 0;
@@ -185,7 +196,6 @@
     }
   }
 }
-
 
 .pod-block {
   display: block;
@@ -205,51 +215,78 @@
       .osc-object-highlight();
       .flex(@columns: 1 1 auto);
       max-width: 450px;
+      min-width: 90px;
+      background-size: 20px 20px;
       border-radius: @border-radius-md;
       border: 1px solid transparent;
-      // box-shadow: @osc-object-box-shadow; <- remove if it's not used in highlight
       padding: 10px;
       position: relative;
       margin: 0 10px 10px 0;
       text-align: center;
-      background-color: @pod-pending-bg;
       -webkit-font-smoothing: antialiased;
-      &.pod-running {
-        background-color: @pod-running-bg;
-        .spinner {
-          display: none;
+      .pod-status-label {
+        &:before, &:after {
+          font-family: 'PatternFlyIcons-webfont';
+          font-weight: normal;
         }
       }
+      &.pod-pending {
+        background-color: #ececec;
+        .striped(@color: rgba(255,255,255,.45); @angle: 45deg);
+      }
       &.pod-failed, &.pod-warning {
-        background-color: @pod-warning-bg;
-        strong {
+        background-image: none;
+        .pod-status-label {
           position: relative;
+          margin-right: -15px;
+          &:after, &:before {
+            position: absolute;
+          }
           &:after {
             color: #fff;
-            content: "\e608";
-            left: -15px;
+          }
+        }
+      }
+      &.pod-running {
+        background-color: @pod-running-bg;
+        background-image: none;
+      }
+      &.pod-failed {
+        background-color: @pod-failed-bg;
+        border: @pod-failed-border;
+        .pod-status-label {
+          &:after {
+            content: "\e608"; // pficon-error-exclamation
+            left: -16px;
             top: 0;
-            position: absolute;
-            font-family: 'PatternFlyIcons-webfont';
           }
           &:before {
-            content: "\e60c";
+            content: "\e609"; // pficon-error-octagon
+            color: @brand-danger;
+            left: -16px;
+            top: 0;
+          }
+        }
+      }
+      &.pod-warning {
+        background-color: @pod-warning-bg;
+        .pod-status-label {
+          &:after {
+            content: "\e608"; // pficon-error-exclamation
+            left: -15px;
+            top: 0;
+          }
+          &:before {
+            content: "\e60c"; // pficon-warning-triangle
             color: @brand-warning;
             left: -16px;
             top: -1px;
-            position: absolute;
-            font-family: 'PatternFlyIcons-webfont';
           }
         }
       }
       .pod-text {
         font-family: @font-family-base;
         font-size: 11px;
-      }
-      .spinner {
-        position: absolute;
-        top: 5px;
-        right: 5px;
       }
     }
   }

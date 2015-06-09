@@ -10,7 +10,7 @@
           <em>{{emptyMessage}}</em>
         </div>
       </div>
-      <div style="margin-bottom: 10px;" ng-repeat="service in services">
+      <div ng-repeat="service in services" class="tile">
         <h3 id="service-{{service.metadata.name}}">{{service.metadata.name}}</h3>
         <div>Created: <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></div>
         <div>IP:
