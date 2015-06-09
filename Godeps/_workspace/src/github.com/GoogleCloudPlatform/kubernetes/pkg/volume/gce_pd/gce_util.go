@@ -18,16 +18,15 @@ package gce_pd
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/gce"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/mount"
-	"github.com/golang/glog"
 )
 
 type GCEDiskUtil struct{}
@@ -134,7 +133,8 @@ type gceSafeFormatAndMount struct {
 	runner exec.Interface
 }
 
-// uses /usr/share/google/safe_format_and_mount to optionally mount, and format a disk
+// Mount mounts the given disk. If the disk is not formatted and the disk is not being mounted as read only
+// it will format the disk first then mount it.
 func (mounter *gceSafeFormatAndMount) Mount(source string, target string, fstype string, options []string) error {
 	// Don't attempt to format if mounting as readonly. Go straight to mounting.
 	for _, option := range options {
@@ -142,18 +142,49 @@ func (mounter *gceSafeFormatAndMount) Mount(source string, target string, fstype
 			return mounter.Interface.Mount(source, target, fstype, options)
 		}
 	}
-	args := []string{}
-	// ext4 is the default for safe_format_and_mount
-	if len(fstype) > 0 && fstype != "ext4" {
-		args = append(args, "-m", fmt.Sprintf("mkfs.%s", fstype))
-	}
-	args = append(args, options...)
-	args = append(args, source, target)
-	glog.V(5).Infof("exec-ing: /usr/share/google/safe_format_and_mount %v", args)
-	cmd := mounter.runner.Command("/usr/share/google/safe_format_and_mount", args...)
-	dataOut, err := cmd.CombinedOutput()
+	return mounter.formatAndMount(source, target, fstype, options)
+}
+
+// formatAndMount uses unix utils to format and mount the given disk
+func (mounter *gceSafeFormatAndMount) formatAndMount(source string, target string, fstype string, options []string) error {
+	options = append(options, "defaults")
+
+	// Try to mount the disk
+	err := mounter.Interface.Mount(source, target, fstype, options)
 	if err != nil {
-		glog.V(5).Infof("error running /usr/share/google/safe_format_and_mount\n%s", string(dataOut))
+		// It is possible that this disk is not formatted. Double check using 'file'
+		notFormatted, err := mounter.diskLooksUnformatted(source)
+		if err == nil && notFormatted {
+			// Disk is unformatted so format it.
+			// Use 'ext4' as the default
+			if len(fstype) == 0 {
+				fstype = "ext4"
+			}
+			args := []string{"-E", "lazy_itable_init=0,lazy_journal_init=0", "-F", source}
+			cmd := mounter.runner.Command("mkfs."+fstype, args...)
+			_, err := cmd.CombinedOutput()
+			if err == nil {
+				// the disk has been formatted sucessfully try to mount it again.
+				return mounter.Interface.Mount(source, target, fstype, options)
+			}
+			return err
+		}
 	}
 	return err
+}
+
+// diskLooksUnformatted uses 'file' to see if the given disk is unformated
+func (mounter *gceSafeFormatAndMount) diskLooksUnformatted(disk string) (bool, error) {
+	args := []string{"-L", "--special-files", disk}
+	cmd := mounter.runner.Command("file", args...)
+	dataOut, err := cmd.CombinedOutput()
+
+	// TODO (swagiaal): check if this disk has partitions and return false, and
+	// an error if so.
+
+	if err != nil {
+		return false, err
+	}
+
+	return !strings.Contains(string(dataOut), "filesystem"), nil
 }
