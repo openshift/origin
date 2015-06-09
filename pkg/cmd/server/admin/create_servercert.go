@@ -10,7 +10,6 @@ import (
 
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -25,10 +24,10 @@ type CreateServerCertOptions struct {
 
 	Hostnames util.StringList
 	Overwrite bool
-	Output    cmdutil.Output
+	Output    io.Writer
 }
 
-const create_server_long = `
+const createServerLong = `
 Create a key and server certificate valid for the specified hostnames,
 signed by the specified CA. These are useful for securing infrastructure
 components such as the router, authentication server, etc.
@@ -44,12 +43,12 @@ Example: Creating a secure router certificate.
 `
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateServerCertOptions{GetSignerCertOptions: &GetSignerCertOptions{}, Output: cmdutil.Output{out}}
+	options := &CreateServerCertOptions{GetSignerCertOptions: &GetSignerCertOptions{}, Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a signed server certificate and key",
-		Long:  fmt.Sprintf(create_server_long, fullName),
+		Long:  fmt.Sprintf(createServerLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -60,7 +59,6 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "")
@@ -99,7 +97,7 @@ func (o CreateServerCertOptions) Validate(args []string) error {
 }
 
 func (o CreateServerCertOptions) CreateServerCert() (*crypto.TLSCertificateConfig, error) {
-	glog.V(2).Infof("Creating a server cert with: %#v", o)
+	glog.V(4).Infof("Creating a server cert with: %#v", o)
 
 	signerCert, err := o.GetSignerCertOptions.GetSignerCert()
 	if err != nil {
@@ -114,9 +112,9 @@ func (o CreateServerCertOptions) CreateServerCert() (*crypto.TLSCertificateConfi
 		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
 	}
 	if written {
-		fmt.Fprintf(o.Output.Get(), "Generated new server certificate as %s, key as %s\n", o.CertFile, o.KeyFile)
+		glog.V(3).Infof("Generated new server certificate as %s, key as %s\n", o.CertFile, o.KeyFile)
 	} else {
-		fmt.Fprintf(o.Output.Get(), "Keeping existing server certificate at %s, key at %s\n", o.CertFile, o.KeyFile)
+		glog.V(3).Infof("Keeping existing server certificate at %s, key at %s\n", o.CertFile, o.KeyFile)
 	}
 	return ca, err
 }

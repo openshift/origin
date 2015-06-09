@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
-	deployres "github.com/openshift/origin/pkg/deploy/resizer"
+	deploy "github.com/openshift/origin/pkg/deploy/scaler"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 
@@ -108,19 +108,19 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kDescriberFunc(mapping)
 	}
-	w.Resizer = func(mapping *meta.RESTMapping) (kubectl.Resizer, error) {
-		osc, kc, err := w.Clients()
+	w.Scaler = func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
+		oc, kc, err := w.Clients()
 		if err != nil {
 			return nil, err
 		}
-		return deployres.ResizerFor(mapping.Kind, osc, kc)
+		return deploy.ScalerFor(mapping.Kind, oc, kc)
 	}
 	w.Reaper = func(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
-		osc, kc, err := w.Clients()
+		oc, kc, err := w.Clients()
 		if err != nil {
 			return nil, err
 		}
-		return deployreaper.ReaperFor(mapping.Kind, osc, kc)
+		return deployreaper.ReaperFor(mapping.Kind, oc, kc)
 	}
 	w.Generator = func(name string) (kubectl.Generator, bool) {
 		generator, ok := generators[name]
@@ -183,6 +183,7 @@ func getPorts(spec api.PodSpec) []string {
 	return result
 }
 
+// UpdatePodSpecForObject update the pod specification for the provided object
 // TODO: move to upstream
 func (f *Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {
 	// TODO: replace with a swagger schema based approach (identify pod template via schema introspection)
@@ -260,6 +261,9 @@ func expandResourceShortcut(resource string) string {
 		"is":      "imageStreams",
 		"istag":   "imageStreamTags",
 		"isimage": "imageStreamImages",
+		"sa":      "serviceAccounts",
+		"pv":      "persistentVolumes",
+		"pvc":     "persistentVolumeClaims",
 	}
 	if expanded, ok := shortForms[resource]; ok {
 		return expanded

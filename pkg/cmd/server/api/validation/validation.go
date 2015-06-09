@@ -65,6 +65,20 @@ func ValidateServingInfo(info api.ServingInfo) fielderrors.ValidationErrorList {
 	return allErrs
 }
 
+func ValidateHTTPServingInfo(info api.HTTPServingInfo) fielderrors.ValidationErrorList {
+	allErrs := ValidateServingInfo(info.ServingInfo)
+
+	if info.MaxRequestsInFlight < 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("maxRequestsInFlight", info.MaxRequestsInFlight, "must be zero (no limit) or greater"))
+	}
+
+	if info.RequestTimeoutSeconds < 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("requestTimeoutSeconds", info.RequestTimeoutSeconds, "must be zero (no limit) or greater"))
+	}
+
+	return allErrs
+}
+
 func ValidateKubeConfig(path string, field string) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 

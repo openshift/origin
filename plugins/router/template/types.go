@@ -10,9 +10,9 @@ import (
 type ServiceUnit struct {
 	// Name corresponds to a service name & namespace.  Uniquely identifies the ServiceUnit
 	Name string
-	// EndpointTable are endpoints that back the service, this translates into a final backend implementation for routers
-	// keyed by IP:port for easy access
-	EndpointTable map[string]Endpoint
+	// EndpointTable are endpoints that back the service, this translates into a final backend
+	// implementation for routers.
+	EndpointTable []Endpoint
 	// ServiceAliasConfigs is a collection of unique routes that support this service, keyed by host + path
 	ServiceAliasConfigs map[string]ServiceAliasConfig
 }
@@ -51,9 +51,10 @@ type Certificate struct {
 
 // Endpoint is an internal representation of a k8s endpoint.
 type Endpoint struct {
-	ID   string
-	IP   string
-	Port string
+	ID         string
+	IP         string
+	Port       string
+	TargetName string
 }
 
 // certificateManager provides the ability to write certificates for a ServiceAliasConfig

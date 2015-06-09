@@ -40,22 +40,24 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 	switch pod.Status.Phase {
 	case kapi.PodRunning:
 		nextStatus = deployapi.DeploymentStatusRunning
-	case kapi.PodSucceeded, kapi.PodFailed:
-		nextStatus = deployapi.DeploymentStatusComplete
+	case kapi.PodSucceeded:
 		// Detect failure based on the container state
+		nextStatus = deployapi.DeploymentStatusComplete
 		for _, info := range pod.Status.ContainerStatuses {
 			if info.State.Termination != nil && info.State.Termination.ExitCode != 0 {
 				nextStatus = deployapi.DeploymentStatusFailed
 			}
 		}
+	case kapi.PodFailed:
+		nextStatus = deployapi.DeploymentStatusFailed
 	}
 
 	if currentStatus != nextStatus {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
 		if _, err := c.deploymentClient.updateDeployment(deployment.Namespace, deployment); err != nil {
-			return fmt.Errorf("couldn't update Deployment %s/%s to status %s: %v", deployment.Namespace, deployutil.LabelForDeployment(deployment), nextStatus, err)
+			return fmt.Errorf("couldn't update Deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
-		glog.V(4).Infof("Updated Deployment %s/%s status from %s to %s", deployment.Namespace, deployutil.LabelForDeployment(deployment), currentStatus, nextStatus)
+		glog.V(4).Infof("Updated Deployment %s status from %s to %s", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus)
 	}
 
 	return nil

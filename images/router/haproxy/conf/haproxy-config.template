@@ -153,29 +153,32 @@ backend be_http_{{$cfgIdx}}
 backend be_edge_http_{{$cfgIdx}}
                 {{ end }}
   mode http
-  balance leastconn
+  balance source
+  hash-type consistent
   timeout check 5000ms
-                {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+                {{ range $idx, $endpoint := $serviceUnit.EndpointTable }}
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
                 {{ end }}
             {{ end }}
 
             {{ if eq $cfg.TLSTermination "passthrough" }}
 backend be_tcp_{{$cfgIdx}}
-  balance leastconn
+  balance source
+  hash-type consistent
   timeout check 5000ms
-                {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+                {{ range $idx, $endpoint := $serviceUnit.EndpointTable }}
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
                 {{ end }}
             {{ end }}
 
             {{ if eq $cfg.TLSTermination "reencrypt" }}
 backend be_secure_{{$cfgIdx}}
   mode http
-  balance leastconn
+  balance source
+  hash-type consistent
   timeout check 5000ms
-                {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfgIdx}}.pem
+                {{ range $idx, $endpoint := $serviceUnit.EndpointTable }}
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfgIdx}}.pem
                 {{ end }}
             {{ end  }}
         {{ end  }}{{/* $serviceUnit.ServiceAliasConfigs*/}}

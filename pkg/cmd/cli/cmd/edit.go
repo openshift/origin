@@ -60,7 +60,7 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 	var filenames util.StringList
 	cmd := &cobra.Command{
 		Use:     "edit (RESOURCE/NAME | -f FILENAME)",
-		Short:   "Edit a resource on the server and apply the update.",
+		Short:   "Edit a resource on the server",
 		Long:    editLong,
 		Example: fmt.Sprintf(editExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -148,7 +148,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 
 		// launch the editor
 		edit := editor.NewDefaultEditor()
-		edited, file, err := edit.LaunchTempFile("osc-edit-", ext, buf)
+		edited, file, err := edit.LaunchTempFile("oc-edit-", ext, buf)
 		if err != nil {
 			return preservedFile(err, results.file, cmd.Out())
 		}

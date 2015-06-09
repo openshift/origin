@@ -3,7 +3,7 @@
 
 #  Constants.
 LIB_DIR=$(dirname "${BASH_SOURCE[0]}")
-VBOX_INTERFACES="enp0s3 enp0s8"
+VBOX_INTERFACES="enp0s3 enp0s8 eth1"
 
 
 #

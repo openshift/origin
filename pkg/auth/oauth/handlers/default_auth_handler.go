@@ -37,7 +37,7 @@ func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationCh
 const (
 	// WarningHeaderMiscCode is the code for "Miscellaneous warning", which may be displayed to human users
 	WarningHeaderMiscCode = "199"
-	// The name of the agent adding the warning header
+	// WarningHeaderOpenShiftSource is the name of the agent adding the warning header
 	WarningHeaderOpenShiftSource = "OpenShift"
 
 	warningHeaderCodeIndex  = 1

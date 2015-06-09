@@ -1,0 +1,1 @@
+../../definitions/v1.persistentvolumeclaim/description.adoc

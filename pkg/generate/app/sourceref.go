@@ -26,7 +26,7 @@ func NewSourceRefGenerator() *SourceRefGenerator {
 // SourceRefForGitURL creates a SourceRef from a Git URL.
 // If the URL includes a hash, it is used for the SourceRef's branch
 // reference. Otherwise, 'master' is assumed
-func (g *SourceRefGenerator) FromGitURL(location string) (*SourceRef, error) {
+func (g *SourceRefGenerator) FromGitURL(location, contextDir string) (*SourceRef, error) {
 	url, err := url.Parse(location)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func (g *SourceRefGenerator) FromGitURL(location string) (*SourceRef, error) {
 	if len(ref) == 0 {
 		ref = "master"
 	}
-	return &SourceRef{URL: url, Ref: ref}, nil
+	return &SourceRef{URL: url, Ref: ref, ContextDir: contextDir}, nil
 }
 
 // SourceRefForDirectory creates a SourceRef from a directory that contains
@@ -62,7 +62,7 @@ func (g *SourceRefGenerator) FromDirectory(directory string) (*SourceRef, error)
 	// Get Branch Ref
 	ref := g.repository.GetRef(gitRoot)
 
-	srcRef, err := g.FromGitURL(fmt.Sprintf("%s#%s", location, ref))
+	srcRef, err := g.FromGitURL(fmt.Sprintf("%s#%s", location, ref), directory)
 	if err != nil {
 		return nil, err
 	}

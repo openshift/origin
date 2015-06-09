@@ -30,8 +30,8 @@ func (*okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error
 		},
 		Triggers: []api.BuildTriggerPolicy{
 			{
-				Type: api.GithubWebHookBuildTriggerType,
-				GithubWebHook: &api.WebHookTrigger{
+				Type: api.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &api.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},

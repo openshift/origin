@@ -51,16 +51,7 @@ OpenShift now requires at least Docker 1.6. Here's how to get it:
 RPMs for Docker 1.6 are available for Fedora 21 in the updates yum repository.
 
 ### CentOS 7
-Docker 1.6 is not yet available in the CentOS 7 Extras yum repository yet. In the meantime, you will need to install it from https://mirror.openshift.com/pub/openshift-v3/dependencies/centos7/x86_64/. Create `/etc/yum.repos.d/openshift-v3-dependencies.repo` with these contents
-
-    [openshift-v3-dependencies]
-    name=OpenShift V3 Dependencies
-    baseurl=https://mirror.openshift.com/pub/openshift-v3/dependencies/centos7/x86_64/
-    enabled=1
-    metadata_expire=7d
-    gpgcheck=0
-
-You will now be able to `yum install` or `yum update` Docker to 1.6.
+RPMs for Docker 1.6 are available for CentOS 7 in the extras yum repository.
 
 
 Getting Started
@@ -76,11 +67,11 @@ The simplest way to run OpenShift Origin is in a Docker container:
 Once the container is started, you can jump into a console inside the container and run the CLI.
 
     $ sudo docker exec -it openshift-origin bash
-    $ osc --help
+    $ oc --help
 
 If you just want to experiment with the API without worrying about security privileges, you can disable authorization checks by running this from the host system.  This command grants full access to anyone.
 
-    $ sudo docker exec -it openshift-origin bash -c "osadm policy add-cluster-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.config/master/admin.kubeconfig"
+    $ sudo docker exec -it openshift-origin bash -c "oadm policy add-cluster-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.config/master/admin.kubeconfig"
 
 
 ### Start Developing
@@ -97,16 +88,16 @@ Once setup with a Go development environment and Docker, you can:
 
 2.  Start the OpenShift server
 
-        $ make run
+        $ sudo make run
 
 3.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
         $ export OPENSHIFTCONFIG=`pwd`/openshift.local.config/master/admin.kubeconfig 
-        $ _output/local/go/bin/osc create -f examples/hello-openshift/hello-pod.json
+        $ _output/local/go/bin/oc create -f examples/hello-openshift/hello-pod.json
 
-In your browser, go to [http://localhost:6061](http://localhost:6061) and you should see 'Welcome to OpenShift'.
 
+4. In your browser, go to [https://localhost:6001](https://localhost:6001) and you should see 'Welcome to OpenShift' after a little while once the pod has started correctly.
 
 ### What's Just Happened?
 
@@ -142,54 +133,18 @@ If you run into difficulties running OpenShift, start by reading through the [tr
 API
 ---
 
-The OpenShift APIs are exposed at `https://localhost:8443/osapi/v1beta1/*`.
+The OpenShift APIs are exposed at `https://localhost:8443/osapi/v1beta3/*`.
 
-* Builds
- * `https://localhost:8443/osapi/v1beta1/builds`
- * `https://localhost:8443/osapi/v1beta1/buildConfigs`
- * `https://localhost:8443/osapi/v1beta1/buildLogs`
- * `https://localhost:8443/osapi/v1beta1/buildConfigHooks`
-* Deployments
- * `https://localhost:8443/osapi/v1beta1/deployments`
- * `https://localhost:8443/osapi/v1beta1/deploymentConfigs`
-* Images
- * `https://localhost:8443/osapi/v1beta1/images`
- * `https://localhost:8443/osapi/v1beta1/imageRepositories`
- * `https://localhost:8443/osapi/v1beta1/imageRepositoryMappings`
-* Templates
- * `https://localhost:8443/osapi/v1beta1/templateConfigs`
-* Routes
- * `https://localhost:8443/osapi/v1beta1/routes`
-* Projects
- * `https://localhost:8443/osapi/v1beta1/projects`
-* Users
- * `https://localhost:8443/osapi/v1beta1/users`
- * `https://localhost:8443/osapi/v1beta1/userIdentityMappings`
-* OAuth
- * `https://localhost:8443/osapi/v1beta1/accessTokens`
- * `https://localhost:8443/osapi/v1beta1/authorizeTokens`
- * `https://localhost:8443/osapi/v1beta1/clients`
- * `https://localhost:8443/osapi/v1beta1/clientAuthorizations`
+### API Documentation
 
-The Kubernetes APIs are exposed at `https://localhost:8443/api/v1beta1/*`:
-
-* `https://localhost:8443/api/v1beta1/pods`
-* `https://localhost:8443/api/v1beta1/services`
-* `https://localhost:8443/api/v1beta1/replicationControllers`
-* `https://localhost:8443/api/v1beta1/operations`
-
-OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://swagger.io) which aims to make it easier to document and write clients for RESTful APIs.  When you start OpenShift, the Swagger API endpoint is exposed at `https://localhost:8443/swaggerapi`. The Swagger UI makes it easy to view your documentation - to view the docs for your local version of OpenShift start the server with CORS enabled:
-
-    $ openshift start --cors-allowed-origins=.*
-
-and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1beta1 to see the schemas (and to try the API directly).
+The API documentation can be found [here](http://docs.openshift.org/latest/rest_api/openshift_v1.html).
 
 Web Console
 -----------
 
-The OpenShift API server also hosts a web console. You can try it out at [http://localhost:8443/console](http://localhost:8443/console).
+The OpenShift API server also hosts a web console. You can try it out at [https://localhost:8443/console](https://localhost:8443/console).
 
-For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/dev_guide/console.html).
+For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/dev_guide/authentication.html#web-console-authentication).
 
 ![Web console overview](docs/screenshots/console_overview.png?raw=true)
 

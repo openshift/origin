@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/cobra"
 
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const CreateKeyPairCommandName = "create-key-pair"
@@ -27,10 +26,10 @@ type CreateKeyPairOptions struct {
 	PrivateKeyFile string
 
 	Overwrite bool
-	Output    cmdutil.Output
+	Output    io.Writer
 }
 
-const create_key_pair_long = `
+const createKeyPairLong = `
 Create a 2048-bit RSA key pair, and generate PEM-encoded public/private key files.
 
 Example: Creating service account signing and authenticating key files:
@@ -40,12 +39,12 @@ Example: Creating service account signing and authenticating key files:
 `
 
 func NewCommandCreateKeyPair(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateKeyPairOptions{Output: cmdutil.Output{out}}
+	options := &CreateKeyPairOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create a public/private key pair",
-		Long:  fmt.Sprintf(create_key_pair_long, fullName),
+		Long:  fmt.Sprintf(createKeyPairLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -55,7 +54,6 @@ func NewCommandCreateKeyPair(commandName string, fullName string, out io.Writer)
 			kcmdutil.CheckErr(err)
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -85,15 +83,15 @@ func (o CreateKeyPairOptions) Validate(args []string) error {
 }
 
 func (o CreateKeyPairOptions) CreateKeyPair() error {
-	glog.V(2).Infof("Creating a key pair with: %#v", o)
+	glog.V(4).Infof("Creating a key pair with: %#v", o)
 
 	if !o.Overwrite {
 		if _, err := os.Stat(o.PrivateKeyFile); err == nil {
-			fmt.Fprintf(o.Output.Get(), "Keeping existing private key file %s\n", o.PrivateKeyFile)
+			glog.V(3).Infof("Keeping existing private key file %s\n", o.PrivateKeyFile)
 			return nil
 		}
 		if _, err := os.Stat(o.PublicKeyFile); err == nil {
-			fmt.Fprintf(o.Output.Get(), "Keeping existing public key file %s\n", o.PublicKeyFile)
+			glog.V(3).Infof("Keeping existing public key file %s\n", o.PublicKeyFile)
 			return nil
 		}
 	}
@@ -111,7 +109,7 @@ func (o CreateKeyPairOptions) CreateKeyPair() error {
 		return err
 	}
 
-	fmt.Fprintf(o.Output.Get(), "Generated new key pair as %s and %s\n", o.PublicKeyFile, o.PrivateKeyFile)
+	fmt.Fprintf(o.Output, "Generated new key pair as %s and %s\n", o.PublicKeyFile, o.PrivateKeyFile)
 
 	return nil
 }

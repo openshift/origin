@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/user/registry/identity"
 )
 
-// rest implements a RESTStorage for identites against etcd
+// REST implements a RESTStorage for identites against etcd
 type REST struct {
 	etcdgeneric.Etcd
 }

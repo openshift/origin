@@ -1,11 +1,14 @@
 package login
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
 
 	"github.com/golang/glog"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
@@ -98,7 +101,7 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 
 	csrf, err := l.csrf.Generate(w, req)
 	if err != nil {
-		glog.Errorf("Unable to generate CSRF token: %v", err)
+		util.HandleError(fmt.Errorf("unable to generate CSRF token: %v", err))
 	}
 	form.Values.CSRF = csrf
 
@@ -138,7 +141,7 @@ func (r loginTemplateRenderer) Render(form LoginForm, w http.ResponseWriter, req
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	if err := loginTemplate.Execute(w, form); err != nil {
-		glog.Errorf("Unable to render login template: %v", err)
+		util.HandleError(fmt.Errorf("unable to render login template: %v", err))
 	}
 }
 

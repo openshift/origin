@@ -139,7 +139,8 @@ func NewMainKubelet(
 	mounter mount.Interface,
 	dockerDaemonContainer string,
 	configureCBR0 bool,
-	pods int) (*Kubelet, error) {
+	pods int,
+	dockerExecHandler dockertools.ExecHandler) (*Kubelet, error) {
 	if rootDirectory == "" {
 		return nil, fmt.Errorf("invalid root directory %q", rootDirectory)
 	}
@@ -273,7 +274,8 @@ func NewMainKubelet(
 			klet.networkPlugin,
 			klet,
 			klet.httpClient,
-			newKubeletRuntimeHooks(recorder))
+			newKubeletRuntimeHooks(recorder),
+			dockerExecHandler)
 	case "rkt":
 		conf := &rkt.Config{InsecureSkipVerify: true}
 		rktRuntime, err := rkt.New(
@@ -997,8 +999,9 @@ func (kl *Kubelet) getClusterDNS(pod *api.Pod) ([]string, []string, error) {
 		dns = append([]string{kl.clusterDNS.String()}, hostDNS...)
 	}
 	if kl.clusterDomain != "" {
-		nsDomain := fmt.Sprintf("%s.%s", pod.Namespace, kl.clusterDomain)
-		dnsSearch = append([]string{nsDomain, kl.clusterDomain}, hostSearch...)
+		nsSvcDomain := fmt.Sprintf("%s.svc.%s", pod.Namespace, kl.clusterDomain)
+		svcDomain := fmt.Sprintf("svc.%s", kl.clusterDomain)
+		dnsSearch = append([]string{nsSvcDomain, svcDomain, kl.clusterDomain}, hostSearch...)
 	}
 	return dns, dnsSearch, nil
 }

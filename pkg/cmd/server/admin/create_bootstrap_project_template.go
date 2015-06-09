@@ -41,7 +41,6 @@ func NewCommandCreateBootstrapProjectTemplate(f *clientcmd.Factory, commandName 
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	cmd.Flags().StringVar(&options.Name, "name", delegated.DefaultTemplateName, "The name of the template to output.")
 	cmdutil.AddPrinterFlags(cmd)

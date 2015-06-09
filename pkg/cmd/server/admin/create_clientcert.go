@@ -2,7 +2,7 @@ package admin
 
 import (
 	"errors"
-	"fmt"
+	"io"
 
 	"github.com/golang/glog"
 
@@ -10,7 +10,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 type CreateClientCertOptions struct {
@@ -23,7 +22,7 @@ type CreateClientCertOptions struct {
 	Groups util.StringList
 
 	Overwrite bool
-	Output    cmdutil.Output
+	Output    io.Writer
 }
 
 func (o CreateClientCertOptions) Validate(args []string) error {
@@ -51,7 +50,7 @@ func (o CreateClientCertOptions) Validate(args []string) error {
 }
 
 func (o CreateClientCertOptions) CreateClientCert() (*crypto.TLSCertificateConfig, error) {
-	glog.V(2).Infof("Creating a client cert with: %#v and %#v", o, o.GetSignerCertOptions)
+	glog.V(4).Infof("Creating a client cert with: %#v and %#v", o, o.GetSignerCertOptions)
 
 	signerCert, err := o.GetSignerCertOptions.GetSignerCert()
 	if err != nil {
@@ -67,9 +66,9 @@ func (o CreateClientCertOptions) CreateClientCert() (*crypto.TLSCertificateConfi
 		cert, written, err = signerCert.EnsureClientCertificate(o.CertFile, o.KeyFile, userInfo)
 	}
 	if written {
-		fmt.Fprintf(o.Output.Get(), "Generated new client cert as %s and key as %s\n", o.CertFile, o.KeyFile)
+		glog.V(3).Infof("Generated new client cert as %s and key as %s\n", o.CertFile, o.KeyFile)
 	} else {
-		fmt.Fprintf(o.Output.Get(), "Keeping existing client cert at %s and key at %s\n", o.CertFile, o.KeyFile)
+		glog.V(3).Infof("Keeping existing client cert at %s and key at %s\n", o.CertFile, o.KeyFile)
 	}
 	return cert, err
 }

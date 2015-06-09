@@ -10,7 +10,6 @@ import (
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/nodecontroller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
@@ -30,71 +29,37 @@ import (
 
 const (
 	KubeAPIPrefix        = "/api"
-	KubeAPIPrefixV1Beta1 = "/api/v1beta1"
-	KubeAPIPrefixV1Beta2 = "/api/v1beta2"
 	KubeAPIPrefixV1Beta3 = "/api/v1beta3"
 	KubeAPIPrefixV1      = "/api/v1"
 )
-
-// TODO: Longer term we should read this from some config store, rather than a flag.
-func (c *MasterConfig) EnsurePortalFlags() {
-	if c.PortalNet == nil {
-		glog.Fatal("No --portal-net specified")
-	}
-}
 
 // InstallAPI starts a Kubernetes master and registers the supported REST APIs
 // into the provided mux, then returns an array of strings indicating what
 // endpoints were started (these are format strings that will expect to be sent
 // a single string value).
 func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
-	kubeletClient, err := kclient.NewKubeletClient(c.KubeletClientConfig)
-	if err != nil {
-		glog.Fatalf("Unable to configure Kubelet client: %v", err)
+	c.Master.RestfulContainer = container
+	_ = master.New(c.Master)
+
+	messages := []string{}
+	if !c.Master.DisableV1Beta3 {
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s (deprecated)", KubeAPIPrefixV1Beta3))
+	}
+	if c.Master.EnableV1 {
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1))
 	}
 
-	masterConfig := &master.Config{
-		PublicAddress: c.MasterIP,
-		ReadWritePort: c.MasterPort,
-		ReadOnlyPort:  c.MasterPort,
-
-		EtcdHelper: c.EtcdHelper,
-
-		EventTTL: 2 * time.Hour,
-
-		PortalNet: c.PortalNet,
-
-		RequestContextMapper: c.RequestContextMapper,
-
-		RestfulContainer: container,
-		KubeletClient:    kubeletClient,
-		APIPrefix:        KubeAPIPrefix,
-
-		EnableV1: true,
-
-		EnableCoreControllers: true,
-
-		MasterCount: c.MasterCount,
-
-		Authorizer:       c.Authorizer,
-		AdmissionControl: c.AdmissionControl,
-	}
-	_ = master.New(masterConfig)
-
-	return []string{
-		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta1),
-		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta3),
-		fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1Beta3),
-		fmt.Sprintf("Started Kubernetes API at %%s%s (experimental)", KubeAPIPrefixV1),
-	}
+	return messages
 }
 
+// RunNamespaceController starts the Kubernetes Namespace Manager
 func (c *MasterConfig) RunNamespaceController() {
 	namespaceController := namespace.NewNamespaceManager(c.KubeClient, 5*time.Minute)
 	namespaceController.Run()
 	glog.Infof("Started Kubernetes Namespace Manager")
 }
 
+// RunPersistentVolumeClaimBinder starts the Kubernetes Persistent Volume Claim Binder
 func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(c.KubeClient, 5*time.Minute)
 	binder.Run()
@@ -131,17 +96,24 @@ func (c *MasterConfig) RunScheduler() {
 	glog.Infof("Started Kubernetes Scheduler")
 }
 
+// RunResourceQuotaManager starts the resource quota manager
 func (c *MasterConfig) RunResourceQuotaManager() {
 	resourceQuotaManager := resourcequota.NewResourceQuotaManager(c.KubeClient)
 	resourceQuotaManager.Run(10 * time.Second)
 }
 
+// RunNodeController starts the node controller
 func (c *MasterConfig) RunNodeController() {
+	podEvictionTimeout, err := time.ParseDuration(c.Options.PodEvictionTimeout)
+	if err != nil {
+		glog.Fatalf("Unable to parse PodEvictionTimeout: %v", err)
+	}
+
 	controller := nodecontroller.NewNodeController(
 		nil, // TODO: reintroduce cloudprovider
 		c.KubeClient,
-		10,            // registerRetryCount
-		5*time.Minute, // podEvictionTimeout
+		10, // registerRetryCount
+		podEvictionTimeout,
 
 		util.NewTokenBucketRateLimiter(0.1, 10), // deleting pods qps / burst
 
@@ -162,8 +134,8 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 	var configData []byte
 
 	configFactory := factory.NewConfigFactory(c.KubeClient)
-	if _, err := os.Stat(c.SchedulerConfigFile); err == nil {
-		configData, err = ioutil.ReadFile(c.SchedulerConfigFile)
+	if _, err := os.Stat(c.Options.SchedulerConfigFile); err == nil {
+		configData, err = ioutil.ReadFile(c.Options.SchedulerConfigFile)
 		if err != nil {
 			return nil, fmt.Errorf("Unable to read scheduler config: %v", err)
 		}

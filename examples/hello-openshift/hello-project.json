@@ -1,14 +1,17 @@
 {
-  "apiVersion": "v1beta1",
-  "displayName": "Hello OpenShift",
   "kind": "Project",
+  "apiVersion": "v1beta3",
   "metadata": {
-    "annotations": {
-      "description": "This is an example project to demonstrate OpenShift v3"
-    },
+    "name": "hello-openshift-project",
+    "creationTimestamp": null,
     "labels": {
       "name": "hello-openshift-project"
     },
-    "name": "hello-openshift-project"
-  }
+    "annotations": {
+      "openshift.io/description": "This is an example project to demonstrate OpenShift v3",
+      "openshift.io/display-name": "Hello OpenShift"
+    }
+  },
+  "spec": {},
+  "status": {}
 }

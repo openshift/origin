@@ -58,8 +58,8 @@ The sample custom BuildConfig definition might look as following:
 
 ```
 
-This example will trigger a build for the 'ruby-20-centos7' everytime there is a
-push into its Github repository. It will set the name of the resulting image to
+This example will trigger a build for the 'ruby-20-centos7' every time there is a
+push into its GitHub repository. It will set the name of the resulting image to
 "openshift/ruby-20-centos7" and it expects the Dockerfile to be present in the
 root directory of the GIT repository.
 

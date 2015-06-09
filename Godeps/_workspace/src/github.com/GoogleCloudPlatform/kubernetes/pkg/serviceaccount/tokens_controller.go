@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller/framework"
@@ -29,9 +30,12 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/secret"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 )
+
+const NumServiceAccountRemoveReferenceRetries = 10
 
 // TokensControllerOptions contains options for the TokensController
 type TokensControllerOptions struct {
@@ -140,9 +144,6 @@ func (e *TokensController) Stop() {
 
 // serviceAccountAdded reacts to a ServiceAccount creation by creating a corresponding ServiceAccountToken Secret
 func (e *TokensController) serviceAccountAdded(obj interface{}) {
-	if !e.secretsSynced() {
-		return
-	}
 	serviceAccount := obj.(*api.ServiceAccount)
 	err := e.createSecretIfNeeded(serviceAccount)
 	if err != nil {
@@ -152,9 +153,6 @@ func (e *TokensController) serviceAccountAdded(obj interface{}) {
 
 // serviceAccountUpdated reacts to a ServiceAccount update (or re-list) by ensuring a corresponding ServiceAccountToken Secret exists
 func (e *TokensController) serviceAccountUpdated(oldObj interface{}, newObj interface{}) {
-	if !e.secretsSynced() {
-		return
-	}
 	newServiceAccount := newObj.(*api.ServiceAccount)
 	err := e.createSecretIfNeeded(newServiceAccount)
 	if err != nil {
@@ -184,9 +182,6 @@ func (e *TokensController) serviceAccountDeleted(obj interface{}) {
 
 // secretAdded reacts to a Secret create by ensuring the referenced ServiceAccount exists, and by adding a token to the secret if needed
 func (e *TokensController) secretAdded(obj interface{}) {
-	if !e.serviceAccountsSynced() {
-		return
-	}
 	secret := obj.(*api.Secret)
 	serviceAccount, err := e.getServiceAccount(secret)
 	if err != nil {
@@ -194,6 +189,9 @@ func (e *TokensController) secretAdded(obj interface{}) {
 		return
 	}
 	if serviceAccount == nil {
+		if !e.serviceAccountsSynced() {
+			return
+		}
 		if err := e.deleteSecret(secret); err != nil {
 			glog.Errorf("Error deleting secret %s/%s: %v", secret.Namespace, secret.Name, err)
 		}
@@ -204,9 +202,6 @@ func (e *TokensController) secretAdded(obj interface{}) {
 
 // secretUpdated reacts to a Secret update (or re-list) by deleting the secret (if the referenced ServiceAccount does not exist)
 func (e *TokensController) secretUpdated(oldObj interface{}, newObj interface{}) {
-	if !e.serviceAccountsSynced() {
-		return
-	}
 	newSecret := newObj.(*api.Secret)
 	newServiceAccount, err := e.getServiceAccount(newSecret)
 	if err != nil {
@@ -214,6 +209,9 @@ func (e *TokensController) secretUpdated(oldObj interface{}, newObj interface{})
 		return
 	}
 	if newServiceAccount == nil {
+		if !e.serviceAccountsSynced() {
+			return
+		}
 		if err := e.deleteSecret(newSecret); err != nil {
 			glog.Errorf("Error deleting secret %s/%s: %v", newSecret.Namespace, newSecret.Name, err)
 		}
@@ -240,8 +238,16 @@ func (e *TokensController) secretDeleted(obj interface{}) {
 		return
 	}
 
-	if _, err := e.removeSecretReferenceIfNeeded(serviceAccount, secret.Name); err != nil {
-		glog.Error(err)
+	for i := 1; i <= NumServiceAccountRemoveReferenceRetries; i++ {
+		if _, err := e.removeSecretReferenceIfNeeded(serviceAccount, secret.Name); err != nil {
+			if apierrors.IsConflict(err) && i < NumServiceAccountRemoveReferenceRetries {
+				time.Sleep(wait.Jitter(100*time.Millisecond, 0.0))
+				continue
+			}
+			glog.Error(err)
+			break
+		}
+		break
 	}
 }
 
@@ -250,6 +256,11 @@ func (e *TokensController) createSecretIfNeeded(serviceAccount *api.ServiceAccou
 	// If the service account references no secrets, short-circuit and create a new one
 	if len(serviceAccount.Secrets) == 0 {
 		return e.createSecret(serviceAccount)
+	}
+
+	// We can't check live secret references until the secrets store is synced
+	if !e.secretsSynced() {
+		return nil
 	}
 
 	// If any existing token secrets are referenced by the service account, return
@@ -270,6 +281,21 @@ func (e *TokensController) createSecretIfNeeded(serviceAccount *api.ServiceAccou
 
 // createSecret creates a secret of type ServiceAccountToken for the given ServiceAccount
 func (e *TokensController) createSecret(serviceAccount *api.ServiceAccount) error {
+	// We don't want to update the cache's copy of the service account
+	// so add the secret to a freshly retrieved copy of the service account
+	serviceAccounts := e.client.ServiceAccounts(serviceAccount.Namespace)
+	liveServiceAccount, err := serviceAccounts.Get(serviceAccount.Name)
+	if err != nil {
+		return err
+	}
+	if liveServiceAccount.ResourceVersion != serviceAccount.ResourceVersion {
+		// our view of the service account is not up to date
+		// we'll get notified of an update event later and get to try again
+		// this only prevent interactions between successive runs of this controller's event handlers, but that is useful
+		glog.V(2).Infof("View of ServiceAccount %s/%s is not up to date, skipping token creation", serviceAccount.Namespace, serviceAccount.Name)
+		return nil
+	}
+
 	// Build the secret
 	secret := &api.Secret{
 		ObjectMeta: api.ObjectMeta{
@@ -296,20 +322,22 @@ func (e *TokensController) createSecret(serviceAccount *api.ServiceAccount) erro
 		return err
 	}
 
-	// We don't want to update the cache's copy of the service account
-	// so add the secret to a freshly retrieved copy of the service account
-	serviceAccounts := e.client.ServiceAccounts(serviceAccount.Namespace)
-	serviceAccount, err = serviceAccounts.Get(serviceAccount.Name)
-	if err != nil {
-		return err
-	}
-	serviceAccount.Secrets = append(serviceAccount.Secrets, api.ObjectReference{Name: secret.Name})
+	liveServiceAccount.Secrets = append(liveServiceAccount.Secrets, api.ObjectReference{Name: secret.Name})
 
-	_, err = serviceAccounts.Update(serviceAccount)
+	_, err = serviceAccounts.Update(liveServiceAccount)
 	if err != nil {
-		return err
+		// we weren't able to use the token, try to clean it up.
+		glog.V(2).Infof("Deleting secret %s/%s because reference couldn't be added (%v)", secret.Namespace, secret.Name, err)
+		if err := e.client.Secrets(secret.Namespace).Delete(secret.Name); err != nil {
+			glog.Error(err) // if we fail, just log it
+		}
 	}
-	return nil
+	if apierrors.IsConflict(err) {
+		// nothing to do.  We got a conflict, that means that the service account was updated.  We simply need to return because we'll get an update notification later
+		return nil
+	}
+
+	return err
 }
 
 // generateTokenIfNeeded populates the token data for the given Secret if not already set

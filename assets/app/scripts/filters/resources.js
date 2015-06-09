@@ -22,7 +22,9 @@ angular.module('openshiftConsole')
       "pod": ["openshift.io/deployer-pod.name"],
       "deploymentStatus": ["openshift.io/deployment.phase"],
       "encodedDeploymentConfig": ["openshift.io/encoded-deployment-config"],
-      "deploymentVersion": ["openshift.io/deployment-config.latest-version"]
+      "deploymentVersion": ["openshift.io/deployment-config.latest-version"],
+      "displayName": ["openshift.io/display-name"],
+      "description": ["openshift.io/description"]
     };
     return function(resource, key) {
       if (resource && resource.spec && resource.spec.tags && key.indexOf(".") !== -1){
@@ -35,7 +37,7 @@ angular.module('openshiftConsole')
           if(tagName === tag.name && tag.annotations){
             return tag.annotations[tagKey];
           }
-        }
+        } 
       }
       if (resource && resource.metadata && resource.metadata.annotations) {
         // If the key's already in the annotation map, return it.
@@ -182,7 +184,8 @@ angular.module('openshiftConsole')
   })  
   .filter('buildForImage', function() {
     return function(image, builds) {
-      // TODO concerned that this gets called anytime any data is changed on the scope, whether its relevant changes or not
+      // TODO concerned that this gets called anytime any data is changed on the scope,
+      // whether its relevant changes or not
       var envVars = image.dockerImageMetadata.Config.Env;
       for (var i = 0; i < envVars.length; i++) {
         var keyValue = envVars[i].split("=");
@@ -196,35 +199,36 @@ angular.module('openshiftConsole')
   .filter('webhookURL', function(DataService) {
     return function(buildConfig, type, secret, project) {
       return DataService.url({
-        type: "buildConfigHooks",
+        type: "buildconfigs/webhooks",
         id: buildConfig,
         namespace: project,
         secret: secret,
-        hookType: type,
+        hookType: type
       });
     };
   })
   .filter('isWebRoute', function(){
     return function(route){
-       //TODO: implement when we can tell if routes are http(s) or not web related which will drive links in view
+       //TODO: implement when we can tell if routes are http(s) or not web related which will drive
+       // links in view
        return true;
     };
   })
   .filter('routeWebURL', function(){
     return function(route){
-        var scheme = (route.tls && route.tls.tlsTerminationType !== "") ? "https" : "http";
-        var url = scheme + "://" + route.host;
-        if (route.path) {
-            url += route.path;
+        var scheme = (route.spec.tls && route.spec.tls.tlsTerminationType !== "") ? "https" : "http";
+        var url = scheme + "://" + route.spec.host;
+        if (route.spec.path) {
+            url += route.spec.path;
         }
         return url;
     };
   })
   .filter('routeLabel', function() {
     return function(route) {
-      var label = route.host;
-      if (route.path) {
-        label += route.path;
+      var label = route.spec.host;
+      if (route.spec.path) {
+        label += route.spec.path;
       }
       return label;
     };
@@ -254,9 +258,8 @@ angular.module('openshiftConsole')
     };
   })
   .filter('imageObjectRef', function(){
-    return function(objectRef){
-      // TODO: needs to handle the current namespace
-      var ns = objectRef.namespace || "";
+    return function(objectRef, /* optional */ nsIfUnspecified, shortOutput){
+      var ns = objectRef.namespace || nsIfUnspecified || "";
       if (ns.length > 0) {
         ns = ns + "/";
       }
@@ -267,29 +270,14 @@ angular.module('openshiftConsole')
       if (kind === "DockerImage") {
         // TODO: replace with real DockerImageReference parse function
         var name = objectRef.name;
-        name = name.substring(name.lastIndexOf("/")+1);
+        // TODO: should we be removing the n
+        if (shortOutput) {
+          name = name.substring(name.lastIndexOf("/")+1);
+        }
         return name;
       }
       // TODO: we may want to indicate the actual type
       var ref = ns + objectRef.name;
-      return ref;
-    };
-  })
-  .filter('imageRepoReference', function(){
-    return function(objectRef, kind, tag){
-      var ns = objectRef.namespace || "";
-      ns = ns === "" ? ns : ns + "/";
-
-      if (kind === "ImageStreamTag" || kind === "ImageStreamImage") {
-        return ns+objectRef.name;
-      }
-      var ref = ns + objectRef.name;
-      // until v1beta2, the ImageStreamImage Kind isn't being set so we need to
-      // manually check if the name looks like an ImageStreamImage
-      if (objectRef.name.indexOf("@") === -1) {
-        tag = tag || "latest";
-        ref += " [" + tag + "]";
-      }
       return ref;
     };
   })
@@ -384,5 +372,62 @@ angular.module('openshiftConsole')
   .filter('projectOverviewURL', function(Navigate) {
     return function(projectName) {
       return Navigate.projectOverviewURL(projectName);
+    };
+  })
+  .filter('failureObjectName', function() {
+    return function(failure) {
+      if (!failure.data || !failure.data.details) {
+        return null;
+      }
+
+      var details = failure.data.details;
+      if (details.kind) {
+        return (details.id) ? details.kind + " " + details.id : details.kind;
+      }
+
+      return details.id;
+    };
+  })
+  .filter('deploymentCauses', function(annotationFilter) {
+    return function(deployment) {
+      if (!deployment) {
+        return [];
+      }
+
+      var configJson = annotationFilter(deployment, 'encodedDeploymentConfig')
+      if (!configJson) {
+        return [];
+      }
+
+      try {
+        var depConfig = $.parseJSON(configJson);
+        if (!depConfig) {
+          return [];
+        }
+
+        switch (depConfig.apiVersion) {
+          case "v1beta1":
+            return depConfig.details.causes;
+          case "v1beta3":
+          case "v1":
+            return  depConfig.status.details.causes;
+          default:
+          // Unrecognized API version. Log an error.
+          Logger.error('Unknown API version "' + depConfig.apiVersion +
+                       '" in encoded deployment config for deployment ' +
+                       deployment.metadata.name);
+
+          // Try to fall back to the last thing we know.
+          if (depConfig.status && depConfig.status.details && depConfig.status.details.causes) {
+            return depConfig.status.details.causes;
+          }
+
+          return [];
+        }
+      }
+      catch (e) {
+        Logger.error("Failed to parse encoded deployment config", e);
+        return [];
+      }
     };
   });

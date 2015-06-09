@@ -20,13 +20,12 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const buildsLongDesc = `
-`
+const buildsLongDesc = `%s %s - removes older completed and failed builds`
 
 const PruneBuildsRecommendedName = "builds"
 
 type pruneBuildsConfig struct {
-	DryRun          bool
+	Confirm         bool
 	KeepYoungerThan time.Duration
 	Orphans         bool
 	KeepComplete    int
@@ -35,7 +34,7 @@ type pruneBuildsConfig struct {
 
 func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	cfg := &pruneBuildsConfig{
-		DryRun:          true,
+		Confirm:         false,
 		KeepYoungerThan: 60 * time.Minute,
 		Orphans:         false,
 		KeepComplete:    5,
@@ -44,7 +43,7 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "Remove older completed and failed builds",
+		Short: "Remove completed and failed builds",
 		Long:  fmt.Sprintf(buildsLongDesc, parentName, name),
 
 		Run: func(cmd *cobra.Command, args []string) {
@@ -87,8 +86,8 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 				return nil
 			}
 
-			switch cfg.DryRun {
-			case false:
+			switch cfg.Confirm {
+			case true:
 				buildPruneFunc = func(build *buildapi.Build) error {
 					describingPruneBuildFunc(build)
 					err := osClient.Builds(build.Namespace).Delete(build.Name)
@@ -111,7 +110,7 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 		},
 	}
 
-	cmd.Flags().BoolVar(&cfg.DryRun, "dry-run", cfg.DryRun, "Perform a build pruning dry-run, displaying what would be deleted but not actually deleting anything.")
+	cmd.Flags().BoolVar(&cfg.Confirm, "confirm", cfg.Confirm, "Specify that build pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
 	cmd.Flags().BoolVar(&cfg.Orphans, "orphans", cfg.Orphans, "Prune all builds whose associated BuildConfig no longer exists and whose status is complete, failed, error, or canceled.")
 	cmd.Flags().DurationVar(&cfg.KeepYoungerThan, "keep-younger-than", cfg.KeepYoungerThan, "Specify the minimum age of a Build for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(&cfg.KeepComplete, "keep-complete", cfg.KeepComplete, "Per BuildConfig, specify the number of builds whose status is complete that will be preserved.")

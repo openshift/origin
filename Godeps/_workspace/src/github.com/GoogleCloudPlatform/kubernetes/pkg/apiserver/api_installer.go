@@ -29,6 +29,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver/patch"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	watchjson "github.com/GoogleCloudPlatform/kubernetes/pkg/watch/json"
@@ -455,8 +456,8 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				Consumes(string(api.JSONPatchType), string(api.MergePatchType), string(api.StrategicMergePatchType)).
 				Operation("patch"+kind).
 				Produces(append(storageMeta.ProducesMIMETypes(action.Verb), "application/json")...).
-				Returns(http.StatusOK, "OK", "string").
-				Reads("string").
+				Returns(http.StatusOK, "OK", versionedObject).
+				Reads(patch.Object{}).
 				Writes(versionedObject)
 			addParams(route, action.Params)
 			ws.Route(route)
@@ -535,7 +536,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 			addProxyRoute(ws, "POST", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
 			addProxyRoute(ws, "DELETE", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
 			addProxyRoute(ws, "HEAD", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
-			addProxyRoute(ws, "TRACE", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
+			addProxyRoute(ws, "OPTIONS", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
+			// TODO: swagger does not support TRACE
+			//addProxyRoute(ws, "TRACE", a.prefix, action.Path, proxyHandler, kind, resource, action.Params)
 		case "CONNECT":
 			for _, method := range connecter.ConnectMethods() {
 				route := ws.Method(method).Path(action.Path).
@@ -868,7 +871,7 @@ func typeToJSON(typeName string) string {
 		return "string"
 	case "float64", "float32":
 		return "number"
-	case "util.Time":
+	case "util.Time", "*util.Time":
 		return "string"
 	default:
 		return typeName

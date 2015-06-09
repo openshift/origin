@@ -17,7 +17,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/route/api"
-	_ "github.com/openshift/origin/pkg/route/api/v1beta1"
+	_ "github.com/openshift/origin/pkg/route/api/v1beta3"
 )
 
 // This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we

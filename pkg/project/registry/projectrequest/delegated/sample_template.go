@@ -3,7 +3,6 @@ package delegated
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -32,8 +31,8 @@ func DefaultTemplate() *templateapi.Template {
 	project := &projectapi.Project{}
 	project.Name = ns
 	project.Annotations = map[string]string{
-		"description": "${" + ProjectDescriptionParam + "}",
-		"displayName": "${" + ProjectDisplayNameParam + "}",
+		projectapi.ProjectDescription: "${" + ProjectDescriptionParam + "}",
+		projectapi.ProjectDisplayName: "${" + ProjectDisplayNameParam + "}",
 	}
 	ret.Objects = append(ret.Objects, project)
 
@@ -44,19 +43,10 @@ func DefaultTemplate() *templateapi.Template {
 	binding.RoleRef.Name = bootstrappolicy.AdminRoleName
 	ret.Objects = append(ret.Objects, binding)
 
-	serviceAccountsBinding := &authorizationapi.RoleBinding{}
-	serviceAccountsBinding.Name = "image-pullers"
-	serviceAccountsBinding.Namespace = ns
-	serviceAccountsBinding.Groups = util.NewStringSet(serviceaccount.MakeNamespaceGroupName(ns))
-	serviceAccountsBinding.RoleRef.Name = bootstrappolicy.ImagePullerRoleName
-	ret.Objects = append(ret.Objects, serviceAccountsBinding)
-
-	serviceAccountBuilderBinding := &authorizationapi.RoleBinding{}
-	serviceAccountBuilderBinding.Name = "image-builders"
-	serviceAccountBuilderBinding.Namespace = ns
-	serviceAccountBuilderBinding.Users = util.NewStringSet(serviceaccount.MakeUsername(ns, bootstrappolicy.BuilderServiceAccountName))
-	serviceAccountBuilderBinding.RoleRef.Name = bootstrappolicy.ImageBuilderRoleName
-	ret.Objects = append(ret.Objects, serviceAccountBuilderBinding)
+	serviceAccountRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(ns)
+	for i := range serviceAccountRoleBindings {
+		ret.Objects = append(ret.Objects, &serviceAccountRoleBindings[i])
+	}
 
 	for _, parameterName := range parameters {
 		parameter := templateapi.Parameter{}

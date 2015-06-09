@@ -18,7 +18,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	osclient "github.com/openshift/origin/pkg/client"
-	//config "github.com/openshift/origin/pkg/config/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 )
@@ -57,20 +56,17 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 	osClient := osclient.NewOrDie(&kclient.Config{Host: server.URL, Version: latest.Version})
 
 	storage := map[string]rest.Storage{
-		"templateConfigs":    templateregistry.NewREST(true),
-		"processedTemplates": templateregistry.NewREST(false),
+		"processedTemplates": templateregistry.NewREST(),
 	}
-	if !kapi.PreV1Beta3(latest.Version) {
-		for k, v := range storage {
-			delete(storage, k)
-			storage[strings.ToLower(k)] = v
-		}
+	for k, v := range storage {
+		delete(storage, k)
+		storage[strings.ToLower(k)] = v
 	}
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	handlerContainer := master.NewHandlerContainer(osMux)
 	version := apiserver.APIGroupVersion{
-		Root:    "/osapi",
+		Root:    "/oapi",
 		Version: latest.Version,
 
 		Mapper: latest.RESTMapper,

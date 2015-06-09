@@ -1,67 +1,44 @@
 package kubernetes
 
 import (
-	"crypto/x509"
+	"crypto/tls"
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
+	"time"
 
+	kapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kubelet/app"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/util"
+	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
 // NodeConfig represents the required parameters to start the OpenShift node
 // through Kubernetes. All fields are required.
 type NodeConfig struct {
-	// The address to bind to
+	// BindAddress is the address to bind to
 	BindAddress string
-	// The name of this node that will be used to identify the node in the master.
-	// This value must match the value provided to the master on startup.
-	NodeHost string
-	// The host that the master can be reached at (not in use yet)
-	MasterHost string
-	// The directory that volumes will be stored under
+	// VolumeDir is the directory that volumes will be stored under
 	VolumeDir string
-
-	ClusterDomain string
-	ClusterDNS    net.IP
-
-	// a function that returns the appropriate image to use for a named component
-	ImageFor func(component string) string
-
-	// The name of the network plugin to activate
-	NetworkPluginName string
-
-	// If true, the Kubelet will ignore errors from Docker
+	// AllowDisabledDocker if true, will make the Kubelet ignore errors from Docker
 	AllowDisabledDocker bool
-
-	// Whether to enable TLS serving
-	TLS bool
-
-	// Enable TLS serving
-	KubeletCertFile string
-	KubeletKeyFile  string
-
-	// ClientCAs will be used to request client certificates in connections to the node.
-	// This CertPool should contain all the CAs that will be used for client certificate verification.
-	ClientCAs *x509.CertPool
-
-	// A client to connect to the master.
+	// Client to connect to the master.
 	Client *client.Client
-	// A client to connect to Docker
+	// DockerClient is a client to connect to Docker
 	DockerClient dockertools.DockerInterface
 
-	// PodManifestPath specifies the path for the pod manifest file(s)
-	// The path could point to a single file or a directory that contains multiple manifest files
-	// This is used by the Kubelet to create pods on the node
-	PodManifestPath string
-	// PodManifestCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data
-	// The interval needs to be a positive value
-	PodManifestCheckIntervalSeconds int64
+	// KubeletServer contains the KubeletServer configuration
+	KubeletServer *kapp.KubeletServer
+	// KubeletConfig is the configuration for the kubelet, fully initialized
+	KubeletConfig *kapp.KubeletConfig
 }
 
 func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error) {
@@ -98,27 +75,96 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		fileCheckInterval = options.PodManifestConfig.FileCheckIntervalSeconds
 	}
 
+	var dockerExecHandler dockertools.ExecHandler
+
+	switch options.DockerConfig.ExecHandlerName {
+	case configapi.DockerExecHandlerNative:
+		dockerExecHandler = &dockertools.NativeExecHandler{}
+	case configapi.DockerExecHandlerNsenter:
+		dockerExecHandler = &dockertools.NsenterExecHandler{}
+	}
+
+	kubeAddress, kubePortStr, err := net.SplitHostPort(options.ServingInfo.BindAddress)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse node address: %v", err)
+	}
+	kubePort, err := strconv.Atoi(kubePortStr)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse node port: %v", err)
+	}
+
+	address := util.IP{}
+	if err := address.Set(kubeAddress); err != nil {
+		return nil, err
+	}
+
+	// declare the OpenShift defaults from config
+	server := kapp.NewKubeletServer()
+	server.Config = path
+	server.RootDirectory = options.VolumeDirectory
+	server.HostnameOverride = options.NodeName
+	server.AllowPrivileged = true
+	server.RegisterNode = true
+	server.Address = address
+	server.Port = uint(kubePort)
+	server.ReadOnlyPort = 0 // no read only access
+	server.ClusterDNS = util.IP(dnsIP)
+	server.ClusterDomain = options.DNSDomain
+	server.NetworkPluginName = options.NetworkPluginName
+	server.HostNetworkSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
+	server.HTTPCheckFrequency = 0 // no remote HTTP pod creation access
+	server.FileCheckFrequency = time.Duration(fileCheckInterval) * time.Second
+	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
+
+	// prevents kube from generating certs
+	server.TLSCertFile = options.ServingInfo.ServerCert.CertFile
+	server.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
+
+	// resolve extended arguments
+	// TODO: this should be done in config validation (along with the above) so we can provide
+	// proper errors
+	if err := cmdflags.Resolve(options.KubeletArguments, server.AddFlags); len(err) > 0 {
+		return nil, errors.NewAggregate(err)
+	}
+
+	cfg, err := server.KubeletConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// provide any config overrides
+	cfg.StreamingConnectionIdleTimeout = 5 * time.Minute // TODO: should be set
+	cfg.KubeClient = kubeClient
+	cfg.DockerExecHandler = dockerExecHandler
+
+	// TODO: could be cleaner
+	if configapi.UseTLS(options.ServingInfo) {
+		cfg.TLSOptions = &kubelet.TLSOptions{
+			Config: &tls.Config{
+				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
+				MinVersion: tls.VersionTLS10,
+				// RequireAndVerifyClientCert lets us limit requests to ones with a valid client certificate
+				ClientAuth: tls.RequireAndVerifyClientCert,
+				ClientCAs:  clientCAs,
+			},
+			CertFile: options.ServingInfo.ServerCert.CertFile,
+			KeyFile:  options.ServingInfo.ServerCert.KeyFile,
+		}
+	} else {
+		cfg.TLSOptions = nil
+	}
+
 	config := &NodeConfig{
-		NodeHost:    options.NodeName,
 		BindAddress: options.ServingInfo.BindAddress,
 
-		TLS:             configapi.UseTLS(options.ServingInfo),
-		KubeletCertFile: options.ServingInfo.ServerCert.CertFile,
-		KubeletKeyFile:  options.ServingInfo.ServerCert.KeyFile,
-		ClientCAs:       clientCAs,
-
-		ClusterDomain: options.DNSDomain,
-		ClusterDNS:    dnsIP,
-
-		NetworkPluginName: options.NetworkPluginName,
-
-		VolumeDir:           options.VolumeDirectory,
-		ImageFor:            imageTemplate.ExpandOrDie,
 		AllowDisabledDocker: options.AllowDisabledDocker,
-		Client:              kubeClient,
 
-		PodManifestPath:                 path,
-		PodManifestCheckIntervalSeconds: fileCheckInterval,
+		Client: kubeClient,
+
+		VolumeDir: options.VolumeDirectory,
+
+		KubeletServer: server,
+		KubeletConfig: cfg,
 	}
 
 	return config, nil

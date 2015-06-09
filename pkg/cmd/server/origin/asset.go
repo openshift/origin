@@ -58,15 +58,20 @@ func (c *AssetConfig) Run() {
 		})
 	}
 
+	timeout := c.Options.ServingInfo.RequestTimeoutSeconds
+	if timeout == -1 {
+		timeout = 0
+	}
+
 	server := &http.Server{
 		Addr:           c.Options.ServingInfo.BindAddress,
 		Handler:        mux,
-		ReadTimeout:    5 * time.Minute,
-		WriteTimeout:   5 * time.Minute,
+		ReadTimeout:    time.Duration(timeout) * time.Second,
+		WriteTimeout:   time.Duration(timeout) * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	isTLS := configapi.UseTLS(c.Options.ServingInfo)
+	isTLS := configapi.UseTLS(c.Options.ServingInfo.ServingInfo)
 
 	go util.Forever(func() {
 		if isTLS {
@@ -103,7 +108,7 @@ func (c *AssetConfig) buildHandler() (http.Handler, error) {
 
 	config := assets.WebConsoleConfig{
 		MasterAddr:        masterURL.Host,
-		MasterPrefix:      OpenShiftAPIPrefix,
+		MasterPrefix:      LegacyOpenShiftAPIPrefix, // TODO: change when the UI changes from v1beta3 to v1
 		KubernetesAddr:    masterURL.Host,
 		KubernetesPrefix:  KubernetesAPIPrefix,
 		OAuthAuthorizeURI: OpenShiftOAuthAuthorizeURL(masterURL.String()),

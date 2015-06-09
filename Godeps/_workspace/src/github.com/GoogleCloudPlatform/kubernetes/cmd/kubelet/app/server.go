@@ -110,6 +110,7 @@ type KubeletServer struct {
 	DockerDaemonContainer          string
 	ConfigureCBR0                  bool
 	MaxPods                        int
+	DockerExecHandler              string
 
 	// Flags intended for testing
 
@@ -171,6 +172,7 @@ func NewKubeletServer() *KubeletServer {
 		ContainerRuntime:            "docker",
 		DockerDaemonContainer:       "/docker-daemon",
 		ConfigureCBR0:               false,
+		DockerExecHandler:           "native",
 	}
 }
 
@@ -231,6 +233,7 @@ func (s *KubeletServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.DockerDaemonContainer, "docker-daemon-container", s.DockerDaemonContainer, "Optional resource-only container in which to place the Docker Daemon. Empty for no container (Default: /docker-daemon).")
 	fs.BoolVar(&s.ConfigureCBR0, "configure-cbr0", s.ConfigureCBR0, "If true, kubelet will configure cbr0 based on Node.Spec.PodCIDR.")
 	fs.IntVar(&s.MaxPods, "max-pods", 100, "Number of Pods that can run on this Kubelet.")
+	fs.StringVar(&s.DockerExecHandler, "docker-exec-handler", s.DockerExecHandler, "Handler to use when executing a command in a container. Valid values are 'native' and 'nsenter'. Defaults to 'native'.")
 
 	// Flags intended for testing, not recommended used in production environments.
 	fs.BoolVar(&s.ReallyCrashForTesting, "really-crash-for-testing", s.ReallyCrashForTesting, "If true, when panics occur crash. Intended for testing.")
@@ -238,52 +241,45 @@ func (s *KubeletServer) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&s.Containerized, "containerized", s.Containerized, "Experimental support for running kubelet in a container.  Intended for testing. [default=false]")
 }
 
-// Run runs the specified KubeletServer.  This should never exit.
-func (s *KubeletServer) Run(_ []string) error {
-	util.ReallyCrash = s.ReallyCrashForTesting
-	rand.Seed(time.Now().UTC().UnixNano())
-
-	// TODO(vmarmol): Do this through container config.
-	if err := util.ApplyOomScoreAdj(0, s.OOMScoreAdj); err != nil {
-		glog.Warning(err)
-	}
-
-	client, err := s.createAPIServerClient()
-	if err != nil && len(s.APIServerList) > 0 {
-		glog.Warningf("No API client: %v", err)
-	}
-
-	glog.V(2).Infof("Using root directory: %v", s.RootDirectory)
-
-	credentialprovider.SetPreferredDockercfgPath(s.RootDirectory)
-
-	cadvisorInterface, err := cadvisor.New(s.CadvisorPort)
+// KubeletConfig generates the appropriate Kubelet config for the given server arguments, or returns an
+// error.
+func (s *KubeletServer) KubeletConfig() (*KubeletConfig, error) {
+	hostNetworkSources, err := kubelet.GetValidatedSources(strings.Split(s.HostNetworkSources, ","))
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	mounter := mount.New()
+	if s.Containerized {
+		glog.V(2).Info("Running kubelet in containerized mode (experimental)")
+		mounter = &mount.NsenterMounter{}
 	}
 
 	imageGCPolicy := kubelet.ImageGCPolicy{
 		HighThresholdPercent: s.ImageGCHighThresholdPercent,
 		LowThresholdPercent:  s.ImageGCLowThresholdPercent,
 	}
-
 	diskSpacePolicy := kubelet.DiskSpacePolicy{
 		DockerFreeDiskMB: s.LowDiskSpaceThresholdMB,
 		RootFreeDiskMB:   s.LowDiskSpaceThresholdMB,
 	}
-	cloud := cloudprovider.InitCloudProvider(s.CloudProvider, s.CloudConfigFile)
-	glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", s.CloudProvider, s.CloudConfigFile)
 
-	hostNetworkSources, err := kubelet.GetValidatedSources(strings.Split(s.HostNetworkSources, ","))
-	if err != nil {
-		return err
+	var dockerExecHandler dockertools.ExecHandler
+	switch s.DockerExecHandler {
+	case "native":
+		dockerExecHandler = &dockertools.NativeExecHandler{}
+	case "nsenter":
+		dockerExecHandler = &dockertools.NsenterExecHandler{}
+	default:
+		glog.Warningf("Unknown Docker exec handler %q; defaulting to native", s.DockerExecHandler)
+		dockerExecHandler = &dockertools.NativeExecHandler{}
 	}
 
 	if s.TLSCertFile == "" && s.TLSPrivateKeyFile == "" {
 		s.TLSCertFile = path.Join(s.CertDirectory, "kubelet.crt")
 		s.TLSPrivateKeyFile = path.Join(s.CertDirectory, "kubelet.key")
 		if err := util.GenerateSelfSignedCert(util.GetHostname(s.HostnameOverride), s.TLSCertFile, s.TLSPrivateKeyFile); err != nil {
-			return fmt.Errorf("unable to generate self signed cert: %v", err)
+			return nil, fmt.Errorf("unable to generate self signed cert: %v", err)
 		}
 		glog.V(4).Infof("Using self-signed cert (%s, %s)", s.TLSCertFile, s.TLSPrivateKeyFile)
 	}
@@ -298,13 +294,7 @@ func (s *KubeletServer) Run(_ []string) error {
 		KeyFile:  s.TLSPrivateKeyFile,
 	}
 
-	mounter := mount.New()
-	if s.Containerized {
-		glog.V(2).Info("Running kubelet in containerized mode (experimental)")
-		mounter = &mount.NsenterMounter{}
-	}
-
-	kcfg := KubeletConfig{
+	return &KubeletConfig{
 		Address:                        s.Address,
 		AllowPrivileged:                s.AllowPrivileged,
 		HostNetworkSources:             hostNetworkSources,
@@ -327,11 +317,8 @@ func (s *KubeletServer) Run(_ []string) error {
 		Runonce:                        s.RunOnce,
 		Port:                           s.Port,
 		ReadOnlyPort:                   s.ReadOnlyPort,
-		CadvisorInterface:              cadvisorInterface,
 		EnableServer:                   s.EnableServer,
 		EnableDebuggingHandlers:        s.EnableDebuggingHandlers,
-		DockerClient:                   dockertools.ConnectToDockerOrDie(s.DockerEndpoint),
-		KubeClient:                     client,
 		MasterServiceNamespace:         s.MasterServiceNamespace,
 		VolumePlugins:                  ProbeVolumePlugins(),
 		NetworkPlugins:                 ProbeNetworkPlugins(),
@@ -340,18 +327,69 @@ func (s *KubeletServer) Run(_ []string) error {
 		TLSOptions:                     tlsOptions,
 		ImageGCPolicy:                  imageGCPolicy,
 		DiskSpacePolicy:                diskSpacePolicy,
-		Cloud:                          cloud,
-		NodeStatusUpdateFrequency: s.NodeStatusUpdateFrequency,
-		ResourceContainer:         s.ResourceContainer,
-		CgroupRoot:                s.CgroupRoot,
-		ContainerRuntime:          s.ContainerRuntime,
-		Mounter:                   mounter,
-		DockerDaemonContainer:     s.DockerDaemonContainer,
-		ConfigureCBR0:             s.ConfigureCBR0,
-		MaxPods:                   s.MaxPods,
+		NodeStatusUpdateFrequency:      s.NodeStatusUpdateFrequency,
+		ResourceContainer:              s.ResourceContainer,
+		CgroupRoot:                     s.CgroupRoot,
+		ContainerRuntime:               s.ContainerRuntime,
+		Mounter:                        mounter,
+		DockerDaemonContainer:          s.DockerDaemonContainer,
+		ConfigureCBR0:                  s.ConfigureCBR0,
+		MaxPods:                        s.MaxPods,
+		DockerExecHandler:              dockerExecHandler,
+	}, nil
+}
+
+// Run runs the specified KubeletConfig and fills out any config that is not defined.  This should never exit.
+func (s *KubeletServer) Run(kcfg *KubeletConfig) error {
+	if kcfg == nil {
+		cfg, err := s.KubeletConfig()
+		if err != nil {
+			return err
+		}
+		kcfg = cfg
+	}
+	if kcfg.KubeClient == nil {
+		client, err := s.createAPIServerClient()
+		if err != nil && len(s.APIServerList) > 0 {
+			glog.Warningf("No API client: %v", err)
+		}
+		kcfg.KubeClient = client
 	}
 
-	if err := RunKubelet(&kcfg, nil); err != nil {
+	if kcfg.DockerClient == nil {
+		kcfg.DockerClient = dockertools.ConnectToDockerOrDie(s.DockerEndpoint)
+	}
+
+	if kcfg.CadvisorInterface == nil {
+		cadvisorInterface, err := cadvisor.New(s.CadvisorPort)
+		if err != nil {
+			return err
+		}
+		kcfg.CadvisorInterface = cadvisorInterface
+	}
+
+	if kcfg.Cloud == nil && s.CloudProvider != "" {
+		cloud, err := cloudprovider.InitCloudProvider(s.CloudProvider, s.CloudConfigFile)
+		if err != nil {
+			return err
+		}
+		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", s.CloudProvider, s.CloudConfigFile)
+		kcfg.Cloud = cloud
+	}
+
+	util.ReallyCrash = s.ReallyCrashForTesting
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	// TODO(vmarmol): Do this through container config.
+	if err := util.ApplyOomScoreAdj(0, s.OOMScoreAdj); err != nil {
+		glog.Warning(err)
+	}
+
+	glog.V(2).Infof("Using root directory: %v", s.RootDirectory)
+
+	credentialprovider.SetPreferredDockercfgPath(s.RootDirectory)
+
+	if err := RunKubelet(kcfg, nil); err != nil {
 		return err
 	}
 
@@ -514,6 +552,7 @@ func SimpleKubelet(client *client.Client,
 		Mounter:                   mount.New(),
 		DockerDaemonContainer:     "/docker-daemon",
 		MaxPods:                   32,
+		DockerExecHandler:         &dockertools.NativeExecHandler{},
 	}
 	return &kcfg
 }
@@ -650,6 +689,7 @@ type KubeletConfig struct {
 	DockerDaemonContainer          string
 	ConfigureCBR0                  bool
 	MaxPods                        int
+	DockerExecHandler              dockertools.ExecHandler
 }
 
 func createAndInitKubelet(kc *KubeletConfig) (k KubeletBootstrap, pc *config.PodConfig, err error) {
@@ -702,7 +742,8 @@ func createAndInitKubelet(kc *KubeletConfig) (k KubeletBootstrap, pc *config.Pod
 		kc.Mounter,
 		kc.DockerDaemonContainer,
 		kc.ConfigureCBR0,
-		kc.MaxPods)
+		kc.MaxPods,
+		kc.DockerExecHandler)
 
 	if err != nil {
 		return nil, nil, err

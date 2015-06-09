@@ -10,12 +10,14 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/admin/prune"
+	"github.com/openshift/origin/pkg/cmd/admin/registry"
+	"github.com/openshift/origin/pkg/cmd/admin/router"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
-	exregistry "github.com/openshift/origin/pkg/cmd/experimental/registry"
-	exrouter "github.com/openshift/origin/pkg/cmd/experimental/router"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	"github.com/openshift/origin/pkg/cmd/templates"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -34,10 +36,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 		Use:   name,
 		Short: "Tools for managing an OpenShift cluster",
 		Long:  fmt.Sprintf(adminLong),
-		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(out)
-			c.Help()
-		},
+		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 
 	f := clientcmd.New(cmds.PersistentFlags())
@@ -45,8 +44,8 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	cmds.AddCommand(project.NewCmdNewProject(project.NewProjectRecommendedName, fullName+" "+project.NewProjectRecommendedName, f, out))
 	cmds.AddCommand(policy.NewCommandPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out))
 	cmds.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
-	cmds.AddCommand(exrouter.NewCmdRouter(f, fullName, "router", out))
-	cmds.AddCommand(exregistry.NewCmdRegistry(f, fullName, "registry", out))
+	cmds.AddCommand(router.NewCmdRouter(f, fullName, "router", out))
+	cmds.AddCommand(registry.NewCmdRegistry(f, fullName, "registry", out))
 	cmds.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
 	cmds.AddCommand(node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out))
 	cmds.AddCommand(cmd.NewCmdConfig(fullName, "config"))
@@ -64,6 +63,9 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	cmds.AddCommand(admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, out))
 	cmds.AddCommand(admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, out))
 	cmds.AddCommand(admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, out))
+
+	// TODO: use groups
+	templates.ActsAsRootCommand(cmds)
 
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName))

@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -21,15 +22,11 @@ func NewCommandPrune(name, fullName string, f *clientcmd.Factory, out io.Writer)
 		Use:   name,
 		Short: "Remove older versions of resources from the server",
 		Long:  pruneLong,
-		Run:   runHelp,
+		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 
 	cmds.AddCommand(NewCmdPruneBuilds(f, fullName, PruneBuildsRecommendedName, out))
 	cmds.AddCommand(NewCmdPruneDeployments(f, fullName, PruneDeploymentsRecommendedName, out))
 	cmds.AddCommand(NewCmdPruneImages(f, fullName, PruneImagesRecommendedName, out))
 	return cmds
-}
-
-func runHelp(cmd *cobra.Command, args []string) {
-	cmd.Help()
 }

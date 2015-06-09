@@ -10,7 +10,7 @@ import (
 // RouteAllocationControllerFactory creates a RouteAllocationController
 // that allocates router shards to specific routes.
 type RouteAllocationControllerFactory struct {
-	// Client is is an OpenShift client.
+	// OSClient is is an OpenShift client.
 	OSClient osclient.Interface
 
 	// KubeClient is a Kubernetes client.

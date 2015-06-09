@@ -228,7 +228,7 @@ type etcdCache interface {
 
 func (h *EtcdHelper) getFromCache(index uint64) (runtime.Object, bool) {
 	trace := util.NewTrace("getFromCache")
-	defer trace.LogIfLong(200 * time.Microsecond)
+	defer trace.LogIfLong(1 * time.Millisecond)
 	startTime := time.Now()
 	defer func() {
 		cacheGetLatency.Observe(float64(time.Since(startTime) / time.Microsecond))

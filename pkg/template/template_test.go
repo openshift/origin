@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"regexp"
-	"strings"
 	"testing"
 
 	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
@@ -111,8 +110,8 @@ func TestParameterGenerators(t *testing.T) {
 func TestProcessValueEscape(t *testing.T) {
 	var template api.Template
 	if err := latest.Codec.DecodeInto([]byte(`{
-		"kind":"Template", "apiVersion":"v1beta1",
-		"items": [
+		"kind":"Template", "apiVersion":"v1",
+		"objects": [
 			{
 				"kind": "Service", "apiVersion": "v1beta3${VALUE}",
 				"metadata": {
@@ -160,8 +159,8 @@ func TestEvaluateLabels(t *testing.T) {
 	}{
 		"no labels": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1beta1",
-				"items": [
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1beta3",
 						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
@@ -180,8 +179,8 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"one different label": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1beta1",
-				"items": [
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1beta3",
 						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
@@ -202,8 +201,8 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"when the root object has labels and no metadata": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1beta1",
-				"items": [
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1beta1",
 						"labels": {
@@ -227,8 +226,8 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"when the root object has labels and metadata": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1beta1",
-				"items": [
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1beta1",
 						"metadata": {},
@@ -254,8 +253,8 @@ func TestEvaluateLabels(t *testing.T) {
 		},
 		"overwrites label": {
 			Input: `{
-				"kind":"Template", "apiVersion":"v1beta1",
-				"items": [
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
 					{
 						"kind": "Service", "apiVersion": "v1beta3",
 						"metadata": {"labels": {"key1": "v1", "key2": "v2"}	}
@@ -311,9 +310,14 @@ func TestEvaluateLabels(t *testing.T) {
 }
 
 func TestProcessTemplateParameters(t *testing.T) {
-	var template api.Template
+	var template, expectedTemplate api.Template
 	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
 	if err := latest.Codec.DecodeInto(jsonData, &template); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectedData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook_list.json")
+	if err := latest.Codec.DecodeInto(expectedData, &expectedTemplate); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -334,9 +338,9 @@ func TestProcessTemplateParameters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
-	expect := `{"kind":"Template","apiVersion":"v1beta3","metadata":{"name":"guestbook-example","creationTimestamp":null,"annotations":{"description":"Example shows how to build a simple multi-tier application using Kubernetes and Docker"}},"objects":[{"apiVersion":"v1beta1","host":"guestbook.example.com","id":"frontend-route","kind":"Route","metadata":{"name":"frontend-route"},"serviceName":"frontend-service"},{"apiVersion":"v1beta1","id":"frontend-service","kind":"Service","port":5432,"selector":{"name":"frontend-service"}},{"apiVersion":"v1beta1","id":"redis-master","kind":"Service","port":10000,"selector":{"name":"redis-master"}},{"apiVersion":"v1beta1","id":"redis-slave","kind":"Service","port":10001,"selector":{"name":"redis-slave"}},{"apiVersion":"v1beta1","desiredState":{"manifest":{"containers":[{"env":[{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"dockerfile/redis","name":"master","ports":[{"containerPort":6379}]}],"name":"redis-master","version":"v1beta1"}},"id":"redis-master","kind":"Pod","labels":{"name":"redis-master"}},{"apiVersion":"v1beta1","desiredState":{"podTemplate":{"desiredState":{"manifest":{"containers":[{"env":[{"name":"ADMIN_USERNAME","value":"adminQ3H"},{"name":"ADMIN_PASSWORD","value":"dwNJiJwW"},{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"brendanburns/php-redis","name":"php-redis","ports":[{"containerPort":80,"hostPort":8000}]}],"name":"guestbook","version":"v1beta1"}},"labels":{"name":"frontend-service"}},"replicaSelector":{"name":"frontend-service"},"replicas":3},"id":"guestbook","kind":"ReplicationController"},{"apiVersion":"v1beta1","desiredState":{"podTemplate":{"desiredState":{"manifest":{"containers":[{"env":[{"name":"REDIS_PASSWORD","value":"P8vxbV4C"}],"image":"brendanburns/redis-slave","name":"slave","ports":[{"containerPort":6379,"hostPort":6380}]}],"id":"redis-slave","version":"v1beta1"}},"labels":{"name":"redis-slave"}},"replicaSelector":{"name":"redis-slave"},"replicas":2},"id":"redis-slave","kind":"ReplicationController"}],"parameters":[{"name":"ADMIN_USERNAME","description":"Guestbook administrator username","value":"adminQ3H","generate":"expression","from":"admin[A-Z0-9]{3}"},{"name":"ADMIN_PASSWORD","description":"Guestbook administrator password","value":"dwNJiJwW","generate":"expression","from":"[a-zA-Z0-9]{8}"},{"name":"REDIS_PASSWORD","description":"Redis password","value":"P8vxbV4C","generate":"expression","from":"[a-zA-Z0-9]{8}"},{"name":"SLAVE_SERVICE_NAME","description":"Slave Service name","value":"redis-slave"},{"name":"CUSTOM_PARAM1","value":"1"}]}`
-	expect = strings.Replace(expect, "\n", "", -1)
-	if string(result) != expect {
-		t.Errorf("unexpected output: %s", util.StringDiff(expect, string(result)))
+	exp, _ := v1beta3.Codec.Encode(&expectedTemplate)
+
+	if string(result) != string(exp) {
+		t.Errorf("unexpected output: %s", util.StringDiff(string(exp), string(result)))
 	}
 }

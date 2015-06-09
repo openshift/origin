@@ -123,7 +123,7 @@ openshift admin create-node-config \
   --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
   --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
 
-osadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
+oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
 
 # create openshift config
 openshift start \
@@ -155,7 +155,7 @@ export HOME="${FAKE_HOME_DIR}"
 
 wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta1/minions/${KUBELET_HOST}" "apiserver(minions): " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta3/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
@@ -165,73 +165,75 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 #
 
 # test client not configured
-[ "$(osc get services 2>&1 | grep 'Error in configuration')" ]
+[ "$(oc get services 2>&1 | grep 'Error in configuration')" ]
 
-# Set KUBERNETES_MASTER for osc from now on
+# Set KUBERNETES_MASTER for oc from now on
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 
-# Set certificates for osc from now on
+# Set certificates for oc from now on
 if [[ "${API_SCHEME}" == "https" ]]; then
     # test bad certificate
-    [ "$(osc get services 2>&1 | grep 'certificate signed by unknown authority')" ]
+    [ "$(oc get services 2>&1 | grep 'certificate signed by unknown authority')" ]
 fi
 
 # login and logout tests
 # --token and --username are mutually exclusive
-[ "$(osc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify 2>&1 | grep 'mutually exclusive')" ]
+[ "$(oc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify 2>&1 | grep 'mutually exclusive')" ]
 # must only accept one arg (server)
-[ "$(osc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
+[ "$(oc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
 # logs in with a valid certificate authority
-osc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1beta3
+oc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1beta3
 grep -q "v1beta3" ${HOME}/.config/openshift/config
-osc logout
+oc logout
 # logs in skipping certificate check
-osc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
+oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
 # logs in by an existing and valid token
-temp_token=$(osc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
-[ "$(osc login --token=${temp_token} 2>&1 | grep 'using the token provided')" ]
-osc logout
+temp_token=$(oc config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
+[ "$(oc login --token=${temp_token} 2>&1 | grep 'using the token provided')" ]
+oc logout
 # properly parse server port
-[ "$(osc login https://server1:844333 2>&1 | grep 'Not a valid port')" ]
+[ "$(oc login https://server1:844333 2>&1 | grep 'Not a valid port')" ]
 # properly handle trailing slash
-osc login --server=${KUBERNETES_MASTER}/ --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+oc login --server=${KUBERNETES_MASTER}/ --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 # create a new project
-osc new-project project-foo --display-name="my project" --description="boring project description"
-[ "$(osc project | grep 'Using project "project-foo"')" ]
+oc new-project project-foo --display-name="my project" --description="boring project description"
+[ "$(oc project | grep 'Using project "project-foo"')" ]
 # denies access after logging out
-osc logout
-[ -z "$(osc get pods | grep 'system:anonymous')" ]
+oc logout
+[ -z "$(oc get pods | grep 'system:anonymous')" ]
 
 # log in and set project to use from now on
-osc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
-osc get projects
-osc project project-foo
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+oc get projects
+oc project project-foo
+[ "$(oc whoami | grep 'test-user')" ]
 
 # test config files from the --config flag
-osc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+oc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 
 # test config files from env vars
-OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" osc get services
+OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" oc get services
 
 # test config files in the home directory
 mkdir -p ${HOME}/.config/openshift
 cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.config/openshift/config
-osc get services
+oc get services
 mv ${HOME}/.config/openshift/config ${HOME}/.config/openshift/non-default-config
 echo "config files: ok"
 export OPENSHIFTCONFIG="${HOME}/.config/openshift/non-default-config"
 
 # from this point every command will use config from the OPENSHIFTCONFIG env var
 
-osc get templates
-osc create -f examples/sample-app/application-template-dockerbuild.json
-osc get templates
-osc get templates ruby-helloworld-sample
-osc process ruby-helloworld-sample
-osc describe templates ruby-helloworld-sample
-[ "$(osc describe templates ruby-helloworld-sample | grep -E "BuildConfig.*ruby-sample-build")" ]
-osc delete templates ruby-helloworld-sample
-osc get templates
+oc get templates
+oc create -f examples/sample-app/application-template-dockerbuild.json
+oc get templates
+oc get templates ruby-helloworld-sample
+oc get template ruby-helloworld-sample -o json | oc process -f -
+oc process ruby-helloworld-sample
+oc describe templates ruby-helloworld-sample
+[ "$(oc describe templates ruby-helloworld-sample | grep -E "BuildConfig.*ruby-sample-build")" ]
+oc delete templates ruby-helloworld-sample
+oc get templates
 # TODO: create directly from template
 echo "templates: ok"
 
@@ -249,31 +251,37 @@ echo "templates: ok"
 [ "$(openshift start kubernetes 2>&1)" ]
 [ "$(kubernetes 2>&1)" ]
 [ "$(kubectl 2>&1)" ]
+[ "$(oc 2>&1)" ]
 [ "$(osc 2>&1)" ]
-[ "$(os 2>&1)" ]
-[ "$(osadm 2>&1)" ]
+[ "$(oadm 2>&1)" ]
 [ "$(oadm 2>&1)" ]
 [ "$(origin 2>&1)" ]
 
 # help for root commands must be consistent
 [ "$(openshift | grep 'OpenShift Application Platform')" ]
-[ "$(osc | grep 'OpenShift Client')" ]
-[ "! $(osc | grep 'Options')" ]
-[ "! $(osc | grep 'Global Options')" ]
-[ "$(openshift cli | grep 'OpenShift Client')" ]
+[ "$(oc | grep 'OpenShift Client')" ]
+[ "$(oc | grep 'Build and Deploy Commands:')" ]
+[ "$(oc | grep 'Other Commands:')" ]
+[ "$(oc policy --help 2>&1 | grep 'add-role-to-user')" ]
+[ ! "$(oc policy --help 2>&1 | grep 'Other Commands')" ]
+[ ! "$(oc 2>&1 | grep 'Options')" ]
+[ ! "$(oc 2>&1 | grep 'Global Options')" ]
+[ "$(openshift cli 2>&1 | grep 'OpenShift Client')" ]
+[ "$(oc types | grep 'Deployment Config')" ]
 [ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
-[ "$(osadm 2>&1 | grep 'OpenShift Administrative Commands')" ]
+[ "$(oadm 2>&1 | grep 'OpenShift Administrative Commands')" ]
 [ "$(openshift admin 2>&1 | grep 'OpenShift Administrative Commands')" ]
 [ "$(openshift start kubernetes 2>&1 | grep 'Kubernetes server components')" ]
 
 # help for root commands with --help flag must be consistent
 [ "$(openshift --help 2>&1 | grep 'OpenShift Application Platform')" ]
-[ "$(osc --help 2>&1 | grep 'OpenShift Client')" ]
-[ "$(osc login --help 2>&1 | grep 'Options')" ]
-[ "! $(osc login --help 2>&1 | grep 'Global Options')" ]
+[ "$(oc --help 2>&1 | grep 'OpenShift Client')" ]
+[ "$(oc login --help 2>&1 | grep 'Options')" ]
+[ ! "$(oc login --help 2>&1 | grep 'Global Options')" ]
+[ "$(oc login --help 2>&1 | grep 'insecure-skip-tls-verify')" ]
 [ "$(openshift cli --help 2>&1 | grep 'OpenShift Client')" ]
 [ "$(openshift kubectl --help 2>&1 | grep 'Kubernetes cluster')" ]
-[ "$(osadm --help 2>&1 | grep 'OpenShift Administrative Commands')" ]
+[ "$(oadm --help 2>&1 | grep 'OpenShift Administrative Commands')" ]
 [ "$(openshift admin --help 2>&1 | grep 'OpenShift Administrative Commands')" ]
 
 # help for root commands through help command must be consistent
@@ -282,307 +290,334 @@ echo "templates: ok"
 [ "$(openshift help admin 2>&1 | grep 'OpenShift Administrative Commands')" ]
 
 # help for given command with --help flag must be consistent
-[ "$(osc get --help 2>&1 | grep 'Display one or many resources')" ]
+[ "$(oc get --help 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift cli get --help 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift kubectl get --help 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift start --help 2>&1 | grep 'Start an OpenShift all-in-one server')" ]
 [ "$(openshift start master --help 2>&1 | grep 'Start an OpenShift master')" ]
 [ "$(openshift start node --help 2>&1 | grep 'Start an OpenShift node')" ]
-[ "$(osc get --help 2>&1 | grep 'osc')" ]
+[ "$(oc get --help 2>&1 | grep 'oc')" ]
 
 # help for given command through help command must be consistent
-[ "$(osc help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift cli help get 2>&1 | grep 'Display one or many resources')" ]
-[ "$(openshift kubectl help get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(oc help get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift help cli get 2>&1 | grep 'Display one or many resources')" ]
+[ "$(openshift help kubectl get 2>&1 | grep 'Display one or many resources')" ]
 [ "$(openshift help start 2>&1 | grep 'Start an OpenShift all-in-one server')" ]
 [ "$(openshift help start master 2>&1 | grep 'Start an OpenShift master')" ]
 [ "$(openshift help start node 2>&1 | grep 'Start an OpenShift node')" ]
 [ "$(openshift cli help update 2>&1 | grep 'openshift')" ]
 
 # runnable commands with required flags must error consistently
-[ "$(osc get 2>&1 | grep 'you must provide one or more resources')" ]
+[ "$(oc get 2>&1 | grep 'you must provide one or more resources')" ]
 [ "$(openshift cli get 2>&1 | grep 'you must provide one or more resources')" ]
 [ "$(openshift kubectl get 2>&1 | grep 'you must provide one or more resources')" ]
 
 # commands that expect file paths must validate and error out correctly
-[ "$(osc login --certificate-authority=/path/to/invalid 2>&1 | grep 'no such file or directory')" ]
+[ "$(oc login --certificate-authority=/path/to/invalid 2>&1 | grep 'no such file or directory')" ]
 
-osc get pods --match-server-version
-osc create -f examples/hello-openshift/hello-pod.json
-osc describe pod hello-openshift
-osc delete pods hello-openshift
+# make sure that typoed commands come back with non-zero return codes
+[ "$(openshift admin policy TYPO; echo $? | grep '1')" ]
+[ "$(openshift admin TYPO; echo $? | grep '1')" ]
+[ "$(openshift cli TYPO; echo $? | grep '1')" ]
+[ "$(oc policy TYPO; echo $? | grep '1')" ]
+
+oc get pods --match-server-version
+oc create -f examples/hello-openshift/hello-pod.json
+oc describe pod hello-openshift
+oc delete pods hello-openshift
 echo "pods: ok"
 
-osc get services
-osc create -f test/integration/fixtures/test-service.json
-osc delete services frontend
+oc get services
+oc create -f test/integration/fixtures/test-service.json
+oc delete services frontend
 echo "services: ok"
 
-osc get minions
-echo "minions: ok"
+oc get nodes
+echo "nodes: ok"
 
-osc get images
-osc create -f test/integration/fixtures/test-image.json
-osc delete images test
+oc get images
+oc create -f test/integration/fixtures/test-image.json
+oc delete images test
 echo "images: ok"
 
-osc get imageStreams
-osc create -f test/integration/fixtures/test-image-stream.json
+oc get imageStreams
+oc create -f test/integration/fixtures/test-image-stream.json
 # make sure stream.status.dockerImageRepository isn't set (no registry)
-[ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(oc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 # create the registry
-osadm registry --create --credentials="${OPENSHIFTCONFIG}"
+oadm registry --create --credentials="${OPENSHIFTCONFIG}"
 # make sure stream.status.dockerImageRepository IS set
-[ -n "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(oc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 # ensure the registry rc has been created
-wait_for_command 'osc get rc docker-registry-1' "${TIME_MIN}"
+wait_for_command 'oc get rc docker-registry-1' "${TIME_MIN}"
 # delete the registry resources
-osc delete dc docker-registry
-osc delete svc docker-registry
-[ ! "$(osc get rc docker-registry-1)" ]
+oc delete svc docker-registry
+oc delete dc docker-registry
+[ ! "$(oc get dc docker-registry)" ]
+[ ! "$(oc get rc docker-registry-1)" ]
 # done deleting registry resources
-osc delete imageStreams test
-[ -z "$(osc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
-osc create -f examples/image-streams/image-streams-centos7.json
-[ -n "$(osc get imageStreams ruby -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams nodejs -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams mysql -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
-[ -n "$(osc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
+oc delete imageStreams test
+[ -z "$(oc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
+oc create -f examples/image-streams/image-streams-centos7.json
+[ -n "$(oc get imageStreams ruby -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(oc get imageStreams nodejs -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(oc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(oc get imageStreams mysql -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(oc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
+[ -n "$(oc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
 # verify the image repository had its tags populated
-[ -n "$(osc get imageStreams wildfly -t "{{.status.tags.latest}}")" ]
-[ -n "$(osc get imageStreams wildfly -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
-osc delete imageStreams ruby
-osc delete imageStreams nodejs
-osc delete imageStreams wildfly
-#osc delete imageStreams mysql
-osc delete imageStreams postgresql
-osc delete imageStreams mongodb
-[ -z "$(osc get imageStreams ruby -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams nodejs -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
-[ -z "$(osc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
-wait_for_command 'osc get imagestreamTags mysql:latest' "${TIME_MIN}"
-[ -n "$(osc get imagestreams mysql -t '{{ index .metadata.annotations "openshift.io/image.dockerRepositoryCheck"}}')" ]
-osc describe istag/mysql:latest
-[ "$(osc describe istag/mysql:latest | grep "Environment:")" ]
-[ "$(osc describe istag/mysql:latest | grep "Image Created:")" ]
-[ "$(osc describe istag/mysql:latest | grep "Image Name:")" ]
-name=$(osc get istag/mysql:latest -t '{{ .imageName }}')
+[ -n "$(oc get imageStreams wildfly -t "{{.status.tags.latest}}")" ]
+[ -n "$(oc get imageStreams wildfly -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
+oc delete imageStreams ruby
+oc delete imageStreams nodejs
+oc delete imageStreams wildfly
+#oc delete imageStreams mysql
+oc delete imageStreams postgresql
+oc delete imageStreams mongodb
+[ -z "$(oc get imageStreams ruby -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(oc get imageStreams nodejs -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(oc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(oc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
+[ -z "$(oc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
+wait_for_command 'oc get imagestreamTags mysql:latest' "${TIME_MIN}"
+[ -n "$(oc get imagestreams mysql -t '{{ index .metadata.annotations "openshift.io/image.dockerRepositoryCheck"}}')" ]
+oc describe istag/mysql:latest
+[ "$(oc describe istag/mysql:latest | grep "Environment:")" ]
+[ "$(oc describe istag/mysql:latest | grep "Image Created:")" ]
+[ "$(oc describe istag/mysql:latest | grep "Image Name:")" ]
+name=$(oc get istag/mysql:latest -t '{{ .image.metadata.name }}')
 imagename="isimage/mysql@${name:0:7}"
-osc describe ${imagename}
-[ "$(osc describe ${imagename} | grep "Environment:")" ]
-[ "$(osc describe ${imagename} | grep "Image Created:")" ]
-[ "$(osc describe ${imagename} | grep "Image Name:")" ]
+oc describe "${imagename}"
+[ "$(oc describe ${imagename} | grep "Environment:")" ]
+[ "$(oc describe ${imagename} | grep "Image Created:")" ]
+[ "$(oc describe ${imagename} | grep "Image Name:")" ]
 echo "imageStreams: ok"
 
-[ "$(osc new-app library/php mysql -o yaml | grep 3306)" ]
-[ ! "$(osc new-app unknownhubimage -o yaml)" ]
+[ "$(oc new-app library/php mysql -o yaml | grep 3306)" ]
+[ ! "$(oc new-app unknownhubimage -o yaml)" ]
 # verify we can generate a Docker image based component "mongodb" directly
-[ "$(osc new-app mongo -o yaml | grep library/mongo)" ]
+[ "$(oc new-app mongo -o yaml | grep library/mongo)" ]
 # the local image repository takes precedence over the Docker Hub "mysql" image
-[ "$(osc new-app mysql -o yaml | grep mysql-55-centos7)" ]
-osc delete all --all
-osc new-app library/php mysql -l no-source=php-mysql
-osc delete all -l no-source=php-mysql
+[ "$(oc new-app mysql -o yaml | grep mysql-55-centos7)" ]
+oc delete all --all
+oc new-app library/php mysql -l no-source=php-mysql
+oc delete all -l no-source=php-mysql
 # check if we can create from a stored template
-osc create -f examples/sample-app/application-template-stibuild.json
-osc get template ruby-helloworld-sample
-[ "$(osc new-app ruby-helloworld-sample -o yaml | grep MYSQL_USER)" ]
-[ "$(osc new-app ruby-helloworld-sample -o yaml | grep MYSQL_PASSWORD)" ]
-[ "$(osc new-app ruby-helloworld-sample -o yaml | grep ADMIN_USERNAME)" ]
-[ "$(osc new-app ruby-helloworld-sample -o yaml | grep ADMIN_PASSWORD)" ]
+oc create -f examples/sample-app/application-template-stibuild.json
+oc get template ruby-helloworld-sample
+[ "$(oc new-app ruby-helloworld-sample -o yaml | grep MYSQL_USER)" ]
+[ "$(oc new-app ruby-helloworld-sample -o yaml | grep MYSQL_PASSWORD)" ]
+[ "$(oc new-app ruby-helloworld-sample -o yaml | grep ADMIN_USERNAME)" ]
+[ "$(oc new-app ruby-helloworld-sample -o yaml | grep ADMIN_PASSWORD)" ]
 # check that we can create from the template without errors
-osc new-app ruby-helloworld-sample -l app=helloworld
-osc delete all -l app=helloworld
+oc new-app ruby-helloworld-sample -l app=helloworld
+oc delete all -l app=helloworld
 # create from template with code explicitly set is not supported
-[ ! "$(osc new-app ruby-helloworld-sample~git@github.com/mfojtik/sinatra-app-example)" ]
-osc delete template ruby-helloworld-sample
+[ ! "$(oc new-app ruby-helloworld-sample~git@github.com/mfojtik/sinatra-app-example)" ]
+oc delete template ruby-helloworld-sample
 # override component names
-[ "$(osc new-app mysql --name=db | grep db)" ]
-osc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
-osc delete all -l app=ruby
+[ "$(oc new-app mysql --name=db | grep db)" ]
+oc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
+oc delete all -l app=ruby
 echo "new-app: ok"
 
-osc get routes
-osc create -f test/integration/fixtures/test-route.json
-osc delete routes testroute
+oc get routes
+oc create -f test/integration/fixtures/test-route.json
+oc delete routes testroute
 echo "routes: ok"
 
-osc get deploymentConfigs
-osc get dc
-osc create -f test/integration/fixtures/test-deployment-config.json
-osc describe deploymentConfigs test-deployment-config
-[ "$(osc env dc/test-deployment-config --list | grep TEST=value)" ]
-[ ! "$(osc env dc/test-deployment-config TEST- --list | grep TEST=value)" ]
-[ "$(osc env dc/test-deployment-config TEST=foo --list | grep TEST=foo)" ]
-[ "$(osc env dc/test-deployment-config OTHER=foo --list | grep TEST=value)" ]
-[ ! "$(osc env dc/test-deployment-config OTHER=foo -c 'ruby' --list | grep OTHER=foo)" ]
-[ "$(osc env dc/test-deployment-config OTHER=foo -c 'ruby*'   --list | grep OTHER=foo)" ]
-[ "$(osc env dc/test-deployment-config OTHER=foo -c '*hello*' --list | grep OTHER=foo)" ]
-[ "$(osc env dc/test-deployment-config OTHER=foo -c '*world'  --list | grep OTHER=foo)" ]
-[ "$(osc env dc/test-deployment-config OTHER=foo --list | grep OTHER=foo)" ]
-[ "$(osc env dc/test-deployment-config OTHER=foo -o yaml | grep "name: OTHER")" ]
-[ "$(echo "OTHER=foo" | osc env dc/test-deployment-config -e - --list | grep OTHER=foo)" ]
-[ ! "$(echo "#OTHER=foo" | osc env dc/test-deployment-config -e - --list | grep OTHER=foo)" ]
-[ "$(osc env dc/test-deployment-config TEST=bar OTHER=baz BAR-)" ]
-osc deploy test-deployment-config
-osc delete deploymentConfigs test-deployment-config
+oc get deploymentConfigs
+oc get dc
+oc create -f test/integration/fixtures/test-deployment-config.json
+oc describe deploymentConfigs test-deployment-config
+[ "$(oc env dc/test-deployment-config --list | grep TEST=value)" ]
+[ ! "$(oc env dc/test-deployment-config TEST- --list | grep TEST=value)" ]
+[ "$(oc env dc/test-deployment-config TEST=foo --list | grep TEST=foo)" ]
+[ "$(oc env dc/test-deployment-config OTHER=foo --list | grep TEST=value)" ]
+[ ! "$(oc env dc/test-deployment-config OTHER=foo -c 'ruby' --list | grep OTHER=foo)" ]
+[ "$(oc env dc/test-deployment-config OTHER=foo -c 'ruby*'   --list | grep OTHER=foo)" ]
+[ "$(oc env dc/test-deployment-config OTHER=foo -c '*hello*' --list | grep OTHER=foo)" ]
+[ "$(oc env dc/test-deployment-config OTHER=foo -c '*world'  --list | grep OTHER=foo)" ]
+[ "$(oc env dc/test-deployment-config OTHER=foo --list | grep OTHER=foo)" ]
+[ "$(oc env dc/test-deployment-config OTHER=foo -o yaml | grep "name: OTHER")" ]
+[ "$(echo "OTHER=foo" | oc env dc/test-deployment-config -e - --list | grep OTHER=foo)" ]
+[ ! "$(echo "#OTHER=foo" | oc env dc/test-deployment-config -e - --list | grep OTHER=foo)" ]
+[ "$(oc env dc/test-deployment-config TEST=bar OTHER=baz BAR-)" ]
+oc deploy test-deployment-config
+oc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
-osc process -f test/templates/fixtures/guestbook.json --parameters --value="ADMIN_USERNAME=admin"
-osc process -f test/templates/fixtures/guestbook.json -l app=guestbook | osc create -f -
-osc status
-[ "$(osc status | grep frontend-service)" ]
+oc process -f test/templates/fixtures/guestbook.json --parameters --value="ADMIN_USERNAME=admin"
+oc process -f test/templates/fixtures/guestbook.json -l app=guestbook | oc create -f -
+oc status
+[ "$(oc status | grep frontend-service)" ]
 echo "template+config: ok"
-[ "$(OSC_EDITOR='cat' osc edit svc/kubernetes 2>&1 | grep 'Edit cancelled')" ]
-[ "$(OSC_EDITOR='cat' osc edit svc/kubernetes | grep 'provider: kubernetes')" ]
-osc delete all -l app=guestbook
+[ "$(OSC_EDITOR='cat' oc edit svc/kubernetes 2>&1 | grep 'Edit cancelled')" ]
+[ "$(OSC_EDITOR='cat' oc edit svc/kubernetes | grep 'provider: kubernetes')" ]
+oc delete all -l app=guestbook
 echo "edit: ok"
 
-osc delete all --all
-osc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
-wait_for_command 'osc get rc/ruby-hello-world-1' "${TIME_MIN}"
-# resize rc via deployment configuration
-osc resize dc ruby-hello-world --replicas=1
-# resize directly
-osc resize rc ruby-hello-world-1 --current-replicas=1 --replicas=5
-[ "$(osc get rc/ruby-hello-world-1 | grep 5)" ]
-osc delete all -l app=ruby
-echo "resize: ok"
+oc delete all --all
+oc create -f test/integration/fixtures/test-deployment-config.json
+oc deploy test-deployment-config --latest
+wait_for_command 'oc get rc/test-deployment-config-1' "${TIME_MIN}"
+# scale rc via deployment configuration
+oc scale dc test-deployment-config --replicas=1
+# scale directly
+oc scale rc test-deployment-config-1 --current-replicas=1 --replicas=5
+[ "$(oc get rc/test-deployment-config-1 | grep 5)" ]
+oc delete all --all
+echo "scale: ok"
 
-osc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | osc create -f -
-wait_for_command 'osc get rc/database-1' "${TIME_MIN}"
-osc get dc/database
-osc stop dc/database
-[ ! "$(osc get rc/database-1)" ]
-[ ! "$(osc get dc/database)" ]
+oc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -
+wait_for_command 'oc get rc/database-1' "${TIME_MIN}"
+oc get dc/database
+oc stop dc/database
+[ ! "$(oc get dc/database)" ]
+[ ! "$(oc get rc/database-1)" ]
 echo "stop: ok"
-osc label bc ruby-sample-build acustom=label
-[ "$(osc describe bc/ruby-sample-build | grep 'acustom=label')" ]
-osc delete all -l app=dockerbuild
+oc label bc ruby-sample-build acustom=label
+[ "$(oc describe bc/ruby-sample-build | grep 'acustom=label')" ]
+oc delete all -l app=dockerbuild
 echo "label: ok"
 
-osc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | osc create -f -
-osc get buildConfigs
-osc get bc
-osc get builds
+oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -
+oc get buildConfigs
+oc get bc
+oc get builds
 
-[[ $(osc describe buildConfigs ruby-sample-build --api-version=v1beta1 | grep --text "Webhook Github"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/github") ]]
-[[ $(osc describe buildConfigs ruby-sample-build --api-version=v1beta1 | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta1/buildConfigHooks/ruby-sample-build/secret101/generic") ]]
-osc start-build --list-webhooks='all' ruby-sample-build
-[[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "generic") ]]
-[[ $(osc start-build --list-webhooks='all' ruby-sample-build | grep --text "github") ]]
-[[ $(osc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101") ]]
-[ ! "$(osc start-build --list-webhooks='blah')" ]
-webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta1 | head -n 1)
-osc start-build --from-webhook="${webhook}"
-webhook=$(osc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta3 | head -n 1)
-osc start-build --from-webhook="${webhook}"
-osc get builds
-osc delete all -l build=docker
+[[ $(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook GitHub"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta3/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/github") ]]
+[[ $(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta3/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/generic") ]]
+oc start-build --list-webhooks='all' ruby-sample-build
+[[ $(oc start-build --list-webhooks='all' ruby-sample-build | grep --text "generic") ]]
+[[ $(oc start-build --list-webhooks='all' ruby-sample-build | grep --text "github") ]]
+[[ $(oc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101") ]]
+[ ! "$(oc start-build --list-webhooks='blah')" ]
+webhook=$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta3 | head -n 1)
+oc start-build --from-webhook="${webhook}"
+webhook=$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1 | head -n 1)
+oc start-build --from-webhook="${webhook}"
+oc get builds
+oc delete all -l build=docker
 echo "buildConfig: ok"
 
-osc create -f test/integration/fixtures/test-buildcli.json
+oc create -f test/integration/fixtures/test-buildcli.json
 # a build for which there is not an upstream tag in the corresponding imagerepo, so
 # the build should use the image field as defined in the buildconfig
-started=$(osc start-build ruby-sample-build-invalidtag)
-osc describe build ${started} | grep openshift/ruby-20-centos7$
+started=$(oc start-build ruby-sample-build-invalidtag)
+oc describe build ${started} | grep openshift/ruby-20-centos7$
 echo "start-build: ok"
 
-osc cancel-build "${started}" --dump-logs --restart
+oc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
-osc delete is/ruby-20-centos7-buildcli
-osc delete bc/ruby-sample-build-validtag
-osc delete bc/ruby-sample-build-invalidtag
+oc delete is/ruby-20-centos7-buildcli
+oc delete bc/ruby-sample-build-validtag
+oc delete bc/ruby-sample-build-invalidtag
 
 # Test admin manage-node operations
 [ "$(openshift admin manage-node --help 2>&1 | grep 'Manage node operations')" ]
-[ "$(osadm manage-node --schedulable=true | grep --text 'Ready' | grep -v 'Sched')" ]
-osc create -f examples/hello-openshift/hello-pod.json
-#[ "$(osadm manage-node --list-pods | grep 'hello-openshift' | grep -E '(unassigned|assigned)')" ]
-#[ "$(osadm manage-node --evacuate --dry-run | grep 'hello-openshift')" ]
-#[ "$(osadm manage-node --schedulable=false | grep 'SchedulingDisabled')" ]
-#[ "$(osadm manage-node --evacuate 2>&1 | grep 'Unable to evacuate')" ]
-#[ "$(osadm manage-node --evacuate --force | grep 'hello-openshift')" ]
-#[ ! "$(osadm manage-node --list-pods | grep 'hello-openshift')" ]
-osc delete pods hello-openshift
+[ "$(oadm manage-node --selector='' --schedulable=true | grep --text 'Ready' | grep -v 'Sched')" ]
+oc create -f examples/hello-openshift/hello-pod.json
+#[ "$(oadm manage-node --list-pods | grep 'hello-openshift' | grep -E '(unassigned|assigned)')" ]
+#[ "$(oadm manage-node --evacuate --dry-run | grep 'hello-openshift')" ]
+#[ "$(oadm manage-node --schedulable=false | grep 'SchedulingDisabled')" ]
+#[ "$(oadm manage-node --evacuate 2>&1 | grep 'Unable to evacuate')" ]
+#[ "$(oadm manage-node --evacuate --force | grep 'hello-openshift')" ]
+#[ ! "$(oadm manage-node --list-pods | grep 'hello-openshift')" ]
+oc delete pods hello-openshift
 echo "manage-node: ok"
 
-openshift admin policy add-role-to-group cluster-admin system:unauthenticated
-openshift admin policy add-role-to-user cluster-admin system:no-user
-openshift admin policy remove-role-from-group cluster-admin system:unauthenticated
-openshift admin policy remove-role-from-user cluster-admin system:no-user
-openshift admin policy remove-group system:unauthenticated
-openshift admin policy remove-user system:no-user
-openshift admin policy add-cluster-role-to-group cluster-admin system:unauthenticated
-openshift admin policy remove-cluster-role-from-group cluster-admin system:unauthenticated
-openshift admin policy add-cluster-role-to-user cluster-admin system:no-user
-openshift admin policy remove-cluster-role-from-user cluster-admin system:no-user
-echo "ex policy: ok"
+oadm policy add-role-to-group cluster-admin system:unauthenticated
+oadm policy add-role-to-user cluster-admin system:no-user
+oadm policy remove-role-from-group cluster-admin system:unauthenticated
+oadm policy remove-role-from-user cluster-admin system:no-user
+oadm policy remove-group system:unauthenticated
+oadm policy remove-user system:no-user
+oadm policy add-cluster-role-to-group cluster-admin system:unauthenticated
+oadm policy remove-cluster-role-from-group cluster-admin system:unauthenticated
+oadm policy add-cluster-role-to-user cluster-admin system:no-user
+oadm policy remove-cluster-role-from-user cluster-admin system:no-user
+
+oc policy add-role-to-group cluster-admin system:unauthenticated
+oc policy add-role-to-user cluster-admin system:no-user
+oc policy remove-role-from-group cluster-admin system:unauthenticated
+oc policy remove-role-from-user cluster-admin system:no-user
+oc policy remove-group system:unauthenticated
+oc policy remove-user system:no-user
+echo "policy: ok"
 
 # Test the commands the UI projects page tells users to run
 # These should match what is described in projects.html
-osadm new-project ui-test-project --admin="createuser"
-osadm policy add-role-to-user admin adduser -n ui-test-project
-# Make sure project can be listed by osc (after auth cache syncs)
-sleep 2 && [ "$(osc get projects | grep 'ui-test-project')" ]
+oadm new-project ui-test-project --admin="createuser"
+oadm policy add-role-to-user admin adduser -n ui-test-project
+# Make sure project can be listed by oc (after auth cache syncs)
+sleep 2 && [ "$(oc get projects | grep 'ui-test-project')" ]
 # Make sure users got added
-[ "$(osc describe policybinding ':default' -n ui-test-project | grep createuser)" ]
-[ "$(osc describe policybinding ':default' -n ui-test-project | grep adduser)" ]
+[ "$(oc describe policybinding ':default' -n ui-test-project | grep createuser)" ]
+[ "$(oc describe policybinding ':default' -n ui-test-project | grep adduser)" ]
 echo "ui-project-commands: ok"
 
 # Expose service as a route
-osc delete svc/frontend
-osc create -f test/integration/fixtures/test-service.json
-osc expose service frontend
-[ "$(osc get route frontend | grep 'name=frontend')" ]
-osc delete svc,route -l name=frontend
+oc delete svc/frontend
+oc create -f test/integration/fixtures/test-service.json
+oc expose service frontend
+[ "$(oc get route frontend | grep 'name=frontend')" ]
+oc delete svc,route -l name=frontend
 echo "expose: ok"
 
 # Test deleting and recreating a project
-osadm new-project recreated-project --admin="createuser1"
-osc delete project recreated-project
-wait_for_command '! osc get project recreated-project' "${TIME_MIN}"
-osadm new-project recreated-project --admin="createuser2"
-osc describe policybinding ':default' -n recreated-project | grep createuser2
-echo "ex new-project: ok"
+oadm new-project recreated-project --admin="createuser1"
+oc delete project recreated-project
+wait_for_command '! oc get project recreated-project' "${TIME_MIN}"
+oadm new-project recreated-project --admin="createuser2"
+oc describe policybinding ':default' -n recreated-project | grep createuser2
+echo "new-project: ok"
 
 # Test running a router
-[ ! "$(osadm router --dry-run | grep 'does not exist')" ]
-[ "$(osadm router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
-osadm router --create --credentials="${OPENSHIFTCONFIG}"
-[ "$(osadm router | grep 'service exists')" ]
-echo "ex router: ok"
+[ ! "$(oadm router --dry-run | grep 'does not exist')" ]
+[ "$(oadm router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
+oadm router --create --credentials="${OPENSHIFTCONFIG}"
+[ "$(oadm router | grep 'service exists')" ]
+echo "router: ok"
 
 # Test running a registry
-[ ! "$(osadm registry --dry-run | grep 'does not exist')"]
-[ "$(osadm registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
-osadm registry --create --credentials="${OPENSHIFTCONFIG}"
-[ "$(osadm registry | grep 'service exists')" ]
-echo "ex registry: ok"
+[ ! "$(oadm registry --dry-run | grep 'does not exist')"]
+[ "$(oadm registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
+oadm registry --create --credentials="${OPENSHIFTCONFIG}"
+[ "$(oadm registry | grep 'service exists')" ]
+echo "registry: ok"
 
 # Test building a dependency tree
-osc process -f examples/sample-app/application-template-stibuild.json -l build=sti | osc create -f -
+oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -
 [ "$(openshift ex build-chain --all -o dot | grep 'graph')" ]
-osc delete all -l build=sti
+oc delete all -l build=sti
 echo "ex build-chain: ok"
 
-osadm new-project example --admin="createuser"
-osc project example
-wait_for_command 'osc get serviceaccount default' "${TIME_MIN}"
-osc create -f test/fixtures/app-scenarios
-osc status
+oadm new-project example --admin="createuser"
+oc project example
+wait_for_command 'oc get serviceaccount default' "${TIME_MIN}"
+oc create -f test/fixtures/app-scenarios
+oc status
 echo "complex-scenarios: ok"
 
+[ "$(oc export svc --all -t '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | wc -l)" -ne 0 ]
+[ "$(oc export svc --all | grep 'portalIP: ""')" ]
+[ "$(oc export svc --all --as-template | grep 'kind: Template')" ]
+[ ! "$(oc export svc --all --exact | grep 'portalIP: ""')" ]
+[ ! "$(oc export svc --all --raw | grep 'portalIP: ""')" ]
+[ ! "$(oc export svc --all --raw --exact)" ]
+[ ! "$(oc export svc -l a=b)" ] # return error if no items match selector
+[ "$(oc export svc -l a=b 2>&1 | grep 'no resources found')" ]
+[ "$(oc export svc -l template=ruby-helloworld-sample)" ]
+[ "$(oc export -f examples/sample-app/application-template-stibuild.json --raw --output-version=v1 | grep 'apiVersion: v1')" ]
+echo "export: ok"
+
 # Clean-up everything before testing cleaning up everything...
-osc delete all --all
-osc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | osc create -f -
-osc delete all -l name=mytemplate
-osc new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
-osc delete all -l name=hello-world
+oc delete all --all
+oc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | oc create -f -
+oc delete all -l name=mytemplate
+oc new-app https://github.com/openshift/ruby-hello-world -l name=hello-world
+oc delete all -l name=hello-world
 echo "delete all: ok"
 
 echo

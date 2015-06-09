@@ -9,7 +9,8 @@ import (
 	"path"
 
 	"github.com/RangelReale/osincli"
-	"github.com/golang/glog"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/auth/server/login"
 )
@@ -86,7 +87,7 @@ func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.
 
 func renderToken(w io.Writer, data tokenData) {
 	if err := tokenTemplate.Execute(w, data); err != nil {
-		glog.Errorf("Unable to render token template: %v", err)
+		util.HandleError(fmt.Errorf("unable to render token template: %v", err))
 	}
 }
 
@@ -112,14 +113,14 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 {{ else }}
   <h3>Here is your brand new OAuth access token:</h3>
   <pre>{{.OAuthJSON}}</pre>
-  
+
   <h3>How do I use this token?</h3>
-  <pre>osc login --token={{.AccessToken}} --server={{.PublicMasterURL}}</pre>
+  <pre>oc login --token={{.AccessToken}} --server={{.PublicMasterURL}}</pre>
   <pre>curl -H "Authorization: Bearer {{.AccessToken}}" &hellip;</pre>
-  
+
   <h3>How do I delete this token when I'm done?</h3>
-  <pre>osc delete oauthaccesstoken {{.AccessToken}}</pre>
-  <pre>curl -X DELETE &hellip;/osapi/v1beta1/oAuthAccessTokens/{{.AccessToken}}</pre>
+  <pre>oc delete oauthaccesstoken {{.AccessToken}}</pre>
+  <pre>curl -X DELETE &hellip;/oapi/v1/oauthaccesstokens/{{.AccessToken}}</pre>
 {{ end }}
 
 <br><br>

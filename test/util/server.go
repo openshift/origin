@@ -12,17 +12,22 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 
 	"github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 )
+
+// ServiceAccountWaitTimeout is used to determine how long to wait for the service account
+// controllers to start up, and populate the service accounts in the test namespace
+const ServiceAccountWaitTimeout = 30 * time.Second
 
 func init() {
 	RequireEtcd()
@@ -158,6 +163,8 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 
 		APIServerURL:       masterURL.String(),
 		PublicAPIServerURL: publicMasterURL.String(),
+
+		Output: os.Stderr,
 	}
 
 	if err := createMasterCerts.Validate(nil); err != nil {
@@ -312,6 +319,20 @@ func StartTestMaster() (*configapi.MasterConfig, string, error) {
 	return master, adminKubeConfigFile, err
 }
 
+func WaitForServiceAccounts(client *kclient.Client, namespace string, accounts []string) error {
+	// Ensure the service accounts needed by build pods exist in the namespace
+	// The extra controllers tend to starve the service account controller
+	serviceAccounts := client.ServiceAccounts(namespace)
+	return wait.Poll(time.Second, ServiceAccountWaitTimeout, func() (bool, error) {
+		for _, account := range accounts {
+			if _, err := serviceAccounts.Get(account); err != nil {
+				return false, nil
+			}
+		}
+		return true, nil
+	})
+}
+
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns
 // back a client for the admin user
 func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Config, projectName, adminUser string) (*client.Client, error) {
@@ -322,7 +343,7 @@ func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Co
 		AdminUser:   adminUser,
 	}
 
-	if err := newProjectOptions.Run(); err != nil {
+	if err := newProjectOptions.Run(false); err != nil {
 		return nil, err
 	}
 

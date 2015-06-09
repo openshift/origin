@@ -20,8 +20,8 @@ func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, err
 	return &api.BuildConfig{
 		Triggers: []api.BuildTriggerPolicy{
 			{
-				Type: api.GithubWebHookBuildTriggerType,
-				GithubWebHook: &api.WebHookTrigger{
+				Type: api.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &api.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
@@ -115,7 +115,7 @@ func TestMissingEvent(t *testing.T) {
 	}
 }
 
-func TestWrongGithubEvent(t *testing.T) {
+func TestWrongGitHubEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
 		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
@@ -149,7 +149,7 @@ func TestJsonPushEventError(t *testing.T) {
 	post("X-GitHub-Event", "push", []byte{}, server.URL+"/build100/secret101/github", http.StatusBadRequest, t)
 }
 
-func TestJsonGithubPushEvent(t *testing.T) {
+func TestJsonGitHubPushEvent(t *testing.T) {
 	server := httptest.NewServer(webhook.NewController(&okBuildConfigGetter{}, &okBuildConfigInstantiator{},
 		map[string]webhook.Plugin{"github": New()}))
 	defer server.Close()
@@ -210,8 +210,8 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 		buildCfg: &api.BuildConfig{
 			Triggers: []api.BuildTriggerPolicy{
 				{
-					Type: api.GithubWebHookBuildTriggerType,
-					GithubWebHook: &api.WebHookTrigger{
+					Type: api.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &api.WebHookTrigger{
 						Secret: "secret101",
 					},
 				},

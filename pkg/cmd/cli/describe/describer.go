@@ -27,6 +27,7 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
@@ -463,7 +464,7 @@ func (d *ImageStreamTagDescriber) Describe(namespace, name string) (string, erro
 		return "", err
 	}
 
-	return describeImage(&imageStreamTag.Image, imageStreamTag.ImageName)
+	return describeImage(&imageStreamTag.Image, imageStreamTag.Image.Name)
 }
 
 // ImageStreamImageDescriber generates information about a ImageStreamImage (Image).
@@ -480,7 +481,7 @@ func (d *ImageStreamImageDescriber) Describe(namespace, name string) (string, er
 		return "", err
 	}
 
-	return describeImage(&imageStreamImage.Image, imageStreamImage.ImageName)
+	return describeImage(&imageStreamImage.Image, imageStreamImage.Image.Name)
 }
 
 // ImageStreamDescriber generates information about a ImageStream
@@ -552,15 +553,15 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 
 	nodeSelector := ""
 	if len(project.ObjectMeta.Annotations) > 0 {
-		if ns, ok := project.ObjectMeta.Annotations["openshift.io/node-selector"]; ok {
+		if ns, ok := project.ObjectMeta.Annotations[projectapi.ProjectNodeSelector]; ok {
 			nodeSelector = ns
 		}
 	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, project.ObjectMeta)
-		formatString(out, "Display Name", project.Annotations["displayName"])
-		formatString(out, "Description", project.Annotations["description"])
+		formatString(out, "Display Name", project.Annotations[projectapi.ProjectDisplayName])
+		formatString(out, "Description", project.Annotations[projectapi.ProjectDescription])
 		formatString(out, "Status", project.Status.Phase)
 		formatString(out, "Node Selector", nodeSelector)
 		fmt.Fprintf(out, "\n")

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/x509"
 	"net/url"
 	"reflect"
 	"strings"
@@ -9,12 +10,18 @@ import (
 	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/GoogleCloudPlatform/kubernetes/third_party/golang/netutil"
 
+	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	osclient "github.com/openshift/origin/pkg/client"
 )
 
-// getClusterNickname returns host:port of the clientConfig.Host, with .'s replaced by -'s
-func getClusterNickname(clientCfg *client.Config) (string, error) {
-	u, err := url.Parse(clientCfg.Host)
+// GetClusterNicknameFromConfig returns host:port of the clientConfig.Host, with .'s replaced by -'s
+func GetClusterNicknameFromConfig(clientCfg *client.Config) (string, error) {
+	return GetClusterNicknameFromURL(clientCfg.Host)
+}
+
+// GetClusterNicknameFromURL returns host:port of the apiServerLocation, with .'s replaced by -'s
+func GetClusterNicknameFromURL(apiServerLocation string) (string, error) {
+	u, err := url.Parse(apiServerLocation)
 	if err != nil {
 		return "", err
 	}
@@ -24,9 +31,9 @@ func getClusterNickname(clientCfg *client.Config) (string, error) {
 	return strings.Replace(hostPort, ".", "-", -1), nil
 }
 
-// getUserNickname returns "username(as known by the server)/getClusterNickname".  This allows tab completion for switching users to
+// GetUserNicknameFromConfig returns "username(as known by the server)/GetClusterNicknameFromConfig".  This allows tab completion for switching users to
 // work easily and obviously.
-func getUserNickname(clientCfg *client.Config) (string, error) {
+func GetUserNicknameFromConfig(clientCfg *client.Config) (string, error) {
 	client, err := osclient.New(clientCfg)
 	if err != nil {
 		return "", err
@@ -36,7 +43,7 @@ func getUserNickname(clientCfg *client.Config) (string, error) {
 		return "", err
 	}
 
-	clusterNick, err := getClusterNickname(clientCfg)
+	clusterNick, err := GetClusterNicknameFromConfig(clientCfg)
 	if err != nil {
 		return "", err
 	}
@@ -44,10 +51,19 @@ func getUserNickname(clientCfg *client.Config) (string, error) {
 	return userInfo.Name + "/" + clusterNick, nil
 }
 
-// getContextNickname returns "namespace/getClusterNickname/username(as known by the server)".  This allows tab completion for switching projects/context
+func GetUserNicknameFromCert(clusterNick string, chain ...*x509.Certificate) (string, error) {
+	userInfo, _, err := x509request.SubjectToUserConversion(chain)
+	if err != nil {
+		return "", err
+	}
+
+	return userInfo.GetName() + "/" + clusterNick, nil
+}
+
+// GetContextNicknameFromConfig returns "namespace/GetClusterNicknameFromConfig/username(as known by the server)".  This allows tab completion for switching projects/context
 // to work easily.  First tab is the most selective on project.  Second stanza in the next most selective on cluster name.  The chances of a user trying having
 // one projects on a single server that they want to operate against with two identities is low, so username is last.
-func getContextNickname(namespace string, clientCfg *client.Config) (string, error) {
+func GetContextNicknameFromConfig(namespace string, clientCfg *client.Config) (string, error) {
 	client, err := osclient.New(clientCfg)
 	if err != nil {
 		return "", err
@@ -57,7 +73,7 @@ func getContextNickname(namespace string, clientCfg *client.Config) (string, err
 		return "", err
 	}
 
-	clusterNick, err := getClusterNickname(clientCfg)
+	clusterNick, err := GetClusterNicknameFromConfig(clientCfg)
 	if err != nil {
 		return "", err
 	}
@@ -65,19 +81,24 @@ func getContextNickname(namespace string, clientCfg *client.Config) (string, err
 	return namespace + "/" + clusterNick + "/" + userInfo.Name, nil
 }
 
-// CreatePartialConfig takes a clientCfg and builds a config (kubeconfig style) from it.
+func GetContextNickname(namespace, clusterNick, userNick string) (string, error) {
+	tokens := strings.SplitN(userNick, "/", 2)
+	return namespace + "/" + clusterNick + "/" + tokens[0], nil
+}
+
+// CreateConfig takes a clientCfg and builds a config (kubeconfig style) from it.
 func CreateConfig(namespace string, clientCfg *client.Config) (*clientcmdapi.Config, error) {
-	clusterNick, err := getClusterNickname(clientCfg)
+	clusterNick, err := GetClusterNicknameFromConfig(clientCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	userNick, err := getUserNickname(clientCfg)
+	userNick, err := GetUserNicknameFromConfig(clientCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	contextNick, err := getContextNickname(namespace, clientCfg)
+	contextNick, err := GetContextNicknameFromConfig(namespace, clientCfg)
 	if err != nil {
 		return nil, err
 	}

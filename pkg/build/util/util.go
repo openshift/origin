@@ -6,16 +6,23 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/util/namer"
 )
+
+// BuildPodSuffix is the suffix used to append to a build pod name given a build name
+const BuildPodSuffix = "build"
 
 // GetBuildPodName returns name of the build pod.
 func GetBuildPodName(build *buildapi.Build) string {
-	return build.Name
+	return namer.GetPodName(build.Name, BuildPodSuffix)
 }
 
 // GetBuildName returns name of the build pod.
 func GetBuildName(pod *kapi.Pod) string {
-	return pod.Name
+	if pod.Annotations == nil {
+		return ""
+	}
+	return pod.Annotations[buildapi.BuildAnnotation]
 }
 
 // GetImageStreamForStrategy returns the ImageStream[Tag/Image] ObjectReference associated
@@ -50,6 +57,7 @@ func NameFromImageStream(namespace string, ref *kapi.ObjectReference, tag string
 	return ret
 }
 
+// IsBuildComplete returns whether the provided build is complete or not
 func IsBuildComplete(build *buildapi.Build) bool {
 	if build.Status != buildapi.BuildStatusRunning && build.Status != buildapi.BuildStatusPending && build.Status != buildapi.BuildStatusNew {
 		return true

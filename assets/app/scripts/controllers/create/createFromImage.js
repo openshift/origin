@@ -9,7 +9,8 @@ angular.module("openshiftConsole")
       Navigate, 
       NameGenerator, 
       ApplicationGenerator,
-      TaskList
+      TaskList,
+      failureObjectNameFilter
     ){
     function initAndValidate(scope){
 
@@ -46,10 +47,10 @@ angular.module("openshiftConsole")
         replicas: 1
       };
 
-      DataService.get("imageStreams", scope.imageName, scope, {namespace: scope.namespace}).then(function(imageRepo){
+      DataService.get("imagestreams", scope.imageName, scope, {namespace: scope.namespace}).then(function(imageRepo){
           scope.imageRepo = imageRepo;
           var imageName = scope.imageTag;
-          DataService.get("imageStreamTags", imageRepo.metadata.name + ":" + imageName, {namespace: scope.namespace}).then(function(image){
+          DataService.get("imagestreamtags", imageRepo.metadata.name + ":" + imageName, {namespace: scope.namespace}).then(function(image){
               scope.image = image;
               angular.forEach(image.dockerImageMetadata.ContainerConfig.Env, function(entry){
                 var pair = entry.split("=");
@@ -121,12 +122,7 @@ angular.module("openshiftConsole")
                 if (result.failure.length > 0) {
                   result.failure.forEach(
                     function(failure) {
-                      var objectName = "";
-                      if (failure.data && failure.data.details) {
-                        objectName = failure.data.details.kind + " " + failure.data.details.id;
-                      } else {
-                        objectName = "object";
-                      }
+                      var objectName = failureObjectNameFilter(failure) || "object";
                       alerts.push({
                         type: "error",
                         message: "Cannot create " + objectName + ". ",
@@ -136,7 +132,7 @@ angular.module("openshiftConsole")
                     }
                   );
                 } else {
-                  alerts.push({ type: "success", message: "All resource for application " + $scope.name +
+                  alerts.push({ type: "success", message: "All resources for application " + $scope.name +
                     " were created successfully."});
                 }
                 d.resolve({alerts: alerts, hasErrors: hasErrors});
@@ -178,7 +174,6 @@ angular.module("openshiftConsole")
         );
 
     };
-
   }
 );
 

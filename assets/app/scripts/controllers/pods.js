@@ -22,22 +22,22 @@ angular.module('openshiftConsole')
 
     watches.push(DataService.watch("pods", $scope, function(pods) {
       $scope.unfilteredPods = pods.by("metadata.name");
+      $scope.pods = LabelFilter.getLabelSelector().select($scope.unfilteredPods);
+      $scope.emptyMessage = "No pods to show";
       ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredPods, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
-      $scope.pods = LabelFilter.getLabelSelector().select($scope.unfilteredPods);
-      $scope.emptyMessage = "No pods to show";
       updateFilterWarning();
       Logger.log("pods (subscribe)", $scope.unfilteredPods);
     }));
 
     // Sets up subscription for imageStreams
-    watches.push(DataService.watch("imageStreams", $scope, function(imageStreams) {
+    watches.push(DataService.watch("imagestreams", $scope, function(imageStreams) {
       $scope.imageStreams = imageStreams.by("metadata.name");
       ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
       ImageStreamResolver.fetchReferencedImageStreamImages($scope.pods, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
-      Logger.log("imageStreams (subscribe)", $scope.imageStreams);
-    })); 
+      Logger.log("imagestreams (subscribe)", $scope.imageStreams);
+    }));
 
     watches.push(DataService.watch("builds", $scope, function(builds) {
       $scope.builds = builds.by("metadata.name");

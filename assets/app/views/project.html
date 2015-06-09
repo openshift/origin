@@ -3,7 +3,7 @@
     <div ng-controller="OverviewController">
       <tasks></tasks>
       <div class="page-header page-header-bleed-right">
-        <h1>Project {{(project | displayName) || project.metadata.name}}</h1>
+        <h1 title="{{project.metadata.name}}">Project {{(project | displayName) || project.metadata.name}}</h1>
       </div>
 
       <!-- TODO handle things that don't live under services -->
@@ -81,8 +81,9 @@
                 The full list is visible elsewhere.
                 -->
                 <span ng-repeat="portMapping in service.spec.ports | orderBy:'port' | limitTo:2" class="nowrap">
-                  port {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
-                    ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span>
+                  <!-- Group port mappings and allow multiple mappings to stack if needed -->
+                  <span class="port-mappings">port {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
+                    ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span></span>
                 </span>
                 <span ng-if="numPorts > 2" ng-init="numRemaining = numPorts - 2">
                   and {{numRemaining}} {{numRemaining == 1 ? "other" : "others"}}
@@ -104,7 +105,7 @@
           Pods in deployments created from this deployment config will be routed to by this service.
           Show things related to triggers that are about to create stuff, like builds.
           -->                
-          <triggers triggers="deploymentConfig.triggers"></triggers>
+          <triggers triggers="deploymentConfig.spec.triggers"></triggers>
         </div>
         <!--
         Iterate over all deployments for this service grouped by deploymentConfig (or lack thereof)
@@ -121,7 +122,7 @@
             Pods in deployments created from this deployment config will be routed to by this service.
             Show things related to triggers that are about to create stuff, like builds.
             -->                
-            <triggers triggers="deploymentConfigsByService[serviceId][deploymentConfigId].triggers"></triggers>
+            <triggers triggers="deploymentConfigsByService[serviceId][deploymentConfigId].spec.triggers"></triggers>
           </div>
 
           <!-- 
@@ -180,7 +181,7 @@
             Pods in deployments created from this deployment config will not be routed to by any service.
             Show things related to triggers that are about to create stuff, like builds.
             -->                
-            <triggers triggers="deploymentConfigs[deploymentConfigId].triggers"></triggers>
+            <triggers triggers="deploymentConfigs[deploymentConfigId].spec.triggers"></triggers>
           </div>                
 
           <!-- Make sure deploymentConfigs are loaded before testing if the deployment config is missing. -->

@@ -4,7 +4,6 @@
 
 .console-os {
   .wrap {
-    // height: 100%; Removing this so angular content changes don't bork flex height, dunno why???
     .sidebar-left {
       background: @sidebar-os-bg;
       position:relative;
@@ -192,8 +191,14 @@
               }
               ul.nav-sidenav-secondary {
                 margin-bottom: 20px;
-                > li > a {
-                  padding: 10px 0;
+                li {
+                  &.active a {
+                    text-decoration: underline;
+                    color: @link-hover-color;
+                  }
+                  a {
+                    padding: 10px 0;
+                  }
                 }
               }
             }
@@ -249,6 +254,7 @@
           .dl-horizontal {
             dt {
               float: none;
+              width: auto;
             }
             dd {
               margin-left: 0;
@@ -333,6 +339,14 @@
       &.show-sidebar-right {
         .sidebar-right {
           .flex(@columns: 0 0 @sidebar-right-width-lg);
+            .dl-horizontal {
+              dt {
+                width: 49%;
+              }
+              dd {
+                margin-left: 50%;
+              }
+            }
         }
       }
     }

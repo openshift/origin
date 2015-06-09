@@ -13,32 +13,28 @@ import (
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	"github.com/openshift/origin/pkg/cmd/experimental/bundlesecret"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
-	exregistry "github.com/openshift/origin/pkg/cmd/experimental/registry"
-	exrouter "github.com/openshift/origin/pkg/cmd/experimental/router"
 	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	"github.com/openshift/origin/pkg/cmd/infra/gitserver"
-	"github.com/openshift/origin/pkg/cmd/infra/router"
+	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
 
-const openshift_long = `OpenShift Application Platform.
+const openshiftLong = `OpenShift Application Platform.
 
 OpenShift helps you build, deploy, and manage your applications. To start an all-in-one server, run:
 
   $ openshift start &
 
 OpenShift is built around Docker and the Kubernetes cluster container manager.  You must have
-Docker installed on this machine to start your server.
-
-Note: This is a beta release of OpenShift and may change significantly.  See
-    https://github.com/openshift/origin for the latest information on OpenShift.`
+Docker installed on this machine to start your server.`
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
@@ -55,7 +51,7 @@ func CommandFor(basename string) *cobra.Command {
 
 	switch basename {
 	case "openshift-router":
-		cmd = router.NewCommandTemplateRouter(basename)
+		cmd = irouter.NewCommandTemplateRouter(basename)
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
 	case "openshift-sti-build":
@@ -64,9 +60,9 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = builder.NewCommandDockerBuilder(basename)
 	case "openshift-gitserver":
 		cmd = gitserver.NewCommandGitServer(basename)
-	case "osc", "os":
+	case "oc", "osc":
 		cmd = cli.NewCommandCLI(basename, basename)
-	case "osadm", "oadm":
+	case "oadm", "osadm":
 		cmd = admin.NewCommandAdmin(basename, basename, out)
 	case "kubectl":
 		cmd = cli.NewCmdKubectl(basename, out)
@@ -88,7 +84,9 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = NewCommandOpenShift("openshift")
 	}
 
-	templates.UseMainTemplates(cmd)
+	if cmd.UsageFunc() == nil {
+		templates.ActsAsRootCommand(cmd)
+	}
 	flagtypes.GLog(cmd.PersistentFlags())
 
 	return cmd
@@ -101,11 +99,8 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root := &cobra.Command{
 		Use:   name,
 		Short: "OpenShift helps you build, deploy, and manage your cloud applications",
-		Long:  openshift_long,
-		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(out)
-			c.Help()
-		},
+		Long:  openshiftLong,
+		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
@@ -123,7 +118,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	}
 
 	infra.AddCommand(
-		router.NewCommandTemplateRouter("router"),
+		irouter.NewCommandTemplateRouter("router"),
 		deployer.NewCommandDeployer("deploy"),
 		builder.NewCommandSTIBuilder("sti-build"),
 		builder.NewCommandDockerBuilder("docker-build"),
@@ -132,6 +127,9 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root.AddCommand(infra)
 
 	root.AddCommand(cmd.NewCmdOptions(out))
+
+	// TODO: add groups
+	templates.ActsAsRootCommand(root)
 
 	return root
 }
@@ -153,8 +151,6 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 
 	experimental.AddCommand(tokens.NewCmdTokens(tokens.TokenRecommendedCommandName, fullName+" "+tokens.TokenRecommendedCommandName, f, out))
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
-	experimental.AddCommand(exrouter.NewCmdRouter(f, fullName, "router", out))
-	experimental.AddCommand(exregistry.NewCmdRegistry(f, fullName, "registry", out))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
 	experimental.AddCommand(bundlesecret.NewCmdBundleSecret(f, fullName, "bundle-secret", out))
 	experimental.AddCommand(cmd.NewCmdOptions(out))

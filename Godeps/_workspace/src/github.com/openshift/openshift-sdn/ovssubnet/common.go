@@ -90,17 +90,15 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 	}
 
 	// initialize the subnet key?
-	err := oc.subnetRegistry.InitSubnets()
+	oc.subnetRegistry.InitSubnets()
 	subrange := make([]string, 0)
+	subnets, err := oc.subnetRegistry.GetSubnets()
 	if err != nil {
-		subnets, err := oc.subnetRegistry.GetSubnets()
-		if err != nil {
-			log.Errorf("Error in initializing/fetching subnets: %v", err)
-			return err
-		}
-		for _, sub := range *subnets {
-			subrange = append(subrange, sub.Sub)
-		}
+		log.Errorf("Error in initializing/fetching subnets: %v", err)
+		return err
+	}
+	for _, sub := range *subnets {
+		subrange = append(subrange, sub.Sub)
 	}
 
 	err = oc.subnetRegistry.WriteNetworkConfig(containerNetwork, containerSubnetLength)

@@ -21,11 +21,11 @@ type FakeCleaner struct {
 	cleanupCalled bool
 }
 
-func (f *FakeCleaner) Cleanup(*api.Request) {
+func (f *FakeCleaner) Cleanup(*api.Config) {
 	f.cleanupCalled = true
 }
 
-func (f *FakeUsageHandler) Prepare(*api.Request) error {
+func (f *FakeUsageHandler) Prepare(*api.Config) error {
 	return f.setupError
 }
 
@@ -34,12 +34,12 @@ func (f *FakeUsageHandler) SetScripts(r, o []string) {
 	f.setupOptional = o
 }
 
-func (f *FakeUsageHandler) Execute(command string, r *api.Request) error {
+func (f *FakeUsageHandler) Execute(command string, r *api.Config) error {
 	f.executeCommand = command
 	return f.executeError
 }
 
-func (f *FakeUsageHandler) Download(*api.Request) error {
+func (f *FakeUsageHandler) Download(*api.Config) error {
 	return nil
 }
 

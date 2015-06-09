@@ -74,9 +74,15 @@ describe('', function() {
       commonTeardown();
     });
 
+    it('should be able to show the create project page', function() {
+      browser.get('/createProject');
+      expect(element(by.cssContainingText("h1","Create Project")).isPresent()).toBe(true);
+      // TODO: attempt creating a project with a taken name
+      // TODO: attempt creating a new project, ensure all three fields are honored
+    });
+
     it('should be able to list the test project', function() {
       browser.get('/');
-
       expect(element(by.cssContainingText("h2.project","test")).isPresent()).toBe(true);
     });
 
@@ -95,7 +101,68 @@ describe('', function() {
       expect(element(by.cssContainingText(".deployment-trigger","new image for origin-ruby-sample:latest")).isPresent()).toBe(true);
 
       expect(element.all(by.css(".pod-running")).count()).toEqual(3);
+
+      // TODO: validate correlated images, builds, source
     });
+
+    it('should browse builds', function() {
+      browser.get('/project/test/browse/builds');
+      expect(element(by.css('h1')).getText()).toEqual("Builds");
+      // TODO: validate presented strategies, images, repos
+    });
+
+    it('should browse deployments', function() {
+      browser.get('/project/test/browse/deployments');
+      expect(element(by.css('h1')).getText()).toEqual("Deployments");
+      // TODO: validate presented deployments
+    });
+
+    it('should browse events', function() {
+      browser.get('/project/test/browse/events');
+      expect(element(by.css('h1')).getText()).toEqual("Events");
+      // TODO: validate presented events
+    });    
+
+    it('should browse image streams', function() {
+      browser.get('/project/test/browse/images');
+      expect(element(by.css('h1')).getText()).toEqual("Image Streams");
+      // TODO: validate presented images
+    });    
+
+    it('should browse pods', function() {
+      browser.get('/project/test/browse/pods');
+      expect(element(by.css('h1')).getText()).toEqual("Pods");
+      // TODO: validate presented pods, containers, correlated images, builds, source
+    });    
+
+    it('should browse services', function() {
+      browser.get('/project/test/browse/services');
+      expect(element(by.css('h1')).getText()).toEqual("Services");
+      // TODO: validate presented ports, routes, selectors
+    });    
+
+    it('should browse settings', function() {
+      browser.get('/project/test/settings');
+      expect(element(by.css('h1')).getText()).toEqual("Project Settings");
+      // TODO: validate presented project info, quota and resource info
+    });    
+
+    it('should view the create page', function() {
+      browser.get('/project/test/create');
+      expect(element(by.css('h1')).getText()).toEqual("Create");
+      // TODO: validate presented instant apps (load some during e2e)
+    });    
+
+    it('should view the create from source repo page', function() {
+      browser.get('/project/test/catalog/images?builderfor=https:%2F%2Fgithub.com%2Fopenshift%2Fnodejs-ex');
+      expect(element(by.css('h1')).getText()).toEqual("Select a builder image");
+      // TODO: validate presented builder images (load some during e2e)
+    });
+
+    // TODO: show final page of create from source flow
+
+    // TODO: show final page of create from template flow
+
   });
 
 });

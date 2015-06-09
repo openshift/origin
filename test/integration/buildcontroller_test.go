@@ -17,6 +17,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -27,15 +28,15 @@ var (
 
 	// ConcurrentBuildControllersTestWait is the time that TestConcurrentBuildControllers waits
 	// for any other changes to happen when testing whether only a single build got processed
-	ConcurrentBuildControllersTestWait = 15 * time.Second
+	ConcurrentBuildControllersTestWait = 5 * time.Second
 
 	// ConcurrentBuildPodControllersTestWait is the time that TestConcurrentBuildPodControllers waits
 	// after a state transition to make sure other state transitions don't occur unexpectedly
-	ConcurrentBuildPodControllersTestWait = 15 * time.Second
+	ConcurrentBuildPodControllersTestWait = 10 * time.Second
 
 	// BuildControllersWatchTimeout is used by all tests to wait for watch events. In case where only
 	// a single watch event is expected, the test will fail after the timeout.
-	BuildControllersWatchTimeout = 15 * time.Second
+	BuildControllersWatchTimeout = 5 * time.Second
 )
 
 func init() {
@@ -299,6 +300,11 @@ func setupBuildControllerTest(additionalBuildControllers, additionalBuildPodCont
 		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
 	})
 	checkErr(t, err)
+
+	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
 	openshiftConfig, err := origin.BuildMasterConfig(*master)
 	checkErr(t, err)
 	for i := 0; i < additionalBuildControllers; i++ {
@@ -388,7 +394,10 @@ func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, 
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Parameters.Output.To.Name != "test-image-trigger-repo" || newBuild.Parameters.Output.Tag != "outputtag" {
+	if newBuild.Parameters.Output.To != nil {
+		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
+	}
+	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger" || newBuild.Parameters.Output.Tag != "outputtag" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
 	}
 	if newBuild.Labels["testlabel"] != "testvalue" {
@@ -479,7 +488,10 @@ WaitLoop2:
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Parameters.Output.To.Name != "test-image-trigger-repo" || newBuild.Parameters.Output.Tag != "outputtag" {
+	if newBuild.Parameters.Output.To != nil {
+		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
+	}
+	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger" || newBuild.Parameters.Output.Tag != "outputtag" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
 	}
 	if newBuild.Labels["testlabel"] != "testvalue" {
@@ -541,8 +553,8 @@ func runBuildDeleteTest(t *testing.T, clusterAdminClient *client.Client, cluster
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	pod := event.Object.(*kapi.Pod)
-	if pod.Name != newBuild.Name {
-		t.Fatalf("Expected pod %s to be deleted, but pod %s was deleted", newBuild.Name, pod.Name)
+	if expected := buildutil.GetBuildPodName(newBuild); pod.Name != expected {
+		t.Fatalf("Expected pod %s to be deleted, but pod %s was deleted", expected, pod.Name)
 	}
 
 }
@@ -588,7 +600,7 @@ func runBuildRunningPodDeleteTest(t *testing.T, clusterAdminClient *client.Clien
 		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status)
 	}
 
-	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(newBuild.Name, kapi.NewDeleteOptions(0))
+	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(buildutil.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
 	event = waitForWatch(t, "build updated to error", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
@@ -652,7 +664,7 @@ func runBuildCompletePodDeleteTest(t *testing.T, clusterAdminClient *client.Clie
 		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status)
 	}
 
-	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(newBuild.Name, kapi.NewDeleteOptions(0))
+	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(buildutil.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
 	time.Sleep(10 * time.Second)
 	newBuild, err = clusterAdminClient.Builds(testutil.Namespace()).Get(newBuild.Name)
 	if err != nil {

@@ -51,7 +51,7 @@ angular.module('openshiftConsole')
         $scope.buildConfigBuildsInProgress[buildConfigName][buildName] = build;
       } else if (action === 'MODIFIED'){
         // After the build ends remove him from the buildConfigBuildsInProgress structure.
-        var buildStatus = build.status;
+        var buildStatus = build.status.phase;
         if (buildStatus === "Complete" || buildStatus === "Failed" || buildStatus === "Error" || buildStatus === "Cancelled"){
           delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
         }
@@ -60,9 +60,9 @@ angular.module('openshiftConsole')
       Logger.log("builds (subscribe)", $scope.unfilteredBuilds);
     }));
 
-    watches.push(DataService.watch("buildConfigs", $scope, function(buildConfigs) {
+    watches.push(DataService.watch("buildconfigs", $scope, function(buildConfigs) {
       $scope.buildConfigs = buildConfigs.by("metadata.name");
-      Logger.log("buildConfigs (subscribe)", $scope.buildConfigs);
+      Logger.log("buildconfigs (subscribe)", $scope.buildConfigs);
     }));
 
     function associateRunningBuildToBuildConfig(buildsByBuildConfig) {
@@ -70,7 +70,7 @@ angular.module('openshiftConsole')
       angular.forEach(buildsByBuildConfig, function(buildConfigBuilds, buildConfigName) {
         buildConfigBuildsInProgress[buildConfigName] = {};
         angular.forEach(buildConfigBuilds, function(build, buildName) {
-          var buildStatus = build.status;
+          var buildStatus = build.status.phase;
           if (buildStatus === "New" || buildStatus === "Pending" || buildStatus === "Running") {
             buildConfigBuildsInProgress[buildConfigName][buildName] = build;
           }
@@ -94,7 +94,7 @@ angular.module('openshiftConsole')
     // Function which will 'instantiate' new build from given buildConfigName
     $scope.startBuild = function(buildConfigName) {
       var req = {metadata:{name:buildConfigName}};
-      DataService.create("buildConfigs/instantiate", buildConfigName, req, $scope).then(
+      DataService.create("buildconfigs/instantiate", buildConfigName, req, $scope).then(
         function(build) { //success
             $scope.alerts = [
             {
@@ -108,7 +108,7 @@ angular.module('openshiftConsole')
             {
               type: "error",
               message: "An error occurred while starting the build.",
-              details: "Status: " + result.status + ". " + result.data,
+              details: getErrorDetails(result)
             }
           ];
         }
@@ -132,7 +132,7 @@ angular.module('openshiftConsole')
             {
               type: "error",
               message: "An error occurred while rerunning the build.",
-              details: "Status: " + result.status + ". " + result.data,
+              details: getErrorDetails(result)
             }
           ];
         }
@@ -146,6 +146,20 @@ angular.module('openshiftConsole')
         updateFilterWarning();
       });
     });
+
+    function getErrorDetails(result) {
+      var error = result.data || {};
+      if (error.message) {
+        return error.message;
+      }
+
+      var status = result.status || error.status;
+      if (status) {
+        return "Status: " + status;
+      }
+
+      return "";
+    }
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);

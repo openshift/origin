@@ -14,7 +14,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -86,13 +85,6 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out 
 	// Login is the only command that can negotiate a session token against the auth server using basic auth
 	cmds.Flags().StringVarP(&options.Username, "username", "u", "", "Username, will prompt if not provided")
 	cmds.Flags().StringVarP(&options.Password, "password", "p", "", "Password, will prompt if not provided")
-
-	templater := templates.Templater{
-		UsageTemplate: templates.MainUsageTemplate(),
-		Exposed:       []string{"certificate-authority", "insecure-skip-tls-verify"},
-	}
-	cmds.SetUsageFunc(templater.UsageFunc())
-	cmds.SetHelpTemplate(templates.MainHelpTemplate())
 
 	return cmds
 }
@@ -191,7 +183,7 @@ func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
 	}
 
 	if newFileCreated {
-		fmt.Fprintln(options.Out, "Welcome to OpenShift! See 'osc help' to get started.")
+		fmt.Fprintln(options.Out, "Welcome to OpenShift! See 'oc help' to get started.")
 	}
 	return nil
 }

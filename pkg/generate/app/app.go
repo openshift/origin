@@ -118,8 +118,8 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 			ContextDir: r.ContextDir,
 		}, []buildapi.BuildTriggerPolicy{
 			{
-				Type: buildapi.GithubWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{
+				Type: buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildapi.WebHookTrigger{
 					Secret: generateSecret(20),
 				},
 			},
@@ -184,15 +184,23 @@ func (r *ImageRef) NameReference() string {
 
 // ObjectReference returns an object reference from the image reference
 func (r *ImageRef) ObjectReference() *kapi.ObjectReference {
-	if r.Stream != nil {
+	switch {
+	case r.Stream != nil:
+		return &kapi.ObjectReference{
+			Kind:      "ImageStreamTag",
+			Name:      imageapi.NameAndTag(r.Stream.Name, r.Tag),
+			Namespace: r.Stream.Namespace,
+		}
+	case r.AsImageStream:
 		return &kapi.ObjectReference{
 			Kind: "ImageStreamTag",
-			Name: r.Stream.Name + ":" + r.Tag,
+			Name: imageapi.NameAndTag(r.Name, r.Tag),
 		}
-	}
-	return &kapi.ObjectReference{
-		Kind: "DockerImage",
-		Name: r.String(),
+	default:
+		return &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: r.String(),
+		}
 	}
 }
 
@@ -223,8 +231,13 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 	if err != nil {
 		return nil, err
 	}
+	kind := ""
+	if !r.AsImageStream {
+		kind = "DockerImage"
+	}
 	return &buildapi.BuildOutput{
 		To: &kapi.ObjectReference{
+			Kind: kind,
 			Name: imageRepo.Name,
 		},
 		Tag: r.Tag,
@@ -233,7 +246,12 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 
 // BuildTriggers sets up build triggers for the base image
 func (r *ImageRef) BuildTriggers() []buildapi.BuildTriggerPolicy {
-	return []buildapi.BuildTriggerPolicy{}
+	return []buildapi.BuildTriggerPolicy{
+		{
+			Type:        buildapi.ImageChangeBuildTriggerType,
+			ImageChange: &buildapi.ImageChangeTrigger{},
+		},
+	}
 }
 
 // ImageStream returns an ImageStream from an image reference
@@ -252,7 +270,14 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 			Name: name,
 		},
 		Spec: imageapi.ImageStreamSpec{
-			Tags: map[string]imageapi.TagReference{imageapi.DefaultImageTag: {DockerImageReference: r.DockerImageReference.String()}},
+			Tags: map[string]imageapi.TagReference{
+				imageapi.DefaultImageTag: {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: r.DockerImageReference.String(),
+					},
+				},
+			},
 		},
 	}
 	if !r.OutputImage {
@@ -274,17 +299,27 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 		if len(tag) == 0 {
 			tag = imageapi.DefaultImageTag
 		}
+		imageChangeParams := &deployapi.DeploymentTriggerImageChangeParams{
+			Automatic:      true,
+			ContainerNames: []string{name},
+			Tag:            tag,
+		}
+		if r.Stream != nil {
+			imageChangeParams.From = kapi.ObjectReference{
+				Kind:      "ImageStream",
+				Name:      r.Stream.Name,
+				Namespace: r.Stream.Namespace,
+			}
+		} else {
+			imageChangeParams.From = kapi.ObjectReference{
+				Kind: "ImageStream",
+				Name: r.Name,
+			}
+		}
 		triggers = []deployapi.DeploymentTriggerPolicy{
 			{
-				Type: deployapi.DeploymentTriggerOnImageChange,
-				ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
-					Automatic:      true,
-					ContainerNames: []string{name},
-					From: kapi.ObjectReference{
-						Name: name,
-					},
-					Tag: tag,
-				},
+				Type:              deployapi.DeploymentTriggerOnImageChange,
+				ImageChangeParams: imageChangeParams,
 			},
 		}
 	}

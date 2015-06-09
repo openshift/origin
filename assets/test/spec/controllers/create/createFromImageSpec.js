@@ -23,9 +23,6 @@ describe("CreateFromImageController", function(){
         $routeParams: $routeParams,
         DataService: {
           get: function(kind){
-            if(kind === 'imageRepositories'){
-              return {};
-            }
             return {};
           }
         },

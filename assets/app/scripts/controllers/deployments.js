@@ -51,17 +51,17 @@ angular.module('openshiftConsole')
       Logger.log("deployments (subscribe)", $scope.deployments);
     }));
 
-    watches.push(DataService.watch("deploymentConfigs", $scope, function(deploymentConfigs) {
+    watches.push(DataService.watch("deploymentconfigs", $scope, function(deploymentConfigs) {
       $scope.deploymentConfigs = deploymentConfigs.by("metadata.name");
-      Logger.log("deploymentConfigs (subscribe)", $scope.deploymentConfigs);
+      Logger.log("deploymentconfigs (subscribe)", $scope.deploymentConfigs);
     }));
 
     // Sets up subscription for imageStreams
-    watches.push(DataService.watch("imageStreams", $scope, function(imageStreams) {
+    watches.push(DataService.watch("imagestreams", $scope, function(imageStreams) {
       $scope.imageStreams = imageStreams.by("metadata.name");
       ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
       ImageStreamResolver.fetchReferencedImageStreamImages($scope.podTemplates, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
-      Logger.log("imageStreams (subscribe)", $scope.imageStreams);
+      Logger.log("imagestreams (subscribe)", $scope.imageStreams);
     }));
 
     watches.push(DataService.watch("builds", $scope, function(builds) {

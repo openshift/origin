@@ -1,10 +1,23 @@
 package builder
 
 import (
+	"fmt"
 	"os"
+	"time"
 
-	"github.com/fsouza/go-dockerclient"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
+	docker "github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/tar"
+)
+
+var (
+	// DefaultPushRetryCount is the number of retries of pushing the built Docker image
+	// into a configured repository
+	DefaultPushRetryCount = 2
+	// DefaultPushRetryDelay is the time to wait before triggering a push retry
+	DefaultPushRetryDelay = 10 * time.Second
 )
 
 // DockerClient is an interface to the Docker client that contains
@@ -22,7 +35,20 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		Name: repository,
 		Tag:  tag,
 	}
-	return client.PushImage(opts, authConfig)
+	var err error
+	for retries := 0; retries <= DefaultPushRetryCount; retries++ {
+		err = client.PushImage(opts, authConfig)
+		if err == nil {
+			return nil
+		}
+		if retries == DefaultPushRetryCount {
+			return err
+		}
+		util.HandleError(fmt.Errorf("push for image %s failed, will retry in %s ...", name, DefaultPushRetryDelay))
+		glog.Flush()
+		time.Sleep(DefaultPushRetryDelay)
+	}
+	return err
 }
 
 func removeImage(client DockerClient, name string) error {

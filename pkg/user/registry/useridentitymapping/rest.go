@@ -10,10 +10,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
-	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/user/api"
-	"github.com/openshift/origin/pkg/user/api/validation"
 	"github.com/openshift/origin/pkg/user/registry/identity"
 	"github.com/openshift/origin/pkg/user/registry/user"
 )
@@ -31,81 +29,9 @@ func NewREST(userRegistry user.Registry, identityRegistry identity.Registry) *RE
 	return &REST{userRegistry: userRegistry, identityRegistry: identityRegistry}
 }
 
-// userIdentityMappingStrategy implements behavior for image repository mappings.
-type userIdentityMappingStrategy struct {
-	runtime.ObjectTyper
-}
-
-// Strategy is the default logic that applies when creating UserIdentityMapping
-// objects via the REST API.
-var Strategy = userIdentityMappingStrategy{kapi.Scheme}
-
 // New returns a new UserIdentityMapping for use with Create.
 func (r *REST) New() runtime.Object {
 	return &api.UserIdentityMapping{}
-}
-
-// NamespaceScoped is true for image repository mappings.
-func (s userIdentityMappingStrategy) NamespaceScoped() bool {
-	return false
-}
-
-func (userIdentityMappingStrategy) GenerateName(base string) string {
-	return base
-}
-
-func (userIdentityMappingStrategy) AllowCreateOnUpdate() bool {
-	return true
-}
-
-// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object) {
-	mapping := obj.(*api.UserIdentityMapping)
-
-	if len(mapping.Name) == 0 {
-		mapping.Name = mapping.Identity.Name
-	}
-	mapping.Namespace = ""
-	mapping.ResourceVersion = ""
-
-	mapping.Identity.Namespace = ""
-	mapping.Identity.Kind = ""
-	mapping.Identity.UID = ""
-
-	mapping.User.Namespace = ""
-	mapping.User.Kind = ""
-	mapping.User.UID = ""
-}
-
-// PrepareForUpdate clears fields that are not allowed to be set by end users on update
-func (s userIdentityMappingStrategy) PrepareForUpdate(obj, old runtime.Object) {
-	mapping := obj.(*api.UserIdentityMapping)
-
-	if len(mapping.Name) == 0 {
-		mapping.Name = mapping.Identity.Name
-	}
-	mapping.Namespace = ""
-
-	mapping.Identity.Namespace = ""
-	mapping.Identity.Kind = ""
-	mapping.Identity.UID = ""
-
-	mapping.User.Namespace = ""
-	mapping.User.Kind = ""
-	mapping.User.UID = ""
-}
-
-// Validate validates a new UserIdentityMapping.
-func (s userIdentityMappingStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	mapping := obj.(*api.UserIdentityMapping)
-	return validation.ValidateUserIdentityMapping(mapping)
-}
-
-// Validate validates an updated UserIdentityMapping.
-func (s userIdentityMappingStrategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime.Object) fielderrors.ValidationErrorList {
-	mapping := obj.(*api.UserIdentityMapping)
-	oldmapping := old.(*api.UserIdentityMapping)
-	return validation.ValidateUserIdentityMappingUpdate(mapping, oldmapping)
 }
 
 // Get returns the mapping for the named identity
@@ -229,7 +155,7 @@ func (s *REST) createOrUpdate(ctx kapi.Context, obj runtime.Object, forceCreate 
 	// If this fails, log the error, but continue, because Update is no longer re-entrant
 	if oldUser != nil && removeIdentityFromUser(identity, oldUser) {
 		if _, err := s.userRegistry.UpdateUser(ctx, oldUser); err != nil {
-			glog.Errorf("Error removing identity reference %s from user %s: %v", identity.Name, oldUser.Name, err)
+			util.HandleError(fmt.Errorf("error removing identity reference %s from user %s: %v", identity.Name, oldUser.Name, err))
 		}
 	}
 
@@ -258,7 +184,7 @@ func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
 	// At this point, the mapping for the identity no longer exists
 	if unsetIdentityUser(identity) {
 		if _, err := s.identityRegistry.UpdateIdentity(ctx, identity); err != nil {
-			glog.Errorf("Error removing user reference %s from identity %s: %v", user.Name, identity.Name, err)
+			util.HandleError(fmt.Errorf("error removing user reference %s from identity %s: %v", user.Name, identity.Name, err))
 		}
 	}
 

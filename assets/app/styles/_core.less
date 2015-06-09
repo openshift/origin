@@ -8,6 +8,7 @@ html, body {
 
 .console-os {
   background-color: @body-bg;
+  height: ~"calc(100% - 121px)"; // removes scrollbar on pages with less than full viewport content
   #content-wrap {
     height: 100%;
     .content {
@@ -18,6 +19,9 @@ html, body {
     background-color: @body-bg;
     padding-bottom: @grid-gutter-width * 2;
     .flex(@columns: 1);
+    h1 {
+      word-wrap: break-word;
+    }
   }
   #content-wrap > .container {
     margin-top: 35px;
@@ -47,9 +51,7 @@ html, body {
     }
     .navbar-brand { 
       border: 0;
-      img {
-        height: 11px;
-      }
+      padding: 8px 0 8px;
     }
   }
 }
@@ -110,15 +112,21 @@ html, body {
   }
 }
 @media (min-width: @screen-sm-min) {
-  .console-os .navbar-project {
-    .navbar-filter-widget {
-      /* Prevent the filter button from wrapping at wide screen sizes. */
-      min-width: 340px;
+  .console-os {
+    .navbar-project {
+      .navbar-filter-widget {
+        /* Prevent the filter button from wrapping at wide screen sizes. */
+        min-width: 340px;
+      }
+      .create-button-container {
+        text-align: right;
+        /* Align button with other navbar controls that have a label above. */
+        margin-top: 30px;
+      }
     }
-    .create-button-container {
-      text-align: right;
-      /* Align button with other navbar controls that have a label above. */
-      margin-top: 30px;
+    .container-main {
+      // Ensures short content pages in IE have sidebars that extend beneath the left nav
+      min-height: 600px;
     }
   }
 }
@@ -196,6 +204,17 @@ html, body {
     margin-top: (@grid-gutter-width / 2);
     border-top: 0;
   }
+  .template-options {
+    .list-unstyled {
+      line-height: 1.5;
+      .help-block {
+        margin-top: 0;
+      }
+    }
+    .help-block {
+      margin-left: 2px;
+    }
+  }
 }
 
 @media (min-width: 767px) {
@@ -206,6 +225,14 @@ html, body {
       &.right {
         // float: right;
         text-align: right;
+      }
+    }
+    .form-group {
+      // Show name/value fields like labels and env vars side by side at wide screen sizes.
+      // Align text fields with read-only values.
+      width: 44%;
+      .form-control {
+        width: 100%;
       }
     }
   }
@@ -314,6 +341,10 @@ code {
   dd {
     &:extend(.clearfix all); // Including this here because it's not being set even though it's in /bootstrap/less/type.less dunno why?
   }
+}
+
+.table-responsive {
+  overflow-x: auto; // remove when we update to latest patternfly with twbs 3.3.4
 }
 
 .gutter-top-bottom {

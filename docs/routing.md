@@ -4,7 +4,7 @@ The `openshift/origin-haproxy-router` is an [HAProxy](http://www.haproxy.org/) r
 interface to OpenShift [services](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md).
 
 The router is meant to run as a pod.  When running the router you must ensure that the router can expose port 80 on the host (minion)
-in order to forward traffic.  In a deployed environment the router minion should also have external ip addressess
+in order to forward traffic.  In a deployed environment the router minion should also have external ip addresses
 that can be exposed for DNS based routing.  
 
 ## Creating Routes
@@ -31,12 +31,12 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ export PATH=/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH
     [vagrant@openshiftdev origin]$ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start &
 
-    If running in https mode, ensure osc can authenticate to the master
+    If running in https mode, ensure oc can authenticate to the master
     [vagrant@openshiftdev origin]$ export OPENSHIFTCONFIG=/data/src/github.com/openshift/origin/openshift.local.config/master/admin.kubeconfig
     [vagrant@openshiftdev origin]$ sudo chmod a+r "$OPENSHIFTCONFIG"
     [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.config/master/openshift-router.kubeconfig
-    [vagrant@openshiftdev origin]$ openshift ex router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig"
-    [vagrant@openshiftdev origin]$ osc get pods
+    [vagrant@openshiftdev origin]$ oadm router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig"
+    [vagrant@openshiftdev origin]$ oc get pods
 
 #### Clustered vagrant environment
 
@@ -44,7 +44,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     $ export OPENSHIFT_DEV_CLUSTER=true
     $ vagrant up
     $ vagrant ssh master
-    [vagrant@openshift-master ~]$ openshift ex router --create --credentials="${OPENSHIFTCONFIG}"
+    [vagrant@openshift-master ~]$ oadm router --create --credentials="${OPENSHIFTCONFIG}"
 
 
 
@@ -56,12 +56,12 @@ In order to run the router in a deployed environment the following conditions mu
 * The machine may or may not be registered with the master.  Optimally it will not serve pods while also serving as the router
 * The machine must not have services running on it that bind to host port 80 since this is what the router uses for traffic
 
-To install the router pod you use the `openshift ex router` command line, passing the flags `--create` and `--credentials=<kubeconfig_file>`.
+To install the router pod you use the `oadm router` command line, passing the flags `--create` and `--credentials=<kubeconfig_file>`.
 The credentials flag controls the identity that the router will use to talk to the master (and the address of the master) so in most
 environments you can use the `${CONFIG_DIR}/master/openshift-client.kubeconfig` file. Once you run this command you can check the configuration
-of the router by running `osc get dc router` to check the deployment status.
+of the router by running `oc get dc router` to check the deployment status.
 
-`openshift ex router` offers other options for deploying routers - run `openshift help ex router` for more details.
+`oadm router` offers other options for deploying routers - run `oadm router --help` for more details.
 
 ### Manually
 
@@ -85,19 +85,19 @@ To test your route independent of DNS you can send a host header to the router. 
 
     $ ..... vagrant up with single machine instructions .......
     $ ..... create config files listed below in ~ ........
-    [vagrant@openshiftdev origin]$ osc create -f ~/pod.json
-    [vagrant@openshiftdev origin]$ osc create -f ~/service.json
-    [vagrant@openshiftdev origin]$ osc create -f ~/route.json
+    [vagrant@openshiftdev origin]$ oc create -f ~/pod.json
+    [vagrant@openshiftdev origin]$ oc create -f ~/service.json
+    [vagrant@openshiftdev origin]$ oc create -f ~/route.json
     [vagrant@openshiftdev origin]$ curl -H "Host:hello-openshift.v3.rhcloud.com" <vm ip>
     Hello OpenShift!
 
     $ ..... vagrant up with cluster instructions .....
     $ ..... create config files listed below in ~ ........
-    [vagrant@openshift-master ~]$ osc create -f ~/pod.json
-    [vagrant@openshift-master ~]$ osc create -f ~/service.json
-    [vagrant@openshift-master ~]$ osc create -f ~/route.json
+    [vagrant@openshift-master ~]$ oc create -f ~/pod.json
+    [vagrant@openshift-master ~]$ oc create -f ~/service.json
+    [vagrant@openshift-master ~]$ oc create -f ~/route.json
     # take note of what minion number the router is deployed on
-    [vagrant@openshift-master ~]$ osc get pods
+    [vagrant@openshift-master ~]$ oc get pods
     [vagrant@openshift-master ~]$ curl -H "Host:hello-openshift.v3.rhcloud.com" openshift-minion-<1,2>
     Hello OpenShift!
 
@@ -109,49 +109,80 @@ Configuration files (to be created in the vagrant home directory)
 pod.json
 
     {
-      "id": "hello-pod",
       "kind": "Pod",
-      "apiVersion": "v1beta1",
-      "desiredState": {
-        "manifest": {
-          "version": "v1beta1",
-          "id": "hello-openshift",
-          "containers": [{
-            "name": "hello-openshift",
-            "image": "openshift/hello-openshift",
-            "ports": [{
-              "containerPort": 8080
-            }]
-          }]
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "hello-pod",
+        "labels": {
+          "name": "hello-openshift"
         }
       },
-      "labels": {
-        "name": "hello-openshift"
+      "spec": {
+        "containers": [
+          {
+            "name": "hello-openshift",
+            "image": "openshift/hello-openshift",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
       }
     }
 
 service.json
 
     {
-      "id": "hello-openshift",
       "kind": "Service",
-      "apiVersion": "v1beta1",
-      "port": 27017,
-      "selector": {
+      "apiVersion": "v1beta3",
+      "metadata": {
         "name": "hello-openshift"
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 27017,
+            "targetPort": 0,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "hello-openshift"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
       }
     }
-
+    
 route.json
 
     {
-      "id": "hello-route",
       "kind": "Route",
-      "apiVersion": "v1beta1",
-      "host": "hello-openshift.v3.rhcloud.com",
-      "serviceName": "hello-openshift",
+      "apiVersion": "v1beta3",
       "metadata": {
         "name": "hello-route"
+      },
+      "spec": {
+        "host": "hello-openshift.v3.rhcloud.com",
+        "to": {
+          "kind": "Service",
+          "name": "hello-openshift"
+        }
       }
     }
 

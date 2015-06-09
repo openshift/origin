@@ -15,17 +15,16 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
 )
-
-const whPrefix = "/osapi/v1beta1/buildConfigHooks/"
 
 func init() {
 	testutil.RequireEtcd()
 }
 
-func TestWebhookGithubPushWithImage(t *testing.T) {
+func TestWebhookGitHubPushWithImage(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -46,6 +45,13 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	checkErr(t, err)
+
+	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
 	// create imagerepo
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
@@ -53,7 +59,10 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 			DockerImageRepository: "registry:3000/integration/imageStream",
 			Tags: map[string]imageapi.TagReference{
 				"validTag": {
-					DockerImageReference: "registry:3000/integration/imageStream:success",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:3000/integration/imageStream:success",
+					},
 				},
 			},
 		},
@@ -90,8 +99,7 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
-		"/osapi/v1beta1/buildConfigs/pushbuild/webhooks/secret101/github?namespace=" + testutil.Namespace(),
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 
 		// trigger build event sending push notification
@@ -100,8 +108,11 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 		event := <-watch.ResultChan()
 		actual := event.Object.(*buildapi.Build)
 
-		if actual.Status != buildapi.BuildStatusNew {
-			t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
+		// FIXME: I think the build creation is fast and in some situlation we miss
+		// the BuildStatusNew here. Note that this is not a bug, in future we should
+		// move this to use go routine to capture all events.
+		if actual.Status != buildapi.BuildStatusNew && actual.Status != buildapi.BuildStatusPending {
+			t.Errorf("Expected %s or %s, got %s", buildapi.BuildStatusNew, buildapi.BuildStatusPending, actual.Status)
 		}
 
 		if actual.Parameters.Strategy.DockerStrategy.From.Name != "originalImage" {
@@ -110,7 +121,7 @@ func TestWebhookGithubPushWithImage(t *testing.T) {
 	}
 }
 
-func TestWebhookGithubPushWithImageStream(t *testing.T) {
+func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -126,8 +137,15 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	checkErr(t, err)
+
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -138,7 +156,10 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 			DockerImageRepository: "registry:3000/integration/imageStream",
 			Tags: map[string]imageapi.TagReference{
 				"validTag": {
-					DockerImageReference: "registry:3000/integration/imageStream:success",
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:3000/integration/imageStream:success",
+					},
 				},
 			},
 		},
@@ -175,8 +196,7 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
-		"/osapi/v1beta1/buildConfigs/pushbuild/webhooks/secret101/github?namespace=" + testutil.Namespace(),
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 
 		// trigger build event sending push notification
@@ -185,8 +205,11 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 		event := <-watch.ResultChan()
 		actual := event.Object.(*buildapi.Build)
 
-		if actual.Status != buildapi.BuildStatusNew {
-			t.Errorf("Expected %s, got %s", buildapi.BuildStatusNew, actual.Status)
+		// FIXME: I think the build creation is fast and in some situlation we miss
+		// the BuildStatusNew here. Note that this is not a bug, in future we should
+		// move this to use go routine to capture all events.
+		if actual.Status != buildapi.BuildStatusNew && actual.Status != buildapi.BuildStatusPending {
+			t.Errorf("Expected %s or %s, got %s", buildapi.BuildStatusNew, buildapi.BuildStatusPending, actual.Status)
 		}
 
 		if actual.Parameters.Strategy.SourceStrategy.From.Name != "registry:3000/integration/imageStream:success" {
@@ -195,7 +218,7 @@ func TestWebhookGithubPushWithImageStream(t *testing.T) {
 	}
 }
 
-func TestWebhookGithubPing(t *testing.T) {
+func TestWebhookGitHubPing(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	openshift := NewTestBuildOpenshift(t)
 	defer openshift.Close()
@@ -217,8 +240,7 @@ func TestWebhookGithubPing(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		openshift.whPrefix + "pushbuild/secret101/github?namespace=" + testutil.Namespace(),
-		"/osapi/v1beta3/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 	} {
 		// trigger build event sending push notification
 		postFile(&http.Client{}, "ping", "pingevent.json", openshift.server.URL+s, http.StatusOK, t)
@@ -264,8 +286,8 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 		},
 		Triggers: []buildapi.BuildTriggerPolicy{
 			{
-				Type: buildapi.GithubWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{
+				Type: buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
@@ -305,8 +327,8 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 		},
 		Triggers: []buildapi.BuildTriggerPolicy{
 			{
-				Type: buildapi.GithubWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{
+				Type: buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},

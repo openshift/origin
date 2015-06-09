@@ -4,14 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
-
-	configapi "github.com/openshift/origin/pkg/config/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 // MergeInto flags
@@ -28,80 +24,103 @@ func ReportError(allErrs *fielderrors.ValidationErrorList, index int, err fielde
 	*allErrs = append(*allErrs, append(i, &err).PrefixIndex(index).Prefix("item")...)
 }
 
-// addReplicationControllerNestedLabels adds new label(s) to a nested labels of a single ReplicationController object
-func addReplicationControllerNestedLabels(obj *kapi.ReplicationController, labels labels.Set) error {
-	if obj.Spec.Template.Labels == nil {
-		obj.Spec.Template.Labels = make(map[string]string)
-	}
-	if err := MergeInto(obj.Spec.Template.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Template: %v", err)
-	}
-	if err := MergeInto(obj.Spec.Template.Labels, obj.Spec.Selector, ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Template: %v", err)
-	}
-	// Selector and Spec.Template.Labels must be equal
-	if obj.Spec.Selector == nil {
-		obj.Spec.Selector = make(map[string]string)
-	}
-	if err := MergeInto(obj.Spec.Selector, obj.Spec.Template.Labels, ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.ReplicationController.Spec.Selector: %v", err)
-	}
-	return nil
-}
-
-// addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
-func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels labels.Set) error {
-	if obj.Template.ControllerTemplate.Template.Labels == nil {
-		obj.Template.ControllerTemplate.Template.Labels = make(map[string]string)
-	}
-	if err := MergeInto(obj.Template.ControllerTemplate.Template.Labels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.DeploymentConfig.Template.ControllerTemplate.Template: %v", err)
-	}
-	return nil
-}
-
 // AddObjectLabels adds new label(s) to a single runtime.Object
 func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
 	if labels == nil {
-		// Nothing to add
 		return nil
 	}
 
 	accessor, err := kmeta.Accessor(obj)
+
 	if err != nil {
-		return err
+		if _, ok := obj.(*runtime.Unstructured); !ok {
+			// error out if it's not possible to get an accessor and it's also not an unstructured object
+			return err
+		}
+	} else {
+		metaLabels := accessor.Labels()
+		if metaLabels == nil {
+			metaLabels = make(map[string]string)
+		}
+
+		if err := MergeInto(metaLabels, labels, ErrorOnDifferentDstKeyValue); err != nil {
+			return fmt.Errorf("unable to add labels to Template.%s: %v", accessor.Kind(), err)
+		}
+		accessor.SetLabels(metaLabels)
+
+		return nil
 	}
 
-	metaLabels := accessor.Labels()
-	if metaLabels == nil {
-		metaLabels = make(map[string]string)
-	}
+	// handle unstructured object
+	// TODO: allow meta.Accessor to handle runtime.Unstructured
+	if unstruct, ok := obj.(*runtime.Unstructured); ok && unstruct.Object != nil {
+		// the presence of "metadata" is sufficient for us to apply the rules for Kube-like
+		// objects.
+		// TODO: add swagger detection to allow this to happen more effectively
+		if obj, ok := unstruct.Object["metadata"]; ok {
+			if m, ok := obj.(map[string]interface{}); ok {
 
-	if err := MergeInto(metaLabels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-		return fmt.Errorf("unable to add labels to Template.%s: %v", accessor.Kind(), err)
-	}
-	accessor.SetLabels(metaLabels)
+				existing := make(map[string]string)
+				if l, ok := m["labels"]; ok {
+					if found, ok := extractLabels(l); ok {
+						existing = found
+					}
+				}
+				if err := MergeInto(existing, labels, OverwriteExistingDstKey); err != nil {
+					return err
+				}
+				m["labels"] = mapToGeneric(existing)
+			}
+			return nil
+		}
 
-	// Handle nested Labels
-	switch objType := obj.(type) {
-	case *kapi.ReplicationController:
-		return addReplicationControllerNestedLabels(objType, labels)
-	case *deployapi.DeploymentConfig:
-		return addDeploymentConfigNestedLabels(objType, labels)
+		// only attempt to set root labels if a root object called labels exists
+		// TODO: add swagger detection to allow this to happen more effectively
+		if obj, ok := unstruct.Object["labels"]; ok {
+			existing := make(map[string]string)
+			if found, ok := extractLabels(obj); ok {
+				existing = found
+			}
+			if err := MergeInto(existing, labels, OverwriteExistingDstKey); err != nil {
+				return err
+			}
+			unstruct.Object["labels"] = mapToGeneric(existing)
+			return nil
+		}
 	}
 
 	return nil
 }
 
-// AddConfigLabels adds new label(s) to all resources defined in the given Config.
-func AddConfigLabels(c *configapi.Config, labels labels.Set) fielderrors.ValidationErrorList {
-	itemErrors := fielderrors.ValidationErrorList{}
-	for i, in := range c.Items {
-		if err := AddObjectLabels(in, labels); err != nil {
-			ReportError(&itemErrors, i, *fielderrors.NewFieldInvalid("labels", err, fmt.Sprintf("error applying labels %v to %v", labels, in)))
+// extractLabels extracts a map[string]string from a map[string]interface{}
+func extractLabels(obj interface{}) (map[string]string, bool) {
+	if obj == nil {
+		return nil, false
+	}
+	lm, ok := obj.(map[string]interface{})
+	if !ok {
+		return nil, false
+	}
+	existing := make(map[string]string)
+	for k, v := range lm {
+		switch t := v.(type) {
+		case string:
+			existing[k] = t
 		}
 	}
-	return itemErrors.Prefix("objects")
+	return existing, true
+}
+
+// mapToGeneric converts a map[string]string into a map[string]interface{}
+func mapToGeneric(obj map[string]string) map[string]interface{} {
+	if obj == nil {
+		return nil
+	}
+	res := make(map[string]interface{})
+	for k, v := range obj {
+		res[k] = v
+	}
+	return res
 }
 
 // MergeInto merges items from a src map into a dst map.

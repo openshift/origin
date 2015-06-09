@@ -65,7 +65,7 @@ step #3.
 
 ## Deploy the private docker registry
 
-    $ osadm registry --create --credentials="${OPENSHIFTCONFIG}"
+    $ oadm registry --create --credentials="${OPENSHIFTCONFIG}"
     $ cd examples/sample-app
 
 For more information on this step, see [Application Build, Deploy, and Update

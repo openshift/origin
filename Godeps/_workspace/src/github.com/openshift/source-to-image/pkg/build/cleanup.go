@@ -15,17 +15,16 @@ type DefaultCleaner struct {
 	docker.Docker
 }
 
-// Cleanup removes the temporary directories where the sources were stored for
-// build.
-func (c *DefaultCleaner) Cleanup(request *api.Request) {
-	if request.PreserveWorkingDir {
-		glog.Infof("Temporary directory '%s' will be saved, not deleted", request.WorkingDir)
+// Cleanup removes the temporary directories where the sources were stored for build.
+func (c *DefaultCleaner) Cleanup(config *api.Config) {
+	if config.PreserveWorkingDir {
+		glog.Infof("Temporary directory '%s' will be saved, not deleted", config.WorkingDir)
 	} else {
-		glog.V(2).Infof("Removing temporary directory %s", request.WorkingDir)
-		c.RemoveDirectory(request.WorkingDir)
+		glog.V(2).Infof("Removing temporary directory %s", config.WorkingDir)
+		c.RemoveDirectory(config.WorkingDir)
 	}
-	if request.LayeredBuild {
-		glog.V(2).Infof("Removing temporary image %s", request.BaseImage)
-		c.RemoveImage(request.BaseImage)
+	if config.LayeredBuild {
+		glog.V(2).Infof("Removing temporary image %s", config.BuilderImage)
+		c.RemoveImage(config.BuilderImage)
 	}
 }

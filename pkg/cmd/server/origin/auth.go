@@ -88,7 +88,7 @@ var (
 	}
 )
 
-// InstallSupport registers endpoints for an OAuth2 server into the provided mux,
+// InstallAPI registers endpoints for an OAuth2 server into the provided mux,
 // then returns an array of strings indicating what endpoints were started
 // (these are format strings that will expect to be sent a single string value).
 func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
@@ -520,13 +520,13 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 	return authRequestHandler, nil
 }
 
-// Captures the original request url as a "then" param in a redirect to a login flow
+// redirector captures the original request url as a "then" param in a redirect to a login flow
 type redirector struct {
 	RedirectURL string
 	ThenParam   string
 }
 
-// AuthenticationRedirectNeeded redirects HTTP request to authorization URL
+// AuthenticationRedirect redirects HTTP request to authorization URL
 func (auth *redirector) AuthenticationRedirect(w http.ResponseWriter, req *http.Request) error {
 	redirectURL, err := url.Parse(auth.RedirectURL)
 	if err != nil {
@@ -541,18 +541,17 @@ func (auth *redirector) AuthenticationRedirect(w http.ResponseWriter, req *http.
 	return nil
 }
 
-//
-// Combines password auth, successful login callback, and "then" param redirection
-//
+// callbackPasswordAuthenticator combines password auth, successful login callback,
+// and "then" param redirection
 type callbackPasswordAuthenticator struct {
 	authenticator.Password
 	handlers.AuthenticationSuccessHandler
 }
 
-// Redirects to the then param on successful authentication
+// redirectSuccessHandler redirects to the then param on successful authentication
 type redirectSuccessHandler struct{}
 
-// AuthenticationSuccess informs client when authentication was successful
+// AuthenticationSucceeded informs client when authentication was successful
 func (redirectSuccessHandler) AuthenticationSucceeded(user kuser.Info, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	if len(then) == 0 {
 		return false, fmt.Errorf("Auth succeeded, but no redirect existed - user=%#v", user)

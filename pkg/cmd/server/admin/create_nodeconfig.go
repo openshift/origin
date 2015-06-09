@@ -49,12 +49,13 @@ type CreateNodeConfigOptions struct {
 	NodeClientCAFile  string
 	APIServerCAFile   string
 	APIServerURL      string
-	Output            cmdutil.Output
+	Output            io.Writer
 	NetworkPluginName string
 }
 
 func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := NewDefaultCreateNodeConfigOptions()
+	options.Output = out
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -69,8 +70,6 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 			}
 		},
 	}
-	cmd.SetOutput(out)
-	options.Output = cmdutil.Output{out}
 
 	flags := cmd.Flags()
 
@@ -211,6 +210,8 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() error {
 	nodeConfigFile := path.Join(o.NodeConfigDir, "node-config.yaml")
 	nodeJSONFile := path.Join(o.NodeConfigDir, "node-registration.json")
 
+	fmt.Fprintf(o.Output, "Generating node credentials ...\n")
+
 	if err := o.MakeClientCert(clientCertFile, clientKeyFile); err != nil {
 		return err
 	}
@@ -236,6 +237,8 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() error {
 	if err := o.MakeNodeJSON(nodeJSONFile); err != nil {
 		return err
 	}
+
+	fmt.Fprintf(o.Output, "Created node config for %s in %s\n", o.NodeName, o.NodeConfigDir)
 
 	return nil
 }
@@ -323,11 +326,9 @@ func (o CreateNodeConfigOptions) MakeKubeConfig(clientCertFile, clientKeyFile, c
 	createKubeConfigOptions := CreateKubeConfigOptions{
 		APIServerURL:    o.APIServerURL,
 		APIServerCAFile: clientCopyOfCAFile,
-		ServerNick:      "master",
 
 		CertFile: clientCertFile,
 		KeyFile:  clientKeyFile,
-		UserNick: "node",
 
 		ContextNamespace: kapi.NamespaceDefault,
 
@@ -385,7 +386,6 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		return err
 	}
 
-	fmt.Fprintf(o.Output.Get(), "Creating node config for %s in %s\n", o.NodeName, o.NodeConfigDir)
 	// Relativize to config file dir
 	base, err := cmdutil.MakeAbs(o.NodeConfigDir, cwd)
 	if err != nil {
@@ -395,7 +395,17 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		return err
 	}
 
-	content, err := latestconfigapi.WriteYAML(config)
+	// Roundtrip the config to v1 and back to ensure proper defaults are set.
+	ext, err := configapi.Scheme.ConvertToVersion(config, "v1")
+	if err != nil {
+		return err
+	}
+	internal, err := configapi.Scheme.ConvertToVersion(ext, "")
+	if err != nil {
+		return err
+	}
+
+	content, err := latestconfigapi.WriteYAML(internal)
 	if err != nil {
 		return err
 	}

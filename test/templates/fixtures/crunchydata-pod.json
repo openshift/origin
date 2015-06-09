@@ -1,64 +1,73 @@
 {
-  "apiVersion": "v1beta1",
-  "description": "Example shows how to build a CPM node.",
-  "id": "node",
-  "items": [
+  "kind": "Template",
+  "apiVersion": "v1beta3",
+  "metadata": {
+    "name": "node-example",
+    "creationTimestamp": null
+  },
+  "objects": [
     {
-      "apiVersion": "v1beta1",
-      "desiredState": {
-        "manifest": {
-          "containers": [
-            {
-              "env": [
-                {
-                  "name": "PG_USERNAME",
-                  "value": "exampleuser"
-                },
-                {
-                  "name": "PG_PASSWORD",
-                  "value": "example"
-                }
-              ],
-              "image": "registry:5000/crunchy-node",
-              "name": "master",
-              "ports": [
-                {
-                  "containerPort": 5432,
-                  "hostPort": 9000
-                }
-              ],
-              "volumeMounts": [
-                {
-                  "mountPath": "/pgdata",
-                  "name": "pgdata",
-                  "readOnly": false
-                }
-              ]
-            }
-          ],
-          "id": "pg-standalone-1",
-          "version": "v1beta1",
-          "volumes": [
-            {
-              "name": "pgdata",
-              "source": {
-                "hostDir": {
-                  "path": "/var/lib/pgsql/exampleuser"
-                }
-              }
-            }
-          ]
+      "kind": "Pod",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "pg-standalone-1",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "crunchy-node"
         }
       },
-      "id": "pg-standalone-1",
-      "kind": "Pod",
-      "labels": {
-        "name": "crunchy-node"
-      }
+      "spec": {
+        "volumes": [
+          {
+            "name": "pgdata",
+            "hostPath": {
+              "path": "/var/lib/pgsql/exampleuser"
+            },
+            "rbd": null
+          }
+        ],
+        "containers": [
+          {
+            "name": "master",
+            "image": "registry:5000/crunchy-node",
+            "ports": [
+              {
+                "hostPort": 9000,
+                "containerPort": 5432,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "PG_USERNAME",
+                "value": "exampleuser"
+              },
+              {
+                "name": "PG_PASSWORD",
+                "value": "example"
+              }
+            ],
+            "resources": {},
+            "volumeMounts": [
+              {
+                "name": "pgdata",
+                "mountPath": "/pgdata"
+              }
+            ],
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccount": ""
+      },
+      "status": {}
     }
-  ],
-  "kind": "Template",
-  "metadata": {
-    "name": "node-example"
-  }
+  ]
 }

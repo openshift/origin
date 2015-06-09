@@ -1,2 +1,2 @@
-// package httpproxy contains an upgrade-aware HTTP single-host reverse proxy.
+// Package httpproxy contains an upgrade-aware HTTP single-host reverse proxy.
 package httpproxy

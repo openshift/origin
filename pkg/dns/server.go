@@ -42,8 +42,8 @@ func openshiftFallback(name string, exact bool) (string, bool) {
 	if name == "openshift.default.svc" {
 		return "kubernetes.default.svc.", true
 	}
-	if name == "openshift.default.endpoints" {
-		return "kubernetes.default.endpoints.", true
+	if name == "_endpoints.openshift.default.svc" {
+		return "_endpoints.kubernetes.default.", true
 	}
 	return "", false
 }
@@ -59,6 +59,7 @@ func newCounter(c prometheus.Counter) server.Counter {
 	return counter{c}
 }
 
+// Inc increases the counter with the given value
 func (c counter) Inc(val int64) {
 	c.Counter.Add(float64(val))
 }

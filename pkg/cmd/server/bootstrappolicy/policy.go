@@ -69,6 +69,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "pods/exec", "pods/portforward"),
 				},
+				{
+					Verbs: util.NewStringSet("get", "update"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
+					Resources: util.NewStringSet("imagestreams/layers"),
+				},
 			},
 		},
 		{
@@ -134,8 +139,9 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get"),
-					Resources: util.NewStringSet("imagestreams"),
+					Verbs: util.NewStringSet("get"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
+					Resources: util.NewStringSet("imagestreams/layers"),
 				},
 			},
 		},
@@ -145,8 +151,28 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "update"),
-					Resources: util.NewStringSet("imagestreams"),
+					Verbs: util.NewStringSet("get", "update"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
+					Resources: util.NewStringSet("imagestreams/layers"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ImagePrunerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     util.NewStringSet("delete"),
+					Resources: util.NewStringSet("images"),
+				},
+				{
+					Verbs:     util.NewStringSet("get", "list"),
+					Resources: util.NewStringSet("images", "imagestreams", "pods", "replicationcontrollers", "buildconfigs", "builds", "deploymentconfigs"),
+				},
+				{
+					Verbs:     util.NewStringSet("update"),
+					Resources: util.NewStringSet("imagestreams/status"),
 				},
 			},
 		},
@@ -221,13 +247,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Resources: util.NewStringSet("imagestreamimages", "imagestreamtags", "imagestreams"),
 				},
 				{
-					// TODO: remove "create" once we re-enable user authentication in the registry
-					Verbs:     util.NewStringSet("create", "update"),
+					Verbs:     util.NewStringSet("update"),
 					Resources: util.NewStringSet("imagestreams"),
 				},
 				{
 					Verbs:     util.NewStringSet("create"),
-					Resources: util.NewStringSet("imagerepositorymappings", "imagestreammappings"),
+					Resources: util.NewStringSet("imagestreammappings"),
 				},
 			},
 		},
@@ -250,7 +275,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					// Needed to build serviceLister, to populate env vars for services
-					Verbs:     util.NewStringSet("list", "watch"),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet("services"),
 				},
 				{
@@ -273,7 +298,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				{
 					// TODO: restrict to pods scheduled on the bound node once supported
-					Verbs:     util.NewStringSet("list", "watch"),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet("pods"),
 				},
 				{
@@ -291,7 +316,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				{
 					// TODO: restrict to secrets used by pods scheduled on bound node once supported
-					// Needed for imagepullsecrets and secret volumes
+					// Needed for imagepullsecrets, rbd/ceph and secret volumes
 					Verbs:     util.NewStringSet("get"),
 					Resources: util.NewStringSet("secrets"),
 				},
@@ -301,6 +326,13 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					// Needed for persistent volumes
 					Verbs:     util.NewStringSet("get"),
 					Resources: util.NewStringSet("persistentvolumeclaims", "persistentvolumes"),
+				},
+				{
+					// TODO: restrict to namespaces of pods scheduled on bound node once supported
+					// TODO: change glusterfs to use DNS lookup so this isn't needed?
+					// Needed for glusterfs volumes
+					Verbs:     util.NewStringSet("get"),
+					Resources: util.NewStringSet("endpoints"),
 				},
 			},
 		},
@@ -315,7 +347,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Resources: util.NewStringSet("hostsubnets"),
 				},
 				{
-					Verbs:     util.NewStringSet("list", "watch"),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet("nodes"),
 				},
 				{
@@ -335,7 +367,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Resources: util.NewStringSet("hostsubnets"),
 				},
 				{
-					Verbs:     util.NewStringSet("list", "watch"),
+					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet("nodes"),
 				},
 				{
@@ -385,15 +417,6 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 				Name: InternalComponentRoleName,
 			},
 			Users: util.NewStringSet(InternalComponentUsername),
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: DeployerRoleBindingName,
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: DeployerRoleName,
-			},
-			Users: util.NewStringSet(DeployerUsername),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{

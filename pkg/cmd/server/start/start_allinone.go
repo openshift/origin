@@ -33,10 +33,10 @@ type AllInOneOptions struct {
 	MasterConfigFile string
 	NodeConfigFile   string
 
-	Output cmdutil.Output
+	Output io.Writer
 }
 
-const allInOne_long = `Start an OpenShift all-in-one server
+const allInOneLong = `Start an OpenShift all-in-one server
 
 This command helps you launch an OpenShift all-in-one server, which allows
 you to run all of the components of an OpenShift system on a server with Docker. Running
@@ -45,7 +45,7 @@ you to run all of the components of an OpenShift system on a server with Docker.
 
 will start OpenShift listening on all interfaces, launch an etcd server to store persistent
 data, and launch the Kubernetes system components. The server will run in the foreground until
-you terminate the process.  This command delegates to "openshift start master" and 
+you terminate the process.  This command delegates to "openshift start master" and
 "openshift start node".
 
 Note: starting OpenShift without passing the --master address will attempt to find the IP
@@ -56,14 +56,14 @@ You may also pass --etcd=<address> to connect to an external etcd server.
 
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
-// NewCommandStartMaster provides a CLI handler for 'start' command
+// NewCommandStartAllInOne provides a CLI handler for 'start' command
 func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
-	options := &AllInOneOptions{Output: cmdutil.Output{out}}
+	options := &AllInOneOptions{Output: out}
 
 	cmds := &cobra.Command{
 		Use:   "start",
 		Short: "Launch OpenShift All-In-One",
-		Long:  allInOne_long,
+		Long:  allInOneLong,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
 				fmt.Println(kcmdutil.UsageError(c, err.Error()))
@@ -86,7 +86,7 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 						os.Exit(255)
 					}
 				}
-				glog.Fatal(err)
+				glog.Fatalf("OpenShift could not start: %v", err)
 			}
 		},
 	}

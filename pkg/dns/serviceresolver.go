@@ -94,8 +94,10 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 			return nil, nil
 		}
 
+		retrieveEndpoints := segments[0] == "endpoints" || (len(segments) > 3 && segments[3] == "_endpoints")
+
 		// if has a portal IP and looking at svc
-		if svc.Spec.PortalIP != kapi.PortalIPNone && segments[0] == "svc" {
+		if svc.Spec.PortalIP != kapi.PortalIPNone && !retrieveEndpoints {
 			if len(svc.Spec.Ports) == 0 {
 				return nil, nil
 			}

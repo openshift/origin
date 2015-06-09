@@ -83,7 +83,7 @@ Requires:       %{name} = %{version}-%{release}
 
 %package pod
 Summary:        OpenShift Pod
-Requires:       openshift = %{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
 
 %description pod
 %{summary}
@@ -91,7 +91,7 @@ Requires:       openshift = %{version}-%{release}
 %package sdn-ovs
 Summary:          OpenShift SDN Plugin for Open vSwitch
 Requires:         openvswitch >= 2.3.1
-Requires:         openshift-node = %{version}-%{release}
+Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
 Requires:         ethtool
 
@@ -149,9 +149,9 @@ do
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
 done
 # Install 'openshift' as client executable for windows and mac
-install -p -m 755 _build/bin/openshift %{buildroot}%{_datadir}/%{name}/linux/osc
-install -p -m 755 _build/bin/darwin_amd64/openshift %{buildroot}%{_datadir}/%{name}/macosx/osc
-install -p -m 755 _build/bin/windows_386/openshift.exe %{buildroot}%{_datadir}/%{name}/windows/osc.exe
+install -p -m 755 _build/bin/openshift %{buildroot}%{_datadir}/%{name}/linux/oc
+install -p -m 755 _build/bin/darwin_amd64/openshift %{buildroot}%{_datadir}/%{name}/macosx/oc
+install -p -m 755 _build/bin/windows_386/openshift.exe %{buildroot}%{_datadir}/%{name}/windows/oc.exe
 #Install openshift pod
 install -p -m 755 images/pod/pod %{buildroot}%{_bindir}/
 
@@ -166,8 +166,8 @@ install -m 0644 rel-eng/openshift-node.sysconfig %{buildroot}%{_sysconfdir}/sysc
 
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 
-ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osc
-ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/osadm
+ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/oc
+ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/oadm
 
 install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/openshift-node-{guest,host}
 install -m 0644 tuned/openshift-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/openshift-node-guest/
@@ -184,13 +184,18 @@ popd
 install -d -m 0755 %{buildroot}%{_prefix}/lib/systemd/system/openshift-node.service.d
 install -p -m 0644 rel-eng/openshift-sdn-ovs.conf %{buildroot}%{_prefix}/lib/systemd/system/openshift-node.service.d/
 
+# Install bash completions
+install -d -m 755 %{buildroot}/etc/bash_completion.d/
+install -p -m 644 rel-eng/completions/bash/* %{buildroot}/etc/bash_completion.d/
+
 %files
 %defattr(-,root,root,-)
 %doc README.md LICENSE
 %{_bindir}/openshift
-%{_bindir}/osc
-%{_bindir}/osadm
+%{_bindir}/oc
+%{_bindir}/oadm
 %{_sharedstatedir}/%{name}
+/etc/bash_completion.d/*
 
 %files master
 %defattr(-,root,root,-)
@@ -252,9 +257,9 @@ if [ "$1" = 0 ]; then
 fi
 
 %files clients
-%{_datadir}/%{name}/linux/osc
-%{_datadir}/%{name}/macosx/osc
-%{_datadir}/%{name}/windows/osc.exe
+%{_datadir}/%{name}/linux/oc
+%{_datadir}/%{name}/macosx/oc
+%{_datadir}/%{name}/windows/oc.exe
 
 %files dockerregistry
 %defattr(-,root,root,-)

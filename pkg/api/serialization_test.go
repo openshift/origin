@@ -18,11 +18,9 @@ import (
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	build "github.com/openshift/origin/pkg/build/api"
-	config "github.com/openshift/origin/pkg/config/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
 	template "github.com/openshift/origin/pkg/template/api"
@@ -52,21 +50,24 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.DockerImageMetadataVersion = []string{"pre012", "1.0"}[c.Rand.Intn(2)]
 			j.DockerImageReference = c.RandString()
 		},
-		func(j *image.ImageRepositoryMapping, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
-			if forVersion != "v1beta1" {
-				j.DockerImageRepository = ""
-			}
-		},
 		func(j *image.ImageStreamMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			if forVersion != "v1beta1" {
-				j.DockerImageRepository = ""
-			}
+			j.DockerImageRepository = ""
+		},
+		func(j *image.ImageStreamImage, c fuzz.Continue) {
+			c.Fuzz(&j.Image)
+			// because we de-embedded Image from ImageStreamImage, in order to round trip
+			// successfully, the ImageStreamImage's ObjectMeta must match the Image's.
+			j.ObjectMeta = j.Image.ObjectMeta
+		},
+		func(j *image.ImageStreamTag, c fuzz.Continue) {
+			c.Fuzz(&j.Image)
+			// because we de-embedded Image from ImageStreamTag, in order to round trip
+			// successfully, the ImageStreamTag's ObjectMeta must match the Image's.
+			j.ObjectMeta = j.Image.ObjectMeta
 		},
 		func(j *image.TagReference, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.DockerImageReference = ""
 			if j.From != nil {
 				specs := []string{"", "ImageStreamTag", "ImageStreamImage"}
 				j.From.Kind = specs[c.Intn(len(specs))]
@@ -100,25 +101,13 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			c.FuzzNoCustom(j)
 			specs := []string{"", "a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.DockerImageReference = specs[c.Intn(len(specs))]
-			if forVersion != "v1beta1" {
-				j.Tag, j.DockerImageReference = "", ""
-				if j.To != nil && (len(j.To.Kind) == 0 || j.To.Kind == "ImageStream") {
-					j.To.Kind = "ImageStream"
-					j.Tag = image.DefaultImageTag
-				}
-				if j.To != nil && strings.Contains(j.To.Name, ":") {
-					j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
-				}
-			} else {
-				if j.To == nil {
-					j.Tag = ""
-					j.DockerImageReference = ""
-				} else {
-					if len(j.Tag) == 0 {
-						j.Tag = image.DefaultImageTag
-					}
-					j.DockerImageReference = ""
-				}
+			j.Tag, j.DockerImageReference = "", ""
+			if j.To != nil && (len(j.To.Kind) == 0 || j.To.Kind == "ImageStream") {
+				j.To.Kind = "ImageStream"
+				j.Tag = image.DefaultImageTag
+			}
+			if j.To != nil && strings.Contains(j.To.Name, ":") {
+				j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
 			}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
@@ -167,11 +156,6 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.RepositoryName = ref.String()
 			}
 		},
-		func(j *config.Config, c fuzz.Continue) {
-			c.Fuzz(&j.ListMeta)
-			// TODO: replace with structured type definition
-			j.Items = []runtime.Object{}
-		},
 		func(j *runtime.EmbeddedObject, c fuzz.Continue) {
 			// runtime.EmbeddedObject causes a panic inside of fuzz because runtime.Object isn't handled.
 		},
@@ -201,7 +185,16 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 	return item
 }
 
-func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
+func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
+	// Make a copy of the originalItem to give to conversion functions
+	// This lets us know if conversion messed with the input object
+	deepCopy, err := conversion.DeepCopy(originalItem)
+	if err != nil {
+		t.Errorf("Could not copy object: %v", err)
+		return
+	}
+	item := deepCopy.(runtime.Object)
+
 	name := reflect.TypeOf(item).Elem().Name()
 	data, err := codec.Encode(item)
 	if err != nil {
@@ -215,7 +208,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 
 	obj2, err := codec.Decode(data)
 	if err != nil {
-		t.Errorf("0: %v: %v\nCodec: %v\nData: %s\nSource: %#v", name, err, codec, string(data), item)
+		t.Errorf("0: %v: %v\nCodec: %v\nData: %s\nSource: %#v", name, err, codec, string(data), originalItem)
 		return
 	}
 	if reflect.TypeOf(item) != reflect.TypeOf(obj2) {
@@ -226,8 +219,8 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		}
 		obj2 = obj2conv
 	}
-	if !api.Semantic.DeepEqual(item, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, util.ObjectDiff(item, obj2), codec, string(data), util.ObjectGoPrintSideBySide(item, obj2))
+	if !api.Semantic.DeepEqual(originalItem, obj2) {
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %s", name, util.ObjectDiff(originalItem, obj2), codec, string(data), util.ObjectGoPrintSideBySide(originalItem, obj2))
 		return
 	}
 
@@ -237,8 +230,8 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		t.Errorf("2: %v: %v", name, err)
 		return
 	}
-	if !api.Semantic.DeepEqual(item, obj3) {
-		t.Errorf("3: %v: diff: %v\nCodec: %v", name, util.ObjectDiff(item, obj3), codec)
+	if !api.Semantic.DeepEqual(originalItem, obj3) {
+		t.Errorf("3: %v: diff: %v\nCodec: %v", name, util.ObjectDiff(originalItem, obj3), codec)
 		return
 	}
 }
@@ -247,12 +240,8 @@ var skipStandardVersions = map[string][]string{
 	"DockerImage": {"pre012", "1.0"},
 }
 var skipV1beta1 = map[string]struct{}{}
-var skipV1beta3 = map[string]struct{}{
-	"ImageRepository": {},
-}
-var skipV1 = map[string]struct{}{
-	"ImageRepository": {},
-}
+var skipV1beta3 = map[string]struct{}{}
+var skipV1 = map[string]struct{}{}
 
 const fuzzIters = 20
 
@@ -261,7 +250,7 @@ func TestSpecificKind(t *testing.T) {
 	api.Scheme.Log(t)
 	defer api.Scheme.Log(nil)
 
-	kind := "ImageRepositoryList"
+	kind := "ImageStreamTag"
 	item, err := api.Scheme.New("", kind)
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)
@@ -270,7 +259,6 @@ func TestSpecificKind(t *testing.T) {
 	seed := int64(2703387474910584091) //rand.Int63()
 	fuzzInternalObject(t, "", item, seed)
 	roundTrip(t, osapi.Codec, item)
-	roundTrip(t, v1beta1.Codec, item)
 	roundTrip(t, v1beta3.Codec, item)
 	roundTrip(t, v1.Codec, item)
 }
@@ -302,10 +290,6 @@ func TestTypes(t *testing.T) {
 			}
 			fuzzInternalObject(t, "", item, seed)
 			roundTrip(t, osapi.Codec, item)
-			if _, ok := skipV1beta1[kind]; !ok {
-				fuzzInternalObject(t, "v1beta1", item, seed)
-				roundTrip(t, v1beta1.Codec, item)
-			}
 			if _, ok := skipV1beta3[kind]; !ok {
 				fuzzInternalObject(t, "v1beta3", item, seed)
 				roundTrip(t, v1beta3.Codec, item)

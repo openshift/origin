@@ -50,8 +50,8 @@ API resources (pods, services, etc) that a project may require.
 Let's create a simple project that applies a basic quota where the total cpu usage across all pods cannot exceed 1 core and may not consume more than 750Mi of memory.
 
 ```shell
-$ osadm new-project quota-demo --admin=test-admin
-$ osc project quota-demo
+$ oadm new-project quota-demo --admin=test-admin
+$ oc project quota-demo
 $ cat quota.yaml
 kind: ResourceQuota
 metadata:
@@ -64,7 +64,7 @@ spec:
     replicationcontrollers: "10"
     resourcequotas: "1"
     services: "10"
-$ osc create -f quota.yaml
+$ oc create -f quota.yaml
 ```
 
 A few moments after the quota is created, the current usage in the project is calculated.
@@ -72,7 +72,7 @@ A few moments after the quota is created, the current usage in the project is ca
 You can view the current usage by doing the following:
 
 ```
-$ osc describe project quota-demo
+$ oc describe project quota-demo
 Name:   quota-demo
 Created:  4 hours ago
 Labels:   <none>
@@ -121,7 +121,7 @@ spec:
       privileged: false
   dnsPolicy: ClusterFirst
   restartPolicy: Always
-$ osc create -f pod-without-resources.yaml
+$ oc create -f pod-without-resources.yaml
 Error from server: Pod "pod-without-resources" is forbidden: Limited to 750Mi memory, but pod has no specified memory limit
 ```
 
@@ -167,8 +167,8 @@ spec:
       cpu: 10m
       memory: 5Mi
     type: Container
-$ osc create -f limits.yaml
-$ osc describe project quota-demo
+$ oc create -f limits.yaml
+$ oc describe project quota-demo
 Name:   quota-demo
 Created:  4 hours ago
 Labels:   <none>
@@ -206,8 +206,8 @@ If a pod is created that has no cpu resource limit set, the default (100m) will 
 To demonstrate this, let's try to create the pod that failed previously:
 
 ```shell
-$ osc create -f pod-without-resources.yaml
-$ osc describe project quota-demo
+$ oc create -f pod-without-resources.yaml
+$ oc describe project quota-demo
 Name:   quota-demo
 Created:  4 hours ago
 Labels:   <none>
@@ -251,8 +251,8 @@ and cpu consumption as parameters in your template.
 To demonstrate this, let's provision a custom template that enumerates resources:
 
 ```shell
-$ osc create -f application-template-with-resources.json
-$ osc describe template templates ruby-helloworld-sample-with-resources
+$ oc create -f application-template-with-resources.json
+$ oc describe template templates ruby-helloworld-sample-with-resources
 Name:   ruby-helloworld-sample-with-resources
 Created:  12 minutes ago
 Labels:   <none>
@@ -354,7 +354,7 @@ Putting it all together
 Now that we have created our template, let's create the content within it.
 
 ```shell
-$ osc process ruby-helloworld-sample-with-resources | openshift cli create -f -
+$ oc process ruby-helloworld-sample-with-resources | openshift cli create -f -
 services/frontend
 routes/route-edge
 imageStreams/origin-ruby-sample
@@ -375,14 +375,14 @@ To demonstrate this, let's show what happens when you run at the limit of quota.
 Let's kick off a number of builds to see what happens when we exceed quota.
 
 ```shell
-$ osc start-build ruby-sample-build
+$ oc start-build ruby-sample-build
 $ ... [repeat until exceeded quota] ...
 ```
 
 Let's assume our 5th build exceeded quota:
 
 ```
-$ osc describe builds ruby-sample-build-5
+$ oc describe builds ruby-sample-build-5
 Name:     ruby-sample-build-5
 Created:    2 minutes ago
 Labels:     buildconfig=ruby-sample-build,name=ruby-sample-build,template=application-template-stibuild

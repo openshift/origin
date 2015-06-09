@@ -29,10 +29,12 @@ readonly OS_IMAGE_COMPILE_PLATFORMS=(
 )
 readonly OS_IMAGE_COMPILE_TARGETS=(
   images/pod
-  examples/hello-openshift
   cmd/dockerregistry
 )
-readonly OS_IMAGE_COMPILE_BINARIES=("${OS_IMAGE_COMPILE_TARGETS[@]##*/}")
+readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
+  examples/hello-openshift
+)
+readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS[@]##*/}")
 
 readonly OS_CROSS_COMPILE_PLATFORMS=(
   linux/amd64
@@ -57,10 +59,10 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-docker-build
   openshift-gitserver
   origin
+  oc
   osc
-  os
-  osadm
   oadm
+  osadm
   kubectl
   kubernetes
   kubelet
@@ -70,8 +72,8 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   kube-scheduler
 )
 readonly OPENSHIFT_BINARY_COPY=(
-  osc
-  osadm
+  oc
+  oadm
 )
 
 # os::build::binaries_from_targets take a list of build targets and return the
@@ -193,7 +195,7 @@ os::build::setup_env() {
   os::build::create_gopath_tree
 
   if [[ -z "$(which go)" ]]; then
-    echo <<EOF
+    cat <<EOF
 
 Can't find 'go' in PATH, please fix and retry.
 See http://golang.org/doc/install for installation instructions.
@@ -209,7 +211,7 @@ EOF
     local go_version
     go_version=($(go version))
     if [[ "${go_version[2]}" < "go1.4" ]]; then
-      echo <<EOF
+      cat <<EOF
 
 Detected go version: ${go_version[*]}.
 OpenShift and Kubernetes requires go version 1.4 or greater.

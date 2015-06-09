@@ -10,7 +10,10 @@ ADD config.yml /config.yml
 RUN yum install -y openshift-dockerregistry && \
     yum clean all
 
-ENV REGISTRY_CONFIGURATION_PATH=/config.yml DISABLE_USER_AUTH=true
+ENV REGISTRY_CONFIGURATION_PATH=/config.yml
+
+RUN yum install -y tree findutils epel-release && \
+    yum clean all
 
 EXPOSE 5000
 VOLUME /registry

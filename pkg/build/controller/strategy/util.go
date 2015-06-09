@@ -9,13 +9,12 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// dockerSocketPath is the default path for the Docker socket inside the builder
-// container
 const (
+	// dockerSocketPath is the default path for the Docker socket inside the builder container
 	dockerSocketPath          = "/var/run/docker.sock"
-	DockerPushSecretMountPath = "/var/run/secrets/push"
-	DockerPullSecretMountPath = "/var/run/secrets/pull"
-	sourceSecretMountPath     = "/var/run/secrets/source"
+	DockerPushSecretMountPath = "/var/run/secrets/openshift.io/push"
+	DockerPullSecretMountPath = "/var/run/secrets/openshift.io/pull"
+	sourceSecretMountPath     = "/var/run/secrets/openshift.io/source"
 )
 
 var whitelistEnvVarNames = []string{"BUILD_LOGLEVEL"}

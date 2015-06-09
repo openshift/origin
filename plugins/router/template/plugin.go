@@ -6,6 +6,7 @@ import (
 	"text/template"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	ktypes "github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
 
@@ -30,13 +31,15 @@ type router interface {
 	// FindServiceUnit finds the service with the given id.
 	FindServiceUnit(id string) (v ServiceUnit, ok bool)
 
-	// AddEndpoints adds new Endpoints for the given id.
-	AddEndpoints(id string, endpoints []Endpoint)
+	// AddEndpoints adds new Endpoints for the given id.Returns true if a change was made
+	// and the state should be stored with Commit().
+	AddEndpoints(id string, endpoints []Endpoint) bool
 	// DeleteEndpoints deletes the endpoints for the frontend with the given id.
 	DeleteEndpoints(id string)
 
-	// AddRoute adds a route for the given id
-	AddRoute(id string, route *routeapi.Route)
+	// AddRoute adds a route for the given id.  Returns true if a change was made
+	// and the state should be stored with Commit().
+	AddRoute(id string, route *routeapi.Route) bool
 	// RemoveRoute removes the given route for the given id.
 	RemoveRoute(id string, route *routeapi.Route)
 
@@ -45,7 +48,7 @@ type router interface {
 }
 
 // NewTemplatePlugin creates a new TemplatePlugin.
-func NewTemplatePlugin(templatePath, reloadScriptPath, defaultCertificate string) (*TemplatePlugin, error) {
+func NewTemplatePlugin(templatePath, reloadScriptPath, defaultCertificate string, service ktypes.NamespacedName) (*TemplatePlugin, error) {
 	masterTemplate := template.Must(template.New("config").ParseFiles(templatePath))
 	templates := map[string]*template.Template{}
 
@@ -57,7 +60,7 @@ func NewTemplatePlugin(templatePath, reloadScriptPath, defaultCertificate string
 		templates[template.Name()] = template
 	}
 
-	router, err := newTemplateRouter(templates, reloadScriptPath, defaultCertificate)
+	router, err := newTemplateRouter(templates, reloadScriptPath, defaultCertificate, peerEndpointsKey(service))
 	return &TemplatePlugin{router}, err
 }
 
@@ -75,18 +78,18 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 		p.Router.CreateServiceUnit(key)
 	}
 
-	// clear existing endpoints
-	p.Router.DeleteEndpoints(key)
-
 	switch eventType {
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying endpoints for %s", key)
 		routerEndpoints := createRouterEndpoints(endpoints)
 		key := endpointsKey(*endpoints)
-		p.Router.AddEndpoints(key, routerEndpoints)
+		commit := p.Router.AddEndpoints(key, routerEndpoints)
+		if commit {
+			return p.Router.Commit()
+		}
 	}
 
-	return p.Router.Commit()
+	return nil
 }
 
 // HandleRoute processes watch events on the Route resource.
@@ -100,13 +103,16 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 	switch eventType {
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying routes for %s", key)
-		p.Router.AddRoute(key, route)
+		commit := p.Router.AddRoute(key, route)
+		if commit {
+			return p.Router.Commit()
+		}
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting routes for %s", key)
 		p.Router.RemoveRoute(key, route)
+		return p.Router.Commit()
 	}
-
-	return p.Router.Commit()
+	return nil
 }
 
 // routeKey returns the internal router key to use for the given Route.
@@ -119,6 +125,13 @@ func endpointsKey(endpoints kapi.Endpoints) string {
 	return fmt.Sprintf("%s/%s", endpoints.Namespace, endpoints.Name)
 }
 
+// peerServiceKey may be used by the underlying router when handling endpoints to identify
+// endpoints that belong to its peers.  THIS MUST FOLLOW THE KEY STRATEGY OF endpointsKey.  It
+// receives a NamespacedName that is created from the service that is added by the oadm command
+func peerEndpointsKey(namespacedName ktypes.NamespacedName) string {
+	return fmt.Sprintf("%s/%s", namespacedName.Namespace, namespacedName.Name)
+}
+
 // createRouterEndpoints creates openshift router endpoints based on k8s endpoints
 func createRouterEndpoints(endpoints *kapi.Endpoints) []Endpoint {
 	out := make([]Endpoint, 0, len(endpoints.Subsets)*4)
@@ -127,11 +140,17 @@ func createRouterEndpoints(endpoints *kapi.Endpoints) []Endpoint {
 	for _, s := range endpoints.Subsets {
 		for _, a := range s.Addresses {
 			for _, p := range s.Ports {
-				out = append(out, Endpoint{
+				ep := Endpoint{
 					ID:   fmt.Sprintf("%s:%d", a.IP, p.Port),
 					IP:   a.IP,
 					Port: strconv.Itoa(p.Port),
-				})
+				}
+				if a.TargetRef != nil {
+					ep.TargetName = a.TargetRef.Name
+				} else {
+					ep.TargetName = ep.IP
+				}
+				out = append(out, ep)
 			}
 		}
 	}

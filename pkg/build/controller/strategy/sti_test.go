@@ -7,7 +7,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 
-	"github.com/openshift/origin/pkg/api/v1beta1"
+	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -22,7 +22,7 @@ func TestSTICreateBuildPod(t *testing.T) {
 	strategy := &SourceBuildStrategy{
 		Image:                "sti-test-image",
 		TempDirectoryCreator: &FakeTempDirCreator{},
-		Codec:                v1beta1.Codec,
+		Codec:                latest.Codec,
 	}
 
 	expected := mockSTIBuild()
@@ -83,7 +83,7 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if !found {
 		t.Fatalf("Expected variable BUILD_LOGLEVEL be defined for the container")
 	}
-	buildJSON, _ := v1beta1.Codec.Encode(expected)
+	buildJSON, _ := latest.Codec.Encode(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}

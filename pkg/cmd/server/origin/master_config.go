@@ -42,6 +42,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
@@ -65,12 +66,14 @@ type MasterConfig struct {
 	PolicyCache               *policycache.PolicyCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
 
-	// Map requests to contexts
+	// RequestContextMapper maps requests to contexts
 	RequestContextMapper kapi.RequestContextMapper
 
 	AdmissionControl admission.Interface
 
 	TLS bool
+
+	ControllerPlug plug.Plug
 
 	// a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
@@ -87,16 +90,16 @@ type MasterConfig struct {
 	// PrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from system components
 	// To apply different access control to a system component, create a client config specifically for that component.
 	PrivilegedLoopbackClientConfig kclient.Config
-	// DeployerPrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from launched deployer pods
-	DeployerOSClientConfig kclient.Config
 
-	// kubeClient is the client used to call Kubernetes APIs from system components, built from KubeClientConfig.
-	// It should only be accessed via the *Client() helper methods.
-	// To apply different access control to a system component, create a separate client/config specifically for that component.
+	// PrivilegedLoopbackKubernetesClient is the client used to call Kubernetes APIs from system components,
+	// built from KubeClientConfig. It should only be accessed via the *Client() helper methods. To apply
+	// different access control to a system component, create a separate client/config specifically for
+	// that component.
 	PrivilegedLoopbackKubernetesClient *kclient.Client
-	// osClient is the client used to call OpenShift APIs from system components, built from PrivilegedLoopbackClientConfig.
-	// It should only be accessed via the *Client() helper methods.
-	// To apply different access control to a system component, create a separate client/config specifically for that component.
+	// PrivilegedLoopbackOpenShiftClient is the client used to call OpenShift APIs from system components,
+	// built from PrivilegedLoopbackClientConfig. It should only be accessed via the *Client() helper methods.
+	// To apply different access control to a system component, create a separate client/config specifically
+	// for that component.
 	PrivilegedLoopbackOpenShiftClient *osclient.Client
 }
 
@@ -124,10 +127,6 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 	privilegedLoopbackOpenShiftClient, privilegedLoopbackClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig)
-	if err != nil {
-		return nil, err
-	}
-	_, deployerOSClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.DeployerKubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +163,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 		AdmissionControl: admissionController,
 
-		TLS: configapi.UseTLS(options.ServingInfo),
+		TLS: configapi.UseTLS(options.ServingInfo.ServingInfo),
+
+		ControllerPlug: plug.NewPlug(!options.PauseControllers),
 
 		ImageFor:            imageTemplate.ExpandOrDie,
 		EtcdHelper:          etcdHelper,
@@ -173,7 +174,6 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ClientCAs:    clientCAs,
 		APIClientCAs: apiClientCAs,
 
-		DeployerOSClientConfig:             *deployerOSClientConfig,
 		PrivilegedLoopbackClientConfig:     *privilegedLoopbackClientConfig,
 		PrivilegedLoopbackOpenShiftClient:  privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClient: privilegedLoopbackKubeClient,
@@ -228,7 +228,7 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper tools.EtcdHelper
 		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
 	}
 
-	if configapi.UseTLS(config.ServingInfo) {
+	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
 		// build cert authenticator
 		// TODO: add "system:" prefix in authenticator, limit cert to username
 		// TODO: add "system:" prefix to groups in authenticator, limit cert to group name
@@ -278,7 +278,7 @@ func newAuthorizer(policyCache *policycache.PolicyCache, projectRequestDenyMessa
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi"), latest.RESTMapper})
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi", "oapi"), latest.RESTMapper})
 	return authorizationAttributeBuilder
 }
 
@@ -303,6 +303,13 @@ func (c *MasterConfig) KubeClient() *kclient.Client {
 //  list, watch all policies in all namespaces
 //  create resourceAccessReviews in all namespaces
 func (c *MasterConfig) PolicyClient() *osclient.Client {
+	return c.PrivilegedLoopbackOpenShiftClient
+}
+
+// ServiceAccountRoleBindingClient returns the client object used to bind roles to service accounts
+// It must have the following capabilities:
+//  get, list, update, create policyBindings in all namespaces
+func (c *MasterConfig) ServiceAccountRoleBindingClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
@@ -353,12 +360,6 @@ func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
 // DeploymentControllerClients returns the deployment controller client object
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
-}
-
-// DeployerClientConfig returns the client configuration a Deployer instance launched in a pod
-// should use when making API calls.
-func (c *MasterConfig) DeployerClientConfig() *kclient.Config {
-	return &c.DeployerOSClientConfig
 }
 
 func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {

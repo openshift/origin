@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
 // ProjectStatusDescriber generates extended information about a Project
@@ -75,11 +76,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
-		if len(project.Annotations["displayName"]) > 0 && project.Annotations["displayName"] != namespace {
-			fmt.Fprintf(out, "In project %s (%s)\n", project.Annotations["displayName"], namespace)
-		} else {
-			fmt.Fprintf(out, "In project %s\n", namespace)
-		}
+		fmt.Fprintf(out, "In project %s\n", projectapi.DisplayNameAndNameForProject(project))
 
 		for _, group := range groups {
 			if len(group.Builds) != 0 {
@@ -107,10 +104,10 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		}
 
 		if len(groups) == 0 {
-			fmt.Fprintln(out, "\nYou have no Services, DeploymentConfigs, or BuildConfigs. 'osc new-app' can be used to create applications from scratch from existing Docker images and templates.")
+			fmt.Fprintln(out, "\nYou have no Services, DeploymentConfigs, or BuildConfigs. 'oc new-app' can be used to create applications from scratch from existing Docker images and templates.")
 		} else {
-			fmt.Fprintln(out, "\nTo see more information about a Service or DeploymentConfig, use 'osc describe service <name>' or 'osc describe dc <name>'.")
-			fmt.Fprintln(out, "You can use 'osc get all' to see lists of each of the types described above.")
+			fmt.Fprintln(out, "\nTo see more information about a Service or DeploymentConfig, use 'oc describe service <name>' or 'oc describe dc <name>'.")
+			fmt.Fprintln(out, "You can use 'oc get all' to see lists of each of the types described above.")
 		}
 
 		return nil
@@ -130,7 +127,7 @@ func printLines(out io.Writer, indent string, depth int, lines ...string) {
 func describeDeploymentInServiceGroup(deploy graph.DeploymentFlow) []string {
 	includeLastPass := deploy.Deployment.ActiveDeployment == nil
 	if len(deploy.Images) == 1 {
-		lines := []string{fmt.Sprintf("%s deploys %s", deploy.Deployment.Name, describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace))}
+		lines := []string{fmt.Sprintf("%s deploys %s %s", deploy.Deployment.Name, describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 		if len(lines[0]) > 120 && strings.Contains(lines[0], " <- ") {
 			segments := strings.SplitN(lines[0], " <- ", 2)
 			lines[0] = segments[0] + " <-"
@@ -140,13 +137,22 @@ func describeDeploymentInServiceGroup(deploy graph.DeploymentFlow) []string {
 		lines = append(lines, describeDeployments(deploy.Deployment, 3)...)
 		return lines
 	}
-	lines := []string{fmt.Sprintf("%s deploys:", deploy.Deployment.Name)}
+
+	lines := []string{fmt.Sprintf("%s deploys: %s", deploy.Deployment.Name, describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 	for _, image := range deploy.Images {
 		lines = append(lines, describeImageInPipeline(image, deploy.Deployment.Namespace))
 		lines = append(lines, describeAdditionalBuildDetail(image.Build, includeLastPass)...)
 		lines = append(lines, describeDeployments(deploy.Deployment, 3)...)
 	}
 	return lines
+}
+
+func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
+	if len(dc.Triggers) == 0 {
+		return "(manual)"
+	}
+
+	return ""
 }
 
 func describeStandaloneBuildGroup(pipeline graph.ImagePipeline, namespace string) []string {

@@ -25,21 +25,22 @@
             </div>
             <div>
                 <dt>Latest Version:</dt>
-                <dd>{{deploymentConfig.latestVersion}}</dd>
+                <dd>{{deploymentConfig.status.latestVersion}}</dd>
             </div>
-            <div ng-if="deploymentConfig.template.strategy.type">
+            <div ng-if="deploymentConfig.spec.strategy.type">
                 <dt>Strategy:</dt>
-                <dd>{{deploymentConfig.template.strategy.type}}</dd>
+                <dd>{{deploymentConfig.spec.strategy.type}}</dd>
+                <!-- TODO: Surface the parameters for different strategies. -->
             </div>
 
             <div>
               <h3>Template:</h3>
               <dl class="dl-horizontal left indent">
-                <dt>Selectors:</dt><dd ng-if="!deploymentConfig.template.controllerTemplate.replicaSelector">none</dd>
-                <dd ng-repeat="(selectorLabel, selectorValue) in deploymentConfig.template.controllerTemplate.replicaSelector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></dd>
+                <dt>Selectors:</dt><dd ng-if="!deploymentConfig.spec.selector">none</dd>
+                <dd ng-repeat="(selectorLabel, selectorValue) in deploymentConfig.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></dd>
                 <dt>Replicas:</dt>
                 <dd>
-                  {{deploymentConfig.template.controllerTemplate.replicas}}
+                  {{deploymentConfig.spec.replicas}}
                 </dd>
               </dl>
             </div>
@@ -62,28 +63,18 @@
                   </a>
                 </dt>
                 <dd>
-                  <code>osc deploy {{deploymentConfigName}} --latest -n {{project.metadata.name}}</code>
-                  <copy-to-clipboard-button clipboard-text="'osc deploy ' + deploymentConfigName + ' --latest -n ' + project.metadata.name"></copy-to-clipboard-button>
+                  <code>oc deploy {{deploymentConfigName}} --latest -n {{project.metadata.name}}</code>
+                  <copy-to-clipboard-button clipboard-text="'oc deploy ' + deploymentConfigName + ' --latest -n ' + project.metadata.name"></copy-to-clipboard-button>
                 </dd>
               </dl>
 
               <dl class="dl-horizontal left indent">
-                <div ng-repeat="trigger in deploymentConfig.triggers">
+                <div ng-repeat="trigger in deploymentConfig.spec.triggers">
                   <span ng-switch="trigger.type">
                     <span ng-switch-default>{{trigger.type}}</span>
-                    <span ng-switch-when="ImageChange">
-                      <div ng-switch="deploymentConfig.template.strategy.type">
-                        <div ng-switch-when="Recreate">
-                          <dl class="dl-horizontal" ng-if="trigger.imageChangeParams.from">
-                            <dt>
-                              New image for:
-                            </dt>
-                            <dd>
-                              Image stream {{trigger.imageChangeParams.from | imageRepoReference : trigger.imageChangeParams.from.kind : trigger.imageChangeParams.tag}}
-                            </dd>
-                          </dl>
-                        </div>
-                      </div>
+                    <span ng-switch-when="ImageChange" ng-if="trigger.imageChangeParams.from">
+                      <dt>New image for:</dt>
+                      <dd>{{trigger.imageChangeParams.from | imageObjectRef : deploymentConfig.metadata.namespace}}</dd>
                     </span>
                     <span ng-switch-when="ConfigChange">  
                       <dt>Change of:</dt>
@@ -94,10 +85,10 @@
               </dl>
             </div>
           
-            <div class="well" style="margin-bottom: 10px;" ng-repeat="deployment in deploymentsByDeploymentConfig[deploymentConfigName] | orderObjectsByDate : true">
+            <div class="well" ng-repeat="deployment in deploymentsByDeploymentConfig[deploymentConfigName] | orderObjectsByDate : true">
               <h3>
                 {{deployment.metadata.name}}
-                <span ng-if="(deployment | annotation:'deploymentVersion') == deploymentConfig.latestVersion">(latest)</span>
+                <span ng-if="(deployment | annotation:'deploymentVersion') == deploymentConfig.status.latestVersion">(latest)</span>
               </h3>
               <div>
                 <dt>Created:</dt>
@@ -168,7 +159,7 @@
             </span>            
           </h2>
           <dl class="dl-horizontal left indent">
-            <div class="well" style="margin-bottom: 10px;" ng-repeat="deployment in deployments | orderObjectsByDate : true">
+            <div class="well" ng-repeat="deployment in deployments | orderObjectsByDate : true">
               <h3>
                 {{deployment.metadata.name}}
               </h3>

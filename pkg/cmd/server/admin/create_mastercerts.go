@@ -13,11 +13,10 @@ import (
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const CreateMasterCertsCommandName = "create-master-certs"
-const master_cert_long = `Create keys and certificates for an OpenShift master
+const masterCertLong = `Create keys and certificates for an OpenShift master
 
 This command creates keys and certs necessary to run a secure OpenShift master.
 It also creates keys, certificates, and configuration necessary for most
@@ -72,16 +71,16 @@ type CreateMasterCertsOptions struct {
 	PublicAPIServerURL string
 
 	Overwrite bool
-	Output    cmdutil.Output
+	Output    io.Writer
 }
 
 func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateMasterCertsOptions{Output: cmdutil.Output{out}}
+	options := &CreateMasterCertsOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
 		Short: "Create certificates for an OpenShift master",
-		Long:  fmt.Sprintf(master_cert_long, fullName),
+		Long:  fmt.Sprintf(masterCertLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -92,7 +91,6 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -128,7 +126,7 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 }
 
 func (o CreateMasterCertsOptions) CreateMasterCerts() error {
-	glog.V(2).Infof("Creating all certs with: %#v", o)
+	glog.V(4).Infof("Creating all certs with: %#v", o)
 
 	signerCertOptions := CreateSignerCertOptions{
 		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),
@@ -184,11 +182,9 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *GetSign
 			APIServerURL:       o.APIServerURL,
 			PublicAPIServerURL: o.PublicAPIServerURL,
 			APIServerCAFile:    getSignerCertOptions.CertFile,
-			ServerNick:         "master",
 
 			CertFile: clientCertInfo.CertLocation.CertFile,
 			KeyFile:  clientCertInfo.CertLocation.KeyFile,
-			UserNick: clientCertInfo.User,
 
 			ContextNamespace: kapi.NamespaceDefault,
 

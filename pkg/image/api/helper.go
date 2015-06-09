@@ -165,8 +165,7 @@ func SplitImageStreamTag(nameAndTag string) (name string, tag string, ok bool) {
 	return name, tag, len(parts) == 2
 }
 
-// SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.
-// It returns false if the tag was not properly specified in the name.
+// JoinImageStreamTag turns a name and tag into the name of an ImageStreamTag
 func JoinImageStreamTag(name, tag string) string {
 	if len(tag) == 0 {
 		tag = DefaultImageTag
@@ -350,4 +349,13 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 		updated := AddTagEventToImageStream(stream, specTag, updatedImage)
 		glog.V(5).Infof("stream updated? %t", updated)
 	}
+}
+
+// NameAndTag returns an image name with a tag. If the tag is blank then
+// DefaultImageTag is used.
+func NameAndTag(name, tag string) string {
+	if len(tag) == 0 {
+		tag = DefaultImageTag
+	}
+	return fmt.Sprintf("%s:%s", name, tag)
 }

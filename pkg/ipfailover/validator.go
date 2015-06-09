@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-//  Validate IP address.
+// ValidateIPAddress validates IP address.
 func ValidateIPAddress(ip string) error {
 	ipaddr := strings.TrimSpace(ip)
 	if net.ParseIP(ipaddr) == nil {
@@ -17,7 +17,7 @@ func ValidateIPAddress(ip string) error {
 	return nil
 }
 
-// Validate an IP address range or single IP address.
+// ValidateIPAddressRange validates an IP address range or single IP address.
 func ValidateIPAddressRange(iprange string) error {
 	iprange = strings.TrimSpace(iprange)
 	if strings.Count(iprange, "-") < 1 {
@@ -59,7 +59,7 @@ func ValidateIPAddressRange(iprange string) error {
 	return nil
 }
 
-//  Validate virtual IP range/addresses.
+// ValidateVirtualIPs validates virtual IP range/addresses.
 func ValidateVirtualIPs(vips string) error {
 	virtualIPs := strings.TrimSpace(vips)
 	if len(virtualIPs) < 1 {
@@ -75,7 +75,7 @@ func ValidateVirtualIPs(vips string) error {
 	return nil
 }
 
-// Validate command line operations.
+// ValidateCmdOptions validates command line operations.
 func ValidateCmdOptions(options *IPFailoverConfigCmdOptions, c *Configurator) error {
 	dc, err := c.Plugin.GetDeploymentConfig()
 	if err != nil {

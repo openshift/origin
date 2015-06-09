@@ -11,6 +11,7 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -107,7 +108,6 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.ServiceAccountConfig.PublicKeyFiles[i])
 	}
 
-	refs = append(refs, &config.MasterClients.DeployerKubeConfig)
 	refs = append(refs, &config.MasterClients.OpenShiftLoopbackKubeConfig)
 	refs = append(refs, &config.MasterClients.ExternalKubernetesKubeConfig)
 
@@ -228,7 +228,7 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 
 // GetAPIServerCertCAPool returns the cert pool containing the roots for the API server cert
 func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
-	if !UseTLS(options.ServingInfo) {
+	if !UseTLS(options.ServingInfo.ServingInfo) {
 		return x509.NewCertPool(), nil
 	}
 
@@ -236,7 +236,7 @@ func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 }
 
 func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo) {
+	if !UseTLS(options.ServingInfo.ServingInfo) {
 		return nil, nil
 	}
 
@@ -264,7 +264,7 @@ func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 }
 
 func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo) {
+	if !UseTLS(options.ServingInfo.ServingInfo) {
 		return nil, nil
 	}
 
@@ -333,4 +333,14 @@ func IsOAuthIdentityProvider(provider IdentityProvider) bool {
 	}
 
 	return false
+}
+
+func HasOpenShiftAPILevel(config MasterConfig, apiLevel string) bool {
+	apiLevelSet := util.NewStringSet(config.APILevels...)
+	return apiLevelSet.Has(apiLevel)
+}
+
+func HasKubernetesAPILevel(config KubernetesMasterConfig, apiLevel string) bool {
+	apiLevelSet := util.NewStringSet(config.APILevels...)
+	return apiLevelSet.Has(apiLevel)
 }

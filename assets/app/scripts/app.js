@@ -188,13 +188,14 @@ angular
       HawtioNav.add(tabs[i]);
     }
   }])
-  .run(function($interval, dateRelativeFilter, durationFilter) {
-    $interval(function() {
+  .run(function(dateRelativeFilter, durationFilter) {
+    // Use setInterval instead of $interval because we're directly manipulating the DOM and don't want scope.$apply overhead
+    setInterval(function() {
       $('.timestamp[data-timestamp]').text(function(i, existing) {
         return dateRelativeFilter($(this).attr("data-timestamp")) || existing;
       });
-    }, 30000);
-    $interval(function() {
+    }, 30 * 1000);
+    setInterval(function() {
       $('.duration[data-timestamp]').text(function(i, existing) {
         return durationFilter($(this).attr("data-timestamp")) || existing;
       });

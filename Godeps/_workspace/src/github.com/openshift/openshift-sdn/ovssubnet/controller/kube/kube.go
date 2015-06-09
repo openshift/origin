@@ -36,6 +36,10 @@ func (c *FlowController) Setup(localSubnet, containerNetwork string) error {
 		return err
 	}
 	_, err = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", "cookie=0x0,table=0,priority=50,actions=output:2").CombinedOutput()
+	arprule := fmt.Sprintf("cookie=0x0,table=0,priority=100,arp,nw_dst=%s,actions=output:2", gateway)
+	iprule := fmt.Sprintf("cookie=0x0,table=0,priority=100,ip,nw_dst=%s,actions=output:2", gateway)
+	_, err = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", arprule).CombinedOutput()
+	_, err = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", iprule).CombinedOutput()
 	return err
 }
 
@@ -61,16 +65,15 @@ func (c *FlowController) manageLocalIpam(ipnet *net.IPNet) error {
 func (c *FlowController) AddOFRules(minionIP, subnet, localIP string) error {
 	cookie := generateCookie(minionIP)
 	if minionIP == localIP {
-		// return nil as the actions=NORMAL does not behave well, needs work
-		// for the input rules to containers, see the kube-hook
-		return nil
-		// self, so add the input rules
-		iprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,ip,in_port=1,nw_dst=%s,actions=NORMAL", cookie, subnet)
-		arprule := fmt.Sprintf("table=0,cookie=0x%s,priority=200,arp,in_port=1,nw_dst=%s,actions=NORMAL", cookie, subnet)
+		// self, so add the input rules for containers that are not processed through kube-hooks
+		// for the input rules to pods, see the kube-hook
+		iprule := fmt.Sprintf("table=0,cookie=0x%s,priority=75,ip,nw_dst=%s,actions=output:9", cookie, subnet)
+		arprule := fmt.Sprintf("table=0,cookie=0x%s,priority=75,arp,nw_dst=%s,actions=output:9", cookie, subnet)
 		o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", iprule).CombinedOutput()
 		log.Infof("Output of adding %s: %s (%v)", iprule, o, e)
 		o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", arprule).CombinedOutput()
 		log.Infof("Output of adding %s: %s (%v)", arprule, o, e)
+		return e
 	} else {
 		iprule := fmt.Sprintf("table=0,cookie=0x%s,priority=100,ip,nw_dst=%s,actions=set_field:%s->tun_dst,output:1", cookie, subnet, minionIP)
 		arprule := fmt.Sprintf("table=0,cookie=0x%s,priority=100,arp,nw_dst=%s,actions=set_field:%s->tun_dst,output:1", cookie, subnet, minionIP)

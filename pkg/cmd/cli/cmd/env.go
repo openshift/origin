@@ -1,19 +1,3 @@
-/*
-Copyright 2014 The Kubernetes Authors All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package cmd
 
 import (
@@ -24,6 +8,7 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
@@ -32,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 
 	//ocutil "github.com/openshift/origin/pkg/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -73,6 +59,7 @@ syntax.`
   $ env | grep RAILS_ | %[1]s env -e - dc/registry`
 )
 
+// NewCmdEnv implements the OpenShift cli env command
 func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
 	var filenames util.StringList
 	var env util.StringList
@@ -194,6 +181,7 @@ func readEnv(r io.Reader) ([]kapi.EnvVar, error) {
 	return env, nil
 }
 
+// RunEnv contains all the necessary functionality for the OpenShift cli env command
 func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames util.StringList) error {
 	resources, envArgs := []string{}, []string{}
 	first := true
@@ -257,6 +245,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	if err != nil {
 		return err
 	}
+
 	// only apply resource version locking on a single resource
 	if !one && len(resourceVersion) > 0 {
 		return cmdutil.UsageError(cmd, "--resource-version may only be used with a single resource")
@@ -327,7 +316,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		}
 		obj, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, true, data)
 		if err != nil {
-			fmt.Fprintf(cmd.Out(), "Error: %v\n", err)
+			handleUpdateError(cmd.Out(), err)
 			failed = true
 			continue
 		}
@@ -419,4 +408,24 @@ func selectString(s, spec string) bool {
 		}
 	}
 	return match
+}
+
+func handleUpdateError(out io.Writer, err error) {
+	errored := false
+	if statusError, ok := err.(*errors.StatusError); ok && errors.IsInvalid(err) {
+		errorDetails := statusError.Status().Details
+		if errorDetails.Kind == "Pod" {
+			for _, cause := range errorDetails.Causes {
+				if cause.Field == "spec" && strings.Contains(cause.Message, "may not update fields other than") {
+					fmt.Fprintf(out, "Error updating pod %q: may not update environment variables in a pod directly\n", errorDetails.ID)
+					errored = true
+					break
+				}
+			}
+		}
+	}
+
+	if !errored {
+		fmt.Fprintf(out, "Error: %v\n", err)
+	}
 }

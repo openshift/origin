@@ -36,13 +36,13 @@
 
                 <div class="alert alert-info">
                   <span class="pficon pficon-info"></span>
-                  <label>Note:</label> After creation, these settings can only be modified through the osc command.
+                  <label>Note:</label> After creation, these settings can only be modified through the oc command.
                 </div>
 
                 <osc-form-section
                   header="Routing" 
                   about-title="Routing"
-                  about="Routing is a way to make your application publicly visible. Otherwise you may only be able to access your application by it's IP address, if allowed by the system administrator."
+                  about="Routing is a way to make your application publicly visible. Otherwise you may only be able to access your application by its IP address, if allowed by the system administrator."
                   class="first-section"
                   >
                   <div ng-hide="$parent.expand">
@@ -57,7 +57,7 @@
                         <input type="checkbox" ng-model="routing.include">
                           Create a route to the application
                           <span class="help action-inline">
-                            <i class="pficon pficon-help" data-toggle="tooltip" data-placement="right" data-original-title="Additional routes with alternative configuration options (security, TLS termination, etc) can be added using the osc command."></i>
+                            <i class="pficon pficon-help" data-toggle="tooltip" data-placement="right" data-original-title="Additional routes with alternative configuration options (security, TLS termination, etc) can be added using the oc command."></i>
                           </span>
                       </label>
                     </div>
@@ -162,7 +162,7 @@
                         Configure webhook build trigger 
                         <span class="help action-inline">
                           <a href data-toggle="tooltip" data-placement="right" 
-                             data-original-title="The source repository must be configured to use the webhook to trigger a build when source is committed">
+                             data-original-title="The source repository must be configured to use the webhook to trigger a build when source is committed.">
                             <i class="pficon pficon-help"></i> 
                           </a>
                         </span>
@@ -216,7 +216,7 @@
                       ng-disabled="form.appname.$invalid || 
                           form.replicas.$invalid"
                       >Create</button>
-                  <a class="btn btn-default btn-lg" href="{{project | projectOverviewURL}}">Cancel</a>
+                  <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
                 </div>
               </form>
               <div ng-hide="imageRepo">

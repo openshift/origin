@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"runtime"
@@ -11,10 +12,9 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	//"github.com/openshift/origin/pkg/api"
-	_ "github.com/openshift/origin/pkg/api/v1beta1"
-	_ "github.com/openshift/origin/pkg/api/v1beta3"
+	_ "github.com/openshift/origin/pkg/api/latest"
 )
 
 var (
@@ -59,7 +59,7 @@ func main() {
 			continue
 		}
 		if err := generator.GenerateConversionsForType(*version, knownType); err != nil {
-			glog.Errorf("error while generating conversion functions for %v: %v", knownType, err)
+			util.HandleError(fmt.Errorf("error while generating conversion functions for %v: %v", knownType, err))
 		}
 	}
 	if err := generator.WriteConversionFunctions(funcOut); err != nil {

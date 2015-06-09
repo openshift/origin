@@ -26,6 +26,8 @@ type DeploymentControllerFactory struct {
 	KubeClient kclient.Interface
 	// Codec is used for encoding/decoding.
 	Codec runtime.Codec
+	// ServiceAccount is the service account name to run deployer pods as
+	ServiceAccount string
 	// Environment is a set of environment which should be injected into all deployer pod containers.
 	Environment []kapi.EnvVar
 	// DeployerImage specifies which Docker image can support the default strategies.
@@ -51,6 +53,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
 
 	deployController := &DeploymentController{
+		serviceAccount: factory.ServiceAccount,
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
@@ -71,6 +74,19 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 			},
 			updatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return factory.KubeClient.Pods(namespace).Update(pod)
+			},
+			// Find deployer pods using the label they should all have which
+			// correlates them to the named deployment.
+			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
+				labelSel, err := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeployerPodForDeploymentLabel, name))
+				if err != nil {
+					return []kapi.Pod{}, err
+				}
+				pods, err := factory.KubeClient.Pods(namespace).List(labelSel, fields.Everything())
+				if err != nil {
+					return []kapi.Pod{}, err
+				}
+				return pods.Items, nil
 			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {

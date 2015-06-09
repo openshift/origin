@@ -10,11 +10,11 @@ import (
 
 // NewFixtureClients returns mocks of the OpenShift and Kubernetes clients
 func NewFixtureClients(o testclient.ObjectRetriever) (osclient.Interface, kclient.Interface) {
-	osc := &Fake{
+	oc := &Fake{
 		ReactFn: testclient.ObjectReaction(o, latest.RESTMapper),
 	}
 	kc := &testclient.Fake{
 		ReactFn: testclient.ObjectReaction(o, latest.RESTMapper),
 	}
-	return osc, kc
+	return oc, kc
 }

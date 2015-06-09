@@ -10,7 +10,7 @@
           <em>{{emptyMessage}}</em>
         </div>
       </div>      
-      <div style="margin-bottom: 10px;" ng-repeat="pod in pods | orderObjectsByDate : true" class="tile">
+      <div ng-repeat="pod in pods | orderObjectsByDate : true" class="tile">
         <h2>{{pod.metadata.name}}</h2>
         <div>
           <span style="margin-right: 5px;">Status:  {{pod.status.phase}}</span>

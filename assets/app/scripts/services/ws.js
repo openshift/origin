@@ -39,7 +39,7 @@ angular.module('openshiftConsole')
         var ws = new WebSocket(config.url);
         if (config.onclose)   { ws.onclose   = config.onclose;   }
         if (config.onmessage) { ws.onmessage = config.onmessage; }
-        if (config.onopen) { ws.onopen = config.onopen; }
+        if (config.onopen)    { ws.onopen    = config.onopen;    }
         return ws;
       };
 

@@ -1,174 +1,247 @@
 {
-  "apiVersion": "v1beta3",
   "kind": "ImageStreamList",
+  "apiVersion": "v1beta3",
+  "metadata": {},
   "items": [
     {
-      "apiVersion": "v1beta3",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "ruby"
+        "name": "ruby",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/ruby-20-centos7",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "2.0",
             "annotations": {
               "description": "Build and run Ruby 2.0 applications",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
               "version": "2.0"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
       }
     },
     {
-      "apiVersion": "v1beta3",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "nodejs"
+        "name": "nodejs",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/nodejs-010-centos7",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "0.10",
             "annotations": {
-              "description" : "Build and run NodeJS 0.10 applications",
-              "iconClass" : "icon-nodejs",
-              "tags" : "builder,nodejs",
-              "version" : "0.10"
+              "description": "Build and run NodeJS 0.10 applications",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "version": "0.10"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
       }
     },
     {
-      "apiVersion": "v1beta3",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "perl"
+        "name": "perl",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/perl-516-centos7",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "5.16",
             "annotations": {
               "description": "Build and run Perl 5.16 applications",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
               "version": "5.16"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
       }
     },
     {
-      "apiVersion": "v1beta3",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "php"
+        "name": "php",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/php-55-centos7",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "5.5",
             "annotations": {
               "description": "Build and run PHP 5.5 applications",
               "iconClass": "icon-php",
               "tags": "builder,php",
               "version": "5.5"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
       }
     },
     {
-      "apiVersion": "v1beta3",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "python"
+        "name": "python",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/python-33-centos7",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "3.3",
             "annotations": {
               "description": "Build and run Python 3.3 applications",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "version": "3.3"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
       }
     },
     {
-      "apiVersion": "v1beta3",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "wildfly"
+        "name": "wildfly",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/wildfly-8-centos",
         "tags": [
           {
-            "name": "latest",
+            "name": "latest"
+          },
+          {
+            "name": "8",
             "annotations": {
-              "description" : "Build and run Java applications on Wildfly 8",
-              "iconClass" : "icon-wildfly",
-              "tags" : "builder,wildfly,java",
-              "version" : "8"
+              "description": "Build and run Java applications on Wildfly 8",
+              "iconClass": "icon-wildfly",
+              "tags": "builder,wildfly,java",
+              "version": "8"
+            },
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
             }
           }
         ]
       }
     },
     {
-      "apiVersion": "v1beta3",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mysql"
+        "name": "mysql",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/mysql-55-centos7",
         "tags": [
           {
-            "name":"latest"
+            "name": "latest"
+          },
+          {
+            "name": "5.5",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
+            }
           }
         ]
       }
     },
     {
-      "apiVersion": "v1beta3",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "postgresql"
+        "name": "postgresql",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/postgresql-92-centos7",
         "tags": [
           {
-            "name":"latest"
+            "name": "latest"
+          },
+          {
+            "name": "9.2",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
+            }
           }
         ]
       }
     },
     {
-      "apiVersion": "v1beta3",
       "kind": "ImageStream",
+      "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mongodb"
+        "name": "mongodb",
+        "creationTimestamp": null
       },
       "spec": {
         "dockerImageRepository": "openshift/mongodb-24-centos7",
         "tags": [
           {
-            "name":"latest"
+            "name": "latest"
+          },
+          {
+            "name": "2.4",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
+            }
           }
         ]
       }

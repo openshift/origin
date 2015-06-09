@@ -1,6 +1,8 @@
 package generator
 
 import (
+	"fmt"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -15,7 +17,9 @@ type RouteGenerator struct{}
 func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 	return []kubectl.GeneratorParam{
 		{"labels", false},
-		{"name", true},
+		{"default-name", true},
+		{"name", false},
+		{"hostname", false},
 	}
 }
 
@@ -34,12 +38,21 @@ func (RouteGenerator) Generate(params map[string]string) (runtime.Object, error)
 		}
 	}
 
+	name, found := params["name"]
+	if !found || len(name) == 0 {
+		name, found = params["default-name"]
+		if !found || len(name) == 0 {
+			return nil, fmt.Errorf("'name' is a required parameter.")
+		}
+	}
+
 	return &api.Route{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:   params["name"],
+			Name:   name,
 			Labels: labels,
 		},
-		ServiceName: params["name"],
+		Host:        params["hostname"],
+		ServiceName: params["default-name"],
 	}, nil
 }
 

@@ -7,14 +7,14 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 
-	"github.com/openshift/origin/pkg/api/v1beta1"
+	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestCustomCreateBuildPod(t *testing.T) {
 	strategy := CustomBuildStrategy{
-		Codec: v1beta1.Codec,
+		Codec: latest.Codec,
 	}
 
 	expectedBad := mockCustomBuild()
@@ -67,7 +67,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if len(actual.Spec.Volumes) != 3 {
 		t.Fatalf("Expected 3 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
-	buildJSON, _ := v1beta1.Codec.Encode(expected)
+	buildJSON, _ := latest.Codec.Encode(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}

@@ -65,7 +65,7 @@ JSON and YAML formats are accepted.`
   $ cat pod.json | %[1]s update -f -
 
   // Update a pod by downloading it, applying the patch, then updating. Requires apiVersion be specified.
-  $ %[1]s update pods my-pod --patch='{ "apiVersion": "v1beta1", "desiredState": { "manifest": [{ "cpu": 100 }]}}'`
+  $ %[1]s update pods my-pod --patch='{ "apiVersion": "v1", "spec": { "containers": [{ "image": "myimage" }]}}'`
 )
 
 // NewCmdUpdate is a wrapper for the Kubernetes cli update command
@@ -113,20 +113,20 @@ func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 }
 
 const (
-	log_long = `Print the logs for a container in a pod. If the pod has only one container, the container name is optional.`
+	logsLong = `Print the logs for a container in a pod. If the pod has only one container, the container name is optional.`
 
-	log_example = `  // Returns snapshot of ruby-container logs from pod 123456-7890.
-  $ %[1]s log 123456-7890 ruby-container
+	logsExample = `  // Returns snapshot of ruby-container logs from pod 123456-7890.
+  $ %[1]s logs 123456-7890 ruby-container
 
   // Starts streaming of ruby-container logs from pod 123456-7890.
-  $ %[1]s log -f 123456-7890 ruby-container`
+  $ %[1]s logs -f 123456-7890 ruby-container`
 )
 
-// NewCmdLog is a wrapper for the Kubernetes cli log command
-func NewCmdLog(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+// NewCmdLogs is a wrapper for the Kubernetes cli logs command
+func NewCmdLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdLog(f.Factory, out)
-	cmd.Long = log_long
-	cmd.Example = fmt.Sprintf(log_example, fullName)
+	cmd.Long = logsLong
+	cmd.Example = fmt.Sprintf(logsExample, fullName)
 	return cmd
 }
 
@@ -221,7 +221,7 @@ const (
   $ %[1]s proxy --port=8011 --www=./local/www/
 
   // Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
-  // This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta1/pods/
+  // This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta3/pods/
   $ %[1]s proxy --api-prefix=k8s-api`
 )
 
@@ -234,24 +234,25 @@ func NewCmdProxy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 }
 
 const (
-	resizeLong = `Set a new size for a Replication Controller either directly or via its Deployment Configuration.
+	scaleLong = `Set a new size for a Replication Controller either directly or via its Deployment Configuration.
 
-Resize also allows users to specify one or more preconditions for the resize action.
+Scale also allows users to specify one or more preconditions for the scale action.
 If --current-replicas or --resource-version is specified, it is validated before the
-resize is attempted, and it is guaranteed that the precondition holds true when the
-resize is sent to the server.`
-	resizeExample = `// Resize replication controller named 'foo' to 3.
-$ %[1]s resize --replicas=3 replicationcontrollers foo
+scale is attempted, and it is guaranteed that the precondition holds true when the
+scale is sent to the server.`
+	scaleExample = `// Scale replication controller named 'foo' to 3.
+$ %[1]s scale --replicas=3 replicationcontrollers foo
 
-// If the replication controller named foo's current size is 2, resize foo to 3.
-$ %[1]s resize --current-replicas=2 --replicas=3 replicationcontrollers foo`
+// If the replication controller named foo's current size is 2, scale foo to 3.
+$ %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo`
 )
 
-// NewCmdResize is a wrapper for the Kubernetes cli resize command
-func NewCmdResize(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdResize(f.Factory, out)
-	cmd.Long = resizeLong
-	cmd.Example = fmt.Sprintf(resizeExample, fullName)
+// NewCmdScale is a wrapper for the Kubernetes cli scale command
+func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdScale(f.Factory, out)
+	cmd.Short = "Change the number of pods in a deployment"
+	cmd.Long = scaleLong
+	cmd.Example = fmt.Sprintf(scaleExample, fullName)
 	return cmd
 }
 
@@ -259,7 +260,7 @@ const (
 	stopLong = `Gracefully shut down a resource by id or filename.
 
 Attempts to shut down and delete a resource that supports graceful termination.
-If the resource is resizable it will be resized to 0 before deletion.`
+If the resource is scalable it will be scaled to 0 before deletion.`
 
 	stopExample = `// Shut down foo.
 $ %[1]s stop replicationcontroller foo

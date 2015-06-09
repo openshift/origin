@@ -9,6 +9,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -58,10 +59,17 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// Check if any existing inflight deployments (any non-terminal state).
 	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
 	if err != nil {
-		return fmt.Errorf("couldn't list Deployments for DeploymentConfig %s/%s: %v", config.Namespace, deployutil.LabelForDeploymentConfig(config), err)
+		return fmt.Errorf("couldn't list Deployments for DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 	var inflightDeployment *kapi.ReplicationController
+	latestDeploymentExists := false
 	for _, deployment := range existingDeployments.Items {
+		// check if this is the latest deployment
+		// we'll return after we've dealt with the multiple-active-deployments case
+		if deployutil.DeploymentVersionFor(&deployment) == config.LatestVersion {
+			latestDeploymentExists = true
+		}
+
 		deploymentStatus := deployutil.DeploymentStatusFor(&deployment)
 		switch deploymentStatus {
 		case deployapi.DeploymentStatusFailed,
@@ -84,28 +92,28 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			deploymentForCancellation.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 			deploymentForCancellation.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
 			if _, err := c.deploymentClient.updateDeployment(deploymentForCancellation.Namespace, deploymentForCancellation); err != nil {
-				glog.Errorf("couldn't cancel Deployment %s/%s: %v", deploymentForCancellation.Namespace, deployutil.LabelForDeployment(deploymentForCancellation), err)
+				util.HandleError(fmt.Errorf("couldn't cancel Deployment %s: %v", deployutil.LabelForDeployment(deploymentForCancellation), err))
 			}
-			glog.V(4).Infof("Cancelled Deployment %s for DeploymentConfig %s/%s", deployutil.LabelForDeployment(deploymentForCancellation), config.Namespace, deployutil.LabelForDeploymentConfig(config))
+			glog.V(4).Infof("Cancelled Deployment %s for DeploymentConfig %s", deployutil.LabelForDeployment(deploymentForCancellation), deployutil.LabelForDeploymentConfig(config))
 		}
+	}
+
+	// if the latest deployment exists then nothing else needs to be done
+	if latestDeploymentExists {
+		return nil
 	}
 
 	// check to see if there are inflight deployments
 	if inflightDeployment != nil {
-		// check if this is the latest and only deployment
-		// if so, nothing needs to be done
-		if deployutil.DeploymentVersionFor(inflightDeployment) == config.LatestVersion {
-			return nil
-		}
-		// if this is an earlier deployment, raise a transientError so that the deployment config can be re-queued
-		glog.V(4).Infof("Found previous inflight Deployment for %s/%s - will requeue", config.Namespace, deployutil.LabelForDeploymentConfig(config))
-		return transientError(fmt.Sprintf("found previous inflight Deployment for %s/%s - requeuing", config.Namespace, deployutil.LabelForDeploymentConfig(config)))
+		// raise a transientError so that the deployment config can be re-queued
+		glog.V(4).Infof("Found previous inflight Deployment for %s - will requeue", deployutil.LabelForDeploymentConfig(config))
+		return transientError(fmt.Sprintf("found previous inflight Deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config)))
 	}
 
 	// Try and build a deployment for the config.
 	deployment, err := c.makeDeployment(config)
 	if err != nil {
-		return fatalError(fmt.Sprintf("couldn't make Deployment from (potentially invalid) DeploymentConfig %s/%s: %v", config.Namespace, deployutil.LabelForDeploymentConfig(config), err))
+		return fatalError(fmt.Sprintf("couldn't make Deployment from (potentially invalid) DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err))
 	}
 
 	// Compute the desired replicas for the deployment. The count should match
@@ -122,25 +130,25 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		for _, existing := range existingDeployments.Items {
 			desiredReplicas += existing.Spec.Replicas
 		}
+		glog.V(4).Infof("Desired replicas for %s adjusted to %d based on %d existing deployments", deployutil.LabelForDeploymentConfig(config), desiredReplicas, len(existingDeployments.Items))
 	}
 	deployment.Annotations[deployapi.DesiredReplicasAnnotation] = strconv.Itoa(desiredReplicas)
 
 	// Create the deployment.
 	if _, err := c.deploymentClient.createDeployment(config.Namespace, deployment); err == nil {
-		glog.V(4).Infof("Created Deployment for DeploymentConfig %s/%s", config.Namespace, deployutil.LabelForDeploymentConfig(config))
+		glog.V(4).Infof("Created Deployment for DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	} else {
 		// If the deployment was already created, just move on. The cache could be stale, or another
 		// process could have already handled this update.
 		if errors.IsAlreadyExists(err) {
-			c.recorder.Eventf(config, "alreadyExists", "Deployment already exists for DeploymentConfig: %s/%s", config.Namespace, deployutil.LabelForDeploymentConfig(config))
-			glog.V(4).Infof("Deployment already exists for DeploymentConfig %s/%s", config.Namespace, deployutil.LabelForDeploymentConfig(config))
+			glog.V(4).Infof("Deployment already exists for DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 			return nil
 		}
 
 		// log an event if the deployment could not be created that the user can discover
 		c.recorder.Eventf(config, "failedCreate", "Error creating: %v", err)
-		return fmt.Errorf("couldn't create Deployment for DeploymentConfig %s/%s: %v", config.Namespace, deployutil.LabelForDeploymentConfig(config), err)
+		return fmt.Errorf("couldn't create Deployment for DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 }
 

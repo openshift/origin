@@ -69,7 +69,6 @@ func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, cre
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -105,7 +104,7 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 	if err != nil {
 		return err
 	}
-	etcdHelper, err := newEtcdHelper(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, "openshift")
+	etcdHelper, err := newEtcdHelper(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return err
 	}

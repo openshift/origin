@@ -65,7 +65,7 @@ angular.module('openshiftConsole')
       $scope.loaded = openshiftImageRepos && projectImageRepos;
     };
 
-    DataService.list("imageStreams", $scope, function(imageRepos) {
+    DataService.list("imagestreams", $scope, function(imageRepos) {
       projectImageRepos = imageRepos.by("metadata.name");
       imagesForRepos(projectImageRepos, $scope);
       checkIfLoaded();
@@ -73,7 +73,7 @@ angular.module('openshiftConsole')
       Logger.info("project image repos", projectImageRepos);
     });
 
-    DataService.list("imageStreams", {namespace: "openshift"}, function(imageRepos) {
+    DataService.list("imagestreams", {namespace: "openshift"}, function(imageRepos) {
       openshiftImageRepos = imageRepos.by("metadata.name");
       imagesForRepos(openshiftImageRepos, {namespace: "openshift"});
       checkIfLoaded();

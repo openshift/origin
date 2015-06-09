@@ -25,6 +25,11 @@ type Build struct {
 
 // BuildSpec encapsulates all the inputs necessary to represent a build.
 type BuildSpec struct {
+	// ServiceAccount is the name of the ServiceAccount to use to run the pod
+	// created by this build.
+	// The pod will be allowed to use secrets referenced by the ServiceAccount
+	ServiceAccount string `json:"serviceAccount,omitempty"`
+
 	// Source describes the SCM in use.
 	Source BuildSource `json:"source,omitempty"`
 
@@ -316,8 +321,8 @@ type BuildTriggerPolicy struct {
 	// Type is the type of build trigger
 	Type BuildTriggerType `json:"type,omitempty"`
 
-	// GithubWebHook contains the parameters for a GitHub webhook type of trigger
-	GithubWebHook *WebHookTrigger `json:"github,omitempty"`
+	// GitHubWebHook contains the parameters for a GitHub webhook type of trigger
+	GitHubWebHook *WebHookTrigger `json:"github,omitempty"`
 
 	// GenericWebHook contains the parameters for a Generic webhook type of trigger
 	GenericWebHook *WebHookTrigger `json:"generic,omitempty"`
@@ -330,9 +335,9 @@ type BuildTriggerPolicy struct {
 type BuildTriggerType string
 
 const (
-	// GithubWebHookBuildTriggerType represents a trigger that launches builds on
+	// GitHubWebHookBuildTriggerType represents a trigger that launches builds on
 	// GitHub webhook invocations
-	GithubWebHookBuildTriggerType BuildTriggerType = "github"
+	GitHubWebHookBuildTriggerType BuildTriggerType = "github"
 
 	// GenericWebHookBuildTriggerType represents a trigger that launches builds on
 	// generic webhook invocations
@@ -385,6 +390,9 @@ type BuildRequest struct {
 
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty"`
+
+	// TriggeredByImage is the Image that triggered this build.
+	TriggeredByImage *kapi.ObjectReference `json:"triggeredByImage,omitempty"`
 }
 
 // BuildLogOptions is the REST options for a build log

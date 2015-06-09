@@ -12,11 +12,14 @@ import (
 	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/policy"
+	"github.com/openshift/origin/pkg/cmd/templates"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
 
-const cli_long = `OpenShift Client.
+const cliLong = `OpenShift Client.
 
 The OpenShift client exposes commands for managing your applications, as well as lower level
 tools to interact with each component of your system.
@@ -25,76 +28,115 @@ To create a new application, you can use the example app source. Login to your s
 run new-app:
 
   $ %[1]s login
-  $ %[1]s new-app openshift/ruby-20-centos7~git@github.com/mfojtik/sinatra-app-example
+  $ %[1]s new-app openshift/ruby-20-centos7~git@github.com/openshift/ruby-hello-world.git
 
 This will create an application based on the Docker image 'openshift/ruby-20-centos7' that builds
-the source code at 'github.com/mfojtik/sinatra-app-example'. To start the build, run
+the source code at 'github.com/openshift/ruby-hello-world.git'. To start the build, run
 
-  $ %[1]s start-build sinatra-app-example
+  $ %[1]s start-build ruby-hello-world --follow
 
-and watch the build logs and build status with:
+Once your application is deployed, use the status, get, and describe commands to see more about
+the created components:
 
-  $ %[1]s get builds
-  $ %[1]s build-logs <name_of_build>
+  $ %[1]s status
+  $ %[1]s describe deploymentconfig ruby-hello-world
+  $ %[1]s get pods
 
 You'll be able to view the deployed application on the IP and port of the service that new-app
 created for you.
 
-You can easily switch between multiple projects using '%[1]s project <projectname>'.
-
-Note: This is a beta release of OpenShift and may change significantly.  See
-    https://github.com/openshift/origin for the latest information on OpenShift.`
+You can easily switch between multiple projects using '%[1]s project <projectname>'.`
 
 func NewCommandCLI(name, fullName string) *cobra.Command {
+	in := os.Stdin
+	out := os.Stdout
+
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Client tools for OpenShift",
-		Long:  fmt.Sprintf(cli_long, fullName),
-		Run: func(c *cobra.Command, args []string) {
-			c.SetOutput(os.Stdout)
-			c.Help()
-		},
+		Long:  fmt.Sprintf(cliLong, fullName),
+		Run:   cmdutil.DefaultSubCommandRun(out),
 		BashCompletionFunction: bashCompletionFunc,
 	}
 
 	f := clientcmd.New(cmds.PersistentFlags())
-	in := os.Stdin
-	out := os.Stdout
 
-	cmds.AddCommand(cmd.NewCmdLogin(fullName, f, in, out))
-	cmds.AddCommand(cmd.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out))
-	cmds.AddCommand(cmd.NewCmdProject(fullName+" project", f, out))
-	cmds.AddCommand(cmd.NewCmdRequestProject("new-project", fullName+" new-project", fullName+" login", fullName+" project", f, out))
-	cmds.AddCommand(cmd.NewCmdNewApplication(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdStatus(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdStartBuild(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdCancelBuild(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdBuildLogs(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdDeploy(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdRollback(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdEnv(fullName, f, os.Stdin, out))
-	cmds.AddCommand(cmd.NewCmdExpose(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdGet(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdDescribe(fullName, f, out))
-	// Deprecate 'osc apply' with 'osc create' command.
-	cmds.AddCommand(applyToCreate(cmd.NewCmdCreate(fullName, f, out)))
-	cmds.AddCommand(cmd.NewCmdProcess(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdEdit(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdUpdate(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdDelete(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdLog(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdExec(fullName, f, os.Stdin, out, os.Stderr))
-	cmds.AddCommand(cmd.NewCmdPortForward(fullName, f))
-	cmds.AddCommand(cmd.NewCmdProxy(fullName, f, out))
+	loginCmd := cmd.NewCmdLogin(fullName, f, in, out)
+	groups := templates.CommandGroups{
+		{
+			Message: "Basic Commands:",
+			Commands: []*cobra.Command{
+				cmd.NewCmdTypes(fullName, f, out),
+				loginCmd,
+				cmd.NewCmdRequestProject("new-project", fullName+" new-project", fullName+" login", fullName+" project", f, out),
+				cmd.NewCmdNewApplication(fullName, f, out),
+				cmd.NewCmdStatus(fullName, f, out),
+				cmd.NewCmdProject(fullName+" project", f, out),
+			},
+		},
+		{
+			Message: "Build and Deploy Commands:",
+			Commands: []*cobra.Command{
+				cmd.NewCmdStartBuild(fullName, f, out),
+				cmd.NewCmdBuildLogs(fullName, f, out),
+				cmd.NewCmdDeploy(fullName, f, out),
+				cmd.NewCmdRollback(fullName, f, out),
+				cmd.NewCmdNewBuild(fullName, f, out),
+				cmd.NewCmdCancelBuild(fullName, f, out),
+				cmd.NewCmdImportImage(fullName, f, out),
+				cmd.NewCmdScale(fullName, f, out),
+			},
+		},
+		{
+			Message: "Application Modification Commands:",
+			Commands: []*cobra.Command{
+				cmd.NewCmdGet(fullName, f, out),
+				cmd.NewCmdDescribe(fullName, f, out),
+				cmd.NewCmdEdit(fullName, f, out),
+				cmd.NewCmdEnv(fullName, f, os.Stdin, out),
+				cmd.NewCmdLabel(fullName, f, out),
+				cmd.NewCmdExpose(fullName, f, out),
+				cmd.NewCmdStop(fullName, f, out),
+				cmd.NewCmdDelete(fullName, f, out),
+			},
+		},
+		{
+			Message: "Troubleshooting and Debugging Commands:",
+			Commands: []*cobra.Command{
+				cmd.NewCmdLogs(fullName, f, out),
+				cmd.NewCmdExec(fullName, f, os.Stdin, out, os.Stderr),
+				cmd.NewCmdPortForward(fullName, f),
+				cmd.NewCmdProxy(fullName, f, out),
+			},
+		},
+		{
+			Message: "Advanced Commands:",
+			Commands: []*cobra.Command{
+				cmd.NewCmdCreate(fullName, f, out),
+				cmd.NewCmdUpdate(fullName, f, out),
+				cmd.NewCmdProcess(fullName, f, out),
+				cmd.NewCmdExport(fullName, f, os.Stdin, out),
+				policy.NewCommandPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
+			},
+		},
+		{
+			Message: "Settings Commands:",
+			Commands: []*cobra.Command{
+				cmd.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out),
+				cmd.NewCmdConfig(fullName, "config"),
+				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, out),
+			},
+		},
+	}
+	groups.Add(cmds)
+	templates.ActsAsRootCommand(cmds, groups...).
+		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify")
+
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName))
 	}
-	cmds.AddCommand(cmd.NewCmdConfig(fullName, "config"))
 	cmds.AddCommand(cmd.NewCmdOptions(out))
-	cmds.AddCommand(cmd.NewCmdResize(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdStop(fullName, f, out))
-	cmds.AddCommand(cmd.NewCmdLabel(fullName, f, out))
 
 	return cmds
 }
@@ -128,7 +170,7 @@ func applyToCreate(dst *cobra.Command) *cobra.Command {
 	oldRun := dst.Run
 	dst.Run = func(c *cobra.Command, args []string) {
 		calledApply := false
-		calledApply = calledApply || len(os.Args) >= 2 && os.Args[1] == "apply" // `osc apply`
+		calledApply = calledApply || len(os.Args) >= 2 && os.Args[1] == "apply" // `oc apply`
 		calledApply = calledApply || len(os.Args) >= 3 && os.Args[2] == "apply" // `openshift cli apply`
 		if calledApply {
 			glog.Errorf("DEPRECATED: The 'apply' command is now deprecated, use 'create' instead.")

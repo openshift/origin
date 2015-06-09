@@ -45,7 +45,7 @@ var string2token = map[string]Token{
 	"=": EqualsToken,
 }
 
-// The item produced by the lexer. It contains the Token and the literal.
+// ScannedItem are the item produced by the lexer. It contains the Token and the literal.
 type ScannedItem struct {
 	tok     Token
 	literal string

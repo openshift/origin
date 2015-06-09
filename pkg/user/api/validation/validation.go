@@ -6,24 +6,18 @@ import (
 
 	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/user/api"
 )
 
 func ValidateUserName(name string, _ bool) (bool, string) {
-	if strings.Contains(name, "%") {
-		return false, `may not contain "%"`
+	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
+		return ok, reason
 	}
-	if strings.Contains(name, "/") {
-		return false, `may not contain "/"`
-	}
+
 	if strings.Contains(name, ":") {
 		return false, `may not contain ":"`
-	}
-	if name == ".." {
-		return false, `may not equal ".."`
-	}
-	if name == "." {
-		return false, `may not equal "."`
 	}
 	if name == "~" {
 		return false, `may not equal "~"`
@@ -32,18 +26,10 @@ func ValidateUserName(name string, _ bool) (bool, string) {
 }
 
 func ValidateIdentityName(name string, _ bool) (bool, string) {
-	if strings.Contains(name, "%") {
-		return false, `may not contain "%"`
+	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
+		return ok, reason
 	}
-	if strings.Contains(name, "/") {
-		return false, `may not contain "/"`
-	}
-	if name == ".." {
-		return false, `may not equal ".."`
-	}
-	if name == "." {
-		return false, `may not equal "."`
-	}
+
 	parts := strings.Split(name, ":")
 	if len(parts) != 2 {
 		return false, `must be in the format <providerName>:<providerUserName>`
@@ -58,20 +44,12 @@ func ValidateIdentityName(name string, _ bool) (bool, string) {
 }
 
 func ValidateGroupName(name string, _ bool) (bool, string) {
-	if strings.Contains(name, "%") {
-		return false, `may not contain "%"`
+	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
+		return ok, reason
 	}
-	if strings.Contains(name, "/") {
-		return false, `may not contain "/"`
-	}
+
 	if strings.Contains(name, ":") {
 		return false, `may not contain ":"`
-	}
-	if name == ".." {
-		return false, `may not equal ".."`
-	}
-	if name == "." {
-		return false, `may not equal "."`
 	}
 	if name == "~" {
 		return false, `may not equal "~"`
@@ -80,12 +58,10 @@ func ValidateGroupName(name string, _ bool) (bool, string) {
 }
 
 func ValidateIdentityProviderName(name string) (bool, string) {
-	if strings.Contains(name, "%") {
-		return false, `may not contain "%"`
+	if ok, reason := oapi.MinimalNameRequirements(name, false); !ok {
+		return ok, reason
 	}
-	if strings.Contains(name, "/") {
-		return false, `may not contain "/"`
-	}
+
 	if strings.Contains(name, ":") {
 		return false, `may not contain ":"`
 	}

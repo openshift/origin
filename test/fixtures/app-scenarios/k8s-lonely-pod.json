@@ -1,31 +1,43 @@
 {
-  "apiVersion": "v1beta1",
+  "kind": "List",
+  "apiVersion": "v1beta3",
+  "metadata": {},
   "items": [
     {
-      "apiVersion": "v1beta2",
-      "desiredState": {
-        "manifest": {
-          "containers": [
-            {
-              "image": "openshift/hello-openshift",
-              "name": "lonely-pod",
-              "ports": [
-                {
-                  "containerPort": 8080
-                }
-              ]
-            }
-          ],
-          "id": "lonely-pod",
-          "version": "v1beta1"
+      "kind": "Pod",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "lonely-pod",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "lonely-pod"
         }
       },
-      "id": "lonely-pod",
-      "kind": "Pod",
-      "labels": {
-        "name": "lonely-pod"
-      }
+      "spec": {
+        "containers": [
+          {
+            "name": "lonely-pod",
+            "image": "openshift/hello-openshift",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
+      },
+      "status": {}
     }
-  ],
-  "kind": "List"
+  ]
 }

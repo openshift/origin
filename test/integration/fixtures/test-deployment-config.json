@@ -1,46 +1,62 @@
 {
   "kind": "DeploymentConfig",
-  "apiVersion": "v1beta1",
+  "apiVersion": "v1beta3",
   "metadata": {
-    "name": "test-deployment-config"
+    "name": "test-deployment-config",
+    "creationTimestamp": null
   },
-  "triggers": [
-  ],
-  "template": {
+  "spec": {
     "strategy": {
-      "type": "Recreate"
+      "type": "Recreate",
+      "resources": {}
     },
-    "controllerTemplate": {
-      "replicas": 1,
-      "replicaSelector": {
-        "name": "test-deployment"
-      },
-      "podTemplate": {
-        "desiredState": {
-          "manifest": {
-            "version": "v1beta1",
-            "containers": [
-              {
-                "name": "ruby-helloworld",
-                "image": "127.0.0.1:5001/openshift/origin-ruby-sample",
-                "cpu": 100,
-                "memory": 3221225472,
-                "ports": [
-                  {
-                    "containerPort": 8080
-                  }
-                ],
-                "env": [
-                  {"name":"TEST","value":"value"}
-                ]
-              }
-            ]
-          }
-        },
+    "replicas": 1,
+    "selector": {
+      "name": "test-deployment"
+    },
+    "template": {
+      "metadata": {
+        "creationTimestamp": null,
         "labels": {
           "name": "test-deployment"
         }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "ruby-helloworld",
+            "image": "127.0.0.1:5001/openshift/origin-ruby-sample",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "TEST",
+                "value": "value"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "3Gi"
+              }
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent",
+            "capabilities": {},
+            "securityContext": {
+              "capabilities": {},
+              "privileged": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "dnsPolicy": "ClusterFirst"
       }
     }
-  }
+  },
+  "status": {}
 }

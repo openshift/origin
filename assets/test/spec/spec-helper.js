@@ -29,14 +29,6 @@
   
 }));
 
-beforeEach(function(){
-  module('openshiftConsole', function($provide){
-    $provide.factory("DataService", function(){
-      return {};
-    });
-  });
-});
-
 // Make sure a base location exists in the generated test html
  if (!$('head base').length) {
    $('head').append($('<base href="/">'));

@@ -1,6 +1,7 @@
 apiVersion: v1beta3
 kind: Pod
 metadata:
+  creationTimestamp: null
   name: pod-with-resources
 spec:
   containers:
@@ -15,5 +16,7 @@ spec:
     securityContext:
       capabilities: {}
       privileged: false
+    terminationMessagePath: /dev/termination-log
   dnsPolicy: ClusterFirst
   restartPolicy: Always
+status: {}

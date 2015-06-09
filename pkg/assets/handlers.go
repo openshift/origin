@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 var varyHeaderRegexp = regexp.MustCompile("\\s*,\\s*")
@@ -165,12 +165,12 @@ type WebConsoleConfig struct {
 	MasterAddr string
 	// MasterPrefix is the OpenShift API context root
 	MasterPrefix string
-	// TODO this is probably unneeded since everything goes through the openshift master's proxy
 	// KubernetesAddr is the host:port the UI should call the kubernetes API on. Scheme is derived from the scheme the UI is served on, so they must be the same.
+	// TODO this is probably unneeded since everything goes through the openshift master's proxy
 	KubernetesAddr string
 	// KubernetesPrefix is the Kubernetes API context root
 	KubernetesPrefix string
-	// OAuthAuthorizeURL is the OAuth2 endpoint to use to request an API token. It must support request_type=token.
+	// OAuthAuthorizeURI is the OAuth2 endpoint to use to request an API token. It must support request_type=token.
 	OAuthAuthorizeURI string
 	// OAuthRedirectBase is the base URI of the web console. It must be a valid redirect_uri for the OAuthClientID
 	OAuthRedirectBase string
@@ -184,8 +184,9 @@ func GeneratedConfigHandler(config WebConsoleConfig, h http.Handler) http.Handle
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.TrimPrefix(r.URL.Path, "/") == "config.js" {
 			w.Header().Add("Cache-Control", "no-cache, no-store")
+			w.Header().Add("Content-Type", "application/json")
 			if err := configTemplate.Execute(w, config); err != nil {
-				glog.Errorf("Unable to render config template: %v", err)
+				util.HandleError(fmt.Errorf("unable to render config template: %v", err))
 			}
 			return
 		}

@@ -20,12 +20,12 @@ import (
 )
 
 const (
-	buildChain_long = `Output build dependencies of a specific image stream.
+	buildChainLong = `Output build dependencies of a specific image stream.
 Supported output formats are json, dot, and ast. The default is set to json.
 Tag and namespace are optional and if they are not specified, 'latest' and the 
 default namespace will be used respectively.`
 
-	buildChain_example = `  // Build dependency tree for the specified image stream and tag
+	buildChainExample = `  // Build dependency tree for the specified image stream and tag
   $ openshift ex build-chain [image-stream]:[tag]
 
   // Build dependency trees for all tags in the specified image stream
@@ -89,17 +89,17 @@ func NewEdge(fullname, to string) *Edge {
 func NewCmdBuildChain(f *clientcmd.Factory, parentName, name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [IMAGESTREAM:TAG | --all]", name),
-		Short:   "Output build dependencies of a specific ImageStream",
-		Long:    buildChain_long,
-		Example: buildChain_example,
+		Short:   "Output build dependencies of a specific image stream",
+		Long:    buildChainLong,
+		Example: buildChainExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunBuildChain(f, cmd, args)
 			cmdutil.CheckErr(err)
 		},
 	}
 
-	cmd.Flags().Bool("all", false, "Build dependency trees for all ImageStreams")
-	cmd.Flags().Bool("all-tags", false, "Build dependency trees for all tags of a specific ImageStream")
+	cmd.Flags().Bool("all", false, "Build dependency trees for all image streams")
+	cmd.Flags().Bool("all-tags", false, "Build dependency trees for all tags of a specific image stream")
 	cmd.Flags().StringP("output", "o", "json", "Output format of dependency tree(s)")
 	return cmd
 }
@@ -116,7 +116,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		return cmdutil.UsageError(cmd, "Must pass nothing, an ImageStream name:tag combination, or specify the --all flag")
 	}
 
-	osc, _, err := f.Clients()
+	oc, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 	}
 	namespaces := make([]string, 0)
 	if all {
-		projectList, err := osc.Projects().List(labels.Everything(), fields.Everything())
+		projectList, err := oc.Projects().List(labels.Everything(), fields.Everything())
 		if err != nil {
 			return err
 		}
@@ -147,7 +147,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 	// Get all build configurations
 	buildConfigList := make([]buildapi.BuildConfig, 0)
 	for _, namespace := range namespaces {
-		cfgList, err := osc.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
+		cfgList, err := oc.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
 		if err != nil {
 			return err
 		}
@@ -163,7 +163,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 		}
 
 		// Validate the specified image stream
-		is, err := osc.ImageStreams(namespace).Get(name)
+		is, err := oc.ImageStreams(namespace).Get(name)
 		if err != nil {
 			return err
 		}

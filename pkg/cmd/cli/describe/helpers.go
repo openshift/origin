@@ -129,9 +129,9 @@ func webhookURL(c *buildapi.BuildConfig, cli client.BuildConfigsNamespacer) map[
 	for _, trigger := range c.Triggers {
 		whTrigger := ""
 		switch trigger.Type {
-		case "github":
-			whTrigger = trigger.GithubWebHook.Secret
-		case "generic":
+		case buildapi.GitHubWebHookBuildTriggerType:
+			whTrigger = trigger.GitHubWebHook.Secret
+		case buildapi.GenericWebHookBuildTriggerType:
 			whTrigger = trigger.GenericWebHook.Secret
 		}
 		if len(whTrigger) == 0 {
@@ -165,9 +165,12 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 		specTag := ""
 		if ok {
 			if tagRef.From != nil {
-				specTag = fmt.Sprintf("%s/%s", tagRef.From.Namespace, tagRef.From.Name)
-			} else if len(tagRef.DockerImageReference) != 0 {
-				specTag = tagRef.DockerImageReference
+				switch tagRef.From.Kind {
+				case "ImageStreamTag", "ImageStreamImage":
+					specTag = fmt.Sprintf("%s/%s", tagRef.From.Namespace, tagRef.From.Name)
+				case "DockerImage":
+					specTag = tagRef.From.Name
+				}
 			}
 		} else {
 			specTag = "<pushed>"

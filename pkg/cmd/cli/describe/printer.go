@@ -51,7 +51,7 @@ var (
 	identityColumns            = []string{"NAME", "IDP NAME", "IDP USER NAME", "USER NAME", "USER UID"}
 	userIdentityMappingColumns = []string{"NAME", "IDENTITY", "USER NAME", "USER UID"}
 
-	// known custom role extensions
+	// IsPersonalSubjectAccessReviewColumns contains known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 
 	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
@@ -68,11 +68,8 @@ func NewHumanReadablePrinter(noHeaders, withNamespace bool) *kctl.HumanReadableP
 	p.Handler(buildConfigColumns, printBuildConfigList)
 	p.Handler(imageColumns, printImage)
 	p.Handler(imageStreamTagColumns, printImageStreamTag)
-	p.Handler(imageColumns, printImageRepositoryTag)
 	p.Handler(imageStreamImageColumns, printImageStreamImage)
 	p.Handler(imageColumns, printImageList)
-	p.Handler(imageStreamColumns, printImageRepository)
-	p.Handler(imageStreamColumns, printImageRepositoryList)
 	p.Handler(imageStreamColumns, printImageStream)
 	p.Handler(imageStreamColumns, printImageStreamList)
 	p.Handler(projectColumns, printProject)
@@ -228,43 +225,19 @@ func printImage(image *imageapi.Image, w io.Writer, withNamespace bool) error {
 
 func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer, withNamespace bool) error {
 	created := fmt.Sprintf("%s ago", formatRelativeTime(ist.CreationTimestamp.Time))
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", ist.Name, ist.Image.DockerImageReference, created, ist.ImageName)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", ist.Name, ist.Image.DockerImageReference, created, ist.Image.Name)
 	return err
 }
 
 func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer, withNamespace bool) error {
 	created := fmt.Sprintf("%s ago", formatRelativeTime(isi.CreationTimestamp.Time))
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", isi.Name, isi.Image.DockerImageReference, created, isi.ImageName)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", isi.Name, isi.Image.DockerImageReference, created, isi.Image.Name)
 	return err
-}
-
-func printImageRepositoryTag(irt *imageapi.ImageRepositoryTag, w io.Writer, withNamespace bool) error {
-	return printImage(&irt.Image, w, withNamespace)
 }
 
 func printImageList(images *imageapi.ImageList, w io.Writer, withNamespace bool) error {
 	for _, image := range images.Items {
 		if err := printImage(&image, w, withNamespace); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printImageRepository(repo *imageapi.ImageRepository, w io.Writer, withNamespace bool) error {
-	tags := ""
-	set := util.NewStringSet()
-	for tag := range repo.Status.Tags {
-		set.Insert(tag)
-	}
-	tags = strings.Join(set.List(), ",")
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", repo.Name, repo.Status.DockerImageRepository, tags)
-	return err
-}
-
-func printImageRepositoryList(repos *imageapi.ImageRepositoryList, w io.Writer, withNamespace bool) error {
-	for _, repo := range repos.Items {
-		if err := printImageRepository(&repo, w, withNamespace); err != nil {
 			return err
 		}
 	}
@@ -302,10 +275,11 @@ func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer, withNa
 }
 
 func printProject(project *projectapi.Project, w io.Writer, withNamespace bool) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", project.Name, project.Annotations["displayName"], project.Status.Phase)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", project.Name, project.Annotations[projectapi.ProjectDisplayName], project.Status.Phase)
 	return err
 }
 
+// SortableProjects is a list of projects that can be sorted
 type SortableProjects []projectapi.Project
 
 func (list SortableProjects) Len() int {

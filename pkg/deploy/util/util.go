@@ -1,13 +1,9 @@
 package util
 
 import (
-	"encoding/json"
 	"fmt"
-	"hash/adler32"
 	"strconv"
 	"strings"
-
-	"github.com/golang/glog"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -15,50 +11,92 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1beta1"
 	deployv3 "github.com/openshift/origin/pkg/deploy/api/v1beta3"
+	"github.com/openshift/origin/pkg/util/namer"
+)
+
+// These constants represent keys used for correlating objects related to deployments.
+const (
+	// DeploymentConfigAnnotation is an annotation name used to correlate a deployment with the
+	// DeploymentConfig on which the deployment is based.
+	v1beta1DeploymentConfigAnnotation = "deploymentConfig"
+	// DeploymentAnnotation is an annotation on a deployer Pod. The annotation value is the name
+	// of the deployment (a ReplicationController) on which the deployer Pod acts.
+	v1beta1DeploymentAnnotation = "deployment"
+	// DeploymentPodAnnotation is an annotation on a deployment (a ReplicationController). The
+	// annotation value is the name of the deployer Pod which will act upon the ReplicationController
+	// to implement the deployment behavior.
+	v1beta1DeploymentPodAnnotation = "pod"
+	// DeploymentStatusAnnotation is an annotation name used to retrieve the DeploymentStatus of
+	// a deployment.
+	v1beta1DeploymentStatusAnnotation = "deploymentStatus"
+	// DeploymentEncodedConfigAnnotation is an annotation name used to retrieve specific encoded
+	// DeploymentConfig on which a given deployment is based.
+	v1beta1DeploymentEncodedConfigAnnotation = "encodedDeploymentConfig"
+	// DeploymentVersionAnnotation is an annotation on a deployment (a ReplicationController). The
+	// annotation value is the LatestVersion value of the DeploymentConfig which was the basis for
+	// the deployment.
+	v1beta1DeploymentVersionAnnotation = "deploymentVersion"
+	// DeploymentLabel is the name of a label used to correlate a deployment with the Pod created
+	// to execute the deployment logic.
+	// TODO: This is a workaround for upstream's lack of annotation support on PodTemplate. Once
+	// annotations are available on PodTemplate, audit this constant with the goal of removing it.
+	v1beta1DeploymentLabel = "deployment"
+	// DeploymentConfigLabel is the name of a label used to correlate a deployment with the
+	// DeploymentConfigs on which the deployment is based.
+	v1beta1DeploymentConfigLabel = "deploymentconfig"
+	// DeploymentStatusReasonAnnotation represents the reason for deployment being in a given state
+	// Used for specifying the reason for cancellation or failure of a deployment
+	v1beta1DeploymentStatusReasonAnnotation = "openshift.io/deployment.status-reason"
+	// DeploymentCancelledAnnotation indicates that the deployment has been cancelled
+	// The annotation value does not matter and its mere presence indicates cancellation
+	v1beta1DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
 )
 
 // Maps the latest annotation keys to all known previous key names. Keys not represented here
 // may still be looked up directly via mappedAnnotationFor
 var annotationMap = map[string][]string{
 	deployapi.DeploymentConfigAnnotation: {
-		deployv1.DeploymentConfigAnnotation,
+		v1beta1DeploymentConfigAnnotation,
 		deployv3.DeploymentConfigAnnotation,
 	},
 	deployapi.DeploymentAnnotation: {
-		deployv1.DeploymentAnnotation,
+		v1beta1DeploymentAnnotation,
 		deployv3.DeploymentAnnotation,
 	},
 	deployapi.DeploymentPodAnnotation: {
-		deployv1.DeploymentPodAnnotation,
+		v1beta1DeploymentPodAnnotation,
 		deployv3.DeploymentPodAnnotation,
 	},
 	deployapi.DeploymentStatusAnnotation: {
-		deployv1.DeploymentStatusAnnotation,
+		v1beta1DeploymentStatusAnnotation,
 		deployv3.DeploymentPhaseAnnotation,
 	},
 	deployapi.DeploymentEncodedConfigAnnotation: {
-		deployv1.DeploymentEncodedConfigAnnotation,
+		v1beta1DeploymentEncodedConfigAnnotation,
 		deployv3.DeploymentEncodedConfigAnnotation,
 	},
 	deployapi.DeploymentVersionAnnotation: {
-		deployv1.DeploymentVersionAnnotation,
+		v1beta1DeploymentVersionAnnotation,
 		deployv3.DeploymentVersionAnnotation,
 	},
 	deployapi.DeploymentCancelledAnnotation: {
-		deployv1.DeploymentCancelledAnnotation,
+		v1beta1DeploymentCancelledAnnotation,
 		deployv3.DeploymentCancelledAnnotation,
 	},
 }
 
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
-	return config.Name + "-" + strconv.Itoa(config.LatestVersion)
+	return fmt.Sprintf("%s-%d", config.Name, config.LatestVersion)
 }
 
+// DeployerPodSuffix is the suffix added to pods created from a deployment
+const DeployerPodSuffix = "deploy"
+
+// DeployerPodNameForDeployment returns the name of a pod for a given deployment
 func DeployerPodNameForDeployment(deployment *api.ReplicationController) string {
-	return deployment.Name
+	return namer.GetPodName(deployment.Name, DeployerPodSuffix)
 }
 
 // LabelForDeployment builds a string identifier for a Deployment.
@@ -71,28 +109,15 @@ func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
 	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
 }
 
-// HashPodSpec hashes a PodSpec into a uint64.
-// TODO: Resources are currently ignored due to the formats not surviving encoding/decoding
-// in a consistent manner (e.g. 0 is represented sometimes as 0.000)
-func HashPodSpec(t api.PodSpec) uint64 {
-	// Ignore resources by making them uniformly empty
-	for i := range t.Containers {
-		t.Containers[i].Resources = api.ResourceRequirements{}
+// ConfigSelector matches all the deployments of the provided DeploymentConfig
+func ConfigSelector(name string, list []api.ReplicationController) []api.ReplicationController {
+	matches := []api.ReplicationController{}
+	for _, rc := range list {
+		if DeploymentConfigNameFor(&rc) == name {
+			matches = append(matches, rc)
+		}
 	}
-
-	jsonString, err := json.Marshal(t)
-	if err != nil {
-		glog.Errorf("An error occurred marshalling pod state: %v", err)
-		return 0
-	}
-	hash := adler32.New()
-	fmt.Fprintf(hash, "%s", jsonString)
-	return uint64(hash.Sum32())
-}
-
-// PodSpecsEqual returns true if the given PodSpecs are the same.
-func PodSpecsEqual(a, b api.PodSpec) bool {
-	return HashPodSpec(a) == HashPodSpec(b)
+	return matches
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned

@@ -7,8 +7,9 @@ const (
 
 // users
 const (
-	DefaultServiceAccountName = "default"
-	BuilderServiceAccountName = "builder"
+	DefaultServiceAccountName  = "default"
+	BuilderServiceAccountName  = "builder"
+	DeployerServiceAccountName = "deployer"
 
 	RouterUnqualifiedUsername   = "openshift-router"
 	RegistryUnqualifiedUsername = "openshift-registry"
@@ -21,7 +22,6 @@ const (
 const (
 	UnauthenticatedUsername   = "system:anonymous"
 	InternalComponentUsername = "system:openshift-client"
-	DeployerUsername          = "system:openshift-deployer"
 
 	AuthenticatedGroup   = "system:authenticated"
 	UnauthenticatedGroup = "system:unauthenticated"
@@ -44,6 +44,7 @@ const (
 	StatusCheckerRoleName     = "cluster-status"
 	ImagePullerRoleName       = "system:image-puller"
 	ImageBuilderRoleName      = "system:image-builder"
+	ImagePrunerRoleName       = "system:image-pruner"
 	DeployerRoleName          = "system:deployer"
 	RouterRoleName            = "system:router"
 	RegistryRoleName          = "system:registry"
@@ -68,6 +69,8 @@ const (
 	BasicUserRoleBindingName         = BasicUserRoleName + "s"
 	OAuthTokenDeleterRoleBindingName = OAuthTokenDeleterRoleName + "s"
 	StatusCheckerRoleBindingName     = StatusCheckerRoleName + "-binding"
+	ImagePullerRoleBindingName       = ImagePullerRoleName + "s"
+	ImageBuilderRoleBindingName      = ImageBuilderRoleName + "s"
 	RouterRoleBindingName            = RouterRoleName + "s"
 	RegistryRoleBindingName          = RegistryRoleName + "s"
 	NodeRoleBindingName              = NodeRoleName + "s"

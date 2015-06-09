@@ -37,7 +37,7 @@ type Mapper struct {
 // if any of the decoding or client lookup steps fail. Name and namespace will be
 // set into Info if the mapping's MetadataAccessor can retrieve them.
 func (m *Mapper) InfoForData(data []byte, source string) (*Info, error) {
-	json, err := yaml.ToJSON(data)
+	json, err := yaml.ToJSON(data, true)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse %q: %v", source, err)
 	}

@@ -1,14 +1,14 @@
 package cli
 
 const (
-	bashCompletionFunc = `# call osc get $1,
+	bashCompletionFunc = `# call oc get $1,
 __osc_parse_get()
 {
 
     local template
     template="{{ range .items  }}{{ .metadata.name }} {{ end }}"
     local osc_out
-    if osc_out=$(osc get -o template --template="${template}" "$1" 2>/dev/null); then
+    if osc_out=$(oc get -o template --template="${template}" "$1" 2>/dev/null); then
         COMPREPLY=( $( compgen -W "${osc_out[*]}" -- "$cur" ) )
     fi
 }
@@ -34,7 +34,7 @@ __osc_get_containers()
     fi
     local last=${nouns[${len} -1]}
     local osc_out
-    if osc_out=$(osc get -o template --template="${template}" pods "${last}" 2>/dev/null); then
+    if osc_out=$(oc get -o template --template="${template}" pods "${last}" 2>/dev/null); then
         COMPREPLY=( $( compgen -W "${osc_out[*]}" -- "$cur" ) )
     fi
 }

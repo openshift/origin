@@ -175,6 +175,11 @@ func (ident *DockerConfigEntry) UnmarshalJSON(data []byte) error {
 	return err
 }
 
+func (ident DockerConfigEntry) MarshalJSON() ([]byte, error) {
+	return json.Marshal(ident.ConvertToDockerConfigCompatible())
+
+}
+
 // decodeDockerConfigFieldAuth deserializes the "auth" field from dockercfg into a
 // username and a password. The format of the auth field is base64(<username>:<password>).
 func decodeDockerConfigFieldAuth(field string) (username, password string, err error) {

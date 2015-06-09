@@ -1,7 +1,6 @@
 package deploymentconfig
 
 import (
-	"fmt"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -53,11 +52,12 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 				return factory.KubeClient.ReplicationControllers(namespace).Create(deployment)
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				selector, err := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeploymentConfigLabel, configName))
+				rcList, err := factory.KubeClient.ReplicationControllers(namespace).List(labels.Everything())
 				if err != nil {
 					return nil, err
 				}
-				return factory.KubeClient.ReplicationControllers(namespace).List(selector)
+				rcList.Items = deployutil.ConfigSelector(configName, rcList.Items)
+				return rcList, nil
 			},
 			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)

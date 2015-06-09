@@ -126,7 +126,10 @@ func mockImageStream2(tag string) *imageapi.ImageStream {
 			DockerImageRepository: "registry:8080/openshift/test-image-trigger",
 			Tags: map[string]imageapi.TagReference{
 				tag: {
-					DockerImageReference: "registry:8080/openshift/test-image-trigger:" + tag,
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry:8080/openshift/test-image-trigger:" + tag,
+					},
 				},
 			},
 		},
@@ -228,7 +231,7 @@ func runTest(t *testing.T, testname string, clusterAdminClient *client.Client, i
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Parameters.Output.To.Name != "test-image-trigger-repo" || newBuild.Parameters.Output.Tag != "outputtag" {
+	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger" || newBuild.Parameters.Output.Tag != "outputtag" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
 	}
 	if newBuild.Labels["testlabel"] != "testvalue" {
@@ -293,7 +296,10 @@ func runTest(t *testing.T, testname string, clusterAdminClient *client.Client, i
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Parameters.Output.To.Name != "test-image-trigger-repo" || newBuild.Parameters.Output.Tag != "outputtag" {
+	if newBuild.Parameters.Output.To != nil {
+		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
+	}
+	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger" || newBuild.Parameters.Output.Tag != "outputtag" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
 	}
 	if newBuild.Labels["testlabel"] != "testvalue" {

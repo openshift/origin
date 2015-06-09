@@ -131,8 +131,18 @@ func TestCmdDeploy_latestLookupError(t *testing.T) {
 
 // TestCmdDeploy_retryOk ensures that a failed deployment can be retried.
 func TestCmdDeploy_retryOk(t *testing.T) {
+	deletedPods := []string{}
 	config := deploytest.OkDeploymentConfig(1)
+
 	existingDeployment := deploymentFor(config, deployapi.DeploymentStatusFailed)
+	existingDeployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+	existingDeployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
+
+	existingDeployerPods := []kapi.Pod{
+		{ObjectMeta: kapi.ObjectMeta{Name: "prehook"}},
+		{ObjectMeta: kapi.ObjectMeta{Name: "posthook"}},
+		{ObjectMeta: kapi.ObjectMeta{Name: "deployerpod"}},
+	}
 
 	var updatedDeployment *kapi.ReplicationController
 	commandClient := &deployCommandClientImpl{
@@ -147,6 +157,13 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 			updatedDeployment = deployment
 			return deployment, nil
 		},
+		ListDeployerPodsForFn: func(namespace, name string) (*kapi.PodList, error) {
+			return &kapi.PodList{Items: existingDeployerPods}, nil
+		},
+		DeletePodFn: func(pod *kapi.Pod) error {
+			deletedPods = append(deletedPods, pod.Name)
+			return nil
+		},
 	}
 
 	c := &retryDeploymentCommand{client: commandClient}
@@ -158,6 +175,19 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 
 	if updatedDeployment == nil {
 		t.Fatalf("expected updated config")
+	}
+
+	if deployutil.IsDeploymentCancelled(updatedDeployment) {
+		t.Fatalf("deployment should not have the cancelled flag set anymore")
+	}
+
+	if deployutil.DeploymentStatusReasonFor(updatedDeployment) != "" {
+		t.Fatalf("deployment status reason should be empty")
+	}
+
+	sort.Strings(deletedPods)
+	if !reflect.DeepEqual(deletedPods, []string{"deployerpod", "posthook", "prehook"}) {
+		t.Fatalf("Not all deployer pods for the failed deployment were deleted")
 	}
 
 	if e, a := deployapi.DeploymentStatusNew, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
@@ -181,6 +211,14 @@ func TestCmdDeploy_retryRejectNonFailed(t *testing.T) {
 		UpdateDeploymentFn: func(deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 			t.Fatalf("unexpected call to UpdateDeployment")
 			return nil, nil
+		},
+		ListDeployerPodsForFn: func(namespace, deploymentName string) (*kapi.PodList, error) {
+			t.Fatalf("unexpected call to ListDeployerPodsFor")
+			return nil, nil
+		},
+		DeletePodFn: func(pod *kapi.Pod) error {
+			t.Fatalf("unexpected call to DeletePod")
+			return nil
 		},
 	}
 

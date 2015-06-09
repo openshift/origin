@@ -14,7 +14,7 @@ import (
 // 5. deny by default
 
 const (
-	// Policy is a singleton and this is its name
+	// PolicyName is the name of Policy
 	PolicyName     = "default"
 	ResourceAll    = "*"
 	VerbAll        = "*"
@@ -54,7 +54,7 @@ const (
 var (
 	GroupsToResources = map[string][]string{
 		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone"},
-		ImageGroupName:              {"images", "imagerepositories", "imagerepositorymappings", "imagerepositorytags", "imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
+		ImageGroupName:              {"imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
 		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
 		SDNGroupName:                {"clusternetworks", "hostsubnets"},
 		TemplateGroupName:           {"templates", "templateconfigs", "processedtemplates"},
@@ -112,14 +112,14 @@ type RoleBinding struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta
 
-	// UserNames holds all the usernames directly bound to the role
+	// Users holds all the usernames directly bound to the role
 	Users kutil.StringSet
-	// GroupNames holds all the groups directly bound to the role
+	// Groups holds all the groups directly bound to the role
 	Groups kutil.StringSet
 
-	// Since Policy is a singleton, this is sufficient knowledge to locate a role
-	// RoleRefs can only reference the current namespace and the global namespace
+	// RoleRef can only reference the current namespace and the global namespace
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
+	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	RoleRef kapi.ObjectReference
 }
 
@@ -212,6 +212,8 @@ type SubjectAccessReview struct {
 type PolicyList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
+
+	// Items is a list of policies
 	Items []Policy
 }
 
@@ -219,6 +221,8 @@ type PolicyList struct {
 type PolicyBindingList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
+
+	// Items is a list of policyBindings
 	Items []PolicyBinding
 }
 
@@ -226,6 +230,8 @@ type PolicyBindingList struct {
 type RoleBindingList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
+
+	// Items is a list of roleBindings
 	Items []RoleBinding
 }
 
@@ -233,6 +239,8 @@ type RoleBindingList struct {
 type RoleList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
+
+	// Items is a list of roles
 	Items []Role
 }
 
@@ -252,14 +260,14 @@ type ClusterRoleBinding struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta
 
-	// UserNames holds all the usernames directly bound to the role
+	// Users holds all the usernames directly bound to the role
 	Users kutil.StringSet
 	// GroupNames holds all the groups directly bound to the role
 	Groups kutil.StringSet
 
-	// Since Policy is a singleton, this is sufficient knowledge to locate a role
-	// ClusterRoleRefs can only reference the current namespace and the global namespace
+	// RoleRef can only reference the current namespace and the global namespace
 	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.
+	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	RoleRef kapi.ObjectReference
 }
 
@@ -295,6 +303,8 @@ type ClusterPolicyBinding struct {
 type ClusterPolicyList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
+
+	// Items is a list of ClusterPolicies
 	Items []ClusterPolicy
 }
 
@@ -302,6 +312,8 @@ type ClusterPolicyList struct {
 type ClusterPolicyBindingList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
+
+	// Items is a list of ClusterPolicyBindings
 	Items []ClusterPolicyBinding
 }
 
@@ -309,6 +321,8 @@ type ClusterPolicyBindingList struct {
 type ClusterRoleBindingList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
+
+	// Items is a list of ClusterRoleBindings
 	Items []ClusterRoleBinding
 }
 
@@ -316,5 +330,7 @@ type ClusterRoleBindingList struct {
 type ClusterRoleList struct {
 	kapi.TypeMeta
 	kapi.ListMeta
+
+	// Items is a list of ClusterRoles
 	Items []ClusterRole
 }

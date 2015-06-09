@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -28,13 +29,17 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator"
+	etcdallocator "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	serviceaccountadmission "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
@@ -48,6 +53,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
+	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configchangecontroller "github.com/openshift/origin/pkg/deploy/controller/configchange"
@@ -58,14 +64,11 @@ import (
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
-	deployrollback "github.com/openshift/origin/pkg/deploy/rollback"
+	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagerepository"
-	"github.com/openshift/origin/pkg/image/registry/imagerepositorymapping"
-	"github.com/openshift/origin/pkg/image/registry/imagerepositorytag"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
@@ -85,6 +88,10 @@ import (
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
+	securitycontroller "github.com/openshift/origin/pkg/security/controller"
+	"github.com/openshift/origin/pkg/security/mcs"
+	"github.com/openshift/origin/pkg/security/uid"
+	"github.com/openshift/origin/pkg/security/uidallocator"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
@@ -93,6 +100,9 @@ import (
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
+
+	buildclonestorage "github.com/openshift/origin/pkg/build/registry/clone/generator"
+	buildinstantiatestorage "github.com/openshift/origin/pkg/build/registry/instantiate/generator"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
@@ -111,34 +121,32 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 	"github.com/openshift/origin/plugins/osdn"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 )
 
 const (
-	OpenShiftAPIPrefix        = "/osapi" // TODO: make configurable
+	LegacyOpenShiftAPIPrefix  = "/osapi" // TODO: make configurable
+	OpenShiftAPIPrefix        = "/oapi"  // TODO: make configurable
 	KubernetesAPIPrefix       = "/api"   // TODO: make configurable
-	OpenShiftAPIV1Beta1       = "v1beta1"
 	OpenShiftAPIV1Beta3       = "v1beta3"
 	OpenShiftAPIV1            = "v1"
-	OpenShiftAPIPrefixV1Beta1 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta1
-	OpenShiftAPIPrefixV1Beta3 = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
-	OpenShiftAPIPrefixV1      = "/oapi" + "/" + OpenShiftAPIV1
+	OpenShiftAPIPrefixV1Beta3 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
+	OpenShiftAPIPrefixV1      = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
 	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
 var (
-	excludedV1Beta3Types = util.NewStringSet(
-		"templateConfigs", "deployments", "buildLogs",
-		"imageRepositories", "imageRepositories/status", "imageRepositoryMappings", "imageRepositoryTags",
-	)
-	excludedV1Types = excludedV1Beta3Types
+	excludedV1Beta3Types = util.NewStringSet()
+	excludedV1Types      = excludedV1Beta3Types
 )
 
 // APIInstaller installs additional API components into this server
 type APIInstaller interface {
-	// Returns an array of strings describing what was installed
+	// InstallAPI returns an array of strings describing what was installed
 	InstallAPI(*restful.Container) []string
 }
 
@@ -205,15 +213,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	imageStreamStorage, imageStreamStatusStorage := imagestreametcd.NewREST(c.EtcdHelper, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
-	imageStreamMappingRegistry := imagestreammapping.NewRegistry(imageStreamMappingStorage)
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
-
-	imageRepositoryStorage, imageRepositoryStatusStorage := imagerepository.NewREST(imageStreamRegistry)
-	imageRepositoryMappingStorage := imagerepositorymapping.NewREST(imageStreamMappingRegistry)
-	imageRepositoryTagStorage := imagerepositorytag.NewREST(imageStreamTagRegistry)
 
 	routeAllocator := c.RouteAllocator()
 
@@ -227,8 +230,9 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
+		ServiceAccounts: c.KubeClient(),
+		Secrets:         c.KubeClient(),
 	}
-	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
 	// TODO: with sharding, this needs to be changed
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
@@ -268,32 +272,25 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	// initialize OpenShift API
 	storage := map[string]rest.Storage{
 		"builds":                   buildStorage,
-		"builds/clone":             buildClone,
 		"buildConfigs":             buildConfigStorage,
 		"buildConfigs/webhooks":    buildConfigWebHooks,
-		"buildConfigs/instantiate": buildConfigInstantiate,
-		"buildLogs":                buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient),
+		"builds/clone":             buildclonestorage.NewStorage(buildGenerator),
+		"buildConfigs/instantiate": buildinstantiatestorage.NewStorage(buildGenerator),
 		"builds/log":               buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient),
 
-		"images":                   imageStorage,
-		"imageStreams":             imageStreamStorage,
-		"imageStreams/status":      imageStreamStatusStorage,
-		"imageStreamImages":        imageStreamImageStorage,
-		"imageStreamMappings":      imageStreamMappingStorage,
-		"imageStreamTags":          imageStreamTagStorage,
-		"imageRepositories":        imageRepositoryStorage,
-		"imageRepositories/status": imageRepositoryStatusStorage,
-		"imageRepositoryMappings":  imageRepositoryMappingStorage,
-		"imageRepositoryTags":      imageRepositoryTagStorage,
+		"images":              imageStorage,
+		"imageStreams":        imageStreamStorage,
+		"imageStreams/status": imageStreamStatusStorage,
+		"imageStreamImages":   imageStreamImageStorage,
+		"imageStreamMappings": imageStreamMappingStorage,
+		"imageStreamTags":     imageStreamTagStorage,
 
 		"deploymentConfigs":         deployConfigStorage,
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
-		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, latest.Codec),
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec),
+		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec),
 
-		"processedTemplates": templateregistry.NewREST(false),
+		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
-		// DEPRECATED: remove with v1beta1
-		"templateConfigs": templateregistry.NewREST(true),
 
 		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
 
@@ -326,16 +323,24 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		"clusterRoles":          clusterRoleStorage,
 	}
 
-	if err := c.api_v1beta1(storage).InstallREST(container); err != nil {
-		glog.Fatalf("Unable to initialize v1beta1 API: %v", err)
+	messages := []string{}
+	legacyAPIVersions := []string{}
+	currentAPIVersions := []string{}
+
+	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta3) {
+		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
+			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
+		}
+		messages = append(messages, fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta3))
+		legacyAPIVersions = append(legacyAPIVersions, OpenShiftAPIV1Beta3)
 	}
 
-	if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
-		glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
-	}
-
-	if err := c.api_v1(storage).InstallREST(container); err != nil {
-		glog.Fatalf("Unable to initialize v1 API: %v", err)
+	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1) {
+		if err := c.api_v1(storage).InstallREST(container); err != nil {
+			glog.Fatalf("Unable to initialize v1 API: %v", err)
+		}
+		messages = append(messages, fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1))
+		currentAPIVersions = append(currentAPIVersions, OpenShiftAPIV1)
 	}
 
 	var root *restful.WebService
@@ -343,48 +348,37 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		switch svc.RootPath() {
 		case "/":
 			root = svc
-		case OpenShiftAPIPrefixV1Beta1:
-			svc.Doc("OpenShift REST API, version v1beta1").ApiVersion("v1beta1")
 		case OpenShiftAPIPrefixV1Beta3:
 			svc.Doc("OpenShift REST API, version v1beta3").ApiVersion("v1beta3")
 		case OpenShiftAPIPrefixV1:
 			svc.Doc("OpenShift REST API, version v1").ApiVersion("v1")
 		}
 	}
+
 	if root == nil {
 		root = new(restful.WebService)
 		container.Add(root)
 	}
-	initAPIVersionRoute(root, "v1beta1", "v1beta3", "v1")
 
-	return []string{
-		fmt.Sprintf("Started OpenShift API at %%s%s (deprecated)", OpenShiftAPIPrefixV1Beta1),
-		fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta3),
-		fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1),
-	}
+	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
+	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, legacyAPIVersions...)
+	initAPIVersionRoute(root, OpenShiftAPIPrefix, currentAPIVersions...)
+
+	return messages
 }
 
 func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []string {
-	bcClient, _ := c.BuildControllerClients()
-	bcGetterUpdater := buildclient.NewOSClientBuildConfigClient(bcClient)
-	handler := webhook.NewController(
-		bcGetterUpdater,
-		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
-		map[string]webhook.Plugin{
-			"generic": generic.New(),
-			"github":  github.New(),
-		})
-
-	// TODO: deprecated, remove when v1beta1 is dropped
-	prefix := OpenShiftAPIPrefixV1Beta1 + "/buildConfigHooks/"
-	container.Handle(prefix, http.StripPrefix(prefix, handler))
 	return []string{}
 }
 
-//initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
-func initAPIVersionRoute(root *restful.WebService, versions ...string) {
+// initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
+func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
+	if len(versions) == 0 {
+		return
+	}
+
 	versionHandler := apiserver.APIVersionHandler(versions...)
-	root.Route(root.GET(OpenShiftAPIPrefix).To(versionHandler).
+	root.Route(root.GET(prefix).To(versionHandler).
 		Doc("list supported server API versions").
 		Produces(restful.MIME_JSON).
 		Consumes(restful.MIME_JSON))
@@ -416,16 +410,16 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 			// TODO once we have a MuxHelper we will not need to hardcode this list of paths
 			object := api.RootPaths{Paths: []string{
 				"/api",
-				"/api/v1beta1",
 				"/api/v1beta3",
-				"/api/v1beta3",
+				"/api/v1",
+				"/controllers",
 				"/healthz",
 				"/healthz/ping",
 				"/logs/",
 				"/metrics",
 				"/osapi",
-				"/osapi/v1beta1",
 				"/osapi/v1beta3",
+				"/oapi",
 				"/oapi/v1",
 				"/swaggerapi/",
 			}}
@@ -476,9 +470,10 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 
 	// install swagger
 	swaggerConfig := swagger.Config{
-		WebServicesUrl: c.Options.MasterPublicURL,
-		WebServices:    append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
-		ApiPath:        swaggerAPIPrefix,
+		WebServicesUrl:   c.Options.MasterPublicURL,
+		WebServices:      append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
+		ApiPath:          swaggerAPIPrefix,
+		PostBuildHandler: customizeSwaggerDefinition,
 	}
 	// log nothing from swagger
 	swagger.LogInfo = func(format string, v ...interface{}) {}
@@ -503,11 +498,22 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		handler = contextHandler
 	}
 
+	if c.Options.ServingInfo.MaxRequestsInFlight > 0 {
+		longRunningRE := regexp.MustCompile("[.*\\/watch$][^\\/proxy.*]")
+		sem := make(chan bool, c.Options.ServingInfo.MaxRequestsInFlight)
+		handler = apiserver.MaxInFlightLimit(sem, longRunningRE, handler)
+	}
+
+	timeout := c.Options.ServingInfo.RequestTimeoutSeconds
+	if timeout == -1 {
+		timeout = 0
+	}
+
 	server := &http.Server{
 		Addr:           c.Options.ServingInfo.BindAddress,
 		Handler:        handler,
-		ReadTimeout:    5 * time.Minute,
-		WriteTimeout:   5 * time.Minute,
+		ReadTimeout:    time.Duration(timeout) * time.Second,
+		WriteTimeout:   time.Duration(timeout) * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
@@ -533,12 +539,14 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
-	// Attempt to create the required policy rules now, and then stick in a forever loop to make sure they are always available
+	// Create required policy rules if needed
 	c.ensureComponentAuthorizationRules()
+	// Ensure the default SCCs are created
+	c.ensureDefaultSecurityContextConstraints()
+	// Bind default roles for service accounts in the default namespace if needed
+	c.ensureDefaultNamespaceServiceAccountRoles()
+	// Create the shared resource namespace
 	c.ensureOpenShiftSharedResourcesNamespace()
-	go util.Forever(func() {
-		c.ensureOpenShiftSharedResourcesNamespace()
-	}, 10*time.Second)
 }
 
 func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
@@ -557,20 +565,6 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 	}
 }
 
-// api_v1beta1 returns the resources and codec for API version v1beta1.
-func (c *MasterConfig) api_v1beta1(all map[string]rest.Storage) *apiserver.APIGroupVersion {
-	storage := make(map[string]rest.Storage)
-	for k, v := range all {
-		storage[strings.ToLower(k)] = v
-		storage[k] = v
-	}
-	version := c.defaultAPIGroupVersion()
-	version.Storage = storage
-	version.Version = OpenShiftAPIV1Beta1
-	version.Codec = v1beta1.Codec
-	return version
-}
-
 // api_v1beta3 returns the resources and codec for API version v1beta3.
 func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGroupVersion {
 	storage := make(map[string]rest.Storage)
@@ -581,6 +575,7 @@ func (c *MasterConfig) api_v1beta3(all map[string]rest.Storage) *apiserver.APIGr
 		storage[strings.ToLower(k)] = v
 	}
 	version := c.defaultAPIGroupVersion()
+	version.Root = LegacyOpenShiftAPIPrefix
 	version.Storage = storage
 	version.Version = OpenShiftAPIV1Beta3
 	version.Codec = v1beta3.Codec
@@ -618,7 +613,7 @@ func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
 		namespace = &kapi.Namespace{
 			ObjectMeta: kapi.ObjectMeta{Name: c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace},
 			Spec: kapi.NamespaceSpec{
-				Finalizers: []kapi.FinalizerName{projectapi.FinalizerProject},
+				Finalizers: []kapi.FinalizerName{projectapi.FinalizerOrigin},
 			},
 		}
 		kapi.FillObjectMetaSystemFields(api.NewContext(), &namespace.ObjectMeta)
@@ -643,6 +638,79 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 
 	} else {
 		glog.V(2).Infof("Ignoring bootstrap policy file because cluster policy found")
+	}
+}
+
+// ensureDefaultNamespaceServiceAccountRoles initializes roles for service accounts in the default namespace
+func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
+	const ServiceAccountRolesInitializedAnnotation = "openshift.io/sa.initialized-roles"
+
+	// Wait for the default namespace
+	var defaultNamespace *kapi.Namespace
+	for i := 0; i < 30; i++ {
+		ns, err := c.KubeClient().Namespaces().Get(kapi.NamespaceDefault)
+		if err == nil {
+			defaultNamespace = ns
+			break
+		}
+		if kapierror.IsNotFound(err) {
+			time.Sleep(time.Second)
+			continue
+		}
+		glog.Errorf("Error adding service account roles to default namespace: %v", err)
+		return
+	}
+	if defaultNamespace == nil {
+		glog.Errorf("Default namespace not found, could not initialize default service account roles")
+		return
+	}
+
+	// Short-circuit if we're already initialized
+	if defaultNamespace.Annotations[ServiceAccountRolesInitializedAnnotation] == "true" {
+		return
+	}
+
+	hasErrors := false
+	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(kapi.NamespaceDefault) {
+		addRole := &policy.RoleModificationOptions{
+			RoleName:            binding.RoleRef.Name,
+			RoleNamespace:       binding.RoleRef.Namespace,
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(kapi.NamespaceDefault, c.ServiceAccountRoleBindingClient()),
+			Users:               binding.Users.List(),
+			Groups:              binding.Groups.List(),
+		}
+		if err := addRole.AddRole(); err != nil {
+			glog.Errorf("Could not add service accounts to the %v role in the %v namespace: %v\n", binding.RoleRef.Name, kapi.NamespaceDefault, err)
+			hasErrors = true
+		}
+	}
+
+	// If we had errors, don't register initialization so we can try again
+	if !hasErrors {
+		if defaultNamespace.Annotations == nil {
+			defaultNamespace.Annotations = map[string]string{}
+		}
+		defaultNamespace.Annotations[ServiceAccountRolesInitializedAnnotation] = "true"
+		if _, err := c.KubeClient().Namespaces().Update(defaultNamespace); err != nil {
+			glog.Errorf("Error recording adding service account roles to default namespace: %v", err)
+		}
+	}
+}
+
+func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
+	sccList, err := c.KubeClient().SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		glog.Errorf("Unable to initialize security context constraints: %v", err)
+	}
+	if len(sccList.Items) > 0 {
+		return
+	}
+	glog.Infof("No security context constraints detected, adding defaults")
+	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints() {
+		_, err = c.KubeClient().SecurityContextConstraints().Create(&scc)
+		if err != nil {
+			glog.Errorf("Unable to create default security context constraint %s.  Got error: %v", scc.Name, err)
+		}
 	}
 }
 
@@ -733,6 +801,7 @@ func (c *MasterConfig) RunOriginNamespaceController() {
 	controller.Run()
 }
 
+// RunServiceAccountsController starts the service account controller
 func (c *MasterConfig) RunServiceAccountsController() {
 	if len(c.Options.ServiceAccountConfig.ManagedNames) == 0 {
 		glog.Infof("Skipped starting Service Account Manager, no managed names specified")
@@ -744,20 +813,40 @@ func (c *MasterConfig) RunServiceAccountsController() {
 	glog.Infof("Started Service Account Manager")
 }
 
+// RunServiceAccountTokensController starts the service account token controller
 func (c *MasterConfig) RunServiceAccountTokensController() {
 	if len(c.Options.ServiceAccountConfig.PrivateKeyFile) == 0 {
-		glog.Infof("Skipped starting Service Account Token Controller, no private key specified")
+		glog.Infof("Skipped starting Service Account Token Manager, no private key specified")
 		return
 	}
 
 	privateKey, err := serviceaccount.ReadPrivateKey(c.Options.ServiceAccountConfig.PrivateKeyFile)
 	if err != nil {
-		glog.Fatalf("Error reading signing key for service account token controller: %v", err)
+		glog.Fatalf("Error reading signing key for Service Account Token Manager: %v", err)
 	}
 	options := serviceaccount.DefaultTokenControllerOptions(serviceaccount.JWTTokenGenerator(privateKey))
 
 	serviceaccount.NewTokensController(c.KubeClient(), options).Run()
 	glog.Infof("Started Service Account Token Manager")
+}
+
+// RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
+func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
+	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
+	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClient(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
+
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClient(), serviceaccountcontrollers.DockercfgControllerOptions{DefaultDockerURL: serviceaccountcontrollers.DefaultOpenshiftDockerURL})
+	dockercfgController.Run()
+
+	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
+		RegistryNamespace:   "default",
+		RegistryServiceName: "docker-registry",
+		DockercfgController: dockercfgController,
+		DefaultDockerURL:    serviceaccountcontrollers.DefaultOpenshiftDockerURL,
+	}
+	serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run()
+
+	glog.Infof("Started Service Account Pull Secret Controllers")
 }
 
 // RunPolicyCache starts the policy cache
@@ -770,12 +859,14 @@ func (c *MasterConfig) RunAssetServer() {
 
 }
 
+// RunDNSServer starts the DNS server
 func (c *MasterConfig) RunDNSServer() {
 	config, err := dns.NewServerDefaults()
 	if err != nil {
 		glog.Fatalf("Could not start DNS: %v", err)
 	}
 	config.DnsAddr = c.Options.DNSConfig.BindAddress
+	config.NoRec = true // do not want to deploy an open resolver
 
 	_, port, err := net.SplitHostPort(c.Options.DNSConfig.BindAddress)
 	if err != nil {
@@ -812,6 +903,12 @@ func (c *MasterConfig) RunBuildController() {
 	dockerImage := c.ImageFor("docker-builder")
 	stiImage := c.ImageFor("sti-builder")
 
+	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
+	interfaces, err := latest.InterfacesFor(storageVersion)
+	if err != nil {
+		glog.Fatalf("Unable to load storage version %s: %v", storageVersion, err)
+	}
+
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
 		OSClient:     osclient,
@@ -820,17 +917,17 @@ func (c *MasterConfig) RunBuildController() {
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: v1beta1.Codec,
+			Codec: interfaces.Codec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: v1beta1.Codec,
+			Codec: interfaces.Codec,
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: v1beta1.Codec,
+			Codec: interfaces.Codec,
 		},
 	}
 
@@ -857,38 +954,37 @@ func (c *MasterConfig) RunBuildPodController() {
 // RunBuildImageChangeTriggerController starts the build image change trigger controller process.
 func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 	bcClient, _ := c.BuildControllerClients()
-	bcUpdater := buildclient.NewOSClientBuildConfigClient(bcClient)
 	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
-	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator, BuildConfigUpdater: bcUpdater}
+	factory := buildcontrollerfactory.ImageChangeControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator}
 	factory.Create().Run()
 }
 
 // RunDeploymentController starts the deployment controller process.
-func (c *MasterConfig) RunDeploymentController() error {
+func (c *MasterConfig) RunDeploymentController() {
 	_, kclient := c.DeploymentControllerClients()
 
 	_, kclientConfig, err := configapi.GetKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig)
 	if err != nil {
-		return err
+		glog.Fatalf("Unable to initialize deployment controller: %v", err)
 	}
-	// TODO eliminate these environment variables once we figure out what they do
-	env := []api.EnvVar{
-		{Name: "KUBERNETES_MASTER", Value: kclientConfig.Host},
-		{Name: "OPENSHIFT_MASTER", Value: kclientConfig.Host},
-	}
-	env = append(env, clientcmd.EnvVarsFromConfig(c.DeployerClientConfig())...)
+	// TODO eliminate these environment variables once service accounts provide a kubeconfig that includes all of this info
+	env := clientcmd.EnvVars(
+		kclientConfig.Host,
+		kclientConfig.CAData,
+		kclientConfig.Insecure,
+		path.Join(serviceaccountadmission.DefaultAPITokenMountPath, kapi.ServiceAccountTokenKey),
+	)
 
 	factory := deploycontroller.DeploymentControllerFactory{
-		KubeClient:    kclient,
-		Codec:         latest.Codec,
-		Environment:   env,
-		DeployerImage: c.ImageFor("deployer"),
+		KubeClient:     kclient,
+		Codec:          c.EtcdHelper.Codec,
+		Environment:    env,
+		DeployerImage:  c.ImageFor("deployer"),
+		ServiceAccount: bootstrappolicy.DeployerServiceAccountName,
 	}
 
 	controller := factory.Create()
 	controller.Run()
-
-	return nil
 }
 
 // RunDeployerPodController starts the deployer pod controller process.
@@ -902,28 +998,31 @@ func (c *MasterConfig) RunDeployerPodController() {
 	controller.Run()
 }
 
+// RunDeploymentConfigController starts the deployment config controller process.
 func (c *MasterConfig) RunDeploymentConfigController() {
 	osclient, kclient := c.DeploymentConfigControllerClients()
 	factory := deployconfigcontroller.DeploymentConfigControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
-		Codec:      latest.Codec,
+		Codec:      c.EtcdHelper.Codec,
 	}
 	controller := factory.Create()
 	controller.Run()
 }
 
+// RunDeploymentConfigChangeController starts the deployment config change controller process.
 func (c *MasterConfig) RunDeploymentConfigChangeController() {
 	osclient, kclient := c.DeploymentConfigChangeControllerClients()
 	factory := configchangecontroller.DeploymentConfigChangeControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
-		Codec:      latest.Codec,
+		Codec:      c.EtcdHelper.Codec,
 	}
 	controller := factory.Create()
 	controller.Run()
 }
 
+// RunDeploymentImageChangeTriggerController starts the image change trigger controller process.
 func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	osclient := c.DeploymentImageChangeControllerClient()
 	factory := imagechangecontroller.ImageChangeControllerFactory{Client: osclient}
@@ -931,7 +1030,7 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 	controller.Run()
 }
 
-// SDN controller runs openshift-sdn if the said network plugin is provided
+// RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	if c.Options.NetworkConfig.NetworkPluginName == osdn.NetworkPluginName() {
 		osdn.Master(*c.SdnClient(), *c.KubeClient(), c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
@@ -955,10 +1054,53 @@ func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocati
 	return factory.Create(plugin)
 }
 
+// RunImageImportController starts the image import trigger controller process.
 func (c *MasterConfig) RunImageImportController() {
 	osclient := c.ImageImportControllerClient()
 	factory := imagecontroller.ImportControllerFactory{
 		Client: osclient,
+	}
+	controller := factory.Create()
+	controller.Run()
+}
+
+// RunSecurityAllocationController starts the security allocation controller process.
+func (c *MasterConfig) RunSecurityAllocationController() {
+	alloc := c.Options.ProjectConfig.SecurityAllocator
+	if alloc == nil {
+		glog.V(3).Infof("Security allocator is disabled - no UIDs assigned to projects")
+		return
+	}
+
+	// TODO: move range initialization to run_config
+	uidRange, err := uid.ParseRange(alloc.UIDAllocatorRange)
+	if err != nil {
+		glog.Fatalf("Unable to describe UID range: %v", err)
+	}
+	var etcdAlloc *etcdallocator.Etcd
+	uidAllocator := uidallocator.New(uidRange, func(max int, rangeSpec string) allocator.Interface {
+		mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
+		etcdAlloc = etcdallocator.NewEtcd(mem, "/ranges/uids", "uidallocation", c.EtcdHelper)
+		return etcdAlloc
+	})
+	mcsRange, err := mcs.ParseRange(alloc.MCSAllocatorRange)
+	if err != nil {
+		glog.Fatalf("Unable to describe MCS category range: %v", err)
+	}
+
+	kclient := c.PrivilegedLoopbackKubernetesClient
+
+	repair := securitycontroller.NewRepair(time.Minute, kclient.Namespaces(), uidRange, etcdAlloc)
+	if err := repair.RunOnce(); err != nil {
+		// TODO: v scary, may need to use direct etcd calls?
+		glog.Fatalf("Unable to initialize namespaces: %v", err)
+	}
+
+	factory := securitycontroller.AllocationFactory{
+		UIDAllocator: uidAllocator,
+		MCSAllocator: securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, alloc.MCSLabelsPerProject),
+		Client:       kclient.Namespaces(),
+		// TODO: reuse namespace cache
 	}
 	controller := factory.Create()
 	controller.Run()
@@ -990,6 +1132,7 @@ type clientDeploymentInterface struct {
 	KubeClient kclient.Interface
 }
 
+// GetDeployment returns the deployment with the provided context and name
 func (c clientDeploymentInterface) GetDeployment(ctx api.Context, name string) (*api.ReplicationController, error) {
 	return c.KubeClient.ReplicationControllers(api.NamespaceValue(ctx)).Get(name)
 }
@@ -997,7 +1140,7 @@ func (c clientDeploymentInterface) GetDeployment(ctx api.Context, name string) (
 // namespacingFilter adds a filter that adds the namespace of the request to the context.  Not all requests will have namespaces,
 // but any that do will have the appropriate value added.
 func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
-	infoResolver := &apiserver.APIRequestInfoResolver{util.NewStringSet("api", "osapi"), latest.RESTMapper}
+	infoResolver := &apiserver.APIRequestInfoResolver{util.NewStringSet("api", "osapi", "oapi"), latest.RESTMapper}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, ok := contextMapper.Get(req)

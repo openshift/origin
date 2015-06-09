@@ -42,6 +42,7 @@ popd
 echo "Generating certs"
 pushd /vagrant
   SERVER_CONFIG_DIR="`pwd`/openshift.local.config"
+  VOLUMES_DIR="`pwd`/openshift.local.volumes"
   MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
   CERT_DIR="${MASTER_CONFIG_DIR}"
 
@@ -67,7 +68,8 @@ pushd /vagrant
       --certificate-authority="${CERT_DIR}/ca.crt" \
       --signer-cert="${CERT_DIR}/ca.crt" \
       --signer-key="${CERT_DIR}/ca.key" \
-      --signer-serial="${CERT_DIR}/ca.serial.txt"
+      --signer-serial="${CERT_DIR}/ca.serial.txt" \
+      --volume-dir="${VOLUMES_DIR}_${minion}"
   done
 
 popd
@@ -103,6 +105,27 @@ if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
   $(dirname $0)/provision-master-sdn.sh $@
 fi
 
-# Set up the OPENSHIFTCONFIG environment variable for use by osc
+# Set up the OPENSHIFTCONFIG environment variable for use by oc
 echo 'export OPENSHIFTCONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /root/.bash_profile
 echo 'export OPENSHIFTCONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /home/vagrant/.bash_profile
+
+# wait for openshift-master to come alive
+export OPENSHIFTCONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig
+while true; do
+  if ! /usr/bin/openshift cli get nodes; then
+    echo "Master not ready yet, check again in a while.."
+    sleep 1
+  else
+    break
+  fi
+done
+
+# register the nodes
+pushd /vagrant
+  SERVER_CONFIG_DIR="`pwd`/openshift.local.config"
+  for (( i=0; i<${#MINION_NAMES[@]}; i++)); do
+    minion=${MINION_NAMES[$i]}
+    echo "Registering node ${minion}"
+    /usr/bin/openshift cli create -f "${SERVER_CONFIG_DIR}/node-${minion}/node-registration.json"
+  done
+popd

@@ -259,6 +259,7 @@ var resourceQuotaColumns = []string{"NAME"}
 var namespaceColumns = []string{"NAME", "LABELS", "STATUS"}
 var secretColumns = []string{"NAME", "TYPE", "DATA"}
 var serviceAccountColumns = []string{"NAME", "SECRETS"}
+var securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "HOSTDIR", "SELINUX", "RUNASUSER"}
 var persistentVolumeColumns = []string{"NAME", "LABELS", "CAPACITY", "ACCESSMODES", "STATUS", "CLAIM"}
 var persistentVolumeClaimColumns = []string{"NAME", "LABELS", "STATUS", "VOLUME"}
 var componentStatusColumns = []string{"NAME", "STATUS", "MESSAGE", "ERROR"}
@@ -295,6 +296,8 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(persistentVolumeColumns, printPersistentVolumeList)
 	h.Handler(componentStatusColumns, printComponentStatus)
 	h.Handler(componentStatusColumns, printComponentStatusList)
+	h.Handler(securityContextConstraintsColumns, printSecurityContextConstraints)
+	h.Handler(securityContextConstraintsColumns, printSecurityContextConstraintsList)
 }
 
 func (h *HumanReadablePrinter) unknown(data []byte, w io.Writer) error {
@@ -317,7 +320,7 @@ func formatEndpoints(endpoints *api.Endpoints, ports util.StringSet) string {
 	list := []string{}
 	max := 3
 	more := false
-Loop:
+	count := 0
 	for i := range endpoints.Subsets {
 		ss := &endpoints.Subsets[i]
 		for i := range ss.Ports {
@@ -326,17 +329,19 @@ Loop:
 				for i := range ss.Addresses {
 					if len(list) == max {
 						more = true
-						break Loop
 					}
 					addr := &ss.Addresses[i]
-					list = append(list, fmt.Sprintf("%s:%d", addr.IP, port.Port))
+					if !more {
+						list = append(list, fmt.Sprintf("%s:%d", addr.IP, port.Port))
+					}
+					count++
 				}
 			}
 		}
 	}
 	ret := strings.Join(list, ",")
 	if more {
-		ret += "..."
+		return fmt.Sprintf("%s + %d more...", ret, count-max)
 	}
 	return ret
 }
@@ -667,6 +672,23 @@ func printServiceAccount(item *api.ServiceAccount, w io.Writer, withNamespace bo
 func printServiceAccountList(list *api.ServiceAccountList, w io.Writer, withNamespace bool) error {
 	for _, item := range list.Items {
 		if err := printServiceAccount(&item, w, withNamespace); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func printSecurityContextConstraints(item *api.SecurityContextConstraints, w io.Writer, withNamespace bool) error {
+	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%t\t%s\t%s\n", item.Name, item.AllowPrivilegedContainer,
+		item.AllowedCapabilities, item.AllowHostDirVolumePlugin, item.SELinuxContext.Type,
+		item.RunAsUser.Type)
+	return err
+}
+
+func printSecurityContextConstraintsList(list *api.SecurityContextConstraintsList, w io.Writer, withNamespace bool) error {
+	for _, item := range list.Items {
+		if err := printSecurityContextConstraints(&item, w, withNamespace); err != nil {
 			return err
 		}
 	}

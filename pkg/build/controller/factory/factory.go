@@ -112,7 +112,7 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
+			controller.RetryNever,
 			kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			deltas := obj.(cache.Deltas)
@@ -169,7 +169,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 	}
 }
 
-// Create constructs a BuildPodDeleteController
+// CreateDeleteController constructs a BuildPodDeleteController
 func (factory *BuildPodControllerFactory) CreateDeleteController() controller.RunnableController {
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
@@ -186,7 +186,7 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			limitedLogAndRetry(factory.BuildUpdater, 30*time.Minute),
+			controller.RetryNever,
 			kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			deltas := obj.(cache.Deltas)
@@ -205,7 +205,6 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 type ImageChangeControllerFactory struct {
 	Client                  osclient.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
-	BuildConfigUpdater      buildclient.BuildConfigUpdater
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }
@@ -221,7 +220,6 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 
 	imageChangeController := &buildcontroller.ImageChangeController{
 		BuildConfigStore:        store,
-		BuildConfigUpdater:      factory.BuildConfigUpdater,
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
 		Stop: factory.Stop,
 	}

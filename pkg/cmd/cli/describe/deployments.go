@@ -110,7 +110,7 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 	}
 }
 
-// Describe returns a description of a DeploymentConfigDescriber
+// Describe returns the description of a DeploymentConfig
 func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, error) {
 	deploymentConfig, err := d.client.getDeploymentConfig(namespace, name)
 	if err != nil {
@@ -307,7 +307,7 @@ type LatestDeploymentsDescriber struct {
 	client deploymentDescriberClient
 }
 
-// List the latest deployments limited to "count". In case count == -1, list back to the last successful.
+// NewLatestDeploymentsDescriber lists the latest deployments limited to "count". In case count == -1, list back to the last successful.
 func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Interface, count int) *LatestDeploymentsDescriber {
 	return &LatestDeploymentsDescriber{
 		count: count,
@@ -331,6 +331,7 @@ func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Inte
 	}
 }
 
+// Describe returns the description of the latest deployments for a config
 func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, error) {
 	config, err := d.client.getDeploymentConfig(namespace, name)
 	if err != nil {

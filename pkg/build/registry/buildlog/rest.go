@@ -37,7 +37,7 @@ type podGetter struct {
 func (g *podGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 	ns, ok := kapi.NamespaceFrom(ctx)
 	if !ok {
-		return nil, errors.NewBadRequest("Namespace parameter required.")
+		return nil, errors.NewBadRequest("namespace parameter required.")
 	}
 	return g.podsNamespacer.Pods(ns).Get(name)
 }
@@ -84,11 +84,11 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 
 	// The build was cancelled
 	case api.BuildStatusCancelled:
-		return nil, fmt.Errorf("Build %s/%s was cancelled", build.Namespace, build.Name)
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s/%s was cancelled", build.Namespace, build.Name))
 
 	// An error occurred launching the build, return an error
 	case api.BuildStatusError:
-		return nil, fmt.Errorf("Build %s/%s is in an error state", build.Namespace, build.Name)
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s/%s is in an error state", build.Namespace, build.Name))
 	}
 	// The container should be the default build container, so setting it to blank
 	buildPodName := buildutil.GetBuildPodName(build)
@@ -97,7 +97,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	}
 	location, transport, err := pod.LogLocation(r.PodGetter, r.ConnectionInfo, ctx, buildPodName, logOpts)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewBadRequest(err.Error())
 	}
 	return &genericrest.LocationStreamer{
 		Location:    location,
@@ -142,7 +142,7 @@ func (r *REST) waitForBuild(ctx kapi.Context, build *api.Build) error {
 	case <-done:
 		return nil
 	case <-time.After(r.Timeout):
-		return fmt.Errorf("timed out waiting for Build %s/%s", build.Namespace, build.Name)
+		return errors.NewTimeoutError(fmt.Sprintf("timed out waiting for Build %s/%s", build.Namespace, build.Name), 1)
 	}
 }
 

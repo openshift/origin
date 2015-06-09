@@ -19,7 +19,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 )
 
@@ -27,10 +26,10 @@ type NodeOptions struct {
 	NodeArgs *NodeArgs
 
 	ConfigFile string
-	Output     cmdutil.Output
+	Output     io.Writer
 }
 
-const node_long = `Start an OpenShift node.
+const nodeLong = `Start an OpenShift node.
 This command helps you launch an OpenShift node.  Running
 
   $ openshift start node --master=<masterIP>
@@ -38,14 +37,14 @@ This command helps you launch an OpenShift node.  Running
 will start an OpenShift node that attempts to connect to the master on the provided IP. The
 node will run in the foreground until you terminate the process.`
 
-// NewCommandStartMaster provides a CLI handler for 'start' command
+// NewCommandStartNode provides a CLI handler for 'start node' command
 func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
-	options := &NodeOptions{Output: cmdutil.Output{out}}
+	options := &NodeOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "node",
 		Short: "Launch OpenShift node",
-		Long:  node_long,
+		Long:  nodeLong,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
 				fmt.Println(err.Error())
@@ -63,9 +62,9 @@ func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
 			if err := options.StartNode(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(options.Output.Get(), "Invalid %s %s\n", details.Kind, details.ID)
+						fmt.Fprintf(out, "Invalid %s %s\n", details.Kind, details.ID)
 						for _, cause := range details.Causes {
-							fmt.Fprintln(options.Output.Get(), cause.Message)
+							fmt.Fprintln(out, cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -74,7 +73,6 @@ func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
 			}
 		},
 	}
-	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
 
@@ -139,6 +137,7 @@ func (o NodeOptions) StartNode() error {
 // 4.  Starts the node based on the fully specified config
 func (o NodeOptions) RunNode() error {
 	if !o.IsRunFromConfig() || o.IsWriteConfigOnly() {
+		glog.V(2).Infof("Generating node configuration")
 		if err := o.CreateNodeConfig(); err != nil {
 			return err
 		}
@@ -247,7 +246,6 @@ func StartNode(config configapi.NodeConfig) error {
 	}
 
 	RunSDNController(config)
-
 	nodeConfig.EnsureVolumeDir()
 	nodeConfig.EnsureDocker(docker.NewHelper())
 	nodeConfig.RunProxy()

@@ -3,11 +3,12 @@ package validation
 import (
 	"net/url"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	oapi "github.com/openshift/origin/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -15,17 +16,8 @@ import (
 // ValidateBuild tests required fields for a Build.
 func ValidateBuild(build *buildapi.Build) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if len(build.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
-	} else if !util.IsDNS1123Subdomain(build.Name) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", build.Name, "name must be a valid subdomain"))
-	}
-	if len(build.Namespace) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("namespace"))
-	} else if !util.IsDNS1123Subdomain(build.Namespace) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", build.Namespace, "namespace must be a valid subdomain"))
-	}
-	allErrs = append(allErrs, validation.ValidateLabels(build.Labels, "labels")...)
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
+
 	allErrs = append(allErrs, validateBuildParameters(&build.Parameters).Prefix("parameters")...)
 	return allErrs
 }
@@ -33,19 +25,18 @@ func ValidateBuild(build *buildapi.Build) fielderrors.ValidationErrorList {
 // ValidateBuildConfig tests required fields for a Build.
 func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if len(config.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
-	} else if !util.IsDNS1123Subdomain(config.Name) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", config.Name, "name must be a valid subdomain"))
-	}
-	if len(config.Namespace) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("namespace"))
-	} else if !util.IsDNS1123Subdomain(config.Namespace) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", config.Namespace, "namespace must be a valid subdomain"))
-	}
-	allErrs = append(allErrs, validation.ValidateLabels(config.Labels, "labels")...)
-	for i := range config.Triggers {
-		allErrs = append(allErrs, validateTrigger(&config.Triggers[i]).PrefixIndex(i).Prefix("triggers")...)
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
+
+	// allow only one ImageChangeTrigger for now
+	ictCount := 0
+	for i, trg := range config.Triggers {
+		allErrs = append(allErrs, validateTrigger(&trg).PrefixIndex(i).Prefix("triggers")...)
+		if trg.Type == buildapi.ImageChangeBuildTriggerType {
+			if ictCount++; ictCount > 1 {
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("triggers", config.Triggers, "only one ImageChange trigger is allowed"))
+				break
+			}
+		}
 	}
 	allErrs = append(allErrs, validateBuildParameters(&config.Parameters).Prefix("parameters")...)
 	allErrs = append(allErrs, validateBuildConfigOutput(&config.Parameters.Output).Prefix("parameters.output")...)
@@ -55,9 +46,8 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErr
 // ValidateBuildRequest validates a BuildRequest object
 func ValidateBuildRequest(request *buildapi.BuildRequest) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if len(request.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
-	}
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&request.ObjectMeta, true, oapi.MinimalNameRequirements).Prefix("metadata")...)
+
 	if request.Revision != nil {
 		allErrs = append(allErrs, validateRevision(request.Revision).Prefix("revision")...)
 	}
@@ -227,20 +217,13 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) fielderrors.Validatio
 		return allErrs
 	}
 
-	// Ensure that only parameters for the trigger's type are present
-	triggerPresence := map[buildapi.BuildTriggerType]bool{
-		buildapi.GithubWebHookBuildTriggerType:  trigger.GithubWebHook != nil,
-		buildapi.GenericWebHookBuildTriggerType: trigger.GenericWebHook != nil,
-	}
-	allErrs = append(allErrs, validateTriggerPresence(triggerPresence, trigger.Type)...)
-
 	// Validate each trigger type
 	switch trigger.Type {
-	case buildapi.GithubWebHookBuildTriggerType:
-		if trigger.GithubWebHook == nil {
+	case buildapi.GitHubWebHookBuildTriggerType:
+		if trigger.GitHubWebHook == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("github"))
 		} else {
-			allErrs = append(allErrs, validateWebHook(trigger.GithubWebHook).Prefix("github")...)
+			allErrs = append(allErrs, validateWebHook(trigger.GitHubWebHook).Prefix("github")...)
 		}
 	case buildapi.GenericWebHookBuildTriggerType:
 		if trigger.GenericWebHook == nil {
@@ -252,16 +235,8 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) fielderrors.Validatio
 		if trigger.ImageChange == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("imageChange"))
 		}
-	}
-	return allErrs
-}
-
-func validateTriggerPresence(params map[buildapi.BuildTriggerType]bool, t buildapi.BuildTriggerType) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	for triggerType, present := range params {
-		if triggerType != t && present {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid(string(triggerType), "", "triggerType wasn't found"))
-		}
+	default:
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("type", trigger.Type, "invalid trigger type"))
 	}
 	return allErrs
 }

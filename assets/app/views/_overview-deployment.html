@@ -11,7 +11,7 @@
   imagesByDockerReference - map[dockerReference][]Image. Optional.
   builds                  - map[buildId]build. Optional.
  -->
-<div class="osc-object components-panel deployment-block" 
+<div class="osc-object components-panel deployment-block"
      kind="ReplicationController" resource="rc"
      ng-init="isDeployment = (deploymentConfigId && (rc | annotation:'deploymentConfig') && (rc | annotation:'deploymentVersion'))">
 
@@ -44,12 +44,15 @@
 
     <div class="component meta-data">
       created <relative-timestamp timestamp="rc.metadata.creationTimestamp"></relative-timestamp
-      ><span ng-if="rc.status.details.causes.length"
-        ><span>, triggered by 
-          <span class="deployment-trigger" ng-repeat="cause in rc.status.details.causes">
+      ><span ng-if="rc.causes.length"
+        ><span>, triggered by
+          <span class="deployment-trigger" ng-repeat="cause in rc.causes">
             <span ng-switch="cause.type">
-              <span ng-switch-when="ImageChange">a new image for {{cause.imageTrigger.from | imageObjectRef}}</span>
+              <span ng-switch-when="ImageChange">
+                a new image <span ng-if="cause.imageTrigger.from">for {{cause.imageTrigger.from | imageObjectRef : null : true}}</span>
+              </span>
               <span ng-switch-when="ConfigChange">a config change</span>
+              <span ng-switch-default>{{cause.type}}</span>
             </span>
           </span>
         </span>
@@ -73,13 +76,17 @@
     <div class="component-label">Pod Template</div>
 
     <pod-template
-      pod-template="rc.spec.template" 
+      pod-template="rc.spec.template"
       images-by-docker-reference="imagesByDockerReference"
       builds="builds">
     </pod-template>
 
-    <!-- TODO: surface spec.replicas/status.replicas here? -->
-    <div class="component-label">Pods</div>
+    <div class="component-label">
+      Pods
+      <span ng-if="rc.status.replicas === rc.spec.replicas" class="component-label-details">({{rc.status.replicas}})</span>
+      <span ng-if="rc.status.replicas !== rc.spec.replicas" class="component-label-details">({{rc.status.replicas}} current, {{rc.spec.replicas || 0}} desired)</span>
+    </div>
+
     <pods pods="pods"></pods>
   </div>
 

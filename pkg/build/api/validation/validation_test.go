@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -86,7 +87,7 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 	}
 }
 
-func TestBuildConfigValidationFailure(t *testing.T) {
+func TestBuildConfigValidationFailureRequiredName(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "", Namespace: "foo"},
 		Parameters: buildapi.BuildParameters{
@@ -106,8 +107,62 @@ func TestBuildConfigValidationFailure(t *testing.T) {
 			},
 		},
 	}
-	if result := ValidateBuildConfig(buildConfig); len(result) != 1 {
-		t.Errorf("Unexpected validation result %v", result)
+	errors := ValidateBuildConfig(buildConfig)
+	if len(errors) != 1 {
+		t.Fatalf("Unexpected validation errors %v", errors)
+	}
+	err := errors[0].(*fielderrors.ValidationError)
+	if err.Type != fielderrors.ValidationErrorTypeRequired {
+		t.Errorf("Unexpected error type, expected %s, got %s", fielderrors.ValidationErrorTypeRequired, err.Type)
+	}
+	if err.Field != "metadata.name" {
+		t.Errorf("Unexpected field name expected metadata.name, got %s", err.Field)
+	}
+}
+
+func TestBuildConfigValidationFailureTooManyICT(t *testing.T) {
+	buildConfig := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "foo"},
+		Parameters: buildapi.BuildParameters{
+			Source: buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "http://github.com/my/repository",
+				},
+				ContextDir: "context",
+			},
+			Strategy: buildapi.BuildStrategy{
+				Type:           buildapi.DockerBuildStrategyType,
+				DockerStrategy: &buildapi.DockerBuildStrategy{},
+			},
+			Output: buildapi.BuildOutput{
+				DockerImageReference: "repository/data",
+			},
+		},
+		Triggers: []buildapi.BuildTriggerPolicy{
+			{
+				Type:        buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{},
+			},
+			{
+				Type:        buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{},
+			},
+		},
+	}
+	errors := ValidateBuildConfig(buildConfig)
+	if len(errors) != 1 {
+		t.Fatalf("Unexpected validation errors %v", errors)
+	}
+	err := errors[0].(*fielderrors.ValidationError)
+	if err.Type != fielderrors.ValidationErrorTypeInvalid {
+		t.Errorf("Unexpected error type, expected %s, got %s", fielderrors.ValidationErrorTypeInvalid, err.Type)
+	}
+	if err.Field != "triggers" {
+		t.Errorf("Unexpected field name expected triggers, got %s", err.Field)
+	}
+	if !strings.Contains(err.Detail, "only one ImageChange trigger is allowed") {
+		t.Errorf("Unexpected error details: %s", err.Detail)
 	}
 }
 
@@ -141,8 +196,8 @@ func TestBuildConfigValidationOutputFailure(t *testing.T) {
 
 func TestValidateBuildRequest(t *testing.T) {
 	testCases := map[string]*buildapi.BuildRequest{
-		"": {ObjectMeta: kapi.ObjectMeta{Name: "requestName"}},
-		string(fielderrors.ValidationErrorTypeRequired) + "name": {},
+		string(fielderrors.ValidationErrorTypeRequired) + "metadata.namespace": {ObjectMeta: kapi.ObjectMeta{Name: "requestName"}},
+		string(fielderrors.ValidationErrorTypeRequired) + "metadata.name":      {ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault}},
 	}
 
 	for desc, tc := range testCases {
@@ -489,60 +544,86 @@ func TestValidateTrigger(t *testing.T) {
 			trigger:  buildapi.BuildTriggerPolicy{},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("type")},
 		},
-		"github type with no github webhook": {
-			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GithubWebHookBuildTriggerType},
+		"trigger with unknown type": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: "UnknownTriggerType",
+			},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("type", "", "")},
+		},
+		"GitHub type with no github webhook": {
+			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GitHubWebHookBuildTriggerType},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("github")},
 		},
-		"github trigger with no secret": {
+		"GitHub trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
-				Type:          buildapi.GithubWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{},
+				Type:          buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildapi.WebHookTrigger{},
 			},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("github.secret")},
 		},
-		"github trigger with generic webhook": {
+		"GitHub trigger with generic webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
-				Type: buildapi.GithubWebHookBuildTriggerType,
+				Type: buildapi.GitHubWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
-			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("generic", "", "long description")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("github")},
 		},
-		"generic trigger with no generic webhook": {
+		"Generic trigger with no generic webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GenericWebHookBuildTriggerType},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("generic")},
 		},
-		"generic trigger with no secret": {
+		"Generic trigger with no secret": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type:           buildapi.GenericWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{},
 			},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("generic.secret")},
 		},
-		"generic trigger with github webhook": {
+		"Generic trigger with github webhook": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: buildapi.GenericWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{
+				GitHubWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
-			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("github", "", "long github description")},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("generic")},
 		},
-		"valid github trigger": {
+		"ImageChange trigger without params": {
 			trigger: buildapi.BuildTriggerPolicy{
-				Type: buildapi.GithubWebHookBuildTriggerType,
-				GithubWebHook: &buildapi.WebHookTrigger{
+				Type: buildapi.ImageChangeBuildTriggerType,
+			},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("imageChange")},
+		},
+		"valid GitHub trigger": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
 		},
-		"valid generic trigger": {
+		"valid Generic trigger": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: buildapi.GenericWebHookBuildTriggerType,
 				GenericWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
+			},
+		},
+		"valid ImageChange trigger": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{
+					LastTriggeredImageID: "asdf1234",
+				},
+			},
+		},
+		"valid ImageChange trigger with empty fields": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type:        buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{},
 			},
 		},
 	}
@@ -551,6 +632,14 @@ func TestValidateTrigger(t *testing.T) {
 		if len(test.expected) == 0 {
 			if len(errors) != 0 {
 				t.Errorf("%s: Got unexpected validation errors: %#v", desc, errors)
+			}
+			continue
+		}
+		if len(errors) != 1 {
+			t.Errorf("%s: Expected one validation error, got %d", desc, len(errors))
+			for i, err := range errors {
+				validationError := err.(*fielderrors.ValidationError)
+				t.Errorf("  %d. %v", i+1, validationError)
 			}
 			continue
 		}

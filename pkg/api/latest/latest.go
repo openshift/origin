@@ -15,22 +15,21 @@ import (
 	_ "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/api/v1"
-	"github.com/openshift/origin/pkg/api/v1beta1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 )
 
 // Version is the string that represents the current external default version.
-const Version = "v1beta3"
+const Version = "v1"
 
 // OldestVersion is the string that represents the oldest server version supported,
 // for client code that wants to hardcode the lowest common denominator.
-const OldestVersion = "v1beta1"
+const OldestVersion = "v1beta3"
 
 // Versions is the list of versions that are recognized in code. The order provided
 // may be assumed to be least feature rich to most feature rich, and clients may
 // choose to prefer the latter items in the list over the former items when presented
 // with a set of versions to choose.
-var Versions = []string{"v1beta1", "v1beta3", "v1"}
+var Versions = []string{"v1", "v1beta3"}
 
 // Codec is the default codec for serializing output that should use
 // the latest supported version.  Use this Codec when writing to
@@ -60,12 +59,6 @@ var RESTMapper kmeta.RESTMapper
 // string, or an error if the version is not known.
 func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 	switch version {
-	case "v1beta1":
-		return &kmeta.VersionInterfaces{
-			Codec:            v1beta1.Codec,
-			ObjectConvertor:  api.Scheme,
-			MetadataAccessor: accessor,
-		}, nil
 	case "v1beta3":
 		return &kmeta.VersionInterfaces{
 			Codec:            v1beta3.Codec,
@@ -103,8 +96,12 @@ func OriginKind(kind, apiVersion string) bool {
 
 func init() {
 	kubeMapper := klatest.RESTMapper
+
+	// list of versions we support on the server, in preferred order
+	versions := []string{"v1beta3", "v1"}
+
 	originMapper := kmeta.NewDefaultRESTMapper(
-		Versions,
+		versions,
 		func(version string) (*kmeta.VersionInterfaces, bool) {
 			interfaces, err := InterfacesFor(version)
 			if err != nil {
@@ -113,21 +110,6 @@ func init() {
 			return interfaces, true
 		},
 	)
-
-	// list of versions we support on the server, in preferred order
-	versions := []string{"v1beta3", "v1beta1", "v1"}
-
-	// versions that used mixed case URL formats
-	versionMixedCase := map[string]bool{
-		"v1beta1": true,
-	}
-
-	// backwards compatibility, prior to v1beta3, we identified the namespace as a query parameter
-	versionToNamespaceScope := map[string]kmeta.RESTScope{
-		"v1beta1": kmeta.RESTScopeNamespaceLegacy,
-		"v1beta3": kmeta.RESTScopeNamespace,
-		"v1":      kmeta.RESTScopeNamespace,
-	}
 
 	// the list of kinds that are scoped at the root of the api hierarchy
 	// if a kind is not enumerated here, it is assumed to have a namespace scope
@@ -166,20 +148,13 @@ func init() {
 				}
 			}
 			originTypes.Insert(kind)
-			mixedCase, found := versionMixedCase[version]
-			if !found {
-				mixedCase = false
-			}
-			scope, found := versionToNamespaceScope[version]
-			if !found {
-				panic(fmt.Sprintf("no scope defined for %s", version))
-			}
-			_, found = kindToRootScope[kind]
+			scope := kmeta.RESTScopeNamespace
+			_, found := kindToRootScope[kind]
 			if found || (strings.HasSuffix(kind, "List") && kindToRootScope[strings.TrimSuffix(kind, "List")]) {
 				scope = kmeta.RESTScopeRoot
 			}
 			glog.V(6).Infof("Registering %s %s %s", kind, version, scope.Name())
-			originMapper.Add(scope, kind, version, mixedCase)
+			originMapper.Add(scope, kind, version, false)
 		}
 	}
 

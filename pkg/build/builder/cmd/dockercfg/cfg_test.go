@@ -4,10 +4,12 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/credentialprovider"
 )
 
 func TestReadDockercfg(t *testing.T) {
-	content := "{\"test-server-1\":{\"auth\":\"my-auth\",\"email\":\"test@email.test.com\"}}"
+	content := "{\"test-server-1.tld\":{\"auth\":\"Zm9vOmJhcgo=\",\"email\":\"test@email.test.com\"}}"
 	tempfile, err := ioutil.TempFile("", "cfgtest")
 	if err != nil {
 		t.Fatalf("Unable to create temp file: %v", err)
@@ -22,16 +24,14 @@ func TestReadDockercfg(t *testing.T) {
 		return
 	}
 
-	auth, ok := dockercfg["test-server-1"]
-	if !ok {
-		t.Errorf("Expected entry test-server-1 not found in dockercfg")
-		return
+	keyring := credentialprovider.BasicDockerKeyring{}
+	keyring.Add(dockercfg)
+	authConfs, found := keyring.Lookup("test-server-1.tld/foo/bar")
+	if !found || len(authConfs) == 0 {
+		t.Errorf("Expected lookup success, got not found")
 	}
-	if auth.Auth != "my-auth" {
-		t.Errorf("Unexpected Auth value: %s", auth.Auth)
-	}
-	if auth.Email != "test@email.test.com" {
-		t.Errorf("Unexpected Email value: %s", auth.Email)
+	if authConfs[0].Email != "test@email.test.com" {
+		t.Errorf("Unexpected Email value: %s", authConfs[0].Email)
 	}
 }
 

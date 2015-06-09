@@ -78,15 +78,19 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	return nil
 }
 
-func (n *NodeOptions) Validate() error {
+func (n *NodeOptions) Validate(checkNodeSelector bool) error {
 	errList := []error{}
-	if len(n.Selector) > 0 {
-		if _, err := labels.Parse(n.Selector); err != nil {
-			errList = append(errList, errors.New("--selector=<node_selector> must be a valid label selector"))
+	if checkNodeSelector {
+		if len(n.Selector) > 0 {
+			if _, err := labels.Parse(n.Selector); err != nil {
+				errList = append(errList, errors.New("--selector=<node_selector> must be a valid label selector"))
+			}
 		}
 		if len(n.NodeNames) != 0 {
 			errList = append(errList, errors.New("either specify --selector=<node_selector> or nodes but not both"))
 		}
+	} else if len(n.NodeNames) == 0 {
+		errList = append(errList, errors.New("must provide --selector=<node_selector> or nodes"))
 	}
 
 	if len(n.PodSelector) > 0 {
@@ -182,8 +186,6 @@ func (n *NodeOptions) GetPrinters(kind, version string) (kubectl.ResourcePrinter
 
 func GetPodHostFieldLabel(apiVersion string) string {
 	switch apiVersion {
-	case "v1beta1", "v1beta2":
-		return "DesiredState.Host"
 	default:
 		return "spec.host"
 	}

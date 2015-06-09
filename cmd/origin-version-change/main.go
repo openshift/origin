@@ -42,11 +42,11 @@ func isYAML(data []byte) bool {
 	return false
 }
 
-func changeTemplateObjectsVersion(t *templateapi.Template) {
-	if errs := kruntime.DecodeList(t.Objects, api.Scheme); len(errs) > 0 {
+func changeObjectsVersion(items []kruntime.Object) {
+	if errs := kruntime.DecodeList(items, api.Scheme); len(errs) > 0 {
 		log.Fatalf("Unable to decode Template objects: %v", errs)
 	}
-	for i, obj := range t.Objects {
+	for i, obj := range items {
 		_, kind, err := api.Scheme.ObjectVersionAndKind(obj)
 		if err != nil {
 			glog.Infof("Template.Objects[%d]: Unable to determine version and kind: %v", i, err)
@@ -63,7 +63,7 @@ func changeTemplateObjectsVersion(t *templateapi.Template) {
 			glog.Infof("Template.Objects[%d]: Unable to convert: %v", err)
 			continue
 		}
-		t.Objects[i] = outputObj
+		items[i] = outputObj
 	}
 }
 
@@ -107,7 +107,10 @@ func main() {
 	}
 
 	if template, ok := obj.(*templateapi.Template); ok {
-		changeTemplateObjectsVersion(template)
+		changeObjectsVersion(template.Objects)
+	}
+	if list, ok := obj.(*api.List); ok {
+		changeObjectsVersion(list.Items)
 	}
 
 	outData, err := api.Scheme.EncodeToVersion(obj, *outputVersion)

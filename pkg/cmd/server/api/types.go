@@ -6,6 +6,17 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
+var (
+	KnownKubernetesAPILevels   = []string{"v1beta1", "v1beta2", "v1beta3", "v1"}
+	KnownOpenShiftAPILevels    = []string{"v1beta1", "v1beta3", "v1"}
+	DefaultKubernetesAPILevels = []string{"v1beta3", "v1"}
+	DefaultOpenShiftAPILevels  = []string{"v1beta3", "v1"}
+	DeadKubernetesAPILevels    = []string{"v1beta1", "v1beta2"}
+	DeadOpenShiftAPILevels     = []string{"v1beta1"}
+)
+
+type ExtendedArguments map[string][]string
+
 // NodeConfig is the fully specified config starting an OpenShift node
 type NodeConfig struct {
 	api.TypeMeta
@@ -20,9 +31,10 @@ type NodeConfig struct {
 	// MasterKubeConfig is a filename for the .kubeconfig file that describes how to connect this node to the master
 	MasterKubeConfig string
 
-	// domain suffix
+	// DNSDomain holds the domain suffix
 	DNSDomain string
-	// ip
+
+	// DNSIP holds the IP
 	DNSIP string
 
 	// NetworkPluginName is a string specifying the networking plugin
@@ -40,19 +52,60 @@ type NodeConfig struct {
 	// PodManifestConfig holds the configuration for enabling the Kubelet to
 	// create pods based from a manifest file(s) placed locally on the node
 	PodManifestConfig *PodManifestConfig
+
+	// DockerConfig holds Docker related configuration options.
+	DockerConfig DockerConfig
+
+	// KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's
+	// command line arguments.  These are not migrated or validated, so if you use them they may become invalid.
+	// These values override other settings in NodeConfig which may cause invalid configurations.
+	KubeletArguments ExtendedArguments
 }
+
+// DockerConfig holds Docker related configuration options.
+type DockerConfig struct {
+	// ExecHandlerName is the name of the handler to use for executing
+	// commands in Docker containers.
+	ExecHandlerName DockerExecHandlerType
+}
+
+type DockerExecHandlerType string
+
+const (
+	// DockerExecHandlerNative uses Docker's exec API for executing commands in containers.
+	DockerExecHandlerNative DockerExecHandlerType = "native"
+	// DockerExecHandlerNsenter uses nsenter for executing commands in containers.
+	DockerExecHandlerNsenter DockerExecHandlerType = "nsenter"
+
+	// ControllersDisabled indicates no controllers should be enabled.
+	ControllersDisabled = "none"
+	// ControllersAll indicates all controllers should be started.
+	ControllersAll = "*"
+)
 
 type MasterConfig struct {
 	api.TypeMeta
 
 	// ServingInfo describes how to start serving
-	ServingInfo ServingInfo
+	ServingInfo HTTPServingInfo
 
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string
 
+	// APILevels is a list of API levels that should be enabled on startup: v1beta3 and v1 as examples
+	APILevels []string
+
 	// MasterPublicURL is how clients can access the OpenShift API server
 	MasterPublicURL string
+
+	// Controllers is a list of the controllers that should be started. If set to "none", no controllers
+	// will start automatically. The default value is "*" which will start all controllers. When
+	// using "*", you may exclude controllers by prepending a "-" in front of their name. No other
+	// values are recognized at this time.
+	Controllers string
+	// PauseControllers instructs the master to not automatically start controllers, but instead
+	// to wait until a notification to the server is received before launching them.
+	PauseControllers bool
 
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the
@@ -106,6 +159,31 @@ type ProjectConfig struct {
 	// It is in the format namespace/template and it is optional.
 	// If it is not specified, a default template is used.
 	ProjectRequestTemplate string
+
+	// SecurityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.
+	SecurityAllocator *SecurityAllocator
+}
+
+type SecurityAllocator struct {
+	// UIDAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the
+	// block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks
+	// before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the
+	// ranges Docker images will use once user namespaces are started).
+	UIDAllocatorRange string
+	// MCSAllocatorRange defines the range of MCS categories that will be assigned to namespaces. The format is
+	// "<prefix>/<numberOfLabels>[,<maxCategory>]". The default is "s0/2" and will allocate from c0 -> c1023, which means a total of 535k labels
+	// are available (1024 choose 2 ~ 535k). If this value is changed after startup, new projects may receive labels that are already allocated
+	// to other projects. Prefix may be any valid SELinux set of terms (including user, role, and type), although leaving them as the default
+	// will allow the server to set them automatically.
+	//
+	// Examples:
+	// * s0:/2     - Allocate labels from s0:c0,c0 to s0:c511,c511
+	// * s0:/2,512 - Allocate labels from s0:c0,c0,c0 to s0:c511,c511,511
+	//
+	MCSAllocatorRange string
+	// MCSLabelsPerProject defines the number of labels that should be reserved per project. The default is 5 to match the default UID and MCS
+	// ranges (100k namespaces, 535k/5 labels).
+	MCSLabelsPerProject int
 }
 
 type PolicyConfig struct {
@@ -118,9 +196,9 @@ type PolicyConfig struct {
 
 // NetworkConfig to be passed to the compiled in network plugin
 type NetworkConfig struct {
-	NetworkPluginName  string `json:"networkPluginName"`
-	ClusterNetworkCIDR string `json:"clusterNetworkCIDR"`
-	HostSubnetLength   uint   `json:"hostSubnetLength"`
+	NetworkPluginName  string
+	ClusterNetworkCIDR string
+	HostSubnetLength   uint
 }
 
 type ImageConfig struct {
@@ -185,9 +263,16 @@ type ServingInfo struct {
 	ClientCA string
 }
 
+type HTTPServingInfo struct {
+	ServingInfo
+	// MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.
+	MaxRequestsInFlight int
+	// RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if
+	// -1 there is no limit on requests.
+	RequestTimeoutSeconds int
+}
+
 type MasterClients struct {
-	// DeployerKubeConfig is a .kubeconfig filename for depoyment pods to use
-	DeployerKubeConfig string
 	// OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master
 	OpenShiftLoopbackKubeConfig string
 	// ExternalKubernetesKubeConfig is a .kubeconfig filename for proxying to kubernetes
@@ -200,7 +285,7 @@ type DNSConfig struct {
 }
 
 type AssetConfig struct {
-	ServingInfo ServingInfo
+	ServingInfo HTTPServingInfo
 
 	// PublicURL is where you can find the asset server (TODO do we really need this?)
 	PublicURL string
@@ -253,9 +338,9 @@ type ServiceAccountConfig struct {
 }
 
 type TokenConfig struct {
-	// Max age of authorize tokens
+	// AuthorizeTokenMaxAgeSeconds defines the maximum age of authorize tokens
 	AuthorizeTokenMaxAgeSeconds int32
-	// Max age of access tokens
+	// AccessTokenMaxAgeSeconds defines the maximum age of access tokens
 	AccessTokenMaxAgeSeconds int32
 }
 
@@ -274,15 +359,16 @@ type SessionConfig struct {
 type SessionSecrets struct {
 	api.TypeMeta
 
+	// Secrets is a list of secrets
 	// New sessions are signed and encrypted using the first secret.
 	// Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.
 	Secrets []SessionSecret
 }
 
 type SessionSecret struct {
-	// Signing secret, used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.
+	// Authentication is used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.
 	Authentication string
-	// Encrypting secret, used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-192, or AES-256.
+	// Encryption is used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-192, or AES-256.
 	Encryption string
 }
 
@@ -432,16 +518,27 @@ type EtcdConfig struct {
 }
 
 type KubernetesMasterConfig struct {
+	// APILevels is a list of API levels that should be enabled on startup: v1beta3 and v1 as examples
+	APILevels []string
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string
 	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.
 	MasterCount int
 	// ServicesSubnet is the subnet to use for assigning service IPs
 	ServicesSubnet string
+	// ServicesNodePortRange is the range to use for assigning service public ports on a host.
+	ServicesNodePortRange string
 	// StaticNodeNames is the list of nodes that are statically known
 	StaticNodeNames []string
-	// SchedulerConfigFile points to a file that describes how to set up the scheduler.  If empty, you get the default scheduling rules.
+	// SchedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.
 	SchedulerConfigFile string
+	// PodEvictionTimeout controls grace period for deleting pods on failed nodes.
+	// It takes valid time duration string. If empty, you get the default pod eviction timeout.
+	PodEvictionTimeout string
+	// APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's
+	// command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not
+	// start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.
+	APIServerArguments ExtendedArguments
 }
 
 type CertInfo struct {

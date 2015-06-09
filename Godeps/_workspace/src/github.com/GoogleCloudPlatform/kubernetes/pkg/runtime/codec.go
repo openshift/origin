@@ -40,7 +40,7 @@ func YAMLDecoder(codec Codec) Codec {
 }
 
 func (c yamlCodec) Decode(data []byte) (Object, error) {
-	out, err := yaml.ToJSON(data)
+	out, err := yaml.ToJSON(data, false)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (c yamlCodec) Decode(data []byte) (Object, error) {
 }
 
 func (c yamlCodec) DecodeInto(data []byte, obj Object) error {
-	out, err := yaml.ToJSON(data)
+	out, err := yaml.ToJSON(data, false)
 	if err != nil {
 		return err
 	}

@@ -44,6 +44,9 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	testutil "github.com/openshift/origin/test/util"
+
+	buildclonestorage "github.com/openshift/origin/pkg/build/registry/clone/generator"
+	buildinstantiatestorage "github.com/openshift/origin/pkg/build/registry/instantiate/generator"
 )
 
 func init() {
@@ -170,7 +173,6 @@ type testBuildOpenshift struct {
 	KubeClient *kclient.Client
 	Client     *osclient.Client
 	server     *httptest.Server
-	whPrefix   string
 	stop       chan struct{}
 	lock       sync.Mutex
 }
@@ -207,6 +209,9 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		APIPrefix:        "/api",
 		AdmissionControl: admit.NewAlwaysAdmit(),
 		RestfulContainer: handlerContainer,
+		DisableV1Beta1:   true,
+		DisableV1Beta2:   true,
+		EnableV1:         true,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)
@@ -245,7 +250,6 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
 	}
-	buildClone, buildConfigInstantiate := buildgenerator.NewREST(buildGenerator)
 
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
 		buildConfigRegistry,
@@ -258,10 +262,10 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 
 	storage := map[string]rest.Storage{
 		"builds":                   buildStorage,
-		"builds/clone":             buildClone,
 		"buildConfigs":             buildConfigStorage,
 		"buildConfigs/webhooks":    buildConfigWebHooks,
-		"buildConfigs/instantiate": buildConfigInstantiate,
+		"builds/clone":             buildclonestorage.NewStorage(buildGenerator),
+		"buildConfigs/instantiate": buildinstantiatestorage.NewStorage(buildGenerator),
 		"imageStreams":             imageStreamStorage,
 		"imageStreams/status":      imageStreamStatus,
 		"imageStreamTags":          imageStreamTagStorage,
@@ -272,8 +276,8 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	}
 
 	version := &apiserver.APIGroupVersion{
-		Root:    "/osapi",
-		Version: "v1beta3",
+		Root:    "/oapi",
+		Version: "v1",
 
 		Storage: storage,
 		Codec:   latest.Codec,
@@ -291,15 +295,6 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	if err := version.InstallREST(handlerContainer); err != nil {
 		t.Fatalf("unable to install REST: %v", err)
 	}
-
-	openshift.whPrefix = "/osapi/v1beta1/buildConfigHooks/"
-	bcClient := buildclient.NewOSClientBuildConfigClient(osClient)
-	osMux.Handle(openshift.whPrefix, http.StripPrefix(openshift.whPrefix,
-		webhook.NewController(bcClient, buildclient.NewOSClientBuildConfigInstantiatorClient(osClient),
-			map[string]webhook.Plugin{
-				"github":  github.New(),
-				"generic": generic.New(),
-			})))
 
 	bcFactory := buildcontrollerfactory.BuildControllerFactory{
 		OSClient:     osClient,

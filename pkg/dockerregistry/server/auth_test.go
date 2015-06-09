@@ -9,6 +9,11 @@ import (
 
 	"github.com/docker/distribution/registry/auth"
 	"golang.org/x/net/context"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+
+	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/authorization/api"
 )
 
 // TestVerifyImageStreamAccess mocks openshift http request/response and
@@ -28,14 +33,22 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 		{
 			// Test valid openshift bearer token but token *not* scoped for create operation
 			openshiftStatusCode: 200,
-			openshiftResponse:   `{"namespace": "foo", "allowed": false, "reason": "not authorized!", "kind": "SubjectAccessReviewResponse", "apiVersion": "v1beta1"}`,
-			expectedError:       ErrOpenShiftAccessDenied,
+			openshiftResponse: runtime.EncodeOrDie(latest.Codec, &api.SubjectAccessReviewResponse{
+				Namespace: "foo",
+				Allowed:   false,
+				Reason:    "not authorized!",
+			}),
+			expectedError: ErrOpenShiftAccessDenied,
 		},
 		{
 			// Test valid openshift bearer token and token scoped for create operation
 			openshiftStatusCode: 200,
-			openshiftResponse:   `{"namespace": "foo", "allowed": true, "reason": "authorized!", "kind": "SubjectAccessReviewResponse", "apiVersion": "v1beta1"}`,
-			expectedError:       nil,
+			openshiftResponse: runtime.EncodeOrDie(latest.Codec, &api.SubjectAccessReviewResponse{
+				Namespace: "foo",
+				Allowed:   true,
+				Reason:    "authorized!",
+			}),
+			expectedError: nil,
 		},
 	}
 	for _, test := range tests {
@@ -60,7 +73,7 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 func TestAccessController(t *testing.T) {
 	options := map[string]interface{}{
 		"addr":       "https://openshift-example.com/osapi",
-		"apiVersion": "v1beta1",
+		"apiVersion": latest.Version,
 	}
 	accessController, err := newAccessController(options)
 	if err != nil {
@@ -129,7 +142,7 @@ func TestAccessController(t *testing.T) {
 			skipAccess:          true,
 			basicToken:          "dXNyMTphd2Vzb21l",
 			openshiftStatusCode: 200,
-			openshiftResponse:   `{"name":"usr1","selfLink":"/osapi/v1beta1/users/usr1","Identities":["anypassword:usr1"]}`,
+			openshiftResponse:   `{"name":"usr1","selfLink":"/osapi/` + latest.Version + `/users/usr1","identities":["anypassword:usr1"]}`,
 			expectedError:       nil,
 		},
 		{
@@ -155,8 +168,12 @@ func TestAccessController(t *testing.T) {
 			},
 			basicToken:          "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftStatusCode: 200,
-			openshiftResponse:   `{"namespace": "foo", "allowed": true, "reason": "authorized!", "kind": "SubjectAccessReviewResponse", "apiVersion": "v1beta1"}`,
-			expectedError:       nil,
+			openshiftResponse: runtime.EncodeOrDie(latest.Codec, &api.SubjectAccessReviewResponse{
+				Namespace: "foo",
+				Allowed:   true,
+				Reason:    "authorized!",
+			}),
+			expectedError: nil,
 		},
 	}
 	for _, test := range tests {

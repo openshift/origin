@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/oauth/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -15,14 +15,12 @@ import (
 const MinTokenLength = 32
 
 func ValidateTokenName(name string, prefix bool) (bool, string) {
+	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
+		return ok, reason
+	}
+
 	if len(name) < MinTokenLength {
 		return false, fmt.Sprintf("must be at least %d characters long", MinTokenLength)
-	}
-	if strings.Contains(name, "%") {
-		return false, `may not contain "%"`
-	}
-	if strings.Contains(name, "/") {
-		return false, `may not contain "/"`
 	}
 	return true, ""
 }
@@ -55,17 +53,10 @@ func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) fielderrors
 	return allErrs
 }
 
-func ValidateClientName(name string, prefix bool) (bool, string) {
-	if util.IsDNS1123Subdomain(name) {
-		return true, ""
-	}
-	return false, fmt.Sprintf("must have at most %d characters and match regex %s", util.DNS1123SubdomainMaxLength, util.DNS1123SubdomainFmt)
-}
-
 func ValidateClient(client *api.OAuthClient) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	allErrs = append(allErrs, validation.ValidateObjectMeta(&client.ObjectMeta, false, ValidateClientName).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&client.ObjectMeta, false, validation.NameIsDNSSubdomain).Prefix("metadata")...)
 
 	return allErrs
 }
@@ -80,6 +71,10 @@ func ValidateClientUpdate(client *api.OAuthClient, oldClient *api.OAuthClient) f
 }
 
 func ValidateClientAuthorizationName(name string, prefix bool) (bool, string) {
+	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
+		return ok, reason
+	}
+
 	parts := strings.Split(name, ":")
 	if len(parts) != 2 {
 		return false, "must be in the format <userName>:<clientName>"
@@ -137,7 +132,7 @@ func ValidateClientAuthorizationUpdate(newAuth *api.OAuthClientAuthorization, ol
 func ValidateClientNameField(value string, field string) fielderrors.ValidationErrorList {
 	if len(value) == 0 {
 		return fielderrors.ValidationErrorList{fielderrors.NewFieldRequired(field)}
-	} else if ok, msg := ValidateClientName(value, false); !ok {
+	} else if ok, msg := validation.NameIsDNSSubdomain(value, false); !ok {
 		return fielderrors.ValidationErrorList{fielderrors.NewFieldInvalid(field, value, msg)}
 	}
 	return fielderrors.ValidationErrorList{}

@@ -44,35 +44,16 @@ func podTemplateD() *kapi.PodTemplateSpec {
 	return t
 }
 
-func TestPodSpecsEqualTrue(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateA().Spec)
-
-	if !result {
-		t.Fatalf("Unexpected false result for PodSpecsEqual")
+func TestPodName(t *testing.T) {
+	deployment := &kapi.ReplicationController{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "testName",
+		},
 	}
-}
-
-func TestPodSpecsJustLabelDiff(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateB().Spec)
-
-	if !result {
-		t.Fatalf("Unexpected false result for PodSpecsEqual")
-	}
-}
-
-func TestPodSpecsEqualContainerImageChange(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateC().Spec)
-
-	if result {
-		t.Fatalf("Unexpected true result for PodSpecsEqual")
-	}
-}
-
-func TestPodSpecsEqualAdditionalContainerInManifest(t *testing.T) {
-	result := PodSpecsEqual(podTemplateA().Spec, podTemplateD().Spec)
-
-	if result {
-		t.Fatalf("Unexpected true result for PodSpecsEqual")
+	expected := "testName-deploy"
+	actual := DeployerPodNameForDeployment(deployment)
+	if expected != actual {
+		t.Errorf("Unexpected pod name for deployment. Expected: %s Got: %s", expected, actual)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
@@ -13,20 +14,29 @@ import (
 )
 
 const (
-	exposeLong = `Take a replicated application and expose it as a route.
+	exposeLong = `Expose containers internally as services or externally via routes.
 
-Looks up a service by name and derives a route from it.`
+There is also the ability to expose a deployment configuration, replication controller, service, or pod
+as a new service on a specified port. If no labels are specified, the new object will re-use the 
+labels from the object it exposes.`
 
-	exposeExample = `// Create a route based on service nginx. The new route will re-use nginx's labels.
+	exposeExample = `// Create a route based on service nginx. The new route will re-use nginx's labels
 $ %[1]s expose service nginx
 
-// Create a route and specify your own label.
-$ %[1]s expose service nginx --labels name=myroute`
+// Create a route and specify your own label and route name
+$ %[1]s expose service nginx -l name=myroute --name=fromdowntown
+
+// Create a route and specify a hostname
+$ %[1]s expose service nginx --hostname=www.example.com
+
+// Expose a deployment configuration as a service and use the specified port
+$ %[1]s expose dc ruby-hello-world --port=8080 --generator=services/v1`
 )
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
 func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdExposeService(f.Factory, out)
+	cmd.Short = "Expose a replicated application as a service or route"
 	cmd.Long = exposeLong
 	cmd.Example = fmt.Sprintf(exposeExample, fullName)
 	cmd.Flags().Set("generator", "route/v1")
@@ -36,6 +46,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 		err = kcmd.RunExpose(f.Factory, out, cmd, args)
 		cmdutil.CheckErr(err)
 	}
+	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	return cmd
 }
 
@@ -44,6 +55,9 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 // to be exposed as routes.
 func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	if cmdutil.GetFlagString(cmd, "generator") != "route/v1" {
+		if len(cmdutil.GetFlagString(cmd, "hostname")) > 0 {
+			return fmt.Errorf("cannot use --hostname without generating a route")
+		}
 		return nil
 	}
 	namespace, err := f.DefaultNamespace()
@@ -89,7 +103,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 
 		supportsTCP := false
 		for _, port := range svc.Spec.Ports {
-			if port.Protocol == "TCP" {
+			if port.Protocol == kapi.ProtocolTCP {
 				supportsTCP = true
 				break
 			}

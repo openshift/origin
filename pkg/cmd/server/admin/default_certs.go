@@ -77,7 +77,6 @@ func DefaultAPIClientCAFile(certDir string) string {
 
 func DefaultAPIClientCerts(certDir string) []ClientCertInfo {
 	return []ClientCertInfo{
-		DefaultDeployerClientCertInfo(certDir),
 		DefaultOpenshiftLoopbackClientCertInfo(certDir),
 		DefaultClusterAdminClientCertInfo(certDir),
 		DefaultRouterClientCertInfo(certDir),
@@ -106,18 +105,6 @@ func DefaultRegistryClientCertInfo(certDir string) ClientCertInfo {
 		UnqualifiedUser: bootstrappolicy.RegistryUnqualifiedUsername,
 		User:            bootstrappolicy.RegistryUsername,
 		Groups:          util.NewStringSet(bootstrappolicy.RegistryGroup),
-	}
-}
-
-func DefaultDeployerClientCertInfo(certDir string) ClientCertInfo {
-	return ClientCertInfo{
-		CertLocation: configapi.CertInfo{
-			CertFile: DefaultCertFilename(certDir, "openshift-deployer"),
-			KeyFile:  DefaultKeyFilename(certDir, "openshift-deployer"),
-		},
-		UnqualifiedUser: "openshift-deployer",
-		User:            "system:openshift-deployer",
-		Groups:          util.NewStringSet("system:deployers"),
 	}
 }
 

@@ -31,7 +31,7 @@ const (
 func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "cancel-build BUILD",
-		Short:   "Cancel a pending or running build.",
+		Short:   "Cancel a pending or running build",
 		Long:    cancelBuildLong,
 		Example: fmt.Sprintf(cancelBuildExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

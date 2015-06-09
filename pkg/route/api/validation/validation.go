@@ -8,6 +8,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
@@ -16,7 +17,7 @@ func ValidateRoute(route *routeapi.Route) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 
 	//ensure meta is set properly
-	result = append(result, kval.ValidateObjectMeta(&route.ObjectMeta, true, kval.ValidatePodName)...)
+	result = append(result, kval.ValidateObjectMeta(&route.ObjectMeta, true, oapi.GetNameValidationFunc(kval.ValidatePodName)).Prefix("metadata")...)
 
 	//host is not required but if it is set ensure it meets DNS requirements
 	if len(route.Host) > 0 {
