@@ -20,7 +20,7 @@ if [[ "${SOURCE_REPOSITORY}" != "git://"* ]] && [[ "${SOURCE_REPOSITORY}" != "gi
   fi
   curl --head --silent --fail --location --max-time 16 $URL > /dev/null
   if [ $? != 0 ]; then
-    echo "Not found: ${SOURCE_REPOSITORY}"
+    echo "Could not access source url: ${SOURCE_REPOSITORY}"
     exit 1
   fi
 fi
