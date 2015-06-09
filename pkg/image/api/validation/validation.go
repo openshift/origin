@@ -2,29 +2,20 @@ package validation
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/docker/distribution/registry/api/v2"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/image/api"
 )
 
-func MinimalNameValidation(name string, prefix bool) (bool, string) {
-	for _, illegal := range []string{"%", "/"} {
-		if strings.Contains(name, illegal) {
-			return false, fmt.Sprintf(`may not contain "%s"`, illegal)
-		}
-	}
-	return true, ""
-}
-
 func ValidateImageStreamName(name string, prefix bool) (bool, string) {
-	// Sanity check to make sure we never allow invalid characters, no matter what RepositoryNameComponentRegexp allows
-	if ok, msg := MinimalNameValidation(name, false); !ok {
-		return false, msg
+	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
+		return ok, reason
 	}
+
 	if len(name) < v2.RepositoryNameComponentMinLength {
 		return false, fmt.Sprintf("must be at least %d characters long", v2.RepositoryNameComponentMinLength)
 	}
@@ -38,7 +29,7 @@ func ValidateImageStreamName(name string, prefix bool) (bool, string) {
 func ValidateImage(image *api.Image) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 
-	result = append(result, validation.ValidateObjectMeta(&image.ObjectMeta, false, MinimalNameValidation).Prefix("metadata")...)
+	result = append(result, validation.ValidateObjectMeta(&image.ObjectMeta, false, oapi.MinimalNameRequirements).Prefix("metadata")...)
 
 	if len(image.DockerImageReference) == 0 {
 		result = append(result, fielderrors.NewFieldRequired("dockerImageReference"))
@@ -54,7 +45,6 @@ func ValidateImage(image *api.Image) fielderrors.ValidationErrorList {
 // ValidateImageStream tests required fields for an ImageStream.
 func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
-
 	result = append(result, validation.ValidateObjectMeta(&stream.ObjectMeta, true, ValidateImageStreamName).Prefix("metadata")...)
 
 	// Ensure we can generate a valid docker image repository from namespace/name

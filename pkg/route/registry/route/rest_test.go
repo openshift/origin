@@ -211,8 +211,8 @@ func TestUpdateRouteMissingID(t *testing.T) {
 	if obj != nil || created {
 		t.Errorf("Expected nil, got %v", obj)
 	}
-	if strings.Index(err.Error(), "name is unspecified:") == -1 {
-		t.Errorf("Expected 'name is unspecified' error, got %v", err)
+	if strings.Index(err.Error(), "name: required value") == -1 {
+		t.Errorf("Expected 'name: required value' error, got %v", err)
 	}
 }
 

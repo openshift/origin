@@ -115,7 +115,8 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 			// instantiate new build
 			request := &buildapi.BuildRequest{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: config.Name,
+					Name:      config.Name,
+					Namespace: config.Namespace,
 				},
 				TriggeredByImage: &kapi.ObjectReference{
 					Kind: "DockerImage",

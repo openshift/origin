@@ -115,8 +115,8 @@ func TestBuildConfigValidationFailureRequiredName(t *testing.T) {
 	if err.Type != fielderrors.ValidationErrorTypeRequired {
 		t.Errorf("Unexpected error type, expected %s, got %s", fielderrors.ValidationErrorTypeRequired, err.Type)
 	}
-	if err.Field != "name" {
-		t.Errorf("Unexpected field name expected name, got %s", err.Field)
+	if err.Field != "metadata.name" {
+		t.Errorf("Unexpected field name expected metadata.name, got %s", err.Field)
 	}
 }
 
@@ -196,8 +196,8 @@ func TestBuildConfigValidationOutputFailure(t *testing.T) {
 
 func TestValidateBuildRequest(t *testing.T) {
 	testCases := map[string]*buildapi.BuildRequest{
-		"": {ObjectMeta: kapi.ObjectMeta{Name: "requestName"}},
-		string(fielderrors.ValidationErrorTypeRequired) + "name": {},
+		string(fielderrors.ValidationErrorTypeRequired) + "metadata.namespace": {ObjectMeta: kapi.ObjectMeta{Name: "requestName"}},
+		string(fielderrors.ValidationErrorTypeRequired) + "metadata.name":      {ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault}},
 	}
 
 	for desc, tc := range testCases {

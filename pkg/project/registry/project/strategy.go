@@ -53,8 +53,7 @@ func (projectStrategy) PrepareForUpdate(obj, old runtime.Object) {
 
 // Validate validates a new project.
 func (projectStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	project := obj.(*api.Project)
-	return validation.ValidateProject(project)
+	return validation.ValidateProject(obj.(*api.Project))
 }
 
 // AllowCreateOnUpdate is false for project.

@@ -39,8 +39,7 @@ func (userStrategy) PrepareForCreate(obj runtime.Object) {
 
 // Validate validates a new user
 func (userStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	user := obj.(*api.User)
-	return validation.ValidateUser(user)
+	return validation.ValidateUser(obj.(*api.User))
 }
 
 // AllowCreateOnUpdate is false for users

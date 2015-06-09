@@ -45,7 +45,7 @@ func intervalErrorMsg(lo, hi int) string {
 
 var labelValueErrorMsg string = fmt.Sprintf(`must have at most %d characters, matching regex %s: e.g. "MyValue" or ""`, util.LabelValueMaxLength, util.LabelValueFmt)
 var qualifiedNameErrorMsg string = fmt.Sprintf(`must be a qualified name (at most %d characters, matching regex %s), with an optional DNS subdomain prefix (at most %d characters, matching regex %s) and slash (/): e.g. "MyName" or "example.com/MyName"`, util.QualifiedNameMaxLength, util.QualifiedNameFmt, util.DNS1123SubdomainMaxLength, util.DNS1123SubdomainFmt)
-var dnsSubdomainErrorMsg string = fmt.Sprintf(`must be a DNS subdomain (at most %d characters, matching regex %s): e.g. "example.com"`, util.DNS1123SubdomainMaxLength, util.DNS1123SubdomainFmt)
+var DNSSubdomainErrorMsg string = fmt.Sprintf(`must be a DNS subdomain (at most %d characters, matching regex %s): e.g. "example.com"`, util.DNS1123SubdomainMaxLength, util.DNS1123SubdomainFmt)
 var dns1123LabelErrorMsg string = fmt.Sprintf(`must be a DNS label (at most %d characters, matching regex %s): e.g. "my-name"`, util.DNS1123LabelMaxLength, util.DNS1123LabelFmt)
 var dns952LabelErrorMsg string = fmt.Sprintf(`must be a DNS 952 label (at most %d characters, matching regex %s): e.g. "my-name"`, util.DNS952LabelMaxLength, util.DNS952LabelFmt)
 var pdPartitionErrorMsg string = intervalErrorMsg(0, 255)
@@ -101,7 +101,7 @@ func maskTrailingDash(name string) string {
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
 func ValidatePodName(name string, prefix bool) (bool, string) {
-	return nameIsDNSSubdomain(name, prefix)
+	return NameIsDNSSubdomain(name, prefix)
 }
 
 // ValidateReplicationControllerName can be used to check whether the given replication
@@ -109,7 +109,7 @@ func ValidatePodName(name string, prefix bool) (bool, string) {
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
 func ValidateReplicationControllerName(name string, prefix bool) (bool, string) {
-	return nameIsDNSSubdomain(name, prefix)
+	return NameIsDNSSubdomain(name, prefix)
 }
 
 // ValidateServiceName can be used to check whether the given service name is valid.
@@ -123,7 +123,7 @@ func ValidateServiceName(name string, prefix bool) (bool, string) {
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
 func ValidateNodeName(name string, prefix bool) (bool, string) {
-	return nameIsDNSSubdomain(name, prefix)
+	return NameIsDNSSubdomain(name, prefix)
 }
 
 // ValidateNamespaceName can be used to check whether the given namespace name is valid.
@@ -137,7 +137,7 @@ func ValidateNamespaceName(name string, prefix bool) (bool, string) {
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
 func ValidateLimitRangeName(name string, prefix bool) (bool, string) {
-	return nameIsDNSSubdomain(name, prefix)
+	return NameIsDNSSubdomain(name, prefix)
 }
 
 // ValidateResourceQuotaName can be used to check whether the given
@@ -145,28 +145,28 @@ func ValidateLimitRangeName(name string, prefix bool) (bool, string) {
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
 func ValidateResourceQuotaName(name string, prefix bool) (bool, string) {
-	return nameIsDNSSubdomain(name, prefix)
+	return NameIsDNSSubdomain(name, prefix)
 }
 
 // ValidateSecretName can be used to check whether the given secret name is valid.
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
 func ValidateSecretName(name string, prefix bool) (bool, string) {
-	return nameIsDNSSubdomain(name, prefix)
+	return NameIsDNSSubdomain(name, prefix)
 }
 
 // ValidateServiceAccountName can be used to check whether the given service account name is valid.
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
 func ValidateServiceAccountName(name string, prefix bool) (bool, string) {
-	return nameIsDNSSubdomain(name, prefix)
+	return NameIsDNSSubdomain(name, prefix)
 }
 
 // ValidateEndpointsName can be used to check whether the given endpoints name is valid.
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
 func ValidateEndpointsName(name string, prefix bool) (bool, string) {
-	return nameIsDNSSubdomain(name, prefix)
+	return NameIsDNSSubdomain(name, prefix)
 }
 
 // ValidateSecurityContextConstraintsName can be used to check whether the given
@@ -174,18 +174,18 @@ func ValidateEndpointsName(name string, prefix bool) (bool, string) {
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
 func ValidateSecurityContextConstraintsName(name string, prefix bool) (bool, string) {
-	return nameIsDNSSubdomain(name, prefix)
+	return NameIsDNSSubdomain(name, prefix)
 }
 
-// nameIsDNSSubdomain is a ValidateNameFunc for names that must be a DNS subdomain.
-func nameIsDNSSubdomain(name string, prefix bool) (bool, string) {
+// NameIsDNSSubdomain is a ValidateNameFunc for names that must be a DNS subdomain.
+func NameIsDNSSubdomain(name string, prefix bool) (bool, string) {
 	if prefix {
 		name = maskTrailingDash(name)
 	}
 	if util.IsDNS1123Subdomain(name) {
 		return true, ""
 	}
-	return false, dnsSubdomainErrorMsg
+	return false, DNSSubdomainErrorMsg
 }
 
 // nameIsDNSLabel is a ValidateNameFunc for names that must be a DNS 1123 label.
@@ -505,7 +505,7 @@ func validateRBD(rbd *api.RBDVolumeSource) errs.ValidationErrorList {
 }
 
 func ValidatePersistentVolumeName(name string, prefix bool) (bool, string) {
-	return nameIsDNSSubdomain(name, prefix)
+	return NameIsDNSSubdomain(name, prefix)
 }
 
 func ValidatePersistentVolume(pv *api.PersistentVolume) errs.ValidationErrorList {

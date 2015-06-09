@@ -3,30 +3,38 @@ package validation
 import (
 	"strings"
 
-	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/project/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
+
+func ValidateProjectName(name string, prefix bool) (bool, string) {
+	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
+		return ok, reason
+	}
+
+	if len(name) < 2 {
+		return false, "must be at least 2 characters long"
+	}
+
+	if ok, msg := validation.ValidateNamespaceName(name, false); !ok {
+		return ok, msg
+	}
+
+	return true, ""
+}
 
 // ValidateProject tests required fields for a Project.
 // This should only be called when creating a project (not on update),
 // since its name validation is more restrictive than default namespace name validation
 func ValidateProject(project *api.Project) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
-	if len(project.Name) == 0 {
-		result = append(result, fielderrors.NewFieldRequired("name"))
-	} else if ok, msg := kvalidation.ValidateNamespaceName(project.Name, false); !ok {
-		result = append(result, fielderrors.NewFieldInvalid("name", project.Name, msg))
-	} else if len(project.Name) < 2 {
-		// Ensure projects can serve as namespaces for the internal docker registry
-		result = append(result, fielderrors.NewFieldInvalid("name", project.Name, "must be at least 2 characters long"))
-	}
-	if len(project.Namespace) > 0 {
-		result = append(result, fielderrors.NewFieldInvalid("namespace", project.Namespace, "must be the empty-string"))
-	}
+	result = append(result, validation.ValidateObjectMeta(&project.ObjectMeta, false, ValidateProjectName).Prefix("metadata")...)
+
 	if !validateNoNewLineOrTab(project.Annotations[projectapi.ProjectDisplayName]) {
 		result = append(result, fielderrors.NewFieldInvalid(projectapi.ProjectDisplayName,
 			project.Annotations[projectapi.ProjectDisplayName], "may not contain a new line or tab"))
@@ -43,7 +51,7 @@ func validateNoNewLineOrTab(s string) bool {
 // ValidateProjectUpdate tests to make sure a project update can be applied.  Modifies newProject with immutable fields.
 func ValidateProjectUpdate(newProject *api.Project, oldProject *api.Project) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&oldProject.ObjectMeta, &newProject.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldProject.ObjectMeta, &newProject.ObjectMeta).Prefix("metadata")...)
 	allErrs = append(allErrs, validateNodeSelector(newProject)...)
 	newProject.Spec.Finalizers = oldProject.Spec.Finalizers
 	newProject.Status = oldProject.Status

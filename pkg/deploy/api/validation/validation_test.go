@@ -46,7 +46,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				Template:   test.OkDeploymentTemplate(),
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"name",
+			"metadata.name",
 		},
 		"missing namespace": {
 			api.DeploymentConfig{
@@ -54,7 +54,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				Template:   test.OkDeploymentTemplate(),
 			},
 			fielderrors.ValidationErrorTypeRequired,
-			"namespace",
+			"metadata.namespace",
 		},
 		"invalid name": {
 			api.DeploymentConfig{
@@ -62,7 +62,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				Template:   test.OkDeploymentTemplate(),
 			},
 			fielderrors.ValidationErrorTypeInvalid,
-			"name",
+			"metadata.name",
 		},
 		"invalid namespace": {
 			api.DeploymentConfig{
@@ -70,7 +70,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 				Template:   test.OkDeploymentTemplate(),
 			},
 			fielderrors.ValidationErrorTypeInvalid,
-			"namespace",
+			"metadata.namespace",
 		},
 
 		"missing trigger.type": {

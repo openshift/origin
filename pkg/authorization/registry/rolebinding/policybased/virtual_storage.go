@@ -136,7 +136,6 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 	policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowEscalation)
 	if err != nil {
-		fmt.Printf("#### 1\n")
 		return nil, err
 	}
 

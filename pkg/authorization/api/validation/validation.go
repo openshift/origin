@@ -1,16 +1,19 @@
 package validation
 
 import (
-	"strings"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
 func ValidatePolicyName(name string, prefix bool) (bool, string) {
+	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
+		return ok, reason
+	}
+
 	if name != authorizationapi.PolicyName {
 		return false, "name must be " + authorizationapi.PolicyName
 	}
@@ -58,6 +61,10 @@ func ValidatePolicyUpdate(policy *authorizationapi.Policy, oldPolicy *authorizat
 
 func PolicyBindingNameValidator(policyRefNamespace string) validation.ValidateNameFunc {
 	return func(name string, prefix bool) (bool, string) {
+		if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
+			return ok, reason
+		}
+
 		if name != authorizationapi.GetPolicyBindingName(policyRefNamespace) {
 			return false, "name must be " + authorizationapi.GetPolicyBindingName(policyRefNamespace)
 		}
@@ -118,16 +125,6 @@ func ValidatePolicyBindingUpdate(policyBinding *authorizationapi.PolicyBinding, 
 	return allErrs
 }
 
-func ValidateRoleName(name string, prefix bool) (bool, string) {
-	if strings.Contains(name, "%") {
-		return false, `may not contain "%"`
-	}
-	if strings.Contains(name, "/") {
-		return false, `may not contain "/"`
-	}
-	return true, ""
-}
-
 func ValidateLocalRole(policy *authorizationapi.Role) fielderrors.ValidationErrorList {
 	return ValidateRole(policy, true)
 }
@@ -146,7 +143,7 @@ func ValidateClusterRoleUpdate(policy *authorizationapi.ClusterRole, oldRole *au
 
 func ValidateRole(role *authorizationapi.Role, isNamespaced bool) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, ValidateRoleName).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, oapi.MinimalNameRequirements).Prefix("metadata")...)
 
 	return allErrs
 }
@@ -156,16 +153,6 @@ func ValidateRoleUpdate(role *authorizationapi.Role, oldRole *authorizationapi.R
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldRole.ObjectMeta, &role.ObjectMeta).Prefix("metadata")...)
 
 	return allErrs
-}
-
-func ValidateRoleBindingName(name string, prefix bool) (bool, string) {
-	if strings.Contains(name, "%") {
-		return false, `may not contain "%"`
-	}
-	if strings.Contains(name, "/") {
-		return false, `may not contain "/"`
-	}
-	return true, ""
 }
 
 func ValidateLocalRoleBinding(policy *authorizationapi.RoleBinding) fielderrors.ValidationErrorList {
@@ -186,7 +173,7 @@ func ValidateClusterRoleBindingUpdate(policy *authorizationapi.ClusterRoleBindin
 
 func ValidateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced bool) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, validation.ValidateObjectMeta(&roleBinding.ObjectMeta, isNamespaced, ValidateRoleBindingName).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&roleBinding.ObjectMeta, isNamespaced, oapi.MinimalNameRequirements).Prefix("metadata")...)
 
 	// roleRef namespace is empty when referring to global policy.
 	if (len(roleBinding.RoleRef.Namespace) > 0) && !util.IsDNS1123Subdomain(roleBinding.RoleRef.Namespace) {
@@ -196,7 +183,7 @@ func ValidateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced
 	if len(roleBinding.RoleRef.Name) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("roleRef.name"))
 	} else {
-		if valid, err := ValidateRoleName(roleBinding.RoleRef.Name, false); !valid {
+		if valid, err := oapi.MinimalNameRequirements(roleBinding.RoleRef.Name, false); !valid {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("roleRef.name", roleBinding.RoleRef.Name, err))
 		}
 	}
