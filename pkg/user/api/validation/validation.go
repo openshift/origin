@@ -97,7 +97,7 @@ func ValidateUser(user *api.User) fielderrors.ValidationErrorList {
 
 func ValidateUserUpdate(user *api.User, old *api.User) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &user.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&user.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
 	allErrs = append(allErrs, ValidateUser(user)...)
 	return allErrs
 }
@@ -140,7 +140,7 @@ func ValidateIdentity(identity *api.Identity) fielderrors.ValidationErrorList {
 func ValidateIdentityUpdate(identity *api.Identity, old *api.Identity) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &identity.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&identity.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
 	allErrs = append(allErrs, ValidateIdentity(identity)...)
 
 	if identity.ProviderName != old.ProviderName {
@@ -170,7 +170,7 @@ func ValidateUserIdentityMapping(mapping *api.UserIdentityMapping) fielderrors.V
 
 func ValidateUserIdentityMappingUpdate(mapping *api.UserIdentityMapping, old *api.UserIdentityMapping) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&old.ObjectMeta, &mapping.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&mapping.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
 	allErrs = append(allErrs, ValidateUserIdentityMapping(mapping)...)
 	return allErrs
 }

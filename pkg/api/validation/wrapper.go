@@ -19,8 +19,8 @@ func (v *WrappingValidator) Validate(obj runtime.Object) fielderrors.ValidationE
 
 func (v *WrappingValidator) ValidateUpdate(obj, old runtime.Object) fielderrors.ValidationErrorList {
 	if v.validateUpdate == nil {
-		// not all types care about updates.  If there's no specific validation for updates, call to normal validate
-		return v.Validate(obj)
+		// if there is no update validation, fail.
+		return fielderrors.ValidationErrorList{fielderrors.NewFieldForbidden("obj", obj)}
 	}
 
 	return callValidateUpdate(reflect.ValueOf(obj), reflect.ValueOf(old), *v.validateUpdate)

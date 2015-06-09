@@ -8,6 +8,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	ktypes "github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/api"
@@ -111,12 +112,6 @@ func TestObjectMeta(t *testing.T) {
 			apiObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: getValidName(apiType), Namespace: kapi.NamespaceDefault}))
 		}
 
-		// these have special case conversions that always strip
-		switch apiValue.Interface().(type) {
-		case *authorizationapi.ClusterPolicyBinding, *authorizationapi.PolicyBinding, *authorizationapi.ClusterPolicy, *authorizationapi.Policy:
-			continue
-		}
-
 		errList := validationInfo.validator.Validate(apiValue.Interface().(runtime.Object))
 		requiredErrors := validation.ValidateObjectMeta(apiObjectMeta.Addr().Interface().(*kapi.ObjectMeta), validationInfo.isNamespaced, api.MinimalNameRequirements).Prefix("metadata")
 
@@ -160,4 +155,60 @@ func getValidName(apiType reflect.Type) string {
 		return "any-string"
 	}
 
+}
+
+// TestObjectMetaUpdate checks for:
+// 1. missing ResourceVersion
+// 2. mismatched Name
+// 3. mismatched Namespace
+// 4. mismatched UID
+func TestObjectMetaUpdate(t *testing.T) {
+	for apiType, validationInfo := range Validator.typeToValidator {
+		if !validationInfo.hasObjectMeta {
+			continue
+		}
+		if !validationInfo.updateAllowed {
+			continue
+		}
+
+		oldAPIValue := reflect.New(apiType.Elem())
+		oldAPIObjectMeta := oldAPIValue.Elem().FieldByName("ObjectMeta")
+		oldAPIObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: "first-name", Namespace: "first-namespace", UID: ktypes.UID("first-uid")}))
+		oldObj := oldAPIValue.Interface().(runtime.Object)
+		oldObjMeta := oldAPIObjectMeta.Addr().Interface().(*kapi.ObjectMeta)
+
+		newAPIValue := reflect.New(apiType.Elem())
+		newAPIObjectMeta := newAPIValue.Elem().FieldByName("ObjectMeta")
+		newAPIObjectMeta.Set(reflect.ValueOf(kapi.ObjectMeta{Name: "second-name", Namespace: "second-namespace", UID: ktypes.UID("second-uid")}))
+		newObj := newAPIValue.Interface().(runtime.Object)
+		newObjMeta := newAPIObjectMeta.Addr().Interface().(*kapi.ObjectMeta)
+
+		errList := validationInfo.validator.ValidateUpdate(newObj, oldObj)
+		requiredErrors := validation.ValidateObjectMetaUpdate(newObjMeta, oldObjMeta).Prefix("metadata")
+
+		if len(errList) == 0 {
+			t.Errorf("expected errors %v in %v not found amongst %v.  You probably need to call kube/validation.ValidateObjectMetaUpdate in your validator.", requiredErrors, apiType.Elem(), errList)
+			continue
+		}
+
+		for _, requiredError := range requiredErrors {
+			foundExpectedError := false
+
+			for _, err := range errList {
+				validationError, ok := err.(*fielderrors.ValidationError)
+				if !ok {
+					continue
+				}
+
+				if fmt.Sprintf("%v", validationError) == fmt.Sprintf("%v", requiredError) {
+					foundExpectedError = true
+					break
+				}
+			}
+
+			if !foundExpectedError {
+				t.Errorf("expected error %v in %v not found amongst %v.  You probably need to call kube/validation.ValidateObjectMetaUpdate in your validator.", requiredError, apiType.Elem(), errList)
+			}
+		}
+	}
 }

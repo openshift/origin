@@ -87,7 +87,7 @@ func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorLis
 func ValidateImageStreamUpdate(newStream, oldStream *api.ImageStream) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 
-	result = append(result, validation.ValidateObjectMetaUpdate(&oldStream.ObjectMeta, &newStream.ObjectMeta).Prefix("metadata")...)
+	result = append(result, validation.ValidateObjectMetaUpdate(&newStream.ObjectMeta, &oldStream.ObjectMeta).Prefix("metadata")...)
 	result = append(result, ValidateImageStream(newStream)...)
 
 	return result
@@ -96,7 +96,7 @@ func ValidateImageStreamUpdate(newStream, oldStream *api.ImageStream) fielderror
 // ValidateImageStreamStatusUpdate tests required fields for an ImageStream status update.
 func ValidateImageStreamStatusUpdate(newStream, oldStream *api.ImageStream) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
-	result = append(result, validation.ValidateObjectMetaUpdate(&oldStream.ObjectMeta, &newStream.ObjectMeta).Prefix("metadata")...)
+	result = append(result, validation.ValidateObjectMetaUpdate(&newStream.ObjectMeta, &oldStream.ObjectMeta).Prefix("metadata")...)
 	newStream.Spec.Tags = oldStream.Spec.Tags
 	newStream.Spec.DockerImageRepository = oldStream.Spec.DockerImageRepository
 	return result

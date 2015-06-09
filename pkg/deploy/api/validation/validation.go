@@ -30,7 +30,7 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) fielderrors.Va
 
 func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldConfig.ObjectMeta, &newConfig.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta).Prefix("metadata")...)
 	allErrs = append(allErrs, ValidateDeploymentConfig(newConfig)...)
 	return allErrs
 }

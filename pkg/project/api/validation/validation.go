@@ -51,7 +51,7 @@ func validateNoNewLineOrTab(s string) bool {
 // ValidateProjectUpdate tests to make sure a project update can be applied.  Modifies newProject with immutable fields.
 func ValidateProjectUpdate(newProject *api.Project, oldProject *api.Project) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldProject.ObjectMeta, &newProject.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&newProject.ObjectMeta, &oldProject.ObjectMeta).Prefix("metadata")...)
 	allErrs = append(allErrs, validateNodeSelector(newProject)...)
 	newProject.Spec.Finalizers = oldProject.Spec.Finalizers
 	newProject.Status = oldProject.Status
