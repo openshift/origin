@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"strings"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -14,6 +15,26 @@ func makeParameter(name, value string) *api.Parameter {
 	return &api.Parameter{
 		Name:  name,
 		Value: value,
+	}
+}
+
+func TestValidateParameterSize(t *testing.T) {
+	var tests = []struct {
+		Parameters      []api.Parameter
+		IsValidExpected bool
+	}{
+		{[]api.Parameter{}, true},
+		{[]api.Parameter{{Name: "short", Description: "short"}}, true},
+		{[]api.Parameter{{Name: strings.Repeat("a", 64*1024), Description: "short"}}, false},
+		{[]api.Parameter{{Name: strings.Repeat("a", 32*1024), Description: strings.Repeat("b", 33*1024)}}, false},
+	}
+	for _, test := range tests {
+		if test.IsValidExpected && len(ValidateParametersSize(test.Parameters)) != 0 {
+			t.Errorf("Expected zero validation errors on valid parameter size.")
+		}
+		if !test.IsValidExpected && len(ValidateParametersSize(test.Parameters)) == 0 {
+			t.Errorf("Expected some validation errors on invalid parameter size.")
+		}
 	}
 }
 
