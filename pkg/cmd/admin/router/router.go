@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -64,6 +66,9 @@ type RouterConfig struct {
 	Credentials        string
 	DefaultCertificate string
 	Selector           string
+	StatsPort          int
+	StatsPassword      string
+	StatsUsername      string
 }
 
 var errExit = fmt.Errorf("exit")
@@ -78,6 +83,8 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		Labels:   defaultLabel,
 		Ports:    "80:80,443:443,1936:1936",
 		Replicas: 1,
+
+		StatsUsername: "admin",
 	}
 
 	cmd := &cobra.Command{
@@ -106,6 +113,9 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
 	cmd.Flags().StringVar(&cfg.DefaultCertificate, "default-cert", cfg.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.")
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run routers on a specific set of nodes.")
+	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", 1936, "If the underlying router implementation can provide statistics this is a hint to expose it on this port.")
+	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated.")
+	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth.")
 
 	cmdutil.AddPrinterFlags(cmd)
 
@@ -133,6 +143,12 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		name = args[0]
 	default:
 		return cmdutil.UsageError(cmd, "You may pass zero or one arguments to provide a name for the router")
+	}
+
+	if len(cfg.StatsUsername) > 0 {
+		if strings.Contains(cfg.StatsUsername, ":") {
+			return cmdutil.UsageError(cmd, "username %s must not contain ':'", cfg.StatsUsername)
+		}
 	}
 
 	ports, err := app.ContainerPortsFromString(cfg.Ports)
@@ -223,6 +239,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			return fmt.Errorf("router could not be created; error reading default certificate file", err)
 		}
 
+		if len(cfg.StatsPassword) == 0 {
+			cfg.StatsPassword = generateStatsPassword()
+			fmt.Fprintf(out, "password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
+		}
+
 		env := app.Environment{
 			"OPENSHIFT_MASTER":         config.Host,
 			"OPENSHIFT_CA_DATA":        string(config.CAData),
@@ -232,6 +253,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			"DEFAULT_CERTIFICATE":      defaultCert,
 			"ROUTER_SERVICE_NAME":      name,
 			"ROUTER_SERVICE_NAMESPACE": namespace,
+			"STATS_PORT":               strconv.Itoa(cfg.StatsPort),
+			"STATS_USERNAME":           cfg.StatsUsername,
+			"STATS_PASSWORD":           cfg.StatsPassword,
 		}
 
 		objects := []runtime.Object{
@@ -306,4 +330,16 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	fmt.Fprintf(out, "Router %q service exists\n", name)
 	return nil
+}
+
+// generateStatsPassword creates a random password
+func generateStatsPassword() string {
+	allowableChars := []rune("abcdefghijlkmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+	allowableCharLength := len(allowableChars)
+	password := []string{}
+	for i := 0; i < 10; i++ {
+		char := allowableChars[rand.Intn(allowableCharLength)]
+		password = append(password, string(char))
+	}
+	return strings.Join(password, "")
 }

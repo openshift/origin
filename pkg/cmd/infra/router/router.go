@@ -3,6 +3,7 @@ package router
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -31,6 +32,9 @@ type templateRouterConfig struct {
 	ReloadScript       string
 	DefaultCertificate string
 	RouterService      ktypes.NamespacedName
+	StatsPort          string
+	StatsPassword      string
+	StatsUsername      string
 }
 
 // NewCommndTemplateRouter provides CLI handler for the template router backend
@@ -73,6 +77,9 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 	cfg.Config.Bind(flag)
 	flag.StringVar(&cfg.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&cfg.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
+	flag.StringVar(&cfg.StatsPort, "stats-port", util.Env("STATS_PORT", ""), "If the underlying router implementation can provide statistics this is a hint to expose it on this port.")
+	flag.StringVar(&cfg.StatsPassword, "stats-password", util.Env("STATS_PASSWORD", ""), "If the underlying router implementation can provide statistics this is the requested password for auth.")
+	flag.StringVar(&cfg.StatsUsername, "stats-user", util.Env("STATS_USERNAME", ""), "If the underlying router implementation can provide statistics this is the requested username for auth.")
 
 	return cmd
 }
@@ -86,7 +93,25 @@ func makeTemplatePlugin(cfg *templateRouterConfig) (*templateplugin.TemplatePlug
 		return nil, errors.New("Reload script must be specified")
 	}
 
-	return templateplugin.NewTemplatePlugin(cfg.TemplateFile, cfg.ReloadScript, cfg.DefaultCertificate, cfg.RouterService)
+	statsPort := 0
+	var err error = nil
+	if cfg.StatsPort != "" {
+		statsPort, err = strconv.Atoi(cfg.StatsPort)
+		if err != nil {
+			return nil, errors.New("Invalid stats port")
+		}
+	}
+
+	templatePluginCfg := templateplugin.TemplatePluginConfig{
+		TemplatePath:       cfg.TemplateFile,
+		ReloadScriptPath:   cfg.ReloadScript,
+		DefaultCertificate: cfg.DefaultCertificate,
+		StatsPort:          statsPort,
+		StatsUsername:      cfg.StatsUsername,
+		StatsPassword:      cfg.StatsPassword,
+		PeerService:        cfg.RouterService,
+	}
+	return templateplugin.NewTemplatePlugin(templatePluginCfg)
 }
 
 // start launches the load balancer.
