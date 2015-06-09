@@ -3,13 +3,20 @@ set -euo pipefail
 IFS=$'\n\t'
 USERNAME="${1:-vagrant}"
 
+
 yum update -y
 yum install -y docker-io git vim golang e2fsprogs tmux httpie ctags hg bind-utils which
 
 if [[ ! -d /data/src/github.com/openshift/origin ]]; then
   mkdir -p /data/src/github.com/openshift/origin
   chown $USERNAME:$USERNAME /data/src/github.com/openshift/origin
+else
+  fixup=/data/src/github.com/openshift/origin/hack/vm-provision-fixup.sh
+  if [[ -x $fixup ]]; then
+    $fixup
+  fi
 fi
+
 
 function set_env {
   USER_DIR=$1
