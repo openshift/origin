@@ -6,6 +6,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
@@ -67,7 +68,7 @@ func (s Strategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.Val
 	if !ok {
 		return fielderrors.ValidationErrorList{kerrors.NewForbidden("imageStream", stream.Name, fmt.Errorf("unable to update an ImageStream without a user on the context"))}
 	}
-	errs := s.tagVerifier.Verify(nil, stream, user.GetName())
+	errs := s.tagVerifier.Verify(nil, stream, user)
 	errs = append(errs, s.tagsChanged(nil, stream)...)
 	errs = append(errs, validation.ValidateImageStream(stream)...)
 	return errs
@@ -268,7 +269,7 @@ type TagVerifier struct {
 	subjectAccessReviewClient subjectaccessreview.Registry
 }
 
-func (v *TagVerifier) Verify(old, stream *api.ImageStream, user string) fielderrors.ValidationErrorList {
+func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) fielderrors.ValidationErrorList {
 	var errors fielderrors.ValidationErrorList
 	oldTags := map[string]api.TagReference{}
 	if old != nil && old.Spec.Tags != nil {
@@ -288,7 +289,6 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user string) fielderr
 			continue
 		}
 
-		glog.Infof("validating access for %s to %v", user, tagRef.From)
 		streamName, _, err := parseFromReference(stream, tagRef.From)
 		if err != nil {
 			errors = append(errors, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, "must be of the form <tag>, <repo>:<tag>, <id>, or <repo>@<id>"))
@@ -297,12 +297,13 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user string) fielderr
 
 		subjectAccessReview := authorizationapi.SubjectAccessReview{
 			Verb:         "get",
-			Resource:     "imageStream",
-			User:         user,
+			Resource:     "imagestreams",
+			User:         user.GetName(),
+			Groups:       util.NewStringSet(user.GetGroups()...),
 			ResourceName: streamName,
 		}
 		ctx := kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace)
-		glog.V(1).Infof("Performing SubjectAccessReview for user %s to %s/%s", user, tagRef.From.Namespace, streamName)
+		glog.V(1).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)
 		resp, err := v.subjectAccessReviewClient.CreateSubjectAccessReview(ctx, &subjectAccessReview)
 		if err != nil || resp == nil || (resp != nil && !resp.Allowed) {
 			errors = append(errors, fielderrors.NewFieldForbidden(fmt.Sprintf("spec.tags[%s].from", tag), fmt.Sprintf("%s/%s", tagRef.From.Namespace, streamName)))
@@ -331,7 +332,7 @@ func (s Strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fiel
 
 	oldStream := old.(*api.ImageStream)
 
-	errs := s.tagVerifier.Verify(oldStream, stream, user.GetName())
+	errs := s.tagVerifier.Verify(oldStream, stream, user)
 	errs = append(errs, s.tagsChanged(oldStream, stream)...)
 	errs = append(errs, validation.ValidateImageStreamUpdate(stream, oldStream)...)
 	return errs

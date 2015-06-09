@@ -2,11 +2,11 @@ package imagestream
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
@@ -14,6 +14,23 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
 )
+
+type fakeUser struct {
+}
+
+var _ user.Info = &fakeUser{}
+
+func (u *fakeUser) GetName() string {
+	return "user"
+}
+
+func (u *fakeUser) GetUID() string {
+	return "uid"
+}
+
+func (u *fakeUser) GetGroups() []string {
+	return []string{"group1"}
+}
 
 type fakeDefaultRegistry struct {
 	registry string
@@ -254,7 +271,7 @@ func TestTagVerifier(t *testing.T) {
 		}
 
 		tagVerifier := &TagVerifier{sar}
-		errs := tagVerifier.Verify(old, stream, "user")
+		errs := tagVerifier.Verify(old, stream, &fakeUser{})
 
 		sarCalled := sar.request != nil
 		if e, a := test.expectSar, sarCalled; e != a {
@@ -266,8 +283,9 @@ func TestTagVerifier(t *testing.T) {
 			}
 			expectedSar := &authorizationapi.SubjectAccessReview{
 				Verb:         "get",
-				Resource:     "imageStream",
+				Resource:     "imagestreams",
 				User:         "user",
+				Groups:       util.NewStringSet("group1"),
 				ResourceName: "otherstream",
 			}
 			if e, a := expectedSar, sar.request; !reflect.DeepEqual(e, a) {
@@ -634,7 +652,6 @@ func TestTagsChanged(t *testing.T) {
 	}
 
 	for testName, test := range tests {
-		fmt.Println(testName)
 		stream := &api.ImageStream{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "stream",

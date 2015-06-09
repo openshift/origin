@@ -86,6 +86,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 				cmd.NewCmdCancelBuild(fullName, f, out),
 				cmd.NewCmdImportImage(fullName, f, out),
 				cmd.NewCmdScale(fullName, f, out),
+				cmd.NewCmdTag(fullName, f, out),
 			},
 		},
 		{
