@@ -151,6 +151,11 @@ func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, err
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// This is an internal client which is shared by most controllers, so turn off QPS limiting
+	// TODO: make QPS/Burst configurable
+	kubeConfig.QPS = -1
+
 	kubeConfig.WrapTransport = DefaultClientTransport
 	kubeClient, err := kclient.New(kubeConfig)
 	if err != nil {
