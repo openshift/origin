@@ -9,6 +9,32 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
+func ValidateSubjectAccessReview(review *authorizationapi.SubjectAccessReview) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(review.Verb) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("verb"))
+	}
+	if len(review.Resource) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("resource"))
+	}
+
+	return allErrs
+}
+
+func ValidateResourceAccessReview(review *authorizationapi.ResourceAccessReview) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(review.Verb) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("verb"))
+	}
+	if len(review.Resource) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("resource"))
+	}
+
+	return allErrs
+}
+
 func ValidatePolicyName(name string, prefix bool) (bool, string) {
 	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
 		return ok, reason

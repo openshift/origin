@@ -7,8 +7,10 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kutilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
@@ -32,6 +34,9 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	subjectAccessReview, ok := obj.(*authorizationapi.SubjectAccessReview)
 	if !ok {
 		return nil, fmt.Errorf("not a subjectAccessReview: %#v", obj)
+	}
+	if err := kutilerrors.NewAggregate(authorizationvalidation.ValidateSubjectAccessReview(subjectAccessReview)); err != nil {
+		return nil, err
 	}
 
 	var userToCheck user.Info

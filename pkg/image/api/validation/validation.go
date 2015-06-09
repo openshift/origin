@@ -105,6 +105,7 @@ func ValidateImageStreamStatusUpdate(newStream, oldStream *api.ImageStream) fiel
 // ValidateImageStreamMapping tests required fields for an ImageStreamMapping.
 func ValidateImageStreamMapping(mapping *api.ImageStreamMapping) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
+	result = append(result, validation.ValidateObjectMeta(&mapping.ObjectMeta, true, oapi.MinimalNameRequirements).Prefix("metadata")...)
 
 	hasRepository := len(mapping.DockerImageRepository) != 0
 	hasName := len(mapping.Name) != 0

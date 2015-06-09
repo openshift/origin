@@ -5,8 +5,10 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kutilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
@@ -30,6 +32,9 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	resourceAccessReview, ok := obj.(*authorizationapi.ResourceAccessReview)
 	if !ok {
 		return nil, fmt.Errorf("not a resourceAccessReview: %#v", obj)
+	}
+	if err := kutilerrors.NewAggregate(authorizationvalidation.ValidateResourceAccessReview(resourceAccessReview)); err != nil {
+		return nil, err
 	}
 
 	namespace := kapi.NamespaceValue(ctx)
