@@ -14,13 +14,17 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/fsouza/go-dockerclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/util/namer"
 )
+
+const volumeNameInfix = "volume"
 
 // NameSuggester is an object that can suggest a name for itself
 type NameSuggester interface {
@@ -351,7 +355,20 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 				Protocol:      kapi.Protocol(strings.ToUpper(p.Proto())),
 			})
 		}
-		// TODO: Append volume information and environment variables
+
+		// Create volume mounts with names based on container name
+		maxDigits := len(fmt.Sprintf("%d", len(r.Info.Config.Volumes)))
+		baseName := namer.GetName(container.Name, volumeNameInfix, util.LabelValueMaxLength-maxDigits-1)
+		i := 1
+		for volume := range r.Info.Config.Volumes {
+			container.VolumeMounts = append(container.VolumeMounts, kapi.VolumeMount{
+				Name:      fmt.Sprintf("%s-%d", baseName, i),
+				ReadOnly:  false,
+				MountPath: volume,
+			})
+			i++
+		}
+		// TODO: Append environment variables
 	}
 
 	return container, triggers, nil
@@ -442,7 +459,18 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 		triggers = append(triggers, containerTriggers...)
 		template.Containers = append(template.Containers, *c)
 	}
-	// TODO: populate volumes
+
+	// Create EmptyDir volumes for all container volume mounts
+	for _, c := range template.Containers {
+		for _, v := range c.VolumeMounts {
+			template.Volumes = append(template.Volumes, kapi.Volume{
+				Name: v.Name,
+				VolumeSource: kapi.VolumeSource{
+					EmptyDir: &kapi.EmptyDirVolumeSource{Medium: kapi.StorageMediumDefault},
+				},
+			})
+		}
+	}
 
 	for i := range template.Containers {
 		template.Containers[i].Env = append(template.Containers[i].Env, r.Env.List()...)
