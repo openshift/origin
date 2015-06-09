@@ -394,10 +394,8 @@ func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, 
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Parameters.Output.To != nil {
-		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
-	}
-	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger" || newBuild.Parameters.Output.Tag != "outputtag" {
+	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
+	if newBuild.Parameters.Output.To.Name != "test-image-trigger-repo" || newBuild.Parameters.Output.Tag != "outputtag" || newBuild.Parameters.Output.DockerImageReference != "" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
 	}
 	if newBuild.Labels["testlabel"] != "testvalue" {
@@ -488,10 +486,8 @@ WaitLoop2:
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Parameters.Output.To != nil {
-		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
-	}
-	if newBuild.Parameters.Output.DockerImageReference != "registry:8080/openshift/test-image-trigger" || newBuild.Parameters.Output.Tag != "outputtag" {
+	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
+	if newBuild.Parameters.Output.To.Name != "test-image-trigger-repo" || newBuild.Parameters.Output.Tag != "outputtag" || newBuild.Parameters.Output.DockerImageReference != "" {
 		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
 	}
 	if newBuild.Labels["testlabel"] != "testvalue" {
