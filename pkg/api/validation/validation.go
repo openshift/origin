@@ -28,6 +28,7 @@ type RuntimeObjectValidatorInfo struct {
 	validator     RuntimeObjectValidator
 	isNamespaced  bool
 	hasObjectMeta bool
+	updateAllowed bool
 }
 
 func (v *RuntimeObjectsValidator) Register(obj runtime.Object, validateFunction interface{}, validateUpdateFunction interface{}) error {
@@ -46,7 +47,9 @@ func (v *RuntimeObjectsValidator) Register(obj runtime.Object, validateFunction 
 		return err
 	}
 
-	v.typeToValidator[objType] = RuntimeObjectValidatorInfo{validator, isNamespaced, HasObjectMeta(obj)}
+	updateAllowed := validateUpdateFunction != nil
+
+	v.typeToValidator[objType] = RuntimeObjectValidatorInfo{validator, isNamespaced, HasObjectMeta(obj), updateAllowed}
 
 	return nil
 }

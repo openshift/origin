@@ -54,7 +54,7 @@ func ValidatePolicy(policy *authorizationapi.Policy, isNamespaced bool) fielderr
 
 func ValidatePolicyUpdate(policy *authorizationapi.Policy, oldPolicy *authorizationapi.Policy, isNamespaced bool) fielderrors.ValidationErrorList {
 	allErrs := ValidatePolicy(policy, isNamespaced)
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldPolicy.ObjectMeta, &policy.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&policy.ObjectMeta, &oldPolicy.ObjectMeta).Prefix("metadata")...)
 
 	return allErrs
 }
@@ -116,7 +116,7 @@ func ValidatePolicyBinding(policyBinding *authorizationapi.PolicyBinding, isName
 
 func ValidatePolicyBindingUpdate(policyBinding *authorizationapi.PolicyBinding, oldPolicyBinding *authorizationapi.PolicyBinding, isNamespaced bool) fielderrors.ValidationErrorList {
 	allErrs := ValidatePolicyBinding(policyBinding, isNamespaced)
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldPolicyBinding.ObjectMeta, &policyBinding.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&policyBinding.ObjectMeta, &oldPolicyBinding.ObjectMeta).Prefix("metadata")...)
 
 	if oldPolicyBinding.PolicyRef.Namespace != policyBinding.PolicyRef.Namespace {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("policyRef.namespace", policyBinding.PolicyRef.Namespace, "cannot change policyRef"))
@@ -150,7 +150,7 @@ func ValidateRole(role *authorizationapi.Role, isNamespaced bool) fielderrors.Va
 
 func ValidateRoleUpdate(role *authorizationapi.Role, oldRole *authorizationapi.Role, isNamespaced bool) fielderrors.ValidationErrorList {
 	allErrs := ValidateRole(role, isNamespaced)
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldRole.ObjectMeta, &role.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&role.ObjectMeta, &oldRole.ObjectMeta).Prefix("metadata")...)
 
 	return allErrs
 }
@@ -193,7 +193,7 @@ func ValidateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced
 
 func ValidateRoleBindingUpdate(roleBinding *authorizationapi.RoleBinding, oldRoleBinding *authorizationapi.RoleBinding, isNamespaced bool) fielderrors.ValidationErrorList {
 	allErrs := ValidateRoleBinding(roleBinding, isNamespaced)
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&oldRoleBinding.ObjectMeta, &roleBinding.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&roleBinding.ObjectMeta, &oldRoleBinding.ObjectMeta).Prefix("metadata")...)
 
 	if oldRoleBinding.RoleRef != roleBinding.RoleRef {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("roleRef", roleBinding.RoleRef, "cannot change roleRef"))
