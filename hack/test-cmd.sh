@@ -208,6 +208,8 @@ oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_
 oc get projects
 oc project project-foo
 [ "$(oc whoami | grep 'test-user')" ]
+[ -n "$(oc whoami -t)" ]
+[ -n "$(oc whoami -c)" ]
 
 # test config files from the --config flag
 oc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
