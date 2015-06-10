@@ -30,7 +30,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 			CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 				return nil, fmt.Errorf("couldn't create pod")
 			},
-			PodWatchFunc: func(namespace, name, resourceVersion string) func() *kapi.Pod {
+			PodWatchFunc: func(namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
 				return func() *kapi.Pod { return nil }
 			},
 		},
@@ -62,7 +62,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 				createdPod = pod
 				return createdPod, nil
 			},
-			PodWatchFunc: func(namespace, name, resourceVersion string) func() *kapi.Pod {
+			PodWatchFunc: func(namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
 				createdPod.Status.Phase = kapi.PodSucceeded
 				return func() *kapi.Pod { return createdPod }
 			},
@@ -101,7 +101,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 				createdPod = pod
 				return createdPod, nil
 			},
-			PodWatchFunc: func(namespace, name, resourceVersion string) func() *kapi.Pod {
+			PodWatchFunc: func(namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
 				createdPod.Status.Phase = kapi.PodFailed
 				return func() *kapi.Pod { return createdPod }
 			},

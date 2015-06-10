@@ -78,8 +78,10 @@ func (e *HookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, deployme
 		glog.V(0).Infof("Created lifecycle pod %s for deployment %s", pod.Name, deployutil.LabelForDeployment(deployment))
 	}
 
-	// Wait for the pod to finish.
-	nextPod := e.PodClient.PodWatch(pod.Namespace, pod.Name, pod.ResourceVersion)
+	stopChannel := make(chan struct{})
+	defer close(stopChannel)
+	nextPod := e.PodClient.PodWatch(pod.Namespace, pod.Name, pod.ResourceVersion, stopChannel)
+
 	glog.V(0).Infof("Waiting for hook pod %s/%s to complete", pod.Namespace, pod.Name)
 	for {
 		pod := nextPod()
@@ -167,26 +169,28 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 // HookExecutorPodClient abstracts access to pods.
 type HookExecutorPodClient interface {
 	CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
-	PodWatch(namespace, name, resourceVersion string) func() *kapi.Pod
+	PodWatch(namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod
 }
 
 // HookExecutorPodClientImpl is a pluggable HookExecutorPodClient.
 type HookExecutorPodClientImpl struct {
 	CreatePodFunc func(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
-	PodWatchFunc  func(namespace, name, resourceVersion string) func() *kapi.Pod
+	PodWatchFunc  func(namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod
 }
 
 func (i *HookExecutorPodClientImpl) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 	return i.CreatePodFunc(namespace, pod)
 }
 
-func (i *HookExecutorPodClientImpl) PodWatch(namespace, name, resourceVersion string) func() *kapi.Pod {
-	return i.PodWatchFunc(namespace, name, resourceVersion)
+func (i *HookExecutorPodClientImpl) PodWatch(namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
+	return i.PodWatchFunc(namespace, name, resourceVersion, stopChannel)
 }
 
 // NewPodWatch creates a pod watching function which is backed by a
 // FIFO/reflector pair. This avoids managing watches directly.
-func NewPodWatch(client kclient.Interface, namespace, name, resourceVersion string) func() *kapi.Pod {
+// A stop channel to close the watch's reflector is also returned.
+// It is the caller's responsibility to defer closing the stop channel to prevent leaking resources.
+func NewPodWatch(client kclient.Interface, namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
 	fieldSelector, _ := fields.ParseSelector("metadata.name=" + name)
 	podLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
@@ -196,8 +200,9 @@ func NewPodWatch(client kclient.Interface, namespace, name, resourceVersion stri
 			return client.Pods(namespace).Watch(labels.Everything(), fieldSelector, resourceVersion)
 		},
 	}
+
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(podLW, &kapi.Pod{}, queue, 1*time.Minute).Run()
+	cache.NewReflector(podLW, &kapi.Pod{}, queue, 1*time.Minute).RunUntil(stopChannel)
 
 	return func() *kapi.Pod {
 		obj := queue.Pop()
