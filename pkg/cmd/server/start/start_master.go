@@ -358,7 +358,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	}
 
 	var standaloneAssetConfig *origin.AssetConfig
-	if openshiftMasterConfig.AssetConfig != nil {
+	if openshiftConfig.WebConsoleEnabled() {
 		config, err := origin.BuildAssetConfig(*openshiftMasterConfig.AssetConfig)
 		if err != nil {
 			return err

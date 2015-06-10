@@ -170,7 +170,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		handler = apiserver.CORS(handler, origins, nil, nil, "true")
 	}
 
-	if c.Options.AssetConfig != nil {
+	if c.WebConsoleEnabled() {
 		handler = assetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
 	}
 
