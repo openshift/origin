@@ -272,8 +272,12 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 	if len(ref.Namespace) != 0 {
 		namespaces = []string{ref.Namespace}
 	}
+	searchTag := ref.Tag
+	if len(searchTag) == 0 {
+		searchTag = imageapi.DefaultImageTag
+	}
 	for _, namespace := range namespaces {
-		glog.V(4).Infof("checking ImageStream %s/%s with ref %q", namespace, ref.Name, ref.Tag)
+		glog.V(4).Infof("checking ImageStream %s/%s with ref %q", namespace, ref.Name, searchTag)
 		repo, err := r.Client.ImageStreams(namespace).Get(ref.Name)
 		if err != nil {
 			if errors.IsNotFound(err) || errors.IsForbidden(err) {
@@ -282,10 +286,6 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 			return nil, err
 		}
 		ref.Namespace = namespace
-		searchTag := ref.Tag
-		if len(searchTag) == 0 {
-			searchTag = imageapi.DefaultImageTag
-		}
 		latest := imageapi.LatestTaggedImage(repo, searchTag)
 		if latest == nil {
 			return nil, ErrNoMatch{value: value, qualifier: fmt.Sprintf("no image recorded for %s/%s:%s", repo.Namespace, repo.Name, searchTag)}
