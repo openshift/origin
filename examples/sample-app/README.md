@@ -51,6 +51,9 @@ This will set up a go workspace locally and will build all go components.  It is
 
 ### Docker Changes ###
 
+**VAGRANT USERS**:
+If you are using the OpenShift Vagrant image you can skip this step.
+
 First, you'll need to configure the Docker daemon on your host to trust the Docker registry service you'll be starting.
 
 To do this, you need to add "--insecure-registry 172.30.0.0/16" to the Docker daemon invocation, eg:
@@ -67,6 +70,9 @@ rather than requiring the registry to have a verifiable certificate.
 These instructions assume you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.0.0/16.
 
 ### FirewallD Changes ###
+
+**VAGRANT USERS**:
+If you are using the OpenShift Vagrant image you can skip this step.
 
 Similar to our work on SELinux policies, the OpenShift firewalld rules are also a work in progress. For now it is easiest to disable firewalld altogether:
 
@@ -163,42 +169,20 @@ This section covers how to perform all the steps of building, deploying, and upd
     be added to the docker-registry service list so that it's reachable from other places.
 
 
-6. Confirm the registry is accessible (you may need to run this more than once):
-
-        $ curl -H 'Accept: application/json' -v `oc get service docker-registry --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}/v2/" --config=openshift.local.config/master/admin.kubeconfig`
-
-    You should see:
-
-        "< Docker-Distribution-Api-Version: registry/2.0"
-
-
-7. Bind a user names `test-admin` to the `view` role in the default namespace so you can observe progress in the web console
-
-        $ oadm policy add-role-to-user view test-admin --config=openshift.local.config/master/admin.kubeconfig
-
-
-9. Login as `test-admin` using any password
+6. Login as `test-admin` using any password
 
         $ oc login --certificate-authority=openshift.local.config/master/ca.crt
 
-
-9. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
-
-    * You will need to have the browser accept the certificate at
-      `https://<host>:8443` before the console can consult the OpenShift
-      API. Of course this would not be necessary with a legitimate
-      certificate.
-    * If you click the `default` project and leave the tab open,
-      you'll see the page update as you deploy objects into the project
-      and run builds.
+       **VAGRANT USERS**: If subsequent commands fail because of a config validation error, log out, unset the $OPENSHIFTCONFIG environment variable (if it is set) and then log in again.
 
 
-10. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
+
+7. Create a new project in OpenShift. This creates a namespace `test` to contain the builds and app that we will generate below.
 
         $ oc new-project test --display-name="OpenShift 3 Sample" --description="This is an example project to demonstrate OpenShift v3"
 
 
-11. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
+8. *Optional:* View the OpenShift web console in your browser by browsing to `https://<host>:8443/console`.  Login using the user `test-admin` and any password.
 
     * You will need to have the browser accept the certificate at
       `https://<host>:8443` before the console can consult the OpenShift
@@ -209,7 +193,7 @@ This section covers how to perform all the steps of building, deploying, and upd
       and run builds.
 
 
-12. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
+9. *Optional:* Fork the [ruby sample repository](https://github.com/openshift/ruby-hello-world)
     to an OpenShift-visible git account that you control, preferably
     somewhere that can also reach your OpenShift server with a webhook.
     A github.com account is an obvious place for this, but an in-house
@@ -223,7 +207,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     OpenShift's public repository, just not a changed build.
 
 
-13. *Optional:* Add the following webhook under the settings in your new GitHub repository:
+10. *Optional:* Add the following webhook under the settings in your new GitHub repository:
 
         $ https://<host>:8443/osapi/v1beta3/namespaces/test/buildconfigs/ruby-sample-build/webhooks/secret101/github
 
@@ -233,16 +217,16 @@ This section covers how to perform all the steps of building, deploying, and upd
     instance as the certificate chain generated is not publicly verified.
 
 
-14. Edit application-template-stibuild.json which will define the sample application
+11. Edit application-template-stibuild.json which will define the sample application
 
  * Update the BuildConfig's sourceURI (git://github.com/openshift/ruby-hello-world.git) to point to your forked repository.
    *Note:* You can skip this step if you did not create a forked repository.
 
 
-15. Submit the application template for processing (generating shared parameters requested in the template)
+12. Submit the application template for processing (generating shared parameters requested in the template)
     and then request creation of the processed template:
 
-        $ oc process -f application-template-stibuild.json | oc create -f -
+        $ oc new-app application-template-stibuild.json
 
     This will define a number of related OpenShift entities in the project:
 
@@ -261,14 +245,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     immediately.
 
 
-16. *Optional:* Trigger a build of your application:
- * If you setup the GitHub webhook, push a change to `app.rb` in your ruby sample repository.
- * Otherwise you can request a new build by running:
-
-            $ oc start-build ruby-sample-build
-
-
-17. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
+13. Monitor the builds and wait for the status to go to "complete" (this can take a few minutes):
 
         $ oc get builds
 
@@ -289,7 +266,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
      If you want to see the build logs of a complete build, use the
      command below (substituting your build name from the "oc get builds"
-     output). 
+     output).
 
          $ oc build-logs ruby-sample-build-1 -n test
 
@@ -298,7 +275,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     pod each for the frontend (your Ruby code) and backend.
 
 
-18. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
+14. Wait for the application's frontend pod and database pods to be started (this can take a few minutes):
 
         $ oc get pods
 
@@ -310,7 +287,7 @@ This section covers how to perform all the steps of building, deploying, and upd
         ruby-sample-build-1                       sti-build                  openshift/origin-sti-builder:latest                                                                           openshiftdev.local/127.0.0.1   build=ruby-sample-build-1,buildconfig=ruby-sample-build,name=ruby-sample-build,template=application-template-stibuild   Succeeded           3 minutes
 
 
-19. Determine the IP for the frontend service:
+15. Determine the IP for the frontend service:
 
         $ oc get services
 
@@ -325,7 +302,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     *Note:* you can also get this information from the web console.
 
 
-20. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
+16. Confirm the application is now accessible via the frontend service on port 5432.  Go to http://172.30.17.4:5432 (or whatever IP address was reported above) in your browser if you're running this locally; otherwise you can use curl to see the HTML, or port forward the address to your local workstation to visit it.
 
 	- - -
 	**VAGRANT USERS:**
@@ -339,14 +316,14 @@ This section covers how to perform all the steps of building, deploying, and upd
     You should see a welcome page and a form that allows you to query and update key/value pairs.  The keys are stored in the database container running in the database pod.
 
 
-21. Make a change to your ruby sample main.html file, commit, and push it via git.
+17. Make a change to your ruby sample main.html file, commit, and push it via git.
 
  * If you do not have the webhook enabled, you'll have to manually trigger another build:
 
             $ oc start-build ruby-sample-build
 
 
-22. Repeat step 17 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
+18. Repeat step 13 (waiting for the build to complete).  Once the build is complete, refreshing your browser should show your changes.
 
 Congratulations, you've successfully deployed and updated an application on OpenShift.
 
@@ -373,25 +350,31 @@ the ip address shown below with the correct one for your environment.
 
             $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
             $ oadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
-              router # the service
+              router # the service 
               router # the deployment config
 
 
 3.  Switch to the `default` project to watch for router to start
-            $ oc project default
+
+            $ oc project default --config=openshift.local.config/master/admin.kubeconfig
 
 4.  Wait for the router to start.
 
-            $ oc describe dc router
+            $ oc describe dc router --config=openshift.local.config/master/admin.kubeconfig
             # watch for the number of deployed pods to go to 1
 
 
-5.  *Optional:* View the logs of the router.
+5.  *Optional:* View the logs of the router.  First though, you need to get random suffix that Kubernetes includes as part of the name it generates.
 
-            $ oc log router-1-<podrandom-suffix>
+	    $ oc get pods --config=openshift.local.config/master/admin.kubeconfig
+            # Look for the pod name starting with "router-1-"
+
+6. *Optional:* With that precise pod name, you can view its logs.
+
+            $ oc logs router-1-<podrandom-suffix> --config=openshift.local.config/master/admin.kubeconfig
 
 
-6.  Curl the url, substituting the ip address shown for the correct value in your environment.
+7.  Curl the url, substituting the ip address shown for the correct value in your environment.  The easiest way to get the IP is to do a ifconfig from where you have been running the oc command.
 
             $ curl -s -k --resolve www.example.com:443:10.0.2.15 https://www.example.com
                 ... removed for readability ...
@@ -399,7 +382,7 @@ the ip address shown below with the correct one for your environment.
                 ... removed for readability ...
 
 
-7. *Optional*: View the certificate being used for the secure route.
+8. *Optional*: View the certificate being used for the secure route.
 
             $ openssl s_client -servername www.example.com -connect 10.0.2.15:443
             ... removed for readability ...

@@ -13,12 +13,10 @@ To get started you can either:
 
 Or if you are interested in development, start with:
 
-* <<openshift-development>>
+* <<openshift-development>> and choose between:
 
-And choose between:
-
-* <<develop-locally-on-your-host>>
-* <<develop-on-virtual-machine-using-vagrant>>
+	** <<develop-locally-on-your-host>>
+	** <<develop-on-virtual-machine-using-vagrant>>
 
 == Download from GitHub
 
@@ -27,7 +25,7 @@ The OpenShift team periodically publishes binaries to GitHub on https://github.c
 The tar file for each platform contains a single binary `openshift` which is the all-in-one OpenShift installation.
 
 * Use `sudo openshift start` to launch the server.  Root access is required to create services due to the need to modify IPTables.  See issue: https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.
-* Use `oc -h <server> ...` to connect to an OpenShift server
+* Use `oc login <server> ...` to connect to an OpenShift server
 * Use `openshift help` to see more about the commands in the binary
 
 
@@ -76,17 +74,18 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
 1.  http://www.vagrantup.com/downloads[Install Vagrant]
 
-2.  https://www.virtualbox.org/wiki/Downloads[Install VirtualBox] (Ex: `yum install VirtualBox`)
+2.  https://www.virtualbox.org/wiki/Downloads[Install VirtualBox] (Ex: `yum install VirtualBox` from the RPM Fusion repository)
 
 3.  Clone the project and change into the directory:
 
         $ mkdir -p $GOPATH/src/github.com/openshift
         $ cd $GOPATH/src/github.com/openshift
         $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
-        $ git remote add upstream git://github.com/openshift/origin
         $ cd origin
+        $ git remote add upstream git://github.com/openshift/origin
 
-4.  Bring up the VM:
+
+4.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.):
 
         $ vagrant up
 
