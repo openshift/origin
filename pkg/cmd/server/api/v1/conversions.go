@@ -4,6 +4,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 
 	newer "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func init() {
@@ -17,6 +18,9 @@ func init() {
 			}
 			if obj.ServingInfo.RequestTimeoutSeconds == 0 {
 				obj.ServingInfo.RequestTimeoutSeconds = 60 * 60
+			}
+			if len(obj.PolicyConfig.OpenShiftInfrastructureNamespace) == 0 {
+				obj.PolicyConfig.OpenShiftInfrastructureNamespace = bootstrappolicy.DefaultOpenShiftInfraNamespace
 			}
 		},
 		func(obj *KubernetesMasterConfig) {

@@ -156,9 +156,9 @@ __handle_word()
     __handle_word
 }
 
-_osadm_new-project()
+_oadm_new-project()
 {
-    last_command="osadm_new-project"
+    last_command="oadm_new-project"
     commands=()
 
     flags=()
@@ -178,9 +178,9 @@ _osadm_new-project()
     must_have_one_noun=()
 }
 
-_osadm_policy_who-can()
+_oadm_policy_who-can()
 {
-    last_command="osadm_policy_who-can"
+    last_command="oadm_policy_who-can"
     commands=()
 
     flags=()
@@ -195,27 +195,9 @@ _osadm_policy_who-can()
     must_have_one_noun=()
 }
 
-_osadm_policy_add-role-to-user()
+_oadm_policy_add-role-to-user()
 {
-    last_command="osadm_policy_add-role-to-user"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--role-namespace=")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_osadm_policy_remove-role-from-user()
-{
-    last_command="osadm_policy_remove-role-from-user"
+    last_command="oadm_policy_add-role-to-user"
     commands=()
 
     flags=()
@@ -231,26 +213,9 @@ _osadm_policy_remove-role-from-user()
     must_have_one_noun=()
 }
 
-_osadm_policy_remove-user()
+_oadm_policy_remove-role-from-user()
 {
-    last_command="osadm_policy_remove-user"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--help")
-    flags+=("-h")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_osadm_policy_add-role-to-group()
-{
-    last_command="osadm_policy_add-role-to-group"
+    last_command="oadm_policy_remove-role-from-user"
     commands=()
 
     flags=()
@@ -266,9 +231,26 @@ _osadm_policy_add-role-to-group()
     must_have_one_noun=()
 }
 
-_osadm_policy_remove-role-from-group()
+_oadm_policy_remove-user()
 {
-    last_command="osadm_policy_remove-role-from-group"
+    last_command="oadm_policy_remove-user"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_policy_add-role-to-group()
+{
+    last_command="oadm_policy_add-role-to-group"
     commands=()
 
     flags=()
@@ -284,9 +266,27 @@ _osadm_policy_remove-role-from-group()
     must_have_one_noun=()
 }
 
-_osadm_policy_remove-group()
+_oadm_policy_remove-role-from-group()
 {
-    last_command="osadm_policy_remove-group"
+    last_command="oadm_policy_remove-role-from-group"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--role-namespace=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_policy_remove-group()
+{
+    last_command="oadm_policy_remove-group"
     commands=()
 
     flags=()
@@ -301,9 +301,9 @@ _osadm_policy_remove-group()
     must_have_one_noun=()
 }
 
-_osadm_policy_add-cluster-role-to-user()
+_oadm_policy_add-cluster-role-to-user()
 {
-    last_command="osadm_policy_add-cluster-role-to-user"
+    last_command="oadm_policy_add-cluster-role-to-user"
     commands=()
 
     flags=()
@@ -318,9 +318,9 @@ _osadm_policy_add-cluster-role-to-user()
     must_have_one_noun=()
 }
 
-_osadm_policy_remove-cluster-role-from-user()
+_oadm_policy_remove-cluster-role-from-user()
 {
-    last_command="osadm_policy_remove-cluster-role-from-user"
+    last_command="oadm_policy_remove-cluster-role-from-user"
     commands=()
 
     flags=()
@@ -335,9 +335,9 @@ _osadm_policy_remove-cluster-role-from-user()
     must_have_one_noun=()
 }
 
-_osadm_policy_add-cluster-role-to-group()
+_oadm_policy_add-cluster-role-to-group()
 {
-    last_command="osadm_policy_add-cluster-role-to-group"
+    last_command="oadm_policy_add-cluster-role-to-group"
     commands=()
 
     flags=()
@@ -352,9 +352,9 @@ _osadm_policy_add-cluster-role-to-group()
     must_have_one_noun=()
 }
 
-_osadm_policy_remove-cluster-role-from-group()
+_oadm_policy_remove-cluster-role-from-group()
 {
-    last_command="osadm_policy_remove-cluster-role-from-group"
+    last_command="oadm_policy_remove-cluster-role-from-group"
     commands=()
 
     flags=()
@@ -369,9 +369,9 @@ _osadm_policy_remove-cluster-role-from-group()
     must_have_one_noun=()
 }
 
-_osadm_policy()
+_oadm_policy()
 {
-    last_command="osadm_policy"
+    last_command="oadm_policy"
     commands=()
     commands+=("who-can")
     commands+=("add-role-to-user")
@@ -397,9 +397,9 @@ _osadm_policy()
     must_have_one_noun=()
 }
 
-_osadm_ipfailover()
+_oadm_ipfailover()
 {
-    last_command="osadm_ipfailover"
+    last_command="oadm_ipfailover"
     commands=()
 
     flags=()
@@ -434,9 +434,9 @@ _osadm_ipfailover()
     must_have_one_noun=()
 }
 
-_osadm_router()
+_oadm_router()
 {
-    last_command="osadm_router"
+    last_command="oadm_router"
     commands=()
 
     flags=()
@@ -460,6 +460,9 @@ _osadm_router()
     flags+=("--ports=")
     flags+=("--replicas=")
     flags+=("--selector=")
+    flags+=("--stats-password=")
+    flags+=("--stats-port=")
+    flags+=("--stats-user=")
     flags+=("--template=")
     two_word_flags+=("-t")
     flags+=("--type=")
@@ -468,9 +471,9 @@ _osadm_router()
     must_have_one_noun=()
 }
 
-_osadm_registry()
+_oadm_registry()
 {
-    last_command="osadm_registry"
+    last_command="oadm_registry"
     commands=()
 
     flags=()
@@ -503,9 +506,9 @@ _osadm_registry()
     must_have_one_noun=()
 }
 
-_osadm_build-chain()
+_oadm_build-chain()
 {
-    last_command="osadm_build-chain"
+    last_command="oadm_build-chain"
     commands=()
 
     flags=()
@@ -524,9 +527,9 @@ _osadm_build-chain()
     must_have_one_noun=()
 }
 
-_osadm_manage-node()
+_oadm_manage-node()
 {
-    last_command="osadm_manage-node"
+    last_command="oadm_manage-node"
     commands=()
 
     flags=()
@@ -554,9 +557,9 @@ _osadm_manage-node()
     must_have_one_noun=()
 }
 
-_osadm_config_view()
+_oadm_config_view()
 {
-    last_command="osadm_config_view"
+    last_command="oadm_config_view"
     commands=()
 
     flags=()
@@ -581,9 +584,9 @@ _osadm_config_view()
     must_have_one_noun=()
 }
 
-_osadm_config_set-cluster()
+_oadm_config_set-cluster()
 {
-    last_command="osadm_config_set-cluster"
+    last_command="oadm_config_set-cluster"
     commands=()
 
     flags=()
@@ -603,9 +606,9 @@ _osadm_config_set-cluster()
     must_have_one_noun=()
 }
 
-_osadm_config_set-credentials()
+_oadm_config_set-credentials()
 {
-    last_command="osadm_config_set-credentials"
+    last_command="oadm_config_set-credentials"
     commands=()
 
     flags=()
@@ -626,9 +629,9 @@ _osadm_config_set-credentials()
     must_have_one_noun=()
 }
 
-_osadm_config_set-context()
+_oadm_config_set-context()
 {
-    last_command="osadm_config_set-context"
+    last_command="oadm_config_set-context"
     commands=()
 
     flags=()
@@ -646,9 +649,9 @@ _osadm_config_set-context()
     must_have_one_noun=()
 }
 
-_osadm_config_set()
+_oadm_config_set()
 {
-    last_command="osadm_config_set"
+    last_command="oadm_config_set"
     commands=()
 
     flags=()
@@ -663,9 +666,9 @@ _osadm_config_set()
     must_have_one_noun=()
 }
 
-_osadm_config_unset()
+_oadm_config_unset()
 {
-    last_command="osadm_config_unset"
+    last_command="oadm_config_unset"
     commands=()
 
     flags=()
@@ -680,9 +683,9 @@ _osadm_config_unset()
     must_have_one_noun=()
 }
 
-_osadm_config_use-context()
+_oadm_config_use-context()
 {
-    last_command="osadm_config_use-context"
+    last_command="oadm_config_use-context"
     commands=()
 
     flags=()
@@ -697,9 +700,9 @@ _osadm_config_use-context()
     must_have_one_noun=()
 }
 
-_osadm_config()
+_oadm_config()
 {
-    last_command="osadm_config"
+    last_command="oadm_config"
     commands=()
     commands+=("view")
     commands+=("set-cluster")
@@ -722,9 +725,9 @@ _osadm_config()
     must_have_one_noun=()
 }
 
-_osadm_prune_builds()
+_oadm_prune_builds()
 {
-    last_command="osadm_prune_builds"
+    last_command="oadm_prune_builds"
     commands=()
 
     flags=()
@@ -732,7 +735,7 @@ _osadm_prune_builds()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--dry-run")
+    flags+=("--confirm")
     flags+=("--help")
     flags+=("-h")
     flags+=("--keep-complete=")
@@ -744,9 +747,9 @@ _osadm_prune_builds()
     must_have_one_noun=()
 }
 
-_osadm_prune_deployments()
+_oadm_prune_deployments()
 {
-    last_command="osadm_prune_deployments"
+    last_command="oadm_prune_deployments"
     commands=()
 
     flags=()
@@ -754,7 +757,7 @@ _osadm_prune_deployments()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--dry-run")
+    flags+=("--confirm")
     flags+=("--help")
     flags+=("-h")
     flags+=("--keep-complete=")
@@ -766,9 +769,9 @@ _osadm_prune_deployments()
     must_have_one_noun=()
 }
 
-_osadm_prune_images()
+_oadm_prune_images()
 {
-    last_command="osadm_prune_images"
+    last_command="oadm_prune_images"
     commands=()
 
     flags=()
@@ -777,19 +780,20 @@ _osadm_prune_images()
     flags_completion=()
 
     flags+=("--certificate-authority=")
-    flags+=("--dry-run")
+    flags+=("--confirm")
     flags+=("--help")
     flags+=("-h")
     flags+=("--keep-tag-revisions=")
     flags+=("--keep-younger-than=")
+    flags+=("--registry-url=")
 
     must_have_one_flag=()
     must_have_one_noun=()
 }
 
-_osadm_prune()
+_oadm_prune()
 {
-    last_command="osadm_prune"
+    last_command="oadm_prune"
     commands=()
     commands+=("builds")
     commands+=("deployments")
@@ -807,9 +811,9 @@ _osadm_prune()
     must_have_one_noun=()
 }
 
-_osadm_create-kubeconfig()
+_oadm_create-kubeconfig()
 {
-    last_command="osadm_create-kubeconfig"
+    last_command="oadm_create-kubeconfig"
     commands=()
 
     flags=()
@@ -820,23 +824,20 @@ _osadm_create-kubeconfig()
     flags+=("--certificate-authority=")
     flags+=("--client-certificate=")
     flags+=("--client-key=")
-    flags+=("--cluster=")
-    flags+=("--context=")
     flags+=("--help")
     flags+=("-h")
     flags+=("--kubeconfig=")
     flags+=("--master=")
     flags+=("--namespace=")
     flags+=("--public-master=")
-    flags+=("--user=")
 
     must_have_one_flag=()
     must_have_one_noun=()
 }
 
-_osadm_create-bootstrap-policy-file()
+_oadm_create-bootstrap-policy-file()
 {
-    last_command="osadm_create-bootstrap-policy-file"
+    last_command="oadm_create-bootstrap-policy-file"
     commands=()
 
     flags=()
@@ -853,9 +854,9 @@ _osadm_create-bootstrap-policy-file()
     must_have_one_noun=()
 }
 
-_osadm_create-bootstrap-project-template()
+_oadm_create-bootstrap-project-template()
 {
-    last_command="osadm_create-bootstrap-project-template"
+    last_command="oadm_create-bootstrap-project-template"
     commands=()
 
     flags=()
@@ -877,9 +878,9 @@ _osadm_create-bootstrap-project-template()
     must_have_one_noun=()
 }
 
-_osadm_overwrite-policy()
+_oadm_overwrite-policy()
 {
-    last_command="osadm_overwrite-policy"
+    last_command="oadm_overwrite-policy"
     commands=()
 
     flags=()
@@ -898,9 +899,9 @@ _osadm_overwrite-policy()
     must_have_one_noun=()
 }
 
-_osadm_create-node-config()
+_oadm_create-node-config()
 {
-    last_command="osadm_create-node-config"
+    last_command="oadm_create-node-config"
     commands=()
 
     flags=()
@@ -936,9 +937,9 @@ _osadm_create-node-config()
     must_have_one_noun=()
 }
 
-_osadm_create-master-certs()
+_oadm_create-master-certs()
 {
-    last_command="osadm_create-master-certs"
+    last_command="oadm_create-master-certs"
     commands=()
 
     flags=()
@@ -959,9 +960,9 @@ _osadm_create-master-certs()
     must_have_one_noun=()
 }
 
-_osadm_create-api-client-config()
+_oadm_create-api-client-config()
 {
-    last_command="osadm_create-api-client-config"
+    last_command="oadm_create-api-client-config"
     commands=()
 
     flags=()
@@ -985,9 +986,9 @@ _osadm_create-api-client-config()
     must_have_one_noun=()
 }
 
-_osadm_create-key-pair()
+_oadm_create-key-pair()
 {
-    last_command="osadm_create-key-pair"
+    last_command="oadm_create-key-pair"
     commands=()
 
     flags=()
@@ -1005,9 +1006,9 @@ _osadm_create-key-pair()
     must_have_one_noun=()
 }
 
-_osadm_create-server-cert()
+_oadm_create-server-cert()
 {
-    last_command="osadm_create-server-cert"
+    last_command="oadm_create-server-cert"
     commands=()
 
     flags=()
@@ -1029,9 +1030,9 @@ _osadm_create-server-cert()
     must_have_one_noun=()
 }
 
-_osadm_create-signer-cert()
+_oadm_create-signer-cert()
 {
-    last_command="osadm_create-signer-cert"
+    last_command="oadm_create-signer-cert"
     commands=()
 
     flags=()
@@ -1051,9 +1052,9 @@ _osadm_create-signer-cert()
     must_have_one_noun=()
 }
 
-_osadm_options()
+_oadm_options()
 {
-    last_command="osadm_options"
+    last_command="oadm_options"
     commands=()
 
     flags=()
@@ -1068,7 +1069,7 @@ _osadm_options()
     must_have_one_noun=()
 }
 
-_osadm()
+_oadm()
 {
     last_command="oadm"
     commands=()
@@ -1161,7 +1162,7 @@ _osadm()
     must_have_one_noun=()
 }
 
-__start_osadm()
+__start_oadm()
 {
     local cur prev words cword
     _init_completion -s || return
@@ -1180,5 +1181,5 @@ __start_osadm()
     __handle_word
 }
 
-complete -F __start_osadm oadm
+complete -F __start_oadm oadm
 # ex: ts=4 sw=4 et filetype=sh

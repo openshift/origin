@@ -28,7 +28,7 @@ var (
 
 	// ConcurrentBuildControllersTestWait is the time that TestConcurrentBuildControllers waits
 	// for any other changes to happen when testing whether only a single build got processed
-	ConcurrentBuildControllersTestWait = 5 * time.Second
+	ConcurrentBuildControllersTestWait = 10 * time.Second
 
 	// ConcurrentBuildPodControllersTestWait is the time that TestConcurrentBuildPodControllers waits
 	// after a state transition to make sure other state transitions don't occur unexpectedly
@@ -36,7 +36,7 @@ var (
 
 	// BuildControllersWatchTimeout is used by all tests to wait for watch events. In case where only
 	// a single watch event is expected, the test will fail after the timeout.
-	BuildControllersWatchTimeout = 5 * time.Second
+	BuildControllersWatchTimeout = 10 * time.Second
 )
 
 func init() {
@@ -307,6 +307,11 @@ func setupBuildControllerTest(additionalBuildControllers, additionalBuildPodCont
 
 	openshiftConfig, err := origin.BuildMasterConfig(*master)
 	checkErr(t, err)
+
+	// Get the build controller clients, since those rely on service account tokens
+	// We don't want to proceed with the rest of the test until those are available
+	openshiftConfig.BuildControllerClients()
+
 	for i := 0; i < additionalBuildControllers; i++ {
 		openshiftConfig.RunBuildController()
 	}

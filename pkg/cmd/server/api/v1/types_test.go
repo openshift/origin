@@ -202,6 +202,7 @@ oauthConfig:
     authorizeTokenMaxAgeSeconds: 0
 policyConfig:
   bootstrapPolicyFile: ""
+  openshiftInfrastructureNamespace: ""
   openshiftSharedResourcesNamespace: ""
 projectConfig:
   defaultNodeSelector: ""

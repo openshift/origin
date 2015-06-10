@@ -31,6 +31,7 @@ func NewCmdSecrets(name, fullName string, f *clientcmd.Factory, out io.Writer, o
 	newSecretFullName := fullName + " " + NewSecretRecommendedCommandName
 	cmds.AddCommand(NewCmdCreateSecret(NewSecretRecommendedCommandName, newSecretFullName, f, out))
 	cmds.AddCommand(NewCmdCreateDockerConfigSecret(CreateDockerConfigSecretRecommendedName, fullName+" "+CreateDockerConfigSecretRecommendedName, f.Factory, out, newSecretFullName, ocEditFullName))
+	cmds.AddCommand(NewCmdAddSecret(AddSecretRecommendedName, fullName+" "+AddSecretRecommendedName, f.Factory, out))
 
 	return cmds
 }

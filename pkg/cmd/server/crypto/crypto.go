@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -111,8 +112,11 @@ var (
 
 type CA struct {
 	SerialFile string
-	Serial     int64
 	Config     *TLSCertificateConfig
+
+	// lock guards access to the Serial field
+	lock   sync.Mutex
+	Serial int64
 }
 
 // EnsureCA returns a CA, whether it was created (as opposed to pre-existing), and any error
@@ -269,13 +273,26 @@ func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info) (*TLS
 	return GetTLSCertificateConfig(certFile, keyFile)
 }
 
+// nextSerial returns a unique, monotonically increasing serial number and ensures the CA on
+// disk records that value.
+func (ca *CA) nextSerial() (int64, error) {
+	ca.lock.Lock()
+	defer ca.lock.Unlock()
+	next := ca.Serial + 1
+	ca.Serial = next
+	if err := ioutil.WriteFile(ca.SerialFile, []byte(fmt.Sprintf("%d", next)), os.FileMode(0640)); err != nil {
+		return 0, err
+	}
+	return next, nil
+}
+
 func (ca *CA) signCertificate(template *x509.Certificate, requestKey crypto.PublicKey) (*x509.Certificate, error) {
 	// Increment and persist serial
-	ca.Serial = ca.Serial + 1
-	if err := ioutil.WriteFile(ca.SerialFile, []byte(fmt.Sprintf("%d", ca.Serial)), os.FileMode(0640)); err != nil {
+	serial, err := ca.nextSerial()
+	if err != nil {
 		return nil, err
 	}
-	template.SerialNumber = big.NewInt(ca.Serial)
+	template.SerialNumber = big.NewInt(serial)
 	return signCertificate(template, requestKey, ca.Config.Certs[0], ca.Config.Key)
 }
 

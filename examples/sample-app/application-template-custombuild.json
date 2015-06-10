@@ -112,9 +112,6 @@
           {
             "type": "imageChange",
             "imageChange": {}
-          },
-          {
-            "type": "ConfigChange"
           }
         ],
         "source": {
@@ -182,6 +179,9 @@
               },
               "lastTriggeredImage": ""
             }
+          },
+          {
+            "type": "ConfigChange"
           }
         ],
         "replicas": 2,

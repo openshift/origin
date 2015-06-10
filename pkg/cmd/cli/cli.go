@@ -29,7 +29,7 @@ To create a new application, you can use the example app source. Login to your s
 run new-app:
 
   $ %[1]s login
-  $ %[1]s new-app openshift/ruby-20-centos7~git@github.com/openshift/ruby-hello-world.git
+  $ %[1]s new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
 
 This will create an application based on the Docker image 'openshift/ruby-20-centos7' that builds
 the source code at 'github.com/openshift/ruby-hello-world.git'. To start the build, run

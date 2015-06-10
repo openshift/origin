@@ -192,6 +192,9 @@ type PolicyConfig struct {
 
 	// OpenShiftSharedResourcesNamespace is the namespace where shared OpenShift resources live (like shared templates)
 	OpenShiftSharedResourcesNamespace string
+
+	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
+	OpenShiftInfrastructureNamespace string
 }
 
 // NetworkConfig to be passed to the compiled in network plugin

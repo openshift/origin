@@ -208,6 +208,8 @@ oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_
 oc get projects
 oc project project-foo
 [ "$(oc whoami | grep 'test-user')" ]
+[ -n "$(oc whoami -t)" ]
+[ -n "$(oc whoami -c)" ]
 
 # test config files from the --config flag
 oc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
@@ -333,6 +335,14 @@ oc secrets new from-file ${HOME}/.dockercfg
 # make sure the -o works correctly
 [ "$(oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o yaml | grep "kubernetes.io/dockercfg")" ]
 [ "$(oc secrets new from-file ${HOME}/.dockercfg -o yaml | grep "kubernetes.io/dockercfg")" ]
+
+# attach secrets to service account
+# single secret with prefix
+oc secrets add serviceaccounts/deployer secrets/dockercfg
+# don't add the same secret twice
+oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file
+# make sure we can add as as pull secret
+oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file --for=pull
 echo "secrets: ok"
 
 
