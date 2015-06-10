@@ -159,7 +159,7 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 		}
 	}
 
-	if reflect.DeepEqual(actualResponse, test.response) {
+	if !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) || !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
 		t.Errorf("%#v: expected %v, got %v", test.review, test.response, actualResponse)
 	}
 }
@@ -223,6 +223,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterAdminUsers.List()...)
+		test.response.Groups.Insert("system:cluster-readers")
 		test.run(t)
 	}
 	{
@@ -236,6 +237,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterAdminUsers.List()...)
+		test.response.Groups.Insert("system:cluster-readers")
 		test.run(t)
 	}
 
@@ -259,6 +261,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 				Groups: globalClusterAdminGroups,
 			},
 		}
+		test.response.Groups.Insert("system:cluster-readers")
 		test.run(t)
 	}
 }
@@ -285,7 +288,7 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 		}
 	}
 
-	if reflect.DeepEqual(actualResponse, test.response) {
+	if (actualResponse.Namespace != test.response.Namespace) || (actualResponse.Allowed != test.response.Allowed) {
 		t.Errorf("%#v: expected %v, got %v", test.review, test.response, actualResponse)
 	}
 }
