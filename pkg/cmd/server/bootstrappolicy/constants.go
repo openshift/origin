@@ -3,6 +3,7 @@ package bootstrappolicy
 // known namespaces
 const (
 	DefaultOpenShiftSharedResourcesNamespace = "openshift"
+	DefaultOpenShiftInfraNamespace           = "openshift-infra"
 )
 
 // users
@@ -10,6 +11,10 @@ const (
 	DefaultServiceAccountName  = "default"
 	BuilderServiceAccountName  = "builder"
 	DeployerServiceAccountName = "deployer"
+
+	InfraBuildControllerServiceAccountName       = "build-controller"
+	InfraReplicationControllerServiceAccountName = "replication-controller"
+	InfraDeploymentControllerServiceAccountName  = "deployment-controller"
 
 	RouterUnqualifiedUsername   = "openshift-router"
 	RegistryUnqualifiedUsername = "openshift-registry"
@@ -34,14 +39,19 @@ const (
 
 // Roles
 const (
-	ClusterAdminRoleName      = "cluster-admin"
-	ClusterReaderRoleName     = "cluster-reader"
-	AdminRoleName             = "admin"
-	EditRoleName              = "edit"
-	ViewRoleName              = "view"
-	SelfProvisionerRoleName   = "self-provisioner"
-	BasicUserRoleName         = "basic-user"
-	StatusCheckerRoleName     = "cluster-status"
+	ClusterAdminRoleName    = "cluster-admin"
+	ClusterReaderRoleName   = "cluster-reader"
+	AdminRoleName           = "admin"
+	EditRoleName            = "edit"
+	ViewRoleName            = "view"
+	SelfProvisionerRoleName = "self-provisioner"
+	BasicUserRoleName       = "basic-user"
+	StatusCheckerRoleName   = "cluster-status"
+
+	BuildControllerRoleName       = "system:build-controller"
+	ReplicationControllerRoleName = "system:replication-controller"
+	DeploymentControllerRoleName  = "system:deployment-controller"
+
 	ImagePullerRoleName       = "system:image-puller"
 	ImageBuilderRoleName      = "system:image-builder"
 	ImagePrunerRoleName       = "system:image-pruner"

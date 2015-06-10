@@ -213,6 +213,100 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: BuildControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// BuildControllerFactory.buildLW
+				// BuildControllerFactory.buildDeleteLW
+				{
+					Verbs:     util.NewStringSet("get", "list", "watch"),
+					Resources: util.NewStringSet("builds"),
+				},
+				// BuildController.BuildUpdater (OSClientBuildClient)
+				{
+					Verbs:     util.NewStringSet("update"),
+					Resources: util.NewStringSet("builds"),
+				},
+				// BuildController.ImageStreamClient (ControllerClient)
+				{
+					Verbs:     util.NewStringSet("get"),
+					Resources: util.NewStringSet("imagestreams"),
+				},
+				// BuildController.PodManager (ControllerClient)
+				// BuildDeleteController.PodManager (ControllerClient)
+				// BuildControllerFactory.buildDeleteLW
+				{
+					Verbs:     util.NewStringSet("get", "list", "create", "delete"),
+					Resources: util.NewStringSet("pods"),
+				},
+				// BuildController.Recorder (EventBroadcaster)
+				{
+					Verbs:     util.NewStringSet("create", "update"),
+					Resources: util.NewStringSet("events"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: DeploymentControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// DeploymentControllerFactory.deploymentLW
+				{
+					Verbs:     util.NewStringSet("list", "watch"),
+					Resources: util.NewStringSet("replicationcontrollers"),
+				},
+				// DeploymentControllerFactory.deploymentClient
+				{
+					Verbs:     util.NewStringSet("get", "update"),
+					Resources: util.NewStringSet("replicationcontrollers"),
+				},
+				// DeploymentController.podClient
+				{
+					Verbs:     util.NewStringSet("get", "list", "create", "delete", "update"),
+					Resources: util.NewStringSet("pods"),
+				},
+				// DeploymentController.recorder (EventBroadcaster)
+				{
+					Verbs:     util.NewStringSet("create", "update"),
+					Resources: util.NewStringSet("events"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: ReplicationControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// ReplicationManager.rcController.ListWatch
+				{
+					Verbs:     util.NewStringSet("list", "watch"),
+					Resources: util.NewStringSet("replicationcontrollers"),
+				},
+				// ReplicationManager.syncReplicationController() -> updateReplicaCount()
+				{
+					Verbs:     util.NewStringSet("get", "update"),
+					Resources: util.NewStringSet("replicationcontrollers"),
+				},
+				// ReplicationManager.podController.ListWatch
+				{
+					Verbs:     util.NewStringSet("list", "watch"),
+					Resources: util.NewStringSet("pods"),
+				},
+				// ReplicationManager.podControl (RealPodControl)
+				{
+					Verbs:     util.NewStringSet("create", "delete"),
+					Resources: util.NewStringSet("pods"),
+				},
+				// ReplicationManager.podControl.recorder
+				{
+					Verbs:     util.NewStringSet("create", "update"),
+					Resources: util.NewStringSet("events"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: OAuthTokenDeleterRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{

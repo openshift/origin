@@ -329,6 +329,7 @@ func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorLi
 
 	allErrs = append(allErrs, ValidateFile(config.BootstrapPolicyFile, "bootstrapPolicyFile")...)
 	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, "openShiftSharedResourcesNamespace")...)
+	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftInfrastructureNamespace, "openShiftInfrastructureNamespace")...)
 
 	return allErrs
 }
