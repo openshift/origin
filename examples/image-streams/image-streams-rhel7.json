@@ -11,7 +11,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/ruby-20-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3/ruby-20-rhel7",
         "tags": [
           {
             "name": "latest"
@@ -40,7 +40,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/nodejs-010-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3/nodejs-010-rhel7",
         "tags": [
           {
             "name": "latest"
@@ -69,7 +69,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/perl-516-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3/perl-516-rhel7",
         "tags": [
           {
             "name": "latest"
@@ -98,7 +98,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/php-55-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3/php-55-rhel7",
         "tags": [
           {
             "name": "latest"
@@ -127,7 +127,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/python-33-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3/python-33-rhel7",
         "tags": [
           {
             "name": "latest"
@@ -156,7 +156,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/mysql-55-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3/mysql-55-rhel7",
         "tags": [
           {
             "name": "latest"
@@ -179,7 +179,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/postgresql-92-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3/postgresql-92-rhel7",
         "tags": [
           {
             "name": "latest"
@@ -202,7 +202,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3_beta/mongodb-24-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3/mongodb-24-rhel7",
         "tags": [
           {
             "name": "latest"
