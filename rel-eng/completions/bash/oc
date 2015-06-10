@@ -220,9 +220,26 @@ __custom_func() {
     esac
 }
 
-_osc_login()
+_oc_types()
 {
-    last_command="osc_login"
+    last_command="oc_types"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_login()
+{
+    last_command="oc_login"
     commands=()
 
     flags=()
@@ -241,43 +258,9 @@ _osc_login()
     must_have_one_noun=()
 }
 
-_osc_logout()
+_oc_new-project()
 {
-    last_command="osc_logout"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--help")
-    flags+=("-h")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_osc_project()
-{
-    last_command="osc_project"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--help")
-    flags+=("-h")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_osc_new-project()
-{
-    last_command="osc_new-project"
+    last_command="oc_new-project"
     commands=()
 
     flags=()
@@ -289,15 +272,14 @@ _osc_new-project()
     flags+=("--display-name=")
     flags+=("--help")
     flags+=("-h")
-    flags+=("--node-selector=")
 
     must_have_one_flag=()
     must_have_one_noun=()
 }
 
-_osc_new-app()
+_oc_new-app()
 {
-    last_command="osc_new-app"
+    last_command="oc_new-app"
     commands=()
 
     flags=()
@@ -305,16 +287,19 @@ _osc_new-app()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--build=")
     flags+=("--code=")
+    flags+=("--context-dir=")
     flags+=("--docker-image=")
     flags+=("--env=")
     two_word_flags+=("-e")
+    flags+=("--file=")
+    two_word_flags+=("-f")
     flags+=("--group=")
     flags+=("--help")
     flags+=("-h")
     flags+=("--image=")
     two_word_flags+=("-i")
+    flags+=("--insecure-registry")
     flags+=("--labels=")
     two_word_flags+=("-l")
     flags+=("--name=")
@@ -325,15 +310,16 @@ _osc_new-app()
     flags+=("--output-version=")
     flags+=("--param=")
     two_word_flags+=("-p")
+    flags+=("--strategy=")
     flags+=("--template=")
 
     must_have_one_flag=()
     must_have_one_noun=()
 }
 
-_osc_status()
+_oc_status()
 {
-    last_command="osc_status"
+    last_command="oc_status"
     commands=()
 
     flags=()
@@ -348,9 +334,26 @@ _osc_status()
     must_have_one_noun=()
 }
 
-_osc_start-build()
+_oc_project()
 {
-    last_command="osc_start-build"
+    last_command="oc_project"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_start-build()
+{
+    last_command="oc_start-build"
     commands=()
 
     flags=()
@@ -371,28 +374,9 @@ _osc_start-build()
     must_have_one_noun=()
 }
 
-_osc_cancel-build()
+_oc_build-logs()
 {
-    last_command="osc_cancel-build"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--dump-logs")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--restart")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_osc_build-logs()
-{
-    last_command="osc_build-logs"
+    last_command="oc_build-logs"
     commands=()
 
     flags=()
@@ -411,9 +395,9 @@ _osc_build-logs()
     must_have_one_noun=()
 }
 
-_osc_deploy()
+_oc_deploy()
 {
-    last_command="osc_deploy"
+    last_command="oc_deploy"
     commands=()
 
     flags=()
@@ -431,9 +415,9 @@ _osc_deploy()
     must_have_one_noun=()
 }
 
-_osc_rollback()
+_oc_rollback()
 {
-    last_command="osc_rollback"
+    last_command="oc_rollback"
     commands=()
 
     flags=()
@@ -457,9 +441,9 @@ _osc_rollback()
     must_have_one_noun=()
 }
 
-_osc_env()
+_oc_new-build()
 {
-    last_command="osc_env"
+    last_command="oc_new-build"
     commands=()
 
     flags=()
@@ -467,44 +451,12 @@ _osc_env()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--all")
-    flags+=("--containers=")
-    two_word_flags+=("-c")
-    flags+=("--env=")
-    two_word_flags+=("-e")
-    flags+=("--filename=")
-    two_word_flags+=("-f")
+    flags+=("--code=")
+    flags+=("--docker-image=")
     flags+=("--help")
     flags+=("-h")
-    flags+=("--list")
-    flags+=("--output=")
-    two_word_flags+=("-o")
-    flags+=("--output-version=")
-    flags+=("--overwrite")
-    flags+=("--resource-version=")
-    flags+=("--selector=")
-    two_word_flags+=("-l")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_osc_expose()
-{
-    last_command="osc_expose"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--container-port=")
-    flags+=("--create-external-load-balancer")
-    flags+=("--dry-run")
-    flags+=("--generator=")
-    flags+=("--help")
-    flags+=("-h")
+    flags+=("--image=")
+    two_word_flags+=("-i")
     flags+=("--labels=")
     two_word_flags+=("-l")
     flags+=("--name=")
@@ -512,24 +464,93 @@ _osc_expose()
     flags+=("--output=")
     two_word_flags+=("-o")
     flags+=("--output-version=")
-    flags+=("--overrides=")
-    flags+=("--port=")
-    flags+=("--protocol=")
-    flags+=("--public-ip=")
-    flags+=("--selector=")
-    flags+=("--target-port=")
+    flags+=("--strategy=")
     flags+=("--template=")
     two_word_flags+=("-t")
-    flags+=("--type=")
+    flags+=("--to-docker")
 
     must_have_one_flag=()
-    must_have_one_flag+=("--port=")
     must_have_one_noun=()
 }
 
-_osc_get()
+_oc_cancel-build()
 {
-    last_command="osc_get"
+    last_command="oc_cancel-build"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--dump-logs")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--restart")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_import-image()
+{
+    last_command="oc_import-image"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_scale()
+{
+    last_command="oc_scale"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--current-replicas=")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--replicas=")
+    flags+=("--resource-version=")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--replicas=")
+    must_have_one_noun=()
+}
+
+_oc_tag()
+{
+    last_command="oc_tag"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--source=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_get()
+{
+    last_command="oc_get"
     commands=()
 
     flags=()
@@ -568,8 +589,6 @@ _osc_get()
     must_have_one_noun+=("hostsubnet")
     must_have_one_noun+=("identity")
     must_have_one_noun+=("image")
-    must_have_one_noun+=("imagerepository")
-    must_have_one_noun+=("imagerepositorytag")
     must_have_one_noun+=("imagestream")
     must_have_one_noun+=("imagestreamimage")
     must_have_one_noun+=("imagestreamtag")
@@ -594,6 +613,7 @@ _osc_get()
     must_have_one_noun+=("rolebinding")
     must_have_one_noun+=("route")
     must_have_one_noun+=("secret")
+    must_have_one_noun+=("securitycontextconstraints")
     must_have_one_noun+=("service")
     must_have_one_noun+=("serviceaccount")
     must_have_one_noun+=("template")
@@ -601,9 +621,9 @@ _osc_get()
     must_have_one_noun+=("useridentitymapping")
 }
 
-_osc_describe()
+_oc_describe()
 {
-    last_command="osc_describe"
+    last_command="oc_describe"
     commands=()
 
     flags=()
@@ -651,9 +671,285 @@ _osc_describe()
     must_have_one_noun+=("useridentitymapping")
 }
 
-_osc_create()
+_oc_edit()
 {
-    last_command="osc_create"
+    last_command="oc_edit"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_env()
+{
+    last_command="oc_env"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--containers=")
+    two_word_flags+=("-c")
+    flags+=("--env=")
+    two_word_flags+=("-e")
+    flags+=("--filename=")
+    two_word_flags+=("-f")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--list")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overwrite")
+    flags+=("--resource-version=")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_label()
+{
+    last_command="oc_label"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overwrite")
+    flags+=("--resource-version=")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_expose()
+{
+    last_command="oc_expose"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container-port=")
+    flags+=("--create-external-load-balancer")
+    flags+=("--dry-run")
+    flags+=("--generator=")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--hostname=")
+    flags+=("--labels=")
+    two_word_flags+=("-l")
+    flags+=("--name=")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overrides=")
+    flags+=("--port=")
+    flags+=("--protocol=")
+    flags+=("--public-ip=")
+    flags+=("--selector=")
+    flags+=("--target-port=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--type=")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--port=")
+    must_have_one_noun=()
+}
+
+_oc_stop()
+{
+    last_command="oc_stop"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    flags+=("--grace-period=")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_delete()
+{
+    last_command="oc_delete"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--cascade")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    flags+=("--grace-period=")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_logs()
+{
+    last_command="oc_logs"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--follow")
+    flags+=("-f")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--interactive")
+    flags+=("--previous")
+    flags+=("-p")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_exec()
+{
+    last_command="oc_exec"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container=")
+    two_word_flags+=("-c")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--pod=")
+    two_word_flags+=("-p")
+    flags+=("--stdin")
+    flags+=("-i")
+    flags+=("--tty")
+    flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--container=")
+    must_have_one_flag+=("-c")
+    must_have_one_flag+=("--pod=")
+    must_have_one_flag+=("-p")
+    must_have_one_noun=()
+}
+
+_oc_port-forward()
+{
+    last_command="oc_port-forward"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--pod=")
+    two_word_flags+=("-p")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--pod=")
+    must_have_one_flag+=("-p")
+    must_have_one_noun=()
+}
+
+_oc_proxy()
+{
+    last_command="oc_proxy"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--api-prefix=")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--port=")
+    two_word_flags+=("-p")
+    flags+=("--www=")
+    two_word_flags+=("-w")
+    flags+=("--www-prefix=")
+    two_word_flags+=("-P")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_create()
+{
+    last_command="oc_create"
     commands=()
 
     flags=()
@@ -676,9 +972,34 @@ _osc_create()
     must_have_one_noun=()
 }
 
-_osc_process()
+_oc_update()
 {
-    last_command="osc_process"
+    last_command="oc_update"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--filename=")
+    must_have_one_flag+=("-f")
+    must_have_one_noun=()
+}
+
+_oc_process()
+{
+    last_command="oc_process"
     commands=()
 
     flags=()
@@ -706,62 +1027,9 @@ _osc_process()
     must_have_one_noun=()
 }
 
-_osc_edit()
+_oc_export()
 {
-    last_command="osc_edit"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--filename=")
-    flags_with_completion+=("--filename")
-    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
-    two_word_flags+=("-f")
-    flags_with_completion+=("-f")
-    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--output=")
-    two_word_flags+=("-o")
-    flags+=("--output-version=")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_osc_update()
-{
-    last_command="osc_update"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--filename=")
-    flags_with_completion+=("--filename")
-    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
-    two_word_flags+=("-f")
-    flags_with_completion+=("-f")
-    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--patch=")
-
-    must_have_one_flag=()
-    must_have_one_flag+=("--filename=")
-    must_have_one_flag+=("-f")
-    must_have_one_flag+=("--patch=")
-    must_have_one_noun=()
-}
-
-_osc_delete()
-{
-    last_command="osc_delete"
+    last_command="oc_export"
     commands=()
 
     flags=()
@@ -770,77 +1038,29 @@ _osc_delete()
     flags_completion=()
 
     flags+=("--all")
-    flags+=("--cascade")
+    flags+=("--as-template")
+    flags+=("--exact")
     flags+=("--filename=")
-    flags_with_completion+=("--filename")
-    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
     two_word_flags+=("-f")
-    flags_with_completion+=("-f")
-    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
-    flags+=("--grace-period=")
     flags+=("--help")
     flags+=("-h")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--raw")
     flags+=("--selector=")
     two_word_flags+=("-l")
+    flags+=("--template=")
+    two_word_flags+=("-t")
 
     must_have_one_flag=()
     must_have_one_noun=()
 }
 
-_osc_logs()
+_oc_policy_who-can()
 {
-    last_command="osc_logs"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--follow")
-    flags+=("-f")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--interactive")
-    flags+=("--previous")
-    flags+=("-p")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_osc_exec()
-{
-    last_command="osc_exec"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--container=")
-    two_word_flags+=("-c")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--pod=")
-    two_word_flags+=("-p")
-    flags+=("--stdin")
-    flags+=("-i")
-    flags+=("--tty")
-    flags+=("-t")
-
-    must_have_one_flag=()
-    must_have_one_flag+=("--container=")
-    must_have_one_flag+=("-c")
-    must_have_one_flag+=("--pod=")
-    must_have_one_flag+=("-p")
-    must_have_one_noun=()
-}
-
-_osc_port-forward()
-{
-    last_command="osc_port-forward"
+    last_command="oc_policy_who-can"
     commands=()
 
     flags=()
@@ -850,18 +1070,14 @@ _osc_port-forward()
 
     flags+=("--help")
     flags+=("-h")
-    flags+=("--pod=")
-    two_word_flags+=("-p")
 
     must_have_one_flag=()
-    must_have_one_flag+=("--pod=")
-    must_have_one_flag+=("-p")
     must_have_one_noun=()
 }
 
-_osc_proxy()
+_oc_policy_add-role-to-user()
 {
-    last_command="osc_proxy"
+    last_command="oc_policy_add-role-to-user"
     commands=()
 
     flags=()
@@ -869,23 +1085,239 @@ _osc_proxy()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--api-prefix=")
     flags+=("--help")
     flags+=("-h")
-    flags+=("--port=")
-    two_word_flags+=("-p")
-    flags+=("--www=")
-    two_word_flags+=("-w")
-    flags+=("--www-prefix=")
-    two_word_flags+=("-P")
+    flags+=("--role-namespace=")
 
     must_have_one_flag=()
     must_have_one_noun=()
 }
 
-_osc_config_view()
+_oc_policy_remove-role-from-user()
 {
-    last_command="osc_config_view"
+    last_command="oc_policy_remove-role-from-user"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--role-namespace=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_remove-user()
+{
+    last_command="oc_policy_remove-user"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_add-role-to-group()
+{
+    last_command="oc_policy_add-role-to-group"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--role-namespace=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_remove-role-from-group()
+{
+    last_command="oc_policy_remove-role-from-group"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--role-namespace=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_remove-group()
+{
+    last_command="oc_policy_remove-group"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy()
+{
+    last_command="oc_policy"
+    commands=()
+    commands+=("who-can")
+    commands+=("add-role-to-user")
+    commands+=("remove-role-from-user")
+    commands+=("remove-user")
+    commands+=("add-role-to-group")
+    commands+=("remove-role-from-group")
+    commands+=("remove-group")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_secrets_new()
+{
+    last_command="oc_secrets_new"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--source=")
+    two_word_flags+=("-f")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--type=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_secrets_new-dockercfg()
+{
+    last_command="oc_secrets_new-dockercfg"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--docker-email=")
+    flags+=("--docker-password=")
+    flags+=("--docker-server=")
+    flags+=("--docker-username=")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_secrets_add()
+{
+    last_command="oc_secrets_add"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--for=")
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_secrets()
+{
+    last_command="oc_secrets"
+    commands=()
+    commands+=("new")
+    commands+=("new-dockercfg")
+    commands+=("add")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_logout()
+{
+    last_command="oc_logout"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_config_view()
+{
+    last_command="oc_config_view"
     commands=()
 
     flags=()
@@ -910,9 +1342,9 @@ _osc_config_view()
     must_have_one_noun=()
 }
 
-_osc_config_set-cluster()
+_oc_config_set-cluster()
 {
-    last_command="osc_config_set-cluster"
+    last_command="oc_config_set-cluster"
     commands=()
 
     flags=()
@@ -932,9 +1364,9 @@ _osc_config_set-cluster()
     must_have_one_noun=()
 }
 
-_osc_config_set-credentials()
+_oc_config_set-credentials()
 {
-    last_command="osc_config_set-credentials"
+    last_command="oc_config_set-credentials"
     commands=()
 
     flags=()
@@ -955,9 +1387,9 @@ _osc_config_set-credentials()
     must_have_one_noun=()
 }
 
-_osc_config_set-context()
+_oc_config_set-context()
 {
-    last_command="osc_config_set-context"
+    last_command="oc_config_set-context"
     commands=()
 
     flags=()
@@ -975,9 +1407,9 @@ _osc_config_set-context()
     must_have_one_noun=()
 }
 
-_osc_config_set()
+_oc_config_set()
 {
-    last_command="osc_config_set"
+    last_command="oc_config_set"
     commands=()
 
     flags=()
@@ -992,9 +1424,9 @@ _osc_config_set()
     must_have_one_noun=()
 }
 
-_osc_config_unset()
+_oc_config_unset()
 {
-    last_command="osc_config_unset"
+    last_command="oc_config_unset"
     commands=()
 
     flags=()
@@ -1009,9 +1441,9 @@ _osc_config_unset()
     must_have_one_noun=()
 }
 
-_osc_config_use-context()
+_oc_config_use-context()
 {
-    last_command="osc_config_use-context"
+    last_command="oc_config_use-context"
     commands=()
 
     flags=()
@@ -1026,9 +1458,9 @@ _osc_config_use-context()
     must_have_one_noun=()
 }
 
-_osc_config()
+_oc_config()
 {
-    last_command="osc_config"
+    last_command="oc_config"
     commands=()
     commands+=("view")
     commands+=("set-cluster")
@@ -1051,9 +1483,9 @@ _osc_config()
     must_have_one_noun=()
 }
 
-_osc_options()
+_oc_whoami()
 {
-    last_command="osc_options"
+    last_command="oc_whoami"
     commands=()
 
     flags=()
@@ -1068,9 +1500,9 @@ _osc_options()
     must_have_one_noun=()
 }
 
-_osc_scale()
+_oc_options()
 {
-    last_command="osc_scale"
+    last_command="oc_options"
     commands=()
 
     flags=()
@@ -1078,105 +1510,54 @@ _osc_scale()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--current-replicas=")
     flags+=("--help")
     flags+=("-h")
-    flags+=("--replicas=")
-    flags+=("--resource-version=")
-
-    must_have_one_flag=()
-    must_have_one_flag+=("--replicas=")
-    must_have_one_noun=()
-}
-
-_osc_stop()
-{
-    last_command="osc_stop"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--all")
-    flags+=("--filename=")
-    flags_with_completion+=("--filename")
-    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
-    two_word_flags+=("-f")
-    flags_with_completion+=("-f")
-    flags_completion+=("__handle_filename_extension_flag json|yaml|yml")
-    flags+=("--grace-period=")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--selector=")
-    two_word_flags+=("-l")
 
     must_have_one_flag=()
     must_have_one_noun=()
 }
 
-_osc_label()
-{
-    last_command="osc_label"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--all")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--no-headers")
-    flags+=("--output=")
-    two_word_flags+=("-o")
-    flags+=("--output-version=")
-    flags+=("--overwrite")
-    flags+=("--resource-version=")
-    flags+=("--selector=")
-    two_word_flags+=("-l")
-    flags+=("--template=")
-    two_word_flags+=("-t")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_osc()
+_oc()
 {
     last_command="oc"
     commands=()
+    commands+=("types")
     commands+=("login")
-    commands+=("logout")
-    commands+=("project")
     commands+=("new-project")
     commands+=("new-app")
     commands+=("status")
+    commands+=("project")
     commands+=("start-build")
-    commands+=("cancel-build")
     commands+=("build-logs")
     commands+=("deploy")
     commands+=("rollback")
-    commands+=("env")
-    commands+=("expose")
+    commands+=("new-build")
+    commands+=("cancel-build")
+    commands+=("import-image")
+    commands+=("scale")
+    commands+=("tag")
     commands+=("get")
     commands+=("describe")
-    commands+=("create")
-    commands+=("process")
     commands+=("edit")
-    commands+=("update")
+    commands+=("env")
+    commands+=("label")
+    commands+=("expose")
+    commands+=("stop")
     commands+=("delete")
     commands+=("logs")
     commands+=("exec")
     commands+=("port-forward")
     commands+=("proxy")
+    commands+=("create")
+    commands+=("update")
+    commands+=("process")
+    commands+=("export")
+    commands+=("policy")
+    commands+=("secrets")
+    commands+=("logout")
     commands+=("config")
+    commands+=("whoami")
     commands+=("options")
-    commands+=("scale")
-    commands+=("stop")
-    commands+=("label")
 
     flags=()
     two_word_flags=()
@@ -1246,7 +1627,7 @@ _osc()
     must_have_one_noun=()
 }
 
-__start_osc()
+__start_oc()
 {
     local cur prev words cword
     _init_completion -s || return
@@ -1265,5 +1646,5 @@ __start_osc()
     __handle_word
 }
 
-complete -F __start_osc oc
+complete -F __start_oc oc
 # ex: ts=4 sw=4 et filetype=sh
