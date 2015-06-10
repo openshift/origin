@@ -521,9 +521,13 @@ oc deploy test-deployment-config --latest
 wait_for_command 'oc get rc/test-deployment-config-1' "${TIME_MIN}"
 # scale rc via deployment configuration
 oc scale dc test-deployment-config --replicas=1
+[ "$(oc get rc/test-deployment-config-1 -t {{.status.replicas}} | grep 1)" ]
 # scale directly
 oc scale rc test-deployment-config-1 --current-replicas=1 --replicas=5
-[ "$(oc get rc/test-deployment-config-1 | grep 5)" ]
+[ "$(oc get rc/test-deployment-config-1 -t {{.status.replicas}} | grep 5)" ]
+# scale down
+oc scale rc test-deployment-config-1 --current-replicas=5 --replicas=2
+[ "$(oc get rc/test-deployment-config-1 -t {{.status.replicas}} | grep 2)" ]
 oc delete all --all
 echo "scale: ok"
 
