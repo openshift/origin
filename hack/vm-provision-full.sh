@@ -3,7 +3,6 @@ set -euo pipefail
 IFS=$'\n\t'
 USERNAME="${1:-vagrant}"
 
-
 yum update -y
 yum install -y docker-io git vim golang e2fsprogs tmux httpie ctags hg bind-utils which
 
@@ -16,7 +15,6 @@ else
     $fixup
   fi
 fi
-
 
 function set_env {
   USER_DIR=$1
