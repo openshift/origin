@@ -658,6 +658,20 @@ func (r *Request) request(fn func(*http.Request, *http.Response)) error {
 	retries := 0
 	for {
 		url := r.URL().String()
+
+		glog.V(6).Infof("%s %s", r.verb, url)
+		if glog.V(7) && (r.body != nil) {
+			if body, err := ioutil.ReadAll(r.body); err == nil {
+				r.body = ioutil.NopCloser(bytes.NewBuffer(body))
+				glog.V(7).Infof("-d '%s'", string(body))
+			}
+			for key, values := range r.headers {
+				for value := range values {
+					glog.V(7).Infof("-H '%s: %s'", key, value)
+				}
+			}
+		}
+
 		req, err := http.NewRequest(r.verb, url, r.body)
 		if err != nil {
 			return err
@@ -666,7 +680,19 @@ func (r *Request) request(fn func(*http.Request, *http.Response)) error {
 
 		resp, err := client.Do(req)
 		if err != nil {
+			glog.V(6).Infof("Response Error: %v", err)
 			return err
+		}
+
+		glog.V(6).Infof("Response Status: %s", resp.Status)
+		if glog.V(7) {
+			for key, _ := range resp.Header {
+				glog.V(7).Infof("Response Header: %s: %s", key, resp.Header.Get(key))
+			}
+			if body, err := ioutil.ReadAll(resp.Body); err == nil {
+				resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+				glog.V(7).Infof("Response Body: %s", string(body))
+			}
 		}
 
 		done := func() bool {
