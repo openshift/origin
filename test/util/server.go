@@ -347,24 +347,23 @@ func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Co
 		return nil, err
 	}
 
-	token, err := tokencmd.RequestToken(&clientConfig, nil, adminUser, "password")
+	return GetClientForUser(clientConfig, adminUser)
+}
+
+func GetClientForUser(clientConfig kclient.Config, username string) (*client.Client, error) {
+	token, err := tokencmd.RequestToken(&clientConfig, nil, username, "password")
 	if err != nil {
 		return nil, err
 	}
 
-	adminClientConfig := clientConfig
-	adminClientConfig.BearerToken = token
-	adminClientConfig.Username = ""
-	adminClientConfig.Password = ""
-	adminClientConfig.TLSClientConfig.CertFile = ""
-	adminClientConfig.TLSClientConfig.KeyFile = ""
-	adminClientConfig.TLSClientConfig.CertData = nil
-	adminClientConfig.TLSClientConfig.KeyData = nil
+	userClientConfig := clientConfig
+	userClientConfig.BearerToken = token
+	userClientConfig.Username = ""
+	userClientConfig.Password = ""
+	userClientConfig.TLSClientConfig.CertFile = ""
+	userClientConfig.TLSClientConfig.KeyFile = ""
+	userClientConfig.TLSClientConfig.CertData = nil
+	userClientConfig.TLSClientConfig.KeyData = nil
 
-	adminClient, err := client.New(&adminClientConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return adminClient, nil
+	return client.New(&userClientConfig)
 }
