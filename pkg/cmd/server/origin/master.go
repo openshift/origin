@@ -1096,7 +1096,7 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 func (c *MasterConfig) RunSDNController() {
 	osclient, kclient := c.SDNControllerClients()
 	if c.Options.NetworkConfig.NetworkPluginName == osdn.NetworkPluginName() {
-		osdn.Master(*osclient, *kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
+		osdn.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
 	}
 }
 

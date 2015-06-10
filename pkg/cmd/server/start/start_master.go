@@ -44,8 +44,8 @@ This command helps you launch an OpenShift master.  Running
 
   $ openshift start master
 
-will start an OpenShift master listening on all interfaces, launch an etcd server to store 
-persistent data, and launch the Kubernetes system components. The server will run in the 
+will start an OpenShift master listening on all interfaces, launch an etcd server to store
+persistent data, and launch the Kubernetes system components. The server will run in the
 foreground until you terminate the process.
 
 Note: starting OpenShift without passing the --master address will attempt to find the IP
@@ -169,6 +169,7 @@ func (o MasterOptions) StartMaster() error {
 		return nil
 	}
 
+	go daemon.SdNotify("READY=1")
 	select {}
 
 	return nil
@@ -359,7 +360,6 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		}
 
 		openshiftConfig.Run([]origin.APIInstaller{kubeConfig}, unprotectedInstallers)
-		go daemon.SdNotify("READY=1")
 
 	} else {
 		_, kubeConfig, err := configapi.GetKubeClient(openshiftMasterConfig.MasterClients.ExternalKubernetesKubeConfig)
@@ -372,7 +372,6 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		}
 
 		openshiftConfig.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
-		go daemon.SdNotify("READY=1")
 	}
 
 	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
@@ -394,6 +393,9 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 			// Start these first, because they provide credentials for other controllers' clients
 			openshiftConfig.RunServiceAccountsController()
 			openshiftConfig.RunServiceAccountTokensController()
+			// used by admission controllers
+			openshiftConfig.RunServiceAccountPullSecretsControllers()
+			openshiftConfig.RunSecurityAllocationController()
 
 			if kubeConfig != nil {
 				_, rcClient, err := openshiftConfig.GetServiceAccountClients(openshiftConfig.ReplicationControllerServiceAccount)
@@ -401,16 +403,20 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 					glog.Fatalf("Could not get client for replication controller: %v", err)
 				}
 
+				// called by admission control
+				kubeConfig.RunResourceQuotaManager()
+
+				// no special order
+				kubeConfig.RunNodeController()
 				kubeConfig.RunScheduler()
 				kubeConfig.RunReplicationController(rcClient)
 				kubeConfig.RunEndpointController()
-				kubeConfig.RunNodeController()
-				kubeConfig.RunResourceQuotaManager()
 				kubeConfig.RunNamespaceController()
 				kubeConfig.RunPersistentVolumeClaimBinder()
 				kubeConfig.RunPersistentVolumeClaimRecycler()
 			}
 
+			// no special order
 			openshiftConfig.RunBuildController()
 			openshiftConfig.RunBuildPodController()
 			openshiftConfig.RunBuildImageChangeTriggerController()
@@ -421,8 +427,6 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 			openshiftConfig.RunDeploymentImageChangeTriggerController()
 			openshiftConfig.RunImageImportController()
 			openshiftConfig.RunOriginNamespaceController()
-			openshiftConfig.RunSecurityAllocationController()
-			openshiftConfig.RunServiceAccountPullSecretsControllers()
 			openshiftConfig.RunSDNController()
 		}()
 	}

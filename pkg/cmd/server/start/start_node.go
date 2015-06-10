@@ -125,6 +125,7 @@ func (o NodeOptions) StartNode() error {
 		return nil
 	}
 
+	go daemon.SdNotify("READY=1")
 	select {}
 
 	return nil
@@ -207,6 +208,7 @@ func (o NodeOptions) CreateNodeConfig() error {
 		DNSDomain:           o.NodeArgs.ClusterDomain,
 		DNSIP:               dnsIP,
 		ListenAddr:          o.NodeArgs.ListenArg.ListenAddr,
+		NetworkPluginName:   o.NodeArgs.NetworkPluginName,
 
 		APIServerURL:    masterAddr.String(),
 		APIServerCAFile: getSignerOptions.CertFile,
@@ -225,40 +227,39 @@ func (o NodeOptions) CreateNodeConfig() error {
 	return nil
 }
 
-func RunSDNController(config configapi.NodeConfig) {
-	if config.NetworkPluginName == osdn.NetworkPluginName() {
-		kclient, _, err := configapi.GetKubeClient(config.MasterKubeConfig)
-		if err != nil {
-			glog.Fatal("Failed to get kube client for SDN")
-		}
-		oclient, _, err := configapi.GetOpenShiftClient(config.MasterKubeConfig)
-		if err != nil {
-			glog.Fatal("Failed to get kube client for SDN")
-		}
-		osdn.Node(*oclient, *kclient, config.NodeName, "")
-	}
-}
-
-func StartNode(config configapi.NodeConfig) error {
-	nodeConfig, err := kubernetes.BuildKubernetesNodeConfig(config)
-	if err != nil {
-		return err
-	}
-
-	RunSDNController(config)
-	nodeConfig.EnsureVolumeDir()
-	nodeConfig.EnsureDocker(docker.NewHelper())
-	nodeConfig.RunProxy()
-	nodeConfig.RunKubelet()
-	go daemon.SdNotify("READY=1")
-
-	return nil
-}
-
 func (o NodeOptions) IsWriteConfigOnly() bool {
 	return o.NodeArgs.ConfigDir.Provided()
 }
 
 func (o NodeOptions) IsRunFromConfig() bool {
 	return (len(o.ConfigFile) > 0)
+}
+
+func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeConfig) {
+	if nodeConfig.NetworkPluginName != osdn.NetworkPluginName() {
+		return
+	}
+
+	oclient, _, err := configapi.GetOpenShiftClient(nodeConfig.MasterKubeConfig)
+	if err != nil {
+		glog.Fatal("Failed to get kube client for SDN")
+	}
+	ch := make(chan struct{})
+	config.KubeletConfig.StartUpdates = ch
+	go osdn.Node(oclient, config.Client, nodeConfig.NodeName, "", ch)
+}
+
+func StartNode(nodeConfig configapi.NodeConfig) error {
+	config, err := kubernetes.BuildKubernetesNodeConfig(nodeConfig)
+	if err != nil {
+		return err
+	}
+
+	RunSDNController(config, nodeConfig)
+	config.EnsureVolumeDir()
+	config.EnsureDocker(docker.NewHelper())
+	config.RunProxy()
+	config.RunKubelet()
+
+	return nil
 }
