@@ -45,24 +45,29 @@ func New(flags *pflag.FlagSet) *Factory {
 type Factory struct {
 	*cmdutil.Factory
 	OpenShiftClientConfig kclientcmd.ClientConfig
-	clients               *clientCache
+	clients               OpenShiftClientCache
 }
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	mapper := ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
 
-	clients := &clientCache{
-		clients: make(map[string]*client.Client),
-		loader:  clientConfig,
-	}
 	generators := map[string]kubectl.Generator{
 		"route/v1":   routegen.RouteGenerator{},
 		"service/v1": kubectl.ServiceGenerator{},
 	}
 
+	clients := NewOpenShiftClientCache(clientConfig, func(config *kclient.Config) {
+		client.SetOpenShiftDefaults(config)
+		config.Burst = 30
+		config.QPS = 10.0
+	})
 	w := &Factory{
-		Factory:               cmdutil.NewFactory(clientConfig),
+		Factory: cmdutil.NewFactory(clientConfig, func(config *kclient.Config) {
+			kclient.SetKubernetesDefaults(config)
+			config.Burst = 30
+			config.QPS = 10.0
+		}),
 		OpenShiftClientConfig: clientConfig,
 		clients:               clients,
 	}
@@ -271,50 +276,20 @@ func expandResourceShortcut(resource string) string {
 	return resource
 }
 
-// clientCache caches previously loaded clients for reuse, and ensures MatchServerVersion
-// is invoked only once
-type clientCache struct {
-	loader        kclientcmd.ClientConfig
-	clients       map[string]*client.Client
-	defaultConfig *kclient.Config
+// OpenShiftClientCache is a cache of OpenShift clients.
+type OpenShiftClientCache struct {
+	*cmdutil.ClientCache
 }
 
-// ClientConfigForVersion returns the correct config for a server
-func (c *clientCache) ClientConfigForVersion(version string) (*kclient.Config, error) {
-	if c.defaultConfig == nil {
-		config, err := c.loader.ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		c.defaultConfig = config
-	}
-	// TODO: have a better config copy method
-	config := *c.defaultConfig
-	if len(version) != 0 {
-		config.Version = version
-	}
-	client.SetOpenShiftDefaults(&config)
-
-	return &config, nil
+func NewOpenShiftClientCache(loader kclientcmd.ClientConfig, defaultFn cmdutil.ConfigDefaultsFunc) OpenShiftClientCache {
+	newFn := func(config *kclient.Config) (interface{}, error) { return client.New(config) }
+	return OpenShiftClientCache{cmdutil.NewClientCache(loader, false, defaultFn, newFn)}
 }
 
-// ClientForVersion initializes or reuses a client for the specified version, or returns an
-// error if that is not possible
-func (c *clientCache) ClientForVersion(version string) (*client.Client, error) {
-	config, err := c.ClientConfigForVersion(version)
+func (c OpenShiftClientCache) ClientForVersion(version string) (*client.Client, error) {
+	cli, err := c.ClientCache.ClientForVersion(version)
 	if err != nil {
 		return nil, err
 	}
-
-	if client, ok := c.clients[config.Version]; ok {
-		return client, nil
-	}
-
-	client, err := client.New(config)
-	if err != nil {
-		return nil, err
-	}
-
-	c.clients[config.Version] = client
-	return client, nil
+	return cli.(*client.Client), nil
 }
