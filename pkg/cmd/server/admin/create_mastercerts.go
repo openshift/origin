@@ -11,8 +11,10 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+
+	"github.com/openshift/origin/pkg/util/parallel"
 )
 
 const CreateMasterCertsCommandName = "create-master-certs"
@@ -149,27 +151,14 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
 	}
 
-	if err := o.createServerCerts(&getSignerCertOptions); err != nil {
-		return err
-	}
-
-	if err := o.createAPIClients(&getSignerCertOptions); err != nil {
-		return err
-	}
-
-	if err := o.createEtcdClientCerts(&getSignerCertOptions); err != nil {
-		return err
-	}
-
-	if err := o.createKubeletClientCerts(&getSignerCertOptions); err != nil {
-		return err
-	}
-
-	if err := o.createServiceAccountKeys(); err != nil {
-		return err
-	}
-
-	return nil
+	errs := parallel.Run(
+		func() error { return o.createServerCerts(&getSignerCertOptions) },
+		func() error { return o.createAPIClients(&getSignerCertOptions) },
+		func() error { return o.createEtcdClientCerts(&getSignerCertOptions) },
+		func() error { return o.createKubeletClientCerts(&getSignerCertOptions) },
+		func() error { return o.createServiceAccountKeys() },
+	)
+	return utilerrors.NewAggregate(errs)
 }
 
 func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *GetSignerCertOptions) error {
