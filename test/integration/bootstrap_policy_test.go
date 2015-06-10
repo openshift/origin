@@ -5,12 +5,14 @@ package integration
 import (
 	"io/ioutil"
 	"testing"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -91,8 +93,19 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything()); err == nil || !kapierror.IsForbidden(err) {
-		t.Errorf("unexpected error: %v", err)
+	// after the policy is deleted, we must wait for it to be cleared from the policy cache
+	err = wait.Poll(10*time.Millisecond, 10*time.Second, func() (bool, error) {
+		_, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything())
+		if err == nil {
+			return false, nil
+		}
+		if !kapierror.IsForbidden(err) {
+			t.Errorf("unexpected error: %v", err)
+		}
+		return true, nil
+	})
+	if err != nil {
+		t.Errorf("timeout: %v", err)
 	}
 
 	etcdClient, err := etcd.GetAndTestEtcdClient(masterConfig.EtcdClientInfo)
