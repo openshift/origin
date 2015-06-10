@@ -19,12 +19,15 @@ package empty_dir
 import (
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/securitycontext"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/mount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume"
+	volumeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/volume/util"
 	"github.com/golang/glog"
 )
 
@@ -77,10 +80,10 @@ func (plugin *emptyDirPlugin) CanSupport(spec *volume.Spec) bool {
 }
 
 func (plugin *emptyDirPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions, mounter mount.Interface) (volume.Builder, error) {
-	return plugin.newBuilderInternal(spec, pod, mounter, &realMountDetector{mounter}, opts)
+	return plugin.newBuilderInternal(spec, pod, mounter, &realMountDetector{mounter}, opts, newChconRunner())
 }
 
-func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod, mounter mount.Interface, mountDetector mountDetector, opts volume.VolumeOptions) (volume.Builder, error) {
+func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod, mounter mount.Interface, mountDetector mountDetector, opts volume.VolumeOptions, chconRunner chconRunner) (volume.Builder, error) {
 	if plugin.legacyMode {
 		// Legacy mode instances can be cleaned up but not created anew.
 		return nil, fmt.Errorf("legacy mode: can not create new instances")
@@ -90,7 +93,7 @@ func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod
 		medium = spec.VolumeSource.EmptyDir.Medium
 	}
 	return &emptyDir{
-		podUID:        pod.UID,
+		pod:           pod,
 		volName:       spec.Name,
 		medium:        medium,
 		mounter:       mounter,
@@ -98,6 +101,7 @@ func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod
 		plugin:        plugin,
 		legacyMode:    false,
 		rootContext:   opts.RootContext,
+		chconRunner:   chconRunner,
 	}, nil
 }
 
@@ -112,7 +116,7 @@ func (plugin *emptyDirPlugin) newCleanerInternal(volName string, podUID types.UI
 		legacy = true
 	}
 	ed := &emptyDir{
-		podUID:        podUID,
+		pod:           &api.Pod{ObjectMeta: api.ObjectMeta{UID: podUID}},
 		volName:       volName,
 		medium:        api.StorageMediumDefault, // might be changed later
 		mounter:       mounter,
@@ -143,7 +147,7 @@ const (
 // EmptyDir volumes are temporary directories exposed to the pod.
 // These do not persist beyond the lifetime of a pod.
 type emptyDir struct {
-	podUID        types.UID
+	pod           *api.Pod
 	volName       string
 	medium        api.StorageMedium
 	mounter       mount.Interface
@@ -151,6 +155,7 @@ type emptyDir struct {
 	plugin        *emptyDirPlugin
 	legacyMode    bool
 	rootContext   string
+	chconRunner   chconRunner
 }
 
 // SetUp creates new directory.
@@ -194,19 +199,66 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 
 	switch ed.medium {
 	case api.StorageMediumDefault:
-		return ed.setupDir(dir)
+		err = ed.setupDir(dir, securityContext)
 	case api.StorageMediumMemory:
-		return ed.setupTmpfs(dir)
+		err = ed.setupTmpfs(dir, securityContext)
 	default:
-		return fmt.Errorf("unknown storage medium %q", ed.medium)
+		err = fmt.Errorf("unknown storage medium %q", ed.medium)
 	}
+
+	if err != nil {
+		volumeutil.SetReady(ed.getMetaDir())
+	}
+
+	return err
 }
 
-func (ed *emptyDir) setupTmpfs(dir string) error {
+// determineEffectiveSELinuxOptions determines the effective SELinux options
+// that should be used for a particular plugin.
+func (ed *emptyDir) determineEffectiveSELinuxOptions() (string, error) {
+	glog.V(4).Infof("Determining effective SELinux context for pod %v/%v", ed.pod.Namespace, ed.pod.Name)
+	var opts *api.SELinuxOptions
+	if ed.pod != nil {
+		// Use the security context, if defined, of the first
+		// container in the pod to mount this volume
+		for _, container := range ed.pod.Spec.Containers {
+			if !volumeutil.ContainerHasVolumeMountForName(&container, ed.volName) {
+				continue
+			}
+
+			if container.SecurityContext != nil &&
+				container.SecurityContext.SELinuxOptions != nil {
+				opts = container.SecurityContext.SELinuxOptions
+				break
+			}
+		}
+	}
+
+	if opts == nil {
+		return ed.rootContext, nil
+	}
+
+	glog.V(4).Infof("Specified security context for pod %v/%v: %v", ed.pod.Namespace, ed.pod.Name, securitycontext.SELinuxOptionsString(opts))
+
+	rootContextOpts, err := securitycontext.ParseSELinuxOptions(ed.rootContext)
+	if err != nil {
+		return "", err
+	}
+
+	effectiveOpts := securitycontext.ProjectSELinuxOptions(opts, rootContextOpts)
+
+	glog.V(4).Infof("Effective context for pod %v/%v: %v", ed.pod.Namespace, ed.pod.Name, securitycontext.SELinuxOptionsString(effectiveOpts))
+
+	return securitycontext.SELinuxOptionsString(effectiveOpts), nil
+}
+
+// setupTmpfs creates a tmpfs mount at the specified directory with the
+// specified rootContext.
+func (ed *emptyDir) setupTmpfs(dir string, rootContext string) error {
 	if ed.mounter == nil {
 		return fmt.Errorf("memory storage requested, but mounter is nil")
 	}
-	if err := ed.setupDir(dir); err != nil {
+	if err := ed.setupDir(dir, rootContext); err != nil {
 		return err
 	}
 	// Make SetUp idempotent.
@@ -223,24 +275,27 @@ func (ed *emptyDir) setupTmpfs(dir string) error {
 	// By default a tmpfs mount will receive a different SELinux context
 	// from that of the Kubelet root directory which is not readable from
 	// the SELinux context of a docker container.
-	//
-	// getTmpfsMountOptions gets the mount option to set the context of
-	// the tmpfs mount so that it can be read from the SELinux context of
-	// the container.
-	opts := ed.getTmpfsMountOptions()
-	glog.V(3).Infof("pod %v: mounting tmpfs for volume %v with opts %v", ed.podUID, ed.volName, opts)
+	var opts []string
+	if rootContext != "" {
+		opts = []string{fmt.Sprintf("rootcontext=\"%v\"", rootContext)}
+	} else {
+		opts = []string{}
+	}
+
+	glog.V(3).Infof("pod %v: mounting tmpfs for volume %v with opts %v", ed.pod.UID, ed.volName, opts)
 	return ed.mounter.Mount("tmpfs", dir, "tmpfs", opts)
 }
 
 // setupDir creates the directory with the default permissions specified
 // by the perm constant, chmoding the directory if necessary to work around
 // the effective umask for the kubelet.
-func (ed *emptyDir) setupDir(dir string) error {
-	var err error
-	if err = os.MkdirAll(dir, perm); err != nil {
+func (ed *emptyDir) setupDir(dir, rootContext string) error {
+	// Create the directory if it doesn't already exist.
+	if err := os.MkdirAll(dir, perm); err != nil {
 		return err
 	}
 
+	// stat the directory to read permission bits
 	fileinfo, err := os.Lstat(dir)
 	if err != nil {
 		return err
@@ -264,19 +319,17 @@ func (ed *emptyDir) setupDir(dir string) error {
 		}
 
 		if fileinfo.Mode().Perm() != perm.Perm() {
-			glog.Errorf("Expected directory %q permissions to be: %s; got: %s", dir, fileinfo.Mode().Perm(), perm.Perm())
+			glog.Errorf("Expected directory %q permissions to be: %s; got: %s", dir, perm.Perm(), fileinfo.Mode().Perm())
 		}
 	}
 
-	return nil
-}
-
-func (ed *emptyDir) getTmpfsMountOptions() []string {
-	if ed.rootContext == "" {
-		return []string{""}
+	// Set the context on the directory, if appropriate
+	if rootContext != "" {
+		glog.Infof("Setting rootContext for %v to %v", dir, rootContext)
+		return ed.chconRunner.SetContext(dir, rootContext)
 	}
 
-	return []string{fmt.Sprintf("rootcontext=\"%v\"", ed.rootContext)}
+	return nil
 }
 
 func (ed *emptyDir) GetPath() string {
@@ -284,7 +337,7 @@ func (ed *emptyDir) GetPath() string {
 	if ed.legacyMode {
 		name = emptyDirPluginLegacyName
 	}
-	return ed.plugin.host.GetPodVolumeDir(ed.podUID, util.EscapeQualifiedNameForDisk(name), ed.volName)
+	return ed.plugin.host.GetPodVolumeDir(ed.pod.UID, util.EscapeQualifiedNameForDisk(name), ed.volName)
 }
 
 // TearDown simply discards everything in the directory.
@@ -330,4 +383,8 @@ func (ed *emptyDir) teardownTmpfs(dir string) error {
 		return err
 	}
 	return nil
+}
+
+func (ed *emptyDir) getMetaDir() string {
+	return path.Join(ed.plugin.host.GetPodPluginDir(ed.pod.UID, util.EscapeQualifiedNameForDisk(emptyDirPluginName)), ed.volName)
 }
