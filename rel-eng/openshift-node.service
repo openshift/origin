@@ -2,8 +2,6 @@
 Description=OpenShift Node
 After=docker.service
 After=openshift-master.service
-After=openshift-sdn-master.service
-After=openshift-sdn-node.service
 Wants=docker.service
 Documentation=https://github.com/openshift/origin
 
