@@ -28,6 +28,11 @@ import (
 	"github.com/golang/glog"
 )
 
+// TODO: in the near future, this will be changed to be more restrictive
+// and the group will be set to allow containers to use emptyDir volumes
+// from the group attribute.
+const perm os.FileMode = 0777
+
 // This is the primary entrypoint for volume plugins.
 func ProbeVolumePlugins() []volume.VolumePlugin {
 	return []volume.VolumePlugin{
@@ -169,14 +174,14 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 }
 
 func (ed *emptyDir) setupDefault(dir string) error {
-	return os.MkdirAll(dir, 0750)
+	return os.MkdirAll(dir, perm)
 }
 
 func (ed *emptyDir) setupTmpfs(dir string) error {
 	if ed.mounter == nil {
 		return fmt.Errorf("memory storage requested, but mounter is nil")
 	}
-	if err := os.MkdirAll(dir, 0750); err != nil {
+	if err := os.MkdirAll(dir, perm); err != nil {
 		return err
 	}
 	// Make SetUp idempotent.
