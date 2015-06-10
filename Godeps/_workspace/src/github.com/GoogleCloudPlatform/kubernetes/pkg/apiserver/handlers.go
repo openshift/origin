@@ -340,19 +340,6 @@ func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIReques
 				currentParts = currentParts[2:]
 			}
 		}
-	} else {
-		// URL forms: /{resource}/*
-		// URL forms: POST /{resource} is a legacy API convention to create in "default" namespace
-		// URL forms: /{resource}/{resourceName} use the "default" namespace if omitted from query param
-		// URL forms: /{resource} assume cross-namespace operation if omitted from query param
-		requestInfo.Namespace = req.URL.Query().Get("namespace")
-		if len(requestInfo.Namespace) == 0 {
-			if len(currentParts) > 1 || req.Method == "POST" {
-				requestInfo.Namespace = api.NamespaceDefault
-			} else {
-				requestInfo.Namespace = api.NamespaceAll
-			}
-		}
 	}
 
 	// parsing successful, so we now know the proper value for .Parts
