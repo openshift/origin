@@ -13,7 +13,9 @@ func main() {
 	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"))()
 	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	if len(os.Getenv("GOMAXPROCS")) == 0 {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+	}
 
 	basename := filepath.Base(os.Args[0])
 	command := openshift.CommandFor(basename)
