@@ -37,7 +37,7 @@ type DeployOptions struct {
 }
 
 const (
-	deployLong = `View, start, cancel, and retry deployments.
+	deployLong = `View, start, cancel, or retry deployments.
 
 If no options are given, view the latest deployment.
 
@@ -47,7 +47,7 @@ NOTE: This command is still under active development and is subject to change.`
   $ %[1]s deploy database
 
   // Start a new deployment based on the 'database' DeploymentConfig
-  $ %[1]s deploy frontend --latest
+  $ %[1]s deploy database --latest
 
   // Retry the latest failed deployment based on the 'frontend' DeploymentConfig
   // The deployer pod and any hook pods are deleted for the latest failed deployment
@@ -65,7 +65,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 
 	cmd := &cobra.Command{
 		Use:     "deploy DEPLOYMENTCONFIG",
-		Short:   "View, start and restart deployments",
+		Short:   "View, start, cancel, or retry deployments",
 		Long:    deployLong,
 		Example: fmt.Sprintf(deployExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
