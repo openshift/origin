@@ -57,7 +57,7 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 				continue
 			}
 
-			// Ensure a change occured
+			// Ensure a change occurred
 			if len(latestEvent.DockerImageReference) > 0 &&
 				latestEvent.DockerImageReference != params.LastTriggeredImage {
 				// Mark the config for regeneration
@@ -122,7 +122,7 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 		return fmt.Errorf("error generating new version of DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 
-	// No update occured
+	// No update occurred
 	if config.LatestVersion == newConfig.LatestVersion {
 		glog.V(4).Infof("No version difference for generated DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
