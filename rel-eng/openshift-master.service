@@ -2,7 +2,6 @@
 Description=OpenShift Master
 Documentation=https://github.com/openshift/origin
 After=network.target
-After=etcd.service
 Before=openshift-node.service
 Requires=network.target
 
