@@ -16,7 +16,7 @@ install:
   - ./hack/install-assets.sh
 
 script:
-  - PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH make check-test WHAT="''" TESTFLAGS="-p=4"
+  - PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH make check-test WHAT="''" TESTFLAGS="-p=2"
   - ./hack/test-assets.sh
 
 notifications:
