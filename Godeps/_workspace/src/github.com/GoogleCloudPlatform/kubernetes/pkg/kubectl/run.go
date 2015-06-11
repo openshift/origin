@@ -29,7 +29,7 @@ type BasicReplicationController struct{}
 func (BasicReplicationController) ParamNames() []GeneratorParam {
 	return []GeneratorParam{
 		{"labels", false},
-		{"default-name", true},
+		{"default-name", false},
 		{"name", false},
 		{"replicas", true},
 		{"image", true},
