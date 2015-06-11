@@ -107,6 +107,10 @@ func TestMakeDeploymentOk(t *testing.T) {
 		t.Fatalf("expected deployment replicas to be 0")
 	}
 
+	if l, e, a := deployapi.DeploymentConfigAnnotation, config.Name, deployment.Labels[deployapi.DeploymentConfigAnnotation]; e != a {
+		t.Fatalf("expected label %s=%s, got %s", l, e, a)
+	}
+
 	if e, a := config.Name, deployment.Spec.Template.Labels[deployapi.DeploymentConfigLabel]; e != a {
 		t.Fatalf("expected label DeploymentConfigLabel=%s, got %s", e, a)
 	}

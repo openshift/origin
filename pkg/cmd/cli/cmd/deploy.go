@@ -145,13 +145,11 @@ func (o DeployOptions) RunDeploy() error {
 			return o.kubeClient.ReplicationControllers(namespace).Get(name)
 		},
 		ListDeploymentsForConfigFn: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-			rcs, err := o.kubeClient.ReplicationControllers(namespace).List(labels.Everything())
+			list, err := o.kubeClient.ReplicationControllers(namespace).List(deployutil.ConfigSelector(configName))
 			if err != nil {
 				return nil, err
 			}
-			return &kapi.ReplicationControllerList{
-				Items: deployutil.ConfigSelector(configName, rcs.Items),
-			}, nil
+			return list, nil
 		},
 
 		UpdateDeploymentConfigFn: func(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {

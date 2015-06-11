@@ -8,7 +8,6 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -83,8 +82,8 @@ func NewDeployer(client kclient.Interface) *Deployer {
 		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)
 		},
-		getControllers: func(namespace string) (*kapi.ReplicationControllerList, error) {
-			return client.ReplicationControllers(namespace).List(labels.Everything())
+		getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+			return client.ReplicationControllers(namespace).List(deployutil.ConfigSelector(configName))
 		},
 		scaler: scaler,
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
@@ -114,8 +113,8 @@ type Deployer struct {
 	strategyFor func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error)
 	// getDeployment finds the named deployment.
 	getDeployment func(namespace, name string) (*kapi.ReplicationController, error)
-	// getControllers finds all controllers in namespace.
-	getControllers func(namespace string) (*kapi.ReplicationControllerList, error)
+	// getDeployments finds all deployments associated with a config.
+	getDeployments func(namespace, configName string) (*kapi.ReplicationControllerList, error)
 	// scaler is used to scale replication controllers.
 	scaler kubectl.Scaler
 }
@@ -146,14 +145,14 @@ func (d *Deployer) Deploy(namespace, deploymentName string) error {
 		return fmt.Errorf("deployment %s has no desired replica count", deployutil.LabelForDeployment(deployment))
 	}
 
-	// Find all controllers in order to pick out the deployments.
-	controllers, err := d.getControllers(namespace)
+	// Find all deployments for the config.
+	unsortedDeployments, err := d.getDeployments(namespace, config.Name)
 	if err != nil {
 		return fmt.Errorf("couldn't get controllers in namespace %s: %v", namespace, err)
 	}
+	deployments := unsortedDeployments.Items
 
-	// Find all deployments sorted by version.
-	deployments := deployutil.ConfigSelector(config.Name, controllers.Items)
+	// Sort all the deployments by version.
 	sort.Sort(deployutil.DeploymentsByLatestVersionDesc(deployments))
 
 	// Find any last completed deployment.
