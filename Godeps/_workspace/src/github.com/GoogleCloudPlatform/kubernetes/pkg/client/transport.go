@@ -17,15 +17,173 @@ limitations under the License.
 package client
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/golang/glog"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
+
+type RequestInfo struct {
+	RequestHeaders http.Header
+	RequestVerb    string
+	RequestURL     string
+	RequestBody    []byte
+
+	ResponseStatus  string
+	ResponseBody    []byte
+	ResponseHeaders http.Header
+	ResponseErr     error
+
+	Duration time.Duration
+}
+
+func NewRequestInfo(req *http.Request, readBody bool) *RequestInfo {
+	reqInfo := &RequestInfo{}
+	reqInfo.RequestURL = req.URL.String()
+	reqInfo.RequestVerb = req.Method
+	reqInfo.RequestHeaders = req.Header
+	if readBody && req.Body != nil {
+		if body, err := ioutil.ReadAll(req.Body); err == nil {
+			reqInfo.RequestBody = body
+			req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		}
+	}
+
+	return reqInfo
+}
+
+func (r *RequestInfo) Complete(response *http.Response, err error, readBody bool) {
+	if err != nil {
+		r.ResponseErr = err
+		return
+	}
+	r.ResponseStatus = response.Status
+	r.ResponseHeaders = response.Header
+	if readBody && response.Body != nil {
+		if body, err := ioutil.ReadAll(response.Body); err == nil {
+			r.ResponseBody = body
+			response.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		}
+	}
+}
+
+func (r RequestInfo) ToCurl() string {
+	headers := ""
+	for key, values := range map[string][]string(r.RequestHeaders) {
+		for _, value := range values {
+			headers += fmt.Sprintf(` -H %q`, fmt.Sprintf("%s: %s", key, value))
+		}
+	}
+
+	body := ""
+	if len(r.RequestBody) > 0 {
+		body = fmt.Sprintf("-d %q", string(body))
+	}
+
+	return fmt.Sprintf("curl -k -v -X%s %s %s %s", r.RequestVerb, headers, body, r.RequestURL)
+}
+
+// TrackingRoundTripper keeps track of all the requests made.  You should use this with caution, because it grow with every request.
+type TrackingRoundTripper struct {
+	delegatedRoundTripper http.RoundTripper
+
+	RequestInfos []RequestInfo
+}
+
+func NewTrackingRoundTripper(rt http.RoundTripper) *TrackingRoundTripper {
+	return &TrackingRoundTripper{rt, []RequestInfo{}}
+}
+
+func (rt *TrackingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	reqInfo := NewRequestInfo(req, bool(glog.V(7)))
+
+	startTime := time.Now()
+	response, err := rt.delegatedRoundTripper.RoundTrip(req)
+	reqInfo.Duration = time.Since(startTime)
+
+	reqInfo.Complete(response, err, bool(glog.V(7)))
+	rt.RequestInfos = append(rt.RequestInfos, *reqInfo)
+
+	return response, err
+}
+
+// DebuggingRoundTripper will display information about the requests passing through it based on what is configured
+type DebuggingRoundTripper struct {
+	delegatedRoundTripper http.RoundTripper
+
+	Levels util.StringSet
+}
+
+const (
+	JustURL         string = "url"
+	URLTiming       string = "urltiming"
+	CurlCommand     string = "curlcommand"
+	RequestBody     string = "requestbody"
+	RequestHeaders  string = "requestheaders"
+	ResponseStatus  string = "responsestatus"
+	ResponseBody    string = "responsebody"
+	ResponseHeaders string = "responseheaders"
+)
+
+func NewDebuggingRoundTripper(rt http.RoundTripper, levels ...string) *DebuggingRoundTripper {
+	return &DebuggingRoundTripper{rt, util.NewStringSet(levels...)}
+}
+
+func (rt *DebuggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	reqInfo := NewRequestInfo(req, rt.Levels.Has(RequestBody))
+
+	if rt.Levels.Has(JustURL) {
+		glog.Infof("%s %s", reqInfo.RequestVerb, reqInfo.RequestURL)
+	}
+	if rt.Levels.Has(CurlCommand) {
+		glog.Infof("%s", reqInfo.ToCurl())
+
+	}
+	if rt.Levels.Has(RequestBody) {
+		glog.Infof("Request Body:\n%s", string(reqInfo.RequestBody))
+	}
+	if rt.Levels.Has(RequestHeaders) {
+		glog.Infof("Request Headers:")
+		for key, values := range reqInfo.RequestHeaders {
+			for _, value := range values {
+				glog.Infof("    %s: %s", key, value)
+			}
+		}
+	}
+
+	startTime := time.Now()
+	response, err := rt.delegatedRoundTripper.RoundTrip(req)
+	reqInfo.Duration = time.Since(startTime)
+
+	reqInfo.Complete(response, err, rt.Levels.Has(ResponseBody))
+
+	if rt.Levels.Has(URLTiming) {
+		glog.Infof("%s %s %s in %d milliseconds", reqInfo.RequestVerb, reqInfo.RequestURL, reqInfo.ResponseStatus, reqInfo.Duration.Nanoseconds()/int64(time.Millisecond))
+	}
+	if rt.Levels.Has(ResponseStatus) {
+		glog.Infof("Response Status: %s in %d milliseconds", reqInfo.ResponseStatus, reqInfo.Duration.Nanoseconds()/int64(time.Millisecond))
+	}
+	if rt.Levels.Has(ResponseHeaders) {
+		glog.Infof("Response Headers:")
+		for key, values := range reqInfo.ResponseHeaders {
+			for _, value := range values {
+				glog.Infof("    %s: %s", key, value)
+			}
+		}
+	}
+	if rt.Levels.Has(ResponseBody) {
+		glog.V(7).Infof("Response Body:\n%s", string(reqInfo.ResponseBody))
+	}
+
+	return response, err
+}
 
 type userAgentRoundTripper struct {
 	agent string
@@ -40,7 +198,6 @@ func (rt *userAgentRoundTripper) RoundTrip(req *http.Request) (*http.Response, e
 	if len(req.Header.Get("User-Agent")) != 0 {
 		return rt.rt.RoundTrip(req)
 	}
-	glog.V(7).Infof("-H 'User-Agent: %s'", rt.agent)
 	req = cloneRequest(req)
 	req.Header.Set("User-Agent", rt.agent)
 	return rt.rt.RoundTrip(req)
@@ -57,7 +214,6 @@ func NewBasicAuthRoundTripper(username, password string, rt http.RoundTripper) h
 }
 
 func (rt *basicAuthRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	glog.V(7).Infof("-H 'Authorization: Basic %s'", base64.StdEncoding.EncodeToString([]byte(rt.username+":"+rt.password)))
 	req = cloneRequest(req)
 	req.SetBasicAuth(rt.username, rt.password)
 	return rt.rt.RoundTrip(req)
@@ -73,7 +229,6 @@ func NewBearerAuthRoundTripper(bearer string, rt http.RoundTripper) http.RoundTr
 }
 
 func (rt *bearerAuthRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	glog.V(7).Infof("-H 'Authorization: Bearer %s'", rt.bearer)
 	req = cloneRequest(req)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", rt.bearer))
 	return rt.rt.RoundTrip(req)
