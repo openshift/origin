@@ -165,7 +165,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 		review:          askCanICreatePolicyBindings,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    "denied by default",
+			Reason:    `User "valerie" cannot create policybindings in project "openshift"`,
 			Namespace: "openshift",
 		},
 	}.run(t)
@@ -175,7 +175,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 	subjectAccessReviewTest{
 		clientInterface: valerieOpenshiftClient.SubjectAccessReviews("openshift"),
 		review:          askCanClusterAdminsCreateProject,
-		err:             "cannot ",
+		err:             `User "valerie" cannot create subjectaccessreviews in project "openshift"`,
 	}.run(t)
 
 }
