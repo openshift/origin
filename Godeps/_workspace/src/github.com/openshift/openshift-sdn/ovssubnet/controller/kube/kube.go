@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"syscall"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	netutils_server "github.com/openshift/openshift-sdn/pkg/netutils/server"
@@ -27,6 +28,14 @@ func (c *FlowController) Setup(localSubnet, containerNetwork string) error {
 	out, err := exec.Command("openshift-sdn-kube-subnet-setup.sh", gateway, ipnet.String(), containerNetwork, strconv.Itoa(subnetMaskLength), gateway).CombinedOutput()
 	log.Infof("Output of setup script:\n%s", out)
 	if err != nil {
+		exitErr, ok := err.(*exec.ExitError)
+		if ok {
+			status := exitErr.ProcessState.Sys().(syscall.WaitStatus)
+			if status.Exited() && status.ExitStatus() == 140 {
+				// valid, do nothing, its just a benevolent restart
+				return nil
+			}
+		}
 		log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
 		return err
 	}
