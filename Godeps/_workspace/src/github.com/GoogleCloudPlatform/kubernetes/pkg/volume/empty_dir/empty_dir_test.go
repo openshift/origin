@@ -65,6 +65,10 @@ func (fake *fakeMountDetector) GetMountMedium(path string) (storageMedium, bool,
 	return fake.medium, fake.isMount, nil
 }
 
+// TODO: refactor TestPlugin and TestPluginTmpfs if there is an easy
+// way to share the code that does not make the tests more difficult
+// to understand
+
 func TestPlugin(t *testing.T) {
 	plug := makePluginUnderTest(t, "kubernetes.io/empty-dir")
 
@@ -102,6 +106,15 @@ func TestPlugin(t *testing.T) {
 		t.Errorf("Expected 0 mounter calls, got %#v", mounter.Log)
 	}
 	mounter.ResetLog()
+
+	fileinfo, err := os.Lstat(volPath)
+	if err != nil {
+		t.Errorf("Unexpected error from os.Lstat(%v): %v", volPath, err)
+	}
+
+	if fileinfo.Mode().Perm() != perm {
+		t.Errorf("Unexpected file mode for %v: expected: %v, got: %v", volPath, perm, fileinfo.Mode().Perm())
+	}
 
 	cleaner, err := plug.(*emptyDirPlugin).newCleanerInternal("vol1", types.UID("poduid"), &mounter, &fakeMountDetector{})
 	if err != nil {
@@ -166,6 +179,15 @@ func TestPluginTmpfs(t *testing.T) {
 		}
 	}
 	mounter.ResetLog()
+
+	fileinfo, err := os.Lstat(volPath)
+	if err != nil {
+		t.Errorf("Unexpected error from os.Lstat(%v): %v", volPath, err)
+	}
+
+	if fileinfo.Mode().Perm() != perm {
+		t.Errorf("Unexpected file mode for %v: expected: %v, got: %v", volPath, perm, fileinfo.Mode().Perm())
+	}
 
 	cleaner, err := plug.(*emptyDirPlugin).newCleanerInternal("vol1", types.UID("poduid"), &mounter, &fakeMountDetector{mediumMemory, true})
 	if err != nil {
