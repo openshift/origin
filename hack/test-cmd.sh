@@ -550,8 +550,8 @@ oc process -f test/templates/fixtures/guestbook.json -l app=guestbook | oc creat
 oc status
 [ "$(oc status | grep frontend-service)" ]
 echo "template+config: ok"
-[ "$(OSC_EDITOR='cat' oc edit svc/kubernetes 2>&1 | grep 'Edit cancelled')" ]
-[ "$(OSC_EDITOR='cat' oc edit svc/kubernetes | grep 'provider: kubernetes')" ]
+[ "$(OC_EDITOR='cat' oc edit svc/kubernetes 2>&1 | grep 'Edit cancelled')" ]
+[ "$(OC_EDITOR='cat' oc edit svc/kubernetes | grep 'provider: kubernetes')" ]
 oc delete all -l app=guestbook
 echo "edit: ok"
 
