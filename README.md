@@ -74,9 +74,10 @@ If you just want to experiment with the API without worrying about security priv
     $ sudo docker exec -it openshift-origin bash -c "oadm policy add-cluster-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.config/master/admin.kubeconfig"
 
 
-### Start Developing
+Start Developing
+----------------
 
-You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux server, or Windows and Mac OS X client pre-built binaries](CONTRIBUTING.adoc#download-from-github).
+Alternatively, you can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux server, or Windows and Mac OS X client pre-built binaries](CONTRIBUTING.adoc#download-from-github).
 
 First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc).
 
@@ -86,18 +87,19 @@ Once setup with a Go development environment and Docker, you can:
 
         $ make clean build
 
-2.  Start the OpenShift server
+2.  Start the OpenShift server.  You potentially will have to augment the sudo related arguments or config to ensure go is in the path, depending on how your distribution by default sets up the path when sudo is invoked.  Review the sudo man pages.
 
         $ sudo make run
 
 3.  In another terminal window, switch to the directory and start an app:
 
         $ cd $GOPATH/src/github.com/openshift/origin
-        $ export OPENSHIFTCONFIG=`pwd`/openshift.local.config/master/admin.kubeconfig 
+        $ _output/local/go/bin/oc login
+        $ _output/local/go/bin/oc new-project hellow-world
         $ _output/local/go/bin/oc create -f examples/hello-openshift/hello-pod.json
 
 
-4. In your browser, go to [https://localhost:6001](https://localhost:6001) and you should see 'Welcome to OpenShift' after a little while once the pod has started correctly.
+4. In your browser, go to [https://localhost:6061](https://localhost:6061) and you should see 'Welcome to OpenShift' after a little while once the pod has started correctly.
 
 ### What's Just Happened?
 
