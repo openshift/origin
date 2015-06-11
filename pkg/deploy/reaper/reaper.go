@@ -8,7 +8,6 @@ import (
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/client"
@@ -52,7 +51,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *
 	}
 
 	// Clean up deployments related to the config.
-	rcList, err := reaper.kc.ReplicationControllers(namespace).List(labels.Everything())
+	rcList, err := reaper.kc.ReplicationControllers(namespace).List(util.ConfigSelector(name))
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +61,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *
 	}
 
 	// If there is neither a config nor any deployments, we can return NotFound.
-	deployments := util.ConfigSelector(name, rcList.Items)
+	deployments := rcList.Items
 	if configNotFound && len(deployments) == 0 {
 		return "", kerrors.NewNotFound("DeploymentConfig", name)
 	}

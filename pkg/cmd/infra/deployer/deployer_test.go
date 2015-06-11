@@ -23,7 +23,7 @@ func TestDeployer_getDeploymentFail(t *testing.T) {
 		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return nil, fmt.Errorf("get error")
 		},
-		getControllers: func(namespace string) (*kapi.ReplicationControllerList, error) {
+		getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
 			t.Fatal("unexpected call")
 			return nil, nil
 		},
@@ -144,7 +144,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 			getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
 				return to, nil
 			},
-			getControllers: func(namespace string) (*kapi.ReplicationControllerList, error) {
+			getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
 				list := &kapi.ReplicationControllerList{}
 				for _, d := range s.deployments {
 					list.Items = append(list.Items, *d)
