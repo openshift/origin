@@ -28,7 +28,7 @@ easy deployment and scaling, and long-term lifecycle maintenance for small and l
 
 For questions or feedback, reach us on [IRC on #openshift-dev](https://botbot.me/freenode/openshift-dev/) on Freenode or post to our [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev).
 
-NOTE: OpenShift is in alpha and is not yet intended for production use. However we welcome feedback, suggestions, and testing as we approach our first beta.
+NOTE: OpenShift release candidate 1 is available on the [releases page](https://github.com/openshift/origin/releases). Feedback, suggestions, and testing are all welcome!
 
 
 Security Warning!!!
@@ -62,52 +62,19 @@ The simplest way to run OpenShift Origin is in a Docker container:
         -v /var/run/docker.sock:/var/run/docker.sock \
         openshift/origin start
 
-(you'll need to create the /tmp/openshift directory the first time).
-
 Once the container is started, you can jump into a console inside the container and run the CLI.
 
     $ sudo docker exec -it openshift-origin bash
     $ oc --help
+    $ oc login
+    Username: test
+    Password: test
+    $ oc new-project test
+    $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json
 
-If you just want to experiment with the API without worrying about security privileges, you can disable authorization checks by running this from the host system.  This command grants full access to anyone.
+Any username and password are accepted by default (with no credential system configured).  You can view the webconsole at https://localhost:8443/ in your browser - login with the same credentials you used above and you'll see the application you just created.
 
-    $ sudo docker exec -it openshift-origin bash -c "oadm policy add-cluster-role-to-group cluster-admin system:authenticated system:unauthenticated --config=/var/lib/openshift/openshift.local.config/master/admin.kubeconfig"
-
-
-### Start Developing
-
-You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux server, or Windows and Mac OS X client pre-built binaries](CONTRIBUTING.adoc#download-from-github).
-
-First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc).
-
-Once setup with a Go development environment and Docker, you can:
-
-1.  Build the source code
-
-        $ make clean build
-
-2.  Start the OpenShift server
-
-        $ sudo make run
-
-3.  In another terminal window, switch to the directory and start an app:
-
-        $ cd $GOPATH/src/github.com/openshift/origin
-        $ export OPENSHIFTCONFIG=`pwd`/openshift.local.config/master/admin.kubeconfig 
-        $ _output/local/go/bin/oc create -f examples/hello-openshift/hello-pod.json
-
-
-4. In your browser, go to [https://localhost:6001](https://localhost:6001) and you should see 'Welcome to OpenShift' after a little while once the pod has started correctly.
-
-### What's Just Happened?
-
-The example above starts the ['openshift/hello-openshift' Docker image](https://github.com/openshift/origin/blob/266ce4cfc8785b0633c24a46cd0aff927b8e90b2/examples/hello-openshift/hello-pod.json#L7) inside a Docker container, but managed by OpenShift and Kubernetes.
-
-* At the Docker level, that image [listens on port 8080](https://github.com/openshift/origin/blob/266ce4cfc8785b0633c24a46cd0aff927b8e90b2/examples/hello-openshift/hello_openshift.go#L16) within a container and [prints out a simple 'Hello OpenShift' message on access](https://github.com/openshift/origin/blob/266ce4cfc8785b0633c24a46cd0aff927b8e90b2/examples/hello-openshift/hello_openshift.go#L9).
-* At the Kubernetes level, we [map that bound port in the container](https://github.com/openshift/origin/blob/266ce4cfc8785b0633c24a46cd0aff927b8e90b2/examples/hello-openshift/hello-pod.json#L11) [to port 6061 on the host](https://github.com/openshift/origin/blob/266ce4cfc8785b0633c24a46cd0aff927b8e90b2/examples/hello-openshift/hello-pod.json#L12) so that we can access it via the host browser.
-* When you created the container, Kubernetes decided which host to place the container on by looking at the available hosts and selecting one with available space.  The agent that runs on each node (part of the OpenShift all-in-one binary, called the Kubelet) saw that it was now supposed to run the container and instructed Docker to start the container.
-
-OpenShift brings all of these pieces (and the client) together in a single, easy to use binary.  The following examples show the other OpenShift specific features that live above the Kubernetes runtime like image building and deployment flows.
+![Web console overview](docs/screenshots/console_overview.png?raw=true)
 
 
 ### Next Steps
@@ -120,10 +87,6 @@ Both OpenShift and Kubernetes have a strong focus on documentation - see the fol
 * [Kubernetes Getting Started](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/README.md)
 * [Kubernetes Documentation](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/README.md)
 
-You can see some other examples of using Kubernetes at a lower level - stay tuned for more high level OpenShift examples as well:
-
-* [Kubernetes walkthrough](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/walkthrough)
-* [Kubernetes guestbook](https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples/guestbook)
 
 ### Troubleshooting
 
@@ -133,20 +96,25 @@ If you run into difficulties running OpenShift, start by reading through the [tr
 API
 ---
 
-The OpenShift APIs are exposed at `https://localhost:8443/osapi/v1beta3/*`.
+The OpenShift APIs are exposed at `https://localhost:8443/oapi/v1/*`.
+
+To experiment with the API, you can get a token to act as a user:
+
+    $ sudo docker exec -it openshift-origin bash
+    $ oc login
+    Username: test
+    Password: test
+    $ oc whoami -t
+    <prints a token>
+    $ exit
+    # from your host
+    $ curl -H "Authorization: bearer <token>" https://localhost:8443/oapi/v1/...
+
 
 ### API Documentation
 
 The API documentation can be found [here](http://docs.openshift.org/latest/rest_api/openshift_v1.html).
 
-Web Console
------------
-
-The OpenShift API server also hosts a web console. You can try it out at [https://localhost:8443/console](https://localhost:8443/console).
-
-For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/architecture/infrastructure_components/web_console.html).
-
-![Web console overview](docs/screenshots/console_overview.png?raw=true)
 
 FAQ
 ---
@@ -181,11 +149,15 @@ FAQ
 Contributing
 ------------
 
+You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your-host) or with a [virtual machine](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant), or if you want to just try out OpenShift [download the latest Linux server, or Windows and Mac OS X client pre-built binaries](CONTRIBUTING.adoc#download-from-github).
+
+First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc).
+
 All contributions are welcome - OpenShift uses the Apache 2 license and does not require any contributor agreement to submit patches.  Please open issues for any bugs or problems you encounter, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved in the [Kubernetes project](https://github.com/GoogleCloudPlatform/kubernetes) at the container runtime layer.
 
 See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for more details on developing on OpenShift including how different tests are setup.
 
-If you want to run the test suite, make sure you have your environment from above set up, and from the origin directory run:
+If you want to run the test suite, make sure you have your environment set up, and from the `origin` directory run:
 
 ```
 # run the unit tests
@@ -215,6 +187,8 @@ Some of the components of OpenShift run as Docker images, including the builders
 ```
 $ hack/build-images.sh
 ```
+
+To hack on the web console, check out the [assets/README.md](assets/README.md) file for instructions on testing the console and building your changes.
 
 
 License
