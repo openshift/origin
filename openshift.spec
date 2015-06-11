@@ -183,6 +183,8 @@ pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/bin
 popd
 install -d -m 0755 %{buildroot}%{_prefix}/lib/systemd/system/openshift-node.service.d
 install -p -m 0644 rel-eng/openshift-sdn-ovs.conf %{buildroot}%{_prefix}/lib/systemd/system/openshift-node.service.d/
+install -d -m 0755 %{buildroot}%{_prefix}/lib/systemd/system/docker.service.d
+install -p -m 0644 rel-eng/docker-sdn-ovs.conf %{buildroot}%{_prefix}/lib/systemd/system/docker.service.d/
 
 # Install bash completions
 install -d -m 755 %{buildroot}/etc/bash_completion.d/
@@ -233,6 +235,7 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}/etc/bash_completion.d/
 %{_bindir}/openshift-sdn-kube-subnet-setup.sh
 %{kube_plugin_path}/openshift-ovs-subnet
 %{_prefix}/lib/systemd/system/openshift-node.service.d/openshift-sdn-ovs.conf
+%{_prefix}/lib/systemd/system/docker.service.d/docker-sdn-ovs.conf
 
 %files -n tuned-profiles-openshift-node
 %defattr(-,root,root,-)
