@@ -7,5 +7,5 @@
 FROM centos:centos7
 
 # components from EPEL must be installed in a separate yum install step
-RUN yum install -y git tar wget socat hostname epel-release && \
+RUN yum install -y git tar wget socat hostname sysvinit-tools util-linux epel-release && \
     yum clean all

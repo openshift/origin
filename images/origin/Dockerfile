@@ -13,12 +13,14 @@ RUN ln -s /usr/bin/openshift /usr/bin/oc && \
     ln -s /usr/bin/openshift /usr/bin/oadm && \
     ln -s /usr/bin/openshift /usr/bin/osc && \
     ln -s /usr/bin/openshift /usr/bin/osadm && \
+    ln -s /usr/bin/openshift /usr/bin/kubectl && \
     ln -s /usr/bin/openshift /usr/bin/openshift-deploy && \
     ln -s /usr/bin/openshift /usr/bin/openshift-docker-build && \
     ln -s /usr/bin/openshift /usr/bin/openshift-sti-build && \
     ln -s /usr/bin/openshift /usr/bin/openshift-router
 
 ENV HOME /root
+ENV OPENSHIFT_CONTAINERIZED true
 ENV KUBECONFIG /var/lib/openshift/openshift.local.config/master/admin.kubeconfig
 WORKDIR /var/lib/openshift
 ENTRYPOINT ["/usr/bin/openshift"]

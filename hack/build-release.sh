@@ -26,6 +26,8 @@ mkdir -p "${OS_ROOT}/_output/local"
 os::build::get_version_vars
 os::build::save_version_vars "${context}/os-version-defs"
 
+echo "++ Building release ${OS_GIT_VERSION}"
+
 # Create the input archive.
 git archive --format=tar -o "${context}/archive.tar" HEAD
 tar -rf "${context}/archive.tar" -C "${context}" os-version-defs
