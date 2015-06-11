@@ -56,9 +56,9 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		clients: make(map[string]*client.Client),
 		loader:  clientConfig,
 	}
+
 	generators := map[string]kubectl.Generator{
-		"route/v1":   routegen.RouteGenerator{},
-		"service/v1": kubectl.ServiceGenerator{},
+		"route/v1": routegen.RouteGenerator{},
 	}
 
 	w := &Factory{
@@ -122,9 +122,12 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return deployreaper.ReaperFor(mapping.Kind, oc, kc)
 	}
+	kGeneratorFunc := w.Factory.Generator
 	w.Generator = func(name string) (kubectl.Generator, bool) {
-		generator, ok := generators[name]
-		return generator, ok
+		if generator, ok := generators[name]; ok {
+			return generator, true
+		}
+		return kGeneratorFunc(name)
 	}
 	w.PodSelectorForObject = func(object runtime.Object) (string, error) {
 		switch t := object.(type) {
