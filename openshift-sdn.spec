@@ -87,6 +87,8 @@ mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 install -m 0644 rel-eng/openshift-sdn-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/openshift-sdn-master
 install -m 0644 rel-eng/openshift-sdn-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/openshift-sdn-node
 
+install -d -m 0755 %{buildroot}%{_prefix}/lib/systemd/system/docker.service.d
+install -p -m 0644 rel-eng/docker-sdn-ovs.conf %{buildroot}%{_prefix}/lib/systemd/system/docker.service.d/
 
 %files
 %defattr(-,root,root,-)
@@ -116,8 +118,10 @@ install -m 0644 rel-eng/openshift-sdn-node.sysconfig %{buildroot}%{_sysconfdir}/
 %defattr(-,root,root,-)
 %{_unitdir}/openshift-sdn-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/openshift-sdn-node
+%{_prefix}/lib/systemd/system/docker.service.d/
 
 %post node
+systemctl daemon-reload
 %systemd_post %{basename:openshift-sdn-node.service}
 
 %preun node
