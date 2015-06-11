@@ -14,7 +14,7 @@ angular.module('openshiftConsole')
     }
   })
   .filter('annotation', function() {
-    // This maps a an annotation key to all known synonymous keys to insulate
+    // This maps an annotation key to all known synonymous keys to insulate
     // the referring code from key renames across API versions.
     var annotationMap = {
       "deploymentConfig": ["openshift.io/deployment-config.name"],
@@ -27,18 +27,6 @@ angular.module('openshiftConsole')
       "description": ["openshift.io/description"]
     };
     return function(resource, key) {
-      if (resource && resource.spec && resource.spec.tags && key.indexOf(".") !== -1){
-        var tagAndKey = key.split(".");
-        var tags = resource.spec.tags;
-        for(var i=0; i < tags.length; ++i){
-          var tag = tags[i];
-          var tagName = tagAndKey[0];
-          var tagKey = tagAndKey[1];
-          if(tagName === tag.name && tag.annotations){
-            return tag.annotations[tagKey];
-          }
-        } 
-      }
       if (resource && resource.metadata && resource.metadata.annotations) {
         // If the key's already in the annotation map, return it.
         if (resource.metadata.annotations[key] !== undefined) {
@@ -55,6 +43,23 @@ angular.module('openshiftConsole')
         // Couldn't find anything.
         return null;
       }
+      return null;
+    };
+  })
+  .filter('imageStreamTagAnnotation', function() {
+    // Look up annotations on ImageStream.spec.tags[tag].annotations
+    return function(resource, key, /* optional */ tagName) {
+      tagName = tagName || 'latest';
+      if (resource && resource.spec && resource.spec.tags){
+        var tags = resource.spec.tags;
+        for(var i=0; i < tags.length; ++i){
+          var tag = tags[i];
+          if(tagName === tag.name && tag.annotations){
+            return tag.annotations[key];
+          }
+        }
+      }
+
       return null;
     };
   })
@@ -80,13 +85,24 @@ angular.module('openshiftConsole')
     };
   })
   .filter('tags', function(annotationFilter) {
-    return function(resource, annotationKey) {
+    return function(resource, /* optional */ annotationKey) {
       annotationKey = annotationKey || "tags";
       var tags = annotationFilter(resource, annotationKey);
       if (!tags) {
         return [];
       }
       return tags.split(/\s*,\s*/);
+    };
+  })
+  .filter('imageStreamTagTags', function(imageStreamTagAnnotationFilter) {
+    // Return ImageStream.spec.tag[tag].annotation.tags as an array
+    return function(resource, /* optional */ tagName) {
+      var imageTags = imageStreamTagAnnotationFilter(resource, 'tags', tagName);
+      if (!imageTags) {
+        return [];
+      }
+
+      return imageTags.split(/\s*,\s*/);
     };
   })
   .filter('label', function() {
@@ -109,23 +125,23 @@ angular.module('openshiftConsole')
     };
   })
   .filter('iconClass', function(annotationFilter) {
-    return function(resource, kind, annotationKey) {
-      annotationKey = annotationKey || "iconClass";
-      var icon = annotationFilter(resource, annotationKey);
+    return function(resource, kind) {
+      var icon = annotationFilter(resource, "iconClass");
       if (!icon) {
         if (kind === "template") {
           return "fa fa-bolt";
         }
-        if (kind === "image") {
-          return "fa fa-cube";
-        }
-        else {
-          return "";
-        }
+
+        return "";
       }
-      else {
-        return icon;
-      }
+
+      return icon;
+    };
+  })
+  .filter('imageStreamTagIconClass', function(imageStreamTagAnnotationFilter) {
+    return function(resource, /* optional */ tagName) {
+      var icon = imageStreamTagAnnotationFilter(resource, "iconClass", tagName);
+      return (icon) ? icon : "fa fa-cube";
     };
   })
   .filter('imageName', function() {
@@ -251,9 +267,17 @@ angular.module('openshiftConsole')
       }
     };
   })
-  .filter('provider', function() {
+  .filter('provider', function(annotationFilter) {
     return function(resource) {
-      return (resource && resource.annotations && resource.annotations.provider) ||
+      return annotationFilter(resource, 'provider') ||
+        (resource && resource.metadata && resource.metadata.namespace);
+    };
+  })
+  .filter('imageStreamTagProvider', function(imageStreamTagAnnotationFilter) {
+    // Look up the provider in ImageStream.spec.tags[tag].annotations.
+    // Default to resource.metadata.namespace if no annotation.
+    return function(resource, /* optional */ tagName) {
+      return imageStreamTagAnnotationFilter(resource, 'provider', tagName) ||
         (resource && resource.metadata && resource.metadata.namespace);
     };
   })

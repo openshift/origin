@@ -74,12 +74,20 @@ angular.module('openshiftConsole')
         kind: '@',
         tag: '=?'
       },
-      controller: function($scope, annotationFilter, iconClassFilter) {
-        var icon = $scope.icon = annotationFilter($scope.resource, $scope.tag ? $scope.tag + ".icon" : "icon");
-        $scope.isDataIcon = icon && icon.indexOf("data:") == 0;
+      controller: function($scope, $filter) {
+        if ($scope.tag) {
+          $scope.icon = $filter('imageStreamTagAnnotation')($scope.resource, "icon", $scope.tag);
+        } else {
+          $scope.icon = $filter('annotation')($scope.resource, "icon");
+        }
+        $scope.isDataIcon = $scope.icon && $scope.icon.indexOf("data:") == 0;
         if (!$scope.isDataIcon) {
           // The icon class filter will at worst return the default icon for the given kind
-          $scope.icon = iconClassFilter($scope.resource, $scope.kind, $scope.tag ? $scope.tag + ".iconClass" : "iconClass");
+          if ($scope.tag) {
+            $scope.icon = $filter('imageStreamTagIconClass')($scope.resource, $scope.tag);
+          } else {
+            $scope.icon = $filter('iconClass')($scope.resource, $scope.kind);
+          }
         }
       },
       templateUrl: 'views/directives/_custom-icon.html'
