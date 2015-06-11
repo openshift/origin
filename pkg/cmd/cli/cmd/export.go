@@ -40,7 +40,7 @@ to generate the API structure for a template to which you can add parameters and
   %[1]s export svc,dc -l name=test
 
   // export all services to a template
-  %[1]s export service --all --as-template
+  %[1]s export service --all --as-template=test
 
   // export to JSON
   %[1]s export service --all -o json
@@ -65,7 +65,7 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 			cmdutil.CheckErr(err)
 		},
 	}
-	cmd.Flags().Bool("as-template", false, "Output a Template object instead of a List or single object.")
+	cmd.Flags().String("as-template", "", "Output a Template object with specified name instead of a List or single object.")
 	cmd.Flags().Bool("exact", false, "Preserve fields that may be cluster specific, such as service portalIPs or generated names")
 	cmd.Flags().Bool("raw", false, "If true, do not alter the resources in any way after they are loaded.")
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
@@ -79,7 +79,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	selector := cmdutil.GetFlagString(cmd, "selector")
 	all := cmdutil.GetFlagBool(cmd, "all")
 	exact := cmdutil.GetFlagBool(cmd, "exact")
-	asTemplate := cmdutil.GetFlagBool(cmd, "as-template")
+	asTemplate := cmdutil.GetFlagString(cmd, "as-template")
 	raw := cmdutil.GetFlagBool(cmd, "raw")
 	if exact && raw {
 		return cmdutil.UsageError(cmd, "--exact and --raw may not both be specified")
@@ -133,7 +133,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	}
 
 	var result runtime.Object
-	if asTemplate {
+	if len(asTemplate) > 0 {
 		objects, err := resource.AsVersionedObjects(infos, outputVersion)
 		if err != nil {
 			return err
@@ -141,6 +141,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		template := &templateapi.Template{
 			Objects: objects,
 		}
+		template.Name = asTemplate
 		result, err = kapi.Scheme.ConvertToVersion(template, outputVersion)
 		if err != nil {
 			return err

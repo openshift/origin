@@ -672,7 +672,7 @@ echo "complex-scenarios: ok"
 
 [ "$(oc export svc --all -t '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | wc -l)" -ne 0 ]
 [ "$(oc export svc --all | grep 'portalIP: ""')" ]
-[ "$(oc export svc --all --as-template | grep 'kind: Template')" ]
+[ "$(oc export svc --all --as-template=template | grep 'kind: Template')" ]
 [ ! "$(oc export svc --all --exact | grep 'portalIP: ""')" ]
 [ ! "$(oc export svc --all --raw | grep 'portalIP: ""')" ]
 [ ! "$(oc export svc --all --raw --exact)" ]
