@@ -107,12 +107,26 @@
                   }
                 ],
                 "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "mysql-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
                 "capabilities": {},
                 "securityContext": {
                   "capabilities": {},
                   "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "mysql-data",
+                "emptyDir": {
+                  "medium": ""
                 }
               }
             ],
