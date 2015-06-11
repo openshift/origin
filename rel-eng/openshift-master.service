@@ -2,10 +2,7 @@
 Description=OpenShift Master
 Documentation=https://github.com/openshift/origin
 After=network.target
-After=etcd.service
 Before=openshift-node.service
-Before=openshift-sdn-node.service
-Before=openshift-sdn-master.service
 Requires=network.target
 
 [Service]
@@ -20,5 +17,4 @@ SyslogIdentifier=openshift-master
 
 [Install]
 WantedBy=multi-user.target
-WantedBy=openshift-sdn-master.service
 WantedBy=openshift-node.service
