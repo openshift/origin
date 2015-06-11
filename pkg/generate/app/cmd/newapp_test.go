@@ -670,6 +670,7 @@ func TestRunBuild(t *testing.T) {
 			name: "successful ruby app generation",
 			config: &AppConfig{
 				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
+				DockerImages:       util.StringList{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"},
 				OutputDocker:       true,
 
 				dockerResolver: dockerResolver,
@@ -695,6 +696,7 @@ func TestRunBuild(t *testing.T) {
 			},
 			expected: map[string][]string{
 				"buildConfig": {"ruby-hello-world"},
+				"imageStream": {"ruby-20-centos7"},
 			},
 			expectedErr: nil,
 		},
@@ -711,6 +713,8 @@ func TestRunBuild(t *testing.T) {
 			switch tp := obj.(type) {
 			case *buildapi.BuildConfig:
 				got["buildConfig"] = append(got["buildConfig"], tp.Name)
+			case *imageapi.ImageStream:
+				got["imageStream"] = append(got["imageStream"], tp.Name)
 			}
 		}
 

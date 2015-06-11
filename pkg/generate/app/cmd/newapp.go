@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/fsouza/go-dockerclient"
@@ -531,8 +532,61 @@ func (c *AppConfig) RunBuilds(out io.Writer) (*AppResult, error) {
 		return nil, ErrNoInputs
 	}
 
-	return c.run(out, app.Acceptors{app.NewAcceptBuildConfigs(c.typer), app.NewAcceptUnique(c.typer), app.AcceptNew},
+	bcAcceptor := app.NewAcceptBuildConfigs(c.typer)
+	result, err := c.run(out, app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew},
 		components, repositories, environment, parameters)
+	if err != nil {
+		return nil, err
+	}
+	return filterImageStreams(result), nil
+}
+
+func filterImageStreams(result *AppResult) *AppResult {
+	// 1st pass to get images from all BuildConfigs
+	imageStreams := map[string]bool{}
+	for _, item := range result.List.Items {
+		if bc, ok := item.(*buildapi.BuildConfig); ok {
+			to := bc.Parameters.Output.To
+			if to != nil && to.Kind == "ImageStreamTag" {
+				imageStreams[makeImageStreamKey(to)] = true
+			}
+			switch bc.Parameters.Strategy.Type {
+			case buildapi.DockerBuildStrategyType:
+				from := bc.Parameters.Strategy.DockerStrategy.From
+				if from != nil && from.Kind == "ImageStreamTag" {
+					imageStreams[makeImageStreamKey(from)] = true
+				}
+			case buildapi.SourceBuildStrategyType:
+				from := bc.Parameters.Strategy.SourceStrategy.From
+				if from.Kind == "ImageStreamTag" {
+					imageStreams[makeImageStreamKey(from)] = true
+				}
+			case buildapi.CustomBuildStrategyType:
+				from := bc.Parameters.Strategy.CustomStrategy.From
+				if from != nil && from.Kind == "ImageStreamTag" {
+					imageStreams[makeImageStreamKey(from)] = true
+				}
+			}
+		}
+	}
+	items := []runtime.Object{}
+	// 2nd pass to remove ImageStreams not used by BuildConfigs
+	for _, item := range result.List.Items {
+		if is, ok := item.(*imageapi.ImageStream); ok {
+			if _, ok := imageStreams[types.NamespacedName{is.Namespace, is.Name}.String()]; ok {
+				items = append(items, is)
+			}
+		} else {
+			items = append(items, item)
+		}
+	}
+	result.List.Items = items
+	return result
+}
+
+func makeImageStreamKey(ref *kapi.ObjectReference) string {
+	name, _, _ := imageapi.SplitImageStreamTag(ref.Name)
+	return types.NamespacedName{ref.Namespace, name}.String()
 }
 
 // run executes the provided config applying provided acceptors.

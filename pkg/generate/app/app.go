@@ -239,14 +239,14 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 	if err != nil {
 		return nil, err
 	}
-	kind := ""
+	kind := "ImageStreamTag"
 	if !r.AsImageStream {
 		kind = "DockerImage"
 	}
 	return &buildapi.BuildOutput{
 		To: &kapi.ObjectReference{
 			Kind: kind,
-			Name: imageRepo.Name,
+			Name: imageapi.NameAndTag(imageRepo.Name, r.Tag),
 		},
 		Tag: r.Tag,
 	}, nil
