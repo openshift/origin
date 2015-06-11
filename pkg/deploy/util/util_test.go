@@ -1,6 +1,7 @@
 package util
 
 import (
+	"sort"
 	"strconv"
 	"testing"
 
@@ -120,5 +121,30 @@ func TestMakeDeploymentOk(t *testing.T) {
 
 	if e, a := deployment.Name, deployment.Spec.Selector[deployapi.DeploymentLabel]; e != a {
 		t.Fatalf("expected selector DeploymentLabel=%s, got %s", e, a)
+	}
+}
+
+func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
+	mkdeployment := func(version int) kapi.ReplicationController {
+		deployment, _ := MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codec)
+		return *deployment
+	}
+	deployments := []kapi.ReplicationController{
+		mkdeployment(4),
+		mkdeployment(1),
+		mkdeployment(2),
+		mkdeployment(3),
+	}
+	sort.Sort(DeploymentsByLatestVersionAsc(deployments))
+	for i := 0; i < 4; i++ {
+		if e, a := i+1, DeploymentVersionFor(&deployments[i]); e != a {
+			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
+		}
+	}
+	sort.Sort(DeploymentsByLatestVersionDesc(deployments))
+	for i := 0; i < 4; i++ {
+		if e, a := 4-i, DeploymentVersionFor(&deployments[i]); e != a {
+			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
+		}
 	}
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	"github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -40,7 +39,7 @@ const sourceIdAnnotation = "kubectl.kubernetes.io/update-source-id"
 // [2] https://github.com/GoogleCloudPlatform/kubernetes/issues/7851
 type RollingDeploymentStrategy struct {
 	// initialStrategy is used when there are no prior deployments.
-	initialStrategy strategy.DeploymentStrategy
+	initialStrategy acceptingDeploymentStrategy
 	// client is used to deal with ReplicationControllers.
 	client kubectl.RollingUpdaterClient
 	// rollingUpdate knows how to perform a rolling update.
@@ -49,10 +48,26 @@ type RollingDeploymentStrategy struct {
 	codec runtime.Codec
 	// hookExecutor can execute a lifecycle hook.
 	hookExecutor hookExecutor
+	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
+	// of the deployment.
+	getUpdateAcceptor func(timeout time.Duration) kubectl.UpdateAcceptor
 }
 
+// acceptingDeploymentStrategy is a DeploymentStrategy which accepts an
+// injected UpdateAcceptor as part of the deploy function. This is a hack to
+// support using the Recreate strategy for initial deployments and should be
+// removed when https://github.com/GoogleCloudPlatform/kubernetes/pull/7183 is
+// fixed.
+type acceptingDeploymentStrategy interface {
+	DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error
+}
+
+// NewFirstContainerReadyInterval is how often to check for container
+// readiness with the FirstContainerReady acceptor.
+const NewFirstContainerReadyInterval = 1 * time.Second
+
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, codec runtime.Codec, initialStrategy strategy.DeploymentStrategy) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, codec runtime.Codec, initialStrategy acceptingDeploymentStrategy) *RollingDeploymentStrategy {
 	updaterClient := &rollingUpdaterClient{
 		ControllerHasDesiredReplicasFn: func(rc *kapi.ReplicationController) wait.ConditionFunc {
 			return kclient.ControllerHasDesiredReplicas(client, rc)
@@ -95,32 +110,30 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, co
 				},
 			},
 		},
+		getUpdateAcceptor: func(timeout time.Duration) kubectl.UpdateAcceptor {
+			return stratsupport.NewFirstContainerReady(client, timeout, NewFirstContainerReadyInterval)
+		},
 	}
 }
 
-func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error {
-	config, err := deployutil.DecodeDeploymentConfig(deployment, s.codec)
+func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
+	config, err := deployutil.DecodeDeploymentConfig(to, s.codec)
 	if err != nil {
-		return fmt.Errorf("couldn't decode DeploymentConfig from Deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
+		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s: %v", deployutil.LabelForDeployment(to), err)
 	}
 
 	params := config.Template.Strategy.RollingParams
-
-	// Find the latest deployment (if any).
-	latest, err := s.findLatestDeployment(oldDeployments)
-	if err != nil {
-		return fmt.Errorf("couldn't determine latest Deployment: %v", err)
-	}
+	updateAcceptor := s.getUpdateAcceptor(time.Duration(*params.TimeoutSeconds) * time.Second)
 
 	// If there's no prior deployment, delegate to another strategy since the
 	// rolling updater only supports transitioning between two deployments.
 	//
 	// Hook support is duplicated here for now. When the rolling updater can
 	// handle initial deployments, all of this code can go away.
-	if latest == nil {
+	if from == nil {
 		// Execute any pre-hook.
 		if params.Pre != nil {
-			err := s.hookExecutor.Execute(params.Pre, deployment, "prehook")
+			err := s.hookExecutor.Execute(params.Pre, to, "prehook")
 			if err != nil {
 				return fmt.Errorf("Pre hook failed: %s", err)
 			}
@@ -128,14 +141,14 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 		}
 
 		// Execute the delegate strategy.
-		err := s.initialStrategy.Deploy(deployment, oldDeployments)
+		err := s.initialStrategy.DeployWithAcceptor(from, to, desiredReplicas, updateAcceptor)
 		if err != nil {
 			return err
 		}
 
 		// Execute any post-hook. Errors are logged and ignored.
 		if params.Post != nil {
-			err := s.hookExecutor.Execute(params.Post, deployment, "posthook")
+			err := s.hookExecutor.Execute(params.Post, to, "posthook")
 			if err != nil {
 				util.HandleError(fmt.Errorf("post hook failed: %s", err))
 			} else {
@@ -150,7 +163,7 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	// Prepare for a rolling update.
 	// Execute any pre-hook.
 	if params.Pre != nil {
-		err := s.hookExecutor.Execute(params.Pre, deployment, "prehook")
+		err := s.hookExecutor.Execute(params.Pre, to, "prehook")
 		if err != nil {
 			return fmt.Errorf("pre hook failed: %s", err)
 		}
@@ -162,16 +175,16 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	//
 	// Related upstream issue:
 	// https://github.com/GoogleCloudPlatform/kubernetes/pull/7183
-	deployment, err = s.client.GetReplicationController(deployment.Namespace, deployment.Name)
+	to, err = s.client.GetReplicationController(to.Namespace, to.Name)
 	if err != nil {
-		return fmt.Errorf("couldn't look up deployment %s: %s", deployutil.LabelForDeployment(deployment))
+		return fmt.Errorf("couldn't look up deployment %s: %s", deployutil.LabelForDeployment(to))
 	}
-	if _, hasSourceId := deployment.Annotations[sourceIdAnnotation]; !hasSourceId {
-		deployment.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", latest.Name, latest.ObjectMeta.UID)
-		if updated, err := s.client.UpdateReplicationController(deployment.Namespace, deployment); err != nil {
-			return fmt.Errorf("couldn't assign source annotation to deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
+	if _, hasSourceId := to.Annotations[sourceIdAnnotation]; !hasSourceId {
+		to.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", from.Name, from.ObjectMeta.UID)
+		if updated, err := s.client.UpdateReplicationController(to.Namespace, to); err != nil {
+			return fmt.Errorf("couldn't assign source annotation to deployment %s: %v", deployutil.LabelForDeployment(to), err)
 		} else {
-			deployment = updated
+			to = updated
 		}
 	}
 
@@ -182,36 +195,34 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	//
 	// Related upstream issue:
 	// https://github.com/GoogleCloudPlatform/kubernetes/pull/7183
-	deployment.Spec.Replicas = 1
+	to.Spec.Replicas = 1
 
-	glog.Infof("OldRc: %s, replicas=%d", latest.Name, latest.Spec.Replicas)
 	// Perform a rolling update.
 	rollingConfig := &kubectl.RollingUpdaterConfig{
-		Out:           &rollingUpdaterWriter{},
-		OldRc:         latest,
-		NewRc:         deployment,
-		UpdatePeriod:  time.Duration(*params.UpdatePeriodSeconds) * time.Second,
-		Interval:      time.Duration(*params.IntervalSeconds) * time.Second,
-		Timeout:       time.Duration(*params.TimeoutSeconds) * time.Second,
-		CleanupPolicy: kubectl.PreserveRollingUpdateCleanupPolicy,
+		Out:            &rollingUpdaterWriter{},
+		OldRc:          from,
+		NewRc:          to,
+		UpdatePeriod:   time.Duration(*params.UpdatePeriodSeconds) * time.Second,
+		Interval:       time.Duration(*params.IntervalSeconds) * time.Second,
+		Timeout:        time.Duration(*params.TimeoutSeconds) * time.Second,
+		CleanupPolicy:  kubectl.PreserveRollingUpdateCleanupPolicy,
+		UpdateAcceptor: updateAcceptor,
 	}
-	glog.Infof("Starting rolling update with DeploymentConfig: %#v (UpdatePeriod %d, Interval %d, Timeout %d) (UpdatePeriodSeconds %d, IntervalSeconds %d, TimeoutSeconds %d)",
-		rollingConfig,
-		rollingConfig.UpdatePeriod,
-		rollingConfig.Interval,
-		rollingConfig.Timeout,
+	glog.Infof("Starting rolling update from %s to %s (desired replicas: %d, UpdatePeriodSeconds=%d, IntervalSeconds=%d, TimeoutSeconds=%d)",
+		deployutil.LabelForDeployment(from),
+		deployutil.LabelForDeployment(to),
+		desiredReplicas,
 		*params.UpdatePeriodSeconds,
 		*params.IntervalSeconds,
 		*params.TimeoutSeconds,
 	)
-	err = s.rollingUpdate(rollingConfig)
-	if err != nil {
+	if err := s.rollingUpdate(rollingConfig); err != nil {
 		return err
 	}
 
 	// Execute any post-hook. Errors are logged and ignored.
 	if params.Post != nil {
-		err := s.hookExecutor.Execute(params.Post, deployment, "posthook")
+		err := s.hookExecutor.Execute(params.Post, to, "posthook")
 		if err != nil {
 			util.HandleError(fmt.Errorf("Post hook failed: %s", err))
 		} else {
@@ -220,28 +231,6 @@ func (s *RollingDeploymentStrategy) Deploy(deployment *kapi.ReplicationControlle
 	}
 
 	return nil
-}
-
-// findLatestDeployment retrieves deployments identified by oldDeployments and
-// returns the latest one from the list, or nil if there are no old
-// deployments.
-func (s *RollingDeploymentStrategy) findLatestDeployment(oldDeployments []*kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	// Find the latest deployment from the list of old deployments.
-	var latest *kapi.ReplicationController
-	latestVersion := 0
-	for _, deployment := range oldDeployments {
-		version := deployutil.DeploymentVersionFor(deployment)
-		if version > latestVersion {
-			latest = deployment
-			latestVersion = version
-		}
-	}
-	if latest != nil {
-		glog.Infof("Found latest Deployment %s", latest.Name)
-	} else {
-		glog.Info("No latest Deployment found")
-	}
-	return latest, nil
 }
 
 type rollingUpdaterClient struct {
