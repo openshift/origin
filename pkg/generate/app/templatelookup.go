@@ -68,9 +68,6 @@ type TemplateFileResolver struct {
 
 // Resolve attemps to read the template file and transform it into a template object
 func (r *TemplateFileResolver) Resolve(value string) (*ComponentMatch, error) {
-	if !isFile(value) {
-		return nil, fmt.Errorf("%s is not a file", value)
-	}
 	var isSingular bool
 	obj, err := resource.NewBuilder(r.Mapper, r.Typer, r.ClientMapper).
 		NamespaceParam(r.Namespace).RequireNamespace().
