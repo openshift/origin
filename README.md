@@ -144,7 +144,7 @@ Web Console
 
 The OpenShift API server also hosts a web console. You can try it out at [https://localhost:8443/console](https://localhost:8443/console).
 
-For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/dev_guide/authentication.html#web-console-authentication).
+For more information on the console [checkout the README](assets/README.md) and the [docs](http://docs.openshift.org/latest/architecture/infrastructure_components/web_console.html).
 
 ![Web console overview](docs/screenshots/console_overview.png?raw=true)
 
