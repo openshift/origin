@@ -40,7 +40,7 @@ mkdir -p "${SWAGGER_ROOT_DIR}"
 SWAGGER_API_PATH="${HOST}/swaggerapi/"
 
 # Prevent user environment from colliding with the test setup
-unset OPENSHIFTCONFIG
+unset KUBECONFIG
 
 # set path so OpenShift is available
 GO_OUT="${OS_ROOT}/_output/local/go/bin"

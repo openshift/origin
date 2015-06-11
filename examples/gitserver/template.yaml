@@ -33,7 +33,7 @@ items:
           - name: AUTOLINK_HOOK
             value: null
           - name: REQUIRE_GIT_AUTH
-          - name: OPENSHIFTCONFIG
+          - name: KUBECONFIG
             value: /var/lib/gitsecrets/admin.kubeconfig
           image: openshift/origin-gitserver
           name: gitserver

@@ -27,12 +27,12 @@ Pre-requisites/Prep Time
    with two (_2_) replicas.
 
         $ vagrant ssh minion-1  # (or master or minion-2).
-        #  Ensure OPENSHIFTCONFIG is set or else set it.
-        [ -n "$OPENSHIFTCONFIG" ] ||  \
-           export OPENSHIFTCONFIG=/openshift.local.config/master/admin.kubeconfig
+        #  Ensure KUBECONFIG is set or else set it.
+        [ -n "$KUBECONFIG" ] ||  \
+           export KUBECONFIG=/openshift.local.config/master/admin.kubeconfig
         #  openshift kube get dc,rc,pods,se,mi,routes
         oadm router arparp --create --replicas=2  \
-                                   --credentials="${OPENSHIFTCONFIG}"
+                                   --credentials="${KUBECONFIG}"
 
 
 3. Wait for the Router pods to get into running state (I'm just sitting

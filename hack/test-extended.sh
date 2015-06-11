@@ -35,7 +35,7 @@ export NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-127.0.0.1"
 export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
 export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
 export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
-export OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+export KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 export OPENSHIFT_ON_PANIC=crash
 
 cleanup() {
@@ -105,11 +105,11 @@ oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
 start_docker_registry() {
   mkdir -p ${BASETMPDIR}/.registry
   echo "[INFO] Creating Router ..."
-  oadm router --create --credentials="${OPENSHIFTCONFIG}" \
+  oadm router --create --credentials="${KUBECONFIG}" \
     --images='openshift/origin-${component}:latest' &>/dev/null
 
   echo "[INFO] Creating Registry ..."
-  oadm registry --create --credentials="${OPENSHIFTCONFIG}" \
+  oadm registry --create --credentials="${KUBECONFIG}" \
     --mount-host="${BASETMPDIR}/.registry" \
     --images='openshift/origin-${component}:latest' &>/dev/null
 }
