@@ -109,7 +109,7 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		httplog.LogOf(req, w).Addf("Error getting ResourceLocation: %v", err)
 		status := errToAPIStatus(err)
-		writeJSON(status.Code, r.codec, status, w)
+		writeJSON(status.Code, r.codec, status, w, true)
 		httpCode = status.Code
 		return
 	}
@@ -140,7 +140,7 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	newReq, err := http.NewRequest(req.Method, location.String(), req.Body)
 	if err != nil {
 		status := errToAPIStatus(err)
-		writeJSON(status.Code, r.codec, status, w)
+		writeJSON(status.Code, r.codec, status, w, true)
 		notFound(w, req)
 		httpCode = status.Code
 		return
@@ -194,7 +194,7 @@ func (r *ProxyHandler) tryUpgrade(w http.ResponseWriter, req, newReq *http.Reque
 	backendConn, err := dialURL(location, transport)
 	if err != nil {
 		status := errToAPIStatus(err)
-		writeJSON(status.Code, r.codec, status, w)
+		writeJSON(status.Code, r.codec, status, w, true)
 		return true
 	}
 	defer backendConn.Close()
@@ -205,14 +205,14 @@ func (r *ProxyHandler) tryUpgrade(w http.ResponseWriter, req, newReq *http.Reque
 	requestHijackedConn, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
 		status := errToAPIStatus(err)
-		writeJSON(status.Code, r.codec, status, w)
+		writeJSON(status.Code, r.codec, status, w, true)
 		return true
 	}
 	defer requestHijackedConn.Close()
 
 	if err = newReq.Write(backendConn); err != nil {
 		status := errToAPIStatus(err)
-		writeJSON(status.Code, r.codec, status, w)
+		writeJSON(status.Code, r.codec, status, w, true)
 		return true
 	}
 
