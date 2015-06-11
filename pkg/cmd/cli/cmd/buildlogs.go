@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	buildLogsLong = `Retrieve logs from the containers where the build occured.
+	buildLogsLong = `Retrieve logs from the containers where the build occurred.
 
 NOTE: This command may be moved in the future.`
 

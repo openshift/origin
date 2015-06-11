@@ -652,7 +652,7 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 
 	// Ensure namespace exists
 	_, err := c.KubeClient().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: ns}})
-	if err != nil && !kapierror.IsConflict(err) {
+	if err != nil && !kapierror.IsAlreadyExists(err) {
 		glog.Errorf("Error creating namespace %s: %v", ns, err)
 	}
 
@@ -660,7 +660,7 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 	serviceAccounts := []string{c.BuildControllerServiceAccount, c.DeploymentControllerServiceAccount, c.ReplicationControllerServiceAccount}
 	for _, serviceAccountName := range serviceAccounts {
 		_, err := c.KubeClient().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: serviceAccountName}})
-		if err != nil && !kapierror.IsConflict(err) {
+		if err != nil && !kapierror.IsAlreadyExists(err) {
 			glog.Errorf("Error creating service account %s/%s: %v", ns, serviceAccountName, err)
 		}
 	}
@@ -1096,7 +1096,7 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 func (c *MasterConfig) RunSDNController() {
 	osclient, kclient := c.SDNControllerClients()
 	if c.Options.NetworkConfig.NetworkPluginName == osdn.NetworkPluginName() {
-		osdn.Master(*osclient, *kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
+		osdn.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
 	}
 }
 

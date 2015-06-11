@@ -193,6 +193,8 @@ func (o *AllInOneOptions) Complete() error {
 	}
 	o.MasterArgs.NodeList = nodeList.List()
 
+	o.MasterArgs.NetworkArgs.NetworkPluginName = o.NodeArgs.NetworkPluginName
+
 	masterAddr, err := o.MasterArgs.GetMasterAddress()
 	if err != nil {
 		return err

@@ -2,6 +2,7 @@ package deploymentconfig
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -116,21 +117,19 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		return fatalError(fmt.Sprintf("couldn't make Deployment from (potentially invalid) DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err))
 	}
 
-	// Compute the desired replicas for the deployment. The count should match
-	// the existing deployment replica count. To find this, simply sum the
-	// replicas of existing deployments for this config. Any deactivated
-	// deployments should already be scaled down to zero, and so the sum should
-	// reflect the count of the latest active deployment.
-	//
-	// If there are no existing deployments, use the replica count from the
-	// config template.
+	// Compute the desired replicas for the deployment. Use the last completed
+	// deployment's current replica count, or the config template if there is no
+	// prior completed deployment available.
 	desiredReplicas := config.Template.ControllerTemplate.Replicas
 	if len(existingDeployments.Items) > 0 {
-		desiredReplicas = 0
+		sort.Sort(deployutil.DeploymentsByLatestVersionDesc(existingDeployments.Items))
 		for _, existing := range existingDeployments.Items {
-			desiredReplicas += existing.Spec.Replicas
+			if deployutil.DeploymentStatusFor(&existing) == deployapi.DeploymentStatusComplete {
+				desiredReplicas = existing.Spec.Replicas
+				glog.V(4).Infof("Desired replicas for %s set to %d based on prior completed deployment %s", deployutil.LabelForDeploymentConfig(config), desiredReplicas, existing.Name)
+				break
+			}
 		}
-		glog.V(4).Infof("Desired replicas for %s adjusted to %d based on %d existing deployments", deployutil.LabelForDeploymentConfig(config), desiredReplicas, len(existingDeployments.Items))
 	}
 	deployment.Annotations[deployapi.DesiredReplicasAnnotation] = strconv.Itoa(desiredReplicas)
 

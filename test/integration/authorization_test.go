@@ -159,7 +159,7 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 		}
 	}
 
-	if reflect.DeepEqual(actualResponse, test.response) {
+	if actualResponse.Namespace != test.response.Namespace || !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) || !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
 		t.Errorf("%#v: expected %v, got %v", test.review, test.response, actualResponse)
 	}
 }
@@ -223,6 +223,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterAdminUsers.List()...)
+		test.response.Groups.Insert("system:cluster-readers")
 		test.run(t)
 	}
 	{
@@ -236,6 +237,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			},
 		}
 		test.response.Users.Insert(globalClusterAdminUsers.List()...)
+		test.response.Groups.Insert("system:cluster-readers")
 		test.run(t)
 	}
 
@@ -259,11 +261,13 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 				Groups: globalClusterAdminGroups,
 			},
 		}
+		test.response.Groups.Insert("system:cluster-readers")
 		test.run(t)
 	}
 }
 
 type subjectAccessReviewTest struct {
+	description     string
 	clientInterface client.SubjectAccessReviewInterface
 	review          *authorizationapi.SubjectAccessReview
 
@@ -275,18 +279,20 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 	actualResponse, err := test.clientInterface.Create(test.review)
 	if len(test.err) > 0 {
 		if err == nil {
-			t.Errorf("Expected error: %v", test.err)
-		} else if !strings.Contains(err.Error(), test.err) {
-			t.Errorf("expected %v, got %v", test.err, err)
+			t.Errorf("%s: Expected error: %v", test.description, test.err)
+		} else if !strings.HasPrefix(err.Error(), test.err) {
+			t.Errorf("%s: expected\n\t%v\ngot\n\t%v", test.description, test.err, err)
 		}
 	} else {
 		if err != nil {
-			t.Errorf("unexpected error: %v", err)
+			t.Errorf("%s: unexpected error: %v", test.description, err)
 		}
 	}
 
-	if reflect.DeepEqual(actualResponse, test.response) {
-		t.Errorf("%#v: expected %v, got %v", test.review, test.response, actualResponse)
+	if (actualResponse.Namespace != test.response.Namespace) ||
+		(actualResponse.Allowed != test.response.Allowed) ||
+		(!strings.HasPrefix(actualResponse.Reason, test.response.Reason)) {
+		t.Errorf("%s: from review\n\t%#v\nexpected\n\t%#v\ngot\n\t%#v", test.description, test.review, &test.response, actualResponse)
 	}
 }
 
@@ -316,6 +322,48 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	dannyClient, err := testutil.GetClientForUser(*clusterAdminClientConfig, "danny")
+	if err != nil {
+		t.Fatalf("error requesting token: %v", err)
+	}
+
+	addDanny := &policy.RoleModificationOptions{
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.ViewRoleName,
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("default", clusterAdminClient),
+		Users:               []string{"danny"},
+	}
+	if err := addDanny.AddRole(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	askCanDannyGetProject := &authorizationapi.SubjectAccessReview{User: "danny", Verb: "get", Resource: "projects"}
+	subjectAccessReviewTest{
+		description:     "cluster admin told danny can get project default",
+		clientInterface: clusterAdminClient.SubjectAccessReviews("default"),
+		review:          askCanDannyGetProject,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   true,
+			Reason:    "allowed by rule in default",
+			Namespace: "default",
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		description:     "cluster admin told danny cannot get projects cluster-wide",
+		clientInterface: clusterAdminClient.ClusterSubjectAccessReviews(),
+		review:          askCanDannyGetProject,
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "danny" cannot get projects at the cluster scope`,
+			Namespace: "",
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		description:     "as danny, can I make cluster subject access reviews",
+		clientInterface: dannyClient.ClusterSubjectAccessReviews(),
+		review:          askCanDannyGetProject,
+		err:             `User "danny" cannot create subjectaccessreviews at the cluster scope`,
+	}.run(t)
+
 	addValerie := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
@@ -338,6 +386,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 
 	askCanValerieGetProject := &authorizationapi.SubjectAccessReview{User: "valerie", Verb: "get", Resource: "projects"}
 	subjectAccessReviewTest{
+		description:     "harold told valerie can get project hammer-project",
 		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
 		review:          askCanValerieGetProject,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -347,17 +396,19 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		},
 	}.run(t)
 	subjectAccessReviewTest{
+		description:     "mark told valerie cannot get project mallet-project",
 		clientInterface: markClient.SubjectAccessReviews("mallet-project"),
 		review:          askCanValerieGetProject,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    "denied by default",
+			Reason:    `User "valerie" cannot get projects in project "mallet-project"`,
 			Namespace: "mallet-project",
 		},
 	}.run(t)
 
 	askCanEdgarDeletePods := &authorizationapi.SubjectAccessReview{User: "edgar", Verb: "delete", Resource: "pods"}
 	subjectAccessReviewTest{
+		description:     "mark told edgar can delete pods in mallet-project",
 		clientInterface: markClient.SubjectAccessReviews("mallet-project"),
 		review:          askCanEdgarDeletePods,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -367,13 +418,15 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		},
 	}.run(t)
 	subjectAccessReviewTest{
+		description:     "harold denied ability to run subject access review in project mallet-project",
 		clientInterface: haroldClient.SubjectAccessReviews("mallet-project"),
 		review:          askCanEdgarDeletePods,
-		err:             "cannot ",
+		err:             `User "harold" cannot create subjectaccessreviews in project "mallet-project"`,
 	}.run(t)
 
 	askCanHaroldUpdateProject := &authorizationapi.SubjectAccessReview{User: "harold", Verb: "update", Resource: "projects"}
 	subjectAccessReviewTest{
+		description:     "harold told harold can update project hammer-project",
 		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
 		review:          askCanHaroldUpdateProject,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -385,22 +438,25 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 
 	askCanClusterAdminsCreateProject := &authorizationapi.SubjectAccessReview{Groups: util.NewStringSet("system:cluster-admins"), Verb: "create", Resource: "projects"}
 	subjectAccessReviewTest{
+		description:     "cluster admin told cluster admins can create projects",
 		clientInterface: clusterAdminClient.ClusterSubjectAccessReviews(),
 		review:          askCanClusterAdminsCreateProject,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "",
+			Reason:    "allowed by cluster rule:",
 			Namespace: "",
 		},
 	}.run(t)
 	subjectAccessReviewTest{
+		description:     "harold denied ability to run cluster subject access review",
 		clientInterface: haroldClient.ClusterSubjectAccessReviews(),
 		review:          askCanClusterAdminsCreateProject,
-		err:             "cannot ",
+		err:             `User "harold" cannot create subjectaccessreviews at the cluster scope`,
 	}.run(t)
 
-	askCanICreatePods := &authorizationapi.SubjectAccessReview{Verb: "create", Resource: "projects"}
+	askCanICreatePods := &authorizationapi.SubjectAccessReview{Verb: "create", Resource: "pods"}
 	subjectAccessReviewTest{
+		description:     "harold told he can create pods in project hammer-project",
 		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
 		review:          askCanICreatePods,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -411,11 +467,12 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 	askCanICreatePolicyBindings := &authorizationapi.SubjectAccessReview{Verb: "create", Resource: "policybindings"}
 	subjectAccessReviewTest{
+		description:     "harold told he can create policybindings in project hammer-project",
 		clientInterface: haroldClient.SubjectAccessReviews("hammer-project"),
 		review:          askCanICreatePolicyBindings,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    "denied by default",
+			Reason:    `User "harold" cannot create policybindings in project "hammer-project"`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)

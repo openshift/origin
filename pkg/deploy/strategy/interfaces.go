@@ -6,6 +6,6 @@ import (
 
 // DeploymentStrategy knows how to make a deployment active.
 type DeploymentStrategy interface {
-	// Deploy makes a deployment active.
-	Deploy(deployment *kapi.ReplicationController, oldDeployments []*kapi.ReplicationController) error
+	// Deploy transitions an old deployment to a new one.
+	Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error
 }

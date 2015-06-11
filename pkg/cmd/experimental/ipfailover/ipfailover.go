@@ -19,14 +19,14 @@ const (
 This command helps to setup IP Failover configuration for an OpenShift
 environment. An administrator can configure IP failover on an entire
 cluster or as would normally be the case on a subset of nodes (as defined
-via a labelled selector).
+via a labeled selector).
 
 If an IP failover configuration does not exist with the given name,
 the --create flag can be passed to create a deployment configuration that
 will provide IP failover capability. If you are running in production, it is
-recommended that the labelled selector for the nodes matches atleast 2 nodes
+recommended that the labeled selector for the nodes matches atleast 2 nodes
 to ensure you have failover protection and that you provide a --replicas=<n>
-value that matches the number of nodes for the given labelled selector.
+value that matches the number of nodes for the given labeled selector.
 
 ALPHA: This command is currently being actively developed. It is intended
        to simplify the administrative tasks of setting up a highly
@@ -41,7 +41,7 @@ ALPHA: This command is currently being actively developed. It is intended
   // Create an IP failover configuration if it does not already exist:
   $ %[1]s %[2]s ipf --virtual-ips="10.1.1.1-4" --create
 
-  // Create an IP failover configuration on a selection of nodes labelled
+  // Create an IP failover configuration on a selection of nodes labeled
   // "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
   // listening on port 80 (aka the OpenShift router process).
   $ %[1]s %[2]s ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create

@@ -81,7 +81,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		ImageTemplate: variable.NewDefaultImageTemplate(),
 
 		Labels:   defaultLabel,
-		Ports:    "80:80,443:443,1936:1936",
+		Ports:    "80:80,443:443",
 		Replicas: 1,
 
 		StatsUsername: "admin",
@@ -154,6 +154,15 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	ports, err := app.ContainerPortsFromString(cfg.Ports)
 	if err != nil {
 		glog.Fatal(err)
+	}
+
+	if cfg.StatsPort > 0 {
+		ports = append(ports, kapi.ContainerPort{
+			Name:          "stats",
+			HostPort:      cfg.StatsPort,
+			ContainerPort: cfg.StatsPort,
+			Protocol:      kapi.ProtocolTCP,
+		})
 	}
 
 	label := map[string]string{"router": name}

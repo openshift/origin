@@ -60,6 +60,9 @@ type RollingUpdaterConfig struct {
 	// CleanupPolicy defines the cleanup action to take after the deployment is
 	// complete.
 	CleanupPolicy RollingUpdaterCleanupPolicy
+	// UpdateAcceptor is optional and drives acceptance of the first controller
+	// during scale-up. If nil, controllers are always accepted.
+	UpdateAcceptor UpdateAcceptor
 }
 
 // RollingUpdaterCleanupPolicy is a cleanup action to take after the
@@ -75,6 +78,20 @@ const (
 	// the new controller to the name of the old controller.
 	RenameRollingUpdateCleanupPolicy RollingUpdaterCleanupPolicy = "Rename"
 )
+
+// UpdateAcceptor is given a chance to accept or reject the first controller
+// during a deployment.
+//
+// After the successful scale-up of the first replica, the replica is given
+// the the UpdateAcceptor. If the UpdateAcceptor rejects the replica, the
+// deployment is stopped with an error.
+//
+// Only the first replica scaled up during the deployment is checked for
+// acceptance.
+type UpdateAcceptor interface {
+	// Accept returns nil if the controller is okay, otherwise returns an error.
+	Accept(*api.ReplicationController) error
+}
 
 func LoadExistingNextReplicationController(c *client.Client, namespace, newName string) (*api.ReplicationController, error) {
 	if len(newName) == 0 {
@@ -354,6 +371,7 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 	}
 
 	// +1, -1 on oldRc, newRc until newRc has desired number of replicas or oldRc has 0 replicas
+	updateAccepted := false
 	for newRc.Spec.Replicas < desired && oldRc.Spec.Replicas != 0 {
 		newRc.Spec.Replicas += 1
 		oldRc.Spec.Replicas -= 1
@@ -367,6 +385,14 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 		newRc, err = r.scaleAndWait(newRc, retry, waitForReplicas)
 		if err != nil {
 			return err
+		}
+		// Perform the update acceptance check exactly once.
+		if config.UpdateAcceptor != nil && !updateAccepted {
+			err := config.UpdateAcceptor.Accept(newRc)
+			if err != nil {
+				return fmt.Errorf("Update rejected for %s: %v", newRc.Name, err)
+			}
+			updateAccepted = true
 		}
 		time.Sleep(updatePeriod)
 		oldRc, err = r.scaleAndWait(oldRc, retry, waitForReplicas)

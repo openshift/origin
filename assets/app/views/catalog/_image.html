@@ -8,7 +8,7 @@
         <h3>
         <a href="javascript:;" class="tile-target" data-toggle="modal" data-target="#{{imageRepo.metadata.namespace}}_{{imageRepo.metadata.name}}_{{imageTag|underscore}}">{{imageRepo.metadata.name}}:{{imageTag}}</a>
         </h3>
-        <p ng-if="imageRepo | annotation : (imageTag + '.description')">{{imageRepo | annotation : (imageTag + '.description')}}</p>
+        <p ng-if="imageRepo | imageStreamTagAnnotation : 'description':imageTag">{{imageRepo | imageStreamTagAnnotation : 'description':imageTag}}</p>
       </div>
     </div>
   </div>
@@ -27,16 +27,16 @@
               <custom-icon resource="imageRepo" kind="image" tag="imageTag" title="{{imageRepo.metadata.name}}:{{imageTag}}"></custom-icon>
             </div>
             <div class="col-xs-8 col-sm-8 col-md-8">
-              <p ng-if="imageRepo | annotation : (imageTag + '.description')">{{imageRepo | annotation : (imageTag + '.description')}}</p>
+              <p ng-if="imageRepo | imageStreamTagAnnotation : 'description':imageTag">{{imageRepo | imageStreamTagAnnotation : 'description':imageTag}}</p>
               <p>
                 <div>
-                  <label style="margin-right: 5px;">Provider:</label>{{imageRepo | provider : (imageTag + '.provider')}}
+                  <label style="margin-right: 5px;">Provider:</label>{{imageRepo | imageStreamTagProvider : imageTag}}
                 </div>
-                <div ng-if="imageRepo | annotation : (imageTag + '.version')">
-                  <label style="margin-right: 5px;">Version:</label>{{imageRepo | annotation : (imageTag + '.version')}}
+                <div ng-if="imageRepo | imageStreamTagAnnotation : 'version':imageTag">
+                  <label style="margin-right: 5px;">Version:</label>{{imageRepo | imageStreamTagAnnotation : 'version':imageTag}}
                 </div>
               </p>
-              <span ng-repeat="tag in (imageRepo | tags : (imageTag + '.tags'))" class="label label-default">{{tag.toUpperCase()}}</span>
+              <span ng-repeat="tag in (imageRepo | imageStreamTagTags : imageTag)" class="label label-default">{{tag.toUpperCase()}}</span>
             </div>
           </div>
         </div>

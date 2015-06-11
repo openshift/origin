@@ -1,172 +1,204 @@
 package deployer
 
 import (
+	"fmt"
+	"strconv"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	scalertest "github.com/openshift/origin/pkg/deploy/scaler/test"
+	"github.com/openshift/origin/pkg/deploy/strategy"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-func TestGetDeploymentContextMissingDeployment(t *testing.T) {
-	getter := &testReplicationControllerGetter{
-		getFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return nil, kerrors.NewNotFound("replicationController", name)
-		},
-		listFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-			t.Fatal("unexpected list call")
+func TestDeployer_getDeploymentFail(t *testing.T) {
+	deployer := &Deployer{
+		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
+			t.Fatal("unexpected call")
 			return nil, nil
 		},
+		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
+			return nil, fmt.Errorf("get error")
+		},
+		getControllers: func(namespace string) (*kapi.ReplicationControllerList, error) {
+			t.Fatal("unexpected call")
+			return nil, nil
+		},
+		scaler: &scalertest.FakeScaler{},
 	}
 
-	newDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
-
-	if newDeployment != nil {
-		t.Fatalf("unexpected newDeployment: %#v", newDeployment)
-	}
-
-	if oldDeployments != nil {
-		t.Fatalf("unexpected oldDeployments: %#v", oldDeployments)
-	}
-
+	err := deployer.Deploy("namespace", "name")
 	if err == nil {
-		t.Fatal("expected an error")
+		t.Fatalf("expected an error")
 	}
+	t.Logf("got expected error: %v", err)
 }
 
-func TestGetDeploymentContextInvalidEncodedConfig(t *testing.T) {
-	getter := &testReplicationControllerGetter{
-		getFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return &kapi.ReplicationController{}, nil
+func TestDeployer_deployScenarios(t *testing.T) {
+	mkd := func(version int, status deployapi.DeploymentStatus, replicas int, desired int) *kapi.ReplicationController {
+		deployment := mkdeployment(version, status)
+		deployment.Spec.Replicas = replicas
+		if desired > 0 {
+			deployment.Annotations[deployapi.DesiredReplicasAnnotation] = strconv.Itoa(desired)
+		}
+		return deployment
+	}
+	type scaleEvent struct {
+		version int
+		size    int
+	}
+	scenarios := []struct {
+		name        string
+		deployments []*kapi.ReplicationController
+		fromVersion int
+		toVersion   int
+		scaleEvents []scaleEvent
+	}{
+		{
+			"initial deployment",
+			// existing deployments
+			[]*kapi.ReplicationController{
+				mkd(1, deployapi.DeploymentStatusNew, 0, 3),
+			},
+			// from and to version
+			0, 1,
+			// expected scale events
+			[]scaleEvent{},
 		},
-		listFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-			return &kapi.ReplicationControllerList{}, nil
+		{
+			"last deploy failed",
+			// existing deployments
+			[]*kapi.ReplicationController{
+				mkd(1, deployapi.DeploymentStatusComplete, 3, 0),
+				mkd(2, deployapi.DeploymentStatusFailed, 1, 3),
+				mkd(3, deployapi.DeploymentStatusNew, 0, 3),
+			},
+			// from and to version
+			1, 3,
+			// expected scale events
+			[]scaleEvent{
+				{2, 0},
+			},
 		},
-	}
-
-	newDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
-
-	if newDeployment != nil {
-		t.Fatalf("unexpected newDeployment: %#v", newDeployment)
-	}
-
-	if oldDeployments != nil {
-		t.Fatalf("unexpected oldDeployments: %#v", oldDeployments)
-	}
-
-	if err == nil {
-		t.Fatal("expected an error")
-	}
-}
-
-func TestGetDeploymentContextNoPriorDeployments(t *testing.T) {
-	getter := &testReplicationControllerGetter{
-		getFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-			deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
-			return deployment, nil
+		{
+			"sequential complete",
+			// existing deployments
+			[]*kapi.ReplicationController{
+				mkd(1, deployapi.DeploymentStatusComplete, 0, 0),
+				mkd(2, deployapi.DeploymentStatusComplete, 3, 0),
+				mkd(3, deployapi.DeploymentStatusNew, 0, 3),
+			},
+			// from and to version
+			2, 3,
+			// expected scale events
+			[]scaleEvent{},
 		},
-		listFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-			return &kapi.ReplicationControllerList{}, nil
-		},
-	}
-
-	newDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if newDeployment == nil {
-		t.Fatal("expected deployment")
-	}
-
-	if oldDeployments == nil {
-		t.Fatal("expected non-nil oldDeployments")
-	}
-
-	if len(oldDeployments) > 0 {
-		t.Fatalf("unexpected non-empty oldDeployments: %#v", oldDeployments)
-	}
-}
-
-func TestGetDeploymentContextWithPriorDeployments(t *testing.T) {
-	getter := &testReplicationControllerGetter{
-		getFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-			deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(3), kapi.Codec)
-			return deployment, nil
-		},
-		listFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-			deployment1, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
-			deployment2, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), kapi.Codec)
-			deployment3, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(4), kapi.Codec)
-			deployment4, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
-			deployment4.Annotations[deployapi.DeploymentConfigAnnotation] = "another-config"
-			return &kapi.ReplicationControllerList{
-				Items: []kapi.ReplicationController{
-					*deployment1,
-					*deployment2,
-					*deployment3,
-					*deployment4,
-					{},
-				},
-			}, nil
+		{
+			"sequential failure",
+			// existing deployments
+			[]*kapi.ReplicationController{
+				mkd(1, deployapi.DeploymentStatusFailed, 1, 3),
+				mkd(2, deployapi.DeploymentStatusFailed, 1, 3),
+				mkd(3, deployapi.DeploymentStatusNew, 0, 3),
+			},
+			// from and to version
+			0, 3,
+			// expected scale events
+			[]scaleEvent{
+				{1, 0},
+				{2, 0},
+			},
 		},
 	}
 
-	newDeployment, oldDeployments, err := getDeployerContext(getter, kapi.NamespaceDefault, "deployment")
+	for _, s := range scenarios {
+		t.Logf("executing scenario %s", s.name)
+		findDeployment := func(version int) *kapi.ReplicationController {
+			for _, d := range s.deployments {
+				if deployutil.DeploymentVersionFor(d) == version {
+					return d
+				}
+			}
+			return nil
+		}
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+		var actualFrom, actualTo *kapi.ReplicationController
+		var actualDesired int
+		to := findDeployment(s.toVersion)
+		scaler := &scalertest.FakeScaler{}
 
-	if newDeployment == nil {
-		t.Fatal("expected deployment")
-	}
+		deployer := &Deployer{
+			strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
+				return &testStrategy{
+					deployFunc: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
+						actualFrom = from
+						actualTo = to
+						actualDesired = desiredReplicas
+						return nil
+					},
+				}, nil
+			},
+			getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
+				return to, nil
+			},
+			getControllers: func(namespace string) (*kapi.ReplicationControllerList, error) {
+				list := &kapi.ReplicationControllerList{}
+				for _, d := range s.deployments {
+					list.Items = append(list.Items, *d)
+				}
+				return list, nil
+			},
+			scaler: scaler,
+		}
 
-	if oldDeployments == nil {
-		t.Fatal("expected non-nil oldDeployments")
-	}
+		err := deployer.Deploy(to.Namespace, to.Name)
+		if err != nil {
+			t.Fatalf("unexpcted error: %v", err)
+		}
 
-	expected := []string{"config-1", "config-2"}
-	for _, e := range expected {
-		found := false
-		for _, d := range oldDeployments {
-			if d.Name == e {
-				found = true
-				break
+		if s.fromVersion > 0 {
+			if e, a := s.fromVersion, deployutil.DeploymentVersionFor(actualFrom); e != a {
+				t.Fatalf("expected from.latestVersion %d, got %d", e, a)
 			}
 		}
-		if !found {
-			t.Errorf("expected to find old deployment %s", e)
+		if e, a := s.toVersion, deployutil.DeploymentVersionFor(actualTo); e != a {
+			t.Fatalf("expected to.latestVersion %d, got %d", e, a)
 		}
-	}
-	for _, d := range oldDeployments {
-		ok := false
-		for _, e := range expected {
-			if d.Name == e {
-				ok = true
-				break
+		if e, a := len(s.scaleEvents), len(scaler.Events); e != a {
+			t.Fatalf("expected %d scale events, got %d", e, a)
+		}
+		for _, expected := range s.scaleEvents {
+			expectedTo := findDeployment(expected.version)
+			expectedWasScaled := false
+			for _, actual := range scaler.Events {
+				if actual.Name != expectedTo.Name {
+					continue
+				}
+				if e, a := uint(expected.size), actual.Size; e != a {
+					t.Fatalf("expected version %d to be scaled to %d, got %d", expected.version, e, a)
+				}
+				expectedWasScaled = true
+			}
+			if !expectedWasScaled {
+				t.Fatalf("expected version %d to be scaled to %d, but it wasn't scaled at all", expected.version, expected.size)
 			}
 		}
-		if !ok {
-			t.Errorf("unexpected old deployment %s", d.Name)
-		}
 	}
 }
 
-type testReplicationControllerGetter struct {
-	getFunc  func(namespace, name string) (*kapi.ReplicationController, error)
-	listFunc func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error)
+func mkdeployment(version int, status deployapi.DeploymentStatus) *kapi.ReplicationController {
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codec)
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
+	return deployment
 }
 
-func (t *testReplicationControllerGetter) Get(namespace, name string) (*kapi.ReplicationController, error) {
-	return t.getFunc(namespace, name)
+type testStrategy struct {
+	deployFunc func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error
 }
 
-func (t *testReplicationControllerGetter) List(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-	return t.listFunc(namespace, selector)
+func (t *testStrategy) Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
+	return t.deployFunc(from, to, desiredReplicas)
 }

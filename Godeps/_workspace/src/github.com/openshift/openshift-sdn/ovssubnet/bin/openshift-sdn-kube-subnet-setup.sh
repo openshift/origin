@@ -19,6 +19,17 @@ function lockwrap() {
     ) 200>${lock_file}
 }
 
+function setup_required() {
+    ip=$(echo `ip a s lbr0 2>/dev/null|awk '/inet / {print $2}'`)
+    if [ "$ip" != "${subnet_gateway}/${subnet_mask_len}" ]; then
+        return 0
+    fi
+    if ! grep -q lbr0 /run/openshift-sdn/docker-network; then
+        return 0
+    fi
+    return 1
+}
+
 function setup() {
     # clear config file
     rm -f /etc/openshift-sdn/config.env
@@ -72,17 +83,16 @@ function setup() {
         DOCKER_NETWORK_OPTIONS='-b=lbr0 --mtu=1450'
     fi
 
-    if ! grep -q "^DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'" /etc/sysconfig/docker-network
-    then
-        cat <<EOF > /etc/sysconfig/docker-network
+    mkdir -p /run/openshift-sdn
+    cat <<EOF > /run/openshift-sdn/docker-network
 # This file has been modified by openshift-sdn. Please modify the
-# DOCKER_NETWORK_OPTIONS variable in the /etc/sysconfig/openshift-sdn-node,
-# /etc/sysconfig/openshift-sdn-master or /etc/sysconfig/openshift-sdn
-# files (depending on your setup).
+# DOCKER_NETWORK_OPTIONS variable in /etc/sysconfig/openshift-node if this
+# is an integrated install or /etc/sysconfig/openshift-sdn-node if this is a
+# standalone install.
 
 DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'
 EOF
-    fi
+
     systemctl daemon-reload
     systemctl restart docker.service
 
@@ -99,5 +109,12 @@ EOF
     echo "export OPENSHIFT_SDN_TAP1_ADDR=${tun_gateway}" >& "/etc/openshift-sdn/config.env"
     echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_subnet}" >> "/etc/openshift-sdn/config.env"
 }
+
+set +e
+if ! setup_required; then
+    echo "SDN setup not required."
+    exit 140
+fi
+set -e
 
 lockwrap setup

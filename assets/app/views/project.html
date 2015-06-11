@@ -3,7 +3,7 @@
     <div ng-controller="OverviewController">
       <tasks></tasks>
       <div class="page-header page-header-bleed-right">
-        <h1 title="{{project.metadata.name}}">Project {{(project | displayName) || project.metadata.name}}</h1>
+        <h1 title="{{project | displayName}}">Project {{project | displayName}}</h1>
       </div>
 
       <!-- TODO handle things that don't live under services -->

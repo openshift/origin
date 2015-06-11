@@ -13,6 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -202,4 +203,119 @@ func NewPodWatch(client kclient.Interface, namespace, name, resourceVersion stri
 		obj := queue.Pop()
 		return obj.(*kapi.Pod)
 	}
+}
+
+func NewFirstContainerReady(kclient kclient.Interface, timeout time.Duration, interval time.Duration) *FirstContainerReady {
+	return &FirstContainerReady{
+		timeout:  timeout,
+		interval: interval,
+		podsForDeployment: func(deployment *kapi.ReplicationController) (*kapi.PodList, error) {
+			selector := labels.Set(deployment.Spec.Selector).AsSelector()
+			return kclient.Pods(deployment.Namespace).List(selector, fields.Everything())
+		},
+		getPodStore: func(namespace, name string) (cache.Store, chan struct{}) {
+			sel, _ := fields.ParseSelector("metadata.name=" + name)
+			store := cache.NewStore(cache.MetaNamespaceKeyFunc)
+			lw := &deployutil.ListWatcherImpl{
+				ListFunc: func() (runtime.Object, error) {
+					return kclient.Pods(namespace).List(labels.Everything(), sel)
+				},
+				WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+					return kclient.Pods(namespace).Watch(labels.Everything(), sel, resourceVersion)
+				},
+			}
+			stop := make(chan struct{})
+			cache.NewReflector(lw, &kapi.Pod{}, store, 10*time.Second).RunUntil(stop)
+			return store, stop
+		},
+	}
+}
+
+type FirstContainerReady struct {
+	podsForDeployment func(*kapi.ReplicationController) (*kapi.PodList, error)
+	getPodStore       func(namespace, name string) (cache.Store, chan struct{})
+	timeout           time.Duration
+	interval          time.Duration
+}
+
+func (c *FirstContainerReady) Accept(deployment *kapi.ReplicationController) error {
+	// For now, only validate the first replica.
+	if deployment.Spec.Replicas != 1 {
+		glog.Infof("automatically accepting deployment %s with %d replicas", deployutil.LabelForDeployment(deployment), deployment.Spec.Replicas)
+		return nil
+	}
+
+	// Try and find the pod for the deployment.
+	pods, err := c.podsForDeployment(deployment)
+	if err != nil {
+		return fmt.Errorf("couldn't get pods for deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
+	}
+	if len(pods.Items) == 0 {
+		return fmt.Errorf("no pods found for deployment %s", deployutil.LabelForDeployment(deployment))
+	}
+
+	// If we found multiple, use the first one and log a warning.
+	// TODO: should finding multiple be an error?
+	pod := &pods.Items[0]
+	if len(pods.Items) > 1 {
+		glog.Infof("Warning: more than one pod for deployment %s; basing canary check on the first pod '%s'", deployutil.LabelForDeployment(deployment), pod.Name)
+	}
+
+	// Make a pod store to poll and ensure it gets cleaned up.
+	podStore, stopStore := c.getPodStore(pod.Namespace, pod.Name)
+	defer close(stopStore)
+
+	// Track container readiness based on those defined in the spec.
+	observedContainers := map[string]bool{}
+	for _, container := range pod.Spec.Containers {
+		observedContainers[container.Name] = false
+	}
+
+	// Start checking for pod updates.
+	glog.V(0).Infof("Waiting for pod %s/%s container readiness", pod.Namespace, pod.Name)
+	return wait.Poll(c.interval, c.timeout, func() (done bool, err error) {
+		// Get the latest state of the pod.
+		obj, exists, err := podStore.Get(pod)
+		// Try again later on error or if the pod isn't available yet.
+		if err != nil {
+			glog.V(0).Infof("Error getting pod %s/%s to inspect container readiness: %v", pod.Namespace, pod.Name, err)
+			return false, nil
+		}
+		if !exists {
+			glog.V(0).Infof("Couldn't find pod %s/%s to inspect container readiness", pod.Namespace, pod.Name)
+			return false, nil
+		}
+		// New pod state is available; update the observed ready status of any
+		// containers.
+		updatedPod := obj.(*kapi.Pod)
+		for _, status := range updatedPod.Status.ContainerStatuses {
+			// Ignore any containers which aren't defined in the deployment spec.
+			if _, known := observedContainers[status.Name]; !known {
+				glog.V(0).Infof("Ignoring readiness of container %s in pod %s/%s because it's not present in the pod spec", status.Name, pod.Namespace, pod.Name)
+				continue
+			}
+			// The status of the container could be transient; we only care if it
+			// was ever ready. If it was ready and then became not ready, we
+			// consider it ready.
+			if status.Ready {
+				observedContainers[status.Name] = true
+			}
+		}
+		// Check whether all containers have been observed as ready.
+		allReady := true
+		for _, ready := range observedContainers {
+			if !ready {
+				allReady = false
+				break
+			}
+		}
+		// If all containers have been ready once, return success.
+		if allReady {
+			glog.V(0).Infof("All containers ready for %s/%s", pod.Namespace, pod.Name)
+			return true, nil
+		}
+		// Otherwise, try again later.
+		glog.V(4).Infof("Still waiting for pod %s/%s container readiness; observed statuses: #%v", pod.Namespace, pod.Name, observedContainers)
+		return false, nil
+	})
 }

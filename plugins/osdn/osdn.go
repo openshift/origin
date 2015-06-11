@@ -32,17 +32,17 @@ func NetworkPluginName() string {
 	return "redhat/openshift-ovs-subnet"
 }
 
-func Master(osClient osclient.Client, kClient kclient.Client, clusterNetwork string, clusterNetworkLength uint) {
+func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork string, clusterNetworkLength uint) {
 	osdnInterface := newOsdnRegistryInterface(osClient, kClient)
 
-	// get hostname
+	// get hostname from the gateway
 	output, err := exec.New().Command("hostname", "-f").CombinedOutput()
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
 	host := strings.TrimSpace(string(output))
 
-	kc, err := ovssubnet.NewKubeController(&osdnInterface, host, "")
+	kc, err := ovssubnet.NewKubeController(&osdnInterface, host, "", nil)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
@@ -52,17 +52,17 @@ func Master(osClient osclient.Client, kClient kclient.Client, clusterNetwork str
 	}
 }
 
-func Node(osClient osclient.Client, kClient kclient.Client, hostname string, publicIP string) {
+func Node(osClient *osclient.Client, kClient *kclient.Client, hostname string, publicIP string, ready chan struct{}) {
 	osdnInterface := newOsdnRegistryInterface(osClient, kClient)
-	kc, err := ovssubnet.NewKubeController(&osdnInterface, hostname, publicIP)
+	kc, err := ovssubnet.NewKubeController(&osdnInterface, hostname, publicIP, ready)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
 	kc.StartNode(false, false)
 }
 
-func newOsdnRegistryInterface(osClient osclient.Client, kClient kclient.Client) OsdnRegistryInterface {
-	return OsdnRegistryInterface{&osClient, &kClient}
+func newOsdnRegistryInterface(osClient *osclient.Client, kClient *kclient.Client) OsdnRegistryInterface {
+	return OsdnRegistryInterface{osClient, kClient}
 }
 
 func (oi *OsdnRegistryInterface) InitSubnets() error {
