@@ -64,6 +64,9 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
 			},
+			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+				return factory.KubeClient.ReplicationControllers(namespace).List(deployutil.ConfigSelector(configName))
+			},
 		},
 	}
 
@@ -72,7 +75,18 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 		RetryManager: controller.NewQueueRetryManager(
 			podQueue,
 			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, retries controller.Retry) bool { return retries.Count < 1 },
+			func(obj interface{}, err error, retries controller.Retry) bool {
+				kutil.HandleError(err)
+				// infinite retries for a transient error
+				if _, isTransient := err.(transientError); isTransient {
+					return true
+				}
+				// no retries for anything else
+				if retries.Count > 0 {
+					return false
+				}
+				return true
+			},
 			kutil.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
