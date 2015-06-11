@@ -163,9 +163,20 @@ FAQ
 
 2. What can I run on OpenShift?
 
-    OpenShift is designed to run any existing Docker images.  In addition you can define builds that will produce new Docker images from a Dockerfile.  However the real magic of OpenShift can be seen when using [Source-To-Image](https://github.com/openshift/source-to-image)(STI) builds which allow you to simply supply an application source repository which will be combined with an existing STI-enabled Docker image to produce a new runnable image that runs your application.  We are continuing to grow the ecosystem of STI-enabled images and documenting them [here](https://ci.openshift.redhat.com/openshift-docs-master-testing/latest/openshift_sti_images/overview.html).  We also have a few more experimental images available:
+    OpenShift is designed to run any existing Docker images.  In addition you can define builds that will produce new Docker images from a Dockerfile.  However the real magic of OpenShift can be seen when using [Source-To-Image](https://github.com/openshift/source-to-image) builds which allow you to simply supply an application source repository which will be combined with an existing Source-To-Image enabled Docker image to produce a new runnable image that runs your application.  We are continuing to grow the ecosystem of Source-To-Image enabled images and documenting them [here](http://docs.openshift.org/latest/using_images/sti_images/overview.html). Our available images are:
 
+    * [Ruby](https://github.com/openshift/sti-ruby)
+    * [Python](https://github.com/openshift/sti-python)
+    * [NodeJS](https://github.com/openshift/sti-nodejs)
+    * [PHP](https://github.com/openshift/sti-php)
+    * [Perl](https://github.com/openshift/sti-perl)
     * [Wildfly](https://github.com/openshift/wildfly-8-centos)
+
+    Your application image can be easily extended with a database service with our [database images](http://docs.openshift.org/latest/using_images/db_images/overview.html). Our available database images are:
+
+    * [MySQL](https://github.com/openshift/mysql)
+    * [MongoDB](https://github.com/openshift/mongodb)
+    * [PostgreSQL](https://github.com/openshift/postgresql)
 
 Contributing
 ------------
