@@ -184,7 +184,7 @@ fi
 [ "$(oc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
 # logs in with a valid certificate authority
 oc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1beta3
-grep -q "v1beta3" ${HOME}/.config/openshift/config
+grep -q "v1beta3" ${HOME}/.kube/config
 oc logout
 # logs in skipping certificate check
 oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
@@ -218,12 +218,12 @@ oc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" oc get services
 
 # test config files in the home directory
-mkdir -p ${HOME}/.config/openshift
-cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.config/openshift/config
+mkdir -p ${HOME}/.kube
+cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
 oc get services
-mv ${HOME}/.config/openshift/config ${HOME}/.config/openshift/non-default-config
+mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"
-export KUBECONFIG="${HOME}/.config/openshift/non-default-config"
+export KUBECONFIG="${HOME}/.kube/non-default-config"
 
 # from this point every command will use config from the KUBECONFIG env var
 
