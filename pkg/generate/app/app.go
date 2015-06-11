@@ -167,6 +167,7 @@ type ImageRef struct {
 	AsImageStream bool
 	OutputImage   bool
 	Insecure      bool
+	HasEmptyDir   bool
 
 	// ObjectName overrides the name of the ImageStream produced
 	// but does not affect the DockerImageReference
@@ -361,6 +362,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 		baseName := namer.GetName(container.Name, volumeNameInfix, util.LabelValueMaxLength-maxDigits-1)
 		i := 1
 		for volume := range r.Info.Config.Volumes {
+			r.HasEmptyDir = true
 			container.VolumeMounts = append(container.VolumeMounts, kapi.VolumeMount{
 				Name:      fmt.Sprintf("%s-%d", baseName, i),
 				ReadOnly:  false,

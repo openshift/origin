@@ -624,10 +624,17 @@ func (c *AppConfig) run(out io.Writer, acceptors app.Acceptors) (*AppResult, err
 
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
+	warned := make(map[string]struct{})
 	for _, p := range pipelines {
 		accepted, err := p.Objects(accept, acceptors)
 		if err != nil {
 			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
+		}
+		if p.Image != nil && p.Image.HasEmptyDir {
+			if _, ok := warned[p.Image.Name]; !ok {
+				fmt.Fprintf(out, "NOTICE: Image %q uses an EmptyDir volume. Data in EmptyDir volumes is not persisted across deployments.\n", p.Image.Name)
+				warned[p.Image.Name] = struct{}{}
+			}
 		}
 		objects = append(objects, accepted...)
 	}
