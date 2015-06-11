@@ -47,8 +47,8 @@ application is created.`
 	newAppExample = `  // Create an application based on the source code in the current git repository (with a public remote) and a Docker image
   $ %[1]s new-app . --docker-image=repo/langimage
 
-  // Create a NodeJS application based on the provided [image]~[source code] combination
-  $ %[1]s new-app openshift/nodejs-010-centos7~https://bitbucket.com/user/nodejs-app
+  // Create a Ruby application based on the provided [image]~[source code] combination
+  $ %[1]s new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
 
   // Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
   $ %[1]s new-app mysql -l db=mysql
@@ -56,8 +56,8 @@ application is created.`
   // Use a MySQL image in a private registry to create an app and override application artifacts' names
   $ %[1]s new-app --docker-image=myregistry.com/mycompany/mysql --name=private
 
-  // Create an application from a remote repository using its beta2 branch
-  $ %[1]s new-app https://github.com/openshift/ruby-hello-world#beta2
+  // Create an application from a remote repository using its beta4 branch
+  $ %[1]s new-app https://github.com/openshift/ruby-hello-world#beta4
 
   // Create an application based on a stored template, explicitly setting a parameter value
   $ %[1]s new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin
