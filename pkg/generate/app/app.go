@@ -164,6 +164,10 @@ type ImageRef struct {
 	OutputImage   bool
 	Insecure      bool
 
+	// ObjectName overrides the name of the ImageStream produced
+	// but does not affect the DockerImageReference
+	ObjectName string
+
 	Stream *imageapi.ImageStream
 	Info   *imageapi.DockerImage
 }
@@ -217,6 +221,9 @@ func (r *ImageRef) RepoName() string {
 
 // SuggestName suggests a name for an image reference
 func (r *ImageRef) SuggestName() (string, bool) {
+	if r != nil && len(r.ObjectName) > 0 {
+		return r.ObjectName, true
+	}
 	if r == nil || len(r.Name) == 0 {
 		return "", false
 	}
