@@ -52,6 +52,37 @@ function setup() {
     ovs-vsctl del-port br0 vovsbr || true
     ovs-vsctl add-port br0 vovsbr -- set Interface vovsbr ofport_request=9
 
+    # Table 0; learn MAC addresses and continue with table 1
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=0, actions=learn(table=7, priority=200, hard_timeout=900, NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[], load:NXM_NX_TUN_IPV4_SRC[]->NXM_NX_TUN_IPV4_DST[], output:NXM_OF_IN_PORT[]), goto_table:1"
+
+    # Table 1; initial dispatch
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, arp, actions=goto_table:7"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=1, actions=goto_table:2"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=2, actions=goto_table:4"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, actions=goto_table:3"
+
+    # Table 2; incoming from vxlan
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, arp, actions=goto_table:7"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, tun_id=0, actions=goto_table:4"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, ip, nw_dst=${subnet}, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:5"
+
+    # Table 3; incoming from container; filled in by openshift-ovs-subnet
+
+    # Table 4; general routing
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, ip, nw_dst=${subnet_gateway}, actions=output:2"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, ip, nw_dst=${subnet}, actions=goto_table:5"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, ip, nw_dst=${cluster_subnet}, actions=goto_table:6"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=0, ip, actions=output:2"
+
+    # Table 5; to local container; mostly filled in by openshift-ovs-multitenant
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=200, ip, reg0=0, actions=goto_table:7"
+
+    # Table 6; to remote container; filled in by multitenant.go
+
+    # Table 7; MAC dispatch / ARP, filled in by Table 0's learn() rule
+    # and with per-node vxlan ARP rules by multitenant.go
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=7, priority=0, arp, actions=flood"
+
     ## linux bridge
     ip link set lbr0 down || true
     brctl delbr lbr0 || true
