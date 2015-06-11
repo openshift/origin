@@ -82,7 +82,7 @@ func TestResourceGroupCoveringEnumerated(t *testing.T) {
 func TestEnumeratedCoveringResourceGroup(t *testing.T) {
 	escalationTest{
 		ownerRules: []authorizationapi.PolicyRule{
-			{Verbs: util.NewStringSet("delete", "update"), Resources: util.NewStringSet("builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone")},
+			{Verbs: util.NewStringSet("delete", "update"), Resources: util.NewStringSet("builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone", "buildconfigs/webhooks")},
 		},
 		servantRules: []authorizationapi.PolicyRule{
 			{Verbs: util.NewStringSet("delete", "update"), Resources: util.NewStringSet("resourcegroup:builds")},
@@ -112,6 +112,8 @@ func TestEnumeratedMissingPartOfResourceGroup(t *testing.T) {
 			{Verbs: util.NewStringSet("update"), Resources: util.NewStringSet("builds/log")},
 			{Verbs: util.NewStringSet("delete"), Resources: util.NewStringSet("builds/clone")},
 			{Verbs: util.NewStringSet("update"), Resources: util.NewStringSet("builds/clone")},
+			{Verbs: util.NewStringSet("delete"), Resources: util.NewStringSet("buildconfigs/webhooks")},
+			{Verbs: util.NewStringSet("update"), Resources: util.NewStringSet("buildconfigs/webhooks")},
 		},
 	}.test(t)
 }
