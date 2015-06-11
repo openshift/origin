@@ -21,17 +21,50 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 )
 
-// clientCache caches previously loaded clients for reuse, and ensures MatchServerVersion
+// KubernetesClientCache is a cache of Kubernetes clients.
+type KubernetesClientCache struct {
+	*ClientCache
+}
+
+func NewKubernetesClientCache(loader clientcmd.ClientConfig, matchVersion bool, defaultFn ConfigDefaultsFunc) KubernetesClientCache {
+	newFn := func(config *client.Config) (interface{}, error) { return client.New(config) }
+	return KubernetesClientCache{NewClientCache(loader, matchVersion, defaultFn, newFn)}
+}
+
+func (c KubernetesClientCache) ClientForVersion(version string) (*client.Client, error) {
+	cli, err := c.ClientCache.ClientForVersion(version)
+	if err != nil {
+		return nil, err
+	}
+	return cli.(*client.Client), nil
+}
+
+// ClientCache caches previously loaded client objects for reuse, and ensures MatchServerVersion
 // is invoked only once
-type clientCache struct {
+type ClientCache struct {
 	loader        clientcmd.ClientConfig
-	clients       map[string]*client.Client
+	clients       map[string]interface{}
 	defaultConfig *client.Config
 	matchVersion  bool
+	setDefaultsFn ConfigDefaultsFunc
+	newClientFn   NewClientFunc
+}
+
+type ConfigDefaultsFunc func(*client.Config)
+type NewClientFunc func(*client.Config) (interface{}, error)
+
+func NewClientCache(loader clientcmd.ClientConfig, matchVersion bool, defaultFn ConfigDefaultsFunc, newFn NewClientFunc) *ClientCache {
+	return &ClientCache{
+		loader:        loader,
+		clients:       make(map[string]interface{}),
+		matchVersion:  matchVersion,
+		setDefaultsFn: defaultFn,
+		newClientFn:   newFn,
+	}
 }
 
 // ClientConfigForVersion returns the correct config for a server
-func (c *clientCache) ClientConfigForVersion(version string) (*client.Config, error) {
+func (c *ClientCache) ClientConfigForVersion(version string) (*client.Config, error) {
 	if c.defaultConfig == nil {
 		config, err := c.loader.ClientConfig()
 		if err != nil {
@@ -49,14 +82,17 @@ func (c *clientCache) ClientConfigForVersion(version string) (*client.Config, er
 	if len(version) != 0 {
 		config.Version = version
 	}
-	client.SetKubernetesDefaults(&config)
+	if c.setDefaultsFn != nil {
+		c.setDefaultsFn(&config)
+	}
 
 	return &config, nil
 }
 
 // ClientForVersion initializes or reuses a client for the specified version, or returns an
-// error if that is not possible
-func (c *clientCache) ClientForVersion(version string) (*client.Client, error) {
+// error if that is not possible. It deals with an opaque interface so that other client
+// libraries can be reused.
+func (c *ClientCache) ClientForVersion(version string) (interface{}, error) {
 	config, err := c.ClientConfigForVersion(version)
 	if err != nil {
 		return nil, err
@@ -66,7 +102,7 @@ func (c *clientCache) ClientForVersion(version string) (*client.Client, error) {
 		return client, nil
 	}
 
-	client, err := client.New(config)
+	client, err := c.newClientFn(config)
 	if err != nil {
 		return nil, err
 	}

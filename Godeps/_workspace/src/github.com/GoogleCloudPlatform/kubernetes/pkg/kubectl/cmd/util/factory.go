@@ -48,7 +48,7 @@ const (
 // TODO: pass the various interfaces on the factory directly into the command constructors (so the
 // commands are decoupled from the factory).
 type Factory struct {
-	clients    *clientCache
+	clients    KubernetesClientCache
 	flags      *pflag.FlagSet
 	generators map[string]kubectl.Generator
 
@@ -86,7 +86,7 @@ type Factory struct {
 // NewFactory creates a factory with the default Kubernetes resources defined
 // if optionalClientConfig is nil, then flags will be bound to a new clientcmd.ClientConfig.
 // if optionalClientConfig is not nil, then this factory will make use of it.
-func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
+func NewFactory(optionalClientConfig clientcmd.ClientConfig, configDefaultsFn ConfigDefaultsFunc) *Factory {
 	mapper := kubectl.ShortcutExpander{latest.RESTMapper}
 
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
@@ -102,11 +102,7 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 		clientConfig = DefaultClientConfig(flags)
 	}
 
-	clients := &clientCache{
-		clients: make(map[string]*client.Client),
-		loader:  clientConfig,
-	}
-
+	clients := NewKubernetesClientCache(clientConfig, false, configDefaultsFn)
 	return &Factory{
 		clients:    clients,
 		flags:      flags,
