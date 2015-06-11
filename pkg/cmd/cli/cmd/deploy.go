@@ -34,6 +34,7 @@ type DeployOptions struct {
 	deployLatest         bool
 	retryDeploy          bool
 	cancelDeploy         bool
+	enableTriggers       bool
 }
 
 const (
@@ -86,6 +87,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd.Flags().BoolVar(&options.deployLatest, "latest", false, "Start a new deployment now.")
 	cmd.Flags().BoolVar(&options.retryDeploy, "retry", false, "Retry the latest failed deployment.")
 	cmd.Flags().BoolVar(&options.cancelDeploy, "cancel", false, "Cancel the in-progress deployment.")
+	cmd.Flags().BoolVar(&options.enableTriggers, "enable-triggers", false, "Enables all image triggers for the deployment config.")
 
 	return cmd
 }
@@ -181,6 +183,13 @@ func (o DeployOptions) RunDeploy() error {
 	case o.cancelDeploy:
 		c := &cancelDeploymentCommand{client: commandClient}
 		err = c.cancel(config, o.out)
+	case o.enableTriggers:
+		t := &triggerEnabler{
+			updateConfig: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+				return o.osClient.DeploymentConfigs(namespace).Update(config)
+			},
+		}
+		t.enableTriggers(config, o.out)
 	default:
 		describer := describe.NewLatestDeploymentsDescriber(o.osClient, o.kubeClient, -1)
 		desc, err := describer.Describe(config.Namespace, config.Name)
@@ -335,6 +344,33 @@ func (c *cancelDeploymentCommand) cancel(config *deployapi.DeploymentConfig, out
 	} else {
 		return fmt.Errorf("couldn't cancel deployment %s", strings.Join(failedCancellations, ", "))
 	}
+}
+
+// triggerEnabler can enable image triggers for a config.
+type triggerEnabler struct {
+	// updateConfig persists config.
+	updateConfig func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
+}
+
+// enableTriggers enables all image triggers and then persists config.
+func (t *triggerEnabler) enableTriggers(config *deployapi.DeploymentConfig, out io.Writer) error {
+	enabled := []string{}
+	for _, trigger := range config.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+			trigger.ImageChangeParams.Automatic = true
+			enabled = append(enabled, trigger.ImageChangeParams.From.Name)
+		}
+	}
+	if len(enabled) == 0 {
+		fmt.Fprintln(out, "no image triggers found to enable")
+		return nil
+	}
+	_, err := t.updateConfig(config.Namespace, config)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "enabled image triggers: %s\n", strings.Join(enabled, ","))
+	return nil
 }
 
 // deployCommandClientImpl is a pluggable deployCommandClient.

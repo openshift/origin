@@ -15,6 +15,7 @@ func TestGeneration(t *testing.T) {
 		Type: deployapi.DeploymentStrategyTypeCustom,
 	}
 	from.Triggers = append(from.Triggers, deployapi.DeploymentTriggerPolicy{Type: deployapi.DeploymentTriggerOnConfigChange})
+	from.Triggers = append(from.Triggers, deploytest.OkImageChangeTrigger())
 	from.Template.ControllerTemplate.Template.Spec.Containers[0].Name = "changed"
 	from.Template.ControllerTemplate.Replicas = 5
 	from.Template.ControllerTemplate.Selector = map[string]string{
@@ -63,6 +64,12 @@ func TestGeneration(t *testing.T) {
 
 			if hasReplicationMetaDiff(from, rollback) && !spec.IncludeReplicationMeta {
 				t.Fatalf("unexpected replication meta diff: from=%v, rollback=%v", from, rollback)
+			}
+
+			for i, trigger := range rollback.Triggers {
+				if trigger.Type == deployapi.DeploymentTriggerOnImageChange && trigger.ImageChangeParams.Automatic {
+					t.Errorf("image change trigger %d should be disabled", i)
+				}
 			}
 		}
 	}
