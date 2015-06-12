@@ -9,6 +9,7 @@ import (
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/resourcequota"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/serviceaccount"
+	_ "github.com/openshift/origin/pkg/build/admission"
 	_ "github.com/openshift/origin/pkg/project/admission/lifecycle"
 	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
 	_ "github.com/openshift/origin/pkg/security/admission"
