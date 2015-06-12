@@ -12,7 +12,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/spf13/cobra"
 
@@ -64,7 +63,7 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Write
 	var filenames util.StringList
 	var env util.StringList
 	cmd := &cobra.Command{
-		Use:     "env RESOURCE/NAME KEY_1=VAL_1 ... KEY_N=VAL_N [options]",
+		Use:     "env RESOURCE/NAME KEY_1=VAL_1 ... KEY_N=VAL_N",
 		Short:   "Update the environment on a resource with a pod template",
 		Long:    envLong,
 		Example: fmt.Sprintf(envExample, fullName),
@@ -87,25 +86,6 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Write
 	cmd.Flags().StringP("output", "o", "", "Display the changed objects instead of updating them. One of: json|yaml.")
 	cmd.Flags().String("output-version", "", "Output the changed objects with the given version (default api-version).")
 	return cmd
-}
-
-func updateObject(info *resource.Info, updateFn func(runtime.Object) (runtime.Object, error)) (runtime.Object, error) {
-	helper := resource.NewHelper(info.Client, info.Mapping)
-
-	obj, err := updateFn(info.Object)
-	if err != nil {
-		return nil, err
-	}
-	data, err := helper.Codec.Encode(obj)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = helper.Update(info.Namespace, info.Name, true, data)
-	if err != nil {
-		return nil, err
-	}
-	return obj, nil
 }
 
 func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error {
@@ -199,7 +179,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			return cmdutil.UsageError(cmd, "all resources must be specified before environment changes: %s", s)
 		}
 	}
-	if len(resources) < 1 {
+	if len(filenames) == 0 && len(resources) < 1 {
 		return cmdutil.UsageError(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
 	}
 

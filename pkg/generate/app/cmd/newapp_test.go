@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/util/namer"
 )
 
 func TestAddArguments(t *testing.T) {
@@ -669,6 +670,7 @@ func TestRunBuild(t *testing.T) {
 			name: "successful ruby app generation",
 			config: &AppConfig{
 				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
+				DockerImages:       util.StringList{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"},
 				OutputDocker:       true,
 
 				dockerResolver: dockerResolver,
@@ -694,6 +696,7 @@ func TestRunBuild(t *testing.T) {
 			},
 			expected: map[string][]string{
 				"buildConfig": {"ruby-hello-world"},
+				"imageStream": {"ruby-20-centos7"},
 			},
 			expectedErr: nil,
 		},
@@ -710,6 +713,8 @@ func TestRunBuild(t *testing.T) {
 			switch tp := obj.(type) {
 			case *buildapi.BuildConfig:
 				got["buildConfig"] = append(got["buildConfig"], tp.Name)
+			case *imageapi.ImageStream:
+				got["imageStream"] = append(got["imageStream"], tp.Name)
 			}
 		}
 
@@ -731,6 +736,67 @@ func TestRunBuild(t *testing.T) {
 				t.Errorf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
 				continue
 			}
+		}
+	}
+}
+
+func TestEnsureValidUniqueName(t *testing.T) {
+	chars := []byte("abcdefghijk")
+	longBytes := []byte{}
+	for i := 0; i < (util.DNS1123SubdomainMaxLength + 20); i++ {
+		longBytes = append(longBytes, chars[i%len(chars)])
+	}
+	longName := string(longBytes)
+	tests := []struct {
+		name        string
+		input       []string
+		expected    []string
+		expectError bool
+	}{
+		{
+			name:     "duplicate names",
+			input:    []string{"one", "two", "three", "one", "one", "two"},
+			expected: []string{"one", "two", "three", "one-1", "one-2", "two-1"},
+		},
+		{
+			name:     "mixed case names",
+			input:    []string{"One", "ONE", "tWo"},
+			expected: []string{"one", "one-1", "two"},
+		},
+		{
+			name:        "short name",
+			input:       []string{"t"},
+			expectError: true,
+		},
+		{
+			name:  "long name",
+			input: []string{longName, longName, longName},
+			expected: []string{longName[:util.DNS1123SubdomainMaxLength],
+				namer.GetName(longName[:util.DNS1123SubdomainMaxLength], "1", util.DNS1123SubdomainMaxLength),
+				namer.GetName(longName[:util.DNS1123SubdomainMaxLength], "2", util.DNS1123SubdomainMaxLength),
+			},
+		},
+	}
+
+tests:
+	for _, test := range tests {
+		result := []string{}
+		names := make(map[string]int)
+		for _, i := range test.input {
+			name, err := ensureValidUniqueName(names, i)
+			if err != nil && !test.expectError {
+				t.Errorf("%s: unexpected error: %v", test.name, err)
+			}
+			if err == nil && test.expectError {
+				t.Errorf("%s: did not get an error.", test.name)
+			}
+			if err != nil {
+				continue tests
+			}
+			result = append(result, name)
+		}
+		if !reflect.DeepEqual(result, test.expected) {
+			t.Errorf("%s: unexpected output. Expected: %#v, Got: %#v", test.name, test.expected, result)
 		}
 	}
 }

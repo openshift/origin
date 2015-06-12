@@ -3,12 +3,14 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/fsouza/go-dockerclient"
@@ -23,6 +25,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/template"
+	"github.com/openshift/origin/pkg/util/namer"
 )
 
 // AppConfig contains all the necessary configuration for an application
@@ -366,9 +369,34 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) (app.Comp
 	return refs, errors.NewAggregate(errs)
 }
 
+func ensureValidUniqueName(names map[string]int, name string) (string, error) {
+	// Ensure that name meets length requirements
+	if len(name) < 2 {
+		return "", fmt.Errorf("invalid name: %s", name)
+	}
+	if len(name) > util.DNS1123SubdomainMaxLength {
+		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, util.DNS1123SubdomainMaxLength)
+		name = name[:util.DNS1123SubdomainMaxLength]
+	}
+
+	// Make all names lowercase
+	name = strings.ToLower(name)
+
+	count, existing := names[name]
+	if !existing {
+		names[name] = 0
+		return name, nil
+	}
+	count++
+	names[name] = count
+	newName := namer.GetName(name, strconv.Itoa(count), util.DNS1123SubdomainMaxLength)
+	return newName, nil
+}
+
 // buildPipelines converts a set of resolved, valid references into pipelines.
 func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
 	pipelines := app.PipelineGroup{}
+	names := map[string]int{}
 	for _, group := range components.Group() {
 		glog.V(2).Infof("found group: %#v", group)
 		common := app.PipelineGroup{}
@@ -391,12 +419,24 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if len(c.Name) > 0 {
 					source.Name = c.Name
 				}
+				if name, ok := (app.NameSuggestions{source, input}).SuggestName(); ok {
+					source.Name, err = ensureValidUniqueName(names, name)
+					if err != nil {
+						return nil, err
+					}
+				}
 				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 			} else {
 				glog.V(2).Infof("will include %q", ref)
 				input, err := app.InputImageFromMatch(ref.Input().Match)
+				if name, ok := input.SuggestName(); ok {
+					input.ObjectName, err = ensureValidUniqueName(names, name)
+					if err != nil {
+						return nil, err
+					}
+				}
 				if err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
@@ -492,8 +532,61 @@ func (c *AppConfig) RunBuilds(out io.Writer) (*AppResult, error) {
 		return nil, ErrNoInputs
 	}
 
-	return c.run(out, app.Acceptors{app.NewAcceptBuildConfigs(c.typer), app.NewAcceptUnique(c.typer), app.AcceptNew},
+	bcAcceptor := app.NewAcceptBuildConfigs(c.typer)
+	result, err := c.run(out, app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew},
 		components, repositories, environment, parameters)
+	if err != nil {
+		return nil, err
+	}
+	return filterImageStreams(result), nil
+}
+
+func filterImageStreams(result *AppResult) *AppResult {
+	// 1st pass to get images from all BuildConfigs
+	imageStreams := map[string]bool{}
+	for _, item := range result.List.Items {
+		if bc, ok := item.(*buildapi.BuildConfig); ok {
+			to := bc.Parameters.Output.To
+			if to != nil && to.Kind == "ImageStreamTag" {
+				imageStreams[makeImageStreamKey(to)] = true
+			}
+			switch bc.Parameters.Strategy.Type {
+			case buildapi.DockerBuildStrategyType:
+				from := bc.Parameters.Strategy.DockerStrategy.From
+				if from != nil && from.Kind == "ImageStreamTag" {
+					imageStreams[makeImageStreamKey(from)] = true
+				}
+			case buildapi.SourceBuildStrategyType:
+				from := bc.Parameters.Strategy.SourceStrategy.From
+				if from.Kind == "ImageStreamTag" {
+					imageStreams[makeImageStreamKey(from)] = true
+				}
+			case buildapi.CustomBuildStrategyType:
+				from := bc.Parameters.Strategy.CustomStrategy.From
+				if from != nil && from.Kind == "ImageStreamTag" {
+					imageStreams[makeImageStreamKey(from)] = true
+				}
+			}
+		}
+	}
+	items := []runtime.Object{}
+	// 2nd pass to remove ImageStreams not used by BuildConfigs
+	for _, item := range result.List.Items {
+		if is, ok := item.(*imageapi.ImageStream); ok {
+			if _, ok := imageStreams[types.NamespacedName{is.Namespace, is.Name}.String()]; ok {
+				items = append(items, is)
+			}
+		} else {
+			items = append(items, item)
+		}
+	}
+	result.List.Items = items
+	return result
+}
+
+func makeImageStreamKey(ref *kapi.ObjectReference) string {
+	name, _, _ := imageapi.SplitImageStreamTag(ref.Name)
+	return types.NamespacedName{ref.Namespace, name}.String()
 }
 
 // run executes the provided config applying provided acceptors.

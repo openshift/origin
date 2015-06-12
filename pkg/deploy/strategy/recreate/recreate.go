@@ -54,8 +54,8 @@ func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec
 				CreatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
 					return client.Pods(namespace).Create(pod)
 				},
-				PodWatchFunc: func(namespace, name, resourceVersion string) func() *kapi.Pod {
-					return stratsupport.NewPodWatch(client, namespace, name, resourceVersion)
+				PodWatchFunc: func(namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
+					return stratsupport.NewPodWatch(client, namespace, name, resourceVersion, stopChannel)
 				},
 			},
 		},

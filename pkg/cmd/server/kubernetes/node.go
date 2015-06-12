@@ -137,7 +137,9 @@ func (c *NodeConfig) RunKubelet() {
 	// updated by NodeConfig.EnsureVolumeDir
 	c.KubeletConfig.RootDirectory = c.VolumeDir
 
-	go glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
+	go func() {
+		glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
+	}()
 }
 
 // RunProxy starts the proxy

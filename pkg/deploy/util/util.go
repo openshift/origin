@@ -109,15 +109,13 @@ func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
 	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
 }
 
-// ConfigSelector matches all the deployments of the provided DeploymentConfig
-func ConfigSelector(name string, list []api.ReplicationController) []api.ReplicationController {
-	matches := []api.ReplicationController{}
-	for _, rc := range list {
-		if DeploymentConfigNameFor(&rc) == name {
-			matches = append(matches, rc)
-		}
-	}
-	return matches
+// ConfigSelector returns a label Selector which can be used to find all
+// deployments for a DeploymentConfig.
+//
+// TODO: Using the annotation constant for now since the value is correct
+// but we could consider adding a new constant to the public types.
+func ConfigSelector(name string) labels.Selector {
+	return labels.Set{deployapi.DeploymentConfigAnnotation: name}.AsSelector()
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
@@ -165,6 +163,10 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	for k, v := range config.Labels {
 		controllerLabels[k] = v
 	}
+	// Correlate the deployment with the config.
+	// TODO: Using the annotation constant for now since the value is correct
+	// but we could consider adding a new constant to the public types.
+	controllerLabels[deployapi.DeploymentConfigAnnotation] = config.Name
 
 	// Ensure that pods created by this deployment controller can be safely associated back
 	// to the controller, and that multiple deployment controllers for the same config don't

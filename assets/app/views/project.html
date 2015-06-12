@@ -32,183 +32,186 @@
 
       </div>
 
+      <div>
 
+        <!-- TODO handle multiple services mapping to the same deploymentConfig/deployment/pod -->
+        <section ng-repeat="(serviceId, service) in services" class="components components-group">
 
-      <!-- TODO handle multiple services mapping to the same deploymentConfig/deployment/pod -->
-      <section ng-repeat="(serviceId, service) in services" class="components components-group">
+          <div class="osc-object components-panel service" ng-init="numPorts = service.spec.ports.length" kind="Service" resource="service">
 
-        <div class="osc-object components-panel service" ng-init="numPorts = service.spec.ports.length" kind="Service" resource="service">
+            <div class="component-block">
+              <div class="component">
+                <div class="component-label">
+                  <!-- "service" class is present for e2e tests to check   -->
+                  Service <span ng-if="displayRouteByService[serviceId]">: <span class="service">{{serviceId}}</span></span>
+                </div>
 
-          <div class="component-block">
-            <div class="component">
-              <div class="component-label">
+                <!-- Show the route if present -->
+                <h2 ng-if="displayRouteByService[serviceId]" ng-init="otherRoutes = (routesByService[serviceId] | hashSize) - 1">
+                  <span ng-if="(displayRouteByService[serviceId] | isWebRoute)">
+                    <!-- "route" class is present for e2e tests to check -->
+                    <a href="{{displayRouteByService[serviceId] | routeWebURL}}" class="route">{{displayRouteByService[serviceId] | routeLabel}}</a>
+                  </span>
+                  <!-- "route" class is present for e2e test -->
+                  <span ng-if="!(displayRouteByService[serviceId] | isWebRoute)" class="route">
+                    {{displayRouteByService[serviceId] | routeLabel}}
+                  </span>
+                  <span class="small" ng-if="otherRoutes">
+                    (and
+                    <a href="project/{{projectName}}/browse/services#service-{{serviceId}}">
+                      {{otherRoutes}} other {{(otherRoutes == 1) ? 'route' : 'routes'}}
+                    </a>)
+                  </span>
+                </h2>
+
+                <!-- If no route is present, show the service name large -->
                 <!-- "service" class is present for e2e tests to check   -->
-                Service <span ng-if="displayRouteByService[serviceId]">: <span class="service">{{serviceId}}</span></span>
+                <h2 class="service" ng-if="!displayRouteByService[serviceId]">
+                  {{serviceId}}
+                </h2>
               </div>
 
-              <!-- Show the route if present -->
-              <h2 ng-if="displayRouteByService[serviceId]" ng-init="otherRoutes = (routesByService[serviceId] | hashSize) - 1">
-                <span ng-if="(displayRouteByService[serviceId] | isWebRoute)">
-                  <!-- "route" class is present for e2e tests to check -->
-                  <a href="{{displayRouteByService[serviceId] | routeWebURL}}" class="route">{{displayRouteByService[serviceId] | routeLabel}}</a>
+              <div class="component meta-data">
+                <span ng-if="service.spec.portalIP != 'None'">
+                  routing traffic on {{service.spec.portalIP}}
                 </span>
-                <!-- "route" class is present for e2e test -->
-                <span ng-if="!(displayRouteByService[serviceId] | isWebRoute)" class="route">
-                  {{displayRouteByService[serviceId] | routeLabel}}
+                <span ng-if="numPorts">&#8211;
+                  <!--
+                  Show only the first two ports if there are many since we don't have much space here.
+                  The full list is visible elsewhere.
+                  -->
+                  <span ng-repeat="portMapping in service.spec.ports | orderBy:'port' | limitTo:2" class="nowrap">
+                    <!-- Group port mappings and allow multiple mappings to stack if needed -->
+                    <span class="port-mappings">port {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
+                      ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span></span>
+                  </span>
+                  <span ng-if="numPorts > 2" ng-init="numRemaining = numPorts - 2">
+                    and {{numRemaining}} {{numRemaining == 1 ? "other" : "others"}}
+                  </span>
                 </span>
-                <span class="small" ng-if="otherRoutes">
-                  (and
-                  <a href="project/{{projectName}}/browse/services#service-{{serviceId}}">
-                    {{otherRoutes}} other {{(otherRoutes == 1) ? 'route' : 'routes'}}
-                  </a>)
-                </span>
-              </h2>
-
-              <!-- If no route is present, show the service name large -->
-              <!-- "service" class is present for e2e tests to check   -->
-              <h2 class="service" ng-if="!displayRouteByService[serviceId]">
-                {{serviceId}}
-              </h2>
-            </div>
-
-            <div class="component meta-data">
-              <span ng-if="service.spec.portalIP != 'None'">
-                routing traffic on {{service.spec.portalIP}}
-              </span>
-              <span ng-if="numPorts">&#8211;
-                <!--
-                Show only the first two ports if there are many since we don't have much space here.
-                The full list is visible elsewhere.
-                -->
-                <span ng-repeat="portMapping in service.spec.ports | orderBy:'port' | limitTo:2" class="nowrap">
-                  <!-- Group port mappings and allow multiple mappings to stack if needed -->
-                  <span class="port-mappings">port {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
-                    ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span></span>
-                </span>
-                <span ng-if="numPorts > 2" ng-init="numRemaining = numPorts - 2">
-                  and {{numRemaining}} {{numRemaining == 1 ? "other" : "others"}}
-                </span>
-              </span>
+              </div>
             </div>
           </div>
-        </div>
 
 
-        <!--
-        Iterate over deploymentConfigs for this service.
-        Find ones that don't have any deployments for this service.
-        These are likely new, and could have incoming builds, which we want to surface.
-         -->
-        <div ng-repeat="(deploymentConfigId, deploymentConfig) in deploymentConfigsByService[serviceId]"
-             ng-if="!deploymentsByServiceByDeploymentConfig[serviceId][deploymentConfigId]">
           <!--
-          Pods in deployments created from this deployment config will be routed to by this service.
-          Show things related to triggers that are about to create stuff, like builds.
-          -->                
-          <triggers triggers="deploymentConfig.spec.triggers"></triggers>
-        </div>
-        <!--
-        Iterate over all deployments for this service grouped by deploymentConfig (or lack thereof)
-        -->
-        <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]">
-          <!-- 
-          deploymentConfig could be null:
-          1. when we have replicationControllers that were not generated from a deploymentConfig (deploymentConfigId=='')
-          2. when the deploymentConfig for these deployments no longer exists
-          3. when the deploymentConfig for these deployments no longer falls under this service
-          -->
-          <div ng-if="deploymentConfigsByService[serviceId][deploymentConfigId]">
+          Iterate over deploymentConfigs for this service.
+          Find ones that don't have any deployments for this service.
+          These are likely new, and could have incoming builds, which we want to surface.
+           -->
+          <div ng-repeat="(deploymentConfigId, deploymentConfig) in deploymentConfigsByService[serviceId]"
+               ng-if="!deploymentsByServiceByDeploymentConfig[serviceId][deploymentConfigId]">
             <!--
             Pods in deployments created from this deployment config will be routed to by this service.
             Show things related to triggers that are about to create stuff, like builds.
-            -->                
-            <triggers triggers="deploymentConfigsByService[serviceId][deploymentConfigId].spec.triggers"></triggers>
+            -->
+            <triggers triggers="deploymentConfig.spec.triggers"></triggers>
+          </div>
+          <!--
+          Iterate over all deployments for this service grouped by deploymentConfig (or lack thereof)
+          -->
+          <div ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig[serviceId]">
+            <!--
+            deploymentConfig could be null:
+            1. when we have replicationControllers that were not generated from a deploymentConfig (deploymentConfigId=='')
+            2. when the deploymentConfig for these deployments no longer exists
+            3. when the deploymentConfig for these deployments no longer falls under this service
+            -->
+            <div ng-if="deploymentConfigsByService[serviceId][deploymentConfigId]">
+              <!--
+              Pods in deployments created from this deployment config will be routed to by this service.
+              Show things related to triggers that are about to create stuff, like builds.
+              -->
+              <triggers triggers="deploymentConfigsByService[serviceId][deploymentConfigId].spec.triggers"></triggers>
+            </div>
+
+            <!--
+            TODO: right now we ONLY show deployments / RCs if they have pods
+            We may also want to show them if they are idled down to zero (but only if we can filter old deployments)
+            -->
+            <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)"
+                 ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
+
+              <!-- Make sure deploymentConfigs are loaded before testing if the deployment config is missing. -->
+              <overview-deployment
+                rc="deployment"
+                deployment-config-id="deploymentConfigId"
+                deployment-config-missing="deploymentConfigs && !deploymentConfigs[deploymentConfigId]"
+                deployment-config-different-service="deploymentConfigs[deploymentConfigId] && !deploymentConfigsByService[serviceId][deploymentConfigId]"
+                images-by-docker-reference="imagesByDockerReference"
+                builds="builds"
+                pods="podsByDeployment[deployment.metadata.name]">
+              </overview-deployment>
+            </div>
           </div>
 
-          <!-- 
+          <!-- Now go through any of the pods that are routed to by the service but not part of a deployment -->
+          <div ng-repeat="pod in monopodsByService[serviceId] track by (pod | uid)">
+
+            <overview-monopod pod="pod"></overview-monopod>
+
+          </div>
+
+          <!-- TODO implement filters for empty and present to return booleans for cases like this -->
+          <div ng-if="(podsByService[serviceId] | hashSize) == 0" class="osc-object components-panel deployment-block deployments none">
+            <span class="pficon pficon-info"></span> There are currently no pods for this service.
+          </div>
+
+        </section>
+
+        <!-- Show deploymentsConfigs not in a service -->
+        <section ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig['']" class="components">
+
+          <!--
           TODO: right now we ONLY show deployments / RCs if they have pods
           We may also want to show them if they are idled down to zero (but only if we can filter old deployments)
           -->
-          <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)" 
+          <div ng-repeat="(deploymentId, deployment) in deploymentsByServiceByDeploymentConfig[''][deploymentConfigId] track by (deployment | uid)"
                ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
+
+            <div class="components-panel service none">
+              <div class="service">
+                <span ng-if="(deployments | hashSize) > 1">There is no service for these deployments.</span>
+                <span ng-if="(deployments | hashSize) == 1">There is no service for this deployment.</span>
+              </div>
+            </div>
+
+            <div ng-if="deploymentConfigs[deploymentConfigId] && deploymentConfigsByService[''][deploymentConfigId]">
+              <!--
+              Pods in deployments created from this deployment config will not be routed to by any service.
+              Show things related to triggers that are about to create stuff, like builds.
+              -->
+              <triggers triggers="deploymentConfigs[deploymentConfigId].spec.triggers"></triggers>
+            </div>
 
             <!-- Make sure deploymentConfigs are loaded before testing if the deployment config is missing. -->
             <overview-deployment
               rc="deployment"
               deployment-config-id="deploymentConfigId"
               deployment-config-missing="deploymentConfigs && !deploymentConfigs[deploymentConfigId]"
-              deployment-config-different-service="deploymentConfigs[deploymentConfigId] && !deploymentConfigsByService[serviceId][deploymentConfigId]"
+              deployment-config-different-service="deploymentConfigs[deploymentConfigId] && !deploymentConfigsByService[''][deploymentConfigId]"
               images-by-docker-reference="imagesByDockerReference"
               builds="builds"
               pods="podsByDeployment[deployment.metadata.name]">
             </overview-deployment>
+
           </div>
-        </div>
+        </section>
 
-        <!-- Now go through any of the pods that are routed to by the service but not part of a deployment -->
-        <div ng-repeat="pod in monopodsByService[serviceId] track by (pod | uid)">
-
-          <overview-monopod pod="pod"></overview-monopod>
-
-        </div>
-
-        <!-- TODO implement filters for empty and present to return booleans for cases like this -->
-        <div ng-if="(podsByService[serviceId] | hashSize) == 0" class="osc-object components-panel deployment-block deployments none">
-          <span class="pficon pficon-info"></span> There are currently no pods for this service.
-        </div>
-
-      </section>
-
-      <!-- Show deploymentsConfigs not in a service -->
-      <section ng-repeat="(deploymentConfigId, deployments) in deploymentsByServiceByDeploymentConfig['']" class="components">
-
-        <!-- 
-        TODO: right now we ONLY show deployments / RCs if they have pods
-        We may also want to show them if they are idled down to zero (but only if we can filter old deployments)
-        -->
-        <div ng-repeat="(deploymentId, deployment) in deploymentsByServiceByDeploymentConfig[''][deploymentConfigId] track by (deployment | uid)" 
-             ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
+        <section ng-repeat="pod in monopodsByService[''] track by (pod | uid)" class="components">
 
           <div class="components-panel service none">
             <div class="service">
-              <span ng-if="(deployments | hashSize) > 1">There is no service for these deployments.</span>
-              <span ng-if="(deployments | hashSize) == 1">There is no service for this deployment.</span>
+              There is no service for this pod.
             </div>
           </div>
 
-          <div ng-if="deploymentConfigs[deploymentConfigId] && deploymentConfigsByService[''][deploymentConfigId]">
-            <!--
-            Pods in deployments created from this deployment config will not be routed to by any service.
-            Show things related to triggers that are about to create stuff, like builds.
-            -->                
-            <triggers triggers="deploymentConfigs[deploymentConfigId].spec.triggers"></triggers>
-          </div>                
+          <overview-monopod pod="pod"></overview-monopod>
 
-          <!-- Make sure deploymentConfigs are loaded before testing if the deployment config is missing. -->
-          <overview-deployment
-            rc="deployment"
-            deployment-config-id="deploymentConfigId"
-            deployment-config-missing="deploymentConfigs && !deploymentConfigs[deploymentConfigId]"
-            deployment-config-different-service="deploymentConfigs[deploymentConfigId] && !deploymentConfigsByService[''][deploymentConfigId]"
-            images-by-docker-reference="imagesByDockerReference"
-            builds="builds"
-            pods="podsByDeployment[deployment.metadata.name]">
-          </overview-deployment>
+        </section>
+      </div>
 
-        </div>
-      </section>
 
-      <section ng-repeat="pod in monopodsByService[''] track by (pod | uid)" class="components">
-
-        <div class="components-panel service none">
-          <div class="service">
-            There is no service for this pod.
-          </div>
-        </div>
-
-        <overview-monopod pod="pod"></overview-monopod>
-
-      </section>      
     </div>
   </project-page>
 </div>

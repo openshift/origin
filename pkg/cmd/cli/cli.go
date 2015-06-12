@@ -161,6 +161,7 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 			glog.V(5).Infof("already registered flag %s", flag.Name)
 		}
 	})
+	templates.ActsAsRootCommand(cmds)
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 	return cmds
 }
