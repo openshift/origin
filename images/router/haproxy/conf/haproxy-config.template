@@ -6,8 +6,6 @@
 {{ define "/var/lib/haproxy/conf/haproxy.config" }}
 global
   # maxconn 4096
-  user haproxy
-  group haproxy
   daemon
   ca-base /etc/ssl
   crt-base /etc/ssl
