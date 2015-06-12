@@ -78,7 +78,8 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "postgresql:latest"
+                "name": "postgresql:latest",
+                "namespace": "openshift"
               },
               "lastTriggeredImage": ""
             }

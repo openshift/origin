@@ -78,7 +78,8 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "mysql:latest"
+                "name": "mysql:latest",
+                "namespace": "openshift"
               },
               "lastTriggeredImage": ""
             }
