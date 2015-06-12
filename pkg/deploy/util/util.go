@@ -118,6 +118,12 @@ func ConfigSelector(name string) labels.Selector {
 	return labels.Set{deployapi.DeploymentConfigAnnotation: name}.AsSelector()
 }
 
+// DeployerPodSelector returns a label Selector which can be used to find all
+// deployer pods associated with a deployment with name.
+func DeployerPodSelector(name string) labels.Selector {
+	return labels.Set{deployapi.DeployerPodForDeploymentLabel: name}.AsSelector()
+}
+
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
 // if the controller doesn't contain an encoded config.
 func DecodeDeploymentConfig(controller *api.ReplicationController, codec runtime.Codec) (*deployapi.DeploymentConfig, error) {
@@ -283,6 +289,13 @@ func DeploymentVersionFor(obj runtime.Object) int {
 func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
 	value := mappedAnnotationFor(deployment, deployapi.DeploymentCancelledAnnotation)
 	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
+}
+
+// IsDeployment returns true if controller is a deployment. The controller is
+// considered a deployment if it contains a deployment version annotation.
+func IsDeployment(controller *api.ReplicationController) bool {
+	_, hasVersion := controller.Annotations[deployapi.DeploymentVersionAnnotation]
+	return hasVersion
 }
 
 // mappedAnnotationFor finds the given annotation in obj using the annotation
