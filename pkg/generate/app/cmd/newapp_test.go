@@ -595,6 +595,42 @@ func TestRunAll(t *testing.T) {
 			expectedErr:    nil,
 			expectInsecure: util.NewStringSet("example"),
 		},
+		{
+			name: "emptyDir volumes",
+			config: &AppConfig{
+				DockerImages: util.StringList{"mysql"},
+
+				dockerResolver: dockerResolver,
+				imageStreamResolver: app.ImageStreamResolver{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateResolver: app.TemplateResolver{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				searcher:        &simpleSearcher{dockerResolver},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+
+			expected: map[string][]string{
+				"imageStream":      {"mysql"},
+				"deploymentConfig": {"mysql"},
+				"service":          {"mysql"},
+				"volumes":          {"mysql-volume-1♥EmptyDir"},
+				"volumeMounts":     {"mysql-volume-1"},
+			},
+			expectedErr: nil,
+		},
 	}
 
 	for _, test := range tests {
@@ -616,6 +652,22 @@ func TestRunAll(t *testing.T) {
 				imageStreams = append(imageStreams, tp)
 			case *deploy.DeploymentConfig:
 				got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
+				if podTemplate := tp.Template.ControllerTemplate.Template; podTemplate != nil {
+					for _, volume := range podTemplate.Spec.Volumes {
+						var srcType string
+						if volume.VolumeSource.EmptyDir != nil {
+							srcType = "EmptyDir"
+						} else {
+							srcType = "UNKNOWN"
+						}
+						got["volumes"] = append(got["volumes"], volume.Name+"♥"+srcType)
+					}
+					for _, container := range podTemplate.Spec.Containers {
+						for _, volumeMount := range container.VolumeMounts {
+							got["volumeMounts"] = append(got["volumeMounts"], volumeMount.Name)
+						}
+					}
+				}
 			}
 		}
 

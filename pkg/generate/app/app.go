@@ -14,6 +14,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/fsouza/go-dockerclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -362,7 +363,22 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 				Protocol:      kapi.Protocol(strings.ToUpper(p.Proto())),
 			})
 		}
-		// TODO: Append volume information and environment variables
+
+		// Create volume mounts with names based on container name
+		infix := "-volume-"
+		maxDigits := len(fmt.Sprintf("%d", len(r.Info.Config.Volumes)))
+		baseLen := util.LabelValueMaxLength - maxDigits - len(infix)
+		nameBase := fmt.Sprintf("%.*s%s", baseLen, container.Name, infix)
+		i := 1
+		for volume := range r.Info.Config.Volumes {
+			container.VolumeMounts = append(container.VolumeMounts, kapi.VolumeMount{
+				Name:      fmt.Sprintf("%s%d", nameBase, i),
+				ReadOnly:  false,
+				MountPath: volume,
+			})
+			i++
+		}
+		// TODO: Append environment variables
 	}
 
 	return container, triggers, nil
@@ -453,7 +469,18 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 		triggers = append(triggers, containerTriggers...)
 		template.Containers = append(template.Containers, *c)
 	}
-	// TODO: populate volumes
+
+	// Create EmptyDir volumes for all container volume mounts
+	for _, c := range template.Containers {
+		for _, v := range c.VolumeMounts {
+			template.Volumes = append(template.Volumes, kapi.Volume{
+				Name: v.Name,
+				VolumeSource: kapi.VolumeSource{
+					EmptyDir: &kapi.EmptyDirVolumeSource{Medium: kapi.StorageMediumDefault},
+				},
+			})
+		}
+	}
 
 	for i := range template.Containers {
 		template.Containers[i].Env = append(template.Containers[i].Env, r.Env.List()...)
