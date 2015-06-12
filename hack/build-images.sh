@@ -46,7 +46,7 @@ cp -f "${imagedir}/dockerregistry" images/dockerregistry/bin
 function image {
   echo "--- $1 ---"
   docker build -t $1:latest $2
-  docker tag $1:latest $1:${OS_RELEASE_COMMIT}
+  docker tag -f $1:latest $1:${OS_RELEASE_COMMIT}
 }
 
 # images that depend on scratch
