@@ -10,64 +10,70 @@
           <em>{{emptyMessage}}</em>
         </div>
       </div>      
-      <div ng-repeat="pod in pods | orderObjectsByDate : true" class="tile">
+      <div ng-repeat="pod in pods | orderObjectsByDate : true" class="tile pod-log">
         <h2>{{pod.metadata.name}}</h2>
-        <div>
-          <span style="margin-right: 5px;">Status:  {{pod.status.phase}}</span>
-          <span ng-switch="pod.status.phase">
-            <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true" style="margin-right: 5px;"></span>
-            <span ng-switch-when="Terminated" class="fa fa-times text-danger" aria-hidden="true" style="margin-right: 5px;"></span>
-            <span ng-switch-when="Pending" class="fa fa-refresh fa-spin" aria-hidden="true" style="margin-right: 5px;"></span>
-            <span ng-switch-when="Running" class="fa fa-refresh text-success" aria-hidden="true" style="margin-right: 5px;"></span>
-          </span>
-        </div>
-        <div>
-          Node: {{pod.spec.host || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.host != pod.status.hostIP">({{pod.status.hostIP}})</span>
-        </div>
-        <div>
-          IP on node: {{pod.status.podIP || 'unknown'}}
-        </div>
-        <div>
-          Restart policy:
-          <span ng-if="pod.spec.restartPolicy.always">
-            always <span ng-if="pod.status.info.POD">(restarted {{pod.status.info.POD.restartCount}} times)</span>
-          </span>
-          <span ng-if="pod.spec.restartPolicy.onFailure">
-            on failure <span ng-if="pod.status.info.POD">(restarted {{pod.status.info.POD.restartCount}} times)</span>
-          </span>          
-          <span ng-if="pod.spec.restartPolicy.never">
-            never <span ng-if="pod.status.info.POD.restartCount">(previously restarted {{pod.status.info.POD.restartCount}} times)</span>
-          </span>          
-        </div>
-        <div ng-if="pod.spec.volumes.length">
-          Volumes:
-          <ul>
-            <li ng-repeat="volume in pod.spec.volumes">
-              <div>{{volume.name}}</div>
-              <div ng-if="volume.source.hostPath">
-                <div>Type: host path</div>
-                <div>Path: {{volume.source.hostPath.path}}</div>
+        <div class="row">
+          <div class="col-md-6">
+              <div class="log-meta">
+                <span class="log-meta-title">Status:</span>
+                <span ng-switch="pod.status.phase">
+                  <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true"></span>
+                  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
+                  <span ng-switch-when="Terminated" class="fa fa-times text-danger" aria-hidden="true"></span>
+                  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline"></span>
+                  <span ng-switch-when="Running" class="fa fa-refresh fa-spin" aria-hidden="true"></span>
+                </span>
+                {{pod.status.phase}}
               </div>
-              <div ng-if="volume.source.emptyDir">Type: empty directory</div>
-              <!-- TODO fill out GCE persistent disk details -->
-              <div ng-if="volume.source.gcePersistentDisk">Type: GCE persistent disk</div>
-              <div ng-if="volume.source.gitRepo">
-                <div>Type: Git repository</div>
-                <div>Repository: {{volume.source.gitRepo.repository}}</div>
-                <div ng-if="volume.source.gitRepo.revision">Revision: {{volume.source.gitRepo.revision}}</div>
-              </div>
-            </li>
-          </ul>
-        </div>
-        <div>Pod template:</div>
-
-        <pod-template
-          pod-template="pod" 
-          images-by-docker-reference="imagesByDockerReference"
-          builds="builds">
-        </pod-template>
-
-      </div>
+            <div class="log-meta">
+              <span class="log-meta-title">Node:</span>{{pod.spec.host || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.host != pod.status.hostIP">({{pod.status.hostIP}})</span>
+            </div>
+            <div class="log-meta">
+              <span class="log-meta-title">IP on node:</span>{{pod.status.podIP || 'unknown'}}
+            </div>
+            <div class="log-meta">
+              <span class="log-meta-title">Restart policy:</span>
+              <span ng-if="pod.spec.restartPolicy.always">
+                always <span ng-if="pod.status.info.POD">(restarted {{pod.status.info.POD.restartCount}} times)</span>
+              </span>
+              <span ng-if="pod.spec.restartPolicy.onFailure">
+                on failure <span ng-if="pod.status.info.POD">(restarted {{pod.status.info.POD.restartCount}} times)</span>
+              </span>          
+              <span ng-if="pod.spec.restartPolicy.never">
+                never <span ng-if="pod.status.info.POD.restartCount">(previously restarted {{pod.status.info.POD.restartCount}} times)</span>
+              </span>          
+            </div>
+            <div ng-if="pod.spec.volumes.length">
+              <span class="log-meta-title">Volumes:</span>
+              <ul>
+                <li ng-repeat="volume in pod.spec.volumes">
+                  <div>{{volume.name}}</div>
+                  <div ng-if="volume.source.hostPath">
+                    <div>Type: host path</div>
+                    <div>Path: {{volume.source.hostPath.path}}</div>
+                  </div>
+                  <div ng-if="volume.source.emptyDir">Type: empty directory</div>
+                  <!-- TODO fill out GCE persistent disk details -->
+                  <div ng-if="volume.source.gcePersistentDisk">Type: GCE persistent disk</div>
+                  <div ng-if="volume.source.gitRepo">
+                    <div>Type: Git repository</div>
+                    <div>Repository: {{volume.source.gitRepo.repository}}</div>
+                    <div ng-if="volume.source.gitRepo.revision">Revision: {{volume.source.gitRepo.revision}}</div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div><!-- /col -->
+          <div class="col-md-6">
+          <div>Pod template:</div>
+          <pod-template
+            pod-template="pod" 
+            images-by-docker-reference="imagesByDockerReference"
+            builds="builds">
+          </pod-template>
+          </div><!-- /col -->
+        </div><!-- /row -->
+      </div><!-- /tile -->
     </div>
   </project-page>
 </div>
