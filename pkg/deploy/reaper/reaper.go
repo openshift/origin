@@ -2,11 +2,13 @@ package reaper
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/golang/glog"
 
@@ -14,14 +16,14 @@ import (
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 
-// ReaperFor returns the appropriate Reaper client depending on the provided
-// kind of resource (Replication controllers, pods, services, and deploymentConfigs
-// supported)
-func ReaperFor(kind string, oc *client.Client, kc *kclient.Client) (kubectl.Reaper, error) {
-	if kind != "DeploymentConfig" {
-		return kubectl.ReaperFor(kind, kc)
+// DeploymentConfigReaper makes a new DeploymentConfigReaper.
+func NewDeploymentConfigReaper(oc client.Interface, kc kclient.Interface, interval, timeout time.Duration) *DeploymentConfigReaper {
+	return &DeploymentConfigReaper{
+		oc:           oc,
+		kc:           kc,
+		pollInterval: interval,
+		timeout:      timeout,
 	}
-	return &DeploymentConfigReaper{oc: oc, kc: kc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}, nil
 }
 
 // DeploymentConfigReaper implements the Reaper interface for deploymentConfigs
@@ -73,4 +75,57 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, gracePeriod *
 	}
 
 	return fmt.Sprintf("%s stopped", name), nil
+}
+
+// NewDeploymentReaper creates a new DeploymentReaper.
+func NewDeploymentReaper(controllerReaper kubectl.Reaper, podReaper kubectl.Reaper, kc kclient.Interface) *DeploymentReaper {
+	return &DeploymentReaper{
+		controllerReaper: controllerReaper,
+		podReaper:        podReaper,
+		deployerPodsFor: func(namespace, name string) (*kapi.PodList, error) {
+			return kc.Pods(namespace).List(util.DeployerPodSelector(name), fields.Everything())
+		},
+	}
+}
+
+// DeploymentReaper is a Reaper for deployments. It reaps all deployer pods
+// for the deployment using a Pod reaper, and then reaps the deployment itself
+// using a ReplicationController reaper.
+type DeploymentReaper struct {
+	// controllerReaper is used to reap the deployment itself.
+	controllerReaper kubectl.Reaper
+	// podReaper is used to reap deployer pods.
+	podReaper kubectl.Reaper
+	// deployerPodsFor returns all deployer pods associated with a deployment.
+	deployerPodsFor func(namespace, name string) (*kapi.PodList, error)
+}
+
+// Stop implements Reaper.
+func (r *DeploymentReaper) Stop(namespace, name string, gracePeriod *kapi.DeleteOptions) (string, error) {
+	// Find all deployer pods for the deployment.
+	pods, err := r.deployerPodsFor(namespace, name)
+	if err != nil {
+		return "", err
+	}
+
+	var output []string
+
+	// Stop any deployer pods. Log errors.
+	for _, pod := range pods.Items {
+		result, err := r.podReaper.Stop(pod.Namespace, pod.Name, gracePeriod)
+		if err != nil {
+			glog.Infof("Couldn't delete deployer pod %q: %v", pod.Name, err)
+		} else {
+			output = append(output, result)
+		}
+	}
+
+	// Stop the deployment.
+	result, err := r.controllerReaper.Stop(namespace, name, gracePeriod)
+	if err != nil {
+		return "", err
+	}
+	output = append(output, result)
+
+	return strings.Join(output, "\n"), nil
 }

@@ -3,6 +3,7 @@ package clientcmd
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
@@ -20,6 +21,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
 	deploy "github.com/openshift/origin/pkg/deploy/scaler"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 
@@ -120,7 +122,14 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		if err != nil {
 			return nil, err
 		}
-		return deployreaper.ReaperFor(mapping.Kind, oc, kc)
+		switch mapping.Kind {
+		case "DeploymentConfig":
+			return deployreaper.NewDeploymentConfigReaper(oc, kc, kubectl.Interval, kubectl.Timeout), nil
+		case "ReplicationController":
+			return NewControllerAndDeploymentReaper(kc, kubectl.Timeout), nil
+		default:
+			return kubectl.ReaperFor(mapping.Kind, kc)
+		}
 	}
 	kGeneratorFunc := w.Factory.Generator
 	w.Generator = func(name string) (kubectl.Generator, bool) {
@@ -320,4 +329,52 @@ func (c *clientCache) ClientForVersion(version string) (*client.Client, error) {
 
 	c.clients[config.Version] = client
 	return client, nil
+}
+
+// NewControllerAndDeploymentReaper creates a new
+// ControllerAndDeploymentReaper from real clients.
+func NewControllerAndDeploymentReaper(kc kclient.Interface, timeout time.Duration) *ControllerAndDeploymentReaper {
+	return &ControllerAndDeploymentReaper{
+		kc:      kc,
+		timeout: timeout,
+	}
+}
+
+// ControllerAndDeploymentReaper is a Reaper which can reap
+// ReplicationControllers and deployments. It delegates ReplicationController
+// reaping to the kubernetes ReplicationControllerReaper.
+type ControllerAndDeploymentReaper struct {
+	kc      kclient.Interface
+	timeout time.Duration
+}
+
+// Stop implements Reaper.
+func (r *ControllerAndDeploymentReaper) Stop(namespace, name string, gracePeriod *api.DeleteOptions) (string, error) {
+	// Find the controller.
+	controller, err := r.kc.ReplicationControllers(namespace).Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	// Set up an upstream controller reaper.
+	controllerReaper, err := kubectl.ReaperForReplicationController(r.kc, r.timeout)
+	if err != nil {
+		return "", err
+	}
+
+	var reaper kubectl.Reaper
+	if deployutil.IsDeployment(controller) {
+		// There's no constructor exposed for the pod reaper.
+		podReaper, err := kubectl.ReaperFor("Pod", r.kc)
+		if err != nil {
+			return "", err
+		}
+		// Reap the controller as a deployment.
+		reaper = deployreaper.NewDeploymentReaper(controllerReaper, podReaper, r.kc)
+	} else {
+		// Reap the controller normally
+		reaper = controllerReaper
+	}
+
+	return reaper.Stop(namespace, name, gracePeriod)
 }
