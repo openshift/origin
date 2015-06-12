@@ -13,7 +13,7 @@ const (
 
 // GetBootstrapSecurityContextConstraints returns the slice of default SecurityContextConstraints
 // for system bootstrapping.
-func GetBootstrapSecurityContextConstraints() []kapi.SecurityContextConstraints {
+func GetBootstrapSecurityContextConstraints(buildControllerUsername string) []kapi.SecurityContextConstraints {
 	constraints := []kapi.SecurityContextConstraints{
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -27,8 +27,8 @@ func GetBootstrapSecurityContextConstraints() []kapi.SecurityContextConstraints 
 			RunAsUser: kapi.RunAsUserStrategyOptions{
 				Type: kapi.RunAsUserStrategyRunAsAny,
 			},
-			// TODO: AuthenticatedGroup should be removed from this list ASAP
-			Groups: []string{AuthenticatedGroup, ClusterAdminGroup},
+			Users:  []string{buildControllerUsername},
+			Groups: []string{ClusterAdminGroup},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -46,6 +46,7 @@ func GetBootstrapSecurityContextConstraints() []kapi.SecurityContextConstraints 
 				// will fail.
 				Type: kapi.RunAsUserStrategyMustRunAsRange,
 			},
+			Groups: []string{AuthenticatedGroup},
 		},
 	}
 	return constraints

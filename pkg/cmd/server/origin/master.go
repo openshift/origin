@@ -767,8 +767,11 @@ func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 	if len(sccList.Items) > 0 {
 		return
 	}
+
 	glog.Infof("No security context constraints detected, adding defaults")
-	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints() {
+	ns := c.Options.PolicyConfig.OpenShiftInfrastructureNamespace
+	buildControllerUsername := serviceaccount.MakeUsername(ns, c.BuildControllerServiceAccount)
+	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(buildControllerUsername) {
 		_, err = c.KubeClient().SecurityContextConstraints().Create(&scc)
 		if err != nil {
 			glog.Errorf("Unable to create default security context constraint %s.  Got error: %v", scc.Name, err)
