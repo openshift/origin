@@ -51,16 +51,19 @@ func (s *mustRunAs) Validate(pod *api.Pod, container *api.Container) fielderrors
 	allErrs := fielderrors.ValidationErrorList{}
 
 	if container.SecurityContext == nil {
-		allErrs = append(allErrs, fmt.Errorf("Unable to validate nil security context for container %s", container.Name))
+		detail := fmt.Sprintf("unable to validate nil security context for container %s", container.Name)
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext", container.SecurityContext, detail))
 		return allErrs
 	}
 	if container.SecurityContext.RunAsUser == nil {
-		allErrs = append(allErrs, fmt.Errorf("Unable to validate nil RunAsUser for container %s", container.Name))
+		detail := fmt.Sprintf("unable to validate nil runAsUser for container %s", container.Name)
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext.runAsUser", container.SecurityContext.RunAsUser, detail))
 		return allErrs
 	}
 
 	if *s.opts.UID != *container.SecurityContext.RunAsUser {
-		allErrs = append(allErrs, fmt.Errorf("UID on container %s does not match required UID.  Found %d, wanted %d", container.Name, *container.SecurityContext.RunAsUser, *s.opts.UID))
+		detail := fmt.Sprintf("UID on container %s does not match required UID.  Found %d, wanted %d", container.Name, *container.SecurityContext.RunAsUser, *s.opts.UID)
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext.runAsUser", *container.SecurityContext.RunAsUser, detail))
 	}
 
 	return allErrs

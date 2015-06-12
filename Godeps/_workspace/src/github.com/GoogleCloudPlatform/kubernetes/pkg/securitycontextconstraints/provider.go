@@ -32,7 +32,7 @@ type simpleProvider struct {
 	seLinuxStrategy   selinux.SELinuxSecurityContextConstraintsStrategy
 }
 // ensure we implement the interface correctly.
-var _ Provider = &simpleProvider{}
+var _ SecurityContextConstraintsProvider = &simpleProvider{}
 
 // NewSimpleProvider creates a new SecurityContextConstraintsProvider instance.
 func NewSimpleProvider(scc *api.SecurityContextConstraints) (SecurityContextConstraintsProvider, error) {
@@ -83,13 +83,14 @@ func NewSimpleProvider(scc *api.SecurityContextConstraints) (SecurityContextCons
 // container's security context then it will not be changed.  Validation should be used after
 // the context is created to ensure it complies with the required restrictions.
 //
-// WARNING: this method will change values on the container's security context.  If that is
-// undesirable (ie in the case of trying to generate and validate against multiple SCCs )
-// then a copy should be passed.
+// NOTE: this method works on a copy of the SC of the container.  It is up to the caller to apply
+// the SC if validation passes.
 func (s *simpleProvider) CreateSecurityContext(pod *api.Pod, container *api.Container) (*api.SecurityContext, error) {
 	var sc *api.SecurityContext = nil
 	if container.SecurityContext != nil {
-		sc = container.SecurityContext
+		// work with a copy of the original
+		copy := *container.SecurityContext
+		sc = &copy
 	} else {
 		sc = &api.SecurityContext{}
 	}
@@ -158,4 +159,9 @@ func (s *simpleProvider) ValidateSecurityContext(pod *api.Pod, container *api.Co
 		}
 	}
 	return allErrs
+}
+
+// Get the name of the SCC that this provider was initialized with.
+func (s *simpleProvider) GetSCCName() string {
+	return s.scc.Name
 }
