@@ -35,6 +35,8 @@ install:
 	cp -f $(OUT_DIR)/local/go/bin/openshift-sdn-kube-subnet-setup.sh /usr/bin/
 	mkdir -p /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet/
 	cp -f $(OUT_DIR)/local/go/bin/openshift-ovs-subnet /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet/
+	mkdir -p /usr/lib/systemd/system/docker.service.d/
+	cp -f rel-eng/docker-sdn-ovs.conf /usr/lib/systemd/system/docker.service.d/
 
 # Remove all build artifacts.
 #
