@@ -325,6 +325,9 @@ func TestHandle_noop(t *testing.T) {
 				t.Fatalf("unexpected call to create pod")
 				return nil, nil
 			},
+			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+				return &kapi.Pod{}, nil
+			},
 		},
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			t.Fatalf("unexpected call to make container")
@@ -600,6 +603,51 @@ func TestHandle_cancelPendingRunning(t *testing.T) {
 				t.Errorf("expected ActiveDeadlineSeconds %d, got %d", e, a)
 			}
 		}
+	}
+}
+
+// TestHandle_deployerPodDisappeared ensures that a pending/running deployment
+// is failed when its deployer pod vanishes.
+func TestHandle_deployerPodDisappeared(t *testing.T) {
+	var updatedDeployment *kapi.ReplicationController
+
+	updateCalled := false
+	controller := &DeploymentController{
+		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+		},
+		deploymentClient: &deploymentClientImpl{
+			updateDeploymentFunc: func(namspace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+				updatedDeployment = deployment
+				updateCalled = true
+				return updatedDeployment, nil
+			},
+		},
+		podClient: &podClientImpl{
+			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+				return nil, kerrors.NewNotFound("Pod", name)
+			},
+		},
+		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+			return okContainer(), nil
+		},
+		recorder: &record.FakeRecorder{},
+	}
+
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
+
+	err := controller.Handle(deployment)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !updateCalled {
+		t.Fatalf("expected update")
+	}
+
+	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
+		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
 }
 

@@ -95,8 +95,8 @@ func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 const DeployerPodSuffix = "deploy"
 
 // DeployerPodNameForDeployment returns the name of a pod for a given deployment
-func DeployerPodNameForDeployment(deployment *api.ReplicationController) string {
-	return namer.GetPodName(deployment.Name, DeployerPodSuffix)
+func DeployerPodNameForDeployment(deployment string) string {
+	return namer.GetPodName(deployment, DeployerPodSuffix)
 }
 
 // LabelForDeployment builds a string identifier for a Deployment.
@@ -116,6 +116,20 @@ func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
 // but we could consider adding a new constant to the public types.
 func ConfigSelector(name string) labels.Selector {
 	return labels.Set{deployapi.DeploymentConfigAnnotation: name}.AsSelector()
+}
+
+// DeployerPodSelector returns a label Selector which can be used to find all
+// deployer pods associated with a deployment with name.
+func DeployerPodSelector(name string) labels.Selector {
+	return labels.Set{deployapi.DeployerPodForDeploymentLabel: name}.AsSelector()
+}
+
+// AnyDeployerPodSelector returns a label Selector which can be used to find
+// all deployer pods across all deployments, including hook and custom
+// deployer pods.
+func AnyDeployerPodSelector() labels.Selector {
+	sel, _ := labels.Parse(deployapi.DeployerPodForDeploymentLabel)
+	return sel
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
