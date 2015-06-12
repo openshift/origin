@@ -13,6 +13,6 @@ RUN echo [brew] > /etc/yum.repos.d/brew.repo;\
     echo gpgcheck = 0 >> /etc/yum.repos.d/brew.repo;\
     echo enabled = 1 >> /etc/yum.repos.d/brew.repo
 
-RUN yum install -y git tar wget socat hostname yum-utils --disablerepo=\* --enablerepo=rhel-7-server-rpms && \
-    yum-config-manager --disable rhel-7-server-rt-rpms && \
+# components from EPEL must be installed in a separate yum install step
+RUN yum install -y git tar wget socat hostname sysvinit-tools util-linux --disablerepo=\* --enablerepo=rhel-7-server-rpms && \
     yum clean all

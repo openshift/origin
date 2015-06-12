@@ -74,7 +74,7 @@ If it's not running, you will instead see:
 
 If it's not running, you can launch it via:
 
-    $ oadm registry --create --credentials="${OPENSHIFTCONFIG}"
+    $ oadm registry --create --credentials="${KUBECONFIG}"
 
 Probing Containers
 ------------------

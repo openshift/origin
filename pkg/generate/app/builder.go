@@ -20,19 +20,3 @@ func IsBuilderImage(image *imageapi.DockerImage) bool {
 	}
 	return false
 }
-
-// BuilderForPlatform expands the provided platform to
-// the respective OpenShift image
-//
-//TODO: Remove once a real image searcher is implemented
-func BuilderForPlatform(platform string) string {
-	switch strings.ToLower(platform) {
-	case "ruby":
-		return "openshift/ruby-20-centos7"
-	case "jee":
-		return "openshift/wildfly-8-centos"
-	case "nodejs":
-		return "openshift/nodejs-010-centos7"
-	}
-	return ""
-}

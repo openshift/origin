@@ -45,7 +45,7 @@ trap "cleanup" EXIT
 set -e
 
 # Prevent user environment from colliding with the test setup
-unset OPENSHIFTCONFIG
+unset KUBECONFIG
 
 USE_LOCAL_IMAGES=${USE_LOCAL_IMAGES:-true}
 
@@ -184,7 +184,7 @@ fi
 [ "$(oc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
 # logs in with a valid certificate authority
 oc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1beta3
-grep -q "v1beta3" ${HOME}/.config/openshift/config
+grep -q "v1beta3" ${HOME}/.kube/config
 oc logout
 # logs in skipping certificate check
 oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
@@ -215,17 +215,17 @@ oc project project-foo
 oc get services --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 
 # test config files from env vars
-OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" oc get services
+KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" oc get services
 
 # test config files in the home directory
-mkdir -p ${HOME}/.config/openshift
-cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.config/openshift/config
+mkdir -p ${HOME}/.kube
+cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/config
 oc get services
-mv ${HOME}/.config/openshift/config ${HOME}/.config/openshift/non-default-config
+mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"
-export OPENSHIFTCONFIG="${HOME}/.config/openshift/non-default-config"
+export KUBECONFIG="${HOME}/.kube/non-default-config"
 
-# from this point every command will use config from the OPENSHIFTCONFIG env var
+# from this point every command will use config from the KUBECONFIG env var
 
 oc get templates
 oc create -f examples/sample-app/application-template-dockerbuild.json
@@ -328,13 +328,16 @@ echo "templates: ok"
 
 oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org
 # can't use a go template here because the output needs to be base64 decoded.  base64 isn't installed by default in all distros
-oc describe secrets/dockercfg | grep "dockercfg:" | awk '{print $2}' > ${HOME}/.dockercfg
-oc secrets new from-file ${HOME}/.dockercfg
+oc describe secrets/dockercfg | grep "dockercfg:" | awk '{print $2}' > ${HOME}/dockerconfig
+oc secrets new from-file .dockercfg=${HOME}/dockerconfig
 # check to make sure the type was correctly auto-detected
-[ "$(oc get secret/from-file -t "{{ .type }}" | grep "kubernetes.io/dockercfg")" ]
+[ "$(oc get secret/from-file -t "{{ .type }}" | grep 'kubernetes.io/dockercfg')" ]
 # make sure the -o works correctly
 [ "$(oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o yaml | grep "kubernetes.io/dockercfg")" ]
-[ "$(oc secrets new from-file ${HOME}/.dockercfg -o yaml | grep "kubernetes.io/dockercfg")" ]
+[ "$(oc secrets new from-file .dockercfg=${HOME}/dockerconfig -o yaml | grep "kubernetes.io/dockercfg")" ]
+# check to make sure malformed names fail as expected
+[ "$(oc secrets new bad-name .docker=cfg=${HOME}/dockerconfig 2>&1 | grep "error: Key names or file paths cannot contain '='.")" ] 
+
 
 # attach secrets to service account
 # single secret with prefix
@@ -370,7 +373,7 @@ oc create -f test/integration/fixtures/test-image-stream.json
 # make sure stream.status.dockerImageRepository isn't set (no registry)
 [ -z "$(oc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 # create the registry
-oadm registry --create --credentials="${OPENSHIFTCONFIG}"
+oadm registry --create --credentials="${KUBECONFIG}"
 # make sure stream.status.dockerImageRepository IS set
 [ -n "$(oc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 # ensure the registry rc has been created
@@ -645,15 +648,15 @@ echo "new-project: ok"
 
 # Test running a router
 [ ! "$(oadm router --dry-run | grep 'does not exist')" ]
-[ "$(oadm router -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-haproxy-')" ]
-oadm router --create --credentials="${OPENSHIFTCONFIG}"
+[ "$(oadm router -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-haproxy-')" ]
+oadm router --create --credentials="${KUBECONFIG}"
 [ "$(oadm router | grep 'service exists')" ]
 echo "router: ok"
 
 # Test running a registry
 [ ! "$(oadm registry --dry-run | grep 'does not exist')"]
-[ "$(oadm registry -o yaml --credentials="${OPENSHIFTCONFIG}" | grep 'openshift/origin-docker-registry')" ]
-oadm registry --create --credentials="${OPENSHIFTCONFIG}"
+[ "$(oadm registry -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-docker-registry')" ]
+oadm registry --create --credentials="${KUBECONFIG}"
 [ "$(oadm registry | grep 'service exists')" ]
 echo "registry: ok"
 

@@ -79,9 +79,9 @@ systemctl daemon-reload
 systemctl enable openshift-node.service
 systemctl start openshift-node.service
 
-# Set up the OPENSHIFTCONFIG environment variable for use by the client
-echo 'export OPENSHIFTCONFIG=/openshift.local.config/master/admin.kubeconfig' >> /root/.bash_profile
-echo 'export OPENSHIFTCONFIG=/openshift.local.config/master/admin.kubeconfig' >> /home/vagrant/.bash_profile
+# Set up the KUBECONFIG environment variable for use by the client
+echo 'export KUBECONFIG=/openshift.local.config/master/admin.kubeconfig' >> /root/.bash_profile
+echo 'export KUBECONFIG=/openshift.local.config/master/admin.kubeconfig' >> /home/vagrant/.bash_profile
 
 # Register with the master
 #curl -X POST -H 'Accept: application/json' -d "{\"kind\":\"Minion\", \"id\":"${MINION_IP}", \"apiVersion\":\"v1beta1\", \"hostIP\":"${MINION_IP}" }" http://${MASTER_IP}:8080/api/v1beta1/minions

@@ -5,11 +5,9 @@
         <h1>Deployments</h1>
       </div>
       <alerts alerts="alerts"></alerts>
-      <div ng-if="(deployments | hashSize) == 0">
-        <div>
-          <em>{{emptyMessage}}</em>
-        </div>
-      </div> 
+      <div ng-if="(deploymentConfigs | hashSize) === 0 && (deploymentsByDeploymentConfig | hashSize) === 0">
+        <em>{{emptyMessage}}</em>
+      </div>
 
       <div class="tile" ng-repeat="(deploymentConfigName, deploymentConfig) in deploymentConfigs track by (deploymentConfig | uid)">
         <div> 
@@ -153,7 +151,7 @@
         <div>
           <h2 ng-if="deploymentConfigName != ''">
             {{deploymentConfigName}}
-            <span class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This deployment config no longer exists" style="cursor: help;">
+            <span class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This deployment config no longer exists." style="cursor: help;">
               <span class="pficon pficon-warning-triangle"></span>
               <span class="pficon pficon-warning-exclamation"></span>
             </span>            
@@ -165,7 +163,8 @@
               </h3>
               <div>
                 <dt>Created:</dt>
-                <dd><relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp></div></dd>
+                <dd><relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp></dd>
+              </div>
               <div>
                 <span>
                   <dt>Status:</dt>

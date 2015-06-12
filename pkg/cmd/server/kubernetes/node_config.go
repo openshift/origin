@@ -17,6 +17,7 @@ import (
 	"github.com/golang/glog"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
@@ -119,6 +120,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	// prevents kube from generating certs
 	server.TLSCertFile = options.ServingInfo.ServerCert.CertFile
 	server.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
+
+	if value := cmdutil.Env("OPENSHIFT_CONTAINERIZED", ""); len(value) > 0 {
+		server.Containerized = value == "true"
+	}
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide

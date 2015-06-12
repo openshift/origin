@@ -20,6 +20,11 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Ro
 					Verbs:     util.NewStringSet("get", "list"),
 					Resources: util.NewStringSet("templates", authorizationapi.ImageGroupName),
 				},
+				{
+					// so anyone can pull from openshift/* image streams
+					Verbs:     util.NewStringSet("get"),
+					Resources: util.NewStringSet("imagestreams/layers"),
+				},
 			},
 		},
 	}
@@ -88,6 +93,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch"),
 					Resources: util.NewStringSet(authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects", "pods/exec", "pods/portforward"),
+				},
+				{
+					Verbs: util.NewStringSet("get", "update"),
+					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
+					Resources: util.NewStringSet("imagestreams/layers"),
 				},
 			},
 		},

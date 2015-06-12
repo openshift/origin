@@ -11,60 +11,55 @@ easy deployment and scaling, and long-term lifecycle maintenance for small and l
 
 **Features:**
 
-* Push source code to the platform and have deployments automatically occur
+* Build web-scale applications with integrated service discovery, DNS, load balancing, failover, health checking, persistent storage, and fast scaling
+* Push source code to your Git repository and have image builds and deployments automatically occur
 * Easy to use client tools for building web applications from source code
   * Templatize the components of your system, reuse them, and iteratively deploy them over time
 * Centralized administration and management of application component libraries
   * Roll out changes to software stacks to your entire organization in a controlled fashion
 * Team and user isolation of containers, builds, and network communication in an easy multi-tenancy system
+  * Allow developers to run containers securely by preventing root access and isolating containers with SELinux
   * Limit, track, and manage the resources teams are using
 
 **Learn More:**
 
+* **[OpenShift Public Documentation](http://docs.openshift.org/latest/welcome/index.html)**
+* The **[Trello Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
 * **[Technical Architecture Presentation](https://docs.google.com/presentation/d/1Isp5UeQZTo3gh6e59FMYmMs_V9QIQeBelmbyHIJ1H_g/pub?start=false&loop=false&delayms=3000)**
 * **[System Architecture](https://github.com/openshift/openshift-pep/blob/master/openshift-pep-013-openshift-3.md)** design document
-* The **[Trello Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
-* **[Public Documentation](http://docs.openshift.org/latest/welcome/index.html)** site
 
 For questions or feedback, reach us on [IRC on #openshift-dev](https://botbot.me/freenode/openshift-dev/) on Freenode or post to our [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev).
 
 NOTE: OpenShift release candidate 1 is available on the [releases page](https://github.com/openshift/origin/releases). Feedback, suggestions, and testing are all welcome!
 
 
-Security Warning!!!
+Security!!!
 -------------------
-OpenShift is a system that runs Docker containers on your machine.  In some cases (build operations and the registry service) it does so using privileged containers.  Those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker run` operations on arbitrary images as they have effective root access.  This is particularly relevant when running the OpenShift as a node directly on your laptop or primary workstation.  Only run code you trust.
+OpenShift is a system that runs Docker containers on your machine.  In some cases (build operations) it does so using privileged containers. Those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker build` operations on arbitrary images as they have effective root access.  This is particularly relevant when running the OpenShift as a node directly on your laptop or primary workstation.  Only build and run code you trust.
 
 For more information on the security of containers, see these articles:
 
 * http://opensource.com/business/14/7/docker-security-selinux
 * https://docs.docker.com/articles/security/
 
-Running untrusted containers will become less scary as improvements are made upstream to Docker and Kubernetes, but until then please be conscious of the images you run.  Consider using images from trusted parties, building them yourself on OpenShift, or only running containers that run as non-root users.
-
-
-Docker 1.6
-----------
-OpenShift now requires at least Docker 1.6. Here's how to get it:
-
-### Fedora 21
-RPMs for Docker 1.6 are available for Fedora 21 in the updates yum repository.
-
-### CentOS 7
-RPMs for Docker 1.6 are available for CentOS 7 in the extras yum repository.
+Consider using images from trusted parties, building them yourself on OpenShift, or only running containers that run as non-root users.
 
 
 Getting Started
 ---------------
-The simplest way to run OpenShift Origin is in a Docker container:
+The easiest way to run OpenShift Origin is in a Docker container (OpenShift requires Docker 1.6 or higher or 1.6.2 on CentOS/RHEL):
 
-    $ sudo docker run -d --name "openshift-origin" --net=host --privileged \
-        -v /var/run/docker.sock:/var/run/docker.sock \
+    $ sudo docker run -d -name "origin" \
+        --privileged --net=host \
+        -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker:/var/lib/docker:rw \
         openshift/origin start
+
+*Security!* Why do we need to mount your host, run privileged, and get access to your Docker directory? OpenShift runs as a host agent (like Docker)
+and starts and stops Docker containers, mounts remote volumes, and monitors the system (/sys) to report performance and health info. You can strip all of these options off and OpenShift will still start, but you won't be able to run pods (which is kind of the point).
 
 Once the container is started, you can jump into a console inside the container and run the CLI.
 
-    $ sudo docker exec -it openshift-origin bash
+    $ sudo docker exec -it origin bash
     $ oc --help
     $ oc login
     Username: test
@@ -75,6 +70,8 @@ Once the container is started, you can jump into a console inside the container 
 Any username and password are accepted by default (with no credential system configured).  You can view the webconsole at https://localhost:8443/ in your browser - login with the same credentials you used above and you'll see the application you just created.
 
 ![Web console overview](docs/screenshots/console_overview.png?raw=true)
+
+You can also use the Docker container to run our CLI (`sudo docker exec -it origin cli --help`) or download the `oc` command-line client from the [releases](https://github.com/openshift/origin/releases) page for Mac, Windows, or Linux and login from your host with `oc login`.
 
 
 ### Next Steps

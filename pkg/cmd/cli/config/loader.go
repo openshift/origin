@@ -14,19 +14,19 @@ import (
 )
 
 const (
-	OpenShiftConfigPathEnvVar      = "OPENSHIFTCONFIG"
+	OpenShiftConfigPathEnvVar      = "KUBECONFIG"
 	OpenShiftConfigFlagName        = "config"
-	OpenShiftConfigHomeDir         = ".config/openshift"
+	OpenShiftConfigHomeDir         = ".kube"
 	OpenShiftConfigHomeFileName    = "config"
 	OpenShiftConfigHomeDirFileName = OpenShiftConfigHomeDir + "/" + OpenShiftConfigHomeFileName
 )
 
-var OldRecommendedHomeFile = path.Join(os.Getenv("HOME"), ".config/openshift/.config")
+var OldRecommendedHomeFile = path.Join(os.Getenv("HOME"), ".kube/.config")
 var RecommendedHomeFile = path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName)
 
 // NewOpenShiftClientConfigLoadingRules returns file priority loading rules for OpenShift.
 // 1. --config value
-// 2. if OPENSHIFTCONFIG env var has a value, use it. Otherwise, ~/.config/openshift/config file
+// 2. if KUBECONFIG env var has a value, use it. Otherwise, ~/.kube/config file
 func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules {
 	chain := []string{}
 	migrationRules := map[string]string{}

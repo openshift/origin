@@ -24,6 +24,9 @@ var DefaultDetectors = Detectors{
 	DetectRuby,
 	DetectJava,
 	DetectNodeJS,
+	DetectPHP,
+	DetectPython,
+	DetectPerl,
 }
 
 type sourceDetector struct {
@@ -41,31 +44,41 @@ func (s Detectors) DetectSource(dir string) (*Info, bool) {
 	return nil, false
 }
 
-// DetectRuby detects whether the source code in the given repository is Ruby
+// DetectRuby detects Ruby source
 func DetectRuby(dir string) (*Info, bool) {
-	if filesPresent(dir, []string{"Gemfile", "Rakefile", "config.ru"}) {
-		return &Info{
-			Platform: "Ruby",
-		}, true
-	}
-	return nil, false
+	return detect("ruby", dir, "Gemfile", "Rakefile", "config.ru")
 }
 
-// DetectJava detects whether the source code in the given repository is Java
+// DetectJava detects Java source
 func DetectJava(dir string) (*Info, bool) {
-	if filesPresent(dir, []string{"pom.xml"}) {
-		return &Info{
-			Platform: "JEE",
-		}, true
-	}
-	return nil, false
+	return detect("jee", dir, "pom.xml")
 }
 
-// DetectNodeJS detects whether the source code in the given repository is NodeJS
+// DetectNodeJS detects NodeJS source
 func DetectNodeJS(dir string) (*Info, bool) {
-	if filesPresent(dir, []string{"config.json", "package.json"}) {
+	return detect("nodejs", dir, "app.json", "package.json")
+}
+
+// DetectPHP detects PHP source
+func DetectPHP(dir string) (*Info, bool) {
+	return detect("php", dir, "index.php", "composer.json")
+}
+
+// DetectPython detects Python source
+func DetectPython(dir string) (*Info, bool) {
+	return detect("python", dir, "requirements.txt", "config.py")
+}
+
+// DetectPerl detects Perl source
+func DetectPerl(dir string) (*Info, bool) {
+	return detect("perl", dir, "index.pl", "cpanfile")
+}
+
+// detect returns an Info object with the given platform if the source at dir contains any of the argument files
+func detect(platform string, dir string, files ...string) (*Info, bool) {
+	if filesPresent(dir, files) {
 		return &Info{
-			Platform: "NodeJS",
+			Platform: platform,
 		}, true
 	}
 	return nil, false
