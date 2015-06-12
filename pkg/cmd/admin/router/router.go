@@ -66,6 +66,7 @@ type RouterConfig struct {
 	Credentials        string
 	DefaultCertificate string
 	Selector           string
+	ServiceAccount     string
 	StatsPort          int
 	StatsPassword      string
 	StatsUsername      string
@@ -113,6 +114,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.Credentials, "credentials", "", "Path to a .kubeconfig file that will contain the credentials the router should use to contact the master.")
 	cmd.Flags().StringVar(&cfg.DefaultCertificate, "default-cert", cfg.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.")
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run routers on a specific set of nodes.")
+	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the router pod.")
 	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", 1936, "If the underlying router implementation can provide statistics this is a hint to expose it on this port.")
 	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated.")
 	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth.")
@@ -286,7 +288,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 						Template: &kapi.PodTemplateSpec{
 							ObjectMeta: kapi.ObjectMeta{Labels: label},
 							Spec: kapi.PodSpec{
-								NodeSelector: nodeSelector,
+								ServiceAccount: cfg.ServiceAccount,
+								NodeSelector:   nodeSelector,
 								Containers: []kapi.Container{
 									{
 										Name:  "router",
