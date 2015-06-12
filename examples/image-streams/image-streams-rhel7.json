@@ -22,6 +22,7 @@
               "description": "Build and run Ruby 2.0 applications",
               "iconClass": "icon-ruby",
               "tags": "builder,ruby",
+              "supports": "ruby:2.0,ruby",
               "version": "2.0"
             },
             "from": {
@@ -51,6 +52,7 @@
               "description": "Build and run NodeJS 0.10 applications",
               "iconClass": "icon-nodejs",
               "tags": "builder,nodejs",
+              "supports":"nodejs:0.10,nodejs:0.1,nodejs",
               "version": "0.10"
             },
             "from": {
@@ -80,6 +82,7 @@
               "description": "Build and run Perl 5.16 applications",
               "iconClass": "icon-perl",
               "tags": "builder,perl",
+              "supports":"perl:5.16,perl",
               "version": "5.16"
             },
             "from": {
@@ -109,6 +112,7 @@
               "description": "Build and run PHP 5.5 applications",
               "iconClass": "icon-php",
               "tags": "builder,php",
+              "supports":"php:5.5,php",
               "version": "5.5"
             },
             "from": {
@@ -138,6 +142,7 @@
               "description": "Build and run Python 3.3 applications",
               "iconClass": "icon-python",
               "tags": "builder,python",
+              "supports":"python:3.3,python",
               "version": "3.3"
             },
             "from": {

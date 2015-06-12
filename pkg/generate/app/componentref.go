@@ -273,13 +273,14 @@ func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
 // for an application
 type ReferenceBuilder struct {
 	refs    ComponentReferences
-	repos   []*SourceRepository
+	repos   SourceRepositories
 	errs    []error
 	groupID int
 }
 
 // AddComponents turns all provided component inputs into component references
-func (r *ReferenceBuilder) AddComponents(inputs []string, fn func(*ComponentInput) ComponentReference) {
+func (r *ReferenceBuilder) AddComponents(inputs []string, fn func(*ComponentInput) ComponentReference) ComponentReferences {
+	refs := ComponentReferences{}
 	for _, s := range inputs {
 		for _, s := range strings.Split(s, "+") {
 			input, repo, err := NewComponentInput(s)
@@ -297,10 +298,12 @@ func (r *ReferenceBuilder) AddComponents(inputs []string, fn func(*ComponentInpu
 				input.Use(repository)
 				repository.UsedBy(ref)
 			}
-			r.refs = append(r.refs, ref)
+			refs = append(refs, ref)
 		}
 		r.groupID++
 	}
+	r.refs = append(r.refs, refs...)
+	return refs
 }
 
 // AddGroups adds group ids to groups of components
@@ -350,7 +353,7 @@ func (r *ReferenceBuilder) AddSourceRepository(input string) (*SourceRepository,
 }
 
 // Result returns the result of the config conversion to object references
-func (r *ReferenceBuilder) Result() (ComponentReferences, []*SourceRepository, []error) {
+func (r *ReferenceBuilder) Result() (ComponentReferences, SourceRepositories, []error) {
 	return r.refs, r.repos, r.errs
 }
 

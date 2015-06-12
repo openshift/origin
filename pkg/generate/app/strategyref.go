@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	"github.com/openshift/origin/pkg/generate/dockerfile"
@@ -38,76 +37,6 @@ func NewBuildStrategyRefGenerator(sourceDetectors source.Detectors) *BuildStrate
 	}
 }
 
-// FromSourceRef creates a build strategy from a source reference
-func (g *BuildStrategyRefGenerator) FromSourceRef(srcRef *SourceRef) (*BuildStrategyRef, error) {
-
-	// Download source locally first if not available
-	if len(srcRef.Dir) == 0 {
-		if err := g.getSource(srcRef); err != nil {
-			return nil, err
-		}
-	}
-
-	// Detect a Dockerfile
-	context, found, err := g.detectDockerFile(srcRef.Dir)
-	if err != nil {
-		return nil, err
-	}
-	if found {
-		return g.FromSourceRefAndDockerContext(srcRef, context)
-	}
-
-	// Detect a STI repository
-	sourceInfo, ok := g.sourceDetectors.DetectSource(srcRef.Dir)
-	if !ok {
-		return nil, errors.CouldNotDetect
-	}
-	builderImage, err := g.imageForSourceInfo(sourceInfo)
-	if err != nil {
-		return nil, err
-	}
-	return g.FromSTIBuilderImage(builderImage)
-}
-
-// FromSourceRefAndDockerContext generates a BuildStrategyRef from a source ref and context path
-func (g *BuildStrategyRefGenerator) FromSourceRefAndDockerContext(srcRef *SourceRef, context string) (*BuildStrategyRef, error) {
-	// Download source locally first if not available
-	if len(srcRef.Dir) == 0 {
-		if err := g.getSource(srcRef); err != nil {
-			return nil, err
-		}
-	}
-
-	if len(context) > 0 {
-		srcRef.ContextDir = context
-	}
-
-	// Look for Dockerfile in repository
-	file, err := os.Open(filepath.Join(srcRef.Dir, context, "Dockerfile"))
-	if err != nil {
-		return nil, err
-	}
-
-	dockerFile, err := g.dockerfileParser.Parse(file)
-	if err != nil {
-		return nil, err
-	}
-
-	parentImageName, ok := dockerFile.GetDirective("FROM")
-	if !ok {
-		return nil, errors.InvalidDockerfile
-	}
-	ports, _ := dockerFile.GetDirective("EXPOSE")
-
-	parentRef, err := g.imageRefGenerator.FromNameAndPorts(parentImageName[0], ports)
-	if err != nil {
-		return nil, err
-	}
-
-	return g.FromDockerContextAndParent(parentRef)
-
-}
-
 // FromDockerContextAndParent generates a build strategy ref from a context path and parent image name
 func (g *BuildStrategyRefGenerator) FromDockerContextAndParent(parentRef *ImageRef) (*BuildStrategyRef, error) {
 	return &BuildStrategyRef{
@@ -122,15 +51,6 @@ func (g *BuildStrategyRefGenerator) FromSTIBuilderImage(image *ImageRef) (*Build
 		IsDockerBuild: false,
 		Base:          image,
 	}, nil
-}
-
-func (g *BuildStrategyRefGenerator) imageForSourceInfo(s *source.Info) (*ImageRef, error) {
-	// TODO: More sophisticated matching
-	imageName := BuilderForPlatform(s.Platform)
-	if len(imageName) == 0 {
-		return nil, errors.NoBuilderFound
-	}
-	return g.imageRefGenerator.FromName(imageName)
 }
 
 func (g *BuildStrategyRefGenerator) detectDockerFile(dir string) (contextDir string, found bool, err error) {

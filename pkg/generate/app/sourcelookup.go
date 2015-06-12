@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -35,6 +36,7 @@ type SourceRepository struct {
 	localDir   string
 	remoteURL  *url.URL
 	contextDir string
+	info       *SourceRepositoryInfo
 
 	usedBy          []ComponentReference
 	buildWithDocker bool
@@ -81,6 +83,25 @@ func (r *SourceRepository) IsDockerBuild() bool {
 
 func (r *SourceRepository) String() string {
 	return r.location
+}
+
+// Detect clones source locally if not already local and runs code detection
+// with the given detector.
+func (r *SourceRepository) Detect(d Detector) error {
+	path, err := r.LocalPath()
+	if err != nil {
+		return err
+	}
+	r.info, err = d.Detect(path)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Info returns the source repository info generated on code detection
+func (r *SourceRepository) Info() *SourceRepositoryInfo {
+	return r.info
 }
 
 // LocalPath returns the local path of the source repository
@@ -148,6 +169,28 @@ func (r *SourceRepository) ContextDir() string {
 	return r.contextDir
 }
 
+// SourceRepositories is a list of SourceRepository objects
+type SourceRepositories []*SourceRepository
+
+func (rr SourceRepositories) String() string {
+	repos := []string{}
+	for _, r := range rr {
+		repos = append(repos, r.String())
+	}
+	return strings.Join(repos, ",")
+}
+
+// NotUsed returns the list of SourceRepositories that are not used
+func (rr SourceRepositories) NotUsed() SourceRepositories {
+	notUsed := SourceRepositories{}
+	for _, r := range rr {
+		if !r.InUse() {
+			notUsed = append(notUsed, r)
+		}
+	}
+	return notUsed
+}
+
 // SourceRepositoryInfo contains info about a source repository
 type SourceRepositoryInfo struct {
 	Path       string
@@ -160,7 +203,7 @@ type SourceRepositoryInfo struct {
 func (info *SourceRepositoryInfo) Terms() []string {
 	terms := []string{}
 	for i := range info.Types {
-		terms = append(terms, info.Types[i].Platform)
+		terms = append(terms, info.Types[i].Term())
 	}
 	return terms
 }
@@ -170,6 +213,15 @@ func (info *SourceRepositoryInfo) Terms() []string {
 type SourceLanguageType struct {
 	Platform string
 	Version  string
+}
+
+// Term returns a search term for the given source language type
+// the term will be in the form of language:version
+func (t *SourceLanguageType) Term() string {
+	if len(t.Version) == 0 {
+		return t.Platform
+	}
+	return fmt.Sprintf("%s:%s", t.Platform, t.Version)
 }
 
 // Detector is an interface for detecting information about a
@@ -240,16 +292,7 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 		}
 		return strategy, source, nil
 	}
-
-	srcRef, err := NewSourceRefGenerator().FromGitURL(repo.location, repo.ContextDir())
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s: %v", repo.location, err)
-	}
-	strategy, err := NewBuildStrategyRefGenerator(source.DefaultDetectors).FromSourceRef(srcRef)
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot generate strategy for repository at %s: %v", repo.location, err)
-	}
-	return strategy, srcRef, nil
+	return nil, nil, fmt.Errorf("an image ref is required to generate a strategy and sourceref")
 }
 
 // MockSourceRepositories is a set of mocked source repositories

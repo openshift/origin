@@ -47,12 +47,14 @@ type AppConfig struct {
 	InsecureRegistry bool
 	OutputDocker     bool
 
-	dockerResolver       app.Resolver
-	imageStreamResolver  app.Resolver
-	templateResolver     app.Resolver
-	templateFileResolver app.Resolver
+	refBuilder *app.ReferenceBuilder
 
-	searcher app.Searcher
+	dockerResolver                  app.Resolver
+	imageStreamResolver             app.Resolver
+	templateResolver                app.Resolver
+	imageStreamByAnnotationResolver app.Resolver
+	templateFileResolver            app.Resolver
+
 	detector app.Detector
 
 	typer        runtime.ObjectTyper
@@ -84,10 +86,10 @@ func NewAppConfig(typer runtime.ObjectTyper, mapper meta.RESTMapper, clientMappe
 			Tester:    dockerfile.NewTester(),
 		},
 		dockerResolver: dockerResolver,
-		searcher:       &simpleSearcher{dockerResolver},
 		typer:          typer,
 		mapper:         mapper,
 		clientMapper:   clientMapper,
+		refBuilder:     &app.ReferenceBuilder{},
 	}
 }
 
@@ -122,6 +124,7 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespac
 		ImageStreamImages: osclient,
 		Namespaces:        []string{originNamespace, "openshift"},
 	}
+	c.imageStreamByAnnotationResolver = app.NewImageStreamByAnnotationResolver(osclient, osclient, []string{originNamespace, "openshift"})
 	c.templateResolver = app.TemplateResolver{
 		Client: osclient,
 		TemplateConfigsNamespacer: osclient,
@@ -158,12 +161,23 @@ func (c *AppConfig) AddArguments(args []string) []string {
 	return unknown
 }
 
-// validate converts all of the arguments on the config into references to objects, or returns an error
-func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository, cmdutil.Environment, cmdutil.Environment, error) {
-	b := &app.ReferenceBuilder{}
+// individualSourceRepositories collects the list of SourceRepositories specified in the
+// command line that are not associated with a builder using a '~'.
+func (c *AppConfig) individualSourceRepositories() (app.SourceRepositories, error) {
+	first := true
 	for _, s := range c.SourceRepositories {
-		b.AddSourceRepository(s)
+		if repo, ok := c.refBuilder.AddSourceRepository(s); ok && first {
+			repo.SetContextDir(c.ContextDir)
+			first = false
+		}
 	}
+	_, repos, errs := c.refBuilder.Result()
+	return repos, errors.NewAggregate(errs)
+}
+
+// validate converts all of the arguments on the config into references to objects, or returns an error
+func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories, cmdutil.Environment, cmdutil.Environment, error) {
+	b := c.refBuilder
 	b.AddComponents(c.DockerImages, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--docker-image=%q", input.From)
 		input.Resolver = c.dockerResolver
@@ -198,6 +212,10 @@ func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository
 
 	if len(repos) > 0 {
 		repos[0].SetContextDir(c.ContextDir)
+		if len(repos) > 1 {
+			glog.Warningf("You have specified more than one source repository and a context directory. "+
+				"The context directory will be applied to the first repository: %q", repos[0])
+		}
 	}
 
 	if len(c.Strategy) != 0 && len(repos) == 0 {
@@ -217,6 +235,56 @@ func (c *AppConfig) validate() (app.ComponentReferences, []*app.SourceRepository
 	errs = append(errs, parmsErrs...)
 
 	return refs, repos, env, parms, errors.NewAggregate(errs)
+}
+
+// componentsForRepos creates components for repositories that have not been previously associated by a builder
+// these components have already gone through source code detection and have a SourceRepositoryInfo attached to them
+func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app.ComponentReferences, error) {
+	b := c.refBuilder
+	errs := []error{}
+	result := app.ComponentReferences{}
+	for _, repo := range repositories {
+		info := repo.Info()
+		switch {
+		case info == nil:
+			errs = append(errs, fmt.Errorf("source not detected for repository %q", repo))
+			continue
+		case info.Dockerfile != nil && (len(c.Strategy) == 0 || c.Strategy == "docker"):
+			dockerFrom, ok := info.Dockerfile.GetDirective("FROM")
+			if !ok || len(dockerFrom) > 1 {
+				errs = append(errs, fmt.Errorf("invalid FROM directive in Dockerfile in repository %q", repo))
+			}
+			refs := b.AddComponents(dockerFrom, func(input *app.ComponentInput) app.ComponentReference {
+				input.Resolver = c.dockerResolver
+				input.Use(repo)
+				input.ExpectToBuild = true
+				repo.UsedBy(input)
+				repo.BuildWithDocker()
+				return input
+			})
+			result = append(result, refs...)
+		default:
+			// TODO: Add support for searching for more than one language if len(info.Types) > 1
+			if len(info.Types) == 0 {
+				errs = append(errs, fmt.Errorf("no language was detected for repository at %q; please specify a builder image to use with your repository: [builder-image]~%s", repo, repo))
+
+				continue
+			}
+			refs := b.AddComponents([]string{info.Types[0].Term()}, func(input *app.ComponentInput) app.ComponentReference {
+				input.Resolver = app.PerfectMatchWeightedResolver{
+					app.WeightedResolver{Resolver: c.imageStreamByAnnotationResolver, Weight: 0.0},
+					app.WeightedResolver{Resolver: c.imageStreamResolver, Weight: 1.0},
+					app.WeightedResolver{Resolver: c.dockerResolver, Weight: 2.0},
+				}
+				input.ExpectToBuild = true
+				input.Use(repo)
+				repo.UsedBy(input)
+				return input
+			})
+			result = append(result, refs...)
+		}
+	}
+	return result, errors.NewAggregate(errs)
 }
 
 // resolve the references to ensure they are all valid, and identify any images that don't match user input.
@@ -247,21 +315,15 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 	return errors.NewAggregate(errs)
 }
 
-// ensureHasSource ensure every builder component has source code associated with it
-func (c *AppConfig) ensureHasSource(components app.ComponentReferences, repositories []*app.SourceRepository) error {
-	requiresSource := components.NeedsSource()
-	notUsed := []string{}
-	if len(requiresSource) > 0 {
-		for _, repo := range repositories {
-			if !repo.InUse() {
-				notUsed = append(notUsed, repo.String())
-			}
-		}
-
+// ensureHasSource ensure every builder component has source code associated with it. It takes a list of component references
+// that are builders and have not been associated with source, and a set of source repositories that have not been associated
+// with a builder
+func (c *AppConfig) ensureHasSource(components app.ComponentReferences, repositories app.SourceRepositories) error {
+	if len(components) > 0 {
 		switch {
 		case len(repositories) > 1:
-			if len(requiresSource) == 1 {
-				component := requiresSource[0]
+			if len(components) == 1 {
+				component := components[0]
 				suggestions := ""
 
 				for _, repo := range repositories {
@@ -269,104 +331,35 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 				}
 				return fmt.Errorf("there are multiple code locations provided - use one of the following suggestions to declare which code goes with the image:\n%s", suggestions)
 			}
-			reposNotUsed := strings.Join(notUsed, ",")
 			return fmt.Errorf("the following images require source code: %s\n"+
-				" and the following repositories are not used: %s\nUse '[image]~[repo]' to declare which code goes with which image", requiresSource, reposNotUsed)
+				" and the following repositories are not used: %s\nUse '[image]~[repo]' to declare which code goes with which image", components, repositories)
 		case len(repositories) == 1:
 			glog.Infof("Using %q as the source for build", repositories[0])
-			for _, component := range requiresSource {
+			for _, component := range components {
 				component.Input().Use(repositories[0])
 				repositories[0].UsedBy(component)
 			}
 		default:
-			if len(requiresSource) == 1 {
-				return fmt.Errorf("the image %q will build source code, so you must specify a repository via --code", requiresSource[0])
+			if len(components) == 1 {
+				return fmt.Errorf("the image %q will build source code, so you must specify a repository via --code", components[0])
 			}
-			return fmt.Errorf("you must provide at least one source code repository with --code for the images: %s", requiresSource)
+			return fmt.Errorf("you must provide at least one source code repository with --code for the images: %s", components)
 		}
 	}
 	return nil
 }
 
-// detectSource tries to match each source repository to an image type
-func (c *AppConfig) detectSource(repositories []*app.SourceRepository) (app.ComponentReferences, error) {
+// detectSource runs a code detector on the passed in repositories to obtain a SourceRepositoryInfo
+func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 	errs := []error{}
-	refs := app.ComponentReferences{}
 	for _, repo := range repositories {
-		// if the repository is being used by one of the images, we don't need to detect its type (unless we want to double check)
-		if repo.InUse() {
-			continue
-		}
-		path, err := repo.LocalPath()
+		err := repo.Detect(c.detector)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
-		info, err := c.detector.Detect(path)
-		if err != nil {
-			if err == app.ErrNoLanguageDetected {
-				err = fmt.Errorf("no language was detected for repository at %q; please specify a builder image to use with your repository: [builder-image]~%s", repo, repo)
-			}
-			errs = append(errs, err)
-			continue
-		}
-		if info.Dockerfile != nil && (len(c.Strategy) == 0 || c.Strategy == "docker") {
-			// TODO: this should be using the reference builder flow, possibly by moving detectSource up before other steps
-			/*if from, ok := info.Dockerfile.GetDirective("FROM"); ok {
-				input, _, err := NewComponentInput(from[0])
-				if err != nil {
-					errs = append(errs, err)
-					continue
-				}
-				input.
-			}*/
-			ports, _ := info.Dockerfile.GetDirective("EXPOSE")
-			exposedPorts := map[string]struct{}{}
-
-			for _, p := range ports {
-				exposedPorts[p] = struct{}{}
-			}
-
-			dockerImage := &imageapi.DockerImage{
-				Config: imageapi.DockerConfig{
-					ExposedPorts: exposedPorts,
-				},
-			}
-			from, _ := info.Dockerfile.GetDirective("FROM")
-			componentRef := &app.ComponentInput{
-				Match: &app.ComponentMatch{
-					Value: from[0],
-					Image: dockerImage,
-				},
-				ExpectToBuild: true,
-				Uses:          repo,
-			}
-			refs = append(refs, componentRef)
-			repo.UsedBy(componentRef)
-			repo.BuildWithDocker()
-			continue
-		}
-
-		terms := info.Terms()
-		matches, err := c.searcher.Search(terms)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		if len(matches) == 0 {
-			errs = append(errs, fmt.Errorf("we could not find any images that match the source repo %q (looked for: %v) and this repository does not have a Dockerfile - you'll need to choose a source builder image to continue", repo, terms))
-			continue
-		}
-		componentRef := &app.ComponentInput{
-			Match:         matches[0],
-			ExpectToBuild: true,
-			Uses:          repo,
-		}
-		repo.UsedBy(componentRef)
-		refs = append(refs, componentRef)
-
 	}
-	return refs, errors.NewAggregate(errs)
+	return errors.NewAggregate(errs)
 }
 
 func ensureValidUniqueName(names map[string]int, name string) (string, error) {
@@ -509,32 +502,13 @@ type AppResult struct {
 
 // RunAll executes the provided config to generate all objects.
 func (c *AppConfig) RunAll(out io.Writer) (*AppResult, error) {
-	c.ensureDockerResolver()
-	components, repositories, environment, parameters, err := c.validate()
-	if err != nil {
-		return nil, err
-	}
-	if len(repositories) == 0 && len(components) == 0 {
-		return nil, ErrNoInputs
-	}
-
-	return c.run(out, app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew},
-		components, repositories, environment, parameters)
+	return c.run(out, app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
 }
 
 // RunBuilds executes the provided config to generate just builds.
 func (c *AppConfig) RunBuilds(out io.Writer) (*AppResult, error) {
-	components, repositories, environment, parameters, err := c.validate()
-	if err != nil {
-		return nil, err
-	}
-	if len(repositories) == 0 {
-		return nil, ErrNoInputs
-	}
-
 	bcAcceptor := app.NewAcceptBuildConfigs(c.typer)
-	result, err := c.run(out, app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew},
-		components, repositories, environment, parameters)
+	result, err := c.run(out, app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew})
 	if err != nil {
 		return nil, err
 	}
@@ -590,27 +564,45 @@ func makeImageStreamKey(ref *kapi.ObjectReference) string {
 }
 
 // run executes the provided config applying provided acceptors.
-func (c *AppConfig) run(out io.Writer, acceptors app.Acceptors, components app.ComponentReferences,
-	repositories []*app.SourceRepository, environment, parameters cmdutil.Environment) (*AppResult, error) {
+func (c *AppConfig) run(out io.Writer, acceptors app.Acceptors) (*AppResult, error) {
+	c.ensureDockerResolver()
+	repositories, err := c.individualSourceRepositories()
+	if err != nil {
+		return nil, err
+	}
+	err = c.detectSource(repositories)
+	if err != nil {
+		return nil, err
+	}
+	components, repositories, environment, parameters, err := c.validate()
+	if err != nil {
+		return nil, err
+	}
 	if err := c.resolve(components); err != nil {
 		return nil, err
 	}
 
-	if err := c.ensureHasSource(components, repositories); err != nil {
+	// Couple source with resolved builder components if possible
+	if err := c.ensureHasSource(components.NeedsSource(), repositories.NotUsed()); err != nil {
 		return nil, err
 	}
+	// For source repos that are not yet coupled with a component, create components
+	sourceComponents, err := c.componentsForRepos(repositories.NotUsed())
+	if err != nil {
+		return nil, err
+	}
+	// resolve the source repo components
+	if err := c.resolve(sourceComponents); err != nil {
+		return nil, err
+	}
+	components = append(components, sourceComponents...)
 
 	glog.V(4).Infof("Code %v", repositories)
 	glog.V(4).Infof("Components %v", components)
 
-	// TODO: Source detection needs to happen before components
-	//       are validated and resolved.
-	srcComponents, err := c.detectSource(repositories)
-	if err != nil {
-		return nil, err
+	if len(repositories) == 0 && len(components) == 0 {
+		return nil, ErrNoInputs
 	}
-
-	components = append(components, srcComponents...)
 
 	pipelines, err := c.buildPipelines(components, app.Environment(environment))
 	if err != nil {
@@ -649,82 +641,4 @@ func (c *AppConfig) run(out io.Writer, acceptors app.Acceptors, components app.C
 		HasSource:  len(repositories) != 0,
 		Namespace:  c.originNamespace,
 	}, nil
-}
-
-// simpleSearcher resolves known builder images for source code
-// TODO: eventually needs to be replaced by a more sophisticated searcher
-type simpleSearcher struct {
-	resolver app.Resolver
-}
-
-// Search takes the first term if it exists and tries to match it to one
-// of the known builder images
-func (s *simpleSearcher) Search(terms []string) ([]*app.ComponentMatch, error) {
-	if len(terms) == 0 {
-		return nil, fmt.Errorf("No search terms were specified.")
-	}
-	term := terms[0]
-	builder := app.BuilderForPlatform(term)
-	if len(builder) == 0 {
-		return nil, fmt.Errorf("No matching image found for %s", term)
-	}
-	match, err := s.resolver.Resolve(builder)
-	return []*app.ComponentMatch{match}, err
-}
-
-type mockSearcher struct{}
-
-// Search takes the first term if it exists and tries to match it to one
-// of the known builder images. This is a mock function.
-func (mockSearcher) Search(terms []string) ([]*app.ComponentMatch, error) {
-	for _, term := range terms {
-		term = strings.ToLower(term)
-		switch term {
-		case "redhat/mysql:5.6":
-			return []*app.ComponentMatch{
-				{
-					Value:       term,
-					Argument:    "redhat/mysql:5.6",
-					Name:        "MySQL 5.6",
-					Description: "The Open Source SQL database",
-				},
-			}, nil
-		case "mysql", "mysql5", "mysql-5", "mysql-5.x":
-			return []*app.ComponentMatch{
-				{
-					Value:       term,
-					Argument:    "redhat/mysql:5.6",
-					Name:        "MySQL 5.6",
-					Description: "The Open Source SQL database",
-				},
-				{
-					Value:       term,
-					Argument:    "mysql",
-					Name:        "MySQL 5.X",
-					Description: "Something out there on the Docker Hub.",
-				},
-			}, nil
-		case "php", "php-5", "php5", "redhat/php:5", "redhat/php-5":
-			return []*app.ComponentMatch{
-				{
-					Value:       term,
-					Argument:    "redhat/php:5",
-					Name:        "PHP 5.5",
-					Description: "A fast and easy to use scripting language for building websites.",
-					Builder:     true,
-				},
-			}, nil
-		case "ruby":
-			return []*app.ComponentMatch{
-				{
-					Value:       term,
-					Argument:    "redhat/ruby:2",
-					Name:        "Ruby 2.0",
-					Description: "A fast and easy to use scripting language for building websites.",
-					Builder:     true,
-				},
-			}, nil
-		}
-	}
-	return []*app.ComponentMatch{}, nil
 }

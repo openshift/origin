@@ -2,10 +2,6 @@ package app
 
 import (
 	"io"
-	"io/ioutil"
-	"net/url"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/openshift/origin/pkg/generate/app/test"
@@ -62,111 +58,6 @@ func TestFromDockerContextAndParent(t *testing.T) {
 	}
 	if !strategy.IsDockerBuild {
 		t.Fatalf("Expected IsDockerBuild to be true")
-	}
-}
-
-func TestFromSourceRefAndDockerContext(t *testing.T) {
-	exposedPort := "8080"
-	g := &BuildStrategyRefGenerator{
-		gitRepository:     &test.FakeGit{},
-		dockerfileFinder:  &fakeFinder{},
-		dockerfileParser:  &fakeParser{dfile{"FROM": []string{"test/parentImage"}, "EXPOSE": []string{exposedPort}}},
-		sourceDetectors:   sourceDetectors,
-		imageRefGenerator: NewImageRefGenerator(),
-	}
-	url, _ := url.Parse("https://test.repository.com/test.git")
-	tmp, err := ioutil.TempDir("", "test")
-	if err != nil {
-		t.Fatalf("Unable to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmp)
-	f, err := os.Create(filepath.Join(tmp, "Dockerfile"))
-	if err != nil {
-		t.Fatalf("Unable to create temp file: %v", err)
-	}
-	f.Close()
-	srcRef := SourceRef{
-		URL: url,
-		Dir: tmp,
-		Ref: "master",
-	}
-	strategy, err := g.FromSourceRefAndDockerContext(&srcRef, ".")
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if strategy.Base.Name != "parentImage" {
-		t.Fatalf("Unexpected base image: %#v", strategy.Base)
-	}
-	if !strategy.IsDockerBuild {
-		t.Fatalf("Expected IsDockerBuild to be true")
-	}
-	if _, ok := strategy.Base.Info.Config.ExposedPorts[exposedPort]; !ok {
-		t.Fatalf("Expected port %s not found", exposedPort)
-	}
-}
-func TestFromSourceRefDocker(t *testing.T) {
-	exposedPort := "8080"
-	g := &BuildStrategyRefGenerator{
-		gitRepository:     &test.FakeGit{},
-		dockerfileFinder:  &fakeFinder{result: []string{"Dockerfile"}},
-		dockerfileParser:  &fakeParser{dfile{"FROM": []string{"test/parentImage"}, "EXPOSE": []string{exposedPort}}},
-		sourceDetectors:   sourceDetectors,
-		imageRefGenerator: NewImageRefGenerator(),
-	}
-	url, _ := url.Parse("https://test.repository.com/test.git")
-	tmp, err := ioutil.TempDir("", "test")
-	if err != nil {
-		t.Fatalf("Unable to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmp)
-	f, err := os.Create(filepath.Join(tmp, "Dockerfile"))
-	if err != nil {
-		t.Fatalf("Unable to create temp file: %v", err)
-	}
-	f.Close()
-	srcRef := SourceRef{
-		URL: url,
-		Dir: tmp,
-		Ref: "master",
-	}
-	strategy, err := g.FromSourceRef(&srcRef)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if strategy.Base.Name != "parentImage" {
-		t.Fatalf("Unexpected base image: %#v", strategy.Base)
-	}
-	if !strategy.IsDockerBuild {
-		t.Fatalf("Expected IsDockerBuild to be true")
-	}
-	if _, ok := strategy.Base.Info.Config.ExposedPorts[exposedPort]; !ok {
-		t.Fatalf("Expected port %s not found", exposedPort)
-	}
-}
-
-func TestFromSourceRefSTI(t *testing.T) {
-	g := &BuildStrategyRefGenerator{
-		gitRepository:     &test.FakeGit{},
-		dockerfileFinder:  &fakeFinder{},
-		dockerfileParser:  &fakeParser{},
-		sourceDetectors:   sourceDetectors,
-		imageRefGenerator: NewImageRefGenerator(),
-	}
-	url, _ := url.Parse("https://test.repository.com/test.git")
-	srcRef := SourceRef{
-		URL: url,
-		Dir: "/tmp/dir",
-		Ref: "master",
-	}
-	strategy, err := g.FromSourceRef(&srcRef)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if strategy.Base.Name != "wildfly-8-centos" {
-		t.Fatalf("Unexpected base image: %#v", strategy.Base)
-	}
-	if strategy.IsDockerBuild {
-		t.Fatalf("Expected IsDockerBuild to be false")
 	}
 }
 
