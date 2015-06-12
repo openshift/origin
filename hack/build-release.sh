@@ -16,11 +16,11 @@ cd "${OS_ROOT}"
 context="${OS_ROOT}/_output/buildenv-context"
 
 # Clean existing output.
-rm -rf "${OS_ROOT}/_output/local/releases"
-rm -rf "${OS_ROOT}/_output/local/go/bin"
+rm -rf "${OS_LOCAL_RELEASEPATH}"
+rm -rf "${OS_LOCAL_BINPATH}"
 rm -rf "${context}"
 mkdir -p "${context}"
-mkdir -p "${OS_ROOT}/_output/local"
+mkdir -p "${OS_OUTPUT}"
 
 # Generate version definitions.
 os::build::get_version_vars
@@ -33,8 +33,8 @@ gzip -f "${context}/archive.tar"
 
 # Perform the build and release in Docker.
 cat "${context}/archive.tar.gz" | docker run -i --cidfile="${context}/cid" openshift/origin-release
-docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/local/releases "${OS_ROOT}/_output/local"
-echo "${OS_GIT_COMMIT}" > "${OS_ROOT}/_output/local/releases/.commit"
+docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/local/releases "${OS_OUTPUT}"
+echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
 
 # Copy the linux release archives release back to the local _output/local/go/bin directory.
 os::build::detect_local_release_tars "linux"

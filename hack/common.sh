@@ -18,8 +18,8 @@ OS_ROOT=$(
 OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
 OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
 OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
-OS_LOCAL_BINPATH="${OS_ROOT}/_output/local/go/bin"
-OS_LOCAL_RELEASEPATH="${OS_ROOT}/_output/local/releases"
+OS_LOCAL_BINPATH="${OS_OUTPUT}/go/bin"
+OS_LOCAL_RELEASEPATH="${OS_OUTPUT}/releases"
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
 readonly OS_GOPATH="${OS_OUTPUT}/go"
