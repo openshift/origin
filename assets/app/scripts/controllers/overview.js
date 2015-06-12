@@ -353,8 +353,9 @@ angular.module('openshiftConsole')
     function updateShowGetStarted() {
       var projectEmpty =
         hashSizeFilter($scope.unfilteredServices) === 0 &&
-        hashSizeFilter($scope.monopodsByService['']) === 0 &&
-        hashSizeFilter($scope.deploymentConfigsByService['']) === 0;
+        hashSizeFilter($scope.pods) === 0 &&
+        hashSizeFilter($scope.deployments) === 0 &&
+        hashSizeFilter($scope.deploymentConfigs) === 0;
 
       $scope.renderOptions.showSidebarRight = !projectEmpty;
       $scope.renderOptions.showGetStarted = projectEmpty;
