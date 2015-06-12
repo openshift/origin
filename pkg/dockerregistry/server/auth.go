@@ -84,39 +84,27 @@ func (ac *authChallenge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Authorized handles checking whether the given request is authorized
 // for actions on resources allowed by openshift.
+// Sources of access records:
+//   origin/pkg/cmd/dockerregistry/dockerregistry.go#Execute
+//   docker/distribution/registry/handlers/app.go#appendAccessRecords
 func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...registryauth.Access) (context.Context, error) {
 	req, err := ctxu.GetRequest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO try to find a better way to handle this
+	// TODO: change this to an anonymous Access record, don't require a token for it, and fold into the access record check look below
 	if req.URL.Path == "/healthz" {
 		return ctx, nil
 	}
 
 	challenge := &authChallenge{realm: ac.realm}
 
-	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
-	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
-		challenge.err = ErrTokenRequired
-		return nil, challenge
-	}
-	basicToken := authParts[1]
-
-	payload, err := base64.StdEncoding.DecodeString(basicToken)
+	bearerToken, err := getToken(req)
 	if err != nil {
-		log.Errorf("Basic token decode failed: %s", err)
-		challenge.err = ErrTokenInvalid
+		challenge.err = err
 		return nil, challenge
 	}
-
-	osAuthParts := strings.SplitN(string(payload), ":", 2)
-	if len(osAuthParts) != 2 {
-		challenge.err = ErrOpenShiftTokenRequired
-		return nil, challenge
-	}
-	bearerToken := osAuthParts[1]
 
 	client, err := NewUserOpenShiftClient(bearerToken)
 	if err != nil {
@@ -125,21 +113,22 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 
 	// In case of docker login, hits endpoint /v2
 	if len(accessRecords) == 0 {
-		err = verifyOpenShiftUser(client)
-		if err != nil {
+		if err := verifyOpenShiftUser(client); err != nil {
 			challenge.err = err
 			return nil, challenge
 		}
 	}
 
+	// Validate all requested accessRecords
+	// Only return failure errors from this loop. Success should continue to validate all records
 	for _, access := range accessRecords {
 		log.Debugf("OpenShift auth: checking for access to %s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
 
 		switch access.Resource.Type {
 		case "repository":
-			repoParts := strings.SplitN(access.Resource.Name, "/", 2)
-			if len(repoParts) != 2 {
-				challenge.err = ErrNamespaceRequired
+			imageStreamNS, imageStreamName, err := getNamespaceName(access.Resource.Name)
+			if err != nil {
+				challenge.err = err
 				return nil, challenge
 			}
 
@@ -149,17 +138,20 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				verb = "update"
 			case "pull":
 				verb = "get"
+			case "*":
+				challenge.err = fmt.Errorf("Direct deletion of images is not supported by this registry. Use 'oadm prune images' instead.")
+				return nil, challenge
 			default:
 				challenge.err = fmt.Errorf("Unknown action: %s", access.Action)
+				log.Error(challenge.err)
 				return nil, challenge
 			}
 
-			if err := verifyImageStreamAccess(repoParts[0], repoParts[1], verb, client); err != nil {
+			if err := verifyImageStreamAccess(imageStreamNS, imageStreamName, verb, client); err != nil {
 				challenge.err = err
 				return nil, challenge
 			}
 
-			return WithUserClient(ctx, client), nil
 		case "admin":
 			switch access.Action {
 			case "prune":
@@ -167,16 +159,57 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 					challenge.err = err
 					return nil, challenge
 				}
-
-				return ctx, nil
 			default:
 				challenge.err = fmt.Errorf("Unknown action: %s", access.Action)
+				log.Error(challenge.err)
 				return nil, challenge
 			}
+		default:
+			challenge.err = fmt.Errorf("Unknown resource type: %s", access.Resource.Type)
+			log.Error(challenge.err)
+			return nil, challenge
 		}
 	}
 
-	return ctx, nil
+	return WithUserClient(ctx, client), nil
+}
+
+func getNamespaceName(resourceName string) (string, string, error) {
+	repoParts := strings.SplitN(resourceName, "/", 2)
+	if len(repoParts) != 2 {
+		return "", "", ErrNamespaceRequired
+	}
+	ns := repoParts[0]
+	if len(ns) == 0 {
+		return "", "", ErrNamespaceRequired
+	}
+	name := repoParts[1]
+	if len(name) == 0 {
+		return "", "", ErrNamespaceRequired
+	}
+	return ns, name, nil
+}
+
+func getToken(req *http.Request) (string, error) {
+	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
+	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
+		return "", ErrTokenRequired
+	}
+	basicToken := authParts[1]
+
+	payload, err := base64.StdEncoding.DecodeString(basicToken)
+	if err != nil {
+		log.Errorf("Basic token decode failed: %s", err)
+		return "", ErrTokenInvalid
+	}
+
+	osAuthParts := strings.SplitN(string(payload), ":", 2)
+	if len(osAuthParts) != 2 {
+		return "", ErrOpenShiftTokenRequired
+	}
+
+	bearerToken := osAuthParts[1]
+	return bearerToken, nil
 }
 
 func verifyOpenShiftUser(client *client.Client) error {
