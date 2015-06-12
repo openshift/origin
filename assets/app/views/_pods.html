@@ -5,9 +5,19 @@ pods - a hash of pod objects by id
 <div class="component-block pod-container">
   <div class="animate-repeat pod osc-object" ng-repeat="pod in pods track by (pod | uid)" kind="Pod" resource="pod"
       ng-class="(pod | isTroubledPod) ? 'pod-warning' : ('pod-' + pod.status.phase.toLowerCase())">
-    <div class="pod-text">
+    <div class="pod-text" ng-switch="pod.status.phase">
       <strong class="pod-status-label">{{pod.status.phase}}</strong>
-      <div ng-if="pod.status.podIP">{{pod.status.podIP}}</div><div ng-if="!pod.status.podIP">allocating IP...</div>
+      <div ng-switch-when="Pending">
+        <span ng-if="!pod.spec.host">scheduling...</span>
+        <span ng-if="pod.spec.host && !pod.status.startTime">scheduled</span>
+        <span ng-if="pod.spec.host && pod.status.startTime">pulling...</span>
+      </div>
+      <div ng-switch-default>
+        &nbsp;
+        <span ng-if="pod.status.podIP">{{pod.status.podIP}}</span>
+        <relative-timestamp ng-if="!pod.status.podIP" timestamp="pod.status.startTime"></relative-timestamp>
+        &nbsp;
+      </div>
     </div>
   </div>
 </div>
