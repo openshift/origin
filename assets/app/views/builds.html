@@ -11,9 +11,8 @@
         </div>
       </div>
       <div class="tile" ng-repeat="(buildConfigName, buildConfig) in buildConfigs">
-        <div>
-          <h2>{{buildConfigName}}</h2>
-          <dl class="dl-horizontal left indent">
+        <h2>{{buildConfigName}}</h2>
+        <dl class="dl-horizontal left indent">
           <div>
               <dt>Build strategy:</dt>
               <dd>{{buildConfig.spec.strategy.type}}</dd>
@@ -43,105 +42,104 @@
           </div>
           <div ng-if="buildConfig.spec.source">
             <div ng-if="buildConfig.spec.source.type == 'Git'">
-                <dt>Source repo:</dt>
-                <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink | linky'></dd>
+              <dt>Source repo:</dt>
+              <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink | linky'></dd>
             </div>
           </div>
           <div ng-if="buildConfig.spec.output.to">
             <dt>Output to:</dt>
             <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
           </div>
-          </dl>
+        </dl>
 
-          <div>
-            <h3>Triggers:</h3>
-            <dl class="dl-horizontal left indent">
+        <div>
+          <h3>Triggers:</h3>
+          <dl class="dl-horizontal left indent">
 
-              <div ng-repeat="trigger in buildConfig.spec.triggers">
-                <div ng-switch="trigger.type">
-                  <div ng-switch-when="github">
-                    
-                      <dt>GitHub webhook URL
-                      <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more 
-                      <i class="fa fa-external-link"></i></span></a>
-                      </dt>
-                      <dd>
-                        <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
-                        <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
-                      </dd>
-                  </div>
-                  <div ng-switch-when="generic">
-                      <dt>Generic webhook URL
-                        <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
-                      </dt>
-                      <dd>
-                        <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
-                        <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard-button>
-                      </dd>
-                  </div>
-                  <div ng-switch-when="imageChange">
-                    <div ng-switch="buildConfig.spec.strategy.type">
-                      <div ng-switch-when="Source">
-                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.sourceStrategy.from && buildConfig.spec.strategy.sourceStrategy.from.kind!='ImageStreamImage'">
-                          <dt>
-                            New image for:
-                          </dt>
-                          <dd>
-                            Image stream {{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                          </dd>
-                        </dl>
-                      </div>
-                      <div ng-switch-when="Docker">
-                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.dockerStrategy.from && buildConfig.spec.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
-                           <dt>
-                            New image for:
-                          </dt>
-                          <dd>
-                            Image stream {{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                          </dd>
-                          <br>
-                        </dl>
-                      </div>
-                      <div ng-switch-when="Custom">
-                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.customStrategy.from && buildConfig.spec.strategy.customStrategy.from.kind!='ImageStreamImage'">
-                          <dt>
-                            New image for:
-                          </dt>
-                          <dd>
-                            Image stream {{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                          </dd>
-                           <br>
-                        </dl>
-                      </div>
+            <div ng-repeat="trigger in buildConfig.spec.triggers">
+              <div ng-switch="trigger.type">
+                <div ng-switch-when="github">
+
+                    <dt>GitHub webhook URL
+                    <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more 
+                    <i class="fa fa-external-link"></i></span></a>
+                    </dt>
+                    <dd>
+                      <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
+                      <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
+                    </dd>
+                </div>
+                <div ng-switch-when="generic">
+                    <dt>Generic webhook URL
+                      <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
+                    </dt>
+                    <dd>
+                      <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
+                      <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard-button>
+                    </dd>
+                </div>
+                <div ng-switch-when="imageChange">
+                  <div ng-switch="buildConfig.spec.strategy.type">
+                    <div ng-switch-when="Source">
+                      <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.sourceStrategy.from && buildConfig.spec.strategy.sourceStrategy.from.kind!='ImageStreamImage'">
+                        <dt>
+                          New image for:
+                        </dt>
+                        <dd>
+                          Image stream {{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
+                        </dd>
+                      </dl>
+                    </div>
+                    <div ng-switch-when="Docker">
+                      <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.dockerStrategy.from && buildConfig.spec.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
+                         <dt>
+                          New image for:
+                        </dt>
+                        <dd>
+                          Image stream {{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
+                        </dd>
+                        <br>
+                      </dl>
+                    </div>
+                    <div ng-switch-when="Custom">
+                      <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.customStrategy.from && buildConfig.spec.strategy.customStrategy.from.kind!='ImageStreamImage'">
+                        <dt>
+                          New image for:
+                        </dt>
+                        <dd>
+                          Image stream {{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
+                        </dd>
+                         <br>
+                      </dl>
                     </div>
                   </div>
-                  <div ng-switch-default>{{trigger.type}}</div>
                 </div>
+                <div ng-switch-default>{{trigger.type}}</div>
               </div>
-            </dl>
+            </div>
+          </dl>
 
-            <dl class="dl-horizontal left indent">
-              <dt>Manual:</dt>
-              <dd>
-                <span>
-                  <button class="btn btn-primary" ng-click="startBuild(buildConfigName)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Start Build</button>
-                <span>
-              </dd>
-            </dl>
+          <dl class="dl-horizontal left indent">
+            <dt>Manual:</dt>
+            <dd>
+              <span>
+                <button class="btn btn-primary" ng-click="startBuild(buildConfigName)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Start Build</button>
+              </span>
+            </dd>
+          </dl>
 
-            <dl class="dl-horizontal left indent">
-              <dt>Manual (CLI):
-                <a href="{{'start-build' | helpLink}}" target="_blank">
-                  <span class="learn-more-block">Learn more <i class="fa fa-external-link"> </i></span>
-                </a>
-              </dt>
-              <dd>
-                <code>oc start-build {{buildConfigName}} -n {{project.metadata.name}}</code>
-                <copy-to-clipboard-button clipboard-text="'oc start-build ' + buildConfigName + ' -n ' + project.metadata.name"></copy-to-clipboard-button>
-              </dd>
+          <dl class="dl-horizontal left indent">
+            <dt>Manual (CLI):
+              <a href="{{'start-build' | helpLink}}" target="_blank">
+                <span class="learn-more-block">Learn more <i class="fa fa-external-link"> </i></span>
+              </a>
+            </dt>
+            <dd>
+              <code>oc start-build {{buildConfigName}} -n {{project.metadata.name}}</code>
+              <copy-to-clipboard-button clipboard-text="'oc start-build ' + buildConfigName + ' -n ' + project.metadata.name"></copy-to-clipboard-button>
+            </dd>
 
-            </dl>
-          </div>
+          </dl>
         </div>
         <div class="well" style="margin-bottom: 10px;" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true">
           <h3>{{build.metadata.name}}</h3>
@@ -200,7 +198,6 @@
           </div>
         </div>
       </div>
-    </div>
       <!-- render any builds whose build configs no longer exist -->
       <div class="tile" ng-repeat="(buildConfigName, blds) in buildsByBuildConfig" ng-if="!buildConfigs[buildConfigName]">
         <h2 ng-if="buildConfigName != ''">
