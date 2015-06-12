@@ -32,8 +32,8 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start &
 
     If running in https mode, ensure oc can authenticate to the master
-    [vagrant@openshiftdev origin]$ export OPENSHIFTCONFIG=/data/src/github.com/openshift/origin/openshift.local.config/master/admin.kubeconfig
-    [vagrant@openshiftdev origin]$ sudo chmod a+r "$OPENSHIFTCONFIG"
+    [vagrant@openshiftdev origin]$ export KUBECONFIG=/data/src/github.com/openshift/origin/openshift.local.config/master/admin.kubeconfig
+    [vagrant@openshiftdev origin]$ sudo chmod a+r "$KUBECONFIG"
     [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.config/master/openshift-router.kubeconfig
     [vagrant@openshiftdev origin]$ oadm router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig"
     [vagrant@openshiftdev origin]$ oc get pods
@@ -44,7 +44,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     $ export OPENSHIFT_DEV_CLUSTER=true
     $ vagrant up
     $ vagrant ssh master
-    [vagrant@openshift-master ~]$ oadm router --create --credentials="${OPENSHIFTCONFIG}"
+    [vagrant@openshift-master ~]$ oadm router --create --credentials="${KUBECONFIG}"
 
 
 

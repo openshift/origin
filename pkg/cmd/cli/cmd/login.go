@@ -24,7 +24,7 @@ const (
 First-time users of the OpenShift client should run this command to connect to a server,
 establish an authenticated session, and save connection to the configuration file. The
 default configuration will be saved to your home directory under
-".config/openshift/config".
+".kube/config".
 
 The information required to login -- like username and password, a session token, or
 the server details -- can be provided through flags. If not provided, the command will

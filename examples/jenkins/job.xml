@@ -40,8 +40,8 @@ users:
   <builders>
     <hudson.tasks.Shell>
       <command>
-export OPENSHIFTCONFIG=.kubeconfig
-echo "${KUBECONFIG_CREDENTIALS}" > "${OPENSHIFTCONFIG}"
+export KUBECONFIG=.kubeconfig
+echo "${KUBECONFIG_CREDENTIALS}" > "${KUBECONFIG}"
 
 TEST_ENDPOINT=`oc get services -n test | grep frontend-test | awk '{print $4":"$5}'`
 

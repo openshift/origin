@@ -173,7 +173,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
         $ oc login --certificate-authority=openshift.local.config/master/ca.crt
 
-       **VAGRANT USERS**: If subsequent commands fail because of a config validation error, log out, unset the $OPENSHIFTCONFIG environment variable (if it is set) and then log in again.
+       **VAGRANT USERS**: If subsequent commands fail because of a config validation error, log out, unset the $KUBECONFIG environment variable (if it is set) and then log in again.
 
 
 

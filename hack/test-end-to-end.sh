@@ -247,7 +247,7 @@ export HOME="${FAKE_HOME_DIR}"
 # This directory must exist so Docker can store credentials in $HOME/.dockercfg
 mkdir -p ${FAKE_HOME_DIR}
 
-export OPENSHIFTCONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+export KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template -t '{{index . "current-context"}}')
 
 if [[ "${API_SCHEME}" == "https" ]]; then
@@ -256,8 +256,8 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 
 	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
-	sudo chmod -R a+rwX "${OPENSHIFTCONFIG}"
-	echo "[INFO] To debug: export OPENSHIFTCONFIG=$OPENSHIFTCONFIG"
+	sudo chmod -R a+rwX "${KUBECONFIG}"
+	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
 fi
 
 
