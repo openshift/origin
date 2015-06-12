@@ -330,6 +330,16 @@ module.exports = function (grunt) {
       }
     },
 
+    htmlhint: {
+      html: {
+        options: {
+          'tag-pair': true,
+          'attr-no-duplication': true
+        },
+        src: ['app/**/*.html']
+      }
+    },
+
     htmlmin: {
       dist: {
         options: {
@@ -519,6 +529,8 @@ module.exports = function (grunt) {
   // Loads the coverage task which enforces the minimum coverage thresholds
   grunt.loadNpmTasks('grunt-istanbul-coverage');
 
+  grunt.loadNpmTasks('grunt-htmlhint');
+
   // karma must run prior to coverage since karma will generate the coverage results
   grunt.registerTask('test', [
     'clean:server',
@@ -549,6 +561,7 @@ module.exports = function (grunt) {
 
   grunt.registerTask('build', [
     'clean:dist',
+    'htmlhint',
     'wiredep',
     'useminPrepare',
     'concurrent:dist',

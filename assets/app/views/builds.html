@@ -125,7 +125,7 @@
               <dd>
                 <span>
                   <button class="btn btn-primary" ng-click="startBuild(buildConfigName)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Start Build</button>
-                <span>
+                </span>
               </dd>
             </dl>
 
@@ -198,9 +198,9 @@
           <div>
             <button class="btn btn-default icon-restart" ng-click="cloneBuild(build.metadata.name)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Rebuild</button>
           </div>
-        </div>
-      </div>
-    </div>
+        </div><!-- /build .well -->
+      </div><!-- /buildConfig .tile -->
+
       <!-- render any builds whose build configs no longer exist -->
       <div class="tile" ng-repeat="(buildConfigName, blds) in buildsByBuildConfig" ng-if="!buildConfigs[buildConfigName]">
         <h2 ng-if="buildConfigName != ''">
@@ -262,8 +262,8 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>      
+        </div><!-- /build .well -->
+      </div><!-- /buildConfig .tile -->
     </div>
   </project-page>
 </div>
