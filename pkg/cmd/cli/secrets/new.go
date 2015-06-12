@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
@@ -18,7 +19,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const NewSecretRecommendedCommandName = "new"
+const (
+	NewSecretRecommendedCommandName = "new"
+
+	newLong = `Create a new secret based on a key file or on files within a directory.
+
+	Key files can be specified using their file path, in which case a default name will be given to them, or optionally 
+	with a name and file path, in which case the given name will be used. Specifying a directory will create a secret 
+	using with all valid keys in that directory.
+`
+
+	newExamples = `  // Create a new secret named my-secret with a key named ssh-privatekey
+  $ %[1]s my-secret ~/.ssh/ssh-privatekey
+
+  // Create a new secret named my-secret with keys named ssh-privatekey and ssh-publickey instead of the names of the keys on disk
+  $ %[1]s my-secret ssh-privatekey=~/.ssh/id_rsa ssh-publickey=~/.ssh/id_rsa.pub
+
+  // Create a new secret named my-secret with keys for each file in the folder "bar"
+  $ %[1]s my-secret path/to/bar
+`
+)
 
 type CreateSecretOptions struct {
 	// Name of the resulting secret
@@ -47,12 +67,10 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 	options.Out = out
 
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s NAME SOURCE [SOURCE ...]", name),
-		Short: "Create a new secret based on a file or files within a directory",
-		Long: fmt.Sprintf(`Create a new secret based on a file or files within a directory.
-
-  $ %s <secret-name> <source> [<source>...]
-		`, fullName),
+		Use:     fmt.Sprintf("%s NAME [KEY=]SOURCE ...", name),
+		Short:   "Create a new secret based on a key file or on files within a directory",
+		Long:    newLong,
+		Example: fmt.Sprintf(newExamples, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			cmdutil.CheckErr(options.Complete(args, f))
 
@@ -71,7 +89,6 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 	}
 
 	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", options.Quiet, "Suppress warnings")
-	cmd.Flags().VarP(&options.Sources, "source", "f", "List of filenames or directories to populate the data elements in a secret")
 	cmd.Flags().StringVar(&options.SecretTypeName, "type", "", "The type of secret")
 	cmdutil.AddPrinterFlags(cmd)
 
@@ -154,36 +171,49 @@ func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
 	secretData := make(map[string][]byte)
 
 	for _, source := range o.Sources {
-		info, err := os.Stat(source)
+		keyName, filePath, err := parseSource(source)
+		if err != nil {
+			return nil, err
+		}
+
+		info, err := os.Stat(filePath)
 		if err != nil {
 			switch err := err.(type) {
 			case *os.PathError:
-				return nil, fmt.Errorf("Error reading %s: %v", source, err.Err)
+				return nil, fmt.Errorf("error reading %s: %v", filePath, err.Err)
 			default:
-				return nil, fmt.Errorf("Error reading %s: %v", source, err)
+				return nil, fmt.Errorf("error reading %s: %v", filePath, err)
 			}
 		}
 
 		if info.IsDir() {
-			fileList, err := ioutil.ReadDir(source)
+			if strings.Contains(source, "=") {
+				return nil, errors.New("Cannot give a key name for a directory path.")
+			}
+			fileList, err := ioutil.ReadDir(filePath)
 			if err != nil {
-				return nil, fmt.Errorf("Error listing files in %s: %v", source, err)
+				return nil, fmt.Errorf("error listing files in %s: %v", filePath, err)
 			}
 
 			for _, item := range fileList {
-				itemPath := path.Join(source, item.Name())
+				itemPath := path.Join(filePath, item.Name())
 				if !item.Mode().IsRegular() {
 					if o.Stderr != nil && o.Quiet != true {
 						fmt.Fprintf(o.Stderr, "Skipping resource %s\n", itemPath)
 					}
 				} else {
-					if err := readFile(itemPath, secretData); err != nil {
+					keyName = item.Name()
+					err = addKeyToSecret(keyName, itemPath, secretData)
+					if err != nil {
 						return nil, err
 					}
 				}
 			}
-		} else if err := readFile(source, secretData); err != nil {
-			return nil, err
+		} else {
+			err = addKeyToSecret(keyName, filePath, secretData)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -212,19 +242,38 @@ func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
 	return secret, nil
 }
 
-func readFile(filePath string, dataMap map[string][]byte) error {
-	fileName := path.Base(filePath)
-	if !kvalidation.IsSecretKey(fileName) {
-		return fmt.Errorf("%s cannot be used as a key in a secret", filePath)
+func addKeyToSecret(keyName, filePath string, secretData map[string][]byte) error {
+	if !kvalidation.IsSecretKey(keyName) {
+		return fmt.Errorf("%v is not a valid key name for a secret", keyName)
 	}
-	if _, exists := dataMap[fileName]; exists {
-		return fmt.Errorf("Multiple files with the same name (%s) cannot be included in a secret", fileName)
+	if _, entryExists := secretData[keyName]; entryExists {
+		return fmt.Errorf("cannot add key %s from path %s, another key by that name already exists: %v.", keyName, filePath, secretData)
 	}
-
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
-	dataMap[fileName] = data
+	secretData[keyName] = data
 	return nil
+}
+
+// parseSource parses the source given. Acceptable formats include:
+// source-name=source-path, where source-name will become the key name and source-path is the path to the key file
+// source-path, where source-path is a path to a file or directory, and key names will default to file names
+// Key names cannot include '='.
+func parseSource(source string) (keyName, filePath string, err error) {
+	numSeparators := strings.Count(source, "=")
+	switch {
+	case numSeparators == 0:
+		return path.Base(source), source, nil
+	case numSeparators == 1 && strings.HasPrefix(source, "="):
+		return "", "", fmt.Errorf("key name for file path %v missing.", strings.TrimPrefix(source, "="))
+	case numSeparators == 1 && strings.HasSuffix(source, "="):
+		return "", "", fmt.Errorf("file path for key name %v missing.", strings.TrimSuffix(source, "="))
+	case numSeparators > 1:
+		return "", "", errors.New("Key names or file paths cannot contain '='.")
+	default:
+		components := strings.Split(source, "=")
+		return components[0], components[1], nil
+	}
 }

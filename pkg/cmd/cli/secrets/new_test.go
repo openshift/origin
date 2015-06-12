@@ -75,6 +75,46 @@ func TestCreateSecret(t *testing.T) {
 			args:     []string{"testSecret", "./bsFixtures/dir"},
 			expErr:   true, // "Skipping resource <resource path>"
 		},
+		{
+			testName: "testNamedKeys",
+			args:     []string{"testSecret", ".googlename=./bsFixtures/www.google.com"},
+			expErr:   false,
+		},
+		{
+			testName: "testNamedDir",
+			args:     []string{"testSecret", ".somename=./bsFixtures/dirNoSubdir"},
+			expErr:   true, // "Cannot give a key name for a directory path."
+		},
+		{
+			testName: "testUnnamedDir",
+			args:     []string{"testSecret", "./bsFixtures/dirContainsMany"},
+			expErr:   false,
+		},
+		{
+			testName: "testMalformedName",
+			args:     []string{"testSecret", ".google=name=./bsFixtures/www.google.com"},
+			expErr:   true, // "Key names or file paths cannot contain '='."
+		},
+		{
+			testName: "testMissingName",
+			args:     []string{"testSecret", "=./bsFixtures/www.google.com"},
+			expErr:   true, // "Key name for file path ./bsFixtures/www.google.com missing."
+		},
+		{
+			testName: "testMissingPath",
+			args:     []string{"testSecret", ".somename="},
+			expErr:   true, // "File path for key name some-name missing."
+		},
+		{
+			testName: "testNamesAvoidCollision",
+			args:     []string{"testSecret", ".googlename=./bsFixtures/www.google.com", ".othergooglename=./bsFixtures/multiple/www.google.com"},
+			expErr:   false,
+		},
+		{
+			testName: "testNameCollision",
+			args:     []string{"testSecret", ".googlename=./bsFixtures/www.google.com", ".googlename=./bsFixtures/multiple/www.google.com"},
+			expErr:   true, // "Cannot add key google-name from path ./bsFixtures/multiple/www.google.com, another key by that name already exists."
+		},
 	}
 	for _, test := range tests {
 		options := NewCreateSecretOptions()
