@@ -251,7 +251,7 @@ func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile st
 			CertFile: clientCertFile,
 			KeyFile:  clientKeyFile,
 
-			User:   "system:node-" + o.NodeName,
+			User:   "system:node:" + o.NodeName,
 			Groups: util.StringList([]string{bootstrappolicy.NodesGroup}),
 			Output: o.Output,
 		}
