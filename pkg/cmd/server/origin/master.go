@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -108,7 +109,9 @@ import (
 	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	clusterpolicybindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
+	clusterroleregistry "github.com/openshift/origin/pkg/authorization/registry/clusterrole"
 	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
+	clusterrolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"
 	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
@@ -563,7 +566,9 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
 	// Create required policy rules if needed
-	c.ensureComponentAuthorizationRules()
+	c.ensureBootstrapClusterPolicy()
+	// Create/Update system:* policy
+	c.ensureSystemClusterPolicy()
 	// Ensure the default SCCs are created
 	c.ensureDefaultSecurityContextConstraints()
 	// Bind default roles for service accounts in the default namespace if needed
@@ -686,8 +691,8 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 	}
 }
 
-// ensureComponentAuthorizationRules initializes the cluster policies
-func (c *MasterConfig) ensureComponentAuthorizationRules() {
+// ensureBootstrapClusterPolicy initializes the cluster policies
+func (c *MasterConfig) ensureBootstrapClusterPolicy() {
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicystorage.NewStorage(c.EtcdHelper))
 	ctx := kapi.WithNamespace(kapi.NewContext(), "")
 
@@ -701,6 +706,67 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	} else {
 		glog.V(2).Infof("Ignoring bootstrap policy file because cluster policy found")
 	}
+}
+
+// ensureSystemClusterPolicy initializes the system:* cluster policies
+func (c *MasterConfig) ensureSystemClusterPolicy() {
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicystorage.NewStorage(c.EtcdHelper))
+	clusterBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterpolicybindingstorage.NewStorage(c.EtcdHelper))
+	clusterRoleRegistry := clusterroleregistry.NewRegistry(clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry))
+	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterBindingRegistry)
+	clusterRoleBindingRegistry := clusterrolebindingregistry.NewRegistry(clusterRoleBindingStorage)
+
+	ctx := kapi.WithNamespace(kapi.NewContext(), "")
+
+	roles := bootstrappolicy.GetSystemClusterRoles()
+	for i := range roles {
+		role := &roles[i]
+		existingRole, err := clusterRoleRegistry.GetClusterRole(ctx, role.Name)
+		if (err == nil) && reflect.DeepEqual(role.Rules, existingRole.Rules) {
+			continue
+		}
+		if kapierror.IsNotFound(err) {
+			glog.Infof("Creating system role: %v", role.Name)
+			if _, err := clusterRoleRegistry.CreateClusterRole(ctx, role); err != nil {
+				glog.Errorf("Error creating system role: %v", err)
+			}
+
+			continue
+		}
+
+		glog.Infof("Updating system role: %v", role.Name)
+		role.ResourceVersion = existingRole.ResourceVersion
+		if _, _, err := clusterRoleRegistry.UpdateClusterRole(ctx, role); err != nil {
+			glog.Errorf("Error updating system role: %v", err)
+		}
+	}
+
+	bindings := bootstrappolicy.GetSystemClusterRoleBindings()
+	for i := range bindings {
+		binding := &bindings[i]
+		existingBinding, err := clusterRoleBindingRegistry.GetClusterRoleBinding(ctx, binding.Name)
+		if (err == nil) &&
+			reflect.DeepEqual(binding.RoleRef, existingBinding.RoleRef) &&
+			existingBinding.Users.HasAll(binding.Users.List()...) &&
+			existingBinding.Groups.HasAll(binding.Groups.List()...) {
+			continue
+		}
+		if kapierror.IsNotFound(err) {
+			glog.Infof("Creating system rolebinding: %v", binding.Name)
+			if _, err := clusterRoleBindingStorage.CreateClusterRoleBindingWithEscalation(ctx, binding); err != nil {
+				glog.Errorf("Error creating system rolebinding: %v", err)
+			}
+
+			continue
+		}
+
+		glog.Infof("Updating system rolebinding: %v", binding.Name)
+		binding.ResourceVersion = existingBinding.ResourceVersion
+		if _, _, err := clusterRoleBindingStorage.UpdateClusterRoleBindingWithEscalation(ctx, binding); err != nil {
+			glog.Errorf("Error updating system rolebinding: %v", err)
+		}
+	}
+
 }
 
 // ensureDefaultNamespaceServiceAccountRoles initializes roles for service accounts in the default namespace
