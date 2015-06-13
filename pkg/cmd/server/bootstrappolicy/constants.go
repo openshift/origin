@@ -16,22 +16,24 @@ const (
 	InfraReplicationControllerServiceAccountName = "replication-controller"
 	InfraDeploymentControllerServiceAccountName  = "deployment-controller"
 
+	MasterUnqualifiedUsername   = "openshift-master"
 	RouterUnqualifiedUsername   = "openshift-router"
 	RegistryUnqualifiedUsername = "openshift-registry"
 
+	MasterUsername   = "system:" + MasterUnqualifiedUsername
 	RouterUsername   = "system:" + RouterUnqualifiedUsername
 	RegistryUsername = "system:" + RegistryUnqualifiedUsername
 )
 
 // groups
 const (
-	UnauthenticatedUsername   = "system:anonymous"
-	InternalComponentUsername = "system:openshift-client"
+	UnauthenticatedUsername = "system:anonymous"
 
 	AuthenticatedGroup   = "system:authenticated"
 	UnauthenticatedGroup = "system:unauthenticated"
 	ClusterAdminGroup    = "system:cluster-admins"
 	ClusterReaderGroup   = "system:cluster-readers"
+	MastersGroup         = "system:masters"
 	NodesGroup           = "system:nodes"
 	RouterGroup          = "system:routers"
 	RegistryGroup        = "system:registries"
@@ -58,11 +60,11 @@ const (
 	DeployerRoleName          = "system:deployer"
 	RouterRoleName            = "system:router"
 	RegistryRoleName          = "system:registry"
+	MasterRoleName            = "system:master"
 	NodeRoleName              = "system:node"
 	NodeProxierRoleName       = "system:node-proxier"
 	SDNReaderRoleName         = "system:sdn-reader"
 	SDNManagerRoleName        = "system:sdn-manager"
-	InternalComponentRoleName = "system:component"
 	OAuthTokenDeleterRoleName = "system:oauth-token-deleter"
 	WebHooksRoleName          = "system:webhook"
 
@@ -72,7 +74,6 @@ const (
 // RoleBindings
 const (
 	SelfProvisionerRoleBindingName   = SelfProvisionerRoleName + "s"
-	InternalComponentRoleBindingName = InternalComponentRoleName + "s"
 	DeployerRoleBindingName          = DeployerRoleName + "s"
 	ClusterAdminRoleBindingName      = ClusterAdminRoleName + "s"
 	ClusterReaderRoleBindingName     = ClusterReaderRoleName + "s"
@@ -83,6 +84,7 @@ const (
 	ImageBuilderRoleBindingName      = ImageBuilderRoleName + "s"
 	RouterRoleBindingName            = RouterRoleName + "s"
 	RegistryRoleBindingName          = RegistryRoleName + "s"
+	MasterRoleBindingName            = MasterRoleName + "s"
 	NodeRoleBindingName              = NodeRoleName + "s"
 	NodeProxierRoleBindingName       = NodeProxierRoleName + "s"
 	SDNReaderRoleBindingName         = SDNReaderRoleName + "s"

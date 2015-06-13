@@ -212,7 +212,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: InternalComponentRoleName,
+				Name: MasterRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
@@ -515,12 +515,12 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 	return []authorizationapi.ClusterRoleBinding{
 		{
 			ObjectMeta: kapi.ObjectMeta{
-				Name: InternalComponentRoleBindingName,
+				Name: MasterRoleBindingName,
 			},
 			RoleRef: kapi.ObjectReference{
-				Name: InternalComponentRoleName,
+				Name: MasterRoleName,
 			},
-			Users: util.NewStringSet(InternalComponentUsername),
+			Groups: util.NewStringSet(MastersGroup),
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
