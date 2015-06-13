@@ -19,4 +19,9 @@ for img in $s2i_images;
 do
    docker pull ${s2i_src_repo}${img}
    docker tag -f ${s2i_src_repo}${img}:latest ${s2i_dst_repo}${img}:${IMAGE_VERSION}
+   docker tag -f ${s2i_src_repo}${img}:latest ${s2i_dst_repo}${img}:latest
+   docker tag -f ${s2i_src_repo}${img}:latest localhost:5000/${img}:${IMAGE_VERSION}
+   docker tag -f ${s2i_src_repo}${img}:latest localhost:5000/${img}:latest
+   docker push localhost:5000/${img}:latest
+   docker push localhost:5000/${img}:${IMAGE_VERSION}
 done
