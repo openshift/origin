@@ -18,7 +18,10 @@ export NUM_USERS=10
 export USER_NAME_PREFIX=hal-
 
 # The number of projects that are in the system
-export NUM_PROJECTS=5
+export NUM_PROJECTS=3
 
 # The project name prefix
 export PROJECT_NAME_PREFIX=project-
+
+# How many concurrent CLI requests to make
+export MAX_PROCS=4

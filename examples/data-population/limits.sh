@@ -8,7 +8,8 @@ source $(dirname "${BASH_SOURCE}")/common.sh
 
 echo "Populating limits"
 
-OPENSHIFTCONFIG=${OPENSHIFT_ADMIN_CONFIG}
+export KUBECONFIG=${OPENSHIFT_ADMIN_CONFIG}
+
 LIMIT=$(dirname "${BASH_SOURCE}")/limit.yaml
 
 for ((i=1; i <=$NUM_PROJECTS; i++))

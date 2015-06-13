@@ -8,7 +8,7 @@ source $(dirname "${BASH_SOURCE}")/common.sh
 
 echo "Populating quotas"
 
-OPENSHIFTCONFIG=${OPENSHIFT_ADMIN_CONFIG}
+export KUBECONFIG=${OPENSHIFT_ADMIN_CONFIG}
 
 QUOTA=$(dirname "${BASH_SOURCE}")/quota.yaml
 

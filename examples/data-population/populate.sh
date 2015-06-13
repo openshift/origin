@@ -11,5 +11,6 @@ source $(dirname "${BASH_SOURCE}")/templates.sh
 source $(dirname "${BASH_SOURCE}")/projects.sh
 source $(dirname "${BASH_SOURCE}")/limits.sh
 source $(dirname "${BASH_SOURCE}")/quotas.sh
+source $(dirname "${BASH_SOURCE}")/replication-controllers.sh
 
 echo "Done"
