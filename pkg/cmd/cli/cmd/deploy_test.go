@@ -332,3 +332,44 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 		}
 	}
 }
+
+func TestDeploy_triggerEnable(t *testing.T) {
+	var updated *deployapi.DeploymentConfig
+	triggerEnabler := &triggerEnabler{
+		updateConfig: func(namespace string, config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
+			updated = config
+			return config, nil
+		},
+	}
+
+	mktrigger := func() deployapi.DeploymentTriggerPolicy {
+		t := deploytest.OkImageChangeTrigger()
+		t.ImageChangeParams.Automatic = false
+		return t
+	}
+	count := 3
+
+	config := deploytest.OkDeploymentConfig(1)
+	config.Triggers = []deployapi.DeploymentTriggerPolicy{}
+	for i := 0; i < count; i++ {
+		config.Triggers = append(config.Triggers, mktrigger())
+	}
+
+	err := triggerEnabler.enableTriggers(config, ioutil.Discard)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if updated == nil {
+		t.Fatalf("expected an updated config")
+	}
+
+	if e, a := count, len(config.Triggers); e != a {
+		t.Fatalf("expected %d triggers, got %d", e, a)
+	}
+	for _, trigger := range config.Triggers {
+		if !trigger.ImageChangeParams.Automatic {
+			t.Errorf("expected trigger to be enabled: %#v", trigger.ImageChangeParams)
+		}
+	}
+}

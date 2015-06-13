@@ -49,9 +49,10 @@ Getting Started
 ---------------
 The easiest way to run OpenShift Origin is in a Docker container (OpenShift requires Docker 1.6 or higher or 1.6.2 on CentOS/RHEL):
 
-    $ sudo docker run -d -name "origin" \
+    $ sudo docker run -d --name "origin" \
         --privileged --net=host \
         -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker:/var/lib/docker:rw \
+        -v /var/lib/openshift:/var/lib/openshift \
         openshift/origin start
 
 *Security!* Why do we need to mount your host, run privileged, and get access to your Docker directory? OpenShift runs as a host agent (like Docker)
@@ -60,12 +61,20 @@ and starts and stops Docker containers, mounts remote volumes, and monitors the 
 Once the container is started, you can jump into a console inside the container and run the CLI.
 
     $ sudo docker exec -it origin bash
+
+    # Start the OpenShift integrated registry in a container
+    $ oadm registry --credentials=./openshift.local.config/master/openshift-registry.config
+
+    # Use the CLI to login, create a project, and then create your app.
     $ oc --help
     $ oc login
     Username: test
     Password: test
     $ oc new-project test
     $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json
+
+    # See everything you just created!
+    $ oc status
 
 Any username and password are accepted by default (with no credential system configured).  You can view the webconsole at https://localhost:8443/ in your browser - login with the same credentials you used above and you'll see the application you just created.
 

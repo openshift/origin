@@ -12,9 +12,14 @@ import (
 // in a configurable way.
 type RollbackGenerator struct{}
 
-// GenerateRollback creates a new DeploymentConfig by merging to onto from based on the options provided
-// by spec. The LatestVersion of the result is unconditionally incremented, as rollback candidates are
-// should be possible to be deployed manually regardless of other system behavior such as triggering.
+// GenerateRollback creates a new DeploymentConfig by merging to onto from
+// based on the options provided by spec. The LatestVersion of the result is
+// unconditionally incremented, as rollback candidates are should be possible
+// to be deployed manually regardless of other system behavior such as
+// triggering.
+//
+// Any image change triggers on the new config are disabled to prevent
+// triggered deployments from immediately replacing the rollback.
 func (g *RollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 	rollback := &deployapi.DeploymentConfig{}
 
@@ -46,6 +51,13 @@ func (g *RollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfi
 	if spec.IncludeStrategy {
 		if err := kapi.Scheme.Convert(&to.Template.Strategy, &rollback.Template.Strategy); err != nil {
 			return nil, fmt.Errorf("couldn't copy strategy to rollback:: %v", err)
+		}
+	}
+
+	// Disable any image change triggers.
+	for _, trigger := range rollback.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+			trigger.ImageChangeParams.Automatic = false
 		}
 	}
 

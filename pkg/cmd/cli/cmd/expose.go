@@ -31,7 +31,7 @@ $ %[1]s expose service nginx -l name=myroute --name=fromdowntown
 $ %[1]s expose service nginx --hostname=www.example.com
 
 // Expose a deployment configuration as a service and use the specified port
-$ %[1]s expose dc ruby-hello-world --port=8080 --generator=services/v1`
+$ %[1]s expose dc ruby-hello-world --port=8080 --generator=service/v1`
 )
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command
