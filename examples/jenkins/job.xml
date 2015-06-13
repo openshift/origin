@@ -3,33 +3,6 @@
   <actions/>
   <description></description>
   <keepDependencies>false</keepDependencies>
-  <properties>
-    <hudson.model.ParametersDefinitionProperty>
-      <parameterDefinitions>
-        <hudson.model.TextParameterDefinition>
-          <name>KUBECONFIG_CREDENTIALS</name>
-          <description>Contents of .kubeconfig file containing API credentials</description>
-          <defaultValue>
-apiVersion: v1
-kind: Config
-clusters:
-- cluster:
-    server: https://172.17.42.1:8443
-    insecure-skip-tls-verify: true
-  name: master
-contexts:
-- context:
-    cluster: master
-    user: openshift-client
-  name: master
-current-context: master
-users:
-- name: openshift-client
-</defaultValue>
-        </hudson.model.TextParameterDefinition>
-      </parameterDefinitions>
-    </hudson.model.ParametersDefinitionProperty>
-  </properties>
   <scm class="hudson.scm.NullSCM"/>
   <canRoam>true</canRoam>
   <disabled>false</disabled>
@@ -41,7 +14,15 @@ users:
     <hudson.tasks.Shell>
       <command>
 export KUBECONFIG=.kubeconfig
-echo "${KUBECONFIG_CREDENTIALS}" > "${KUBECONFIG}"
+
+# Build a kubeconfig for the local server using the service account token
+SERVER=https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}
+TOKEN=`cat /var/run/secrets/kubernetes.io/serviceaccount/token`
+oc config set-cluster local-cluster --server=$SERVER --insecure-skip-tls-verify=true
+oc config set-credentials local-user --token=$TOKEN
+oc config set-context local --cluster=local-cluster --user=local-user --namespace=$NAMESPACE
+oc config use-context local
+
 
 TEST_ENDPOINT=`oc get services -n test | grep frontend-test | awk '{print $4":"$5}'`
 

@@ -10,7 +10,7 @@ the deployment works, and then tag the test version into production.
 Steps
 -----
 
-1. Follow steps 1-10 from the [sample-app](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md)
+1. Follow steps 1-8 from the [sample-app](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md)
 
 2. Start the Jenkins services
 
@@ -31,25 +31,24 @@ Steps
         $ JENKINS_ENDPOINT=`oc get services -n test jenkins --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}"`
         $ cat job.xml | curl -X POST -H "Content-Type: application/xml" -H "Expect: " --data-binary @- http://$JENKINS_ENDPOINT/createItem?name=rubyJob
 
-6. Add API credentials to the Jenkins build:
+6. Grant permission to the Jenkins pod's service account
 
-    1. Go back to your browser, refresh and select the rubyJob build job.
-    2. Choose `Configure`.
-    3. Locate the KUBECONFIG_CREDENTIALS parameter, and replace the default value with the contents of the `openshift.local.config/master/openshift-client.kubeconfig` file.
-    4. Click `Save`.
+    The Jenkins pod runs using the service account named "jenkins" in the "test" namespace.
+    To allow that service account to create builds using the API, add the "edit" role to the service account's username:
 
-6. Run the Jenkins build
+        $ oc policy -n test add-role-to-user edit system:serviceaccount:test:jenkins
+
+7. Run the Jenkins build
    
-    1. In the browser, select the rubyJob build job and choose `Build with parameters`.
-    2. Click `Build` (you should not need to modify any parameters).
+    1. In the browser, select the rubyJob build job and choose `Build Now`.
 
-7. Watch the job output
+8. Watch the job output
 
    It will trigger an OpenShift build of the application, wait for the build to result in a deployment,
    confirm the new deployment works, and re-tag the image for production.  This re-tagging will trigger
    another deployment, this time creating/updated the production service.
 
-8. Confirm both the test and production services are available by browsing to both services:
+9. Confirm both the test and production services are available by browsing to both services:
 
         $ oc get services -n test | grep frontend
    

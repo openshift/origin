@@ -4,6 +4,13 @@
   "metadata": {},
   "items": [
     {
+      "kind": "ServiceAccount",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "jenkins"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1beta3",
       "metadata": {
@@ -65,6 +72,17 @@
                     "protocol": "TCP"
                   }
                 ],
+                "env": [
+                  {
+                    "name": "NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1beta3",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  }
+                ],
                 "resources": {},
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
@@ -76,6 +94,7 @@
               }
             ],
             "restartPolicy": "Always",
+            "serviceAccount": "jenkins",
             "dnsPolicy": "ClusterFirst"
           }
         }
