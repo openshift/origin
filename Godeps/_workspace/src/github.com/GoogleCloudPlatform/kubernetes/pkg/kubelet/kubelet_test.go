@@ -2058,12 +2058,12 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name            string                 // the name of the test case
-		ns              string                 // the namespace to generate environment for
-		container       *api.Container         // the container to use
-		masterServiceNs string                 // the namespace to read master service info from
-		nilLister       bool                   // whether the lister should be nil
-		expectedEnvs    []kubecontainer.EnvVar // a set of expected environment vars
+		name            string         // the name of the test case
+		ns              string         // the namespace to generate environment for
+		container       *api.Container // the container to use
+		masterServiceNs string         // the namespace to read master service info from
+		nilLister       bool           // whether the lister should be nil
+		expectedEnvs    util.StringSet // a set of expected environment vars
 	}{
 		{
 			name: "api server = Y, kubelet = Y",
@@ -2082,30 +2082,29 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 			},
 			masterServiceNs: api.NamespaceDefault,
 			nilLister:       false,
-			expectedEnvs: []kubecontainer.EnvVar{
-				{Name: "FOO", Value: "BAR"},
-				{Name: "TEST_SERVICE_HOST", Value: "1.2.3.3"},
-				{Name: "TEST_SERVICE_PORT", Value: "8083"},
-				{Name: "TEST_PORT", Value: "tcp://1.2.3.3:8083"},
-				{Name: "TEST_PORT_8083_TCP", Value: "tcp://1.2.3.3:8083"},
-				{Name: "TEST_PORT_8083_TCP_PROTO", Value: "tcp"},
-				{Name: "TEST_PORT_8083_TCP_PORT", Value: "8083"},
-				{Name: "TEST_PORT_8083_TCP_ADDR", Value: "1.2.3.3"},
-				{Name: "KUBERNETES_SERVICE_PORT", Value: "8081"},
-				{Name: "KUBERNETES_SERVICE_HOST", Value: "1.2.3.1"},
-				{Name: "KUBERNETES_PORT", Value: "tcp://1.2.3.1:8081"},
-				{Name: "KUBERNETES_PORT_8081_TCP", Value: "tcp://1.2.3.1:8081"},
-				{Name: "KUBERNETES_PORT_8081_TCP_PROTO", Value: "tcp"},
-				{Name: "KUBERNETES_PORT_8081_TCP_PORT", Value: "8081"},
-				{Name: "KUBERNETES_PORT_8081_TCP_ADDR", Value: "1.2.3.1"},
-				{Name: "KUBERNETES_RO_SERVICE_HOST", Value: "1.2.3.2"},
-				{Name: "KUBERNETES_RO_SERVICE_PORT", Value: "8082"},
-				{Name: "KUBERNETES_RO_PORT", Value: "tcp://1.2.3.2:8082"},
-				{Name: "KUBERNETES_RO_PORT_8082_TCP", Value: "tcp://1.2.3.2:8082"},
-				{Name: "KUBERNETES_RO_PORT_8082_TCP_PROTO", Value: "tcp"},
-				{Name: "KUBERNETES_RO_PORT_8082_TCP_PORT", Value: "8082"},
-				{Name: "KUBERNETES_RO_PORT_8082_TCP_ADDR", Value: "1.2.3.2"},
-			},
+			expectedEnvs: util.NewStringSet(
+				"FOO=BAR",
+				"TEST_SERVICE_HOST=1.2.3.3",
+				"TEST_SERVICE_PORT=8083",
+				"TEST_PORT=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP_PROTO=tcp",
+				"TEST_PORT_8083_TCP_PORT=8083",
+				"TEST_PORT_8083_TCP_ADDR=1.2.3.3",
+				"KUBERNETES_SERVICE_HOST=1.2.3.1",
+				"KUBERNETES_SERVICE_PORT=8081",
+				"KUBERNETES_PORT=tcp://1.2.3.1:8081",
+				"KUBERNETES_PORT_8081_TCP=tcp://1.2.3.1:8081",
+				"KUBERNETES_PORT_8081_TCP_PROTO=tcp",
+				"KUBERNETES_PORT_8081_TCP_PORT=8081",
+				"KUBERNETES_PORT_8081_TCP_ADDR=1.2.3.1",
+				"KUBERNETES_RO_SERVICE_HOST=1.2.3.2",
+				"KUBERNETES_RO_SERVICE_PORT=8082",
+				"KUBERNETES_RO_PORT=tcp://1.2.3.2:8082",
+				"KUBERNETES_RO_PORT_8082_TCP=tcp://1.2.3.2:8082",
+				"KUBERNETES_RO_PORT_8082_TCP_PROTO=tcp",
+				"KUBERNETES_RO_PORT_8082_TCP_PORT=8082",
+				"KUBERNETES_RO_PORT_8082_TCP_ADDR=1.2.3.2"),
 		},
 		{
 			name: "api server = Y, kubelet = N",
@@ -2124,16 +2123,15 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 			},
 			masterServiceNs: api.NamespaceDefault,
 			nilLister:       true,
-			expectedEnvs: []kubecontainer.EnvVar{
-				{Name: "FOO", Value: "BAR"},
-				{Name: "TEST_SERVICE_HOST", Value: "1.2.3.3"},
-				{Name: "TEST_SERVICE_PORT", Value: "8083"},
-				{Name: "TEST_PORT", Value: "tcp://1.2.3.3:8083"},
-				{Name: "TEST_PORT_8083_TCP", Value: "tcp://1.2.3.3:8083"},
-				{Name: "TEST_PORT_8083_TCP_PROTO", Value: "tcp"},
-				{Name: "TEST_PORT_8083_TCP_PORT", Value: "8083"},
-				{Name: "TEST_PORT_8083_TCP_ADDR", Value: "1.2.3.3"},
-			},
+			expectedEnvs: util.NewStringSet(
+				"FOO=BAR",
+				"TEST_SERVICE_HOST=1.2.3.3",
+				"TEST_SERVICE_PORT=8083",
+				"TEST_PORT=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP_PROTO=tcp",
+				"TEST_PORT_8083_TCP_PORT=8083",
+				"TEST_PORT_8083_TCP_ADDR=1.2.3.3"),
 		},
 		{
 			name: "api server = N; kubelet = Y",
@@ -2145,30 +2143,29 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 			},
 			masterServiceNs: api.NamespaceDefault,
 			nilLister:       false,
-			expectedEnvs: []kubecontainer.EnvVar{
-				{Name: "FOO", Value: "BAZ"},
-				{Name: "TEST_SERVICE_HOST", Value: "1.2.3.3"},
-				{Name: "TEST_SERVICE_PORT", Value: "8083"},
-				{Name: "TEST_PORT", Value: "tcp://1.2.3.3:8083"},
-				{Name: "TEST_PORT_8083_TCP", Value: "tcp://1.2.3.3:8083"},
-				{Name: "TEST_PORT_8083_TCP_PROTO", Value: "tcp"},
-				{Name: "TEST_PORT_8083_TCP_PORT", Value: "8083"},
-				{Name: "TEST_PORT_8083_TCP_ADDR", Value: "1.2.3.3"},
-				{Name: "KUBERNETES_SERVICE_HOST", Value: "1.2.3.1"},
-				{Name: "KUBERNETES_SERVICE_PORT", Value: "8081"},
-				{Name: "KUBERNETES_PORT", Value: "tcp://1.2.3.1:8081"},
-				{Name: "KUBERNETES_PORT_8081_TCP", Value: "tcp://1.2.3.1:8081"},
-				{Name: "KUBERNETES_PORT_8081_TCP_PROTO", Value: "tcp"},
-				{Name: "KUBERNETES_PORT_8081_TCP_PORT", Value: "8081"},
-				{Name: "KUBERNETES_PORT_8081_TCP_ADDR", Value: "1.2.3.1"},
-				{Name: "KUBERNETES_RO_SERVICE_HOST", Value: "1.2.3.2"},
-				{Name: "KUBERNETES_RO_SERVICE_PORT", Value: "8082"},
-				{Name: "KUBERNETES_RO_PORT", Value: "tcp://1.2.3.2:8082"},
-				{Name: "KUBERNETES_RO_PORT_8082_TCP", Value: "tcp://1.2.3.2:8082"},
-				{Name: "KUBERNETES_RO_PORT_8082_TCP_PROTO", Value: "tcp"},
-				{Name: "KUBERNETES_RO_PORT_8082_TCP_PORT", Value: "8082"},
-				{Name: "KUBERNETES_RO_PORT_8082_TCP_ADDR", Value: "1.2.3.2"},
-			},
+			expectedEnvs: util.NewStringSet(
+				"FOO=BAZ",
+				"TEST_SERVICE_HOST=1.2.3.3",
+				"TEST_SERVICE_PORT=8083",
+				"TEST_PORT=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP=tcp://1.2.3.3:8083",
+				"TEST_PORT_8083_TCP_PROTO=tcp",
+				"TEST_PORT_8083_TCP_PORT=8083",
+				"TEST_PORT_8083_TCP_ADDR=1.2.3.3",
+				"KUBERNETES_SERVICE_HOST=1.2.3.1",
+				"KUBERNETES_SERVICE_PORT=8081",
+				"KUBERNETES_PORT=tcp://1.2.3.1:8081",
+				"KUBERNETES_PORT_8081_TCP=tcp://1.2.3.1:8081",
+				"KUBERNETES_PORT_8081_TCP_PROTO=tcp",
+				"KUBERNETES_PORT_8081_TCP_PORT=8081",
+				"KUBERNETES_PORT_8081_TCP_ADDR=1.2.3.1",
+				"KUBERNETES_RO_SERVICE_HOST=1.2.3.2",
+				"KUBERNETES_RO_SERVICE_PORT=8082",
+				"KUBERNETES_RO_PORT=tcp://1.2.3.2:8082",
+				"KUBERNETES_RO_PORT_8082_TCP=tcp://1.2.3.2:8082",
+				"KUBERNETES_RO_PORT_8082_TCP_PROTO=tcp",
+				"KUBERNETES_RO_PORT_8082_TCP_PORT=8082",
+				"KUBERNETES_RO_PORT_8082_TCP_ADDR=1.2.3.2"),
 		},
 		{
 			name: "master service in pod ns",
@@ -2180,30 +2177,29 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 			},
 			masterServiceNs: "kubernetes",
 			nilLister:       false,
-			expectedEnvs: []kubecontainer.EnvVar{
-				{Name: "FOO", Value: "ZAP"},
-				{Name: "TEST_SERVICE_HOST", Value: "1.2.3.5"},
-				{Name: "TEST_SERVICE_PORT", Value: "8085"},
-				{Name: "TEST_PORT", Value: "tcp://1.2.3.5:8085"},
-				{Name: "TEST_PORT_8085_TCP", Value: "tcp://1.2.3.5:8085"},
-				{Name: "TEST_PORT_8085_TCP_PROTO", Value: "tcp"},
-				{Name: "TEST_PORT_8085_TCP_PORT", Value: "8085"},
-				{Name: "TEST_PORT_8085_TCP_ADDR", Value: "1.2.3.5"},
-				{Name: "KUBERNETES_SERVICE_HOST", Value: "1.2.3.4"},
-				{Name: "KUBERNETES_SERVICE_PORT", Value: "8084"},
-				{Name: "KUBERNETES_PORT", Value: "tcp://1.2.3.4:8084"},
-				{Name: "KUBERNETES_PORT_8084_TCP", Value: "tcp://1.2.3.4:8084"},
-				{Name: "KUBERNETES_PORT_8084_TCP_PROTO", Value: "tcp"},
-				{Name: "KUBERNETES_PORT_8084_TCP_PORT", Value: "8084"},
-				{Name: "KUBERNETES_PORT_8084_TCP_ADDR", Value: "1.2.3.4"},
-				{Name: "KUBERNETES_RO_SERVICE_HOST", Value: "1.2.3.7"},
-				{Name: "KUBERNETES_RO_SERVICE_PORT", Value: "8087"},
-				{Name: "KUBERNETES_RO_PORT", Value: "tcp://1.2.3.7:8087"},
-				{Name: "KUBERNETES_RO_PORT_8087_TCP", Value: "tcp://1.2.3.7:8087"},
-				{Name: "KUBERNETES_RO_PORT_8087_TCP_PROTO", Value: "tcp"},
-				{Name: "KUBERNETES_RO_PORT_8087_TCP_PORT", Value: "8087"},
-				{Name: "KUBERNETES_RO_PORT_8087_TCP_ADDR", Value: "1.2.3.7"},
-			},
+			expectedEnvs: util.NewStringSet(
+				"FOO=ZAP",
+				"TEST_SERVICE_HOST=1.2.3.5",
+				"TEST_SERVICE_PORT=8085",
+				"TEST_PORT=tcp://1.2.3.5:8085",
+				"TEST_PORT_8085_TCP=tcp://1.2.3.5:8085",
+				"TEST_PORT_8085_TCP_PROTO=tcp",
+				"TEST_PORT_8085_TCP_PORT=8085",
+				"TEST_PORT_8085_TCP_ADDR=1.2.3.5",
+				"KUBERNETES_SERVICE_HOST=1.2.3.4",
+				"KUBERNETES_SERVICE_PORT=8084",
+				"KUBERNETES_PORT=tcp://1.2.3.4:8084",
+				"KUBERNETES_PORT_8084_TCP=tcp://1.2.3.4:8084",
+				"KUBERNETES_PORT_8084_TCP_PROTO=tcp",
+				"KUBERNETES_PORT_8084_TCP_PORT=8084",
+				"KUBERNETES_PORT_8084_TCP_ADDR=1.2.3.4",
+				"KUBERNETES_RO_SERVICE_HOST=1.2.3.7",
+				"KUBERNETES_RO_SERVICE_PORT=8087",
+				"KUBERNETES_RO_PORT=tcp://1.2.3.7:8087",
+				"KUBERNETES_RO_PORT_8087_TCP=tcp://1.2.3.7:8087",
+				"KUBERNETES_RO_PORT_8087_TCP_PROTO=tcp",
+				"KUBERNETES_RO_PORT_8087_TCP_PORT=8087",
+				"KUBERNETES_RO_PORT_8087_TCP_ADDR=1.2.3.7"),
 		},
 		{
 			name:            "pod in master service ns",
@@ -2211,29 +2207,28 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 			container:       &api.Container{},
 			masterServiceNs: "kubernetes",
 			nilLister:       false,
-			expectedEnvs: []kubecontainer.EnvVar{
-				{Name: "NOT_SPECIAL_SERVICE_HOST", Value: "1.2.3.8"},
-				{Name: "NOT_SPECIAL_SERVICE_PORT", Value: "8088"},
-				{Name: "NOT_SPECIAL_PORT", Value: "tcp://1.2.3.8:8088"},
-				{Name: "NOT_SPECIAL_PORT_8088_TCP", Value: "tcp://1.2.3.8:8088"},
-				{Name: "NOT_SPECIAL_PORT_8088_TCP_PROTO", Value: "tcp"},
-				{Name: "NOT_SPECIAL_PORT_8088_TCP_PORT", Value: "8088"},
-				{Name: "NOT_SPECIAL_PORT_8088_TCP_ADDR", Value: "1.2.3.8"},
-				{Name: "KUBERNETES_SERVICE_HOST", Value: "1.2.3.6"},
-				{Name: "KUBERNETES_SERVICE_PORT", Value: "8086"},
-				{Name: "KUBERNETES_PORT", Value: "tcp://1.2.3.6:8086"},
-				{Name: "KUBERNETES_PORT_8086_TCP", Value: "tcp://1.2.3.6:8086"},
-				{Name: "KUBERNETES_PORT_8086_TCP_PROTO", Value: "tcp"},
-				{Name: "KUBERNETES_PORT_8086_TCP_PORT", Value: "8086"},
-				{Name: "KUBERNETES_PORT_8086_TCP_ADDR", Value: "1.2.3.6"},
-				{Name: "KUBERNETES_RO_SERVICE_HOST", Value: "1.2.3.7"},
-				{Name: "KUBERNETES_RO_SERVICE_PORT", Value: "8087"},
-				{Name: "KUBERNETES_RO_PORT", Value: "tcp://1.2.3.7:8087"},
-				{Name: "KUBERNETES_RO_PORT_8087_TCP", Value: "tcp://1.2.3.7:8087"},
-				{Name: "KUBERNETES_RO_PORT_8087_TCP_PROTO", Value: "tcp"},
-				{Name: "KUBERNETES_RO_PORT_8087_TCP_PORT", Value: "8087"},
-				{Name: "KUBERNETES_RO_PORT_8087_TCP_ADDR", Value: "1.2.3.7"},
-			},
+			expectedEnvs: util.NewStringSet(
+				"NOT_SPECIAL_SERVICE_HOST=1.2.3.8",
+				"NOT_SPECIAL_SERVICE_PORT=8088",
+				"NOT_SPECIAL_PORT=tcp://1.2.3.8:8088",
+				"NOT_SPECIAL_PORT_8088_TCP=tcp://1.2.3.8:8088",
+				"NOT_SPECIAL_PORT_8088_TCP_PROTO=tcp",
+				"NOT_SPECIAL_PORT_8088_TCP_PORT=8088",
+				"NOT_SPECIAL_PORT_8088_TCP_ADDR=1.2.3.8",
+				"KUBERNETES_SERVICE_HOST=1.2.3.6",
+				"KUBERNETES_SERVICE_PORT=8086",
+				"KUBERNETES_PORT=tcp://1.2.3.6:8086",
+				"KUBERNETES_PORT_8086_TCP=tcp://1.2.3.6:8086",
+				"KUBERNETES_PORT_8086_TCP_PROTO=tcp",
+				"KUBERNETES_PORT_8086_TCP_PORT=8086",
+				"KUBERNETES_PORT_8086_TCP_ADDR=1.2.3.6",
+				"KUBERNETES_RO_SERVICE_HOST=1.2.3.7",
+				"KUBERNETES_RO_SERVICE_PORT=8087",
+				"KUBERNETES_RO_PORT=tcp://1.2.3.7:8087",
+				"KUBERNETES_RO_PORT_8087_TCP=tcp://1.2.3.7:8087",
+				"KUBERNETES_RO_PORT_8087_TCP_PROTO=tcp",
+				"KUBERNETES_RO_PORT_8087_TCP_PORT=8087",
+				"KUBERNETES_RO_PORT_8087_TCP_ADDR=1.2.3.7"),
 		},
 		{
 			name: "downward api pod",
@@ -2262,14 +2257,145 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 			},
 			masterServiceNs: "nothing",
 			nilLister:       true,
+			expectedEnvs: util.NewStringSet(
+				"POD_NAME=dapi-test-pod-name",
+				"POD_NAMESPACE=downward-api",
+			),
+		},
+		{
+			name: "env expansion",
+			ns:   "test1",
+			container: &api.Container{
+				Env: []api.EnvVar{
+					{
+						Name:  "TEST_LITERAL",
+						Value: "test-test-test",
+					},
+					{
+						Name: "POD_NAME",
+						ValueFrom: &api.EnvVarSource{
+							FieldRef: &api.ObjectFieldSelector{
+								APIVersion: "v1beta3",
+								FieldPath:  "metadata.name",
+							},
+						},
+					},
+					{
+						Name:  "OUT_OF_ORDER_TEST",
+						Value: "$(OUT_OF_ORDER_TARGET)",
+					},
+					{
+						Name:  "OUT_OF_ORDER_TARGET",
+						Value: "FOO",
+					},
+					{
+						Name: "EMPTY_VAR",
+					},
+					{
+						Name:  "EMPTY_TEST",
+						Value: "foo-$(EMPTY_VAR)",
+					},
+					{
+						Name:  "POD_NAME_TEST2",
+						Value: "test2-$(POD_NAME)",
+					},
+					{
+						Name:  "POD_NAME_TEST3",
+						Value: "$(POD_NAME_TEST2)-3",
+					},
+					{
+						Name:  "LITERAL_TEST",
+						Value: "literal-$(TEST_LITERAL)",
+					},
+					{
+						Name:  "SERVICE_VAR_TEST",
+						Value: "$(TEST_SERVICE_HOST):$(TEST_SERVICE_PORT)",
+					},
+					{
+						Name:  "TEST_UNDEFINED",
+						Value: "$(UNDEFINED_VAR)",
+					},
+				},
+			},
+			masterServiceNs: "nothing",
+			nilLister:       false,
 			expectedEnvs: []kubecontainer.EnvVar{
-				{Name: "POD_NAME", Value: "dapi-test-pod-name"},
-				{Name: "POD_NAMESPACE", Value: "downward-api"},
+				{
+					Name:  "TEST_LITERAL",
+					Value: "test-test-test",
+				},
+				{
+					Name:  "POD_NAME",
+					Value: "dapi-test-pod-name",
+				},
+				{
+					Name:  "POD_NAME_TEST2",
+					Value: "test2-dapi-test-pod-name",
+				},
+				{
+					Name:  "POD_NAME_TEST3",
+					Value: "test2-dapi-test-pod-name-3",
+				},
+				{
+					Name:  "LITERAL_TEST",
+					Value: "literal-test-test-test",
+				},
+				{
+					Name:  "TEST_SERVICE_HOST",
+					Value: "1.2.3.3",
+				},
+				{
+					Name:  "TEST_SERVICE_PORT",
+					Value: "8083",
+				},
+				{
+					Name:  "TEST_PORT",
+					Value: "tcp://1.2.3.3:8083",
+				},
+				{
+					Name:  "TEST_PORT_8083_TCP",
+					Value: "tcp://1.2.3.3:8083",
+				},
+				{
+					Name:  "TEST_PORT_8083_TCP_PROTO",
+					Value: "tcp",
+				},
+				{
+					Name:  "TEST_PORT_8083_TCP_PORT",
+					Value: "8083",
+				},
+				{
+					Name:  "TEST_PORT_8083_TCP_ADDR",
+					Value: "1.2.3.3",
+				},
+				{
+					Name:  "SERVICE_VAR_TEST",
+					Value: "1.2.3.3:8083",
+				},
+				{
+					Name:  "OUT_OF_ORDER_TEST",
+					Value: "$(OUT_OF_ORDER_TARGET)",
+				},
+				{
+					Name:  "OUT_OF_ORDER_TARGET",
+					Value: "FOO",
+				},
+				{
+					Name:  "TEST_UNDEFINED",
+					Value: "$(UNDEFINED_VAR)",
+				},
+				{
+					Name: "EMPTY_VAR",
+				},
+				{
+					Name:  "EMPTY_TEST",
+					Value: "foo-",
+				},
 			},
 		},
 	}
 
-	for i, tc := range testCases {
+	for _, tc := range testCases {
 		testKubelet := newTestKubelet(t)
 		kl := testKubelet.kubelet
 		kl.masterServiceNamespace = tc.masterServiceNs
@@ -2291,11 +2417,14 @@ func TestMakeEnvironmentVariables(t *testing.T) {
 			t.Errorf("[%v] Unexpected error: %v", tc.name, err)
 		}
 
-		sort.Sort(envs(result))
-		sort.Sort(envs(tc.expectedEnvs))
+		resultSet := util.NewStringSet(result...)
+		if !resultSet.HasAll(tc.expectedEnvs.List()...) {
 
-		if !reflect.DeepEqual(result, tc.expectedEnvs) {
-			t.Errorf("%d: [%v] Unexpected env entries; expected {%v}, got {%v}", i, tc.name, tc.expectedEnvs, result)
+			t.Errorf("[%v] Unexpected env entries; expected {%v}, got {%v}", tc.name, tc.expectedEnvs, resultSet)
+		}
+
+		if a, e := len(resultSet), len(tc.expectedEnvs); e != a {
+			t.Errorf("[%v] Unexpected number of env vars; expected %v, got %v", tc.name, e, a)
 		}
 	}
 }
