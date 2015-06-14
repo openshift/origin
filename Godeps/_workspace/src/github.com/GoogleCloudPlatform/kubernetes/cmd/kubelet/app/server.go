@@ -252,7 +252,7 @@ func (s *KubeletServer) KubeletConfig() (*KubeletConfig, error) {
 	mounter := mount.New()
 	if s.Containerized {
 		glog.V(2).Info("Running kubelet in containerized mode (experimental)")
-		mounter = &mount.NsenterMounter{}
+		mounter = mount.NewNsenterMounter()
 	}
 
 	imageGCPolicy := kubelet.ImageGCPolicy{
