@@ -63,7 +63,7 @@ Once the container is started, you can jump into a console inside the container 
     $ sudo docker exec -it origin bash
 
     # Start the OpenShift integrated registry in a container
-    $ oadm registry --credentials=./openshift.local.config/master/openshift-registry.config
+    $ oadm registry --credentials=./openshift.local.config/master/openshift-registry.kubeconfig
 
     # Use the CLI to login, create a project, and then create your app.
     $ oc --help
