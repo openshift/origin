@@ -40,47 +40,30 @@ import (
 //     performed in the host's mount namespace do not propagate out to the
 //     bind-mount in this docker version.
 // 2.  The host's root filesystem must be available at /rootfs
-// 3.  The nsenter binary must be on the Kubelet process' PATH in the container's
-//     filesystem.
+// 3.  The nsenter binary must be on the PATH in the container's filesystem.
 // 4.  The Kubelet process must have CAP_SYS_ADMIN (required by nsenter); at
 //     the present, this effectively means that the kubelet is running in a
 //     privileged container.
 // 5.  The volume path used by the Kubelet must be the same inside and outside
 //     the container and be writable by the container (to initialize volume)
 //     contents. TODO: remove this requirement.
-// 6.  The host image must have mount, findmnt, and umount binaries in /bin,
-//     /usr/sbin, or /usr/bin
 //
 // For more information about mount propagation modes, see:
 //   https://www.kernel.org/doc/Documentation/filesystems/sharedsubtree.txt
 type NsenterMounter struct {
-	// a map of commands to their paths on the host filesystem
-	paths map[string]string
+	// the path on the parent filesystem that contains mount, umount, and findmnt
+	hostBinPath string
 }
 
 func NewNsenterMounter() *NsenterMounter {
-	m := &NsenterMounter{
-		paths: map[string]string{
-			"mount":   "",
-			"findmnt": "",
-			"umount":  "",
-		},
-	}
 	// search for the mount command in other locations besides /usr/bin
-	for binary := range m.paths {
-		// default to root
-		m.paths[binary] = filepath.Join("/", binary)
-		for _, path := range []string{"/bin", "/usr/sbin", "/usr/bin"} {
-			binPath := filepath.Join(hostRootFsPath, path, binary)
-			if _, err := os.Stat(binPath); err != nil {
-				continue
-			}
-			m.paths[binary] = binPath
-			break
+	for _, path := range []string{"/bin", "/usr/sbin"} {
+		binPath := filepath.Join(hostRootFsPath, path, "mount")
+		if _, err := os.Stat(binPath); err == nil {
+			return &NsenterMounter{hostBinPath: path}
 		}
-		// TODO: error, so that the kubelet can stop if the mounts don't exist
 	}
-	return m
+	return &NsenterMounter{hostBinPath: "/usr/bin"}
 }
 
 // NsenterMounter implements mount.Interface
@@ -190,9 +173,5 @@ func (n *NsenterMounter) IsMountPoint(file string) (bool, error) {
 }
 
 func (n *NsenterMounter) absHostPath(command string) string {
-	path, ok := n.paths[command]
-	if !ok {
-		return command
-	}
-	return path
+	return filepath.Join(n.hostBinPath, command)
 }
