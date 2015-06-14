@@ -144,7 +144,7 @@ function set_curl_args {
 
   CURL_CERT=${CURL_CERT:-}
   CURL_KEY=${CURL_KEY:-}
-  clientcert_args=""
+  clientcert_args="${CURL_EXTRA:-} "
 
   if [ -n "${CURL_CERT}" ]; then
    if [ -n "${CURL_KEY}" ]; then
@@ -158,9 +158,9 @@ function set_curl_args {
          wait_for_file "${CURL_KEY}" $wait $times
          openssl pkcs12 -export -inkey "${CURL_KEY}" -in "${CURL_CERT}" -out "${CURL_CERT_P12}" -password "pass:${CURL_CERT_P12_PASSWORD}"
        fi
-       clientcert_args="--cert ${CURL_CERT_P12}:${CURL_CERT_P12_PASSWORD}"
+       clientcert_args="--cert ${CURL_CERT_P12}:${CURL_CERT_P12_PASSWORD} ${CURL_EXTRA:-}"
      else
-       clientcert_args="--cert ${CURL_CERT} --key ${CURL_KEY}"
+       clientcert_args="--cert ${CURL_CERT} --key ${CURL_KEY} ${CURL_EXTRA:-}"
      fi
    fi
   fi
