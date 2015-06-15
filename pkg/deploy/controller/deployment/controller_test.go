@@ -52,6 +52,7 @@ func TestHandle_createPodOk(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
+	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 	err := controller.Handle(deployment)
 
 	if err != nil {
@@ -84,6 +85,10 @@ func TestHandle_createPodOk(t *testing.T) {
 
 	if e, a := updatedDeployment.Name, deployutil.DeploymentNameFor(createdPod); e != a {
 		t.Fatalf("expected pod deployment annotation %s, got %s", e, a)
+	}
+
+	if e, a := deployment.Spec.Template.Spec.NodeSelector, createdPod.Spec.NodeSelector; !reflect.DeepEqual(e, a) {
+		t.Fatalf("expected pod NodeSelector %v, got %v", e, a)
 	}
 
 	if createdPod.Spec.ActiveDeadlineSeconds == nil {
