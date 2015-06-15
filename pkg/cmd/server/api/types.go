@@ -144,6 +144,9 @@ type MasterConfig struct {
 	// ProjectConfig holds information about project creation and defaults
 	ProjectConfig ProjectConfig
 
+	// RoutingConfig holds information about routing and route generation
+	RoutingConfig RoutingConfig
+
 	// NetworkConfig to be passed to the compiled in network plugin
 	NetworkConfig NetworkConfig
 }
@@ -162,6 +165,11 @@ type ProjectConfig struct {
 
 	// SecurityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.
 	SecurityAllocator *SecurityAllocator
+}
+
+type RoutingConfig struct {
+	// Subdomain is the suffix appended to $service.$namespace. to form the default route hostname
+	Subdomain string
 }
 
 type SecurityAllocator struct {

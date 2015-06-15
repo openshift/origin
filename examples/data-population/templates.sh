@@ -9,13 +9,14 @@ source $(dirname "${BASH_SOURCE}")/common.sh
 
 echo "Populating templates"
 
-OPENSHIFTCONFIG=${OPENSHIFT_ADMIN_CONFIG}
+export KUBECONFIG=${OPENSHIFT_ADMIN_CONFIG}
 
 ORIGIN_ROOT=$(dirname "${BASH_SOURCE}")/../..
 EXAMPLES_ROOT=${ORIGIN_ROOT}/examples
 
 TEMPLATES="$EXAMPLES_ROOT/db-templates
-$EXAMPLES_ROOT/sample-app/application-template-*"
+$EXAMPLES_ROOT/sample-app/application-template-*
+$EXAMPLES_ROOT/image-streams/image-streams-centos*"
 
 for f in $TEMPLATES
 do

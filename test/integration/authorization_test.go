@@ -134,8 +134,8 @@ func TestAuthorizationOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 }
 
 // TODO this list should start collapsing as we continue to tighten access on generated system ids
-var globalClusterAdminUsers = util.NewStringSet("system:openshift-client")
-var globalClusterAdminGroups = util.NewStringSet("system:cluster-admins")
+var globalClusterAdminUsers = util.NewStringSet()
+var globalClusterAdminGroups = util.NewStringSet("system:cluster-admins", "system:masters")
 
 type resourceAccessReviewTest struct {
 	clientInterface client.ResourceAccessReviewInterface

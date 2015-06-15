@@ -47,7 +47,7 @@ func NewOpenShiftClientConfigLoadingRules() *clientcmd.ClientConfigLoadingRules 
 
 func NewPathOptions(cmd *cobra.Command) *kubecmdconfig.PathOptions {
 	return &kubecmdconfig.PathOptions{
-		GlobalFile: path.Join(os.Getenv("HOME"), OpenShiftConfigHomeDirFileName),
+		GlobalFile: RecommendedHomeFile,
 
 		EnvVar:           OpenShiftConfigPathEnvVar,
 		ExplicitFileFlag: OpenShiftConfigFlagName,

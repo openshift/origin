@@ -56,9 +56,9 @@ In order to run the router in a deployed environment the following conditions mu
 * The machine may or may not be registered with the master.  Optimally it will not serve pods while also serving as the router
 * The machine must not have services running on it that bind to host port 80 since this is what the router uses for traffic
 
-To install the router pod you use the `oadm router` command line, passing the flags `--create` and `--credentials=<kubeconfig_file>`.
+To install the router pod you use the `oadm router` command line, passing the flag `--credentials=<kubeconfig_file>`.
 The credentials flag controls the identity that the router will use to talk to the master (and the address of the master) so in most
-environments you can use the `${CONFIG_DIR}/master/openshift-client.kubeconfig` file. Once you run this command you can check the configuration
+environments you can use the `${CONFIG_DIR}/master/openshift-router.kubeconfig` file. Once you run this command you can check the configuration
 of the router by running `oc get dc router` to check the deployment status.
 
 `oadm router` offers other options for deploying routers - run `oadm router --help` for more details.

@@ -52,7 +52,7 @@ The easiest way to run OpenShift Origin is in a Docker container (OpenShift requ
     $ sudo docker run -d --name "origin" \
         --privileged --net=host \
         -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker:/var/lib/docker:rw \
-        -v /var/lib/openshift:/var/lib/openshift \
+        -v /var/lib/openshift/openshift.local.volumes:/var/lib/openshift/openshift.local.volumes \
         openshift/origin start
 
 *Security!* Why do we need to mount your host, run privileged, and get access to your Docker directory? OpenShift runs as a host agent (like Docker)
@@ -63,7 +63,7 @@ Once the container is started, you can jump into a console inside the container 
     $ sudo docker exec -it origin bash
 
     # Start the OpenShift integrated registry in a container
-    $ oadm registry --credentials=./openshift.local.config/master/openshift-registry.config
+    $ oadm registry --credentials=./openshift.local.config/master/openshift-registry.kubeconfig
 
     # Use the CLI to login, create a project, and then create your app.
     $ oc --help
@@ -81,6 +81,8 @@ Any username and password are accepted by default (with no credential system con
 ![Web console overview](docs/screenshots/console_overview.png?raw=true)
 
 You can also use the Docker container to run our CLI (`sudo docker exec -it origin cli --help`) or download the `oc` command-line client from the [releases](https://github.com/openshift/origin/releases) page for Mac, Windows, or Linux and login from your host with `oc login`.
+
+You can reset your server by stopping the `origin` container and then removing it via Docker. The contents of `/var/lib/openshift` can then be removed. See the [public docs](http://docs.openshift.org/latest/welcome/index.html) for more about running a permanent installation of OpenShift.
 
 
 ### Next Steps

@@ -168,7 +168,7 @@ This command sets the default namespace used for all `oc` commands.
 $ oc namespace myuser
 ```
 
-oc log
+oc logs
 ------------
 
 This command dumps the logs from a given Pod container. You can list the
@@ -181,13 +181,13 @@ $ oc get -o yaml pod POD_ID
 #### Examples
 
 ```
-$ oc log frontend-pod mysql-container
+$ oc logs frontend-pod mysql-container
 ```
 
 oc expose
 ------------
 
-This command looks up a service and exposes it as a route. There is also
+Expose containers internally as services or externally via routes. There is also
 the ability to expose a deployment config, replication controller, service, 
 or pod as a new service on a specified port. If no labels are specified, 
 the new object will re-use the labels from the object it exposes.
@@ -199,7 +199,7 @@ the new object will re-use the labels from the object it exposes.
 # Expose a service as a route
 $ oc expose service frontend
 # Expose a deployment config as a service and use the specified port and name
-$ oc expose dc ruby-hello-world --port=8080 --name=myservice --generator=services/v1
+$ oc expose dc ruby-hello-world --port=8080 --name=myservice --generator=service/v1
 ```
 
 oc process
@@ -248,7 +248,7 @@ $ oc scale dc ruby-hello-world --current-replicas=3 --replicas=5
 oc build-logs
 ------------------
 
-> **NOTE**: This command will be later replaced by upstream (see: [kubectl log](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/kubectl-log.md#kubectl-log)).
+> **NOTE**: This command will be later replaced by upstream (see: [kubectl log](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/kubectl_logs.md#kubectl-logs)).
 
 This command will retrieve the logs from a Build container. It allows you to
 debug broken Build. If the build is still running, this command can stream the

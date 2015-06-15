@@ -8,7 +8,7 @@ source $(dirname "${BASH_SOURCE}")/common.sh
 
 echo "Populating projects"
 
-OPENSHIFTCONFIG=${OPENSHIFT_ADMIN_CONFIG}
+export KUBECONFIG=${OPENSHIFT_ADMIN_CONFIG}
 
 for ((i=1; i <=$NUM_PROJECTS; i++))
 do

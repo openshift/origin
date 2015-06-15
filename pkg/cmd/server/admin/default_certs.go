@@ -111,11 +111,12 @@ func DefaultRegistryClientCertInfo(certDir string) ClientCertInfo {
 func DefaultOpenshiftLoopbackClientCertInfo(certDir string) ClientCertInfo {
 	return ClientCertInfo{
 		CertLocation: configapi.CertInfo{
-			CertFile: DefaultCertFilename(certDir, "openshift-client"),
-			KeyFile:  DefaultKeyFilename(certDir, "openshift-client"),
+			CertFile: DefaultCertFilename(certDir, bootstrappolicy.MasterUnqualifiedUsername),
+			KeyFile:  DefaultKeyFilename(certDir, bootstrappolicy.MasterUnqualifiedUsername),
 		},
-		UnqualifiedUser: "openshift-client",
-		User:            "system:openshift-client",
+		UnqualifiedUser: bootstrappolicy.MasterUnqualifiedUsername,
+		User:            bootstrappolicy.MasterUsername,
+		Groups:          util.NewStringSet(bootstrappolicy.MastersGroup),
 	}
 }
 
@@ -127,7 +128,7 @@ func DefaultClusterAdminClientCertInfo(certDir string) ClientCertInfo {
 		},
 		UnqualifiedUser: "admin",
 		User:            "system:admin",
-		Groups:          util.NewStringSet("system:cluster-admins"),
+		Groups:          util.NewStringSet(bootstrappolicy.ClusterAdminGroup),
 	}
 }
 
