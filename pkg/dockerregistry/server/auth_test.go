@@ -91,26 +91,30 @@ func TestAccessController(t *testing.T) {
 		basicToken         string
 		openshiftResponses []response
 		expectedError      error
+		expectedChallenge  bool
 		expectedActions    []string
 	}{
 		"no token": {
-			access:        []auth.Access{},
-			basicToken:    "",
-			expectedError: ErrTokenRequired,
+			access:            []auth.Access{},
+			basicToken:        "",
+			expectedError:     ErrTokenRequired,
+			expectedChallenge: true,
 		},
 		"invalid registry token": {
 			access: []auth.Access{{
 				Resource: auth.Resource{Type: "repository"},
 			}},
-			basicToken:    "ab-cd-ef-gh",
-			expectedError: ErrTokenInvalid,
+			basicToken:        "ab-cd-ef-gh",
+			expectedError:     ErrTokenInvalid,
+			expectedChallenge: true,
 		},
 		"invalid openshift bearer token": {
 			access: []auth.Access{{
 				Resource: auth.Resource{Type: "repository"},
 			}},
-			basicToken:    "abcdefgh",
-			expectedError: ErrOpenShiftTokenRequired,
+			basicToken:        "abcdefgh",
+			expectedError:     ErrOpenShiftTokenRequired,
+			expectedChallenge: true,
 		},
 		"valid openshift token but invalid namespace": {
 			access: []auth.Access{{
@@ -120,13 +124,15 @@ func TestAccessController(t *testing.T) {
 				},
 				Action: "pull",
 			}},
-			basicToken:    "b3BlbnNoaWZ0OmF3ZXNvbWU=",
-			expectedError: ErrNamespaceRequired,
+			basicToken:        "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			expectedError:     ErrNamespaceRequired,
+			expectedChallenge: false,
 		},
 		"registry token but does not involve any repository operation": {
-			access:        []auth.Access{{}},
-			basicToken:    "b3BlbnNoaWZ0OmF3ZXNvbWU=",
-			expectedError: errors.New("Unknown resource type: "),
+			access:            []auth.Access{{}},
+			basicToken:        "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			expectedError:     ErrUnsupportedResource,
+			expectedChallenge: false,
 		},
 		"registry token but does not involve any known action": {
 			access: []auth.Access{{
@@ -136,13 +142,15 @@ func TestAccessController(t *testing.T) {
 				},
 				Action: "blah",
 			}},
-			basicToken:    "b3BlbnNoaWZ0OmF3ZXNvbWU=",
-			expectedError: errors.New("Unknown action: blah"),
+			basicToken:        "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			expectedError:     ErrUnsupportedAction,
+			expectedChallenge: false,
 		},
 		"docker login with invalid openshift creds": {
 			basicToken:         "b3BlbnNoaWZ0OmF3ZXNvbWU=",
-			openshiftResponses: []response{{404, ""}},
+			openshiftResponses: []response{{403, ""}},
 			expectedError:      ErrOpenShiftAccessDenied,
+			expectedChallenge:  true,
 			expectedActions:    []string{"GET /oapi/v1/users/~"},
 		},
 		"docker login with valid openshift creds": {
@@ -150,8 +158,25 @@ func TestAccessController(t *testing.T) {
 			openshiftResponses: []response{
 				{200, runtime.EncodeOrDie(latest.Codec, &userapi.User{ObjectMeta: kapi.ObjectMeta{Name: "usr1"}})},
 			},
-			expectedError:   nil,
-			expectedActions: []string{"GET /oapi/v1/users/~"},
+			expectedError:     nil,
+			expectedChallenge: false,
+			expectedActions:   []string{"GET /oapi/v1/users/~"},
+		},
+		"error running subject access review": {
+			access: []auth.Access{{
+				Resource: auth.Resource{
+					Type: "repository",
+					Name: "foo/bar",
+				},
+				Action: "pull",
+			}},
+			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			openshiftResponses: []response{
+				{500, "Uh oh"},
+			},
+			expectedError:     errors.New("an error on the server has prevented the request from succeeding (post subjectAccessReviews)"),
+			expectedChallenge: false,
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
 		},
 		"valid openshift token but token not scoped for the given repo operation": {
 			access: []auth.Access{{
@@ -161,9 +186,13 @@ func TestAccessController(t *testing.T) {
 				},
 				Action: "pull",
 			}},
-			basicToken:      "b3BlbnNoaWZ0OmF3ZXNvbWU=",
-			expectedError:   ErrOpenShiftAccessDenied,
-			expectedActions: []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
+			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			openshiftResponses: []response{
+				{200, runtime.EncodeOrDie(latest.Codec, &api.SubjectAccessReviewResponse{Namespace: "foo", Allowed: false, Reason: "unauthorized!"})},
+			},
+			expectedError:     ErrOpenShiftAccessDenied,
+			expectedChallenge: true,
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
 		},
 		"partially valid openshift token": {
 			// Check all the different resource-type/verb combinations we allow to make sure they validate and continue to validate remaining Resource requests
@@ -180,7 +209,8 @@ func TestAccessController(t *testing.T) {
 				{200, runtime.EncodeOrDie(latest.Codec, &api.SubjectAccessReviewResponse{Namespace: "", Allowed: true, Reason: "authorized!"})},
 				{200, runtime.EncodeOrDie(latest.Codec, &api.SubjectAccessReviewResponse{Namespace: "baz", Allowed: false, Reason: "no!"})},
 			},
-			expectedError: ErrOpenShiftAccessDenied,
+			expectedError:     ErrOpenShiftAccessDenied,
+			expectedChallenge: true,
 			expectedActions: []string{
 				"POST /oapi/v1/namespaces/foo/subjectaccessreviews",
 				"POST /oapi/v1/namespaces/bar/subjectaccessreviews",
@@ -200,8 +230,9 @@ func TestAccessController(t *testing.T) {
 			openshiftResponses: []response{
 				{200, runtime.EncodeOrDie(latest.Codec, &api.SubjectAccessReviewResponse{Namespace: "foo", Allowed: true, Reason: "authorized!"})},
 			},
-			expectedError:   nil,
-			expectedActions: []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
+			expectedError:     nil,
+			expectedChallenge: false,
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
 		},
 	}
 
@@ -239,13 +270,14 @@ func TestAccessController(t *testing.T) {
 				continue
 			}
 		} else {
-			challenge, ok := err.(auth.Challenge)
-			if !ok {
-				t.Errorf("%s: accessController did not return a challenge", k)
+			_, isChallenge := err.(auth.Challenge)
+			if test.expectedChallenge != isChallenge {
+				t.Errorf("%s: expected challenge=%v, accessController returned challenge=%v", k, test.expectedChallenge, isChallenge)
 				continue
 			}
-			if challenge.Error() != test.expectedError.Error() {
-				t.Errorf("%s: accessController did not get expected error - got %s - expected %s", k, challenge, test.expectedError)
+
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("%s: accessController did not get expected error - got %s - expected %s", k, err, test.expectedError)
 				continue
 			}
 			if authCtx != nil {
