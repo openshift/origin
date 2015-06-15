@@ -134,7 +134,6 @@ const (
 	OpenShiftAPIV1            = "v1"
 	OpenShiftAPIPrefixV1Beta3 = LegacyOpenShiftAPIPrefix + "/" + OpenShiftAPIV1Beta3
 	OpenShiftAPIPrefixV1      = OpenShiftAPIPrefix + "/" + OpenShiftAPIV1
-	OpenShiftRouteSubdomain   = "router.default.local"
 	swaggerAPIPrefix          = "/swaggerapi/"
 )
 
@@ -1108,9 +1107,7 @@ func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocati
 		KubeClient: kclient,
 	}
 
-	subdomain := env("OPENSHIFT_ROUTE_SUBDOMAIN", OpenShiftRouteSubdomain)
-
-	plugin, err := routeplugin.NewSimpleAllocationPlugin(subdomain)
+	plugin, err := routeplugin.NewSimpleAllocationPlugin(c.Options.RoutingConfig.Subdomain)
 	if err != nil {
 		glog.Fatalf("Route plugin initialization failed: %v", err)
 	}

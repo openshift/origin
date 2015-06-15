@@ -22,6 +22,9 @@ func init() {
 			if len(obj.PolicyConfig.OpenShiftInfrastructureNamespace) == 0 {
 				obj.PolicyConfig.OpenShiftInfrastructureNamespace = bootstrappolicy.DefaultOpenShiftInfraNamespace
 			}
+			if len(obj.RoutingConfig.Subdomain) == 0 {
+				obj.RoutingConfig.Subdomain = "router.default.local"
+			}
 		},
 		func(obj *KubernetesMasterConfig) {
 			if obj.MasterCount == 0 {
