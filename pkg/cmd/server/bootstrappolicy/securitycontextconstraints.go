@@ -28,7 +28,7 @@ func GetBootstrapSecurityContextConstraints(buildControllerUsername string) []ka
 				Type: kapi.RunAsUserStrategyRunAsAny,
 			},
 			Users:  []string{buildControllerUsername},
-			Groups: []string{ClusterAdminGroup},
+			Groups: []string{ClusterAdminGroup, NodesGroup},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{

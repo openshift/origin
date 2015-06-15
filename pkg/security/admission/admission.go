@@ -246,7 +246,7 @@ func (c *constraint) createProvidersFromConstraints(ns string, sccs []*kapi.Secu
 
 // getNamespace retrieves a namespace only if ns is nil.
 func (c *constraint) getNamespace(name string, ns *kapi.Namespace) (*kapi.Namespace, error) {
-	if ns != nil {
+	if ns != nil && name == ns.Name {
 		return ns, nil
 	}
 	return c.client.Namespaces().Get(name)

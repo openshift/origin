@@ -22,12 +22,12 @@ func (s ByRestrictions) pointValue(constraint *kapi.SecurityContextConstraints) 
 
 	// make sure these are always valued higher than the combination of the highest strategies
 	if constraint.AllowPrivilegedContainer {
-		points += 10
+		points += 20
 	}
 	// 9 gives us a value slightly higher than an SCC that allows run as any in both strategies since
 	// we're allowing access to the host system
 	if constraint.AllowHostDirVolumePlugin {
-		points += 9
+		points += 10
 	}
 
 	// strategies in order of least restrictive to most restrictive
