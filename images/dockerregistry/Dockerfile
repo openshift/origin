@@ -2,9 +2,9 @@
 # This is the integrated OpenShift Origin Docker registry. It is configured to
 # publish metadata to OpenShift to provide automatic management of images on push.
 #
-# The standard name for this image is openshift3_beta/ose-docker-registry
+# The standard name for this image is openshift3/ose-docker-registry
 #
-FROM openshift3_beta/ose-base
+FROM openshift3/ose-base
 
 ADD config.yml /config.yml
 RUN yum install -y openshift-dockerregistry && \

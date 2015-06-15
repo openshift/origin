@@ -2,7 +2,7 @@
 # This is the base image from which all OpenShift Origin images inherit. Only packages
 # common to all downstream images should be here.
 #
-# The standard name for this image is openshift3_beta/ose-base
+# The standard name for this image is openshift3/ose-base
 #
 FROM registry.access.redhat.com/rhel
 

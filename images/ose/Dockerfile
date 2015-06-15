@@ -2,9 +2,9 @@
 # This is the official OpenShift Origin image. It has as its entrypoint the OpenShift
 # all-in-one binary.
 #
-# The standard name for this image is openshift3_beta/ose
+# The standard name for this image is openshift3/ose
 #
-FROM openshift3_beta/ose-base
+FROM openshift3/ose-base
 
 RUN yum install -y openshift && \
     yum clean all
