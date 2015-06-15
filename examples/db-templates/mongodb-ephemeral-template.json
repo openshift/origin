@@ -15,7 +15,7 @@
       "kind": "Service",
       "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mongodb",
+        "name": "${DATABASE_SERVICE_NAME}",
         "creationTimestamp": null
       },
       "spec": {
@@ -29,7 +29,7 @@
           }
         ],
         "selector": {
-          "name": "mongodb"
+          "name": "${DATABASE_SERVICE_NAME}"
         },
         "portalIP": "",
         "type": "ClusterIP",
@@ -43,7 +43,7 @@
       "kind": "DeploymentConfig",
       "apiVersion": "v1beta3",
       "metadata": {
-        "name": "mongodb",
+        "name": "${DATABASE_SERVICE_NAME}",
         "creationTimestamp": null
       },
       "spec": {
@@ -73,13 +73,13 @@
         ],
         "replicas": 1,
         "selector": {
-          "name": "mongodb"
+          "name": "${DATABASE_SERVICE_NAME}"
         },
         "template": {
           "metadata": {
             "creationTimestamp": null,
             "labels": {
-              "name": "mongodb"
+              "name": "${DATABASE_SERVICE_NAME}"
             }
           },
           "spec": {
@@ -114,7 +114,7 @@
                 "resources": {},
                 "volumeMounts": [
                   {
-                    "name": "mongodb-data",
+                    "name": "${DATABASE_SERVICE_NAME}-data",
                     "mountPath": "/var/lib/mongodb/data"
                   }
                 ],
@@ -129,7 +129,7 @@
             ],
             "volumes": [
               {
-                "name": "mongodb-data",
+                "name": "${DATABASE_SERVICE_NAME}-data",
                 "emptyDir": {
                   "medium": ""
                 }
@@ -144,6 +144,11 @@
     }
   ],
   "parameters": [
+    {
+      "name": "DATABASE_SERVICE_NAME",
+      "description": "Database service name",
+      "value": "mongodb"
+    },
     {
       "name": "MONGODB_USER",
       "description": "Username for MongoDB user that will be used for accessing the database",
