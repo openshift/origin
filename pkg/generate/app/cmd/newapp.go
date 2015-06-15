@@ -219,7 +219,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories,
 	}
 
 	if len(c.Strategy) != 0 && len(repos) == 0 {
-		errs = append(errs, fmt.Errorf("when --build is specified you must provide at least one source code location"))
+		errs = append(errs, fmt.Errorf("when --strategy is specified you must provide at least one source code location"))
 	}
 
 	env, duplicateEnv, envErrs := cmdutil.ParseEnvironmentArguments(c.Environment)
@@ -298,16 +298,16 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 		switch input := ref.Input(); {
 		case !input.ExpectToBuild && input.Match.Builder:
 			if c.Strategy != "docker" {
-				glog.Infof("Image %q is a builder, so a repository will be expected unless you also specify --build=docker", input)
+				glog.Infof("Image %q is a builder, so a repository will be expected unless you also specify --strategy=docker", input)
 				input.ExpectToBuild = true
 			}
 		case input.ExpectToBuild && input.Match.IsTemplate():
 			// TODO: harder - break the template pieces and check if source code can be attached (look for a build config, build image, etc)
 			errs = append(errs, fmt.Errorf("template with source code explicitly attached is not supported - you must either specify the template and source code separately or attach an image to the source code using the '[image]~[code]' form"))
 			continue
-		case input.ExpectToBuild && !input.Match.Builder:
+		case input.ExpectToBuild && !input.Match.Builder && !input.Uses.IsDockerBuild():
 			if len(c.Strategy) == 0 {
-				errs = append(errs, fmt.Errorf("none of the images that match %q can build source code - check whether this is the image you want to use, then use --build=source to build using source or --build=docker to treat this as a Docker base image and set up a layered Docker build", ref))
+				errs = append(errs, fmt.Errorf("none of the images that match %q can build source code - check whether this is the image you want to use, then use --strategy=source to build using source or --strategy=docker to treat this as a Docker base image and set up a layered Docker build", ref))
 				continue
 			}
 		}
