@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
+	"github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
@@ -38,10 +39,10 @@ func TestController(t *testing.T) {
 	}
 
 	got := action.Value.(*kapi.Namespace)
-	if got.Annotations[uidRangeAnnotation] != "10/2" {
+	if got.Annotations[security.UIDRangeAnnotation] != "10/2" {
 		t.Errorf("unexpected annotation: %#v", got)
 	}
-	if got.Annotations[mcsAnnotation] != "s0:c1,c0" {
+	if got.Annotations[security.MCSAnnotation] != "s0:c1,c0" {
 		t.Errorf("unexpected annotation: %#v", got)
 	}
 	if !uida.Has(uid.Block{Start: 10, End: 11}) {

@@ -8,14 +8,10 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	"github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
-)
-
-const (
-	uidRangeAnnotation = "openshift.io/sa.scc.uid-range"
-	mcsAnnotation      = "openshift.io/sa.scc.mcs"
 )
 
 type MCSAllocationFunc func(uid.Block) *mcs.Label
@@ -54,7 +50,7 @@ func (c *Allocation) Next(ns *kapi.Namespace) error {
 	tx := &tx{}
 	defer tx.Rollback()
 
-	if _, ok := ns.Annotations[uidRangeAnnotation]; ok {
+	if _, ok := ns.Annotations[security.UIDRangeAnnotation]; ok {
 		return nil
 	}
 
@@ -68,10 +64,10 @@ func (c *Allocation) Next(ns *kapi.Namespace) error {
 		return err
 	}
 	tx.Add(func() error { return c.uid.Release(block) })
-	ns.Annotations[uidRangeAnnotation] = block.String()
-	if _, ok := ns.Annotations[mcsAnnotation]; !ok {
+	ns.Annotations[security.UIDRangeAnnotation] = block.String()
+	if _, ok := ns.Annotations[security.MCSAnnotation]; !ok {
 		if label := c.mcs(block); label != nil {
-			ns.Annotations[mcsAnnotation] = label.String()
+			ns.Annotations[security.MCSAnnotation] = label.String()
 		}
 	}
 
@@ -105,8 +101,8 @@ func (c *Allocation) Next(ns *kapi.Namespace) error {
 		if newNs.Annotations == nil {
 			newNs.Annotations = make(map[string]string)
 		}
-		newNs.Annotations[uidRangeAnnotation] = ns.Annotations[uidRangeAnnotation]
-		newNs.Annotations[mcsAnnotation] = ns.Annotations[mcsAnnotation]
+		newNs.Annotations[security.UIDRangeAnnotation] = ns.Annotations[security.UIDRangeAnnotation]
+		newNs.Annotations[security.MCSAnnotation] = ns.Annotations[security.MCSAnnotation]
 		ns = newNs
 	}
 
@@ -114,10 +110,10 @@ func (c *Allocation) Next(ns *kapi.Namespace) error {
 }
 
 func changedAndSetAnnotations(old, ns *kapi.Namespace) bool {
-	if value, ok := ns.Annotations[uidRangeAnnotation]; ok && value != old.Annotations[uidRangeAnnotation] {
+	if value, ok := ns.Annotations[security.UIDRangeAnnotation]; ok && value != old.Annotations[security.UIDRangeAnnotation] {
 		return true
 	}
-	if value, ok := ns.Annotations[mcsAnnotation]; ok && value != old.Annotations[mcsAnnotation] {
+	if value, ok := ns.Annotations[security.MCSAnnotation]; ok && value != old.Annotations[security.MCSAnnotation] {
 		return true
 	}
 	return false

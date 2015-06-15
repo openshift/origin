@@ -43,11 +43,13 @@ func (s *nonRoot) Generate(pod *api.Pod, container *api.Container) (*int64, erro
 func (s *nonRoot) Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	if container.SecurityContext == nil {
-		allErrs = append(allErrs, fmt.Errorf("Unable to validate nil security context for container %s", container.Name))
+		detail := fmt.Sprintf("unable to validate nil security context for container %s", container.Name)
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext", container.SecurityContext, detail))
 		return allErrs
 	}
 	if container.SecurityContext.RunAsUser != nil && *container.SecurityContext.RunAsUser == 0 {
-		allErrs = append(allErrs, fmt.Errorf("Running with the root UID is forbidden by the security context constraints %s", container.Name))
+		detail := fmt.Sprintf("running with the root UID is forbidden by the security context constraints %s", container.Name)
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext.runAsUser", *container.SecurityContext.RunAsUser, detail))
 		return allErrs
 	}
 	return allErrs
