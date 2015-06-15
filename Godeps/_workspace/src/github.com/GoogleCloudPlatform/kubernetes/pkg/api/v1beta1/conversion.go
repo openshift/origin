@@ -1267,6 +1267,9 @@ func addConversionFuncs() {
 			if err := s.Convert(&in.RBD, &out.RBD, 0); err != nil {
 				return err
 			}
+			if err := s.Convert(&in.CephFS, &out.CephFS, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 		func(in *VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
@@ -1303,7 +1306,9 @@ func addConversionFuncs() {
 			if err := s.Convert(&in.RBD, &out.RBD, 0); err != nil {
 				return err
 			}
-
+			if err := s.Convert(&in.CephFS, &out.CephFS, 0); err != nil {
+				return err
+			}
 			return nil
 		},
 
