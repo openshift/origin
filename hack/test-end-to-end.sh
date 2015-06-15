@@ -297,6 +297,9 @@ wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1beta
 # services can end up on any IP.	Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
+registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
+[ -n "${registry}" && "${registry}:5000" == "${DOCKER_REGISTRY}" ]
+
 echo "[INFO] Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
 wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry says: " $((2*TIME_MIN))
 
