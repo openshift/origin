@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -234,8 +235,39 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 	}
 	if config.Version == "" {
 		// Clients default to the preferred code API version
-		// TODO: implement version negotiation (highest version supported by server)
-		config.Version = latest.Version
+		// attempt auto-negotiation first
+
+		tempClient, err := kclient.New(config)
+		if err == nil {
+			bytes, err := tempClient.Get().AbsPath("osapi").DoRaw()
+
+			if err == nil {
+
+				availableVersions := map[string][]string{}
+				if err := json.Unmarshal(bytes, &availableVersions); err == nil {
+
+					if possibleVersions, exists := availableVersions["versions"]; exists {
+
+					foundVersion:
+						for i := len(latest.Versions) - 1; i >= 0; i-- {
+							knownVersion := latest.Versions[i]
+							for _, possibleVersion := range possibleVersions {
+								if knownVersion == possibleVersion {
+									config.Version = possibleVersion
+									break foundVersion
+								}
+							}
+						}
+
+					}
+				}
+			}
+		}
+
+		if len(config.Version) == 0 {
+			// we had an error, just take a guess at the version
+			config.Version = latest.Version
+		}
 	}
 	if config.Prefix == "" {
 		switch config.Version {
