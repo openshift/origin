@@ -1,6 +1,7 @@
 package admission
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	kscc "github.com/GoogleCloudPlatform/kubernetes/pkg/securitycontextconstraints"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	allocator "github.com/openshift/origin/pkg/security"
 )
@@ -342,79 +344,91 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		scc         *kapi.SecurityContextConstraints
+		// use a generating function so we can test for non-mutation
+		scc         func() *kapi.SecurityContextConstraints
 		namespace   *kapi.Namespace
 		expectedErr string
 	}{
 		"valid non-preallocateed scc": {
-			scc: &kapi.SecurityContextConstraints{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "valid non-preallocated scc",
-				},
-				SELinuxContext: kapi.SELinuxContextStrategyOptions{
-					Type: kapi.SELinuxStrategyRunAsAny,
-				},
-				RunAsUser: kapi.RunAsUserStrategyOptions{
-					Type: kapi.RunAsUserStrategyRunAsAny,
-				},
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "valid non-preallocated scc",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyRunAsAny,
+					},
+				}
 			},
 			namespace: namespaceValid,
 		},
 		"valid pre-allocated scc": {
-			scc: &kapi.SecurityContextConstraints{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "valid pre-allocated scc",
-				},
-				SELinuxContext: kapi.SELinuxContextStrategyOptions{
-					Type: kapi.SELinuxStrategyMustRunAs,
-				},
-				RunAsUser: kapi.RunAsUserStrategyOptions{
-					Type: kapi.RunAsUserStrategyMustRunAsRange,
-				},
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "valid pre-allocated scc",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type:           kapi.SELinuxStrategyMustRunAs,
+						SELinuxOptions: &kapi.SELinuxOptions{User: "myuser"},
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+				}
 			},
 			namespace: namespaceValid,
 		},
 		"pre-allocated no uid annotation": {
-			scc: &kapi.SecurityContextConstraints{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "pre-allocated no uid annotation",
-				},
-				SELinuxContext: kapi.SELinuxContextStrategyOptions{
-					Type: kapi.SELinuxStrategyMustRunAs,
-				},
-				RunAsUser: kapi.RunAsUserStrategyOptions{
-					Type: kapi.RunAsUserStrategyMustRunAsRange,
-				},
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "pre-allocated no uid annotation",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyMustRunAs,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+				}
 			},
 			namespace:   namespaceNoUID,
 			expectedErr: "unable to find pre-allocated uid annotation",
 		},
 		"pre-allocated no mcs annotation": {
-			scc: &kapi.SecurityContextConstraints{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "pre-allocated no mcs annotation",
-				},
-				SELinuxContext: kapi.SELinuxContextStrategyOptions{
-					Type: kapi.SELinuxStrategyMustRunAs,
-				},
-				RunAsUser: kapi.RunAsUserStrategyOptions{
-					Type: kapi.RunAsUserStrategyMustRunAsRange,
-				},
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "pre-allocated no mcs annotation",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyMustRunAs,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+				}
 			},
 			namespace:   namespaceNoMCS,
 			expectedErr: "unable to find pre-allocated mcs annotation",
 		},
 		"bad scc strategy options": {
-			scc: &kapi.SecurityContextConstraints{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: "bad scc user options",
-				},
-				SELinuxContext: kapi.SELinuxContextStrategyOptions{
-					Type: kapi.SELinuxStrategyRunAsAny,
-				},
-				RunAsUser: kapi.RunAsUserStrategyOptions{
-					Type: kapi.RunAsUserStrategyMustRunAs,
-				},
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "bad scc user options",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyMustRunAs,
+					},
+				}
 			},
 			namespace:   namespaceValid,
 			expectedErr: "MustRunAs requires a UID",
@@ -432,10 +446,16 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			store:   store,
 		}
 
+		scc := v.scc()
+
 		// create the providers, this method only needs the namespace
 		attributes := kadmission.NewAttributesRecord(nil, "", v.namespace.Name, "", kadmission.Create, nil)
-		_, errs := admit.createProvidersFromConstraints(attributes.GetNamespace(), []*kapi.SecurityContextConstraints{v.scc})
+		_, errs := admit.createProvidersFromConstraints(attributes.GetNamespace(), []*kapi.SecurityContextConstraints{scc})
 
+		if !reflect.DeepEqual(scc, v.scc()) {
+			diff := util.ObjectDiff(scc, v.scc())
+			t.Errorf("%s createProvidersFromConstraints mutated constraints. diff:\n%s", k, diff)
+		}
 		if len(v.expectedErr) > 0 && len(errs) != 1 {
 			t.Errorf("%s expected a single error '%s' but received %v", k, errs)
 			continue
