@@ -1,9 +1,9 @@
 #
 # VIP failover monitoring container for OpenShift Origin.
 #
-# ImageName: openshift3_beta/ose-keepalived-ipfailover
+# ImageName: openshift3/ose-keepalived-ipfailover
 #
-FROM openshift3_beta/ose-base
+FROM openshift3/ose-base
 
 RUN yum -y install kmod keepalived iproute psmisc nc net-tools && \
     yum clean all

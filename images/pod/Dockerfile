@@ -4,7 +4,7 @@
 # the network and IPC namespaces as containers come and go during the lifetime of the
 # pod.
 #
-# The standard name for this image is openshift3_beta/ose-pod
+# The standard name for this image is openshift3/ose-pod
 #
 # Pulp can't handle the scratch later currently
 #FROM scratch
