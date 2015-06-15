@@ -76,7 +76,8 @@ if [[ "${tag}" != ":latest" ]]; then
     done
     set +e
   else
-    echo "Pushing local :${source_tag} images to ${OS_PUSH_BASE_REGISTRY-}*${tag} - CTRL+C to cancel"
+    echo "WARNING: Pushing local :${source_tag} images to ${OS_PUSH_BASE_REGISTRY-}*${tag}"
+    echo "  CTRL+C to cancel, or any other key to continue"
     read
   fi
 fi
