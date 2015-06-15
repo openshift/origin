@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	"github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
 )
@@ -70,7 +71,7 @@ func (c *Repair) RunOnce() error {
 	uids := uidallocator.NewInMemory(c.uidRange)
 
 	for _, ns := range list.Items {
-		value, ok := ns.Annotations[uidRangeAnnotation]
+		value, ok := ns.Annotations[security.UIDRangeAnnotation]
 		if !ok {
 			continue
 		}

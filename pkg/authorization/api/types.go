@@ -3,7 +3,7 @@ package api
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kruntime "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 // Authorization is calculated against
@@ -49,11 +49,22 @@ const (
 	KubeExposedGroupName = ResourceGroupPrefix + ":exposedkube"
 	KubeAllGroupName     = ResourceGroupPrefix + ":allkube"
 	KubeStatusGroupName  = ResourceGroupPrefix + ":allkube-status"
+
+	// NonEscalatingResourcesGroupName contains all resources that can be viewed without exposing the risk of using view rights to locate a secret to escalate privileges.  For example, view
+	// rights on secrets could be used locate a secret that happened to be  serviceaccount token that has more privileges
+	NonEscalatingResourcesGroupName         = ResourceGroupPrefix + ":non-escalating"
+	KubeNonEscalatingViewableGroupName      = ResourceGroupPrefix + ":kube-non-escalating"
+	OpenshiftNonEscalatingViewableGroupName = ResourceGroupPrefix + ":openshift-non-escalating"
+
+	// EscalatingResourcesGroupName contains all resources that can be used to escalate priviledges when simply viewed
+	EscalatingResourcesGroupName         = ResourceGroupPrefix + ":escalating"
+	KubeEscalatingViewableGroupName      = ResourceGroupPrefix + ":kube-escalating"
+	OpenshiftEscalatingViewableGroupName = ResourceGroupPrefix + ":openshift-escalating"
 )
 
 var (
 	GroupsToResources = map[string][]string{
-		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone"},
+		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone", "buildconfigs/webhooks"},
 		ImageGroupName:              {"imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
 		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
 		SDNGroupName:                {"clusternetworks", "hostsubnets"},
@@ -63,32 +74,48 @@ var (
 		PolicyOwnerGroupName:        {"policies", "policybindings"},
 		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews", "subjectaccessreviews"},
 		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, TemplateGroupName, "routes"},
-		OpenshiftAllGroupName:       {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, SDNGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects"},
-		OpenshiftStatusGroupName:    {"imagestreams/status"},
+		OpenshiftAllGroupName: {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, SDNGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects",
+			"clusterroles", "clusterrolebindings", "clusterpolicies", "clusterpolicybindings", "images" /* cluster scoped*/, "projectrequests"},
+		OpenshiftStatusGroupName: {"imagestreams/status"},
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
 		KubeInternalsGroupName: {"minions", "nodes", "bindings", "events", "namespaces"},
 		KubeExposedGroupName:   {"pods", "replicationcontrollers", "serviceaccounts", "services", "endpoints", "persistentvolumeclaims", "pods/log"},
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
 		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status"},
+
+		OpenshiftEscalatingViewableGroupName: {"oauthauthorizetokens", "oauthaccesstokens"},
+		KubeEscalatingViewableGroupName:      {"secrets"},
+		EscalatingResourcesGroupName:         {OpenshiftEscalatingViewableGroupName, KubeEscalatingViewableGroupName},
+
+		NonEscalatingResourcesGroupName: {OpenshiftNonEscalatingViewableGroupName, KubeNonEscalatingViewableGroupName},
 	}
 )
+
+func init() {
+	// set the non-escalating groups
+	GroupsToResources[OpenshiftNonEscalatingViewableGroupName] = ExpandResources(util.NewStringSet(GroupsToResources[OpenshiftAllGroupName]...)).
+		Difference(ExpandResources(util.NewStringSet(GroupsToResources[OpenshiftEscalatingViewableGroupName]...))).List()
+
+	GroupsToResources[KubeNonEscalatingViewableGroupName] = ExpandResources(util.NewStringSet(GroupsToResources[KubeAllGroupName]...)).
+		Difference(ExpandResources(util.NewStringSet(GroupsToResources[KubeEscalatingViewableGroupName]...))).List()
+}
 
 // PolicyRule holds information that describes a policy rule, but does not contain information
 // about who the rule applies to or which namespace the rule applies to.
 type PolicyRule struct {
 	// Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
-	Verbs kutil.StringSet
+	Verbs util.StringSet
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
 	AttributeRestrictions kruntime.EmbeddedObject
 	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
-	Resources kutil.StringSet
+	Resources util.StringSet
 	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
-	ResourceNames kutil.StringSet
+	ResourceNames util.StringSet
 	// NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
 	// If an action is not a resource API request, then the URL is split on '/' and is checked against the NonResourceURLs to look for a match.
-	NonResourceURLs kutil.StringSet
+	NonResourceURLs util.StringSet
 }
 
 // IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed
@@ -113,9 +140,9 @@ type RoleBinding struct {
 	kapi.ObjectMeta
 
 	// Users holds all the usernames directly bound to the role
-	Users kutil.StringSet
+	Users util.StringSet
 	// Groups holds all the groups directly bound to the role
-	Groups kutil.StringSet
+	Groups util.StringSet
 
 	// RoleRef can only reference the current namespace and the global namespace
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
@@ -130,7 +157,7 @@ type Policy struct {
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the Policy was created, updated, or deleted
-	LastModified kutil.Time
+	LastModified util.Time
 
 	// Roles holds all the Roles held by this Policy, mapped by Role.Name
 	Roles map[string]Role
@@ -143,7 +170,7 @@ type PolicyBinding struct {
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
-	LastModified kutil.Time
+	LastModified util.Time
 
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference
@@ -158,9 +185,9 @@ type ResourceAccessReviewResponse struct {
 	// Namespace is the namespace used for the access review
 	Namespace string
 	// Users is the list of users who can perform the action
-	Users kutil.StringSet
+	Users util.StringSet
 	// Groups is the list of groups who can perform the action
-	Groups kutil.StringSet
+	Groups util.StringSet
 }
 
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
@@ -201,7 +228,7 @@ type SubjectAccessReview struct {
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
-	Groups kutil.StringSet
+	Groups util.StringSet
 	// Content is the actual content of the request for create and update
 	Content kruntime.EmbeddedObject
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
@@ -261,9 +288,9 @@ type ClusterRoleBinding struct {
 	kapi.ObjectMeta
 
 	// Users holds all the usernames directly bound to the role
-	Users kutil.StringSet
+	Users util.StringSet
 	// GroupNames holds all the groups directly bound to the role
-	Groups kutil.StringSet
+	Groups util.StringSet
 
 	// RoleRef can only reference the current namespace and the global namespace
 	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.
@@ -278,7 +305,7 @@ type ClusterPolicy struct {
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
-	LastModified kutil.Time
+	LastModified util.Time
 
 	// Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by Role.Name
 	Roles map[string]ClusterRole
@@ -291,7 +318,7 @@ type ClusterPolicyBinding struct {
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted
-	LastModified kutil.Time
+	LastModified util.Time
 
 	// ClusterPolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference

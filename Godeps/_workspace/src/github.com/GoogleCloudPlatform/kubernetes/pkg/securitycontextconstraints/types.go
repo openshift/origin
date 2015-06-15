@@ -28,4 +28,6 @@ type SecurityContextConstraintsProvider interface {
 	CreateSecurityContext(pod *api.Pod, container *api.Container) (*api.SecurityContext, error)
 	// Ensure a container's SecurityContext is in compliance with the given constraints
 	ValidateSecurityContext(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList
+	// Get the name of the SCC that this provider was initialized with.
+	GetSCCName() string
 }

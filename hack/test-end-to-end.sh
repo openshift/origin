@@ -284,7 +284,7 @@ openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-ro
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
-openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --mount-host="/tmp/openshift.local.registry" --images="${USE_IMAGES}"
+openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
 
 echo "[INFO] Pre-pulling and pushing ruby-20-centos7"
 docker pull openshift/ruby-20-centos7:latest
@@ -377,7 +377,9 @@ validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_AP
 # Remote command execution
 echo "[INFO] Validating exec"
 registry_pod=$(oc get pod -l deploymentconfig=docker-registry -t '{{(index .items 0).metadata.name}}')
-oc exec -p ${registry_pod} whoami | grep root
+# when running as a restricted pod the registry will run with a pre-allocated
+# user in the neighborhood of 1000000+.  Look for a substring of the pre-allocated uid range
+oc exec -p ${registry_pod} id | grep 10
 
 # Port forwarding
 echo "[INFO] Validating port-forward"

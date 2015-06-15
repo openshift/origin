@@ -53,7 +53,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet(authorizationapi.ResourceAll),
+					Resources: util.NewStringSet(authorizationapi.NonEscalatingResourcesGroupName),
+				},
+				{ // permissions to check access.  These creates are non-mutating
+					Verbs:     util.NewStringSet("create"),
+					Resources: util.NewStringSet("resourceaccessreviews", "subjectaccessreviews"),
 				},
 				{
 					Verbs:           util.NewStringSet("get"),

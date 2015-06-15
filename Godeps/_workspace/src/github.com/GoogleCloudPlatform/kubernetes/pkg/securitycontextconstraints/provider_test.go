@@ -17,11 +17,70 @@ limitations under the License.
 package securitycontextconstraints
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
+
+func TestCreateSecurityContextNonmutating(t *testing.T) {
+	// Create a pod with a security context that needs filling in
+	createPod := func() *api.Pod {
+		return &api.Pod{
+			Spec: api.PodSpec{
+				Containers: []api.Container{{
+					SecurityContext: &api.SecurityContext{},
+				}},
+			},
+		}
+	}
+
+	// Create an SCC with strategies that will populate a blank security context
+	createSCC := func() *api.SecurityContextConstraints {
+		var uid int64 = 1
+		return &api.SecurityContextConstraints{
+			ObjectMeta: api.ObjectMeta{
+				Name: "scc-sa",
+			},
+			RunAsUser: api.RunAsUserStrategyOptions{
+				Type: api.RunAsUserStrategyMustRunAs,
+				UID:  &uid,
+			},
+			SELinuxContext: api.SELinuxContextStrategyOptions{
+				Type:           api.SELinuxStrategyMustRunAs,
+				SELinuxOptions: &api.SELinuxOptions{User: "you"},
+			},
+		}
+	}
+
+	pod := createPod()
+	scc := createSCC()
+
+	provider, err := NewSimpleProvider(scc)
+	if err != nil {
+		t.Fatal("unable to create provider %v", err)
+	}
+	sc, err := provider.CreateSecurityContext(pod, &pod.Spec.Containers[0])
+	if err != nil {
+		t.Fatal("unable to create provider %v", err)
+	}
+
+	// The generated security context should have filled in missing options, so they should differ
+	if reflect.DeepEqual(sc, &pod.Spec.Containers[0].SecurityContext) {
+		t.Error("expected created security context to be different than container's, but they were identical")
+	}
+
+	// Creating the provider or the security context should not have mutated the scc or pod
+	if !reflect.DeepEqual(createPod(), pod) {
+		diff := util.ObjectDiff(createPod(), pod)
+		t.Errorf("pod was mutated by CreateSecurityContext. diff:\n%s", diff)
+	}
+	if !reflect.DeepEqual(createSCC(), scc) {
+		t.Error("different")
+	}
+}
 
 func TestValidateFailures(t *testing.T) {
 	defaultSCC := func() *api.SecurityContextConstraints {
