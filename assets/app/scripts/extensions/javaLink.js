@@ -24,9 +24,9 @@ angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
   })
   .run(function(ProxyPod, BaseHref, HawtioExtension, $templateCache, $compile, AuthService) {
     var template =
-      '<span ng-show="jolokiaUrl" title="View java details">' +
+      '<span class="connect-link" ng-show="jolokiaUrl" title="Connect to container">' +
       '  <a ng-click="gotoContainerView($event, container, jolokiaUrl)" ng-href="jolokiaUrl">' +
-      '    <i class="fa fa-external-link"></i>' +
+      '    <i class="fa fa-sign-in"></i>Connect' +
       '  </a>' +
       '</span>';
     HawtioExtension.add('container-links', function ($scope) {
