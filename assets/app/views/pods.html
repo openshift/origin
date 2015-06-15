@@ -17,8 +17,9 @@
           <span ng-switch="pod.status.phase">
             <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true" style="margin-right: 5px;"></span>
             <span ng-switch-when="Terminated" class="fa fa-times text-danger" aria-hidden="true" style="margin-right: 5px;"></span>
-            <span ng-switch-when="Pending" class="fa fa-refresh fa-spin" aria-hidden="true" style="margin-right: 5px;"></span>
-            <span ng-switch-when="Running" class="fa fa-refresh text-success" aria-hidden="true" style="margin-right: 5px;"></span>
+            <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true" style="margin-right: 5px;"></span>
+            <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true" style="margin-right: 5px;"></span>
+            <span ng-switch-when="Running" class="fa fa-refresh fa-spin" aria-hidden="true" style="margin-right: 5px;"></span>
           </span>
         </div>
         <div>
