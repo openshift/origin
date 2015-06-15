@@ -133,6 +133,9 @@ type MasterConfig struct {
 	// ProjectConfig holds information about project creation and defaults
 	ProjectConfig ProjectConfig `json:"projectConfig"`
 
+	// RoutingConfig holds information about routing and route generation
+	RoutingConfig RoutingConfig `json:"routingConfig"`
+
 	// NetworkConfig to be passed to the compiled in network plugin
 	NetworkConfig NetworkConfig `json:"networkConfig"`
 }
@@ -184,6 +187,11 @@ type PolicyConfig struct {
 
 	// OpenShiftInfrastructureNamespace is the namespace where OpenShift infrastructure resources live (like controller service accounts)
 	OpenShiftInfrastructureNamespace string `json:"openshiftInfrastructureNamespace"`
+}
+
+type RoutingConfig struct {
+	// Subdomain is the suffix appended to $service.$namespace. to form the default route hostname
+	Subdomain string `json:"subdomain"`
 }
 
 // NetworkConfig to be passed to the compiled in network plugin

@@ -209,6 +209,8 @@ projectConfig:
   projectRequestMessage: ""
   projectRequestTemplate: ""
   securityAllocator: null
+routingConfig:
+  subdomain: ""
 serviceAccountConfig:
   managedNames: null
   privateKeyFile: ""

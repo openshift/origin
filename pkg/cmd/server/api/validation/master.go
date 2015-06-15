@@ -135,6 +135,8 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 
 	validationResults.AddErrors(ValidateProjectConfig(config.ProjectConfig).Prefix("projectConfig")...)
 
+	validationResults.AddErrors(ValidateRoutingConfig(config.RoutingConfig).Prefix("routingConfig")...)
+
 	validationResults.Append(ValidateAPILevels(config.APILevels, api.KnownOpenShiftAPILevels, api.DeadOpenShiftAPILevels, "apiLevels"))
 
 	return validationResults
@@ -359,5 +361,17 @@ func ValidateProjectConfig(config api.ProjectConfig) fielderrors.ValidationError
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("mcsLabelsPerProject", alloc.MCSLabelsPerProject, "must be a positive integer"))
 		}
 	}
+	return allErrs
+}
+
+func ValidateRoutingConfig(config api.RoutingConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(config.Subdomain) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("subdomain"))
+	} else if !util.IsDNS1123Subdomain(config.Subdomain) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("subdomain", config.Subdomain, "must be a valid subdomain"))
+	}
+
 	return allErrs
 }
