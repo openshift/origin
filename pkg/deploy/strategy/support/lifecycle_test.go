@@ -2,6 +2,7 @@ package support
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -54,6 +55,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 
 	var createdPod *kapi.Pod
 	executor := &HookExecutor{
@@ -73,6 +75,10 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if e, a := deployment.Spec.Template.Spec.NodeSelector, createdPod.Spec.NodeSelector; !reflect.DeepEqual(e, a) {
+		t.Fatalf("expected pod NodeSelector %v, got %v", e, a)
 	}
 
 	if createdPod.Spec.ActiveDeadlineSeconds == nil {

@@ -159,7 +159,10 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 				},
 			},
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
-			RestartPolicy:         restartPolicy,
+			// Setting the node selector on the hook pod so that it is created
+			// on the same set of nodes as the deployment pods.
+			NodeSelector:  deployment.Spec.Template.Spec.NodeSelector,
+			RestartPolicy: restartPolicy,
 		},
 	}
 

@@ -117,6 +117,11 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		}
 
 		// If the deployment is cancelled, terminate any deployer/hook pods.
+		// NOTE: Do not mark the deployment as Failed just yet.
+		// The deployment will be marked as Failed by the deployer pod controller
+		// when the deployer pod failure state is picked up
+		// Also, it will scale down the failed deployment and scale back up
+		// the last successful completed deployment
 		deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
 		if err != nil {
 			return fmt.Errorf("couldn't fetch deployer pods for %s while trying to cancel deployment: %v", deployutil.LabelForDeployment(deployment), err)
@@ -223,8 +228,11 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 				},
 			},
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
-			RestartPolicy:         kapi.RestartPolicyNever,
-			ServiceAccount:        c.serviceAccount,
+			// Setting the node selector on the deployer pod so that it is created
+			// on the same set of nodes as the pods.
+			NodeSelector:   deployment.Spec.Template.Spec.NodeSelector,
+			RestartPolicy:  kapi.RestartPolicyNever,
+			ServiceAccount: c.serviceAccount,
 		},
 	}
 
