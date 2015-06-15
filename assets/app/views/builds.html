@@ -10,74 +10,69 @@
           <em>{{emptyMessage}}</em>
         </div>
       </div>
+
       <div class="tile" ng-repeat="(buildConfigName, buildConfig) in buildConfigs">
         <div>
           <h2>{{buildConfigName}}</h2>
           <dl class="dl-horizontal left indent">
-          <div>
+            <div>
               <dt>Build strategy:</dt>
               <dd>{{buildConfig.spec.strategy.type}}</dd>
-          </div>
-          <div ng-switch="buildConfig.spec.strategy.type">
-            <div ng-switch-when="Source">
-              <div ng-if="buildConfig.spec.strategy.sourceStrategy.from">
+            </div>
+            <div ng-switch="buildConfig.spec.strategy.type">
+              <div ng-switch-when="Source">
+                <div ng-if="buildConfig.spec.strategy.sourceStrategy.from">
                   <dt>Builder image:</dt>
                   <dd>{{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
+                </div>
               </div>
-            </div>
-            <div ng-switch-when="Docker">
-              <div ng-if="buildConfig.spec.strategy.dockerStrategy.from">
-                <dl class="dl-horizontal">
+              <div ng-switch-when="Docker">
+                <div ng-if="buildConfig.spec.strategy.dockerStrategy.from">
                   <dt>Builder image stream:</dt>
                   <dd>{{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
-                </dl>
+                </div>
+              </div>
+              <div ng-switch-when="Custom">
+                <div ng-if="buildConfig.spec.strategy.customStrategy.from">
+                  <dt>Builder image stream:</dt>
+                  <dd>{{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
+                </div>
               </div>
             </div>
-            <div ng-switch-when="Custom">
-              <div ng-if="buildConfig.spec.strategy.customStrategy.from">
-                <dt>Builder image stream:</dt>
-                <dd>{{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                </dd>
-              </div>
-            </div>
-          </div>
-          <div ng-if="buildConfig.spec.source">
-            <div ng-if="buildConfig.spec.source.type == 'Git'">
+            <div ng-if="buildConfig.spec.source">
+              <div ng-if="buildConfig.spec.source.type == 'Git'">
                 <dt>Source repo:</dt>
                 <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink | linky'></dd>
+              </div>
             </div>
-          </div>
-          <div ng-if="buildConfig.spec.output.to">
-            <dt>Output to:</dt>
-            <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
-          </div>
+            <div ng-if="buildConfig.spec.output.to">
+              <dt>Output to:</dt>
+              <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
+            </div>
           </dl>
-
           <div>
             <h3>Triggers:</h3>
             <dl class="dl-horizontal left indent">
-
               <div ng-repeat="trigger in buildConfig.spec.triggers">
                 <div ng-switch="trigger.type">
-                  <div ng-switch-when="github">
-                    
-                      <dt>GitHub webhook URL
+                  <div ng-switch-when="github">                  
+                    <dt>GitHub webhook URL
                       <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more 
                       <i class="fa fa-external-link"></i></span></a>
-                      </dt>
-                      <dd>
-                        <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
-                        <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
-                      </dd>
+                    </dt>
+                    <dd>
+                      <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
+                      <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
+                    </dd>
                   </div>
                   <div ng-switch-when="generic">
-                      <dt>Generic webhook URL
-                        <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
-                      </dt>
-                      <dd>
-                        <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
-                        <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard-button>
-                      </dd>
+                    <dt>Generic webhook URL
+                      <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
+                    </dt>
+                    <dd>
+                      <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
+                      <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard-button>
+                    </dd>
                   </div>
                   <div ng-switch-when="imageChange">
                     <div ng-switch="buildConfig.spec.strategy.type">
@@ -93,7 +88,7 @@
                       </div>
                       <div ng-switch-when="Docker">
                         <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.dockerStrategy.from && buildConfig.spec.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
-                           <dt>
+                          <dt>
                             New image for:
                           </dt>
                           <dd>
@@ -139,66 +134,80 @@
                 <code>oc start-build {{buildConfigName}} -n {{project.metadata.name}}</code>
                 <copy-to-clipboard-button clipboard-text="'oc start-build ' + buildConfigName + ' -n ' + project.metadata.name"></copy-to-clipboard-button>
               </dd>
-
             </dl>
           </div>
         </div>
-        <div class="well" style="margin-bottom: 10px;" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true">
+
+        <div class="well build-log" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true">
           <h3>{{build.metadata.name}}</h3>
-          <div>Created: <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></div>
-          <div>
-            <span style="margin-right: 5px;">Status: {{build.status.phase}}</span>
-            <span ng-switch="build.status.phase" class="hide-ng-leave">
-              <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
-              <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-              <span ng-switch-when="Error" class="fa fa-times text-danger" aria-hidden="true"></span>
-              <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>
-              <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
-            </span>
-          </div>
-          <div>
-            <span style="margin-right: 5px;">Duration: </span>
-            <span ng-switch="build.status.phase" class="hide-ng-leave">
-              <span ng-switch-when="Complete">{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
-              <span ng-switch-when="Failed">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
-              <span ng-switch-when="Running">running for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
-              <span ng-switch-when="New">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
-              <span ng-switch-when="Pending">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
-              <span ng-switch-default>
-                <span ng-if="build.status.startTimestamp">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
-                <span ng-if="!build.status.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.status.completionTimestamp}}</span>
-              </span>
-            </span>
-          </div>
-          <div ng-if="buildConfig.spec.strategy.type != build.spec.strategy.type">
-            <div>Build strategy: {{build.spec.strategy.type}}</div>
-          </div>
-          <div ng-switch="build.spec.strategy.type">
-            <div ng-switch-when="Source" ng-if="build.spec.strategy.sourceStrategy.from">
-              Builder image: {{build.spec.strategy.sourceStrategy.from | imageObjectRef : build.metadata.namespace}}
-            </div>
-            <div ng-switch-when="Docker">
-              <div ng-if="build.spec.strategy.dockerStrategy.from">
-                Builder image: {{build.spec.strategy.dockerStrategy.from | imageObjectRef : build.metadata.namespace}}
+          <div class="row">
+            <div class="col-md-6">
+              <div class="log-meta">
+                <span class="log-meta-title">Created:</span>
+                <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp>
               </div>
-            </div>
-            <div ng-switch-when="Custom" ng-if="build.spec.strategy.customStrategy.from">
-              Builder image: {{build.spec.strategy.customStrategy.from | imageObjectRef : build.metadata.namespace}}
-            </div>
-          </div>
-          <div ng-if="build.spec.source">
-            <div ng-if="build.spec.source.type == 'Git'">
-              <div ng-if="buildConfig.spec.source.git.uri != build.spec.source.git.uri">
-                Source repo: <span ng-bind-html='build.spec.source.git.uri | githubLink | linky'></span>
+              <div class="log-meta">
+                <span class="log-meta-title">Status:</span>
+                <span ng-switch="build.status.phase" class="hide-ng-leave">
+                  <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
+                  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
+                  <span ng-switch-when="Error" class="fa fa-times text-danger" aria-hidden="true"></span>
+                  <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>
+                  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline"></span>
+                  <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
+                </span>
+                {{build.status.phase}}
               </div>
-            </div>
-            <!-- TODO add git ref details -->
-          </div>
-          <div ng-if="build.spec.output.to">Output image: {{build.spec.output.to | imageObjectRef : build.metadata.namespace}}</div>
-          <div>
-            <button class="btn btn-default icon-restart" ng-click="cloneBuild(build.metadata.name)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Rebuild</button>
-          </div>
+              <div class="log-meta">
+                <span class="log-meta-title">Duration:</span>
+                <span ng-switch="build.status.phase" class="hide-ng-leave">
+                  <span ng-switch-when="Complete">{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
+                  <span ng-switch-when="Failed">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                  <span ng-switch-when="Running">running for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
+                  <span ng-switch-when="New">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+                  <span ng-switch-when="Pending">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+                  <span ng-switch-default>
+                    <span ng-if="build.status.startTimestamp">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                    <span ng-if="!build.status.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.status.completionTimestamp}}</span>
+                  </span>
+                </span>
+              </div>
+            </div><!-- .col -->
+
+            <div class="col-md-6">
+              <div ng-if="buildConfig.spec.strategy.type != build.spec.strategy.type" class="log-meta">
+                <span class="log-meta-title">Build strategy:</span>{{build.spec.strategy.type}}
+              </div>
+              <div ng-switch="build.spec.strategy.type" class="log-meta">
+                <div ng-switch-when="Source" ng-if="build.spec.strategy.sourceStrategy.from">
+                  <span class="log-meta-title">Builder image:</span>{{build.spec.strategy.sourceStrategy.from | imageObjectRef : build.metadata.namespace}}
+                </div>
+                <div ng-switch-when="Docker">
+                  <div ng-if="build.spec.strategy.dockerStrategy.from">
+                    <span class="log-meta-title">Builder image:</span>{{build.spec.strategy.dockerStrategy.from | imageObjectRef : build.metadata.namespace}}
+                  </div>
+                </div>
+                <div ng-switch-when="Custom" ng-if="build.spec.strategy.customStrategy.from">
+                  <span class="log-meta-title">Builder image:</span>{{build.spec.strategy.customStrategy.from | imageObjectRef : build.metadata.namespace}}
+                </div>
+              </div>
+              <div ng-if="build.spec.source">
+                <div ng-if="build.spec.source.type == 'Git'">
+                  <div ng-if="buildConfig.spec.source.git.uri != build.spec.source.git.uri" class="log-meta">
+                    <span class="log-meta-title">Source repo:</span><span ng-bind-html='build.spec.source.git.uri | githubLink | linky'></span>
+                  </div>
+                </div>
+                <!-- TODO add git ref details -->
+              </div>
+              <div ng-if="build.spec.output.to" class="log-meta"><span class="log-meta-title">Output image:</span>{{build.spec.output.to | imageObjectRef : build.metadata.namespace}}</div>
+              <div>
+                <button class="btn btn-default" ng-click="cloneBuild(build.metadata.name)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Rebuild</button>
+              </div>
+            </div><!-- .col -->
+
+          </div><!-- .row -->
         </div><!-- /build .well -->
+
       </div><!-- /buildConfig .tile -->
 
       <!-- render any builds whose build configs no longer exist -->
@@ -210,58 +219,66 @@
             <span class="pficon pficon-warning-exclamation"></span>
           </span>            
         </h2>
-        <div class="well" ng-repeat="build in blds | orderObjectsByDate : true">
+        <div class="well build-log" ng-repeat="build in blds | orderObjectsByDate : true">
           <h3>{{build.metadata.name}}</h3>
-          <div>Created: <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></div>            
-          <div>
-            <span style="margin-right: 5px;">Status: {{build.status.phase}}</span>          
-            <span ng-switch="build.status.phase" class="hide-ng-leave">
-              <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
-              <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-              <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
-            </span>
-          </div>
-          <div>
-            <span style="margin-right: 5px;">Duration: </span>
-            <span ng-switch="build.status.phase" class="hide-ng-leave">
-              <span ng-switch-when="Complete">{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
-              <span ng-switch-when="Failed">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
-              <span ng-switch-when="Running">running for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
-              <span ng-switch-when="New">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
-              <span ng-switch-when="Pending">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
-              <span ng-switch-default>
-                <span ng-if="build.status.startTimestamp">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
-                <span ng-if="!build.status.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.status.completionTimestamp}}</span>
-              </span>
-            </span>
-          </div>          
-          <div>Build strategy: {{build.spec.strategy.type}}</div>
-          <div ng-switch="build.spec.strategy.type">
-            <div ng-switch-when="Source">
-              Builder image: {{build.spec.strategy.sourceStrategy.image}}
-            </div>
-            <div ng-switch-when="Docker">
-              <div ng-if="build.spec.strategy.dockerStrategy.image">
-                Builder image: {{build.spec.strategy.dockerStrategy.image}}
+          <div class="row">
+            <div class="col-md-6">
+              <div class="log-meta"><span class="log-meta-title">Created:</span><relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></div>            
+              <div class="log-meta">
+                <span class="log-meta-title">Status:</span>{{build.status.phase}}         
+                <span ng-switch="build.status.phase" class="hide-ng-leave">
+                  <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
+                  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
+                  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline"></span>
+                  <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
+                </span>
               </div>
-            </div>
-            <div ng-switch-when="Custom">
-              Builder image: {{build.spec.strategy.customStrategy.image}}
-            </div>
-          </div>
-          <div ng-if="build.spec.source">
-            <div ng-if="build.spec.source.type == 'Git'">
-              Source repo: <span ng-bind-html='build.spec.source.git.uri | githubLink | linky'></span>
-            </div>
-            <!-- TODO add git ref details -->
-          </div>
-          <div ng-if="build.spec.output">
-            <div ng-switch="build.spec.output.to.kind">
-              <div ng-switch-when="ImageRepository">
-                Output image: {{build.spec.output.to.name}}
+              <div class="log-meta">
+                <span class="log-meta-title">Duration:</span>
+                <span ng-switch="build.status.phase" class="hide-ng-leave">
+                  <span ng-switch-when="Complete">{{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
+                  <span ng-switch-when="Failed">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                  <span ng-switch-when="Running">running for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
+                  <span ng-switch-when="New">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+                  <span ng-switch-when="Pending">waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+                  <span ng-switch-default>
+                    <span ng-if="build.status.startTimestamp">{{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                    <span ng-if="!build.status.startTimestamp">waited for {{build.metadata.creationTimestamp | duration : build.status.completionTimestamp}}</span>
+                  </span>
+                </span>
               </div>
-            </div>
-          </div>
+            </div><!-- .col -->        
+            <div class="col-md-6">
+              <div class="log-meta">
+                <span class="log-meta-title">Build strategy:</span>{{build.spec.strategy.type}}</div>
+              <div ng-switch="build.spec.strategy.type">
+                <div ng-switch-when="Source">
+                  <span class="log-meta-title">Builder image:</span>{{build.spec.strategy.sourceStrategy.image}}
+                </div>
+                <div ng-switch-when="Docker">
+                  <div ng-if="build.spec.strategy.dockerStrategy.image">
+                    <span class="log-meta-title">Builder image:</span>{{build.spec.strategy.dockerStrategy.image}}
+                  </div>
+                </div>
+                <div ng-switch-when="Custom">
+                  <span class="log-meta-title">Builder image:</span>{{build.spec.strategy.customStrategy.image}}
+                </div>
+              </div>
+              <div ng-if="build.spec.source" class="log-meta">
+                <div ng-if="build.spec.source.type == 'Git'">
+                  <span class="log-meta-title">Source repo:</span><span ng-bind-html='build.spec.source.git.uri | githubLink | linky'></span>
+                </div>
+                <!-- TODO add git ref details -->
+              </div>
+              <div ng-if="build.spec.output">
+                <div ng-switch="build.spec.output.to.kind">
+                  <div ng-switch-when="ImageRepository" class="log-meta">
+                    <span class="log-meta-title">Output image:</span>{{build.spec.output.to.name}}
+                  </div>
+                </div>
+              </div>
+            </div><!-- .col -->
+          </div><!-- .row -->
         </div><!-- /build .well -->
       </div><!-- /buildConfig .tile -->
     </div>
