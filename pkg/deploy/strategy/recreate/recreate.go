@@ -97,9 +97,10 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 
 	// Scale down the from deployment.
 	if from != nil {
+		glog.Infof("Scaling %s down to zero", deployutil.LabelForDeployment(from))
 		_, err := s.scaleAndWait(from, 0, retryParams, waitParams)
 		if err != nil {
-			return fmt.Errorf("couldn't scale down 'from' deployment %s: %v", deployutil.LabelForDeployment(from), err)
+			return fmt.Errorf("couldn't scale %s to 0: %v", deployutil.LabelForDeployment(from), err)
 		}
 	}
 
@@ -107,21 +108,23 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	// than one replica, scale up to 1 and validate the replica, aborting if the
 	// replica isn't acceptable.
 	if updateAcceptor != nil && desiredReplicas > 1 {
-		glog.Infof("Validating first replica of %s", to.Name)
+		glog.Infof("Scaling %s to 1 before validating first replica", deployutil.LabelForDeployment(to))
 		updatedTo, err := s.scaleAndWait(to, 1, retryParams, waitParams)
 		if err != nil {
-			return err
+			return fmt.Errorf("couldn't scale %s to 1: %v", deployutil.LabelForDeployment(to), err)
 		}
+		glog.Infof("Validating first replica of %s", deployutil.LabelForDeployment(to))
 		if err := updateAcceptor.Accept(updatedTo); err != nil {
-			return fmt.Errorf("First replica rejected for %s: %v", to.Name, err)
+			return fmt.Errorf("first replica rejected for %s: %v", to.Name, err)
 		}
 		to = updatedTo
 	}
 
 	// Complete the scale up.
+	glog.Infof("Scaling %s to %d", deployutil.LabelForDeployment(to), desiredReplicas)
 	updatedTo, err := s.scaleAndWait(to, desiredReplicas, retryParams, waitParams)
 	if err != nil {
-		return err
+		return fmt.Errorf("couldn't scale %s to %d: %v", deployutil.LabelForDeployment(to), desiredReplicas, err)
 	}
 	to = updatedTo
 
