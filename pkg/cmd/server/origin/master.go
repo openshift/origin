@@ -482,6 +482,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	handler := c.authorizationFilter(safe)
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 	handler = namespacingFilter(handler, c.getRequestContextMapper())
+	handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
 	// unprotected resources
 	unprotected = append(unprotected, APIInstallFunc(c.InstallUnprotectedAPI))
@@ -810,6 +811,14 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 			return
 		}
 
+		handler.ServeHTTP(w, req)
+	})
+}
+
+// cacheControlFilter sets the Cache-Control header to the specified value.
+func cacheControlFilter(handler http.Handler, value string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Cache-Control", value)
 		handler.ServeHTTP(w, req)
 	})
 }
