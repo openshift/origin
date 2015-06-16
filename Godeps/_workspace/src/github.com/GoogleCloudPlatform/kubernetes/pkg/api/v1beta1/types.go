@@ -135,6 +135,8 @@ type VolumeSource struct {
 	PersistentVolumeClaimVolumeSource *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty" description:"a reference to a PersistentVolumeClaim in the same namespace"`
 	// RBD represents a Rados Block Device mount on the host that shares a pod's lifetime
 	RBD *RBDVolumeSource `json:"rbd" description:"rados block volume that will be mounted on the host machine"`
+	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
+	CephFS *CephFSVolumeSource `json:"cephfs,omitempty" description:"Ceph filesystem that will be mounted on the host machine"`
 }
 
 // Similar to VolumeSource but meant for the administrator who creates PVs.
@@ -159,6 +161,8 @@ type PersistentVolumeSource struct {
 	// ISCSI represents an ISCSI Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
 	ISCSI *ISCSIVolumeSource `json:"iscsi" description:"an iSCSI disk resource provisioned by an admin"`
+	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
+	CephFS *CephFSVolumeSource `json:"cephfs,omitempty" description:"Ceph filesystem that will be mounted on the host machine"`
 }
 
 type PersistentVolumeClaimVolumeSource struct {
@@ -423,6 +427,21 @@ type RBDVolumeSource struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty"  description:"rbd volume to be mounted with read-only permissions"`
+}
+
+// CephFSVolumeSource represents a Ceph Filesystem Mount that lasts the lifetime of a pod
+type CephFSVolumeSource struct {
+	// Required: Monitors is a collection of Ceph monitors
+	Monitors []string `json:"monitors" description:"a collection of Ceph monitors"`
+	// Optional: User is the rados user name, default is admin
+	User string `json:"user,omitempty" description:"rados user name; default is admin; optional"`
+	// Optional: SecretFile is the path to key ring for User, default is /etc/ceph/user.secret
+	SecretFile string `json:"secretFile,omitempty" description:"path to secret for rados user; default is /etc/ceph/user.secret; optional"`
+	// Optional: SecretRef is reference to the authentication secret for User, default is empty.
+	SecretRef *LocalObjectReference `json:"secretRef,omitempty" description:"name of a secret to authenticate the user; if provided overrides keyring; optional"`
+	// Optional: Defaults to false (read/write). ReadOnly here will force
+	// the ReadOnly setting in VolumeMounts.
+	ReadOnly bool `json:"readOnly,omitempty"  description:"Ceph fs to be mounted with read-only permissions"`
 }
 
 // ContainerPort represents a network port in a single container

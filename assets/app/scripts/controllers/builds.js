@@ -26,17 +26,8 @@ angular.module('openshiftConsole')
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
       $scope.builds = LabelFilter.getLabelSelector().select($scope.unfilteredBuilds);
       $scope.emptyMessage = "No builds to show";
+      associateBuildsToBuildConfig();
       updateFilterWarning();
-
-      $scope.buildsByBuildConfig = {};
-      angular.forEach($scope.builds, function(build, buildName) {
-        var buildConfigName = "";
-        if (build.metadata.labels) {
-          buildConfigName = build.metadata.labels.buildconfig || "";
-        }
-        $scope.buildsByBuildConfig[buildConfigName] = $scope.buildsByBuildConfig[buildConfigName] || {};
-        $scope.buildsByBuildConfig[buildConfigName][buildName] = build;
-      });
 
       if (build) {
         var buildConfigName = build.metadata.labels.buildconfig;
@@ -64,6 +55,18 @@ angular.module('openshiftConsole')
       $scope.buildConfigs = buildConfigs.by("metadata.name");
       Logger.log("buildconfigs (subscribe)", $scope.buildConfigs);
     }));
+
+    function associateBuildsToBuildConfig() {
+      $scope.buildsByBuildConfig = {};
+      angular.forEach($scope.builds, function(build, buildName) {
+        var buildConfigName = "";
+        if (build.metadata.labels) {
+          buildConfigName = build.metadata.labels.buildconfig || "";
+        }
+        $scope.buildsByBuildConfig[buildConfigName] = $scope.buildsByBuildConfig[buildConfigName] || {};
+        $scope.buildsByBuildConfig[buildConfigName][buildName] = build;
+      });
+    }
 
     function associateRunningBuildToBuildConfig(buildsByBuildConfig) {
       var buildConfigBuildsInProgress = {};
@@ -143,6 +146,7 @@ angular.module('openshiftConsole')
       // trigger a digest loop
       $scope.$apply(function() {
         $scope.builds = labelSelector.select($scope.unfilteredBuilds);
+        associateBuildsToBuildConfig();
         updateFilterWarning();
       });
     });

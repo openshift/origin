@@ -140,6 +140,9 @@ const (
 var (
 	excludedV1Beta3Types = util.NewStringSet()
 	excludedV1Types      = excludedV1Beta3Types
+
+	// TODO: correctly solve identifying requests by type
+	longRunningRE = regexp.MustCompile("watch|proxy|logs|exec|portforward")
 )
 
 // APIInstaller installs additional API components into this server
@@ -479,6 +482,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 	handler := c.authorizationFilter(safe)
 	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
 	handler = namespacingFilter(handler, c.getRequestContextMapper())
+	handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
 	// unprotected resources
 	unprotected = append(unprotected, APIInstallFunc(c.InstallUnprotectedAPI))
@@ -520,8 +524,9 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		handler = contextHandler
 	}
 
+	// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
+	// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
 	if c.Options.ServingInfo.MaxRequestsInFlight > 0 {
-		longRunningRE := regexp.MustCompile("[.*\\/watch$][^\\/proxy.*]")
 		sem := make(chan bool, c.Options.ServingInfo.MaxRequestsInFlight)
 		handler = apiserver.MaxInFlightLimit(sem, longRunningRE, handler)
 	}
@@ -806,6 +811,14 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 			return
 		}
 
+		handler.ServeHTTP(w, req)
+	})
+}
+
+// cacheControlFilter sets the Cache-Control header to the specified value.
+func cacheControlFilter(handler http.Handler, value string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Cache-Control", value)
 		handler.ServeHTTP(w, req)
 	})
 }

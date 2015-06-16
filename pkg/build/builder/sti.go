@@ -93,7 +93,7 @@ func (s *STIBuilder) Build() error {
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
-			glog.Infof("Using provided push secret for pushing %s image", config.BuilderImage)
+			glog.Infof("Using provided push secret for pushing %s image", dockerImageRef)
 			s.auth = pushAuthConfig
 		}
 		glog.Infof("Pushing %s image ...", dockerImageRef)

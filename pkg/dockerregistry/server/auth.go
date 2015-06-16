@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+
 	log "github.com/Sirupsen/logrus"
 	ctxu "github.com/docker/distribution/context"
 	registryauth "github.com/docker/distribution/registry/auth"
@@ -47,11 +49,16 @@ var _ registryauth.Challenge = &authChallenge{}
 
 // Errors used and exported by this package.
 var (
+	// Challenging errors
 	ErrTokenRequired          = errors.New("authorization header with basic token required")
 	ErrTokenInvalid           = errors.New("failed to decode basic token")
 	ErrOpenShiftTokenRequired = errors.New("expected openshift bearer token as password for basic token to registry")
-	ErrNamespaceRequired      = errors.New("repository namespace required")
 	ErrOpenShiftAccessDenied  = errors.New("openshift access denied")
+
+	// Non-challenging errors
+	ErrNamespaceRequired   = errors.New("repository namespace required")
+	ErrUnsupportedAction   = errors.New("unsupported action")
+	ErrUnsupportedResource = errors.New("unsupported resource")
 )
 
 func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
@@ -82,65 +89,64 @@ func (ac *authChallenge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusUnauthorized)
 }
 
+// wrapErr wraps errors related to authorization in an authChallenge error that will present a WWW-Authenticate challenge response
+func (ac *AccessController) wrapErr(err error) error {
+	switch err {
+	case ErrTokenRequired, ErrTokenInvalid, ErrOpenShiftTokenRequired, ErrOpenShiftAccessDenied:
+		// Challenge for errors that involve tokens or access denied
+		return &authChallenge{realm: ac.realm, err: err}
+	case ErrNamespaceRequired, ErrUnsupportedAction, ErrUnsupportedResource:
+		// Malformed or unsupported request, no challenge
+		return err
+	default:
+		// By default, just return the error, this gets surfaced as a bad request / internal error, but no challenge
+		return err
+	}
+}
+
 // Authorized handles checking whether the given request is authorized
 // for actions on resources allowed by openshift.
+// Sources of access records:
+//   origin/pkg/cmd/dockerregistry/dockerregistry.go#Execute
+//   docker/distribution/registry/handlers/app.go#appendAccessRecords
 func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...registryauth.Access) (context.Context, error) {
 	req, err := ctxu.GetRequest(ctx)
 	if err != nil {
-		return nil, err
+		return nil, ac.wrapErr(err)
 	}
 
-	// TODO try to find a better way to handle this
+	// TODO: change this to an anonymous Access record, don't require a token for it, and fold into the access record check look below
 	if req.URL.Path == "/healthz" {
 		return ctx, nil
 	}
 
-	challenge := &authChallenge{realm: ac.realm}
-
-	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
-	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
-		challenge.err = ErrTokenRequired
-		return nil, challenge
-	}
-	basicToken := authParts[1]
-
-	payload, err := base64.StdEncoding.DecodeString(basicToken)
+	bearerToken, err := getToken(req)
 	if err != nil {
-		log.Errorf("Basic token decode failed: %s", err)
-		challenge.err = ErrTokenInvalid
-		return nil, challenge
+		return nil, ac.wrapErr(err)
 	}
-
-	osAuthParts := strings.SplitN(string(payload), ":", 2)
-	if len(osAuthParts) != 2 {
-		challenge.err = ErrOpenShiftTokenRequired
-		return nil, challenge
-	}
-	bearerToken := osAuthParts[1]
 
 	client, err := NewUserOpenShiftClient(bearerToken)
 	if err != nil {
-		return nil, err
+		return nil, ac.wrapErr(err)
 	}
 
 	// In case of docker login, hits endpoint /v2
 	if len(accessRecords) == 0 {
-		err = verifyOpenShiftUser(client)
-		if err != nil {
-			challenge.err = err
-			return nil, challenge
+		if err := verifyOpenShiftUser(client); err != nil {
+			return nil, ac.wrapErr(err)
 		}
 	}
 
+	// Validate all requested accessRecords
+	// Only return failure errors from this loop. Success should continue to validate all records
 	for _, access := range accessRecords {
 		log.Debugf("OpenShift auth: checking for access to %s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
 
 		switch access.Resource.Type {
 		case "repository":
-			repoParts := strings.SplitN(access.Resource.Name, "/", 2)
-			if len(repoParts) != 2 {
-				challenge.err = ErrNamespaceRequired
-				return nil, challenge
+			imageStreamNS, imageStreamName, err := getNamespaceName(access.Resource.Name)
+			if err != nil {
+				return nil, ac.wrapErr(err)
 			}
 
 			verb := ""
@@ -150,40 +156,77 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 			case "pull":
 				verb = "get"
 			default:
-				challenge.err = fmt.Errorf("Unknown action: %s", access.Action)
-				return nil, challenge
+				return nil, ac.wrapErr(ErrUnsupportedAction)
 			}
 
-			if err := verifyImageStreamAccess(repoParts[0], repoParts[1], verb, client); err != nil {
-				challenge.err = err
-				return nil, challenge
+			if err := verifyImageStreamAccess(imageStreamNS, imageStreamName, verb, client); err != nil {
+				return nil, ac.wrapErr(err)
 			}
 
-			return WithUserClient(ctx, client), nil
 		case "admin":
 			switch access.Action {
 			case "prune":
 				if err := verifyPruneAccess(client); err != nil {
-					challenge.err = err
-					return nil, challenge
+					return nil, ac.wrapErr(err)
 				}
-
-				return ctx, nil
 			default:
-				challenge.err = fmt.Errorf("Unknown action: %s", access.Action)
-				return nil, challenge
+				return nil, ac.wrapErr(ErrUnsupportedAction)
 			}
+		default:
+			return nil, ac.wrapErr(ErrUnsupportedResource)
 		}
 	}
 
-	return ctx, nil
+	return WithUserClient(ctx, client), nil
+}
+
+func getNamespaceName(resourceName string) (string, string, error) {
+	repoParts := strings.SplitN(resourceName, "/", 2)
+	if len(repoParts) != 2 {
+		return "", "", ErrNamespaceRequired
+	}
+	ns := repoParts[0]
+	if len(ns) == 0 {
+		return "", "", ErrNamespaceRequired
+	}
+	name := repoParts[1]
+	if len(name) == 0 {
+		return "", "", ErrNamespaceRequired
+	}
+	return ns, name, nil
+}
+
+func getToken(req *http.Request) (string, error) {
+	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
+	if len(authParts) != 2 || strings.ToLower(authParts[0]) != "basic" {
+		return "", ErrTokenRequired
+	}
+	basicToken := authParts[1]
+
+	payload, err := base64.StdEncoding.DecodeString(basicToken)
+	if err != nil {
+		log.Errorf("Basic token decode failed: %s", err)
+		return "", ErrTokenInvalid
+	}
+
+	osAuthParts := strings.SplitN(string(payload), ":", 2)
+	if len(osAuthParts) != 2 {
+		return "", ErrOpenShiftTokenRequired
+	}
+
+	bearerToken := osAuthParts[1]
+	return bearerToken, nil
 }
 
 func verifyOpenShiftUser(client *client.Client) error {
 	if _, err := client.Users().Get("~"); err != nil {
 		log.Errorf("Get user failed with error: %s", err)
-		return ErrOpenShiftAccessDenied
+		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
+			return ErrOpenShiftAccessDenied
+		}
+		return err
 	}
+
 	return nil
 }
 
@@ -196,7 +239,10 @@ func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.C
 	response, err := client.SubjectAccessReviews(namespace).Create(&sar)
 	if err != nil {
 		log.Errorf("OpenShift client error: %s", err)
-		return ErrOpenShiftAccessDenied
+		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
+			return ErrOpenShiftAccessDenied
+		}
+		return err
 	}
 	if !response.Allowed {
 		log.Errorf("OpenShift access denied: %s", response.Reason)
@@ -213,7 +259,10 @@ func verifyPruneAccess(client *client.Client) error {
 	response, err := client.ClusterSubjectAccessReviews().Create(&sar)
 	if err != nil {
 		log.Errorf("OpenShift client error: %s", err)
-		return ErrOpenShiftAccessDenied
+		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
+			return ErrOpenShiftAccessDenied
+		}
+		return err
 	}
 	if !response.Allowed {
 		log.Errorf("OpenShift access denied: %s", response.Reason)

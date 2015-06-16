@@ -84,7 +84,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		// succeeded but the deployment state update failed and now we're re-
 		// entering. Ensure that the pod is the one we created by verifying the
 		// annotation on it, and throw a retryable error.
-		existingPod, err := c.podClient.getPod(deployment.Namespace, deployutil.DeployerPodNameForDeployment(deployment))
+		existingPod, err := c.podClient.getPod(deployment.Namespace, deployutil.DeployerPodNameForDeployment(deployment.Name))
 		if err != nil {
 			c.recorder.Eventf(deployment, "failedCreate", "Error getting existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 			return fmt.Errorf("couldn't fetch existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
@@ -111,30 +111,48 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		nextStatus = deployapi.DeploymentStatusPending
 		glog.V(4).Infof("Detected existing deployer pod %s for deployment %s", existingPod.Name, deployutil.LabelForDeployment(deployment))
 	case deployapi.DeploymentStatusPending, deployapi.DeploymentStatusRunning:
-		// If the deployment isn't cancelled, let the deployment run.
-		if !deployutil.IsDeploymentCancelled(deployment) {
-			break
+		// If the deployer pod has vanished, consider the deployment a failure.
+		deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
+		if _, err := c.podClient.getPod(deployment.Namespace, deployerPodName); err != nil {
+			if kerrors.IsNotFound(err) {
+				nextStatus = deployapi.DeploymentStatusFailed
+				deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
+				deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedDeployerPodNoLongerExists
+				c.recorder.Eventf(deployment, "failed", "Deployer pod %q has gone missing", deployerPodName)
+				glog.V(4).Infof("Failing deployment %q because its deployer pod %q disappeared", deployutil.LabelForDeployment(deployment), deployerPodName)
+				break
+			} else {
+				// We'll try again later on resync. Continue to process cancellations.
+				glog.V(2).Infof("Error getting deployer pod %s for deployment %s: %#v", deployerPodName, deployutil.LabelForDeployment(deployment), err)
+			}
 		}
 
 		// If the deployment is cancelled, terminate any deployer/hook pods.
-		deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
-		if err != nil {
-			return fmt.Errorf("couldn't fetch deployer pods for %s while trying to cancel deployment: %v", deployutil.LabelForDeployment(deployment), err)
-		}
-		glog.V(4).Infof("Cancelling %d deployer pods for deployment %s", len(deployerPods), deployutil.LabelForDeployment(deployment))
-		zeroDelay := int64(1)
-		for _, deployerPod := range deployerPods {
-			// Set the ActiveDeadlineSeconds on the pod so it's terminated very soon.
-			if deployerPod.Spec.ActiveDeadlineSeconds == nil || *deployerPod.Spec.ActiveDeadlineSeconds != zeroDelay {
-				deployerPod.Spec.ActiveDeadlineSeconds = &zeroDelay
-				if _, err := c.podClient.updatePod(deployerPod.Namespace, &deployerPod); err != nil {
-					c.recorder.Eventf(deployment, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
-					return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
-				}
-				glog.V(4).Infof("Cancelled deployer pod %s for deployment %s", deployerPod.Name, deployutil.LabelForDeployment(deployment))
+		// NOTE: Do not mark the deployment as Failed just yet.
+		// The deployment will be marked as Failed by the deployer pod controller
+		// when the deployer pod failure state is picked up
+		// Also, it will scale down the failed deployment and scale back up
+		// the last successful completed deployment
+		if deployutil.IsDeploymentCancelled(deployment) {
+			deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
+			if err != nil {
+				return fmt.Errorf("couldn't fetch deployer pods for %s while trying to cancel deployment: %v", deployutil.LabelForDeployment(deployment), err)
 			}
+			glog.V(4).Infof("Cancelling %d deployer pods for deployment %s", len(deployerPods), deployutil.LabelForDeployment(deployment))
+			zeroDelay := int64(1)
+			for _, deployerPod := range deployerPods {
+				// Set the ActiveDeadlineSeconds on the pod so it's terminated very soon.
+				if deployerPod.Spec.ActiveDeadlineSeconds == nil || *deployerPod.Spec.ActiveDeadlineSeconds != zeroDelay {
+					deployerPod.Spec.ActiveDeadlineSeconds = &zeroDelay
+					if _, err := c.podClient.updatePod(deployerPod.Namespace, &deployerPod); err != nil {
+						c.recorder.Eventf(deployment, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
+						return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
+					}
+					glog.V(4).Infof("Cancelled deployer pod %s for deployment %s", deployerPod.Name, deployutil.LabelForDeployment(deployment))
+				}
+			}
+			c.recorder.Eventf(deployment, "cancelled", "Cancelled deployment")
 		}
-		c.recorder.Eventf(deployment, "cancelled", "Cancelled deployment")
 	case deployapi.DeploymentStatusFailed:
 		// Nothing to do in this terminal state.
 		glog.V(4).Infof("Ignoring deployment %s (status %s)", deployutil.LabelForDeployment(deployment), currentStatus)
@@ -173,7 +191,6 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		}
 		glog.V(4).Infof("Updated deployment %s status from %s to %s", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus)
 	}
-
 	return nil
 }
 
@@ -203,7 +220,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: deployutil.DeployerPodNameForDeployment(deployment),
+			Name: deployutil.DeployerPodNameForDeployment(deployment.Name),
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: deployment.Name,
 			},
@@ -223,8 +240,11 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 				},
 			},
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
-			RestartPolicy:         kapi.RestartPolicyNever,
-			ServiceAccount:        c.serviceAccount,
+			// Setting the node selector on the deployer pod so that it is created
+			// on the same set of nodes as the pods.
+			NodeSelector:   deployment.Spec.Template.Spec.NodeSelector,
+			RestartPolicy:  kapi.RestartPolicyNever,
+			ServiceAccount: c.serviceAccount,
 		},
 	}
 

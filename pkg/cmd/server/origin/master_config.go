@@ -151,8 +151,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
-	admissionControlPluginNames := []string{"OriginNamespaceLifecycle"}
-	admissionController := admission.NewFromPlugins(privilegedLoopbackKubeClient, admissionControlPluginNames, "")
+	admissionControlPluginNames := []string{"OriginNamespaceLifecycle", "BuildByStrategy"}
+
+	admissionClient := admissionControlClient(privilegedLoopbackKubeClient, privilegedLoopbackOpenShiftClient)
+	admissionController := admission.NewFromPlugins(admissionClient, admissionControlPluginNames, "")
 
 	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options, client)
 	if err != nil {
@@ -423,6 +425,22 @@ func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, *kclient.Clien
 // The kubernetes client object must have authority to execute a finalize request on a namespace
 func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+}
+
+// AdmissionControlClient returns a client to be used for admission control.
+// TODO: Refactor admission control to allow more than one client to be passed in to plugins
+func admissionControlClient(kClient *kclient.Client, osClient *osclient.Client) kclient.Interface {
+	type kc struct{ *kclient.Client }
+	type osc struct{ *osclient.Client }
+	type compositeClient struct {
+		*kc
+		*osc
+	}
+	client := &compositeClient{
+		&kc{kClient},
+		&osc{osClient},
+	}
+	return client
 }
 
 // NewEtcdHelper returns an EtcdHelper for the provided storage version.

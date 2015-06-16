@@ -148,6 +148,7 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 func describeBuildDuration(build *buildapi.Build) string {
 	t := util.Now().Rfc3339Copy()
 	if build.StartTimestamp == nil &&
+		build.CompletionTimestamp != nil &&
 		(build.Status == buildapi.BuildStatusCancelled ||
 			build.Status == buildapi.BuildStatusFailed ||
 			build.Status == buildapi.BuildStatusError) {

@@ -131,7 +131,11 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	for i := range infos {
 		obj, ok := infos[i].Object.(*api.Template)
 		if !ok {
-			fmt.Fprintf(cmd.Out(), "unable to parse %q, not a valid Template but %s\n", obj.Name, reflect.TypeOf(obj))
+			sourceName := filename
+			if len(storedTemplate) > 0 {
+				sourceName = namespace + "/" + storedTemplate
+			}
+			fmt.Fprintf(cmd.Out(), "unable to parse %q, not a valid Template but %s\n", sourceName, reflect.TypeOf(infos[i].Object))
 			continue
 		}
 

@@ -27,7 +27,7 @@
               <td>{{event.involvedObject.name}}</td>
               <td>{{event.involvedObject.kind}}</td>
               <td class="nowrap">{{event.reason}}</td>
-              <td>{{event.message}}
+              <td class="break-word">{{event.message}}
                 <span class="text-muted small" ng-if="event.count > 1">
                   ({{event.count}} times in the last
                     {{event.firstTimestamp | duration:event.lastTimestamp:true}})

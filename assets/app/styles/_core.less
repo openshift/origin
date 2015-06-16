@@ -376,6 +376,11 @@ select:invalid {
   white-space: nowrap;
 }
 
+.break-word {
+  word-break: break-all; // Firefox
+  word-break: break-word; // Webkit and Microsoft
+}
+
 .nowrap {
   white-space: nowrap;
 }
@@ -386,6 +391,11 @@ select:invalid {
       margin-top: 0;
     }
   }
+}
+
+.spinner.spinner-xs { // set height & width to 12px so that FF displays correctly
+  height: 12px;
+  width: 12px;
 }
 
 .attention-message {

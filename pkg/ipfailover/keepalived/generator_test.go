@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/ipfailover"
 )
 
-func makeIPFailoverConfigOptions(selector string, replicas int) *ipfailover.IPFailoverConfigCmdOptions {
+func makeIPFailoverConfigOptions(selector string, replicas int, serviceAccount string) *ipfailover.IPFailoverConfigCmdOptions {
 	return &ipfailover.IPFailoverConfigCmdOptions{
 		ImageTemplate:    variable.NewDefaultImageTemplate(),
 		Selector:         selector,
@@ -17,6 +17,7 @@ func makeIPFailoverConfigOptions(selector string, replicas int) *ipfailover.IPFa
 		WatchPort:        80,
 		NetworkInterface: "eth0",
 		Replicas:         replicas,
+		ServiceAccount:   serviceAccount,
 	}
 
 }
@@ -36,6 +37,7 @@ func TestGenerateDeploymentConfig(t *testing.T) {
 		Selector          string
 		Replicas          int
 		PodSelectorLength int
+		ServiceAccount    string
 	}{
 		{
 			Name:              "config-test-no-selector",
@@ -73,10 +75,17 @@ func TestGenerateDeploymentConfig(t *testing.T) {
 			Replicas:          42,
 			PodSelectorLength: 4,
 		},
+		{
+			Name:              "config-test-service-account",
+			Selector:          "router=geo-us-west",
+			Replicas:          3,
+			PodSelectorLength: 1,
+			ServiceAccount:    "foo",
+		},
 	}
 
 	for _, tc := range tests {
-		options := makeIPFailoverConfigOptions(tc.Selector, tc.Replicas)
+		options := makeIPFailoverConfigOptions(tc.Selector, tc.Replicas, tc.ServiceAccount)
 		selector := makeSelector(options)
 		dc, err := GenerateDeploymentConfig(tc.Name, options, selector)
 		if err != nil {
@@ -94,6 +103,10 @@ func TestGenerateDeploymentConfig(t *testing.T) {
 		podSpec := controller.Template.Spec
 		if !podSpec.HostNetwork {
 			t.Errorf("Test case for %s got HostNetwork disabled where HostNetwork was expected to be enabled", tc.Name)
+		}
+
+		if podSpec.ServiceAccount != tc.ServiceAccount {
+			t.Errorf("Test case for %s got service account %s when expecting %s", tc.Name, podSpec.ServiceAccount, tc.ServiceAccount)
 		}
 
 		psLength := len(podSpec.NodeSelector)

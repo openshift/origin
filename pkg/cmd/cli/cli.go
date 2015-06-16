@@ -97,6 +97,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 				cmd.NewCmdDescribe(fullName, f, out),
 				cmd.NewCmdEdit(fullName, f, out),
 				cmd.NewCmdEnv(fullName, f, os.Stdin, out),
+				cmd.NewCmdVolume(fullName, f, out),
 				cmd.NewCmdLabel(fullName, f, out),
 				cmd.NewCmdExpose(fullName, f, out),
 				cmd.NewCmdStop(fullName, f, out),

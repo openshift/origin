@@ -155,10 +155,11 @@ func GenerateDeploymentConfig(name string, options *ipfailover.IPFailoverConfigC
 	podTemplate := &kapi.PodTemplateSpec{
 		ObjectMeta: kapi.ObjectMeta{Labels: selector},
 		Spec: kapi.PodSpec{
-			HostNetwork:  true,
-			NodeSelector: generateNodeSelector(name, selector),
-			Containers:   containers,
-			Volumes:      generateVolumeConfig(),
+			HostNetwork:    true,
+			NodeSelector:   generateNodeSelector(name, selector),
+			Containers:     containers,
+			Volumes:        generateVolumeConfig(),
+			ServiceAccount: options.ServiceAccount,
 		},
 	}
 

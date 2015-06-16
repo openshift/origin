@@ -20,6 +20,7 @@ type CreateClientOptions struct {
 	GetSignerCertOptions *GetSignerCertOptions
 
 	ClientDir string
+	BaseName  string
 
 	User   string
 	Groups util.StringList
@@ -61,6 +62,7 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "")
 
 	flags.StringVar(&options.ClientDir, "client-dir", "", "The client data directory.")
+	flags.StringVar(&options.BaseName, "basename", "", "The base filename to use for the .crt, .key, and .kubeconfig files. Defaults to the username.")
 
 	flags.StringVar(&options.User, "user", "", "The scope qualified username.")
 	flags.Var(&options.Groups, "groups", "The list of groups this user belongs to. Comma delimited list")
@@ -102,10 +104,14 @@ func (o CreateClientOptions) Validate(args []string) error {
 func (o CreateClientOptions) CreateClientFolder() error {
 	glog.V(4).Infof("creating a .kubeconfig with: %#v", o)
 
-	clientCertFile := DefaultCertFilename(o.ClientDir, o.User)
-	clientKeyFile := DefaultKeyFilename(o.ClientDir, o.User)
+	baseName := o.BaseName
+	if len(baseName) == 0 {
+		baseName = o.User
+	}
+	clientCertFile := DefaultCertFilename(o.ClientDir, baseName)
+	clientKeyFile := DefaultKeyFilename(o.ClientDir, baseName)
 	clientCopyOfCAFile := DefaultCAFilename(o.ClientDir, "ca")
-	kubeConfigFile := DefaultKubeConfigFilename(o.ClientDir, o.User)
+	kubeConfigFile := DefaultKubeConfigFilename(o.ClientDir, baseName)
 
 	createClientCertOptions := CreateClientCertOptions{
 		GetSignerCertOptions: o.GetSignerCertOptions,

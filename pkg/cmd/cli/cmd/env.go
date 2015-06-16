@@ -8,14 +8,11 @@ import (
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/spf13/cobra"
-
-	//ocutil "github.com/openshift/origin/pkg/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -60,8 +57,8 @@ syntax.`
 
 // NewCmdEnv implements the OpenShift cli env command
 func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
-	var filenames util.StringList
-	var env util.StringList
+	var filenames kutil.StringList
+	var env kutil.StringList
 	cmd := &cobra.Command{
 		Use:     "env RESOURCE/NAME KEY_1=VAL_1 ... KEY_N=VAL_N",
 		Short:   "Update the environment on a resource with a pod template",
@@ -99,7 +96,7 @@ func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error
 
 func parseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, error) {
 	env := []kapi.EnvVar{}
-	exists := util.NewStringSet()
+	exists := kutil.NewStringSet()
 	var remove []string
 	for _, envSpec := range spec {
 		switch {
@@ -162,7 +159,7 @@ func readEnv(r io.Reader) ([]kapi.EnvVar, error) {
 }
 
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
-func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames util.StringList) error {
+func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, envParams, filenames kutil.StringList) error {
 	resources, envArgs := []string{}, []string{}
 	first := true
 	for _, s := range args {
@@ -234,7 +231,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 	skipped := 0
 	for _, info := range infos {
 		ok, err := f.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
-			containers := selectContainers(spec.Containers, containerMatch)
+			containers, _ := selectContainers(spec.Containers, containerMatch)
 			if len(containers) == 0 {
 				fmt.Fprintf(cmd.Out(), "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, containerMatch)
 				return nil
@@ -296,7 +293,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		}
 		obj, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, true, data)
 		if err != nil {
-			handleUpdateError(cmd.Out(), err)
+			handlePodUpdateError(cmd.Out(), err, "environment variables")
 			failed = true
 			continue
 		}
@@ -311,7 +308,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 
 func updateEnv(existing []kapi.EnvVar, env []kapi.EnvVar, remove []string) []kapi.EnvVar {
 	out := []kapi.EnvVar{}
-	covered := util.NewStringSet(remove...)
+	covered := kutil.NewStringSet(remove...)
 	for _, e := range existing {
 		if covered.Has(e.Name) {
 			continue
@@ -341,71 +338,4 @@ func findEnv(env []kapi.EnvVar, name string) (kapi.EnvVar, bool) {
 		}
 	}
 	return kapi.EnvVar{}, false
-}
-
-func selectContainers(containers []kapi.Container, spec string) []*kapi.Container {
-	out := []*kapi.Container{}
-	for i, c := range containers {
-		if selectString(c.Name, spec) {
-			out = append(out, &containers[i])
-		}
-	}
-	return out
-}
-
-// selectString returns true if the provided string matches spec, where spec is a string with
-// a non-greedy '*' wildcard operator.
-// TODO: turn into a regex and handle greedy matches and backtracking.
-func selectString(s, spec string) bool {
-	if spec == "*" {
-		return true
-	}
-	if !strings.Contains(spec, "*") {
-		return s == spec
-	}
-
-	pos := 0
-	match := true
-	parts := strings.Split(spec, "*")
-	for i, part := range parts {
-		if len(part) == 0 {
-			continue
-		}
-		next := strings.Index(s[pos:], part)
-		switch {
-		// next part not in string
-		case next < pos:
-			fallthrough
-		// first part does not match start of string
-		case i == 0 && pos != 0:
-			fallthrough
-		// last part does not exactly match remaining part of string
-		case i == (len(parts)-1) && len(s) != (len(part)+next):
-			match = false
-			break
-		default:
-			pos = next
-		}
-	}
-	return match
-}
-
-func handleUpdateError(out io.Writer, err error) {
-	errored := false
-	if statusError, ok := err.(*errors.StatusError); ok && errors.IsInvalid(err) {
-		errorDetails := statusError.Status().Details
-		if errorDetails.Kind == "Pod" {
-			for _, cause := range errorDetails.Causes {
-				if cause.Field == "spec" && strings.Contains(cause.Message, "may not update fields other than") {
-					fmt.Fprintf(out, "Error updating pod %q: may not update environment variables in a pod directly\n", errorDetails.ID)
-					errored = true
-					break
-				}
-			}
-		}
-	}
-
-	if !errored {
-		fmt.Fprintf(out, "Error: %v\n", err)
-	}
 }
