@@ -85,6 +85,9 @@ func TestServiceAccountAuthorization(t *testing.T) {
 		t.Fatalf("could not add role to service account")
 	}
 
+	// Give the policy cache a second to catch it's breath
+	time.Sleep(time.Second)
+
 	// Make sure the service account now has access
 	// This tests authentication using the etcd-based token getter
 	passNS := &api.Namespace{ObjectMeta: api.ObjectMeta{Name: "test-pass"}}
@@ -166,6 +169,9 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	if err := addRoleOptions2.AddRole(); err != nil {
 		t.Fatalf("could not add role to service account")
 	}
+
+	// Give the policy cache a second to catch it's breath
+	time.Sleep(time.Second)
 
 	// Make sure the service account now has access to cluster2
 	passNS2 := &api.Namespace{ObjectMeta: api.ObjectMeta{Name: "test-pass2"}}
