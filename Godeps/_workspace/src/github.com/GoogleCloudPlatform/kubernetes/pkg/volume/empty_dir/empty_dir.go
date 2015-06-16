@@ -235,7 +235,7 @@ func (ed *emptyDir) setupDir(dir string) error {
 		}
 
 		if fileinfo.Mode().Perm() != perm.Perm() {
-			glog.Errorf("Expected directory %q permissions to be: %s; got: %s", dir, fileinfo.Mode().Perm(), perm.Perm())
+			glog.Errorf("Expected directory %q permissions to be: %s; got: %s", dir, perm.Perm(), fileinfo.Mode().Perm())
 		}
 	}
 
