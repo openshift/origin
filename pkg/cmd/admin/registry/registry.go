@@ -285,9 +285,6 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 					{Type: dapi.DeploymentTriggerOnConfigChange},
 				},
 				Template: dapi.DeploymentTemplate{
-					Strategy: dapi.DeploymentStrategy{
-						Type: dapi.DeploymentStrategyTypeRecreate,
-					},
 					ControllerTemplate: kapi.ReplicationControllerSpec{
 						Replicas: cfg.Replicas,
 						Selector: label,
