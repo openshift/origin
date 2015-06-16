@@ -121,6 +121,8 @@ This section covers how to perform all the steps of building, deploying, and upd
 
     Note: sudo is required so the kubernetes proxy can manipulate iptables rules to expose service ports.
 
+    Note: when using vagrant synced folder it is advised to use a different directory for volume storage than the one in the synced folder. This can be achieved by passing `--volume-dir=/absolute/path` to `openshift start` command.
+
 
 3. Set up your client to reach the OpenShift master now running.
 
@@ -350,7 +352,7 @@ the ip address shown below with the correct one for your environment.
 
             $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
             $ oadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
-              router # the service 
+              router # the service
               router # the deployment config
 
 
