@@ -1,7 +1,7 @@
 package lbr
 
 import (
-	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	log "github.com/golang/glog"
 	"net"
@@ -77,5 +77,5 @@ func (c *FlowController) DelOFRules(minion, localIP string) error {
 }
 
 func generateCookie(ip string) string {
-	return strconv.FormatInt(int64(md5.Sum([]byte(ip))[0]), 16)
+	return hex.EncodeToString(net.ParseIP(ip).To4())
 }
