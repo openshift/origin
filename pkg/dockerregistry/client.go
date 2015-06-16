@@ -125,7 +125,10 @@ type connection struct {
 func newConnection(url url.URL, allowInsecure bool) *connection {
 	client := http.DefaultClient
 	if allowInsecure {
-		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			Proxy:           http.ProxyFromEnvironment,
+		}
 		client = &http.Client{Transport: tr}
 	}
 	return &connection{
