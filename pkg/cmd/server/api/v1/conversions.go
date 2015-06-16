@@ -19,6 +19,9 @@ func init() {
 			if obj.ServingInfo.RequestTimeoutSeconds == 0 {
 				obj.ServingInfo.RequestTimeoutSeconds = 60 * 60
 			}
+			if obj.ServingInfo.MaxRequestsInFlight == 0 {
+				obj.ServingInfo.MaxRequestsInFlight = 500
+			}
 			if len(obj.PolicyConfig.OpenShiftInfrastructureNamespace) == 0 {
 				obj.PolicyConfig.OpenShiftInfrastructureNamespace = bootstrappolicy.DefaultOpenShiftInfraNamespace
 			}

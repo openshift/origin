@@ -142,6 +142,8 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 	return refs
 }
 
+// TODO: clients should be copied and instantiated from a common client config, tweaked, then
+// given to individual controllers and other infrastructure components.
 func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
@@ -152,9 +154,10 @@ func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, err
 		return nil, nil, err
 	}
 
-	// This is an internal client which is shared by most controllers, so turn off QPS limiting
-	// TODO: make QPS/Burst configurable
-	kubeConfig.QPS = -1
+	// This is an internal client which is shared by most controllers, so boost default QPS
+	// TODO: this should be configured by the caller, not in this method.
+	kubeConfig.QPS = 100.0
+	kubeConfig.Burst = 200
 
 	kubeConfig.WrapTransport = DefaultClientTransport
 	kubeClient, err := kclient.New(kubeConfig)
@@ -165,6 +168,8 @@ func GetKubeClient(kubeConfigFile string) (*kclient.Client, *kclient.Config, err
 	return kubeClient, kubeConfig, nil
 }
 
+// TODO: clients should be copied and instantiated from a common client config, tweaked, then
+// given to individual controllers and other infrastructure components.
 func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *kclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
@@ -174,6 +179,12 @@ func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *kclient.Config,
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// This is an internal client which is shared by most controllers, so boost default QPS
+	// TODO: this should be configured by the caller, not in this method.
+	kubeConfig.QPS = 150.0
+	kubeConfig.Burst = 300
+
 	kubeConfig.WrapTransport = DefaultClientTransport
 	openshiftClient, err := client.New(kubeConfig)
 	if err != nil {
@@ -187,13 +198,15 @@ func GetOpenShiftClient(kubeConfigFile string) (*client.Client, *kclient.Config,
 // for use by infrastructure components.
 func DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	transport := rt.(*http.Transport)
+	// TODO: this should be configured by the caller, not in this method.
 	dialer := &net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
 	transport.Dial = dialer.Dial
 	// Hold open more internal idle connections
-	transport.MaxIdleConnsPerHost = 50
+	// TODO: this should be configured by the caller, not in this method.
+	transport.MaxIdleConnsPerHost = 100
 	return transport
 }
 

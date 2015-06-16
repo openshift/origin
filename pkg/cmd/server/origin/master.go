@@ -140,6 +140,9 @@ const (
 var (
 	excludedV1Beta3Types = util.NewStringSet()
 	excludedV1Types      = excludedV1Beta3Types
+
+	// TODO: correctly solve identifying requests by type
+	longRunningRE = regexp.MustCompile("watch|proxy|logs|exec|portforward")
 )
 
 // APIInstaller installs additional API components into this server
@@ -520,8 +523,9 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		handler = contextHandler
 	}
 
+	// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
+	// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
 	if c.Options.ServingInfo.MaxRequestsInFlight > 0 {
-		longRunningRE := regexp.MustCompile("[.*\\/watch$][^\\/proxy.*]")
 		sem := make(chan bool, c.Options.ServingInfo.MaxRequestsInFlight)
 		handler = apiserver.MaxInFlightLimit(sem, longRunningRE, handler)
 	}
