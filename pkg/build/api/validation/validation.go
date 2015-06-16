@@ -27,6 +27,11 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) fielderro
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&build.ObjectMeta, &older.ObjectMeta).Prefix("metadata")...)
 
 	allErrs = append(allErrs, ValidateBuild(build)...)
+
+	if !kapi.Semantic.DeepEqual(build.Parameters, older.Parameters) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec", build.Parameters, "spec is immutable"))
+	}
+
 	return allErrs
 }
 
