@@ -75,6 +75,32 @@ func convert_api_Capabilities_To_v1beta3_Capabilities(in *api.Capabilities, out 
 	return nil
 }
 
+func convert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in *api.CephFSVolumeSource, out *CephFSVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.CephFSVolumeSource))(in)
+	}
+	if in.Monitors != nil {
+		out.Monitors = make([]string, len(in.Monitors))
+		for i := range in.Monitors {
+			out.Monitors[i] = in.Monitors[i]
+		}
+	} else {
+		out.Monitors = nil
+	}
+	out.User = in.User
+	out.SecretFile = in.SecretFile
+	if in.SecretRef != nil {
+		out.SecretRef = new(LocalObjectReference)
+		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.SecretRef, out.SecretRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.SecretRef = nil
+	}
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
 func convert_api_ComponentCondition_To_v1beta3_ComponentCondition(in *api.ComponentCondition, out *ComponentCondition, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.ComponentCondition))(in)
@@ -1254,6 +1280,14 @@ func convert_api_PersistentVolumeSource_To_v1beta3_PersistentVolumeSource(in *ap
 	} else {
 		out.ISCSI = nil
 	}
+	if in.CephFS != nil {
+		out.CephFS = new(CephFSVolumeSource)
+		if err := convert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
+			return err
+		}
+	} else {
+		out.CephFS = nil
+	}
 	return nil
 }
 
@@ -2370,6 +2404,14 @@ func convert_api_VolumeSource_To_v1beta3_VolumeSource(in *api.VolumeSource, out 
 	} else {
 		out.RBD = nil
 	}
+	if in.CephFS != nil {
+		out.CephFS = new(CephFSVolumeSource)
+		if err := convert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
+			return err
+		}
+	} else {
+		out.CephFS = nil
+	}
 	if in.Metadata != nil {
 		out.Metadata = new(MetadataVolumeSource)
 		if err := convert_api_MetadataVolumeSource_To_v1beta3_MetadataVolumeSource(in.Metadata, out.Metadata, s); err != nil {
@@ -2428,6 +2470,32 @@ func convert_v1beta3_Capabilities_To_api_Capabilities(in *Capabilities, out *api
 	} else {
 		out.Drop = nil
 	}
+	return nil
+}
+
+func convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in *CephFSVolumeSource, out *api.CephFSVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*CephFSVolumeSource))(in)
+	}
+	if in.Monitors != nil {
+		out.Monitors = make([]string, len(in.Monitors))
+		for i := range in.Monitors {
+			out.Monitors[i] = in.Monitors[i]
+		}
+	} else {
+		out.Monitors = nil
+	}
+	out.User = in.User
+	out.SecretFile = in.SecretFile
+	if in.SecretRef != nil {
+		out.SecretRef = new(api.LocalObjectReference)
+		if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.SecretRef, out.SecretRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.SecretRef = nil
+	}
+	out.ReadOnly = in.ReadOnly
 	return nil
 }
 
@@ -3610,6 +3678,14 @@ func convert_v1beta3_PersistentVolumeSource_To_api_PersistentVolumeSource(in *Pe
 	} else {
 		out.ISCSI = nil
 	}
+	if in.CephFS != nil {
+		out.CephFS = new(api.CephFSVolumeSource)
+		if err := convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
+			return err
+		}
+	} else {
+		out.CephFS = nil
+	}
 	return nil
 }
 
@@ -4726,6 +4802,14 @@ func convert_v1beta3_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api
 	} else {
 		out.RBD = nil
 	}
+	if in.CephFS != nil {
+		out.CephFS = new(api.CephFSVolumeSource)
+		if err := convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
+			return err
+		}
+	} else {
+		out.CephFS = nil
+	}
 	if in.Metadata != nil {
 		out.Metadata = new(api.MetadataVolumeSource)
 		if err := convert_v1beta3_MetadataVolumeSource_To_api_MetadataVolumeSource(in.Metadata, out.Metadata, s); err != nil {
@@ -4742,6 +4826,7 @@ func init() {
 		convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource,
 		convert_api_Binding_To_v1beta3_Binding,
 		convert_api_Capabilities_To_v1beta3_Capabilities,
+		convert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource,
 		convert_api_ComponentCondition_To_v1beta3_ComponentCondition,
 		convert_api_ComponentStatusList_To_v1beta3_ComponentStatusList,
 		convert_api_ComponentStatus_To_v1beta3_ComponentStatus,
@@ -4860,6 +4945,7 @@ func init() {
 		convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource,
 		convert_v1beta3_Binding_To_api_Binding,
 		convert_v1beta3_Capabilities_To_api_Capabilities,
+		convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource,
 		convert_v1beta3_ComponentCondition_To_api_ComponentCondition,
 		convert_v1beta3_ComponentStatusList_To_api_ComponentStatusList,
 		convert_v1beta3_ComponentStatus_To_api_ComponentStatus,
