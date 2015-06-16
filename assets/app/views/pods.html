@@ -29,16 +29,7 @@
           IP on node: {{pod.status.podIP || 'unknown'}}
         </div>
         <div>
-          Restart policy:
-          <span ng-if="pod.spec.restartPolicy.always">
-            always <span ng-if="pod.status.info.POD">(restarted {{pod.status.info.POD.restartCount}} times)</span>
-          </span>
-          <span ng-if="pod.spec.restartPolicy.onFailure">
-            on failure <span ng-if="pod.status.info.POD">(restarted {{pod.status.info.POD.restartCount}} times)</span>
-          </span>          
-          <span ng-if="pod.spec.restartPolicy.never">
-            never <span ng-if="pod.status.info.POD.restartCount">(previously restarted {{pod.status.info.POD.restartCount}} times)</span>
-          </span>          
+          Restart policy: {{pod.spec.restartPolicy || 'Always'}}
         </div>
         <div ng-if="pod.spec.volumes.length">
           Volumes:
