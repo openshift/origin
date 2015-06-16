@@ -52,7 +52,7 @@ func TestPodName(t *testing.T) {
 		},
 	}
 	expected := "testName-deploy"
-	actual := DeployerPodNameForDeployment(deployment)
+	actual := DeployerPodNameForDeployment(deployment.Name)
 	if expected != actual {
 		t.Errorf("Unexpected pod name for deployment. Expected: %s Got: %s", expected, actual)
 	}

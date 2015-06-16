@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -26,7 +27,8 @@ func TestHandle_uncorrelatedPod(t *testing.T) {
 	}
 
 	// Verify no-op
-	pod := runningPod()
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	pod := runningPod(deployment)
 	pod.Annotations = make(map[string]string)
 	err := controller.Handle(pod)
 
@@ -36,8 +38,9 @@ func TestHandle_uncorrelatedPod(t *testing.T) {
 }
 
 // TestHandle_orphanedPod ensures that deployer pods associated with a non-
-// existent deployment result in an error.
+// existent deployment results in all deployer pods being deleted.
 func TestHandle_orphanedPod(t *testing.T) {
+	deleted := kutil.NewStringSet()
 	controller := &DeployerPodController{
 		deploymentClient: &deploymentClientImpl{
 			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
@@ -48,26 +51,50 @@ func TestHandle_orphanedPod(t *testing.T) {
 				return nil, kerrors.NewNotFound("ReplicationController", name)
 			},
 		},
+		deployerPodsFor: func(namespace, name string) (*kapi.PodList, error) {
+			mkpod := func(suffix string) kapi.Pod {
+				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+				p := okPod(deployment)
+				p.Name = p.Name + suffix
+				return *p
+			}
+			return &kapi.PodList{
+				Items: []kapi.Pod{
+					mkpod(""),
+					mkpod("-prehook"),
+					mkpod("-posthook"),
+				},
+			}, nil
+		},
+		deletePod: func(namespace, name string) error {
+			deleted.Insert(name)
+			return nil
+		},
 	}
 
-	err := controller.Handle(runningPod())
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	err := controller.Handle(runningPod(deployment))
 
-	if err == nil {
-		t.Fatalf("expected an error")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	deployerName := deployutil.DeployerPodNameForDeployment(deployment.Name)
+	if !deleted.HasAll(deployerName, deployerName+"-prehook", deployerName+"-posthook") {
+		t.Fatalf("unexpected deleted names: %v", deleted.List())
 	}
 }
 
 // TestHandle_runningPod ensures that a running deployer pod results in a
 // transition of the deployment's status to running.
 func TestHandle_runningPod(t *testing.T) {
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusPending)
 	var updatedDeployment *kapi.ReplicationController
 
 	controller := &DeployerPodController{
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				config := deploytest.OkDeploymentConfig(1)
-				deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
-				deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusPending)
 				return deployment, nil
 			},
 			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
@@ -77,7 +104,7 @@ func TestHandle_runningPod(t *testing.T) {
 		},
 	}
 
-	err := controller.Handle(runningPod())
+	err := controller.Handle(runningPod(deployment))
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -95,14 +122,13 @@ func TestHandle_runningPod(t *testing.T) {
 // TestHandle_podTerminatedOk ensures that a successfully completed deployer
 // pod results in a transition of the deployment's status to complete.
 func TestHandle_podTerminatedOk(t *testing.T) {
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 	var updatedDeployment *kapi.ReplicationController
 
 	controller := &DeployerPodController{
 		deploymentClient: &deploymentClientImpl{
 			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				config := deploytest.OkDeploymentConfig(1)
-				deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
-				deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 				return deployment, nil
 			},
 			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
@@ -112,7 +138,7 @@ func TestHandle_podTerminatedOk(t *testing.T) {
 		},
 	}
 
-	err := controller.Handle(succeededPod())
+	err := controller.Handle(succeededPod(deployment))
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -132,8 +158,7 @@ func TestHandle_podTerminatedOk(t *testing.T) {
 // deployment's status to failed.
 func TestHandle_podTerminatedFailNoContainerStatus(t *testing.T) {
 	var updatedDeployment *kapi.ReplicationController
-	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 	// since we do not set the desired replicas annotation,
 	// this also tests that the error is just logged and not result in a failure
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
@@ -153,7 +178,7 @@ func TestHandle_podTerminatedFailNoContainerStatus(t *testing.T) {
 		},
 	}
 
-	err := controller.Handle(terminatedPod())
+	err := controller.Handle(terminatedPod(deployment))
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -196,7 +221,7 @@ func TestHandle_deploymentCleanupTransientError(t *testing.T) {
 		},
 	}
 
-	err := controller.Handle(terminatedPod())
+	err := controller.Handle(terminatedPod(currentDeployment))
 
 	if err == nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -247,6 +272,7 @@ func TestHandle_cleanupDeploymentFailure(t *testing.T) {
 	}
 
 	type scenario struct {
+		name string
 		// this is the deployment that is passed to Handle
 		version int
 		// this is the target replicas for the deployment that failed
@@ -258,42 +284,44 @@ func TestHandle_cleanupDeploymentFailure(t *testing.T) {
 	// existing deployments intentionally placed un-ordered
 	// in order to verify sorting
 	scenarios := []scenario{
-		// No previous deployments
-		{1, 3, []existing{
-			{1, deployapi.DeploymentStatusRunning, 3, 0},
-		}},
-		// Multiple existing deployments - none in complete state
-		{3, 2, []existing{
-			{1, deployapi.DeploymentStatusFailed, 2, 2},
-			{2, deployapi.DeploymentStatusFailed, 0, 0},
-			{3, deployapi.DeploymentStatusRunning, 2, 0},
-		}},
-		// Failed deployment is already at 0 replicas
-		{3, 2, []existing{
-			{1, deployapi.DeploymentStatusFailed, 2, 2},
-			{2, deployapi.DeploymentStatusFailed, 0, 0},
-			{3, deployapi.DeploymentStatusRunning, 0, 0},
-		}},
-		// Multiple existing completed deployments
-		{4, 2, []existing{
-			{3, deployapi.DeploymentStatusComplete, 0, 2},
-			{2, deployapi.DeploymentStatusComplete, 0, 0},
-			{4, deployapi.DeploymentStatusRunning, 1, 0},
-			{1, deployapi.DeploymentStatusFailed, 0, 0},
-		}},
+		{"No previous deployments",
+			1, 3, []existing{
+				{1, deployapi.DeploymentStatusRunning, 3, 0},
+			}},
+		{"Multiple existing deployments - none in complete state",
+			3, 2, []existing{
+				{1, deployapi.DeploymentStatusFailed, 2, 2},
+				{2, deployapi.DeploymentStatusFailed, 0, 0},
+				{3, deployapi.DeploymentStatusRunning, 2, 0},
+			}},
+		{"Failed deployment is already at 0 replicas",
+			3, 2, []existing{
+				{1, deployapi.DeploymentStatusFailed, 2, 2},
+				{2, deployapi.DeploymentStatusFailed, 0, 0},
+				{3, deployapi.DeploymentStatusRunning, 0, 0},
+			}},
+		{"Multiple existing completed deployments",
+			4, 2, []existing{
+				{3, deployapi.DeploymentStatusComplete, 0, 2},
+				{2, deployapi.DeploymentStatusComplete, 0, 0},
+				{4, deployapi.DeploymentStatusRunning, 1, 0},
+				{1, deployapi.DeploymentStatusFailed, 0, 0},
+			}},
 		// A deployment already exists after the current failed deployment
 		// only the current deployment is marked as failed
 		// the completed deployment is not scaled up
-		{4, 2, []existing{
-			{3, deployapi.DeploymentStatusComplete, 1, 1},
-			{2, deployapi.DeploymentStatusComplete, 0, 0},
-			{4, deployapi.DeploymentStatusRunning, 2, 0},
-			{5, deployapi.DeploymentStatusNew, 0, 0},
-			{1, deployapi.DeploymentStatusFailed, 0, 0},
-		}},
+		{"Deployment exists after current failed",
+			4, 2, []existing{
+				{3, deployapi.DeploymentStatusComplete, 1, 1},
+				{2, deployapi.DeploymentStatusComplete, 0, 0},
+				{4, deployapi.DeploymentStatusRunning, 2, 0},
+				{5, deployapi.DeploymentStatusNew, 0, 0},
+				{1, deployapi.DeploymentStatusFailed, 0, 0},
+			}},
 	}
 
 	for _, scenario := range scenarios {
+		t.Logf("running scenario: %s", scenario.name)
 		updatedDeployments = make(map[int]*kapi.ReplicationController)
 		failedDeployment = nil
 		existingDeployments = &kapi.ReplicationControllerList{}
@@ -309,7 +337,8 @@ func TestHandle_cleanupDeploymentFailure(t *testing.T) {
 			}
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}
-		err := controller.Handle(terminatedPod())
+		associatedDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(scenario.version), kapi.Codec)
+		err := controller.Handle(terminatedPod(associatedDeployment))
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -342,12 +371,12 @@ func TestHandle_cleanupDeploymentFailure(t *testing.T) {
 	}
 }
 
-func okPod() *kapi.Pod {
+func okPod(deployment *kapi.ReplicationController) *kapi.Pod {
 	return &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "deploy-deploy1",
+			Name: deployutil.DeployerPodNameForDeployment(deployment.Name),
 			Annotations: map[string]string{
-				deployapi.DeploymentAnnotation: "1234",
+				deployapi.DeploymentAnnotation: deployment.Name,
 			},
 		},
 		Status: kapi.PodStatus{
@@ -358,14 +387,14 @@ func okPod() *kapi.Pod {
 	}
 }
 
-func succeededPod() *kapi.Pod {
-	p := okPod()
+func succeededPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	p := okPod(deployment)
 	p.Status.Phase = kapi.PodSucceeded
 	return p
 }
 
-func failedPod() *kapi.Pod {
-	p := okPod()
+func failedPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	p := okPod(deployment)
 	p.Status.Phase = kapi.PodFailed
 	p.Status.ContainerStatuses = []kapi.ContainerStatus{
 		{
@@ -379,14 +408,14 @@ func failedPod() *kapi.Pod {
 	return p
 }
 
-func terminatedPod() *kapi.Pod {
-	p := okPod()
+func terminatedPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	p := okPod(deployment)
 	p.Status.Phase = kapi.PodFailed
 	return p
 }
 
-func runningPod() *kapi.Pod {
-	p := okPod()
+func runningPod(deployment *kapi.ReplicationController) *kapi.Pod {
+	p := okPod(deployment)
 	p.Status.Phase = kapi.PodRunning
 	return p
 }

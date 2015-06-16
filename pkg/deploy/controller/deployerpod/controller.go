@@ -21,6 +21,10 @@ import (
 type DeployerPodController struct {
 	// deploymentClient provides access to deployments.
 	deploymentClient deploymentClient
+	// deployerPodsFor returns all deployer pods for the named deployment.
+	deployerPodsFor func(namespace, name string) (*kapi.PodList, error)
+	// deletePod deletes a pod.
+	deletePod func(namespace, name string) error
 }
 
 // transientError is an error which will be retried indefinitely.
@@ -30,16 +34,45 @@ func (e transientError) Error() string { return "transient error handling deploy
 
 // Handle syncs pod's status with any associated deployment.
 func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
-	// Verify the assumption that we'll be given only pods correlated to a deployment
+	// Find the deployment associated with the deployer pod.
 	deploymentName := deployutil.DeploymentNameFor(pod)
 	if len(deploymentName) == 0 {
-		glog.V(2).Infof("Ignoring pod %s/%s; no Deployment annotation found", pod.Namespace, pod.Name)
+		return nil
+	}
+	// Reject updates to anything but the main deployer pod
+	// TODO: Find a way to filter this on the watch side.
+	if pod.Name != deployutil.DeployerPodNameForDeployment(deploymentName) {
 		return nil
 	}
 
-	deployment, deploymentErr := c.deploymentClient.getDeployment(pod.Namespace, deploymentName)
-	if deploymentErr != nil {
-		return fmt.Errorf("couldn't get Deployment %s/%s associated with pod %s/%s", pod.Namespace, deploymentName, pod.Name, pod.Namespace)
+	deployment, err := c.deploymentClient.getDeployment(pod.Namespace, deploymentName)
+	// If the deployment for this pod has disappeared, we should clean up this
+	// and any other deployer pods, then bail out.
+	if err != nil {
+		// Some retrieval error occured. Retry.
+		if !kerrors.IsNotFound(err) {
+			return fmt.Errorf("couldn't get deployment %s/%s which owns deployer pod %s/%s", pod.Namespace, deploymentName, pod.Name, pod.Namespace)
+		}
+		// Find all the deployer pods for the deployment (including this one).
+		deployers, err := c.deployerPodsFor(pod.Namespace, deploymentName)
+		if err != nil {
+			// Retry.
+			return fmt.Errorf("couldn't get deployer pods for %s: %v", deployutil.LabelForDeployment(deployment), err)
+		}
+		// Delete all deployers.
+		for _, deployer := range deployers.Items {
+			err := c.deletePod(deployer.Namespace, deployer.Name)
+			if err != nil {
+				if !kerrors.IsNotFound(err) {
+					// TODO: Should this fire an event?
+					glog.V(2).Infof("Couldn't delete orphaned deployer pod %s/%s: %v", deployer.Namespace, deployer.Name, err)
+				}
+			} else {
+				// TODO: Should this fire an event?
+				glog.V(2).Infof("Deleted orphaned deployer pod %s/%s", deployer.Namespace, deployer.Name)
+			}
+		}
+		return nil
 	}
 
 	currentStatus := deployutil.DeploymentStatusFor(deployment)
