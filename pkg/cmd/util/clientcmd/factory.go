@@ -261,6 +261,7 @@ func expandResourceShortcut(resource string) string {
 	shortForms := map[string]string{
 		"dc":      "deploymentConfigs",
 		"bc":      "buildConfigs",
+		"bl":      "buildLogs",
 		"is":      "imageStreams",
 		"istag":   "imageStreamTags",
 		"isimage": "imageStreamImages",
