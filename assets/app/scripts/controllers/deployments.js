@@ -37,16 +37,8 @@ angular.module('openshiftConsole')
       extractPodTemplates();
       ImageStreamResolver.fetchReferencedImageStreamImages($scope.podTemplates, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);      
       $scope.emptyMessage = "No deployments to show";
+      associateDeploymentsToDeploymentConfig();
       updateFilterWarning();
-
-      $scope.deploymentsByDeploymentConfig = {};
-      angular.forEach($scope.deployments, function(deployment, deploymentName) {
-        var deploymentConfigName = $filter('annotation')(deployment, 'deploymentConfig');
-        if (deploymentConfigName) {
-          $scope.deploymentsByDeploymentConfig[deploymentConfigName] = $scope.deploymentsByDeploymentConfig[deploymentConfigName] || {};
-          $scope.deploymentsByDeploymentConfig[deploymentConfigName][deploymentName] = deployment;
-        }
-      });
 
       Logger.log("deployments (subscribe)", $scope.deployments);
     }));
@@ -69,6 +61,17 @@ angular.module('openshiftConsole')
       Logger.log("builds (subscribe)", $scope.builds);
     }));
 
+    function associateDeploymentsToDeploymentConfig() {
+      $scope.deploymentsByDeploymentConfig = {};
+      angular.forEach($scope.deployments, function(deployment, deploymentName) {
+        var deploymentConfigName = $filter('annotation')(deployment, 'deploymentConfig');
+        if (deploymentConfigName) {
+          $scope.deploymentsByDeploymentConfig[deploymentConfigName] = $scope.deploymentsByDeploymentConfig[deploymentConfigName] || {};
+          $scope.deploymentsByDeploymentConfig[deploymentConfigName][deploymentName] = deployment;
+        }
+      });
+    }
+
     function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.deployments) && !$.isEmptyObject($scope.unfilteredDeployments)) {
         $scope.alerts["deployments"] = {
@@ -85,6 +88,7 @@ angular.module('openshiftConsole')
       // trigger a digest loop
       $scope.$apply(function() {
         $scope.deployments = labelSelector.select($scope.unfilteredDeployments);
+        associateDeploymentsToDeploymentConfig();
         updateFilterWarning();
       });
     });
