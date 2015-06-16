@@ -56,7 +56,7 @@ angular.module("openshiftConsole")
             {
               containerPort: parseInt(parts[0]), 
               name: input.name + "-" + parts[1] + "-" + parts[0],
-              protocol: parts[1]
+              protocol: parts[1].toUpperCase()
             });
         });
         return ports;

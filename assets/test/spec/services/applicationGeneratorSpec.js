@@ -265,7 +265,7 @@ describe("ApplicationGenerator", function(){
                 "ports": [{
                   "port": 80,
                   "targetPort" : 80,
-                  "protocol": "tcp"
+                  "protocol": "TCP"
                 }],
                 "selector": {
                     "deploymentconfig": "ruby-hello-world"
@@ -336,12 +336,12 @@ describe("ApplicationGenerator", function(){
                       {
                         "containerPort": 443,
                         "name": "ruby-hello-world-tcp-443",
-                        "protocol": "tcp"
+                        "protocol": "TCP"
                       },
                       {
                         "containerPort": 80,
                         "name": "ruby-hello-world-tcp-80",
-                        "protocol": "tcp"
+                        "protocol": "TCP"
                       }
                     ],
                     "env" : [
@@ -403,7 +403,7 @@ describe("ApplicationGenerator", function(){
                 "ports": [{
                   "port": 777,
                   "targetPort" : 777,
-                  "protocol": "tcp"
+                  "protocol": "TCP"
                 }],
                 "selector": {
                     "deploymentconfig": "ruby-hello-world"
