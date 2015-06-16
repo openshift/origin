@@ -2,14 +2,18 @@ package admission
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
 
@@ -123,4 +127,23 @@ func TestAdmissionLifecycle(t *testing.T) {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
 
+}
+
+// TestCreatesAllowedDuringNamespaceDeletion checks to make sure that the resources in the whitelist are allowed
+func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
+	config := &origin.MasterConfig{
+		KubeletClientConfig: &kclient.KubeletConfig{},
+	}
+	storageMap := config.GetRestStorage()
+	resources := util.StringSet{}
+
+	for resource := range storageMap {
+		resources.Insert(strings.ToLower(resource))
+	}
+
+	for resource := range recommendedCreatableResources {
+		if !resources.Has(resource) {
+			t.Errorf("recommendedCreatableResources has resource %v, but that resource isn't registered.", resource)
+		}
+	}
 }
