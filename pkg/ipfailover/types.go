@@ -26,12 +26,13 @@ const (
 
 // IPFailoverConfigCmdOptions are options supported by the IP Failover admin command.
 type IPFailoverConfigCmdOptions struct {
-	Type          string
-	ImageTemplate variable.ImageTemplate
-	Credentials   string
-	ServicePort   int
-	Selector      string
-	Create        bool
+	Type           string
+	ImageTemplate  variable.ImageTemplate
+	Credentials    string
+	ServicePort    int
+	Selector       string
+	Create         bool
+	ServiceAccount string
 
 	//  Failover options.
 	VirtualIPs       string
