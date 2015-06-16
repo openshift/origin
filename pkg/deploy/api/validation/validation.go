@@ -25,6 +25,9 @@ func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) fielderrors.Va
 	}
 	allErrs = append(allErrs, validateDeploymentStrategy(&config.Template.Strategy).Prefix("template.strategy")...)
 	allErrs = append(allErrs, validation.ValidateReplicationControllerSpec(&config.Template.ControllerTemplate).Prefix("template.controllerTemplate")...)
+	if config.LatestVersion < 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("latestVersion", config.LatestVersion, "latestVersion cannot be negative"))
+	}
 	return allErrs
 }
 
@@ -32,6 +35,11 @@ func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldCo
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta).Prefix("metadata")...)
 	allErrs = append(allErrs, ValidateDeploymentConfig(newConfig)...)
+	if newConfig.LatestVersion < oldConfig.LatestVersion {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("latestVersion", newConfig.LatestVersion, "latestVersion cannot be decremented"))
+	} else if newConfig.LatestVersion > (oldConfig.LatestVersion + 1) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("latestVersion", newConfig.LatestVersion, "latestVersion can only be incremented by 1"))
+	}
 	return allErrs
 }
 

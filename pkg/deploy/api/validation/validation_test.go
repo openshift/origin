@@ -383,6 +383,55 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 	}
 }
 
+func TestValidateDeploymentConfigUpdate(t *testing.T) {
+	oldConfig := &api.DeploymentConfig{
+		ObjectMeta:    kapi.ObjectMeta{Name: "foo", Namespace: "bar", ResourceVersion: "1"},
+		Triggers:      manualTrigger(),
+		Template:      test.OkDeploymentTemplate(),
+		LatestVersion: 5,
+	}
+	newConfig := &api.DeploymentConfig{
+		ObjectMeta:    kapi.ObjectMeta{Name: "foo", Namespace: "bar", ResourceVersion: "1"},
+		Triggers:      manualTrigger(),
+		Template:      test.OkDeploymentTemplate(),
+		LatestVersion: 3,
+	}
+
+	scenarios := []struct {
+		oldLatestVersion int
+		newLatestVersion int
+	}{
+		{5, 3},
+		{5, 7},
+		{0, -1},
+	}
+
+	for _, values := range scenarios {
+		oldConfig.LatestVersion = values.oldLatestVersion
+		newConfig.LatestVersion = values.newLatestVersion
+		errs := ValidateDeploymentConfigUpdate(newConfig, oldConfig)
+		if len(errs) == 0 {
+			t.Errorf("Expected update failure")
+		}
+		for i := range errs {
+			if errs[i].(*fielderrors.ValidationError).Type != fielderrors.ValidationErrorTypeInvalid {
+				t.Errorf("expected update error to have type %s: %v", fielderrors.ValidationErrorTypeInvalid, errs[i])
+			}
+			if errs[i].(*fielderrors.ValidationError).Field != "latestVersion" {
+				t.Errorf("expected update error to have field %s: %v", "latestVersion", errs[i])
+			}
+		}
+	}
+
+	// testing for a successful update
+	oldConfig.LatestVersion = 5
+	newConfig.LatestVersion = 6
+	errs := ValidateDeploymentConfigUpdate(newConfig, oldConfig)
+	if len(errs) > 0 {
+		t.Errorf("Unexpected update failure")
+	}
+}
+
 func TestValidateDeploymentConfigRollbackOK(t *testing.T) {
 	rollback := &api.DeploymentConfigRollback{
 		Spec: api.DeploymentConfigRollbackSpec{
