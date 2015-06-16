@@ -281,7 +281,7 @@ func (c *FirstContainerReady) Accept(deployment *kapi.ReplicationController) err
 
 	// Start checking for pod updates.
 	glog.V(0).Infof("Waiting for pod %s/%s container readiness", pod.Namespace, pod.Name)
-	return wait.Poll(c.interval, c.timeout, func() (done bool, err error) {
+	err = wait.Poll(c.interval, c.timeout, func() (done bool, err error) {
 		// Get the latest state of the pod.
 		obj, exists, err := podStore.Get(pod)
 		// Try again later on error or if the pod isn't available yet.
@@ -326,4 +326,13 @@ func (c *FirstContainerReady) Accept(deployment *kapi.ReplicationController) err
 		glog.V(4).Infof("Still waiting for pod %s/%s container readiness; observed statuses: #%v", pod.Namespace, pod.Name, observedContainers)
 		return false, nil
 	})
+
+	if err != nil {
+		if err == wait.ErrWaitTimeout {
+			return fmt.Errorf("timed out waiting for pod %s/%s containers to become ready", pod.Namespace, pod.Name)
+		}
+		return fmt.Errorf("pod %s/%s failed readiness check: %v", pod.Namespace, pod.Name, err)
+	}
+
+	return nil
 }

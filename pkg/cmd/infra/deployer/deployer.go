@@ -122,15 +122,15 @@ type Deployer struct {
 // Deploy starts the deployment process for deploymentName.
 func (d *Deployer) Deploy(namespace, deploymentName string) error {
 	// Look up the new deployment.
-	deployment, err := d.getDeployment(namespace, deploymentName)
+	to, err := d.getDeployment(namespace, deploymentName)
 	if err != nil {
 		return fmt.Errorf("couldn't get deployment %s/%s: %v", namespace, deploymentName, err)
 	}
 
 	// Decode the config from the deployment.
-	config, err := deployutil.DecodeDeploymentConfig(deployment, latest.Codec)
+	config, err := deployutil.DecodeDeploymentConfig(to, latest.Codec)
 	if err != nil {
-		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
+		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s/%s: %v", to.Namespace, to.Name, err)
 	}
 
 	// Get a strategy for the deployment.
@@ -140,9 +140,9 @@ func (d *Deployer) Deploy(namespace, deploymentName string) error {
 	}
 
 	// New deployments must have a desired replica count.
-	desiredReplicas, hasDesired := deployutil.DeploymentDesiredReplicas(deployment)
+	desiredReplicas, hasDesired := deployutil.DeploymentDesiredReplicas(to)
 	if !hasDesired {
-		return fmt.Errorf("deployment %s has no desired replica count", deployutil.LabelForDeployment(deployment))
+		return fmt.Errorf("deployment %s has no desired replica count", deployutil.LabelForDeployment(to))
 	}
 
 	// Find all deployments for the config.
@@ -156,28 +156,24 @@ func (d *Deployer) Deploy(namespace, deploymentName string) error {
 	sort.Sort(deployutil.DeploymentsByLatestVersionDesc(deployments))
 
 	// Find any last completed deployment.
-	var lastDeployment *kapi.ReplicationController
+	var from *kapi.ReplicationController
 	for _, candidate := range deployments {
-		if candidate.Name == deployment.Name {
+		if candidate.Name == to.Name {
 			continue
 		}
 		if deployutil.DeploymentStatusFor(&candidate) == deployapi.DeploymentStatusComplete {
-			lastDeployment = &candidate
-			glog.Infof("Picked %s as the last completed deployment", deployutil.LabelForDeployment(&candidate))
+			from = &candidate
 			break
 		}
-	}
-	if lastDeployment == nil {
-		glog.Info("No last completed deployment found")
 	}
 
 	// Scale down any deployments which aren't the new or last deployment.
 	for _, candidate := range deployments {
 		// Skip the from/to deployments.
-		if candidate.Name == deployment.Name {
+		if candidate.Name == to.Name {
 			continue
 		}
-		if lastDeployment != nil && candidate.Name == lastDeployment.Name {
+		if from != nil && candidate.Name == from.Name {
 			continue
 		}
 		// Skip the deployment if it's already scaled down.
@@ -187,12 +183,17 @@ func (d *Deployer) Deploy(namespace, deploymentName string) error {
 		// Scale the deployment down to zero.
 		retryWaitParams := kubectl.NewRetryParams(1*time.Second, 120*time.Second)
 		if err := d.scaler.Scale(candidate.Namespace, candidate.Name, uint(0), &kubectl.ScalePrecondition{-1, ""}, retryWaitParams, retryWaitParams); err != nil {
-			glog.Infof("Couldn't scale down prior deployment %s: %v", deployutil.LabelForDeployment(&candidate), err)
+			glog.Errorf("Couldn't scale down prior deployment %s: %v", deployutil.LabelForDeployment(&candidate), err)
 		} else {
 			glog.Infof("Scaled down prior deployment %s", deployutil.LabelForDeployment(&candidate))
 		}
 	}
 
 	// Perform the deployment.
-	return strategy.Deploy(lastDeployment, deployment, desiredReplicas)
+	if from == nil {
+		glog.Infof("Deploying %s for the first time (replicas: %d)", deployutil.LabelForDeployment(to), desiredReplicas)
+	} else {
+		glog.Infof("Deploying from %s to %s (replicas: %d)", deployutil.LabelForDeployment(from), deployutil.LabelForDeployment(to), desiredReplicas)
+	}
+	return strategy.Deploy(from, to, desiredReplicas)
 }
