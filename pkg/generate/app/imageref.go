@@ -104,7 +104,10 @@ func (g *imageRefGenerator) FromStream(stream *imageapi.ImageStream, tag string)
 		return nil, err
 	}
 
-	if len(tag) == 0 && len(ref.Tag) == 0 {
+	switch {
+	case len(tag) > 0:
+		ref.Tag = tag
+	case len(tag) == 0 && len(ref.Tag) == 0:
 		ref.Tag = imageapi.DefaultImageTag
 	}
 

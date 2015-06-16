@@ -1,6 +1,7 @@
 package app
 
 import (
+	"reflect"
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -254,4 +255,73 @@ func fakeImageStream(name string, supports map[string]string) (*imageapi.ImageSt
 
 	}
 	return stream, images
+}
+
+func TestInputImageFromMatch(t *testing.T) {
+	tests := []struct {
+		name        string
+		match       *ComponentMatch
+		expectedTag string
+		expectedRef string
+	}{
+		{
+			name: "image stream",
+			match: &ComponentMatch{
+				ImageStream: &imageapi.ImageStream{
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "testimage",
+						Namespace: "myns",
+					},
+					Status: imageapi.ImageStreamStatus{
+						DockerImageRepository: "test/imagename",
+					},
+				},
+			},
+			expectedRef: "test/imagename:latest",
+		},
+		{
+			name: "image stream with tag",
+			match: &ComponentMatch{
+				ImageStream: &imageapi.ImageStream{
+					ObjectMeta: kapi.ObjectMeta{
+						Name:      "testimage",
+						Namespace: "myns",
+					},
+					Status: imageapi.ImageStreamStatus{
+						DockerImageRepository: "test/imagename",
+					},
+				},
+				ImageTag: "v2",
+			},
+			expectedRef: "test/imagename:v2",
+		},
+		{
+			name: "docker image",
+			match: &ComponentMatch{
+				Image: &imageapi.DockerImage{},
+				Value: "test/dockerimage",
+			},
+			expectedRef: "test/dockerimage",
+		},
+		{
+			name: "docker image with tag",
+			match: &ComponentMatch{
+				Image: &imageapi.DockerImage{},
+				Value: "test/dockerimage:tag",
+			},
+			expectedRef: "test/dockerimage:tag",
+		},
+	}
+	for _, test := range tests {
+		imgRef, err := InputImageFromMatch(test.match)
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v\n", test.name, err)
+			continue
+		}
+		expectedRef, _ := imageapi.ParseDockerImageReference(test.expectedRef)
+		if !reflect.DeepEqual(imgRef.DockerImageReference, expectedRef) {
+			t.Errorf("%s: unexpected resulting reference: %#v", test.name, imgRef.DockerImageReference)
+		}
+	}
+
 }
