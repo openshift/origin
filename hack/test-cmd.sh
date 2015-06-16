@@ -545,7 +545,6 @@ oc deploy test-deployment-config
 oc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
-oc process -f test/templates/fixtures/guestbook.json --parameters --value="ADMIN_USERNAME=admin"
 oc process -f test/templates/fixtures/guestbook.json -l app=guestbook | oc create -f -
 oc status
 [ "$(oc status | grep frontend-service)" ]
