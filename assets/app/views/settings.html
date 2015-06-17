@@ -12,7 +12,9 @@
         <dd ng-if="project | displayName: true">{{project | displayName: true}}</dd>
         <dd ng-if="!(project | displayName: true)"><em>No display name</em></dd>
         <dt>Description:</dt>
-        <dd ng-if="project | description">{{project | description}}</dd>
+        <dd ng-if="project | description">
+          <truncate-long-text content="project | description" limit="1024" use-word-boundary="true"></truncate-long-text>
+        </dd>
         <dd ng-if="!(project | description)"><em>No description</em></dd>
       </dl>
       <h2>

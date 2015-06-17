@@ -267,20 +267,6 @@ angular.module('openshiftConsole')
       }
     };
   })
-  .filter('provider', function(annotationFilter) {
-    return function(resource) {
-      return annotationFilter(resource, 'provider') ||
-        (resource && resource.metadata && resource.metadata.namespace);
-    };
-  })
-  .filter('imageStreamTagProvider', function(imageStreamTagAnnotationFilter) {
-    // Look up the provider in ImageStream.spec.tags[tag].annotations.
-    // Default to resource.metadata.namespace if no annotation.
-    return function(resource, /* optional */ tagName) {
-      return imageStreamTagAnnotationFilter(resource, 'provider', tagName) ||
-        (resource && resource.metadata && resource.metadata.namespace);
-    };
-  })
   .filter('imageObjectRef', function(){
     return function(objectRef, /* optional */ nsIfUnspecified, shortOutput){
       var ns = objectRef.namespace || nsIfUnspecified || "";
@@ -396,6 +382,43 @@ angular.module('openshiftConsole')
   .filter('projectOverviewURL', function(Navigate) {
     return function(projectName) {
       return Navigate.projectOverviewURL(projectName);
+    };
+  })
+  .filter('createFromSourceURL', function() {
+    return function(projectName, sourceURL) {
+      var createURI = URI.expand("/project/{project}/catalog/images{?q*}", {
+        project: projectName,
+        q: {
+          builderfor: sourceURL
+        }
+      });
+      return createURI.toString();
+    };
+  })
+  .filter('createFromImageURL', function() {
+    return function(imageStream, imageTag, projectName, sourceURL) {
+      var createURI = URI.expand("/project/{project}/create/fromimage{?q*}", {
+        project: projectName,
+        q: {
+          imageName: imageStream.metadata.name,
+          imageTag: imageTag,
+          namespace: imageStream.metadata.namespace,
+          sourceURL: sourceURL
+        }
+      });
+      return createURI.toString();
+    };
+  })
+  .filter('createFromTemplateURL', function() {
+    return function(template, projectName) {
+      var createURI = URI.expand("project/{project}/create/fromtemplate{?q*}", {
+        project: projectName,
+        q: {
+          name: template.metadata.name,
+          namespace: template.metadata.namespace
+        }
+      });
+      return createURI.toString();
     };
   })
   .filter('failureObjectName', function() {

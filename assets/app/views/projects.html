@@ -11,7 +11,9 @@
         <span class="pficon pficon-warning-exclamation"></span>
       </span>
     </h2>
-    <div class="muted" style="margin-top: -5px;" ng-if="project | annotation : 'description'">{{project | annotation : 'description'}}</div>
+    <div class="muted" style="margin-top: -5px;" ng-if="project | description">
+      <truncate-long-text content="project | description" limit="512" use-word-boundary="true"></truncate-long-text>
+    </div>
   </div>
   <div ng-if="emptyMessage && (projects | hashSize) == 0">{{emptyMessage}}</div>
   <div ng-if="canCreate === false" style="margin-top: 10px;">
