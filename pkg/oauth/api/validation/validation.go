@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
@@ -25,6 +26,29 @@ func ValidateTokenName(name string, prefix bool) (bool, string) {
 	return true, ""
 }
 
+func ValidateRedirectURI(redirect string) (bool, string) {
+	if len(redirect) == 0 {
+		return true, ""
+	}
+
+	u, err := url.Parse(redirect)
+	if err != nil {
+		return false, err.Error()
+	}
+	if len(u.Fragment) != 0 {
+		return false, "may not contain a fragment"
+	}
+	for _, s := range strings.Split(u.Path, "/") {
+		if s == "." {
+			return false, "may not contain a path segment of ."
+		}
+		if s == ".." {
+			return false, "may not contain a path segment of .."
+		}
+	}
+	return true, ""
+}
+
 func ValidateAccessToken(accessToken *api.OAuthAccessToken) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
@@ -34,6 +58,9 @@ func ValidateAccessToken(accessToken *api.OAuthAccessToken) fielderrors.Validati
 
 	if len(accessToken.UserUID) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("userUID"))
+	}
+	if ok, msg := ValidateRedirectURI(accessToken.RedirectURI); !ok {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("redirectURI", accessToken.RedirectURI, msg))
 	}
 
 	return allErrs
@@ -49,6 +76,9 @@ func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) fielderrors
 	if len(authorizeToken.UserUID) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("userUID"))
 	}
+	if ok, msg := ValidateRedirectURI(authorizeToken.RedirectURI); !ok {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("redirectURI", authorizeToken.RedirectURI, msg))
+	}
 
 	return allErrs
 }
@@ -57,6 +87,11 @@ func ValidateClient(client *api.OAuthClient) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&client.ObjectMeta, false, validation.NameIsDNSSubdomain).Prefix("metadata")...)
+	for i, redirect := range client.RedirectURIs {
+		if ok, msg := ValidateRedirectURI(redirect); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("redirectURIs[%d]", i), redirect, msg))
+		}
+	}
 
 	return allErrs
 }
