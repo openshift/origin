@@ -11,8 +11,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
-	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -81,7 +79,7 @@ func TestDeniedWithError(t *testing.T) {
 	test.policies = append(test.policies, newAdzePolicies()...)
 	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
-	test.bindings[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
+	test.bindings[0].RoleBindings["missing"] = &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "missing",
 		},
@@ -109,7 +107,7 @@ func TestAllowedWithMissingBinding(t *testing.T) {
 	test.policies = append(test.policies, newAdzePolicies()...)
 	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
-	test.bindings[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
+	test.bindings[0].RoleBindings["missing"] = &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "missing",
 		},
@@ -375,8 +373,8 @@ func TestVerbRestrictionsWork(t *testing.T) {
 func (test *authorizeTest) test(t *testing.T) {
 	policyRegistry := testpolicyregistry.NewPolicyRegistry(test.policies, test.policyRetrievalError)
 	policyBindingRegistry := testpolicyregistry.NewPolicyBindingRegistry(test.bindings, test.bindingRetrievalError)
-	clusterPolicyRegistry := clusterpolicyregistry.NewSimulatedRegistry(testpolicyregistry.NewClusterPolicyRegistry(test.clusterPolicies, test.policyRetrievalError))
-	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(testpolicyregistry.NewClusterPolicyBindingRegistry(test.clusterBindings, test.bindingRetrievalError))
+	clusterPolicyRegistry := testpolicyregistry.NewClusterPolicyRegistry(test.clusterPolicies, test.policyRetrievalError)
+	clusterPolicyBindingRegistry := testpolicyregistry.NewClusterPolicyBindingRegistry(test.clusterBindings, test.bindingRetrievalError)
 	authorizer := NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry), NewForbiddenMessageResolver(""))
 
 	actualAllowed, actualReason, actualError := authorizer.Authorize(test.context, *test.attributes)
@@ -440,7 +438,7 @@ func newDefaultClusterPolicyBindings() []authorizationapi.ClusterPolicyBinding {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: authorizationapi.ClusterPolicyBindingName,
 		},
-		RoleBindings: map[string]authorizationapi.ClusterRoleBinding{
+		RoleBindings: map[string]*authorizationapi.ClusterRoleBinding{
 			"extra-cluster-admins": {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "cluster-admins",
@@ -475,7 +473,7 @@ func newAdzePolicies() []authorizationapi.Policy {
 				Name:      authorizationapi.PolicyName,
 				Namespace: "adze",
 			},
-			Roles: map[string]authorizationapi.Role{
+			Roles: map[string]*authorizationapi.Role{
 				"restrictedViewer": {
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "admin",
@@ -497,7 +495,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 				Name:      authorizationapi.ClusterPolicyBindingName,
 				Namespace: "adze",
 			},
-			RoleBindings: map[string]authorizationapi.RoleBinding{
+			RoleBindings: map[string]*authorizationapi.RoleBinding{
 				"projectAdmins": {
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "projectAdmins",
@@ -535,7 +533,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 				Name:      authorizationapi.GetPolicyBindingName("adze"),
 				Namespace: "adze",
 			},
-			RoleBindings: map[string]authorizationapi.RoleBinding{
+			RoleBindings: map[string]*authorizationapi.RoleBinding{
 				"restrictedViewers": {
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "restrictedViewers",

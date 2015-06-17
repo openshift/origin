@@ -63,7 +63,7 @@ func (m *VirtualStorage) List(ctx kapi.Context, label labels.Selector, field fie
 	for _, policyBinding := range policyBindingList.Items {
 		for _, roleBinding := range policyBinding.RoleBindings {
 			if label.Matches(labels.Set(roleBinding.Labels)) {
-				roleBindingList.Items = append(roleBindingList.Items, roleBinding)
+				roleBindingList.Items = append(roleBindingList.Items, *roleBinding)
 			}
 		}
 	}
@@ -84,7 +84,7 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 	if !exists {
 		return nil, kapierrors.NewNotFound("RoleBinding", name)
 	}
-	return &binding, nil
+	return binding, nil
 }
 
 func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
@@ -145,7 +145,7 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 	}
 
 	roleBinding.ResourceVersion = policyBinding.ResourceVersion
-	policyBinding.RoleBindings[roleBinding.Name] = *roleBinding
+	policyBinding.RoleBindings[roleBinding.Name] = roleBinding
 	policyBinding.LastModified = util.Now()
 
 	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
@@ -200,7 +200,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object,
 	}
 
 	roleBinding.ResourceVersion = policyBinding.ResourceVersion
-	policyBinding.RoleBindings[roleBinding.Name] = *roleBinding
+	policyBinding.RoleBindings[roleBinding.Name] = roleBinding
 	policyBinding.LastModified = util.Now()
 
 	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
@@ -240,7 +240,7 @@ func (m *VirtualStorage) getReferencedRole(roleRef kapi.ObjectReference) (*autho
 		return nil, kapierrors.NewNotFound("Role", roleRef.Name)
 	}
 
-	return &role, nil
+	return role, nil
 }
 
 func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *authorizationapi.RoleBinding) error {
@@ -252,8 +252,8 @@ func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *auth
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		m.PolicyRegistry,
 		m.BindingRegistry,
-		clusterpolicyregistry.NewSimulatedRegistry(m.ClusterPolicyRegistry),
-		clusterpolicybindingregistry.NewSimulatedRegistry(m.ClusterPolicyBindingRegistry),
+		m.ClusterPolicyRegistry,
+		m.ClusterPolicyBindingRegistry,
 	)
 	ownerLocalRules, err := ruleResolver.GetEffectivePolicyRules(ctx)
 	if err != nil {
@@ -299,7 +299,7 @@ func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx kapi.Context, policyNam
 	}
 
 	if policyBinding.RoleBindings == nil {
-		policyBinding.RoleBindings = make(map[string]authorizationapi.RoleBinding)
+		policyBinding.RoleBindings = make(map[string]*authorizationapi.RoleBinding)
 	}
 
 	return policyBinding, nil
@@ -319,7 +319,7 @@ func (m *VirtualStorage) getPolicyBindingForPolicy(ctx kapi.Context, policyNames
 	}
 
 	if policyBinding.RoleBindings == nil {
-		policyBinding.RoleBindings = make(map[string]authorizationapi.RoleBinding)
+		policyBinding.RoleBindings = make(map[string]*authorizationapi.RoleBinding)
 	}
 
 	return policyBinding, nil

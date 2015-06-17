@@ -444,7 +444,7 @@ func newMalletPolicies() []authorizationapi.Policy {
 				Name:      authorizationapi.PolicyName,
 				Namespace: "mallet",
 			},
-			Roles: map[string]authorizationapi.Role{},
+			Roles: map[string]*authorizationapi.Role{},
 		}}
 }
 func newMalletBindings() []authorizationapi.PolicyBinding {
@@ -454,7 +454,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 				Name:      authorizationapi.ClusterPolicyBindingName,
 				Namespace: "mallet",
 			},
-			RoleBindings: map[string]authorizationapi.RoleBinding{
+			RoleBindings: map[string]*authorizationapi.RoleBinding{
 				"projectAdmins": {
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "projectAdmins",
@@ -496,7 +496,7 @@ func newInvalidExtensionPolicies() []authorizationapi.Policy {
 				Name:      authorizationapi.PolicyName,
 				Namespace: "mallet",
 			},
-			Roles: map[string]authorizationapi.Role{
+			Roles: map[string]*authorizationapi.Role{
 				"badExtension": {
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "failure",
@@ -524,7 +524,7 @@ func newInvalidExtensionBindings() []authorizationapi.PolicyBinding {
 				Name:      "mallet",
 				Namespace: "mallet",
 			},
-			RoleBindings: map[string]authorizationapi.RoleBinding{
+			RoleBindings: map[string]*authorizationapi.RoleBinding{
 				"borked": {
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "borked",
@@ -549,11 +549,12 @@ func GetBootstrapPolicy() *authorizationapi.ClusterPolicy {
 			UID:               util.NewUUID(),
 		},
 		LastModified: util.Now(),
-		Roles:        make(map[string]authorizationapi.ClusterRole),
+		Roles:        make(map[string]*authorizationapi.ClusterRole),
 	}
 
-	for _, role := range bootstrappolicy.GetBootstrapClusterRoles() {
-		policy.Roles[role.Name] = role
+	roles := bootstrappolicy.GetBootstrapClusterRoles()
+	for i := range roles {
+		policy.Roles[roles[i].Name] = &roles[i]
 	}
 
 	return policy
@@ -567,11 +568,12 @@ func GetBootstrapPolicyBinding() *authorizationapi.ClusterPolicyBinding {
 			UID:               util.NewUUID(),
 		},
 		LastModified: util.Now(),
-		RoleBindings: make(map[string]authorizationapi.ClusterRoleBinding),
+		RoleBindings: make(map[string]*authorizationapi.ClusterRoleBinding),
 	}
 
-	for _, roleBinding := range bootstrappolicy.GetBootstrapClusterRoleBindings() {
-		policyBinding.RoleBindings[roleBinding.Name] = roleBinding
+	bindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
+	for i := range bindings {
+		policyBinding.RoleBindings[bindings[i].Name] = &bindings[i]
 	}
 
 	return policyBinding

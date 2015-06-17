@@ -94,6 +94,14 @@ func (this *MockReadOnlyPolicyClient) ListPolicyBindings(ctx kapi.Context, label
 	return &authorizationapi.PolicyBindingList{}, nil
 }
 
+func (this *MockReadOnlyPolicyClient) GetClusterPolicy(ctx kapi.Context, name string) (*authorizationapi.ClusterPolicy, error) {
+	return &authorizationapi.ClusterPolicy{}, nil
+}
+
+func (this *MockReadOnlyPolicyClient) ListClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error) {
+	return &authorizationapi.ClusterPolicyBindingList{}, nil
+}
+
 // mockReview implements the Review interface for test cases
 type mockReview struct {
 	users  []string

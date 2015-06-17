@@ -28,10 +28,10 @@ func ToPolicy(in *ClusterPolicy) *Policy {
 	return ret
 }
 
-func ToRoleMap(in map[string]ClusterRole) map[string]Role {
-	ret := map[string]Role{}
+func ToRoleMap(in map[string]*ClusterRole) map[string]*Role {
+	ret := map[string]*Role{}
 	for key, role := range in {
-		ret[key] = *ToRole(&role)
+		ret[key] = ToRole(role)
 	}
 
 	return ret
@@ -80,10 +80,10 @@ func ToClusterPolicy(in *Policy) *ClusterPolicy {
 	return ret
 }
 
-func ToClusterRoleMap(in map[string]Role) map[string]ClusterRole {
-	ret := map[string]ClusterRole{}
+func ToClusterRoleMap(in map[string]*Role) map[string]*ClusterRole {
+	ret := map[string]*ClusterRole{}
 	for key, role := range in {
-		ret[key] = *ToClusterRole(&role)
+		ret[key] = ToClusterRole(role)
 	}
 
 	return ret
@@ -142,10 +142,10 @@ func ToPolicyRef(in kapi.ObjectReference) kapi.ObjectReference {
 	return ret
 }
 
-func ToRoleBindingMap(in map[string]ClusterRoleBinding) map[string]RoleBinding {
-	ret := map[string]RoleBinding{}
+func ToRoleBindingMap(in map[string]*ClusterRoleBinding) map[string]*RoleBinding {
+	ret := map[string]*RoleBinding{}
 	for key, RoleBinding := range in {
-		ret[key] = *ToRoleBinding(&RoleBinding)
+		ret[key] = ToRoleBinding(RoleBinding)
 	}
 
 	return ret
@@ -210,10 +210,10 @@ func ToClusterPolicyRef(in kapi.ObjectReference) kapi.ObjectReference {
 	return ret
 }
 
-func ToClusterRoleBindingMap(in map[string]RoleBinding) map[string]ClusterRoleBinding {
-	ret := map[string]ClusterRoleBinding{}
+func ToClusterRoleBindingMap(in map[string]*RoleBinding) map[string]*ClusterRoleBinding {
+	ret := map[string]*ClusterRoleBinding{}
 	for key, RoleBinding := range in {
-		ret[key] = *ToClusterRoleBinding(&RoleBinding)
+		ret[key] = ToClusterRoleBinding(RoleBinding)
 	}
 
 	return ret

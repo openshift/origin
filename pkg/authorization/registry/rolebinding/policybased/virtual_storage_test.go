@@ -22,7 +22,7 @@ func testNewClusterPolicies() []authorizationapi.ClusterPolicy {
 	return []authorizationapi.ClusterPolicy{
 		{
 			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
-			Roles: map[string]authorizationapi.ClusterRole{
+			Roles: map[string]*authorizationapi.ClusterRole{
 				"cluster-admin": {
 					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admin"},
 					Rules:      []authorizationapi.PolicyRule{{Verbs: util.NewStringSet("*"), Resources: util.NewStringSet("*")}},
@@ -40,7 +40,7 @@ func testNewClusterBindings() []authorizationapi.ClusterPolicyBinding {
 	return []authorizationapi.ClusterPolicyBinding{
 		{
 			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.ClusterPolicyBindingName},
-			RoleBindings: map[string]authorizationapi.ClusterRoleBinding{
+			RoleBindings: map[string]*authorizationapi.ClusterRoleBinding{
 				"cluster-admins": {
 					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admins"},
 					RoleRef:    kapi.ObjectReference{Name: "cluster-admin"},
@@ -54,7 +54,7 @@ func testNewLocalBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
 			ObjectMeta:   kapi.ObjectMeta{Name: authorizationapi.GetPolicyBindingName("unittest"), Namespace: "unittest"},
-			RoleBindings: map[string]authorizationapi.RoleBinding{},
+			RoleBindings: map[string]*authorizationapi.RoleBinding{},
 		},
 	}
 }

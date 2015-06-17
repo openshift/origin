@@ -37,15 +37,15 @@ func (r PolicyRule) String() string {
 	return fmt.Sprintf("PolicyRule{Verbs:%v, Resources:%v, ResourceNames:%v, Restrictions:%v}", r.Verbs.List(), r.Resources.List(), r.ResourceNames.List(), r.AttributeRestrictions)
 }
 
-func getRoleBindingValues(roleBindingMap map[string]RoleBinding) []RoleBinding {
-	ret := []RoleBinding{}
+func getRoleBindingValues(roleBindingMap map[string]*RoleBinding) []*RoleBinding {
+	ret := []*RoleBinding{}
 	for _, currBinding := range roleBindingMap {
 		ret = append(ret, currBinding)
 	}
 
 	return ret
 }
-func SortRoleBindings(roleBindingMap map[string]RoleBinding, reverse bool) []RoleBinding {
+func SortRoleBindings(roleBindingMap map[string]*RoleBinding, reverse bool) []*RoleBinding {
 	roleBindings := getRoleBindingValues(roleBindingMap)
 	if reverse {
 		sort.Sort(sort.Reverse(RoleBindingSorter(roleBindings)))
@@ -68,7 +68,7 @@ func (s PolicyBindingSorter) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-type RoleBindingSorter []RoleBinding
+type RoleBindingSorter []*RoleBinding
 
 func (s RoleBindingSorter) Len() int {
 	return len(s)

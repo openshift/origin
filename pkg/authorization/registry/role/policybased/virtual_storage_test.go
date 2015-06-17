@@ -18,7 +18,7 @@ func testNewClusterPolicies() []authorizationapi.ClusterPolicy {
 	return []authorizationapi.ClusterPolicy{
 		{
 			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName},
-			Roles: map[string]authorizationapi.ClusterRole{
+			Roles: map[string]*authorizationapi.ClusterRole{
 				"cluster-admin": {
 					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admin"},
 					Rules:      []authorizationapi.PolicyRule{{Verbs: util.NewStringSet("*"), Resources: util.NewStringSet("*")}},
@@ -35,7 +35,7 @@ func testNewLocalPolicies() []authorizationapi.Policy {
 	return []authorizationapi.Policy{
 		{
 			ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: "unittest"},
-			Roles:      map[string]authorizationapi.Role{},
+			Roles:      map[string]*authorizationapi.Role{},
 		},
 	}
 }

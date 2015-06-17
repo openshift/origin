@@ -91,7 +91,7 @@ func convert_api_PolicyRule_To_v1beta3_PolicyRule(in *newer.PolicyRule, out *Pol
 
 func convert_v1beta3_Policy_To_api_Policy(in *Policy, out *newer.Policy, s conversion.Scope) error {
 	out.LastModified = in.LastModified
-	out.Roles = make(map[string]newer.Role)
+	out.Roles = make(map[string]*newer.Role)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
@@ -125,7 +125,7 @@ func convert_api_RoleBinding_To_v1beta3_RoleBinding(in *newer.RoleBinding, out *
 
 func convert_v1beta3_PolicyBinding_To_api_PolicyBinding(in *PolicyBinding, out *newer.PolicyBinding, s conversion.Scope) error {
 	out.LastModified = in.LastModified
-	out.RoleBindings = make(map[string]newer.RoleBinding)
+	out.RoleBindings = make(map[string]*newer.RoleBinding)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
@@ -138,7 +138,7 @@ func convert_api_PolicyBinding_To_v1beta3_PolicyBinding(in *newer.PolicyBinding,
 // and now the globals
 func convert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in *ClusterPolicy, out *newer.ClusterPolicy, s conversion.Scope) error {
 	out.LastModified = in.LastModified
-	out.Roles = make(map[string]newer.ClusterRole)
+	out.Roles = make(map[string]*newer.ClusterRole)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
@@ -172,7 +172,7 @@ func convert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding(in *newer.Clus
 
 func convert_v1beta3_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in *ClusterPolicyBinding, out *newer.ClusterPolicyBinding, s conversion.Scope) error {
 	out.LastModified = in.LastModified
-	out.RoleBindings = make(map[string]newer.ClusterRoleBinding)
+	out.RoleBindings = make(map[string]*newer.ClusterRoleBinding)
 	return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 }
 
@@ -202,19 +202,19 @@ func init() {
 		convert_v1beta3_ClusterPolicyBinding_To_api_ClusterPolicyBinding,
 		convert_api_ClusterPolicyBinding_To_v1beta3_ClusterPolicyBinding,
 
-		func(in *[]NamedRoleBinding, out *map[string]newer.RoleBinding, s conversion.Scope) error {
+		func(in *[]NamedRoleBinding, out *map[string]*newer.RoleBinding, s conversion.Scope) error {
 			for _, curr := range *in {
 				newRoleBinding := &newer.RoleBinding{}
 				if err := s.Convert(&curr.RoleBinding, newRoleBinding, 0); err != nil {
 					return err
 				}
-				(*out)[curr.Name] = *newRoleBinding
+				(*out)[curr.Name] = newRoleBinding
 			}
 
 			return nil
 		},
 
-		func(in *map[string]newer.RoleBinding, out *[]NamedRoleBinding, s conversion.Scope) error {
+		func(in *map[string]*newer.RoleBinding, out *[]NamedRoleBinding, s conversion.Scope) error {
 			allKeys := make([]string, 0, len(*in))
 			for key := range *in {
 				allKeys = append(allKeys, key)
@@ -224,7 +224,7 @@ func init() {
 			for _, key := range allKeys {
 				newRoleBinding := (*in)[key]
 				oldRoleBinding := &RoleBinding{}
-				if err := s.Convert(&newRoleBinding, oldRoleBinding, 0); err != nil {
+				if err := s.Convert(newRoleBinding, oldRoleBinding, 0); err != nil {
 					return err
 				}
 
@@ -235,23 +235,23 @@ func init() {
 			return nil
 		},
 
-		func(in *[]NamedClusterRole, out *map[string]newer.ClusterRole, s conversion.Scope) error {
+		func(in *[]NamedClusterRole, out *map[string]*newer.ClusterRole, s conversion.Scope) error {
 			for _, curr := range *in {
 				newRole := &newer.ClusterRole{}
 				if err := s.Convert(&curr.Role, newRole, 0); err != nil {
 					return err
 				}
 				if *out == nil {
-					m := make(map[string]newer.ClusterRole)
+					m := make(map[string]*newer.ClusterRole)
 					*out = m
 				}
-				(*out)[curr.Name] = *newRole
+				(*out)[curr.Name] = newRole
 			}
 
 			return nil
 		},
 
-		func(in *map[string]newer.ClusterRole, out *[]NamedClusterRole, s conversion.Scope) error {
+		func(in *map[string]*newer.ClusterRole, out *[]NamedClusterRole, s conversion.Scope) error {
 			allKeys := make([]string, 0, len(*in))
 			for key := range *in {
 				allKeys = append(allKeys, key)
@@ -261,7 +261,7 @@ func init() {
 			for _, key := range allKeys {
 				newRole := (*in)[key]
 				oldRole := &ClusterRole{}
-				if err := s.Convert(&newRole, oldRole, 0); err != nil {
+				if err := s.Convert(newRole, oldRole, 0); err != nil {
 					return err
 				}
 
@@ -272,19 +272,19 @@ func init() {
 			return nil
 		},
 
-		func(in *[]NamedRole, out *map[string]newer.Role, s conversion.Scope) error {
+		func(in *[]NamedRole, out *map[string]*newer.Role, s conversion.Scope) error {
 			for _, curr := range *in {
 				newRole := &newer.Role{}
 				if err := s.Convert(&curr.Role, newRole, 0); err != nil {
 					return err
 				}
-				(*out)[curr.Name] = *newRole
+				(*out)[curr.Name] = newRole
 			}
 
 			return nil
 		},
 
-		func(in *map[string]newer.Role, out *[]NamedRole, s conversion.Scope) error {
+		func(in *map[string]*newer.Role, out *[]NamedRole, s conversion.Scope) error {
 			allKeys := make([]string, 0, len(*in))
 			for key := range *in {
 				allKeys = append(allKeys, key)
@@ -294,7 +294,7 @@ func init() {
 			for _, key := range allKeys {
 				newRole := (*in)[key]
 				oldRole := &Role{}
-				if err := s.Convert(&newRole, oldRole, 0); err != nil {
+				if err := s.Convert(newRole, oldRole, 0); err != nil {
 					return err
 				}
 
@@ -305,18 +305,18 @@ func init() {
 			return nil
 		},
 
-		func(in *[]NamedClusterRoleBinding, out *map[string]newer.ClusterRoleBinding, s conversion.Scope) error {
+		func(in *[]NamedClusterRoleBinding, out *map[string]*newer.ClusterRoleBinding, s conversion.Scope) error {
 			for _, curr := range *in {
 				newRoleBinding := &newer.ClusterRoleBinding{}
 				if err := s.Convert(&curr.RoleBinding, newRoleBinding, 0); err != nil {
 					return err
 				}
-				(*out)[curr.Name] = *newRoleBinding
+				(*out)[curr.Name] = newRoleBinding
 			}
 
 			return nil
 		},
-		func(in *map[string]newer.ClusterRoleBinding, out *[]NamedClusterRoleBinding, s conversion.Scope) error {
+		func(in *map[string]*newer.ClusterRoleBinding, out *[]NamedClusterRoleBinding, s conversion.Scope) error {
 			allKeys := make([]string, 0, len(*in))
 			for key := range *in {
 				allKeys = append(allKeys, key)
@@ -326,7 +326,7 @@ func init() {
 			for _, key := range allKeys {
 				newRoleBinding := (*in)[key]
 				oldRoleBinding := &ClusterRoleBinding{}
-				if err := s.Convert(&newRoleBinding, oldRoleBinding, 0); err != nil {
+				if err := s.Convert(newRoleBinding, oldRoleBinding, 0); err != nil {
 					return err
 				}
 

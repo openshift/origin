@@ -118,7 +118,7 @@ func (o *RemoveFromProjectOptions) Run() error {
 			currBinding.Groups.Delete(o.Groups...)
 			currBinding.Users.Delete(o.Users...)
 
-			_, err = o.Client.RoleBindings(o.BindingNamespace).Update(&currBinding)
+			_, err = o.Client.RoleBindings(o.BindingNamespace).Update(currBinding)
 			if err != nil {
 				return err
 			}
