@@ -331,7 +331,7 @@ OpenShift integrates the go `pprof` tooling to make it easy to capture CPU and h
   * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof (you can open this in a browser)
 
     # start the server in CPU profiling mode
-    $ OPENSHIFT_PROFIE=cpu sudo ./_output/local/go/bin/openshift start
+    $ OPENSHIFT_PROFILE=cpu sudo ./_output/local/go/bin/openshift start
 
 To view profiles, you use [pprof] which is part of `go tool`.  You must pass the binary you are debugging (for symbols) and a captured pprof.  For instance, to view a `cpu` profile from above, you would run OpenShift to completion, and then run:
 
@@ -371,4 +371,4 @@ Finally, when using the `web` profile mode, you can have the go tool directly fe
     # for a snapshot heap dump at the current time, showing total allocations
     $ go tool pprof --alloc_space ./_output/local/go/bin/openshift http://127.0.0.1:6060/debug/pprof/heap
 
-See [debugging Go programs](https://golang.org/pkg/net/http/pprof/) for more info.  `pprof` has many modes and is very powerful (try `tree`).
+See [debugging Go programs](https://golang.org/pkg/net/http/pprof/) for more info.  `pprof` has many modes and is very powerful (try `tree`) - you can pass a regex to many arguments to limit your results to only those samples that match the regex (basically the function name or the call stack).
