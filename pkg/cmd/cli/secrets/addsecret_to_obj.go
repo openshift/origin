@@ -69,11 +69,11 @@ func NewCmdAddSecret(name, fullName string, f *cmdutil.Factory, out io.Writer) *
 		Long:  fmt.Sprintf(addSecretLong, fullName, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := o.Complete(f, args, typeFlag); err != nil {
-				cmdutil.CheckErr(err)
+				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
 			}
 
 			if err := o.Validate(); err != nil {
-				cmdutil.CheckErr(err)
+				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
 			}
 
 			if err := o.AddSecrets(); err != nil {
