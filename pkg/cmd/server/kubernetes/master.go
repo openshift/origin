@@ -16,17 +16,19 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/nodecontroller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/namespace"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/service"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/host_path"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/nfs"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volumeclaimbinder"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler"
 	_ "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 	schedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api"
 	latestschedulerapi "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/scheduler/factory"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/namespace"
 )
 
 const (
@@ -68,7 +70,26 @@ func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 	glog.Infof("Started Kubernetes Persistent Volume Claim Binder")
 }
 
-func (c *MasterConfig) RunPersistentVolumeClaimRecycler() {
+func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string) {
+
+	hostPathRecycler := &volume.RecyclableVolumeConfig{
+		ImageName: recyclerImageName,
+		Command:   []string{"/usr/share/openshift/scripts/volumes/recycle.sh"},
+		Args:      []string{"/scrub"},
+		Timeout:   int64(60),
+	}
+
+	nfsRecycler := &volume.RecyclableVolumeConfig{
+		ImageName: recyclerImageName,
+		Command:   []string{"/usr/share/openshift/scripts/volumes/recycle.sh"},
+		Args:      []string{"/scrub"},
+		Timeout:   int64(300),
+	}
+
+	allPlugins := []volume.VolumePlugin{}
+	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(hostPathRecycler)...)
+	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(nfsRecycler)...)
+
 	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod, kctrl.ProbeRecyclableVolumePlugins())
 	if err != nil {
 		glog.Fatalf("Could not start PersistentVolumeRecycler: %+v", err)
