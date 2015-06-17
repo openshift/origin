@@ -161,7 +161,7 @@
       "name": "MYSQL_DATABASE",
       "description": "Database name",
       "value": "sampledb"
-    }
+    },
     {
       "name": "MYSQL_ALLOW_EMPTY_PASSWORD",
       "description": "allow empty password?",
