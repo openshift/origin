@@ -1,6 +1,7 @@
 package dockerregistry
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -118,5 +119,88 @@ func TestImage(t *testing.T) {
 	}
 	if !reflect.DeepEqual(other.ContainerConfig.Entrypoint, image.ContainerConfig.Entrypoint) {
 		t.Errorf("unexpected image: %#v", other)
+	}
+}
+
+func TestTokenExpiration(t *testing.T) {
+	var uri *url.URL
+	lastToken := ""
+	tokenIndex := 0
+	validToken := ""
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Docker-Token") == "true" {
+			tokenIndex++
+			lastToken = fmt.Sprintf("token%d", tokenIndex)
+			validToken = lastToken
+			w.Header().Set("X-Docker-Token", lastToken)
+			w.Header().Set("X-Docker-Endpoints", uri.Host)
+			return
+		}
+
+		auth := r.Header.Get("Authorization")
+		parts := strings.Split(auth, " ")
+		token := parts[1]
+		if token != validToken {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+
+		// ImageTags
+		if strings.HasSuffix(r.URL.Path, "/tags") {
+			fmt.Fprintln(w, `{"tag1":"image1"}`)
+		}
+
+		// get tag->image id
+		if strings.HasSuffix(r.URL.Path, "latest") {
+			fmt.Fprintln(w, `"image1"`)
+		}
+
+		// get image json
+		if strings.HasSuffix(r.URL.Path, "json") {
+			fmt.Fprintln(w, `{"id":"image1"}`)
+		}
+	}))
+
+	uri, _ = url.Parse(server.URL)
+	conn, err := NewClient().Connect(uri.Host, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := conn.ImageTags("foo", "bar"); err != nil {
+		t.Fatal(err)
+	}
+
+	// expire token, should get an error
+	validToken = ""
+	if _, err := conn.ImageTags("foo", "bar"); err == nil {
+		t.Fatal("expected error")
+	}
+	// retry, should get a new token
+	if _, err := conn.ImageTags("foo", "bar"); err != nil {
+		t.Fatal(err)
+	}
+
+	// expire token, should get an error
+	validToken = ""
+	if _, err := conn.ImageByTag("foo", "bar", "latest"); err == nil {
+		t.Fatal("expected error")
+	}
+	// retry, should get a new token
+	if _, err := conn.ImageByTag("foo", "bar", "latest"); err != nil {
+		t.Fatal(err)
+	}
+
+	// expire token, should get an error
+	validToken = ""
+	if _, err := conn.ImageByID("foo", "bar", "image1"); err == nil {
+		t.Fatal("expected error")
+	}
+	// retry, should get a new token
+	if _, err := conn.ImageByID("foo", "bar", "image1"); err != nil {
+		t.Fatal(err)
 	}
 }
