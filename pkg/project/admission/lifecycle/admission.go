@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -29,6 +30,7 @@ import (
 	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/project/cache"
@@ -39,13 +41,18 @@ import (
 // need ability to specify a RESTMapper on upstream version
 func init() {
 	admission.RegisterPlugin("OriginNamespaceLifecycle", func(client client.Interface, config io.Reader) (admission.Interface, error) {
-		return NewLifecycle(client)
+		return NewLifecycle(client, recommendedCreatableResources)
 	})
 }
 
 type lifecycle struct {
 	client client.Interface
+
+	// creatableResources is a set of resources that can be created even if the namespace is terminating
+	creatableResources util.StringSet
 }
+
+var recommendedCreatableResources = util.NewStringSet("subjectaccessreviews", "resourceaccessreviews")
 
 // Admit enforces that a namespace must exist in order to associate content with it.
 // Admit enforces that a namespace that is terminating cannot accept new content being associated with it.
@@ -91,7 +98,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
-	if namespace.Status.Phase == kapi.NamespaceTerminating {
+	if namespace.Status.Phase == kapi.NamespaceTerminating && !e.creatableResources.Has(strings.ToLower(a.GetResource())) {
 		return apierrors.NewForbidden(kind, name, fmt.Errorf("Namespace %s is terminating", a.GetNamespace()))
 	}
 
@@ -127,6 +134,6 @@ func (e *lifecycle) Handles(operation admission.Operation) bool {
 	return true
 }
 
-func NewLifecycle(client client.Interface) (admission.Interface, error) {
-	return &lifecycle{client: client}, nil
+func NewLifecycle(client client.Interface, creatableResources util.StringSet) (admission.Interface, error) {
+	return &lifecycle{client: client, creatableResources: creatableResources}, nil
 }
