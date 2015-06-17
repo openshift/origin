@@ -661,7 +661,7 @@ func validatePorts(ports []api.ContainerPort) errs.ValidationErrorList {
 		}
 		if len(port.Protocol) == 0 {
 			pErrs = append(pErrs, errs.NewFieldRequired("protocol"))
-		} else if !supportedPortProtocols.Has(strings.ToUpper(string(port.Protocol))) {
+		} else if !supportedPortProtocols.Has(string(port.Protocol)) {
 			pErrs = append(pErrs, errs.NewFieldNotSupported("protocol", port.Protocol))
 		}
 		allErrs = append(allErrs, pErrs.PrefixIndex(i)...)
@@ -1212,7 +1212,7 @@ func validateServicePort(sp *api.ServicePort, requireName bool, allNames *util.S
 
 	if len(sp.Protocol) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("protocol"))
-	} else if !supportedPortProtocols.Has(strings.ToUpper(string(sp.Protocol))) {
+	} else if !supportedPortProtocols.Has(string(sp.Protocol)) {
 		allErrs = append(allErrs, errs.NewFieldNotSupported("protocol", sp.Protocol))
 	}
 
@@ -1689,7 +1689,7 @@ func validateEndpointPort(port *api.EndpointPort, requireName bool) errs.Validat
 	}
 	if len(port.Protocol) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("protocol"))
-	} else if !supportedPortProtocols.Has(strings.ToUpper(string(port.Protocol))) {
+	} else if !supportedPortProtocols.Has(string(port.Protocol)) {
 		allErrs = append(allErrs, errs.NewFieldNotSupported("protocol", port.Protocol))
 	}
 	return allErrs
