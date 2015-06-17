@@ -42,10 +42,12 @@ angular.module('openshiftConsole')
 
         var deferred = $q.defer();
         var uri = new URI(_oauth_authorize_uri);
+        // Never send a local fragment to remote servers
+        var returnUri = new URI($location.url()).fragment("");
         uri.query({
           client_id: _oauth_client_id,
           response_type: 'token',
-          state: $location.url(),
+          state: returnUri.toString(),
           redirect_uri: _oauth_redirect_uri,
         });
         authLogger.log("RedirectLoginService.login(), redirecting", uri.toString());

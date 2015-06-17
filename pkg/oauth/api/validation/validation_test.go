@@ -8,6 +8,83 @@ import (
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 )
 
+func TestValidateRedirectURI(t *testing.T) {
+	allowed := []string{
+		// Empty allowed
+		"",
+
+		// Non-absolute
+		"server",
+
+		// No protocol
+		"//server",
+
+		// Case insensitive
+		"HTTP://server",
+		"HTTPS://server",
+
+		// Normal paths
+		"https://server",
+		"https://server",
+
+		// With ports
+		"https://server:",
+		"https://server:port",
+
+		// With or without paths, with or without trailing slashes
+		"https://server:port/",
+		"https://server:port/path-segment",
+		"https://server:port/path-segment/",
+
+		// Things that are close to disallowed path segments
+		"https://server:port/...",
+		"https://server:port/.../",
+		"https://server:port/path-segment/...",
+		"https://server:port/path-segment/path.",
+		"https://server:port/path-segment/path./",
+
+		// Double slashes
+		"https://server:port/path-segment//path",
+
+		// Queries
+		"http://server/path?",
+		"http://server/path?query",
+		"http://server/path?query=value",
+
+		// Empty fragments
+		"http://server/path?query=value#",
+	}
+	for i, u := range allowed {
+		ok, msg := ValidateRedirectURI(u)
+		if !ok {
+			t.Errorf("%d expected %q to be allowed, but got error message %q", i, u, msg)
+		}
+	}
+
+	disallowed := []string{
+		// invalid URL
+		"://server:port/",
+
+		// . or .. segments
+		"http://server/.",
+		"http://server/./",
+		"http://server/..",
+		"http://server/../",
+		"http://server/path/..",
+		"http://server/path/../",
+		"http://server/path/../path",
+
+		// Fragments
+		"http://server/path?query#test",
+	}
+	for i, u := range disallowed {
+		ok, _ := ValidateRedirectURI(u)
+		if ok {
+			t.Errorf("%d expected %q to be disallowed", i, u)
+		}
+	}
+}
+
 func TestValidateClientAuthorization(t *testing.T) {
 	errs := ValidateClientAuthorization(&oapi.OAuthClientAuthorization{
 		ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},

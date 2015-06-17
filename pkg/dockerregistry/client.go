@@ -243,6 +243,7 @@ func (c *connection) getRepository(name string) (*repository, error) {
 		}
 		return nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting X-Docker-Token from %s: %v", name, err))
 	}
+	defer resp.Body.Close()
 
 	// if we were redirected, update the base urls
 	c.url.Scheme = resp.Request.URL.Scheme
@@ -274,10 +275,15 @@ func (c *connection) getTags(repo *repository) (map[string]string, error) {
 	if err != nil {
 		return nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting image tags for %s: %v", repo.name, err))
 	}
+	defer resp.Body.Close()
+
 	switch code := resp.StatusCode; {
 	case code == http.StatusNotFound:
 		return nil, errRepositoryNotFound{repo.name}
 	case code >= 300 || resp.StatusCode < 200:
+		// token might have expired - evict repo from cache so we can get a new one on retry
+		delete(c.cached, repo.name)
+
 		return nil, fmt.Errorf("error retrieving tags: server returned %d", resp.StatusCode)
 	}
 	tags := make(map[string]string)
@@ -299,10 +305,15 @@ func (c *connection) getTag(repo *repository, tag, userTag string) (string, erro
 	if err != nil {
 		return "", convertConnectionError(c.url.String(), fmt.Errorf("error getting image id for %s:%s: %v", repo.name, tag, err))
 	}
+	defer resp.Body.Close()
+
 	switch code := resp.StatusCode; {
 	case code == http.StatusNotFound:
 		return "", errTagNotFound{len(userTag) == 0, tag, repo.name}
 	case code >= 300 || resp.StatusCode < 200:
+		// token might have expired - evict repo from cache so we can get a new one on retry
+		delete(c.cached, repo.name)
+
 		return "", fmt.Errorf("error retrieving tag: server returned %d", resp.StatusCode)
 	}
 	var imageID string
@@ -328,6 +339,9 @@ func (c *connection) getImage(repo *repository, image, userTag string) (*docker.
 	case code == http.StatusNotFound:
 		return nil, NewImageNotFoundError(repo.name, image, userTag)
 	case code >= 300 || resp.StatusCode < 200:
+		// token might have expired - evict repo from cache so we can get a new one on retry
+		delete(c.cached, repo.name)
+
 		return nil, fmt.Errorf("error retrieving image %s: server returned %d", req.URL, resp.StatusCode)
 	}
 	defer resp.Body.Close()

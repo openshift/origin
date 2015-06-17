@@ -99,15 +99,15 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.C
 			return nil, nil, err
 		}
 
-		for _, rule := range role.Rules {
+		for _, rule := range role.Rules() {
 			matches, err := attributes.RuleMatches(rule)
 			if err != nil {
 				return nil, nil, err
 			}
 
 			if matches {
-				users.Insert(roleBinding.Users.List()...)
-				groups.Insert(roleBinding.Groups.List()...)
+				users.Insert(roleBinding.Users().List()...)
+				groups.Insert(roleBinding.Groups().List()...)
 			}
 		}
 	}

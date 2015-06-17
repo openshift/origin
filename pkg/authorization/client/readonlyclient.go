@@ -22,4 +22,6 @@ type ReadOnlyPolicyClient interface {
 	// Methods that enable the ReadOnlyPolicyClient to conform to rulevalidation.PolicyGetter and rulevalidation.BindingLister interfaces
 	GetPolicy(ctx kapi.Context, name string) (*authorizationapi.Policy, error)
 	ListPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.PolicyBindingList, error)
+	GetClusterPolicy(ctx kapi.Context, name string) (*authorizationapi.ClusterPolicy, error)
+	ListClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error)
 }

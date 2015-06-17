@@ -319,3 +319,56 @@ OpenShift and Kubernetes integrate with the [Swagger 2.0 API framework](http://s
 and then browse to http://openshift3swagger-claytondev.rhcloud.com (which runs a copy of the Swagger UI that points to localhost:8080 by default).  Expand the operations available on v1beta3 to see the schemas (and to try the API directly).
 
 Note: Hosted API documentation can be found [here](http://docs.openshift.org/latest/rest_api/openshift_v1.html).
+
+
+## Performance debugging
+
+OpenShift integrates the go `pprof` tooling to make it easy to capture CPU and heap dumps for running systems.  The following modes are available for the `openshift` binary (including all the CLI variants):
+
+* `OPENSHIFT_PROFILE` environment variable:
+  * `cpu` - will start a CPU profile on startup and write `./cpu.pprof`.  Contains samples for the entire run at the native sampling resolution (100hz). Note: CPU profiling for Go does not currently work on Mac OS X - the stats are not correctly sampled
+  * `mem` - generate a running heap dump that tracks allocations to `./mem.pprof`
+  * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof (you can open this in a browser)
+
+    # start the server in CPU profiling mode
+    $ OPENSHIFT_PROFIE=cpu sudo ./_output/local/go/bin/openshift start
+
+To view profiles, you use [pprof] which is part of `go tool`.  You must pass the binary you are debugging (for symbols) and a captured pprof.  For instance, to view a `cpu` profile from above, you would run OpenShift to completion, and then run:
+
+    $ go tool pprof ./_output/local/go/bin/openshift cpu.pprof
+
+This will open the `pprof` shell, and you can then run:
+
+    # see the top 20 results
+    (pprof) top20
+
+    # see the top 50 results
+    (pprof) top50
+
+    # show the top20 sorted by cumulative time
+    (pprof) cum=true
+    (pprof) top20
+
+to see the top20 CPU consuming fields or
+
+    (pprof) web
+
+to launch a web browser window showing you where CPU time is going.
+
+`pprof` supports CLI arguments for looking at profiles in different ways - memory profiles by default show allocated space:
+
+    $ go tool pprof ./_output/local/go/bin/openshift mem.pprof
+
+but you can also see the allocated object counts:
+
+    $ go tool pprof --alloc_objects ./_output/local/go/bin/openshift mem.pprof
+
+Finally, when using the `web` profile mode, you can have the go tool directly fetch your profiles via HTTP:
+
+    # for a 30s CPU trace
+    $ go tool pprof ./_output/local/go/bin/openshift http://127.0.0.1:6060/debug/pprof/profile
+
+    # for a snapshot heap dump at the current time, showing total allocations
+    $ go tool pprof --alloc_space ./_output/local/go/bin/openshift http://127.0.0.1:6060/debug/pprof/heap
+
+See [debugging Go programs](https://golang.org/pkg/net/http/pprof/) for more info.  `pprof` has many modes and is very powerful (try `tree`).

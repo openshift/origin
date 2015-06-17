@@ -49,7 +49,7 @@ func (m *VirtualStorage) List(ctx kapi.Context, label labels.Selector, field fie
 	for _, policy := range policyList.Items {
 		for _, role := range policy.Roles {
 			if label.Matches(labels.Set(role.Labels)) {
-				roleList.Items = append(roleList.Items, role)
+				roleList.Items = append(roleList.Items, *role)
 			}
 		}
 	}
@@ -71,7 +71,7 @@ func (m *VirtualStorage) Get(ctx kapi.Context, name string) (runtime.Object, err
 		return nil, kapierrors.NewNotFound("Role", name)
 	}
 
-	return &role, nil
+	return role, nil
 }
 
 // Delete(ctx api.Context, name string) (runtime.Object, error)
@@ -113,7 +113,7 @@ func (m *VirtualStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.O
 	}
 
 	role.ResourceVersion = policy.ResourceVersion
-	policy.Roles[role.Name] = *role
+	policy.Roles[role.Name] = role
 	policy.LastModified = util.Now()
 
 	if err := m.PolicyStorage.UpdatePolicy(ctx, policy); err != nil {
@@ -151,7 +151,7 @@ func (m *VirtualStorage) Update(ctx kapi.Context, obj runtime.Object) (runtime.O
 	}
 
 	role.ResourceVersion = policy.ResourceVersion
-	policy.Roles[role.Name] = *role
+	policy.Roles[role.Name] = role
 	policy.LastModified = util.Now()
 
 	if err := m.PolicyStorage.UpdatePolicy(ctx, policy); err != nil {
@@ -183,7 +183,7 @@ func (m *VirtualStorage) EnsurePolicy(ctx kapi.Context) (*authorizationapi.Polic
 	}
 
 	if policy.Roles == nil {
-		policy.Roles = make(map[string]authorizationapi.Role)
+		policy.Roles = make(map[string]*authorizationapi.Role)
 	}
 
 	return policy, nil
@@ -195,7 +195,7 @@ func NewEmptyPolicy(namespace string) *authorizationapi.Policy {
 	policy.Namespace = namespace
 	policy.CreationTimestamp = util.Now()
 	policy.LastModified = util.Now()
-	policy.Roles = make(map[string]authorizationapi.Role)
+	policy.Roles = make(map[string]*authorizationapi.Role)
 
 	return policy
 }
