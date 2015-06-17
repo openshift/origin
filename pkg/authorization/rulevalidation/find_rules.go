@@ -28,8 +28,8 @@ func NewDefaultRuleResolver(policyGetter PolicyGetter, bindingLister BindingList
 }
 
 type AuthorizationRuleResolver interface {
-	GetRoleBindings(ctx kapi.Context) ([]authorizationapi.RoleBinding, error)
-	GetRole(roleBinding authorizationapi.RoleBinding) (*authorizationapi.Role, error)
+	GetRoleBindings(ctx kapi.Context) ([]*authorizationapi.RoleBinding, error)
+	GetRole(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.Role, error)
 	// GetEffectivePolicyRules returns the list of rules that apply to a given user in a given namespace and error.  If an error is returned, the slice of
 	// PolicyRules may not be complete, but it contains all retrievable rules.  This is done because policy rules are purely additive and policy determinations
 	// can be made on the basis of those rules that are found.
@@ -83,13 +83,13 @@ func (a *DefaultRuleResolver) getPolicyBindings(ctx kapi.Context) ([]authorizati
 	return policyBindingList.Items, nil
 }
 
-func (a *DefaultRuleResolver) GetRoleBindings(ctx kapi.Context) ([]authorizationapi.RoleBinding, error) {
+func (a *DefaultRuleResolver) GetRoleBindings(ctx kapi.Context) ([]*authorizationapi.RoleBinding, error) {
 	policyBindings, err := a.getPolicyBindings(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := make([]authorizationapi.RoleBinding, 0, len(policyBindings))
+	ret := make([]*authorizationapi.RoleBinding, 0, len(policyBindings))
 	for _, policyBinding := range policyBindings {
 		for _, value := range policyBinding.RoleBindings {
 			ret = append(ret, value)
@@ -99,7 +99,7 @@ func (a *DefaultRuleResolver) GetRoleBindings(ctx kapi.Context) ([]authorization
 	return ret, nil
 }
 
-func (a *DefaultRuleResolver) GetRole(roleBinding authorizationapi.RoleBinding) (*authorizationapi.Role, error) {
+func (a *DefaultRuleResolver) GetRole(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.Role, error) {
 	namespace := roleBinding.RoleRef.Namespace
 	name := roleBinding.RoleRef.Name
 
@@ -117,7 +117,7 @@ func (a *DefaultRuleResolver) GetRole(roleBinding authorizationapi.RoleBinding) 
 		return nil, fmt.Errorf("role %#v not found", roleBinding.RoleRef)
 	}
 
-	return &role, nil
+	return role, nil
 }
 
 // GetEffectivePolicyRules returns the list of rules that apply to a given user in a given namespace and error.  If an error is returned, the slice of

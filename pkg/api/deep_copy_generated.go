@@ -35,13 +35,13 @@ func deepCopy_api_ClusterPolicy(in authorizationapi.ClusterPolicy, out *authoriz
 		out.LastModified = newVal.(util.Time)
 	}
 	if in.Roles != nil {
-		out.Roles = make(map[string]authorizationapi.ClusterRole)
+		out.Roles = make(map[string]*authorizationapi.ClusterRole)
 		for key, val := range in.Roles {
-			newVal := new(authorizationapi.ClusterRole)
-			if err := deepCopy_api_ClusterRole(val, newVal, c); err != nil {
+			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
+			} else {
+				out.Roles[key] = newVal.(*authorizationapi.ClusterRole)
 			}
-			out.Roles[key] = *newVal
 		}
 	} else {
 		out.Roles = nil
@@ -71,13 +71,13 @@ func deepCopy_api_ClusterPolicyBinding(in authorizationapi.ClusterPolicyBinding,
 		out.PolicyRef = newVal.(api.ObjectReference)
 	}
 	if in.RoleBindings != nil {
-		out.RoleBindings = make(map[string]authorizationapi.ClusterRoleBinding)
+		out.RoleBindings = make(map[string]*authorizationapi.ClusterRoleBinding)
 		for key, val := range in.RoleBindings {
-			newVal := new(authorizationapi.ClusterRoleBinding)
-			if err := deepCopy_api_ClusterRoleBinding(val, newVal, c); err != nil {
+			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
+			} else {
+				out.RoleBindings[key] = newVal.(*authorizationapi.ClusterRoleBinding)
 			}
-			out.RoleBindings[key] = *newVal
 		}
 	} else {
 		out.RoleBindings = nil
@@ -274,13 +274,13 @@ func deepCopy_api_Policy(in authorizationapi.Policy, out *authorizationapi.Polic
 		out.LastModified = newVal.(util.Time)
 	}
 	if in.Roles != nil {
-		out.Roles = make(map[string]authorizationapi.Role)
+		out.Roles = make(map[string]*authorizationapi.Role)
 		for key, val := range in.Roles {
-			newVal := new(authorizationapi.Role)
-			if err := deepCopy_api_Role(val, newVal, c); err != nil {
+			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
+			} else {
+				out.Roles[key] = newVal.(*authorizationapi.Role)
 			}
-			out.Roles[key] = *newVal
 		}
 	} else {
 		out.Roles = nil
@@ -310,13 +310,13 @@ func deepCopy_api_PolicyBinding(in authorizationapi.PolicyBinding, out *authoriz
 		out.PolicyRef = newVal.(api.ObjectReference)
 	}
 	if in.RoleBindings != nil {
-		out.RoleBindings = make(map[string]authorizationapi.RoleBinding)
+		out.RoleBindings = make(map[string]*authorizationapi.RoleBinding)
 		for key, val := range in.RoleBindings {
-			newVal := new(authorizationapi.RoleBinding)
-			if err := deepCopy_api_RoleBinding(val, newVal, c); err != nil {
+			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
+			} else {
+				out.RoleBindings[key] = newVal.(*authorizationapi.RoleBinding)
 			}
-			out.RoleBindings[key] = *newVal
 		}
 	} else {
 		out.RoleBindings = nil

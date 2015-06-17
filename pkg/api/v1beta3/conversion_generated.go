@@ -170,192 +170,12 @@ func convert_v1beta3_TypeMeta_To_api_TypeMeta(in *v1beta3.TypeMeta, out *api.Typ
 	return nil
 }
 
-func convert_api_ClusterPolicy_To_v1beta3_ClusterPolicy(in *authorizationapi.ClusterPolicy, out *apiv1beta3.ClusterPolicy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterPolicy))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.LastModified, &out.LastModified, 0); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.Roles, &out.Roles, 0); err != nil {
-		return err
-	}
-	return nil
-}
-
-func convert_api_ClusterPolicyBindingList_To_v1beta3_ClusterPolicyBindingList(in *authorizationapi.ClusterPolicyBindingList, out *apiv1beta3.ClusterPolicyBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterPolicyBindingList))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ListMeta_To_v1beta3_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]apiv1beta3.ClusterPolicyBinding, len(in.Items))
-		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_api_ClusterPolicyList_To_v1beta3_ClusterPolicyList(in *authorizationapi.ClusterPolicyList, out *apiv1beta3.ClusterPolicyList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterPolicyList))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ListMeta_To_v1beta3_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]apiv1beta3.ClusterPolicy, len(in.Items))
-		for i := range in.Items {
-			if err := convert_api_ClusterPolicy_To_v1beta3_ClusterPolicy(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_api_ClusterRole_To_v1beta3_ClusterRole(in *authorizationapi.ClusterRole, out *apiv1beta3.ClusterRole, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterRole))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if in.Rules != nil {
-		out.Rules = make([]apiv1beta3.PolicyRule, len(in.Rules))
-		for i := range in.Rules {
-			if err := s.Convert(&in.Rules[i], &out.Rules[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Rules = nil
-	}
-	return nil
-}
-
-func convert_api_ClusterRoleBindingList_To_v1beta3_ClusterRoleBindingList(in *authorizationapi.ClusterRoleBindingList, out *apiv1beta3.ClusterRoleBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterRoleBindingList))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ListMeta_To_v1beta3_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]apiv1beta3.ClusterRoleBinding, len(in.Items))
-		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_api_ClusterRoleList_To_v1beta3_ClusterRoleList(in *authorizationapi.ClusterRoleList, out *apiv1beta3.ClusterRoleList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterRoleList))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ListMeta_To_v1beta3_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]apiv1beta3.ClusterRole, len(in.Items))
-		for i := range in.Items {
-			if err := convert_api_ClusterRole_To_v1beta3_ClusterRole(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
 func convert_api_IsPersonalSubjectAccessReview_To_v1beta3_IsPersonalSubjectAccessReview(in *authorizationapi.IsPersonalSubjectAccessReview, out *apiv1beta3.IsPersonalSubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*authorizationapi.IsPersonalSubjectAccessReview))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
-	}
-	return nil
-}
-
-func convert_api_PolicyBindingList_To_v1beta3_PolicyBindingList(in *authorizationapi.PolicyBindingList, out *apiv1beta3.PolicyBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.PolicyBindingList))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ListMeta_To_v1beta3_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]apiv1beta3.PolicyBinding, len(in.Items))
-		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_api_PolicyList_To_v1beta3_PolicyList(in *authorizationapi.PolicyList, out *apiv1beta3.PolicyList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.PolicyList))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ListMeta_To_v1beta3_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]apiv1beta3.Policy, len(in.Items))
-		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
 	}
 	return nil
 }
@@ -376,75 +196,6 @@ func convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview(in *author
 	return nil
 }
 
-func convert_api_Role_To_v1beta3_Role(in *authorizationapi.Role, out *apiv1beta3.Role, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.Role))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if in.Rules != nil {
-		out.Rules = make([]apiv1beta3.PolicyRule, len(in.Rules))
-		for i := range in.Rules {
-			if err := s.Convert(&in.Rules[i], &out.Rules[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Rules = nil
-	}
-	return nil
-}
-
-func convert_api_RoleBindingList_To_v1beta3_RoleBindingList(in *authorizationapi.RoleBindingList, out *apiv1beta3.RoleBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.RoleBindingList))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ListMeta_To_v1beta3_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]apiv1beta3.RoleBinding, len(in.Items))
-		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_api_RoleList_To_v1beta3_RoleList(in *authorizationapi.RoleList, out *apiv1beta3.RoleList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.RoleList))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ListMeta_To_v1beta3_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]apiv1beta3.Role, len(in.Items))
-		for i := range in.Items {
-			if err := convert_api_Role_To_v1beta3_Role(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
 func convert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewResponse(in *authorizationapi.SubjectAccessReviewResponse, out *apiv1beta3.SubjectAccessReviewResponse, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*authorizationapi.SubjectAccessReviewResponse))(in)
@@ -458,192 +209,12 @@ func convert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewRespo
 	return nil
 }
 
-func convert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(in *apiv1beta3.ClusterPolicy, out *authorizationapi.ClusterPolicy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.ClusterPolicy))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.LastModified, &out.LastModified, 0); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.Roles, &out.Roles, 0); err != nil {
-		return err
-	}
-	return nil
-}
-
-func convert_v1beta3_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *apiv1beta3.ClusterPolicyBindingList, out *authorizationapi.ClusterPolicyBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.ClusterPolicyBindingList))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]authorizationapi.ClusterPolicyBinding, len(in.Items))
-		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_ClusterPolicyList_To_api_ClusterPolicyList(in *apiv1beta3.ClusterPolicyList, out *authorizationapi.ClusterPolicyList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.ClusterPolicyList))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]authorizationapi.ClusterPolicy, len(in.Items))
-		for i := range in.Items {
-			if err := convert_v1beta3_ClusterPolicy_To_api_ClusterPolicy(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_ClusterRole_To_api_ClusterRole(in *apiv1beta3.ClusterRole, out *authorizationapi.ClusterRole, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.ClusterRole))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if in.Rules != nil {
-		out.Rules = make([]authorizationapi.PolicyRule, len(in.Rules))
-		for i := range in.Rules {
-			if err := s.Convert(&in.Rules[i], &out.Rules[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Rules = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *apiv1beta3.ClusterRoleBindingList, out *authorizationapi.ClusterRoleBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.ClusterRoleBindingList))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]authorizationapi.ClusterRoleBinding, len(in.Items))
-		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_ClusterRoleList_To_api_ClusterRoleList(in *apiv1beta3.ClusterRoleList, out *authorizationapi.ClusterRoleList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.ClusterRoleList))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]authorizationapi.ClusterRole, len(in.Items))
-		for i := range in.Items {
-			if err := convert_v1beta3_ClusterRole_To_api_ClusterRole(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
 func convert_v1beta3_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(in *apiv1beta3.IsPersonalSubjectAccessReview, out *authorizationapi.IsPersonalSubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*apiv1beta3.IsPersonalSubjectAccessReview))(in)
 	}
 	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
-	}
-	return nil
-}
-
-func convert_v1beta3_PolicyBindingList_To_api_PolicyBindingList(in *apiv1beta3.PolicyBindingList, out *authorizationapi.PolicyBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.PolicyBindingList))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]authorizationapi.PolicyBinding, len(in.Items))
-		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_PolicyList_To_api_PolicyList(in *apiv1beta3.PolicyList, out *authorizationapi.PolicyList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.PolicyList))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]authorizationapi.Policy, len(in.Items))
-		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
 	}
 	return nil
 }
@@ -661,75 +232,6 @@ func convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview(in *apiv1b
 		return err
 	}
 	out.ResourceName = in.ResourceName
-	return nil
-}
-
-func convert_v1beta3_Role_To_api_Role(in *apiv1beta3.Role, out *authorizationapi.Role, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.Role))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if in.Rules != nil {
-		out.Rules = make([]authorizationapi.PolicyRule, len(in.Rules))
-		for i := range in.Rules {
-			if err := s.Convert(&in.Rules[i], &out.Rules[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Rules = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_RoleBindingList_To_api_RoleBindingList(in *apiv1beta3.RoleBindingList, out *authorizationapi.RoleBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.RoleBindingList))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]authorizationapi.RoleBinding, len(in.Items))
-		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-func convert_v1beta3_RoleList_To_api_RoleList(in *apiv1beta3.RoleList, out *authorizationapi.RoleList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1beta3.RoleList))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1beta3_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]authorizationapi.Role, len(in.Items))
-		for i := range in.Items {
-			if err := convert_v1beta3_Role_To_api_Role(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
 	return nil
 }
 
@@ -2287,12 +1789,6 @@ func init() {
 		convert_api_BuildRequest_To_v1beta3_BuildRequest,
 		convert_api_ClusterNetworkList_To_v1beta3_ClusterNetworkList,
 		convert_api_ClusterNetwork_To_v1beta3_ClusterNetwork,
-		convert_api_ClusterPolicyBindingList_To_v1beta3_ClusterPolicyBindingList,
-		convert_api_ClusterPolicyList_To_v1beta3_ClusterPolicyList,
-		convert_api_ClusterPolicy_To_v1beta3_ClusterPolicy,
-		convert_api_ClusterRoleBindingList_To_v1beta3_ClusterRoleBindingList,
-		convert_api_ClusterRoleList_To_v1beta3_ClusterRoleList,
-		convert_api_ClusterRole_To_v1beta3_ClusterRole,
 		convert_api_DeploymentConfigList_To_v1beta3_DeploymentConfigList,
 		convert_api_DeploymentConfigRollbackSpec_To_v1beta3_DeploymentConfigRollbackSpec,
 		convert_api_DeploymentConfigRollback_To_v1beta3_DeploymentConfigRollback,
@@ -2316,17 +1812,12 @@ func init() {
 		convert_api_ObjectMeta_To_v1beta3_ObjectMeta,
 		convert_api_ObjectReference_To_v1beta3_ObjectReference,
 		convert_api_Parameter_To_v1beta3_Parameter,
-		convert_api_PolicyBindingList_To_v1beta3_PolicyBindingList,
-		convert_api_PolicyList_To_v1beta3_PolicyList,
 		convert_api_ProjectList_To_v1beta3_ProjectList,
 		convert_api_ProjectRequest_To_v1beta3_ProjectRequest,
 		convert_api_ProjectSpec_To_v1beta3_ProjectSpec,
 		convert_api_ProjectStatus_To_v1beta3_ProjectStatus,
 		convert_api_Project_To_v1beta3_Project,
 		convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview,
-		convert_api_RoleBindingList_To_v1beta3_RoleBindingList,
-		convert_api_RoleList_To_v1beta3_RoleList,
-		convert_api_Role_To_v1beta3_Role,
 		convert_api_RouteList_To_v1beta3_RouteList,
 		convert_api_SourceControlUser_To_v1beta3_SourceControlUser,
 		convert_api_SourceRevision_To_v1beta3_SourceRevision,
@@ -2343,12 +1834,6 @@ func init() {
 		convert_v1beta3_BuildRequest_To_api_BuildRequest,
 		convert_v1beta3_ClusterNetworkList_To_api_ClusterNetworkList,
 		convert_v1beta3_ClusterNetwork_To_api_ClusterNetwork,
-		convert_v1beta3_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList,
-		convert_v1beta3_ClusterPolicyList_To_api_ClusterPolicyList,
-		convert_v1beta3_ClusterPolicy_To_api_ClusterPolicy,
-		convert_v1beta3_ClusterRoleBindingList_To_api_ClusterRoleBindingList,
-		convert_v1beta3_ClusterRoleList_To_api_ClusterRoleList,
-		convert_v1beta3_ClusterRole_To_api_ClusterRole,
 		convert_v1beta3_DeploymentConfigList_To_api_DeploymentConfigList,
 		convert_v1beta3_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRollbackSpec,
 		convert_v1beta3_DeploymentConfigRollback_To_api_DeploymentConfigRollback,
@@ -2372,17 +1857,12 @@ func init() {
 		convert_v1beta3_ObjectMeta_To_api_ObjectMeta,
 		convert_v1beta3_ObjectReference_To_api_ObjectReference,
 		convert_v1beta3_Parameter_To_api_Parameter,
-		convert_v1beta3_PolicyBindingList_To_api_PolicyBindingList,
-		convert_v1beta3_PolicyList_To_api_PolicyList,
 		convert_v1beta3_ProjectList_To_api_ProjectList,
 		convert_v1beta3_ProjectRequest_To_api_ProjectRequest,
 		convert_v1beta3_ProjectSpec_To_api_ProjectSpec,
 		convert_v1beta3_ProjectStatus_To_api_ProjectStatus,
 		convert_v1beta3_Project_To_api_Project,
 		convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview,
-		convert_v1beta3_RoleBindingList_To_api_RoleBindingList,
-		convert_v1beta3_RoleList_To_api_RoleList,
-		convert_v1beta3_Role_To_api_Role,
 		convert_v1beta3_RouteList_To_api_RouteList,
 		convert_v1beta3_SourceControlUser_To_api_SourceControlUser,
 		convert_v1beta3_SourceRevision_To_api_SourceRevision,

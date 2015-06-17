@@ -72,7 +72,7 @@ func ValidatePolicy(policy *authorizationapi.Policy, isNamespaced bool) fielderr
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("roles."+roleKey+".metadata.name", role.Name, "must be "+roleKey))
 		}
 
-		allErrs = append(allErrs, ValidateRole(&role, isNamespaced).Prefix("roles."+roleKey)...)
+		allErrs = append(allErrs, ValidateRole(role, isNamespaced).Prefix("roles."+roleKey)...)
 	}
 
 	return allErrs
@@ -134,7 +134,7 @@ func ValidatePolicyBinding(policyBinding *authorizationapi.PolicyBinding, isName
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("roleBindings."+roleBindingKey+".metadata.name", roleBinding.Name, "must be "+roleBindingKey))
 		}
 
-		allErrs = append(allErrs, ValidateRoleBinding(&roleBinding, isNamespaced).Prefix("roleBindings."+roleBindingKey)...)
+		allErrs = append(allErrs, ValidateRoleBinding(roleBinding, isNamespaced).Prefix("roleBindings."+roleBindingKey)...)
 	}
 
 	return allErrs

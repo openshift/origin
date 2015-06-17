@@ -31,10 +31,16 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 	f.Funcs(
 		// Roles and RoleBindings maps are never nil
 		func(j *authorizationapi.Policy, c fuzz.Continue) {
-			j.Roles = make(map[string]authorizationapi.Role)
+			j.Roles = make(map[string]*authorizationapi.Role)
 		},
 		func(j *authorizationapi.PolicyBinding, c fuzz.Continue) {
-			j.RoleBindings = make(map[string]authorizationapi.RoleBinding)
+			j.RoleBindings = make(map[string]*authorizationapi.RoleBinding)
+		},
+		func(j *authorizationapi.ClusterPolicy, c fuzz.Continue) {
+			j.Roles = make(map[string]*authorizationapi.ClusterRole)
+		},
+		func(j *authorizationapi.ClusterPolicyBinding, c fuzz.Continue) {
+			j.RoleBindings = make(map[string]*authorizationapi.ClusterRoleBinding)
 		},
 		func(j *template.Template, c fuzz.Continue) {
 			c.Fuzz(&j.ObjectMeta)

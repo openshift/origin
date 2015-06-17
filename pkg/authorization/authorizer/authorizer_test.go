@@ -81,7 +81,7 @@ func TestDeniedWithError(t *testing.T) {
 	test.policies = append(test.policies, newAdzePolicies()...)
 	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
-	test.bindings[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
+	test.bindings[0].RoleBindings["missing"] = &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "missing",
 		},
@@ -109,7 +109,7 @@ func TestAllowedWithMissingBinding(t *testing.T) {
 	test.policies = append(test.policies, newAdzePolicies()...)
 	test.clusterBindings = newDefaultClusterPolicyBindings()
 	test.bindings = append(test.bindings, newAdzeBindings()...)
-	test.bindings[0].RoleBindings["missing"] = authorizationapi.RoleBinding{
+	test.bindings[0].RoleBindings["missing"] = &authorizationapi.RoleBinding{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "missing",
 		},
@@ -440,7 +440,7 @@ func newDefaultClusterPolicyBindings() []authorizationapi.ClusterPolicyBinding {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: authorizationapi.ClusterPolicyBindingName,
 		},
-		RoleBindings: map[string]authorizationapi.ClusterRoleBinding{
+		RoleBindings: map[string]*authorizationapi.ClusterRoleBinding{
 			"extra-cluster-admins": {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "cluster-admins",
@@ -475,7 +475,7 @@ func newAdzePolicies() []authorizationapi.Policy {
 				Name:      authorizationapi.PolicyName,
 				Namespace: "adze",
 			},
-			Roles: map[string]authorizationapi.Role{
+			Roles: map[string]*authorizationapi.Role{
 				"restrictedViewer": {
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "admin",
@@ -497,7 +497,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 				Name:      authorizationapi.ClusterPolicyBindingName,
 				Namespace: "adze",
 			},
-			RoleBindings: map[string]authorizationapi.RoleBinding{
+			RoleBindings: map[string]*authorizationapi.RoleBinding{
 				"projectAdmins": {
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "projectAdmins",
@@ -535,7 +535,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 				Name:      authorizationapi.GetPolicyBindingName("adze"),
 				Namespace: "adze",
 			},
-			RoleBindings: map[string]authorizationapi.RoleBinding{
+			RoleBindings: map[string]*authorizationapi.RoleBinding{
 				"restrictedViewers": {
 					ObjectMeta: kapi.ObjectMeta{
 						Name:      "restrictedViewers",

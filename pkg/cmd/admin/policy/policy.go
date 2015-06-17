@@ -99,7 +99,7 @@ func (a LocalRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, 
 	for _, currBinding := range existingBindings.RoleBindings {
 		if currBinding.RoleRef.Name == role {
 			t := currBinding
-			ret = append(ret, &t)
+			ret = append(ret, t)
 		}
 	}
 
@@ -155,7 +155,7 @@ func (a ClusterRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace
 	for _, currBinding := range existingBindings.RoleBindings {
 		if currBinding.RoleRef.Name == role {
 			t := currBinding
-			ret = append(ret, &t)
+			ret = append(ret, t)
 		}
 	}
 

@@ -160,7 +160,7 @@ type Policy struct {
 	LastModified util.Time
 
 	// Roles holds all the Roles held by this Policy, mapped by Role.Name
-	Roles map[string]Role
+	Roles map[string]*Role
 }
 
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
@@ -175,7 +175,7 @@ type PolicyBinding struct {
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference
 	// RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
-	RoleBindings map[string]RoleBinding
+	RoleBindings map[string]*RoleBinding
 }
 
 // ResourceAccessReviewResponse describes who can perform the action
@@ -308,7 +308,7 @@ type ClusterPolicy struct {
 	LastModified util.Time
 
 	// Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by Role.Name
-	Roles map[string]ClusterRole
+	Roles map[string]*ClusterRole
 }
 
 // ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
@@ -323,7 +323,7 @@ type ClusterPolicyBinding struct {
 	// ClusterPolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference
 	// RoleBindings holds all the RoleBindings held by this ClusterPolicyBinding, mapped by RoleBinding.Name
-	RoleBindings map[string]ClusterRoleBinding
+	RoleBindings map[string]*ClusterRoleBinding
 }
 
 // ClusterPolicyList is a collection of ClusterPolicies
