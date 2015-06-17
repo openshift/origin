@@ -107,8 +107,8 @@
                     "value": "${MYSQL_DATABASE}"
                   },
                   {
-                    "name": "MYSQL_ROOT_DATABASE",
-                    "value": "${MYSQL_ROOT_DATABASE}"
+                    "name": "MYSQL_ALLOW_EMPTY_PASSWORD",
+                    "value": "${MYSQL_ALLOW_EMPTY_PASSWORD}"
                   }
                 ],
                 "resources": {},
