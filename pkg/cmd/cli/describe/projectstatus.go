@@ -24,6 +24,7 @@ import (
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageedges "github.com/openshift/origin/pkg/image/graph"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -88,6 +89,8 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 		kubeedges.AddExposedPodTemplateSpecEdges(g, service)
 	}
 
+	imageedges.AddAllImageStreamRefEdges(g)
+
 	return g, nil
 }
 
@@ -135,7 +138,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		for _, standaloneBC := range standaloneBCs {
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeStandaloneBuildGroup(standaloneBC, namespace)...)
-			printLines(out, indent, 1, describeAdditionalBuildDetail(standaloneBC.Build, true)...)
+			printLines(out, indent, 1, describeAdditionalBuildDetail(standaloneBC.Build, standaloneBC.DestinationResolved, true)...)
 		}
 
 		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneBCs) == 0) {
@@ -145,12 +148,33 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		} else {
 			fmt.Fprintln(out)
+
+			if hasUnresolvedImageStreamTag(g) {
+				fmt.Fprintln(out, "Warning: Some of your builds are pointing to image streams, but the administrator has not configured the integrated Docker registry (oadm registry).")
+
+			}
 			fmt.Fprintln(out, "To see more, use 'oc describe service <name>' or 'oc describe dc <name>'.")
 			fmt.Fprintln(out, "You can use 'oc get all' to see a list of other objects.")
 		}
 
 		return nil
 	})
+}
+
+// hasUnresolvedImageStreamTag checks all build configs that will output to an IST backed by an ImageStream and checks to make sure their builds can push.
+func hasUnresolvedImageStreamTag(g osgraph.Graph) bool {
+	for _, bcNode := range g.NodesByKind(buildgraph.BuildConfigNodeKind) {
+		for _, istNode := range g.SuccessorNodesByEdgeKind(bcNode, buildedges.BuildOutputEdgeKind) {
+			for _, uncastImageStreamNode := range g.SuccessorNodesByEdgeKind(istNode, imageedges.ReferencedImageStreamGraphEdgeKind) {
+				imageStreamNode := uncastImageStreamNode.(*imagegraph.ImageStreamNode)
+				if len(imageStreamNode.Status.DockerImageRepository) == 0 {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 func printLines(out io.Writer, indent string, depth int, lines ...string) {
@@ -172,7 +196,7 @@ func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline)
 			lines[0] = segments[0] + " <-"
 			lines = append(lines, segments[1])
 		}
-		lines = append(lines, describeAdditionalBuildDetail(deploy.Images[0].Build, includeLastPass)...)
+		lines = append(lines, describeAdditionalBuildDetail(deploy.Images[0].Build, deploy.Images[0].DestinationResolved, includeLastPass)...)
 		lines = append(lines, describeDeployments(deploy.Deployment, 3)...)
 		return lines
 	}
@@ -180,7 +204,7 @@ func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline)
 	lines := []string{fmt.Sprintf("%s deploys: %s", deploy.Deployment.Name, describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 	for _, image := range deploy.Images {
 		lines = append(lines, describeImageInPipeline(image, deploy.Deployment.Namespace))
-		lines = append(lines, describeAdditionalBuildDetail(image.Build, includeLastPass)...)
+		lines = append(lines, describeAdditionalBuildDetail(image.Build, image.DestinationResolved, includeLastPass)...)
 		lines = append(lines, describeDeployments(deploy.Deployment, 3)...)
 	}
 	return lines
@@ -263,7 +287,7 @@ func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.Im
 	}
 }
 
-func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, includeSuccess bool) []string {
+func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, pushTargetResolved bool, includeSuccess bool) []string {
 	if build == nil {
 		return nil
 	}
@@ -281,17 +305,17 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, includeSuc
 	}
 
 	if pass != nil && includeSuccess {
-		out = append(out, describeBuildStatus(pass, &passTime, build.BuildConfig.Name))
+		out = append(out, describeBuildStatus(pass, &passTime, build.BuildConfig.Name, pushTargetResolved))
 	}
 	if fail != nil {
-		out = append(out, describeBuildStatus(fail, &failTime, build.BuildConfig.Name))
+		out = append(out, describeBuildStatus(fail, &failTime, build.BuildConfig.Name, pushTargetResolved))
 	}
 
 	active := build.ActiveBuilds
 	if len(active) > 0 {
 		activeOut := []string{}
 		for i := range active {
-			activeOut = append(activeOut, describeBuildStatus(&active[i], nil, build.BuildConfig.Name))
+			activeOut = append(activeOut, describeBuildStatus(&active[i], nil, build.BuildConfig.Name, pushTargetResolved))
 		}
 
 		if buildTimestamp(&active[0]).Before(last) {
@@ -306,7 +330,13 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, includeSuc
 	return out
 }
 
-func describeBuildStatus(build *buildapi.Build, t *util.Time, parentName string) string {
+func describeBuildStatus(build *buildapi.Build, t *util.Time, parentName string, pushTargetResolved bool) string {
+	imageStreamFailure := ""
+	// if we're using an image stream and that image stream is the internal registry and that registry doesn't exist
+	if (build.Parameters.Output.To != nil) && !pushTargetResolved {
+		imageStreamFailure = " (can't push to image)"
+	}
+
 	if t == nil {
 		ts := buildTimestamp(build)
 		t = &ts
@@ -328,14 +358,14 @@ func describeBuildStatus(build *buildapi.Build, t *util.Time, parentName string)
 	}
 	switch build.Status {
 	case buildapi.BuildStatusComplete:
-		return fmt.Sprintf("build %s succeeded %s ago%s", name, time, revision)
+		return fmt.Sprintf("build %s succeeded %s ago%s%s", name, time, revision, imageStreamFailure)
 	case buildapi.BuildStatusError:
-		return fmt.Sprintf("build %s stopped with an error %s ago%s", name, time, revision)
+		return fmt.Sprintf("build %s stopped with an error %s ago%s%s", name, time, revision, imageStreamFailure)
 	case buildapi.BuildStatusFailed:
-		return fmt.Sprintf("build %s failed %s ago%s", name, time, revision)
+		return fmt.Sprintf("build %s failed %s ago%s%s", name, time, revision, imageStreamFailure)
 	default:
 		status := strings.ToLower(string(build.Status))
-		return fmt.Sprintf("build %s %s for %s%s", name, status, time, revision)
+		return fmt.Sprintf("build %s %s for %s%s%s", name, status, time, revision, imageStreamFailure)
 	}
 }
 
