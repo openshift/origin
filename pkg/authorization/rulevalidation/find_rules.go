@@ -2,7 +2,6 @@ package rulevalidation
 
 import (
 	"errors"
-	"fmt"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
@@ -53,79 +52,76 @@ type ClusterBindingLister interface {
 	ListClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error)
 }
 
-func (a *DefaultRuleResolver) getPolicy(ctx kapi.Context) (authorizationinterfaces.Policy, error) {
-	namespace, _ := kapi.NamespaceFrom(ctx)
-
-	switch {
-	case len(namespace) == 0:
-		t, err := a.clusterPolicyGetter.GetClusterPolicy(ctx, authorizationapi.PolicyName)
-		if err != nil {
-			return nil, err
-		}
-		return authorizationinterfaces.NewClusterPolicyAdapter(t), nil
-	default:
-		t, err := a.policyGetter.GetPolicy(ctx, authorizationapi.PolicyName)
-		if err != nil {
-			return nil, err
-		}
-		return authorizationinterfaces.NewLocalPolicyAdapter(t), nil
-	}
-}
-
-func (a *DefaultRuleResolver) getPolicyBindings(ctx kapi.Context) ([]authorizationinterfaces.PolicyBinding, error) {
-	namespace, _ := kapi.NamespaceFrom(ctx)
-
-	switch {
-	case len(namespace) == 0:
-		t, err := a.clusterBindingLister.ListClusterPolicyBindings(ctx, labels.Everything(), fields.Everything())
-		if err != nil {
-			return nil, err
-		}
-		return authorizationinterfaces.NewClusterPolicyBindingAdapters(t), nil
-	default:
-		t, err := a.bindingLister.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
-		if err != nil {
-			return nil, err
-		}
-		return authorizationinterfaces.NewLocalPolicyBindingAdapters(t), nil
-	}
-}
-
 func (a *DefaultRuleResolver) GetRoleBindings(ctx kapi.Context) ([]authorizationinterfaces.RoleBinding, error) {
-	policyBindings, err := a.getPolicyBindings(ctx)
+	namespace := kapi.NamespaceValue(ctx)
+
+	if len(namespace) == 0 {
+		policyBindingList, err := a.clusterBindingLister.ListClusterPolicyBindings(ctx, labels.Everything(), fields.Everything())
+		if err != nil {
+			return nil, err
+		}
+
+		ret := make([]authorizationinterfaces.RoleBinding, 0, len(policyBindingList.Items))
+		for _, policyBinding := range policyBindingList.Items {
+			for _, value := range policyBinding.RoleBindings {
+				ret = append(ret, authorizationinterfaces.NewClusterRoleBindingAdapter(value))
+			}
+		}
+		return ret, nil
+	}
+
+	policyBindingList, err := a.bindingLister.ListPolicyBindings(ctx, labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
 
-	ret := make([]authorizationinterfaces.RoleBinding, 0, len(policyBindings))
-	for _, policyBinding := range policyBindings {
-		for _, value := range policyBinding.RoleBindings() {
-			ret = append(ret, value)
+	ret := make([]authorizationinterfaces.RoleBinding, 0, len(policyBindingList.Items))
+	for _, policyBinding := range policyBindingList.Items {
+		for _, value := range policyBinding.RoleBindings {
+			ret = append(ret, authorizationinterfaces.NewLocalRoleBindingAdapter(value))
 		}
 	}
-
 	return ret, nil
 }
 
 func (a *DefaultRuleResolver) GetRole(roleBinding authorizationinterfaces.RoleBinding) (authorizationinterfaces.Role, error) {
 	namespace := roleBinding.RoleRef().Namespace
 	name := roleBinding.RoleRef().Name
-
 	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)
-	policy, err := a.getPolicy(ctx)
+
+	if len(namespace) == 0 {
+
+		policy, err := a.clusterPolicyGetter.GetClusterPolicy(ctx, authorizationapi.PolicyName)
+		if kapierror.IsNotFound(err) {
+			return nil, kapierror.NewNotFound("role", name)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		role, exists := policy.Roles[name]
+		if !exists {
+			return nil, kapierror.NewNotFound("role", name)
+		}
+
+		return authorizationinterfaces.NewClusterRoleAdapter(role), nil
+	}
+
+	policy, err := a.policyGetter.GetPolicy(ctx, authorizationapi.PolicyName)
 	if kapierror.IsNotFound(err) {
-		return nil, kapierror.NewNotFound("role", roleBinding.RoleRef().Name)
+		return nil, kapierror.NewNotFound("role", name)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	role, exists := policy.Roles()[name]
+	role, exists := policy.Roles[name]
 	if !exists {
-		return nil, fmt.Errorf("role %#v not found", roleBinding.RoleRef())
+		return nil, kapierror.NewNotFound("role", name)
 	}
 
-	return role, nil
+	return authorizationinterfaces.NewLocalRoleAdapter(role), nil
+
 }
 
 // GetEffectivePolicyRules returns the list of rules that apply to a given user in a given namespace and error.  If an error is returned, the slice of

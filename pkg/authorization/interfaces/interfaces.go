@@ -66,6 +66,20 @@ func NewLocalPolicyBindingAdapters(list *authorizationapi.PolicyBindingList) []P
 	return ret
 }
 
+func NewClusterRoleBindingAdapter(roleBinding *authorizationapi.ClusterRoleBinding) RoleBinding {
+	return ClusterRoleBindingAdapter{roleBinding: roleBinding}
+}
+func NewLocalRoleBindingAdapter(roleBinding *authorizationapi.RoleBinding) RoleBinding {
+	return RoleBindingAdapter{roleBinding: roleBinding}
+}
+
+func NewClusterRoleAdapter(role *authorizationapi.ClusterRole) Role {
+	return ClusterRoleAdapter{role: role}
+}
+func NewLocalRoleAdapter(role *authorizationapi.Role) Role {
+	return RoleAdapter{role: role}
+}
+
 type PolicyAdapter struct {
 	policy *authorizationapi.Policy
 
