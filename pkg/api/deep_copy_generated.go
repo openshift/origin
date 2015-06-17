@@ -174,7 +174,7 @@ func deepCopy_api_ClusterRoleBinding(in authorizationapi.ClusterRoleBinding, out
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Users[key] = newVal.(struct{})
+				out.Users[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
@@ -186,7 +186,7 @@ func deepCopy_api_ClusterRoleBinding(in authorizationapi.ClusterRoleBinding, out
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Groups[key] = newVal.(struct{})
+				out.Groups[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
@@ -379,7 +379,7 @@ func deepCopy_api_PolicyRule(in authorizationapi.PolicyRule, out *authorizationa
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Verbs[key] = newVal.(struct{})
+				out.Verbs[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
@@ -396,7 +396,7 @@ func deepCopy_api_PolicyRule(in authorizationapi.PolicyRule, out *authorizationa
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Resources[key] = newVal.(struct{})
+				out.Resources[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
@@ -408,7 +408,7 @@ func deepCopy_api_PolicyRule(in authorizationapi.PolicyRule, out *authorizationa
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.ResourceNames[key] = newVal.(struct{})
+				out.ResourceNames[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
@@ -420,7 +420,7 @@ func deepCopy_api_PolicyRule(in authorizationapi.PolicyRule, out *authorizationa
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.NonResourceURLs[key] = newVal.(struct{})
+				out.NonResourceURLs[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
@@ -459,7 +459,7 @@ func deepCopy_api_ResourceAccessReviewResponse(in authorizationapi.ResourceAcces
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Users[key] = newVal.(struct{})
+				out.Users[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
@@ -471,7 +471,7 @@ func deepCopy_api_ResourceAccessReviewResponse(in authorizationapi.ResourceAcces
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Groups[key] = newVal.(struct{})
+				out.Groups[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
@@ -521,7 +521,7 @@ func deepCopy_api_RoleBinding(in authorizationapi.RoleBinding, out *authorizatio
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Users[key] = newVal.(struct{})
+				out.Users[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
@@ -533,7 +533,7 @@ func deepCopy_api_RoleBinding(in authorizationapi.RoleBinding, out *authorizatio
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Groups[key] = newVal.(struct{})
+				out.Groups[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
@@ -610,7 +610,7 @@ func deepCopy_api_SubjectAccessReview(in authorizationapi.SubjectAccessReview, o
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Groups[key] = newVal.(struct{})
+				out.Groups[key] = newVal.(util.Empty)
 			}
 		}
 	} else {
