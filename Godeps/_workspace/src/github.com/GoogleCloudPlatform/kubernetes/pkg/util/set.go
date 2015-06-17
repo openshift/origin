@@ -21,10 +21,11 @@ import (
 	"sort"
 )
 
-type empty struct{}
+// Empty is public to allow deep copy generation on StringSet
+type Empty struct{}
 
 // StringSet is a set of strings, implemented via map[string]struct{} for minimal memory consumption.
-type StringSet map[string]empty
+type StringSet map[string]Empty
 
 // NewStringSet creates a StringSet from a list of values.
 func NewStringSet(items ...string) StringSet {
@@ -48,7 +49,7 @@ func KeySet(theMap reflect.Value) StringSet {
 // Insert adds items to the set.
 func (s StringSet) Insert(items ...string) {
 	for _, item := range items {
-		s[item] = empty{}
+		s[item] = Empty{}
 	}
 }
 
