@@ -2,7 +2,7 @@
   "kind": "Template",
   "apiVersion": "v1beta3",
   "metadata": {
-    "name": "mysql-ephemeral",
+    "name": "mysql-ephemeral-rettori",
     "creationTimestamp": null,
     "annotations": {
       "description": "MySQL database service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
@@ -161,6 +161,11 @@
       "name": "MYSQL_DATABASE",
       "description": "Database name",
       "value": "sampledb"
+    }
+    {
+      "name": "MYSQL_ALLOW_EMPTY_PASSWORD",
+      "description": "allow empty password?",
+      "value": "true"
     }
   ],
   "labels": {
