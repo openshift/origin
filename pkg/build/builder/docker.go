@@ -184,22 +184,32 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 
 	envVars := getBuildEnvVars(d.build)
-	first := true
-	for k, v := range envVars {
-		if first {
-			newFileData += fmt.Sprintf("ENV %s=\"%s\"", k, v)
-			first = false
-		} else {
-			newFileData += fmt.Sprintf(" \\\n\t%s=\"%s\"", k, v)
-		}
-	}
-	newFileData += "\n"
+	newFileData = appendEnvVars(newFileData, envVars)
 
 	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// appendEnvVars appends environment variables to a string containing
+// a valid Dockerfile
+func appendEnvVars(fileData string, envVars map[string]string) string {
+	if !strings.HasSuffix(fileData, "\n") {
+		fileData += "\n"
+	}
+	first := true
+	for k, v := range envVars {
+		if first {
+			fileData += fmt.Sprintf("ENV %s=\"%s\"", k, v)
+			first = false
+		} else {
+			fileData += fmt.Sprintf(" \\\n\t%s=\"%s\"", k, v)
+		}
+	}
+	fileData += "\n"
+	return fileData
 }
 
 // invalidCmdErr represents an error returned from replaceValidCmd

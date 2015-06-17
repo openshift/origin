@@ -151,6 +151,12 @@ func TestTraverseAST(t *testing.T) {
 			expected: 1,
 		},
 		{
+			name:     "dockerFile no newline",
+			cmd:      dockercmd.Entrypoint,
+			fileData: []byte(dockerFileNoNewline),
+			expected: 1,
+		},
+		{
 			name:     "expectedFROM",
 			cmd:      dockercmd.From,
 			fileData: []byte(expectedFROM),
@@ -185,6 +191,35 @@ func TestTraverseAST(t *testing.T) {
 	}
 }
 
+func TestAppendEnvVars(t *testing.T) {
+	tests := []struct {
+		name       string
+		dockerFile string
+		envVars    map[string]string
+		expected   string
+	}{
+		{
+			name:       "regular dockerFile",
+			dockerFile: dockerFile,
+			envVars:    map[string]string{"VAR1": "value1"},
+			expected:   dockerFile + "ENV VAR1=\"value1\"\n",
+		},
+		{
+			name:       "dockerFile with no newline",
+			dockerFile: dockerFileNoNewline,
+			envVars:    map[string]string{"VAR1": "value1"},
+			expected:   dockerFileNoNewline + "\nENV VAR1=\"value1\"\n",
+		},
+	}
+
+	for _, test := range tests {
+		result := appendEnvVars(test.dockerFile, test.envVars)
+		if result != test.expected {
+			t.Errorf("%s: unexpected result.\n\tExpected: %s\n\tGot: %s\n", test.name, test.expected, result)
+		}
+	}
+}
+
 const (
 	dockerFile = `
 FROM openshift/origin-base
@@ -199,6 +234,18 @@ ENV HOME /root
 WORKDIR /var/lib/openshift
 ENTRYPOINT ["/usr/bin/openshift"]
 `
+	dockerFileNoNewline = `
+FROM openshift/origin-base
+FROM candidate
+
+RUN mkdir -p /var/lib/openshift
+
+ADD bin/openshift        /usr/bin/openshift
+RUN ln -s /usr/bin/openshift /usr/bin/oc && \
+
+ENV HOME /root
+WORKDIR /var/lib/openshift
+ENTRYPOINT ["/usr/bin/openshift"]`
 
 	expectedFROM = `
 FROM openshift/origin-base
@@ -217,13 +264,12 @@ ENTRYPOINT ["/usr/bin/openshift"]
 	trSlashFile = `
 from \
 centos
-CMD "cat /etc/passwd"
-`
+CMD "cat /etc/passwd"`
+
 	expectedtrSlashFile = `
 from \
 rhel
-CMD "cat /etc/passwd"
-`
+CMD "cat /etc/passwd"`
 
 	trickierFile = `
 from centos \
