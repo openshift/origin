@@ -52,6 +52,9 @@ func TestPolicyBasedRestrictionOfBuildStrategies(t *testing.T) {
 	if err := addJoe.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
+	if err := testutil.WaitForPolicyUpdate(joeClient, namespace, "create", authorizationapi.DockerBuildResource, true); err != nil {
+		t.Error(err)
+	}
 
 	// by default admins and editors can create all type of builds
 	_, err = createDockerBuild(t, haroldClient.Builds(namespace))
@@ -83,7 +86,14 @@ func TestPolicyBasedRestrictionOfBuildStrategies(t *testing.T) {
 
 	// remove resources from role so that certain build strategies are forbidden
 	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.EditRoleName)
+	if err := testutil.WaitForPolicyUpdate(joeClient, namespace, "create", authorizationapi.DockerBuildResource, false); err != nil {
+		t.Error(err)
+	}
+
 	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.AdminRoleName)
+	if err := testutil.WaitForPolicyUpdate(haroldClient, namespace, "create", authorizationapi.DockerBuildResource, false); err != nil {
+		t.Error(err)
+	}
 
 	// make sure builds are rejected
 	if _, err = createDockerBuild(t, haroldClient.Builds(namespace)); !kapierror.IsForbidden(err) {
@@ -189,6 +199,9 @@ func TestPolicyBasedRestrictionOfBuildConfigStrategies(t *testing.T) {
 	if err := addJoe.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
+	if err := testutil.WaitForPolicyUpdate(joeClient, namespace, "create", authorizationapi.DockerBuildResource, true); err != nil {
+		t.Error(err)
+	}
 
 	// by default admins and editors can create all type of buildconfigs
 	_, err = createDockerBuildConfig(t, haroldClient.BuildConfigs(namespace))
@@ -220,7 +233,14 @@ func TestPolicyBasedRestrictionOfBuildConfigStrategies(t *testing.T) {
 
 	// remove resources from role so that certain build strategies are forbidden
 	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.EditRoleName)
+	if err := testutil.WaitForPolicyUpdate(joeClient, namespace, "create", authorizationapi.DockerBuildResource, false); err != nil {
+		t.Error(err)
+	}
+
 	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.AdminRoleName)
+	if err := testutil.WaitForPolicyUpdate(haroldClient, namespace, "create", authorizationapi.DockerBuildResource, false); err != nil {
+		t.Error(err)
+	}
 
 	// make sure buildconfigs are rejected
 	if _, err = createDockerBuildConfig(t, haroldClient.BuildConfigs(namespace)); !kapierror.IsForbidden(err) {
