@@ -203,7 +203,7 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 		err = fmt.Errorf("unknown storage medium %q", ed.medium)
 	}
 
-	if err != nil {
+	if err == nil {
 		volumeutil.SetReady(ed.getMetaDir())
 	}
 
@@ -322,7 +322,7 @@ func (ed *emptyDir) setupDir(dir, rootContext string) error {
 
 	// Set the context on the directory, if appropriate
 	if rootContext != "" {
-		glog.Infof("Setting rootContext for %v to %v", dir, rootContext)
+		glog.V(3).Infof("Setting rootContext for %v to %v", dir, rootContext)
 		return ed.chconRunner.SetContext(dir, rootContext)
 	}
 
