@@ -72,8 +72,8 @@ func ValidateHTTPServingInfo(info api.HTTPServingInfo) fielderrors.ValidationErr
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("maxRequestsInFlight", info.MaxRequestsInFlight, "must be zero (no limit) or greater"))
 	}
 
-	if info.RequestTimeoutSeconds < 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("requestTimeoutSeconds", info.RequestTimeoutSeconds, "must be zero (no limit) or greater"))
+	if info.RequestTimeoutSeconds < -1 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("requestTimeoutSeconds", info.RequestTimeoutSeconds, "must be -1 (no timeout), 0 (default timeout), or greater"))
 	}
 
 	return allErrs
