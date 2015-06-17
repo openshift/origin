@@ -252,8 +252,8 @@ func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *auth
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		m.PolicyRegistry,
 		m.BindingRegistry,
-		clusterpolicyregistry.NewSimulatedRegistry(m.ClusterPolicyRegistry),
-		clusterpolicybindingregistry.NewSimulatedRegistry(m.ClusterPolicyBindingRegistry),
+		m.ClusterPolicyRegistry,
+		m.ClusterPolicyBindingRegistry,
 	)
 	ownerLocalRules, err := ruleResolver.GetEffectivePolicyRules(ctx)
 	if err != nil {

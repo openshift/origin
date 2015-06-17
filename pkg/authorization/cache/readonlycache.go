@@ -139,3 +139,21 @@ func (c readOnlyAuthorizationCache) ListPolicyBindings(ctx kapi.Context, label l
 		return policyBindingList, nil
 	}
 }
+
+// GetPolicy retrieves a specific policy.  It conforms to rulevalidation.PolicyGetter.
+func (c readOnlyAuthorizationCache) GetClusterPolicy(ctx kapi.Context, name string) (*authorizationapi.ClusterPolicy, error) {
+	clusterPolicy, err := c.ReadOnlyClusterPolicies().Get(name)
+	if err != nil {
+		return &authorizationapi.ClusterPolicy{}, err
+	}
+	return clusterPolicy, nil
+}
+
+// ListPolicyBindings obtains list of policyBindings that match a selector.  It conforms to rulevalidation.BindingLister
+func (c readOnlyAuthorizationCache) ListClusterPolicyBindings(ctx kapi.Context, label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error) {
+	clusterPolicyBindingList, err := c.ReadOnlyClusterPolicyBindings().List(label, field)
+	if err != nil {
+		return &authorizationapi.ClusterPolicyBindingList{}, err
+	}
+	return clusterPolicyBindingList, nil
+}

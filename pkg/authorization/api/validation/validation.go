@@ -68,6 +68,10 @@ func ValidatePolicy(policy *authorizationapi.Policy, isNamespaced bool) fielderr
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&policy.ObjectMeta, isNamespaced, ValidatePolicyName).Prefix("metadata")...)
 
 	for roleKey, role := range policy.Roles {
+		if role == nil {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("roles."+roleKey))
+		}
+
 		if roleKey != role.Name {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("roles."+roleKey+".metadata.name", role.Name, "must be "+roleKey))
 		}
@@ -126,6 +130,10 @@ func ValidatePolicyBinding(policyBinding *authorizationapi.PolicyBinding, isName
 	}
 
 	for roleBindingKey, roleBinding := range policyBinding.RoleBindings {
+		if roleBinding == nil {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("roleBindings."+roleBindingKey))
+		}
+
 		if roleBinding.RoleRef.Namespace != policyBinding.PolicyRef.Namespace {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("roleBindings."+roleBindingKey+".roleRef.namespace", policyBinding.PolicyRef.Namespace, "must be "+policyBinding.PolicyRef.Namespace))
 		}
