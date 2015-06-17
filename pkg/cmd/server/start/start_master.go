@@ -413,7 +413,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 				kubeConfig.RunEndpointController()
 				kubeConfig.RunNamespaceController()
 				kubeConfig.RunPersistentVolumeClaimBinder()
-				kubeConfig.RunPersistentVolumeClaimRecycler()
+				kubeConfig.RunPersistentVolumeClaimRecycler(openshiftConfig.ImageFor("deployer"))
 			}
 
 			// no special order

@@ -19,6 +19,8 @@ RUN ln -s /usr/bin/openshift /usr/bin/oc && \
     ln -s /usr/bin/openshift /usr/bin/openshift-sti-build && \
     ln -s /usr/bin/openshift /usr/bin/openshift-router
 
+ADD scripts/recycler.sh /usr/share/openshift/scripts/volumes/recycler.sh
+
 ENV HOME /root
 ENV OPENSHIFT_CONTAINERIZED true
 ENV KUBECONFIG /var/lib/openshift/openshift.local.config/master/admin.kubeconfig
