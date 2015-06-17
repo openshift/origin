@@ -175,7 +175,7 @@ func (cephfsVolume *cephfs) TearDownAt(dir string) error {
 
 func (cephfsVolume *cephfs) cleanup(dir string) error {
 	mountpoint, err := cephfsVolume.mounter.IsMountPoint(dir)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("CephFS: Error checking IsMountPoint: %v", err)
 	}
 	if !mountpoint {
