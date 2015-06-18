@@ -213,6 +213,10 @@ func NewPodWatch(client kclient.Interface, namespace, name, resourceVersion stri
 	}
 }
 
+// NewFirstContainerReady makes a FirstContainerReady from a kube client.
+//
+// FirstContainerReady will poll for pod readiness every interval until
+// timeout.
 func NewFirstContainerReady(kclient kclient.Interface, timeout time.Duration, interval time.Duration) *FirstContainerReady {
 	return &FirstContainerReady{
 		timeout:  timeout,
@@ -239,13 +243,26 @@ func NewFirstContainerReady(kclient kclient.Interface, timeout time.Duration, in
 	}
 }
 
+// FirstContainerReady is an UpdateAcceptor which waits for all containers in
+// the controller spec to be observed as ready at least once before accepting
+// the controller.
+//
+// Containers may become ready and then become not ready. If a container is
+// ever observed as ready, the container is considered ready even if it
+// becomes not ready later.
 type FirstContainerReady struct {
+	// podsForDeployment returns a list of pods owned by the controller.
 	podsForDeployment func(*kapi.ReplicationController) (*kapi.PodList, error)
-	getPodStore       func(namespace, name string) (cache.Store, chan struct{})
-	timeout           time.Duration
-	interval          time.Duration
+	// getPodStore should return a Store containing just the named pod for
+	// polling.
+	getPodStore func(namespace, name string) (cache.Store, chan struct{})
+	// timeout is how long to wait for the pod's containers to become ready.
+	timeout time.Duration
+	// interval is how often to poll the pod's containers for readiness.
+	interval time.Duration
 }
 
+// Accept implements UpdateAcceptor.
 func (c *FirstContainerReady) Accept(deployment *kapi.ReplicationController) error {
 	// For now, only validate the first replica.
 	if deployment.Spec.Replicas != 1 {
