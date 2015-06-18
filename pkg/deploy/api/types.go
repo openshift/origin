@@ -124,6 +124,15 @@ type RollingDeploymentStrategyParams struct {
 	Post *LifecycleHook `json:"post,omitempty" description:"a hook executed after the strategy finishes the deployment"`
 }
 
+const (
+	// DefaultRollingTimeoutSeconds is the default TimeoutSeconds for RollingDeploymentStrategyParams.
+	DefaultRollingTimeoutSeconds int64 = 10 * 60
+	// DefaultRollingIntervalSeconds is the default IntervalSeconds for RollingDeploymentStrategyParams.
+	DefaultRollingIntervalSeconds int64 = 1
+	// DefaultRollingUpdatePeriodSeconds is the default PeriodSeconds for RollingDeploymentStrategyParams.
+	DefaultRollingUpdatePeriodSeconds int64 = 1
+)
+
 // These constants represent keys used for correlating objects related to deployments.
 const (
 	// DeploymentConfigAnnotation is an annotation name used to correlate a deployment with the

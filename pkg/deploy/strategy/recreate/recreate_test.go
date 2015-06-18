@@ -182,8 +182,10 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 		scaler: scaler,
 	}
 
+	acceptorCalled := false
 	acceptor := &testAcceptor{
 		acceptFn: func(deployment *kapi.ReplicationController) error {
+			acceptorCalled = true
 			return nil
 		},
 	}
@@ -192,6 +194,10 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 	err := strategy.DeployWithAcceptor(nil, deployment, 2, acceptor)
 	if err != nil {
 		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if !acceptorCalled {
+		t.Fatalf("expected acceptor to be called")
 	}
 
 	if e, a := 2, len(scaler.Events); e != a {
