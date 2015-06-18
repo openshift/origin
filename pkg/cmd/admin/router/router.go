@@ -287,6 +287,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 							Spec: kapi.PodSpec{
 								ServiceAccount: cfg.ServiceAccount,
 								NodeSelector:   nodeSelector,
+								HostNetwork:    true,
 								Containers: []kapi.Container{
 									{
 										Name:  "router",
