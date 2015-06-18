@@ -63,6 +63,12 @@ pushd ${OS_ROOT}/assets > /dev/null
   cmd "mkdir -p openshift-jvm"
   unset CURL_CA_BUNDLE
   curl -s https://codeload.github.com/hawtio/openshift-jvm/tar.gz/${OPENSHIFT_JVM_VERSION}-build | tar -xz -C openshift-jvm --strip-components=1
+
+  indexHtml='openshift-jvm/index.html'
+
+  # TODO Check and make sure these replacements made it into openshift-jvm/index.html
+  sed -i 's/img\/logo-origin-thin\.svg/..\/images\/logo-enterprise-thin\.svg/' $indexHtml
+  sed -i 's/<title>openshift-jvm<\/title>/<title>OpenShift Enterprise JVM Console<\/title>/' $indexHtml
 popd > /dev/null
 
 pushd ${OS_ROOT}/Godeps/_workspace > /dev/null
