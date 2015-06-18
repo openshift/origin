@@ -26,7 +26,7 @@ Setup() {
 
     pid=$(docker inspect --format "{{.State.Pid}}" ${net_container})
     network_mode=$(docker inspect --format "{{.HostConfig.NetworkMode}}" ${net_container})
-    if [ "$network_mode"=="host" ]; then
+    if [ "${network_mode}" == "host" ]; then
       # quit, nothing for the SDN here
       exit 0
     fi
@@ -54,7 +54,7 @@ Teardown() {
 
     pid=$(docker inspect --format "{{.State.Pid}}" ${net_container})
     network_mode=$(docker inspect --format "{{.HostConfig.NetworkMode}}" ${net_container})
-    if [ "$network_mode"=="host" ]; then
+    if [ "${network_mode}" == "host" ]; then
       # quit, nothing for the SDN here
       exit 0
     fi
