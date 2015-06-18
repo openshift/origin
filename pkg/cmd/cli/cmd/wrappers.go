@@ -237,11 +237,11 @@ Scale also allows users to specify one or more preconditions for the scale actio
 If --current-replicas or --resource-version is specified, it is validated before the
 scale is attempted, and it is guaranteed that the precondition holds true when the
 scale is sent to the server.`
-	scaleExample = `// Scale replication controller named 'foo' to 3.
-$ %[1]s scale --replicas=3 replicationcontrollers foo
+	scaleExample = `  // Scale replication controller named 'foo' to 3.
+  $ %[1]s scale --replicas=3 replicationcontrollers foo
 
-// If the replication controller named foo's current size is 2, scale foo to 3.
-$ %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo`
+  // If the replication controller named foo's current size is 2, scale foo to 3.
+  $ %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo`
 )
 
 // NewCmdScale is a wrapper for the Kubernetes cli scale command
@@ -259,17 +259,17 @@ const (
 Attempts to shut down and delete a resource that supports graceful termination.
 If the resource is scalable it will be scaled to 0 before deletion.`
 
-	stopExample = `// Shut down foo.
-$ %[1]s stop replicationcontroller foo
+	stopExample = `  // Shut down foo.
+  $ %[1]s stop replicationcontroller foo
 
-// Stop pods and services with label name=myLabel.
-$ %[1]s stop pods,services -l name=myLabel
+  // Stop pods and services with label name=myLabel.
+  $ %[1]s stop pods,services -l name=myLabel
 
-// Shut down the service defined in service.json
-$ %[1]s stop -f service.json
+  // Shut down the service defined in service.json
+  $ %[1]s stop -f service.json
 
-// Shut down all resources in the path/to/resources directory
-$ %[1]s stop -f path/to/resources`
+  // Shut down all resources in the path/to/resources directory
+  $ %[1]s stop -f path/to/resources`
 )
 
 // NewCmdStop is a wrapper for the Kubernetes cli stop command
@@ -287,21 +287,21 @@ A valid label value is consisted of letters and/or numbers with a max length of 
 If --overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error.
 If --resource-version is specified, then updates will use this resource version, otherwise the existing resource-version will be used.`
 
-	labelExample = `// Update pod 'foo' with the label 'unhealthy' and the value 'true'.
-$ %[1]s label pods foo unhealthy=true
+	labelExample = `  // Update pod 'foo' with the label 'unhealthy' and the value 'true'.
+  $ %[1]s label pods foo unhealthy=true
 
-// Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
-$ %[1]s label --overwrite pods foo status=unhealthy
+  // Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
+  $ %[1]s label --overwrite pods foo status=unhealthy
 
-// Update all pods in the namespace
-$ %[1]s label pods --all status=unhealthy
+  // Update all pods in the namespace
+  $ %[1]s label pods --all status=unhealthy
 
-// Update pod 'foo' only if the resource is unchanged from version 1.
-$ %[1]s label pods foo status=unhealthy --resource-version=1
+  // Update pod 'foo' only if the resource is unchanged from version 1.
+  $ %[1]s label pods foo status=unhealthy --resource-version=1
 
-// Update pod 'foo' by removing a label named 'bar' if it exists.
-// Does not require the --overwrite flag.
-$ %[1]s label pods foo bar-`
+  // Update pod 'foo' by removing a label named 'bar' if it exists.
+  // Does not require the --overwrite flag.
+  $ %[1]s label pods foo bar-`
 )
 
 // NewCmdLabel is a wrapper for the Kubernetes cli label command
