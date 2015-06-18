@@ -2098,6 +2098,9 @@ func (kl *Kubelet) generatePodStatus(pod *api.Pod) (api.PodStatus, error) {
 		glog.Errorf("Cannot get host IP: %v", err)
 	} else {
 		podStatus.HostIP = hostIP.String()
+		if pod.Spec.HostNetwork && podStatus.PodIP == "" {
+			podStatus.PodIP = hostIP.String()
+		}
 	}
 
 	return *podStatus, nil
