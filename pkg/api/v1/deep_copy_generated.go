@@ -2122,6 +2122,46 @@ func deepCopy_v1_HostSubnetList(in sdnapiv1.HostSubnetList, out *sdnapiv1.HostSu
 	return nil
 }
 
+func deepCopy_v1_NetNamespace(in sdnapiv1.NetNamespace, out *sdnapiv1.NetNamespace, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(v1.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
+		return err
+	} else {
+		out.ObjectMeta = newVal.(v1.ObjectMeta)
+	}
+	out.NetName = in.NetName
+	out.NetID = in.NetID
+	return nil
+}
+
+func deepCopy_v1_NetNamespaceList(in sdnapiv1.NetNamespaceList, out *sdnapiv1.NetNamespaceList, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(v1.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
+		return err
+	} else {
+		out.ListMeta = newVal.(v1.ListMeta)
+	}
+	if in.Items != nil {
+		out.Items = make([]sdnapiv1.NetNamespace, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_v1_NetNamespace(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_v1_Parameter(in templateapiv1.Parameter, out *templateapiv1.Parameter, c *conversion.Cloner) error {
 	out.Name = in.Name
 	out.Description = in.Description
@@ -2481,6 +2521,8 @@ func init() {
 		deepCopy_v1_ClusterNetworkList,
 		deepCopy_v1_HostSubnet,
 		deepCopy_v1_HostSubnetList,
+		deepCopy_v1_NetNamespace,
+		deepCopy_v1_NetNamespaceList,
 		deepCopy_v1_Parameter,
 		deepCopy_v1_Template,
 		deepCopy_v1_TemplateList,

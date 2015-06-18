@@ -59,6 +59,7 @@ var MissingDescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&oauthapi.OAuthClient{}),
 	reflect.TypeOf(&sdnapi.ClusterNetwork{}),
 	reflect.TypeOf(&sdnapi.HostSubnet{}),
+	reflect.TypeOf(&sdnapi.NetNamespace{}),
 }
 
 func TestDescriberCoverage(t *testing.T) {

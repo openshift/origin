@@ -71,7 +71,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
     "rebuild_yum_cache" => false,
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
-    "memory"            => ENV['OPENSHIFT_MEMORY'] || 1024,
+    "memory"            => ENV['OPENSHIFT_MEMORY'] || 2048,
     "sync_folders_type" => nil,
     "virtualbox"        => {
       "box_name" => "fedora_inst",

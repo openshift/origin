@@ -67,7 +67,7 @@ var (
 		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone", "buildconfigs/webhooks"},
 		ImageGroupName:              {"imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
 		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
-		SDNGroupName:                {"clusternetworks", "hostsubnets"},
+		SDNGroupName:                {"clusternetworks", "hostsubnets", "netnamespaces"},
 		TemplateGroupName:           {"templates", "templateconfigs", "processedtemplates"},
 		UserGroupName:               {"identities", "users", "useridentitymappings", "groups"},
 		OAuthGroupName:              {"oauthauthorizetokens", "oauthaccesstokens", "oauthclients", "oauthclientauthorizations"},

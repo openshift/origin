@@ -39,7 +39,8 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
-	"github.com/openshift/origin/plugins/osdn"
+	"github.com/openshift/origin/plugins/osdn/flatsdn"
+	"github.com/openshift/origin/plugins/osdn/multitenant"
 )
 
 // RunProjectAuthorizationCache starts the project authorization cache
@@ -306,8 +307,11 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	osclient, kclient := c.SDNControllerClients()
-	if c.Options.NetworkConfig.NetworkPluginName == osdn.NetworkPluginName() {
-		osdn.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
+	switch c.Options.NetworkConfig.NetworkPluginName {
+	case flatsdn.NetworkPluginName():
+		flatsdn.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
+	case multitenant.NetworkPluginName():
+		multitenant.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
 	}
 }
 

@@ -35,3 +35,19 @@ type HostSubnetList struct {
 	kapi.ListMeta `json:"metadata,omitempty"`
 	Items         []HostSubnet `json:"items"`
 }
+
+// NetNamespace encapsulates the inputs needed to define a unique network namespace on the cluster
+type NetNamespace struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	NetName string `json:"netname" description:"Name of the network namespace."`
+	NetID   uint   `json:"netid" description:"NetID of the network namespace assigned to each overlay network packet."`
+}
+
+// NetNamespaceList is a collection of NetNamespaces
+type NetNamespaceList struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []NetNamespace `json:"items" description:"list of net namespaces"`
+}

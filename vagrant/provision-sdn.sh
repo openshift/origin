@@ -1,7 +1,6 @@
 #!/bin/bash
 set -ex
 source $(dirname $0)/provision-config.sh
-MINION_IP=$4
 
 pushd $HOME
 # build openshift-sdn
@@ -9,8 +8,9 @@ if [ -d openshift-sdn ]; then
     cd openshift-sdn
     git fetch origin
     git reset --hard origin/master
+    git checkout -b multitenant
 else
-    git clone https://github.com/openshift/openshift-sdn
+    git clone https://github.com/openshift/openshift-sdn -b multitenant
     cd openshift-sdn
 fi
 
