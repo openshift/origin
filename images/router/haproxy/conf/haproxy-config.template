@@ -153,11 +153,15 @@ backend be_http_{{$cfgIdx}}
 backend be_edge_http_{{$cfgIdx}}
                 {{ end }}
   mode http
-  balance source
-  hash-type consistent
+  balance leastconn
   timeout check 5000ms
+  {{ if (eq $cfg.TLSTermination "") }}
+    cookie OPENSHIFT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly
+  {{ else }}
+    cookie OPENSHIFT_EDGE_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
+  {{ end }}
                 {{ range $idx, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.ID}}
                 {{ end }}
             {{ end }}
 
@@ -174,11 +178,11 @@ backend be_tcp_{{$cfgIdx}}
             {{ if eq $cfg.TLSTermination "reencrypt" }}
 backend be_secure_{{$cfgIdx}}
   mode http
-  balance source
-  hash-type consistent
+  balance leastconn
   timeout check 5000ms
+  cookie OPENSHIFT_REENCRYPT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
                 {{ range $idx, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfgIdx}}.pem
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.ID}}
                 {{ end }}
             {{ end  }}
         {{ end  }}{{/* $serviceUnit.ServiceAliasConfigs*/}}
