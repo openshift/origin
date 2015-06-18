@@ -1570,27 +1570,6 @@ _oc_options()
     must_have_one_noun=()
 }
 
-_oc_examples()
-{
-    last_command="oc_examples"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--output=")
-    two_word_flags+=("-o")
-    flags+=("--template=")
-    two_word_flags+=("-t")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
 _oc()
 {
     last_command="oc"
@@ -1633,7 +1612,6 @@ _oc()
     commands+=("config")
     commands+=("whoami")
     commands+=("options")
-    commands+=("examples")
 
     flags=()
     two_word_flags=()

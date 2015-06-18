@@ -24,4 +24,4 @@ if [[ ! "$genbashcomp" ]]; then
   exit 1
 fi
 
-os::build::gen-doc "${genbashcomp}" "${OS_ROOT}/rel-eng/completions/bash/"
+os::build::gen-docs "${genbashcomp}" "${OS_ROOT}/rel-eng/completions/bash/"
