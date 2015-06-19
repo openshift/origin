@@ -412,6 +412,28 @@ angular.module('openshiftConsole')
       return details.id;
     };
   })
+  .filter('isRecentBuild', function(ageLessThanFilter) {
+    return function(build) {
+      if (!build || !build.status || !build.status.phase || !build.metadata) {
+        return false;
+      }
+
+      var timestamp = build.status.completionTimestamp || build.metadata.creationTimestamp;
+      switch (build.status.phase) {
+        case 'New':
+        case 'Pending':
+        case 'Running':
+          return true;
+        case 'Complete':
+        case 'Cancelled':
+          return ageLessThanFilter(timestamp, 1, 'minutes');
+        case 'Failed':
+        case 'Error':
+        default:
+          return ageLessThanFilter(timestamp, 5, 'minutes');
+      }
+    };
+  })
   .filter('deploymentCauses', function(annotationFilter) {
     return function(deployment) {
       if (!deployment) {
