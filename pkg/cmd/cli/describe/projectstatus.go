@@ -13,10 +13,17 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/graph"
+	graphveneers "github.com/openshift/origin/pkg/api/graph/veneers"
+	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildedges "github.com/openshift/origin/pkg/build/graph"
+	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployedges "github.com/openshift/origin/pkg/deploy/graph"
+	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
@@ -62,17 +69,20 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 	g := graph.New()
 	for i := range bcs.Items {
-		build := graph.BuildConfig(g, &bcs.Items[i])
-		graph.JoinBuilds(build.(*graph.BuildConfigNode), builds.Items)
+		build := buildgraph.EnsureBuildConfigNode(g, &bcs.Items[i])
+		buildedges.AddInputOutputEdges(g, build)
+		buildedges.JoinBuilds(build, builds.Items)
 	}
 	for i := range dcs.Items {
-		deploy := graph.DeploymentConfig(g, &dcs.Items[i])
-		graph.JoinDeployments(deploy.(*graph.DeploymentConfigNode), rcs.Items)
+		deploy := deploygraph.EnsureDeploymentConfigNode(g, &dcs.Items[i])
+		deployedges.AddTriggerEdges(g, deploy)
+		deployedges.JoinDeployments(deploy, rcs.Items)
 	}
 	for i := range svcs.Items {
-		graph.Service(g, &svcs.Items[i])
+		service := kubegraph.EnsureServiceNode(g, &svcs.Items[i])
+		deployedges.AddFullfillingDeploymentConfigEdges(g, service)
 	}
-	groups := graph.ServiceAndDeploymentGroups(graph.CoverServices(g))
+	groups := graphveneers.ServiceAndDeploymentGroups(g)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
@@ -124,7 +134,7 @@ func printLines(out io.Writer, indent string, depth int, lines ...string) {
 	}
 }
 
-func describeDeploymentInServiceGroup(deploy graph.DeploymentFlow) []string {
+func describeDeploymentInServiceGroup(deploy graphveneers.DeploymentFlow) []string {
 	includeLastPass := deploy.Deployment.ActiveDeployment == nil
 	if len(deploy.Images) == 1 {
 		lines := []string{fmt.Sprintf("%s deploys %s %s", deploy.Deployment.Name, describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
@@ -155,7 +165,7 @@ func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
 	return ""
 }
 
-func describeStandaloneBuildGroup(pipeline graph.ImagePipeline, namespace string) []string {
+func describeStandaloneBuildGroup(pipeline graphveneers.ImagePipeline, namespace string) []string {
 	switch {
 	case pipeline.Build != nil:
 		lines := []string{fmt.Sprintf("%s %s", pipeline.Build.BuildConfig.Name, describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))}
@@ -170,7 +180,7 @@ func describeStandaloneBuildGroup(pipeline graph.ImagePipeline, namespace string
 	}
 }
 
-func describeImageInPipeline(pipeline graph.ImagePipeline, namespace string) string {
+func describeImageInPipeline(pipeline graphveneers.ImagePipeline, namespace string) string {
 	switch {
 	case pipeline.Image != nil && pipeline.Build != nil:
 		return fmt.Sprintf("%s <- %s", describeImageTagInPipeline(pipeline.Image, namespace), describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))
@@ -183,9 +193,9 @@ func describeImageInPipeline(pipeline graph.ImagePipeline, namespace string) str
 	}
 }
 
-func describeImageTagInPipeline(image graph.ImageTagLocation, namespace string) string {
+func describeImageTagInPipeline(image graphveneers.ImageTagLocation, namespace string) string {
 	switch t := image.(type) {
-	case *graph.ImageStreamTagNode:
+	case *imagegraph.ImageStreamTagNode:
 		if t.ImageStream.Namespace != namespace {
 			return image.ImageSpec()
 		}
@@ -195,7 +205,7 @@ func describeImageTagInPipeline(image graph.ImageTagLocation, namespace string) 
 	}
 }
 
-func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graph.ImageTagLocation) string {
+func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphveneers.ImageTagLocation) string {
 	switch build.Parameters.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
 		// TODO: handle case where no source repo
@@ -224,7 +234,7 @@ func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graph.ImageT
 	}
 }
 
-func describeAdditionalBuildDetail(build *graph.BuildConfigNode, includeSuccess bool) []string {
+func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, includeSuccess bool) []string {
 	if build == nil {
 		return nil
 	}
@@ -357,7 +367,7 @@ func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
 	return "", false
 }
 
-func describeDeployments(node *graph.DeploymentConfigNode, count int) []string {
+func describeDeployments(node *deploygraph.DeploymentConfigNode, count int) []string {
 	if node == nil {
 		return nil
 	}
@@ -472,7 +482,7 @@ func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (strin
 	}
 }
 
-func describeServiceInServiceGroup(svc graph.ServiceReference) []string {
+func describeServiceInServiceGroup(svc graphveneers.ServiceReference) []string {
 	spec := svc.Service.Spec
 	ip := spec.PortalIP
 	port := describeServicePorts(spec)

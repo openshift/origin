@@ -1,4 +1,4 @@
-package graph
+package veneers
 
 import (
 	"testing"
@@ -10,87 +10,94 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	build "github.com/openshift/origin/pkg/build/api"
-	deploy "github.com/openshift/origin/pkg/deploy/api"
-	image "github.com/openshift/origin/pkg/image/api"
+	osgraph "github.com/openshift/origin/pkg/api/graph"
+	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildedges "github.com/openshift/origin/pkg/build/graph"
+	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployedges "github.com/openshift/origin/pkg/deploy/graph"
+	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
 func TestGraph(t *testing.T) {
-	g := New()
+	g := osgraph.New()
 	now := time.Now()
-	builds := []build.Build{
+	builds := []buildapi.Build{
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name:              "build1-1-abc",
-				Labels:            map[string]string{build.BuildConfigLabel: "build1"},
+				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
 				CreationTimestamp: util.NewTime(now.Add(-10 * time.Second)),
 			},
-			Status: build.BuildStatusFailed,
+			Status: buildapi.BuildStatusFailed,
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name:              "build1-2-abc",
-				Labels:            map[string]string{build.BuildConfigLabel: "build1"},
+				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
 				CreationTimestamp: util.NewTime(now.Add(-5 * time.Second)),
 			},
-			Status: build.BuildStatusComplete,
+			Status: buildapi.BuildStatusComplete,
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name:              "build1-3-abc",
-				Labels:            map[string]string{build.BuildConfigLabel: "build1"},
+				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
 				CreationTimestamp: util.NewTime(now.Add(-15 * time.Second)),
 			},
-			Status: build.BuildStatusPending,
+			Status: buildapi.BuildStatusPending,
 		},
 	}
 
-	n := BuildConfig(g, &build.BuildConfig{
+	bcNode := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build1"},
-		Triggers: []build.BuildTriggerPolicy{
+		Triggers: []buildapi.BuildTriggerPolicy{
 			{
-				ImageChange: &build.ImageChangeTrigger{},
+				ImageChange: &buildapi.ImageChangeTrigger{},
 			},
 		},
-		Parameters: build.BuildParameters{
-			Strategy: build.BuildStrategy{
-				Type: build.SourceBuildStrategyType,
-				SourceStrategy: &build.SourceBuildStrategy{
+		Parameters: buildapi.BuildParameters{
+			Strategy: buildapi.BuildStrategy{
+				Type: buildapi.SourceBuildStrategyType,
+				SourceStrategy: &buildapi.SourceBuildStrategy{
 					From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:base-image"},
 				},
 			},
-			Output: build.BuildOutput{
+			Output: buildapi.BuildOutput{
 				To:  &kapi.ObjectReference{Name: "other"},
 				Tag: "tag1",
 			},
 		},
 	})
-	JoinBuilds(n.(*BuildConfigNode), builds)
-	BuildConfig(g, &build.BuildConfig{
+	buildedges.JoinBuilds(bcNode, builds)
+	bcTestNode := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "test"},
-		Parameters: build.BuildParameters{
-			Output: build.BuildOutput{
+		Parameters: buildapi.BuildParameters{
+			Output: buildapi.BuildOutput{
 				To:  &kapi.ObjectReference{Name: "other"},
 				Tag: "base-image",
 			},
 		},
 	})
-	BuildConfig(g, &build.BuildConfig{
+	buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build2"},
-		Parameters: build.BuildParameters{
-			Output: build.BuildOutput{
+		Parameters: buildapi.BuildParameters{
+			Output: buildapi.BuildOutput{
 				DockerImageReference: "mycustom/repo/image",
 				Tag:                  "tag2",
 			},
 		},
 	})
-	Service(g, &kapi.Service{
+	kubegraph.EnsureServiceNode(g, &kapi.Service{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "svc-is-ignored"},
 		Spec: kapi.ServiceSpec{
 			Selector: nil,
 		},
 	})
-	Service(g, &kapi.Service{
+	kubegraph.EnsureServiceNode(g, &kapi.Service{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "svc1"},
 		Spec: kapi.ServiceSpec{
 			Selector: map[string]string{
@@ -98,7 +105,7 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	})
-	Service(g, &kapi.Service{
+	kubegraph.EnsureServiceNode(g, &kapi.Service{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "svc2"},
 		Spec: kapi.ServiceSpec{
 			Selector: map[string]string{
@@ -107,18 +114,18 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	})
-	DeploymentConfig(g, &deploy.DeploymentConfig{
+	deploygraph.EnsureDeploymentConfigNode(g, &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "other", Name: "deploy1"},
-		Triggers: []deploy.DeploymentTriggerPolicy{
+		Triggers: []deployapi.DeploymentTriggerPolicy{
 			{
-				ImageChangeParams: &deploy.DeploymentTriggerImageChangeParams{
+				ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
 					From:           kapi.ObjectReference{Namespace: "default", Name: "other"},
 					ContainerNames: []string{"1", "2"},
 					Tag:            "tag1",
 				},
 			},
 		},
-		Template: deploy.DeploymentTemplate{
+		Template: deployapi.DeploymentTemplate{
 			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Template: &kapi.PodTemplateSpec{
 					ObjectMeta: kapi.ObjectMeta{
@@ -147,9 +154,9 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	})
-	DeploymentConfig(g, &deploy.DeploymentConfig{
+	deploygraph.EnsureDeploymentConfigNode(g, &deployapi.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "deploy2"},
-		Template: deploy.DeploymentTemplate{
+		Template: deployapi.DeploymentTemplate{
 			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Template: &kapi.PodTemplateSpec{
 					ObjectMeta: kapi.ObjectMeta{
@@ -171,25 +178,27 @@ func TestGraph(t *testing.T) {
 		},
 	})
 
-	CoverServices(g)
+	deployedges.AddAllFullfillingDeploymentConfigEdges(g)
+	buildedges.AddAllInputOutputEdges(g)
+	deployedges.AddAllTriggerEdges(g)
 
 	ir, dc, bc, other := 0, 0, 0, 0
 	for _, node := range g.NodeList() {
 		t.Logf("node: %d %v", node.ID(), node)
 		switch g.Object(node).(type) {
-		case *deploy.DeploymentConfig:
-			if g.Kind(node) != DeploymentConfigGraphKind {
+		case *deployapi.DeploymentConfig:
+			if g.Kind(node) != deploygraph.DeploymentConfigNodeKind {
 				t.Fatalf("unexpected kind: %v", g.Kind(node))
 			}
 			dc++
-		case *build.BuildConfig:
-			if g.Kind(node) != BuildConfigGraphKind {
+		case *buildapi.BuildConfig:
+			if g.Kind(node) != buildgraph.BuildConfigNodeKind {
 				t.Fatalf("unexpected kind: %v", g.Kind(node))
 			}
 			bc++
-		case *image.ImageStream:
+		case *imageapi.ImageStream:
 			// TODO resolve this check for 2 kinds, since both have the same object type
-			if g.Kind(node) != ImageStreamGraphKind && g.Kind(node) != ImageStreamTagGraphKind {
+			if g.Kind(node) != imagegraph.ImageStreamNodeKind && g.Kind(node) != imagegraph.ImageStreamTagNodeKind {
 				t.Fatalf("unexpected kind: %v", g.Kind(node))
 			}
 			ir++
@@ -200,30 +209,43 @@ func TestGraph(t *testing.T) {
 	if dc != 2 || bc != 3 || ir != 3 || other != 6 {
 		t.Errorf("unexpected nodes: %d %d %d %d", dc, bc, ir, other)
 	}
-	for _, edge := range g.internal.EdgeList() {
-		if g.EdgeKind(edge) == UnknownGraphEdgeKind {
+	for _, edge := range g.EdgeList() {
+		if g.EdgeKind(edge) == osgraph.UnknownEdgeKind {
 			t.Errorf("edge reported unknown kind: %#v", edge)
 		}
 		t.Logf("edge: %v", edge)
 	}
-	reverse := g.EdgeSubgraph(ReverseGraphEdge)
-	for _, edge := range reverse.internal.EdgeList() {
+	reverse := g.EdgeSubgraph(osgraph.ReverseGraphEdge)
+	for _, edge := range reverse.EdgeList() {
 		t.Logf("redge: %v", edge)
 	}
 
-	edge := g.EdgeBetween(concrete.Node(4), concrete.Node(5))
-	if len(g.SubgraphWithNodes([]graph.Node{edge.Head(), edge.Tail()}, ExistingDirectEdge).EdgeList()) != 1 {
+	// imagestreamtag default/other:base-image
+	istID := 0
+	for _, node := range g.NodeList() {
+		if g.Name(node) == "<imagestreamtag default/other:base-image>" {
+			istID = node.ID()
+			break
+		}
+	}
+
+	edge := g.EdgeBetween(concrete.Node(bcTestNode.ID()), concrete.Node(istID))
+	if edge == nil {
+		t.Fatalf("failed to find edge between %d and %d", bcTestNode.ID(), istID)
+	}
+
+	if len(g.SubgraphWithNodes([]graph.Node{edge.Head(), edge.Tail()}, osgraph.ExistingDirectEdge).EdgeList()) != 1 {
 		t.Fatalf("expected one edge")
 	}
-	if len(g.SubgraphWithNodes([]graph.Node{edge.Tail(), edge.Head()}, ExistingDirectEdge).EdgeList()) != 1 {
+	if len(g.SubgraphWithNodes([]graph.Node{edge.Tail(), edge.Head()}, osgraph.ExistingDirectEdge).EdgeList()) != 1 {
 		t.Fatalf("expected one edge")
 	}
 
-	if e := g.EdgeBetween(concrete.Node(4), concrete.Node(5)); e == nil {
-		t.Errorf("expected edge for 4-5")
+	if e := g.EdgeBetween(concrete.Node(bcTestNode.ID()), concrete.Node(istID)); e == nil {
+		t.Errorf("expected edge for %d-%d", bcTestNode.ID(), istID)
 	}
-	if e := g.EdgeBetween(concrete.Node(5), concrete.Node(4)); e == nil {
-		t.Errorf("expected edge for 4-5")
+	if e := g.EdgeBetween(concrete.Node(istID), concrete.Node(bcTestNode.ID())); e == nil {
+		t.Errorf("expected edge for %d-%d", bcTestNode.ID(), istID)
 	}
 
 	pipelines, covered := DeploymentPipelines(g)

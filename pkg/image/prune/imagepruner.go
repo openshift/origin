@@ -11,12 +11,23 @@ import (
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
 	"github.com/openshift/origin/pkg/api/graph"
+	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
+)
+
+// TODO these edges should probably have an `Add***Edges` method in images/graph and be moved there
+const (
+	ReferencedImageEdgeKind      = "ReferencedImage"
+	WeakReferencedImageEdgeKind  = "WeakReferencedImage"
+	ReferencedImageLayerEdgeKind = "ReferencedImage"
 )
 
 // pruneAlgorithm contains the various settings to use when evaluating images
@@ -136,7 +147,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 		}
 
 		glog.V(4).Infof("Adding image %q to graph", image.Name)
-		imageNode := graph.Image(g, image)
+		imageNode := imagegraph.EnsureImageNode(g, image)
 
 		manifest := imageapi.DockerImageManifest{}
 		if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
@@ -146,8 +157,8 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 
 		for _, layer := range manifest.FSLayers {
 			glog.V(4).Infof("Adding image layer %q to graph", layer.DockerBlobSum)
-			layerNode := graph.ImageLayer(g, layer.DockerBlobSum)
-			g.AddEdge(imageNode, layerNode, graph.ReferencedImageLayerGraphEdgeKind)
+			layerNode := imagegraph.EnsureImageLayerNode(g, layer.DockerBlobSum)
+			g.AddEdge(imageNode, layerNode, ReferencedImageLayerEdgeKind)
 		}
 	}
 }
@@ -168,38 +179,38 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 		glog.V(4).Infof("Examining ImageStream %s/%s", stream.Namespace, stream.Name)
 
 		// use a weak reference for old image revisions by default
-		oldImageRevisionReferenceKind := graph.WeakReferencedImageGraphEdgeKind
+		oldImageRevisionReferenceKind := WeakReferencedImageEdgeKind
 
 		age := util.Now().Sub(stream.CreationTimestamp.Time)
 		if age < algorithm.keepYoungerThan {
 			// stream's age is below threshold - use a strong reference for old image revisions instead
 			glog.V(4).Infof("Stream %s/%s is below age threshold - none of its images are eligible for pruning", stream.Namespace, stream.Name)
-			oldImageRevisionReferenceKind = graph.ReferencedImageGraphEdgeKind
+			oldImageRevisionReferenceKind = ReferencedImageEdgeKind
 		}
 
 		glog.V(4).Infof("Adding ImageStream %s/%s to graph", stream.Namespace, stream.Name)
-		isNode := graph.ImageStream(g, stream)
-		imageStreamNode := isNode.(*graph.ImageStreamNode)
+		isNode := imagegraph.EnsureImageStreamNode(g, stream)
+		imageStreamNode := isNode.(*imagegraph.ImageStreamNode)
 
 		for tag, history := range stream.Status.Tags {
 			for i := range history.Items {
-				n := graph.FindImage(g, history.Items[i].Image)
+				n := imagegraph.FindImage(g, history.Items[i].Image)
 				if n == nil {
 					glog.V(1).Infof("Unable to find image %q in graph (from tag=%q, revision=%d, dockerImageReference=%s)", history.Items[i].Image, tag, i, history.Items[i].DockerImageReference)
 					continue
 				}
-				imageNode := n.(*graph.ImageNode)
+				imageNode := n.(*imagegraph.ImageNode)
 
-				var kind int
+				var kind string
 				switch {
 				case i < algorithm.tagRevisionsToKeep:
-					kind = graph.ReferencedImageGraphEdgeKind
+					kind = ReferencedImageEdgeKind
 				default:
 					kind = oldImageRevisionReferenceKind
 				}
 
 				glog.V(4).Infof("Checking for existing strong reference from stream %s/%s to image %s", stream.Namespace, stream.Name, imageNode.Image.Name)
-				if edge := g.EdgeBetween(imageStreamNode, imageNode); edge != nil && g.EdgeKind(edge) == graph.ReferencedImageGraphEdgeKind {
+				if edge := g.EdgeBetween(imageStreamNode, imageNode); edge != nil && g.EdgeKind(edge) == ReferencedImageEdgeKind {
 					glog.V(4).Infof("Strong reference found")
 					continue
 				}
@@ -210,11 +221,11 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 				glog.V(4).Infof("Adding stream->layer references")
 				// add stream -> layer references so we can prune them later
 				for _, s := range g.Successors(imageNode) {
-					if g.Kind(s) != graph.ImageLayerGraphKind {
+					if g.Kind(s) != imagegraph.ImageLayerNodeKind {
 						continue
 					}
-					glog.V(4).Infof("Adding reference from stream %q to layer %q", stream.Name, s.(*graph.ImageLayerNode).Layer)
-					g.AddEdge(imageStreamNode, s, graph.ReferencedImageLayerGraphEdgeKind)
+					glog.V(4).Infof("Adding reference from stream %q to layer %q", stream.Name, s.(*imagegraph.ImageLayerNode).Layer)
+					g.AddEdge(imageStreamNode, s, ReferencedImageLayerEdgeKind)
 				}
 			}
 		}
@@ -245,7 +256,7 @@ func addPodsToGraph(g graph.Graph, pods *kapi.PodList, algorithm pruneAlgorithm)
 		}
 
 		glog.V(4).Infof("Adding pod %s/%s to graph", pod.Namespace, pod.Name)
-		podNode := graph.Pod(g, pod)
+		podNode := kubegraph.EnsurePodNode(g, pod)
 
 		addPodSpecToGraph(g, &pod.Spec, podNode)
 	}
@@ -271,14 +282,14 @@ func addPodSpecToGraph(g graph.Graph, spec *kapi.PodSpec, predecessor gonum.Node
 			continue
 		}
 
-		imageNode := graph.FindImage(g, ref.ID)
+		imageNode := imagegraph.FindImage(g, ref.ID)
 		if imageNode == nil {
 			glog.Infof("Unable to find image %q in the graph", ref.ID)
 			continue
 		}
 
 		glog.V(4).Infof("Adding edge from pod to image")
-		g.AddEdge(predecessor, imageNode, graph.ReferencedImageGraphEdgeKind)
+		g.AddEdge(predecessor, imageNode, ReferencedImageEdgeKind)
 	}
 }
 
@@ -291,7 +302,7 @@ func addReplicationControllersToGraph(g graph.Graph, rcs *kapi.ReplicationContro
 	for i := range rcs.Items {
 		rc := &rcs.Items[i]
 		glog.V(4).Infof("Examining replication controller %s/%s", rc.Namespace, rc.Name)
-		rcNode := graph.ReplicationController(g, rc)
+		rcNode := kubegraph.EnsureReplicationControllerNode(g, rc)
 		addPodSpecToGraph(g, &rc.Spec.Template.Spec, rcNode)
 	}
 }
@@ -305,7 +316,7 @@ func addDeploymentConfigsToGraph(g graph.Graph, dcs *deployapi.DeploymentConfigL
 	for i := range dcs.Items {
 		dc := &dcs.Items[i]
 		glog.V(4).Infof("Examining DeploymentConfig %s/%s", dc.Namespace, dc.Name)
-		dcNode := graph.DeploymentConfig(g, dc)
+		dcNode := deploygraph.EnsureDeploymentConfigNode(g, dc)
 		addPodSpecToGraph(g, &dc.Template.ControllerTemplate.Template.Spec, dcNode)
 	}
 }
@@ -317,7 +328,7 @@ func addBuildConfigsToGraph(g graph.Graph, bcs *buildapi.BuildConfigList) {
 	for i := range bcs.Items {
 		bc := &bcs.Items[i]
 		glog.V(4).Infof("Examining BuildConfig %s/%s", bc.Namespace, bc.Name)
-		bcNode := graph.BuildConfig(g, bc)
+		bcNode := buildgraph.EnsureBuildConfigNode(g, bc)
 		addBuildStrategyImageReferencesToGraph(g, bc.Parameters.Strategy, bcNode)
 	}
 }
@@ -329,7 +340,7 @@ func addBuildsToGraph(g graph.Graph, builds *buildapi.BuildList) {
 	for i := range builds.Items {
 		build := &builds.Items[i]
 		glog.V(4).Infof("Examining build %s/%s", build.Namespace, build.Name)
-		buildNode := graph.Build(g, build)
+		buildNode := buildgraph.EnsureBuildNode(g, build)
 		addBuildStrategyImageReferencesToGraph(g, build.Parameters.Strategy, buildNode)
 	}
 }
@@ -370,21 +381,21 @@ func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.Bui
 	}
 
 	glog.V(4).Infof("Looking for image %q in graph", imageID)
-	imageNode := graph.FindImage(g, imageID)
+	imageNode := imagegraph.FindImage(g, imageID)
 	if imageNode == nil {
 		glog.V(4).Infof("Unable to find image %q in graph - skipping", imageID)
 		return
 	}
 
 	glog.V(4).Infof("Adding edge from %v to %v", predecessor, imageNode)
-	g.AddEdge(predecessor, imageNode, graph.ReferencedImageGraphEdgeKind)
+	g.AddEdge(predecessor, imageNode, ReferencedImageEdgeKind)
 }
 
 // imageNodeSubgraph returns only nodes of type ImageNode.
-func imageNodeSubgraph(nodes []gonum.Node) []*graph.ImageNode {
-	ret := []*graph.ImageNode{}
+func imageNodeSubgraph(nodes []gonum.Node) []*imagegraph.ImageNode {
+	ret := []*imagegraph.ImageNode{}
 	for i := range nodes {
-		if node, ok := nodes[i].(*graph.ImageNode); ok {
+		if node, ok := nodes[i].(*imagegraph.ImageNode); ok {
 			ret = append(ret, node)
 		}
 	}
@@ -392,7 +403,7 @@ func imageNodeSubgraph(nodes []gonum.Node) []*graph.ImageNode {
 }
 
 // edgeKind returns true if the edge from "from" to "to" is of the desired kind.
-func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind int) bool {
+func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
 	edge := g.EdgeBetween(from, to)
 	kind := g.EdgeKind(edge)
 	return kind == desiredKind
@@ -403,12 +414,12 @@ func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind int) bool {
 // from an image stream to an image where the image is not the current image
 // for a tag and the image stream is at least as old as the minimum pruning
 // age.
-func imageIsPrunable(g graph.Graph, imageNode *graph.ImageNode) bool {
+func imageIsPrunable(g graph.Graph, imageNode *imagegraph.ImageNode) bool {
 	onlyWeakReferences := true
 
 	for _, n := range g.Predecessors(imageNode) {
 		glog.V(4).Infof("Examining predecessor %#v", n)
-		if !edgeKind(g, n, imageNode, graph.WeakReferencedImageGraphEdgeKind) {
+		if !edgeKind(g, n, imageNode, WeakReferencedImageEdgeKind) {
 			glog.V(4).Infof("Strong reference detected")
 			onlyWeakReferences = false
 			break
@@ -423,7 +434,7 @@ func imageIsPrunable(g graph.Graph, imageNode *graph.ImageNode) bool {
 // with the image streams that reference the image. After imagePruneFunc is
 // invoked, the image node is removed from the graph, so that layers eligible
 // for pruning may later be identified.
-func pruneImages(g graph.Graph, imageNodes []*graph.ImageNode, pruneImage ImagePruneFunc, pruneStream ImageStreamPruneFunc, pruneManifest ManifestPruneFunc) {
+func pruneImages(g graph.Graph, imageNodes []*imagegraph.ImageNode, pruneImage ImagePruneFunc, pruneStream ImageStreamPruneFunc, pruneManifest ManifestPruneFunc) {
 	for _, imageNode := range imageNodes {
 		glog.V(4).Infof("Examining image %q", imageNode.Image.Name)
 
@@ -439,7 +450,7 @@ func pruneImages(g graph.Graph, imageNodes []*graph.ImageNode, pruneImage ImageP
 		}
 
 		for _, n := range g.Predecessors(imageNode) {
-			if streamNode, ok := n.(*graph.ImageStreamNode); ok {
+			if streamNode, ok := n.(*imagegraph.ImageStreamNode); ok {
 				stream := streamNode.ImageStream
 				repoName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 
@@ -484,10 +495,10 @@ func (p *imagePruner) Run(pruneImage ImagePruneFunc, pruneStream ImageStreamPrun
 }
 
 // layerNodeSubgraph returns the subset of nodes that are ImageLayerNodes.
-func layerNodeSubgraph(nodes []gonum.Node) []*graph.ImageLayerNode {
-	ret := []*graph.ImageLayerNode{}
+func layerNodeSubgraph(nodes []gonum.Node) []*imagegraph.ImageLayerNode {
+	ret := []*imagegraph.ImageLayerNode{}
 	for i := range nodes {
-		if node, ok := nodes[i].(*graph.ImageLayerNode); ok {
+		if node, ok := nodes[i].(*imagegraph.ImageLayerNode); ok {
 			ret = append(ret, node)
 		}
 	}
@@ -495,10 +506,10 @@ func layerNodeSubgraph(nodes []gonum.Node) []*graph.ImageLayerNode {
 }
 
 // layerIsPrunable returns true if the layer is not referenced by any images.
-func layerIsPrunable(g graph.Graph, layerNode *graph.ImageLayerNode) bool {
+func layerIsPrunable(g graph.Graph, layerNode *imagegraph.ImageLayerNode) bool {
 	for _, predecessor := range g.Predecessors(layerNode) {
 		glog.V(4).Infof("Examining layer predecessor %#v", predecessor)
-		if g.Kind(predecessor) == graph.ImageGraphKind {
+		if g.Kind(predecessor) == imagegraph.ImageNodeKind {
 			glog.V(4).Infof("Layer has an image predecessor")
 			return false
 		}
@@ -509,15 +520,15 @@ func layerIsPrunable(g graph.Graph, layerNode *graph.ImageLayerNode) bool {
 
 // streamLayerReferences returns a list of ImageStreamNodes that reference a
 // given ImageLayeNode.
-func streamLayerReferences(g graph.Graph, layerNode *graph.ImageLayerNode) []*graph.ImageStreamNode {
-	ret := []*graph.ImageStreamNode{}
+func streamLayerReferences(g graph.Graph, layerNode *imagegraph.ImageLayerNode) []*imagegraph.ImageStreamNode {
+	ret := []*imagegraph.ImageStreamNode{}
 
 	for _, predecessor := range g.Predecessors(layerNode) {
-		if g.Kind(predecessor) != graph.ImageStreamGraphKind {
+		if g.Kind(predecessor) != imagegraph.ImageStreamNodeKind {
 			continue
 		}
 
-		ret = append(ret, predecessor.(*graph.ImageStreamNode))
+		ret = append(ret, predecessor.(*imagegraph.ImageStreamNode))
 	}
 
 	return ret
@@ -526,7 +537,7 @@ func streamLayerReferences(g graph.Graph, layerNode *graph.ImageLayerNode) []*gr
 // pruneLayers creates a mapping of registryURLs to
 // server.DeleteLayersRequest objects, invoking layerPruneFunc for each
 // registryURL and request.
-func pruneLayers(g graph.Graph, layerNodes []*graph.ImageLayerNode, pruneLayer LayerPruneFunc, pruneBlob BlobPruneFunc) {
+func pruneLayers(g graph.Graph, layerNodes []*imagegraph.ImageLayerNode, pruneLayer LayerPruneFunc, pruneBlob BlobPruneFunc) {
 	for _, layerNode := range layerNodes {
 		glog.V(4).Infof("Examining layer %q", layerNode.Layer)
 
