@@ -32,16 +32,17 @@ const maxRetries = 60
 // limitedLogAndRetry stops retrying after maxTimeout, failing the build.
 func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.Duration) controller.RetryFunc {
 	return func(obj interface{}, err error, retries controller.Retry) bool {
-		kutil.HandleError(err)
+		build := obj.(*buildapi.Build)
 		if time.Since(retries.StartTimestamp.Time) < maxTimeout {
+			glog.V(4).Infof("Retrying Build %s/%s with error: %v", build.Namespace, build.Name, err)
 			return true
 		}
-		build := obj.(*buildapi.Build)
 		build.Status = buildapi.BuildStatusFailed
 		build.Message = err.Error()
 		now := kutil.Now()
 		build.CompletionTimestamp = &now
 		glog.V(3).Infof("Giving up retrying Build %s/%s: %v", build.Namespace, build.Name, err)
+		kutil.HandleError(err)
 		if err := buildupdater.Update(build.Namespace, build); err != nil {
 			// retry update, but only on error other than NotFound
 			return !kerrors.IsNotFound(err)
@@ -158,8 +159,14 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
+				pod := obj.(*kapi.Pod)
+				if retries.Count < maxRetries {
+					glog.V(3).Infof("Retrying BuildPod update event %s/%s: %v", pod.Namespace, pod.Name, err)
+					return true
+				}
+				glog.V(3).Infof("Giving up retrying BuildPod update event %s/%s: %v", pod.Namespace, pod.Name, err)
 				kutil.HandleError(err)
-				return retries.Count < maxRetries
+				return false
 			},
 			kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
@@ -230,11 +237,20 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 			queue,
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
-				kutil.HandleError(err)
+				imageStream := obj.(*imageapi.ImageStream)
 				if _, isFatal := err.(buildcontroller.ImageChangeControllerFatalError); isFatal {
+					glog.V(3).Infof("Will not retry fatal error for ImageStream update event %s/%s: %v", imageStream.Namespace, imageStream.Name, err)
+					kutil.HandleError(err)
 					return false
 				}
-				return retries.Count < maxRetries
+				if maxRetries > retries.Count {
+					glog.V(3).Infof("Giving up retrying ImageStream update event %s/%s: %v", imageStream.Namespace, imageStream.Name, err)
+					kutil.HandleError(err)
+					return false
+				}
+				glog.V(4).Infof("Retrying ImageStream update event %s/%s: %v", imageStream.Namespace, imageStream.Name, err)
+				return true
+
 			},
 			kutil.NewTokenBucketRateLimiter(1, 10),
 		),
