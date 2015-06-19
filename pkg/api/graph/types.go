@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	build "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -21,17 +23,19 @@ import (
 const (
 	UnknownGraphKind = iota
 	ImageStreamTagGraphKind
-	DockerRepositoryGraphKind
 	BuildConfigGraphKind
 	DeploymentConfigGraphKind
-	SourceRepositoryGraphKind
 	ServiceGraphKind
 	ImageGraphKind
 	PodGraphKind
 	ImageStreamGraphKind
 	ReplicationControllerGraphKind
-	ImageLayerGraphKind
 	BuildGraphKind
+
+	// non-api types
+	DockerRepositoryGraphKind
+	SourceRepositoryGraphKind
+	ImageLayerGraphKind
 )
 const (
 	UnknownGraphEdgeKind = iota
@@ -46,6 +50,73 @@ const (
 	WeakReferencedImageGraphEdgeKind
 	ReferencedImageLayerGraphEdgeKind
 )
+
+var kindToGraphKind = map[reflect.Type]interface{}{}
+
+func init() {
+	kindToGraphKind[reflect.TypeOf(&image.ImageStream{})] = ImageStreamGraphKind
+	kindToGraphKind[reflect.TypeOf(&image.ImageStream{})] = ImageStreamGraphKind
+	kindToGraphKind[reflect.TypeOf(&image.Image{})] = ImageGraphKind
+	kindToGraphKind[reflect.TypeOf(&build.BuildConfig{})] = BuildConfigGraphKind
+	kindToGraphKind[reflect.TypeOf(&build.Build{})] = BuildGraphKind
+	kindToGraphKind[reflect.TypeOf(&deploy.DeploymentConfig{})] = DeploymentConfigGraphKind
+	kindToGraphKind[reflect.TypeOf(&kapi.Service{})] = ServiceGraphKind
+	kindToGraphKind[reflect.TypeOf(&kapi.Pod{})] = PodGraphKind
+	kindToGraphKind[reflect.TypeOf(&kapi.ReplicationController{})] = ReplicationControllerGraphKind
+}
+
+func GetUniqueNamespaceNodeName(obj runtime.Object) UniqueName {
+	return getUniqueNodeName(obj, true)
+}
+
+func GetUniqueRootScopedNodeName(obj runtime.Object) UniqueName {
+	return getUniqueNodeName(obj, false)
+}
+
+func getUniqueNodeName(obj runtime.Object, namespaced bool) UniqueName {
+	objType := reflect.TypeOf(obj)
+	graphKind, exists := kindToGraphKind[objType]
+
+	if !exists {
+		panic(fmt.Sprintf("no graphKind registered for %v", objType))
+	}
+
+	meta, err := kapi.ObjectMetaFor(obj)
+	if err != nil {
+		panic(err)
+	}
+
+	if namespaced {
+		return UniqueName(fmt.Sprintf("%d|%s/%s", graphKind, meta.Namespace, meta.Name))
+	}
+
+	return UniqueName(fmt.Sprintf("%d|%s", graphKind, meta.Name))
+}
+
+func ImageStreamNodeName(o *image.ImageStream) UniqueName {
+	return GetUniqueNamespaceNodeName(o)
+}
+
+type ImageStreamNode struct {
+	Node
+	*image.ImageStream
+}
+
+func (n ImageStreamNode) Object() interface{} {
+	return n.ImageStream
+}
+
+func (n ImageStreamNode) String() string {
+	return fmt.Sprintf("<ImageStream %s/%s>", n.Namespace, n.Name)
+}
+
+func (*ImageStreamNode) Kind() int {
+	return ImageStreamGraphKind
+}
+
+func ServiceNodeName(o *kapi.Service) UniqueName {
+	return GetUniqueNamespaceNodeName(o)
+}
 
 type ServiceNode struct {
 	Node
@@ -64,6 +135,10 @@ func (*ServiceNode) Kind() int {
 	return ServiceGraphKind
 }
 
+func BuildConfigNodeName(o *build.BuildConfig) UniqueName {
+	return GetUniqueNamespaceNodeName(o)
+}
+
 type BuildConfigNode struct {
 	Node
 	*build.BuildConfig
@@ -78,11 +153,15 @@ func (n BuildConfigNode) Object() interface{} {
 }
 
 func (n BuildConfigNode) String() string {
-	return fmt.Sprintf("<build config %s/%s>", n.Namespace, n.Name)
+	return fmt.Sprintf("<buildconfig %s/%s>", n.Namespace, n.Name)
 }
 
 func (*BuildConfigNode) Kind() int {
 	return BuildConfigGraphKind
+}
+
+func DeploymentConfigNodeName(o *deploy.DeploymentConfig) UniqueName {
+	return GetUniqueNamespaceNodeName(o)
 }
 
 type DeploymentConfigNode struct {
@@ -98,11 +177,15 @@ func (n DeploymentConfigNode) Object() interface{} {
 }
 
 func (n DeploymentConfigNode) String() string {
-	return fmt.Sprintf("<DeploymentConfig %s/%s>", n.Namespace, n.Name)
+	return fmt.Sprintf("<deploymentconfig %s/%s>", n.Namespace, n.Name)
 }
 
 func (*DeploymentConfigNode) Kind() int {
 	return DeploymentConfigGraphKind
+}
+
+func ImageStreamTagNodeName(o *image.ImageStream, tag string) UniqueName {
+	return UniqueName(fmt.Sprintf("%d|%s/%s:%s", ImageStreamTagGraphKind, o.Namespace, o.Name, tag))
 }
 
 type ImageStreamTagNode struct {
@@ -124,11 +207,15 @@ func (n ImageStreamTagNode) Object() interface{} {
 }
 
 func (n ImageStreamTagNode) String() string {
-	return fmt.Sprintf("<ImageStream %s/%s:%s>", n.Namespace, n.Name, n.Tag)
+	return fmt.Sprintf("<imagestream %s/%s:%s>", n.Namespace, n.Name, n.Tag)
 }
 
 func (*ImageStreamTagNode) Kind() int {
 	return ImageStreamTagGraphKind
+}
+
+func DockerImageRepositoryNodeName(o image.DockerImageReference) UniqueName {
+	return UniqueName(fmt.Sprintf("%d|%s/%s/%s:%s", DockerRepositoryGraphKind, o.Registry, o.Namespace, o.Name, o.Tag))
 }
 
 type DockerImageRepositoryNode struct {
@@ -145,11 +232,21 @@ func (n DockerImageRepositoryNode) ImageTag() string {
 }
 
 func (n DockerImageRepositoryNode) String() string {
-	return fmt.Sprintf("<docker repository %s>", n.Ref.String())
+	return fmt.Sprintf("<dockerrepository %s>", n.Ref.String())
 }
 
 func (*DockerImageRepositoryNode) Kind() int {
 	return DockerRepositoryGraphKind
+}
+
+func SourceRepositoryNodeName(source build.BuildSource) UniqueName {
+	switch {
+	case source.Git != nil:
+		sourceType, uri, ref := "git", source.Git.URI, source.Git.Ref
+		return UniqueName(fmt.Sprintf("%d|%s|%s#%s", SourceRepositoryGraphKind, sourceType, uri, ref))
+	default:
+		panic(fmt.Sprintf("invalid build source", source))
+	}
 }
 
 type SourceRepositoryNode struct {
@@ -159,13 +256,17 @@ type SourceRepositoryNode struct {
 
 func (n SourceRepositoryNode) String() string {
 	if n.Source.Git != nil {
-		return fmt.Sprintf("<source repository %s#%s>", n.Source.Git.URI, n.Source.Git.Ref)
+		return fmt.Sprintf("<sourcerepository %s#%s>", n.Source.Git.URI, n.Source.Git.Ref)
 	}
 	return fmt.Sprintf("<source repository unknown>")
 }
 
 func (SourceRepositoryNode) Kind() int {
 	return SourceRepositoryGraphKind
+}
+
+func ImageNodeName(o *image.Image) UniqueName {
+	return GetUniqueRootScopedNodeName(o)
 }
 
 type ImageNode struct {
@@ -185,9 +286,17 @@ func (*ImageNode) Kind() int {
 	return ImageGraphKind
 }
 
+func PodNodeName(o *kapi.Pod) UniqueName {
+	return GetUniqueNamespaceNodeName(o)
+}
+
+func ReplicationControllerNodeName(o *kapi.ReplicationController) UniqueName {
+	return GetUniqueNamespaceNodeName(o)
+}
+
 func Image(g MutableUniqueGraph, img *image.Image) graph.Node {
 	return EnsureUnique(g,
-		UniqueName(fmt.Sprintf("%d|%s", ImageGraphKind, img.Name)),
+		ImageNodeName(img),
 		func(node Node) graph.Node {
 			return &ImageNode{node, img}
 		},
@@ -195,7 +304,7 @@ func Image(g MutableUniqueGraph, img *image.Image) graph.Node {
 }
 
 func FindImage(g MutableUniqueGraph, imageName string) graph.Node {
-	return g.Find(UniqueName(fmt.Sprintf("%d|%s", ImageGraphKind, imageName)))
+	return g.Find(ImageNodeName(&image.Image{ObjectMeta: kapi.ObjectMeta{Name: imageName}}))
 }
 
 type PodNode struct {
@@ -205,7 +314,7 @@ type PodNode struct {
 
 func Pod(g MutableUniqueGraph, pod *kapi.Pod) graph.Node {
 	return EnsureUnique(g,
-		UniqueName(fmt.Sprintf("%d|%s/%s", PodGraphKind, pod.Namespace, pod.Name)),
+		PodNodeName(pod),
 		func(node Node) graph.Node {
 			return &PodNode{node, pod}
 		},
@@ -216,7 +325,7 @@ func Pod(g MutableUniqueGraph, pod *kapi.Pod) graph.Node {
 // link the service to covered nodes (that is a separate method).
 func Service(g MutableUniqueGraph, svc *kapi.Service) graph.Node {
 	return EnsureUnique(g,
-		UniqueName(fmt.Sprintf("%d|%s/%s", ServiceGraphKind, svc.Namespace, svc.Name)),
+		ServiceNodeName(svc),
 		func(node Node) graph.Node {
 			return &ServiceNode{node, svc}
 		},
@@ -246,8 +355,9 @@ func DockerRepository(g MutableUniqueGraph, name, tag string) graph.Node {
 	} else {
 		ref = image.DockerImageReference{Name: name}
 	}
+
 	return EnsureUnique(g,
-		UniqueName(fmt.Sprintf("%d|%s", DockerRepositoryGraphKind, name)),
+		DockerImageRepositoryNodeName(ref),
 		func(node Node) graph.Node {
 			return &DockerImageRepositoryNode{node, ref}
 		},
@@ -256,15 +366,13 @@ func DockerRepository(g MutableUniqueGraph, name, tag string) graph.Node {
 
 // SourceRepository adds the specific BuildSource to the graph if it does not already exist.
 func SourceRepository(g MutableUniqueGraph, source build.BuildSource) (graph.Node, bool) {
-	var sourceType, uri, ref string
 	switch {
 	case source.Git != nil:
-		sourceType, uri, ref = "git", source.Git.URI, source.Git.Ref
 	default:
 		return nil, false
 	}
 	return EnsureUnique(g,
-		UniqueName(fmt.Sprintf("%d|%s|%s#%s", SourceRepositoryGraphKind, sourceType, uri, ref)),
+		SourceRepositoryNodeName(source),
 		func(node Node) graph.Node {
 			return &SourceRepositoryNode{node, source}
 		},
@@ -280,16 +388,16 @@ func ImageStreamTag(g MutableUniqueGraph, namespace, name, tag string) graph.Nod
 	if strings.Contains(name, ":") {
 		panic(name)
 	}
-	uname := UniqueName(fmt.Sprintf("%d|%s/%s:%s", ImageStreamTagGraphKind, namespace, name, tag))
+	is := &image.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
 	return EnsureUnique(g,
-		uname,
+		ImageStreamTagNodeName(is, tag),
 		func(node Node) graph.Node {
-			return &ImageStreamTagNode{node, &image.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
-					Namespace: namespace,
-					Name:      name,
-				},
-			}, tag}
+			return &ImageStreamTagNode{node, is, tag}
 		},
 	)
 }
@@ -299,7 +407,7 @@ func ImageStreamTag(g MutableUniqueGraph, namespace, name, tag string) graph.Nod
 // it depends on.
 func BuildConfig(g MutableUniqueGraph, config *build.BuildConfig) graph.Node {
 	node, found := g.FindOrCreate(
-		UniqueName(fmt.Sprintf("%d|%s/%s", BuildConfigGraphKind, config.Namespace, config.Name)),
+		BuildConfigNodeName(config),
 		func(node Node) graph.Node {
 			return &BuildConfigNode{
 				Node:        node,
@@ -355,7 +463,7 @@ func BuildConfig(g MutableUniqueGraph, config *build.BuildConfig) graph.Node {
 // will create edges that point to named Docker image repositories for each image used in the deployment.
 func DeploymentConfig(g MutableUniqueGraph, config *deploy.DeploymentConfig) graph.Node {
 	node, found := g.FindOrCreate(
-		UniqueName(fmt.Sprintf("%d|%s/%s", DeploymentConfigGraphKind, config.Namespace, config.Name)),
+		DeploymentConfigNodeName(config),
 		func(node Node) graph.Node {
 			return &DeploymentConfigNode{Node: node, DeploymentConfig: config}
 		},
@@ -487,31 +595,10 @@ func defaultNamespace(value, defaultValue string) string {
 	return value
 }
 
-type ImageStreamNode struct {
-	Node
-	*image.ImageStream
-}
-
-func (n ImageStreamNode) Object() interface{} {
-	return n.ImageStream
-}
-
-func (n ImageStreamNode) String() string {
-	return fmt.Sprintf("<ImageStream %s/%s>", n.Namespace, n.Name)
-}
-
-func (*ImageStreamNode) Kind() int {
-	return ImageStreamGraphKind
-}
-
-func imageStreamName(stream *image.ImageStream) UniqueName {
-	return UniqueName(fmt.Sprintf("%d|%s", ImageStreamGraphKind, stream.Status.DockerImageRepository))
-}
-
 // ImageStream adds a graph node for the Image Stream if it does not already exist.
 func ImageStream(g MutableUniqueGraph, stream *image.ImageStream) graph.Node {
 	return EnsureUnique(g,
-		imageStreamName(stream),
+		ImageStreamNodeName(stream),
 		func(node Node) graph.Node {
 			return &ImageStreamNode{node, stream}
 		},
@@ -519,7 +606,7 @@ func ImageStream(g MutableUniqueGraph, stream *image.ImageStream) graph.Node {
 }
 
 func FindImageStream(g MutableUniqueGraph, stream *image.ImageStream) graph.Node {
-	return g.Find(imageStreamName(stream))
+	return g.Find(ImageStreamNodeName(stream))
 }
 
 type ReplicationControllerNode struct {
@@ -542,7 +629,7 @@ func (*ReplicationControllerNode) Kind() int {
 // ReplicationController adds a graph node for the ReplicationController if it does not already exist.
 func ReplicationController(g MutableUniqueGraph, rc *kapi.ReplicationController) graph.Node {
 	return EnsureUnique(g,
-		UniqueName(fmt.Sprintf("%d|%s/%s", ReplicationControllerGraphKind, rc.Namespace, rc.Name)),
+		ReplicationControllerNodeName(rc),
 		func(node Node) graph.Node {
 			return &ReplicationControllerNode{node, rc}
 		},
@@ -566,14 +653,22 @@ func (*ImageLayerNode) Kind() int {
 	return ImageLayerGraphKind
 }
 
+func ImageLayerNodeName(layer string) UniqueName {
+	return UniqueName(fmt.Sprintf("%d|%s", ImageLayerGraphKind, layer))
+}
+
 // ImageLayer adds a graph node for the layer if it does not already exist.
 func ImageLayer(g MutableUniqueGraph, layer string) graph.Node {
 	return EnsureUnique(g,
-		UniqueName(fmt.Sprintf("%d|%s", ImageLayerGraphKind, layer)),
+		ImageLayerNodeName(layer),
 		func(node Node) graph.Node {
 			return &ImageLayerNode{node, layer}
 		},
 	)
+}
+
+func BuildNodeName(o *build.Build) UniqueName {
+	return GetUniqueNamespaceNodeName(o)
 }
 
 type BuildNode struct {
@@ -596,7 +691,7 @@ func (*BuildNode) Kind() int {
 // Build adds a graph node for the build if it does not already exist.
 func Build(g MutableUniqueGraph, build *build.Build) graph.Node {
 	return EnsureUnique(g,
-		UniqueName(fmt.Sprintf("%d|%s/%s", BuildGraphKind, build.Namespace, build.Name)),
+		BuildNodeName(build),
 		func(node Node) graph.Node {
 			return &BuildNode{node, build}
 		},
