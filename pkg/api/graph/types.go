@@ -22,17 +22,17 @@ import (
 
 const (
 	UnknownGraphKind = iota
-	ImageStreamTagGraphKind
+	ImageStreamGraphKind
+	ImageGraphKind
 	BuildConfigGraphKind
+	BuildGraphKind
 	DeploymentConfigGraphKind
 	ServiceGraphKind
-	ImageGraphKind
 	PodGraphKind
-	ImageStreamGraphKind
 	ReplicationControllerGraphKind
-	BuildGraphKind
 
 	// non-api types
+	ImageStreamTagGraphKind
 	DockerRepositoryGraphKind
 	SourceRepositoryGraphKind
 	ImageLayerGraphKind
@@ -54,7 +54,6 @@ const (
 var kindToGraphKind = map[reflect.Type]interface{}{}
 
 func init() {
-	kindToGraphKind[reflect.TypeOf(&image.ImageStream{})] = ImageStreamGraphKind
 	kindToGraphKind[reflect.TypeOf(&image.ImageStream{})] = ImageStreamGraphKind
 	kindToGraphKind[reflect.TypeOf(&image.Image{})] = ImageGraphKind
 	kindToGraphKind[reflect.TypeOf(&build.BuildConfig{})] = BuildConfigGraphKind
