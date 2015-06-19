@@ -950,14 +950,10 @@ func deepCopy_v1_BuildTriggerPolicy(in buildapiv1.BuildTriggerPolicy, out *build
 }
 
 func deepCopy_v1_CustomBuildStrategy(in buildapiv1.CustomBuildStrategy, out *buildapiv1.CustomBuildStrategy, c *conversion.Cloner) error {
-	if in.From != nil {
-		if newVal, err := c.DeepCopy(in.From); err != nil {
-			return err
-		} else {
-			out.From = newVal.(*v1.ObjectReference)
-		}
+	if newVal, err := c.DeepCopy(in.From); err != nil {
+		return err
 	} else {
-		out.From = nil
+		out.From = newVal.(v1.ObjectReference)
 	}
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
@@ -1031,14 +1027,10 @@ func deepCopy_v1_ImageChangeTrigger(in buildapiv1.ImageChangeTrigger, out *build
 }
 
 func deepCopy_v1_SourceBuildStrategy(in buildapiv1.SourceBuildStrategy, out *buildapiv1.SourceBuildStrategy, c *conversion.Cloner) error {
-	if in.From != nil {
-		if newVal, err := c.DeepCopy(in.From); err != nil {
-			return err
-		} else {
-			out.From = newVal.(*v1.ObjectReference)
-		}
+	if newVal, err := c.DeepCopy(in.From); err != nil {
+		return err
 	} else {
-		out.From = nil
+		out.From = newVal.(v1.ObjectReference)
 	}
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {

@@ -145,10 +145,11 @@ type BuildStrategyRef struct {
 // BuildStrategy builds an OpenShift BuildStrategy from a BuildStrategyRef
 func (s *BuildStrategyRef) BuildStrategy() (*buildapi.BuildStrategy, []buildapi.BuildTriggerPolicy) {
 	if s.IsDockerBuild {
+		dockerFrom := s.Base.ObjectReference()
 		return &buildapi.BuildStrategy{
 			Type: buildapi.DockerBuildStrategyType,
 			DockerStrategy: &buildapi.DockerBuildStrategy{
-				From: s.Base.ObjectReference(),
+				From: &dockerFrom,
 			},
 		}, s.Base.BuildTriggers()
 	}
@@ -178,21 +179,21 @@ type ImageRef struct {
 }
 
 // ObjectReference returns an object reference from the image reference
-func (r *ImageRef) ObjectReference() *kapi.ObjectReference {
+func (r *ImageRef) ObjectReference() kapi.ObjectReference {
 	switch {
 	case r.Stream != nil:
-		return &kapi.ObjectReference{
+		return kapi.ObjectReference{
 			Kind:      "ImageStreamTag",
 			Name:      imageapi.NameAndTag(r.Stream.Name, r.Tag),
 			Namespace: r.Stream.Namespace,
 		}
 	case r.AsImageStream:
-		return &kapi.ObjectReference{
+		return kapi.ObjectReference{
 			Kind: "ImageStreamTag",
 			Name: imageapi.NameAndTag(r.Name, r.Tag),
 		}
 	default:
-		return &kapi.ObjectReference{
+		return kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: r.String(),
 		}

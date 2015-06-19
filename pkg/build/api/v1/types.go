@@ -116,7 +116,7 @@ const (
 // BuildSource is the SCM used for the build
 type BuildSource struct {
 	// Type of source control management system
-	Type BuildSourceType `json:"type,omitempty" description:"type of source control management system"`
+	Type BuildSourceType `json:"type" description:"type of source control management system"`
 
 	// Git contains optional information about git build source
 	Git *GitBuildSource `json:"git,omitempty" description:"optional information about git build source"`
@@ -137,7 +137,7 @@ type BuildSource struct {
 // SourceRevision is the revision or commit information from the source for the build
 type SourceRevision struct {
 	// Type of the build source
-	Type BuildSourceType `json:"type,omitempty" description:"type of the build source"`
+	Type BuildSourceType `json:"type" description:"type of the build source"`
 
 	// Git contains information about git-based build source
 	Git *GitSourceRevision `json:"git,omitempty" description:"information about git-based build source"`
@@ -162,7 +162,7 @@ type GitSourceRevision struct {
 type GitBuildSource struct {
 	// URI points to the source that will be built. The structure of the source
 	// will depend on the type of build to run
-	URI string `json:"uri,omitempty" description:"points to the source that will be built, structure of the source will depend on the type of build to run"`
+	URI string `json:"uri" description:"points to the source that will be built, structure of the source will depend on the type of build to run"`
 
 	// Ref is the branch/tag/ref to build.
 	Ref string `json:"ref,omitempty" description:"identifies the branch/tag/ref to build"`
@@ -212,7 +212,7 @@ const (
 type CustomBuildStrategy struct {
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
-	From *kapi.ObjectReference `json:"from,omitempty" description:"reference to an image stream, image stream tag, or image stream image from which the Docker image should be pulled"`
+	From kapi.ObjectReference `json:"from" description:"reference to an image stream, image stream tag, or image stream image from which the Docker image should be pulled"`
 
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
@@ -249,7 +249,7 @@ type DockerBuildStrategy struct {
 type SourceBuildStrategy struct {
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
-	From *kapi.ObjectReference `json:"from,omitempty" description:"reference to an image stream, image stream tag, or image stream image from which the Docker image should be pulled"`
+	From kapi.ObjectReference `json:"from" description:"reference to an image stream, image stream tag, or image stream image from which the Docker image should be pulled"`
 
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
@@ -329,7 +329,7 @@ type ImageChangeTrigger struct {
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
 type BuildTriggerPolicy struct {
 	// Type is the type of build trigger
-	Type BuildTriggerType `json:"type,omitempty" description:"type of build trigger"`
+	Type BuildTriggerType `json:"type" description:"type of build trigger"`
 
 	// GitHubWebHook contains the parameters for a GitHub webhook type of trigger
 	GitHubWebHook *WebHookTrigger `json:"github,omitempty" description:"parameters for a GitHub webhook type of trigger"`

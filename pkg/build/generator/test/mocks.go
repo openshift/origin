@@ -96,7 +96,7 @@ func MockSourceStrategyForImageRepository() buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
 		Type: buildapi.SourceBuildStrategyType,
 		SourceStrategy: &buildapi.SourceBuildStrategy{
-			From: &kapi.ObjectReference{
+			From: kapi.ObjectReference{
 				Kind:      "ImageStreamTag",
 				Name:      imageRepoName + ":" + tagName,
 				Namespace: imageRepoNamespace,

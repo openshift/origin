@@ -18,7 +18,7 @@ func ValidateBuild(build *buildapi.Build) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
 
-	allErrs = append(allErrs, validateBuildParameters(&build.Parameters).Prefix("parameters")...)
+	allErrs = append(allErrs, validateBuildParameters(&build.Parameters).Prefix("spec")...)
 	return allErrs
 }
 
@@ -51,8 +51,8 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErr
 			}
 		}
 	}
-	allErrs = append(allErrs, validateBuildParameters(&config.Parameters).Prefix("parameters")...)
-	allErrs = append(allErrs, validateBuildConfigOutput(&config.Parameters.Output).Prefix("parameters.output")...)
+	allErrs = append(allErrs, validateBuildParameters(&config.Parameters).Prefix("spec")...)
+	allErrs = append(allErrs, validateBuildConfigOutput(&config.Parameters.Output).Prefix("spec.output")...)
 	return allErrs
 }
 
@@ -231,11 +231,11 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy) fielderrors.
 
 func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if strategy.From == nil || len(strategy.From.Name) == 0 {
+	if len(strategy.From.Name) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
 
 	}
-	if strategy.From != nil && strategy.From.Kind == "ImageStreamTag" {
+	if strategy.From.Kind == "ImageStreamTag" {
 		if _, _, ok := imageapi.SplitImageStreamTag(strategy.From.Name); !ok {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("from.name", strategy.From.Name, "ImageStreamTag object references must be in the form <name>:<tag>"))
 		}
@@ -246,10 +246,10 @@ func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy) fielderrors.
 
 func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if strategy.From == nil || len(strategy.From.Name) == 0 {
+	if len(strategy.From.Name) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
 	}
-	if strategy.From != nil && strategy.From.Kind == "ImageStreamTag" {
+	if strategy.From.Kind == "ImageStreamTag" {
 		if _, _, ok := imageapi.SplitImageStreamTag(strategy.From.Name); !ok {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("from.name", strategy.From.Name, "ImageStreamTag object references must be in the form <name>:<tag>"))
 		}

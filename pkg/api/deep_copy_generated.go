@@ -963,14 +963,10 @@ func deepCopy_api_CustomBuildStrategy(in buildapi.CustomBuildStrategy, out *buil
 		out.Env = nil
 	}
 	out.ExposeDockerSocket = in.ExposeDockerSocket
-	if in.From != nil {
-		if newVal, err := c.DeepCopy(in.From); err != nil {
-			return err
-		} else {
-			out.From = newVal.(*api.ObjectReference)
-		}
+	if newVal, err := c.DeepCopy(in.From); err != nil {
+		return err
 	} else {
-		out.From = nil
+		out.From = newVal.(api.ObjectReference)
 	}
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
@@ -1031,14 +1027,10 @@ func deepCopy_api_ImageChangeTrigger(in buildapi.ImageChangeTrigger, out *builda
 }
 
 func deepCopy_api_SourceBuildStrategy(in buildapi.SourceBuildStrategy, out *buildapi.SourceBuildStrategy, c *conversion.Cloner) error {
-	if in.From != nil {
-		if newVal, err := c.DeepCopy(in.From); err != nil {
-			return err
-		} else {
-			out.From = newVal.(*api.ObjectReference)
-		}
+	if newVal, err := c.DeepCopy(in.From); err != nil {
+		return err
 	} else {
-		out.From = nil
+		out.From = newVal.(api.ObjectReference)
 	}
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {

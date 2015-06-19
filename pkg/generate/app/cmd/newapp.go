@@ -544,13 +544,13 @@ func filterImageStreams(result *AppResult) *AppResult {
 		if bc, ok := item.(*buildapi.BuildConfig); ok {
 			to := bc.Parameters.Output.To
 			if to != nil && to.Kind == "ImageStreamTag" {
-				imageStreams[makeImageStreamKey(to)] = true
+				imageStreams[makeImageStreamKey(*to)] = true
 			}
 			switch bc.Parameters.Strategy.Type {
 			case buildapi.DockerBuildStrategyType:
 				from := bc.Parameters.Strategy.DockerStrategy.From
 				if from != nil && from.Kind == "ImageStreamTag" {
-					imageStreams[makeImageStreamKey(from)] = true
+					imageStreams[makeImageStreamKey(*from)] = true
 				}
 			case buildapi.SourceBuildStrategyType:
 				from := bc.Parameters.Strategy.SourceStrategy.From
@@ -559,7 +559,7 @@ func filterImageStreams(result *AppResult) *AppResult {
 				}
 			case buildapi.CustomBuildStrategyType:
 				from := bc.Parameters.Strategy.CustomStrategy.From
-				if from != nil && from.Kind == "ImageStreamTag" {
+				if from.Kind == "ImageStreamTag" {
 					imageStreams[makeImageStreamKey(from)] = true
 				}
 			}
@@ -580,7 +580,7 @@ func filterImageStreams(result *AppResult) *AppResult {
 	return result
 }
 
-func makeImageStreamKey(ref *kapi.ObjectReference) string {
+func makeImageStreamKey(ref kapi.ObjectReference) string {
 	name, _, _ := imageapi.SplitImageStreamTag(ref.Name)
 	return types.NamespacedName{ref.Namespace, name}.String()
 }

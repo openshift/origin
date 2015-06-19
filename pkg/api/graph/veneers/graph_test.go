@@ -64,7 +64,7 @@ func TestGraph(t *testing.T) {
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.SourceBuildStrategyType,
 				SourceStrategy: &buildapi.SourceBuildStrategy{
-					From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:base-image"},
+					From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:base-image"},
 				},
 			},
 			Output: buildapi.BuildOutput{

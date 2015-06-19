@@ -705,7 +705,7 @@ func TestGetNextBuildNameFromBuild(t *testing.T) {
 
 func TestResolveImageStreamRef(t *testing.T) {
 	type resolveTest struct {
-		streamRef         *kapi.ObjectReference
+		streamRef         kapi.ObjectReference
 		tag               string
 		expectedSuccess   bool
 		expectedDockerRef string
@@ -714,7 +714,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 
 	tests := []resolveTest{
 		{
-			streamRef: &kapi.ObjectReference{
+			streamRef: kapi.ObjectReference{
 				Name: imageRepoName,
 			},
 			tag:               tagName,
@@ -722,7 +722,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 			expectedDockerRef: dockerReference,
 		},
 		{
-			streamRef: &kapi.ObjectReference{
+			streamRef: kapi.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: imageRepoName + ":" + tagName,
 			},
@@ -730,7 +730,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 			expectedDockerRef: latestDockerReference,
 		},
 		{
-			streamRef: &kapi.ObjectReference{
+			streamRef: kapi.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: imageRepoName + "@myid",
 			},
@@ -804,7 +804,7 @@ func mockCustomStrategyForDockerImage(name string) buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
 		Type: buildapi.CustomBuildStrategyType,
 		CustomStrategy: &buildapi.CustomBuildStrategy{
-			From: &kapi.ObjectReference{
+			From: kapi.ObjectReference{
 				Kind: "DockerImage",
 				Name: originalImage,
 			},
@@ -816,7 +816,7 @@ func mockCustomStrategyForImageRepository() buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
 		Type: buildapi.CustomBuildStrategyType,
 		CustomStrategy: &buildapi.CustomBuildStrategy{
-			From: &kapi.ObjectReference{
+			From: kapi.ObjectReference{
 				Kind:      "ImageStreamTag",
 				Name:      imageRepoName + ":" + tagName,
 				Namespace: imageRepoNamespace,

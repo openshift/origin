@@ -276,7 +276,7 @@ func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromName
 	switch strategyType {
 	case buildapi.SourceBuildStrategyType:
 		params.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{
-			From: &kapi.ObjectReference{
+			From: kapi.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
 				Name:      fromName,
@@ -292,7 +292,7 @@ func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromName
 		}
 	case buildapi.CustomBuildStrategyType:
 		params.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{
-			From: &kapi.ObjectReference{
+			From: kapi.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
 				Name:      fromName,
