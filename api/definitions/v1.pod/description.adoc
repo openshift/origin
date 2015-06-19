@@ -1,0 +1,3 @@
+A pod corresponds to a group of containers running together on the same machine. All containers in a pod share an IP address, and may have access to shared volumes and local fileystem. Like individual application containers, pods are considered to be relatively ephemeral rather than durable entities. Pods are scheduled to nodes and remain there until termination (according to restart policy) or deletion. When a node dies, the pods scheduled to that node are deleted. Specific pods are never rescheduled to new nodes; instead, they must be replaced by a component like the replication controller.
+
+See link:https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/pods.md[the Kubernetes pod documentation] for more information.
