@@ -73,14 +73,14 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 
 	hostPathRecycler := &volume.RecyclableVolumeConfig{
 		ImageName: recyclerImageName,
-		Command:   []string{"/usr/share/openshift/scripts/volumes/recycle.sh"},
+		Command:   []string{"/usr/share/openshift/scripts/volumes/recycler.sh"},
 		Args:      []string{"/scrub"},
 		Timeout:   int64(60),
 	}
 
 	nfsRecycler := &volume.RecyclableVolumeConfig{
 		ImageName: recyclerImageName,
-		Command:   []string{"/usr/share/openshift/scripts/volumes/recycle.sh"},
+		Command:   []string{"/usr/share/openshift/scripts/volumes/recycler.sh"},
 		Args:      []string{"/scrub"},
 		Timeout:   int64(300),
 	}
