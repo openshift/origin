@@ -9,7 +9,6 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
-	kctrl "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-controller-manager/app"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
@@ -74,14 +73,14 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 
 	hostPathRecycler := &volume.RecyclableVolumeConfig{
 		ImageName: recyclerImageName,
-		Command:   []string{"/usr/share/openshift/scripts/volumes/recycle.sh"},
+		Command:   []string{"/usr/share/openshift/scripts/volumes/recycler.sh"},
 		Args:      []string{"/scrub"},
 		Timeout:   int64(60),
 	}
 
 	nfsRecycler := &volume.RecyclableVolumeConfig{
 		ImageName: recyclerImageName,
-		Command:   []string{"/usr/share/openshift/scripts/volumes/recycle.sh"},
+		Command:   []string{"/usr/share/openshift/scripts/volumes/recycler.sh"},
 		Args:      []string{"/scrub"},
 		Timeout:   int64(300),
 	}
@@ -90,7 +89,7 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(hostPathRecycler)...)
 	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(nfsRecycler)...)
 
-	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod, kctrl.ProbeRecyclableVolumePlugins())
+	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins)
 	if err != nil {
 		glog.Fatalf("Could not start PersistentVolumeRecycler: %+v", err)
 	}

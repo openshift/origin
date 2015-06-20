@@ -18,7 +18,7 @@ function recycle(){
         return 1
     fi
 
-    if [ test ! -e $dir ]; then
+    if [ ! -e $dir ]; then
         echo "scrub directory $dir does not exist"
         return 1
     fi
