@@ -27,9 +27,9 @@ end
 
 def full_provision(vm, username = [])
   if pre_vagrant_171
-    vm.provision "shell", path: "hack/vm-provision-full.sh", args: username, id: "setup"
+    vm.provision "shell", path: "vagrant/provision-full.sh", args: username, id: "setup"
   else
-    vm.provision "setup", type: "shell", path: "hack/vm-provision-full.sh", args: username
+    vm.provision "setup", type: "shell", path: "vagrant/provision-full.sh", args: username
   end
 end
 
@@ -72,6 +72,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "rebuild_yum_cache" => false,
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
     "memory"            => ENV['OPENSHIFT_MEMORY'] || 1024,
+    "sync_folders_type" => nil,
     "virtualbox"        => {
       "box_name" => "fedora_inst",
       "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
@@ -171,21 +172,27 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
       end
       if pre_vagrant_171
-        config.vm.provision "shell", path: "hack/vm-provision.sh", id: "setup"
+        config.vm.provision "shell", path: "vagrant/provision-minimal.sh", id: "setup"
       else
-        config.vm.provision "setup", type: "shell", path: "hack/vm-provision.sh"
+        config.vm.provision "setup", type: "shell", path: "vagrant/provision-minimal.sh"
       end
 
       config.vm.synced_folder ".", "/vagrant", disabled: true
-
       unless vagrant_openshift_config['no_synced_folders']
-        config.vm.synced_folder sync_from, sync_to, rsync__args: %w(--verbose --archive --delete)
+        config.vm.synced_folder sync_from, sync_to, 
+          rsync__args: %w(--verbose --archive --delete), 
+          type: vagrant_openshift_config['sync_folders_type'],
+          nfs_udp: false # has issues when using NFS from within a docker container
       end
 
-      config.vm.network "forwarded_port", guest: 80, host: 1080
-      config.vm.network "forwarded_port", guest: 443, host: 1443
-      config.vm.network "forwarded_port", guest: 8080, host: 8080
-      config.vm.network "forwarded_port", guest: 8443, host: 8443
+      if vagrant_openshift_config['private_network_ip']
+        config.vm.network "private_network", ip: vagrant_openshift_config['private_network_ip']
+      else
+        config.vm.network "forwarded_port", guest: 80, host: 1080
+        config.vm.network "forwarded_port", guest: 443, host: 1443
+        config.vm.network "forwarded_port", guest: 8080, host: 8080
+        config.vm.network "forwarded_port", guest: 8443, host: 8443
+      end
     end
 
   end # vm definition(s)
@@ -270,7 +277,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     # #########################
     # Set AWS provider settings
-    config.vm.provider :aws do |aws, override|
+    config.vm.provider "aws" do |aws, override|
       creds_file_path = ENV['AWS_CREDS'].nil? || ENV['AWS_CREDS'] == '' ? AWS_CRED_FILE : ENV['AWS_CREDS']
       if File.exist?(File.expand_path(creds_file_path))
         aws_creds_file = Pathname.new(File.expand_path(creds_file_path))
