@@ -189,7 +189,7 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 		}
 
 		if event == nil {
-			util.HandleError(fmt.Errorf("unable to find tag event for %#v", tagRef.From))
+			// referenced tag or ID doesn't exist, which is ok
 			continue
 		}
 
