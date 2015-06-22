@@ -314,7 +314,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 				},
 			},
 		}
-		objects = app.AddServices(objects)
+		objects = app.AddServices(objects, true)
 		// TODO: label all created objects with the same label - router=<name>
 		list := &kapi.List{Items: objects}
 
