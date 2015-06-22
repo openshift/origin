@@ -117,6 +117,11 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 	startKube := kubernetes.NewCommand("kubernetes", fullName, out)
 	cmds.AddCommand(startKube)
 
+	// autocompletion hints
+	cmds.MarkFlagFilename("write-config")
+	cmds.MarkFlagFilename("master-config", "yaml", "yml")
+	cmds.MarkFlagFilename("node-config", "yaml", "yml")
+
 	return cmds, options
 }
 

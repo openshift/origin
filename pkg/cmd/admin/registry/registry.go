@@ -114,6 +114,9 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out io.Writer
 	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the registry pod.")
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run registries on a specific set of nodes.")
 
+	// autocompletion hints
+	cmd.MarkFlagFilename("credentials", "kubeconfig")
+
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd

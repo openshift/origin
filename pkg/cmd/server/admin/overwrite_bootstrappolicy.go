@@ -76,6 +76,10 @@ func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, cre
 	flags.StringVar(&options.File, "filename", "", "The policy template file containing roles and bindings.  One can be created with '"+createBootstrapPolicyCommand+"'.")
 	flags.StringVar(&options.MasterConfigFile, "master-config", "openshift.local.config/master/master-config.yaml", "Location of the master configuration file to run from in order to connect to etcd and directly modify the policy.")
 
+	// autocompletion hints
+	cmd.MarkFlagFilename("filename")
+	cmd.MarkFlagFilename("master-config", "yaml", "yml")
+
 	return cmd
 }
 

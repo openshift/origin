@@ -93,6 +93,12 @@ users:
 	flags.StringVar(&options.ContextNamespace, "namespace", kapi.NamespaceDefault, "Namespace for this context in .kubeconfig.")
 	flags.StringVar(&options.KubeConfigFile, "kubeconfig", ".kubeconfig", "Path for the resulting .kubeconfig file.")
 
+	// autocompletion hints
+	cmd.MarkFlagFilename("certificate-authority")
+	cmd.MarkFlagFilename("client-certificate")
+	cmd.MarkFlagFilename("client-key")
+	cmd.MarkFlagFilename("kubeconfig")
+
 	return cmd
 }
 

@@ -96,6 +96,16 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 	flags.StringVar(&options.APIServerCAFile, "certificate-authority", options.APIServerCAFile, "Path to the API server's CA file.")
 	flags.StringVar(&options.NetworkPluginName, "network-plugin", options.NetworkPluginName, "Name of the network plugin to hook to for pod networking.")
 
+	// autocompletion hints
+	cmd.MarkFlagFilename("node-dir")
+	cmd.MarkFlagFilename("volume-dir")
+	cmd.MarkFlagFilename("client-certificate")
+	cmd.MarkFlagFilename("client-key")
+	cmd.MarkFlagFilename("server-certificate")
+	cmd.MarkFlagFilename("server-key")
+	cmd.MarkFlagFilename("node-client-certificate-authority")
+	cmd.MarkFlagFilename("certificate-authority")
+
 	return cmd
 }
 

@@ -85,6 +85,9 @@ func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
 	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
 
+	// autocompletion hints
+	cmd.MarkFlagFilename("config", "yaml", "yml")
+
 	return cmd, options
 }
 
