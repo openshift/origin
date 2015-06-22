@@ -140,7 +140,7 @@
             </dl>
           </div>
         </div>
-        <div ng-show="$first || expanded" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true" class="well build-well">
+        <div ng-show="$first || expanded" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true" ng-attr-id="build-{{build.metadata.name}}" class="well build-well">
           <div class="row">
             <div class="col-md-7 col-sm-7 col-xs-7">
               <h3>{{build.metadata.name}}</h3>

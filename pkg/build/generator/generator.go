@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -312,6 +313,10 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	}
 
 	build.Name = getNextBuildName(bc)
+	if build.Annotations == nil {
+		build.Annotations = make(map[string]string)
+	}
+	build.Annotations[buildapi.BuildNumberAnnotation] = strconv.Itoa(bc.Status.LastVersion)
 	if build.Labels == nil {
 		build.Labels = make(map[string]string)
 	}
@@ -531,6 +536,7 @@ func updateCustomImageEnv(strategy *buildapi.CustomBuildStrategy, newImage strin
 func generateBuildFromBuild(build *buildapi.Build) *buildapi.Build {
 	obj, _ := kapi.Scheme.Copy(build)
 	buildCopy := obj.(*buildapi.Build)
+	// TODO: How do we want to handle buildapi.BuildNumberAnnotation for cloned builds?
 	return &buildapi.Build{
 		Spec: buildCopy.Spec,
 		ObjectMeta: kapi.ObjectMeta{

@@ -8,13 +8,15 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('BuildsController', function ($scope, DataService, $filter, LabelFilter, Logger) {
+  .controller('BuildsController', function ($scope, DataService, $filter, LabelFilter, Logger, $location, $anchorScroll) {
     $scope.builds = {};
     $scope.unfilteredBuilds = {};
     $scope.buildConfigs = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
+    // Expand builds on load if there's a hash that might link to a hidden build.
+    $scope.expanded = !!$location.hash();
 
     $scope.buildsByBuildConfig = {};
 
@@ -48,6 +50,12 @@ angular.module('openshiftConsole')
         if (buildStatus === "Complete" || buildStatus === "Failed" || buildStatus === "Error" || buildStatus === "Cancelled"){
           delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
         }
+      }
+
+      // Scroll to anchor on first load if location has a hash.
+      if (!action && $location.hash()) {
+        // Wait until the digest loop completes.
+        setTimeout($anchorScroll, 10);
       }
 
       Logger.log("builds (subscribe)", $scope.unfilteredBuilds);
