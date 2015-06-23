@@ -28,6 +28,7 @@ find_files() {
         -o -wholename './.git' \
         -o -wholename './release' \
         -o -wholename './pkg/assets/bindata.go' \
+        -o -wholename './pkg/assets/*/bindata.go' \
         -o -wholename './target' \
         -o -wholename '*/third_party/*' \
         -o -wholename '*/Godeps/*' \

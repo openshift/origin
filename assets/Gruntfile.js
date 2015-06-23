@@ -421,11 +421,15 @@ module.exports = function (grunt) {
           src: 'ZeroClipboard.swf',
           dest: '<%= yeoman.dist %>/scripts'
         }, 
+
+        // Copy separate components
         {
           expand: true,
           cwd: 'openshift-jvm',
           src: '**/*',
-          dest: '<%= yeoman.dist %>/java'
+          // Copy to a separate "dist.*" directory for go-bindata
+          // Make the folder structure inside the dist.* directory match the desired path
+          dest: '<%= yeoman.dist %>.java/java'
         }]
       },
       styles: {
