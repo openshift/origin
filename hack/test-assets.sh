@@ -26,7 +26,7 @@ pushd "${OS_ROOT}" > /dev/null
   echo "Validating checked in bindata.go is up to date..."
   if ! assetdiff=$(diff -u _output/test/assets/bindata.go pkg/assets/bindata.go) ; then
 
-    echo "$assetdiff" | head -c 1000
+    echo "$assetdiff" | head -n 10
 
     pushd "${OS_ROOT}/assets" > /dev/null
 
