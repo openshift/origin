@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/util"
 )
 
@@ -19,7 +20,6 @@ func (c *Clone) Download(config *api.Config) error {
 	targetSourceDir := filepath.Join(config.WorkingDir, "upload", "src")
 
 	if c.ValidCloneSpec(config.Source) {
-
 		if len(config.ContextDir) > 0 {
 			targetSourceDir = filepath.Join(config.WorkingDir, "upload", "tmp")
 		}
@@ -51,8 +51,10 @@ func (c *Clone) Download(config *api.Config) error {
 
 		return nil
 	}
-
 	// we want to copy entire dir contents, thus we need to use dir/. construct
 	path := filepath.Join(config.Source, config.ContextDir) + string(filepath.Separator) + "."
+	if !c.Exists(path) {
+		return errors.NewSourcePathError(path)
+	}
 	return c.Copy(path, targetSourceDir)
 }

@@ -42,7 +42,7 @@ func TestCloneLocalWithContext(t *testing.T) {
 	gh := New().(*stiGit)
 	cr := &test.FakeCmdRunner{}
 	gh.runner = cr
-	fs := &test.FakeFileSystem{}
+	fs := &test.FakeFileSystem{ExistsResult: map[string]bool{"source/subdir/.": true}}
 	c := &Clone{gh, fs}
 
 	fakeConfig := &api.Config{
