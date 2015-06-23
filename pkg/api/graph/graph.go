@@ -3,9 +3,12 @@ package graph
 import (
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 type Node struct {
@@ -109,6 +112,35 @@ func New() Graph {
 	}
 }
 
+func (g Graph) String() string {
+	ret := ""
+
+	nodeList := g.NodeList()
+	sort.Sort(SortedNodeList(nodeList))
+	for _, node := range nodeList {
+		ret += fmt.Sprintf("%d: %v\n", node.ID(), g.GraphDescriber.Name(node))
+
+		// can't use SuccessorEdges, because I want stable ordering
+		successors := g.Successors(node)
+		sort.Sort(SortedNodeList(successors))
+		for _, successor := range successors {
+			edge := g.EdgeBetween(node, successor)
+			kind := g.EdgeKind(edge)
+			ret += fmt.Sprintf("\t%v to %d: %v\n", kind, successor.ID(), g.GraphDescriber.Name(successor))
+		}
+	}
+
+	return ret
+}
+
+type SortedNodeList []graph.Node
+
+func (m SortedNodeList) Len() int      { return len(m) }
+func (m SortedNodeList) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m SortedNodeList) Less(i, j int) bool {
+	return m[i].ID() < m[j].ID()
+}
+
 // RootNodes returns all the roots of this graph.
 func (g Graph) RootNodes() []graph.Node {
 	roots := []graph.Node{}
@@ -153,6 +185,38 @@ func (g Graph) SuccessorEdges(node graph.Node, fn EdgeFunc, edgeKind ...string) 
 	}
 }
 
+// OutboundEdges returns all the outbound edges from node that are in the list of edgeKinds
+// if edgeKinds is empty, then all edges are returned
+func (g Graph) OutboundEdges(node graph.Node, edgeKinds ...string) []graph.Edge {
+	ret := []graph.Edge{}
+
+	allowedKinds := util.NewStringSet(edgeKinds...)
+	for _, n := range g.Successors(node) {
+		edge := g.EdgeBetween(n, node)
+		if len(allowedKinds) == 0 || allowedKinds.Has(g.EdgeKind(edge)) {
+			ret = append(ret, edge)
+		}
+	}
+
+	return ret
+}
+
+// InboundEdges returns all the inbound edges to node that are in the list of edgeKinds
+// if edgeKinds is empty, then all edges are returned
+func (g Graph) InboundEdges(node graph.Node, edgeKinds ...string) []graph.Edge {
+	ret := []graph.Edge{}
+
+	allowedKinds := util.NewStringSet(edgeKinds...)
+	for _, n := range g.Predecessors(node) {
+		edge := g.EdgeBetween(n, node)
+		if len(allowedKinds) == 0 || allowedKinds.Has(g.EdgeKind(edge)) {
+			ret = append(ret, edge)
+		}
+	}
+
+	return ret
+}
+
 func (g Graph) EdgeList() []graph.Edge {
 	return g.internal.EdgeList()
 }
@@ -163,6 +227,16 @@ func (g Graph) AddNode(n graph.Node) {
 
 // AddEdge implements MutableUniqueGraph
 func (g Graph) AddEdge(head, tail graph.Node, edgeKind string) {
+	// a Contains edge has semantic meaning for osgraph.Graph objects.  It never makes sense
+	// to allow a single object to be "contained" by multiple nodes.
+	if edgeKind == ContainsEdgeKind {
+		// check incoming edges on the tail to be certain that we aren't already contained
+		containsEdges := g.InboundEdges(tail, ContainsEdgeKind)
+		if len(containsEdges) != 0 {
+			// TODO consider changing the AddEdge API to make this cleaner.  This is a pretty severe programming error
+			panic(fmt.Sprintf("%v is already contained by %v", tail, containsEdges))
+		}
+	}
 	g.internal.AddDirectedEdge(NewEdge(head, tail, edgeKind), 1)
 }
 

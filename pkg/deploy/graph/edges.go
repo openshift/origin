@@ -6,10 +6,8 @@ import (
 	"github.com/gonum/graph"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
-	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
@@ -18,40 +16,7 @@ import (
 const (
 	TriggersDeploymentEdgeKind = "TriggersDeployment"
 	UsedInDeploymentEdgeKind   = "UsedInDeployment"
-
-	ExposedThroughServiceEdgeKind = "ExposedThroughService"
 )
-
-// AddFullfillingDeploymentConfigEdges ensures that a directed edge exists between all deployment configs and the
-// services that expose them (via label selectors).
-func AddFullfillingDeploymentConfigEdges(g osgraph.MutableUniqueGraph, node *kubegraph.ServiceNode) *kubegraph.ServiceNode {
-	if node.Service.Spec.Selector == nil {
-		return node
-	}
-	query := labels.SelectorFromSet(node.Service.Spec.Selector)
-	for _, n := range g.(graph.Graph).NodeList() {
-		switch target := n.(type) {
-		case *deploygraph.DeploymentConfigNode:
-			template := target.DeploymentConfig.Template.ControllerTemplate.Template
-			if template == nil {
-				continue
-			}
-			if query.Matches(labels.Set(template.Labels)) {
-				g.AddEdge(target, node, ExposedThroughServiceEdgeKind)
-			}
-		}
-	}
-
-	return node
-}
-
-func AddAllFullfillingDeploymentConfigEdges(g osgraph.MutableUniqueGraph) {
-	for _, node := range g.(graph.Graph).NodeList() {
-		if serviceNode, ok := node.(*kubegraph.ServiceNode); ok {
-			AddFullfillingDeploymentConfigEdges(g, serviceNode)
-		}
-	}
-}
 
 // AddTriggerEdges creates edges that point to named Docker image repositories for each image used in the deployment.
 func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentConfigNode) *deploygraph.DeploymentConfigNode {
