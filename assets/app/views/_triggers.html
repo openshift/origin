@@ -1,6 +1,10 @@
 <div class="builds-block">
   <div class="builds" ng-repeat="trigger in triggers">
-    <div ng-repeat="build in trigger.builds" ng-if="build.status.phase == 'New' || build.status.phase == 'Pending' || build.status.phase == 'Running' || (build.metadata.creationTimestamp | ageLessThan : 5 : 'minutes')" class="build animate-repeat osc-object" kind="Build" resource="build">
+    <div ng-repeat="build in trigger.builds"
+        ng-if="build | isRecentBuild"
+        class="build animate-repeat osc-object"
+        kind="Build"
+        resource="build">
       <!-- Icon -->
       <span ng-switch="build.status.phase" class="hide-ng-leave">
         <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true" style="margin-right: 5px;"></span>
