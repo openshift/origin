@@ -394,6 +394,7 @@ module.exports = function (grunt) {
             '.htaccess',
             '*.html',
             'views/{,*/}*.html',
+            'images/{,*/}*.{png,jpg,jpeg,gif}',
             'images/{,*/}*.{webp}',
             'fonts/*',
             'styles/fonts/*'
@@ -458,7 +459,8 @@ module.exports = function (grunt) {
       ],
       dist: [
         'less:production',
-        'imagemin',
+        // remove imagemin from build, since it doesn't tend to behave well cross-platform
+        // 'imagemin',
         'svgmin'
       ]
     },
