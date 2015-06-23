@@ -276,23 +276,24 @@ func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, e
 // TODO: user should be able to choose whether to download a remote source ref for
 // more info
 func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*BuildStrategyRef, *SourceRef, error) {
-	if image != nil {
-		remoteUrl, err := repo.RemoteURL()
-		if err != nil {
-			return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s", repo.location)
-		}
-		strategy := &BuildStrategyRef{
-			Base:          image,
-			IsDockerBuild: repo.IsDockerBuild(),
-		}
-		source := &SourceRef{
-			URL:        remoteUrl,
-			Ref:        remoteUrl.Fragment,
-			ContextDir: repo.ContextDir(),
-		}
-		return strategy, source, nil
+	if image == nil {
+		return nil, nil, fmt.Errorf("an image ref is required to generate a strategy and sourceref")
 	}
-	return nil, nil, fmt.Errorf("an image ref is required to generate a strategy and sourceref")
+
+	remoteURL, err := repo.RemoteURL()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s", repo.location)
+	}
+	strategy := &BuildStrategyRef{
+		Base:          image,
+		IsDockerBuild: repo.IsDockerBuild(),
+	}
+	source := &SourceRef{
+		URL:        remoteURL,
+		Ref:        remoteURL.Fragment,
+		ContextDir: repo.ContextDir(),
+	}
+	return strategy, source, nil
 }
 
 // MockSourceRepositories is a set of mocked source repositories

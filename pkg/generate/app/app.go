@@ -172,21 +172,6 @@ type ImageRef struct {
 	Info   *imageapi.DockerImage
 }
 
-/*
-// NameReference returns the name that other OpenShift objects may refer to this
-// image as.  Deployment Configs and Build Configs may look an image up
-// in an image repository before creating other objects that use the name.
-func (r *ImageRef) NameReference() string {
-	if len(r.Registry) == 0 && len(r.Namespace) == 0 {
-		if len(r.Tag) != 0 {
-			return fmt.Sprintf("%s:%s", r.Name, r.Tag)
-		}
-		return r.Name
-	}
-	return r.pullSpec()
-}
-*/
-
 // ObjectReference returns an object reference from the image reference
 func (r *ImageRef) ObjectReference() *kapi.ObjectReference {
 	switch {
@@ -254,6 +239,9 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 
 // BuildTriggers sets up build triggers for the base image
 func (r *ImageRef) BuildTriggers() []buildapi.BuildTriggerPolicy {
+	if r.Stream == nil && !r.AsImageStream {
+		return nil
+	}
 	return []buildapi.BuildTriggerPolicy{
 		{
 			Type:        buildapi.ImageChangeBuildTriggerType,
