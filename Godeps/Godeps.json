@@ -1000,43 +1000,43 @@
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
-			"Comment": "v0.5",
-			"Rev": "77e3b722b028b8af94a3606d0dbb76dc377755fd"
+			"Comment": "v1.0-8-g358cdb5",
+			"Rev": "358cdb59db90b920e90a5f9a952ef7a3e11df3ad"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build",
-			"Comment": "v0.5",
-			"Rev": "77e3b722b028b8af94a3606d0dbb76dc377755fd"
+			"Comment": "v1.0-8-g358cdb5",
+			"Rev": "358cdb59db90b920e90a5f9a952ef7a3e11df3ad"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/docker",
-			"Comment": "v0.5",
-			"Rev": "77e3b722b028b8af94a3606d0dbb76dc377755fd"
+			"Comment": "v1.0-8-g358cdb5",
+			"Rev": "358cdb59db90b920e90a5f9a952ef7a3e11df3ad"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/errors",
-			"Comment": "v0.5",
-			"Rev": "77e3b722b028b8af94a3606d0dbb76dc377755fd"
+			"Comment": "v1.0-8-g358cdb5",
+			"Rev": "358cdb59db90b920e90a5f9a952ef7a3e11df3ad"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/git",
-			"Comment": "v0.5",
-			"Rev": "77e3b722b028b8af94a3606d0dbb76dc377755fd"
+			"Comment": "v1.0-8-g358cdb5",
+			"Rev": "358cdb59db90b920e90a5f9a952ef7a3e11df3ad"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scripts",
-			"Comment": "v0.5",
-			"Rev": "77e3b722b028b8af94a3606d0dbb76dc377755fd"
+			"Comment": "v1.0-8-g358cdb5",
+			"Rev": "358cdb59db90b920e90a5f9a952ef7a3e11df3ad"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
-			"Comment": "v0.5",
-			"Rev": "77e3b722b028b8af94a3606d0dbb76dc377755fd"
+			"Comment": "v1.0-8-g358cdb5",
+			"Rev": "358cdb59db90b920e90a5f9a952ef7a3e11df3ad"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util",
-			"Comment": "v0.5",
-			"Rev": "77e3b722b028b8af94a3606d0dbb76dc377755fd"
+			"Comment": "v1.0-8-g358cdb5",
+			"Rev": "358cdb59db90b920e90a5f9a952ef7a3e11df3ad"
 		},
 		{
 			"ImportPath": "github.com/pkg/profile",
