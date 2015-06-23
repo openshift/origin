@@ -19,6 +19,9 @@ RUN ETCD_URL=https://github.com/coreos/etcd/releases/download/${ETCD_RELEASE}/et
 
 EXPOSE 2379 2380
 
+# Make the datadir world writeable
+RUN mkdir -p /var/lib/etcd && chmod go+rwx /var/lib/etcd
+
 VOLUME ["/var/lib/etcd"]
 
 ADD etcd*.sh /usr/local/bin/
