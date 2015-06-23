@@ -160,6 +160,12 @@ type GitBuildSource struct {
 
 	// Ref is the branch/tag/ref to build.
 	Ref string `json:"ref,omitempty"`
+
+	// HTTPProxy is a proxy used to reach the git repository over http
+	HTTPProxy string `json:"httpProxy,omitempty" description:"specifies a http proxy to be used during git clone operations"`
+
+	// HTTPSProxy is a proxy used to reach the git repository over https
+	HTTPSProxy string `json:"httpsProxy,omitempty" description:"specifies a https proxy to be used during git clone operations"`
 }
 
 // SourceControlUser defines the identity of a user of source control
@@ -234,6 +240,9 @@ type DockerBuildStrategy struct {
 	// NoCache if set to true indicates that the docker build must be executed with the
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty"`
+
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.

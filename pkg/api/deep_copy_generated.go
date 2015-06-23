@@ -1004,12 +1004,26 @@ func deepCopy_api_DockerBuildStrategy(in buildapi.DockerBuildStrategy, out *buil
 	} else {
 		out.PullSecret = nil
 	}
+	if in.Env != nil {
+		out.Env = make([]api.EnvVar, len(in.Env))
+		for i := range in.Env {
+			if newVal, err := c.DeepCopy(in.Env[i]); err != nil {
+				return err
+			} else {
+				out.Env[i] = newVal.(api.EnvVar)
+			}
+		}
+	} else {
+		out.Env = nil
+	}
 	return nil
 }
 
 func deepCopy_api_GitBuildSource(in buildapi.GitBuildSource, out *buildapi.GitBuildSource, c *conversion.Cloner) error {
 	out.URI = in.URI
 	out.Ref = in.Ref
+	out.HTTPProxy = in.HTTPProxy
+	out.HTTPSProxy = in.HTTPSProxy
 	return nil
 }
 

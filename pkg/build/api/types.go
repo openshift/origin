@@ -164,6 +164,12 @@ type GitBuildSource struct {
 
 	// Ref is the branch/tag/ref to build.
 	Ref string
+
+	// HTTPProxy is a proxy used to reach the git repository over http
+	HTTPProxy string
+
+	// HTTPSProxy is a proxy used to reach the git repository over https
+	HTTPSProxy string
 }
 
 // SourceControlUser defines the identity of a user of source control
@@ -247,6 +253,9 @@ type DockerBuildStrategy struct {
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
 	PullSecret *kapi.LocalObjectReference
+
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
 }
 
 // SourceBuildStrategy defines input parameters specific to an STI build.

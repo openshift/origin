@@ -1,6 +1,6 @@
 {
   "kind": "Template",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "creationTimestamp": null,
@@ -13,7 +13,7 @@
   "objects": [
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
         "creationTimestamp": null
@@ -41,7 +41,7 @@
     },
     {
       "kind": "Route",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
         "creationTimestamp": null
@@ -63,7 +63,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "origin-ruby-sample",
         "creationTimestamp": null
@@ -75,7 +75,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "ruby-20-centos7",
         "creationTimestamp": null
@@ -89,7 +89,7 @@
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "ruby-sample-build",
         "creationTimestamp": null,
@@ -100,26 +100,26 @@
       "spec": {
         "triggers": [
           {
-            "type": "github",
+            "type": "GitHub",
             "github": {
               "secret": "secret101"
             }
           },
           {
-            "type": "generic",
+            "type": "Generic",
             "generic": {
               "secret": "secret101"
             }
           },
           {
-            "type": "imageChange",
+            "type": "ImageChange",
             "imageChange": {}
           }
         ],
         "source": {
           "type": "Git",
           "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
           }
         },
         "strategy": {
@@ -128,8 +128,7 @@
             "from": {
               "kind": "ImageStreamTag",
               "name": "ruby-20-centos7:latest"
-            },
-            "incremental": true
+            }
           }
         },
         "output": {
@@ -146,7 +145,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
         "creationTimestamp": null
@@ -202,8 +201,7 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "name": "origin-ruby-sample:latest"
-              },
-              "lastTriggeredImage": ""
+              }
             }
           },
           {
@@ -257,7 +255,6 @@
                 "resources": {},
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
                 "securityContext": {
                   "capabilities": {},
                   "privileged": false
@@ -265,8 +262,7 @@
               }
             ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
@@ -274,7 +270,7 @@
     },
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "database",
         "creationTimestamp": null
@@ -302,7 +298,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "database",
         "creationTimestamp": null
@@ -388,7 +384,6 @@
                 "resources": {},
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "Always",
-                "capabilities": {},
                 "securityContext": {
                   "capabilities": {},
                   "privileged": false
@@ -396,8 +391,7 @@
               }
             ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
