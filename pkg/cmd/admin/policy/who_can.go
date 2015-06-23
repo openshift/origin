@@ -74,6 +74,9 @@ func (o *whoCanOptions) run() error {
 		return err
 	}
 
+	fmt.Printf("Namespace: %s\n", resourceAccessReviewResponse.Namespace)
+	fmt.Printf("Verb:      %s\n", o.verb)
+	fmt.Printf("Resource:  %s\n\n", o.resource)
 	if len(resourceAccessReviewResponse.Users) == 0 {
 		fmt.Printf("Users:  none\n\n")
 	} else {
