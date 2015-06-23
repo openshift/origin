@@ -11,8 +11,12 @@ Some verbs support the `-f` flag, which accepts regular file path, URL or '-' fo
 the standard input. For most actions, both JSON and YAML file formats are
 supported.
 
+Use `oc --help` for a full list of the verbs and subcommands available. A detailed list of examples for the most common verbs and subcommands is documented in the [oc by example](./generated/oc_by_example_content.adoc) and [oadm by example](./generated/oc_by_example_content.adoc) documents.
+
 Common Flags
 -------------
+
+CLI commands support both local (specific to the given command) and global (works for every command available) flags. Some of the most common global flags are:
 
 | Name                       | Description                                             |
 |:-------------------------- |:--------------------------------------------------------|
@@ -28,6 +32,8 @@ Common Flags
 | --api-version              | The version of the API to use against the server |
 | --insecure-skip-tls-verify | Skip SSL certificate validation (will make HTTPS insecure) |
 | --help (-h)                | Display help for specified command |
+
+Use `oc options` for a full list of all global flags available.
 
 oc get
 -----------
