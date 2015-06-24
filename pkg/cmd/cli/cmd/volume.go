@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -24,10 +25,11 @@ import (
 )
 
 const (
-	volumeLong = `Update volumes on a pod
+	volumeLong = `Update volumes on a pod template
 
-This command can add, update, list or remove volumes from containers in pods or
-any object that has a pod template (replication controllers or deployment configurations).
+This command can add, update or remove volumes from containers for any object
+that has a pod template (replication controllers or deployment configurations).
+You can list volumes in pod or any object that has a pod template.
 You can specify a single object or multiple, and alter volumes on all containers or
 just those that match a wildcard.`
 
@@ -35,29 +37,32 @@ just those that match a wildcard.`
   // The volume name is auto generated
   $ %[1]s volume dc/registry --add --mount-path=/opt
 
-  // Add new volume 'v1' with secret 'magic' for pod 'p1'
-  $ %[1]s volume pod/p1 --add --name=v1 -m /etc --type=secret --secret-name=magic
+  // Add new volume 'v1' with secret 'magic' for replication controller 'r1'
+  $ %[1]s volume rc/r1 --add --name=v1 -m /etc --type=secret --secret-name=magic
 
-  // Add new volume to pod 'p1' based on gitRepo (or other volume sources not supported by --type)
-  $ %[1]s volume pod/p1 --add -m /repo --source=<json-string>
+  // Add new volume to replication controller 'r1' based on git repository
+  // or other volume sources not supported by --type
+  $ %[1]s volume rc/r1 --add -m /repo --source=<json-string>
 
-  // Add emptyDir volume 'v1' to a pod definition on disk and update the pod on the server
-  $ %[1]s volume -f pod.json --add --name=v1
+  // Add emptyDir volume 'v1' to a deployment config definition on disk and 
+  // update the deployment config on the server
+  $ %[1]s volume -f dc.json --add --name=v1
 
   // Create a new persistent volume and overwrite existing volume 'v1' for replication controller 'r1'
   $ %[1]s volume rc/r1 --add --name=v1 -t persistentVolumeClaim --claim-name=pvc1 --overwrite
 
-  // Change pod 'p1' mount point to /data for volume v1
-  $ %[1]s volume pod p1 --add --name=v1 -m /data --overwrite
+  // Overwrite the replication controller 'r1' mount point to /data for volume v1
+  $ %[1]s volume rc r1 --add --name=v1 -m /data --overwrite
 
-  // Remove all volumes for pod 'p1'
-  $ %[1]s volume pod/p1 --remove --confirm
+  // Remove all volumes for deployment config 'd1'
+  $ %[1]s volume dc/d1 --remove --confirm
 
   // Remove volume 'v1' from deployment config 'registry'  
   $ %[1]s volume dc/registry --remove --name=v1
 
-  // Unmount volume v1 from container c1 on pod p1 and remove the volume v1 if it is not referenced by any containers on pod p1
-  $ %[1]s volume pod/p1 --remove --name=v1 --containers=c1
+  // Modify the deployment config "d1" by removing volume mount "v1" from container "c1"
+  // (and by removing the volume "v1" if no other containers have volume mounts that reference it)
+  $ %[1]s volume dc/d1 --remove --name=v1 --containers=c1
 
   // List volumes defined on replication controller 'r1'
   $ %[1]s volume rc r1 --list
@@ -65,8 +70,8 @@ just those that match a wildcard.`
   // List volumes defined on all pods
   $ %[1]s volume pods --all --list
 
-  // Output json object with volume info for pod 'p1' but don't alter the object on server
-  $ %[1]s volume pod/p1 --add --name=v1 --mount=/opt -o json`
+  // Output json object with volume info for deployment config 'd1' but don't alter the object on server
+  $ %[1]s volume dc/d1 --add --name=v1 --mount=/opt -o json`
 )
 
 type VolumeOptions struct {
@@ -311,14 +316,15 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	}
 
 	skipped := 0
+	updateInfos := []*resource.Info{}
 	for _, info := range infos {
 		ok, err := v.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
 			var e error
 			switch {
 			case v.Add:
-				e = v.addVolumeToSpec(spec)
+				e = v.addVolumeToSpec(spec, info)
 			case v.Remove:
-				e = v.removeVolumeFromSpec(spec)
+				e = v.removeVolumeFromSpec(spec, info)
 			case v.List:
 				e = v.listVolumeForSpec(spec, info)
 			}
@@ -332,12 +338,17 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 			fmt.Fprintf(v.Writer, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
 			continue
 		}
+		updateInfos = append(updateInfos, info)
 	}
 	if one && skipped == len(infos) {
 		return fmt.Errorf("the %s %s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
 	}
+	updatePodSpecFailed := len(updateInfos) != len(infos)
 
 	if v.List {
+		if updatePodSpecFailed {
+			return errExit
+		}
 		return nil
 	}
 
@@ -355,7 +366,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	}
 
 	failed := false
-	for _, info := range infos {
+	for _, info := range updateInfos {
 		data, err := info.Mapping.Codec.Encode(info.Object)
 		if err != nil {
 			fmt.Fprintf(v.Writer, "Error: %v\n", err)
@@ -371,7 +382,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		info.Refresh(obj, true)
 		fmt.Fprintf(v.Writer, "%s/%s\n", info.Mapping.Resource, info.Name)
 	}
-	if failed {
+	if failed || updatePodSpecFailed {
 		return errExit
 	}
 	return nil
@@ -410,10 +421,20 @@ func (v *VolumeOptions) setVolumeSource(kv *kapi.Volume) error {
 	return err
 }
 
-func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec) {
+func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) error {
 	opts := v.AddOpts
 	containers, _ := selectContainers(spec.Containers, v.Containers)
+	if len(containers) == 0 && v.Containers != "*" {
+		fmt.Fprintf(v.Writer, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, v.Containers)
+		return nil
+	}
+
 	for _, c := range containers {
+		for _, m := range c.VolumeMounts {
+			if path.Clean(m.MountPath) == path.Clean(opts.MountPath) {
+				return fmt.Errorf("volume mount '%s' already exists for container '%s'", opts.MountPath, c.Name)
+			}
+		}
 		for i, m := range c.VolumeMounts {
 			if m.Name == v.Name {
 				c.VolumeMounts = append(c.VolumeMounts[:i], c.VolumeMounts[i+1:]...)
@@ -422,13 +443,14 @@ func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec) {
 		}
 		volumeMount := &kapi.VolumeMount{
 			Name:      v.Name,
-			MountPath: opts.MountPath,
+			MountPath: path.Clean(opts.MountPath),
 		}
 		c.VolumeMounts = append(c.VolumeMounts, *volumeMount)
 	}
+	return nil
 }
 
-func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec) error {
+func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info) error {
 	opts := v.AddOpts
 	newVolume := &kapi.Volume{
 		Name: v.Name,
@@ -437,7 +459,7 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec) error {
 	for i, vol := range spec.Volumes {
 		if v.Name == vol.Name {
 			if !opts.Overwrite {
-				return fmt.Errorf("Volume '%s' already exists. Use --overwrite to replace", v.Name)
+				return fmt.Errorf("volume '%s' already exists. Use --overwrite to replace", v.Name)
 			}
 			if !opts.TypeChanged && len(opts.Source) == 0 {
 				newVolume.VolumeSource = vol.VolumeSource
@@ -457,64 +479,95 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec) error {
 	spec.Volumes = append(spec.Volumes, *newVolume)
 
 	if len(opts.MountPath) > 0 {
-		v.setVolumeMount(spec)
+		err := v.setVolumeMount(spec, info)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (v *VolumeOptions) removeVolumeFromSpec(spec *kapi.PodSpec) error {
+func (v *VolumeOptions) removeSpecificVolume(spec *kapi.PodSpec, containers, skippedContainers []*kapi.Container) error {
+	for _, c := range containers {
+		for i, m := range c.VolumeMounts {
+			if v.Name == m.Name {
+				c.VolumeMounts = append(c.VolumeMounts[:i], c.VolumeMounts[i+1:]...)
+				break
+			}
+		}
+	}
+
+	// Remove volume if no container is using it
+	found := false
+	for _, c := range skippedContainers {
+		for _, m := range c.VolumeMounts {
+			if v.Name == m.Name {
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		foundVolume := false
+		for i, vol := range spec.Volumes {
+			if v.Name == vol.Name {
+				spec.Volumes = append(spec.Volumes[:i], spec.Volumes[i+1:]...)
+				foundVolume = true
+				break
+			}
+		}
+		if !foundVolume {
+			return fmt.Errorf("volume '%s' not found", v.Name)
+		}
+	}
+	return nil
+}
+
+func (v *VolumeOptions) removeVolumeFromSpec(spec *kapi.PodSpec, info *resource.Info) error {
 	containers, skippedContainers := selectContainers(spec.Containers, v.Containers)
+	if len(containers) == 0 && v.Containers != "*" {
+		fmt.Fprintf(v.Writer, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, v.Containers)
+		return nil
+	}
+
 	if len(v.Name) == 0 {
 		for _, c := range containers {
 			c.VolumeMounts = []kapi.VolumeMount{}
 		}
 		spec.Volumes = []kapi.Volume{}
 	} else {
-		for _, c := range containers {
-			for i, m := range c.VolumeMounts {
-				if v.Name == m.Name {
-					c.VolumeMounts = append(c.VolumeMounts[:i], c.VolumeMounts[i+1:]...)
-					break
-				}
-			}
-		}
-
-		// Remove volume if no container is using it
-		found := false
-		for _, c := range skippedContainers {
-			for _, m := range c.VolumeMounts {
-				if v.Name == m.Name {
-					found = true
-					break
-				}
-			}
-			if found {
-				break
-			}
-		}
-		if !found {
-			for i, vol := range spec.Volumes {
-				if v.Name == vol.Name {
-					spec.Volumes = append(spec.Volumes[:i], spec.Volumes[i+1:]...)
-					break
-				}
-			}
+		err := v.removeSpecificVolume(spec, containers, skippedContainers)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 func (v *VolumeOptions) listVolumeForSpec(spec *kapi.PodSpec, info *resource.Info) error {
+	containers, _ := selectContainers(spec.Containers, v.Containers)
+	if len(containers) == 0 && v.Containers != "*" {
+		fmt.Fprintf(v.Writer, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, v.Containers)
+		return nil
+	}
+
 	fmt.Fprintf(v.Writer, "# %s %s, volumes:\n", info.Mapping.Resource, info.Name)
 	checkName := (len(v.Name) > 0)
+	found := false
 	for _, vol := range spec.Volumes {
 		if checkName && v.Name != vol.Name {
 			continue
 		}
+		found = true
 		fmt.Fprintf(v.Writer, "%s\n", vol.Name)
 	}
+	if checkName && !found {
+		return fmt.Errorf("volume '%s' not found", v.Name)
+	}
 
-	containers, _ := selectContainers(spec.Containers, v.Containers)
 	for _, c := range containers {
 		fmt.Fprintf(v.Writer, "\t# container %s, volume mounts:\n", c.Name)
 		for _, m := range c.VolumeMounts {
