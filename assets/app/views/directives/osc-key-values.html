@@ -1,20 +1,48 @@
 <div ng-controller="KeyValuesController" class="labels">
     <div class="form-inline labels-edit" ng-show="editable">
       <form class="edit-label" name="form" novalidate>
-        <div class='form-group' ng-class="{'has-error': form.key.$error.oscKeyValid}">
-          <input class="form-control" type="text" name="key" placeholder="{{keyTitle}}" ng-model="key" 
-                 osc-input-validator="key">
+        
+        <div layout row>
+
+          <div 
+            flex grow="5" 
+            class='form-group' 
+            ng-class="{'has-error': form.key.$error.oscKeyValid}" 
+            style="margin-right: 10px;">
+            <input class="form-control" 
+                   type="text" 
+                   name="key" 
+                   placeholder="{{keyTitle}}" 
+                   ng-model="key" 
+                   osc-input-validator="key">
+          </div>
+          
+          <div 
+            flex grow="5" 
+            class="form-group" 
+            ng-class="{'has-error': form.value.$error.oscValueValid}" 
+            style="margin-right: 10px;">
+            <input class="form-control" 
+                   type="text"
+                   name="value" 
+                   placeholder="Value"
+                   ng-model="value" 
+                   osc-input-validator="value">
+          </div>
+          <div 
+            flex layout 
+            grow="1" shrink="1" basis="auto" 
+            main-axis="end" cross-axis="baseline">
+            <button 
+              class="btn btn-default" 
+              ng-click="addEntry()" 
+              ng-disabled="form.key.$error.oscKeyValid || form.value.$error.oscValueValid">Add</button>
+          </div>
         </div>
-        <div class="form-group" ng-class="{'has-error': form.value.$error.oscValueValid}">
-          <input class="form-control" 
-                 type="text"
-                 name="value" 
-                 placeholder="Value"
-                 ng-model="value" 
-                 osc-input-validator="value">
-        </div>
-        <button class="btn btn-default" ng-click="addEntry()" ng-disabled="form.key.$error.oscKeyValid || form.value.$error.oscValueValid">Add</button>
-        <div class="has-error" ng-show="form.key.$error.oscKeyValid">
+
+      
+
+        <div layout row class="has-error" ng-show="form.key.$error.oscKeyValid">
           <span class="help-block">Please enter a valid key
             <span class="help action-inline" ng-if="keyValidationTooltip">
               <a  data-toggle="tooltip" data-placement="bottom"
@@ -24,7 +52,10 @@
             </span>
           </span>
         </div>      
-        <div class="has-error" ng-show="form.value.$error.oscValueValid">
+        
+
+
+        <div layout row class="has-error" ng-show="form.value.$error.oscValueValid">
           <span class="help-block">Please enter a valid value
             <span class="help action-inline" ng-if="keyValidationTooltip">
               <a  data-toggle="tooltip" data-placement="bottom"
@@ -34,38 +65,82 @@
             </span>
           </span>
         </div>      
+      
       </form>
-      <ul class="list-unstyled label-list">
-        <li ng-repeat="(key,value) in entries | valuesIn:readonlyKeys">
-          <span class="key truncate">{{key}}</span>
-          <span class="value truncate">{{value}}</span>
-        </li>
-        <li ng-repeat="(key,value) in entries | valuesNotIn:readonlyKeys">
-          <span ng-controller="KeyValuesEntryController">
-            <span class="key truncate">{{key}}</span>
-            <span ng-hide="editing">
-              <span class="value truncate">{{ value}}</span>
-              <a href="" ng-click="edit()" class="btn btn-default btn-xs" title="Edit">
+      
+      <div style="margin-top: 20px">
+        <!-- predefined keys -->
+        <div ng-repeat="(key,value) in entries | valuesIn:readonlyKeys">
+          <div layout row>
+            <div flex grow="5" shrink="5" class="truncate">{{key}}</div>
+            <div flex grow="5" shrink="5" class="truncate">{{value}}</div>
+            <div 
+              flex layout grow="1" shrink="1"
+              main-axis="end" cross-axis="baseline" 
+              style="flex-basis: 50px;">
+              &nbsp;  
+            </div>
+          </div>
+        </div>
+        
+        <!-- user defined keys -->
+        <div ng-repeat="(key,value) in entries | valuesNotIn:readonlyKeys">
+          <div layout row ng-controller="KeyValuesEntryController">
+            
+            <!-- view, edit/delete -->
+            <div flex grow="5" shrink="5" class="truncate">{{key}}</div>
+            
+            <div flex grow="5" shrink="5" class="truncate" ng-hide="editing">
+              {{value}}  
+            </div>
+
+            <div flex layout grow="1" shrink="1"
+              main-axis="end" cross-axis="baseline" ng-hide="editing" 
+              style="flex-basis: 50px;">
+              <a ng-click="edit()" 
+                 class="btn btn-default btn-xs" 
+                 title="Edit">
                 <i class="icon icon-pencil"></i>
               </a>
-              <a href="" ng-click="deleteEntry(key)" class="btn btn-default btn-xs" title="Delete" ng-if="allowDelete(key)">
+              <a ng-click="deleteEntry(key)" 
+                 class="btn btn-default btn-xs" 
+                 title="Delete" 
+                 ng-if="allowDelete(key)">
                 <i class="fa fa-times"></i>
               </a>
-            </span>
-            <span ng-show="editing" class="form-inline">
-              <div class="form-group">
-                  <input class="form-control" type="text" value="{{value}}" ng-model="value">
-                  <a href="" ng-click="update(key, value, $parent.entries)" class="btn btn-default" style="vertical-align: middle" title="Submit">
-                    <i class="icon icon-ok"></i>
-                  </a>
-                  <a href="" ng-click="cancel()" class="btn btn-default" style="vertical-align: middle" title="Cancel">
-                    <i class="icon icon-remove"></i>
-                  </a>
-              </div>
-            </span>
-          </span>
-        </li>
-      </ul>
+            </div>
+
+            <!-- editing view, save/cancel -->
+            <div layout row flex grow="5" shrink="5" ng-show="editing">
+              <input 
+                flex
+                type="text" 
+                value="{{value}}" 
+                ng-model="value" 
+                class="form-control input-sm"
+                style="margin-right: 10px;">
+            </div>
+
+            <div flex layout grow="1" shrink="1"
+              main-axis="end" cross-axis="baseline" ng-show="editing" 
+              style="flex-basis: 50px;">
+              <a ng-click="update(key, value, $parent.entries)" 
+                 class="btn btn-default btn-xs" 
+                 title="Submit">
+                <i class="icon icon-ok"></i>
+              </a>
+              <a ng-click="cancel()" 
+                 class="btn btn-default btn-xs" 
+                 title="Cancel">
+                <i class="icon icon-remove"></i>
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+        
+      </div>
     </div>
     <div ng-hide="editable">
       <div ng-if="(entries | hashSize) === 0"><strong>None</strong></div>

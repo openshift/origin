@@ -133,3 +133,181 @@
       -ms-align-self: @align;
           align-self: @align;
 }
+
+
+
+
+// Generic layout attr utils, inspired by Angular Material/Polymer flex layouts
+// - TODO (bpeterse): Grunt autoprefixer should handle compatibility...check?
+//
+// - simple example:
+//   <div layout row reverse align-items="center">
+//      <div flex>foo</div>
+//      <div layout column main-axis="center">
+//        <div flex grow="2" shrink="2">bar</div>
+//        <div>bar</div>
+//      </div>
+//      <div>Not flexed.</div>
+//   </div>
+//
+[outline] {
+  outline: 1px dotted #ED9AF2;
+}
+// flex container 
+[layout] {
+  display: flex; 
+}
+// flex child 
+[flex] {
+  flex: 1; 
+}
+
+// container modifiers 
+[column] {
+  flex-direction: column;
+}
+
+[column="reverse"],
+[column][reverse] {
+  flex-direction: column-reverse;
+}
+
+[row] {
+  flex-direction: row;
+}
+
+[row="reverse"],
+[row][reverse] {
+  flex-direction: row-reverse;
+}
+
+[wrap] {
+  flex-wrap: wrap;
+}
+
+[fit] {
+  margin: 0px;
+  width: 100%;
+  min-height: auto;
+  height: inherit; // 100%?
+}
+
+[basis="auto"] {
+  flex-basis: auto; 
+};
+
+[align-items],
+[align-items="center"] {
+  align-items: center;
+}
+
+[align-items="start"] {
+  align-items: flex-start;
+}
+
+[align-items="end"] {
+  align-items: flex-end;
+}
+
+[align-items="baseline"] {
+  align-items: baseline;
+}
+
+// main axis
+[main-axis="start"] {
+  justify-content: flex-start; 
+}
+
+[main-axis="end"] {
+  justify-content: flex-end; 
+}
+
+[main-axis="center"] {
+  justify-content: center; 
+}
+
+[main-axis="space-between"] {
+  justify-content: space-between; 
+}
+
+[main-axis="space-around"] {
+  justify-content: space-around; 
+}
+
+// cross axis
+[cross-axis="start"] {
+  align-items: flex-start; 
+}
+
+[cross-axis="end"] {
+  align-items: flex-end; 
+}
+
+[cross-axis="center"] {
+  align-items: center; 
+}
+
+[cross-axis="stretch"] {
+  align-items: stretch; 
+}
+
+[cross-axis="baseline"] {
+  align-items: baseline; 
+}
+
+// flex item modifiers
+
+// flex grow, should have a flex shrink pairing
+// should generate with a loop
+[grow="0"] {
+  flex-grow: 0;
+}
+
+[grow="1"] {
+  flex-grow: 1;
+}
+
+[grow="2"] {
+  flex-grow: 2;
+}
+
+[grow="3"] {
+  flex-grow: 3;
+}
+
+[grow="4"] {
+  flex-grow: 4;
+}
+
+[grow="5"] {
+  flex-grow: 5;
+}
+
+[shrink="0"] {
+  flex-shrink: 0;
+}
+
+[shrink="1"] {
+  flex-shrink: 1;
+}
+
+[shrink="2"] {
+  flex-shrink: 2;
+}
+
+[shrink="3"] {
+  flex-shrink: 3;
+}
+
+[shrink="4"] {
+  flex-shrink: 4;
+}
+
+[shrink="5"] {
+  flex-shrink: 5;
+}
+
+
+
+
+
