@@ -42,6 +42,42 @@ func EnsureServiceNode(g osgraph.MutableUniqueGraph, svc *kapi.Service) *Service
 	).(*ServiceNode)
 }
 
+func EnsureServiceAccountNode(g osgraph.MutableUniqueGraph, o *kapi.ServiceAccount) *ServiceAccountNode {
+	return osgraph.EnsureUnique(g,
+		ServiceAccountNodeName(o),
+		func(node osgraph.Node) graph.Node {
+			return &ServiceAccountNode{node, o, true}
+		},
+	).(*ServiceAccountNode)
+}
+
+func FindOrCreateSyntheticServiceAccountNode(g osgraph.MutableUniqueGraph, o *kapi.ServiceAccount) *ServiceAccountNode {
+	return osgraph.EnsureUnique(g,
+		ServiceAccountNodeName(o),
+		func(node osgraph.Node) graph.Node {
+			return &ServiceAccountNode{node, o, false}
+		},
+	).(*ServiceAccountNode)
+}
+
+func EnsureSecretNode(g osgraph.MutableUniqueGraph, o *kapi.Secret) *SecretNode {
+	return osgraph.EnsureUnique(g,
+		SecretNodeName(o),
+		func(node osgraph.Node) graph.Node {
+			return &SecretNode{node, o, true}
+		},
+	).(*SecretNode)
+}
+
+func FindOrCreateSyntheticSecretNode(g osgraph.MutableUniqueGraph, o *kapi.Secret) *SecretNode {
+	return osgraph.EnsureUnique(g,
+		SecretNodeName(o),
+		func(node osgraph.Node) graph.Node {
+			return &SecretNode{node, o, false}
+		},
+	).(*SecretNode)
+}
+
 // EnsureReplicationControllerNode adds a graph node for the ReplicationController if it does not already exist.
 func EnsureReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.ReplicationController) *ReplicationControllerNode {
 	rcNodeName := ReplicationControllerNodeName(rc)
