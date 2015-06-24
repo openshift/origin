@@ -19,6 +19,8 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployedges "github.com/openshift/origin/pkg/deploy/graph"
+	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -357,14 +359,14 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 	}
 
 	g := graph.New()
-	deploy := graph.DeploymentConfig(g, config)
+	deploy := deploygraph.EnsureDeploymentConfigNode(g, config)
+	deployedges.AddTriggerEdges(g, deploy)
 	if len(deployments) > 0 {
-		graph.JoinDeployments(deploy.(*graph.DeploymentConfigNode), deployments)
+		deployedges.JoinDeployments(deploy, deployments)
 	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
-		node := deploy.(*graph.DeploymentConfigNode)
-		descriptions := describeDeployments(node, d.count)
+		descriptions := describeDeployments(deploy, d.count)
 		for i, description := range descriptions {
 			descriptions[i] = fmt.Sprintf("%v %v", name, description)
 		}
