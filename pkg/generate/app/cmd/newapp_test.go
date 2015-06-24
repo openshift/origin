@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -453,6 +454,7 @@ func TestRunAll(t *testing.T) {
 		expected       map[string][]string
 		expectedErr    error
 		expectInsecure util.StringSet
+		checkPort      string
 	}{
 		{
 			name: "successful ruby app generation",
@@ -482,6 +484,41 @@ func TestRunAll(t *testing.T) {
 			},
 			expected: map[string][]string{
 				"imageStream":      {"ruby-hello-world", "ruby"},
+				"buildConfig":      {"ruby-hello-world"},
+				"deploymentConfig": {"ruby-hello-world"},
+				"service":          {"ruby-hello-world"},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "successful docker app generation",
+			config: &AppConfig{
+				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
+
+				dockerResolver: fakeSimpleDockerResolver(),
+				imageStreamResolver: app.ImageStreamResolver{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				Strategy:                        "docker",
+				imageStreamByAnnotationResolver: app.NewImageStreamByAnnotationResolver(&client.Fake{}, &client.Fake{}, []string{"default"}),
+				templateResolver: app.TemplateResolver{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			checkPort: "8080",
+			expected: map[string][]string{
+				"imageStream":      {"ruby-hello-world", "ruby-20-centos7"},
 				"buildConfig":      {"ruby-hello-world"},
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
@@ -561,7 +598,7 @@ func TestRunAll(t *testing.T) {
 			expectInsecure: util.NewStringSet("example"),
 		},
 		{
-			name: "docker build",
+			name: "Docker build",
 			config: &AppConfig{
 				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
 
@@ -615,6 +652,16 @@ func TestRunAll(t *testing.T) {
 			case *buildapi.BuildConfig:
 				got["buildConfig"] = append(got["buildConfig"], tp.Name)
 			case *kapi.Service:
+				if test.checkPort != "" {
+					if len(tp.Spec.Ports) == 0 {
+						t.Errorf("%s: did not get any ports in service")
+						break
+					}
+					expectedPort, _ := strconv.Atoi(test.checkPort)
+					if tp.Spec.Ports[0].Port != expectedPort {
+						t.Errorf("%s: did not get expected port in service. Expected: %d. Got %d\n", expectedPort, tp.Spec.Ports[0].Port)
+					}
+				}
 				got["service"] = append(got["service"], tp.Name)
 			case *imageapi.ImageStream:
 				got["imageStream"] = append(got["imageStream"], tp.Name)
@@ -890,5 +937,19 @@ func fakeDockerResolver() app.Resolver {
 			Image:  dockerBuilderImage(),
 		},
 		Insecure: true,
+	}
+}
+
+func fakeSimpleDockerResolver() app.Resolver {
+	return app.DockerClientResolver{
+		Client: &dockertools.FakeDockerClient{
+			Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
+			Image: &docker.Image{
+				ID: "ruby",
+				Config: &docker.Config{
+					Env: []string{},
+				},
+			},
+		},
 	}
 }

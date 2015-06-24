@@ -418,6 +418,19 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 						return nil, err
 					}
 				}
+				// Append any exposed ports from Dockerfile to input image
+				if ref.Input().Uses.IsDockerBuild() {
+					exposed, ok := ref.Input().Uses.Info().Dockerfile.GetDirective("EXPOSE")
+					if ok {
+						if input.Info == nil {
+							input.Info = &imageapi.DockerImage{}
+						}
+						input.Info.Config.ExposedPorts = map[string]struct{}{}
+						for _, p := range exposed {
+							input.Info.Config.ExposedPorts[p] = struct{}{}
+						}
+					}
+				}
 				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
