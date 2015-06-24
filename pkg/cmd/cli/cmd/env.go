@@ -18,13 +18,13 @@ import (
 )
 
 const (
-	envLong = `Update the environment on a pod
+	envLong = `Update environment variables on a pod template
 
-Each container in a pod may have its own environment variable definitions. This command can
-add, update, or remove environment variables from containers in pods or any object that has
-a pod template (replication controllers or deployment configurations). You can specify a
-single object or multiple, and alter environment on all containers or just those that match
-a wildcard.
+List environment variable definitions in one or more pods or pod templates.
+Add, update, or remove container environment variable definitions in one or
+more pod templates (within replication controllers or deployment configurations).
+View or modify the environment variable definitions on all containers in the
+specified pods or pod templates, or just those that match a wildcard.
 
 If "--env -" is passed, environment variables can be read from STDIN using the standard env
 syntax.`
@@ -32,26 +32,26 @@ syntax.`
 	envExample = `  // Update deployment 'registry' with a new environment variable
   $ %[1]s env dc/registry STORAGE_DIR=/local
 
-  // List the environment variables defined on a deployment 'registry'
+  // List the environment variables defined on a deployment config 'registry'
   $ %[1]s env dc/registry --list
 
   // List the environment variables defined on all pods
   $ %[1]s env pods --all --list
 
-  // Output a YAML object with updated enviroment for deployment 'registry'
-  // Does not alter the object on the server
-  $ %[1]s env dc/registry STORAGE_DIR=/local -o yaml
+  // Output modified deployment config in YAML, and does not alter the object on the server
+  $ %[1]s env dc/registry STORAGE_DIR=/data -o yaml
 
-  // Update all replication controllers in the project to have ENV=prod
-  $ %[1]s env replicationControllers --all ENV=prod
+  // Update all containers in all replication controllers in the project to have ENV=prod
+  $ %[1]s env rc --all ENV=prod
 
-  // Remove the enviroment variable ENV from all deployment configs
-  $ %[1]s env deploymentConfigs --all ENV-
+  // Remove the environment variable ENV from container 'c1' in all deployment configs
+  $ %[1]s env dc --all --containers="c1" ENV-
 
-  // Remove the enviroment variable ENV from a pod definition on disk and update the pod on the server
-  $ %[1]s env -f pod.json ENV-
+  // Remove the environment variable ENV from a deployment config definition on disk and
+  // update the deployment config on the server
+  $ %[1]s env -f dc.json ENV-
 
-  // Set some of the local shell environment into a deployment on the server
+  // Set some of the local shell environment into a deployment config on the server
   $ env | grep RAILS_ | %[1]s env -e - dc/registry`
 )
 
