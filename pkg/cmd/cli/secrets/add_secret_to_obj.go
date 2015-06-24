@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
@@ -16,6 +16,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -27,26 +28,24 @@ After you have created a secret, you probably want to make use of that secret in
 
 To use your secret inside of a pod or as a push, pull, or source secret for a build, you must add a 'mount' secret to your service account like this:
 
-  $ %s serviceaccount/sa-name secrets/secret-name secrets/another-secret-name
+  $ %[1]s serviceaccount/sa-name secrets/secret-name secrets/another-secret-name
 
 To use your secret as an image pull secret, you must add a 'pull' secret to your service account like this:
 
-  $ %s serviceaccount/sa-name secrets/secret-name --for=pull
+  $ %[1]s serviceaccount/sa-name secrets/secret-name --for=pull
+
+To use your secret for image pulls or inside a pod:
+
+  $ %[1]s serviceaccount/sa-name secrets/secret-name --for=pull,mount
 `
-)
-
-type SecretType string
-
-var (
-	PullType  SecretType = "pull"
-	MountType SecretType = "mount"
 )
 
 type AddSecretOptions struct {
 	TargetName  string
 	SecretNames []string
 
-	Type SecretType
+	ForMount bool
+	ForPull  bool
 
 	Namespace string
 
@@ -61,14 +60,14 @@ type AddSecretOptions struct {
 // NewCmdAddSecret creates a command object for adding a secret reference to a service account
 func NewCmdAddSecret(name, fullName string, f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	o := &AddSecretOptions{Out: out}
-	typeFlag := "mount"
+	var typeFlags util.StringList
 
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s serviceaccounts/sa-name secrets/secret-name [secrets/another-secret-name]...", name),
 		Short: "Add secrets to a ServiceAccount",
-		Long:  fmt.Sprintf(addSecretLong, fullName, fullName),
+		Long:  fmt.Sprintf(addSecretLong, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			if err := o.Complete(f, args, typeFlag); err != nil {
+			if err := o.Complete(f, args, typeFlags); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
 			}
 
@@ -83,26 +82,38 @@ func NewCmdAddSecret(name, fullName string, f *cmdutil.Factory, out io.Writer) *
 		},
 	}
 
-	cmd.Flags().StringVar(&typeFlag, "for", typeFlag, "type of secret to add: mount or pull")
+	forFlag := &pflag.Flag{
+		Name:     "for",
+		Usage:    "type of secret to add: mount or pull",
+		Value:    &typeFlags,
+		DefValue: "mount",
+	}
+	cmd.Flags().AddFlag(forFlag)
 
 	return cmd
 }
 
-func (o *AddSecretOptions) Complete(f *cmdutil.Factory, args []string, typeFlag string) error {
+func (o *AddSecretOptions) Complete(f *cmdutil.Factory, args []string, typeFlags []string) error {
 	if len(args) < 2 {
 		return errors.New("must have service account name and at least one secret name")
 	}
 	o.TargetName = args[0]
 	o.SecretNames = args[1:]
 
-	loweredTypeFlag := strings.ToLower(typeFlag)
-	switch loweredTypeFlag {
-	case string(PullType):
-		o.Type = PullType
-	case string(MountType):
-		o.Type = MountType
-	default:
-		return fmt.Errorf("unknown for: %v", typeFlag)
+	if len(typeFlags) == 0 {
+		o.ForMount = true
+	} else {
+		for _, flag := range typeFlags {
+			loweredValue := strings.ToLower(flag)
+			switch loweredValue {
+			case "pull":
+				o.ForPull = true
+			case "mount":
+				o.ForMount = true
+			default:
+				return fmt.Errorf("unknown for: %v", flag)
+			}
+		}
 	}
 
 	var err error
@@ -129,7 +140,7 @@ func (o AddSecretOptions) Validate() error {
 	if len(o.SecretNames) == 0 {
 		return errors.New("secret name must be present")
 	}
-	if len(o.Type) == 0 {
+	if !o.ForPull && !o.ForMount {
 		return errors.New("for must be present")
 	}
 	if o.Mapper == nil {
@@ -163,16 +174,10 @@ func (o AddSecretOptions) AddSecrets() error {
 	}
 
 	switch t := obj.(type) {
-	case *api.ServiceAccount:
-		switch o.Type {
-		case PullType:
-			_, err := o.AddSecretsToSAPullSecrets(t)
+	case *kapi.ServiceAccount:
+		err = o.addSecretsToServiceAccount(t)
+		if err != nil {
 			return err
-		case MountType:
-			_, err := o.AddSecretsToSAMountableSecrets(t)
-			return err
-		default:
-			return fmt.Errorf("%v is not handled for ServiceAccounts", o.Type)
 		}
 	default:
 		return fmt.Errorf("unhandled object: %#v", t)
@@ -181,7 +186,41 @@ func (o AddSecretOptions) AddSecrets() error {
 	return nil
 }
 
-func (o AddSecretOptions) getSecrets() ([]*api.Secret, error) {
+// TODO: when Secrets in kapi.ServiceAccount get changed to MountSecrets and represented by LocalObjectReferences, this can be
+// refactored to reuse the addition code better
+// addSecretsToServiceAccount adds secrets to the service account, either as pull secrets, mount secrets, or both.
+func (o AddSecretOptions) addSecretsToServiceAccount(serviceaccount *kapi.ServiceAccount) error {
+	updated := false
+	newSecrets, err := o.getSecrets()
+	if err != nil {
+		return err
+	}
+	newSecretNames := getSecretNames(newSecrets)
+
+	if o.ForMount {
+		currentSecrets := getMountSecretNames(serviceaccount)
+		secretsToAdd := newSecretNames.Difference(currentSecrets)
+		for _, secretName := range secretsToAdd.List() {
+			serviceaccount.Secrets = append(serviceaccount.Secrets, kapi.ObjectReference{Name: secretName})
+			updated = true
+		}
+	}
+	if o.ForPull {
+		currentSecrets := getPullSecretNames(serviceaccount)
+		secretsToAdd := newSecretNames.Difference(currentSecrets)
+		for _, secretName := range secretsToAdd.List() {
+			serviceaccount.ImagePullSecrets = append(serviceaccount.ImagePullSecrets, kapi.LocalObjectReference{Name: secretName})
+			updated = true
+		}
+	}
+	if updated {
+		_, err = o.ClientInterface.ServiceAccounts(o.Namespace).Update(serviceaccount)
+		return err
+	}
+	return nil
+}
+
+func (o AddSecretOptions) getSecrets() ([]*kapi.Secret, error) {
 	r := resource.NewBuilder(o.Mapper, o.Typer, o.ClientMapper).
 		NamespaceParam(o.Namespace).
 		ResourceTypeOrNameArgs(false, o.SecretNames...).
@@ -195,12 +234,12 @@ func (o AddSecretOptions) getSecrets() ([]*api.Secret, error) {
 		return nil, err
 	}
 
-	secrets := []*api.Secret{}
+	secrets := []*kapi.Secret{}
 	for i := range infos {
 		info := infos[i]
 
 		switch t := info.Object.(type) {
-		case *api.Secret:
+		case *kapi.Secret:
 			secrets = append(secrets, t)
 		default:
 			return nil, fmt.Errorf("unhandled object: %#v", t)
@@ -210,53 +249,28 @@ func (o AddSecretOptions) getSecrets() ([]*api.Secret, error) {
 	return secrets, nil
 }
 
-func (o AddSecretOptions) AddSecretsToSAMountableSecrets(serviceAccount *api.ServiceAccount) (*api.ServiceAccount, error) {
-	secrets, err := o.getSecrets()
-	if err != nil {
-		return nil, err
-	}
-	if len(secrets) == 0 {
-		return nil, errors.New("no secrets found")
-	}
-
-	currentSecrets := util.StringSet{}
-	for _, secretRef := range serviceAccount.Secrets {
-		currentSecrets.Insert(secretRef.Name)
-	}
-
+func getSecretNames(secrets []*kapi.Secret) util.StringSet {
+	names := util.StringSet{}
 	for _, secret := range secrets {
-		if currentSecrets.Has(secret.Name) {
-			continue
-		}
-
-		serviceAccount.Secrets = append(serviceAccount.Secrets, api.ObjectReference{Name: secret.Name})
-		currentSecrets.Insert(secret.Name)
+		names.Insert(secret.Name)
 	}
-
-	return o.ClientInterface.ServiceAccounts(o.Namespace).Update(serviceAccount)
+	return names
 }
 
-func (o AddSecretOptions) AddSecretsToSAPullSecrets(serviceAccount *api.ServiceAccount) (*api.ServiceAccount, error) {
-	secrets, err := o.getSecrets()
-	if err != nil {
-		return nil, err
+func getMountSecretNames(serviceaccount *kapi.ServiceAccount) util.StringSet {
+	names := util.StringSet{}
+	for _, secret := range serviceaccount.Secrets {
+		names.Insert(secret.Name)
 	}
+	return names
+}
 
-	currentSecrets := util.StringSet{}
-	for _, secretRef := range serviceAccount.ImagePullSecrets {
-		currentSecrets.Insert(secretRef.Name)
+func getPullSecretNames(serviceaccount *kapi.ServiceAccount) util.StringSet {
+	names := util.StringSet{}
+	for _, secret := range serviceaccount.ImagePullSecrets {
+		names.Insert(secret.Name)
 	}
-
-	for _, secret := range secrets {
-		if currentSecrets.Has(secret.Name) {
-			continue
-		}
-
-		serviceAccount.ImagePullSecrets = append(serviceAccount.ImagePullSecrets, api.LocalObjectReference{Name: secret.Name})
-		currentSecrets.Insert(secret.Name)
-	}
-
-	return o.ClientInterface.ServiceAccounts(o.Namespace).Update(serviceAccount)
+	return names
 }
 
 func (o AddSecretOptions) GetOut() io.Writer {
