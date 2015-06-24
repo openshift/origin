@@ -104,6 +104,9 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP that server certs should be valid for (comma-delimited list)")
 	flags.BoolVar(&options.Overwrite, "overwrite", false, "Overwrite all existing cert/key/config files (WARNING: includes signer/CA)")
 
+	// autocompletion hints
+	cmd.MarkFlagFilename("cert-dir")
+
 	return cmd
 }
 

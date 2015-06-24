@@ -51,8 +51,10 @@ func NewCommandCreateBootstrapPolicyFile(commandName string, fullName string, ou
 	flags := cmd.Flags()
 
 	flags.StringVar(&options.File, "filename", DefaultPolicyFile, "The policy template file that will be written with roles and bindings.")
-
 	flags.StringVar(&options.OpenShiftSharedResourcesNamespace, "openshift-namespace", "openshift", "Namespace for shared openshift resources.")
+
+	// autocompletion hints
+	cmd.MarkFlagFilename("filename")
 
 	return cmd
 }

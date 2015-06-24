@@ -14,6 +14,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	"github.com/openshift/origin/Godeps/_workspace/src/github.com/spf13/cobra"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -83,6 +84,9 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 
 	flags.Var(&args.NodeList, prefix+"nodes", "The hostnames of each node. This currently must be specified up front. Comma delimited list")
 	flags.Var(&args.CORSAllowedOrigins, prefix+"cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
+
+	// autocompletion hints
+	cobra.MarkFlagFilename(flags, prefix+"etcd-dir")
 }
 
 // NewDefaultMasterArgs creates MasterArgs with sub-objects created and default values set.
