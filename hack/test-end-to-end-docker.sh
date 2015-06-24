@@ -76,6 +76,9 @@ function cleanup()
     echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
     if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
       echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
+
+      # clean up any residual volume mounts
+      mount | grep pods | grep "${VOLUME_DIR}" | awk '{print $3}' | sudo xargs -r -n 1 umount
     fi
     set -u
   fi
