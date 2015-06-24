@@ -277,20 +277,9 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
-		Spec: imageapi.ImageStreamSpec{
-			Tags: map[string]imageapi.TagReference{
-				imageapi.DefaultImageTag: {
-					From: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: r.DockerImageReference.String(),
-					},
-				},
-			},
-		},
 	}
 	if !r.OutputImage {
 		stream.Spec.DockerImageRepository = r.String()
-		stream.Spec.Tags = map[string]imageapi.TagReference{}
 		if r.Insecure {
 			stream.ObjectMeta.Annotations = map[string]string{
 				imageapi.InsecureRepositoryAnnotation: "true",
