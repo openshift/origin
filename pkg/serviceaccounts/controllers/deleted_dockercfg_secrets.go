@@ -12,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
@@ -106,9 +107,8 @@ func (e *DockercfgDeletedController) secretDeleted(obj interface{}) {
 	}
 
 	// remove the reference token secret
-	if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Annotations[ServiceAccountTokenSecretNameKey]); err != nil {
-		glog.Error(err)
-		return
+	if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Annotations[ServiceAccountTokenSecretNameKey]); (err != nil) && !kapierrors.IsNotFound(err) {
+		util.HandleError(err)
 	}
 }
 
