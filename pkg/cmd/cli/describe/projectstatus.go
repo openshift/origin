@@ -16,6 +16,7 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/api/graph/graphview"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
+	kubeanalysis "github.com/openshift/origin/pkg/api/kubegraph/analysis"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
@@ -43,6 +44,8 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 
 	loaders := []GraphLoader{
 		&serviceLoader{namespace: namespace, lister: d.K},
+		&serviceAccountLoader{namespace: namespace, lister: d.K},
+		&secretLoader{namespace: namespace, lister: d.K},
 		&rcLoader{namespace: namespace, lister: d.K},
 		&podLoader{namespace: namespace, lister: d.K},
 		&bcLoader{namespace: namespace, lister: d.C},
@@ -71,6 +74,9 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 	deployedges.AddAllTriggerEdges(g)
 	deployedges.AddAllDeploymentEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
+	kubeedges.AddAllRequestedServiceAccountEdges(g)
+	kubeedges.AddAllMountableSecretEdges(g)
+	kubeedges.AddAllMountedSecretEdges(g)
 
 	return g, nil
 }
@@ -154,6 +160,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			if hasUnresolvedImageStreamTag(g) {
 				fmt.Fprintln(out, "Warning: Some of your builds are pointing to image streams, but the administrator has not configured the integrated Docker registry (oadm registry).")
 			}
+			if lines, _ := describeBadPodSpecs(out, g); len(lines) > 0 {
+				fmt.Fprintln(out, strings.Join(lines, "\n"))
+			}
 
 			fmt.Fprintln(out, "To see more, use 'oc describe service <name>' or 'oc describe dc <name>'.")
 			fmt.Fprintln(out, "You can use 'oc get all' to see a list of other objects.")
@@ -177,6 +186,50 @@ func hasUnresolvedImageStreamTag(g osgraph.Graph) bool {
 	}
 
 	return false
+}
+
+func describeBadPodSpecs(out io.Writer, g osgraph.Graph) ([]string, []*kubegraph.SecretNode) {
+	allMissingSecrets := []*kubegraph.SecretNode{}
+	lines := []string{}
+
+	for _, uncastPodSpec := range g.NodesByKind(kubegraph.PodSpecNodeKind) {
+		podSpecNode := uncastPodSpec.(*kubegraph.PodSpecNode)
+		unmountableSecrets, missingSecrets := kubeanalysis.CheckMountedSecrets(g, podSpecNode)
+		containingNode := osgraph.GetTopLevelContainerNode(g, podSpecNode)
+
+		allMissingSecrets = append(allMissingSecrets, missingSecrets...)
+
+		unmountableNames := []string{}
+		for _, secret := range unmountableSecrets {
+			unmountableNames = append(unmountableNames, secret.ResourceString())
+		}
+
+		missingNames := []string{}
+		for _, secret := range missingSecrets {
+			missingNames = append(missingNames, secret.ResourceString())
+		}
+
+		containingNodeName := g.GraphDescriber.Name(containingNode)
+		if resourceNode, ok := containingNode.(osgraph.ResourceNode); ok {
+			containingNodeName = resourceNode.ResourceString()
+		}
+
+		switch {
+		case len(unmountableSecrets) > 0 && len(missingSecrets) > 0:
+			lines = append(lines, fmt.Sprintf("\t%s is not allowed to mount %s and wants to mount these missing secrets %s", containingNodeName, strings.Join(unmountableNames, ","), strings.Join(missingNames, ",")))
+		case len(unmountableSecrets) > 0:
+			lines = append(lines, fmt.Sprintf("\t%s is not allowed to mount %s", containingNodeName, strings.Join(unmountableNames, ",")))
+		case len(unmountableSecrets) > 0 && len(missingSecrets) > 0:
+			lines = append(lines, fmt.Sprintf("\t%s wants to mount these missing secrets %s", containingNodeName, strings.Join(missingNames, ",")))
+		}
+	}
+
+	// if we had any failures, prepend the warning line
+	if len(lines) > 0 {
+		return append([]string{"Warning: some requested secrets are not allowed:"}, lines...), allMissingSecrets
+	}
+
+	return []string{}, allMissingSecrets
 }
 
 func printLines(out io.Writer, indent string, depth int, lines ...string) {
@@ -625,30 +678,6 @@ type GraphLoader interface {
 	AddToGraph(g osgraph.Graph) error
 }
 
-type serviceLoader struct {
-	namespace string
-	lister    kclient.ServicesNamespacer
-	items     []kapi.Service
-}
-
-func (l *serviceLoader) Load() error {
-	list, err := l.lister.Services(l.namespace).List(labels.Everything())
-	if err != nil {
-		return err
-	}
-
-	l.items = list.Items
-	return nil
-}
-
-func (l *serviceLoader) AddToGraph(g osgraph.Graph) error {
-	for i := range l.items {
-		kubegraph.EnsureServiceNode(g, &l.items[i])
-	}
-
-	return nil
-}
-
 type rcLoader struct {
 	namespace string
 	lister    kclient.ReplicationControllersNamespacer
@@ -673,6 +702,30 @@ func (l *rcLoader) AddToGraph(g osgraph.Graph) error {
 	return nil
 }
 
+type serviceLoader struct {
+	namespace string
+	lister    kclient.ServicesNamespacer
+	items     []kapi.Service
+}
+
+func (l *serviceLoader) Load() error {
+	list, err := l.lister.Services(l.namespace).List(labels.Everything())
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *serviceLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureServiceNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
 type podLoader struct {
 	namespace string
 	lister    kclient.PodsNamespacer
@@ -692,6 +745,54 @@ func (l *podLoader) Load() error {
 func (l *podLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
 		kubegraph.EnsurePodNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type serviceAccountLoader struct {
+	namespace string
+	lister    kclient.ServiceAccountsNamespacer
+	items     []kapi.ServiceAccount
+}
+
+func (l *serviceAccountLoader) Load() error {
+	list, err := l.lister.ServiceAccounts(l.namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *serviceAccountLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureServiceAccountNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type secretLoader struct {
+	namespace string
+	lister    kclient.SecretsNamespacer
+	items     []kapi.Secret
+}
+
+func (l *secretLoader) Load() error {
+	list, err := l.lister.Secrets(l.namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *secretLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureSecretNode(g, &l.items[i])
 	}
 
 	return nil
