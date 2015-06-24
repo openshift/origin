@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	kapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-apiserver/app"
+	cmapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-controller-manager/app"
 	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -323,6 +325,9 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) Validati
 
 	validationResults.Append(ValidateAPILevels(config.APILevels, api.KnownKubernetesAPILevels, api.DeadKubernetesAPILevels, "apiLevels"))
 
+	validationResults.AddErrors(ValidateAPIServerExtendedArguments(config.APIServerArguments).Prefix("apiServerArguments")...)
+	validationResults.AddErrors(ValidateControllerExtendedArguments(config.ControllerArguments).Prefix("controllerArguments")...)
+
 	return validationResults
 }
 
@@ -374,4 +379,12 @@ func ValidateRoutingConfig(config api.RoutingConfig) fielderrors.ValidationError
 	}
 
 	return allErrs
+}
+
+func ValidateAPIServerExtendedArguments(config api.ExtendedArguments) fielderrors.ValidationErrorList {
+	return ValidateExtendedArguments(config, kapp.NewAPIServer().AddFlags)
+}
+
+func ValidateControllerExtendedArguments(config api.ExtendedArguments) fielderrors.ValidationErrorList {
+	return ValidateExtendedArguments(config, cmapp.NewCMServer().AddFlags)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	kapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kubelet/app"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
@@ -31,6 +32,8 @@ func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList 
 
 	allErrs = append(allErrs, ValidateDockerConfig(config.DockerConfig).Prefix("dockerConfig")...)
 
+	allErrs = append(allErrs, ValidateKubeletExtendedArguments(config.KubeletArguments).Prefix("kubeletArguments")...)
+
 	return allErrs
 }
 
@@ -46,4 +49,8 @@ func ValidateDockerConfig(config api.DockerConfig) fielderrors.ValidationErrorLi
 	}
 
 	return allErrs
+}
+
+func ValidateKubeletExtendedArguments(config api.ExtendedArguments) fielderrors.ValidationErrorList {
+	return ValidateExtendedArguments(config, kapp.NewKubeletServer().AddFlags)
 }
