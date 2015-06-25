@@ -135,7 +135,7 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 
 	validationResults.AddErrors(ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 
-	validationResults.AddErrors(ValidateProjectConfig(config.ProjectConfig).Prefix("projectConfig")...)
+	validationResults.Append(ValidateProjectConfig(config.ProjectConfig).Prefix("projectConfig"))
 
 	validationResults.AddErrors(ValidateRoutingConfig(config.RoutingConfig).Prefix("routingConfig")...)
 
@@ -341,32 +341,37 @@ func ValidatePolicyConfig(config api.PolicyConfig) fielderrors.ValidationErrorLi
 	return allErrs
 }
 
-func ValidateProjectConfig(config api.ProjectConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateProjectConfig(config api.ProjectConfig) ValidationResults {
+	validationResults := ValidationResults{}
 
 	if _, _, err := api.ParseNamespaceAndName(config.ProjectRequestTemplate); err != nil {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("projectRequestTemplate", config.ProjectRequestTemplate, "must be in the form: namespace/templateName"))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("projectRequestTemplate", config.ProjectRequestTemplate, "must be in the form: namespace/templateName"))
 	}
 
 	if len(config.DefaultNodeSelector) > 0 {
 		_, err := labelselector.Parse(config.DefaultNodeSelector)
 		if err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("defaultNodeSelector", config.DefaultNodeSelector, "must be a valid label selector"))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("defaultNodeSelector", config.DefaultNodeSelector, "must be a valid label selector"))
 		}
 	}
 
 	if alloc := config.SecurityAllocator; alloc != nil {
 		if _, err := uid.ParseRange(alloc.UIDAllocatorRange); err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("uidAllocatorRange", alloc.UIDAllocatorRange, err.Error()))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("securityAllocator.uidAllocatorRange", alloc.UIDAllocatorRange, err.Error()))
 		}
 		if _, err := mcs.ParseRange(alloc.MCSAllocatorRange); err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("mcsAllocatorRange", alloc.MCSAllocatorRange, err.Error()))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("securityAllocator.mcsAllocatorRange", alloc.MCSAllocatorRange, err.Error()))
 		}
 		if alloc.MCSLabelsPerProject <= 0 {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("mcsLabelsPerProject", alloc.MCSLabelsPerProject, "must be a positive integer"))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("securityAllocator.mcsLabelsPerProject", alloc.MCSLabelsPerProject, "must be a positive integer"))
 		}
+
+	} else {
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("securityAllocator", "null", "allocation of UIDs and MCS labels to a project must be done manually"))
+
 	}
-	return allErrs
+
+	return validationResults
 }
 
 func ValidateRoutingConfig(config api.RoutingConfig) fielderrors.ValidationErrorList {
