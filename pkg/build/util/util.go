@@ -9,8 +9,12 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
-// BuildPodSuffix is the suffix used to append to a build pod name given a build name
-const BuildPodSuffix = "build"
+const (
+	// BuildPodSuffix is the suffix used to append to a build pod name given a build name
+	BuildPodSuffix = "build"
+	// NoBuildLogsMessage reports that no build logs are available
+	NoBuildLogsMessage = "No logs are available."
+)
 
 // GetBuildPodName returns name of the build pod.
 func GetBuildPodName(build *buildapi.Build) string {
