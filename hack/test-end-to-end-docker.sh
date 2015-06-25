@@ -26,7 +26,7 @@ unset KUBECONFIG
 
 if [[ -z "${BASETMPDIR-}" ]]; then
   TMPDIR="${TMPDIR:-"/tmp"}"
-  BASETMPDIR="${TMPDIR}/openshift-e2e/containerized"
+  BASETMPDIR="${TMPDIR}/openshift-e2e-containerized"
   sudo rm -rf "${BASETMPDIR}"
   mkdir -p "${BASETMPDIR}"
 fi
@@ -69,6 +69,13 @@ function cleanup()
   dump_container_logs
 
   if [[ -z "${SKIP_TEARDOWN-}" ]]; then
+    echo "[INFO] Deleting test constructs"
+    sudo docker exec origin oc delete -n test all --all
+    sudo docker exec origin oc delete -n default all --all
+
+    echo "[INFO] Waiting for volume mounts to be cleaned up"
+    wait_for_command '[[ "$(mount | grep pods | grep ${VOLUME_DIR} | wc -l)" = "0" ]]' $((120*TIME_SEC))
+
     echo "[INFO] Tearing down test"
     docker stop origin
     docker rm origin
@@ -76,9 +83,6 @@ function cleanup()
     echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
     if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
       echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
-
-      # clean up any residual volume mounts
-      mount | grep pods | grep "${VOLUME_DIR}" | awk '{print $3}' | sudo xargs -r -n 1 umount
     fi
     set -u
   fi
