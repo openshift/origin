@@ -4,6 +4,14 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/common.sh"
+
+# Go to the top of the tree.
+cd "${OS_ROOT}"
+
+os::build::setup_env
+
 function generate_version() {
 	local version=$1
 	local TMPFILE="/tmp/conversion_generated.$(date +%s).go"
@@ -16,7 +24,7 @@ package ${version}
 // AUTO-GENERATED FUNCTIONS START HERE
 EOF
 
-	GOPATH=$(godep path):$GOPATH go run cmd/genconversion/conversion.go -v ${version} -f - >>  $TMPFILE
+	go run cmd/genconversion/conversion.go -v ${version} -f - >>  $TMPFILE
 
 	cat >> $TMPFILE <<EOF
 // AUTO-GENERATED FUNCTIONS END HERE

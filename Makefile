@@ -85,6 +85,10 @@ else
 test: build check
 endif
 test:
+	hack/verify-gofmt.sh
+	hack/verify-generated-deep-copies.sh
+	hack/verify-generated-conversions.sh
+	hack/verify-generated-completions.sh
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration-docker.sh
 	hack/test-end-to-end-docker.sh
