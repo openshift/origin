@@ -131,7 +131,7 @@ func (o CreateKubeConfigOptions) Validate(args []string) error {
 func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error) {
 	glog.V(4).Infof("creating a .kubeconfig with: %#v", o)
 
-	// read all the refenced filenames
+	// read all the referenced filenames
 	caData, err := ioutil.ReadFile(o.APIServerCAFile)
 	if err != nil {
 		return nil, err

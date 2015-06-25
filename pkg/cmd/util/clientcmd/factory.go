@@ -27,7 +27,7 @@ import (
 // connection behavior. Most commands should use this method to get a factory.
 func New(flags *pflag.FlagSet) *Factory {
 	// Override global default to "" so we force the client to ask for user input
-	// TODO refactor this usptream:
+	// TODO refactor this upstream:
 	// DefaultCluster should not be a global
 	// A call to ClientConfig() should always return the best clientCfg possible
 	// even if an error was returned, and let the caller decide what to do

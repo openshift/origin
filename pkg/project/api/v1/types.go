@@ -43,5 +43,5 @@ type ProjectRequest struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
 	DisplayName     string `json:"displayName,omitempty" description:"display name to apply to a project"`
-	Description     string `json:"description,omitempty" description:"description to apply to a proejct"`
+	Description     string `json:"description,omitempty" description:"description to apply to a project"`
 }

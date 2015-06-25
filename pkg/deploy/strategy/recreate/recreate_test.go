@@ -70,7 +70,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 		t.Fatalf("unexpected deploy error: %#v", err)
 	}
 	if !hookExecuted {
-		t.Fatalf("exepcted hook execution")
+		t.Fatalf("expected hook execution")
 	}
 }
 
@@ -132,7 +132,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 		t.Fatalf("unexpected deploy error: %#v", err)
 	}
 	if !hookExecuted {
-		t.Fatalf("exepcted hook execution")
+		t.Fatalf("expected hook execution")
 	}
 }
 
@@ -164,7 +164,7 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 		t.Fatalf("unexpected deploy error: %#v", err)
 	}
 	if !hookExecuted {
-		t.Fatalf("exepcted hook execution")
+		t.Fatalf("expected hook execution")
 	}
 }
 

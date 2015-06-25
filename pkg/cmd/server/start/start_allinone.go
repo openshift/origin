@@ -101,7 +101,7 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, _ := GetAllInOneArgs()
 	options.MasterArgs, options.NodeArgs = masterArgs, nodeArgs
-	// by default, all-in-ones all disabled docker.  Set it here so that if we allow it to be bound later, bindings take precendence
+	// by default, all-in-ones all disabled docker.  Set it here so that if we allow it to be bound later, bindings take precedence
 	options.NodeArgs.AllowDisabledDocker = true
 
 	BindMasterArgs(masterArgs, flags, "")

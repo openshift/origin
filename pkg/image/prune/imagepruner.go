@@ -77,7 +77,7 @@ the pruning algorithm. These should be the full list for each type from the
 cluster; otherwise, the pruning algorithm might result in incorrect
 calculations and premature pruning.
 
-The ImagePruner performs the following logic: remove any image contaning the
+The ImagePruner performs the following logic: remove any image containing the
 annotation openshift.io/image.managed=true that was created at least *n*
 minutes ago and is *not* currently referenced by:
 
