@@ -26,11 +26,22 @@ unset KUBECONFIG
 
 if [[ -z "${BASETMPDIR-}" ]]; then
   TMPDIR="${TMPDIR:-"/tmp"}"
-  BASETMPDIR="${TMPDIR}/openshift-e2e/containerized"
+  BASETMPDIR="${TMPDIR}/openshift-e2e-containerized"
   sudo rm -rf "${BASETMPDIR}"
   mkdir -p "${BASETMPDIR}"
 fi
+
 VOLUME_DIR="${BASETMPDIR}/volumes"
+# when selinux is enforcing, the volume dir selinux label needs to be
+# svirt_sandbox_file_t
+#
+# TODO: fix the selinux policy to either allow openshift_var_lib_dir_t
+# or to default the volume dir to svirt_sandbox_file_t.
+sudo mkdir -p ${VOLUME_DIR}
+if selinuxenabled; then
+  sudo chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
+fi
+
 FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
 LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
@@ -55,10 +66,16 @@ function cleanup()
   echo
 
   set +e
-  echo "[INFO] Dumping container logs to ${LOG_DIR}"
-  docker logs origin >"${LOG_DIR}/openshift.log" 2>&1
+  dump_container_logs
 
   if [[ -z "${SKIP_TEARDOWN-}" ]]; then
+    echo "[INFO] Deleting test constructs"
+    sudo docker exec origin oc delete -n test all --all
+    sudo docker exec origin oc delete -n default all --all
+
+    echo "[INFO] Waiting for volume mounts to be cleaned up"
+    wait_for_command '[[ "$(mount | grep pods | grep ${VOLUME_DIR} | wc -l)" = "0" ]]' $((120*TIME_SEC))
+
     echo "[INFO] Tearing down test"
     docker stop origin
     docker rm origin
@@ -70,6 +87,8 @@ function cleanup()
     set -u
   fi
   set -e
+
+  delete_large_and_empty_logs
 
   echo "[INFO] Exiting"
   exit $out
@@ -133,8 +152,8 @@ echo "[INFO] Starting OpenShift containerized server"
 sudo docker run -d --name="origin" \
   --privileged --net=host \
   -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker:/var/lib/docker:rw \
-  -v "/var/lib/openshift/openshift.local.volumes:/var/lib/openshift/openshift.local.volumes" \
-  "openshift/origin:${tag}" start
+  -v "${VOLUME_DIR}:${VOLUME_DIR}" \
+  "openshift/origin:${tag}" start --volume-dir=${VOLUME_DIR} --images="${USE_IMAGES}"
 
 export HOME="${FAKE_HOME_DIR}"
 # This directory must exist so Docker can store credentials in $HOME/.dockercfg

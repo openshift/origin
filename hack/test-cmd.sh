@@ -47,7 +47,15 @@ set -e
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
 
-USE_LOCAL_IMAGES=${USE_LOCAL_IMAGES:-true}
+# Use either the latest release built images, or latest.
+if [[ -z "${USE_IMAGES-}" ]]; then
+  tag="latest"
+  if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
+    COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
+    tag="${COMMIT}"
+  fi
+  USE_IMAGES="openshift/origin-\${component}:${tag}"
+fi
 
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 ETCD_PORT=${ETCD_PORT:-4001}
@@ -133,7 +141,8 @@ openshift start \
   --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
   --hostname="${KUBELET_HOST}" \
   --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}"
+  --etcd-dir="${ETCD_DATA_DIR}" \
+  --images="${USE_IMAGES}"
 
 
 # Start openshift
@@ -373,7 +382,7 @@ oc create -f test/integration/fixtures/test-image-stream.json
 # make sure stream.status.dockerImageRepository isn't set (no registry)
 [ -z "$(oc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 # create the registry
-oadm registry --create --credentials="${KUBECONFIG}"
+oadm registry --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 # make sure stream.status.dockerImageRepository IS set
 [ -n "$(oc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 # ensure the registry rc has been created
@@ -665,14 +674,14 @@ echo "new-project: ok"
 # Test running a router
 [ ! "$(oadm router --dry-run | grep 'does not exist')" ]
 [ "$(oadm router -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-haproxy-')" ]
-oadm router --create --credentials="${KUBECONFIG}"
+oadm router --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 [ "$(oadm router | grep 'service exists')" ]
 echo "router: ok"
 
 # Test running a registry
 [ ! "$(oadm registry --dry-run | grep 'does not exist')"]
 [ "$(oadm registry -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-docker-registry')" ]
-oadm registry --create --credentials="${KUBECONFIG}"
+oadm registry --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 [ "$(oadm registry | grep 'service exists')" ]
 echo "registry: ok"
 

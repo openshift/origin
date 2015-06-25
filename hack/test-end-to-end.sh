@@ -91,10 +91,7 @@ function cleanup()
 	echo
 
 	set +e
-	echo "[INFO] Dumping container logs to ${LOG_DIR}"
-	for container in $(docker ps -aq); do
-		docker logs "$container" >&"${LOG_DIR}/container-$container.log"
-	done
+	dump_container_logs
 
 	echo "[INFO] Dumping build log to ${LOG_DIR}"
 
@@ -129,11 +126,7 @@ function cleanup()
 	fi
 	set -e
 
-	# clean up zero byte log files
-	# Clean up large log files so they don't end up on jenkins
-	find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
+	delete_large_and_empty_logs
 
 	echo "[INFO] Exiting"
 	exit $out

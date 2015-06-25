@@ -259,6 +259,32 @@ function time_now()
   echo $(date +%s000)
 }
 
+# dump_container_logs writes container logs to $LOG_DIR
+function dump_container_logs()
+{
+  echo "[INFO] Dumping container logs to ${LOG_DIR}"
+  for container in $(docker ps -aq); do
+    container_name=$(docker inspect -f "{{.Name}}" $container)
+    # strip off leading /
+    container_name=${container_name:1}
+    if [[ "$container_name" =~ ^k8s_ ]]; then
+      pod_name=$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $4 }')
+      container_name=${pod_name}-$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $2 }')
+    fi
+    docker logs "$container" >&"${LOG_DIR}/container-${container_name}.log"
+  done
+}
+
+# delete_large_and_empty_logs deletes empty logs and logs over 20MB
+function delete_large_and_empty_logs()
+{
+  # clean up zero byte log files
+  # Clean up large log files so they don't end up on jenkins
+  find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+  find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+  find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
+}
+
 # Handler for when we exit automatically on an error.
 # Borrowed from https://gist.github.com/ahendrix/7030300
 os::log::errexit() {
