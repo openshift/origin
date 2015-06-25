@@ -430,7 +430,9 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					exposed, ok := ref.Input().Uses.Info().Dockerfile.GetDirective("EXPOSE")
 					if ok {
 						if input.Info == nil {
-							input.Info = &imageapi.DockerImage{}
+							input.Info = &imageapi.DockerImage{
+								Config: &imageapi.DockerConfig{},
+							}
 						}
 						input.Info.Config.ExposedPorts = map[string]struct{}{}
 						for _, p := range exposed {

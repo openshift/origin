@@ -402,12 +402,15 @@ func describeImage(image *imageapi.Image, imageName string) (string, error) {
 		formatString(out, "Image Created", fmt.Sprintf("%s ago", formatRelativeTime(image.DockerImageMetadata.Created.Time)))
 		formatString(out, "Author", image.DockerImageMetadata.Author)
 		formatString(out, "Arch", image.DockerImageMetadata.Architecture)
-		describeDockerImage(out, &image.DockerImageMetadata.Config)
+		describeDockerImage(out, image.DockerImageMetadata.Config)
 		return nil
 	})
 }
 
 func describeDockerImage(out *tabwriter.Writer, image *imageapi.DockerConfig) {
+	if image == nil {
+		return
+	}
 	hasCommand := false
 	if len(image.Entrypoint) > 0 {
 		hasCommand = true

@@ -66,7 +66,7 @@ func validNewMappingWithName() *api.ImageStreamMapping {
 			},
 			DockerImageReference: "localhost:5000/default/somerepo:imageID1",
 			DockerImageMetadata: api.DockerImage{
-				Config: api.DockerConfig{
+				Config: &api.DockerConfig{
 					Cmd:          []string{"ls", "/"},
 					Env:          []string{"a=1"},
 					ExposedPorts: map[string]struct{}{"1234/tcp": {}},
@@ -200,7 +200,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 		},
 		DockerImageReference: "localhost:5000/someproject/somerepo:" + imageID,
 		DockerImageMetadata: api.DockerImage{
-			Config: api.DockerConfig{
+			Config: &api.DockerConfig{
 				Cmd:          []string{"ls", "/"},
 				Env:          []string{"a=1"},
 				ExposedPorts: map[string]struct{}{"1234/tcp": {}},
@@ -279,7 +279,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 		},
 		DockerImageReference: "localhost:5000/someproject/somerepo:imageID1",
 		DockerImageMetadata: api.DockerImage{
-			Config: api.DockerConfig{
+			Config: &api.DockerConfig{
 				Cmd:          []string{"ls", "/"},
 				Env:          []string{"a=1"},
 				ExposedPorts: map[string]struct{}{"1234/tcp": {}},
