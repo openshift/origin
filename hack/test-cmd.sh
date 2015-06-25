@@ -355,6 +355,8 @@ oc secrets add serviceaccounts/deployer secrets/dockercfg
 oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file
 # make sure we can add as as pull secret
 oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file --for=pull
+# make sure we can add as as pull secret and mount secret at once
+oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file --for=pull,mount
 echo "secrets: ok"
 
 
