@@ -22,7 +22,7 @@ func init() {
 }
 
 // TestPushSecretName exercises one of the complex Build scenarios, where you
-// first build a Docker image using Docker build strategy, which will later by
+// first build a Docker image using Docker build strategy, which will later be
 // consumed by Custom build strategy to verify that the 'PushSecretName' (Docker
 // credentials) were successfully transported to the builder. The content of the
 // Secret file is verified in the end.
