@@ -128,7 +128,7 @@ func (m *ComponentMatch) String() string {
 // IsImage returns whether or not the component match is an
 // image or image stream
 func (m *ComponentMatch) IsImage() bool {
-	return m.Image != nil || m.ImageStream != nil
+	return m.Template == nil
 }
 
 // IsTemplate returns whether or not the component match is
@@ -178,7 +178,7 @@ type PerfectMatchWeightedResolver []WeightedResolver
 
 // Resolve resolves the provided input and returns only exact matches
 func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, error) {
-	imperfect := []*ComponentMatch{}
+	imperfect := ScoredComponentMatches{}
 	group := []WeightedResolver{}
 	for i, resolver := range r {
 		if len(group) == 0 || resolver.Weight == group[0].Weight {
@@ -219,6 +219,10 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 	case 1:
 		return imperfect[0], nil
 	default:
+		sort.Sort(imperfect)
+		if imperfect[0].Score < imperfect[1].Score {
+			return imperfect[0], nil
+		}
 		return nil, ErrMultipleMatches{value, imperfect}
 	}
 }

@@ -184,7 +184,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories,
 		return input
 	})
 	b.AddComponents(c.ImageStreams, func(input *app.ComponentInput) app.ComponentReference {
-		input.Argument = fmt.Sprintf("--image=%q", input.From)
+		input.Argument = fmt.Sprintf("--image-stream=%q", input.From)
 		input.Resolver = c.imageStreamResolver
 		return input
 	})
@@ -255,7 +255,11 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 				errs = append(errs, fmt.Errorf("invalid FROM directive in Dockerfile in repository %q", repo))
 			}
 			refs := b.AddComponents(dockerFrom, func(input *app.ComponentInput) app.ComponentReference {
-				input.Resolver = c.dockerResolver
+				input.Resolver = app.PerfectMatchWeightedResolver{
+					app.WeightedResolver{Resolver: c.imageStreamResolver, Weight: 0.0},
+					app.WeightedResolver{Resolver: c.dockerResolver, Weight: 1.0},
+					app.WeightedResolver{Resolver: &app.PassThroughDockerResolver{}, Weight: 2.0},
+				}
 				input.Use(repo)
 				input.ExpectToBuild = true
 				repo.UsedBy(input)
@@ -403,6 +407,9 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				input, err := app.InputImageFromMatch(ref.Input().Match)
 				if err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
+				}
+				if !input.AsImageStream {
+					glog.Warningf("Could not find an image match for %q. Make sure that a Docker image with that tag is available on the OpenShift node for the build to succeed.", ref.Input().Match.Value)
 				}
 				strategy, source, err := app.StrategyAndSourceForRepository(ref.Input().Uses, input)
 				if err != nil {
