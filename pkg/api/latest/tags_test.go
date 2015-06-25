@@ -21,10 +21,6 @@ func TestDescriptions(t *testing.T) {
 		seen := map[reflect.Type]bool{}
 
 		for _, apiType := range kapi.Scheme.KnownTypes(version) {
-			if !strings.Contains(apiType.PkgPath(), "openshift/origin") {
-				continue
-			}
-
 			checkDescriptions(apiType, &seen, t)
 		}
 	}
@@ -35,6 +31,9 @@ func checkDescriptions(objType reflect.Type, seen *map[reflect.Type]bool, t *tes
 		return
 	}
 	(*seen)[objType] = true
+	if !strings.Contains(objType.PkgPath(), "openshift/origin") {
+		return
+	}
 
 	for i := 0; i < objType.NumField(); i++ {
 		structField := objType.FieldByIndex([]int{i})
@@ -55,6 +54,45 @@ func checkDescriptions(objType reflect.Type, seen *map[reflect.Type]bool, t *tes
 		switch structField.Type.Kind() {
 		case reflect.Struct:
 			checkDescriptions(structField.Type, seen, t)
+		}
+	}
+}
+
+func TestInternalJsonTags(t *testing.T) {
+	seen := map[reflect.Type]bool{}
+
+	for _, apiType := range kapi.Scheme.KnownTypes("") {
+		checkJsonTags(apiType, &seen, t)
+	}
+}
+
+// internalTypesWithAllowedJsonTags is the list of special structs that have a particular need to have json tags on their
+// internal types.  Do not add to this list without having you paperwork checked in triplicate.
+var internalTypesWithAllowedJsonTags = util.NewStringSet("DockerConfig", "DockerImage")
+
+func checkJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t *testing.T) {
+	if _, exists := (*seen)[objType]; exists {
+		return
+	}
+	(*seen)[objType] = true
+	if !strings.Contains(objType.PkgPath(), "openshift/origin") {
+		return
+	}
+	if internalTypesWithAllowedJsonTags.Has(objType.Name()) {
+		return
+	}
+
+	for i := 0; i < objType.NumField(); i++ {
+		structField := objType.FieldByIndex([]int{i})
+
+		jsonTag := structField.Tag.Get("json")
+		if len(jsonTag) != 0 {
+			t.Errorf("%v.%v should not have a json tag", objType, structField.Name)
+		}
+
+		switch structField.Type.Kind() {
+		case reflect.Struct:
+			checkJsonTags(structField.Type, seen, t)
 		}
 	}
 }

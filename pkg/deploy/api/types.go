@@ -25,15 +25,15 @@ const (
 // DeploymentStrategy describes how to perform a deployment.
 type DeploymentStrategy struct {
 	// Type is the name of a deployment strategy.
-	Type DeploymentStrategyType `json:"type,omitempty"`
+	Type DeploymentStrategyType
 	// CustomParams are the input to the Custom deployment strategy.
-	CustomParams *CustomDeploymentStrategyParams `json:"customParams,omitempty"`
+	CustomParams *CustomDeploymentStrategyParams
 	// RecreateParams are the input to the Recreate deployment strategy.
-	RecreateParams *RecreateDeploymentStrategyParams `json:"recreateParams,omitempty"`
+	RecreateParams *RecreateDeploymentStrategyParams
 	// RollingParams are the input to the Rolling deployment strategy.
-	RollingParams *RollingDeploymentStrategyParams `json:"rollingParams,omitempty"`
+	RollingParams *RollingDeploymentStrategyParams
 	// Resources contains resource requirements to execute the deployment
-	Resources kapi.ResourceRequirements `json:"resources,omitempty"`
+	Resources kapi.ResourceRequirements
 }
 
 // DeploymentStrategyType refers to a specific DeploymentStrategy implementation.
@@ -51,11 +51,11 @@ const (
 // CustomDeploymentStrategyParams are the input to the Custom deployment strategy.
 type CustomDeploymentStrategyParams struct {
 	// Image specifies a Docker image which can carry out a deployment.
-	Image string `json:"image,omitempty"`
+	Image string
 	// Environment holds the environment which will be given to the container for Image.
-	Environment []kapi.EnvVar `json:"environment,omitempty"`
+	Environment []kapi.EnvVar
 	// Command is optional and overrides CMD in the container Image.
-	Command []string `json:"command,omitempty"`
+	Command []string
 }
 
 // RecreateDeploymentStrategyParams are the input to the Recreate deployment
@@ -63,19 +63,19 @@ type CustomDeploymentStrategyParams struct {
 type RecreateDeploymentStrategyParams struct {
 	// Pre is a lifecycle hook which is executed before the strategy manipulates
 	// the deployment. All LifecycleHookFailurePolicy values are supported.
-	Pre *LifecycleHook `json:"pre,omitempty"`
+	Pre *LifecycleHook
 	// Post is a lifecycle hook which is executed after the strategy has
 	// finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
 	// is NOT supported.
-	Post *LifecycleHook `json:"post,omitempty"`
+	Post *LifecycleHook
 }
 
 // LifecycleHook defines a specific deployment lifecycle action.
 type LifecycleHook struct {
 	// FailurePolicy specifies what action to take if the hook fails.
-	FailurePolicy LifecycleHookFailurePolicy `json:"failurePolicy"`
+	FailurePolicy LifecycleHookFailurePolicy
 	// ExecNewPod specifies the options for a lifecycle hook backed by a pod.
-	ExecNewPod *ExecNewPodHook `json:"execNewPod,omitempty"`
+	ExecNewPod *ExecNewPodHook
 }
 
 // LifecycleHookFailurePolicy describes possibles actions to take if a hook fails.
@@ -95,12 +95,12 @@ const (
 // deployment template.
 type ExecNewPodHook struct {
 	// Command is the action command and its arguments.
-	Command []string `json:"command"`
+	Command []string
 	// Env is a set of environment variables to supply to the hook pod's container.
-	Env []kapi.EnvVar `json:"env,omitempty"`
+	Env []kapi.EnvVar
 	// ContainerName is the name of a container in the deployment pod template
 	// whose Docker image will be used for the hook pod's container.
-	ContainerName string `json:"containerName"`
+	ContainerName string
 }
 
 // RollingDeploymentStrategyParams are the input to the Rolling deployment
@@ -108,20 +108,20 @@ type ExecNewPodHook struct {
 type RollingDeploymentStrategyParams struct {
 	// UpdatePeriodSeconds is the time to wait between individual pod updates.
 	// If the value is nil, a default will be used.
-	UpdatePeriodSeconds *int64 `json:"updatePeriodSeconds,omitempty" description:"the time to wait between individual pod updates"`
+	UpdatePeriodSeconds *int64
 	// IntervalSeconds is the time to wait between polling deployment status
 	// after update. If the value is nil, a default will be used.
-	IntervalSeconds *int64 `json:"intervalSeconds,omitempty" description:"the time to wait between polling deployment status after update"`
+	IntervalSeconds *int64
 	// TimeoutSeconds is the time to wait for updates before giving up. If the
 	// value is nil, a default will be used.
-	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty" description:"the time to wait for updates before giving up"`
+	TimeoutSeconds *int64
 	// Pre is a lifecycle hook which is executed before the deployment process
 	// begins. All LifecycleHookFailurePolicy values are supported.
-	Pre *LifecycleHook `json:"pre,omitempty" description:"a hook executed before the strategy starts the deployment"`
+	Pre *LifecycleHook
 	// Post is a lifecycle hook which is executed after the strategy has
 	// finished all deployment logic. The LifecycleHookFailurePolicyAbort policy
 	// is NOT supported.
-	Post *LifecycleHook `json:"post,omitempty" description:"a hook executed after the strategy finishes the deployment"`
+	Post *LifecycleHook
 }
 
 // These constants represent keys used for correlating objects related to deployments.
@@ -195,37 +195,37 @@ const DeploymentCancelledAnnotationValue = "true"
 // state of the DeploymentConfig. Each change to the DeploymentConfig which should result in
 // a new deployment results in an increment of LatestVersion.
 type DeploymentConfig struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta
+	kapi.ObjectMeta
 	// Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
 	// are defined, a new deployment can only occur as a result of an explicit client update to the
 	// DeploymentConfig with a new LatestVersion.
-	Triggers []DeploymentTriggerPolicy `json:"triggers,omitempty"`
+	Triggers []DeploymentTriggerPolicy
 	// Template represents a desired deployment state and how to deploy it.
-	Template DeploymentTemplate `json:"template,omitempty"`
+	Template DeploymentTemplate
 	// LatestVersion is used to determine whether the current deployment associated with a DeploymentConfig
 	// is out of sync.
-	LatestVersion int `json:"latestVersion,omitempty"`
+	LatestVersion int
 	// Details are the reasons for the update to this deployment config.
 	// This could be based on a change made by the user or caused by an automatic trigger
-	Details *DeploymentDetails `json:"details,omitempty"`
+	Details *DeploymentDetails
 }
 
 // DeploymentTemplate contains all the necessary information to create a deployment from a
 // DeploymentStrategy.
 type DeploymentTemplate struct {
 	// Strategy describes how a deployment is executed.
-	Strategy DeploymentStrategy `json:"strategy,omitempty"`
+	Strategy DeploymentStrategy
 	// ControllerTemplate is the desired replication state the deployment works to materialize.
-	ControllerTemplate kapi.ReplicationControllerSpec `json:"controllerTemplate,omitempty"`
+	ControllerTemplate kapi.ReplicationControllerSpec
 }
 
 // DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.
 type DeploymentTriggerPolicy struct {
 	// Type of the trigger
-	Type DeploymentTriggerType `json:"type,omitempty"`
+	Type DeploymentTriggerType
 	// ImageChangeParams represents the parameters for the ImageChange trigger.
-	ImageChangeParams *DeploymentTriggerImageChangeParams `json:"imageChangeParams,omitempty"`
+	ImageChangeParams *DeploymentTriggerImageChangeParams
 }
 
 // DeploymentTriggerType refers to a specific DeploymentTriggerPolicy implementation.
@@ -245,74 +245,74 @@ const (
 // DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.
 type DeploymentTriggerImageChangeParams struct {
 	// Automatic means that the detection of a new tag value should result in a new deployment.
-	Automatic bool `json:"automatic,omitempty"`
+	Automatic bool
 	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
-	ContainerNames []string `json:"containerNames,omitempty"`
+	ContainerNames []string
 	// RepositoryName is the identifier for a Docker image repository to watch for changes.
 	// DEPRECATED: will be removed in v1beta3.
-	RepositoryName string `json:"repositoryName,omitempty"`
+	RepositoryName string
 	// From is a reference to a Docker image repository to watch for changes. This field takes
 	// precedence over RepositoryName, which is deprecated and will be removed in v1beta3. The
 	// Kind may be left blank, in which case it defaults to "ImageRepository". The "Name" is
 	// the only required subfield - if Namespace is blank, the namespace of the current deployment
 	// trigger will be used.
-	From kapi.ObjectReference `json:"from"`
+	From kapi.ObjectReference
 	// Tag is the name of an image repository tag to watch for changes.
-	Tag string `json:"tag,omitempty"`
+	Tag string
 	// LastTriggeredImage is the last image to be triggered.
-	LastTriggeredImage string `json:"lastTriggeredImage"`
+	LastTriggeredImage string
 }
 
 // DeploymentDetails captures information about the causes of a deployment.
 type DeploymentDetails struct {
 	// Message is the user specified change message, if this deployment was triggered manually by the user
-	Message string `json:"message,omitempty"`
+	Message string
 	// Causes are extended data associated with all the causes for creating a new deployment
-	Causes []*DeploymentCause `json:"causes,omitempty"`
+	Causes []*DeploymentCause
 }
 
 // DeploymentCause captures information about a particular cause of a deployment.
 type DeploymentCause struct {
 	// Type is the type of the trigger that resulted in the creation of a new deployment
-	Type DeploymentTriggerType `json:"type"`
+	Type DeploymentTriggerType
 	// ImageTrigger contains the image trigger details, if this trigger was fired based on an image change
-	ImageTrigger *DeploymentCauseImageTrigger `json:"imageTrigger,omitempty"`
+	ImageTrigger *DeploymentCauseImageTrigger
 }
 
 // DeploymentCauseImageTrigger contains information about a deployment caused by an image trigger
 type DeploymentCauseImageTrigger struct {
 	// RepositoryName is the identifier for a Docker image repository that was updated.
-	RepositoryName string `json:"repositoryName,omitempty"`
+	RepositoryName string
 	// Tag is the name of an image repository tag that is now pointing to a new image.
-	Tag string `json:"tag,omitempty"`
+	Tag string
 }
 
 // DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta
+	kapi.ListMeta
 
 	// Items is a list of deployment configs
-	Items []DeploymentConfig `json:"items"`
+	Items []DeploymentConfig
 }
 
 // DeploymentConfigRollback provides the input to rollback generation.
 type DeploymentConfigRollback struct {
-	kapi.TypeMeta `json:",inline"`
+	kapi.TypeMeta
 	// Spec defines the options to rollback generation.
-	Spec DeploymentConfigRollbackSpec `json:"spec"`
+	Spec DeploymentConfigRollbackSpec
 }
 
 // DeploymentConfigRollbackSpec represents the options for rollback generation.
 type DeploymentConfigRollbackSpec struct {
 	// From points to a ReplicationController which is a deployment.
-	From kapi.ObjectReference `json:"from"`
+	From kapi.ObjectReference
 	// IncludeTriggers specifies whether to include config Triggers.
-	IncludeTriggers bool `json:"includeTriggers"`
+	IncludeTriggers bool
 	// IncludeTemplate specifies whether to include the PodTemplateSpec.
-	IncludeTemplate bool `json:"includeTemplate"`
+	IncludeTemplate bool
 	// IncludeReplicationMeta specifies whether to include the replica count and selector.
-	IncludeReplicationMeta bool `json:"includeReplicationMeta"`
+	IncludeReplicationMeta bool
 	// IncludeStrategy specifies whether to include the deployment Strategy.
-	IncludeStrategy bool `json:"includeStrategy"`
+	IncludeStrategy bool
 }
