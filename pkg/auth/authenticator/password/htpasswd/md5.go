@@ -16,7 +16,7 @@
 
 /*
  * The apr_md5_encode() routine uses much code obtained from the FreeBSD 3.0
- * MD5 crypt() function, which is licenced as follows:
+ * MD5 crypt() function, which is licensed as follows:
  * ----------------------------------------------------------------------------
  * "THE BEER-WARE LICENSE" (Revision 42):
  * <phk@login.dknet.dk> wrote this file.  As long as you retain this notice you

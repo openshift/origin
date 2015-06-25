@@ -46,7 +46,7 @@ func TestInstantiate(t *testing.T) {
 	}
 }
 
-// agoldste: I'm not sure the intent of this test. Using the previous logic for
+// TODO(agoldste): I'm not sure the intent of this test. Using the previous logic for
 // the generator, which would try to update the build config before creating
 // the build, I can see why the UpdateBuildConfigFunc is set up to return an
 // error, but nothing is checking the value of instantiationCalls. We could

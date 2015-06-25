@@ -109,7 +109,7 @@ func setupDockerSecrets(pod *kapi.Pod, pushSecret, pullSecret *kapi.LocalObjectR
 	}
 }
 
-// setupSourceSecrets mounts SSH key used for accesing private SCM to clone
+// setupSourceSecrets mounts SSH key used for accessing private SCM to clone
 // application source code during build.
 func setupSourceSecrets(pod *kapi.Pod, sourceSecret *kapi.LocalObjectReference) {
 	if sourceSecret == nil {

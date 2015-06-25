@@ -156,7 +156,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 
 		err := deployer.Deploy(to.Namespace, to.Name)
 		if err != nil {
-			t.Fatalf("unexpcted error: %v", err)
+			t.Fatalf("unexpected error: %v", err)
 		}
 
 		if s.fromVersion > 0 {

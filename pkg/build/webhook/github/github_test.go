@@ -50,7 +50,7 @@ var mockBuildStrategy = api.BuildStrategy{
 
 type okBuildConfigInstantiator struct{}
 
-func (*okBuildConfigInstantiator) Instantiate(namespace string, requet *api.BuildRequest) (*api.Build, error) {
+func (*okBuildConfigInstantiator) Instantiate(namespace string, request *api.BuildRequest) (*api.Build, error) {
 	return &api.Build{}, nil
 }
 
