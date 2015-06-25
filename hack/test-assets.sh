@@ -22,7 +22,12 @@ pushd "${OS_ROOT}/assets" > /dev/null
 popd > /dev/null
 
 pushd "${OS_ROOT}" > /dev/null
-  Godeps/_workspace/bin/go-bindata -nocompress -prefix "assets/dist" -pkg "assets" -o "_output/test/assets/bindata.go" -ignore "\\.gitignore" assets/dist/...
+
+  # Put each component in its own go package for compilation performance
+  # Strip off the dist folder from each package to flatten the resulting directory structure
+  Godeps/_workspace/bin/go-bindata -nocompress -prefix "assets/dist"      -pkg "assets" -o "_output/test/assets/bindata.go"      -ignore "\\.gitignore" assets/dist/...
+  Godeps/_workspace/bin/go-bindata -nocompress -prefix "assets/dist.java" -pkg "java"   -o "_output/test/assets/java/bindata.go" -ignore "\\.gitignore" assets/dist.java/...
+
   echo "Validating checked in bindata.go is up to date..."
   if ! assetdiff=$(diff -u _output/test/assets/bindata.go pkg/assets/bindata.go) ; then
 
@@ -44,4 +49,11 @@ pushd "${OS_ROOT}" > /dev/null
 
     exit 1
   fi
+
+  echo "Validating checked in java/bindata.go is up to date..."
+  if ! assetdiff=$(diff -u _output/test/assets/java/bindata.go pkg/assets/java/bindata.go) ; then
+    echo "$assetdiff" | head -n 10
+    exit 1
+  fi
+
 popd > /dev/null

@@ -12,5 +12,8 @@ pushd "${OS_ROOT}/assets" > /dev/null
 popd > /dev/null
 
 pushd "${OS_ROOT}" > /dev/null
-  Godeps/_workspace/bin/go-bindata -nocompress -prefix "assets/dist" -pkg "assets" -o "pkg/assets/bindata.go" -ignore "\\.gitignore" assets/dist/...
+  # Put each component in its own go package for compilation performance
+  # Strip off the dist folder from each package to flatten the resulting directory structure
+  Godeps/_workspace/bin/go-bindata -nocompress -prefix "assets/dist"      -pkg "assets" -o "pkg/assets/bindata.go"      -ignore "\\.gitignore" assets/dist/...
+  Godeps/_workspace/bin/go-bindata -nocompress -prefix "assets/dist.java" -pkg "java"   -o "pkg/assets/java/bindata.go" -ignore "\\.gitignore" assets/dist.java/...
 popd > /dev/null
