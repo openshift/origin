@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -18,6 +19,7 @@ import (
 const WhoCanRecommendedName = "who-can"
 
 type whoCanOptions struct {
+	allNamespaces    bool
 	bindingNamespace string
 	client           client.Interface
 
@@ -39,17 +41,18 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 			}
 
 			var err error
-			if options.client, _, err = f.Clients(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-			if options.bindingNamespace, err = f.DefaultNamespace(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-			if err := options.run(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			options.client, _, err = f.Clients()
+			kcmdutil.CheckErr(err)
+
+			options.bindingNamespace, err = f.DefaultNamespace()
+			kcmdutil.CheckErr(err)
+
+			err = options.run()
+			kcmdutil.CheckErr(err)
 		},
 	}
+
+	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", options.allNamespaces, "If present, list who can perform the specified action in all namespaces.")
 
 	return cmd
 }
@@ -69,12 +72,23 @@ func (o *whoCanOptions) run() error {
 	resourceAccessReview.Resource = o.resource
 	resourceAccessReview.Verb = o.verb
 
-	resourceAccessReviewResponse, err := o.client.ResourceAccessReviews(o.bindingNamespace).Create(resourceAccessReview)
+	var reviewInterface client.ResourceAccessReviewInterface
+	if o.allNamespaces {
+		reviewInterface = o.client.ClusterResourceAccessReviews()
+	} else {
+		reviewInterface = o.client.ResourceAccessReviews(o.bindingNamespace)
+	}
+
+	resourceAccessReviewResponse, err := reviewInterface.Create(resourceAccessReview)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Namespace: %s\n", resourceAccessReviewResponse.Namespace)
+	if resourceAccessReviewResponse.Namespace == kapi.NamespaceAll {
+		fmt.Printf("Namespace: <all>\n")
+	} else {
+		fmt.Printf("Namespace: %s\n", resourceAccessReviewResponse.Namespace)
+	}
 	fmt.Printf("Verb:      %s\n", o.verb)
 	fmt.Printf("Resource:  %s\n\n", o.resource)
 	if len(resourceAccessReviewResponse.Users) == 0 {

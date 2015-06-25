@@ -623,6 +623,10 @@ oc create -f examples/hello-openshift/hello-pod.json
 oc delete pods hello-openshift
 echo "manage-node: ok"
 
+oadm policy who-can get pods
+oadm policy who-can get pods -n default
+oadm policy who-can get pods --all-namespaces
+
 oadm policy add-role-to-group cluster-admin system:unauthenticated
 oadm policy add-role-to-user cluster-admin system:no-user
 oadm policy remove-role-from-group cluster-admin system:unauthenticated

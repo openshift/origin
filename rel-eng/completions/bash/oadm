@@ -188,6 +188,7 @@ _oadm_policy_who-can()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--all-namespaces")
     flags+=("--help")
     flags+=("-h")
 

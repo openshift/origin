@@ -563,6 +563,7 @@ _openshift_admin_policy_who-can()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--all-namespaces")
     flags+=("--help")
     flags+=("-h")
 
@@ -1693,6 +1694,7 @@ _openshift_cli_new-app()
     flags+=("--help")
     flags+=("-h")
     flags+=("--image=")
+    flags+=("--image-stream=")
     two_word_flags+=("-i")
     flags+=("--insecure-registry")
     flags+=("--labels=")
@@ -2505,6 +2507,7 @@ _openshift_cli_policy_who-can()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--all-namespaces")
     flags+=("--help")
     flags+=("-h")
 
