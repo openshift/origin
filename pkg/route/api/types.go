@@ -6,30 +6,30 @@ import (
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.
 type Route struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta
+	kapi.ObjectMeta
 
 	// Host is an alias/DNS that points to the service. Required
 	// Can be host or host:port
 	// host and port are combined to follow the net/url URL struct
-	Host string `json:"host"`
+	Host string
 	// Path that the router watches for, to route traffic for to the service. Optional
-	Path string `json:"path,omitempty"`
+	Path string
 
 	// ServiceName is the name of the service that this route points to
-	ServiceName string `json:"serviceName"`
+	ServiceName string
 
 	//TLS provides the ability to configure certificates and termination for the route
-	TLS *TLSConfig `json:"tls,omitempty"`
+	TLS *TLSConfig
 }
 
 // RouteList is a collection of Routes.
 type RouteList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
+	kapi.TypeMeta
+	kapi.ListMeta
 
 	// Items is a list of routes
-	Items []Route `json:"items"`
+	Items []Route
 }
 
 // RouterShard has information of a routing shard and is used to
