@@ -394,7 +394,7 @@ oc create -f examples/image-streams/image-streams-centos7.json
 [ -n "$(oc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(oc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
 # verify the image repository had its tags populated
-[ -n "$(oc get imageStreams wildfly -t "{{.status.tags.latest}}")" ]
+wait_for_command 'oc get imagestreamtags wildfly:latest' "${TIME_MIN}"
 [ -n "$(oc get imageStreams wildfly -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 oc delete imageStreams ruby
 oc delete imageStreams nodejs
@@ -408,7 +408,7 @@ oc delete imageStreams mongodb
 [ -z "$(oc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(oc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
 wait_for_command 'oc get imagestreamTags mysql:latest' "${TIME_MIN}"
-[ -n "$(oc get imagestreams mysql -t '{{ index .metadata.annotations "openshift.io/image.dockerRepositoryCheck"}}')" ]
+[ -n "$(oc get imagestreams mysql -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 oc describe istag/mysql:latest
 [ "$(oc describe istag/mysql:latest | grep "Environment:")" ]
 [ "$(oc describe istag/mysql:latest | grep "Image Created:")" ]
