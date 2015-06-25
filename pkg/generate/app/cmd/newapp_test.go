@@ -449,12 +449,13 @@ func TestRunAll(t *testing.T) {
 		Client: dockerregistry.NewClient(),
 	}
 	tests := []struct {
-		name           string
-		config         *AppConfig
-		expected       map[string][]string
-		expectedErr    error
-		expectInsecure util.StringSet
-		checkPort      string
+		name            string
+		config          *AppConfig
+		expected        map[string][]string
+		expectedErr     error
+		expectInsecure  util.StringSet
+		expectedVolumes map[string]string
+		checkPort       string
 	}{
 		{
 			name: "successful ruby app generation",
@@ -488,7 +489,8 @@ func TestRunAll(t *testing.T) {
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
 			},
-			expectedErr: nil,
+			expectedVolumes: nil,
+			expectedErr:     nil,
 		},
 		{
 			name: "successful docker app generation",
@@ -553,7 +555,8 @@ func TestRunAll(t *testing.T) {
 				"deploymentConfig": {"sti-ruby"},
 				"service":          {"sti-ruby"},
 			},
-			expectedErr: nil,
+			expectedVolumes: nil,
+			expectedErr:     nil,
 		},
 		{
 			name: "insecure registry generation",
@@ -594,8 +597,46 @@ func TestRunAll(t *testing.T) {
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
 			},
-			expectedErr:    nil,
-			expectInsecure: util.NewStringSet("example"),
+			expectedErr:     nil,
+			expectedVolumes: nil,
+			expectInsecure:  util.NewStringSet("example"),
+		},
+		{
+			name: "emptyDir volumes",
+			config: &AppConfig{
+				DockerImages: util.StringList{"mysql"},
+
+				dockerResolver: dockerResolver,
+				imageStreamResolver: app.ImageStreamResolver{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateResolver: app.TemplateResolver{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+
+			expected: map[string][]string{
+				"imageStream":      {"mysql"},
+				"deploymentConfig": {"mysql"},
+				"service":          {"mysql"},
+				"volumeMounts":     {"mysql-volume-1"},
+			},
+			expectedVolumes: map[string]string{
+				"mysql-volume-1": "EmptyDir",
+			},
+			expectedErr: nil,
 		},
 		{
 			name: "Docker build",
@@ -647,6 +688,7 @@ func TestRunAll(t *testing.T) {
 		}
 		imageStreams := []*imageapi.ImageStream{}
 		got := map[string][]string{}
+		gotVolumes := map[string]string{}
 		for _, obj := range res.List.Items {
 			switch tp := obj.(type) {
 			case *buildapi.BuildConfig:
@@ -668,6 +710,20 @@ func TestRunAll(t *testing.T) {
 				imageStreams = append(imageStreams, tp)
 			case *deploy.DeploymentConfig:
 				got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
+				if podTemplate := tp.Template.ControllerTemplate.Template; podTemplate != nil {
+					for _, volume := range podTemplate.Spec.Volumes {
+						if volume.VolumeSource.EmptyDir != nil {
+							gotVolumes[volume.Name] = "EmptyDir"
+						} else {
+							gotVolumes[volume.Name] = "UNKNOWN"
+						}
+					}
+					for _, container := range podTemplate.Spec.Containers {
+						for _, volumeMount := range container.VolumeMounts {
+							got["volumeMounts"] = append(got["volumeMounts"], volumeMount.Name)
+						}
+					}
+				}
 			}
 		}
 
@@ -675,7 +731,6 @@ func TestRunAll(t *testing.T) {
 			t.Errorf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
 			continue
 		}
-
 		for k, exp := range test.expected {
 			g, ok := got[k]
 			if !ok {
@@ -688,6 +743,21 @@ func TestRunAll(t *testing.T) {
 			if !reflect.DeepEqual(g, exp) {
 				t.Errorf("%s: %s resource names mismatch! Expected %v, got %v", test.name, k, exp, g)
 				continue
+			}
+		}
+
+		if len(test.expectedVolumes) != len(gotVolumes) {
+			t.Errorf("%s: Volume count mismatch! Expected %d, got %d", test.name, len(test.expectedVolumes), len(gotVolumes))
+			continue
+		}
+		for k, exp := range test.expectedVolumes {
+			g, ok := gotVolumes[k]
+			if !ok {
+				t.Errorf("%s: Didn't find expected volume %s", test.name, k)
+			}
+
+			if g != exp {
+				t.Errorf("%s: Expected volume of type %s, got %s", test.name, g, exp)
 			}
 		}
 
