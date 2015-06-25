@@ -1,17 +1,17 @@
-"use strict";
+'use strict';
 
-describe("yesNoFilter", function(){
+describe('yesNoFilter', function(){
 
-  it("should return Yes when true", function(){
+  it('should return Yes when true', function(){
     inject(function(yesNoFilter){
-      expect(yesNoFilter(true)).toBe("Yes");
-    })
+      expect(yesNoFilter(true)).toBe('Yes');
+    });
   });
 
-  it("should return No when false", function(){
+  it('should return No when false', function(){
     inject(function(yesNoFilter){
-      expect(yesNoFilter(false)).toBe("No");
-    })
+      expect(yesNoFilter(false)).toBe('No');
+    });
   });
 });
 

@@ -1,16 +1,16 @@
-"use strict";
+'use strict';
 
-describe("DataService", function(){
+describe('DataService', function(){
   var DataService;
-  
+
   beforeEach(function(){
     inject(function(_DataService_){
       DataService = _DataService_;
     });
   });
-  
-  describe("#url", function(){
-    
+
+  describe('#url', function(){
+
     var tc = [
       // Empty tests
       [null,           null],
@@ -21,46 +21,44 @@ describe("DataService", function(){
       [{type:'bogus'}, null],
 
       // Type normalization
-      [{type:'users'},             "http://localhost:8443/osapi/v1beta3/users"],
-      [{type:'Users'},             "http://localhost:8443/osapi/v1beta3/users"],
-      [{type:'oauthaccesstokens'}, "http://localhost:8443/osapi/v1beta3/oauthaccesstokens"],
-      [{type:'OAuthAccessTokens'}, "http://localhost:8443/osapi/v1beta3/oauthaccesstokens"],
-      [{type:'pods'},              "http://localhost:8443/api/v1beta3/pods"],
-      [{type:'Pods'},              "http://localhost:8443/api/v1beta3/pods"],
+      [{type:'users'},             'http://localhost:8443/osapi/v1beta3/users'],
+      [{type:'Users'},             'http://localhost:8443/osapi/v1beta3/users'],
+      [{type:'oauthaccesstokens'}, 'http://localhost:8443/osapi/v1beta3/oauthaccesstokens'],
+      [{type:'OAuthAccessTokens'}, 'http://localhost:8443/osapi/v1beta3/oauthaccesstokens'],
+      [{type:'pods'},              'http://localhost:8443/api/v1beta3/pods'],
+      [{type:'Pods'},              'http://localhost:8443/api/v1beta3/pods'],
 
       // Openshift type
-      [{type:'builds'                           }, "http://localhost:8443/osapi/v1beta3/builds"],
-      [{type:'builds', namespace:"foo"          }, "http://localhost:8443/osapi/v1beta3/namespaces/foo/builds"],
-      [{type:'builds',                  id:"bar"}, "http://localhost:8443/osapi/v1beta3/builds/bar"],
-      [{type:'builds', namespace:"foo", id:"bar"}, "http://localhost:8443/osapi/v1beta3/namespaces/foo/builds/bar"],
+      [{type:'builds'                           }, 'http://localhost:8443/osapi/v1beta3/builds'],
+      [{type:'builds', namespace:'foo'          }, 'http://localhost:8443/osapi/v1beta3/namespaces/foo/builds'],
+      [{type:'builds',                  id:'bar'}, 'http://localhost:8443/osapi/v1beta3/builds/bar'],
+      [{type:'builds', namespace:'foo', id:'bar'}, 'http://localhost:8443/osapi/v1beta3/namespaces/foo/builds/bar'],
 
       // k8s type
-      [{type:'replicationcontrollers'                           }, "http://localhost:8443/api/v1beta3/replicationcontrollers"],
-      [{type:'replicationcontrollers', namespace:"foo"          }, "http://localhost:8443/api/v1beta3/namespaces/foo/replicationcontrollers"],
-      [{type:'replicationcontrollers',                  id:"bar"}, "http://localhost:8443/api/v1beta3/replicationcontrollers/bar"],
-      [{type:'replicationcontrollers', namespace:"foo", id:"bar"}, "http://localhost:8443/api/v1beta3/namespaces/foo/replicationcontrollers/bar"],
+      [{type:'replicationcontrollers'                           }, 'http://localhost:8443/api/v1beta3/replicationcontrollers'],
+      [{type:'replicationcontrollers', namespace:'foo'          }, 'http://localhost:8443/api/v1beta3/namespaces/foo/replicationcontrollers'],
+      [{type:'replicationcontrollers',                  id:'bar'}, 'http://localhost:8443/api/v1beta3/replicationcontrollers/bar'],
+      [{type:'replicationcontrollers', namespace:'foo', id:'bar'}, 'http://localhost:8443/api/v1beta3/namespaces/foo/replicationcontrollers/bar'],
 
       // Subresources and webhooks
-      [{type:'builds/clone',             id:"mybuild", namespace:"foo"                                 }, "http://localhost:8443/osapi/v1beta3/namespaces/foo/builds/mybuild/clone"],
-      [{type:'buildconfigs/instantiate', id:"mycfg",   namespace:"foo"                                 }, "http://localhost:8443/osapi/v1beta3/namespaces/foo/buildconfigs/mycfg/instantiate"],
-      [{type:'buildconfigs/webhooks',    id:"mycfg",   namespace:"foo", hookType:"github", secret:"123"}, "http://localhost:8443/osapi/v1beta3/namespaces/foo/buildconfigs/mycfg/webhooks/123/github"],
+      [{type:'builds/clone',             id:'mybuild', namespace:'foo'                                 }, 'http://localhost:8443/osapi/v1beta3/namespaces/foo/builds/mybuild/clone'],
+      [{type:'buildconfigs/instantiate', id:'mycfg',   namespace:'foo'                                 }, 'http://localhost:8443/osapi/v1beta3/namespaces/foo/buildconfigs/mycfg/instantiate'],
+      [{type:'buildconfigs/webhooks',    id:'mycfg',   namespace:'foo', hookType:'github', secret:'123'}, 'http://localhost:8443/osapi/v1beta3/namespaces/foo/buildconfigs/mycfg/webhooks/123/github'],
 
       // Watch
-      [{type:'pods', namespace:"foo", isWebsocket:true                     }, "ws://localhost:8443/api/v1beta3/watch/namespaces/foo/pods"],
-      [{type:'pods', namespace:"foo", isWebsocket:true, resourceVersion:"5"}, "ws://localhost:8443/api/v1beta3/watch/namespaces/foo/pods?resourceVersion=5"],
+      [{type:'pods', namespace:'foo', isWebsocket:true                     }, 'ws://localhost:8443/api/v1beta3/watch/namespaces/foo/pods'],
+      [{type:'pods', namespace:'foo', isWebsocket:true, resourceVersion:'5'}, 'ws://localhost:8443/api/v1beta3/watch/namespaces/foo/pods?resourceVersion=5'],
 
       // Namespaced subresource with params
-      [{type:'pods/proxy', id:"mypod", namespace:"myns", myparam1:"myvalue"}, "http://localhost:8443/api/v1beta3/namespaces/myns/pods/mypod/proxy?myparam1=myvalue"],
+      [{type:'pods/proxy', id:'mypod', namespace:'myns', myparam1:'myvalue'}, 'http://localhost:8443/api/v1beta3/namespaces/myns/pods/mypod/proxy?myparam1=myvalue'],
     ];
-    
-    for (var i=0; i < tc.length; i++) {
-      it("should generate a correct URL for " + JSON.stringify(tc[i][0]), function(tc){
-      	return function() {
-          expect(DataService.url(tc[0])).toEqual(tc[1]);
-        };
-      }(tc[i]));
-    }
-    
+
+    _.each(tc, function(item) {
+      it('should generate a correct URL for ' + JSON.stringify(item[0]), function() {
+        expect(DataService.url(item[0])).toEqual(item[1]);
+      });
+    });
+
   });
-  
+
 });

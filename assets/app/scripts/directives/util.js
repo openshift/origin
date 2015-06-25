@@ -1,7 +1,10 @@
+'use strict';
+/* jshint unused: false */
+
 angular.module('openshiftConsole')
   .directive('selectOnFocus', function() {
     return {
-      restrict: 'A', 
+      restrict: 'A',
       link: function($scope, element, attrs) {
         $(element).focus(function () {
           $(this).select();
@@ -11,7 +14,7 @@ angular.module('openshiftConsole')
   })
   .directive('tileClick', function() {
     return {
-      restrict: 'AC', 
+      restrict: 'AC',
       link: function($scope, element, attrs) {
         $(element).click(function (evt) {
           var t = $(evt.target);
@@ -55,7 +58,7 @@ angular.module('openshiftConsole')
           $("#global-zeroclipboard-html-bridge").tooltip({title: "Copy to clipboard", placement: 'bottom'});
         }
       }
-    }
+    };
   })
   .directive('shortId', function() {
     return {
@@ -64,7 +67,7 @@ angular.module('openshiftConsole')
         id: '@'
       },
       template: '<code class="short-id" title="{{id}}">{{id.substring(0, 6)}}</code>'
-    }
+    };
   })
   .directive('customIcon', function() {
     return {
@@ -80,7 +83,7 @@ angular.module('openshiftConsole')
         } else {
           $scope.icon = $filter('annotation')($scope.resource, "icon");
         }
-        $scope.isDataIcon = $scope.icon && $scope.icon.indexOf("data:") == 0;
+        $scope.isDataIcon = $scope.icon && ($scope.icon.indexOf("data:") === 0);
         if (!$scope.isDataIcon) {
           // The icon class filter will at worst return the default icon for the given kind
           if ($scope.tag) {
@@ -91,5 +94,5 @@ angular.module('openshiftConsole')
         }
       },
       templateUrl: 'views/directives/_custom-icon.html'
-    }
+    };
   });

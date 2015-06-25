@@ -1,4 +1,5 @@
 'use strict';
+/* jshint camelcase: false */
 
 /**
  * @ngdoc function
@@ -13,11 +14,11 @@ angular.module('openshiftConsole')
     var openshiftTemplates;
 
     // Templates with the `instant-apps` tag.
-    $scope.instantApps;
+    $scope.instantApps = undefined;
 
     // All templates from the shared or project namespace that aren't instant apps.
     // This is displayed in the "Other Templates" section.
-    $scope.otherTemplates;
+    // $scope.otherTemplates;
 
     // Set to true when shared templates and project templates have finished loading.
     $scope.templatesLoaded = false;

@@ -30,7 +30,18 @@
     "inject": false,
     "it": false,
     "jasmine": false,
-    "spyOn": false
+    "spyOn": false,
+    "hawtioPluginLoader": false,
+    "HawtioCore": false,
+    "Logger" : false,
+    "LabelSelector": false,
+    "moment": false,
+    "Messenger" : false,
+    "URI": false,
+    "ZeroClipboard": false,
+    "$": false,
+    "_" : false
+
   }
 }
 

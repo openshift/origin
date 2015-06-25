@@ -1,4 +1,5 @@
 'use strict';
+/* jshint newcap: false */
 
 /**
  * @ngdoc function

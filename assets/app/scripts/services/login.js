@@ -1,3 +1,7 @@
+'use strict';
+/* jshint unused: false, camelcase: false */
+/* TODO (bpeterse): fix these jshint issues later */
+
 // Login strategies
 angular.module('openshiftConsole')
 .provider('RedirectLoginService', function() {
@@ -30,14 +34,14 @@ angular.module('openshiftConsole')
     return {
       // Returns a promise that resolves with {user:{...}, token:'...', ttl:X}, or rejects with {error:'...'[,error_description:'...',error_uri:'...']}
       login: function() {
-        if (_oauth_client_id == "") {
-          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthClientID() not set'}); 
+        if (_oauth_client_id === "") {
+          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthClientID() not set'});
         }
-        if (_oauth_authorize_uri == "") {
-          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthAuthorizeURI() not set'}); 
+        if (_oauth_authorize_uri === "") {
+          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthAuthorizeURI() not set'});
         }
-        if (_oauth_redirect_uri == "") {
-          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthRedirectURI not set'}); 
+        if (_oauth_redirect_uri === "") {
+          return $q.reject({error:'invalid_request', error_description:'RedirectLoginServiceProvider.OAuthRedirectURI not set'});
         }
 
         var deferred = $q.defer();
@@ -66,7 +70,7 @@ angular.module('openshiftConsole')
 
         // Read params
         var queryParams = u.query(true);
-        var fragmentParams = new URI("?" + u.fragment()).query(true); 
+        var fragmentParams = new URI("?" + u.fragment()).query(true);
         authLogger.log("RedirectLoginService.finish()", queryParams, fragmentParams);
 
        // Error codes can come in query params or fragment params
@@ -84,7 +88,7 @@ angular.module('openshiftConsole')
         }
 
         // Handle an access_token response
-        if (fragmentParams.access_token && fragmentParams.token_type == "bearer") {
+        if (fragmentParams.access_token && fragmentParams.token_type === "bearer") {
           var deferred = $q.defer();
           deferred.resolve({
             token: fragmentParams.access_token,

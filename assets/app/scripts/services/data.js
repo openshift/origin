@@ -1,4 +1,5 @@
 'use strict';
+/* jshint eqeqeq: false, unused: false */
 
 angular.module('openshiftConsole')
 .factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger) {
@@ -75,14 +76,15 @@ angular.module('openshiftConsole')
   };
 
   var normalizeType = function(type) {
-     if (!type) return type;
-     var lower = type.toLowerCase();
-     if (type !== lower) {
-       Logger.warn('Non-lower case type "' + type + '"');
-     }
-
-     return lower;
-  }
+    if (!type) {
+      return type;
+    }
+    var lower = type.toLowerCase();
+    if (type !== lower) {
+      Logger.warn('Non-lower case type "' + type + '"');
+    }
+    return lower;
+  };
 
   function DataService() {
     this._listCallbacksMap = {};
@@ -298,7 +300,7 @@ angular.module('openshiftConsole')
           if (opts.errorNotification !== false) {
             var msg = "Failed to get " + type + "/" + name;
             if (status !== 0) {
-              msg += " (" + status + ")"
+              msg += " (" + status + ")";
             }
             Notification.error(msg);
           }
@@ -351,6 +353,7 @@ angular.module('openshiftConsole')
     }
 
     var existingWatchOpts = this._watchOptions(type, context);
+
     if (existingWatchOpts) {
       // Check any options for compatibility with existing watch
       if (existingWatchOpts.poll != opts.poll) {
@@ -541,7 +544,9 @@ angular.module('openshiftConsole')
     // connection is not succeeding. This check is necessary if connection
     // timeouts take longer than 6 seconds.
     for (var i = events.length - maxConsecutiveCloseEvents; i < events.length; i++) {
-      if (events[i].type !== 'close') return false;
+      if (events[i].type !== 'close') {
+        return false;
+      }
     }
 
     return true;
@@ -588,7 +593,7 @@ angular.module('openshiftConsole')
         }).error(function(data, status, headers, config) {
           var msg = "Failed to list " + type;
           if (status !== 0) {
-            msg += " (" + status + ")"
+            msg += " (" + status + ")";
           }
           // TODO would like to make this optional with an errorNotification option, see get for an example
           Notification.error(msg);
@@ -604,7 +609,7 @@ angular.module('openshiftConsole')
       }).error(function(data, status, headers, config) {
         var msg = "Failed to list " + type;
         if (status !== 0) {
-          msg += " (" + status + ")"
+          msg += " (" + status + ")";
         }
         // TODO would like to make this optional with an errorNotification option, see get for an example
         Notification.error(msg);
@@ -839,17 +844,19 @@ angular.module('openshiftConsole')
   };
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {
+    var subresource;
+    var typeWithSubresource;
 
     // Parse the type parameter for type itself and subresource. Example: 'buildconfigs/instantiate'
     if(type.indexOf('/') !== -1){
-      var typeWithSubresource = type.split("/");
-      var type = typeWithSubresource[0];
-      var subresource = typeWithSubresource[1];
+      typeWithSubresource = type.split("/");
+      type = typeWithSubresource[0];
+      subresource = typeWithSubresource[1];
     }
 
     var typeInfo = SERVER_TYPE_MAP[type];
     if (!typeInfo) {
-    	Logger.error("_urlForType called with unknown type", type, arguments)
+    	Logger.error("_urlForType called with unknown type", type, arguments);
     	return null;
     }
 

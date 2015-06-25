@@ -1,11 +1,12 @@
 'use strict';
+/* jshint unused: false */
 
 describe('Controller: ProjectController', function () {
 
   // Angular is refusing to recognize the HawtioNav stuff
   // when testing even though its being loaded
    beforeEach(module(function ($provide) {
-    $provide.provider("HawtioNavBuilder", function() {
+    $provide.provider('HawtioNavBuilder', function() {
       function Mocked() {}
       this.create = function() {return this;};
       this.id = function() {return this;};
@@ -16,18 +17,18 @@ describe('Controller: ProjectController', function () {
       this.page = function() {return this;};
       this.subPath = function() {return this;};
       this.build = function() {return this;};
-      this.join = function() {return "";};
+      this.join = function() {return '';};
       this.$get = function() {return new Mocked();};
     });
 
-    $provide.factory("HawtioNav", function(){
+    $provide.factory('HawtioNav', function(){
       return {add: function() {}};
     });
   }));
 
   // Make sure a base location exists in the generated test html
   if (!$('head base').length) {
-    $('head').append($('<base href="/">'))
+    $('head').append($('<base href="/">'));
   }
 
   angular.module('openshiftConsole').config(function(AuthServiceProvider) {
@@ -44,15 +45,15 @@ describe('Controller: ProjectController', function () {
   // Initialize the controller and a mock scope
   beforeEach(inject(function ($controller, $rootScope, $q, $timeout, MemoryUserStore) {
     // Set up a stub user
-    MemoryUserStore.setToken("myToken");
-    MemoryUserStore.setUser({metadata: {name: "My User"}});
+    MemoryUserStore.setToken('myToken');
+    MemoryUserStore.setUser({metadata: {name: 'My User'}});
 
     scope = $rootScope.$new();
     timeout = $timeout;
 
     ProjectController = $controller('ProjectController', {
       $scope: scope,
-      $routeParams: {project: "foo"},
+      $routeParams: {project: 'foo'},
       DataService: {
         get: function(type, id, context, opts) {
           // TODO return mocked project data
@@ -78,12 +79,12 @@ describe('Controller: ProjectController', function () {
   it('should set the projectName', function () {
     // Flush async withUser and DataService calls
     timeout.flush();
-    expect(scope.projectName).toBe("foo");
+    expect(scope.projectName).toBe('foo');
   });
 
   it('should set up the promise and resolve it when project is returned', function () {
     // Flush async withUser and DataService calls
     timeout.flush();
-    expect(scope.projectPromise.state()).toBe("resolved");
+    expect(scope.projectPromise.state()).toBe('resolved');
   });
 });

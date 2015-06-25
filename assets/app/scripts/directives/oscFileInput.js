@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false */
 
 angular.module('openshiftConsole')
   .directive('oscFileInput', function(Logger) {

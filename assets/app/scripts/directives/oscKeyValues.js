@@ -1,4 +1,5 @@
 "use strict";
+/* jshint unused: false */
 
 angular.module("openshiftConsole")
   .controller("KeyValuesEntryController", function($scope){
@@ -21,7 +22,9 @@ angular.module("openshiftConsole")
   .controller("KeyValuesController", function($scope){
     var added = {};
     $scope.allowDelete = function(value){
-      if($scope.deletePolicy === "never") return false;
+      if($scope.deletePolicy === "never") {
+        return false;
+      }
       if($scope.deletePolicy === "added"){
         return added[value] !== undefined;
       }
@@ -57,8 +60,9 @@ angular.module("openshiftConsole")
       },
       env: function(modelValue, viewValue){
         var C_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/i;
-        if(modelValue === undefined || modelValue === null || modelValue.trim().length === 0) 
+        if(modelValue === undefined || modelValue === null || modelValue.trim().length === 0) {
           return true;
+        }
         return C_IDENTIFIER_RE.test(viewValue);
       },
       label: function(modelValue, viewValue) {

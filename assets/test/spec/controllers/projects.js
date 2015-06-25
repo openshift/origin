@@ -1,11 +1,12 @@
 'use strict';
+/* jshint unused: false */
 
 describe('Controller: ProjectsController', function () {
 
   // Angular is refusing to recognize the HawtioNav stuff
   // when testing even though its being loaded
    beforeEach(module(function ($provide) {
-    $provide.provider("HawtioNavBuilder", function() {
+    $provide.provider('HawtioNavBuilder', function() {
       function Mocked() {}
       this.create = function() {return this;};
       this.id = function() {return this;};
@@ -16,18 +17,18 @@ describe('Controller: ProjectsController', function () {
       this.page = function() {return this;};
       this.subPath = function() {return this;};
       this.build = function() {return this;};
-      this.join = function() {return "";};
+      this.join = function() {return '';};
       this.$get = function() {return new Mocked();};
     });
 
-    $provide.factory("HawtioNav", function(){
+    $provide.factory('HawtioNav', function(){
       return {add: function() {}};
     });
   }));
 
   // Make sure a base location exists in the generated test html
   if (!$('head base').length) {
-    $('head').append($('<base href="/">'))
+    $('head').append($('<base href='/'>'));
   }
 
   angular.module('openshiftConsole').config(function(AuthServiceProvider) {
@@ -44,8 +45,8 @@ describe('Controller: ProjectsController', function () {
   // Initialize the controller and a mock scope
   beforeEach(inject(function ($controller, $timeout, $rootScope, $q, MemoryUserStore) {
     // Set up a stub user
-    MemoryUserStore.setToken("myToken");
-    MemoryUserStore.setUser({metadata: {name: "My User"}});
+    MemoryUserStore.setToken('myToken');
+    MemoryUserStore.setUser({metadata: {name: 'My User'}});
 
     scope = $rootScope.$new();
     timeout = $timeout;
@@ -56,7 +57,7 @@ describe('Controller: ProjectsController', function () {
       DataService: {
         list: function(type, context, callback, opts) {
           // TODO return mocked project data
-          callback({by: function(){return {}}});
+          callback({by:function(){ return {};}});
         },
         get: function(type, name, context, opts) {
           var deferred = $q.defer();

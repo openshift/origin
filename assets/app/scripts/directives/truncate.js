@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false */
 
 angular.module('openshiftConsole')
   // Truncates text to a length, adding a tooltip and an ellipsis if truncated.

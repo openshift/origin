@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false, sub:true */
 
 /**
  * @ngdoc function
@@ -21,6 +22,7 @@ angular.module('openshiftConsole')
     var watches = [];
 
     watches.push(DataService.watch("builds", $scope, function(builds, action, build) {
+
       $scope.unfilteredBuilds = builds.by("metadata.name");
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredBuilds, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
@@ -29,9 +31,11 @@ angular.module('openshiftConsole')
       associateBuildsToBuildConfig();
       updateFilterWarning();
 
+      var buildConfigName;
+      var buildName;
       if (build) {
-        var buildConfigName = build.metadata.labels.buildconfig;
-        var buildName = build.metadata.name;
+        buildConfigName = build.metadata.labels.buildconfig;
+        buildName = build.metadata.name;
       }
       if (!action) {
         // Loading of the page that will create buildConfigBuildsInProgress structure, which will associate running build to his buildConfig.
@@ -80,7 +84,7 @@ angular.module('openshiftConsole')
         });
       });
       return buildConfigBuildsInProgress;
-    };
+    }
 
     function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.builds) && !$.isEmptyObject($scope.unfilteredBuilds)) {
@@ -92,7 +96,7 @@ angular.module('openshiftConsole')
       else {
         delete $scope.alerts["builds"];
       }
-    };
+    }
 
     // Function which will 'instantiate' new build from given buildConfigName
     $scope.startBuild = function(buildConfigName) {

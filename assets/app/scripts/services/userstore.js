@@ -1,3 +1,6 @@
+'use strict';
+/* jshint unused: false */
+
 // UserStore objects able to remember user and tokens for the current user
 angular.module('openshiftConsole')
 .provider('MemoryUserStore', function() {
@@ -27,7 +30,7 @@ angular.module('openshiftConsole')
         authLogger.log("MemoryUserStore.setToken", token);
         _token = token;
       }
-    }
+    };
   };
 })
 .provider('SessionStorageUserStore', function() {
@@ -38,11 +41,11 @@ angular.module('openshiftConsole')
     return {
       available: function() {
         try {
-          var x = new Date().getTime();
+          var x = String(Date.now());
           sessionStorage['SessionStorageUserStore.test'] = x;
           var y = sessionStorage['SessionStorageUserStore.test'];
           sessionStorage.removeItem('SessionStorageUserStore.test');
-          return x == y;
+          return x === y;
         } catch(e) {
           return false;
         }
@@ -87,7 +90,7 @@ angular.module('openshiftConsole')
           sessionStorage.removeItem(tokenkey);
         }
       }
-    }
+    };
   };
 })
 .provider('LocalStorageUserStore', function() {
@@ -122,11 +125,11 @@ angular.module('openshiftConsole')
     return {
       available: function() {
         try {
-          var x = new Date().getTime();
+          var x = String(Date.now());
           localStorage['LocalStorageUserStore.test'] = x;
           var y = localStorage['LocalStorageUserStore.test'];
           localStorage.removeItem('LocalStorageUserStore.test');
-          return x == y;
+          return x === y;
         } catch(e) {
           return false;
         }
@@ -185,6 +188,6 @@ angular.module('openshiftConsole')
           setTTL(tokenkey, null);
         }
       }
-    }
+    };
   };
 });

@@ -1,11 +1,12 @@
 "use strict";
+/* jshint camelcase: false */
 
 angular.module("openshiftConsole")
   .service("Navigate", function($location){
     return {
       /**
        * Navigate and display the error page.
-       * 
+       *
        * @param {type} message    The message to display to the user
        * @param {type} errorCode  An optional error code to display
        * @returns {undefined}
@@ -19,7 +20,7 @@ angular.module("openshiftConsole")
       },
       /**
        * Navigate and display the project overview page.
-       * 
+       *
        * @param {type} projectName  the projedt name
        * @returns {undefined}
        */
@@ -29,7 +30,7 @@ angular.module("openshiftConsole")
 
       /**
        * Return the URL for the project overview
-       * 
+       *
        * @param {type}     projectName
        * @returns {String} a URL string for the project overview
        */

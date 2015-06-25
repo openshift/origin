@@ -1,4 +1,5 @@
 'use strict';
+/* jshint sub: true, eqeqeq: false */
 
 /**
  * @ngdoc function
@@ -31,9 +32,9 @@ angular.module('openshiftConsole')
         function(e) {
           $scope.projectPromise.reject(e);
           if (e.status == 403 || e.status == 404) {
-            var message = e.status == 403 ? 
+            var message = e.status == 403 ?
               ("The project " + $scope.projectName + " does not exist or you are not authorized to view it.") :
-              ("The project " + $scope.projectName + " does not exist.")
+              ("The project " + $scope.projectName + " does not exist.");
             var redirect = URI('error').query({
               "error_description": message,
               "error" : e.status == 403 ? 'access_denied' : 'not_found'

@@ -1,4 +1,5 @@
 'use strict';
+/* jshint sub: true */
 
 /**
  * @ngdoc function
@@ -54,7 +55,7 @@ angular.module('openshiftConsole')
       else {
         delete $scope.alerts["pods"];
       }
-    };
+    }
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
       // trigger a digest loop

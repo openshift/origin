@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false */
 
 angular.module('openshiftConsole')
   .directive('sidebar', function(HawtioNav) {
@@ -60,7 +61,7 @@ angular.module('openshiftConsole')
           angular.forEach(sortedProjects, function(project) {
             $('<option>')
               .attr("value", project.metadata.name)
-              .attr("selected", project.metadata.name == projectName)
+              .attr("selected", project.metadata.name === projectName)
               .text($filter('displayName')(project))
               .appendTo(select);
           });

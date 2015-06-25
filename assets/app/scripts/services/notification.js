@@ -1,4 +1,5 @@
 'use strict';
+/* jshint newcap: false */
 
 angular.module('openshiftConsole')
 .factory('Notification', function($rootScope) {
@@ -11,9 +12,8 @@ angular.module('openshiftConsole')
         hideAfter: 10
       }
     });
-
     var self = this;
-    $rootScope.$on( "$routeChangeStart", function(event, next, current) {
+    $rootScope.$on( "$routeChangeStart", function() {
       self.clear();
     });
   }
@@ -41,7 +41,7 @@ angular.module('openshiftConsole')
 
   Notification.prototype.info = function(message, opts) {
     this.notify("info", message, opts);
-  };  
+  };
 
   Notification.prototype.error = function(message, opts) {
     this.notify("error", message, opts);
@@ -55,5 +55,5 @@ angular.module('openshiftConsole')
     this.messenger.hideAll();
   };
 
-  return new Notification();;
+  return new Notification();
 });

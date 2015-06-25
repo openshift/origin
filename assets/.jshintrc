@@ -3,7 +3,7 @@
   "browser": true,
   "esnext": true,
   "bitwise": true,
-  "camelcase": true,
+  "camelcase": false,
   "curly": true,
   "eqeqeq": true,
   "immed": true,
@@ -13,15 +13,21 @@
   "noarg": true,
   "regexp": true,
   "undef": true,
-  "unused": true,
+  "unused": false,
   "strict": true,
   "trailing": true,
   "smarttabs": true,
   "globals": {
     "angular": false,
-    "$": false,
-    "URI": false,
+    "hawtioPluginLoader": false,
+    "HawtioCore": false,
+    "Logger" : false,
+    "LabelSelector": false,
     "moment": false,
-    "hawtioPluginLoader": false
+    "Messenger" : false,
+    "URI": false,
+    "ZeroClipboard": false,
+    "$": false,
+    "_" : false
   }
 }

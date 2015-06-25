@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false, camelcase: false */
 
 /**
  * @ngdoc overview
@@ -48,7 +49,7 @@ angular
           }
         }
         return "project/:project/" + path;
-      }
+      };
     };
 
     var templatePath = "views";
