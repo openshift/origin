@@ -94,11 +94,11 @@ angular.module('openshiftConsole')
     this._watchOptionsMap = {};
     this._watchWebsocketsMap = {};
     this._watchPollTimeoutsMap = {};
-    this._watchWebsocketRetriesMap = {};
+    this._websocketEventsMap = {};
 
     var self = this;
     $rootScope.$on( "$routeChangeStart", function(event, next, current) {
-      self._watchWebsocketRetriesMap = {};
+      self._websocketEventsMap = {};
     });
 
     this.osApiVersion = "v1beta3";
@@ -504,14 +504,67 @@ angular.module('openshiftConsole')
     }
   };
 
-  DataService.prototype._watchWebsocketRetries = function(type, context, retry) {
+  // Maximum number of websocket events to track per type/context in _websocketEventsMap.
+  var maxWebsocketEvents = 10;
+
+  DataService.prototype._addWebsocketEvent = function(type, context, eventType) {
     var key = this._uniqueKeyForTypeContext(type, context);
-    if (retry === undefined) {
-      return this._watchWebsocketRetriesMap[key];
+    var events = this._websocketEventsMap[key];
+    if (!events) {
+      events = this._websocketEventsMap[key] = [];
     }
-    else {
-      this._watchWebsocketRetriesMap[key] = retry;
+
+    // Add the event to the end of the array with the time in millis.
+    events.push({
+      type: eventType,
+      time: Date.now()
+    });
+
+    // Only keep 10 events. Shift the array to make room for the new event.
+    while (events.length > maxWebsocketEvents) { events.shift(); }
+  };
+
+  function isTooManyRecentEvents(events) {
+    // If we've had more than 10 events in 30 seconds, stop.
+    // The oldest event is at index 0.
+    var recentDuration = 1000 * 30;
+    return events.length >= maxWebsocketEvents && (Date.now() - events[0].time) < recentDuration;
+  }
+
+  function isTooManyConsecutiveCloses(events) {
+    var maxConsecutiveCloseEvents = 5;
+    if (events.length < maxConsecutiveCloseEvents) {
+      return false;
     }
+
+    // Make sure the last 5 events were not close events, which means the
+    // connection is not succeeding. This check is necessary if connection
+    // timeouts take longer than 6 seconds.
+    for (var i = events.length - maxConsecutiveCloseEvents; i < events.length; i++) {
+      if (events[i].type !== 'close') return false;
+    }
+
+    return true;
+  }
+
+  DataService.prototype._isTooManyWebsocketRetries = function(type, context) {
+    var key = this._uniqueKeyForTypeContext(type, context);
+    var events = this._websocketEventsMap[key];
+    if (!events) {
+      return false;
+    }
+
+    if (isTooManyRecentEvents(events)) {
+      Logger.log("Too many websocket open or close events for type/context in a short period", type, context, events);
+      return true;
+    }
+
+    if (isTooManyConsecutiveCloses(events)) {
+      Logger.log("Too many consecutive websocket close events for type/context", type, context, events);
+      return true;
+    }
+
+    return false;
   };
 
   DataService.prototype._uniqueKeyForTypeContext = function(type, context) {
@@ -625,8 +678,8 @@ angular.module('openshiftConsole')
   };
 
   DataService.prototype._watchOpOnOpen = function(type, context, event) {
-    // If we opened the websocket cleanly, set retries to 0
-    this._watchWebsocketRetries(type, context, 0);
+    Logger.log('Websocket opened for type/context', type, context);
+    this._addWebsocketEvent(type, context, 'open');
   };
 
   DataService.prototype._watchOpOnMessage = function(type, context, event) {
@@ -652,7 +705,8 @@ angular.module('openshiftConsole')
       });
     }
     catch (e) {
-      // TODO report the JSON parsing exception
+      // TODO: surface in the UI?
+      Logger.error("Error processing message", type, event.data);
     }
   };
 
@@ -697,10 +751,8 @@ angular.module('openshiftConsole')
       return;
     }
 
-    // Don't reopen if we've failed this type/context 5+ times in a row
-    var retries = this._watchWebsocketRetries(type, context) || 0;
-    if (retries >= 5) {
-      Logger.log("Skipping reopen, already retried type/context 5+ times", type, context, retries);
+    // Don't reopen if we've failed this type/context too many times
+    if (this._isTooManyWebsocketRetries(type, context)) {
       Notification.error("Server connection interrupted.", {
         id: "websocket_retry_halted",
         mustDismiss: true,
@@ -711,25 +763,31 @@ angular.module('openshiftConsole')
       return;
     }
 
-    // Keep track of this failure
-    this._watchWebsocketRetries(type, context, retries + 1);
+    // Keep track of this event.
+    this._addWebsocketEvent(type, context, 'close');
 
     // If our watch window expired, we have to relist to get a new resource version to watch from
     if (eventWS.shouldRelist) {
       Logger.log("Relisting for type/context", type, context);
       // Restart a watch() from the beginning, which triggers a list/watch sequence
       // The watch() call is responsible for setting _watchInFlight back to true
-      this.watch(type, context);
+      // Add a short delay to avoid a scenario where we make non-stop requests
+      // When the timeout fires, if no callbacks are registered for this
+      //   type/context, or if a watch is already in flight, `watch()` is a no-op
+      var self = this;
+      setTimeout(function() {
+        self.watch(type, context);
+      }, 2000);
       return;
     }
 
-    // Attempt to re-establish the connection after a one second back-off
+    // Attempt to re-establish the connection after a two-second back-off
     // Re-mark ourselves as in-flight to prevent other callers from jumping in in the meantime
     Logger.log("Rewatching for type/context", type, context);
     this._watchInFlight(type, context, true);
     setTimeout(
       $.proxy(this, "_startWatchOp", type, context, this._resourceVersion(type, context)),
-      1000
+      2000
     );
   };
 
