@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
+	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
@@ -52,7 +53,7 @@ func TestGraph(t *testing.T) {
 		},
 	}
 
-	bcNode := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
+	bc1Node := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build1"},
 		Triggers: []buildapi.BuildTriggerPolicy{
 			{
@@ -72,7 +73,7 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	})
-	buildedges.JoinBuilds(bcNode, builds)
+	buildedges.JoinBuilds(bc1Node, builds)
 	bcTestNode := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "test"},
 		Parameters: buildapi.BuildParameters{
@@ -178,13 +179,14 @@ func TestGraph(t *testing.T) {
 		},
 	})
 
-	deployedges.AddAllFullfillingDeploymentConfigEdges(g)
+	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
 	deployedges.AddAllTriggerEdges(g)
 
+	t.Log(g)
+
 	ir, dc, bc, other := 0, 0, 0, 0
 	for _, node := range g.NodeList() {
-		t.Logf("node: %d %v", node.ID(), node)
 		switch g.Object(node).(type) {
 		case *deployapi.DeploymentConfig:
 			if g.Kind(node) != deploygraph.DeploymentConfigNodeKind {
@@ -206,18 +208,14 @@ func TestGraph(t *testing.T) {
 			other++
 		}
 	}
-	if dc != 2 || bc != 3 || ir != 3 || other != 6 {
+
+	if dc != 2 || bc != 3 || ir != 3 || other != 12 {
 		t.Errorf("unexpected nodes: %d %d %d %d", dc, bc, ir, other)
 	}
 	for _, edge := range g.EdgeList() {
 		if g.EdgeKind(edge) == osgraph.UnknownEdgeKind {
 			t.Errorf("edge reported unknown kind: %#v", edge)
 		}
-		t.Logf("edge: %v", edge)
-	}
-	reverse := g.EdgeSubgraph(osgraph.ReverseGraphEdge)
-	for _, edge := range reverse.EdgeList() {
-		t.Logf("redge: %v", edge)
 	}
 
 	// imagestreamtag default/other:base-image
@@ -233,7 +231,6 @@ func TestGraph(t *testing.T) {
 	if edge == nil {
 		t.Fatalf("failed to find edge between %d and %d", bcTestNode.ID(), istID)
 	}
-
 	if len(g.SubgraphWithNodes([]graph.Node{edge.Head(), edge.Tail()}, osgraph.ExistingDirectEdge).EdgeList()) != 1 {
 		t.Fatalf("expected one edge")
 	}

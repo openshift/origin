@@ -9,6 +9,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
+	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
@@ -35,6 +36,22 @@ type ImagePipeline struct {
 type DeploymentFlow struct {
 	Deployment *deploygraph.DeploymentConfigNode
 	Images     []ImagePipeline
+}
+
+// ServiceReference is a service and the DeploymentConfigs it covers
+type ServiceReference struct {
+	Service     *kubegraph.ServiceNode
+	CoveredDCs  []*deploygraph.DeploymentConfigNode
+	CoveredRCs  []*kubegraph.ReplicationControllerNode
+	CoveredPods []*kubegraph.PodNode
+}
+
+// ServiceGroup is a related set of resources that should be displayed together
+// logically. They are usually sorted internally.
+type ServiceGroup struct {
+	Services    []ServiceReference
+	Deployments []DeploymentFlow
+	Builds      []ImagePipeline
 }
 
 // ImageTagLocation identifies the source or destination of an image. Represents
@@ -195,16 +212,28 @@ func ServiceAndDeploymentGroups(g osgraph.Graph) []ServiceGroup {
 		svcs, dcs, _ := matches[0], matches[1], matches[2]
 
 		for _, n := range svcs {
-			covers := []*deploygraph.DeploymentConfigNode{}
+			coveredDCs := []*deploygraph.DeploymentConfigNode{}
+			coveredRCs := []*kubegraph.ReplicationControllerNode{}
+			coveredPods := []*kubegraph.PodNode{}
 			for _, neighbor := range other.Neighbors(n) {
 				switch other.EdgeKind(g.EdgeBetween(neighbor, n)) {
-				case deployedges.ExposedThroughServiceEdgeKind:
-					covers = append(covers, neighbor.(*deploygraph.DeploymentConfigNode))
+				case kubeedges.ExposedThroughServiceEdgeKind:
+					containerNode := osgraph.GetTopLevelContainerNode(g, neighbor)
+					switch castCoveredNode := containerNode.(type) {
+					case *deploygraph.DeploymentConfigNode:
+						coveredDCs = append(coveredDCs, castCoveredNode)
+					case *kubegraph.ReplicationControllerNode:
+						coveredRCs = append(coveredRCs, castCoveredNode)
+					case *kubegraph.PodNode:
+						coveredPods = append(coveredPods, castCoveredNode)
+					}
 				}
 			}
 			group.Services = append(group.Services, ServiceReference{
-				Service: n.(*kubegraph.ServiceNode),
-				Covers:  covers,
+				Service:     n.(*kubegraph.ServiceNode),
+				CoveredDCs:  coveredDCs,
+				CoveredRCs:  coveredRCs,
+				CoveredPods: coveredPods,
 			})
 		}
 		sort.Sort(SortedServiceReferences(group.Services))
@@ -243,7 +272,7 @@ func ServiceAndDeploymentGroups(g osgraph.Graph) []ServiceGroup {
 // Services and DeploymentConfigs.
 func UncoveredDeploymentFlowEdges(covered osgraph.NodeSet) osgraph.EdgeFunc {
 	return func(g osgraph.Interface, head, tail graph.Node, edgeKind string) bool {
-		if edgeKind == deployedges.ExposedThroughServiceEdgeKind {
+		if edgeKind == kubeedges.ExposedThroughServiceEdgeKind {
 			return osgraph.AddReversedEdge(g, head, tail, osgraph.ReferencedByEdgeKind)
 		}
 		if covered.Has(head.ID()) && covered.Has(tail.ID()) {
@@ -263,20 +292,6 @@ func UncoveredDeploymentFlowNodes(covered osgraph.NodeSet) osgraph.NodeFunc {
 		}
 		return !covered.Has(node.ID())
 	}
-}
-
-// ServiceReference is a service and the DeploymentConfigs it covers
-type ServiceReference struct {
-	Service *kubegraph.ServiceNode
-	Covers  []*deploygraph.DeploymentConfigNode
-}
-
-// ServiceGroup is a related set of resources that should be displayed together
-// logically. They are usually sorted internally.
-type ServiceGroup struct {
-	Services    []ServiceReference
-	Deployments []DeploymentFlow
-	Builds      []ImagePipeline
 }
 
 // Sorts on the provided objects.

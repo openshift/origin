@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/graph"
 	graphveneers "github.com/openshift/origin/pkg/api/graph/veneers"
+	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
@@ -80,7 +81,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	}
 	for i := range svcs.Items {
 		service := kubegraph.EnsureServiceNode(g, &svcs.Items[i])
-		deployedges.AddFullfillingDeploymentConfigEdges(g, service)
+		kubeedges.AddExposedPodTemplateSpecEdges(g, service)
 	}
 	groups := graphveneers.ServiceAndDeploymentGroups(g)
 
