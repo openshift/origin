@@ -104,29 +104,32 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		}
 	}
 
-	// If an UpdateAcceptor is provided and we're trying to scale up to more
-	// than one replica, scale up to 1 and validate the replica, aborting if the
-	// replica isn't acceptable.
-	if updateAcceptor != nil && desiredReplicas > 1 {
-		glog.Infof("Scaling %s to 1 before validating first replica", deployutil.LabelForDeployment(to))
-		updatedTo, err := s.scaleAndWait(to, 1, retryParams, waitParams)
-		if err != nil {
-			return fmt.Errorf("couldn't scale %s to 1: %v", deployutil.LabelForDeployment(to), err)
+	// Scale up the to deployment.
+	if desiredReplicas > 0 {
+		// If an UpdateAcceptor is provided, scale up to 1 and validate the replica,
+		// aborting if the replica isn't acceptable.
+		if updateAcceptor != nil {
+			glog.Infof("Scaling %s to 1 before validating first replica", deployutil.LabelForDeployment(to))
+			updatedTo, err := s.scaleAndWait(to, 1, retryParams, waitParams)
+			if err != nil {
+				return fmt.Errorf("couldn't scale %s to 1: %v", deployutil.LabelForDeployment(to), err)
+			}
+			glog.Infof("Validating first replica of %s", deployutil.LabelForDeployment(to))
+			if err := updateAcceptor.Accept(updatedTo); err != nil {
+				return fmt.Errorf("first replica rejected for %s: %v", to.Name, err)
+			}
+			to = updatedTo
 		}
-		glog.Infof("Validating first replica of %s", deployutil.LabelForDeployment(to))
-		if err := updateAcceptor.Accept(updatedTo); err != nil {
-			return fmt.Errorf("first replica rejected for %s: %v", to.Name, err)
+		// Complete the scale up.
+		if to.Spec.Replicas != desiredReplicas {
+			glog.Infof("Scaling %s to %d", deployutil.LabelForDeployment(to), desiredReplicas)
+			updatedTo, err := s.scaleAndWait(to, desiredReplicas, retryParams, waitParams)
+			if err != nil {
+				return fmt.Errorf("couldn't scale %s to %d: %v", deployutil.LabelForDeployment(to), desiredReplicas, err)
+			}
+			to = updatedTo
 		}
-		to = updatedTo
 	}
-
-	// Complete the scale up.
-	glog.Infof("Scaling %s to %d", deployutil.LabelForDeployment(to), desiredReplicas)
-	updatedTo, err := s.scaleAndWait(to, desiredReplicas, retryParams, waitParams)
-	if err != nil {
-		return fmt.Errorf("couldn't scale %s to %d: %v", deployutil.LabelForDeployment(to), desiredReplicas, err)
-	}
-	to = updatedTo
 
 	// Execute any post-hook. Errors are logged and ignored.
 	if params != nil && params.Post != nil {

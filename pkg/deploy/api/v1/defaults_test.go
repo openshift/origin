@@ -7,6 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	current "github.com/openshift/origin/pkg/deploy/api/v1"
 )
 
@@ -38,13 +39,13 @@ func TestDefaults_rollingParams(t *testing.T) {
 	if e, a := current.DeploymentStrategyTypeRolling, strat.Type; e != a {
 		t.Errorf("expected strategy type %s, got %s", e, a)
 	}
-	if e, a := int64(1), *strat.RollingParams.UpdatePeriodSeconds; e != a {
+	if e, a := deployapi.DefaultRollingUpdatePeriodSeconds, *strat.RollingParams.UpdatePeriodSeconds; e != a {
 		t.Errorf("expected UpdatePeriodSeconds %d, got %d", e, a)
 	}
-	if e, a := int64(1), *strat.RollingParams.IntervalSeconds; e != a {
+	if e, a := deployapi.DefaultRollingIntervalSeconds, *strat.RollingParams.IntervalSeconds; e != a {
 		t.Errorf("expected IntervalSeconds %d, got %d", e, a)
 	}
-	if e, a := int64(120), *strat.RollingParams.TimeoutSeconds; e != a {
+	if e, a := deployapi.DefaultRollingTimeoutSeconds, *strat.RollingParams.TimeoutSeconds; e != a {
 		t.Errorf("expected UpdatePeriodSeconds %d, got %d", e, a)
 	}
 }

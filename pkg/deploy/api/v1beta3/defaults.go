@@ -2,12 +2,13 @@ package v1beta3
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 func init() {
-	mkintp := func(i int) *int64 {
-		v := int64(i)
-		return &v
+	mkintp := func(i int64) *int64 {
+		return &i
 	}
 
 	err := api.Scheme.AddDefaultingFuncs(
@@ -18,23 +19,23 @@ func init() {
 
 			if obj.Type == DeploymentStrategyTypeRolling && obj.RollingParams == nil {
 				obj.RollingParams = &RollingDeploymentStrategyParams{
-					IntervalSeconds:     mkintp(1),
-					UpdatePeriodSeconds: mkintp(1),
-					TimeoutSeconds:      mkintp(120),
+					IntervalSeconds:     mkintp(deployapi.DefaultRollingIntervalSeconds),
+					UpdatePeriodSeconds: mkintp(deployapi.DefaultRollingUpdatePeriodSeconds),
+					TimeoutSeconds:      mkintp(deployapi.DefaultRollingTimeoutSeconds),
 				}
 			}
 		},
 		func(obj *RollingDeploymentStrategyParams) {
 			if obj.IntervalSeconds == nil {
-				obj.IntervalSeconds = mkintp(1)
+				obj.IntervalSeconds = mkintp(deployapi.DefaultRollingIntervalSeconds)
 			}
 
 			if obj.UpdatePeriodSeconds == nil {
-				obj.UpdatePeriodSeconds = mkintp(1)
+				obj.UpdatePeriodSeconds = mkintp(deployapi.DefaultRollingUpdatePeriodSeconds)
 			}
 
 			if obj.TimeoutSeconds == nil {
-				obj.TimeoutSeconds = mkintp(120)
+				obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
 			}
 		},
 	)
