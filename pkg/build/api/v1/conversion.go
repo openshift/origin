@@ -243,11 +243,6 @@ func convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildSt
 		case "ImageStream":
 			out.From.Kind = "ImageStreamTag"
 			out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
-		case "ImageStreamTag":
-			_, _, ok := imageapi.SplitImageStreamTag(in.From.Name)
-			if !ok {
-				return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
-			}
 		}
 	}
 	return nil
@@ -273,11 +268,6 @@ func convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildSt
 		case "ImageStream":
 			out.From.Kind = "ImageStreamTag"
 			out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
-		case "ImageStreamTag":
-			_, _, ok := imageapi.SplitImageStreamTag(in.From.Name)
-			if !ok {
-				return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
-			}
 		}
 	}
 	return nil
@@ -355,6 +345,14 @@ func convert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTriggerPol
 
 func init() {
 	err := kapi.Scheme.AddDefaultingFuncs(
+		func(strategy *BuildStrategy) {
+			if (strategy != nil) && (strategy.Type == DockerBuildStrategyType) {
+				//  initialize DockerStrategy to a default state if it's not set.
+				if strategy.DockerStrategy == nil {
+					strategy.DockerStrategy = &DockerBuildStrategy{}
+				}
+			}
+		},
 		func(obj *SourceBuildStrategy) {
 			if obj.From != nil && len(obj.From.Kind) == 0 {
 				obj.From.Kind = "ImageStreamTag"
