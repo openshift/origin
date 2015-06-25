@@ -6,20 +6,19 @@
         <li><a href="project/{{projectName}}/create">Create</a></li>
         <li class="active"><strong>Select Image</strong></li>
       </ol>
-      <div class="row">
-        <div class="col-md-12">
-          <h1>Select a builder image</h1>
-        </div>
-      </div>
+      <h1>Select a builder image</h1>
       <div ng-if="!builders.length">
         <div ng-if="!loaded">Loading...</div>
         <div ng-if="loaded">There are no builder images to select from. To add a builder to your project, run <code>oc create -f &lt;image_stream_file&gt; -n {{projectName}}</code></div>
       </div>
-      <div ng-if="builders.length">
-        <div class="row">
-          <catalog-image image-repo="builder.imageRepo" image-tag="builder.imageRepoTag" project="projectName" source-url="sourceURL" ng-repeat-start="builder in builders | orderBy : 'name'"></catalog-image>
-          <div ng-repeat-end ng-if="($index % 3) == 2" class="clearfix"></div>
-        </div>
+      <div ng-if="builders.length" class="catalog">
+        <catalog-image
+            image-repo="builder.imageRepo"
+            image-tag="builder.imageRepoTag"
+            project="projectName"
+            source-url="sourceURL"
+            version="builder.version"
+            ng-repeat="builder in builders | toArray | orderBy : ['name', 'imageRepo.metadata.namespace']"></catalog-image>
       </div>
       <div ng-if="nonBuilders.length" click-to-reveal link-text="Don't see the image you are looking for?">
         <h2>
@@ -29,11 +28,16 @@
             <span class="pficon pficon-warning-exclamation"></span>
           </span>
         </h2>
-        <div class="row">
-          <catalog-image image-repo="image.imageRepo" image-tag="image.imageRepoTag" project="projectName" source-url="sourceURL" ng-repeat-start="image in nonBuilders | orderBy : 'name'"></catalog-image>
-          <div ng-repeat-end ng-if="($index % 3) == 2" class="clearfix"></div>
+        <div class="catalog">
+          <catalog-image
+              image-repo="image.imageRepo"
+              image-tag="image.imageRepoTag"
+              project="projectName"
+              source-url="sourceURL"
+              version="image.version"
+              ng-repeat="image in nonBuilders | orderBy : ['name', 'imageRepo.metadata.namespace']"></catalog-image>
         </div>
-      </div>      
+      </div>
     </div>
   </div>
 </div>
