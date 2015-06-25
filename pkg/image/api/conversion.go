@@ -12,7 +12,7 @@ func init() {
 	err := kapi.Scheme.AddConversionFuncs(
 		// Convert docker client object to internal object
 		func(in *docker.Image, out *DockerImage, s conversion.Scope) error {
-			if err := s.Convert(in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
+			if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
 				return err
 			}
 			if err := s.Convert(&in.ContainerConfig, &out.ContainerConfig, conversion.AllowDifferentFieldTypeNames); err != nil {

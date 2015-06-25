@@ -17,7 +17,7 @@ import (
 
 func testImageInfo() *imageapi.DockerImage {
 	return &imageapi.DockerImage{
-		Config: imageapi.DockerConfig{},
+		Config: &imageapi.DockerConfig{},
 	}
 }
 
@@ -170,6 +170,7 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 		inputPorts    map[string]struct{}
 		expectedPorts map[int]string
 		expectError   bool
+		noConfig      bool
 	}{
 		{
 			name: "tcp implied, individual ports",
@@ -231,6 +232,12 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 			expectedPorts: map[int]string{},
 			expectError:   true,
 		},
+		{
+			name:          "no image config",
+			expectedPorts: map[int]string{},
+			expectError:   false,
+			noConfig:      true,
+		},
 	}
 	for _, test := range tests {
 		imageRef := &ImageRef{
@@ -240,10 +247,13 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 				Tag:       imageapi.DefaultImageTag,
 			},
 			Info: &imageapi.DockerImage{
-				Config: imageapi.DockerConfig{
+				Config: &imageapi.DockerConfig{
 					ExposedPorts: test.inputPorts,
 				},
 			},
+		}
+		if test.noConfig {
+			imageRef.Info.Config = nil
 		}
 		container, _, err := imageRef.DeployableContainer()
 		if err != nil && !test.expectError {

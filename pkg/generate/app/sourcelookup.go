@@ -99,6 +99,11 @@ func (r *SourceRepository) Detect(d Detector) error {
 	return nil
 }
 
+// SetInfo sets the source repository info. This is to facilitate certain tests.
+func (r *SourceRepository) SetInfo(info *SourceRepositoryInfo) {
+	r.info = info
+}
+
 // Info returns the source repository info generated on code detection
 func (r *SourceRepository) Info() *SourceRepositoryInfo {
 	return r.info

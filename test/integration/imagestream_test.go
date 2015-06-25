@@ -143,7 +143,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	image := &imageapi.Image{
 		ObjectMeta: kapi.ObjectMeta{Name: "image2"},
 		DockerImageMetadata: imageapi.DockerImage{
-			Config: imageapi.DockerConfig{
+			Config: &imageapi.DockerConfig{
 				Env: []string{"A=B"},
 			},
 		},

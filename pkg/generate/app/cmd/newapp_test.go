@@ -928,6 +928,53 @@ tests:
 	}
 }
 
+// Make sure that buildPipelines defaults DockerImage.Config if needed to
+// avoid a nil panic.
+func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
+	dockerParser := dockerfile.NewParser()
+
+	dockerFileInput := strings.NewReader("EXPOSE 1234\nEXPOSE 4567")
+	dockerFile, err := dockerParser.Parse(dockerFileInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sourceRepo, err := app.NewSourceRepository("https://github.com/foo/bar.git")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceRepo.BuildWithDocker()
+	sourceRepo.SetInfo(&app.SourceRepositoryInfo{
+		Dockerfile: dockerFile,
+	})
+
+	refs := app.ComponentReferences{
+		app.ComponentReference(&app.ComponentInput{
+			Value:         "mysql",
+			Uses:          sourceRepo,
+			ExpectToBuild: true,
+			Match: &app.ComponentMatch{
+				Value: "mysql",
+			},
+		}),
+	}
+
+	a := AppConfig{}
+	group, err := a.buildPipelines(refs, app.Environment{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	expectedPorts := util.NewStringSet("1234", "4567")
+	actualPorts := util.NewStringSet()
+	for port := range group[0].InputImage.Info.Config.ExposedPorts {
+		actualPorts.Insert(port)
+	}
+	if e, a := expectedPorts.List(), actualPorts.List(); !reflect.DeepEqual(e, a) {
+		t.Errorf("Expected ports=%v, got %v", e, a)
+	}
+}
+
 func builderImageStream() *imageapi.ImageStream {
 	return &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
@@ -955,7 +1002,7 @@ func builderImage() *imageapi.ImageStreamImage {
 		Image: imageapi.Image{
 			DockerImageReference: "example/ruby:latest",
 			DockerImageMetadata: imageapi.DockerImage{
-				Config: imageapi.DockerConfig{
+				Config: &imageapi.DockerConfig{
 					Env: []string{
 						"STI_SCRIPTS_URL=http://repo/git/ruby",
 					},

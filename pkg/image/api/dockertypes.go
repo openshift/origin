@@ -10,17 +10,17 @@ import (
 type DockerImage struct {
 	kapi.TypeMeta `json:",inline"`
 
-	ID              string       `json:"Id"`
-	Parent          string       `json:"Parent,omitempty"`
-	Comment         string       `json:"Comment,omitempty"`
-	Created         util.Time    `json:"Created,omitempty"`
-	Container       string       `json:"Container,omitempty"`
-	ContainerConfig DockerConfig `json:"ContainerConfig,omitempty"`
-	DockerVersion   string       `json:"DockerVersion,omitempty"`
-	Author          string       `json:"Author,omitempty"`
-	Config          DockerConfig `json:"Config,omitempty"`
-	Architecture    string       `json:"Architecture,omitempty"`
-	Size            int64        `json:"Size,omitempty"`
+	ID              string        `json:"Id"`
+	Parent          string        `json:"Parent,omitempty"`
+	Comment         string        `json:"Comment,omitempty"`
+	Created         util.Time     `json:"Created,omitempty"`
+	Container       string        `json:"Container,omitempty"`
+	ContainerConfig DockerConfig  `json:"ContainerConfig,omitempty"`
+	DockerVersion   string        `json:"DockerVersion,omitempty"`
+	Author          string        `json:"Author,omitempty"`
+	Config          *DockerConfig `json:"Config,omitempty"`
+	Architecture    string        `json:"Architecture,omitempty"`
+	Size            int64         `json:"Size,omitempty"`
 }
 
 // DockerConfig is the list of configuration options used when creating a container.
@@ -80,15 +80,15 @@ type DockerHistory struct {
 // DockerV1CompatibilityImage represents the structured v1
 // compatibility information.
 type DockerV1CompatibilityImage struct {
-	ID              string       `json:"id"`
-	Parent          string       `json:"parent,omitempty"`
-	Comment         string       `json:"comment,omitempty"`
-	Created         util.Time    `json:"created"`
-	Container       string       `json:"container,omitempty"`
-	ContainerConfig DockerConfig `json:"container_config,omitempty"`
-	DockerVersion   string       `json:"docker_version,omitempty"`
-	Author          string       `json:"author,omitempty"`
-	Config          DockerConfig `json:"config,omitempty"`
-	Architecture    string       `json:"architecture,omitempty"`
-	Size            int64        `json:"size,omitempty"`
+	ID              string        `json:"id"`
+	Parent          string        `json:"parent,omitempty"`
+	Comment         string        `json:"comment,omitempty"`
+	Created         util.Time     `json:"created"`
+	Container       string        `json:"container,omitempty"`
+	ContainerConfig DockerConfig  `json:"container_config,omitempty"`
+	DockerVersion   string        `json:"docker_version,omitempty"`
+	Author          string        `json:"author,omitempty"`
+	Config          *DockerConfig `json:"config,omitempty"`
+	Architecture    string        `json:"architecture,omitempty"`
+	Size            int64         `json:"size,omitempty"`
 }
