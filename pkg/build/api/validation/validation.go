@@ -194,12 +194,15 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 		} else {
 			allErrs = append(allErrs, validateSourceStrategy(strategy.SourceStrategy).Prefix("stiStrategy")...)
 		}
+
 	case strategy.Type == buildapi.DockerBuildStrategyType:
 		// DockerStrategy is currently optional, initialize it to a default state if it's not set.
 		if strategy.DockerStrategy == nil {
-			strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("dockerStrategy"))
+		} else {
+			allErrs = append(allErrs, validateDockerStrategy(strategy.DockerStrategy).Prefix("dockerStrategy")...)
 		}
-		allErrs = append(allErrs, validateSecretRef(strategy.DockerStrategy.PullSecret).Prefix("pullSecret")...)
+
 	case strategy.Type == buildapi.CustomBuildStrategyType:
 		if strategy.CustomStrategy == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("customStrategy"))
@@ -213,10 +216,29 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 	return allErrs
 }
 
+func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if strategy.From != nil && strategy.From.Kind == "ImageStreamTag" {
+		if _, _, ok := imageapi.SplitImageStreamTag(strategy.From.Name); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("from.name", strategy.From.Name, "ImageStreamTag object references must be in the form <name>:<tag>"))
+		}
+	}
+
+	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret).Prefix("pullSecret")...)
+	return allErrs
+}
+
 func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	if strategy.From == nil || len(strategy.From.Name) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
+
+	}
+	if strategy.From != nil && strategy.From.Kind == "ImageStreamTag" {
+		if _, _, ok := imageapi.SplitImageStreamTag(strategy.From.Name); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("from.name", strategy.From.Name, "ImageStreamTag object references must be in the form <name>:<tag>"))
+		}
 	}
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret).Prefix("pullSecret")...)
 	return allErrs
@@ -226,6 +248,11 @@ func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy) fielderrors.
 	allErrs := fielderrors.ValidationErrorList{}
 	if strategy.From == nil || len(strategy.From.Name) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
+	}
+	if strategy.From != nil && strategy.From.Kind == "ImageStreamTag" {
+		if _, _, ok := imageapi.SplitImageStreamTag(strategy.From.Name); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("from.name", strategy.From.Name, "ImageStreamTag object references must be in the form <name>:<tag>"))
+		}
 	}
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret).Prefix("pullSecret")...)
 	return allErrs
