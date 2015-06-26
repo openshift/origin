@@ -8,6 +8,8 @@
       <h2>General information</h2>
       <!-- TODO make these fields editable - probably with a cog icon that flips into inline-editing -->
       <dl class="dl-horizontal left">
+        <dt>Name:</dt>
+        <dd>{{projectName}}</dd>
         <dt>Display name:</dt>
         <dd ng-if="project | displayName: true">{{project | displayName: true}}</dd>
         <dd ng-if="!(project | displayName: true)"><em>No display name</em></dd>
