@@ -5,11 +5,13 @@
 .tile {
   background: @console-panel-color;
   .panel_default_boxshadow();
-  padding: 10px 20px; 
+  padding: 10px 20px;
   margin-bottom: 20px;
   word-wrap: break-word;
   width: 100%;
   .box-sizing(border-box);
+  // Prevent long, unbroken words from extending outside the tile.
+  overflow-x: hidden;
   h1, h2, h3 {
     margin: (@line-height-computed / 2) 0px;
   }
