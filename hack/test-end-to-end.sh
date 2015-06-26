@@ -379,6 +379,42 @@ echo "[INFO] Validating port-forward"
 oc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
 wait_for_url_timed "http://localhost:5001/healthz" "[INFO] Docker registry says: " $((10*TIME_SEC))
 
+# Image pruning
+echo "[INFO] Validating image pruning"
+docker pull busybox
+docker pull gcr.io/google_containers/pause
+docker pull openshift/hello-openshift
+
+# tag and push 1st image - layers unique to this image will be pruned
+docker tag -f busybox ${DOCKER_REGISTRY}/cache/prune
+docker push ${DOCKER_REGISTRY}/cache/prune
+
+# tag and push 2nd image - layers unique to this image will be pruned
+docker tag -f openshift/hello-openshift ${DOCKER_REGISTRY}/cache/prune
+docker push ${DOCKER_REGISTRY}/cache/prune
+
+# tag and push 3rd image - it won't be pruned
+docker tag -f gcr.io/google_containers/pause ${DOCKER_REGISTRY}/cache/prune
+docker push ${DOCKER_REGISTRY}/cache/prune
+
+# record the storage before pruning
+oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.before.txt
+
+# set up pruner user
+oadm policy add-cluster-role-to-user system:image-pruner e2e-pruner
+oc login -u e2e-pruner -p pass
+
+# run image pruning
+oadm prune images --keep-younger-than=0 --keep-tag-revisions=1 --confirm &> ${LOG_DIR}/prune-images.log
+! grep error ${LOG_DIR}/prune-images.log
+
+oc project ${CLUSTER_ADMIN_CONTEXT}
+# record the storage after pruning
+oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.after.txt
+
+# make sure there were changes to the registry's storage
+[ -n "$(diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt)" ]
+
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then
 	echo "[INFO] Running UI e2e tests..."
