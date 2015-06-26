@@ -31,6 +31,15 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	privileged := true
 	strategy := build.Parameters.Strategy.DockerStrategy
 
+	containerEnv := []kapi.EnvVar{
+		{Name: "BUILD", Value: string(data)},
+		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
+		{Name: "BUILD_LOGLEVEL", Value: fmt.Sprintf("%d", cmdutil.GetLogLevel())},
+	}
+	if len(strategy.Env) > 0 {
+		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
+	}
+
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      buildutil.GetBuildPodName(build),
@@ -43,10 +52,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 				{
 					Name:  "docker-build",
 					Image: bs.Image,
-					Env: []kapi.EnvVar{
-						{Name: "BUILD", Value: string(data)},
-					},
-					Args: []string{"--loglevel=" + fmt.Sprintf("%d", cmdutil.GetLogLevel())},
+					Env:   containerEnv,
+					Args:  []string{"--loglevel=" + fmt.Sprintf("%d", cmdutil.GetLogLevel())},
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					SecurityContext: &kapi.SecurityContext{
 						Privileged: &privileged,

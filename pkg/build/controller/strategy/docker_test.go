@@ -48,8 +48,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.Env) != 4 {
-		t.Fatalf("Expected 4 elements in Env table, got %+v", container.Env)
+	if len(container.Env) != 6 {
+		t.Fatalf("Expected 6 elements in Env table, got %d: %+v", len(container.Env), container.Env)
 	}
 	if len(container.VolumeMounts) != 4 {
 		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
@@ -65,6 +65,23 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if !kapi.Semantic.DeepEqual(container.Resources, expected.Parameters.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
 	}
+	found := false
+	foundIllegal := false
+	for _, v := range container.Env {
+		if v.Name == "BUILD_LOGLEVEL" && v.Value == "bar" {
+			found = true
+		}
+		if v.Name == "ILLEGAL" {
+			foundIllegal = true
+		}
+	}
+	if !found {
+		t.Fatalf("Expected variable BUILD_LOGLEVEL be defined for the container")
+	}
+	if foundIllegal {
+		t.Fatalf("Found illegal environment variable 'ILLEGAL' defined on container")
+	}
+
 	buildJSON, _ := latest.Codec.Encode(expected)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
@@ -99,6 +116,10 @@ func mockDockerBuild() *buildapi.Build {
 				Type: buildapi.DockerBuildStrategyType,
 				DockerStrategy: &buildapi.DockerBuildStrategy{
 					PullSecret: &kapi.LocalObjectReference{Name: "bar"},
+					Env: []kapi.EnvVar{
+						{Name: "ILLEGAL", Value: "foo"},
+						{Name: "BUILD_LOGLEVEL", Value: "bar"},
+					},
 				},
 			},
 			Output: buildapi.BuildOutput{
