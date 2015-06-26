@@ -36,7 +36,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		})
 	}
 
-	if strategy == nil || strategy.From == nil || len(strategy.From.Name) == 0 {
+	if strategy == nil || len(strategy.From.Name) == 0 {
 		return nil, errors.New("CustomBuildStrategy cannot be executed without image")
 	}
 

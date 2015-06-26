@@ -16,7 +16,7 @@ import (
 var mockBuildStrategy = api.BuildStrategy{
 	Type: "STI",
 	SourceStrategy: &api.SourceBuildStrategy{
-		From: &kapi.ObjectReference{
+		From: kapi.ObjectReference{
 			Name: "repository/image",
 		},
 	},

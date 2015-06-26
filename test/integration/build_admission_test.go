@@ -145,7 +145,7 @@ func createSourceBuild(t *testing.T, buildInterface client.BuildInterface) (*bui
 	dockerBuild := &buildapi.Build{}
 	dockerBuild.GenerateName = "source-build-"
 	dockerBuild.Parameters.Strategy.Type = buildapi.SourceBuildStrategyType
-	dockerBuild.Parameters.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{From: &kapi.ObjectReference{Name: "name:tag"}}
+	dockerBuild.Parameters.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{From: kapi.ObjectReference{Name: "name:tag"}}
 	dockerBuild.Parameters.Source.Type = buildapi.BuildSourceGit
 	dockerBuild.Parameters.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 
@@ -156,7 +156,7 @@ func createCustomBuild(t *testing.T, buildInterface client.BuildInterface) (*bui
 	dockerBuild := &buildapi.Build{}
 	dockerBuild.GenerateName = "custom-build-"
 	dockerBuild.Parameters.Strategy.Type = buildapi.CustomBuildStrategyType
-	dockerBuild.Parameters.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{From: &kapi.ObjectReference{Name: "name:tag"}}
+	dockerBuild.Parameters.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{From: kapi.ObjectReference{Name: "name:tag"}}
 	dockerBuild.Parameters.Source.Type = buildapi.BuildSourceGit
 	dockerBuild.Parameters.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 
@@ -277,7 +277,7 @@ func createSourceBuildConfig(t *testing.T, buildConfigInterface client.BuildConf
 	dockerBuild := &buildapi.BuildConfig{}
 	dockerBuild.GenerateName = "source-buildconfig-"
 	dockerBuild.Parameters.Strategy.Type = buildapi.SourceBuildStrategyType
-	dockerBuild.Parameters.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{From: &kapi.ObjectReference{Name: "name:tag"}}
+	dockerBuild.Parameters.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{From: kapi.ObjectReference{Name: "name:tag"}}
 	dockerBuild.Parameters.Source.Type = buildapi.BuildSourceGit
 	dockerBuild.Parameters.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 
@@ -288,7 +288,7 @@ func createCustomBuildConfig(t *testing.T, buildConfigInterface client.BuildConf
 	dockerBuild := &buildapi.BuildConfig{}
 	dockerBuild.GenerateName = "custom-buildconfig-"
 	dockerBuild.Parameters.Strategy.Type = buildapi.CustomBuildStrategyType
-	dockerBuild.Parameters.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{From: &kapi.ObjectReference{Name: "name:tag"}}
+	dockerBuild.Parameters.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{From: kapi.ObjectReference{Name: "name:tag"}}
 	dockerBuild.Parameters.Source.Type = buildapi.BuildSourceGit
 	dockerBuild.Parameters.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 

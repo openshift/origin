@@ -41,7 +41,7 @@ func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, err
 var mockBuildStrategy = api.BuildStrategy{
 	Type: "STI",
 	SourceStrategy: &api.SourceBuildStrategy{
-		From: &kapi.ObjectReference{
+		From: kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: "repository/image",
 		},

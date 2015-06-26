@@ -224,7 +224,7 @@ type CustomBuildStrategy struct {
 
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
-	From *kapi.ObjectReference
+	From kapi.ObjectReference
 
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
@@ -253,7 +253,7 @@ type DockerBuildStrategy struct {
 type SourceBuildStrategy struct {
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
-	From *kapi.ObjectReference
+	From kapi.ObjectReference
 
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker

@@ -197,7 +197,7 @@ func convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *newer.So
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
-	if in.From != nil && in.From.Kind == "ImageStream" {
+	if in.From.Kind == "ImageStream" {
 		out.From.Kind = "ImageStreamTag"
 		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
 	}
@@ -208,12 +208,10 @@ func convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBu
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
-	if in.From != nil {
-		switch in.From.Kind {
-		case "ImageStream":
-			out.From.Kind = "ImageStreamTag"
-			out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
-		}
+	switch in.From.Kind {
+	case "ImageStream":
+		out.From.Kind = "ImageStreamTag"
+		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
 	}
 	return nil
 }
@@ -247,7 +245,7 @@ func convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *newer.Cu
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
-	if in.From != nil && in.From.Kind == "ImageStream" {
+	if in.From.Kind == "ImageStream" {
 		out.From.Kind = "ImageStreamTag"
 		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
 	}
@@ -258,12 +256,10 @@ func convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBu
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
-	if in.From != nil {
-		switch in.From.Kind {
-		case "ImageStream":
-			out.From.Kind = "ImageStreamTag"
-			out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
-		}
+	switch in.From.Kind {
+	case "ImageStream":
+		out.From.Kind = "ImageStreamTag"
+		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
 	}
 	return nil
 }
@@ -370,7 +366,7 @@ func init() {
 	}
 	err = kapi.Scheme.AddDefaultingFuncs(
 		func(obj *SourceBuildStrategy) {
-			if obj.From != nil && len(obj.From.Kind) == 0 {
+			if len(obj.From.Kind) == 0 {
 				obj.From.Kind = "ImageStreamTag"
 			}
 		},
@@ -380,7 +376,7 @@ func init() {
 			}
 		},
 		func(obj *CustomBuildStrategy) {
-			if obj.From != nil && len(obj.From.Kind) == 0 {
+			if len(obj.From.Kind) == 0 {
 				obj.From.Kind = "ImageStreamTag"
 			}
 		},

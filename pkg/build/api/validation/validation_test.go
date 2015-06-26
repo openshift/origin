@@ -488,7 +488,7 @@ func TestValidateBuildParameters(t *testing.T) {
 				Strategy: buildapi.BuildStrategy{
 					Type: buildapi.SourceBuildStrategyType,
 					SourceStrategy: &buildapi.SourceBuildStrategy{
-						From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "bad format"},
+						From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "bad format"},
 					},
 				},
 				Output: buildapi.BuildOutput{
@@ -530,7 +530,7 @@ func TestValidateBuildParameters(t *testing.T) {
 				Strategy: buildapi.BuildStrategy{
 					Type: buildapi.CustomBuildStrategyType,
 					CustomStrategy: &buildapi.CustomBuildStrategy{
-						From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "bad format"},
+						From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "bad format"},
 					},
 				},
 				Output: buildapi.BuildOutput{
@@ -568,7 +568,7 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 				Strategy: buildapi.BuildStrategy{
 					Type: buildapi.SourceBuildStrategyType,
 					SourceStrategy: &buildapi.SourceBuildStrategy{
-						From: &kapi.ObjectReference{
+						From: kapi.ObjectReference{
 							Name: "reponame",
 						},
 					},
@@ -589,7 +589,7 @@ func TestValidateBuildParametersSuccess(t *testing.T) {
 				Strategy: buildapi.BuildStrategy{
 					Type: buildapi.CustomBuildStrategyType,
 					CustomStrategy: &buildapi.CustomBuildStrategy{
-						From: &kapi.ObjectReference{
+						From: kapi.ObjectReference{
 							Name: "reponame",
 						},
 					},

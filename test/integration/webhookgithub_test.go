@@ -348,7 +348,7 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.SourceBuildStrategyType,
 				SourceStrategy: &buildapi.SourceBuildStrategy{
-					From: &kapi.ObjectReference{
+					From: kapi.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: imageStream + ":" + imageTag,
 					},

@@ -18,7 +18,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	}
 
 	expectedBad := mockCustomBuild()
-	expectedBad.Parameters.Strategy.CustomStrategy.From = &kapi.ObjectReference{
+	expectedBad.Parameters.Strategy.CustomStrategy.From = kapi.ObjectReference{
 		Kind: "DockerImage",
 		Name: "",
 	}
@@ -113,7 +113,7 @@ func mockCustomBuild() *buildapi.Build {
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.CustomBuildStrategyType,
 				CustomStrategy: &buildapi.CustomBuildStrategy{
-					From: &kapi.ObjectReference{
+					From: kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "builder-image",
 					},
