@@ -10,9 +10,13 @@
 angular.module('openshiftConsole')
   .controller('CreateProjectController', function ($scope, DataService, Notification, Navigate) {
     $scope.createProject = function() {
-      if($scope.createProjectForm.$valid) {
+      if ($scope.createProjectForm.$valid) {
         DataService.create('projectrequests', null, {
-          name: $scope.name,
+          apiVersion: "v1beta3",
+          kind: "ProjectRequest",
+          metadata: {
+            name: $scope.name,
+          },
           displayName: $scope.displayName,
           description: $scope.description
         }, $scope).then(function(data) { // Success
