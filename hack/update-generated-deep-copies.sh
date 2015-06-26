@@ -4,6 +4,14 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${OS_ROOT}/hack/common.sh"
+
+# Go to the top of the tree.
+cd "${OS_ROOT}"
+
+os::build::setup_env
+
 function result_file_name() {
 	local version=$1
 	if [ "${version}" == "api" ]; then
@@ -25,7 +33,7 @@ package ${version}
 // AUTO-GENERATED FUNCTIONS START HERE
 EOF
 
-	GOPATH=$(godep path):$GOPATH go run cmd/gendeepcopy/deep_copy.go -v ${version} -f - -o "${version}=" >>  $TMPFILE
+	go run cmd/gendeepcopy/deep_copy.go -v ${version} -f - -o "${version}=" >>  $TMPFILE
 
 	cat >> $TMPFILE <<EOF
 // AUTO-GENERATED FUNCTIONS END HERE
