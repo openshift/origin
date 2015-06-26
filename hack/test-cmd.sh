@@ -562,8 +562,7 @@ wait_for_command 'oc get rc/test-deployment-config-1' "${TIME_MIN}"
 # scale rc via deployment configuration
 oc scale dc test-deployment-config --replicas=1
 # scale directly
-oc scale rc test-deployment-config-1 --current-replicas=1 --replicas=5
-[ "$(oc get rc/test-deployment-config-1 | grep 5)" ]
+oc scale rc test-deployment-config-1 --replicas=5
 oc delete all --all
 echo "scale: ok"
 
