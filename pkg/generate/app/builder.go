@@ -11,6 +11,9 @@ var stiEnvironmentNames = []string{"STI_LOCATION", "STI_SCRIPTS_URL", "STI_BUILD
 // IsBuilderImage checks whether the provided Docker image is
 // a builder image or not
 func IsBuilderImage(image *imageapi.DockerImage) bool {
+	if image.Config == nil {
+		return false
+	}
 	for _, env := range image.Config.Env {
 		for _, name := range stiEnvironmentNames {
 			if strings.HasPrefix(env, name+"=") {

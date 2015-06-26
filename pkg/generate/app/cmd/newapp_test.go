@@ -838,7 +838,7 @@ func builderImage() *imageapi.ImageStreamImage {
 		Image: imageapi.Image{
 			DockerImageReference: "example/ruby:latest",
 			DockerImageMetadata: imageapi.DockerImage{
-				Config: imageapi.DockerConfig{
+				Config: &imageapi.DockerConfig{
 					Env: []string{
 						"STI_SCRIPTS_URL=http://repo/git/ruby",
 					},

@@ -408,7 +408,7 @@ func TestImageWithMetadata(t *testing.T) {
 					},
 					DockerVersion: "1.4.1",
 					Author:        "",
-					Config: DockerConfig{
+					Config: &DockerConfig{
 						Hostname:        "43bd710ec89a",
 						Domainname:      "",
 						User:            "",

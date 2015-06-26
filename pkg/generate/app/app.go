@@ -343,7 +343,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 	}
 
 	// If imageInfo present, append ports
-	if r.Info != nil {
+	if r.Info != nil && r.Info.Config != nil {
 		ports := []string{}
 		// ExposedPorts can consist of multiple space-separated ports
 		for exposed := range r.Info.Config.ExposedPorts {
