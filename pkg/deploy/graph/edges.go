@@ -36,7 +36,8 @@ func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentC
 				if len(image.From.Name) == 0 {
 					return
 				}
-				in := imagegraph.EnsureImageStreamTagNode(g, image.From.Namespace, image.From.Name, image.FromTag)
+
+				in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(image.From.Namespace, image.From.Name, image.FromTag))
 				g.AddEdge(in, node, TriggersDeploymentEdgeKind)
 				return
 			}

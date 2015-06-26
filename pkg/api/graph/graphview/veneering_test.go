@@ -293,7 +293,7 @@ func TestGraph(t *testing.T) {
 
 	t.Log(g)
 
-	ir, dc, bc, other := 0, 0, 0, 0
+	ist, dc, bc, other := 0, 0, 0, 0
 	for _, node := range g.NodeList() {
 		switch g.Object(node).(type) {
 		case *deployapi.DeploymentConfig:
@@ -306,19 +306,18 @@ func TestGraph(t *testing.T) {
 				t.Fatalf("unexpected kind: %v", g.Kind(node))
 			}
 			bc++
-		case *imageapi.ImageStream:
-			// TODO resolve this check for 2 kinds, since both have the same object type
-			if g.Kind(node) != imagegraph.ImageStreamNodeKind && g.Kind(node) != imagegraph.ImageStreamTagNodeKind {
+		case *imageapi.ImageStreamTag:
+			if g.Kind(node) != imagegraph.ImageStreamTagNodeKind {
 				t.Fatalf("unexpected kind: %v", g.Kind(node))
 			}
-			ir++
+			ist++
 		default:
 			other++
 		}
 	}
 
-	if dc != 2 || bc != 3 || ir != 3 || other != 12 {
-		t.Errorf("unexpected nodes: %d %d %d %d", dc, bc, ir, other)
+	if dc != 2 || bc != 3 || ist != 3 || other != 12 {
+		t.Errorf("unexpected nodes: %d %d %d %d", dc, bc, ist, other)
 	}
 	for _, edge := range g.EdgeList() {
 		if g.EdgeKind(edge) == osgraph.UnknownEdgeKind {
@@ -329,7 +328,7 @@ func TestGraph(t *testing.T) {
 	// imagestreamtag default/other:base-image
 	istID := 0
 	for _, node := range g.NodeList() {
-		if g.Name(node) == "<imagestreamtag default/other:base-image>" {
+		if g.Name(node) == "ImageStreamTag|default/other:base-image" {
 			istID = node.ID()
 			break
 		}

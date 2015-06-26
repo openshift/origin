@@ -26,7 +26,7 @@ func AddInputOutputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildCon
 	to := output.To
 	switch {
 	case to != nil && len(to.Name) > 0:
-		out := imagegraph.EnsureImageStreamTagNode(g, defaultNamespace(to.Namespace, node.BuildConfig.Namespace), to.Name, output.Tag)
+		out := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(to.Namespace, node.BuildConfig.Namespace), to.Name, output.Tag))
 		g.AddEdge(node, out, BuildOutputEdgeKind)
 	case len(output.DockerImageReference) > 0:
 		out := imagegraph.EnsureDockerRepositoryNode(g, output.DockerImageReference, output.Tag)
@@ -49,11 +49,11 @@ func AddInputOutputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildCon
 			}
 		case "ImageStream":
 			tag := imageapi.DefaultImageTag
-			in := imagegraph.EnsureImageStreamTagNode(g, defaultNamespace(from.Namespace, node.BuildConfig.Namespace), from.Name, tag)
+			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), from.Name, tag))
 			g.AddEdge(in, node, BuildInputImageEdgeKind)
 		case "ImageStreamTag":
 			name, tag, _ := imageapi.SplitImageStreamTag(from.Name)
-			in := imagegraph.EnsureImageStreamTagNode(g, defaultNamespace(from.Namespace, node.BuildConfig.Namespace), name, tag)
+			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), name, tag))
 			g.AddEdge(in, node, BuildInputImageEdgeKind)
 		case "ImageStreamImage":
 			glog.V(4).Infof("Ignoring ImageStreamImage reference in BuildConfig %s/%s", node.BuildConfig.Namespace, node.BuildConfig.Name)
