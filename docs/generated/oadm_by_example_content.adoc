@@ -1,0 +1,217 @@
+:toc: macro
+:toc-title:
+
+toc::[]
+
+
+== oadm build-chain
+Output build dependencies of a specific image stream
+
+====
+
+[options="nowrap"]
+----
+  // Build dependency tree for the specified image stream and tag
+  $ openshift ex build-chain [image-stream]:[tag]
+
+  // Build dependency trees for all tags in the specified image stream
+  $ openshift ex build-chain [image-stream] --all-tags
+
+  // Build the dependency tree using tag 'latest' in 'testing' namespace
+  $ openshift ex build-chain [image-stream] -n testing
+
+  // Build the dependency tree and output it in DOT syntax
+  $ openshift ex build-chain [image-stream] -o dot
+
+  // Build dependency trees for all image streams in the current namespace
+  $ openshift ex build-chain
+
+  // Build dependency trees for all image streams across all namespaces
+  $ openshift ex build-chain --all
+----
+====
+
+
+== oadm config
+Change configuration files for the client
+
+====
+
+[options="nowrap"]
+----
+  // Change the config context to use
+  openshift admin config use-context my-context
+  
+  // Set the value of a config preference
+  openshift admin config set preferences.some true
+----
+====
+
+
+== oadm config set-cluster
+Sets a cluster entry in kubeconfig
+
+====
+
+[options="nowrap"]
+----
+  // Set only the server field on the e2e cluster entry without touching other values.
+  $ openshift admin config set-cluster e2e --server=https://1.2.3.4
+  
+  // Embed certificate authority data for the e2e cluster entry
+  $ openshift admin config set-cluster e2e --certificate-authority=~/.kube/e2e/kubernetes.ca.crt
+  
+  // Disable cert checking for the dev cluster entry
+  $ openshift admin config set-cluster e2e --insecure-skip-tls-verify=true
+----
+====
+
+
+== oadm config set-context
+Sets a context entry in kubeconfig
+
+====
+
+[options="nowrap"]
+----
+  // Set the user field on the gce context entry without touching other values
+  $ openshift admin config set-context gce --user=cluster-admin
+----
+====
+
+
+== oadm config set-credentials
+Sets a user entry in kubeconfig
+
+====
+
+[options="nowrap"]
+----
+  // Set only the "client-key" field on the "cluster-admin"
+  // entry, without touching other values:
+  $ openshift admin config set-credentials cluster-admin --client-key=~/.kube/admin.key
+  
+  // Set basic auth for the "cluster-admin" entry
+  $ openshift admin config set-credentials cluster-admin --username=admin --password=uXFGweU9l35qcif
+  
+  // Embed client certificate data in the "cluster-admin" entry
+  $ openshift admin config set-credentials cluster-admin --client-certificate=~/.kube/admin.crt --embed-certs=true
+----
+====
+
+
+== oadm config view
+displays Merged kubeconfig settings or a specified kubeconfig file.
+
+====
+
+[options="nowrap"]
+----
+  // Show Merged kubeconfig settings.
+  $ openshift admin config view
+  
+  // Show only local kubeconfig settings
+  $ openshift admin config view --local
+  
+  // Get the password for the e2e user
+  $ openshift admin config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
+----
+====
+
+
+== oadm ipfailover
+Install an IP failover group to a set of nodes
+
+====
+
+[options="nowrap"]
+----
+  // Check the default IP failover configuration ("ipfailover"):
+  $ openshift admin ipfailover
+
+  // See what the IP failover configuration would look like if it is created:
+  $ openshift admin ipfailover -o json
+
+  // Create an IP failover configuration if it does not already exist:
+  $ openshift admin ipfailover ipf --virtual-ips="10.1.1.1-4" --create
+
+  // Create an IP failover configuration on a selection of nodes labeled
+  // "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
+  // listening on port 80 (aka the OpenShift router process).
+  $ openshift admin ipfailover ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
+
+  // Use a different IP failover config image and see the configuration:
+  $ openshift admin ipfailover ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag
+----
+====
+
+
+== oadm manage-node
+Manage nodes - list pods, evacuate, or mark ready
+
+====
+
+[options="nowrap"]
+----
+	// Block accepting any pods on given nodes
+	$ openshift admin manage-node <mynode> --schedulable=false
+
+	// Mark selected nodes as schedulable
+	$ openshift admin manage-node --selector="<env=dev>" --schedulable=true
+
+	// Migrate selected pods
+	$ openshift admin manage-node <mynode> --evacuate --pod-selector="<service=myapp>"
+
+	// Show pods that will be migrated
+	$ openshift admin manage-node <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
+
+	// List all pods on given nodes
+	$ openshift admin manage-node <mynode1> <mynode2> --list-pods
+----
+====
+
+
+== oadm registry
+Install the OpenShift Docker registry
+
+====
+
+[options="nowrap"]
+----
+  // Check if default Docker registry ("docker-registry") has been created
+  $ openshift admin registry --dry-run
+
+  // See what the registry would look like if created
+  $ openshift admin registry -o json
+
+  // Create a registry if it does not exist with two replicas
+  $ openshift admin registry --replicas=2 --credentials=registry-user.kubeconfig
+
+  // Use a different registry image and see the registry configuration
+  $ openshift admin registry -o yaml --images=myrepo/docker-registry:mytag
+----
+====
+
+
+== oadm router
+Install an OpenShift router
+
+====
+
+[options="nowrap"]
+----
+  // Check the default router ("router")
+  $ openshift admin router --dry-run
+
+  // See what the router would look like if created
+  $ openshift admin router -o json
+
+  // Create a router if it does not exist
+  $ openshift admin router router-west --create --replicas=2
+
+  // Use a different router image and see the router configuration
+  $ openshift admin router region-west -o yaml --images=myrepo/somerouter:mytag
+----
+====
+
+

@@ -1,0 +1,18 @@
+:toc: macro
+:toc-title:
+
+toc::[]
+
+{{range .items}}
+== {{.Object.fullName}}
+{{.Object.description}}
+
+====
+
+[options="nowrap"]
+----
+{{.Object.examples}}
+----
+====
+
+{{end}}
