@@ -2,12 +2,17 @@ package test
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
+	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -36,9 +41,6 @@ func init() {
 		panic(err)
 	}
 	if err := RegisterEnsureNode(&kapi.Pod{}, kubegraph.EnsurePodNode); err != nil {
-		panic(err)
-	}
-	if err := RegisterEnsureNode(&kapi.Secret{}, kubegraph.EnsureSecretNode); err != nil {
 		panic(err)
 	}
 	if err := RegisterEnsureNode(&kapi.Service{}, kubegraph.EnsureServiceNode); err != nil {
@@ -98,4 +100,43 @@ func verifyEnsureFunctionSignature(ft reflect.Type) error {
 func callEnsureNode(g osgraph.Graph, obj, ensureMethod reflect.Value) {
 	args := []reflect.Value{reflect.ValueOf(g), obj}
 	ensureMethod.Call(args)[0].Interface()
+}
+
+func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
+	g := osgraph.New()
+	objs := []runtime.Object{}
+
+	abspath, err := filepath.Abs(path)
+	if err != nil {
+		return g, objs, err
+	}
+
+	mapper := latest.RESTMapper
+	typer := kapi.Scheme
+	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+		return nil, nil
+	})
+
+	r := resource.NewBuilder(mapper, typer, clientMapper).
+		FilenameParam(abspath).
+		Flatten().
+		Do()
+
+	if r.Err() != nil {
+		return g, objs, r.Err()
+	}
+
+	infos, err := r.Infos()
+	if err != nil {
+		return g, objs, err
+	}
+	for _, info := range infos {
+		objs = append(objs, info.Object)
+
+		if err := EnsureNode(g, info.Object); err != nil {
+			return g, objs, err
+		}
+	}
+
+	return g, objs, nil
 }

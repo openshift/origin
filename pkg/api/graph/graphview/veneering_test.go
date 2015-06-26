@@ -1,4 +1,4 @@
-package veneers
+package graphview
 
 import (
 	"testing"
@@ -11,6 +11,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
+	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -22,6 +23,113 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
+
+func TestServiceGroup(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/new-app.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
+	buildedges.AddAllInputOutputEdges(g)
+	deployedges.AddAllTriggerEdges(g)
+
+	coveredNodes := IntSet{}
+
+	serviceGroups, coveredByServiceGroups := AllServiceGroups(g, coveredNodes)
+	coveredNodes.Insert(coveredByServiceGroups.List()...)
+
+	bareDCPipelines, coveredByDCs := AllDeploymentConfigPipelines(g, coveredNodes)
+	coveredNodes.Insert(coveredByDCs.List()...)
+
+	bareBCPipelines, coveredByBCs := AllImagePipelinesFromBuildConfig(g, coveredNodes)
+	coveredNodes.Insert(coveredByBCs.List()...)
+
+	if e, a := 1, len(serviceGroups); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 0, len(bareDCPipelines); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 0, len(bareBCPipelines); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+
+	if e, a := 1, len(serviceGroups[0].DeploymentConfigPipelines); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 1, len(serviceGroups[0].DeploymentConfigPipelines[0].Images); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
+func TestBareDCGroup(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/bare-dc.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
+	buildedges.AddAllInputOutputEdges(g)
+	deployedges.AddAllTriggerEdges(g)
+
+	coveredNodes := IntSet{}
+
+	serviceGroups, coveredByServiceGroups := AllServiceGroups(g, coveredNodes)
+	coveredNodes.Insert(coveredByServiceGroups.List()...)
+
+	bareDCPipelines, coveredByDCs := AllDeploymentConfigPipelines(g, coveredNodes)
+	coveredNodes.Insert(coveredByDCs.List()...)
+
+	bareBCPipelines, coveredByBCs := AllImagePipelinesFromBuildConfig(g, coveredNodes)
+	coveredNodes.Insert(coveredByBCs.List()...)
+
+	if e, a := 0, len(serviceGroups); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 1, len(bareDCPipelines); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 0, len(bareBCPipelines); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+
+	if e, a := 1, len(bareDCPipelines[0].Images); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
+func TestBareBCGroup(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/bare-bc.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
+	buildedges.AddAllInputOutputEdges(g)
+	deployedges.AddAllTriggerEdges(g)
+
+	coveredNodes := IntSet{}
+
+	serviceGroups, coveredByServiceGroups := AllServiceGroups(g, coveredNodes)
+	coveredNodes.Insert(coveredByServiceGroups.List()...)
+
+	bareDCPipelines, coveredByDCs := AllDeploymentConfigPipelines(g, coveredNodes)
+	coveredNodes.Insert(coveredByDCs.List()...)
+
+	bareBCPipelines, coveredByBCs := AllImagePipelinesFromBuildConfig(g, coveredNodes)
+	coveredNodes.Insert(coveredByBCs.List()...)
+
+	if e, a := 0, len(serviceGroups); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 0, len(bareDCPipelines); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 1, len(bareBCPipelines); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
 
 func TestGraph(t *testing.T) {
 	g := osgraph.New()
@@ -245,38 +353,36 @@ func TestGraph(t *testing.T) {
 		t.Errorf("expected edge for %d-%d", bcTestNode.ID(), istID)
 	}
 
-	pipelines, covered := DeploymentPipelines(g)
-	if len(pipelines) != 2 {
-		t.Fatalf("unexpected pipelines: %#v", pipelines)
+	coveredNodes := IntSet{}
+
+	serviceGroups, coveredByServiceGroups := AllServiceGroups(g, coveredNodes)
+	coveredNodes.Insert(coveredByServiceGroups.List()...)
+
+	bareDCPipelines, coveredByDCs := AllDeploymentConfigPipelines(g, coveredNodes)
+	coveredNodes.Insert(coveredByDCs.List()...)
+
+	if len(bareDCPipelines) != 1 {
+		t.Fatalf("unexpected pipelines: %#v", bareDCPipelines)
 	}
-	if len(covered) != 7 {
-		t.Fatalf("unexpected covered nodes: %#v", covered)
+	if len(coveredNodes) != 10 {
+		t.Fatalf("unexpected covered nodes: %#v", coveredNodes)
 	}
-	for from, images := range pipelines {
-		t.Logf("from %s", from.Name)
-		for _, path := range images {
+
+	for _, bareDCPipeline := range bareDCPipelines {
+		t.Logf("from %s", bareDCPipeline.Deployment.Name)
+		for _, path := range bareDCPipeline.Images {
 			t.Logf("  %v", path)
 		}
 	}
 
-	serviceGroups := ServiceAndDeploymentGroups(g)
-	if len(serviceGroups) != 5 {
+	if len(serviceGroups) != 3 {
 		t.Errorf("unexpected service groups: %#v", serviceGroups)
 	}
-	if len(serviceGroups[3].Builds) != 1 {
-		t.Fatalf("unexpected final group: %#v", serviceGroups[2])
-	}
-	for _, group := range serviceGroups {
-		dcs := len(group.Deployments)
-		svcs := len(group.Services)
-		for _, svc := range group.Services {
-			t.Logf("service %s", svc.Service.Name)
-		}
-		indent := ""
-		if svcs > 0 {
-			indent = "  "
-		}
-		for _, deployment := range group.Deployments {
+	for _, serviceGroup := range serviceGroups {
+		t.Logf("service %s", serviceGroup.Service.Name)
+		indent := "  "
+
+		for _, deployment := range serviceGroup.DeploymentConfigPipelines {
 			t.Logf("%sdeployment %s", indent, deployment.Deployment.Name)
 			for _, image := range deployment.Images {
 				t.Logf("%s  image %s", indent, image.Image.ImageSpec())
@@ -290,21 +396,6 @@ func TestGraph(t *testing.T) {
 						t.Logf("%s    build %s %s", indent, b.Name, b.Status)
 					}
 				}
-			}
-		}
-		if dcs != 0 || svcs != 0 {
-			continue
-		}
-		for _, build := range group.Builds {
-			if build.Image != nil {
-				if build.Build != nil {
-					t.Logf("%s <- build %s (%d)", build.Image.ImageSpec(), build.Build.Name, build.Image.ID())
-				} else {
-					t.Logf("%s (%d)", build.Image.ImageSpec(), build.Image.ID())
-				}
-			} else {
-				t.Logf("build %s (%d)", build.Build.Name, build.Build.ID())
-				t.Errorf("expected build %d to have an image edge", build.Build.ID())
 			}
 		}
 	}
