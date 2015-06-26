@@ -58,7 +58,7 @@ func (g *imageRefGenerator) FromNameAndPorts(name string, ports []string) (*Imag
 	}
 
 	imageRef.Info = &imageapi.DockerImage{
-		Config: imageapi.DockerConfig{
+		Config: &imageapi.DockerConfig{
 			ExposedPorts: exposedPorts,
 		},
 	}

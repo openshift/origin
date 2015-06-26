@@ -1541,8 +1541,13 @@ func deepCopy_api_DockerImage(in imageapi.DockerImage, out *imageapi.DockerImage
 	}
 	out.DockerVersion = in.DockerVersion
 	out.Author = in.Author
-	if err := deepCopy_api_DockerConfig(in.Config, &out.Config, c); err != nil {
-		return err
+	if in.Config != nil {
+		out.Config = new(imageapi.DockerConfig)
+		if err := deepCopy_api_DockerConfig(*in.Config, out.Config, c); err != nil {
+			return err
+		}
+	} else {
+		out.Config = nil
 	}
 	out.Architecture = in.Architecture
 	out.Size = in.Size

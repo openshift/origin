@@ -15,7 +15,7 @@ var Convert = kapi.Scheme.Convert
 
 func TestRoundTripVersionedObject(t *testing.T) {
 	d := &newer.DockerImage{
-		Config: newer.DockerConfig{
+		Config: &newer.DockerConfig{
 			Env: []string{"A=1", "B=2"},
 		},
 	}
