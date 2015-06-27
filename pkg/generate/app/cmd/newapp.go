@@ -648,7 +648,7 @@ func (c *AppConfig) run(out io.Writer, acceptors app.Acceptors) (*AppResult, err
 		objects = append(objects, accepted...)
 	}
 
-	objects = app.AddServices(objects)
+	objects = app.AddServices(objects, false)
 
 	templateObjects, err := c.buildTemplates(components, app.Environment(parameters))
 	if err != nil {

@@ -190,8 +190,12 @@ func (s sortablePorts) Swap(i, j int) {
 	s[j] = p
 }
 
+func portKey(port int, protocol kapi.Protocol) string {
+	return fmt.Sprintf("%d/%s", port, protocol)
+}
+
 // AddServices sets up services for the provided objects
-func AddServices(objects Objects) Objects {
+func AddServices(objects Objects, firstPortOnly bool) Objects {
 	svcs := []runtime.Object{}
 	for _, o := range objects {
 		switch t := o.(type) {
@@ -208,17 +212,25 @@ func AddServices(objects Objects) Objects {
 				},
 			}
 
+			svcPorts := map[string]struct{}{}
 			for _, container := range t.Template.ControllerTemplate.Template.Spec.Containers {
 				ports := sortablePorts(container.Ports)
 				sort.Sort(&ports)
 				for _, p := range ports {
+					_, exists := svcPorts[portKey(p.ContainerPort, p.Protocol)]
+					if exists {
+						continue
+					}
+					svcPorts[portKey(p.ContainerPort, p.Protocol)] = struct{}{}
 					svc.Spec.Ports = append(svc.Spec.Ports, kapi.ServicePort{
 						Name:       p.Name,
 						Port:       p.ContainerPort,
 						Protocol:   p.Protocol,
 						TargetPort: kutil.NewIntOrStringFromInt(p.ContainerPort),
 					})
-					break
+					if firstPortOnly {
+						break
+					}
 				}
 			}
 			if len(svc.Spec.Ports) == 0 {
