@@ -713,7 +713,7 @@ An introduction to the concepts and types in OpenShift
 [options="nowrap"]
 ----
   // View all projects you have access to
-  $ openshift cli projects
+  $ openshift cli get projects
 
   // See a list of all services in the current project
   $ openshift cli get svc
