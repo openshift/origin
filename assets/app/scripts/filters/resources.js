@@ -386,7 +386,7 @@ angular.module('openshiftConsole')
   })
   .filter('createFromSourceURL', function() {
     return function(projectName, sourceURL) {
-      var createURI = URI.expand("/project/{project}/catalog/images{?q*}", {
+      var createURI = URI.expand("project/{project}/catalog/images{?q*}", {
         project: projectName,
         q: {
           builderfor: sourceURL
@@ -397,7 +397,7 @@ angular.module('openshiftConsole')
   })
   .filter('createFromImageURL', function() {
     return function(imageStream, imageTag, projectName, sourceURL) {
-      var createURI = URI.expand("/project/{project}/create/fromimage{?q*}", {
+      var createURI = URI.expand("project/{project}/create/fromimage{?q*}", {
         project: projectName,
         q: {
           imageName: imageStream.metadata.name,
