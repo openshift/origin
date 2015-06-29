@@ -93,7 +93,9 @@ func (bc *BuildController) nextBuildStatus(build *buildapi.Build) error {
 			return fmt.Errorf("the referenced output ImageStream %s/%s could not be found by Build %s/%s: %v", namespace, ref.Name, build.Namespace, build.Name, err)
 		}
 		if len(repo.Status.DockerImageRepository) == 0 {
-			return fmt.Errorf("the ImageStream %s/%s cannot be used as the output for Build %s/%s because the integrated Docker registry is not configured, or the user forgot to set a valid external registry", namespace, ref.Name, build.Namespace, build.Name)
+			e := fmt.Errorf("the ImageStream %s/%s cannot be used as the output for Build %s/%s because the integrated Docker registry is not configured, or the user forgot to set a valid external registry", namespace, ref.Name, build.Namespace, build.Name)
+			bc.Recorder.Eventf(build, "invalidOutput", "Error starting build: %v", e)
+			return e
 		}
 		spec = repo.Status.DockerImageRepository
 	}
