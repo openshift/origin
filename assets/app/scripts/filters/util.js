@@ -123,13 +123,13 @@ angular.module('openshiftConsole')
     return function(type) {
       switch(type) {
         case "webhooks":
-          return "http://docs.openshift.org/latest/dev_guide/builds.html#webhook-triggers";
+          return "http://docs.openshift.com/enterprise/3.0/dev_guide/builds.html#webhook-triggers";
         case "start-build":
-          return "http://docs.openshift.org/latest/dev_guide/builds.html#starting-a-build";
+          return "http://docs.openshift.com/enterprise/3.0/dev_guide/builds.html#starting-a-build";
         case "deployment-operations":
-          return "http://docs.openshift.org/latest/cli_reference/basic_cli_operations.html#deployment-operations";
+          return "http://docs.openshift.com/enterprise/3.0/cli_reference/basic_cli_operations.html#build-and-deployment-cli-operations";
         default:
-          return "http://docs.openshift.org/latest/welcome/index.html";
+          return "http://docs.openshift.com/enterprise/3.0/welcome/index.html";
       }
     };
   })
