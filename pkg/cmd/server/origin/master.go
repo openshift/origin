@@ -168,7 +168,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 // All endpoints get configured CORS behavior
 // Protected installers' endpoints are protected by API authentication and authorization.
 // Unprotected installers' endpoints do not have any additional protection added.
-func (c *MasterConfig) CreateServer(protected []APIInstaller, unprotected []APIInstaller) (*http.Server, []string) {
+func (c *MasterConfig) CreateServer(protected, unprotected []APIInstaller) (*http.Server, []string) {
 	var extra []string
 
 	safe := kmaster.NewHandlerContainer(http.NewServeMux())
@@ -179,10 +179,41 @@ func (c *MasterConfig) CreateServer(protected []APIInstaller, unprotected []APII
 	for _, i := range protected {
 		extra = append(extra, i.InstallAPI(safe)...)
 	}
-	handler := c.authorizationFilter(safe)
-	handler = authenticationHandlerFilter(handler, c.Authenticator, c.getRequestContextMapper())
-	handler = namespacingFilter(handler, c.getRequestContextMapper())
-	handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
+
+	authorizationFilterConfig := &AuthorizationFilterConfig{
+		attributeBuilder: c.AuthorizationAttributeBuilder,
+		contextMapper:    c.getRequestContextMapper(),
+		authorizer:       c.Authorizer,
+	}
+
+	authenticationFilterConfig := &AuthenticationFilterConfig{
+		authenticator: c.Authenticator,
+		contextMapper: c.getRequestContextMapper(),
+	}
+
+	namespacingFilterConfig := &NamespacingFilterConfig{
+		contextMapper: c.getRequestContextMapper(),
+	}
+
+	cacheControlFilterConfig := &CacheControlFilterConfig{
+		headerSetting: "no-store", // protected endpoints should not be cached
+	}
+
+	apiPathIndexerConfig := &APIPathIndexerConfig{}
+
+	insecureContainerConfig := &InsecureContainerConfig{
+		insecureContainer: open,
+	}
+
+	requestContextFilterConfig := &RequestContextFilterConfig{
+		contextMapper: c.getRequestContextMapper(),
+	}
+
+	handlerPrepender := NewHandlerPrepender()
+	handler := handlerPrepender.PrependHandler(safe, authorizationFilterConfig)
+	handler = handlerPrepender.PrependHandler(handler, authenticationFilterConfig)
+	handler = handlerPrepender.PrependHandler(handler, namespacingFilterConfig)
+	handler = handlerPrepender.PrependHandler(handler, cacheControlFilterConfig)
 
 	// unprotected resources
 	unprotected = append(unprotected, APIInstallFunc(c.InstallUnprotectedAPI))
@@ -190,9 +221,7 @@ func (c *MasterConfig) CreateServer(protected []APIInstaller, unprotected []APII
 		extra = append(extra, i.InstallAPI(open)...)
 	}
 
-	handler = indexAPIPaths(handler)
-
-	open.Handle("/", handler)
+	handler = handlerPrepender.PrependHandler(handler, apiPathIndexerConfig)
 
 	// install swagger
 	swaggerConfig := swagger.Config{
@@ -206,29 +235,38 @@ func (c *MasterConfig) CreateServer(protected []APIInstaller, unprotected []APII
 	swagger.RegisterSwaggerService(swaggerConfig, open)
 	extra = append(extra, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerAPIPrefix))
 
-	handler = open
+	// allow for following prepend calls to prepend to the handler of the insecure container
+	handler = handlerPrepender.PrependHandler(handler, insecureContainerConfig)
 
 	// add CORS support
-	if origins := c.ensureCORSAllowedOrigins(); len(origins) != 0 {
-		handler = apiserver.CORS(handler, origins, nil, nil, "true")
+	if len(c.ensureCORSAllowedOrigins()) != 0 {
+		corsFilterConfig := &CORSFilterConfig{
+			origins:          c.ensureCORSAllowedOrigins(),
+			allowedMethods:   nil, // use default set of methods
+			allowedHeaders:   nil, // use default set of headers
+			allowCredentials: "true",
+		}
+		handler = handlerPrepender.PrependHandler(handler, corsFilterConfig)
 	}
 
 	if c.Options.AssetConfig != nil {
-		handler = assetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
+		assetServerRedirecterConfig := &AssetServerRedirecterConfig{
+			assetPublicURL: c.Options.AssetConfig.PublicURL,
+		}
+		handler = handlerPrepender.PrependHandler(handler, assetServerRedirecterConfig)
 	}
 
 	// Make the outermost filter the requestContextMapper to ensure all components share the same context
-	if contextHandler, err := kapi.NewRequestContextFilter(c.getRequestContextMapper(), handler); err != nil {
-		glog.Fatalf("Error setting up request context filter: %v", err)
-	} else {
-		handler = contextHandler
-	}
+	handler = handlerPrepender.PrependHandler(handler, requestContextFilterConfig)
 
 	// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
 	// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
 	if c.Options.ServingInfo.MaxRequestsInFlight > 0 {
-		sem := make(chan bool, c.Options.ServingInfo.MaxRequestsInFlight)
-		handler = apiserver.MaxInFlightLimit(sem, longRunningRE, handler)
+		maxInFlightLimitFilterConfig := &MaxInFlightLimitFilterConfig{
+			channel:                 make(chan bool, c.Options.ServingInfo.MaxRequestsInFlight),
+			longRunningRequestRegex: longRunningRE,
+		}
+		handler = handlerPrepender.PrependHandler(handler, maxInFlightLimitFilterConfig)
 	}
 
 	timeout := c.Options.ServingInfo.RequestTimeoutSeconds

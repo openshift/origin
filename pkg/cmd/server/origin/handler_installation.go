@@ -144,7 +144,7 @@ func (c *CORSFilterConfig) Prepend(parent http.Handler) http.Handler {
 
 // AssetServerRedirecterConfig is the HandlerPrependSpecifier that prepends the AssetServerRedirecter
 type AssetServerRedirecterConfig struct {
-	headerSetting string
+	assetPublicURL string
 }
 
 // Prepend implements HandlerPrependSpecifier for prepending an AssetServerRedirecter

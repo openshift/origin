@@ -366,7 +366,6 @@ func New(c *Config) *Master {
 	m.muxHelper = &apiserver.MuxHelper{m.mux, []string{}}
 
 	m.init(c)
-
 	return m
 }
 
