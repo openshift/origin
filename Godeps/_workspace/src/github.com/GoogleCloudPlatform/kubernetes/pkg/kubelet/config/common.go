@@ -91,7 +91,7 @@ type defaultFunc func(pod *api.Pod) error
 
 func tryDecodeSinglePod(data []byte, defaultFn defaultFunc) (parsed bool, pod *api.Pod, err error) {
 	// JSON is valid YAML, so this should work for everything.
-	json, err := utilyaml.ToJSON(data, false)
+	json, err := utilyaml.ToJSON(data)
 	if err != nil {
 		return false, nil, err
 	}
@@ -117,7 +117,7 @@ func tryDecodeSinglePod(data []byte, defaultFn defaultFunc) (parsed bool, pod *a
 }
 
 func tryDecodePodList(data []byte, defaultFn defaultFunc) (parsed bool, pods api.PodList, err error) {
-	json, err := utilyaml.ToJSON(data, false)
+	json, err := utilyaml.ToJSON(data)
 	if err != nil {
 		return false, api.PodList{}, err
 	}
