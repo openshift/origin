@@ -321,14 +321,16 @@ type podLW struct {
 	client kclient.Interface
 }
 
-// List lists all Pods.
+// List lists all Pods that have a build label.
 func (lw *podLW) List() (runtime.Object, error) {
-	return lw.client.Pods(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	sel, _ := labels.Parse(buildapi.BuildLabel)
+	return lw.client.Pods(kapi.NamespaceAll).List(sel, fields.Everything())
 }
 
-// Watch watches all Pods.
+// Watch watches all Pods that have a build label.
 func (lw *podLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Pods(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+	sel, _ := labels.Parse(buildapi.BuildLabel)
+	return lw.client.Pods(kapi.NamespaceAll).Watch(sel, fields.Everything(), resourceVersion)
 }
 
 // buildLW is a ListWatcher implementation for Builds.
@@ -355,7 +357,8 @@ type buildDeleteLW struct {
 // List returns an empty list but adds delete events to the store for all Builds that have been deleted but still have pods.
 func (lw *buildDeleteLW) List() (runtime.Object, error) {
 	glog.V(5).Info("Checking for deleted builds")
-	podList, err := lw.KubeClient.Pods(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	sel, _ := labels.Parse(buildapi.BuildLabel)
+	podList, err := lw.KubeClient.Pods(kapi.NamespaceAll).List(sel, fields.Everything())
 	if err != nil {
 		glog.V(4).Infof("Failed to find any pods due to error %v", err)
 		return nil, err
@@ -477,9 +480,10 @@ func (lw *buildPodDeleteLW) List() (runtime.Object, error) {
 	return &kapi.PodList{}, nil
 }
 
-// Watch watches all Pods for deletion
+// Watch watches all Pods that have a build label, for deletion
 func (lw *buildPodDeleteLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.KubeClient.Pods(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+	sel, _ := labels.Parse(buildapi.BuildLabel)
+	return lw.KubeClient.Pods(kapi.NamespaceAll).Watch(sel, fields.Everything(), resourceVersion)
 }
 
 // ControllerClient implements the common interfaces needed for build controllers
