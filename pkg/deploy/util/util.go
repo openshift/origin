@@ -306,13 +306,18 @@ func mappedAnnotationFor(obj runtime.Object, key string) string {
 	if err != nil {
 		return ""
 	}
+
+	// check to see if we have the actual key first.  This would indicate that we've transitioned to a newer kind of status
+	// TODO: allowing conflicting status is broken and wrong.  It's probably easiest to choose an annotation key per api version
+	// and convert to and from in conversion to avoid any conflicts.
+	if val, ok := meta.Annotations[key]; ok {
+		return val
+	}
+
 	for _, mappedKey := range annotationMap[key] {
 		if val, ok := meta.Annotations[mappedKey]; ok {
 			return val
 		}
-	}
-	if val, ok := meta.Annotations[key]; ok {
-		return val
 	}
 	return ""
 }
