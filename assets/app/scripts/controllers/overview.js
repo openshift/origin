@@ -15,7 +15,8 @@ angular.module('openshiftConsole')
                         hashSizeFilter,
                         imageObjectRefFilter,
                         deploymentCausesFilter,
-                        LabelFilter,
+                        labelFilter, // for getting k8s resource labels
+                        LabelFilter, // for the label-selector widget in the navbar
                         Logger,
                         ImageStreamResolver) {
     $scope.pods = {};
@@ -180,7 +181,7 @@ angular.module('openshiftConsole')
 
       // Hide our deployer pods since it is obvious the deployment is
       // happening when the new deployment appears.
-      if (annotationFilter(pod, "openshift.io/deployment.name")) {
+      if (labelFilter(pod, "openshift.io/deployer-pod-for.name")) {
         return false;
       }
 
