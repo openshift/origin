@@ -11,7 +11,8 @@ angular.module('openshiftConsole')
   .controller('DeploymentsController', function ($scope, DataService, $filter, LabelFilter, Logger, ImageStreamResolver) {
     $scope.deployments = {};
     $scope.unfilteredDeployments = {};
-    $scope.deploymentConfigs = {};
+    // leave undefined so we know when data is loaded
+    $scope.deploymentConfigs = undefined;
     $scope.deploymentsByDeploymentConfig = {};
     $scope.podTemplates = {};
     $scope.imageStreams = {};

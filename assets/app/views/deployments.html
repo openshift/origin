@@ -147,14 +147,24 @@
       </div>
 
       <!-- render any deployments whose deployment configs no longer exist -->
-      <div class="tile" ng-repeat="(deploymentConfigName, deployments) in deploymentsByDeploymentConfig" ng-if="!deploymentConfigs[deploymentConfigName]">
+      <div ng-repeat="(deploymentConfigName, deployments) in deploymentsByDeploymentConfig"
+           ng-if="!deploymentConfigs[deploymentConfigName]"
+           class="tile">
         <div>
           <h2 ng-if="deploymentConfigName != ''">
             {{deploymentConfigName}}
-            <span class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This deployment config no longer exists." style="cursor: help;">
+            <!-- don't show a warning if deploymentConfigs is undefined since it means data is still loading -->
+            <!-- render everything else, though, so the page progressively loads -->
+            <span
+                ng-if="deploymentConfigs"
+                class="pficon-layered"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="This deployment config no longer exists."
+                style="cursor: help;">
               <span class="pficon pficon-warning-triangle"></span>
               <span class="pficon pficon-warning-exclamation"></span>
-            </span>            
+            </span>
           </h2>
           <dl class="dl-horizontal left indent">
             <div class="well" ng-repeat="deployment in deployments | orderObjectsByDate : true">
