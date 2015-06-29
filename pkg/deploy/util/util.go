@@ -11,80 +11,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployv3 "github.com/openshift/origin/pkg/deploy/api/v1beta3"
 	"github.com/openshift/origin/pkg/util/namer"
 )
-
-// These constants represent keys used for correlating objects related to deployments.
-const (
-	// DeploymentConfigAnnotation is an annotation name used to correlate a deployment with the
-	// DeploymentConfig on which the deployment is based.
-	v1beta1DeploymentConfigAnnotation = "deploymentConfig"
-	// DeploymentAnnotation is an annotation on a deployer Pod. The annotation value is the name
-	// of the deployment (a ReplicationController) on which the deployer Pod acts.
-	v1beta1DeploymentAnnotation = "deployment"
-	// DeploymentPodAnnotation is an annotation on a deployment (a ReplicationController). The
-	// annotation value is the name of the deployer Pod which will act upon the ReplicationController
-	// to implement the deployment behavior.
-	v1beta1DeploymentPodAnnotation = "pod"
-	// DeploymentStatusAnnotation is an annotation name used to retrieve the DeploymentStatus of
-	// a deployment.
-	v1beta1DeploymentStatusAnnotation = "deploymentStatus"
-	// DeploymentEncodedConfigAnnotation is an annotation name used to retrieve specific encoded
-	// DeploymentConfig on which a given deployment is based.
-	v1beta1DeploymentEncodedConfigAnnotation = "encodedDeploymentConfig"
-	// DeploymentVersionAnnotation is an annotation on a deployment (a ReplicationController). The
-	// annotation value is the LatestVersion value of the DeploymentConfig which was the basis for
-	// the deployment.
-	v1beta1DeploymentVersionAnnotation = "deploymentVersion"
-	// DeploymentLabel is the name of a label used to correlate a deployment with the Pod created
-	// to execute the deployment logic.
-	// TODO: This is a workaround for upstream's lack of annotation support on PodTemplate. Once
-	// annotations are available on PodTemplate, audit this constant with the goal of removing it.
-	v1beta1DeploymentLabel = "deployment"
-	// DeploymentConfigLabel is the name of a label used to correlate a deployment with the
-	// DeploymentConfigs on which the deployment is based.
-	v1beta1DeploymentConfigLabel = "deploymentconfig"
-	// DeploymentStatusReasonAnnotation represents the reason for deployment being in a given state
-	// Used for specifying the reason for cancellation or failure of a deployment
-	v1beta1DeploymentStatusReasonAnnotation = "openshift.io/deployment.status-reason"
-	// DeploymentCancelledAnnotation indicates that the deployment has been cancelled
-	// The annotation value does not matter and its mere presence indicates cancellation
-	v1beta1DeploymentCancelledAnnotation = "openshift.io/deployment.cancelled"
-)
-
-// Maps the latest annotation keys to all known previous key names. Keys not represented here
-// may still be looked up directly via mappedAnnotationFor
-var annotationMap = map[string][]string{
-	deployapi.DeploymentConfigAnnotation: {
-		v1beta1DeploymentConfigAnnotation,
-		deployv3.DeploymentConfigAnnotation,
-	},
-	deployapi.DeploymentAnnotation: {
-		v1beta1DeploymentAnnotation,
-		deployv3.DeploymentAnnotation,
-	},
-	deployapi.DeploymentPodAnnotation: {
-		v1beta1DeploymentPodAnnotation,
-		deployv3.DeploymentPodAnnotation,
-	},
-	deployapi.DeploymentStatusAnnotation: {
-		v1beta1DeploymentStatusAnnotation,
-		deployv3.DeploymentPhaseAnnotation,
-	},
-	deployapi.DeploymentEncodedConfigAnnotation: {
-		v1beta1DeploymentEncodedConfigAnnotation,
-		deployv3.DeploymentEncodedConfigAnnotation,
-	},
-	deployapi.DeploymentVersionAnnotation: {
-		v1beta1DeploymentVersionAnnotation,
-		deployv3.DeploymentVersionAnnotation,
-	},
-	deployapi.DeploymentCancelledAnnotation: {
-		v1beta1DeploymentCancelledAnnotation,
-		deployv3.DeploymentCancelledAnnotation,
-	},
-}
 
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
@@ -251,27 +179,27 @@ func (lw *ListWatcherImpl) Watch(resourceVersion string) (watch.Interface, error
 }
 
 func DeploymentConfigNameFor(obj runtime.Object) string {
-	return mappedAnnotationFor(obj, deployapi.DeploymentConfigAnnotation)
+	return annotationFor(obj, deployapi.DeploymentConfigAnnotation)
 }
 
 func DeploymentNameFor(obj runtime.Object) string {
-	return mappedAnnotationFor(obj, deployapi.DeploymentAnnotation)
+	return annotationFor(obj, deployapi.DeploymentAnnotation)
 }
 
 func DeployerPodNameFor(obj runtime.Object) string {
-	return mappedAnnotationFor(obj, deployapi.DeploymentPodAnnotation)
+	return annotationFor(obj, deployapi.DeploymentPodAnnotation)
 }
 
 func DeploymentStatusFor(obj runtime.Object) deployapi.DeploymentStatus {
-	return deployapi.DeploymentStatus(mappedAnnotationFor(obj, deployapi.DeploymentStatusAnnotation))
+	return deployapi.DeploymentStatus(annotationFor(obj, deployapi.DeploymentStatusAnnotation))
 }
 
 func DeploymentStatusReasonFor(obj runtime.Object) string {
-	return mappedAnnotationFor(obj, deployapi.DeploymentStatusReasonAnnotation)
+	return annotationFor(obj, deployapi.DeploymentStatusReasonAnnotation)
 }
 
 func DeploymentDesiredReplicas(obj runtime.Object) (int, bool) {
-	s := mappedAnnotationFor(obj, deployapi.DesiredReplicasAnnotation)
+	s := annotationFor(obj, deployapi.DesiredReplicasAnnotation)
 	if len(s) == 0 {
 		return 0, false
 	}
@@ -283,11 +211,11 @@ func DeploymentDesiredReplicas(obj runtime.Object) (int, bool) {
 }
 
 func EncodedDeploymentConfigFor(obj runtime.Object) string {
-	return mappedAnnotationFor(obj, deployapi.DeploymentEncodedConfigAnnotation)
+	return annotationFor(obj, deployapi.DeploymentEncodedConfigAnnotation)
 }
 
 func DeploymentVersionFor(obj runtime.Object) int {
-	v, err := strconv.Atoi(mappedAnnotationFor(obj, deployapi.DeploymentVersionAnnotation))
+	v, err := strconv.Atoi(annotationFor(obj, deployapi.DeploymentVersionAnnotation))
 	if err != nil {
 		return -1
 	}
@@ -295,26 +223,17 @@ func DeploymentVersionFor(obj runtime.Object) int {
 }
 
 func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
-	value := mappedAnnotationFor(deployment, deployapi.DeploymentCancelledAnnotation)
+	value := annotationFor(deployment, deployapi.DeploymentCancelledAnnotation)
 	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
 }
 
-// mappedAnnotationFor finds the given annotation in obj using the annotation
-// map to search all known key variants.
-func mappedAnnotationFor(obj runtime.Object, key string) string {
+// annotationFor returns the annotation with key for obj.
+func annotationFor(obj runtime.Object, key string) string {
 	meta, err := api.ObjectMetaFor(obj)
 	if err != nil {
 		return ""
 	}
-	for _, mappedKey := range annotationMap[key] {
-		if val, ok := meta.Annotations[mappedKey]; ok {
-			return val
-		}
-	}
-	if val, ok := meta.Annotations[key]; ok {
-		return val
-	}
-	return ""
+	return meta.Annotations[key]
 }
 
 // DeploymentsByLatestVersionAsc sorts deployments by LatestVersion ascending.
