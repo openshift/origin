@@ -11,7 +11,7 @@ import (
 
 	"github.com/coreos/go-etcd/etcd"
 	log "github.com/golang/glog"
-	"github.com/openshift/openshift-sdn/pkg/api"
+	"github.com/openshift/openshift-sdn/ovssubnet/api"
 )
 
 type EtcdConfig struct {

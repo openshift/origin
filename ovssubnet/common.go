@@ -9,7 +9,7 @@ import (
 
 	"github.com/openshift/openshift-sdn/ovssubnet/controller/kube"
 	"github.com/openshift/openshift-sdn/ovssubnet/controller/lbr"
-	"github.com/openshift/openshift-sdn/pkg/api"
+	"github.com/openshift/openshift-sdn/ovssubnet/api"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 )
 

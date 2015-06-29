@@ -12,8 +12,8 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/openshift/openshift-sdn/ovssubnet"
-	"github.com/openshift/openshift-sdn/pkg/api"
-	"github.com/openshift/openshift-sdn/pkg/registry"
+	"github.com/openshift/openshift-sdn/ovssubnet/api"
+	"github.com/openshift/openshift-sdn/ovssubnet/registry"
 )
 
 type NetworkManager interface {
