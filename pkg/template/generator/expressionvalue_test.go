@@ -14,10 +14,10 @@ func TestExpressionValueGenerator(t *testing.T) {
 	}{
 		{"test[A-Z0-9]{4}template", "testQ3HVtemplate"},
 		{"[\\d]{4}", "6841"},
-		{"[\\w]{4}", "DVgK"},
-		{"[\\a]{10}", "nFWmvmjuaZ"},
-		{"admin[0-9]{2}[A-Z]{2}", "admin32VU"},
-		{"admin[0-9]{2}test[A-Z]{2}", "admin56testGS"},
+		{"[\\w]{20}", "UDd5PEJLyHZ7VpdMGC78"},
+		{"[\\a]{10}", "fUx4sLZWES"},
+		{"admin[0-9]{2}[A-Z]{2}", "admin05XX"},
+		{"admin[0-9]{2}test[A-Z]{2}", "admin75testAX"},
 	}
 
 	for _, test := range tests {
