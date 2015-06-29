@@ -7,9 +7,10 @@ import (
 	"net"
 	"time"
 
+	"github.com/openshift/openshift-sdn/ovssubnet/api"
 	"github.com/openshift/openshift-sdn/ovssubnet/controller/kube"
 	"github.com/openshift/openshift-sdn/ovssubnet/controller/lbr"
-	"github.com/openshift/openshift-sdn/ovssubnet/api"
+	"github.com/openshift/openshift-sdn/ovssubnet/controller/multitenant"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 )
 
@@ -36,6 +37,14 @@ func NewKubeController(sub api.SubnetRegistry, hostname string, selfIP string, r
 		kubeController.flowController = kube.NewFlowController()
 	}
 	return kubeController, err
+}
+
+func NewMultitenantController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
+	mtController, err := NewController(sub, hostname, selfIP, ready)
+	if err == nil {
+		mtController.flowController = multitenant.NewFlowController()
+	}
+	return mtController, err
 }
 
 func NewDefaultController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
