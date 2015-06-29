@@ -16,14 +16,16 @@
       "spec": {
         "replicas": 1,
         "selector": {
-          "name": "database"
+          "name": "database",
+          "deconflict": "database.app"
         },
         "template": {
           "metadata": {
             "creationTimestamp": null,
             "labels": {
               "name": "database",
-              "template": "ruby-helloworld-sample"
+              "template": "ruby-helloworld-sample",
+              "deconflict": "database.app"
             }
           },
           "spec": {
@@ -79,14 +81,16 @@
       "spec": {
         "replicas": 3,
         "selector": {
-          "name": "frontend"
+          "name": "frontend",
+          "deconflict": "frontend.app"
         },
         "template": {
           "metadata": {
             "creationTimestamp": null,
             "labels": {
               "name": "frontend",
-              "template": "ruby-helloworld-sample"
+              "template": "ruby-helloworld-sample",
+              "deconflict": "frontend.app"
             }
           },
           "spec": {
