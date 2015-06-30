@@ -64,11 +64,11 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f *cmdutil.Factory, o
 		Long:  fmt.Sprintf(createDockercfgLong, fullName, newSecretFullName, ocEditFullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := o.Complete(f, args); err != nil {
-				cmdutil.CheckErr(err)
+				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
 			}
 
 			if err := o.Validate(); err != nil {
-				cmdutil.CheckErr(err)
+				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
 			}
 
 			if len(cmdutil.GetFlagString(c, "output")) != 0 {

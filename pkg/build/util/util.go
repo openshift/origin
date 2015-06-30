@@ -30,11 +30,11 @@ func GetBuildName(pod *kapi.Pod) string {
 func GetImageStreamForStrategy(strategy buildapi.BuildStrategy) *kapi.ObjectReference {
 	switch strategy.Type {
 	case buildapi.SourceBuildStrategyType:
-		return strategy.SourceStrategy.From
+		return &strategy.SourceStrategy.From
 	case buildapi.DockerBuildStrategyType:
 		return strategy.DockerStrategy.From
 	case buildapi.CustomBuildStrategyType:
-		return strategy.CustomStrategy.From
+		return &strategy.CustomStrategy.From
 	default:
 		return nil
 	}

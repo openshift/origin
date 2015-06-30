@@ -184,7 +184,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories,
 		return input
 	})
 	b.AddComponents(c.ImageStreams, func(input *app.ComponentInput) app.ComponentReference {
-		input.Argument = fmt.Sprintf("--image=%q", input.From)
+		input.Argument = fmt.Sprintf("--image-stream=%q", input.From)
 		input.Resolver = c.imageStreamResolver
 		return input
 	})
@@ -255,7 +255,11 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 				errs = append(errs, fmt.Errorf("invalid FROM directive in Dockerfile in repository %q", repo))
 			}
 			refs := b.AddComponents(dockerFrom, func(input *app.ComponentInput) app.ComponentReference {
-				input.Resolver = c.dockerResolver
+				input.Resolver = app.PerfectMatchWeightedResolver{
+					app.WeightedResolver{Resolver: c.imageStreamResolver, Weight: 0.0},
+					app.WeightedResolver{Resolver: c.dockerResolver, Weight: 1.0},
+					app.WeightedResolver{Resolver: &app.PassThroughDockerResolver{}, Weight: 2.0},
+				}
 				input.Use(repo)
 				input.ExpectToBuild = true
 				repo.UsedBy(input)
@@ -404,6 +408,9 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
+				if !input.AsImageStream {
+					glog.Warningf("Could not find an image match for %q. Make sure that a Docker image with that tag is available on the OpenShift node for the build to succeed.", ref.Input().Match.Value)
+				}
 				strategy, source, err := app.StrategyAndSourceForRepository(ref.Input().Uses, input)
 				if err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
@@ -418,20 +425,35 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 						return nil, err
 					}
 				}
+				// Append any exposed ports from Dockerfile to input image
+				if ref.Input().Uses.IsDockerBuild() {
+					exposed, ok := ref.Input().Uses.Info().Dockerfile.GetDirective("EXPOSE")
+					if ok {
+						if input.Info == nil {
+							input.Info = &imageapi.DockerImage{
+								Config: &imageapi.DockerConfig{},
+							}
+						}
+						input.Info.Config.ExposedPorts = map[string]struct{}{}
+						for _, p := range exposed {
+							input.Info.Config.ExposedPorts[p] = struct{}{}
+						}
+					}
+				}
 				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 			} else {
 				glog.V(2).Infof("will include %q", ref)
 				input, err := app.InputImageFromMatch(ref.Input().Match)
+				if err != nil {
+					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
+				}
 				if name, ok := input.SuggestName(); ok {
 					input.ObjectName, err = ensureValidUniqueName(names, name)
 					if err != nil {
 						return nil, err
 					}
-				}
-				if err != nil {
-					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
 				if pipeline, err = app.NewImagePipeline(ref.Input().String(), input); err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
@@ -522,13 +544,13 @@ func filterImageStreams(result *AppResult) *AppResult {
 		if bc, ok := item.(*buildapi.BuildConfig); ok {
 			to := bc.Parameters.Output.To
 			if to != nil && to.Kind == "ImageStreamTag" {
-				imageStreams[makeImageStreamKey(to)] = true
+				imageStreams[makeImageStreamKey(*to)] = true
 			}
 			switch bc.Parameters.Strategy.Type {
 			case buildapi.DockerBuildStrategyType:
 				from := bc.Parameters.Strategy.DockerStrategy.From
 				if from != nil && from.Kind == "ImageStreamTag" {
-					imageStreams[makeImageStreamKey(from)] = true
+					imageStreams[makeImageStreamKey(*from)] = true
 				}
 			case buildapi.SourceBuildStrategyType:
 				from := bc.Parameters.Strategy.SourceStrategy.From
@@ -537,7 +559,7 @@ func filterImageStreams(result *AppResult) *AppResult {
 				}
 			case buildapi.CustomBuildStrategyType:
 				from := bc.Parameters.Strategy.CustomStrategy.From
-				if from != nil && from.Kind == "ImageStreamTag" {
+				if from.Kind == "ImageStreamTag" {
 					imageStreams[makeImageStreamKey(from)] = true
 				}
 			}
@@ -558,7 +580,7 @@ func filterImageStreams(result *AppResult) *AppResult {
 	return result
 }
 
-func makeImageStreamKey(ref *kapi.ObjectReference) string {
+func makeImageStreamKey(ref kapi.ObjectReference) string {
 	name, _, _ := imageapi.SplitImageStreamTag(ref.Name)
 	return types.NamespacedName{ref.Namespace, name}.String()
 }
@@ -611,15 +633,22 @@ func (c *AppConfig) run(out io.Writer, acceptors app.Acceptors) (*AppResult, err
 
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
+	warned := make(map[string]struct{})
 	for _, p := range pipelines {
 		accepted, err := p.Objects(accept, acceptors)
 		if err != nil {
 			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
 		}
+		if p.Image != nil && p.Image.HasEmptyDir {
+			if _, ok := warned[p.Image.Name]; !ok {
+				fmt.Fprintf(out, "NOTICE: Image %q uses an EmptyDir volume. Data in EmptyDir volumes is not persisted across deployments.\n", p.Image.Name)
+				warned[p.Image.Name] = struct{}{}
+			}
+		}
 		objects = append(objects, accepted...)
 	}
 
-	objects = app.AddServices(objects)
+	objects = app.AddServices(objects, false)
 
 	templateObjects, err := c.buildTemplates(components, app.Environment(parameters))
 	if err != nil {

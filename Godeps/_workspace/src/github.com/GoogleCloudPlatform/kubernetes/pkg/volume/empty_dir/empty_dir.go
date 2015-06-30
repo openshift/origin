@@ -189,9 +189,12 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 	}
 
 	// Determine the effective SELinuxOptions to use for this volume.
-	securityContext, err := ed.determineEffectiveSELinuxOptions()
-	if err != nil {
-		return err
+	securityContext := ""
+	if selinuxEnabled() {
+		securityContext, err = ed.determineEffectiveSELinuxOptions()
+		if err != nil {
+			return err
+		}
 	}
 
 	switch ed.medium {

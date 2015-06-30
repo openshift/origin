@@ -132,7 +132,7 @@ func TestHandle_makeContainerFail(t *testing.T) {
 			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			updateDeploymentFunc: func(namspace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				updatedDeployment = deployment
 				return updatedDeployment, nil
 			},
@@ -173,7 +173,7 @@ func TestHandle_createPodFail(t *testing.T) {
 			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			updateDeploymentFunc: func(namspace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				updatedDeployment = deployment
 				return updatedDeployment, nil
 			},
@@ -510,7 +510,7 @@ func TestHandle_cancelNew(t *testing.T) {
 			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			updateDeploymentFunc: func(namspace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				updatedDeployment = deployment
 				return updatedDeployment, nil
 			},
@@ -552,7 +552,7 @@ func TestHandle_cancelPendingRunning(t *testing.T) {
 			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			updateDeploymentFunc: func(namspace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				// None of these tests should transition the phase.
 				t.Errorf("unexpected call to updateDeployment")
 				return nil, nil
@@ -617,7 +617,7 @@ func TestHandle_deployerPodDisappeared(t *testing.T) {
 			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
 		},
 		deploymentClient: &deploymentClientImpl{
-			updateDeploymentFunc: func(namspace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 				updatedDeployment = deployment
 				updateCalled = true
 				return updatedDeployment, nil

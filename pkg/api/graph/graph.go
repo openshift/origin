@@ -3,9 +3,12 @@ package graph
 import (
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
+
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 type Node struct {
@@ -14,6 +17,8 @@ type Node struct {
 }
 
 type UniqueName string
+
+type UniqueNameFunc func(obj interface{}) UniqueName
 
 func (n UniqueName) UniqueName() string {
 	return string(n)
@@ -41,7 +46,7 @@ func EnsureUnique(g UniqueNodeInitializer, name UniqueName, fn NodeInitializerFu
 }
 
 type MutableDirectedEdge interface {
-	AddEdge(head, tail graph.Node, edgeKind int)
+	AddEdge(head, tail graph.Node, edgeKind string)
 }
 
 type MutableUniqueGraph interface {
@@ -53,22 +58,22 @@ type MutableUniqueGraph interface {
 
 type Edge struct {
 	concrete.Edge
-	K int
+	K string
 }
 
-func NewEdge(head, tail graph.Node, kind int) Edge {
+func NewEdge(head, tail graph.Node, kind string) Edge {
 	return Edge{concrete.Edge{head, tail}, kind}
 }
 
-func (e Edge) Kind() int {
+func (e Edge) Kind() string {
 	return e.K
 }
 
 type GraphDescriber interface {
 	Name(node graph.Node) string
-	Kind(node graph.Node) int
+	Kind(node graph.Node) string
 	Object(node graph.Node) interface{}
-	EdgeKind(edge graph.Edge) int
+	EdgeKind(edge graph.Edge) string
 }
 
 type Interface interface {
@@ -107,6 +112,35 @@ func New() Graph {
 	}
 }
 
+func (g Graph) String() string {
+	ret := ""
+
+	nodeList := g.NodeList()
+	sort.Sort(SortedNodeList(nodeList))
+	for _, node := range nodeList {
+		ret += fmt.Sprintf("%d: %v\n", node.ID(), g.GraphDescriber.Name(node))
+
+		// can't use SuccessorEdges, because I want stable ordering
+		successors := g.Successors(node)
+		sort.Sort(SortedNodeList(successors))
+		for _, successor := range successors {
+			edge := g.EdgeBetween(node, successor)
+			kind := g.EdgeKind(edge)
+			ret += fmt.Sprintf("\t%v to %d: %v\n", kind, successor.ID(), g.GraphDescriber.Name(successor))
+		}
+	}
+
+	return ret
+}
+
+type SortedNodeList []graph.Node
+
+func (m SortedNodeList) Len() int      { return len(m) }
+func (m SortedNodeList) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m SortedNodeList) Less(i, j int) bool {
+	return m[i].ID() < m[j].ID()
+}
+
 // RootNodes returns all the roots of this graph.
 func (g Graph) RootNodes() []graph.Node {
 	roots := []graph.Node{}
@@ -121,7 +155,7 @@ func (g Graph) RootNodes() []graph.Node {
 
 // PredecessorEdges invokes fn with all of the predecessor edges of node that have the specified
 // edge kind.
-func (g Graph) PredecessorEdges(node graph.Node, fn EdgeFunc, edgeKind ...int) {
+func (g Graph) PredecessorEdges(node graph.Node, fn EdgeFunc, edgeKind ...string) {
 	for _, n := range g.Predecessors(node) {
 		edge := g.EdgeBetween(n, node)
 		kind := g.EdgeKind(edge)
@@ -137,7 +171,7 @@ func (g Graph) PredecessorEdges(node graph.Node, fn EdgeFunc, edgeKind ...int) {
 
 // SuccessorEdges invokes fn with all of the successor edges of node that have the specified
 // edge kind.
-func (g Graph) SuccessorEdges(node graph.Node, fn EdgeFunc, edgeKind ...int) {
+func (g Graph) SuccessorEdges(node graph.Node, fn EdgeFunc, edgeKind ...string) {
 	for _, n := range g.Successors(node) {
 		edge := g.EdgeBetween(node, n)
 		kind := g.EdgeKind(edge)
@@ -151,6 +185,38 @@ func (g Graph) SuccessorEdges(node graph.Node, fn EdgeFunc, edgeKind ...int) {
 	}
 }
 
+// OutboundEdges returns all the outbound edges from node that are in the list of edgeKinds
+// if edgeKinds is empty, then all edges are returned
+func (g Graph) OutboundEdges(node graph.Node, edgeKinds ...string) []graph.Edge {
+	ret := []graph.Edge{}
+
+	allowedKinds := util.NewStringSet(edgeKinds...)
+	for _, n := range g.Successors(node) {
+		edge := g.EdgeBetween(n, node)
+		if len(allowedKinds) == 0 || allowedKinds.Has(g.EdgeKind(edge)) {
+			ret = append(ret, edge)
+		}
+	}
+
+	return ret
+}
+
+// InboundEdges returns all the inbound edges to node that are in the list of edgeKinds
+// if edgeKinds is empty, then all edges are returned
+func (g Graph) InboundEdges(node graph.Node, edgeKinds ...string) []graph.Edge {
+	ret := []graph.Edge{}
+
+	allowedKinds := util.NewStringSet(edgeKinds...)
+	for _, n := range g.Predecessors(node) {
+		edge := g.EdgeBetween(n, node)
+		if len(allowedKinds) == 0 || allowedKinds.Has(g.EdgeKind(edge)) {
+			ret = append(ret, edge)
+		}
+	}
+
+	return ret
+}
+
 func (g Graph) EdgeList() []graph.Edge {
 	return g.internal.EdgeList()
 }
@@ -160,7 +226,17 @@ func (g Graph) AddNode(n graph.Node) {
 }
 
 // AddEdge implements MutableUniqueGraph
-func (g Graph) AddEdge(head, tail graph.Node, edgeKind int) {
+func (g Graph) AddEdge(head, tail graph.Node, edgeKind string) {
+	// a Contains edge has semantic meaning for osgraph.Graph objects.  It never makes sense
+	// to allow a single object to be "contained" by multiple nodes.
+	if edgeKind == ContainsEdgeKind {
+		// check incoming edges on the tail to be certain that we aren't already contained
+		containsEdges := g.InboundEdges(tail, ContainsEdgeKind)
+		if len(containsEdges) != 0 {
+			// TODO consider changing the AddEdge API to make this cleaner.  This is a pretty severe programming error
+			panic(fmt.Sprintf("%v is already contained by %v", tail, containsEdges))
+		}
+	}
 	g.internal.AddDirectedEdge(NewEdge(head, tail, edgeKind), 1)
 }
 
@@ -189,7 +265,7 @@ type NodeFunc func(g Interface, n graph.Node) bool
 
 // EdgeFunc is passed a new graph, an edge in the current graph, and should mutate
 // the new graph as needed. If true is returned, the existing edge will be added to the graph.
-type EdgeFunc func(g Interface, head, tail graph.Node, edgeKind int) bool
+type EdgeFunc func(g Interface, head, tail graph.Node, edgeKind string) bool
 
 // EdgeSubgraph returns the directed subgraph with only the edges that match the
 // provided function.
@@ -241,21 +317,21 @@ func AllNodes(g Interface, node graph.Node) bool {
 }
 
 // ExistingDirectEdge returns true if both head and tail already exist in the graph and the edge kind is
-// not ReferencedByGraphEdgeKind (the generic reverse edge kind). This will purge the graph of any
+// not ReferencedByEdgeKind (the generic reverse edge kind). This will purge the graph of any
 // edges created by AddReversedEdge.
-func ExistingDirectEdge(g Interface, head, tail graph.Node, edgeKind int) bool {
-	return edgeKind != ReferencedByGraphEdgeKind && g.NodeExists(head) && g.NodeExists(tail)
+func ExistingDirectEdge(g Interface, head, tail graph.Node, edgeKind string) bool {
+	return edgeKind != ReferencedByEdgeKind && g.NodeExists(head) && g.NodeExists(tail)
 }
 
 // ReverseExistingDirectEdge reverses the order of the edge and drops the existing edge only if
-// both head and tail already exist in the graph and the edge kind is not ReferencedByGraphEdgeKind
+// both head and tail already exist in the graph and the edge kind is not ReferencedByEdgeKind
 // (the generic reverse edge kind).
-func ReverseExistingDirectEdge(g Interface, head, tail graph.Node, edgeKind int) bool {
+func ReverseExistingDirectEdge(g Interface, head, tail graph.Node, edgeKind string) bool {
 	return ExistingDirectEdge(g, head, tail, edgeKind) && ReverseGraphEdge(g, head, tail, edgeKind)
 }
 
 // ReverseGraphEdge reverses the order of the edge and drops the existing edge.
-func ReverseGraphEdge(g Interface, head, tail graph.Node, edgeKind int) bool {
+func ReverseGraphEdge(g Interface, head, tail graph.Node, edgeKind string) bool {
 	g.AddEdge(tail, head, edgeKind)
 	return false
 }
@@ -263,15 +339,15 @@ func ReverseGraphEdge(g Interface, head, tail graph.Node, edgeKind int) bool {
 // AddReversedEdge adds a reversed edge for every passed edge and preserves the existing
 // edge. Used to convert a one directional edge into a bidirectional edge, but will
 // create duplicate edges if a bidirectional edge between two nodes already exists.
-func AddReversedEdge(g Interface, head, tail graph.Node, edgeKind int) bool {
-	g.AddEdge(tail, head, ReferencedByGraphEdgeKind)
+func AddReversedEdge(g Interface, head, tail graph.Node, edgeKind string) bool {
+	g.AddEdge(tail, head, ReferencedByEdgeKind)
 	return true
 }
 
 // AddGraphEdgesTo returns an EdgeFunc that will add the selected edges to the passed
 // graph.
 func AddGraphEdgesTo(g Interface) EdgeFunc {
-	return func(_ Interface, head, tail graph.Node, edgeKind int) bool {
+	return func(_ Interface, head, tail graph.Node, edgeKind string) bool {
 		g.AddEdge(head, tail, edgeKind)
 		return false
 	}
@@ -338,17 +414,17 @@ func (g typedGraph) Object(node graph.Node) interface{} {
 }
 
 type kind interface {
-	Kind() int
+	Kind() string
 }
 
-func (g typedGraph) Kind(node graph.Node) int {
+func (g typedGraph) Kind(node graph.Node) string {
 	if k, ok := node.(kind); ok {
 		return k.Kind()
 	}
-	return UnknownGraphKind
+	return UnknownNodeKind
 }
 
-func (g typedGraph) EdgeKind(edge graph.Edge) int {
+func (g typedGraph) EdgeKind(edge graph.Edge) string {
 	var e Edge
 	switch t := edge.(type) {
 	case concrete.WeightedEdge:
@@ -356,7 +432,7 @@ func (g typedGraph) EdgeKind(edge graph.Edge) int {
 	case Edge:
 		e = t
 	default:
-		return UnknownGraphEdgeKind
+		return UnknownEdgeKind
 	}
 	return e.Kind()
 }
@@ -372,8 +448,8 @@ func (n NodeSet) Add(id int) {
 	n[id] = struct{}{}
 }
 
-func NodesByKind(g Interface, nodes []graph.Node, kinds ...int) [][]graph.Node {
-	buckets := make(map[int]int)
+func NodesByKind(g Interface, nodes []graph.Node, kinds ...string) [][]graph.Node {
+	buckets := make(map[string]int)
 	for i, kind := range kinds {
 		buckets[kind] = i
 	}

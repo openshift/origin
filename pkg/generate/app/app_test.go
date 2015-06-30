@@ -359,3 +359,92 @@ func ExampleGenerateSimpleDockerApp() {
 	log.Print(string(data))
 	// output:
 }
+
+func TestImageStream(t *testing.T) {
+	tests := []struct {
+		name        string
+		r           *ImageRef
+		expectedIs  *imageapi.ImageStream
+		expectedErr error
+	}{
+		{
+			name: "existing image stream",
+			r: &ImageRef{
+				Stream: &imageapi.ImageStream{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "some-stream",
+					},
+				},
+			},
+			expectedIs: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "some-stream",
+				},
+			},
+		},
+		{
+			name: "input stream",
+			r: &ImageRef{
+				DockerImageReference: imageapi.DockerImageReference{
+					Namespace: "test",
+					Name:      "input",
+				},
+			},
+			expectedIs: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "input",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "test/input",
+				},
+			},
+		},
+		{
+			name: "insecure input stream",
+			r: &ImageRef{
+				DockerImageReference: imageapi.DockerImageReference{
+					Namespace: "test",
+					Name:      "insecure",
+				},
+				Insecure: true,
+			},
+			expectedIs: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "insecure",
+					Annotations: map[string]string{
+						imageapi.InsecureRepositoryAnnotation: "true",
+					},
+				},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "test/insecure",
+				},
+			},
+		},
+		{
+			name: "output stream",
+			r: &ImageRef{
+				DockerImageReference: imageapi.DockerImageReference{
+					Namespace: "test",
+					Name:      "output",
+				},
+				OutputImage: true,
+			},
+			expectedIs: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "output",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		is, err := test.r.ImageStream()
+		if err != test.expectedErr {
+			t.Errorf("%s: error mismatch, expected %v, got %v", test.name, test.expectedErr, err)
+			continue
+		}
+		if !reflect.DeepEqual(is, test.expectedIs) {
+			t.Errorf("%s: image stream mismatch, expected %+v, got %+v", test.name, test.expectedIs, is)
+		}
+	}
+}

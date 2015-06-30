@@ -137,6 +137,8 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		}
 	}
 
+	verifiedPrune := false
+
 	// Validate all requested accessRecords
 	// Only return failure errors from this loop. Success should continue to validate all records
 	for _, access := range accessRecords {
@@ -155,20 +157,37 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				verb = "update"
 			case "pull":
 				verb = "get"
+			case "*":
+				verb = "prune"
 			default:
 				return nil, ac.wrapErr(ErrUnsupportedAction)
 			}
 
-			if err := verifyImageStreamAccess(imageStreamNS, imageStreamName, verb, client); err != nil {
-				return nil, ac.wrapErr(err)
+			switch verb {
+			case "prune":
+				if verifiedPrune {
+					continue
+				}
+				if err := verifyPruneAccess(client); err != nil {
+					return nil, ac.wrapErr(err)
+				}
+				verifiedPrune = true
+			default:
+				if err := verifyImageStreamAccess(imageStreamNS, imageStreamName, verb, client); err != nil {
+					return nil, ac.wrapErr(err)
+				}
 			}
 
 		case "admin":
 			switch access.Action {
 			case "prune":
+				if verifiedPrune {
+					continue
+				}
 				if err := verifyPruneAccess(client); err != nil {
 					return nil, ac.wrapErr(err)
 				}
+				verifiedPrune = true
 			default:
 				return nil, ac.wrapErr(ErrUnsupportedAction)
 			}

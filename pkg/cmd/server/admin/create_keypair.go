@@ -59,8 +59,11 @@ func NewCommandCreateKeyPair(commandName string, fullName string, out io.Writer)
 
 	flags.StringVar(&options.PublicKeyFile, "public-key", "", "The public key file.")
 	flags.StringVar(&options.PrivateKeyFile, "private-key", "", "The private key file.")
-
 	flags.BoolVar(&options.Overwrite, "overwrite", false, "Overwrite existing key files if found. If false, either file existing will prevent creation.")
+
+	// autocompletion hints
+	cmd.MarkFlagFilename("public-key")
+	cmd.MarkFlagFilename("private-key")
 
 	return cmd
 }

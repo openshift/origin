@@ -155,14 +155,15 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		}
 	case deployapi.DeploymentStatusFailed:
 		// Nothing to do in this terminal state.
-		glog.V(4).Infof("Ignoring deployment %s (status %s)", deployutil.LabelForDeployment(deployment), currentStatus)
 	case deployapi.DeploymentStatusComplete:
 		// now list any pods in the namespace that have the specified label
 		deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
 		if err != nil {
 			return fmt.Errorf("couldn't fetch deployer pods for %s after successful completion: %v", deployutil.LabelForDeployment(deployment), err)
 		}
-		glog.V(4).Infof("Deleting %d deployer pods for deployment %s", len(deployerPods), deployutil.LabelForDeployment(deployment))
+		if len(deployerPods) > 0 {
+			glog.V(4).Infof("Deleting %d deployer pods for deployment %s", len(deployerPods), deployutil.LabelForDeployment(deployment))
+		}
 		cleanedAll := true
 		for _, deployerPod := range deployerPods {
 			if err := c.podClient.deletePod(deployerPod.Namespace, deployerPod.Name); err != nil {

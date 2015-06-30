@@ -14,6 +14,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	"github.com/openshift/origin/Godeps/_workspace/src/github.com/spf13/cobra"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -52,6 +53,9 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
 	// TODO rename this node-name and recommend uname -n
 	flags.StringVar(&args.NodeName, prefix+"hostname", args.NodeName, "The hostname to identify this node with the master.")
 	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
+
+	// autocompletion hints
+	cobra.MarkFlagFilename(flags, prefix+"volume-dir")
 }
 
 // NewDefaultNodeArgs creates NodeArgs with sub-objects created and default values set.

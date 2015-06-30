@@ -56,7 +56,7 @@ const (
 	KubeNonEscalatingViewableGroupName      = ResourceGroupPrefix + ":kube-non-escalating"
 	OpenshiftNonEscalatingViewableGroupName = ResourceGroupPrefix + ":openshift-non-escalating"
 
-	// EscalatingResourcesGroupName contains all resources that can be used to escalate priviledges when simply viewed
+	// EscalatingResourcesGroupName contains all resources that can be used to escalate privileges when simply viewed
 	EscalatingResourcesGroupName         = ResourceGroupPrefix + ":escalating"
 	KubeEscalatingViewableGroupName      = ResourceGroupPrefix + ":kube-escalating"
 	OpenshiftEscalatingViewableGroupName = ResourceGroupPrefix + ":openshift-escalating"

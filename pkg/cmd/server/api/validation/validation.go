@@ -5,10 +5,13 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/spf13/pflag"
+
 	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 
 func ValidateHostPort(value string, field string) fielderrors.ValidationErrorList {
@@ -176,6 +179,22 @@ func ValidateFile(path string, field string) fielderrors.ValidationErrorList {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired(field))
 	} else if _, err := os.Stat(path); err != nil {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, path, "could not read file"))
+	}
+
+	return allErrs
+}
+
+func ValidateExtendedArguments(config api.ExtendedArguments, flagFunc func(*pflag.FlagSet)) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	// check extended arguments for errors
+	for _, err := range cmdflags.Resolve(config, flagFunc) {
+		switch t := err.(type) {
+		case *fielderrors.ValidationError:
+			allErrs = append(allErrs, t)
+		default:
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("????", config, err.Error()))
+		}
 	}
 
 	return allErrs

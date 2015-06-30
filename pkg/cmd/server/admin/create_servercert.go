@@ -69,6 +69,10 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 	flags.Var(&options.Hostnames, "hostnames", "Every hostname or IP you want server certs to be valid for. Comma delimited list")
 	flags.BoolVar(&options.Overwrite, "overwrite", true, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 
+	// autocompletion hints
+	cmd.MarkFlagFilename("cert")
+	cmd.MarkFlagFilename("key")
+
 	return cmd
 }
 

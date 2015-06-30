@@ -67,7 +67,7 @@ func stiStrategy(kind, name string) buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
 		Type: buildapi.SourceBuildStrategyType,
 		SourceStrategy: &buildapi.SourceBuildStrategy{
-			From: &kapi.ObjectReference{
+			From: kapi.ObjectReference{
 				Kind: kind,
 				Name: name,
 			},
@@ -78,7 +78,7 @@ func customStrategy(kind, name string) buildapi.BuildStrategy {
 	return buildapi.BuildStrategy{
 		Type: buildapi.CustomBuildStrategyType,
 		CustomStrategy: &buildapi.CustomBuildStrategy{
-			From: &kapi.ObjectReference{
+			From: kapi.ObjectReference{
 				Kind: kind,
 				Name: name,
 			},

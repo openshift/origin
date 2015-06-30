@@ -93,6 +93,12 @@ users:
 	flags.StringVar(&options.ContextNamespace, "namespace", kapi.NamespaceDefault, "Namespace for this context in .kubeconfig.")
 	flags.StringVar(&options.KubeConfigFile, "kubeconfig", ".kubeconfig", "Path for the resulting .kubeconfig file.")
 
+	// autocompletion hints
+	cmd.MarkFlagFilename("certificate-authority")
+	cmd.MarkFlagFilename("client-certificate")
+	cmd.MarkFlagFilename("client-key")
+	cmd.MarkFlagFilename("kubeconfig")
+
 	return cmd
 }
 
@@ -125,7 +131,7 @@ func (o CreateKubeConfigOptions) Validate(args []string) error {
 func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error) {
 	glog.V(4).Infof("creating a .kubeconfig with: %#v", o)
 
-	// read all the refenced filenames
+	// read all the referenced filenames
 	caData, err := ioutil.ReadFile(o.APIServerCAFile)
 	if err != nil {
 		return nil, err

@@ -231,7 +231,7 @@ func describeBuildParameters(p buildapi.BuildParameters, out *tabwriter.Writer) 
 }
 
 func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writer) {
-	if s.From != nil && len(s.From.Name) != 0 {
+	if len(s.From.Name) != 0 {
 		if len(s.From.Namespace) != 0 {
 			formatString(out, "Image Reference", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))
 		} else {
@@ -266,7 +266,7 @@ func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writ
 }
 
 func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writer) {
-	if s.From != nil && len(s.From.Name) != 0 {
+	if len(s.From.Name) != 0 {
 		if len(s.From.Namespace) != 0 {
 			formatString(out, "Image Reference", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))
 		} else {

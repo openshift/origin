@@ -86,6 +86,9 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out i
 	cmd.Flags().IntVarP(&options.WatchPort, "watch-port", "w", ipfailover.DefaultWatchPort, "Port to monitor or watch for resource availability.")
 	cmd.Flags().IntVarP(&options.Replicas, "replicas", "r", options.Replicas, "The replication factor of this IP failover configuration; commonly 2 when high availability is desired. Please ensure this matches the number of nodes that satisfy the selector (or default selector) specified.")
 
+	// autocompletion hints
+	cmd.MarkFlagFilename("credentials", "kubeconfig")
+
 	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }

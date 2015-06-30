@@ -1,6 +1,6 @@
 {
   "kind": "Template",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "etcd",
     "creationTimestamp": null,
@@ -13,7 +13,7 @@
   "objects": [
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "etcd",
         "creationTimestamp": null
@@ -38,7 +38,7 @@
     },
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "etcd-discovery",
         "creationTimestamp": null,
@@ -68,7 +68,7 @@
     },
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "etcd",
         "creationTimestamp": null,
@@ -106,7 +106,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "etcd-discovery",
         "creationTimestamp": null
@@ -149,7 +149,6 @@
                 "resources": {},
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
                 "securityContext": {
                   "capabilities": {},
                   "privileged": false
@@ -157,8 +156,7 @@
               }
             ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
@@ -166,7 +164,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "etcd",
         "creationTimestamp": null
@@ -221,14 +219,21 @@
                     "value": "${ETCD_CLUSTER_TOKEN}"
                   },
                   {
-                    "name": "ETCD_DISCOVERY",
-                    "value": "${ETCD_DISCOVERY}"
+                    "name": "ETCD_DISCOVERY_TOKEN",
+                    "value": "${ETCD_DISCOVERY_TOKEN}"
+                  },
+                  {
+                    "name": "ETCD_DISCOVERY_URL",
+                    "value": "${ETCD_DISCOVERY_URL}"
+                  },
+                  {
+                    "name": "ETCDCTL_PEERS",
+                    "value": "http://etcd:2379"
                   }
                 ],
                 "resources": {},
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
                 "securityContext": {
                   "capabilities": {},
                   "privileged": false
@@ -236,8 +241,7 @@
               }
             ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
@@ -256,10 +260,15 @@
       "value": "3"
     },
     {
-      "name": "ETCD_DISCOVERY",
-      "description": "A token used for etcd discovery",
+      "name": "ETCD_DISCOVERY_URL",
+      "description": "Discovery URL connects etcd instances together by storing a list of peer addresses, metadata and the initial size of the cluster under a unique address",
+      "value": "http://etcd-discovery:2379"
+    },
+    {
+      "name": "ETCD_DISCOVERY_TOKEN",
+      "description": "A unique token used by the discovery service",
       "generate": "expression",
-      "from": "http://etcd-discovery:2379/v2/keys/discovery/[a-z0-9]{40}"
+      "from": "[a-z0-9]{40}"
     },
     {
       "name": "ETCD_CLUSTER_TOKEN",

@@ -758,7 +758,7 @@
 		},
 		{
 			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
-			"Rev": "ae4665cf2d188c65764c73fe4af5378acc549510"
+			"Rev": "3dcc96556217539f50599357fb481ac0dc7439b9"
 		},
 		{
 			"ImportPath": "github.com/emicklei/go-restful",
@@ -1097,11 +1097,11 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "bba56042cf767e329430e7c7f68c3f9f640b4b8b"
+			"Rev": "a8f7f3dc25e03593330100563f6c392224221899"
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
-			"Rev": "8730624c6c03fa1c5b8ae471cb5e4d735784d32a"
+			"Rev": "381cb823881391d5673cf2fc41e38feba8a8e49a"
 		},
 		{
 			"ImportPath": "github.com/stretchr/objx",

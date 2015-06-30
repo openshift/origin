@@ -1,0 +1,7 @@
+A Service is an abstraction which defines a logical set of Pods and a policy by which to access them - sometimes called a micro-service. The set of Pods targeted by a Service is (usually) determined by a Label selector. Services broadly fall into two types - those that load balance a set of Pods and hide which Pod a client talks to (clusterIP set to an IP address), and those where clients want to talk to the individual member pods directly (clusterIP set to 'None', also known as 'headless'services). The cluster IP of a service is exposed as an environment variable in each pod in the same namespace.
+
+Services may be exposed only inside the cluster (type ClusterIP), inside the cluster and on a high port on each node (type NodePort), or exposed to a load balancer via the hosting cloud infrastructure (type LoadBalancer). Services with a ClusterIP may choose to map the ports available on the ClusterIP to different ports on the pods. Each service has a DNS entry of the form `<name>.<namespace>.svc.cluster.local` that will be valid from other pods in the cluster.
+
+If the selector for pods is not specified, the service endpoints may be managed by the client directly. Update the endpoint resource to program the service - this can be used to inject external network services into a namsepace.
+
+See link:https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md[the Kubernetes service documentation] for more information.

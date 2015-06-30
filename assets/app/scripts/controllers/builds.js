@@ -96,7 +96,13 @@ angular.module('openshiftConsole')
 
     // Function which will 'instantiate' new build from given buildConfigName
     $scope.startBuild = function(buildConfigName) {
-      var req = {metadata:{name:buildConfigName}};
+      var req = {
+        kind: "BuildRequest",
+        apiVersion: "v1beta3",
+        metadata: {
+          name: buildConfigName
+        }
+      };
       DataService.create("buildconfigs/instantiate", buildConfigName, req, $scope).then(
         function(build) { //success
             $scope.alerts = [
@@ -120,7 +126,13 @@ angular.module('openshiftConsole')
 
     // Function which will 'clone' build from given buildName
     $scope.cloneBuild = function(buildName) {
-      var req = {metadata:{name:buildName}};
+      var req = {
+        kind: "BuildRequest",
+        apiVersion: "v1beta3",
+        metadata: {
+          name: buildName
+        }
+      };
       DataService.create("builds/clone", buildName, req, $scope).then(
         function(build) { //success
             $scope.alerts = [

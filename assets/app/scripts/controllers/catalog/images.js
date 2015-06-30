@@ -38,6 +38,7 @@ angular.module('openshiftConsole')
     };
 
     var imagesForRepos = function(imageRepos, scope) {
+      var tagAnnotationFilter = $filter('imageStreamTagAnnotation');
       angular.forEach(imageRepos, function(imageRepo) {
         if (imageRepo.status) {
           angular.forEach(imageRepo.status.tags, function(tag) {
@@ -45,7 +46,8 @@ angular.module('openshiftConsole')
             var image = {
               imageRepo: imageRepo,
               imageRepoTag: imageRepoTag,
-              name: imageRepo.metadata.name + ":" + imageRepoTag
+              name: imageRepo.metadata.name + ":" + imageRepoTag,
+              version: tagAnnotationFilter(imageRepo, 'version', imageRepoTag)
             };
 
             if (isBuilder(imageRepo, imageRepoTag)) {

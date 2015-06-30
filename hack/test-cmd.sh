@@ -47,7 +47,15 @@ set -e
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
 
-USE_LOCAL_IMAGES=${USE_LOCAL_IMAGES:-true}
+# Use either the latest release built images, or latest.
+if [[ -z "${USE_IMAGES-}" ]]; then
+  tag="latest"
+  if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
+    COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
+    tag="${COMMIT}"
+  fi
+  USE_IMAGES="openshift/origin-\${component}:${tag}"
+fi
 
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 ETCD_PORT=${ETCD_PORT:-4001}
@@ -60,7 +68,7 @@ KUBELET_SCHEME=${KUBELET_SCHEME:-https}
 KUBELET_HOST=${KUBELET_HOST:-127.0.0.1}
 KUBELET_PORT=${KUBELET_PORT:-10250}
 
-TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
+TEMP_DIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift-cmd/XXXX)}
 ETCD_DATA_DIR="${TEMP_DIR}/etcd"
 VOLUME_DIR="${TEMP_DIR}/volumes"
 FAKE_HOME_DIR="${TEMP_DIR}/openshift.local.home"
@@ -133,7 +141,8 @@ openshift start \
   --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
   --hostname="${KUBELET_HOST}" \
   --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}"
+  --etcd-dir="${ETCD_DATA_DIR}" \
+  --images="${USE_IMAGES}"
 
 
 # Start openshift
@@ -346,6 +355,8 @@ oc secrets add serviceaccounts/deployer secrets/dockercfg
 oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file
 # make sure we can add as as pull secret
 oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file --for=pull
+# make sure we can add as as pull secret and mount secret at once
+oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file --for=pull,mount
 echo "secrets: ok"
 
 
@@ -373,7 +384,7 @@ oc create -f test/integration/fixtures/test-image-stream.json
 # make sure stream.status.dockerImageRepository isn't set (no registry)
 [ -z "$(oc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 # create the registry
-oadm registry --create --credentials="${KUBECONFIG}"
+oadm registry --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 # make sure stream.status.dockerImageRepository IS set
 [ -n "$(oc get imageStreams test -t "{{.status.dockerImageRepository}}")" ]
 # ensure the registry rc has been created
@@ -394,7 +405,7 @@ oc create -f examples/image-streams/image-streams-centos7.json
 [ -n "$(oc get imageStreams postgresql -t "{{.status.dockerImageRepository}}")" ]
 [ -n "$(oc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
 # verify the image repository had its tags populated
-[ -n "$(oc get imageStreams wildfly -t "{{.status.tags.latest}}")" ]
+wait_for_command 'oc get imagestreamtags wildfly:latest' "${TIME_MIN}"
 [ -n "$(oc get imageStreams wildfly -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 oc delete imageStreams ruby
 oc delete imageStreams nodejs
@@ -408,7 +419,7 @@ oc delete imageStreams mongodb
 [ -z "$(oc get imageStreams mongodb -t "{{.status.dockerImageRepository}}")" ]
 [ -z "$(oc get imageStreams wildfly -t "{{.status.dockerImageRepository}}")" ]
 wait_for_command 'oc get imagestreamTags mysql:latest' "${TIME_MIN}"
-[ -n "$(oc get imagestreams mysql -t '{{ index .metadata.annotations "openshift.io/image.dockerRepositoryCheck"}}')" ]
+[ -n "$(oc get imagestreams mysql -t "{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}")" ]
 oc describe istag/mysql:latest
 [ "$(oc describe istag/mysql:latest | grep "Environment:")" ]
 [ "$(oc describe istag/mysql:latest | grep "Image Created:")" ]
@@ -514,6 +525,22 @@ oc describe deploymentConfigs test-deployment-config
 [ "$(echo "OTHER=foo" | oc env dc/test-deployment-config -e - --list | grep OTHER=foo)" ]
 [ ! "$(echo "#OTHER=foo" | oc env dc/test-deployment-config -e - --list | grep OTHER=foo)" ]
 [ "$(oc env dc/test-deployment-config TEST=bar OTHER=baz BAR-)" ]
+
+[ "$(oc volume dc/test-deployment-config --list | grep vol1)" ]
+[ "$(oc volume dc/test-deployment-config --add --name=vol2 -m /opt)" ]
+[ "$(oc volume dc/test-deployment-config --add --name=vol1 --type=secret --secret-name='$ecret' -m /data | grep overwrite)" ]
+[ "$(oc volume dc/test-deployment-config --add --name=vol1 --type=emptyDir -m /data --overwrite)" ]
+[ "$(oc volume dc/test-deployment-config --add -m /opt | grep exists)" ]
+[ "$(oc volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby' --overwrite | grep warning)" ]
+[ "$(oc volume dc/test-deployment-config --add --name=vol2 -m /etc -c 'ruby*' --overwrite)" ]
+[ "$(oc volume dc/test-deployment-config --list --name=vol2 | grep /etc)" ]
+[ "$(oc volume dc/test-deployment-config --add --name=vol3 -o yaml | grep vol3)" ]
+[ "$(oc volume dc/test-deployment-config --list --name=vol3 | grep 'not found')" ]
+[ "$(oc volume dc/test-deployment-config --remove 2>&1 | grep confirm)" ]
+[ "$(oc volume dc/test-deployment-config --remove --name=vol2)" ]
+[ ! "$(oc volume dc/test-deployment-config --list | grep vol2)" ]
+[ "$(oc volume dc/test-deployment-config --remove --confirm)" ]
+[ ! "$(oc volume dc/test-deployment-config --list | grep vol1)" ]
 oc deploy test-deployment-config
 oc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
@@ -535,8 +562,7 @@ wait_for_command 'oc get rc/test-deployment-config-1' "${TIME_MIN}"
 # scale rc via deployment configuration
 oc scale dc test-deployment-config --replicas=1
 # scale directly
-oc scale rc test-deployment-config-1 --current-replicas=1 --replicas=5
-[ "$(oc get rc/test-deployment-config-1 | grep 5)" ]
+oc scale rc test-deployment-config-1 --replicas=5
 oc delete all --all
 echo "scale: ok"
 
@@ -598,6 +624,10 @@ oc create -f examples/hello-openshift/hello-pod.json
 oc delete pods hello-openshift
 echo "manage-node: ok"
 
+oadm policy who-can get pods
+oadm policy who-can get pods -n default
+oadm policy who-can get pods --all-namespaces
+
 oadm policy add-role-to-group cluster-admin system:unauthenticated
 oadm policy add-role-to-user cluster-admin system:no-user
 oadm policy remove-role-from-group cluster-admin system:unauthenticated
@@ -649,14 +679,14 @@ echo "new-project: ok"
 # Test running a router
 [ ! "$(oadm router --dry-run | grep 'does not exist')" ]
 [ "$(oadm router -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-haproxy-')" ]
-oadm router --create --credentials="${KUBECONFIG}"
+oadm router --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 [ "$(oadm router | grep 'service exists')" ]
 echo "router: ok"
 
 # Test running a registry
 [ ! "$(oadm registry --dry-run | grep 'does not exist')"]
 [ "$(oadm registry -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-docker-registry')" ]
-oadm registry --create --credentials="${KUBECONFIG}"
+oadm registry --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 [ "$(oadm registry | grep 'service exists')" ]
 echo "registry: ok"
 

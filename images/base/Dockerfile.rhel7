@@ -1,0 +1,10 @@
+#
+# This is the rhel7 base image from which all rhel7 based OpenShift Origin images 
+# inherit. Only packages common to all downstream images should be here.
+#
+# The standard name for this image is openshift/ose-base
+#
+FROM rhel7
+
+RUN yum install -y git tar wget socat hostname sysvinit-tools util-linux && \
+    yum clean all

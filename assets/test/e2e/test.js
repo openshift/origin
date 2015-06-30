@@ -121,37 +121,37 @@ describe('', function() {
       browser.get('/project/test/browse/events');
       expect(element(by.css('h1')).getText()).toEqual("Events");
       // TODO: validate presented events
-    });    
+    });
 
     it('should browse image streams', function() {
       browser.get('/project/test/browse/images');
       expect(element(by.css('h1')).getText()).toEqual("Image Streams");
       // TODO: validate presented images
-    });    
+    });
 
     it('should browse pods', function() {
       browser.get('/project/test/browse/pods');
       expect(element(by.css('h1')).getText()).toEqual("Pods");
       // TODO: validate presented pods, containers, correlated images, builds, source
-    });    
+    });
 
     it('should browse services', function() {
       browser.get('/project/test/browse/services');
       expect(element(by.css('h1')).getText()).toEqual("Services");
       // TODO: validate presented ports, routes, selectors
-    });    
+    });
 
     it('should browse settings', function() {
       browser.get('/project/test/settings');
       expect(element(by.css('h1')).getText()).toEqual("Project Settings");
       // TODO: validate presented project info, quota and resource info
-    });    
+    });
 
     it('should view the create page', function() {
       browser.get('/project/test/create');
-      expect(element(by.css('h1')).getText()).toEqual("Create");
+      expect(element(by.css('h1')).getText()).toEqual("Create Using Your Code");
       // TODO: validate presented instant apps (load some during e2e)
-    });    
+    });
 
     it('should view the create from source repo page', function() {
       browser.get('/project/test/catalog/images?builderfor=https:%2F%2Fgithub.com%2Fopenshift%2Fnodejs-ex');

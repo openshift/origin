@@ -467,7 +467,7 @@ os::build::ldflags() {
   )
 }
 
-os::build::gen-doc() {
+os::build::gen-docs() {
   local cmd="$1"
   local dest="$2"
   local skipprefix="${3:-}"
@@ -500,4 +500,6 @@ os::build::gen-doc() {
   find "${tmpdir}" -exec rsync -pt {} "${dest}" \; >/dev/null
   #cleanup
   rm -rf "${tmpdir}"
+
+  echo "Assets generated in ${dest}"
 }

@@ -275,7 +275,7 @@ type ImageStreamResolver struct {
 func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 	ref, err := imageapi.ParseDockerImageReference(value)
 	if err != nil || len(ref.Registry) != 0 {
-		return nil, fmt.Errorf("image repositories must be of the form [<namespace>/]<name>[:<tag>|@<digest>]")
+		return nil, fmt.Errorf("image streams must be of the form [<namespace>/]<name>[:<tag>|@<digest>]")
 	}
 	namespaces := r.Namespaces
 	if len(ref.Namespace) != 0 {
@@ -285,9 +285,10 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 	if len(searchTag) == 0 {
 		searchTag = imageapi.DefaultImageTag
 	}
+	matches := ScoredComponentMatches{}
 	for _, namespace := range namespaces {
 		glog.V(4).Infof("checking ImageStream %s/%s with ref %q", namespace, ref.Name, searchTag)
-		repo, err := r.Client.ImageStreams(namespace).Get(ref.Name)
+		stream, err := r.Client.ImageStreams(namespace).Get(ref.Name)
 		if err != nil {
 			if errors.IsNotFound(err) || errors.IsForbidden(err) {
 				continue
@@ -295,10 +296,20 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 			return nil, err
 		}
 		ref.Namespace = namespace
-		latest := imageapi.LatestTaggedImage(repo, searchTag)
+		latest := imageapi.LatestTaggedImage(stream, searchTag)
 		if latest == nil {
 			// continue searching in the next namespace
-			glog.V(2).Infof("no image recorded for %s/%s:%s", repo.Namespace, repo.Name, searchTag)
+			glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, searchTag)
+			matches = append(matches, &ComponentMatch{
+				Value:       ref.String(),
+				Argument:    fmt.Sprintf("--image-stream=%q", ref.String()),
+				Name:        ref.Name,
+				Description: fmt.Sprintf("Image stream %s in project %s, tracks %q", stream.Name, stream.Namespace, stream.Status.DockerImageRepository),
+				Score:       0.5,
+
+				ImageStream: stream,
+				ImageTag:    searchTag,
+			})
 			continue
 		}
 		imageStreamImage, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(ref.Name, latest.Image)
@@ -315,18 +326,25 @@ func (r ImageStreamResolver) Resolve(value string) (*ComponentMatch, error) {
 		ref.Registry = ""
 		return &ComponentMatch{
 			Value:       ref.String(),
-			Argument:    fmt.Sprintf("--image=%q", ref.String()),
+			Argument:    fmt.Sprintf("--image-stream=%q", ref.String()),
 			Name:        ref.Name,
-			Description: fmt.Sprintf("Image repository %s (tag %q) in project %s, tracks %q", repo.Name, searchTag, repo.Namespace, repo.Status.DockerImageRepository),
+			Description: fmt.Sprintf("Image stream %s (tag %q) in project %s, tracks %q", stream.Name, searchTag, stream.Namespace, stream.Status.DockerImageRepository),
 			Builder:     IsBuilderImage(&imageData.DockerImageMetadata),
 			Score:       0,
 
-			ImageStream: repo,
+			ImageStream: stream,
 			Image:       &imageData.DockerImageMetadata,
 			ImageTag:    searchTag,
 		}, nil
 	}
-	return nil, ErrNoMatch{value: value}
+	switch len(matches) {
+	case 0:
+		return nil, ErrNoMatch{value: value}
+	case 1:
+		return matches[0], nil
+	default:
+		return nil, ErrMultipleMatches{Image: value, Matches: matches}
+	}
 }
 
 // Searcher will return potentially multiple matches for a set of search strings
@@ -360,7 +378,11 @@ func InputImageFromMatch(match *ComponentMatch) (*ImageRef, error) {
 		return input, nil
 
 	default:
-		return nil, fmt.Errorf("no image or image stream, can't setup a build")
+		input, err := g.FromName(match.Value)
+		if err != nil {
+			return nil, err
+		}
+		return input, nil
 	}
 }
 
@@ -455,7 +477,7 @@ func (r *ImageStreamByAnnotationResolver) annotationMatches(stream *imageapi.Ima
 		match := &ComponentMatch{
 			Value:       value,
 			Name:        stream.Name,
-			Argument:    fmt.Sprintf("--image=%q", value),
+			Argument:    fmt.Sprintf("--image-stream=%q", value),
 			Description: fmt.Sprintf("Image stream %s in project %s, tracks %q", stream.Name, stream.Namespace, stream.Status.DockerImageRepository),
 			Builder:     IsBuilderImage(&imageData.DockerImageMetadata),
 			Score:       score,
@@ -494,4 +516,18 @@ func (r *ImageStreamByAnnotationResolver) Resolve(value string) (*ComponentMatch
 		sort.Sort(matches)
 		return nil, ErrMultipleMatches{Image: value, Matches: matches}
 	}
+}
+
+// PassThroughDockerResolver returns a match with the value that was passed in
+type PassThroughDockerResolver struct{}
+
+// Resolve always returns a match
+func (r *PassThroughDockerResolver) Resolve(value string) (*ComponentMatch, error) {
+	return &ComponentMatch{
+		Value:       value,
+		Name:        value,
+		Argument:    fmt.Sprintf("--docker-image=%q", value),
+		Description: fmt.Sprintf("Docker image %q", value),
+		Score:       1.0,
+	}, nil
 }

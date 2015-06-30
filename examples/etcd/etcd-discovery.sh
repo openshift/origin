@@ -6,7 +6,7 @@
 address=$(getent ahosts ${HOSTNAME} | grep RAW | cut -d ' ' -f 1)
 
 exec /usr/local/bin/etcd \
-  -advertise-client-urls http://${address}:2379 \
-  -listen-client-urls http://${address}:2379 \
-  -data-dir /var/lib/etcd \
-  -name discovery
+  --advertise-client-urls http://${address}:2379 \
+  --listen-client-urls http://${address}:2379 \
+  --data-dir /var/lib/etcd \
+  --name discovery

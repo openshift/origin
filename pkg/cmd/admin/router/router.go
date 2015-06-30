@@ -119,6 +119,8 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated.")
 	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth.")
 
+	cmd.MarkFlagFilename("credentials", "kubeconfig")
+
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd
@@ -312,7 +314,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 				},
 			},
 		}
-		objects = app.AddServices(objects)
+		objects = app.AddServices(objects, true)
 		// TODO: label all created objects with the same label - router=<name>
 		list := &kapi.List{Items: objects}
 

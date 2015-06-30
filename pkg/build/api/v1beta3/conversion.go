@@ -197,7 +197,7 @@ func convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *newer.So
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
-	if in.From != nil && in.From.Kind == "ImageStream" {
+	if in.From.Kind == "ImageStream" {
 		out.From.Kind = "ImageStreamTag"
 		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
 	}
@@ -208,17 +208,10 @@ func convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBu
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
-	if in.From != nil {
-		switch in.From.Kind {
-		case "ImageStream":
-			out.From.Kind = "ImageStreamTag"
-			out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
-		case "ImageStreamTag":
-			_, _, ok := imageapi.SplitImageStreamTag(in.From.Name)
-			if !ok {
-				return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
-			}
-		}
+	switch in.From.Kind {
+	case "ImageStream":
+		out.From.Kind = "ImageStreamTag"
+		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
 	}
 	return nil
 }
@@ -243,11 +236,6 @@ func convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBu
 		case "ImageStream":
 			out.From.Kind = "ImageStreamTag"
 			out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
-		case "ImageStreamTag":
-			_, _, ok := imageapi.SplitImageStreamTag(in.From.Name)
-			if !ok {
-				return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
-			}
 		}
 	}
 	return nil
@@ -257,7 +245,7 @@ func convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *newer.Cu
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
-	if in.From != nil && in.From.Kind == "ImageStream" {
+	if in.From.Kind == "ImageStream" {
 		out.From.Kind = "ImageStreamTag"
 		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
 	}
@@ -268,17 +256,10 @@ func convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBu
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
-	if in.From != nil {
-		switch in.From.Kind {
-		case "ImageStream":
-			out.From.Kind = "ImageStreamTag"
-			out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
-		case "ImageStreamTag":
-			_, _, ok := imageapi.SplitImageStreamTag(in.From.Name)
-			if !ok {
-				return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
-			}
-		}
+	switch in.From.Kind {
+	case "ImageStream":
+		out.From.Kind = "ImageStreamTag"
+		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
 	}
 	return nil
 }
@@ -370,8 +351,22 @@ func convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTrigg
 
 func init() {
 	err := kapi.Scheme.AddDefaultingFuncs(
+		func(strategy *BuildStrategy) {
+			if (strategy != nil) && (strategy.Type == DockerBuildStrategyType) {
+				//  initialize DockerStrategy to a default state if it's not set.
+				if strategy.DockerStrategy == nil {
+					strategy.DockerStrategy = &DockerBuildStrategy{}
+				}
+			}
+		},
+	)
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
+	}
+	err = kapi.Scheme.AddDefaultingFuncs(
 		func(obj *SourceBuildStrategy) {
-			if obj.From != nil && len(obj.From.Kind) == 0 {
+			if len(obj.From.Kind) == 0 {
 				obj.From.Kind = "ImageStreamTag"
 			}
 		},
@@ -381,7 +376,7 @@ func init() {
 			}
 		},
 		func(obj *CustomBuildStrategy) {
-			if obj.From != nil && len(obj.From.Kind) == 0 {
+			if len(obj.From.Kind) == 0 {
 				obj.From.Kind = "ImageStreamTag"
 			}
 		},

@@ -283,7 +283,7 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	return nil
 }
 
-// Discover the projects available for the stabilished session and take one to use. It
+// Discover the projects available for the established session and take one to use. It
 // fails in case of no existing projects, and print out useful information in case of
 // multiple projects.
 // Requires o.Username to be set.

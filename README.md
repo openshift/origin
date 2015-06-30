@@ -30,7 +30,7 @@ easy deployment and scaling, and long-term lifecycle maintenance for small and l
 
 For questions or feedback, reach us on [IRC on #openshift-dev](https://botbot.me/freenode/openshift-dev/) on Freenode or post to our [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev).
 
-NOTE: OpenShift release candidate 1 is available on the [releases page](https://github.com/openshift/origin/releases). Feedback, suggestions, and testing are all welcome!
+NOTE: OpenShift Origin 1.0 has been released [releases page](https://github.com/openshift/origin/releases). Feedback, suggestions, and testing are all welcome!
 
 
 Security!!!
@@ -139,7 +139,7 @@ FAQ
 
 2. What can I run on OpenShift?
 
-    OpenShift is designed to run any existing Docker images.  In addition you can define builds that will produce new Docker images from a Dockerfile.  However the real magic of OpenShift can be seen when using [Source-To-Image](https://github.com/openshift/source-to-image) builds which allow you to simply supply an application source repository which will be combined with an existing Source-To-Image enabled Docker image to produce a new runnable image that runs your application.  We are continuing to grow the ecosystem of Source-To-Image enabled images and documenting them [here](http://docs.openshift.org/latest/using_images/sti_images/overview.html). Our available images are:
+    OpenShift is designed to run any existing Docker images.  In addition you can define builds that will produce new Docker images from a Dockerfile.  However the real magic of OpenShift can be seen when using [Source-To-Image](https://github.com/openshift/source-to-image) builds which allow you to simply supply an application source repository which will be combined with an existing Source-To-Image enabled Docker image to produce a new runnable image that runs your application.  We are continuing to grow the ecosystem of Source-To-Image enabled images and documenting them [here](http://docs.openshift.org/latest/using_images/s2i_images/overview.html). Our available images are:
 
     * [Ruby](https://github.com/openshift/sti-ruby)
     * [Python](https://github.com/openshift/sti-python)
