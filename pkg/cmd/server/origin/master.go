@@ -125,10 +125,50 @@ func (fn APIInstallFunc) InstallAPI(container *restful.Container) []string {
 }
 
 // Run launches the OpenShift master. It takes optional installers that may install additional endpoints into the server.
+func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller) {
+	server, extra := c.CreateServer(protected, unprotected)
+
+	go util.Forever(func() {
+		for _, s := range extra {
+			glog.Infof(s, c.Options.ServingInfo.BindAddress)
+		}
+		if c.TLS {
+			server.TLSConfig = &tls.Config{
+				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
+				MinVersion: tls.VersionTLS10,
+				// Populate PeerCertificates in requests, but don't reject connections without certificates
+				// This allows certificates to be validated by authenticators, while still allowing other auth types
+				ClientAuth: tls.RequestClientCert,
+				ClientCAs:  c.ClientCAs,
+			}
+			glog.Fatal(server.ListenAndServeTLS(c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
+		} else {
+			glog.Fatal(server.ListenAndServe())
+		}
+	}, 0)
+
+	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+
+	// Create required policy rules if needed
+	c.ensureComponentAuthorizationRules()
+	// Ensure the default SCCs are created
+	c.ensureDefaultSecurityContextConstraints()
+	// Bind default roles for service accounts in the default namespace if needed
+	c.ensureDefaultNamespaceServiceAccountRoles()
+
+	// Create the infra namespace
+	c.ensureOpenShiftInfraNamespace()
+
+	// Create the shared resource namespace
+	c.ensureOpenShiftSharedResourcesNamespace()
+}
+
+// CreateServer creates the OpenShift server, optionally adding any endpoints given (protected or not)
 // All endpoints get configured CORS behavior
 // Protected installers' endpoints are protected by API authentication and authorization.
 // Unprotected installers' endpoints do not have any additional protection added.
-func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller) {
+func (c *MasterConfig) CreateServer(protected []APIInstaller, unprotected []APIInstaller) (*http.Server, []string) {
 	var extra []string
 
 	safe := kmaster.NewHandlerContainer(http.NewServeMux())
@@ -203,41 +243,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		WriteTimeout:   time.Duration(timeout) * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-
-	go util.Forever(func() {
-		for _, s := range extra {
-			glog.Infof(s, c.Options.ServingInfo.BindAddress)
-		}
-		if c.TLS {
-			server.TLSConfig = &tls.Config{
-				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-				MinVersion: tls.VersionTLS10,
-				// Populate PeerCertificates in requests, but don't reject connections without certificates
-				// This allows certificates to be validated by authenticators, while still allowing other auth types
-				ClientAuth: tls.RequestClientCert,
-				ClientCAs:  c.ClientCAs,
-			}
-			glog.Fatal(server.ListenAndServeTLS(c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
-		} else {
-			glog.Fatal(server.ListenAndServe())
-		}
-	}, 0)
-
-	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-
-	// Create required policy rules if needed
-	c.ensureComponentAuthorizationRules()
-	// Ensure the default SCCs are created
-	c.ensureDefaultSecurityContextConstraints()
-	// Bind default roles for service accounts in the default namespace if needed
-	c.ensureDefaultNamespaceServiceAccountRoles()
-
-	// Create the infra namespace
-	c.ensureOpenShiftInfraNamespace()
-
-	// Create the shared resource namespace
-	c.ensureOpenShiftSharedResourcesNamespace()
+	return server, extra
 }
 
 func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []string {
