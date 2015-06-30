@@ -373,7 +373,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 			failed = true
 			continue
 		}
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, true, data)
+		obj, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, data)
 		if err != nil {
 			handlePodUpdateError(v.Writer, err, "volume")
 			failed = true
@@ -401,7 +401,7 @@ func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
 			SecretName: opts.SecretName,
 		}
 	case "persistentvolumeclaim":
-		kv.PersistentVolumeClaimVolumeSource = &kapi.PersistentVolumeClaimVolumeSource{
+		kv.PersistentVolumeClaim = &kapi.PersistentVolumeClaimVolumeSource{
 			ClaimName: opts.ClaimName,
 		}
 	default:

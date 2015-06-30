@@ -80,8 +80,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 
 	server := app.NewAPIServer()
 	server.EventTTL = 2 * time.Hour
-	server.PortalNet = util.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
-	server.ServiceNodePorts = *portRange
+	server.ServiceClusterIPRange = util.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
+	server.ServiceNodePortRange = *portRange
 	server.AdmissionControl = strings.Join([]string{
 		"NamespaceExists", "NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "ResourceQuota",
 	}, ",")
@@ -112,15 +112,14 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	m := &master.Config{
 		PublicAddress: net.ParseIP(options.KubernetesMasterConfig.MasterIP),
 		ReadWritePort: port,
-		ReadOnlyPort:  port,
 
 		EtcdHelper: ketcdHelper,
 
 		EventTTL: server.EventTTL,
 		//MinRequestTimeout: server.MinRequestTimeout,
 
-		PortalNet:        (*net.IPNet)(&server.PortalNet),
-		ServiceNodePorts: server.ServiceNodePorts,
+		ServiceClusterIPRange: (*net.IPNet)(&server.ServiceClusterIPRange),
+		ServiceNodePortRange:  server.ServiceNodePortRange,
 
 		RequestContextMapper: requestContextMapper,
 
@@ -134,10 +133,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
 		AdmissionControl: admissionController,
 
-		DisableV1Beta1: true,
-		DisableV1Beta2: true,
 		DisableV1Beta3: !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1beta3"),
-		EnableV1:       configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1"),
+		DisableV1:      !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1"),
 	}
 
 	kmaster := &MasterConfig{

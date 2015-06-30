@@ -76,7 +76,7 @@ func TestBuildAdmission(t *testing.T) {
 
 	for _, test := range tests {
 		c := NewBuildByStrategy(fakeClient(test.expectedResource, test.reviewResponse))
-		attrs := admission.NewAttributesRecord(test.object, test.kind, "default", test.resource, admission.Create, fakeUser())
+		attrs := admission.NewAttributesRecord(test.object, test.kind, "default", "name", test.resource, "" /*subresource*/, admission.Create, fakeUser())
 		err := c.Admit(attrs)
 		if err != nil && test.expectAccept {
 			t.Errorf("%s: unexpected error: %v", test.name, err)

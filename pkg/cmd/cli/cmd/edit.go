@@ -218,7 +218,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 			if err != nil {
 				return err
 			}
-			updated, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, false, data)
+			updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, data)
 			if err != nil {
 				fmt.Fprintln(cmd.Out(), results.AddError(err, info))
 				return nil
@@ -375,7 +375,7 @@ func applyPatch(delta *jsonmerge.Delta, info *resource.Info, version string) err
 	if err != nil {
 		return patchError{err}
 	}
-	updated, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, false, merged)
+	updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, merged)
 	if err != nil {
 		return err
 	}

@@ -93,7 +93,7 @@ items:
           name: sinatra-example-1
           ports:
           - containerPort: 8080
-            name: sinatra-example-1-tcp-8080
+            name: s-tcp-8080
             protocol: TCP
           resources: {}
           securityContext:

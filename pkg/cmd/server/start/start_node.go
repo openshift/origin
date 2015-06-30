@@ -62,7 +62,7 @@ func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
 			if err := options.StartNode(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(out, "Invalid %s %s\n", details.Kind, details.ID)
+						fmt.Fprintf(out, "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
 							fmt.Fprintln(out, cause.Message)
 						}

@@ -320,9 +320,9 @@ echo "templates: ok"
 [ "$(openshift cli help update 2>&1 | grep 'openshift')" ]
 
 # runnable commands with required flags must error consistently
-[ "$(oc get 2>&1 | grep 'you must provide one or more resources')" ]
-[ "$(openshift cli get 2>&1 | grep 'you must provide one or more resources')" ]
-[ "$(openshift kubectl get 2>&1 | grep 'you must provide one or more resources')" ]
+[ "$(oc get 2>&1 | grep 'Required resource not specified')" ]
+[ "$(openshift cli get 2>&1 | grep 'Required resource not specified')" ]
+[ "$(openshift kubectl get 2>&1 | grep 'Required resource not specified')" ]
 
 # commands that expect file paths must validate and error out correctly
 [ "$(oc login --certificate-authority=/path/to/invalid 2>&1 | grep 'no such file or directory')" ]
@@ -659,7 +659,6 @@ sleep 2 && [ "$(oc get projects | grep 'ui-test-project')" ]
 echo "ui-project-commands: ok"
 
 # Expose service as a route
-oc delete svc/frontend
 oc create -f test/integration/fixtures/test-service.json
 [ ! "$(oc expose service frontend --create-external-load-balancer)" ]
 [ ! "$(oc expose service frontend --port=40 --type=NodePort)" ]
@@ -704,10 +703,10 @@ oc status
 echo "complex-scenarios: ok"
 
 [ "$(oc export svc --all -t '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | wc -l)" -ne 0 ]
-[ "$(oc export svc --all | grep 'portalIP: ""')" ]
 [ "$(oc export svc --all --as-template=template | grep 'kind: Template')" ]
-[ ! "$(oc export svc --all --exact | grep 'portalIP: ""')" ]
-[ ! "$(oc export svc --all --raw | grep 'portalIP: ""')" ]
+[ ! "$(oc export svc --all | grep 'clusterIP')" ]
+[ ! "$(oc export svc --all --exact | grep 'clusterIP: ""')" ]
+[ ! "$(oc export svc --all --raw | grep 'clusterIP: ""')" ]
 [ ! "$(oc export svc --all --raw --exact)" ]
 [ ! "$(oc export svc -l a=b)" ] # return error if no items match selector
 [ "$(oc export svc -l a=b 2>&1 | grep 'no resources found')" ]

@@ -485,7 +485,7 @@ func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (strin
 
 func describeServiceInServiceGroup(svc graphveneers.ServiceReference) []string {
 	spec := svc.Service.Spec
-	ip := spec.PortalIP
+	ip := spec.ClusterIP
 	port := describeServicePorts(spec)
 	switch {
 	case ip == "None":
@@ -502,14 +502,14 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 	case 0:
 		return " no ports"
 	case 1:
-		if spec.Ports[0].TargetPort.String() == "0" || spec.PortalIP == kapi.PortalIPNone || spec.Ports[0].Port == spec.Ports[0].TargetPort.IntVal {
+		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || spec.Ports[0].Port == spec.Ports[0].TargetPort.IntVal {
 			return fmt.Sprintf(":%d", spec.Ports[0].Port)
 		}
 		return fmt.Sprintf(":%d -> %s", spec.Ports[0].Port, spec.Ports[0].TargetPort.String())
 	default:
 		pairs := []string{}
 		for _, port := range spec.Ports {
-			if port.TargetPort.String() == "0" || spec.PortalIP == kapi.PortalIPNone {
+			if port.TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone {
 				pairs = append(pairs, fmt.Sprintf("%d", port.Port))
 				continue
 			}

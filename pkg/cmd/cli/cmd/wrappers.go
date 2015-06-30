@@ -43,7 +43,7 @@ Possible resources include builds, buildConfigs, services, pods, etc.`
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	p := describe.NewHumanReadablePrinter(false, false)
+	p := describe.NewHumanReadablePrinter(false, false, []string{})
 	validArgs := p.HandledResources()
 
 	cmd := kcmd.NewCmdGet(f.Factory, out)
@@ -67,7 +67,7 @@ JSON and YAML formats are accepted.`
 
 // NewCmdUpdate is a wrapper for the Kubernetes cli update command
 func NewCmdUpdate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdUpdate(f.Factory, out)
+	cmd := kcmd.NewCmdReplace(f.Factory, out)
 	cmd.Long = updateLong
 	cmd.Example = fmt.Sprintf(updateExample, fullName)
 	return cmd

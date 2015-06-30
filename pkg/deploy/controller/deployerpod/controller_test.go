@@ -399,7 +399,7 @@ func failedPod(deployment *kapi.ReplicationController) *kapi.Pod {
 	p.Status.ContainerStatuses = []kapi.ContainerStatus{
 		{
 			State: kapi.ContainerState{
-				Termination: &kapi.ContainerStateTerminated{
+				Terminated: &kapi.ContainerStateTerminated{
 					ExitCode: 1,
 				},
 			},

@@ -31,6 +31,10 @@ func (userIdentityMappingStrategy) AllowCreateOnUpdate() bool {
 	return true
 }
 
+func (userIdentityMappingStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (s userIdentityMappingStrategy) PrepareForCreate(obj runtime.Object) {
 	mapping := obj.(*api.UserIdentityMapping)

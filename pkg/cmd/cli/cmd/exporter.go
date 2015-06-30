@@ -95,8 +95,8 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 		if exact {
 			return nil
 		}
-		if t.Spec.PortalIP != kapi.PortalIPNone {
-			t.Spec.PortalIP = ""
+		if t.Spec.ClusterIP != kapi.ClusterIPNone {
+			t.Spec.ClusterIP = ""
 		}
 		if t.Spec.Type == kapi.ServiceTypeNodePort {
 			for i := range t.Spec.Ports {

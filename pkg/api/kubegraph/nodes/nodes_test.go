@@ -14,7 +14,7 @@ func TestPodSpecNode(t *testing.T) {
 	pod := &kapi.Pod{}
 	pod.Namespace = "ns"
 	pod.Name = "foo"
-	pod.Spec.Host = "any-host"
+	pod.Spec.NodeName = "any-host"
 
 	podNode := EnsurePodNode(g, pod)
 

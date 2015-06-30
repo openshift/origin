@@ -82,7 +82,11 @@ func (c *MasterConfig) RunServiceAccountTokensController() {
 	if err != nil {
 		glog.Fatalf("Error reading signing key for Service Account Token Manager: %v", err)
 	}
-	options := serviceaccount.DefaultTokenControllerOptions(serviceaccount.JWTTokenGenerator(privateKey))
+	options := serviceaccount.TokensControllerOptions{
+		TokenGenerator: serviceaccount.JWTTokenGenerator(privateKey),
+		// TODO this is the the CA used to verify the master's serving cert
+		// RootCA:         rootCA,
+	}
 
 	serviceaccount.NewTokensController(c.KubeClient(), options).Run()
 	glog.Infof("Started Service Account Token Manager")

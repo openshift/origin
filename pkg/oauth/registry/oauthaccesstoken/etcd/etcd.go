@@ -38,7 +38,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
 			return oauthaccesstoken.Matcher(label, field)
 		},
-		TTLFunc: func(obj runtime.Object, update bool) (uint64, error) {
+		TTLFunc: func(obj runtime.Object, existing uint64, update bool) (uint64, error) {
 			token := obj.(*api.OAuthAccessToken)
 			expires := uint64(token.ExpiresIn)
 			return expires, nil

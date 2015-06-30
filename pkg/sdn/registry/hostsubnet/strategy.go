@@ -47,6 +47,10 @@ func (sdnStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
+func (sdnStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
 // ValidateUpdate is the default update validation for a HostSubnet
 func (sdnStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateHostSubnetUpdate(obj.(*api.HostSubnet), old.(*api.HostSubnet))
