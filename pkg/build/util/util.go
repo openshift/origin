@@ -65,3 +65,13 @@ func NameFromImageStream(namespace string, ref *kapi.ObjectReference, tag string
 func IsBuildComplete(build *buildapi.Build) bool {
 	return build.Status.Phase != buildapi.BuildPhaseRunning && build.Status.Phase != buildapi.BuildPhasePending && build.Status.Phase != buildapi.BuildPhaseNew
 }
+
+// GetBuildLabel retrieves build label from a Pod returning its value and
+// a boolean value informing whether the value was found
+func GetBuildLabel(pod *kapi.Pod) (string, bool) {
+	value, exists := pod.Labels[buildapi.BuildLabel]
+	if !exists {
+		value, exists = pod.Labels[buildapi.DeprecatedBuildLabel]
+	}
+	return value, exists
+}

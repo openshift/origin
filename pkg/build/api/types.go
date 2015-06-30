@@ -10,9 +10,10 @@ import (
 const (
 	// BuildAnnotation is an annotation that identifies a Pod as being for a Build
 	BuildAnnotation = "openshift.io/build.name"
-
+	// DeprecatedBuildLabel is old value of BuildLabel, it'll be removed in OpenShift 3.1.
+	DeprecatedBuildLabel = "build"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
-	BuildLabel = "build"
+	BuildLabel = "openshift.io/build.name"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
