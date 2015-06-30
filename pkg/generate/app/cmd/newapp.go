@@ -446,14 +446,14 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			} else {
 				glog.V(2).Infof("will include %q", ref)
 				input, err := app.InputImageFromMatch(ref.Input().Match)
+				if err != nil {
+					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
+				}
 				if name, ok := input.SuggestName(); ok {
 					input.ObjectName, err = ensureValidUniqueName(names, name)
 					if err != nil {
 						return nil, err
 					}
-				}
-				if err != nil {
-					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
 				if pipeline, err = app.NewImagePipeline(ref.Input().String(), input); err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
