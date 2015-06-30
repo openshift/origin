@@ -24,6 +24,13 @@ type SubnetRegistry interface {
 	GetContainerNetwork() (string, error)
 	GetSubnetLength() (uint64, error)
 	CheckEtcdIsAlive(seconds uint64) bool
+
+	WatchNamespaces(receiver chan *NamespaceEvent, stop chan bool) error
+	WatchNetNamespaces(receiver chan *NetNamespaceEvent, stop chan bool) error
+	GetNetNamespaces() ([]NetNamespace, error)
+	GetNetNamespace(name string) (NetNamespace, error)
+	WriteNetNamespace(name string, id uint) error
+	DeleteNetNamespace(name string) error
 }
 
 type SubnetEvent struct {
@@ -40,4 +47,20 @@ type MinionEvent struct {
 type Subnet struct {
 	Minion string
 	Sub    string
+}
+
+type NetNamespace struct {
+	Name  string
+	NetID uint
+}
+
+type NetNamespaceEvent struct {
+	Type  EventType
+	Name  string
+	NetID uint
+}
+
+type NamespaceEvent struct {
+	Type EventType
+	Name string
 }

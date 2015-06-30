@@ -7,10 +7,15 @@ import (
 	"net"
 	"time"
 
+	"github.com/openshift/openshift-sdn/ovssubnet/api"
 	"github.com/openshift/openshift-sdn/ovssubnet/controller/kube"
 	"github.com/openshift/openshift-sdn/ovssubnet/controller/lbr"
-	"github.com/openshift/openshift-sdn/pkg/api"
+	"github.com/openshift/openshift-sdn/ovssubnet/controller/multitenant"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
+)
+
+const (
+	MaxUint = ^uint(0)
 )
 
 type OvsController struct {
@@ -22,6 +27,8 @@ type OvsController struct {
 	sig             chan struct{}
 	ready           chan struct{}
 	flowController  FlowController
+	VnidMap         map[string]uint
+	netIDManager    *netutils.NetIDAllocator
 }
 
 type FlowController interface {
@@ -36,6 +43,14 @@ func NewKubeController(sub api.SubnetRegistry, hostname string, selfIP string, r
 		kubeController.flowController = kube.NewFlowController()
 	}
 	return kubeController, err
+}
+
+func NewMultitenantController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
+	mtController, err := NewController(sub, hostname, selfIP, ready)
+	if err == nil {
+		mtController.flowController = multitenant.NewFlowController()
+	}
+	return mtController, err
 }
 
 func NewDefaultController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
@@ -116,8 +131,64 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		log.Warningf("Error initializing existing minions: %v", err)
 		// no worry, we can still keep watching it.
 	}
+	if _, is_mt := oc.flowController.(*multitenant.FlowController); is_mt {
+		nets, err := oc.subnetRegistry.GetNetNamespaces()
+		if err != nil {
+			return err
+		}
+		inUse := make([]uint, 0)
+		for _, net := range nets {
+			inUse = append(inUse, net.NetID)
+			oc.VnidMap[net.Name] = net.NetID
+		}
+		oc.netIDManager, err = netutils.NewNetIDAllocator(0, MaxUint, inUse)
+		if err != nil {
+			return err
+		}
+		go oc.watchNetworks()
+	}
 	go oc.watchMinions()
 	return nil
+}
+
+func (oc *OvsController) watchNetworks() {
+	nsevent := make(chan *api.NamespaceEvent)
+	stop := make(chan bool)
+	go oc.subnetRegistry.WatchNamespaces(nsevent, stop)
+	for {
+		select {
+		case ev := <-nsevent:
+			switch ev.Type {
+			case api.Added:
+				_, err := oc.subnetRegistry.GetNetNamespace(ev.Name)
+				if err != nil {
+					netid, err := oc.netIDManager.GetNetID()
+					if err != nil {
+						log.Error("Error getting new network IDS: %v", err)
+						continue
+					}
+					err = oc.subnetRegistry.WriteNetNamespace(ev.Name, netid)
+					if err != nil {
+						log.Error("Error writing new network ID: %v", err)
+						continue
+					}
+					oc.VnidMap[ev.Name] = netid
+				}
+			case api.Deleted:
+				err := oc.subnetRegistry.DeleteNetNamespace(ev.Name)
+				if err != nil {
+					log.Error("Error while deleting Net Id: %v", err)
+				}
+				netid := oc.VnidMap[ev.Name]
+				oc.netIDManager.ReleaseNetID(netid)
+				delete(oc.VnidMap, ev.Name)
+			}
+		case <-oc.sig:
+			log.Error("Signal received. Stopping watching of minions.")
+			stop <- true
+			return
+		}
+	}
 }
 
 func (oc *OvsController) ServeExistingMinions() error {
@@ -226,6 +297,16 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 	for _, s := range *subnets {
 		oc.flowController.AddOFRules(s.Minion, s.Sub, oc.localIP)
 	}
+	if _, ok := oc.flowController.(*multitenant.FlowController); ok {
+		nslist, err := oc.subnetRegistry.GetNetNamespaces()
+		if err != nil {
+			return err
+		}
+		for _, ns := range nslist {
+			oc.VnidMap[ns.Name] = ns.NetID
+		}
+		go oc.watchVnids()
+	}
 	go oc.watchCluster()
 
 	if oc.ready != nil {
@@ -233,6 +314,27 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 	}
 
 	return err
+}
+
+func (oc *OvsController) watchVnids() {
+	netNsEvent := make(chan *api.NetNamespaceEvent)
+	stop := make(chan bool)
+	go oc.subnetRegistry.WatchNetNamespaces(netNsEvent, stop)
+	for {
+		select {
+		case ev := <-netNsEvent:
+			switch ev.Type {
+			case api.Added:
+				oc.VnidMap[ev.Name] = ev.NetID
+			case api.Deleted:
+				delete(oc.VnidMap, ev.Name)
+			}
+		case <-oc.sig:
+			log.Error("Signal received. Stopping watching of NetNamespaces.")
+			stop <- true
+			return
+		}
+	}
 }
 
 func (oc *OvsController) initSelfSubnet() error {
