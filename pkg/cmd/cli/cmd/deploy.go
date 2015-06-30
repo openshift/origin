@@ -196,7 +196,7 @@ func (o DeployOptions) RunDeploy() error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintln(o.out, desc)
+		fmt.Fprint(o.out, desc)
 	}
 
 	return err
