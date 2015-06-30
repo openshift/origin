@@ -186,75 +186,7 @@ func (c *MasterConfig) CreateServer(protected, unprotected []APIInstaller) (*htt
 		extra = append(extra, i.InstallAPI(open)...)
 	}
 
-	authorizationFilterConfig := &AuthorizationFilterConfig{
-		attributeBuilder: c.AuthorizationAttributeBuilder,
-		contextMapper:    c.getRequestContextMapper(),
-		authorizer:       c.Authorizer,
-	}
-
-	authenticationFilterConfig := &AuthenticationFilterConfig{
-		authenticator: c.Authenticator,
-		contextMapper: c.getRequestContextMapper(),
-	}
-
-	namespacingFilterConfig := &NamespacingFilterConfig{
-		contextMapper: c.getRequestContextMapper(),
-	}
-
-	cacheControlFilterConfig := &CacheControlFilterConfig{
-		headerSetting: "no-store", // protected endpoints should not be cached
-	}
-
-	apiPathIndexerConfig := &APIPathIndexerConfig{}
-
-	insecureContainerConfig := &InsecureContainerConfig{
-		insecureContainer: open,
-	}
-
-	requestContextFilterConfig := &RequestContextFilterConfig{
-		contextMapper: c.getRequestContextMapper(),
-	}
-
-	handlerPrepender := NewHandlerPrepender()
-	handler := handlerPrepender.PrependHandler(safe, authorizationFilterConfig)
-	handler = handlerPrepender.PrependHandler(handler, authenticationFilterConfig)
-	handler = handlerPrepender.PrependHandler(handler, namespacingFilterConfig)
-	handler = handlerPrepender.PrependHandler(handler, cacheControlFilterConfig)
-	handler = handlerPrepender.PrependHandler(handler, apiPathIndexerConfig)
-
-	// allow for following prepend calls to prepend to the handler of the insecure container
-	handler = handlerPrepender.PrependHandler(handler, insecureContainerConfig)
-
-	// add CORS support
-	if len(c.ensureCORSAllowedOrigins()) != 0 {
-		corsFilterConfig := &CORSFilterConfig{
-			origins:          c.ensureCORSAllowedOrigins(),
-			allowedMethods:   nil, // use default set of methods
-			allowedHeaders:   nil, // use default set of headers
-			allowCredentials: "true",
-		}
-		handler = handlerPrepender.PrependHandler(handler, corsFilterConfig)
-	}
-
-	if c.Options.AssetConfig != nil {
-		assetServerRedirecterConfig := &AssetServerRedirecterConfig{
-			assetPublicURL: c.Options.AssetConfig.PublicURL,
-		}
-		handler = handlerPrepender.PrependHandler(handler, assetServerRedirecterConfig)
-	}
-
-	// Make the outermost filter the requestContextMapper to ensure all components share the same context
-	handler = handlerPrepender.PrependHandler(handler, requestContextFilterConfig)
-
-	// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
-	// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
-	if c.Options.ServingInfo.MaxRequestsInFlight > 0 {
-		maxInFlightLimitFilterConfig := &MaxInFlightLimitFilterConfig{
-			channel:                 make(chan bool, c.Options.ServingInfo.MaxRequestsInFlight),
-			longRunningRequestRegex: longRunningRE,
-		}
-		handler = handlerPrepender.PrependHandler(handler, maxInFlightLimitFilterConfig)
-	}
+	handler := c.assembleHandlers(safe, open)
 
 	// install swagger
 	swaggerConfig := swagger.Config{
