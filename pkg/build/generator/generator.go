@@ -226,22 +226,21 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	// reference to a valid image so we can run the build.  Builds do not consume ImageStream references,
 	// only image specs.
 	switch {
-	case build.Parameters.Strategy.Type == buildapi.SourceBuildStrategyType &&
-		build.Parameters.Strategy.SourceStrategy.From != nil:
+	case build.Parameters.Strategy.Type == buildapi.SourceBuildStrategyType:
 		image, err := g.resolveImageStreamReference(ctx, build.Parameters.Strategy.SourceStrategy.From, build.Config.Namespace)
 		if err != nil {
 			return nil, err
 		}
-		build.Parameters.Strategy.SourceStrategy.From = &kapi.ObjectReference{
+		build.Parameters.Strategy.SourceStrategy.From = kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: image,
 		}
 		if build.Parameters.Strategy.SourceStrategy.PullSecret == nil {
-			build.Parameters.Strategy.SourceStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, build.Parameters.Strategy.SourceStrategy.From, bc.Namespace)
+			build.Parameters.Strategy.SourceStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &build.Parameters.Strategy.SourceStrategy.From, bc.Namespace)
 		}
 	case build.Parameters.Strategy.Type == buildapi.DockerBuildStrategyType &&
 		build.Parameters.Strategy.DockerStrategy.From != nil:
-		image, err := g.resolveImageStreamReference(ctx, build.Parameters.Strategy.DockerStrategy.From, build.Config.Namespace)
+		image, err := g.resolveImageStreamReference(ctx, *build.Parameters.Strategy.DockerStrategy.From, build.Config.Namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -252,18 +251,17 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 		if build.Parameters.Strategy.DockerStrategy.PullSecret == nil {
 			build.Parameters.Strategy.DockerStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, build.Parameters.Strategy.DockerStrategy.From, bc.Namespace)
 		}
-	case build.Parameters.Strategy.Type == buildapi.CustomBuildStrategyType &&
-		build.Parameters.Strategy.CustomStrategy.From != nil:
+	case build.Parameters.Strategy.Type == buildapi.CustomBuildStrategyType:
 		image, err := g.resolveImageStreamReference(ctx, build.Parameters.Strategy.CustomStrategy.From, build.Config.Namespace)
 		if err != nil {
 			return nil, err
 		}
-		build.Parameters.Strategy.CustomStrategy.From = &kapi.ObjectReference{
+		build.Parameters.Strategy.CustomStrategy.From = kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: image,
 		}
 		if build.Parameters.Strategy.CustomStrategy.PullSecret == nil {
-			build.Parameters.Strategy.CustomStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, build.Parameters.Strategy.CustomStrategy.From, bc.Namespace)
+			build.Parameters.Strategy.CustomStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &build.Parameters.Strategy.CustomStrategy.From, bc.Namespace)
 		}
 		updateCustomImageEnv(build.Parameters.Strategy.CustomStrategy, image)
 	}
@@ -272,7 +270,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 
 // resolveImageStreamReference looks up the ImageStream[Tag/Image] and converts it to a
 // docker pull spec that can be used in an Image field.
-func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from *kapi.ObjectReference, defaultNamespace string) (string, error) {
+func (g *BuildGenerator) resolveImageStreamReference(ctx kapi.Context, from kapi.ObjectReference, defaultNamespace string) (string, error) {
 	var namespace string
 	if len(from.Namespace) != 0 {
 		namespace = from.Namespace
@@ -334,7 +332,7 @@ func (g *BuildGenerator) resolveImageSecret(ctx kapi.Context, secrets []kapi.Sec
 	}
 	emptyKeyring := credentialprovider.BasicDockerKeyring{}
 	// Get the image pull spec from the image stream reference
-	imageSpec, err := g.resolveImageStreamReference(ctx, imageRef, buildNamespace)
+	imageSpec, err := g.resolveImageStreamReference(ctx, *imageRef, buildNamespace)
 	if err != nil {
 		glog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
 		return nil

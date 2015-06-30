@@ -1,49 +1,32 @@
-<div class="col-md-4">
-  <div class="tile tile-template tile-click label-tags" id="" title="{{template.metadata.name}}">
-    <div class="tile-table">
-      <div class="tile-table-cell template-icon">
-        <custom-icon resource="template" kind="template" ></custom-icon>
-      </div>
-      <div class="tile-table-cell">
-        <h3>
-        <a href="javascript:;" class="tile-target" data-toggle="modal" data-target="#{{template.metadata.uid}}">{{template.metadata.name}}</a>
-        </h3>
-        <p ng-if="template | description">{{template | description}}</p>
-      </div>
+<div class="tile tile-template tile-click label-tags" ng-attr-title="{{template.metadata.name}}">
+  <div class="tile-table">
+    <div class="tile-table-cell template-icon">
+      <custom-icon resource="template" kind="template" ></custom-icon>
     </div>
-  </div>
-  <div class="modal modal-create fade" id="{{template.metadata.uid}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-            <span class="pficon pficon-close"></span>
-          </button>
-          <h4 class="modal-title" id="myModalLabel">{{template.metadata.name}}</h4>
+    <div class="tile-table-cell">
+      <h3><a class="tile-target" ng-href="{{template | createFromTemplateURL : project}}">{{template.metadata.name}}</a></h3>
+      <p ng-if="template | description">
+        <truncate-long-text content="template | description" limit="256" use-word-boundary="true"></truncate-long-text>
+      </p>
+      <p>
+        <div ng-if="template | annotation : 'provider'">
+          <label style="margin-right: 5px;">Provider:</label>
+          {{template | annotation : 'provider'}}
         </div>
-        <div class="modal-body label-tags">
-          <div class="row">
-            <div class="template-icon col-xs-4 col-sm-4 col-md-4">
-              <custom-icon resource="template" kind="template" title="{{template.metadata.name}}"></custom-icon>
-            </div>
-            <div class="col-xs-8 col-sm-8 col-md-8">
-              <p ng-if="template | description">{{template | description}}</p>
-              <p>
-                <div ng-if="template | provider">
-                  <label style="margin-right: 5px;">Provider:</label>{{template | provider}}
-                </div>
-                <div ng-if="template | annotation : 'version'">
-                  <label style="margin-right: 5px;">Version:</label>{{template | annotation : 'version'}}
-                </div>
-              </p>
-              <span ng-repeat="tag in (template | tags)" class="label label-default">{{tag.toUpperCase()}}</span>
-            </div>
-          </div>
+        <div>
+          <label style="margin-right: 5px;">Namespace:</label>
+          {{template.metadata.namespace}}
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-block btn-primary btn-lg select-template">Select template</button>
+        <div ng-if="template | annotation : 'version'">
+          <label style="margin-right: 5px;">Version:</label>
+          {{template | annotation : 'version'}}
         </div>
-      </div>
+      </p>
+      <p>
+        <span ng-repeat="tag in (template | tags)" class="tag small text-muted">
+          {{tag}}
+        </span>
+      </p>
     </div>
   </div>
 </div>

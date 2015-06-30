@@ -98,12 +98,12 @@ func (s LongestToShortest) Less(i, j int) bool {
 //
 // subcontextMap is a map of keys (subcontexts, no leading or trailing slashes) to the asset path (no
 // leading slash) to serve for that subcontext if a resource that does not exist is requested
-func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h http.Handler) (http.Handler, error) {
+func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h http.Handler, getAsset AssetFunc) (http.Handler, error) {
 	subcontextData := map[string][]byte{}
 	subcontexts := []string{}
 
 	for subcontext, index := range subcontextMap {
-		b, err := Asset(index)
+		b, err := getAsset(index)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func HTML5ModeHandler(contextRoot string, subcontextMap map[string]string, h htt
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		urlPath := strings.TrimPrefix(r.URL.Path, "/")
-		if _, err := Asset(urlPath); err != nil {
+		if _, err := getAsset(urlPath); err != nil {
 			// find the index we want to serve instead
 			for _, subcontext := range subcontexts {
 				prefix := subcontext

@@ -394,6 +394,7 @@ module.exports = function (grunt) {
             '.htaccess',
             '*.html',
             'views/{,*/}*.html',
+            'images/{,*/}*.{png,jpg,jpeg,gif}',
             'images/{,*/}*.{webp}',
             'fonts/*',
             'styles/fonts/*'
@@ -420,11 +421,15 @@ module.exports = function (grunt) {
           src: 'ZeroClipboard.swf',
           dest: '<%= yeoman.dist %>/scripts'
         }, 
+
+        // Copy separate components
         {
           expand: true,
           cwd: 'openshift-jvm',
           src: '**/*',
-          dest: '<%= yeoman.dist %>/java'
+          // Copy to a separate "dist.*" directory for go-bindata
+          // Make the folder structure inside the dist.* directory match the desired path
+          dest: '<%= yeoman.dist %>.java/java'
         }]
       },
       styles: {
@@ -458,7 +463,8 @@ module.exports = function (grunt) {
       ],
       dist: [
         'less:production',
-        'imagemin',
+        // remove imagemin from build, since it doesn't tend to behave well cross-platform
+        // 'imagemin',
         'svgmin'
       ]
     },

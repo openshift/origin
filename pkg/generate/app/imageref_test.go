@@ -45,7 +45,7 @@ func TestFromStream(t *testing.T) {
 		t.Fatalf("Unexpected namespace: %s", imageRef.Namespace)
 	}
 	if imageRef.Name != "image" {
-		t.Fatalf("Unenxpected name: %s", imageRef.Name)
+		t.Fatalf("Unexpected name: %s", imageRef.Name)
 	}
 }
 

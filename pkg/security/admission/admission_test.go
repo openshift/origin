@@ -349,7 +349,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		namespace   *kapi.Namespace
 		expectedErr string
 	}{
-		"valid non-preallocateed scc": {
+		"valid non-preallocated scc": {
 			scc: func() *kapi.SecurityContextConstraints {
 				return &kapi.SecurityContextConstraints{
 					ObjectMeta: kapi.ObjectMeta{

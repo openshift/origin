@@ -234,6 +234,32 @@ func TestAccessController(t *testing.T) {
 			expectedChallenge: false,
 			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
 		},
+		"pruning": {
+			access: []auth.Access{
+				{
+					Resource: auth.Resource{
+						Type: "admin",
+					},
+					Action: "prune",
+				},
+				{
+					Resource: auth.Resource{
+						Type: "repository",
+						Name: "foo/bar",
+					},
+					Action: "*",
+				},
+			},
+			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
+			openshiftResponses: []response{
+				{200, runtime.EncodeOrDie(latest.Codec, &api.SubjectAccessReviewResponse{Allowed: true, Reason: "authorized!"})},
+			},
+			expectedError:     nil,
+			expectedChallenge: false,
+			expectedActions: []string{
+				"POST /oapi/v1/subjectaccessreviews",
+			},
+		},
 	}
 
 	for k, test := range tests {

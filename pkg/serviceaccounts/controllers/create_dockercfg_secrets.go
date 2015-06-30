@@ -187,7 +187,7 @@ func (e *DockercfgController) createDockercfgSecretIfNeeded(serviceAccount *api.
 		// nothing to do.  Our choice was stale or we got a conflict.  Either way that means that the service account was updated.  We simply need to return because we'll get an update notification later
 		// we do need to clean up our dockercfgSecret.  token secrets are cleaned up by the controller handling service account dockercfg secret deletes
 		glog.V(2).Infof("Deleting secret %s/%s (err=%v)", dockercfgSecret.Namespace, dockercfgSecret.Name, err)
-		if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name); err != nil {
+		if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name); (err != nil) && !kapierrors.IsNotFound(err) {
 			util.HandleError(err)
 		}
 		return nil
@@ -274,7 +274,7 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *api.ServiceAccou
 
 	// the token wasn't ever created, attempt deletion
 	glog.Warningf("Deleting unfilled token secret %s/%s", tokenSecret.Namespace, tokenSecret.Name)
-	if err := e.client.Secrets(tokenSecret.Namespace).Delete(tokenSecret.Name); err != nil {
+	if err := e.client.Secrets(tokenSecret.Namespace).Delete(tokenSecret.Name); (err != nil) && !kapierrors.IsNotFound(err) {
 		util.HandleError(err)
 	}
 	return nil, fmt.Errorf("token never generated for %s", tokenSecret.Name)

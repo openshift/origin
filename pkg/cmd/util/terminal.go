@@ -96,3 +96,9 @@ func IsTerminal(r io.Reader) bool {
 	file, ok := r.(*os.File)
 	return ok && term.IsTerminal(file.Fd())
 }
+
+// IsTerminalWriter returns whether the passed io.Writer is a terminal or not
+func IsTerminalWriter(w io.Writer) bool {
+	file, ok := w.(*os.File)
+	return ok && term.IsTerminal(file.Fd())
+}

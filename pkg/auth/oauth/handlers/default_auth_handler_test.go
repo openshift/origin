@@ -57,7 +57,7 @@ func TestNoHandlersRedirect(t *testing.T) {
 	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
 
 	if err != nil {
-		t.Errorf("Unexepcted error: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 
 	if handled {
@@ -73,7 +73,7 @@ func TestNoHandlersChallenge(t *testing.T) {
 	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
 
 	if err != nil {
-		t.Errorf("Unexepcted error: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 
 	if handled {
@@ -153,7 +153,7 @@ func TestWithChallengeErrorsAndMergedSuccess(t *testing.T) {
 	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
 
 	if err != nil {
-		t.Errorf("Unexepcted error: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 	if !handled {
 		t.Error("Expected handling.")

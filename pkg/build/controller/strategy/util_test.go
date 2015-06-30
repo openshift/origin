@@ -67,7 +67,7 @@ func isVolumeSourceEmpty(volumeSource kapi.VolumeSource) bool {
 	return false
 }
 
-func TestSetupBuildEnvFails(t *testing.T) {
+func TestSetupBuildEnvEmpty(t *testing.T) {
 	build := mockCustomBuild()
 	containerEnv := []kapi.EnvVar{
 		{Name: "BUILD", Value: ""},
@@ -95,11 +95,6 @@ func TestSetupBuildEnvFails(t *testing.T) {
 	}
 	if err := setupBuildEnv(build, pod); err != nil {
 		t.Errorf("unexpected error: %v", err)
-	}
-
-	build.Parameters.Output.DockerImageReference = ""
-	if err := setupBuildEnv(build, pod); err == nil {
-		t.Errorf("unexpected non-error: %v", err)
 	}
 }
 

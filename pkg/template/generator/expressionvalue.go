@@ -89,7 +89,7 @@ func replaceWithGenerated(s *string, expression string, ranges [][]byte, length 
 	for _, r := range ranges {
 		switch string(r[0]) + string(r[1]) {
 		case `\w`:
-			alphabet += ASCII
+			alphabet += Alphabet + Numerals + "_"
 		case `\d`:
 			alphabet += Numerals
 		case `\a`:

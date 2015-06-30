@@ -115,6 +115,10 @@ func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
 	BindKubeConnectionArgs(options.MasterArgs.KubeConnectionArgs, flags, "")
 	BindNetworkArgs(options.MasterArgs.NetworkArgs, flags, "")
 
+	// autocompletion hints
+	cmd.MarkFlagFilename("write-config")
+	cmd.MarkFlagFilename("config", "yaml", "yml")
+
 	return cmd, options
 }
 

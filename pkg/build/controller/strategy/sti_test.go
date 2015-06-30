@@ -55,10 +55,10 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	// strategy ENV is not copied into the container environment, so only
-	// expect 6 not 7 values.
+	// strategy ENV is whitelisted into the container environment, and not all
+	// the values are allowed, so only expect 6 not 7 values.
 	if len(container.Env) != 6 {
-		t.Fatalf("Expected 6 elements in Env table, got %d", len(container.Env))
+		t.Fatalf("Expected 6 elements in Env table, got %d: %+v", len(container.Env), container.Env)
 	}
 	if len(container.VolumeMounts) != 4 {
 		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
@@ -75,13 +75,20 @@ func TestSTICreateBuildPod(t *testing.T) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
 	}
 	found := false
+	foundIllegal := false
 	for _, v := range container.Env {
 		if v.Name == "BUILD_LOGLEVEL" && v.Value == "bar" {
 			found = true
 		}
+		if v.Name == "ILLEGAL" {
+			foundIllegal = true
+		}
 	}
 	if !found {
 		t.Fatalf("Expected variable BUILD_LOGLEVEL be defined for the container")
+	}
+	if foundIllegal {
+		t.Fatalf("Found illegal environment variable 'ILLEGAL' defined on container")
 	}
 	buildJSON, _ := latest.Codec.Encode(expected)
 	errorCases := map[int][]string{
@@ -115,7 +122,7 @@ func mockSTIBuild() *buildapi.Build {
 			Strategy: buildapi.BuildStrategy{
 				Type: buildapi.SourceBuildStrategyType,
 				SourceStrategy: &buildapi.SourceBuildStrategy{
-					From: &kapi.ObjectReference{
+					From: kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "repository/sti-builder",
 					},
@@ -123,6 +130,7 @@ func mockSTIBuild() *buildapi.Build {
 					Scripts:    "http://my.build.com/the/sti/scripts",
 					Env: []kapi.EnvVar{
 						{Name: "BUILD_LOGLEVEL", Value: "bar"},
+						{Name: "ILLEGAL", Value: "foo"},
 					},
 				},
 			},

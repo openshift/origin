@@ -21,17 +21,17 @@ There is also the ability to expose a deployment configuration, replication cont
 as a new service on a specified port. If no labels are specified, the new object will re-use the 
 labels from the object it exposes.`
 
-	exposeExample = `// Create a route based on service nginx. The new route will re-use nginx's labels
-$ %[1]s expose service nginx
+	exposeExample = `  // Create a route based on service nginx. The new route will re-use nginx's labels
+  $ %[1]s expose service nginx
 
-// Create a route and specify your own label and route name
-$ %[1]s expose service nginx -l name=myroute --name=fromdowntown
+  // Create a route and specify your own label and route name
+  $ %[1]s expose service nginx -l name=myroute --name=fromdowntown
 
-// Create a route and specify a hostname
-$ %[1]s expose service nginx --hostname=www.example.com
+  // Create a route and specify a hostname
+  $ %[1]s expose service nginx --hostname=www.example.com
 
-// Expose a deployment configuration as a service and use the specified port
-$ %[1]s expose dc ruby-hello-world --port=8080 --generator=service/v1`
+  // Expose a deployment configuration as a service and use the specified port
+  $ %[1]s expose dc ruby-hello-world --port=8080 --generator=service/v1`
 )
 
 // NewCmdExpose is a wrapper for the Kubernetes cli expose command

@@ -958,14 +958,10 @@ func deepCopy_v1beta3_BuildTriggerPolicy(in buildapiv1beta3.BuildTriggerPolicy, 
 }
 
 func deepCopy_v1beta3_CustomBuildStrategy(in buildapiv1beta3.CustomBuildStrategy, out *buildapiv1beta3.CustomBuildStrategy, c *conversion.Cloner) error {
-	if in.From != nil {
-		if newVal, err := c.DeepCopy(in.From); err != nil {
-			return err
-		} else {
-			out.From = newVal.(*v1beta3.ObjectReference)
-		}
+	if newVal, err := c.DeepCopy(in.From); err != nil {
+		return err
 	} else {
-		out.From = nil
+		out.From = newVal.(v1beta3.ObjectReference)
 	}
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
@@ -1012,12 +1008,26 @@ func deepCopy_v1beta3_DockerBuildStrategy(in buildapiv1beta3.DockerBuildStrategy
 		out.PullSecret = nil
 	}
 	out.NoCache = in.NoCache
+	if in.Env != nil {
+		out.Env = make([]v1beta3.EnvVar, len(in.Env))
+		for i := range in.Env {
+			if newVal, err := c.DeepCopy(in.Env[i]); err != nil {
+				return err
+			} else {
+				out.Env[i] = newVal.(v1beta3.EnvVar)
+			}
+		}
+	} else {
+		out.Env = nil
+	}
 	return nil
 }
 
 func deepCopy_v1beta3_GitBuildSource(in buildapiv1beta3.GitBuildSource, out *buildapiv1beta3.GitBuildSource, c *conversion.Cloner) error {
 	out.URI = in.URI
 	out.Ref = in.Ref
+	out.HTTPProxy = in.HTTPProxy
+	out.HTTPSProxy = in.HTTPSProxy
 	return nil
 }
 
@@ -1039,14 +1049,10 @@ func deepCopy_v1beta3_ImageChangeTrigger(in buildapiv1beta3.ImageChangeTrigger, 
 }
 
 func deepCopy_v1beta3_SourceBuildStrategy(in buildapiv1beta3.SourceBuildStrategy, out *buildapiv1beta3.SourceBuildStrategy, c *conversion.Cloner) error {
-	if in.From != nil {
-		if newVal, err := c.DeepCopy(in.From); err != nil {
-			return err
-		} else {
-			out.From = newVal.(*v1beta3.ObjectReference)
-		}
+	if newVal, err := c.DeepCopy(in.From); err != nil {
+		return err
 	} else {
-		out.From = nil
+		out.From = newVal.(v1beta3.ObjectReference)
 	}
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {

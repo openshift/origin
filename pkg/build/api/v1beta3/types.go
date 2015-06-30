@@ -115,7 +115,7 @@ const (
 
 // BuildSource is the SCM used for the build
 type BuildSource struct {
-	Type BuildSourceType `json:"type,omitempty"`
+	Type BuildSourceType `json:"type"`
 	Git  *GitBuildSource `json:"git,omitempty"`
 
 	// Specify the sub-directory where the source code for the application exists.
@@ -133,7 +133,7 @@ type BuildSource struct {
 
 // SourceRevision is the revision or commit information from the source for the build
 type SourceRevision struct {
-	Type BuildSourceType    `json:"type,omitempty"`
+	Type BuildSourceType    `json:"type"`
 	Git  *GitSourceRevision `json:"git,omitempty"`
 }
 
@@ -156,10 +156,16 @@ type GitSourceRevision struct {
 type GitBuildSource struct {
 	// URI points to the source that will be built. The structure of the source
 	// will depend on the type of build to run
-	URI string `json:"uri,omitempty"`
+	URI string `json:"uri"`
 
 	// Ref is the branch/tag/ref to build.
 	Ref string `json:"ref,omitempty"`
+
+	// HTTPProxy is a proxy used to reach the git repository over http
+	HTTPProxy string `json:"httpProxy,omitempty" description:"specifies a http proxy to be used during git clone operations"`
+
+	// HTTPSProxy is a proxy used to reach the git repository over https
+	HTTPSProxy string `json:"httpsProxy,omitempty" description:"specifies a https proxy to be used during git clone operations"`
 }
 
 // SourceControlUser defines the identity of a user of source control
@@ -203,7 +209,7 @@ const (
 type CustomBuildStrategy struct {
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
-	From *kapi.ObjectReference `json:"from,omitempty"`
+	From kapi.ObjectReference `json:"from"`
 
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
@@ -234,13 +240,16 @@ type DockerBuildStrategy struct {
 	// NoCache if set to true indicates that the docker build must be executed with the
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty"`
+
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
 type SourceBuildStrategy struct {
 	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
-	From *kapi.ObjectReference `json:"from,omitempty"`
+	From kapi.ObjectReference `json:"from"`
 
 	// PullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
@@ -319,7 +328,7 @@ type ImageChangeTrigger struct {
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
 type BuildTriggerPolicy struct {
 	// Type is the type of build trigger
-	Type BuildTriggerType `json:"type,omitempty"`
+	Type BuildTriggerType `json:"type"`
 
 	// GitHubWebHook contains the parameters for a GitHub webhook type of trigger
 	GitHubWebHook *WebHookTrigger `json:"github,omitempty"`

@@ -52,6 +52,9 @@ func TestPolicyBasedRestrictionOfBuildStrategies(t *testing.T) {
 	if err := addJoe.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
+	if err := testutil.WaitForPolicyUpdate(joeClient, namespace, "create", authorizationapi.DockerBuildResource, true); err != nil {
+		t.Error(err)
+	}
 
 	// by default admins and editors can create all type of builds
 	_, err = createDockerBuild(t, haroldClient.Builds(namespace))
@@ -83,7 +86,14 @@ func TestPolicyBasedRestrictionOfBuildStrategies(t *testing.T) {
 
 	// remove resources from role so that certain build strategies are forbidden
 	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.EditRoleName)
+	if err := testutil.WaitForPolicyUpdate(joeClient, namespace, "create", authorizationapi.DockerBuildResource, false); err != nil {
+		t.Error(err)
+	}
+
 	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.AdminRoleName)
+	if err := testutil.WaitForPolicyUpdate(haroldClient, namespace, "create", authorizationapi.DockerBuildResource, false); err != nil {
+		t.Error(err)
+	}
 
 	// make sure builds are rejected
 	if _, err = createDockerBuild(t, haroldClient.Builds(namespace)); !kapierror.IsForbidden(err) {
@@ -135,7 +145,7 @@ func createSourceBuild(t *testing.T, buildInterface client.BuildInterface) (*bui
 	dockerBuild := &buildapi.Build{}
 	dockerBuild.GenerateName = "source-build-"
 	dockerBuild.Parameters.Strategy.Type = buildapi.SourceBuildStrategyType
-	dockerBuild.Parameters.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{From: &kapi.ObjectReference{Name: "name:tag"}}
+	dockerBuild.Parameters.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{From: kapi.ObjectReference{Name: "name:tag"}}
 	dockerBuild.Parameters.Source.Type = buildapi.BuildSourceGit
 	dockerBuild.Parameters.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 
@@ -146,7 +156,7 @@ func createCustomBuild(t *testing.T, buildInterface client.BuildInterface) (*bui
 	dockerBuild := &buildapi.Build{}
 	dockerBuild.GenerateName = "custom-build-"
 	dockerBuild.Parameters.Strategy.Type = buildapi.CustomBuildStrategyType
-	dockerBuild.Parameters.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{From: &kapi.ObjectReference{Name: "name:tag"}}
+	dockerBuild.Parameters.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{From: kapi.ObjectReference{Name: "name:tag"}}
 	dockerBuild.Parameters.Source.Type = buildapi.BuildSourceGit
 	dockerBuild.Parameters.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 
@@ -189,6 +199,9 @@ func TestPolicyBasedRestrictionOfBuildConfigStrategies(t *testing.T) {
 	if err := addJoe.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
+	if err := testutil.WaitForPolicyUpdate(joeClient, namespace, "create", authorizationapi.DockerBuildResource, true); err != nil {
+		t.Error(err)
+	}
 
 	// by default admins and editors can create all type of buildconfigs
 	_, err = createDockerBuildConfig(t, haroldClient.BuildConfigs(namespace))
@@ -220,7 +233,14 @@ func TestPolicyBasedRestrictionOfBuildConfigStrategies(t *testing.T) {
 
 	// remove resources from role so that certain build strategies are forbidden
 	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.EditRoleName)
+	if err := testutil.WaitForPolicyUpdate(joeClient, namespace, "create", authorizationapi.DockerBuildResource, false); err != nil {
+		t.Error(err)
+	}
+
 	removeBuildStrategyPrivileges(t, clusterAdminClient.ClusterRoles(), bootstrappolicy.AdminRoleName)
+	if err := testutil.WaitForPolicyUpdate(haroldClient, namespace, "create", authorizationapi.DockerBuildResource, false); err != nil {
+		t.Error(err)
+	}
 
 	// make sure buildconfigs are rejected
 	if _, err = createDockerBuildConfig(t, haroldClient.BuildConfigs(namespace)); !kapierror.IsForbidden(err) {
@@ -257,7 +277,7 @@ func createSourceBuildConfig(t *testing.T, buildConfigInterface client.BuildConf
 	dockerBuild := &buildapi.BuildConfig{}
 	dockerBuild.GenerateName = "source-buildconfig-"
 	dockerBuild.Parameters.Strategy.Type = buildapi.SourceBuildStrategyType
-	dockerBuild.Parameters.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{From: &kapi.ObjectReference{Name: "name:tag"}}
+	dockerBuild.Parameters.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{From: kapi.ObjectReference{Name: "name:tag"}}
 	dockerBuild.Parameters.Source.Type = buildapi.BuildSourceGit
 	dockerBuild.Parameters.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 
@@ -268,7 +288,7 @@ func createCustomBuildConfig(t *testing.T, buildConfigInterface client.BuildConf
 	dockerBuild := &buildapi.BuildConfig{}
 	dockerBuild.GenerateName = "custom-buildconfig-"
 	dockerBuild.Parameters.Strategy.Type = buildapi.CustomBuildStrategyType
-	dockerBuild.Parameters.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{From: &kapi.ObjectReference{Name: "name:tag"}}
+	dockerBuild.Parameters.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{From: kapi.ObjectReference{Name: "name:tag"}}
 	dockerBuild.Parameters.Source.Type = buildapi.BuildSourceGit
 	dockerBuild.Parameters.Source.Git = &buildapi.GitBuildSource{URI: "example.org"}
 

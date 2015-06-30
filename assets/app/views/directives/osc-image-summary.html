@@ -1,6 +1,9 @@
 <h1>{{ name || resource.metadata.name }}</h1>
 <div class="metadata">
-  <span ng-show="resource | annotation:'version'">Version {{ resource | annotation:'version' }}</span>
-  <span ng-show="resource | annotation:'provider'">Provided By: {{ resource | annotation:'provider' }}</span>
+  <div ng-show="resource | annotation:'version'">Version {{ resource | annotation:'version' }}</div>
+  <div ng-show="resource | annotation:'provider'">Provider: {{ resource | annotation:'provider' }}</div>
+  <div ng-show="resource.metadata.namespace">Namespace: {{ resource.metadata.namespace }}</div>
 </div>
-<div class="description gutter-bottom">{{ resource | description }}</div>
+<div class="description gutter-bottom">
+  <truncate-long-text content="resource | description" limit="256" use-word-boundary="true"></truncate-long-text>
+</div>

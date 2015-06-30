@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller/framework"
@@ -92,7 +93,7 @@ func (e *DockercfgTokenDeletedController) secretDeleted(obj interface{}) {
 
 	// remove the reference token secrets
 	for _, dockercfgSecret := range dockercfgSecrets {
-		if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name); err != nil {
+		if err := e.client.Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name); (err != nil) && !apierrors.IsNotFound(err) {
 			util.HandleError(err)
 		}
 	}

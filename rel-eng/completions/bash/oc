@@ -157,27 +157,27 @@ __handle_word()
 }
 
 # call oc get $1,
-__osc_parse_get()
+__oc_parse_get()
 {
 
     local template
     template="{{ range .items  }}{{ .metadata.name }} {{ end }}"
-    local osc_out
-    if osc_out=$(oc get -o template --template="${template}" "$1" 2>/dev/null); then
-        COMPREPLY=( $( compgen -W "${osc_out[*]}" -- "$cur" ) )
+    local oc_out
+    if oc_out=$(oc get -o template --template="${template}" "$1" 2>/dev/null); then
+        COMPREPLY=( $( compgen -W "${oc_out[*]}" -- "$cur" ) )
     fi
 }
 
-__osc_get_resource()
+__oc_get_resource()
 {
     if [[ ${#nouns[@]} -eq 0 ]]; then
         return 1
     fi
-    __osc_parse_get ${nouns[${#nouns[@]} -1]}
+    __oc_parse_get ${nouns[${#nouns[@]} -1]}
 }
 
 # $1 is the name of the pod we want to get the list of containers inside
-__osc_get_containers()
+__oc_get_containers()
 {
     local template
     template="{{ range .spec.containers  }}{{ .name }} {{ end }}"
@@ -188,33 +188,40 @@ __osc_get_containers()
         return
     fi
     local last=${nouns[${len} -1]}
-    local osc_out
-    if osc_out=$(oc get -o template --template="${template}" pods "${last}" 2>/dev/null); then
-        COMPREPLY=( $( compgen -W "${osc_out[*]}" -- "$cur" ) )
+    local oc_out
+    if oc_out=$(oc get -o template --template="${template}" pods "${last}" 2>/dev/null); then
+        COMPREPLY=( $( compgen -W "${oc_out[*]}" -- "$cur" ) )
     fi
 }
 
 # Require both a pod and a container to be specified
-__osc_require_pod_and_container()
+__oc_require_pod_and_container()
 {
     if [[ ${#nouns[@]} -eq 0 ]]; then
-        __osc_parse_get pods
+        __oc_parse_get pods
         return 0
     fi;
-    __osc_get_containers
+    __oc_get_containers
     return 0
 }
 
 __custom_func() {
     case ${last_command} in
-        osc_get | osc_describe | osc_delete)
-	    __osc_get_resource
+        oc_get | oc_describe | oc_delete)
+            __oc_get_resource
             return
             ;;
-	osc_log)
-	    __osc_require_pod_and_container
-	    return
-	    ;;
+        oc_log)
+            __oc_require_pod_and_container
+            return
+            ;;
+        oc_secrets_new)
+            # Complete args other than the first as filenames
+            if [[ ${#nouns[@]} -gt 0 ]]; then
+                _filedir
+            fi;
+            return
+            ;;
         *)
             ;;
     esac
@@ -298,6 +305,7 @@ _oc_new-app()
     flags+=("--help")
     flags+=("-h")
     flags+=("--image=")
+    flags+=("--image-stream=")
     two_word_flags+=("-i")
     flags+=("--insecure-registry")
     flags+=("--labels=")
@@ -406,6 +414,7 @@ _oc_deploy()
     flags_completion=()
 
     flags+=("--cancel")
+    flags+=("--enable-triggers")
     flags+=("--help")
     flags+=("-h")
     flags+=("--latest")
@@ -729,6 +738,47 @@ _oc_env()
     must_have_one_noun=()
 }
 
+_oc_volume()
+{
+    last_command="oc_volume"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--add")
+    flags+=("--all")
+    flags+=("--claim-name=")
+    flags+=("--confirm")
+    flags+=("--containers=")
+    two_word_flags+=("-c")
+    flags+=("--filename=")
+    two_word_flags+=("-f")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--list")
+    flags+=("--mount-path=")
+    two_word_flags+=("-m")
+    flags+=("--name=")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overwrite")
+    flags+=("--path=")
+    flags+=("--remove")
+    flags+=("--secret-name=")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+    flags+=("--source=")
+    flags+=("--type=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oc_label()
 {
     last_command="oc_label"
@@ -1038,7 +1088,7 @@ _oc_export()
     flags_completion=()
 
     flags+=("--all")
-    flags+=("--as-template")
+    flags+=("--as-template=")
     flags+=("--exact")
     flags+=("--filename=")
     two_word_flags+=("-f")
@@ -1068,6 +1118,7 @@ _oc_policy_who-can()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--all-namespaces")
     flags+=("--help")
     flags+=("-h")
 
@@ -1223,8 +1274,6 @@ _oc_secrets_new()
     flags+=("--output-version=")
     flags+=("--quiet")
     flags+=("-q")
-    flags+=("--source=")
-    two_word_flags+=("-f")
     flags+=("--template=")
     two_word_flags+=("-t")
     flags+=("--type=")
@@ -1493,8 +1542,12 @@ _oc_whoami()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--context")
+    flags+=("-c")
     flags+=("--help")
     flags+=("-h")
+    flags+=("--token")
+    flags+=("-t")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -1540,6 +1593,7 @@ _oc()
     commands+=("describe")
     commands+=("edit")
     commands+=("env")
+    commands+=("volume")
     commands+=("label")
     commands+=("expose")
     commands+=("stop")

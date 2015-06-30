@@ -1,49 +1,30 @@
-<div class="col-md-4">
-  <div class="tile tile-image tile-click label-tags" id="" title="">
-    <div class="tile-table">
-      <div class="tile-table-cell image-icon">
-        <custom-icon resource="imageRepo" kind="image" tag="imageTag" title="{{imageRepo.metadata.name}}:{{imageTag}}"></custom-icon>
-      </div>
-      <div class="tile-table-cell">
-        <h3>
-        <a href="javascript:;" class="tile-target" data-toggle="modal" data-target="#{{imageRepo.metadata.namespace}}_{{imageRepo.metadata.name}}_{{imageTag|underscore}}">{{imageRepo.metadata.name}}:{{imageTag}}</a>
-        </h3>
-        <p ng-if="imageRepo | imageStreamTagAnnotation : 'description':imageTag">{{imageRepo | imageStreamTagAnnotation : 'description':imageTag}}</p>
-      </div>
+<div class="tile tile-image tile-click label-tags" id="" title="">
+  <div class="tile-table">
+    <div class="tile-table-cell image-icon">
+      <custom-icon resource="imageRepo" kind="image" tag="imageTag" title="{{imageRepo.metadata.name}}:{{imageTag}}"></custom-icon>
     </div>
-  </div>
-  <div class="modal modal-create fade" id="{{imageRepo.metadata.namespace}}_{{imageRepo.metadata.name}}_{{imageTag|underscore}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-            <span class="pficon pficon-close"></span>
-          </button>
-          <h4 class="modal-title" id="myModalLabel">{{imageRepo.metadata.name}}:{{imageTag}}</h4>
-        </div>
-        <div class="modal-body label-tags">
-          <div class="row">
-            <div class="image-icon col-xs-4 col-sm-4 col-md-4">
-              <custom-icon resource="imageRepo" kind="image" tag="imageTag" title="{{imageRepo.metadata.name}}:{{imageTag}}"></custom-icon>
-            </div>
-            <div class="col-xs-8 col-sm-8 col-md-8">
-              <p ng-if="imageRepo | imageStreamTagAnnotation : 'description':imageTag">{{imageRepo | imageStreamTagAnnotation : 'description':imageTag}}</p>
-              <p>
-                <div>
-                  <label style="margin-right: 5px;">Provider:</label>{{imageRepo | imageStreamTagProvider : imageTag}}
-                </div>
-                <div ng-if="imageRepo | imageStreamTagAnnotation : 'version':imageTag">
-                  <label style="margin-right: 5px;">Version:</label>{{imageRepo | imageStreamTagAnnotation : 'version':imageTag}}
-                </div>
-              </p>
-              <span ng-repeat="tag in (imageRepo | imageStreamTagTags : imageTag)" class="label label-default">{{tag.toUpperCase()}}</span>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-block btn-primary btn-lg select-image">Select image</button>
-        </div>
+    <div class="tile-table-cell">
+      <h3>
+        <a class="tile-target" ng-href="{{imageRepo | createFromImageURL : imageTag : project : sourceUrl}}">{{imageRepo.metadata.name}}:{{imageTag}}</a>
+      </h3>
+      <p ng-if="imageRepo | imageStreamTagAnnotation : 'description' : imageTag">
+        <truncate-long-text content="imageRepo | imageStreamTagAnnotation : 'description' : imageTag" limit="256" use-word-boundary="true"></truncate-long-text>
+      </p>
+      <div ng-if="imageRepo | imageStreamTagAnnotation : 'provider' : imageTag">
+        <label style="margin-right: 5px;">Provider:</label>
+        {{imageRepo | imageStreamTagAnnotation : 'provider' : imageTag}}
       </div>
+      <div>
+        <label style="margin-right: 5px;">Namespace:</label>
+        {{imageRepo.metadata.namespace}}
+      </div>
+      <div ng-if="version && version !== imageTag">
+        <label style="margin-right: 5px;">Version:</label>
+        {{version}}
+      </div>
+      <span ng-repeat="tag in (imageRepo | imageStreamTagTags : imageTag)" class="tag small text-muted">
+        {{tag}}
+      </span>
     </div>
   </div>
 </div>

@@ -113,7 +113,7 @@ var concepts = []term{
       Defines the template for a pod and manages deploying new images or 
       configuration changes whenever those change. A single deployment 
       configuration is usually analogous to a single micro-service. Can support 
-      many different deployment pattrens, including full restart, customizable 
+      many different deployment patterns, including full restart, customizable 
       rolling updates, and fully custom behaviors, as well as pre- and post- 
       hooks. Each deployment is represented as a replication controller.
     `),

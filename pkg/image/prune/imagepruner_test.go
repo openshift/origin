@@ -276,7 +276,7 @@ func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromName
 	switch strategyType {
 	case buildapi.SourceBuildStrategyType:
 		params.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{
-			From: &kapi.ObjectReference{
+			From: kapi.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
 				Name:      fromName,
@@ -292,7 +292,7 @@ func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromName
 		}
 	case buildapi.CustomBuildStrategyType:
 		params.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{
-			From: &kapi.ObjectReference{
+			From: kapi.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
 				Name:      fromName,
@@ -694,33 +694,17 @@ func TestRegistryPruning(t *testing.T) {
 						tagEvent("id2", "registry1/foo/other@id2"),
 					),
 				)),
-				stream("registry2", "foo", "bar", tags(
-					tag("latest",
-						tagEvent("id2", "registry2/foo/bar@id2"),
-						tagEvent("id1", "registry2/foo/bar@id1"),
-					),
-				)),
-				stream("registry2", "foo", "other", tags(
-					tag("latest",
-						tagEvent("id2", "registry2/foo/other@id2"),
-					),
-				)),
 			),
 			expectedLayerDeletions: util.NewStringSet(
 				"registry1|foo/bar|layer1",
 				"registry1|foo/bar|layer2",
-				"registry2|foo/bar|layer1",
-				"registry2|foo/bar|layer2",
 			),
 			expectedBlobDeletions: util.NewStringSet(
 				"registry1|layer1",
 				"registry1|layer2",
-				"registry2|layer1",
-				"registry2|layer2",
 			),
 			expectedManifestDeletions: util.NewStringSet(
 				"registry1|foo/bar|id1",
-				"registry2|foo/bar|id1",
 			),
 		},
 		"no pruning when no images are pruned": {

@@ -6,15 +6,13 @@
 #
 FROM openshift3/ose-base
 
-ADD config.yml /config.yml
 RUN yum install -y openshift-dockerregistry && \
     yum clean all
 
 ENV REGISTRY_CONFIGURATION_PATH=/config.yml
 
-RUN yum install -y tree findutils epel-release && \
-    yum clean all
-
 EXPOSE 5000
 VOLUME /registry
 CMD REGISTRY_URL=${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT} /usr/bin/dockerregistry /config.yml
+
+ADD config.yml /config.yml

@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -17,14 +19,15 @@ import (
 )
 
 var (
-	test_bool     = Bool("test_bool", false, "bool value")
-	test_int      = Int("test_int", 0, "int value")
-	test_int64    = Int64("test_int64", 0, "int64 value")
-	test_uint     = Uint("test_uint", 0, "uint value")
-	test_uint64   = Uint64("test_uint64", 0, "uint64 value")
-	test_string   = String("test_string", "0", "string value")
-	test_float64  = Float64("test_float64", 0, "float64 value")
-	test_duration = Duration("test_duration", 0, "time.Duration value")
+	test_bool                    = Bool("test_bool", false, "bool value")
+	test_int                     = Int("test_int", 0, "int value")
+	test_int64                   = Int64("test_int64", 0, "int64 value")
+	test_uint                    = Uint("test_uint", 0, "uint value")
+	test_uint64                  = Uint64("test_uint64", 0, "uint64 value")
+	test_string                  = String("test_string", "0", "string value")
+	test_float64                 = Float64("test_float64", 0, "float64 value")
+	test_duration                = Duration("test_duration", 0, "time.Duration value")
+	normalizeFlagNameInvocations = 0
 )
 
 func boolString(s string) string {
@@ -105,6 +108,37 @@ func TestUsage(t *testing.T) {
 	}
 }
 
+func TestAnnotation(t *testing.T) {
+	f := NewFlagSet("shorthand", ContinueOnError)
+
+	if err := f.SetAnnotation("missing-flag", "key", nil); err == nil {
+		t.Errorf("Expected error setting annotation on non-existent flag")
+	}
+
+	f.StringP("stringa", "a", "", "string value")
+	if err := f.SetAnnotation("stringa", "key", nil); err != nil {
+		t.Errorf("Unexpected error setting new nil annotation: %v", err)
+	}
+	if annotation := f.Lookup("stringa").Annotations["key"]; annotation != nil {
+		t.Errorf("Unexpected annotation: %v", annotation)
+	}
+
+	f.StringP("stringb", "b", "", "string2 value")
+	if err := f.SetAnnotation("stringb", "key", []string{"value1"}); err != nil {
+		t.Errorf("Unexpected error setting new annotation: %v", err)
+	}
+	if annotation := f.Lookup("stringb").Annotations["key"]; !reflect.DeepEqual(annotation, []string{"value1"}) {
+		t.Errorf("Unexpected annotation: %v", annotation)
+	}
+
+	if err := f.SetAnnotation("stringb", "key", []string{"value2"}); err != nil {
+		t.Errorf("Unexpected error updating annotation: %v", err)
+	}
+	if annotation := f.Lookup("stringb").Annotations["key"]; !reflect.DeepEqual(annotation, []string{"value2"}) {
+		t.Errorf("Unexpected annotation: %v", annotation)
+	}
+}
+
 func testParse(f *FlagSet, t *testing.T) {
 	if f.Parsed() {
 		t.Error("f.Parse() = true before Parse")
@@ -113,11 +147,19 @@ func testParse(f *FlagSet, t *testing.T) {
 	bool2Flag := f.Bool("bool2", false, "bool2 value")
 	bool3Flag := f.Bool("bool3", false, "bool3 value")
 	intFlag := f.Int("int", 0, "int value")
+	int8Flag := f.Int8("int8", 0, "int value")
+	int32Flag := f.Int32("int32", 0, "int value")
 	int64Flag := f.Int64("int64", 0, "int64 value")
 	uintFlag := f.Uint("uint", 0, "uint value")
+	uint8Flag := f.Uint8("uint8", 0, "uint value")
+	uint16Flag := f.Uint16("uint16", 0, "uint value")
+	uint32Flag := f.Uint32("uint32", 0, "uint value")
 	uint64Flag := f.Uint64("uint64", 0, "uint64 value")
 	stringFlag := f.String("string", "0", "string value")
+	float32Flag := f.Float32("float32", 0, "float32 value")
 	float64Flag := f.Float64("float64", 0, "float64 value")
+	ipFlag := f.IP("ip", net.ParseIP("127.0.0.1"), "ip value")
+	maskFlag := f.IPMask("mask", ParseIPv4Mask("0.0.0.0"), "mask value")
 	durationFlag := f.Duration("duration", 5*time.Second, "time.Duration value")
 	extra := "one-extra-argument"
 	args := []string{
@@ -125,11 +167,19 @@ func testParse(f *FlagSet, t *testing.T) {
 		"--bool2=true",
 		"--bool3=false",
 		"--int=22",
+		"--int8=-8",
+		"--int32=-32",
 		"--int64=0x23",
 		"--uint=24",
+		"--uint8=8",
+		"--uint16=16",
+		"--uint32=32",
 		"--uint64=25",
 		"--string=hello",
+		"--float32=-172e12",
 		"--float64=2718e28",
+		"--ip=10.11.12.13",
+		"--mask=255.255.255.0",
 		"--duration=2m",
 		extra,
 	}
@@ -151,11 +201,26 @@ func testParse(f *FlagSet, t *testing.T) {
 	if *intFlag != 22 {
 		t.Error("int flag should be 22, is ", *intFlag)
 	}
+	if *int8Flag != -8 {
+		t.Error("int8 flag should be 0x23, is ", *int8Flag)
+	}
+	if *int32Flag != -32 {
+		t.Error("int32 flag should be 0x23, is ", *int32Flag)
+	}
 	if *int64Flag != 0x23 {
 		t.Error("int64 flag should be 0x23, is ", *int64Flag)
 	}
 	if *uintFlag != 24 {
 		t.Error("uint flag should be 24, is ", *uintFlag)
+	}
+	if *uint8Flag != 8 {
+		t.Error("uint8 flag should be 8, is ", *uint8Flag)
+	}
+	if *uint16Flag != 16 {
+		t.Error("uint16 flag should be 16, is ", *uint16Flag)
+	}
+	if *uint32Flag != 32 {
+		t.Error("uint32 flag should be 32, is ", *uint32Flag)
 	}
 	if *uint64Flag != 25 {
 		t.Error("uint64 flag should be 25, is ", *uint64Flag)
@@ -163,8 +228,17 @@ func testParse(f *FlagSet, t *testing.T) {
 	if *stringFlag != "hello" {
 		t.Error("string flag should be `hello`, is ", *stringFlag)
 	}
+	if *float32Flag != -172e12 {
+		t.Error("float64 flag should be -172e12, is ", *float64Flag)
+	}
 	if *float64Flag != 2718e28 {
 		t.Error("float64 flag should be 2718e28, is ", *float64Flag)
+	}
+	if (*maskFlag).String() != ParseIPv4Mask("255.255.255.0").String() {
+		t.Error("mask flag should be 255.255.255.0, is ", (*maskFlag).String())
+	}
+	if !(*ipFlag).Equal(net.ParseIP("10.11.12.13")) {
+		t.Error("ip flag should be 10.11.12.13, is ", *ipFlag)
 	}
 	if *durationFlag != 2*time.Minute {
 		t.Error("duration flag should be 2m, is ", *durationFlag)
@@ -184,6 +258,7 @@ func TestShorthand(t *testing.T) {
 	boolaFlag := f.BoolP("boola", "a", false, "bool value")
 	boolbFlag := f.BoolP("boolb", "b", false, "bool2 value")
 	boolcFlag := f.BoolP("boolc", "c", false, "bool3 value")
+	booldFlag := f.BoolP("boold", "d", false, "bool4 value")
 	stringaFlag := f.StringP("stringa", "s", "0", "string value")
 	stringzFlag := f.StringP("stringz", "z", "0", "string value")
 	extra := "interspersed-argument"
@@ -194,6 +269,7 @@ func TestShorthand(t *testing.T) {
 		"-cs",
 		"hello",
 		"-z=something",
+		"-d=true",
 		"--",
 		notaflag,
 	}
@@ -212,6 +288,9 @@ func TestShorthand(t *testing.T) {
 	}
 	if *boolcFlag != true {
 		t.Error("boolc flag should be true, is ", *boolcFlag)
+	}
+	if *booldFlag != true {
+		t.Error("boold flag should be true, is ", *booldFlag)
 	}
 	if *stringaFlag != "hello" {
 		t.Error("stringa flag should be `hello`, is ", *stringaFlag)
@@ -249,6 +328,8 @@ func replaceSeparators(name string, from []string, to string) string {
 func wordSepNormalizeFunc(f *FlagSet, name string) NormalizedName {
 	seps := []string{"-", "_"}
 	name = replaceSeparators(name, seps, ".")
+	normalizeFlagNameInvocations++
+
 	return NormalizedName(name)
 }
 
@@ -338,6 +419,31 @@ func TestCustomNormalizedNames(t *testing.T) {
 	}
 	if *someOtherFlag != true {
 		t.Error("someOtherFlag should be true, is ", *someOtherFlag)
+	}
+}
+
+// Every flag we add, the name (displayed also in usage) should normalized
+func TestNormalizationFuncShouldChangeFlagName(t *testing.T) {
+	// Test normalization after addition
+	f := NewFlagSet("normalized", ContinueOnError)
+
+	f.Bool("valid_flag", false, "bool value")
+	if f.Lookup("valid_flag").Name != "valid_flag" {
+		t.Error("The new flag should have the name 'valid_flag' instead of ", f.Lookup("valid_flag").Name)
+	}
+
+	f.SetNormalizeFunc(wordSepNormalizeFunc)
+	if f.Lookup("valid_flag").Name != "valid.flag" {
+		t.Error("The new flag should have the name 'valid.flag' instead of ", f.Lookup("valid_flag").Name)
+	}
+
+	// Test normalization before addition
+	f = NewFlagSet("normalized", ContinueOnError)
+	f.SetNormalizeFunc(wordSepNormalizeFunc)
+
+	f.Bool("valid_flag", false, "bool value")
+	if f.Lookup("valid_flag").Name != "valid.flag" {
+		t.Error("The new flag should have the name 'valid.flag' instead of ", f.Lookup("valid_flag").Name)
 	}
 }
 
@@ -567,5 +673,18 @@ func TestDeprecatedFlagUsageNormalized(t *testing.T) {
 
 	if !strings.Contains(out, usageMsg) {
 		t.Errorf("usageMsg not printed when using a deprecated flag!")
+	}
+}
+
+// Name normalization function should be called only once on flag addition
+func TestMultipleNormalizeFlagNameInvocations(t *testing.T) {
+	normalizeFlagNameInvocations = 0
+
+	f := NewFlagSet("normalized", ContinueOnError)
+	f.SetNormalizeFunc(wordSepNormalizeFunc)
+	f.Bool("with_under_flag", false, "bool value")
+
+	if normalizeFlagNameInvocations != 1 {
+		t.Fatal("Expected normalizeFlagNameInvocations to be 1; got ", normalizeFlagNameInvocations)
 	}
 }

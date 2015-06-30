@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -39,6 +41,20 @@ func NewCmdConfig(parentName, name string) *cobra.Command {
 	cmd.Short = "Change configuration files for the client"
 	cmd.Long = configLong
 	cmd.Example = fmt.Sprintf(configExample, parentName, name)
-
+	adjustCmdExamples(cmd, parentName, name)
 	return cmd
+}
+
+func adjustCmdExamples(cmd *cobra.Command, parentName string, name string) {
+	for _, subCmd := range cmd.Commands() {
+		adjustCmdExamples(subCmd, parentName, cmd.Name())
+	}
+	cmd.Example = strings.Replace(cmd.Example, "$ kubectl", "$ "+parentName, -1)
+	tabbing := "  "
+	examples := []string{}
+	scanner := bufio.NewScanner(strings.NewReader(cmd.Example))
+	for scanner.Scan() {
+		examples = append(examples, tabbing+strings.TrimSpace(scanner.Text()))
+	}
+	cmd.Example = strings.Join(examples, "\n")
 }

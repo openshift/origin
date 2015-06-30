@@ -16,7 +16,7 @@ import (
 var mockBuildStrategy = api.BuildStrategy{
 	Type: "STI",
 	SourceStrategy: &api.SourceBuildStrategy{
-		From: &kapi.ObjectReference{
+		From: kapi.ObjectReference{
 			Name: "repository/image",
 		},
 	},
@@ -173,7 +173,7 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 		t.Error("Expected 'proceed' return value to be 'false' for unmatched refs")
 	}
 	if build != nil {
-		t.Error("Expected the 'revision' return value to be nil since we arent creating a new one")
+		t.Error("Expected the 'revision' return value to be nil since we aren't creating a new one")
 	}
 }
 

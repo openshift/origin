@@ -22,6 +22,12 @@
         }
       },
       "spec": {
+	"volumes": [
+	  {
+	    "name": "vol1",
+	    "emptyDir": {}
+	  }
+	],
         "containers": [
           {
             "name": "ruby-helloworld",

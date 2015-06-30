@@ -7,9 +7,8 @@
       </ol>
       <div class="row">
         <div class="col-md-12">
-          <h1>Create</h1>
+          <h1>Create Using Your Code</h1>
           <form name="from_source_form" class="form-inline gutter-bottom">
-            <h2>Using Your Code</h2>
             <p>Create your application from a Git source code repository.</p>
             <div class="row">
               <div class="col-md-8">
@@ -38,16 +37,32 @@
 
           <div class="row">
             <div class="col-md-12">
-              <h2>Using a Template</h2>
+              <div class="separator"></div>
+              <h1>Create Using a Template</h1>
               <p>Templates have predefined resources for quickly creating components. You can customize some options in the next step.</p>
               <h3>Instant Apps</h3>
-              <div class="row">
-                <catalog-template template="template" project="projectName" ng-repeat="template in templatesByTag['instant-app'] | orderBy : 'metadata.name'"></catalog-template>
-                <div class="col-md-4">
-                  <div ng-if="!templatesByTag['instant-app'].length">
-                    <em>There are no instant apps available to create.</em>
-                  </div>
-                  <a class="btn btn-lg btn-primary btn-block" href="project/{{projectName}}/catalog/templates">Browse all templates...</a>
+              <div ng-if="!templatesLoaded && (instantApps | hashSize) === 0">Loading...</div>
+              <div ng-if="templatesLoaded && (instantApps | hashSize) === 0">
+                <em>There are no instant apps available.</em>
+              </div>
+              <div class="catalog">
+                <catalog-template
+                    template="template"
+                    project="projectName"
+                    ng-repeat="template in instantApps | toArray | orderBy : ['metadata.name', 'metadata.namespace']">
+                </catalog-template>
+              </div>
+              <div ng-show="!showAllTemplates && (otherTemplates | hashSize) !== 0" class="show-all-button-container gutter-bottom">
+                <a ng-click="showAllTemplates = true" class="btn btn-lg btn-primary">Show all templates...</a>
+              </div>
+              <div ng-show="showAllTemplates">
+                <h3>Other Templates</h3>
+                <div class="catalog">
+                  <catalog-template
+                      template="template"
+                      project="projectName"
+                      ng-repeat="template in otherTemplates | toArray | orderBy : ['metadata.name', 'metadata.namespace']">
+                  </catalog-template>
                 </div>
               </div>
             </div>

@@ -1,0 +1,3 @@
+A Persistent Volume (PV) is a storage device that is made available for use by applications by an administrator. When a user requests persistent storage be allocated for a pod, they create a persistent volume claim with the size and type of storage they need. The system will look for persistent volumes that match that claim and, if one is available, it will assign that persistent volume to the claim. Information about the volume (type, location, secrets necessary to use it) will be available to the claim and the claim may then be used from a pod as a volume source.
+
+Deleting a persistent volume removes the cluster's record of the volume, and may result in automated processes destroying the underlying network store.

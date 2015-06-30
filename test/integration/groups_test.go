@@ -105,6 +105,9 @@ func TestBasicGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if err := testutil.WaitForPolicyUpdate(valerieOpenshiftClient, "empty", "get", "pods", true); err != nil {
+		t.Error(err)
+	}
 
 	// make sure that user groups are respected for policy
 	_, err = valerieOpenshiftClient.Projects().Get("empty")
