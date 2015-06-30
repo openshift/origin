@@ -8,9 +8,13 @@ FIXUP_NET_UDEV=$7
 
 if [ "${FIXUP_NET_UDEV}" == "true" ]; then
   NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
-  sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
-
-  systemctl restart network
+  rm -f ${NETWORK_CONF_PATH}ifcfg-enp*
+  if [[ -f "${NETWORK_CONF_PATH}ifcfg-eth1" ]]; then
+    sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
+    nmcli con reload
+    nmcli dev disconnect eth1
+    nmcli dev connect eth1
+  fi
 fi
 
 # get the minion name, index is 1-based
