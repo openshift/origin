@@ -180,6 +180,12 @@ func (c *MasterConfig) CreateServer(protected, unprotected []APIInstaller) (*htt
 		extra = append(extra, i.InstallAPI(safe)...)
 	}
 
+	// unprotected resources
+	unprotected = append(unprotected, APIInstallFunc(c.InstallUnprotectedAPI))
+	for _, i := range unprotected {
+		extra = append(extra, i.InstallAPI(open)...)
+	}
+
 	authorizationFilterConfig := &AuthorizationFilterConfig{
 		attributeBuilder: c.AuthorizationAttributeBuilder,
 		contextMapper:    c.getRequestContextMapper(),
@@ -214,26 +220,7 @@ func (c *MasterConfig) CreateServer(protected, unprotected []APIInstaller) (*htt
 	handler = handlerPrepender.PrependHandler(handler, authenticationFilterConfig)
 	handler = handlerPrepender.PrependHandler(handler, namespacingFilterConfig)
 	handler = handlerPrepender.PrependHandler(handler, cacheControlFilterConfig)
-
-	// unprotected resources
-	unprotected = append(unprotected, APIInstallFunc(c.InstallUnprotectedAPI))
-	for _, i := range unprotected {
-		extra = append(extra, i.InstallAPI(open)...)
-	}
-
 	handler = handlerPrepender.PrependHandler(handler, apiPathIndexerConfig)
-
-	// install swagger
-	swaggerConfig := swagger.Config{
-		WebServicesUrl:   c.Options.MasterPublicURL,
-		WebServices:      append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
-		ApiPath:          swaggerAPIPrefix,
-		PostBuildHandler: customizeSwaggerDefinition,
-	}
-	// log nothing from swagger
-	swagger.LogInfo = func(format string, v ...interface{}) {}
-	swagger.RegisterSwaggerService(swaggerConfig, open)
-	extra = append(extra, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerAPIPrefix))
 
 	// allow for following prepend calls to prepend to the handler of the insecure container
 	handler = handlerPrepender.PrependHandler(handler, insecureContainerConfig)
@@ -268,6 +255,18 @@ func (c *MasterConfig) CreateServer(protected, unprotected []APIInstaller) (*htt
 		}
 		handler = handlerPrepender.PrependHandler(handler, maxInFlightLimitFilterConfig)
 	}
+
+	// install swagger
+	swaggerConfig := swagger.Config{
+		WebServicesUrl:   c.Options.MasterPublicURL,
+		WebServices:      append(safe.RegisteredWebServices(), open.RegisteredWebServices()...),
+		ApiPath:          swaggerAPIPrefix,
+		PostBuildHandler: customizeSwaggerDefinition,
+	}
+	// log nothing from swagger
+	swagger.LogInfo = func(format string, v ...interface{}) {}
+	swagger.RegisterSwaggerService(swaggerConfig, open)
+	extra = append(extra, fmt.Sprintf("Started Swagger Schema API at %%s%s", swaggerAPIPrefix))
 
 	timeout := c.Options.ServingInfo.RequestTimeoutSeconds
 	if timeout == -1 {
