@@ -238,7 +238,7 @@ func (c *deployLatestCommand) deploy(config *deployapi.DeploymentConfig, out io.
 	config.LatestVersion++
 	_, err = c.client.UpdateDeploymentConfig(config)
 	if err == nil {
-		fmt.Fprintf(out, "deployed #%d\n", config.LatestVersion)
+		fmt.Fprintf(out, "Started deployment #%d\n", config.LatestVersion)
 	}
 	return err
 }
