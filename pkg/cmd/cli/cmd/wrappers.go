@@ -264,7 +264,10 @@ scale is sent to the server.`
   $ %[1]s scale --replicas=3 replicationcontrollers foo
 
   // If the replication controller named foo's current size is 2, scale foo to 3.
-  $ %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo`
+  $ %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo
+
+  // Scale multiple replication controllers.
+  $ %[1]s scale --replicas=5 rc/foo rc/bar`
 )
 
 // NewCmdScale is a wrapper for the Kubernetes cli scale command
