@@ -13,27 +13,34 @@ func TestCompareDomainName(t *testing.T) {
 	s6 := "miek.nl"
 
 	if CompareDomainName(s1, s2) != 2 {
-		t.Errorf("%s with %s should be %d", s1, s2, 2)
+		t.Logf("%s with %s should be %d", s1, s2, 2)
+		t.Fail()
 	}
 	if CompareDomainName(s1, s3) != 1 {
-		t.Errorf("%s with %s should be %d", s1, s3, 1)
+		t.Logf("%s with %s should be %d", s1, s3, 1)
+		t.Fail()
 	}
 	if CompareDomainName(s3, s4) != 0 {
-		t.Errorf("%s with %s should be %d", s3, s4, 0)
+		t.Logf("%s with %s should be %d", s3, s4, 0)
+		t.Fail()
 	}
 	// Non qualified tests
 	if CompareDomainName(s1, s5) != 1 {
-		t.Errorf("%s with %s should be %d", s1, s5, 1)
+		t.Logf("%s with %s should be %d", s1, s5, 1)
+		t.Fail()
 	}
 	if CompareDomainName(s1, s6) != 2 {
-		t.Errorf("%s with %s should be %d", s1, s5, 2)
+		t.Logf("%s with %s should be %d", s1, s5, 2)
+		t.Fail()
 	}
 
 	if CompareDomainName(s1, ".") != 0 {
-		t.Errorf("%s with %s should be %d", s1, s5, 0)
+		t.Logf("%s with %s should be %d", s1, s5, 0)
+		t.Fail()
 	}
 	if CompareDomainName(".", ".") != 0 {
-		t.Errorf("%s with %s should be %d", ".", ".", 0)
+		t.Logf("%s with %s should be %d", ".", ".", 0)
+		t.Fail()
 	}
 }
 
@@ -52,9 +59,10 @@ func TestSplit(t *testing.T) {
 	}
 	for s, i := range splitter {
 		if x := len(Split(s)); x != i {
-			t.Errorf("labels should be %d, got %d: %s %v", i, x, s, Split(s))
+			t.Logf("labels should be %d, got %d: %s %v\n", i, x, s, Split(s))
+			t.Fail()
 		} else {
-			t.Logf("%s %v", s, Split(s))
+			t.Logf("%s %v\n", s, Split(s))
 		}
 	}
 }
@@ -70,11 +78,13 @@ func TestSplit2(t *testing.T) {
 		switch len(i) {
 		case 1:
 			if x[0] != i[0] {
-				t.Errorf("labels should be %v, got %v: %s", i, x, s)
+				t.Logf("labels should be %v, got %v: %s\n", i, x, s)
+				t.Fail()
 			}
 		default:
 			if x[0] != i[0] || x[1] != i[1] || x[2] != i[2] {
-				t.Errorf("labels should be %v, got %v: %s", i, x, s)
+				t.Logf("labels should be %v, got %v: %s\n", i, x, s)
+				t.Fail()
 			}
 		}
 	}
@@ -103,7 +113,8 @@ func TestPrevLabel(t *testing.T) {
 	for s, i := range prever {
 		x, ok := PrevLabel(s.string, s.int)
 		if i != x {
-			t.Errorf("label should be %d, got %d, %t: preving %d, %s", i, x, ok, s.int, s.string)
+			t.Logf("label should be %d, got %d, %t: preving %d, %s\n", i, x, ok, s.int, s.string)
+			t.Fail()
 		}
 	}
 }
@@ -118,7 +129,8 @@ func TestCountLabel(t *testing.T) {
 	for s, i := range splitter {
 		x := CountLabel(s)
 		if x != i {
-			t.Errorf("CountLabel should have %d, got %d", i, x)
+			t.Logf("CountLabel should have %d, got %d\n", i, x)
+			t.Fail()
 		}
 	}
 }
@@ -137,12 +149,14 @@ domainLoop:
 	for domain, splits := range labels {
 		parts := SplitDomainName(domain)
 		if len(parts) != len(splits) {
-			t.Errorf("SplitDomainName returned %v for %s, expected %v", parts, domain, splits)
+			t.Logf("SplitDomainName returned %v for %s, expected %v", parts, domain, splits)
+			t.Fail()
 			continue domainLoop
 		}
 		for i := range parts {
 			if parts[i] != splits[i] {
-				t.Errorf("SplitDomainName returned %v for %s, expected %v", parts, domain, splits)
+				t.Logf("SplitDomainName returned %v for %s, expected %v", parts, domain, splits)
+				t.Fail()
 				continue domainLoop
 			}
 		}
@@ -166,8 +180,9 @@ func TestIsDomainName(t *testing.T) {
 	for d, ok := range names {
 		l, k := IsDomainName(d)
 		if ok.ok != k || ok.lab != l {
-			t.Errorf(" got %v %d for %s ", k, l, d)
-			t.Errorf("have %v %d for %s ", ok.ok, ok.lab, d)
+			t.Logf(" got %v %d for %s ", k, l, d)
+			t.Logf("have %v %d for %s ", ok.ok, ok.lab, d)
+			t.Fail()
 		}
 	}
 }

@@ -20,7 +20,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/golang/glog"
 )
 
@@ -60,16 +59,4 @@ func SetReady(dir string) {
 		return
 	}
 	file.Close()
-}
-
-// ContainerHasVolumeMountForName determines whether the container has
-// a volume mount for the volume with the given name.
-func ContainerHasVolumeMountForName(container *api.Container, volumeName string) bool {
-	for _, mount := range container.VolumeMounts {
-		if mount.Name == volumeName {
-			return true
-		}
-	}
-
-	return false
 }

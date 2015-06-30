@@ -74,7 +74,7 @@ type VolumePlugin interface {
 // PersistentVolumePlugin is an extended interface of VolumePlugin and is used
 // by volumes that want to provide long term persistence of data
 type PersistentVolumePlugin interface {
-VolumePlugin
+	VolumePlugin
 	// GetAccessModes describes the ways a given volume can be accessed/mounted.
 	GetAccessModes() []api.PersistentVolumeAccessMode
 }
@@ -82,7 +82,7 @@ VolumePlugin
 // RecyclableVolumePlugin is an extended interface of VolumePlugin and is used
 // by persistent volumes that want to be recycled before being made available again to new claims
 type RecyclableVolumePlugin interface {
-VolumePlugin
+	VolumePlugin
 	// NewRecycler creates a new volume.Recycler which knows how to reclaim this resource
 	// after the volume's release from a PersistentVolumeClaim
 	NewRecycler(spec *Spec) (Recycler, error)
@@ -134,14 +134,6 @@ type Spec struct {
 	Name                   string
 	VolumeSource           api.VolumeSource
 	PersistentVolumeSource api.PersistentVolumeSource
-}
-
-// RecyclableVolumeConfig describes the things needed to generate a pod that scrubs a PV clean for reuse by another PVClaim
-type RecyclableVolumeConfig struct {
-	ImageName string
-	Command   []string
-	Args      []string
-	Timeout   int64
 }
 
 // NewSpecFromVolume creates an Spec from an api.Volume

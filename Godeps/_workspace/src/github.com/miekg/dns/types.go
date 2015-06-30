@@ -10,12 +10,9 @@ import (
 )
 
 type (
-	// Type is a DNS type.
-	Type uint16
-	// Class is a DNS class.
-	Class uint16
-	// Name is a DNS domain name.
-	Name string
+	Type  uint16 // Type is a DNS type.
+	Class uint16 // Class is a DNS class.
+	Name  string // Name is a DNS domain name.
 )
 
 // Packet formats
@@ -23,7 +20,6 @@ type (
 // Wire constants and supported types.
 const (
 	// valid RR_Header.Rrtype and Question.qtype
-
 	TypeNone       uint16 = 0
 	TypeA          uint16 = 1
 	TypeNS         uint16 = 2
@@ -95,9 +91,7 @@ const (
 
 	TypeTKEY uint16 = 249
 	TypeTSIG uint16 = 250
-
 	// valid Question.Qtype only
-
 	TypeIXFR  uint16 = 251
 	TypeAXFR  uint16 = 252
 	TypeMAILB uint16 = 253
@@ -111,7 +105,6 @@ const (
 	TypeReserved uint16 = 65535
 
 	// valid Question.Qclass
-
 	ClassINET   = 1
 	ClassCSNET  = 2
 	ClassCHAOS  = 3
@@ -120,7 +113,6 @@ const (
 	ClassANY    = 255
 
 	// Msg.rcode
-
 	RcodeSuccess        = 0
 	RcodeFormatError    = 1
 	RcodeServerFailure  = 2
@@ -141,11 +133,11 @@ const (
 	RcodeBadAlg         = 21
 	RcodeBadTrunc       = 22 // TSIG
 
-	// Opcode, there is no 3
-
+	// Opcode
 	OpcodeQuery  = 0
 	OpcodeIQuery = 1
 	OpcodeStatus = 2
+	// There is no 3
 	OpcodeNotify = 4
 	OpcodeUpdate = 5
 )
@@ -206,8 +198,7 @@ var CertTypeToString = map[uint16]string{
 
 var StringToCertType = reverseInt16(CertTypeToString)
 
-// Question holds a DNS question. There can be multiple questions in the
-// question section of a message. Usually there is just one.
+// DNS queries.
 type Question struct {
 	Name   string `dns:"cdomain-name"` // "cdomain-name" specifies encoding (and may be compressed)
 	Qtype  uint16
@@ -810,7 +801,7 @@ func cmToM(m, e uint8) string {
 	s := fmt.Sprintf("%d", m)
 	for e > 2 {
 		s += "0"
-		e--
+		e -= 1
 	}
 	return s
 }
@@ -847,7 +838,7 @@ func (rr *LOC) String() string {
 	lon = lon % LOC_HOURS
 	s += fmt.Sprintf("%02d %02d %0.3f %s ", h, m, (float64(lon) / 1000), ew)
 
-	var alt = float64(rr.Altitude) / 100
+	var alt float64 = float64(rr.Altitude) / 100
 	alt -= LOC_ALTITUDEBASE
 	if rr.Altitude%100 != 0 {
 		s += fmt.Sprintf("%.2fm ", alt)
@@ -1038,59 +1029,30 @@ func (rr *SSHFP) String() string {
 }
 
 type IPSECKEY struct {
-	Hdr        RR_Header
-	Precedence uint8
-	// GatewayType: 1: A record, 2: AAAA record, 3: domainname.
-	// 0 is use for no type and GatewayName should be "." then.
+	Hdr         RR_Header
+	Precedence  uint8
 	GatewayType uint8
 	Algorithm   uint8
-	// Gateway can be an A record, AAAA record or a domain name.
-	GatewayA    net.IP `dns:"a"`
-	GatewayAAAA net.IP `dns:"aaaa"`
-	GatewayName string `dns:"domain-name"`
+	Gateway     string `dns:"ipseckey"`
 	PublicKey   string `dns:"base64"`
 }
 
 func (rr *IPSECKEY) Header() *RR_Header { return &rr.Hdr }
 func (rr *IPSECKEY) copy() RR {
-	return &IPSECKEY{*rr.Hdr.copyHeader(), rr.Precedence, rr.GatewayType, rr.Algorithm, rr.GatewayA, rr.GatewayAAAA, rr.GatewayName, rr.PublicKey}
+	return &IPSECKEY{*rr.Hdr.copyHeader(), rr.Precedence, rr.GatewayType, rr.Algorithm, rr.Gateway, rr.PublicKey}
 }
 
 func (rr *IPSECKEY) String() string {
-	s := rr.Hdr.String() + strconv.Itoa(int(rr.Precedence)) +
+	return rr.Hdr.String() + strconv.Itoa(int(rr.Precedence)) +
 		" " + strconv.Itoa(int(rr.GatewayType)) +
-		" " + strconv.Itoa(int(rr.Algorithm))
-	switch rr.GatewayType {
-	case 0:
-		fallthrough
-	case 3:
-		s += " " + rr.GatewayName
-	case 1:
-		s += " " + rr.GatewayA.String()
-	case 2:
-		s += " " + rr.GatewayAAAA.String()
-	default:
-		s += " ."
-	}
-	s += " " + rr.PublicKey
-	return s
+		" " + strconv.Itoa(int(rr.Algorithm)) +
+		" " + rr.Gateway +
+		" " + rr.PublicKey
 }
 
 func (rr *IPSECKEY) len() int {
-	l := rr.Hdr.len() + 3 + 1
-	switch rr.GatewayType {
-	default:
-		fallthrough
-	case 0:
-		fallthrough
-	case 3:
-		l += len(rr.GatewayName)
-	case 1:
-		l += 4
-	case 2:
-		l += 16
-	}
-	return l + base64.StdEncoding.DecodedLen(len(rr.PublicKey))
+	return rr.Hdr.len() + 3 + len(rr.Gateway) + 1 +
+		base64.StdEncoding.DecodedLen(len(rr.PublicKey))
 }
 
 type KEY struct {
@@ -1432,7 +1394,6 @@ func (rr *WKS) String() (s string) {
 	if rr.Address != nil {
 		s += rr.Address.String()
 	}
-	// TODO(miek): missing protocol here, see /etc/protocols
 	for i := 0; i < len(rr.BitMap); i++ {
 		// should lookup the port
 		s += " " + strconv.Itoa(int(rr.BitMap[i]))
@@ -1687,7 +1648,6 @@ var typeToRR = map[uint16]func() RR{
 	TypeEID:        func() RR { return new(EID) },
 	TypeHINFO:      func() RR { return new(HINFO) },
 	TypeHIP:        func() RR { return new(HIP) },
-	TypeIPSECKEY:   func() RR { return new(IPSECKEY) },
 	TypeKX:         func() RR { return new(KX) },
 	TypeL32:        func() RR { return new(L32) },
 	TypeL64:        func() RR { return new(L64) },

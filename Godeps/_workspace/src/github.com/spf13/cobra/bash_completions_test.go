@@ -42,19 +42,23 @@ func TestBashCompletions(t *testing.T) {
 	// required flag
 	c.MarkFlagRequired("introot")
 
-	// valid nouns
+	// valid nounds
 	validArgs := []string{"pods", "nodes", "services", "replicationControllers"}
 	c.ValidArgs = validArgs
 
-	// filename
+	// filename extentions
+	annotations := make([]string, 3)
+	annotations[0] = "json"
+	annotations[1] = "yaml"
+	annotations[2] = "yml"
+
+	annotation := make(map[string][]string)
+	annotation[BashCompFilenameExt] = annotations
+
 	var flagval string
 	c.Flags().StringVar(&flagval, "filename", "", "Enter a filename")
-	c.MarkFlagFilename("filename", "json", "yaml", "yml")
-
-	// filename extensions
-	var flagvalExt string
-	c.Flags().StringVar(&flagvalExt, "filename-ext", "", "Enter a filename (extension limited)")
-	c.MarkFlagFilename("filename-ext")
+	flag := c.Flags().Lookup("filename")
+	flag.Annotations = annotation
 
 	out := new(bytes.Buffer)
 	c.GenBashCompletion(out)
@@ -71,9 +75,7 @@ func TestBashCompletions(t *testing.T) {
 	check(t, str, `COMPREPLY=( "hello" )`)
 	// check for required nouns
 	check(t, str, `must_have_one_noun+=("pods")`)
-	// check for filename extension flags
-	check(t, str, `flags_completion+=("_filedir")`)
-	// check for filename extension flags
+	// check for filename extention flags
 	check(t, str, `flags_completion+=("__handle_filename_extension_flag json|yaml|yml")`)
 
 	checkOmit(t, str, cmdDeprecated.Name())

@@ -81,6 +81,10 @@ func (podStrategy) ValidateUpdate(ctx api.Context, obj, old runtime.Object) fiel
 	return append(errorList, validation.ValidatePodUpdate(obj.(*api.Pod), old.(*api.Pod))...)
 }
 
+func (podStrategy) AllowUnconditionalUpdate() bool {
+	return true
+}
+
 // CheckGracefulDelete allows a pod to be gracefully deleted.
 func (podStrategy) CheckGracefulDelete(obj runtime.Object, options *api.DeleteOptions) bool {
 	return false
@@ -123,7 +127,7 @@ func MatchPod(label labels.Selector, field fields.Selector) generic.Matcher {
 func PodToSelectableFields(pod *api.Pod) fields.Set {
 	return fields.Set{
 		"metadata.name": pod.Name,
-		"spec.host":     pod.Spec.Host,
+		"spec.nodeName": pod.Spec.NodeName,
 		"status.phase":  string(pod.Status.Phase),
 	}
 }
@@ -199,7 +203,7 @@ func LogLocation(getter ResourceGetter, connInfo client.ConnectionInfoGetter, ct
 			return nil, nil, errors.NewBadRequest(fmt.Sprintf("a container name must be specified for pod %s", name))
 		}
 	}
-	nodeHost := pod.Spec.Host
+	nodeHost := pod.Spec.NodeName
 	if len(nodeHost) == 0 {
 		// If pod has not been assigned a host, return an empty location
 		return nil, nil, nil
@@ -242,7 +246,7 @@ func ExecLocation(getter ResourceGetter, connInfo client.ConnectionInfoGetter, c
 			return nil, nil, errors.NewBadRequest(fmt.Sprintf("a container name must be specified for pod %s", name))
 		}
 	}
-	nodeHost := pod.Spec.Host
+	nodeHost := pod.Spec.NodeName
 	if len(nodeHost) == 0 {
 		// If pod has not been assigned a host, return an empty location
 		return nil, nil, fmt.Errorf("pod %s does not have a host assigned", name)
@@ -284,7 +288,7 @@ func PortForwardLocation(getter ResourceGetter, connInfo client.ConnectionInfoGe
 		return nil, nil, err
 	}
 
-	nodeHost := pod.Spec.Host
+	nodeHost := pod.Spec.NodeName
 	if len(nodeHost) == 0 {
 		// If pod has not been assigned a host, return an empty location
 		return nil, nil, errors.NewBadRequest(fmt.Sprintf("pod %s does not have a host assigned", name))

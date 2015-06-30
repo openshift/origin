@@ -52,7 +52,7 @@ func TestCanSupport(t *testing.T) {
 	if plug.Name() != "kubernetes.io/persistent-claim" {
 		t.Errorf("Wrong name: %s", plug.Name())
 	}
-	if !plug.CanSupport(&volume.Spec{Name: "foo", VolumeSource: api.VolumeSource{PersistentVolumeClaimVolumeSource: &api.PersistentVolumeClaimVolumeSource{}}}) {
+	if !plug.CanSupport(&volume.Spec{Name: "foo", VolumeSource: api.VolumeSource{PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{}}}) {
 		t.Errorf("Expected true")
 	}
 	if plug.CanSupport(&volume.Spec{VolumeSource: api.VolumeSource{GitRepo: &api.GitRepoVolumeSource{}}}) {
@@ -99,7 +99,7 @@ func TestNewBuilder(t *testing.T) {
 				},
 			},
 			podVolume: api.VolumeSource{
-				PersistentVolumeClaimVolumeSource: &api.PersistentVolumeClaimVolumeSource{
+				PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{
 					ReadOnly:  false,
 					ClaimName: "claimA",
 				},
@@ -137,12 +137,12 @@ func TestNewBuilder(t *testing.T) {
 				},
 			},
 			podVolume: api.VolumeSource{
-				PersistentVolumeClaimVolumeSource: &api.PersistentVolumeClaimVolumeSource{
+				PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{
 					ReadOnly:  false,
 					ClaimName: "claimB",
 				},
 			},
-			plugin: host_path.ProbeVolumePlugins(nil)[0],
+			plugin: host_path.ProbeVolumePlugins()[0],
 			testFunc: func(builder volume.Builder, plugin volume.VolumePlugin) error {
 				if builder.GetPath() != "/tmp" {
 					return fmt.Errorf("Expected HostPath.Path /tmp, got: %s", builder.GetPath())
@@ -175,7 +175,7 @@ func TestNewBuilder(t *testing.T) {
 				},
 			},
 			podVolume: api.VolumeSource{
-				PersistentVolumeClaimVolumeSource: &api.PersistentVolumeClaimVolumeSource{
+				PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{
 					ReadOnly:  false,
 					ClaimName: "claimA",
 				},
@@ -218,7 +218,7 @@ func TestNewBuilder(t *testing.T) {
 				},
 			},
 			podVolume: api.VolumeSource{
-				PersistentVolumeClaimVolumeSource: &api.PersistentVolumeClaimVolumeSource{
+				PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{
 					ReadOnly:  false,
 					ClaimName: "claimA",
 				},
@@ -287,7 +287,7 @@ func TestNewBuilderClaimNotBound(t *testing.T) {
 		},
 	}
 	podVolume := api.VolumeSource{
-		PersistentVolumeClaimVolumeSource: &api.PersistentVolumeClaimVolumeSource{
+		PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{
 			ReadOnly:  false,
 			ClaimName: "claimC",
 		},
@@ -318,7 +318,7 @@ func TestNewBuilderClaimNotBound(t *testing.T) {
 func testProbeVolumePlugins() []volume.VolumePlugin {
 	allPlugins := []volume.VolumePlugin{}
 	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
-	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(nil)...)
+	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, ProbeVolumePlugins()...)
 	return allPlugins
 }

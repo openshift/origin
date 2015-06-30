@@ -15,12 +15,13 @@ import (
 	"time"
 
 	"github.com/coreos/go-etcd/etcd"
+	"github.com/coreos/go-systemd/activation"
 	"github.com/miekg/dns"
 	"github.com/skynetservices/skydns/cache"
 	"github.com/skynetservices/skydns/msg"
 )
 
-const Version = "2.4.0a"
+const Version = "2.5.1a"
 
 type server struct {
 	backend Backend
@@ -99,22 +100,60 @@ func (s *server) Run() error {
 		}
 	}
 
-	s.group.Add(1)
-	go func() {
-		defer s.group.Done()
-		if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
-			log.Fatalf("skydns: %s", err)
+	if s.config.Systemd {
+		packetConns, err := activation.PacketConns(false)
+		if err != nil {
+			return err
 		}
-	}()
-	dnsReadyMsg(s.config.DnsAddr, "tcp")
-	s.group.Add(1)
-	go func() {
-		defer s.group.Done()
-		if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
-			log.Fatalf("skydns: %s", err)
+		listeners, err := activation.Listeners(true)
+		if err != nil {
+			return err
 		}
-	}()
-	dnsReadyMsg(s.config.DnsAddr, "udp")
+		if len(packetConns) == 0 && len(listeners) == 0 {
+			return fmt.Errorf("no UDP or TCP sockets supplied by systemd")
+		}
+		for _, p := range packetConns {
+			if u, ok := p.(*net.UDPConn); ok {
+				s.group.Add(1)
+				go func() {
+					defer s.group.Done()
+					if err := dns.ActivateAndServe(nil, u, mux); err != nil {
+						log.Fatalf("skydns: %s", err)
+					}
+				}()
+				dnsReadyMsg(u.LocalAddr().String(), "udp")
+			}
+		}
+		for _, l := range listeners {
+			if t, ok := l.(*net.TCPListener); ok {
+				s.group.Add(1)
+				go func() {
+					defer s.group.Done()
+					if err := dns.ActivateAndServe(t, nil, mux); err != nil {
+						log.Fatalf("skydns: %s", err)
+					}
+				}()
+				dnsReadyMsg(t.Addr().String(), "tcp")
+			}
+		}
+	} else {
+		s.group.Add(1)
+		go func() {
+			defer s.group.Done()
+			if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
+				log.Fatalf("skydns: %s", err)
+			}
+		}()
+		dnsReadyMsg(s.config.DnsAddr, "tcp")
+		s.group.Add(1)
+		go func() {
+			defer s.group.Done()
+			if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
+				log.Fatalf("skydns: %s", err)
+			}
+		}()
+		dnsReadyMsg(s.config.DnsAddr, "udp")
+	}
 
 	s.group.Wait()
 	return nil
@@ -146,6 +185,8 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		m.Compress = false
 		// if write fails don't care
 		w.WriteMsg(m)
+
+		promErrorCount.WithLabelValues("refused").Inc()
 		return
 	}
 
@@ -161,6 +202,24 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		bufsize = dns.MaxMsgSize - 1
 		tcp = true
 	}
+
+	if tcp {
+		promRequestCount.WithLabelValues("tcp").Inc()
+	} else {
+		promRequestCount.WithLabelValues("udp").Inc()
+	}
+
+	StatsRequestCount.Inc(1)
+
+	if dnssec {
+		StatsDnssecOkCount.Inc(1)
+		promDnssecOkCount.Inc()
+	}
+
+	defer func() {
+		promCacheSize.WithLabelValues("response").Set(float64(s.rcache.Size()))
+	}()
+
 	// Check cache first.
 	key := cache.QuestionKey(req.Question[0], dnssec)
 	m1, exp, hit := s.rcache.Search(key)
@@ -169,8 +228,9 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		if time.Since(exp) < 0 {
 			m1.Id = m.Id
 			m1.Compress = true
+			m1.Truncated = false
+
 			if dnssec {
-				StatsDnssecOkCount.Inc(1)
 				// The key for DNS/DNSSEC in cache is different, no
 				// need to do Denial/Sign here.
 				//if s.config.PubKey != nil {
@@ -179,6 +239,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 				//}
 			}
 			if m1.Len() > int(bufsize) && !tcp {
+				promErrorCount.WithLabelValues("truncated").Inc()
 				m1.Truncated = true
 			}
 			// Still round-robin even with hits from the cache.
@@ -198,7 +259,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 
 	q := req.Question[0]
 	name := strings.ToLower(q.Name)
-	StatsRequestCount.Inc(1)
+
 	if s.config.Verbose {
 		log.Printf("skydns: received DNS Request for %q from %q with type %d", q.Name, w.RemoteAddr(), q.Qtype)
 	}
@@ -225,6 +286,8 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		return
 	}
 
+	promCacheMiss.WithLabelValues("response").Inc()
+
 	defer func() {
 		if m.Rcode == dns.RcodeServerFailure {
 			if err := w.WriteMsg(m); err != nil {
@@ -248,23 +311,43 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 			}
 		}
 
-		s.rcache.InsertMessage(cache.QuestionKey(req.Question[0], dnssec), m)
+		if !m.Truncated {
+			s.rcache.InsertMessage(cache.QuestionKey(req.Question[0], dnssec), m)
+		}
 
 		if dnssec {
-			StatsDnssecOkCount.Inc(1)
 			if s.config.PubKey != nil {
 				m.AuthenticatedData = true
 				s.Denial(m)
 				s.Sign(m, bufsize)
 			}
 		}
+
+		if m.Len() > dns.MaxMsgSize {
+			log.Printf("skydns: overflowing maximum message size: %d, dropping additional section", m.Len())
+			m.Extra = nil // Drop entire additional section to see if this helps.
+
+			if m.Len() > dns.MaxMsgSize {
+				// *Still* too large.
+				log.Printf("skydns: overflowing maximum message size: %d", m.Len())
+				m1 := new(dns.Msg) // Use smaller msg to signal failure.
+				m1.SetRcode(m, dns.RcodeServerFailure)
+				if err := w.WriteMsg(m1); err != nil {
+					log.Printf("skydns: failure to return reply %q", err)
+				}
+				return
+			}
+		}
+
 		if m.Len() > int(bufsize) && !tcp {
 			// TODO(miek): this is a little brain dead, better is to not add
 			// RRs in the message in the first place.
+			promErrorCount.WithLabelValues("truncated").Inc()
 			m.Truncated = true
 		}
+
 		if err := w.WriteMsg(m); err != nil {
-			log.Printf("skydns: failure to return reply %q", err)
+			log.Printf("skydns: failure to return reply %q %d", err, m.Len())
 		}
 	}()
 
@@ -334,7 +417,10 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 					s.NameError(m, req)
 					return
 				}
+				break
 			}
+			s.ServerFailure(m, req)
+			return
 		}
 		m.Answer = append(m.Answer, records...)
 		m.Extra = append(m.Extra, extra...)
@@ -346,7 +432,10 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 					s.NameError(m, req)
 					return
 				}
+				break
 			}
+			s.ServerFailure(m, req)
+			return
 		}
 		m.Answer = append(m.Answer, records...)
 	case dns.TypeTXT:
@@ -357,7 +446,10 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 					s.NameError(m, req)
 					return
 				}
+				break
 			}
+			s.ServerFailure(m, req)
+			return
 		}
 		m.Answer = append(m.Answer, records...)
 	case dns.TypeCNAME:
@@ -368,7 +460,10 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 					s.NameError(m, req)
 					return
 				}
+				break
 			}
+			s.ServerFailure(m, req)
+			return
 		}
 		m.Answer = append(m.Answer, records...)
 	case dns.TypeMX:
@@ -379,7 +474,10 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 					s.NameError(m, req)
 					return
 				}
+				break
 			}
+			s.ServerFailure(m, req)
+			return
 		}
 		m.Answer = append(m.Answer, records...)
 		m.Extra = append(m.Extra, extra...)
@@ -393,6 +491,11 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 					s.NameError(m, req)
 					return
 				}
+				break
+			}
+			if q.Qtype == dns.TypeSRV { // Otherwise NODATA
+				s.ServerFailure(m, req)
+				return
 			}
 		}
 		// if we are here again, check the types, because an answer may only
@@ -721,14 +824,23 @@ func (s *server) NameError(m, req *dns.Msg) {
 	m.SetRcode(req, dns.RcodeNameError)
 	m.Ns = []dns.RR{s.NewSOA()}
 	m.Ns[0].Header().Ttl = s.config.MinTtl
+
 	StatsNameErrorCount.Inc(1)
+	promErrorCount.WithLabelValues("nxdomain")
 }
 
 func (s *server) NoDataError(m, req *dns.Msg) {
 	m.SetRcode(req, dns.RcodeSuccess)
 	m.Ns = []dns.RR{s.NewSOA()}
 	m.Ns[0].Header().Ttl = s.config.MinTtl
-	//	StatsNoDataCount.Inc(1)
+
+	StatsNoDataCount.Inc(1)
+	promErrorCount.WithLabelValues("nodata")
+}
+
+func (s *server) ServerFailure(m, req *dns.Msg) {
+	m.SetRcode(req, dns.RcodeServerFailure)
+	promErrorCount.WithLabelValues("servfail")
 }
 
 func (s *server) logNoConnection(e error) {

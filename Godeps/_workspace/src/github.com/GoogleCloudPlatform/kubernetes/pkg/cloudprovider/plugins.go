@@ -17,7 +17,6 @@ limitations under the License.
 package cloudprovider
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -63,19 +62,20 @@ func GetCloudProvider(name string, config io.Reader) (Interface, error) {
 }
 
 // InitCloudProvider creates an instance of the named cloud provider.
-func InitCloudProvider(name string, configFilePath string) (Interface, error) {
+func InitCloudProvider(name string, configFilePath string) Interface {
 	var cloud Interface
 
 	if name == "" {
 		glog.Info("No cloud provider specified.")
-		return nil, nil
+		return nil
 	}
 
 	var err error
 	if configFilePath != "" {
 		config, err := os.Open(configFilePath)
 		if err != nil {
-			return nil, fmt.Errorf("couldn't open cloud provider configuration %s: %#v", configFilePath, err)
+			glog.Fatalf("Couldn't open cloud provider configuration %s: %#v",
+				configFilePath, err)
 		}
 
 		defer config.Close()
@@ -87,10 +87,11 @@ func InitCloudProvider(name string, configFilePath string) (Interface, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("couldn't init cloud provider %q: %v", name, err)
+		glog.Fatalf("Couldn't init cloud provider %q: %v", name, err)
 	}
 	if cloud == nil {
-		return nil, fmt.Errorf("unknown cloud provider: %s", name)
+		glog.Fatalf("Unknown cloud provider: %s", name)
 	}
-	return cloud, nil
+
+	return cloud
 }

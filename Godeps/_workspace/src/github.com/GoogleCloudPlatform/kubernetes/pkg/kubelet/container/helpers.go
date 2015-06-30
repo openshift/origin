@@ -23,6 +23,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/third_party/golang/expansion"
+
 	"github.com/golang/glog"
 )
 
@@ -56,7 +57,7 @@ func ShouldContainerBeRestarted(container *api.Container, pod *api.Pod, podStatu
 	// Get all dead container status.
 	var resultStatus []*api.ContainerStatus
 	for i, containerStatus := range podStatus.ContainerStatuses {
-		if containerStatus.Name == container.Name && containerStatus.State.Termination != nil {
+		if containerStatus.Name == container.Name && containerStatus.State.Terminated != nil {
 			resultStatus = append(resultStatus, &podStatus.ContainerStatuses[i])
 		}
 	}
@@ -75,7 +76,7 @@ func ShouldContainerBeRestarted(container *api.Container, pod *api.Pod, podStatu
 		if pod.Spec.RestartPolicy == api.RestartPolicyOnFailure {
 			// Check the exit code of last run. Note: This assumes the result is sorted
 			// by the created time in reverse order.
-			if resultStatus[0].State.Termination.ExitCode == 0 {
+			if resultStatus[0].State.Terminated.ExitCode == 0 {
 				glog.V(4).Infof("Already successfully ran container %q of pod %q, do nothing", container.Name, podFullName)
 				return false
 			}

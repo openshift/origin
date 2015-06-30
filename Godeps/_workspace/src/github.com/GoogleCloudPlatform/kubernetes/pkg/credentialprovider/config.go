@@ -176,8 +176,10 @@ func (ident *DockerConfigEntry) UnmarshalJSON(data []byte) error {
 }
 
 func (ident DockerConfigEntry) MarshalJSON() ([]byte, error) {
-	return json.Marshal(ident.ConvertToDockerConfigCompatible())
+	toEncode := dockerConfigEntryWithAuth{ident.Username, ident.Password, ident.Email, ""}
+	toEncode.Auth = encodeDockerConfigFieldAuth(ident.Username, ident.Password)
 
+	return json.Marshal(toEncode)
 }
 
 // decodeDockerConfigFieldAuth deserializes the "auth" field from dockercfg into a
@@ -198,13 +200,6 @@ func decodeDockerConfigFieldAuth(field string) (username, password string, err e
 	password = parts[1]
 
 	return
-}
-
-func (ident DockerConfigEntry) ConvertToDockerConfigCompatible() dockerConfigEntryWithAuth {
-	ret := dockerConfigEntryWithAuth{ident.Username, ident.Password, ident.Email, ""}
-	ret.Auth = encodeDockerConfigFieldAuth(ident.Username, ident.Password)
-
-	return ret
 }
 
 func encodeDockerConfigFieldAuth(username, password string) string {

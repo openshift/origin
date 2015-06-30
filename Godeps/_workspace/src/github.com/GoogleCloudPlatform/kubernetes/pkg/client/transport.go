@@ -19,12 +19,9 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/golang/glog"
 )
 
 type userAgentRoundTripper struct {
@@ -40,7 +37,6 @@ func (rt *userAgentRoundTripper) RoundTrip(req *http.Request) (*http.Response, e
 	if len(req.Header.Get("User-Agent")) != 0 {
 		return rt.rt.RoundTrip(req)
 	}
-	glog.V(7).Infof("-H 'User-Agent: %s'", rt.agent)
 	req = cloneRequest(req)
 	req.Header.Set("User-Agent", rt.agent)
 	return rt.rt.RoundTrip(req)
@@ -57,7 +53,6 @@ func NewBasicAuthRoundTripper(username, password string, rt http.RoundTripper) h
 }
 
 func (rt *basicAuthRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	glog.V(7).Infof("-H 'Authorization: Basic %s'", base64.StdEncoding.EncodeToString([]byte(rt.username+":"+rt.password)))
 	req = cloneRequest(req)
 	req.SetBasicAuth(rt.username, rt.password)
 	return rt.rt.RoundTrip(req)
@@ -73,7 +68,6 @@ func NewBearerAuthRoundTripper(bearer string, rt http.RoundTripper) http.RoundTr
 }
 
 func (rt *bearerAuthRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	glog.V(7).Infof("-H 'Authorization: Bearer %s'", rt.bearer)
 	req = cloneRequest(req)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", rt.bearer))
 	return rt.rt.RoundTrip(req)

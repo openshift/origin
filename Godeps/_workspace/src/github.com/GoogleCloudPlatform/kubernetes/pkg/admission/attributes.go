@@ -22,22 +22,26 @@ import (
 )
 
 type attributesRecord struct {
-	kind      string
-	namespace string
-	resource  string
-	operation Operation
-	object    runtime.Object
-	userInfo  user.Info
+	kind        string
+	namespace   string
+	name        string
+	resource    string
+	subresource string
+	operation   Operation
+	object      runtime.Object
+	userInfo    user.Info
 }
 
-func NewAttributesRecord(object runtime.Object, kind, namespace, resource string, operation Operation, userInfo user.Info) Attributes {
+func NewAttributesRecord(object runtime.Object, kind, namespace, name, resource, subresource string, operation Operation, userInfo user.Info) Attributes {
 	return &attributesRecord{
-		kind:      kind,
-		namespace: namespace,
-		resource:  resource,
-		operation: operation,
-		object:    object,
-		userInfo:  userInfo,
+		kind:        kind,
+		namespace:   namespace,
+		name:        name,
+		resource:    resource,
+		subresource: subresource,
+		operation:   operation,
+		object:      object,
+		userInfo:    userInfo,
 	}
 }
 
@@ -49,8 +53,16 @@ func (record *attributesRecord) GetNamespace() string {
 	return record.namespace
 }
 
+func (record *attributesRecord) GetName() string {
+	return record.name
+}
+
 func (record *attributesRecord) GetResource() string {
 	return record.resource
+}
+
+func (record *attributesRecord) GetSubresource() string {
+	return record.subresource
 }
 
 func (record *attributesRecord) GetOperation() Operation {

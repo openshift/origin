@@ -95,7 +95,7 @@ func TestServing(t *testing.T) {
 
 	s, addrstr, err := RunLocalUDPServer("127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("Unable to run test server: %v", err)
+		t.Fatalf("Unable to run test server: %s", err)
 	}
 	defer s.Shutdown()
 
@@ -104,32 +104,38 @@ func TestServing(t *testing.T) {
 	m.SetQuestion("miek.nl.", TypeTXT)
 	r, _, err := c.Exchange(m, addrstr)
 	if err != nil || len(r.Extra) == 0 {
-		t.Fatal("failed to exchange miek.nl", err)
+		t.Log("failed to exchange miek.nl", err)
+		t.Fatal()
 	}
 	txt := r.Extra[0].(*TXT).Txt[0]
 	if txt != "Hello world" {
-		t.Error("Unexpected result for miek.nl", txt, "!= Hello world")
+		t.Log("Unexpected result for miek.nl", txt, "!= Hello world")
+		t.Fail()
 	}
 
 	m.SetQuestion("example.com.", TypeTXT)
 	r, _, err = c.Exchange(m, addrstr)
 	if err != nil {
-		t.Fatal("failed to exchange example.com", err)
+		t.Log("failed to exchange example.com", err)
+		t.Fatal()
 	}
 	txt = r.Extra[0].(*TXT).Txt[0]
 	if txt != "Hello example" {
-		t.Error("Unexpected result for example.com", txt, "!= Hello example")
+		t.Log("Unexpected result for example.com", txt, "!= Hello example")
+		t.Fail()
 	}
 
 	// Test Mixes cased as noticed by Ask.
 	m.SetQuestion("eXaMplE.cOm.", TypeTXT)
 	r, _, err = c.Exchange(m, addrstr)
 	if err != nil {
-		t.Error("failed to exchange eXaMplE.cOm", err)
+		t.Log("failed to exchange eXaMplE.cOm", err)
+		t.Fail()
 	}
 	txt = r.Extra[0].(*TXT).Txt[0]
 	if txt != "Hello example" {
-		t.Error("Unexpected result for example.com", txt, "!= Hello example")
+		t.Log("Unexpected result for example.com", txt, "!= Hello example")
+		t.Fail()
 	}
 }
 
@@ -141,7 +147,7 @@ func BenchmarkServe(b *testing.B) {
 
 	s, addrstr, err := RunLocalUDPServer("127.0.0.1:0")
 	if err != nil {
-		b.Fatalf("Unable to run test server: %v", err)
+		b.Fatalf("Unable to run test server: %s", err)
 	}
 	defer s.Shutdown()
 
@@ -163,7 +169,7 @@ func benchmarkServe6(b *testing.B) {
 	a := runtime.GOMAXPROCS(4)
 	s, addrstr, err := RunLocalUDPServer("[::1]:0")
 	if err != nil {
-		b.Fatalf("Unable to run test server: %v", err)
+		b.Fatalf("Unable to run test server: %s", err)
 	}
 	defer s.Shutdown()
 
@@ -194,7 +200,7 @@ func BenchmarkServeCompress(b *testing.B) {
 	a := runtime.GOMAXPROCS(4)
 	s, addrstr, err := RunLocalUDPServer("127.0.0.1:0")
 	if err != nil {
-		b.Fatalf("Unable to run test server: %v", err)
+		b.Fatalf("Unable to run test server: %s", err)
 	}
 	defer s.Shutdown()
 
@@ -295,7 +301,7 @@ func TestServingLargeResponses(t *testing.T) {
 
 	s, addrstr, err := RunLocalUDPServer("127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("Unable to run test server: %v", err)
+		t.Fatalf("Unable to run test server: %s", err)
 	}
 	defer s.Shutdown()
 
@@ -310,7 +316,8 @@ func TestServingLargeResponses(t *testing.T) {
 	M.Unlock()
 	_, _, err = c.Exchange(m, addrstr)
 	if err != nil {
-		t.Errorf("failed to exchange: %v", err)
+		t.Logf("failed to exchange: %s", err.Error())
+		t.Fail()
 	}
 	// This must fail
 	M.Lock()
@@ -318,13 +325,15 @@ func TestServingLargeResponses(t *testing.T) {
 	M.Unlock()
 	_, _, err = c.Exchange(m, addrstr)
 	if err == nil {
-		t.Error("failed to fail exchange, this should generate packet error")
+		t.Logf("failed to fail exchange, this should generate packet error")
+		t.Fail()
 	}
 	// But this must work again
 	c.UDPSize = 7000
 	_, _, err = c.Exchange(m, addrstr)
 	if err != nil {
-		t.Errorf("failed to exchange: %v", err)
+		t.Logf("failed to exchange: %s", err.Error())
+		t.Fail()
 	}
 }
 
@@ -335,7 +344,7 @@ func TestServingResponse(t *testing.T) {
 	HandleFunc("miek.nl.", HelloServer)
 	s, addrstr, err := RunLocalUDPServer("127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("Unable to run test server: %v", err)
+		t.Fatalf("Unable to run test server: %s", err)
 	}
 
 	c := new(Client)
@@ -344,46 +353,49 @@ func TestServingResponse(t *testing.T) {
 	m.Response = false
 	_, _, err = c.Exchange(m, addrstr)
 	if err != nil {
-		t.Fatal("failed to exchange", err)
+		t.Log("failed to exchange", err)
+		t.Fatal()
 	}
 	m.Response = true
 	_, _, err = c.Exchange(m, addrstr)
 	if err == nil {
-		t.Fatal("exchanged response message")
+		t.Log("exchanged response message")
+		t.Fatal()
 	}
 
 	s.Shutdown()
 	s, addrstr, err = RunLocalUDPServerUnsafe("127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("Unable to run test server: %v", err)
+		t.Fatalf("Unable to run test server: %s", err)
 	}
 	defer s.Shutdown()
 
 	m.Response = true
 	_, _, err = c.Exchange(m, addrstr)
 	if err != nil {
-		t.Fatal("could exchanged response message in Unsafe mode")
+		t.Log("could exchanged response message in Unsafe mode")
+		t.Fatal()
 	}
 }
 
 func TestShutdownTCP(t *testing.T) {
 	s, _, err := RunLocalTCPServer("127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("Unable to run test server: %v", err)
+		t.Fatalf("Unable to run test server: %s", err)
 	}
 	err = s.Shutdown()
 	if err != nil {
-		t.Errorf("Could not shutdown test TCP server, %v", err)
+		t.Errorf("Could not shutdown test TCP server, %s", err)
 	}
 }
 
 func TestShutdownUDP(t *testing.T) {
 	s, _, err := RunLocalUDPServer("127.0.0.1:0")
 	if err != nil {
-		t.Fatalf("Unable to run test server: %v", err)
+		t.Fatalf("Unable to run test server: %s", err)
 	}
 	err = s.Shutdown()
 	if err != nil {
-		t.Errorf("Could not shutdown test UDP server, %v", err)
+		t.Errorf("Could not shutdown test UDP server, %s", err)
 	}
 }

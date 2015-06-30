@@ -18,7 +18,7 @@ package etcd
 
 import (
 	"fmt"
-	"path"
+	"reflect"
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -73,8 +73,9 @@ type Etcd struct {
 	ObjectNameFunc func(obj runtime.Object) (string, error)
 
 	// Return the TTL objects should be persisted with. Update is true if this
-	// is an operation against an existing object.
-	TTLFunc func(obj runtime.Object, update bool) (uint64, error)
+	// is an operation against an existing object. Existing is the current TTL
+	// or the default for this operation.
+	TTLFunc func(obj runtime.Object, existing uint64, update bool) (uint64, error)
 
 	// Returns a matcher corresponding to the provided labels and fields.
 	PredicateFunc func(label labels.Selector, field fields.Selector) generic.Matcher
@@ -115,19 +116,6 @@ func NamespaceKeyRootFunc(ctx api.Context, prefix string) string {
 	return key
 }
 
-// NoNamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing namespace rules.
-// If a namespace is on context, it errors.
-func NoNamespaceKeyFunc(ctx api.Context, prefix string, name string) (string, error) {
-	ns, ok := api.NamespaceFrom(ctx)
-	if ok && len(ns) > 0 {
-		return "", kubeerr.NewBadRequest(fmt.Sprintf("Namespace parameter is not allowed on %s.", path.Base(prefix)))
-	}
-	if len(name) == 0 {
-		return "", kubeerr.NewBadRequest("Name parameter required.")
-	}
-	return path.Join(prefix, name), nil
-}
-
 // NamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing namespace rules.
 // If no namespace is on context, it errors.
 func NamespaceKeyFunc(ctx api.Context, prefix string, name string) (string, error) {
@@ -160,9 +148,9 @@ func (e *Etcd) List(ctx api.Context, label labels.Selector, field fields.Selecto
 
 // ListPredicate returns a list of all the items matching m.
 func (e *Etcd) ListPredicate(ctx api.Context, m generic.Matcher) (runtime.Object, error) {
-	trace := util.NewTrace("List")
-	defer trace.LogIfLong(time.Second)
 	list := e.NewListFunc()
+	trace := util.NewTrace("List " + reflect.TypeOf(list).String())
+	defer trace.LogIfLong(600 * time.Millisecond)
 	if name, ok := m.MatchesSingle(); ok {
 		trace.Step("About to read single object")
 		key, err := e.KeyFunc(ctx, name)
@@ -198,12 +186,9 @@ func (e *Etcd) CreateWithName(ctx api.Context, name string, obj runtime.Object) 
 			return err
 		}
 	}
-	ttl := uint64(0)
-	if e.TTLFunc != nil {
-		ttl, err = e.TTLFunc(obj, false)
-		if err != nil {
-			return err
-		}
+	ttl, err := e.calculateTTL(obj, 0, false)
+	if err != nil {
+		return err
 	}
 	err = e.Helper.CreateObj(key, obj, nil, ttl)
 	err = etcderr.InterpretCreateError(err, e.EndpointName, name)
@@ -215,7 +200,7 @@ func (e *Etcd) CreateWithName(ctx api.Context, name string, obj runtime.Object) 
 
 // Create inserts a new item according to the unique key from the object.
 func (e *Etcd) Create(ctx api.Context, obj runtime.Object) (runtime.Object, error) {
-	trace := util.NewTrace("Create")
+	trace := util.NewTrace("Create " + reflect.TypeOf(obj).String())
 	defer trace.LogIfLong(time.Second)
 	if err := rest.BeforeCreate(e.CreateStrategy, ctx, obj); err != nil {
 		return nil, err
@@ -228,12 +213,9 @@ func (e *Etcd) Create(ctx api.Context, obj runtime.Object) (runtime.Object, erro
 	if err != nil {
 		return nil, err
 	}
-	ttl := uint64(0)
-	if e.TTLFunc != nil {
-		ttl, err = e.TTLFunc(obj, false)
-		if err != nil {
-			return nil, err
-		}
+	ttl, err := e.calculateTTL(obj, 0, false)
+	if err != nil {
+		return nil, err
 	}
 	trace.Step("About to create object")
 	out := e.NewFunc()
@@ -263,12 +245,9 @@ func (e *Etcd) UpdateWithName(ctx api.Context, name string, obj runtime.Object) 
 	if err != nil {
 		return err
 	}
-	ttl := uint64(0)
-	if e.TTLFunc != nil {
-		ttl, err = e.TTLFunc(obj, true)
-		if err != nil {
-			return err
-		}
+	ttl, err := e.calculateTTL(obj, 0, true)
+	if err != nil {
+		return err
 	}
 	err = e.Helper.SetObj(key, obj, nil, ttl)
 	err = etcderr.InterpretUpdateError(err, e.EndpointName, name)
@@ -282,7 +261,7 @@ func (e *Etcd) UpdateWithName(ctx api.Context, name string, obj runtime.Object) 
 // or an error. If the registry allows create-on-update, the create flow will be executed.
 // A bool is returned along with the object and any errors, to indicate object creation.
 func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	trace := util.NewTrace("Update")
+	trace := util.NewTrace("Update " + reflect.TypeOf(obj).String())
 	defer trace.LogIfLong(time.Second)
 	name, err := e.ObjectNameFunc(obj)
 	if err != nil {
@@ -292,52 +271,65 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 	if err != nil {
 		return nil, false, err
 	}
+	// If AllowUnconditionalUpdate() is true and the object specified by the user does not have a resource version,
+	// then we populate it with the latest version.
+	// Else, we check that the version specified by the user matches the version of latest etcd object.
+	resourceVersion, err := e.Helper.Versioner.ObjectResourceVersion(obj)
+	if err != nil {
+		return nil, false, err
+	}
+	doUnconditionalUpdate := resourceVersion == 0 && e.UpdateStrategy.AllowUnconditionalUpdate()
 	// TODO: expose TTL
 	creating := false
 	out := e.NewFunc()
-	err = e.Helper.GuaranteedUpdate(key, out, true, func(existing runtime.Object) (runtime.Object, uint64, error) {
+	err = e.Helper.GuaranteedUpdate(key, out, true, func(existing runtime.Object, res tools.ResponseMeta) (runtime.Object, *uint64, error) {
 		version, err := e.Helper.Versioner.ObjectResourceVersion(existing)
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, err
 		}
 		if version == 0 {
 			if !e.UpdateStrategy.AllowCreateOnUpdate() {
-				return nil, 0, kubeerr.NewNotFound(e.EndpointName, name)
+				return nil, nil, kubeerr.NewNotFound(e.EndpointName, name)
 			}
 			creating = true
 			if err := rest.BeforeCreate(e.CreateStrategy, ctx, obj); err != nil {
-				return nil, 0, err
+				return nil, nil, err
 			}
-			ttl := uint64(0)
-			if e.TTLFunc != nil {
-				ttl, err = e.TTLFunc(obj, false)
-				if err != nil {
-					return nil, 0, err
-				}
+			ttl, err := e.calculateTTL(obj, 0, false)
+			if err != nil {
+				return nil, nil, err
 			}
-			return obj, ttl, nil
+			return obj, &ttl, nil
 		}
 
 		creating = false
-		newVersion, err := e.Helper.Versioner.ObjectResourceVersion(obj)
-		if err != nil {
-			return nil, 0, err
-		}
-		if newVersion != version {
-			// TODO: return the most recent version to a client?
-			return nil, 0, kubeerr.NewConflict(e.EndpointName, name, fmt.Errorf("the resource was updated to %d", version))
-		}
-		if err := rest.BeforeUpdate(e.UpdateStrategy, ctx, obj, existing); err != nil {
-			return nil, 0, err
-		}
-		ttl := uint64(0)
-		if e.TTLFunc != nil {
-			ttl, err = e.TTLFunc(obj, true)
+		if doUnconditionalUpdate {
+			// Update the object's resource version to match the latest etcd object's resource version.
+			err = e.Helper.Versioner.UpdateObject(obj, res.Expiration, res.ResourceVersion)
 			if err != nil {
-				return nil, 0, err
+				return nil, nil, err
+			}
+		} else {
+			// Check if the object's resource version matches the latest resource version.
+			newVersion, err := e.Helper.Versioner.ObjectResourceVersion(obj)
+			if err != nil {
+				return nil, nil, err
+			}
+			if newVersion != version {
+				return nil, nil, kubeerr.NewConflict(e.EndpointName, name, fmt.Errorf("the object has been modified; please apply your changes to the latest version and try again"))
 			}
 		}
-		return obj, ttl, nil
+		if err := rest.BeforeUpdate(e.UpdateStrategy, ctx, obj, existing); err != nil {
+			return nil, nil, err
+		}
+		ttl, err := e.calculateTTL(obj, res.TTL, true)
+		if err != nil {
+			return nil, nil, err
+		}
+		if int64(ttl) != res.TTL {
+			return obj, &ttl, nil
+		}
+		return obj, nil, nil
 	})
 
 	if err != nil {
@@ -372,9 +364,9 @@ func (e *Etcd) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool
 
 // Get retrieves the item from etcd.
 func (e *Etcd) Get(ctx api.Context, name string) (runtime.Object, error) {
-	trace := util.NewTrace("Get")
-	defer trace.LogIfLong(time.Second)
 	obj := e.NewFunc()
+	trace := util.NewTrace("Get " + reflect.TypeOf(obj).String())
+	defer trace.LogIfLong(time.Second)
 	key, err := e.KeyFunc(ctx, name)
 	if err != nil {
 		return nil, err
@@ -394,14 +386,14 @@ func (e *Etcd) Get(ctx api.Context, name string) (runtime.Object, error) {
 
 // Delete removes the item from etcd.
 func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) (runtime.Object, error) {
-	trace := util.NewTrace("Delete")
-	defer trace.LogIfLong(time.Second)
 	key, err := e.KeyFunc(ctx, name)
 	if err != nil {
 		return nil, err
 	}
 
 	obj := e.NewFunc()
+	trace := util.NewTrace("Delete " + reflect.TypeOf(obj).String())
+	defer trace.LogIfLong(time.Second)
 	trace.Step("About to read object")
 	if err := e.Helper.ExtractObj(key, obj, false); err != nil {
 		return nil, etcderr.InterpretDeleteError(err, e.EndpointName, name)
@@ -492,4 +484,20 @@ func (e *Etcd) WatchPredicate(ctx api.Context, m generic.Matcher, resourceVersio
 	}
 
 	return e.Helper.WatchList(e.KeyRootFunc(ctx), version, filterFunc)
+}
+
+// calculateTTL is a helper for retrieving the updated TTL for an object or returning an error
+// if the TTL cannot be calculated. The defaultTTL is changed to 1 if less than zero. Zero means
+// no TTL, not expire immediately.
+func (e *Etcd) calculateTTL(obj runtime.Object, defaultTTL int64, update bool) (ttl uint64, err error) {
+	// etcd may return a negative TTL for a node if the expiration has not occured due
+	// to server lag - we will ensure that the value is at least set.
+	if defaultTTL < 0 {
+		defaultTTL = 1
+	}
+	ttl = uint64(defaultTTL)
+	if e.TTLFunc != nil {
+		ttl, err = e.TTLFunc(obj, ttl, update)
+	}
+	return ttl, err
 }

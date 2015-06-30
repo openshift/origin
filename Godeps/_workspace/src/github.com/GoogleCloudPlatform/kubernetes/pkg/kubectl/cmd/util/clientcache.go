@@ -21,12 +21,22 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 )
 
+func NewClientCache(loader clientcmd.ClientConfig) *clientCache {
+	return &clientCache{
+		clients: make(map[string]*client.Client),
+		configs: make(map[string]*client.Config),
+		loader:  loader,
+	}
+}
+
 // clientCache caches previously loaded clients for reuse, and ensures MatchServerVersion
 // is invoked only once
 type clientCache struct {
 	loader        clientcmd.ClientConfig
 	clients       map[string]*client.Client
+	configs       map[string]*client.Config
 	defaultConfig *client.Config
+	defaultClient *client.Client
 	matchVersion  bool
 }
 
@@ -39,17 +49,23 @@ func (c *clientCache) ClientConfigForVersion(version string) (*client.Config, er
 		}
 		c.defaultConfig = config
 		if c.matchVersion {
-			if err := client.MatchesServerVersion(config); err != nil {
+			if err := client.MatchesServerVersion(c.defaultClient, config); err != nil {
 				return nil, err
 			}
 		}
 	}
+	if config, ok := c.configs[version]; ok {
+		return config, nil
+	}
 	// TODO: have a better config copy method
 	config := *c.defaultConfig
-	if len(version) != 0 {
-		config.Version = version
+	negotiatedVersion, err := client.NegotiateVersion(c.defaultClient, &config, version)
+	if err != nil {
+		return nil, err
 	}
+	config.Version = negotiatedVersion
 	client.SetKubernetesDefaults(&config)
+	c.configs[version] = &config
 
 	return &config, nil
 }
@@ -57,15 +73,13 @@ func (c *clientCache) ClientConfigForVersion(version string) (*client.Config, er
 // ClientForVersion initializes or reuses a client for the specified version, or returns an
 // error if that is not possible
 func (c *clientCache) ClientForVersion(version string) (*client.Client, error) {
+	if client, ok := c.clients[version]; ok {
+		return client, nil
+	}
 	config, err := c.ClientConfigForVersion(version)
 	if err != nil {
 		return nil, err
 	}
-
-	if client, ok := c.clients[config.Version]; ok {
-		return client, nil
-	}
-
 	client, err := client.New(config)
 	if err != nil {
 		return nil, err

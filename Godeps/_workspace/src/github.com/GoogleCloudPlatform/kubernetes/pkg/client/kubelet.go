@@ -44,15 +44,11 @@ type ConnectionInfoGetter interface {
 
 // HTTPKubeletClient is the default implementation of KubeletHealthchecker, accesses the kubelet over HTTP.
 type HTTPKubeletClient struct {
-	Client      *http.Client
-	Port        uint
-	EnableHttps bool
+	Client *http.Client
+	Config *KubeletConfig
 }
 
-// TODO: this structure is questionable, it should be using client.Config and overriding defaults.
-func NewKubeletClient(config *KubeletConfig) (KubeletClient, error) {
-	transport := http.DefaultTransport
-
+func MakeTransport(config *KubeletConfig) (http.RoundTripper, error) {
 	cfg := &Config{TLSClientConfig: config.TLSClientConfig}
 	if config.EnableHttps {
 		hasCA := len(config.CAFile) > 0 || len(config.CAData) > 0
@@ -64,43 +60,52 @@ func NewKubeletClient(config *KubeletConfig) (KubeletClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	if tlsConfig != nil {
-		transport = &http.Transport{
+	if config.Dial != nil || tlsConfig != nil {
+		return &http.Transport{
+			Dial:            config.Dial,
 			TLSClientConfig: tlsConfig,
-		}
+		}, nil
+	} else {
+		return http.DefaultTransport, nil
 	}
+}
 
+// TODO: this structure is questionable, it should be using client.Config and overriding defaults.
+func NewKubeletClient(config *KubeletConfig) (KubeletClient, error) {
+	transport, err := MakeTransport(config)
+	if err != nil {
+		return nil, err
+	}
 	c := &http.Client{
 		Transport: transport,
 		Timeout:   config.HTTPTimeout,
 	}
 	return &HTTPKubeletClient{
-		Client:      c,
-		Port:        config.Port,
-		EnableHttps: config.EnableHttps,
+		Client: c,
+		Config: config,
 	}, nil
 }
 
 func (c *HTTPKubeletClient) GetConnectionInfo(host string) (string, uint, http.RoundTripper, error) {
 	scheme := "http"
-	if c.EnableHttps {
+	if c.Config.EnableHttps {
 		scheme = "https"
 	}
-	return scheme, c.Port, c.Client.Transport, nil
+	return scheme, c.Config.Port, c.Client.Transport, nil
 }
 
-func (c *HTTPKubeletClient) url(host, path, query string) string {
+func (c *HTTPKubeletClient) url(host, path, query string) *url.URL {
 	scheme := "http"
-	if c.EnableHttps {
+	if c.Config.EnableHttps {
 		scheme = "https"
 	}
 
-	return (&url.URL{
+	return &url.URL{
 		Scheme:   scheme,
-		Host:     net.JoinHostPort(host, strconv.FormatUint(uint64(c.Port), 10)),
+		Host:     net.JoinHostPort(host, strconv.FormatUint(uint64(c.Config.Port), 10)),
 		Path:     path,
 		RawQuery: query,
-	}).String()
+	}
 }
 
 func (c *HTTPKubeletClient) HealthCheck(host string) (probe.Result, string, error) {

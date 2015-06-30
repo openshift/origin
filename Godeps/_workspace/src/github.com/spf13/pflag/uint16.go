@@ -19,6 +19,10 @@ func (i *uint16Value) Set(s string) error {
 	return err
 }
 
+func (i *uint16Value) Get() interface{} {
+	return uint16(*i)
+}
+
 func (i *uint16Value) Type() string {
 	return "uint16"
 }

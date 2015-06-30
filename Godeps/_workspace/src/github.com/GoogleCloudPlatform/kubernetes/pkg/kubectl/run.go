@@ -30,7 +30,7 @@ func (BasicReplicationController) ParamNames() []GeneratorParam {
 	return []GeneratorParam{
 		{"labels", false},
 		{"default-name", false},
-		{"name", false},
+		{"name", true},
 		{"replicas", true},
 		{"image", true},
 		{"port", false},
@@ -57,7 +57,7 @@ func (BasicReplicationController) Generate(params map[string]string) (runtime.Ob
 		}
 	} else {
 		labels = map[string]string{
-			"run-container": name,
+			"run": name,
 		}
 	}
 	count, err := strconv.Atoi(params["replicas"])

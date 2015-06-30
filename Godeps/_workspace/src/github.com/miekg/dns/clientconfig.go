@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// ClientConfig wraps the contents of the /etc/resolv.conf file.
+// Wraps the contents of the /etc/resolv.conf.
 type ClientConfig struct {
 	Servers  []string // servers to use
 	Search   []string // suffixes to append to local name
@@ -26,19 +26,14 @@ func ClientConfigFromFile(resolvconf string) (*ClientConfig, error) {
 	}
 	defer file.Close()
 	c := new(ClientConfig)
-	scanner := bufio.NewScanner(file)
+	b := bufio.NewReader(file)
 	c.Servers = make([]string, 0)
 	c.Search = make([]string, 0)
 	c.Port = "53"
 	c.Ndots = 1
 	c.Timeout = 5
 	c.Attempts = 2
-
-	for scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			return nil, err
-		}
-		line := scanner.Text()
+	for line, ok := b.ReadString('\n'); ok == nil; line, ok = b.ReadString('\n') {
 		f := strings.Fields(line)
 		if len(f) < 1 {
 			continue

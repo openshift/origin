@@ -72,13 +72,6 @@ type Request struct {
 	baseURL *url.URL
 	codec   runtime.Codec
 
-	// If true, add "?namespace=<namespace>" as a query parameter, if false put namespaces/<namespace> in path
-	// Query parameter is considered legacy behavior
-	namespaceInQuery bool
-	// If true, lowercase resource prior to inserting into a path, if false, leave it as is. Preserving
-	// case is considered legacy behavior.
-	preserveResourceCase bool
-
 	// generic components accessible via method setters
 	path    string
 	subpath string
@@ -107,7 +100,7 @@ type Request struct {
 
 // NewRequest creates a new request helper object for accessing runtime.Objects on a server.
 func NewRequest(client HTTPClient, verb string, baseURL *url.URL, apiVersion string,
-	codec runtime.Codec, namespaceInQuery bool, preserveResourceCase bool) *Request {
+	codec runtime.Codec) *Request {
 	metrics.Register()
 	return &Request{
 		client:     client,
@@ -115,10 +108,7 @@ func NewRequest(client HTTPClient, verb string, baseURL *url.URL, apiVersion str
 		baseURL:    baseURL,
 		path:       baseURL.Path,
 		apiVersion: apiVersion,
-
-		codec:                codec,
-		namespaceInQuery:     namespaceInQuery,
-		preserveResourceCase: preserveResourceCase,
+		codec:      codec,
 	}
 }
 
@@ -210,6 +200,23 @@ func (r *Request) NamespaceIfScoped(namespace string, scoped bool) *Request {
 	return r
 }
 
+// UnversionedPath strips the apiVersion from the baseURL before appending segments.
+func (r *Request) UnversionedPath(segments ...string) *Request {
+	if r.err != nil {
+		return r
+	}
+	upath := path.Clean(r.baseURL.Path)
+	//TODO(jdef) this is a pretty hackish version test
+	if strings.HasPrefix(path.Base(upath), "v") {
+		upath = path.Dir(upath)
+		if upath == "." {
+			upath = "/"
+		}
+	}
+	r.path = path.Join(append([]string{upath}, segments...)...)
+	return r
+}
+
 // AbsPath overwrites an existing path with the segments provided. Trailing slashes are preserved
 // when a single segment is passed.
 func (r *Request) AbsPath(segments ...string) *Request {
@@ -253,8 +260,18 @@ const (
 	// Will be automatically emitted as the correct name for the API version.
 	NodeUnschedulable = "spec.unschedulable"
 	ObjectNameField   = "metadata.name"
-	PodHost           = "spec.host"
+	PodHost           = "spec.nodeName"
 	SecretType        = "type"
+
+	EventReason                  = "reason"
+	EventSource                  = "source"
+	EventInvolvedKind            = "involvedObject.kind"
+	EventInvolvedNamespace       = "involvedObject.namespace"
+	EventInvolvedName            = "involvedObject.name"
+	EventInvolvedUID             = "involvedObject.uid"
+	EventInvolvedAPIVersion      = "involvedObject.apiVersion"
+	EventInvolvedResourceVersion = "involvedObject.resourceVersion"
+	EventInvolvedFieldPath       = "involvedObject.fieldPath"
 )
 
 type clientFieldNameToAPIVersionFieldName map[string]string
@@ -282,55 +299,19 @@ type versionToResourceToFieldMapping map[string]resourceTypeToFieldMapping
 func (v versionToResourceToFieldMapping) filterField(apiVersion, resourceType, field, value string) (newField, newValue string, err error) {
 	rMapping, ok := v[apiVersion]
 	if !ok {
+		glog.Warningf("field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
 		return field, value, nil
 	}
 	newField, newValue, err = rMapping.filterField(resourceType, field, value)
 	if err != nil {
 		// This is only a warning until we find and fix all of the client's usages.
+		glog.Warningf("field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
 		return field, value, nil
 	}
 	return newField, newValue, nil
 }
 
 var fieldMappings = versionToResourceToFieldMapping{
-	"v1beta1": resourceTypeToFieldMapping{
-		"nodes": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "name",
-			NodeUnschedulable: "unschedulable",
-		},
-		"minions": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "name",
-			NodeUnschedulable: "unschedulable",
-		},
-		"pods": clientFieldNameToAPIVersionFieldName{
-			PodHost: "DesiredState.Host",
-		},
-		"secrets": clientFieldNameToAPIVersionFieldName{
-			SecretType: "type",
-		},
-		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField: "name",
-		},
-	},
-	"v1beta2": resourceTypeToFieldMapping{
-		"nodes": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "name",
-			NodeUnschedulable: "unschedulable",
-		},
-		"minions": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "name",
-			NodeUnschedulable: "unschedulable",
-		},
-		"pods": clientFieldNameToAPIVersionFieldName{
-			PodHost: "DesiredState.Host",
-		},
-		"secrets": clientFieldNameToAPIVersionFieldName{
-			SecretType: "type",
-		},
-		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField: "name",
-		},
-	},
 	"v1beta3": resourceTypeToFieldMapping{
 		"nodes": clientFieldNameToAPIVersionFieldName{
 			ObjectNameField:   "metadata.name",
@@ -349,18 +330,29 @@ var fieldMappings = versionToResourceToFieldMapping{
 		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
 			ObjectNameField: "metadata.name",
 		},
+		"endpoints": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "metadata.name",
+		},
+		"events": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField:              "metadata.name",
+			EventReason:                  "reason",
+			EventSource:                  "source",
+			EventInvolvedKind:            "involvedObject.kind",
+			EventInvolvedNamespace:       "involvedObject.namespace",
+			EventInvolvedName:            "involvedObject.name",
+			EventInvolvedUID:             "involvedObject.uid",
+			EventInvolvedAPIVersion:      "involvedObject.apiVersion",
+			EventInvolvedResourceVersion: "involvedObject.resourceVersion",
+			EventInvolvedFieldPath:       "involvedObject.fieldPath",
+		},
 	},
 	"v1": resourceTypeToFieldMapping{
 		"nodes": clientFieldNameToAPIVersionFieldName{
 			ObjectNameField:   "metadata.name",
 			NodeUnschedulable: "spec.unschedulable",
 		},
-		"minions": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "metadata.name",
-			NodeUnschedulable: "spec.unschedulable",
-		},
 		"pods": clientFieldNameToAPIVersionFieldName{
-			PodHost: "spec.host",
+			PodHost: "spec.nodeName",
 		},
 		"secrets": clientFieldNameToAPIVersionFieldName{
 			SecretType: "type",
@@ -368,12 +360,30 @@ var fieldMappings = versionToResourceToFieldMapping{
 		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
 			ObjectNameField: "metadata.name",
 		},
+		"endpoints": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "metadata.name",
+		},
+		"events": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField:              "metadata.name",
+			EventReason:                  "reason",
+			EventSource:                  "source",
+			EventInvolvedKind:            "involvedObject.kind",
+			EventInvolvedNamespace:       "involvedObject.namespace",
+			EventInvolvedName:            "involvedObject.name",
+			EventInvolvedUID:             "involvedObject.uid",
+			EventInvolvedAPIVersion:      "involvedObject.apiVersion",
+			EventInvolvedResourceVersion: "involvedObject.resourceVersion",
+			EventInvolvedFieldPath:       "involvedObject.fieldPath",
+		},
 	},
 }
 
 // FieldsSelectorParam adds the given selector as a query parameter with the name paramName.
 func (r *Request) FieldsSelectorParam(s fields.Selector) *Request {
 	if r.err != nil {
+		return r
+	}
+	if s == nil {
 		return r
 	}
 	if s.Empty() {
@@ -392,6 +402,9 @@ func (r *Request) FieldsSelectorParam(s fields.Selector) *Request {
 // LabelsSelectorParam adds the given selector as a query parameter
 func (r *Request) LabelsSelectorParam(s labels.Selector) *Request {
 	if r.err != nil {
+		return r
+	}
+	if s == nil {
 		return r
 	}
 	if s.Empty() {
@@ -463,8 +476,10 @@ func (r *Request) Body(obj interface{}) *Request {
 			r.err = err
 			return r
 		}
+		glog.V(8).Infof("Request Body: %s", string(data))
 		r.body = bytes.NewBuffer(data)
 	case []byte:
+		glog.V(8).Infof("Request Body: %s", string(t))
 		r.body = bytes.NewBuffer(t)
 	case io.Reader:
 		r.body = t
@@ -474,6 +489,7 @@ func (r *Request) Body(obj interface{}) *Request {
 			r.err = err
 			return r
 		}
+		glog.V(8).Infof("Request Body: %s", string(data))
 		r.body = bytes.NewBuffer(data)
 	default:
 		r.err = fmt.Errorf("unknown type used for body: %+v", obj)
@@ -484,15 +500,11 @@ func (r *Request) Body(obj interface{}) *Request {
 // URL returns the current working URL.
 func (r *Request) URL() *url.URL {
 	p := r.path
-	if r.namespaceSet && !r.namespaceInQuery && len(r.namespace) > 0 {
+	if r.namespaceSet && len(r.namespace) > 0 {
 		p = path.Join(p, "namespaces", r.namespace)
 	}
 	if len(r.resource) != 0 {
-		resource := r.resource
-		if !r.preserveResourceCase {
-			resource = strings.ToLower(resource)
-		}
-		p = path.Join(p, resource)
+		p = path.Join(p, strings.ToLower(r.resource))
 	}
 	// Join trims trailing slashes, so preserve r.path's trailing slash for backwards compat if nothing was changed
 	if len(r.resourceName) != 0 || len(r.subpath) != 0 || len(r.subresource) != 0 {
@@ -510,10 +522,6 @@ func (r *Request) URL() *url.URL {
 		for _, value := range values {
 			query.Add(key, value)
 		}
-	}
-
-	if r.namespaceSet && r.namespaceInQuery {
-		query.Set("namespace", r.namespace)
 	}
 
 	// timeout is handled specially here.
@@ -539,7 +547,7 @@ func (r Request) finalURLTemplate() string {
 	}
 	newParams := url.Values{}
 	v := []string{"{value}"}
-	for k, _ := range r.params {
+	for k := range r.params {
 		newParams[k] = v
 	}
 	r.params = newParams
@@ -690,20 +698,6 @@ func (r *Request) request(fn func(*http.Request, *http.Response)) error {
 	retries := 0
 	for {
 		url := r.URL().String()
-
-		glog.V(6).Infof("%s %s", r.verb, url)
-		if glog.V(7) && (r.body != nil) {
-			if body, err := ioutil.ReadAll(r.body); err == nil {
-				r.body = ioutil.NopCloser(bytes.NewBuffer(body))
-				glog.V(7).Infof("-d '%s'", string(body))
-			}
-			for key, values := range r.headers {
-				for value := range values {
-					glog.V(7).Infof("-H '%s: %s'", key, value)
-				}
-			}
-		}
-
 		req, err := http.NewRequest(r.verb, url, r.body)
 		if err != nil {
 			return err
@@ -712,19 +706,7 @@ func (r *Request) request(fn func(*http.Request, *http.Response)) error {
 
 		resp, err := client.Do(req)
 		if err != nil {
-			glog.V(6).Infof("Response Error: %v", err)
 			return err
-		}
-
-		glog.V(6).Infof("Response Status: %s", resp.Status)
-		if glog.V(7) {
-			for key, _ := range resp.Header {
-				glog.V(7).Infof("Response Header: %s: %s", key, resp.Header.Get(key))
-			}
-			if body, err := ioutil.ReadAll(resp.Body); err == nil {
-				resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-				glog.V(7).Infof("Response Body: %s", string(body))
-			}
 		}
 
 		done := func() bool {
@@ -794,6 +776,8 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 			body = data
 		}
 	}
+	glog.V(8).Infof("Response Body: %s", string(body))
+
 	// Did the server give us a status response?
 	isStatusResponse := false
 	var status api.Status
@@ -819,9 +803,9 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 	}
 
 	return Result{
-		body:    body,
-		created: resp.StatusCode == http.StatusCreated,
-		codec:   r.codec,
+		body:       body,
+		statusCode: resp.StatusCode,
+		codec:      r.codec,
 	}
 }
 
@@ -849,6 +833,8 @@ func (r *Request) transformUnstructuredResponseError(resp *http.Response, req *h
 			body = data
 		}
 	}
+	glog.V(8).Infof("Response Body: %s", string(body))
+
 	message := "unknown"
 	if isTextResponse(resp) {
 		message = strings.TrimSpace(string(body))
@@ -893,9 +879,9 @@ func retryAfterSeconds(resp *http.Response) (int, bool) {
 
 // Result contains the result of calling Request.Do().
 type Result struct {
-	body    []byte
-	created bool
-	err     error
+	body       []byte
+	err        error
+	statusCode int
 
 	codec runtime.Codec
 }
@@ -913,6 +899,13 @@ func (r Result) Get() (runtime.Object, error) {
 	return r.codec.Decode(r.body)
 }
 
+// StatusCode returns the HTTP status code of the request. (Only valid if no
+// error was returned.)
+func (r Result) StatusCode(statusCode *int) Result {
+	*statusCode = r.statusCode
+	return r
+}
+
 // Into stores the result into obj, if possible.
 func (r Result) Into(obj runtime.Object) error {
 	if r.err != nil {
@@ -924,7 +917,7 @@ func (r Result) Into(obj runtime.Object) error {
 // WasCreated updates the provided bool pointer to whether the server returned
 // 201 created or a different response.
 func (r Result) WasCreated(wasCreated *bool) Result {
-	*wasCreated = r.created
+	*wasCreated = r.statusCode == http.StatusCreated
 	return r
 }
 

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/spdystream/spdy"
+	"golang.org/x/net/spdy"
 )
 
 func TestPriorityQueueOrdering(t *testing.T) {

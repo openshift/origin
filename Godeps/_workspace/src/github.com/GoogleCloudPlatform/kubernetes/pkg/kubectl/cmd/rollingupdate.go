@@ -26,6 +26,8 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
@@ -38,10 +40,10 @@ const (
 	pollInterval       = "3s"
 	rollingUpdate_long = `Perform a rolling update of the given ReplicationController.
 
-Replaces the specified controller with new controller, updating one pod at a time to use the
+Replaces the specified replication controller with a new replication controller by updating one pod at a time to use the
 new PodTemplate. The new-controller.json must specify the same namespace as the
-existing controller and overwrite at least one (common) label in its replicaSelector.`
-	rollingUpdate_example = `// Update pods of frontend-v1 using new controller data in frontend-v2.json.
+existing replication controller and overwrite at least one (common) label in its replicaSelector.`
+	rollingUpdate_example = `// Update pods of frontend-v1 using new replication controller data in frontend-v2.json.
 $ kubectl rolling-update frontend-v1 -f frontend-v2.json
 
 // Update pods of frontend-v1 using JSON data passed into stdin.
@@ -70,10 +72,10 @@ func NewCmdRollingUpdate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 		},
 	}
 	cmd.Flags().String("update-period", updatePeriod, `Time to wait between updating pods. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
-	cmd.Flags().String("poll-interval", pollInterval, `Time delay between polling controller status after update. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
-	cmd.Flags().String("timeout", timeout, `Max time to wait for a controller to update before giving up. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
-	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to create the new controller.")
-	cmd.Flags().String("image", "", "Image to upgrade the controller to.  Can not be used with --filename/-f")
+	cmd.Flags().String("poll-interval", pollInterval, `Time delay between polling for replication controller status after the update. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
+	cmd.Flags().String("timeout", timeout, `Max time to wait for a replication controller to update before giving up. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
+	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to create the new replication controller.")
+	cmd.Flags().String("image", "", "Image to use for upgrading the replication controller.  Can not be used with --filename/-f")
 	cmd.Flags().String("deployment-label-key", "deployment", "The key to use to differentiate between two different controllers, default 'deployment'.  Only relevant when --image is specified, ignored otherwise")
 	cmd.Flags().Bool("dry-run", false, "If true, print out the changes that would be made, but don't actually make them.")
 	cmd.Flags().Bool("rollback", false, "If true, this is a request to abort an existing rollout that is partially rolled out. It effectively reverses current and next and runs a rollout")
@@ -143,6 +145,7 @@ func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, arg
 	}
 
 	var keepOldName bool
+	var replicasDefaulted bool
 
 	mapper, typer := f.Object()
 
@@ -151,16 +154,24 @@ func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, arg
 		if err != nil {
 			return err
 		}
-		obj, err := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+		request := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 			Schema(schema).
 			NamespaceParam(cmdNamespace).RequireNamespace().
 			FilenameParam(filename).
-			Do().
-			Object()
+			Do()
+		obj, err := request.Object()
 		if err != nil {
 			return err
 		}
 		var ok bool
+		// Handle filename input from stdin. The resource builder always returns an api.List
+		// when creating resource(s) from a stream.
+		if list, ok := obj.(*api.List); ok {
+			if len(list.Items) > 1 {
+				return cmdutil.UsageError(cmd, "%s specifies multiple items", filename)
+			}
+			obj = list.Items[0]
+		}
 		newRc, ok = obj.(*api.ReplicationController)
 		if !ok {
 			if _, kind, err := typer.ObjectVersionAndKind(obj); err == nil {
@@ -168,6 +179,12 @@ func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, arg
 			}
 			glog.V(4).Infof("Object %#v is not a ReplicationController", obj)
 			return cmdutil.UsageError(cmd, "%s does not specify a valid ReplicationController", filename)
+		}
+		infos, err := request.Infos()
+		if err != nil || len(infos) != 1 {
+			glog.V(2).Infof("was not able to recover adequate information to discover if .spec.replicas was defaulted")
+		} else {
+			replicasDefaulted = isReplicasDefaulted(infos[0])
 		}
 	}
 	// If the --image option is specified, we need to create a new rc with at least one different selector
@@ -220,7 +237,7 @@ func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, arg
 			filename, oldName)
 	}
 	// TODO: handle scales during rolling update
-	if newRc.Spec.Replicas == 0 {
+	if replicasDefaulted {
 		newRc.Spec.Replicas = oldRc.Spec.Replicas
 	}
 	if dryrun {
@@ -274,4 +291,22 @@ func findNewName(args []string, oldRc *api.ReplicationController) string {
 		return newName
 	}
 	return ""
+}
+
+func isReplicasDefaulted(info *resource.Info) bool {
+	if info == nil || info.VersionedObject == nil {
+		// was unable to recover versioned info
+		return false
+	}
+	switch info.Mapping.APIVersion {
+	case "v1":
+		if rc, ok := info.VersionedObject.(*v1.ReplicationController); ok {
+			return rc.Spec.Replicas == nil
+		}
+	case "v1beta3":
+		if rc, ok := info.VersionedObject.(*v1beta3.ReplicationController); ok {
+			return rc.Spec.Replicas == nil
+		}
+	}
+	return false
 }

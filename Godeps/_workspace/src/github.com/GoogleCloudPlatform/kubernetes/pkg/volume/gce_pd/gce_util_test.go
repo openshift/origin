@@ -21,153 +21,64 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/mount"
 )
-
-type ErrorMounter struct {
-	*mount.FakeMounter
-	errIndex int
-	err      []error
-}
-
-func (mounter *ErrorMounter) Mount(source string, target string, fstype string, options []string) error {
-	i := mounter.errIndex
-	mounter.errIndex++
-	if mounter.err != nil && mounter.err[i] != nil {
-		return mounter.err[i]
-	}
-	return mounter.FakeMounter.Mount(source, target, fstype, options)
-}
-
-type ExecArgs struct {
-	command string
-	args    []string
-	output  string
-	err     error
-}
 
 func TestSafeFormatAndMount(t *testing.T) {
 	tests := []struct {
-		fstype        string
-		mountOptions  []string
-		execScripts   []ExecArgs
-		mountErrs     []error
-		expectedError error
+		fstype       string
+		expectedArgs []string
+		err          error
 	}{
-		{ // Test a read only mount
+		{
 			fstype:       "ext4",
-			mountOptions: []string{"ro"},
+			expectedArgs: []string{"/dev/foo", "/mnt/bar"},
 		},
-		{ // Test a normal mount
-			fstype: "ext4",
+		{
+			fstype:       "vfat",
+			expectedArgs: []string{"-m", "mkfs.vfat", "/dev/foo", "/mnt/bar"},
 		},
-
-		{ // Test that 'file' is called and fails
-			fstype:    "ext4",
-			mountErrs: []error{fmt.Errorf("unknown filesystem type '(null)'")},
-			execScripts: []ExecArgs{
-				{"file", []string{"-L", "--special-files", "/dev/foo"}, "ext4 filesystem", nil},
-			},
-			expectedError: fmt.Errorf("unknown filesystem type '(null)'"),
-		},
-		{ // Test that 'file' is called and confirms unformatted disk, format fails
-			fstype:    "ext4",
-			mountErrs: []error{fmt.Errorf("unknown filesystem type '(null)'")},
-			execScripts: []ExecArgs{
-				{"file", []string{"-L", "--special-files", "/dev/foo"}, "data", nil},
-				{"mkfs.ext4", []string{"-E", "lazy_itable_init=0,lazy_journal_init=0", "-F", "/dev/foo"}, "", fmt.Errorf("formatting failed")},
-			},
-			expectedError: fmt.Errorf("formatting failed"),
-		},
-		{ // Test that 'file' is called and confirms unformatted disk, format passes, second mount fails
-			fstype:    "ext4",
-			mountErrs: []error{fmt.Errorf("unknown filesystem type '(null)'"), fmt.Errorf("Still cannot mount")},
-			execScripts: []ExecArgs{
-				{"file", []string{"-L", "--special-files", "/dev/foo"}, "data", nil},
-				{"mkfs.ext4", []string{"-E", "lazy_itable_init=0,lazy_journal_init=0", "-F", "/dev/foo"}, "", nil},
-			},
-			expectedError: fmt.Errorf("Still cannot mount"),
-		},
-		{ // Test that 'file' is called and confirms unformatted disk, format passes, second mount passes
-			fstype:    "ext4",
-			mountErrs: []error{fmt.Errorf("unknown filesystem type '(null)'"), nil},
-			execScripts: []ExecArgs{
-				{"file", []string{"-L", "--special-files", "/dev/foo"}, "data", nil},
-				{"mkfs.ext4", []string{"-E", "lazy_itable_init=0,lazy_journal_init=0", "-F", "/dev/foo"}, "", nil},
-			},
-			expectedError: nil,
-		},
-		{ // Test that 'file' is called and confirms unformatted disk, format passes, second mount passes with ext3
-			fstype:    "ext3",
-			mountErrs: []error{fmt.Errorf("unknown filesystem type '(null)'"), nil},
-			execScripts: []ExecArgs{
-				{"file", []string{"-L", "--special-files", "/dev/foo"}, "data", nil},
-				{"mkfs.ext3", []string{"-E", "lazy_itable_init=0,lazy_journal_init=0", "-F", "/dev/foo"}, "", nil},
-			},
-			expectedError: nil,
+		{
+			err: fmt.Errorf("test error"),
 		},
 	}
-
 	for _, test := range tests {
-		commandScripts := []exec.FakeCommandAction{}
-		for _, expected := range test.execScripts {
-			ecmd := expected.command
-			eargs := expected.args
-			output := expected.output
-			err := expected.err
-			commandScript := func(cmd string, args ...string) exec.Cmd {
-				if cmd != ecmd {
-					t.Errorf("Unexpected command %s. Expecting %s", cmd, ecmd)
-				}
 
-				for j := range args {
-					if args[j] != eargs[j] {
-						t.Errorf("Unexpected args %v. Expecting %v", args, eargs)
-					}
-				}
-				fake := exec.FakeCmd{
-					CombinedOutputScript: []exec.FakeCombinedOutputAction{
-						func() ([]byte, error) { return []byte(output), err },
-					},
-				}
-				return exec.InitFakeCmd(&fake, cmd, args...)
-			}
-			commandScripts = append(commandScripts, commandScript)
-		}
-
+		var cmdOut string
+		var argsOut []string
 		fake := exec.FakeExec{
-			CommandScript: commandScripts,
+			CommandScript: []exec.FakeCommandAction{
+				func(cmd string, args ...string) exec.Cmd {
+					cmdOut = cmd
+					argsOut = args
+					fake := exec.FakeCmd{
+						CombinedOutputScript: []exec.FakeCombinedOutputAction{
+							func() ([]byte, error) { return []byte{}, test.err },
+						},
+					}
+					return exec.InitFakeCmd(&fake, cmd, args...)
+				},
+			},
 		}
 
-		fakeMounter := ErrorMounter{&mount.FakeMounter{}, 0, test.mountErrs}
 		mounter := gceSafeFormatAndMount{
-			Interface: &fakeMounter,
-			runner:    &fake,
+			runner: &fake,
 		}
 
-		device := "/dev/foo"
-		dest := "/mnt/bar"
-		err := mounter.Mount(device, dest, test.fstype, test.mountOptions)
-		if test.expectedError == nil {
-			if err != nil {
-				t.Errorf("unexpected non-error: %v", err)
+		err := mounter.Mount("/dev/foo", "/mnt/bar", test.fstype, nil)
+		if test.err == nil && err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if test.err != nil {
+			if err == nil {
+				t.Errorf("unexpected non-error")
 			}
-
-			// Check that something was mounted on the directory
-			isMountPoint, err := fakeMounter.IsMountPoint(dest)
-			if err != nil || !isMountPoint {
-				t.Errorf("the directory was not mounted")
-			}
-
-			//check that the correct device was mounted
-			mountedDevice, _, err := mount.GetDeviceNameFromMount(fakeMounter.FakeMounter, dest)
-			if err != nil || mountedDevice != device {
-				t.Errorf("the correct device was not mounted")
-			}
-		} else {
-			if err == nil || test.expectedError.Error() != err.Error() {
-				t.Errorf("unexpected error: %v. Expecting %v", err, test.expectedError)
-			}
+			return
+		}
+		if cmdOut != "/usr/share/google/safe_format_and_mount" {
+			t.Errorf("unexpected command: %s", cmdOut)
+		}
+		if len(argsOut) != len(test.expectedArgs) {
+			t.Errorf("unexpected args: %v, expected: %v", argsOut, test.expectedArgs)
 		}
 	}
 }

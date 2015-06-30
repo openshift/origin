@@ -19,11 +19,13 @@ package kubelet
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kubecontainer "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/container"
+	kubeletTypes "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 )
@@ -51,7 +53,24 @@ func newStatusManager(kubeClient client.Interface) *statusManager {
 	}
 }
 
+// isStatusEqual returns true if the given pod statuses are equal, false otherwise.
+// This method sorts container statuses so order does not affect equality.
+func isStatusEqual(oldStatus, status *api.PodStatus) bool {
+	sort.Sort(kubeletTypes.SortedContainerStatuses(status.ContainerStatuses))
+	sort.Sort(kubeletTypes.SortedContainerStatuses(oldStatus.ContainerStatuses))
+
+	// TODO: More sophisticated equality checking.
+	return reflect.DeepEqual(status, oldStatus)
+}
+
 func (s *statusManager) Start() {
+	// Don't start the status manager if we don't have a client. This will happen
+	// on the master, where the kubelet is responsible for bootstrapping the pods
+	// of the master components.
+	if s.kubeClient == nil {
+		glog.Infof("Kubernetes client is nil, not starting status manager.")
+		return
+	}
 	// syncBatch blocks when no updates are available, we can run it in a tight loop.
 	glog.Info("Starting to sync pod status with apiserver")
 	go util.Forever(func() {
@@ -96,11 +115,17 @@ func (s *statusManager) SetPodStatus(pod *api.Pod, status api.PodStatus) {
 		}
 	}
 
-	if !found || !reflect.DeepEqual(oldStatus, status) {
+	// TODO: Holding a lock during blocking operations is dangerous. Refactor so this isn't necessary.
+	// The intent here is to prevent concurrent updates to a pod's status from
+	// clobbering each other so the phase of a pod progresses monotonically.
+	// Currently this routine is not called for the same pod from multiple
+	// workers and/or the kubelet but dropping the lock before sending the
+	// status down the channel feels like an easy way to get a bullet in foot.
+	if !found || !isStatusEqual(&oldStatus, &status) {
 		s.podStatuses[podFullName] = status
 		s.podStatusChannel <- podStatusSyncRequest{pod, status}
 	} else {
-		glog.V(3).Infof("Ignoring same pod status for %s - old: %s new: %s", podFullName, oldStatus, status)
+		glog.V(3).Infof("Ignoring same pod status for %q - old: %+v new: %+v", podFullName, oldStatus, status)
 	}
 }
 
@@ -148,6 +173,10 @@ func (s *statusManager) syncBatch() error {
 	// We failed to update status. In order to make sure we retry next time
 	// we delete cached value. This may result in an additional update, but
 	// this is ok.
-	s.DeletePodStatus(podFullName)
+	// Doing this synchronously will lead to a deadlock if the podStatusChannel
+	// is full, and the pod worker holding the lock is waiting on this method
+	// to clear the channel. Even if this delete never runs subsequent container
+	// changes on the node should trigger updates.
+	go s.DeletePodStatus(podFullName)
 	return fmt.Errorf("error updating status for pod %q: %v", pod.Name, err)
 }

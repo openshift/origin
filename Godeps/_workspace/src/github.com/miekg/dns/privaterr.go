@@ -1,3 +1,10 @@
+/*
+PRIVATE RR
+
+RFC 6895 sets aside a range of type codes for private use. This range
+is 65,280 - 65,534 (0xFF00 - 0xFFFE). When experimenting with new Resource Records these
+can be used, before requesting an official type code from IANA.
+*/
 package dns
 
 import (
@@ -84,9 +91,9 @@ func PrivateHandle(rtypestr string, rtype uint16, generator func() PrivateRdata)
 			// TODO(miek): we could also be returning _QUOTE, this might or might not
 			// be an issue (basically parsing TXT becomes hard)
 			switch l = <-c; l.value {
-			case zNewline, zEOF:
+			case _NEWLINE, _EOF:
 				break FETCH
-			case zString:
+			case _STRING:
 				text = append(text, l.token)
 			}
 		}

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/spdystream/spdy"
+	"golang.org/x/net/spdy"
 )
 
 var (

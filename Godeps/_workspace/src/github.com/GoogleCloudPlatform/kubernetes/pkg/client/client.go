@@ -46,7 +46,6 @@ type Interface interface {
 	PersistentVolumesInterface
 	PersistentVolumeClaimsNamespacer
 	ComponentStatusesInterface
-	SecurityContextConstraintsInterface
 }
 
 func (c *Client) ReplicationControllers(namespace string) ReplicationControllerInterface {
@@ -55,10 +54,6 @@ func (c *Client) ReplicationControllers(namespace string) ReplicationControllerI
 
 func (c *Client) Nodes() NodeInterface {
 	return newNodes(c)
-}
-
-func (c *Client) SecurityContextConstraints() SecurityContextConstraintInterface {
-	return newSecurityContextConstraints(c)
 }
 
 func (c *Client) Events(namespace string) EventInterface {
@@ -145,7 +140,7 @@ func (c *Client) ServerVersion() (*version.Info, error) {
 
 // ServerAPIVersions retrieves and parses the list of API versions the server supports.
 func (c *Client) ServerAPIVersions() (*api.APIVersions, error) {
-	body, err := c.Get().AbsPath("/api").Do().Raw()
+	body, err := c.Get().UnversionedPath("").Do().Raw()
 	if err != nil {
 		return nil, err
 	}

@@ -35,8 +35,6 @@ import (
 	"github.com/golang/glog"
 )
 
-var _ volume.VolumeHost = &PersistentVolumeRecycler{}
-
 // PersistentVolumeRecycler is a controller that watches for PersistentVolumes that are released from their claims.
 // This controller will Recycle those volumes whose reclaim policy is set to PersistentVolumeReclaimRecycle and make them
 // available again for a new claim.

@@ -295,19 +295,6 @@ func (f *FlagSet) Set(name, value string) error {
 	return nil
 }
 
-func (f *FlagSet) SetAnnotation(name, key string, values []string) error {
-	normalName := f.normalizeFlagName(name)
-	flag, ok := f.formal[normalName]
-	if !ok {
-		return fmt.Errorf("no such flag -%v", name)
-	}
-	if flag.Annotations == nil {
-		flag.Annotations = map[string][]string{}
-	}
-	flag.Annotations[key] = values
-	return nil
-}
-
 // Set sets the value of the named command-line flag.
 func Set(name, value string) error {
 	return CommandLine.Set(name, value)
@@ -542,16 +529,14 @@ func (f *FlagSet) parseLongArg(s string, args []string) (a []string, err error) 
 		return
 	}
 	var value string
-	if len(split) == 2 {
-		// '--flag=arg'
-		value = split[1]
-	} else if bv, ok := flag.Value.(boolFlag); ok && bv.IsBoolFlag() {
-		// '--flag' (where flag is a bool)
+	if len(split) == 1 {
+		if bv, ok := flag.Value.(boolFlag); !ok || !bv.IsBoolFlag() {
+			err = f.failf("flag needs an argument: %s", s)
+			return
+		}
 		value = "true"
 	} else {
-		// '--flag' (where flag was not a bool)
-		err = f.failf("flag needs an argument: %s", s)
-		return
+		value = split[1]
 	}
 	err = f.setFlag(flag, value, s)
 	return
