@@ -491,7 +491,15 @@ func (p *imagePruner) Run(pruneImage ImagePruneFunc, pruneStream ImageStreamPrun
 	pruneImages(p.g, imageNodes, pruneImage, pruneStream, pruneManifest)
 
 	layerNodes := layerNodeSubgraph(allNodes)
-	pruneLayers(p.g, layerNodes, pruneLayer, pruneBlob)
+	registryURL := ""
+	if len(imageNodes) > 0 {
+		if ref, err := imageapi.ParseDockerImageReference(imageNodes[0].Image.DockerImageReference); err == nil {
+			registryURL = ref.Registry
+		} else {
+			glog.Errorf("error determining registry URL from %q: %v", imageNodes[0].Image.DockerImageReference, err)
+		}
+	}
+	pruneLayers(p.g, registryURL, layerNodes, pruneLayer, pruneBlob)
 }
 
 // layerNodeSubgraph returns the subset of nodes that are ImageLayerNodes.
@@ -537,7 +545,12 @@ func streamLayerReferences(g graph.Graph, layerNode *imagegraph.ImageLayerNode) 
 // pruneLayers creates a mapping of registryURLs to
 // server.DeleteLayersRequest objects, invoking layerPruneFunc for each
 // registryURL and request.
-func pruneLayers(g graph.Graph, layerNodes []*imagegraph.ImageLayerNode, pruneLayer LayerPruneFunc, pruneBlob BlobPruneFunc) {
+func pruneLayers(g graph.Graph, registryURL string, layerNodes []*imagegraph.ImageLayerNode, pruneLayer LayerPruneFunc, pruneBlob BlobPruneFunc) {
+	if len(registryURL) == 0 {
+		glog.Errorf("unable to prune layers - registry URL is missing")
+		return
+	}
+
 	for _, layerNode := range layerNodes {
 		glog.V(4).Infof("Examining layer %q", layerNode.Layer)
 
@@ -545,8 +558,6 @@ func pruneLayers(g graph.Graph, layerNodes []*imagegraph.ImageLayerNode, pruneLa
 			glog.V(4).Infof("Layer %q has image references - not pruning", layerNode.Layer)
 			continue
 		}
-
-		registries := util.NewStringSet()
 
 		// get streams that reference layer
 		streamNodes := streamLayerReferences(g, layerNode)
@@ -562,19 +573,16 @@ func pruneLayers(g graph.Graph, layerNodes []*imagegraph.ImageLayerNode, pruneLa
 				continue
 			}
 
-			if !registries.Has(ref.Registry) {
-				registries.Insert(ref.Registry)
-				glog.V(4).Infof("Invoking pruneBlob with registry=%q, blob=%q", ref.Registry, layerNode.Layer)
-				if err := pruneBlob(ref.Registry, layerNode.Layer); err != nil {
-					util.HandleError(fmt.Errorf("error invoking pruneBlob: %v", err))
-				}
-			}
-
 			repoName := fmt.Sprintf("%s/%s", ref.Namespace, ref.Name)
-			glog.V(4).Infof("Invoking pruneLayer with registry=%q, repo=%q, layer=%q", ref.Registry, repoName, layerNode.Layer)
-			if err := pruneLayer(ref.Registry, repoName, layerNode.Layer); err != nil {
+			glog.V(4).Infof("Invoking pruneLayer with registry=%q, repo=%q, layer=%q", registryURL, repoName, layerNode.Layer)
+			if err := pruneLayer(registryURL, repoName, layerNode.Layer); err != nil {
 				util.HandleError(fmt.Errorf("error invoking pruneLayer: %v", err))
 			}
+		}
+
+		glog.V(4).Infof("Invoking pruneBlob with registry=%q, blob=%q", registryURL, layerNode.Layer)
+		if err := pruneBlob(registryURL, layerNode.Layer); err != nil {
+			util.HandleError(fmt.Errorf("error invoking pruneBlob: %v", err))
 		}
 	}
 }

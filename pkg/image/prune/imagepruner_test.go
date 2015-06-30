@@ -722,6 +722,22 @@ func TestRegistryPruning(t *testing.T) {
 			expectedBlobDeletions:     util.NewStringSet(),
 			expectedManifestDeletions: util.NewStringSet(),
 		},
+		"blobs pruned when streams have already been deleted": {
+			images: imageList(
+				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
+				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
+			),
+			expectedLayerDeletions: util.NewStringSet(),
+			expectedBlobDeletions: util.NewStringSet(
+				"registry1|layer1",
+				"registry1|layer2",
+				"registry1|layer3",
+				"registry1|layer4",
+				"registry1|layer5",
+				"registry1|layer6",
+			),
+			expectedManifestDeletions: util.NewStringSet(),
+		},
 	}
 
 	for name, test := range tests {
