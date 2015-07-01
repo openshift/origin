@@ -198,7 +198,7 @@ func TestBindingWithExamples(t *testing.T) {
 	}
 
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(host_path.ProbeRecyclableVolumePlugins(newMockRecycler), volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
+	plugMgr.InitPlugins(host_path.ProbeRecyclableVolumePlugins(newMockRecycler, &volume.RecyclableVolumeConfig{}), volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
 
 	recycler := &PersistentVolumeRecycler{
 		kubeClient: client,
@@ -386,7 +386,7 @@ func (c *mockBinderClient) UpdatePersistentVolumeClaimStatus(claim *api.Persiste
 	return claim, nil
 }
 
-func newMockRecycler(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error) {
+func newMockRecycler(spec *volume.Spec, host volume.VolumeHost, config *volume.RecyclableVolumeConfig) (volume.Recycler, error) {
 	return &mockRecycler{
 		path: spec.PersistentVolumeSource.HostPath.Path,
 	}, nil
