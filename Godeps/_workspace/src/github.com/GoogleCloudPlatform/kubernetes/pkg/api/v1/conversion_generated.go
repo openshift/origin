@@ -16,15 +16,14 @@ limitations under the License.
 
 package v1
 
+// AUTO-GENERATED FUNCTIONS START HERE
 import (
-	"reflect"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	api "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	resource "github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
+	conversion "github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	reflect "reflect"
 )
 
-// AUTO-GENERATED FUNCTIONS START HERE
 func convert_api_AWSElasticBlockStoreVolumeSource_To_v1_AWSElasticBlockStoreVolumeSource(in *api.AWSElasticBlockStoreVolumeSource, out *AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.AWSElasticBlockStoreVolumeSource))(in)
@@ -692,7 +691,7 @@ func convert_api_LimitRangeItem_To_v1_LimitRangeItem(in *api.LimitRangeItem, out
 	}
 	out.Type = LimitType(in.Type)
 	if in.Max != nil {
-		out.Max = make(map[ResourceName]resource.Quantity)
+		out.Max = make(ResourceList)
 		for key, val := range in.Max {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -704,7 +703,7 @@ func convert_api_LimitRangeItem_To_v1_LimitRangeItem(in *api.LimitRangeItem, out
 		out.Max = nil
 	}
 	if in.Min != nil {
-		out.Min = make(map[ResourceName]resource.Quantity)
+		out.Min = make(ResourceList)
 		for key, val := range in.Min {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -716,7 +715,7 @@ func convert_api_LimitRangeItem_To_v1_LimitRangeItem(in *api.LimitRangeItem, out
 		out.Min = nil
 	}
 	if in.Default != nil {
-		out.Default = make(map[ResourceName]resource.Quantity)
+		out.Default = make(ResourceList)
 		for key, val := range in.Default {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1006,7 +1005,7 @@ func convert_api_NodeStatus_To_v1_NodeStatus(in *api.NodeStatus, out *NodeStatus
 		defaulting.(func(*api.NodeStatus))(in)
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[ResourceName]resource.Quantity)
+		out.Capacity = make(ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1216,7 +1215,7 @@ func convert_api_PersistentVolumeClaimStatus_To_v1_PersistentVolumeClaimStatus(i
 		out.AccessModes = nil
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[ResourceName]resource.Quantity)
+		out.Capacity = make(ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1330,7 +1329,7 @@ func convert_api_PersistentVolumeSpec_To_v1_PersistentVolumeSpec(in *api.Persist
 		defaulting.(func(*api.PersistentVolumeSpec))(in)
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[ResourceName]resource.Quantity)
+		out.Capacity = make(ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1797,7 +1796,7 @@ func convert_api_ResourceQuotaSpec_To_v1_ResourceQuotaSpec(in *api.ResourceQuota
 		defaulting.(func(*api.ResourceQuotaSpec))(in)
 	}
 	if in.Hard != nil {
-		out.Hard = make(map[ResourceName]resource.Quantity)
+		out.Hard = make(ResourceList)
 		for key, val := range in.Hard {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1816,7 +1815,7 @@ func convert_api_ResourceQuotaStatus_To_v1_ResourceQuotaStatus(in *api.ResourceQ
 		defaulting.(func(*api.ResourceQuotaStatus))(in)
 	}
 	if in.Hard != nil {
-		out.Hard = make(map[ResourceName]resource.Quantity)
+		out.Hard = make(ResourceList)
 		for key, val := range in.Hard {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1828,7 +1827,7 @@ func convert_api_ResourceQuotaStatus_To_v1_ResourceQuotaStatus(in *api.ResourceQ
 		out.Hard = nil
 	}
 	if in.Used != nil {
-		out.Used = make(map[ResourceName]resource.Quantity)
+		out.Used = make(ResourceList)
 		for key, val := range in.Used {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1847,7 +1846,7 @@ func convert_api_ResourceRequirements_To_v1_ResourceRequirements(in *api.Resourc
 		defaulting.(func(*api.ResourceRequirements))(in)
 	}
 	if in.Limits != nil {
-		out.Limits = make(map[ResourceName]resource.Quantity)
+		out.Limits = make(ResourceList)
 		for key, val := range in.Limits {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1859,7 +1858,7 @@ func convert_api_ResourceRequirements_To_v1_ResourceRequirements(in *api.Resourc
 		out.Limits = nil
 	}
 	if in.Requests != nil {
-		out.Requests = make(map[ResourceName]resource.Quantity)
+		out.Requests = make(ResourceList)
 		for key, val := range in.Requests {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3114,7 +3113,7 @@ func convert_v1_LimitRangeItem_To_api_LimitRangeItem(in *LimitRangeItem, out *ap
 	}
 	out.Type = api.LimitType(in.Type)
 	if in.Max != nil {
-		out.Max = make(map[api.ResourceName]resource.Quantity)
+		out.Max = make(api.ResourceList)
 		for key, val := range in.Max {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3126,7 +3125,7 @@ func convert_v1_LimitRangeItem_To_api_LimitRangeItem(in *LimitRangeItem, out *ap
 		out.Max = nil
 	}
 	if in.Min != nil {
-		out.Min = make(map[api.ResourceName]resource.Quantity)
+		out.Min = make(api.ResourceList)
 		for key, val := range in.Min {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3138,7 +3137,7 @@ func convert_v1_LimitRangeItem_To_api_LimitRangeItem(in *LimitRangeItem, out *ap
 		out.Min = nil
 	}
 	if in.Default != nil {
-		out.Default = make(map[api.ResourceName]resource.Quantity)
+		out.Default = make(api.ResourceList)
 		for key, val := range in.Default {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3428,7 +3427,7 @@ func convert_v1_NodeStatus_To_api_NodeStatus(in *NodeStatus, out *api.NodeStatus
 		defaulting.(func(*NodeStatus))(in)
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[api.ResourceName]resource.Quantity)
+		out.Capacity = make(api.ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3638,7 +3637,7 @@ func convert_v1_PersistentVolumeClaimStatus_To_api_PersistentVolumeClaimStatus(i
 		out.AccessModes = nil
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[api.ResourceName]resource.Quantity)
+		out.Capacity = make(api.ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3752,7 +3751,7 @@ func convert_v1_PersistentVolumeSpec_To_api_PersistentVolumeSpec(in *PersistentV
 		defaulting.(func(*PersistentVolumeSpec))(in)
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[api.ResourceName]resource.Quantity)
+		out.Capacity = make(api.ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4219,7 +4218,7 @@ func convert_v1_ResourceQuotaSpec_To_api_ResourceQuotaSpec(in *ResourceQuotaSpec
 		defaulting.(func(*ResourceQuotaSpec))(in)
 	}
 	if in.Hard != nil {
-		out.Hard = make(map[api.ResourceName]resource.Quantity)
+		out.Hard = make(api.ResourceList)
 		for key, val := range in.Hard {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4238,7 +4237,7 @@ func convert_v1_ResourceQuotaStatus_To_api_ResourceQuotaStatus(in *ResourceQuota
 		defaulting.(func(*ResourceQuotaStatus))(in)
 	}
 	if in.Hard != nil {
-		out.Hard = make(map[api.ResourceName]resource.Quantity)
+		out.Hard = make(api.ResourceList)
 		for key, val := range in.Hard {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4250,7 +4249,7 @@ func convert_v1_ResourceQuotaStatus_To_api_ResourceQuotaStatus(in *ResourceQuota
 		out.Hard = nil
 	}
 	if in.Used != nil {
-		out.Used = make(map[api.ResourceName]resource.Quantity)
+		out.Used = make(api.ResourceList)
 		for key, val := range in.Used {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4269,7 +4268,7 @@ func convert_v1_ResourceRequirements_To_api_ResourceRequirements(in *ResourceReq
 		defaulting.(func(*ResourceRequirements))(in)
 	}
 	if in.Limits != nil {
-		out.Limits = make(map[api.ResourceName]resource.Quantity)
+		out.Limits = make(api.ResourceList)
 		for key, val := range in.Limits {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4281,7 +4280,7 @@ func convert_v1_ResourceRequirements_To_api_ResourceRequirements(in *ResourceReq
 		out.Limits = nil
 	}
 	if in.Requests != nil {
-		out.Requests = make(map[api.ResourceName]resource.Quantity)
+		out.Requests = make(api.ResourceList)
 		for key, val := range in.Requests {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
