@@ -16,6 +16,15 @@ type Node struct {
 	UniqueName
 }
 
+// ExistenceChecker is an interface for those nodes that can be created without a backing object.
+// This can happen when a node wants an edge to a non-existent node.  We know the node should exist,
+// The graph needs something in that location to track the information we have about the node, but the
+// backing object doesn't exist.
+type ExistenceChecker interface {
+	// Found returns true if the node represents an object that we don't have the backing object for
+	Found() bool
+}
+
 type UniqueName string
 
 type UniqueNameFunc func(obj interface{}) UniqueName
@@ -141,6 +150,36 @@ func (m SortedNodeList) Less(i, j int) bool {
 	return m[i].ID() < m[j].ID()
 }
 
+// SyntheticNodes returns back the set of nodes that were created in response to edge requests, but did not exist
+func (g Graph) SyntheticNodes() []graph.Node {
+	ret := []graph.Node{}
+
+	nodeList := g.NodeList()
+	sort.Sort(SortedNodeList(nodeList))
+	for _, node := range nodeList {
+		if potentiallySyntheticNode, ok := node.(ExistenceChecker); ok {
+			if potentiallySyntheticNode.Found() {
+				ret = append(ret, node)
+			}
+		}
+	}
+
+	return ret
+}
+
+func (g Graph) NodesByKind(nodeKinds ...string) []graph.Node {
+	ret := []graph.Node{}
+
+	kinds := util.NewStringSet(nodeKinds...)
+	for _, node := range g.NodeList() {
+		if kinds.Has(g.Kind(node)) {
+			ret = append(ret, node)
+		}
+	}
+
+	return ret
+}
+
 // RootNodes returns all the roots of this graph.
 func (g Graph) RootNodes() []graph.Node {
 	roots := []graph.Node{}
@@ -212,6 +251,40 @@ func (g Graph) InboundEdges(node graph.Node, edgeKinds ...string) []graph.Edge {
 		if len(allowedKinds) == 0 || allowedKinds.Has(g.EdgeKind(edge)) {
 			ret = append(ret, edge)
 		}
+	}
+
+	return ret
+}
+
+func (g Graph) PredecessorNodesByEdgeKind(node graph.Node, edgeKinds ...string) []graph.Node {
+	ret := []graph.Node{}
+
+	for _, inboundEdges := range g.InboundEdges(node, edgeKinds...) {
+		ret = append(ret, inboundEdges.Head())
+	}
+
+	return ret
+}
+
+func (g Graph) SuccessorNodesByEdgeKind(node graph.Node, edgeKinds ...string) []graph.Node {
+	ret := []graph.Node{}
+
+	for _, outboundEdge := range g.OutboundEdges(node, edgeKinds...) {
+		ret = append(ret, outboundEdge.Tail())
+	}
+
+	return ret
+}
+
+func (g Graph) SuccessorNodesByNodeAndEdgeKind(node graph.Node, nodeKind, edgeKind string) []graph.Node {
+	ret := []graph.Node{}
+
+	for _, successor := range g.SuccessorNodesByEdgeKind(node, edgeKind) {
+		if g.Kind(successor) != nodeKind {
+			continue
+		}
+
+		ret = append(ret, successor)
 	}
 
 	return ret

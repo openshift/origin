@@ -12,8 +12,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	"github.com/openshift/origin/pkg/api/graph"
-	graphveneers "github.com/openshift/origin/pkg/api/graph/veneers"
+	osgraph "github.com/openshift/origin/pkg/api/graph"
+	"github.com/openshift/origin/pkg/api/graph/graphview"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -34,26 +34,22 @@ type ProjectStatusDescriber struct {
 	C client.Interface
 }
 
-// Describe returns the description of a project
-func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error) {
-	project, err := d.C.Projects().Get(namespace)
-	if err != nil {
-		return "", err
-	}
+func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, error) {
+	g := osgraph.New()
 
 	svcs, err := d.K.Services(namespace).List(labels.Everything())
 	if err != nil {
-		return "", err
+		return g, err
 	}
 
 	bcs, err := d.C.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return "", err
+		return g, err
 	}
 
 	dcs, err := d.C.DeploymentConfigs(namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return "", err
+		return g, err
 	}
 
 	builds := &buildapi.BuildList{}
@@ -68,7 +64,6 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		rcs = &kapi.ReplicationControllerList{}
 	}
 
-	g := graph.New()
 	for i := range bcs.Items {
 		build := buildgraph.EnsureBuildConfigNode(g, &bcs.Items[i])
 		buildedges.AddInputOutputEdges(g, build)
@@ -83,41 +78,63 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		service := kubegraph.EnsureServiceNode(g, &svcs.Items[i])
 		kubeedges.AddExposedPodTemplateSpecEdges(g, service)
 	}
-	groups := graphveneers.ServiceAndDeploymentGroups(g)
+
+	return g, nil
+}
+
+// Describe returns the description of a project
+func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error) {
+	g, err := d.MakeGraph(namespace)
+	if err != nil {
+		return "", err
+	}
+
+	project, err := d.C.Projects().Get(namespace)
+	if err != nil {
+		return "", err
+	}
+
+	coveredNodes := graphview.IntSet{}
+
+	services, coveredByServices := graphview.AllServiceGroups(g, coveredNodes)
+	coveredNodes.Insert(coveredByServices.List()...)
+
+	standaloneDCs, coveredByDCs := graphview.AllDeploymentConfigPipelines(g, coveredNodes)
+	coveredNodes.Insert(coveredByDCs.List()...)
+
+	standaloneBCs, coveredByBCs := graphview.AllImagePipelinesFromBuildConfig(g, coveredNodes)
+	coveredNodes.Insert(coveredByBCs.List()...)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
 		fmt.Fprintf(out, "In project %s\n", projectapi.DisplayNameAndNameForProject(project))
 
-		for _, group := range groups {
-			if len(group.Builds) != 0 {
-				for _, build := range group.Builds {
-					fmt.Fprintln(out)
-					printLines(out, indent, 0, describeStandaloneBuildGroup(build, namespace)...)
-					printLines(out, indent, 1, describeAdditionalBuildDetail(build.Build, true)...)
-				}
-				continue
-			}
-			if len(group.Services) == 0 {
-				for _, deploy := range group.Deployments {
-					fmt.Fprintln(out)
-					printLines(out, indent, 0, describeDeploymentInServiceGroup(deploy)...)
-				}
-				continue
-			}
+		for _, service := range services {
 			fmt.Fprintln(out)
-			for _, svc := range group.Services {
-				printLines(out, indent, 0, describeServiceInServiceGroup(svc)...)
-			}
-			for _, deploy := range group.Deployments {
-				printLines(out, indent, 1, describeDeploymentInServiceGroup(deploy)...)
+			printLines(out, indent, 0, describeServiceInServiceGroup(service)...)
+
+			for _, dcPipeline := range service.DeploymentConfigPipelines {
+				printLines(out, indent, 1, describeDeploymentInServiceGroup(dcPipeline)...)
 			}
 		}
 
-		if len(groups) == 0 {
+		for _, standaloneDC := range standaloneDCs {
+			fmt.Fprintln(out)
+			printLines(out, indent, 0, describeDeploymentInServiceGroup(standaloneDC)...)
+		}
+
+		for _, standaloneBC := range standaloneBCs {
+			fmt.Fprintln(out)
+			printLines(out, indent, 0, describeStandaloneBuildGroup(standaloneBC, namespace)...)
+			printLines(out, indent, 1, describeAdditionalBuildDetail(standaloneBC.Build, true)...)
+		}
+
+		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneBCs) == 0) {
 			fmt.Fprintln(out, "\nYou have no Services, DeploymentConfigs, or BuildConfigs. 'oc new-app' can be used to create applications from scratch from existing Docker images and templates.")
+
 		} else {
-			fmt.Fprintln(out, "\nTo see more information about a Service or DeploymentConfig, use 'oc describe service <name>' or 'oc describe dc <name>'.")
+			fmt.Fprintln(out)
+			fmt.Fprintln(out, "To see more information about a Service or DeploymentConfig, use 'oc describe service <name>' or 'oc describe dc <name>'.")
 			fmt.Fprintln(out, "You can use 'oc get all' to see lists of each of the types described above.")
 		}
 
@@ -135,7 +152,7 @@ func printLines(out io.Writer, indent string, depth int, lines ...string) {
 	}
 }
 
-func describeDeploymentInServiceGroup(deploy graphveneers.DeploymentFlow) []string {
+func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline) []string {
 	includeLastPass := deploy.Deployment.ActiveDeployment == nil
 	if len(deploy.Images) == 1 {
 		lines := []string{fmt.Sprintf("%s deploys %s %s", deploy.Deployment.Name, describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
@@ -166,7 +183,7 @@ func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
 	return ""
 }
 
-func describeStandaloneBuildGroup(pipeline graphveneers.ImagePipeline, namespace string) []string {
+func describeStandaloneBuildGroup(pipeline graphview.ImagePipeline, namespace string) []string {
 	switch {
 	case pipeline.Build != nil:
 		lines := []string{fmt.Sprintf("%s %s", pipeline.Build.BuildConfig.Name, describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))}
@@ -181,7 +198,7 @@ func describeStandaloneBuildGroup(pipeline graphveneers.ImagePipeline, namespace
 	}
 }
 
-func describeImageInPipeline(pipeline graphveneers.ImagePipeline, namespace string) string {
+func describeImageInPipeline(pipeline graphview.ImagePipeline, namespace string) string {
 	switch {
 	case pipeline.Image != nil && pipeline.Build != nil:
 		return fmt.Sprintf("%s <- %s", describeImageTagInPipeline(pipeline.Image, namespace), describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))
@@ -194,7 +211,7 @@ func describeImageInPipeline(pipeline graphveneers.ImagePipeline, namespace stri
 	}
 }
 
-func describeImageTagInPipeline(image graphveneers.ImageTagLocation, namespace string) string {
+func describeImageTagInPipeline(image graphview.ImageTagLocation, namespace string) string {
 	switch t := image.(type) {
 	case *imagegraph.ImageStreamTagNode:
 		if t.ImageStream.Namespace != namespace {
@@ -206,7 +223,7 @@ func describeImageTagInPipeline(image graphveneers.ImageTagLocation, namespace s
 	}
 }
 
-func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphveneers.ImageTagLocation) string {
+func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.ImageTagLocation) string {
 	switch build.Parameters.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
 		// TODO: handle case where no source repo
@@ -483,7 +500,7 @@ func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (strin
 	}
 }
 
-func describeServiceInServiceGroup(svc graphveneers.ServiceReference) []string {
+func describeServiceInServiceGroup(svc graphview.ServiceGroup) []string {
 	spec := svc.Service.Spec
 	ip := spec.PortalIP
 	port := describeServicePorts(spec)
