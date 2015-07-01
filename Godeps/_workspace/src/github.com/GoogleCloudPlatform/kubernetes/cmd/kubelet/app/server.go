@@ -249,63 +249,23 @@ func (s *KubeletServer) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&s.Containerized, "containerized", s.Containerized, "Experimental support for running kubelet in a container.  Intended for testing. [default=false]")
 }
 
-// Run runs the specified KubeletServer.  This should never exit.
-func (s *KubeletServer) Run(_ []string) error {
-	util.ReallyCrash = s.ReallyCrashForTesting
-	rand.Seed(time.Now().UTC().UnixNano())
-
-	// TODO(vmarmol): Do this through container config.
-	if err := util.ApplyOomScoreAdj(0, s.OOMScoreAdj); err != nil {
-		glog.Warning(err)
-	}
-
-	var apiclient *client.Client
-	clientConfig, err := s.CreateAPIServerClientConfig()
-	if err == nil {
-		apiclient, err = client.New(clientConfig)
-	}
-	if err != nil && len(s.APIServerList) > 0 {
-		glog.Warningf("No API client: %v", err)
-	}
-
-	glog.V(2).Infof("Using root directory: %v", s.RootDirectory)
-
-	credentialprovider.SetPreferredDockercfgPath(s.RootDirectory)
-
-	cadvisorInterface, err := cadvisor.New(s.CadvisorPort)
-	if err != nil {
-		return err
-	}
-
-	imageGCPolicy := kubelet.ImageGCPolicy{
-		HighThresholdPercent: s.ImageGCHighThresholdPercent,
-		LowThresholdPercent:  s.ImageGCLowThresholdPercent,
-	}
-
-	diskSpacePolicy := kubelet.DiskSpacePolicy{
-		DockerFreeDiskMB: s.LowDiskSpaceThresholdMB,
-		RootFreeDiskMB:   s.LowDiskSpaceThresholdMB,
-	}
-	cloud, err := cloudprovider.InitCloudProvider(s.CloudProvider, s.CloudConfigFile)
-	if err != nil {
-		return err
-	}
-	glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", s.CloudProvider, s.CloudConfigFile)
-
+// KubeletConfig returns a KubeletConfig suitable for being run, or an error if the server setup
+// is not valid.  It will not start any background processes.
+func (s *KubeletServer) KubeletConfig() (*KubeletConfig, error) {
 	hostNetworkSources, err := kubelet.GetValidatedSources(strings.Split(s.HostNetworkSources, ","))
 	if err != nil {
-		return err
-	}
-
-	tlsOptions, err := s.InitializeTLS()
-	if err != nil {
-		return err
+		return nil, err
 	}
 
 	mounter := mount.New()
 	if s.Containerized {
 		glog.V(2).Info("Running kubelet in containerized mode (experimental)")
 		mounter = &mount.NsenterMounter{}
+	}
+
+	tlsOptions, err := s.InitializeTLS()
+	if err != nil {
+		return nil, err
 	}
 
 	var dockerExecHandler dockertools.ExecHandler
@@ -319,7 +279,17 @@ func (s *KubeletServer) Run(_ []string) error {
 		dockerExecHandler = &dockertools.NativeExecHandler{}
 	}
 
-	kcfg := KubeletConfig{
+	imageGCPolicy := kubelet.ImageGCPolicy{
+		HighThresholdPercent: s.ImageGCHighThresholdPercent,
+		LowThresholdPercent:  s.ImageGCLowThresholdPercent,
+	}
+
+	diskSpacePolicy := kubelet.DiskSpacePolicy{
+		DockerFreeDiskMB: s.LowDiskSpaceThresholdMB,
+		RootFreeDiskMB:   s.LowDiskSpaceThresholdMB,
+	}
+
+	return &KubeletConfig{
 		Address:                        s.Address,
 		AllowPrivileged:                s.AllowPrivileged,
 		HostNetworkSources:             hostNetworkSources,
@@ -343,11 +313,11 @@ func (s *KubeletServer) Run(_ []string) error {
 		Runonce:                        s.RunOnce,
 		Port:                           s.Port,
 		ReadOnlyPort:                   s.ReadOnlyPort,
-		CadvisorInterface:              cadvisorInterface,
+		CadvisorInterface:              nil, // launches background processes, not set here
 		EnableServer:                   s.EnableServer,
 		EnableDebuggingHandlers:        s.EnableDebuggingHandlers,
 		DockerClient:                   dockertools.ConnectToDockerOrDie(s.DockerEndpoint),
-		KubeClient:                     apiclient,
+		KubeClient:                     nil,
 		MasterServiceNamespace:         s.MasterServiceNamespace,
 		VolumePlugins:                  ProbeVolumePlugins(),
 		NetworkPlugins:                 ProbeNetworkPlugins(),
@@ -356,7 +326,7 @@ func (s *KubeletServer) Run(_ []string) error {
 		TLSOptions:                     tlsOptions,
 		ImageGCPolicy:                  imageGCPolicy,
 		DiskSpacePolicy:                diskSpacePolicy,
-		Cloud:                          cloud,
+		Cloud:                          nil, // cloud provider might start background processes
 		NodeStatusUpdateFrequency: s.NodeStatusUpdateFrequency,
 		ResourceContainer:         s.ResourceContainer,
 		CgroupRoot:                s.CgroupRoot,
@@ -368,9 +338,56 @@ func (s *KubeletServer) Run(_ []string) error {
 		PodCIDR:                   s.PodCIDR,
 		MaxPods:                   s.MaxPods,
 		DockerExecHandler:         dockerExecHandler,
+	}, nil
+}
+
+// Run runs the specified KubeletServer for the given KubeletConfig.  This should never exit.
+// The kcfg argument may be nil - if so, it is initialized from the settings on KubeletServer.
+// Otherwise, the caller is assumed to have set up the KubeletConfig object and all defaults
+// will be ignored.
+func (s *KubeletServer) Run(kcfg *KubeletConfig) error {
+	if kcfg == nil {
+		cfg, err := s.KubeletConfig()
+		if err != nil {
+			return err
+		}
+		kcfg = cfg
+
+		clientConfig, err := s.CreateAPIServerClientConfig()
+		if err == nil {
+			kcfg.KubeClient, err = client.New(clientConfig)
+		}
+		if err != nil && len(s.APIServerList) > 0 {
+			glog.Warningf("No API client: %v", err)
+		}
+
+		cloud, err := cloudprovider.InitCloudProvider(s.CloudProvider, s.CloudConfigFile)
+		if err != nil {
+			return err
+		}
+		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", s.CloudProvider, s.CloudConfigFile)
+		kcfg.Cloud = cloud
+
+		ca, err := cadvisor.New(s.CadvisorPort)
+		if err != nil {
+			return err
+		}
+		kcfg.CadvisorInterface = ca
 	}
 
-	if err := RunKubelet(&kcfg, nil); err != nil {
+	util.ReallyCrash = s.ReallyCrashForTesting
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	credentialprovider.SetPreferredDockercfgPath(s.RootDirectory)
+
+	glog.V(2).Infof("Using root directory: %v", s.RootDirectory)
+
+	// TODO(vmarmol): Do this through container config.
+	if err := util.ApplyOomScoreAdj(0, s.OOMScoreAdj); err != nil {
+		glog.Warning(err)
+	}
+
+	if err := RunKubelet(kcfg, nil); err != nil {
 		return err
 	}
 
