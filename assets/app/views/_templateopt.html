@@ -15,8 +15,8 @@
   </div>
   <ul class="list-unstyled env-variable-list" ng-hide="optionsExpanded">
     <li class="options" ng-repeat="parameter in template.parameters">
-        <label for="" class="key truncate" title="{{ parameter.description }}">{{parameter.name}}</label>
-        <span class="value truncate">{{ parameter | parameterValue }}</span>
+        <label for="" class="key truncate" ng-attr-title="{{ parameter.name }}">{{parameter.name}}</label>
+        <span class="value truncate" ng-attr-title="{{parameter | parameterValue}}">{{ parameter | parameterValue }}</span>
         <div class="help-block" ng-if="parameter.description">{{parameter.description}}</div>
     </li>
   </ul>
