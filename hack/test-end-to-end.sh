@@ -373,8 +373,15 @@ oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.after.txt
 
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then
+
+	if [[ "$TEST_ASSETS_HEADLESS" == "true" ]]; then
+		echo "[INFO] Starting virtual framebuffer for headless tests..."
+		export DISPLAY=:10
+		Xvfb :10 -screen 0 1024x768x24 -ac &
+	fi
+
 	echo "[INFO] Running UI e2e tests..."
 	pushd ${OS_ROOT}/assets > /dev/null
-		grunt test-e2e
+		grunt test-e2e-chrome
 	popd > /dev/null
 fi
