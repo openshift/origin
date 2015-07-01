@@ -669,16 +669,16 @@ func printServiceAccountList(list *api.ServiceAccountList, w io.Writer, withName
 	return nil
 }
 
-func printSecurityContextConstraints(item *api.SecurityContextConstraints, w io.Writer, withNamespace bool) error {
+func printSecurityContextConstraints(item *api.SecurityContextConstraints, w io.Writer, withNamespace bool, columnLabels []string) error {
 	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%t\t%s\t%s\n", item.Name, item.AllowPrivilegedContainer,
 		item.AllowedCapabilities, item.AllowHostDirVolumePlugin, item.SELinuxContext.Type,
 		item.RunAsUser.Type)
 	return err
 }
 
-func printSecurityContextConstraintsList(list *api.SecurityContextConstraintsList, w io.Writer, withNamespace bool) error {
+func printSecurityContextConstraintsList(list *api.SecurityContextConstraintsList, w io.Writer, withNamespace bool, columnLabels []string) error {
 	for _, item := range list.Items {
-		if err := printSecurityContextConstraints(&item, w, withNamespace); err != nil {
+		if err := printSecurityContextConstraints(&item, w, withNamespace, columnLabels); err != nil {
 			return err
 		}
 	}
