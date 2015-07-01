@@ -472,9 +472,6 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 			Name: r.Name,
 		},
 		Template: deployapi.DeploymentTemplate{
-			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeRecreate,
-			},
 			ControllerTemplate: kapi.ReplicationControllerSpec{
 				Replicas: 1,
 				Selector: selector,
