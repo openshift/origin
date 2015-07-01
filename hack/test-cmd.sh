@@ -112,7 +112,7 @@ do
     SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
 done <<< "${ALL_IP_ADDRESSES}"
 
-openshift admin create-master-certs \
+openshift admin ca create-master-certs \
   --overwrite=false \
   --cert-dir="${MASTER_CONFIG_DIR}" \
   --hostnames="${SERVER_HOSTNAME_LIST}" \
@@ -283,7 +283,15 @@ echo "templates: ok"
 [ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
 [ "$(oadm 2>&1 | grep 'OpenShift Administrative Commands')" ]
 [ "$(openshift admin 2>&1 | grep 'OpenShift Administrative Commands')" ]
+[ "$(oadm | grep 'Basic Commands:')" ]
+[ "$(oadm | grep 'Install Commands:')" ]
+[ "$(oadm ca | grep 'Manage certificates')" ]
 [ "$(openshift start kubernetes 2>&1 | grep 'Kubernetes server components')" ]
+# check deprecated admin cmds for backward compatibility
+[ "$(oadm create-master-certs -h 2>&1 | grep 'Create keys and certificates')" ]
+[ "$(oadm create-key-pair -h 2>&1 | grep 'Create a 2048-bit RSA key pair')" ]
+[ "$(oadm create-server-cert -h 2>&1 | grep 'Create a key and server certificate')" ]
+[ "$(oadm create-signer-cert -h 2>&1 | grep 'Create a self-signed CA')" ]
 
 # help for root commands with --help flag must be consistent
 [ "$(openshift --help 2>&1 | grep 'OpenShift Application Platform')" ]

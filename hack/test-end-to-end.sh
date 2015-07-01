@@ -197,7 +197,7 @@ do
 	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
 done <<< "${ALL_IP_ADDRESSES}"
 
-openshift admin create-master-certs \
+openshift admin ca create-master-certs \
 	--overwrite=false \
 	--cert-dir="${MASTER_CONFIG_DIR}" \
 	--hostnames="${SERVER_HOSTNAME_LIST}" \

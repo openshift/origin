@@ -60,7 +60,7 @@ start_server() {
   done <<< "${ALL_IP_ADDRESSES}"
 
   echo "[INFO] Create certificates for the OpenShift master"
-  env "PATH=${PATH}" openshift admin create-master-certs \
+  env "PATH=${PATH}" openshift admin ca create-master-certs \
     --overwrite=false \
     --cert-dir="${MASTER_CONFIG_DIR}" \
     --hostnames="${SERVER_HOSTNAME_LIST}" \

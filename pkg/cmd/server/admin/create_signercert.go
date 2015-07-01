@@ -52,7 +52,7 @@ func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writ
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create a signer (certificate authority/CA) certificate",
+		Short: "Create a signer (certificate authority/CA) certificate and key",
 		Long:  createSignerLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
