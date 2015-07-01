@@ -32,8 +32,7 @@ func (c *AssetConfig) InstallAPI(container *restful.Container) []string {
 		glog.Fatal(err)
 	}
 
-	mux := container.ServeMux
-	mux.Handle(publicURL.Path, http.StripPrefix(publicURL.Path, assetHandler))
+	container.Handle(publicURL.Path, http.StripPrefix(publicURL.Path, assetHandler))
 
 	return []string{fmt.Sprintf("Started OpenShift UI %%s%s", publicURL.Path)}
 }
