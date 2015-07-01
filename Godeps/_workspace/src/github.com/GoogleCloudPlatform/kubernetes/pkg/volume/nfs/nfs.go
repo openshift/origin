@@ -30,16 +30,24 @@ import (
 )
 
 // This is the primary entrypoint for volume plugins.
-// Tests covering recycling should not use this func but instead
-// use their own array of plugins w/ a custom recyclerFunc as appropriate
-func ProbeVolumePlugins() []volume.VolumePlugin {
-	return []volume.VolumePlugin{&nfsPlugin{nil, newRecycler}}
+// The recyclerConfig arg provides the ability to configure recycler behavior.  It is implemented as a pointer to allow nils.
+// The nfsPlugin is used to store the recyclerConfig and give it, when needed, to the func that creates NFS Recyclers.
+// Tests that exercise recycling should not use this func but instead use ProbeRecyclablePlugins() to override default behavior.
+func ProbeVolumePlugins(recyclerConfig *volume.RecyclableVolumeConfig) []volume.VolumePlugin {
+	return []volume.VolumePlugin{
+		&nfsPlugin{
+			host:            nil,
+			newRecyclerFunc: newRecycler,
+			recyclerConfig:  recyclerConfig,
+		},
+	}
 }
 
 type nfsPlugin struct {
 	host volume.VolumeHost
 	// decouple creating recyclers by deferring to a function.  Allows for easier testing.
-	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error)
+	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost, recyclerConfig *volume.RecyclableVolumeConfig) (volume.Recycler, error)
+	recyclerConfig  *volume.RecyclableVolumeConfig
 }
 
 var _ volume.VolumePlugin = &nfsPlugin{}
@@ -111,23 +119,28 @@ func (plugin *nfsPlugin) newCleanerInternal(volName string, podUID types.UID, mo
 }
 
 func (plugin *nfsPlugin) NewRecycler(spec *volume.Spec) (volume.Recycler, error) {
-	return plugin.newRecyclerFunc(spec, plugin.host)
+	if plugin.recyclerConfig == nil {
+		return nil, fmt.Errorf("RecyclableVolumeConfig is nil for this plugin.  Recycler cannot be created.")
+	}
+	return plugin.newRecyclerFunc(spec, plugin.host, plugin.recyclerConfig)
 }
 
-func newRecycler(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error) {
+func newRecycler(spec *volume.Spec, host volume.VolumeHost, recyclableConfig *volume.RecyclableVolumeConfig) (volume.Recycler, error) {
 	if spec.VolumeSource.HostPath != nil {
 		return &nfsRecycler{
-			name:   spec.Name,
-			server: spec.VolumeSource.NFS.Server,
-			path:   spec.VolumeSource.NFS.Path,
-			host:   host,
+			name:             spec.Name,
+			server:           spec.VolumeSource.NFS.Server,
+			path:             spec.VolumeSource.NFS.Path,
+			host:             host,
+			recyclableConfig: recyclableConfig,
 		}, nil
 	} else {
 		return &nfsRecycler{
-			name:   spec.Name,
-			server: spec.PersistentVolumeSource.NFS.Server,
-			path:   spec.PersistentVolumeSource.NFS.Path,
-			host:   host,
+			name:             spec.Name,
+			server:           spec.PersistentVolumeSource.NFS.Server,
+			path:             spec.PersistentVolumeSource.NFS.Path,
+			host:             host,
+			recyclableConfig: recyclableConfig,
 		}, nil
 	}
 }
@@ -233,10 +246,11 @@ func (nfsVolume *nfs) TearDownAt(dir string) error {
 
 // nfsRecycler scrubs an NFS volume by running "rm -rf" on the volume in a pod.
 type nfsRecycler struct {
-	name   string
-	server string
-	path   string
-	host   volume.VolumeHost
+	name             string
+	server           string
+	path             string
+	host             volume.VolumeHost
+	recyclableConfig *volume.RecyclableVolumeConfig
 }
 
 func (r *nfsRecycler) GetPath() string {
@@ -246,16 +260,16 @@ func (r *nfsRecycler) GetPath() string {
 // Recycler provides methods to reclaim the volume resource.
 // A NFS volume is recycled by scheduling a pod to run "rm -rf" on the contents of the volume.
 // Recycle blocks until the pod has completed or any error occurs.
-// The scrubber pod's is expected to succeed within 5 minutes else an error will be returned
+// The scrubber pod's is expected to succeed within 5 minutes else an error will be returned.
 func (r *nfsRecycler) Recycle() error {
-	timeout := int64(300) // 5 minutes
+	// TODO:  remove the duplication between this Recycle func and the one in host_path.go
 	pod := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			GenerateName: "pv-scrubber-" + util.ShortenString(r.name, 44) + "-",
 			Namespace:    api.NamespaceDefault,
 		},
 		Spec: api.PodSpec{
-			ActiveDeadlineSeconds: &timeout,
+			ActiveDeadlineSeconds: &r.recyclableConfig.Timeout,
 			RestartPolicy:         api.RestartPolicyNever,
 			Volumes: []api.Volume{
 				{
@@ -270,17 +284,10 @@ func (r *nfsRecycler) Recycle() error {
 			},
 			Containers: []api.Container{
 				{
-					Name:  "scrubber",
-					Image: "gcr.io/google_containers/busybox",
-					// delete the contents of the volume, but not the directory itself
-					Command: []string{"/bin/sh"},
-					// the scrubber:
-					//		1. validates the /scrub directory exists
-					// 		2. creates a text file to be scrubbed
-					//		3. performs rm -rf on the directory
-					//		4. tests to see if the directory is empty
-					// the pod fails if the error code is returned
-					Args: []string{"-c", "test -e /scrub && echo $(date) > /scrub/trash.txt && rm -rf /scrub/* && test -z \"$(ls -A /scrub)\" || exit 1"},
+					Name:    "scrubber",
+					Image:   r.recyclableConfig.ImageName,
+					Command: r.recyclableConfig.Command,
+					Args:    r.recyclableConfig.Args,
 					VolumeMounts: []api.VolumeMount{
 						{
 							Name:      "vol",
