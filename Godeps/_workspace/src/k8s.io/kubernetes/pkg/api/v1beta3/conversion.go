@@ -57,6 +57,7 @@ func addConversionFuncs() {
 				"metadata.namespace",
 				"metadata.labels",
 				"metadata.annotations",
+				"status.podIP",
 				"status.phase":
 				return label, value, nil
 			case "spec.host":
