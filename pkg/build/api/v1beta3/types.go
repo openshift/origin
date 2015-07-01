@@ -207,7 +207,7 @@ const (
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategy struct {
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// From is reference to an ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From kapi.ObjectReference `json:"from"`
 
@@ -227,7 +227,7 @@ type CustomBuildStrategy struct {
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
 type DockerBuildStrategy struct {
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// From is reference to an ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
 	From *kapi.ObjectReference `json:"from,omitempty"`
@@ -247,7 +247,7 @@ type DockerBuildStrategy struct {
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
 type SourceBuildStrategy struct {
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// From is reference to an ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From kapi.ObjectReference `json:"from"`
 

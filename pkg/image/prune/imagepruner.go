@@ -469,7 +469,7 @@ func addBuildConfigsToGraph(g graph.Graph, bcs *buildapi.BuildConfigList) {
 		bc := &bcs.Items[i]
 		glog.V(4).Infof("Examining BuildConfig %s/%s", bc.Namespace, bc.Name)
 		bcNode := buildgraph.EnsureBuildConfigNode(g, bc)
-		addBuildStrategyImageReferencesToGraph(g, bc.Parameters.Strategy, bcNode)
+		addBuildStrategyImageReferencesToGraph(g, bc.Spec.Strategy, bcNode)
 	}
 }
 
@@ -481,7 +481,7 @@ func addBuildsToGraph(g graph.Graph, builds *buildapi.BuildList) {
 		build := &builds.Items[i]
 		glog.V(4).Infof("Examining build %s/%s", build.Namespace, build.Name)
 		buildNode := buildgraph.EnsureBuildNode(g, build)
-		addBuildStrategyImageReferencesToGraph(g, build.Parameters.Strategy, buildNode)
+		addBuildStrategyImageReferencesToGraph(g, build.Spec.Strategy, buildNode)
 	}
 }
 

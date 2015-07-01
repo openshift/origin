@@ -71,7 +71,7 @@ func TestSetupBuildEnvEmpty(t *testing.T) {
 	build := mockCustomBuild()
 	containerEnv := []kapi.EnvVar{
 		{Name: "BUILD", Value: ""},
-		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
+		{Name: "SOURCE_REPOSITORY", Value: build.Spec.Source.Git.URI},
 	}
 	privileged := true
 	pod := &kapi.Pod{
@@ -82,7 +82,7 @@ func TestSetupBuildEnvEmpty(t *testing.T) {
 			Containers: []kapi.Container{
 				{
 					Name:  "custom-build",
-					Image: build.Parameters.Strategy.CustomStrategy.From.Name,
+					Image: build.Spec.Strategy.CustomStrategy.From.Name,
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					SecurityContext: &kapi.SecurityContext{

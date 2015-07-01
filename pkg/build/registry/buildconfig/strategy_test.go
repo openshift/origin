@@ -18,20 +18,25 @@ func TestBuildConfigStrategy(t *testing.T) {
 	}
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
-		Parameters: buildapi.BuildParameters{
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://github.com/my/repository",
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				DockerImageReference: "repository/data",
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
 			},
 		},
 	}

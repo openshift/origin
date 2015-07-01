@@ -141,7 +141,9 @@ func TestGraph(t *testing.T) {
 				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
 				CreationTimestamp: util.NewTime(now.Add(-10 * time.Second)),
 			},
-			Status: buildapi.BuildStatusFailed,
+			Status: buildapi.BuildStatus{
+				Phase: buildapi.BuildPhaseFailed,
+			},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -149,7 +151,9 @@ func TestGraph(t *testing.T) {
 				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
 				CreationTimestamp: util.NewTime(now.Add(-5 * time.Second)),
 			},
-			Status: buildapi.BuildStatusComplete,
+			Status: buildapi.BuildStatus{
+				Phase: buildapi.BuildPhaseComplete,
+			},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -157,46 +161,51 @@ func TestGraph(t *testing.T) {
 				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
 				CreationTimestamp: util.NewTime(now.Add(-15 * time.Second)),
 			},
-			Status: buildapi.BuildStatusPending,
+			Status: buildapi.BuildStatus{
+				Phase: buildapi.BuildPhasePending,
+			},
 		},
 	}
 
 	bc1Node := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build1"},
-		Triggers: []buildapi.BuildTriggerPolicy{
-			{
-				ImageChange: &buildapi.ImageChangeTrigger{},
-			},
-		},
-		Parameters: buildapi.BuildParameters{
-			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.SourceBuildStrategyType,
-				SourceStrategy: &buildapi.SourceBuildStrategy{
-					From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:base-image"},
+		Spec: buildapi.BuildConfigSpec{
+			Triggers: []buildapi.BuildTriggerPolicy{
+				{
+					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
-			Output: buildapi.BuildOutput{
-				To:  &kapi.ObjectReference{Name: "other"},
-				Tag: "tag1",
+			BuildSpec: buildapi.BuildSpec{
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.SourceBuildStrategyType,
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:base-image"},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "other:tag1"},
+				},
 			},
 		},
 	})
 	buildedges.JoinBuilds(bc1Node, builds)
 	bcTestNode := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "test"},
-		Parameters: buildapi.BuildParameters{
-			Output: buildapi.BuildOutput{
-				To:  &kapi.ObjectReference{Name: "other"},
-				Tag: "base-image",
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "other:base-image"},
+				},
 			},
 		},
 	})
 	buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build2"},
-		Parameters: buildapi.BuildParameters{
-			Output: buildapi.BuildOutput{
-				DockerImageReference: "mycustom/repo/image",
-				Tag:                  "tag2",
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{Kind: "DockerImage", Name: "mycustom/repo/image:tag2"},
+				},
 			},
 		},
 	})

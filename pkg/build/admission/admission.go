@@ -82,7 +82,7 @@ func resourceName(objectMeta kapi.ObjectMeta) string {
 }
 
 func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr admission.Attributes) error {
-	strategyType := build.Parameters.Strategy.Type
+	strategyType := build.Spec.Strategy.Type
 	subjectAccessReview := &authorizationapi.SubjectAccessReview{
 		Verb:         "create",
 		Resource:     resourceForStrategyType(strategyType),
@@ -95,7 +95,7 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 }
 
 func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.BuildConfig, attr admission.Attributes) error {
-	strategyType := buildConfig.Parameters.Strategy.Type
+	strategyType := buildConfig.Spec.Strategy.Type
 	subjectAccessReview := &authorizationapi.SubjectAccessReview{
 		Verb:         "create",
 		Resource:     resourceForStrategyType(strategyType),

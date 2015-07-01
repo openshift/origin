@@ -187,7 +187,7 @@ func printTemplateList(list *templateapi.TemplateList, w io.Writer, withNamespac
 }
 
 func printBuild(build *buildapi.Build, w io.Writer, withNamespace bool, columnLabels []string) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Parameters.Strategy.Type), build.Status, buildutil.GetBuildPodName(build))
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Spec.Strategy.Type), build.Status.Phase, buildutil.GetBuildPodName(build))
 	return err
 }
 
@@ -201,11 +201,11 @@ func printBuildList(buildList *buildapi.BuildList, w io.Writer, withNamespace bo
 }
 
 func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, withNamespace bool, columnLabels []string) error {
-	if bc.Parameters.Strategy.Type == buildapi.CustomBuildStrategyType {
-		_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Parameters.Strategy.Type), bc.Parameters.Strategy.CustomStrategy.From.Name)
+	if bc.Spec.Strategy.Type == buildapi.CustomBuildStrategyType {
+		_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), bc.Spec.Strategy.CustomStrategy.From.Name)
 		return err
 	}
-	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Parameters.Strategy.Type), bc.Parameters.Source.Git.URI)
+	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), bc.Spec.Source.Git.URI)
 	return err
 }
 

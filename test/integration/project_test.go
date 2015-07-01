@@ -190,7 +190,7 @@ func TestProjectMustExist(t *testing.T) {
 
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
@@ -203,10 +203,15 @@ func TestProjectMustExist(t *testing.T) {
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
-				DockerImageReference: "repository/data",
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "repository/data",
+				},
 			},
 		},
-		Status: buildapi.BuildStatusNew,
+		Status: buildapi.BuildStatus{
+			Phase: buildapi.BuildPhaseNew,
+		},
 	}
 
 	_, err = clusterAdminClient.Builds("test").Create(build)

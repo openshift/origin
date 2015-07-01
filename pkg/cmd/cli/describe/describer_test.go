@@ -170,92 +170,112 @@ func TestDescribeBuildDuration(t *testing.T) {
 		{ // 0 - build new
 			&buildapi.Build{
 				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: minuteAgo},
-				Status:     buildapi.BuildStatusNew,
-				Duration:   zeroDuration,
+				Status: buildapi.BuildStatus{
+					Phase:    buildapi.BuildPhaseNew,
+					Duration: zeroDuration,
+				},
 			},
 			"waiting for 1m0s",
 		},
 		{ // 1 - build pending
 			&buildapi.Build{
 				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: minuteAgo},
-				Status:     buildapi.BuildStatusPending,
-				Duration:   zeroDuration,
+				Status: buildapi.BuildStatus{
+					Phase:    buildapi.BuildPhasePending,
+					Duration: zeroDuration,
+				},
 			},
 			"waiting for 1m0s",
 		},
 		{ // 2 - build running
 			&buildapi.Build{
-				ObjectMeta:     kapi.ObjectMeta{CreationTimestamp: creation},
-				StartTimestamp: &start,
-				Status:         buildapi.BuildStatusRunning,
-				Duration:       duration,
+				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: creation},
+				Status: buildapi.BuildStatus{
+					StartTimestamp: &start,
+					Phase:          buildapi.BuildPhaseRunning,
+					Duration:       duration,
+				},
 			},
 			"running for 1m0s",
 		},
 		{ // 3 - build completed
 			&buildapi.Build{
-				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
-				StartTimestamp:      &start,
-				CompletionTimestamp: &completion,
-				Status:              buildapi.BuildStatusComplete,
-				Duration:            duration,
+				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: creation},
+				Status: buildapi.BuildStatus{
+					StartTimestamp:      &start,
+					CompletionTimestamp: &completion,
+					Phase:               buildapi.BuildPhaseComplete,
+					Duration:            duration,
+				},
 			},
 			"1m0s",
 		},
 		{ // 4 - build failed
 			&buildapi.Build{
-				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
-				StartTimestamp:      &start,
-				CompletionTimestamp: &completion,
-				Status:              buildapi.BuildStatusFailed,
-				Duration:            duration,
+				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: creation},
+				Status: buildapi.BuildStatus{
+					StartTimestamp:      &start,
+					CompletionTimestamp: &completion,
+					Phase:               buildapi.BuildPhaseFailed,
+					Duration:            duration,
+				},
 			},
 			"1m0s",
 		},
 		{ // 5 - build error
 			&buildapi.Build{
-				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
-				StartTimestamp:      &start,
-				CompletionTimestamp: &completion,
-				Status:              buildapi.BuildStatusError,
-				Duration:            duration,
+				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: creation},
+				Status: buildapi.BuildStatus{
+					StartTimestamp:      &start,
+					CompletionTimestamp: &completion,
+					Phase:               buildapi.BuildPhaseError,
+					Duration:            duration,
+				},
 			},
 			"1m0s",
 		},
 		{ // 6 - build cancelled before running, start time wasn't set yet
 			&buildapi.Build{
-				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
-				CompletionTimestamp: &completion,
-				Status:              buildapi.BuildStatusCancelled,
-				Duration:            duration,
+				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: creation},
+				Status: buildapi.BuildStatus{
+					CompletionTimestamp: &completion,
+					Phase:               buildapi.BuildPhaseCancelled,
+					Duration:            duration,
+				},
 			},
 			"waited for 2m0s",
 		},
 		{ // 7 - build cancelled while running, start time is set already
 			&buildapi.Build{
-				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
-				StartTimestamp:      &start,
-				CompletionTimestamp: &completion,
-				Status:              buildapi.BuildStatusCancelled,
-				Duration:            duration,
+				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: creation},
+				Status: buildapi.BuildStatus{
+					StartTimestamp:      &start,
+					CompletionTimestamp: &completion,
+					Phase:               buildapi.BuildPhaseCancelled,
+					Duration:            duration,
+				},
 			},
 			"1m0s",
 		},
 		{ // 8 - build failed before running, start time wasn't set yet
 			&buildapi.Build{
-				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
-				CompletionTimestamp: &completion,
-				Status:              buildapi.BuildStatusFailed,
-				Duration:            duration,
+				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: creation},
+				Status: buildapi.BuildStatus{
+					CompletionTimestamp: &completion,
+					Phase:               buildapi.BuildPhaseFailed,
+					Duration:            duration,
+				},
 			},
 			"waited for 2m0s",
 		},
 		{ // 9 - build error before running, start time wasn't set yet
 			&buildapi.Build{
-				ObjectMeta:          kapi.ObjectMeta{CreationTimestamp: creation},
-				CompletionTimestamp: &completion,
-				Status:              buildapi.BuildStatusError,
-				Duration:            duration,
+				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: creation},
+				Status: buildapi.BuildStatus{
+					CompletionTimestamp: &completion,
+					Phase:               buildapi.BuildPhaseError,
+					Duration:            duration,
+				},
 			},
 			"waited for 2m0s",
 		},

@@ -34,13 +34,13 @@ func TestNewImageID(t *testing.T) {
 	if len(bcInstantiator.name) == 0 {
 		t.Error("Expected build generation when new image was created!")
 	}
-	if actual, expected := bcInstantiator.newBuild.Parameters.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
+	if actual, expected := bcInstantiator.newBuild.Spec.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
 		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
 	}
 	if bcUpdater.buildcfg == nil {
 		t.Fatalf("Expected buildConfig update when new image was created!")
 	}
-	if actual, expected := bcUpdater.buildcfg.Triggers[0].ImageChange.LastTriggeredImageID, "registry.com/namespace/imagename:newImageID123"; actual != expected {
+	if actual, expected := bcUpdater.buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID, "registry.com/namespace/imagename:newImageID123"; actual != expected {
 		t.Errorf("Expected last triggered image %q, got %q", expected, actual)
 	}
 }
@@ -61,13 +61,13 @@ func TestNewImageIDDefaultTag(t *testing.T) {
 	if len(bcInstantiator.name) == 0 {
 		t.Error("Expected build generation when new image was created!")
 	}
-	if actual, expected := bcInstantiator.newBuild.Parameters.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
+	if actual, expected := bcInstantiator.newBuild.Spec.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
 		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
 	}
 	if bcUpdater.buildcfg == nil {
 		t.Fatal("Expected buildConfig update when new image was created!")
 	}
-	if actual, expected := bcUpdater.buildcfg.Triggers[0].ImageChange.LastTriggeredImageID, "registry.com/namespace/imagename:newImageID123"; actual != expected {
+	if actual, expected := bcUpdater.buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID, "registry.com/namespace/imagename:newImageID123"; actual != expected {
 		t.Errorf("Expected last triggered image %q, got %q", expected, actual)
 	}
 }
@@ -119,7 +119,7 @@ func TestNewImageDifferentTagUpdate2(t *testing.T) {
 	// this buildconfig references a different tag than the one that will be updated
 	// it has previously run a build for the testTagID123 tag.
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageStream", "testTag")
-	buildcfg.Triggers[0].ImageChange.LastTriggeredImageID = "registry.com/namespace/imagename:testTagID123"
+	buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID = "registry.com/namespace/imagename:testTagID123"
 	imageStream := mockImageStream("testImageStream", "registry.com/namespace/imagename", map[string]string{"otherTag": "newImageID123", "testTag": "testTagID123"})
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
@@ -185,7 +185,7 @@ func TestSameStreamNameDifferentNamespaces(t *testing.T) {
 func TestBuildConfigWithDifferentTriggerType(t *testing.T) {
 	// this buildconfig has different (than ImageChangeTrigger) trigger defined
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename1", "", "", "")
-	buildcfg.Triggers[0].Type = buildapi.GenericWebHookBuildTriggerType
+	buildcfg.Spec.Triggers[0].Type = buildapi.GenericWebHookBuildTriggerType
 	imageStream := mockImageStream("testImageRepo2", "registry.com/namespace/imagename2", map[string]string{"testTag2": "newImageID123"})
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
@@ -208,7 +208,7 @@ func TestNoImageIDChange(t *testing.T) {
 	// this buildConfig has up to date configuration, but is checked eg. during
 	// startup when we're checking all the imageRepos
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageStream", "testTag")
-	buildcfg.Triggers[0].ImageChange.LastTriggeredImageID = "registry.com/namespace/imagename:imageID123"
+	buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID = "registry.com/namespace/imagename:imageID123"
 	imageStream := mockImageStream("testImageStream", "registry.com/namespace/imagename", map[string]string{"testTag": "imageID123"})
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
@@ -241,7 +241,7 @@ func TestBuildConfigInstantiatorError(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "will be retried") {
 		t.Fatalf("Expected 'will be retried' from HandleImageRepo, got %s", err.Error())
 	}
-	if actual, expected := bcInstantiator.newBuild.Parameters.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
+	if actual, expected := bcInstantiator.newBuild.Spec.Strategy.DockerStrategy.From.Name, "registry.com/namespace/imagename:newImageID123"; actual != expected {
 		t.Errorf("Image substitutions not properly setup for new build. Expected %s, got %s |", expected, actual)
 	}
 	if bcUpdater.updateCount > 1 {
@@ -306,21 +306,23 @@ func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildap
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "testBuildCfg",
 		},
-		Parameters: buildapi.BuildParameters{
-			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					From: &kapi.ObjectReference{
-						Kind: "ImageStreamTag",
-						Name: repoName + ":" + repoTag,
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: repoName + ":" + repoTag,
+						},
 					},
 				},
 			},
-		},
-		Triggers: []buildapi.BuildTriggerPolicy{
-			{
-				Type:        buildapi.ImageChangeBuildTriggerType,
-				ImageChange: &buildapi.ImageChangeTrigger{},
+			Triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
+				},
 			},
 		},
 	}

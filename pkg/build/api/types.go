@@ -10,6 +10,7 @@ import (
 const (
 	// BuildAnnotation is an annotation that identifies a Pod as being for a Build
 	BuildAnnotation = "openshift.io/build.name"
+
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
 	BuildLabel = "build"
 )
@@ -20,38 +21,15 @@ type Build struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta
 
-	// Parameters are all the inputs used to create the build pod.
-	Parameters BuildParameters
+	// Spec is all the inputs used to execute the build.
+	Spec BuildSpec
 
 	// Status is the current status of the build.
 	Status BuildStatus
-
-	// Message is a human readable message indicating details about why the build has this status
-	Message string
-
-	// Cancelled describes if a cancelling event was triggered for the build.
-	Cancelled bool
-
-	// StartTimestamp is a timestamp representing the server time when this Build started
-	// running in a Pod.
-	// It is represented in RFC3339 form and is in UTC.
-	StartTimestamp *util.Time
-
-	// CompletionTimestamp is a timestamp representing the server time when this Build was
-	// finished, whether that build failed or succeeded.  It reflects the time at which
-	// the Pod running the Build terminated.
-	// It is represented in RFC3339 form and is in UTC.
-	CompletionTimestamp *util.Time
-
-	// Duration contains time.Duration object describing build time.
-	Duration time.Duration
-
-	// Config is an ObjectReference to the BuildConfig this Build is based on.
-	Config *kapi.ObjectReference
 }
 
-// BuildParameters encapsulates all the inputs necessary to represent a build.
-type BuildParameters struct {
+// BuildSpec encapsulates all the inputs necessary to represent a build.
+type BuildSpec struct {
 	// ServiceAccount is the name of the ServiceAccount to use to run the pod
 	// created by this build.
 	// The pod will be allowed to use secrets referenced by the ServiceAccount
@@ -74,32 +52,61 @@ type BuildParameters struct {
 	Resources kapi.ResourceRequirements
 }
 
-// BuildStatus represents the status of a build at a point in time.
-type BuildStatus string
+// BuildStatus contains the status of a build
+type BuildStatus struct {
+	// Phase is the point in the build lifecycle.
+	Phase BuildPhase
 
-// Valid values for BuildStatus.
+	// Cancelled describes if a cancelling event was triggered for the build.
+	Cancelled bool
+
+	// Message is a human-readable message indicating details about why the build has this status
+	Message string
+
+	// StartTimestamp is a timestamp representing the server time when this Build started
+	// running in a Pod.
+	// It is represented in RFC3339 form and is in UTC.
+	StartTimestamp *util.Time
+
+	// CompletionTimestamp is a timestamp representing the server time when this Build was
+	// finished, whether that build failed or succeeded.  It reflects the time at which
+	// the Pod running the Build terminated.
+	// It is represented in RFC3339 form and is in UTC.
+	CompletionTimestamp *util.Time
+
+	// Duration contains time.Duration object describing build time.
+	Duration time.Duration
+
+	// Config is an ObjectReference to the BuildConfig this Build is based on.
+	Config *kapi.ObjectReference
+}
+
+// BuildPhase represents the status of a build at a point in time.
+type BuildPhase string
+
+// Valid values for BuildPhase.
 const (
-	// BuildStatusNew is automatically assigned to a newly created build.
-	BuildStatusNew BuildStatus = "New"
+	// BuildPhaseNew is automatically assigned to a newly created build.
+	BuildPhaseNew BuildPhase = "New"
 
-	// BuildStatusPending indicates that a pod name has been assigned and a build is
+	// BuildPhasePending indicates that a pod name has been assigned and a build is
 	// about to start running.
-	BuildStatusPending BuildStatus = "Pending"
+	BuildPhasePending BuildPhase = "Pending"
 
-	// BuildStatusRunning indicates that a pod has been created and a build is running.
-	BuildStatusRunning BuildStatus = "Running"
+	// BuildPhaseRunning indicates that a pod has been created and a build is running.
+	BuildPhaseRunning BuildPhase = "Running"
 
-	// BuildStatusComplete indicates that a build has been successful.
-	BuildStatusComplete BuildStatus = "Complete"
+	// BuildPhaseComplete indicates that a build has been successful.
+	BuildPhaseComplete BuildPhase = "Complete"
 
-	// BuildStatusFailed indicates that a build has executed and failed.
-	BuildStatusFailed BuildStatus = "Failed"
+	// BuildPhaseFailed indicates that a build has executed and failed.
+	BuildPhaseFailed BuildPhase = "Failed"
 
-	// BuildStatusError indicates that an error prevented the build from executing.
-	BuildStatusError BuildStatus = "Error"
+	// BuildPhaseError indicates that an error prevented the build from executing.
+	BuildPhaseError BuildPhase = "Error"
 
-	// BuildStatusCancelled indicates that a running/pending build was stopped from executing.
-	BuildStatusCancelled BuildStatus = "Cancelled"
+	// BuildPhaseCancelled indicates that a running/pending build was stopped from executing.
+	BuildPhaseCancelled BuildPhase = "Cancelled"
 )
 
 // BuildSourceType is the type of SCM used
@@ -189,10 +196,10 @@ type BuildStrategy struct {
 	// DockerStrategy holds the parameters to the Docker build strategy.
 	DockerStrategy *DockerBuildStrategy
 
-	// SourceStrategy holds the parameters to the STI build strategy.
+	// SourceStrategy holds the parameters to the Source build strategy.
 	SourceStrategy *SourceBuildStrategy
 
-	// CustomStrategy holds the parameters to the Custom build strategy.
+	// CustomStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy
 }
 
@@ -206,9 +213,9 @@ const (
 
 	// SourceBuildStrategyType performs builds build using Source To Images with a Git repository
 	// and a builder image.
-	SourceBuildStrategyType BuildStrategyType = "STI"
+	SourceBuildStrategyType BuildStrategyType = "Source"
 
-	// CustomBuildStrategyType performs builds using the custom builder Docker image.
+	// CustomBuildStrategyType performs builds using custom builder Docker image.
 	CustomBuildStrategyType BuildStrategyType = "Custom"
 )
 
@@ -220,15 +227,7 @@ const (
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategy struct {
-	// Env contains additional environment variables you want to pass into a builder container
-	Env []kapi.EnvVar
-
-	// ExposeDockerSocket will allow running Docker commands (and build Docker images) from
-	// inside the Docker container.
-	// TODO: Allow admins to enforce 'false' for this option
-	ExposeDockerSocket bool
-
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From kapi.ObjectReference
 
@@ -236,15 +235,19 @@ type CustomBuildStrategy struct {
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
 	PullSecret *kapi.LocalObjectReference
+
+	// Env contains additional environment variables you want to pass into a builder container
+	Env []kapi.EnvVar
+
+	// ExposeDockerSocket will allow running Docker commands (and build Docker images) from
+	// inside the Docker container.
+	// TODO: Allow admins to enforce 'false' for this option
+	ExposeDockerSocket bool
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
 type DockerBuildStrategy struct {
-	// NoCache if set to true indicates that the docker build must be executed with the
-	// --no-cache=true flag
-	NoCache bool
-
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
 	From *kapi.ObjectReference
@@ -254,13 +257,17 @@ type DockerBuildStrategy struct {
 	// registries
 	PullSecret *kapi.LocalObjectReference
 
+	// NoCache if set to true indicates that the docker build must be executed with the
+	// --no-cache=true flag
+	NoCache bool
+
 	// Env contains additional environment variables you want to pass into a builder container
-	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
+	Env []kapi.EnvVar
 }
 
-// SourceBuildStrategy defines input parameters specific to an STI build.
+// SourceBuildStrategy defines input parameters specific to an Source build.
 type SourceBuildStrategy struct {
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From kapi.ObjectReference
 
@@ -272,37 +279,27 @@ type SourceBuildStrategy struct {
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar
 
-	// Scripts is the location of STI scripts
+	// Scripts is the location of Source scripts
 	Scripts string
 
-	// Incremental flag forces the STI build to do incremental builds if true.
+	// Incremental flag forces the Source build to do incremental builds if true.
 	Incremental bool
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy
 // should produce.
 type BuildOutput struct {
-	// To defines an optional ImageStream to push the output of this build to. The namespace
-	// may be empty, in which case the named ImageStream will be retrieved from the namespace
-	// of the build. Kind must be set to 'ImageStream' and is the only supported value. If set,
-	// this field takes priority over DockerImageReference. This value will be used to look up
-	// a Docker image repository to push to. Failure to find the To will result in a build error.
+	// To defines an optional location to push the output of this build to.
+	// Kind must be one of 'ImageStreamTag' or 'DockerImage'.
+	// This value will be used to look up a Docker image repository to push to.
+	// In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of
+	// the build unless Namespace is specified.
 	To *kapi.ObjectReference
 
 	// PushSecret is the name of a Secret that would be used for setting
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
 	PushSecret *kapi.LocalObjectReference
-
-	// Tag is the "version name" that will be associated with the output image. This
-	// field is only used if the To field is set, and is ignored when DockerImageReference is used.
-	// This value represents a consistent name for a set of related changes (v1, 5.x, 5.5, dev, stable)
-	// and defaults to the preferred tag for "To" if not specified.
-	Tag string
-
-	// DockerImageReference is the full name of an image ([registry/]name[:tag]), and will be the
-	// value sent to Docker push at the end of a build if the To field is not defined.
-	DockerImageReference string
 }
 
 // BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
@@ -314,16 +311,27 @@ type BuildConfig struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta
 
+	// Spec holds all the input necessary to produce a new build, and the conditions when
+	// to trigger them.
+	Spec BuildConfigSpec
+	// Status holds any relevant information about a build config
+	Status BuildConfigStatus
+}
+
+// BuildConfigSpec describes when and how builds are created
+type BuildConfigSpec struct {
 	// Triggers determine how new Builds can be launched from a BuildConfig. If no triggers
 	// are defined, a new build can only occur as a result of an explicit client build creation.
 	Triggers []BuildTriggerPolicy
 
+	// BuildSpec is the desired build specification
+	BuildSpec
+}
+
+// BuildConfigStatus contains current state of the build config object.
+type BuildConfigStatus struct {
 	// LastVersion is used to inform about number of last triggered build.
 	LastVersion int
-
-	// Parameters holds all the input necessary to produce a new build. A build config may only
-	// define either the Output.To or Output.DockerImageReference fields, but not both.
-	Parameters BuildParameters
 }
 
 // WebHookTrigger is a trigger that gets invoked using a webhook type of post
@@ -360,15 +368,18 @@ type BuildTriggerType string
 const (
 	// GitHubWebHookBuildTriggerType represents a trigger that launches builds on
 	// GitHub webhook invocations
-	GitHubWebHookBuildTriggerType BuildTriggerType = "GitHub"
+	GitHubWebHookBuildTriggerType           BuildTriggerType = "GitHub"
+	GitHubWebHookBuildTriggerTypeDeprecated BuildTriggerType = "github"
 
 	// GenericWebHookBuildTriggerType represents a trigger that launches builds on
 	// generic webhook invocations
-	GenericWebHookBuildTriggerType BuildTriggerType = "Generic"
+	GenericWebHookBuildTriggerType           BuildTriggerType = "Generic"
+	GenericWebHookBuildTriggerTypeDeprecated BuildTriggerType = "generic"
 
 	// ImageChangeBuildTriggerType represents a trigger that launches builds on
 	// availability of a new version of an image
-	ImageChangeBuildTriggerType BuildTriggerType = "ImageChange"
+	ImageChangeBuildTriggerType           BuildTriggerType = "ImageChange"
+	ImageChangeBuildTriggerTypeDeprecated BuildTriggerType = "imageChange"
 )
 
 // BuildList is a collection of Builds.

@@ -1,10 +1,8 @@
 package graph
 
 import (
-	"sort"
-
-	"github.com/golang/glog"
 	"github.com/gonum/graph"
+	"sort"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -22,22 +20,23 @@ const (
 
 // AddInputOutputEdges links the build config to other nodes for the images and source repositories it depends on.
 func AddInputOutputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNode) *buildgraph.BuildConfigNode {
-	output := node.BuildConfig.Parameters.Output
+	output := node.BuildConfig.Spec.Output
 	to := output.To
 	switch {
-	case to != nil && len(to.Name) > 0:
-		out := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(to.Namespace, node.BuildConfig.Namespace), to.Name, output.Tag))
+	case to == nil:
+	case to.Kind == "DockerImage":
+		out := imagegraph.EnsureDockerRepositoryNode(g, to.Name, "")
 		g.AddEdge(node, out, BuildOutputEdgeKind)
-	case len(output.DockerImageReference) > 0:
-		out := imagegraph.EnsureDockerRepositoryNode(g, output.DockerImageReference, output.Tag)
+	case to.Kind == "ImageStreamTag":
+		out := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta2(defaultNamespace(to.Namespace, node.BuildConfig.Namespace), to.Name))
 		g.AddEdge(node, out, BuildOutputEdgeKind)
 	}
 
-	if in := buildgraph.EnsureSourceRepositoryNode(g, node.BuildConfig.Parameters.Source); in != nil {
+	if in := buildgraph.EnsureSourceRepositoryNode(g, node.BuildConfig.Spec.Source); in != nil {
 		g.AddEdge(in, node, BuildInputEdgeKind)
 	}
 
-	from := buildutil.GetImageStreamForStrategy(node.BuildConfig.Parameters.Strategy)
+	from := buildutil.GetImageStreamForStrategy(node.BuildConfig.Spec.Strategy)
 	if from != nil {
 		switch from.Kind {
 		case "DockerImage":
@@ -48,15 +47,14 @@ func AddInputOutputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildCon
 				g.AddEdge(in, node, BuildInputImageEdgeKind)
 			}
 		case "ImageStream":
-			tag := imageapi.DefaultImageTag
-			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), from.Name, tag))
+			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), from.Name, imageapi.DefaultImageTag))
 			g.AddEdge(in, node, BuildInputImageEdgeKind)
 		case "ImageStreamTag":
-			name, tag, _ := imageapi.SplitImageStreamTag(from.Name)
-			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), name, tag))
+			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta2(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), from.Name))
 			g.AddEdge(in, node, BuildInputImageEdgeKind)
 		case "ImageStreamImage":
-			glog.V(4).Infof("Ignoring ImageStreamImage reference in BuildConfig %s/%s", node.BuildConfig.Namespace, node.BuildConfig.Name)
+			in := imagegraph.FindOrCreateSyntheticImageStreamImageNode(g, imagegraph.MakeImageStreamImageObjectMeta(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), from.Name))
+			g.AddEdge(in, node, BuildInputImageEdgeKind)
 		}
 	}
 	return node
@@ -83,12 +81,12 @@ func JoinBuilds(node *buildgraph.BuildConfigNode, builds []buildapi.Build) {
 	}
 	sort.Sort(RecentBuildReferences(matches))
 	for i := range matches {
-		switch matches[i].Status {
-		case buildapi.BuildStatusComplete:
+		switch matches[i].Status.Phase {
+		case buildapi.BuildPhaseComplete:
 			if node.LastSuccessfulBuild == nil {
 				node.LastSuccessfulBuild = matches[i]
 			}
-		case buildapi.BuildStatusFailed, buildapi.BuildStatusCancelled, buildapi.BuildStatusError:
+		case buildapi.BuildPhaseFailed, buildapi.BuildPhaseCancelled, buildapi.BuildPhaseError:
 			if node.LastUnsuccessfulBuild == nil {
 				node.LastUnsuccessfulBuild = matches[i]
 			}

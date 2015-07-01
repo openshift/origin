@@ -254,9 +254,9 @@ func getStreams(configs []buildapi.BuildConfig) map[string][]string {
 	avoidDuplicates := make(map[string][]string)
 	for _, cfg := range configs {
 		glog.V(1).Infof("Scanning BuildConfigs %v", cfg)
-		for _, tr := range cfg.Triggers {
+		for _, tr := range cfg.Spec.Triggers {
 			glog.V(1).Infof("Scanning trigger %v", tr)
-			from := buildutil.GetImageStreamForStrategy(cfg.Parameters.Strategy)
+			from := buildutil.GetImageStreamForStrategy(cfg.Spec.Strategy)
 			glog.V(1).Infof("Strategy from= %v", from)
 			if tr.ImageChange != nil && from != nil && from.Name != "" {
 				glog.V(1).Infof("found ICT with from %s kind %s", from.Name, from.Kind)
@@ -315,9 +315,13 @@ func findStreamDeps(stream, tag string, buildConfigList []buildapi.BuildConfig) 
 	// streams depending on the specified image stream
 	var childNamespace, childName, childTag string
 	for _, cfg := range buildConfigList {
-		for _, tr := range cfg.Triggers {
-			from := buildutil.GetImageStreamForStrategy(cfg.Parameters.Strategy)
+		for _, tr := range cfg.Spec.Triggers {
+			from := buildutil.GetImageStreamForStrategy(cfg.Spec.Strategy)
 			if from == nil || from.Kind != "ImageStreamTag" || tr.ImageChange == nil {
+				continue
+			}
+			if cfg.Spec.Output.To == nil || len(cfg.Spec.Output.To.Name) == 0 {
+				// build has no output image, so the chain ends here.
 				continue
 			}
 			// Setup zeroed fields to their default values
@@ -327,17 +331,20 @@ func findStreamDeps(stream, tag string, buildConfigList []buildapi.BuildConfig) 
 			fromTag := strings.Split(from.Name, ":")[1]
 			parentStream := namespace + "/" + name + ":" + tag
 			if buildutil.NameFromImageStream("", from, fromTag) == parentStream {
-				// Either To & Tag or DockerImageReference will be used as output
-				if cfg.Parameters.Output.To != nil && cfg.Parameters.Output.To.Name != "" {
-					childName = cfg.Parameters.Output.To.Name
-					childTag = cfg.Parameters.Output.Tag
-					if cfg.Parameters.Output.To.Namespace != "" {
-						childNamespace = cfg.Parameters.Output.To.Namespace
+				if cfg.Spec.Output.To.Kind == "ImageStreamTag" {
+					bits := strings.Split(cfg.Spec.Output.To.Name, ":")
+					if len(bits) != 2 {
+						return nil, fmt.Errorf("Invalid ImageStreamTag %s/%s does not contain a :tag", namespace, cfg.Spec.Output.To.Name)
+					}
+					childName = bits[0]
+					childTag = bits[1]
+					if cfg.Spec.Output.To.Namespace != "" {
+						childNamespace = cfg.Spec.Output.To.Namespace
 					} else {
 						childNamespace = cfg.Namespace
 					}
 				} else {
-					ref, err := imageapi.ParseDockerImageReference(cfg.Parameters.Output.DockerImageReference)
+					ref, err := imageapi.ParseDockerImageReference(cfg.Spec.Output.To.Name)
 					if err != nil {
 						return nil, err
 					}

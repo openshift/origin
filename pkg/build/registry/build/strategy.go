@@ -30,15 +30,15 @@ var Decorator = func(obj runtime.Object) error {
 	if !ok {
 		return errors.NewBadRequest(fmt.Sprintf("not a build: %v", build))
 	}
-	if build.StartTimestamp == nil {
-		build.Duration = time.Duration(0)
+	if build.Status.StartTimestamp == nil {
+		build.Status.Duration = time.Duration(0)
 	} else {
-		completionTimestamp := build.CompletionTimestamp
+		completionTimestamp := build.Status.CompletionTimestamp
 		if completionTimestamp == nil {
 			dummy := util.Now()
 			completionTimestamp = &dummy
 		}
-		build.Duration = completionTimestamp.Rfc3339Copy().Time.Sub(build.StartTimestamp.Rfc3339Copy().Time)
+		build.Status.Duration = completionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
 	}
 	return nil
 }
@@ -62,8 +62,8 @@ func (strategy) AllowUnconditionalUpdate() bool {
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(obj runtime.Object) {
 	build := obj.(*api.Build)
-	if len(build.Status) == 0 {
-		build.Status = api.BuildStatusNew
+	if len(build.Status.Phase) == 0 {
+		build.Status.Phase = api.BuildPhaseNew
 	}
 }
 
@@ -106,7 +106,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 func SelectableFields(build *api.Build) fields.Set {
 	return fields.Set{
 		"metadata.name": build.Name,
-		"status":        string(build.Status),
+		"status":        string(build.Status.Phase),
 		"podName":       buildutil.GetBuildPodName(build),
 	}
 }

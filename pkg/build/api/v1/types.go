@@ -216,7 +216,7 @@ const (
 
 // CustomBuildStrategy defines input parameters specific to Custom build.
 type CustomBuildStrategy struct {
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// From is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From kapi.ObjectReference `json:"from" description:"reference to an image stream, image stream tag, or image stream image from which the Docker image should be pulled"`
 
@@ -236,7 +236,7 @@ type CustomBuildStrategy struct {
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
 type DockerBuildStrategy struct {
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// From is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
 	From *kapi.ObjectReference `json:"from,omitempty" description:"reference to image stream, image stream tag, or image stream image from which docker image should be pulled, resulting image will be used in the FROM line for the Dockerfile for this build"`
@@ -256,7 +256,7 @@ type DockerBuildStrategy struct {
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
 type SourceBuildStrategy struct {
-	// From is reference to an ImageStream, ImageStreamTag, or ImageStreamImage from which
+	// From is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	From kapi.ObjectReference `json:"from" description:"reference to an image stream, image stream tag, or image stream image from which the Docker image should be pulled"`
 
@@ -278,10 +278,11 @@ type SourceBuildStrategy struct {
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy
 // should produce.
 type BuildOutput struct {
-	// To defines an optional ImageStream to push the output of this build to. The namespace
-	// may be empty, in which case the ImageStream will be looked for in the namespace of
-	// the build. Kind must be one of 'ImageStreamImage', 'ImageStreamTag' or 'DockerImage'.
+	// To defines an optional location to push the output of this build to.
+	// Kind must be one of 'ImageStreamTag' or 'DockerImage'.
 	// This value will be used to look up a Docker image repository to push to.
+	// In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of
+	// the build unless Namespace is specified.
 	To *kapi.ObjectReference `json:"to,omitempty" description:"The optional image stream to push the output of this build.  The namespace may be empty, in which case, the image stream will be looked up based on the namespace of the build."`
 
 	// PushSecret is the name of a Secret that would be used for setting

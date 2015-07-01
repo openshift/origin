@@ -239,7 +239,6 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 			Kind: kind,
 			Name: imageapi.NameAndTag(imageRepo.Name, r.Tag),
 		},
-		Tag: r.Tag,
 	}, nil
 }
 
@@ -400,11 +399,13 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
-		Triggers: append(sourceTriggers, strategyTriggers...),
-		Parameters: buildapi.BuildParameters{
-			Source:   *source,
-			Strategy: *strategy,
-			Output:   *output,
+		Spec: buildapi.BuildConfigSpec{
+			Triggers: append(sourceTriggers, strategyTriggers...),
+			BuildSpec: buildapi.BuildSpec{
+				Source:   *source,
+				Strategy: *strategy,
+				Output:   *output,
+			},
 		},
 	}, nil
 }

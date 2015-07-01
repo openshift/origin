@@ -259,16 +259,16 @@ func describeImageTagInPipeline(image graphview.ImageTagLocation, namespace stri
 }
 
 func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.ImageTagLocation) string {
-	switch build.Parameters.Strategy.Type {
+	switch build.Spec.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
 		// TODO: handle case where no source repo
-		source, ok := describeSourceInPipeline(&build.Parameters.Source)
+		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
 			return "docker build; no source set"
 		}
 		return fmt.Sprintf("docker build of %s", source)
 	case buildapi.SourceBuildStrategyType:
-		source, ok := describeSourceInPipeline(&build.Parameters.Source)
+		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
 			return fmt.Sprintf("unconfigured source build %s", build.Name)
 		}
@@ -277,7 +277,7 @@ func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.Im
 		}
 		return fmt.Sprintf("builds %s with %s", source, baseImage.ImageSpec())
 	case buildapi.CustomBuildStrategyType:
-		source, ok := describeSourceInPipeline(&build.Parameters.Source)
+		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
 			return fmt.Sprintf("custom build %s", build.Name)
 		}
@@ -305,17 +305,17 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, pushTarget
 	}
 
 	if pass != nil && includeSuccess {
-		out = append(out, describeBuildStatus(pass, &passTime, build.BuildConfig.Name, pushTargetResolved))
+		out = append(out, describeBuildPhase(pass, &passTime, build.BuildConfig.Name, pushTargetResolved))
 	}
 	if fail != nil {
-		out = append(out, describeBuildStatus(fail, &failTime, build.BuildConfig.Name, pushTargetResolved))
+		out = append(out, describeBuildPhase(fail, &failTime, build.BuildConfig.Name, pushTargetResolved))
 	}
 
 	active := build.ActiveBuilds
 	if len(active) > 0 {
 		activeOut := []string{}
 		for i := range active {
-			activeOut = append(activeOut, describeBuildStatus(&active[i], nil, build.BuildConfig.Name, pushTargetResolved))
+			activeOut = append(activeOut, describeBuildPhase(&active[i], nil, build.BuildConfig.Name, pushTargetResolved))
 		}
 
 		if buildTimestamp(&active[0]).Before(last) {
@@ -330,10 +330,10 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, pushTarget
 	return out
 }
 
-func describeBuildStatus(build *buildapi.Build, t *util.Time, parentName string, pushTargetResolved bool) string {
+func describeBuildPhase(build *buildapi.Build, t *util.Time, parentName string, pushTargetResolved bool) string {
 	imageStreamFailure := ""
 	// if we're using an image stream and that image stream is the internal registry and that registry doesn't exist
-	if (build.Parameters.Output.To != nil) && !pushTargetResolved {
+	if (build.Spec.Output.To != nil) && !pushTargetResolved {
 		imageStreamFailure = " (can't push to image)"
 	}
 
@@ -352,19 +352,19 @@ func describeBuildStatus(build *buildapi.Build, t *util.Time, parentName string,
 	if strings.HasPrefix(name, prefix) {
 		name = name[len(prefix):]
 	}
-	revision := describeSourceRevision(build.Parameters.Revision)
+	revision := describeSourceRevision(build.Spec.Revision)
 	if len(revision) != 0 {
 		revision = fmt.Sprintf(" - %s", revision)
 	}
-	switch build.Status {
-	case buildapi.BuildStatusComplete:
+	switch build.Status.Phase {
+	case buildapi.BuildPhaseComplete:
 		return fmt.Sprintf("build %s succeeded %s ago%s%s", name, time, revision, imageStreamFailure)
-	case buildapi.BuildStatusError:
+	case buildapi.BuildPhaseError:
 		return fmt.Sprintf("build %s stopped with an error %s ago%s%s", name, time, revision, imageStreamFailure)
-	case buildapi.BuildStatusFailed:
+	case buildapi.BuildPhaseFailed:
 		return fmt.Sprintf("build %s failed %s ago%s%s", name, time, revision, imageStreamFailure)
 	default:
-		status := strings.ToLower(string(build.Status))
+		status := strings.ToLower(string(build.Status.Phase))
 		return fmt.Sprintf("build %s %s for %s%s%s", name, status, time, revision, imageStreamFailure)
 	}
 }
@@ -406,11 +406,11 @@ func buildTimestamp(build *buildapi.Build) util.Time {
 	if build == nil {
 		return util.Time{}
 	}
-	if !build.CompletionTimestamp.IsZero() {
-		return *build.CompletionTimestamp
+	if !build.Status.CompletionTimestamp.IsZero() {
+		return *build.Status.CompletionTimestamp
 	}
-	if !build.StartTimestamp.IsZero() {
-		return *build.StartTimestamp
+	if !build.Status.StartTimestamp.IsZero() {
+		return *build.Status.StartTimestamp
 	}
 	return build.CreationTimestamp
 }
