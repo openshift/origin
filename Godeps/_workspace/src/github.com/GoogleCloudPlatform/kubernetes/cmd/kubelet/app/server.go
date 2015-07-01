@@ -353,6 +353,9 @@ func (s *KubeletServer) Run(kcfg *KubeletConfig) error {
 		}
 		kcfg = cfg
 
+	}
+
+	if kcfg.KubeClient == nil {
 		clientConfig, err := s.CreateAPIServerClientConfig()
 		if err == nil {
 			kcfg.KubeClient, err = client.New(clientConfig)
@@ -360,14 +363,18 @@ func (s *KubeletServer) Run(kcfg *KubeletConfig) error {
 		if err != nil && len(s.APIServerList) > 0 {
 			glog.Warningf("No API client: %v", err)
 		}
+	}
 
+	if kcfg.Cloud == nil {
 		cloud, err := cloudprovider.InitCloudProvider(s.CloudProvider, s.CloudConfigFile)
 		if err != nil {
 			return err
 		}
 		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", s.CloudProvider, s.CloudConfigFile)
 		kcfg.Cloud = cloud
+	}
 
+	if kcfg.CadvisorInterface == nil {
 		ca, err := cadvisor.New(s.CadvisorPort)
 		if err != nil {
 			return err
