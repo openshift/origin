@@ -14,7 +14,6 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/controller"
-	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -37,7 +36,6 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 	cache.NewReflector(lw, &api.ImageStream{}, q, 2*time.Minute).Run()
 
 	c := &ImportController{
-		client:   dockerregistry.NewClient(),
 		streams:  f.Client,
 		mappings: f.Client,
 	}
