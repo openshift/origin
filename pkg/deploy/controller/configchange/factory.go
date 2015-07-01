@@ -61,7 +61,6 @@ func (factory *DeploymentConfigChangeControllerFactory) Create() controller.Runn
 		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
 			return deployutil.DecodeDeploymentConfig(deployment, factory.Codec)
 		},
-		recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployer"}),
 	}
 
 	return &controller.RetryController{
