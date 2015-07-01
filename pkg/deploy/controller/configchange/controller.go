@@ -7,7 +7,6 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -23,8 +22,6 @@ type DeploymentConfigChangeController struct {
 	changeStrategy changeStrategy
 	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
 	decodeConfig func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error)
-	// recorder records events.
-	recorder record.EventRecorder
 }
 
 // fatalError is an error which can't be retried.
@@ -55,8 +52,10 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 			if kerrors.IsConflict(err) {
 				return fatalError(fmt.Sprintf("DeploymentConfig %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
 			}
-			c.recorder.Eventf(config, "failedCreate", "Couldn't create initial deployment: %v", err)
-			return fmt.Errorf("couldn't create initial Deployment for DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
+			// TODO: This needs handled by setting some state within the API so
+			// users know why the trigger isn't doing anything.
+			// https://github.com/openshift/origin/issues/3526
+			return nil
 		}
 		glog.V(4).Infof("Created initial Deployment for DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
