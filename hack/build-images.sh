@@ -45,8 +45,8 @@ cp -f "${imagedir}/dockerregistry" images/dockerregistry/bin
 # builds an image and tags it two ways - with latest, and with the release tag
 function image {
   echo "--- $1 ---"
-  docker build -t $1:latest $2
-  docker tag -f $1:latest $1:${OS_RELEASE_COMMIT}
+  os::docker build -t $1:latest $2
+  os::docker tag -f $1:latest $1:${OS_RELEASE_COMMIT}
 }
 
 # images that depend on scratch
@@ -68,4 +68,4 @@ image openshift/origin-custom-docker-builder images/builder/docker/custom-docker
 image openshift/sti-image-builder            images/builder/docker/sti-image-builder
 
 echo "++ Active images"
-docker images | grep openshift/
+os::docker images | grep openshift/

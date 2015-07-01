@@ -34,8 +34,11 @@ tar -rf "${context}/archive.tar" -C "${context}" os-version-defs
 gzip -f "${context}/archive.tar"
 
 # Perform the build and release in Docker.
-cat "${context}/archive.tar.gz" | docker run -i --cidfile="${context}/cid" openshift/origin-release
-docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/local/releases "${OS_OUTPUT}"
+cat "${context}/archive.tar.gz" | os::docker run -i --cidfile="${context}/cid" openshift/origin-release
+os::docker cp $(cat ${context}/cid):/go/src/github.com/openshift/origin/_output/local/releases "${OS_OUTPUT}"
+if os::docker_needs_sudo; then
+    sudo chown -R -h ${USER}:${USER} "${OS_OUTPUT}"
+fi
 echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
 
 # Copy the linux release archives release back to the local _output/local/go/bin directory.
