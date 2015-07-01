@@ -89,10 +89,11 @@ func init() {
 	// the list of kinds that are scoped at the root of the api hierarchy
 	// if a kind is not enumerated here, it is assumed to have a namespace scope
 	kindToRootScope := map[string]bool{
-		"Node":             true,
-		"Minion":           true,
-		"Namespace":        true,
-		"PersistentVolume": true,
+		"Node":                       true,
+		"Minion":                     true,
+		"Namespace":                  true,
+		"PersistentVolume":           true,
+		"SecurityContextConstraints": true,
 	}
 
 	// setup aliases for groups of resources
