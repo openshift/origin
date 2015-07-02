@@ -362,12 +362,15 @@ func (rm *ReplicationManager) syncReplicationController(key string) error {
 		rm.queue.Add(key)
 		return err
 	}
-	controller := *obj.(*api.ReplicationController)
+
+	// make and copy and then point a ref to the copy
+	t := *obj.(*api.ReplicationController)
+	controller := &t
 
 	// Check the expectations of the rc before counting active pods, otherwise a new pod can sneak in
 	// and update the expectations after we've retrieved active pods from the store. If a new pod enters
 	// the store after we've checked the expectation, the rc sync is just deferred till the next relist.
-	rcNeedsSync := rm.expectations.SatisfiedExpectations(&controller)
+	rcNeedsSync := rm.expectations.SatisfiedExpectations(controller)
 	podList, err := rm.podStore.Pods(controller.Namespace).List(labels.Set(controller.Spec.Selector).AsSelector())
 	if err != nil {
 		glog.Errorf("Error getting pods for rc %q: %v", key, err)
@@ -376,17 +379,18 @@ func (rm *ReplicationManager) syncReplicationController(key string) error {
 	}
 
 	// TODO: Do this in a single pass, or use an index.
-	filteredPods := filterActivePods(podList.Items)
+	activePods := filterActivePods(podList.Items)
+	filteredPods := filterPodsOnMatching(activePods, controller)
 	if rcNeedsSync {
-		rm.manageReplicas(filteredPods, &controller)
+		rm.manageReplicas(filteredPods, controller)
 	}
 
 	// Always updates status as pods come up or die.
-	if err := updateReplicaCount(rm.kubeClient.ReplicationControllers(controller.Namespace), controller, len(filteredPods)); err != nil {
+	if err := updateReplicaCount(rm.kubeClient.ReplicationControllers(controller.Namespace), *controller, len(filteredPods)); err != nil {
 		// Multiple things could lead to this update failing. Requeuing the controller ensures
 		// we retry with some fairness.
 		glog.V(2).Infof("Failed to update replica count for controller %v, requeuing", controller.Name)
-		rm.enqueueController(&controller)
+		rm.enqueueController(controller)
 	}
 	return nil
 }
