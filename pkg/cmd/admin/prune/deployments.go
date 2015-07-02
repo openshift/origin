@@ -96,7 +96,7 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 					return nil
 				}
 			default:
-				fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made.")
+				fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove deployments")
 				deploymentPruneFunc = describingPruneDeploymentFunc
 			}
 

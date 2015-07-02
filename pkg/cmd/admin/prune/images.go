@@ -156,7 +156,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 				blobPruneFunc = prune.DeletingBlobPruneFunc(registryClient)
 				manifestPruneFunc = prune.DeletingManifestPruneFunc(registryClient)
 			default:
-				fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made.")
+				fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove images")
 				imagePruneFunc = describingImagePruneFunc
 				imageStreamPruneFunc = describingImageStreamPruneFunc
 				layerPruneFunc = describingLayerPruneFunc
