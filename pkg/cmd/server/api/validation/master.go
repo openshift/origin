@@ -128,7 +128,7 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 
 	validationResults.AddErrors(ValidatePolicyConfig(config.PolicyConfig).Prefix("policyConfig")...)
 	if config.OAuthConfig != nil {
-		validationResults.AddErrors(ValidateOAuthConfig(config.OAuthConfig).Prefix("oauthConfig")...)
+		validationResults.Append(ValidateOAuthConfig(config.OAuthConfig).Prefix("oauthConfig"))
 	}
 
 	validationResults.Append(ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig"))

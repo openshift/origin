@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/password/basicauthpassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/denypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/htpasswd"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/ldappassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
@@ -440,6 +441,35 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 
 	case (*configapi.DenyAllPasswordIdentityProvider):
 		return denypassword.New(), nil
+
+	case (*configapi.LDAPPasswordIdentityProvider):
+		url, err := ldappassword.ParseURL(provider.URL)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing LDAPPasswordIdentityProvider URL: %v", err)
+		}
+
+		tlsConfig := &tls.Config{}
+		if len(provider.CA) > 0 {
+			roots, err := util.CertPoolFromFile(provider.CA)
+			if err != nil {
+				return nil, fmt.Errorf("error loading cert pool from ca file %s: %v", provider.CA, err)
+			}
+			tlsConfig.RootCAs = roots
+		}
+
+		opts := ldappassword.Options{
+			URL:          url,
+			Insecure:     provider.Insecure,
+			TLSConfig:    tlsConfig,
+			BindDN:       provider.BindDN,
+			BindPassword: provider.BindPassword,
+
+			AttributeEmail:             provider.Attributes.Email,
+			AttributeName:              provider.Attributes.Name,
+			AttributeID:                provider.Attributes.ID,
+			AttributePreferredUsername: provider.Attributes.PreferredUsername,
+		}
+		return ldappassword.New(identityProvider.Name, opts, identityMapper)
 
 	case (*configapi.HTPasswdPasswordIdentityProvider):
 		htpasswdFile := provider.File
