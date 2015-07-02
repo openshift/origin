@@ -160,7 +160,7 @@
     {
       "name": "DATABASE_SERVICE_NAME",
       "description": "Database service name",
-      "value": "mysql"
+      "value": "postgresql"
     },
     {
       "name": "POSTGRESQL_USER",
