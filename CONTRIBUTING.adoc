@@ -64,9 +64,45 @@ export PATH=$PATH:$GOPATH/bin
         $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
         $ cd origin
         $ git remote add upstream git://github.com/openshift/origin
-        
 
-5.  From here, you can follow https://github.com/openshift/origin/#start-developing[Start Developing] from the README.
+5.  From here, you can generate the OpenShift binaries by running:
+
+        $ make clean run
+
+6.  Next, assuming you have installed Docker 1.3.2 or higher, and that you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.0.0/16, you need to instruct the Docker daemon to trust any Docker registry on the 172.30.0.0/16 subnet.  If you are running Docker as a service via `systemd`, add the `--insecure-registry 172.30.0.0/16` argument to the options value in `/etc/sysconfig/docker` and restart the Docker daemon.  Otherwise, add "--insecure-registry 172.30.0.0/16" to the Docker daemon invocation, eg:
+
+        $ docker -d --insecure-registry 172.30.0.0/16
+
+7.  Then, the OpenShift firewalld rules are also a work in progress. For now it is easiest to disable firewalld altogether:
+
+        $ sudo systemctl stop firewalld
+
+8.  Firewalld will start again on your next reboot, but you can manually restart it with this command when you are done running OpenShift:
+
+        $ sudo systemctl start firewalld
+
+9.  Now change into the directory with the OpenShift binaries, and start the OpenShift server:
+
+        $ cd _output/local/go/bin
+        $ sudo ./openshift start
+
+10.  Launch another terminal, change into the same directory you started OpenShift, and deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
+
+        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
+        $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
+        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+
+11.  If it is not there already, add the current directory to the $PATH, so you can leverage the OpenShift commands elsewhere.
+
+12.  You are now ready to edit the OpenShift source, rebuild / restart OpenShift, and test your changes.
+
+13.  NOTE:  to properly stop OpenShift and clean up so you can restart OpenShift, execute:
+
+        $ sudo killall openshift
+        $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+        $ mount | grep "openshift.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
+        $ cd <to the dir you ran openshift start> ; sudo rm -rf openshift.local.*
+
 
 === Develop on virtual machine using Vagrant
 
