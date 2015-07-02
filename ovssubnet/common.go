@@ -85,6 +85,7 @@ func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready
 		hostName:        hostname,
 		localSubnet:     nil,
 		subnetAllocator: nil,
+		VnidMap:         make(map[string]uint),
 		sig:             make(chan struct{}),
 		ready:           ready,
 	}, nil
