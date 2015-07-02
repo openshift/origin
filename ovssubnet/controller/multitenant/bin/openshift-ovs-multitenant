@@ -37,7 +37,7 @@ Setup() {
     # If the caller didn't pass a tenant ID, we make one up based on
     # the first two letters of the pod name.
     # FIXME: remove this when it's no longer needed for testing
-    if [ -z "$tenant_id" ];
+    if [ -z "$tenant_id" ]; then
        tenant_id=$(echo $pod_name | perl -ne 'print unpack("S", $_)')
     fi
 
