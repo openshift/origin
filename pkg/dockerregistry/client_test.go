@@ -122,6 +122,18 @@ func TestImage(t *testing.T) {
 	}
 }
 
+func TestQuayIOImage(t *testing.T) {
+	conn, err := NewClient().Connect("quay.io", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = conn.ImageByTag("coreos", "etcd", "latest")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
 func TestTokenExpiration(t *testing.T) {
 	var uri *url.URL
 	lastToken := ""
