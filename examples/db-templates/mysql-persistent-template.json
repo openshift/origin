@@ -47,7 +47,7 @@
       },
       "spec": {
         "accessModes": [
-          "ReadWriteMany"
+          "ReadWriteOnce"
         ],
         "resources": {
           "requests": {
