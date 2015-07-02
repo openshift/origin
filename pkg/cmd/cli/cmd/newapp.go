@@ -122,7 +122,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		return err
 	}
 
-	result, err := config.RunAll(out)
+	result, err := config.RunAll(out, c.Out())
 	if err != nil {
 		if errs, ok := err.(errors.Aggregate); ok {
 			if len(errs.Errors()) == 1 {
