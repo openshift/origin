@@ -144,8 +144,7 @@
           }
         ],
         "restartPolicy": "Always",
-        "dnsPolicy": "ClusterFirst",
-        "serviceAccount": ""
+        "dnsPolicy": "ClusterFirst"
       },
       "status": {}
     },
@@ -208,8 +207,7 @@
               }
             ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
@@ -243,7 +241,7 @@
             "containers": [
               {
                 "name": "slave",
-                "image": "brendanburns/${SLAVE_SERVICE_NAME}",
+                "image": "brendanburns/redis-slave",
                 "ports": [
                   {
                     "hostPort": 6380,
@@ -268,8 +266,7 @@
               }
             ],
             "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst",
-            "serviceAccount": ""
+            "dnsPolicy": "ClusterFirst"
           }
         }
       },
@@ -298,9 +295,15 @@
       "from": "[a-zA-Z0-9]{8}"
     },
     {
+      "name": "SLAVE_SERVICE_SUFFIX",
+      "description": "Random suffix of redis slave service",
+      "generate": "expression",
+      "from": "[a-z0-9]{3}"
+    },
+    {
       "name": "SLAVE_SERVICE_NAME",
       "description": "Slave Service name",
-      "value": "redis-slave"
+      "value": "redis-slave-${SLAVE_SERVICE_SUFFIX}"
     }
   ]
 }

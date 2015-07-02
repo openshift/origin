@@ -38,6 +38,8 @@ func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorL
 		return append(templateErrors.Prefix("Template"), fielderrors.NewFieldInvalid("parameters", err, "failure to generate parameter value"))
 	}
 
+	p.SubstituteParameterValues(template)
+
 	for i, item := range template.Objects {
 		if obj, ok := item.(*runtime.Unknown); ok {
 			// TODO: use runtime.DecodeList when it returns ValidationErrorList
@@ -107,6 +109,29 @@ func GetParameterByName(t *api.Template, name string) *api.Parameter {
 	return nil
 }
 
+// paramsToMap converts the parameters to map
+func paramsToMap(params []api.Parameter) map[string]string {
+	result := make(map[string]string, len(params))
+	for _, param := range params {
+		result[param.Name] = param.Value
+	}
+	return result
+}
+
+// SubstituteParameterValues substitutes all expressions in the parameters values
+func (p *Processor) SubstituteParameterValues(template *api.Template) {
+	paramMap := paramsToMap(template.Parameters)
+	for i := range template.Parameters {
+		for _, match := range parameterExp.FindAllStringSubmatch(template.Parameters[i].Value, -1) {
+			if len(match) > 1 {
+				if paramValue, found := paramMap[match[1]]; found {
+					template.Parameters[i].Value = strings.Replace(template.Parameters[i].Value, match[0], paramValue, 1)
+				}
+			}
+		}
+	}
+}
+
 // SubstituteParameters loops over all values defined in structured
 // and unstructured types that are children of item.
 //
@@ -114,12 +139,7 @@ func GetParameterByName(t *api.Template, name string) *api.Parameter {
 //   - ${PARAMETER_NAME}
 //
 func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Object) (runtime.Object, error) {
-	// Make searching for given parameter name/value more effective
-	paramMap := make(map[string]string, len(params))
-	for _, param := range params {
-		paramMap[param.Name] = param.Value
-	}
-
+	paramMap := paramsToMap(params)
 	stringreplace.VisitObjectStrings(item, func(in string) string {
 		for _, match := range parameterExp.FindAllStringSubmatch(in, -1) {
 			if len(match) > 1 {
