@@ -371,6 +371,63 @@ func TestHandle_cleanupDeploymentFailure(t *testing.T) {
 	}
 }
 
+// TestHandle_cleanupDesiredReplicasAnnotation ensures that the desired replicas annotation
+// will be cleaned up in a complete deployment and stay around in a failed deployment
+func TestHandle_cleanupDesiredReplicasAnnotation(t *testing.T) {
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
+
+	tests := []struct {
+		name     string
+		pod      *kapi.Pod
+		expected bool
+	}{
+		{
+			name:     "complete deployment - cleaned up annotation",
+			pod:      succeededPod(deployment),
+			expected: false,
+		},
+		{
+			name:     "failed deployment - annotation stays",
+			pod:      terminatedPod(deployment),
+			expected: true,
+		},
+	}
+
+	for _, test := range tests {
+		var updatedDeployment *kapi.ReplicationController
+		deployment.Annotations[deployapi.DesiredReplicasAnnotation] = "1"
+
+		controller := &DeployerPodController{
+			deploymentClient: &deploymentClientImpl{
+				getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
+					return deployment, nil
+				},
+				updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+					updatedDeployment = deployment
+					return deployment, nil
+				},
+				listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
+					return &kapi.ReplicationControllerList{Items: []kapi.ReplicationController{*deployment}}, nil
+				},
+			},
+		}
+
+		if err := controller.Handle(test.pod); err != nil {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		}
+
+		if updatedDeployment == nil {
+			t.Errorf("%s: expected deployment update", test.name)
+			continue
+		}
+
+		if _, got := updatedDeployment.Annotations[deployapi.DesiredReplicasAnnotation]; got != test.expected {
+			t.Errorf("%s: expected annotation: %t, got %t", test.name, test.expected, got)
+		}
+	}
+}
+
 func okPod(deployment *kapi.ReplicationController) *kapi.Pod {
 	return &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{

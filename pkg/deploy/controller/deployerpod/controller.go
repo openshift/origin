@@ -89,6 +89,9 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 				nextStatus = deployapi.DeploymentStatusFailed
 			}
 		}
+		if nextStatus == deployapi.DeploymentStatusComplete {
+			delete(deployment.Annotations, deployapi.DesiredReplicasAnnotation)
+		}
 	case kapi.PodFailed:
 		// if the deployment is already marked Failed, do not attempt clean up again
 		if currentStatus != deployapi.DeploymentStatusFailed {
