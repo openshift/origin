@@ -462,10 +462,11 @@ Another interesting example is deleting a pod.
 
 Cleaning Up
 -----------
-To clean up all of your environment, you can run the script:
+To empty your project, deleting all BuildConfigs, ImageStreams, DeploymentConfigs,
+Services, etc, you can use:
 
-        $ sudo ./cleanup.sh
+    $ oc delete all --all
 
-This will stop the `openshift` process, remove files created by OpenShift and kill all Docker containers created by Kubernetes in your host system.  The cleanup script needs root privileges to be able to remove all the directories OpenShift created.
+Alternatively, you can delete the whole project with:
 
-**Use with caution!** Any Docker container prefixed with "k8s_" will be killed by this script.
+    $ oc delete project test
