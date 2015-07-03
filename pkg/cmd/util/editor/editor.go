@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/docker/docker/pkg/term"
@@ -18,7 +19,9 @@ import (
 const (
 	// sorry, blame Git
 	defaultEditor = "vi"
+	windowsEditor = "notepad"
 	defaultShell  = "/bin/bash"
+	windowsShell  = "cmd"
 )
 
 type Editor struct {
@@ -27,7 +30,7 @@ type Editor struct {
 }
 
 // NewDefaultEditor creates an Editor that uses the OS environment to
-// locate the editor program, looking at OSC_EDITOR, GIT_EDITOR, and
+// locate the editor program, looking at OC_EDITOR, GIT_EDITOR, and
 // EDITOR in order to find the proper command line. If the provided
 // editor has no spaces, or no quotes, it is treated as a bare command
 // to be loaded. Otherwise, the string will be passed to the user's
@@ -43,13 +46,17 @@ func NewDefaultEditor() Editor {
 func defaultEnvShell() []string {
 	shell := os.Getenv("SHELL")
 	if len(shell) == 0 {
-		shell = defaultShell
+		shell = platformize(defaultShell, windowsShell)
 	}
-	return []string{shell, "-c"}
+	flag := "-c"
+	if shell == windowsShell {
+		flag = "/C"
+	}
+	return []string{shell, flag}
 }
 
 func defaultEnvEditor() ([]string, bool) {
-	editor := os.Getenv("OSC_EDITOR")
+	editor := os.Getenv("OC_EDITOR")
 	if len(editor) == 0 {
 		editor = os.Getenv("GIT_EDITOR")
 	}
@@ -57,7 +64,7 @@ func defaultEnvEditor() ([]string, bool) {
 		editor = os.Getenv("EDITOR")
 	}
 	if len(editor) == 0 {
-		editor = defaultEditor
+		editor = platformize(defaultEditor, windowsEditor)
 	}
 	if !strings.Contains(editor, " ") {
 		return []string{editor}, false
@@ -187,4 +194,11 @@ func randSeq(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func platformize(linux, windows string) string {
+	if runtime.GOOS == "windows" {
+		return windows
+	}
+	return linux
 }
