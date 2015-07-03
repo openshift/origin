@@ -1190,6 +1190,10 @@
 			"Rev": "2e43671e4ad874a7bca65746ff3edb38e6e93762"
 		},
 		{
+			"ImportPath": "gopkg.in/asn1-ber.v1",
+			"Rev": "9eae18c3681ae3d3c677ac2b80a8fe57de45fc09"
+		},
+		{
 			"ImportPath": "gopkg.in/yaml.v2",
 			"Rev": "d466437aa4adc35830964cffc5b5f262c63ddcb4"
 		},
