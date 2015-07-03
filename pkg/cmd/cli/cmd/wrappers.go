@@ -144,7 +144,7 @@ If the pod has only one container, the container name is optional.`
 
 // NewCmdLogs is a wrapper for the Kubernetes cli logs command
 func NewCmdLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdLog(f.Factory, out)
+	cmd := kcmd.NewCmdLogs(f.Factory, out)
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, fullName)
 	return cmd
