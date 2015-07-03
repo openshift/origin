@@ -3,12 +3,16 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -31,6 +35,13 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 		Example: fmt.Sprintf(buildLogsExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunBuildLogs(f, out, cmd, opts, args)
+
+			if err, ok := err.(kclient.APIStatus); ok {
+				if msg := err.Status().Message; strings.HasSuffix(msg, buildutil.NoBuildLogsMessage) {
+					fmt.Fprintf(out, msg)
+					os.Exit(1)
+				}
+			}
 			cmdutil.CheckErr(err)
 		},
 	}

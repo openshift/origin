@@ -72,7 +72,7 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	// Build has not launched, wait til it runs
 	case api.BuildStatusNew, api.BuildStatusPending:
 		if buildLogOpts.NoWait {
-			glog.V(4).Infof("Build %s/%s is in %s state, nothing to retrieve", build.Namespace, name, build.Status)
+			glog.V(4).Infof("Build %s/%s is in %s state. No logs to retrieve yet.", build.Namespace, name, build.Status)
 			// return empty content if not waiting for build
 			return &genericrest.LocationStreamer{}, nil
 		}
@@ -84,11 +84,11 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 
 	// The build was cancelled
 	case api.BuildStatusCancelled:
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s/%s was cancelled", build.Namespace, build.Name))
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s/%s was cancelled. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage))
 
 	// An error occurred launching the build, return an error
 	case api.BuildStatusError:
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s/%s is in an error state", build.Namespace, build.Name))
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s/%s is in an error state. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage))
 	}
 	// The container should be the default build container, so setting it to blank
 	buildPodName := buildutil.GetBuildPodName(build)
@@ -125,10 +125,10 @@ func (r *REST) waitForBuild(ctx kapi.Context, build *api.Build) error {
 			}
 			switch obj.Status {
 			case api.BuildStatusCancelled:
-				errchan <- fmt.Errorf("Build %s/%s was cancelled", build.Namespace, build.Name)
+				errchan <- fmt.Errorf("build %s/%s was cancelled. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage)
 				break
 			case api.BuildStatusError:
-				errchan <- fmt.Errorf("Build %s/%s is in an error state", build.Namespace, build.Name)
+				errchan <- fmt.Errorf("build %s/%s is in an error state. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage)
 				break
 			case api.BuildStatusRunning, api.BuildStatusComplete, api.BuildStatusFailed:
 				done <- struct{}{}
