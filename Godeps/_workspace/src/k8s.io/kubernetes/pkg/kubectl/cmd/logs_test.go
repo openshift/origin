@@ -1,0 +1,88 @@
+/*
+Copyright 2014 The Kubernetes Authors All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package cmd
+
+import (
+	"bytes"
+	"io/ioutil"
+	"net/http"
+	"testing"
+
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client"
+)
+
+const logContent = "test log content"
+
+func TestLogs(t *testing.T) {
+	tests := []struct {
+		name, version, podPath, logPath, container string
+		pod                                        *api.Pod
+	}{
+		{
+			name:    "pod log",
+			podPath: "/namespaces/test/pods/foo",
+			logPath: "/namespaces/test/pods/foo/log",
+			pod:     testPod(),
+		},
+	}
+	for _, test := range tests {
+		f, tf, codec := NewAPIFactory()
+		tf.Client = &client.FakeRESTClient{
+			Codec: codec,
+			Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+				switch p, m := req.URL.Path, req.Method; {
+				case p == test.podPath && m == "GET":
+					body := objBody(codec, test.pod)
+					return &http.Response{StatusCode: 200, Body: body}, nil
+				case p == test.logPath && m == "GET":
+					body := ioutil.NopCloser(bytes.NewBufferString(logContent))
+					return &http.Response{StatusCode: 200, Body: body}, nil
+				default:
+					// Ensures no GET is performed when deleting by name
+					t.Errorf("%s: unexpected request: %#v\n%#v", test.name, req.URL, req)
+					return nil, nil
+				}
+			}),
+		}
+		tf.Namespace = "test"
+		buf := bytes.NewBuffer([]byte{})
+
+		cmd := NewCmdLogs(f, buf)
+		cmd.Flags().Set("namespace", "test")
+		cmd.Run(cmd, []string{"foo"})
+
+		if buf.String() != logContent {
+			t.Errorf("%s: did not get expected log content. Got: %s", test.name, buf.String())
+		}
+	}
+}
+
+func testPod() *api.Pod {
+	return &api.Pod{
+		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "test", ResourceVersion: "10"},
+		Spec: api.PodSpec{
+			RestartPolicy: api.RestartPolicyAlways,
+			DNSPolicy:     api.DNSClusterFirst,
+			Containers: []api.Container{
+				{
+					Name: "bar",
+				},
+			},
+		},
+	}
+}

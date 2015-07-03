@@ -76,6 +76,8 @@ type Factory struct {
 	PortsForObject func(object runtime.Object) ([]string, error)
 	// LabelsForObject returns the labels associated with the provided object
 	LabelsForObject func(object runtime.Object) (map[string]string, error)
+	// LogsForObject returns the logs associated with the provided object
+	LogsForObject func(object runtime.Object, opts *api.PodLogOptions) (io.ReadCloser, error)
 	// Returns a schema that can validate objects stored on disk.
 	Validator func() (validation.Schema, error)
 	// Returns the default namespace to use in cases where no
@@ -189,6 +191,38 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 		},
 		LabelsForObject: func(object runtime.Object) (map[string]string, error) {
 			return meta.NewAccessor().Labels(object)
+		},
+		LogsForObject: func(object runtime.Object, opts *api.PodLogOptions) (io.ReadCloser, error) {
+			version, err := meta.NewAccessor().APIVersion(object)
+			if err != nil {
+				return nil, err
+			}
+			cl, err := clients.ClientForVersion(version)
+			if err != nil {
+				return nil, err
+			}
+
+			switch t := object.(type) {
+			case *api.Pod:
+				if len(opts.Container) == 0 {
+					if len(t.Spec.Containers) != 1 {
+						return nil, fmt.Errorf("POD %s has more than one container; please specify the container to print logs for with -c", t.ObjectMeta.Name)
+					}
+					opts.Container = t.Spec.Containers[0].Name
+				}
+				return cl.RESTClient.Get().Namespace(t.Namespace).Name(t.Name).
+					Resource("pods").SubResource("log").
+					Param("follow", strconv.FormatBool(opts.Follow)).
+					Param("container", opts.Container).
+					Param("previous", strconv.FormatBool(opts.Previous)).
+					Stream()
+			default:
+				kind, err := meta.NewAccessor().Kind(object)
+				if err != nil {
+					return nil, err
+				}
+				return nil, fmt.Errorf("it is not possible to get logs from %s", kind)
+			}
 		},
 		Scaler: func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
 			client, err := clients.ClientForVersion(mapping.APIVersion)
