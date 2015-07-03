@@ -12,7 +12,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
@@ -69,8 +68,8 @@ const NewFirstContainerReadyInterval = 1 * time.Second
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
 func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, codec runtime.Codec, initialStrategy acceptingDeploymentStrategy) *RollingDeploymentStrategy {
 	updaterClient := &rollingUpdaterClient{
-		ControllerHasDesiredReplicasFn: func(rc *kapi.ReplicationController) wait.ConditionFunc {
-			return kclient.ControllerHasDesiredReplicas(client, rc)
+		ControllerHasDesiredReplicasFn: func(rc *kapi.ReplicationController, timeout time.Duration, wg *kubectl.Wait) error {
+			return kubectl.ControllerHasDesiredReplicas(client, rc, timeout, wg)
 		},
 		GetReplicationControllerFn: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)
@@ -239,7 +238,7 @@ type rollingUpdaterClient struct {
 	CreateReplicationControllerFn  func(namespace string, rc *kapi.ReplicationController) (*kapi.ReplicationController, error)
 	DeleteReplicationControllerFn  func(namespace, name string) error
 	ListReplicationControllersFn   func(namespace string, label labels.Selector) (*kapi.ReplicationControllerList, error)
-	ControllerHasDesiredReplicasFn func(rc *kapi.ReplicationController) wait.ConditionFunc
+	ControllerHasDesiredReplicasFn func(rc *kapi.ReplicationController, timeout time.Duration, wg *kubectl.Wait) error
 }
 
 func (c *rollingUpdaterClient) GetReplicationController(namespace, name string) (*kapi.ReplicationController, error) {
@@ -262,8 +261,8 @@ func (c *rollingUpdaterClient) ListReplicationControllers(namespace string, labe
 	return c.ListReplicationControllersFn(namespace, label)
 }
 
-func (c *rollingUpdaterClient) ControllerHasDesiredReplicas(rc *kapi.ReplicationController) wait.ConditionFunc {
-	return c.ControllerHasDesiredReplicasFn(rc)
+func (c *rollingUpdaterClient) ControllerHasDesiredReplicas(rc *kapi.ReplicationController, timeout time.Duration, wg *kubectl.Wait) error {
+	return c.ControllerHasDesiredReplicasFn(rc, timeout, wg)
 }
 
 // rollingUpdaterWriter is an io.Writer that delegates to glog.

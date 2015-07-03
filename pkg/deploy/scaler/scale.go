@@ -30,7 +30,7 @@ func ScalerFor(kind string, oc client.Interface, kc kclient.Interface) (kubectl.
 // Scale updates a replication controller created by the DeploymentConfig with the provided namespace/name,
 // to a new size, with optional precondition check (if preconditions is not nil),optional retries (if retry
 //  is not nil), and then optionally waits for it's replica count to reach the new value (if wait is not nil).
-func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint, preconditions *kubectl.ScalePrecondition, retry, waitForReplicas *kubectl.RetryParams) error {
+func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint, preconditions *kubectl.ScalePrecondition, retry *kubectl.RetryParams, wg *kubectl.Wait) error {
 	if preconditions == nil {
 		preconditions = &kubectl.ScalePrecondition{-1, ""}
 	}
@@ -38,14 +38,22 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 		// Make it try only once, immediately
 		retry = &kubectl.RetryParams{Interval: time.Millisecond, Timeout: time.Millisecond}
 	}
+	if wg != nil {
+		rc, err := scaler.c.GetReplicationController(namespace, name)
+		if err != nil {
+			return err
+		}
+		rc.Spec.Replicas = int(newSize)
+
+		wg.Add(1)
+		go scaler.c.ControllerHasDesiredReplicas(rc, kubectl.Timeout, wg)
+		defer wg.Replicas.Wait()
+		wg.Syncing.Wait()
+	}
+
 	cond := kubectl.ScaleCondition(scaler, preconditions, namespace, name, newSize)
 	if err := wait.Poll(retry.Interval, retry.Timeout, cond); err != nil {
 		return err
-	}
-	if waitForReplicas != nil {
-		rc := &kapi.ReplicationController{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: rcName}}
-		return wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout,
-			scaler.c.ControllerHasDesiredReplicas(rc))
 	}
 	return nil
 }
@@ -53,7 +61,6 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 // ScaleSimple does a simple one-shot attempt at scaling - not useful on it's own, but
 // a necessary building block for Scale
 func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint) (string, error) {
-	const scaled = "scaled"
 	controller, err := scaler.c.GetReplicationController(namespace, name)
 	if err != nil {
 		return "", kubectl.ControllerScaleError{kubectl.ControllerScaleGetFailure, "Unknown", err}
@@ -69,7 +76,7 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 		return "", kubectl.ControllerScaleError{kubectl.ControllerScaleUpdateFailure, controller.ResourceVersion, err}
 	}
 	// TODO: do a better job of printing objects here.
-	return scaled, nil
+	return "scaled", nil
 }
 
 // NewScalerClient returns a new Scaler client bundling both the OpenShift and
@@ -84,8 +91,6 @@ type realScalerClient struct {
 	kc kclient.Interface
 }
 
-var rcName string
-
 // GetReplicationController returns the most recent replication controller associated with the deploymentConfig
 // with the provided namespace/name combination
 func (c *realScalerClient) GetReplicationController(namespace, name string) (*kapi.ReplicationController, error) {
@@ -93,8 +98,7 @@ func (c *realScalerClient) GetReplicationController(namespace, name string) (*ka
 	if err != nil {
 		return nil, err
 	}
-	rcName = util.LatestDeploymentNameForConfig(dc)
-	return c.kc.ReplicationControllers(namespace).Get(rcName)
+	return c.kc.ReplicationControllers(namespace).Get(util.LatestDeploymentNameForConfig(dc))
 }
 
 // UpdateReplicationController updates the provided replication controller
@@ -104,6 +108,6 @@ func (c *realScalerClient) UpdateReplicationController(namespace string, rc *kap
 
 // ControllerHasDesiredReplicas checks whether the provided replication controller has the desired replicas
 // number set
-func (c *realScalerClient) ControllerHasDesiredReplicas(rc *kapi.ReplicationController) wait.ConditionFunc {
-	return kclient.ControllerHasDesiredReplicas(c.kc, rc)
+func (c *realScalerClient) ControllerHasDesiredReplicas(rc *kapi.ReplicationController, timeout time.Duration, wg *kubectl.Wait) error {
+	return kubectl.ControllerHasDesiredReplicas(c.kc, rc, timeout, wg)
 }

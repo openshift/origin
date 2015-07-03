@@ -87,7 +87,7 @@ func (reaper *ReplicationControllerReaper) Stop(namespace, name string, gracePer
 		return "", err
 	}
 	retry := NewRetryParams(reaper.pollInterval, reaper.timeout)
-	waitForReplicas := NewRetryParams(reaper.pollInterval, reaper.timeout)
+	waitForReplicas := NewWait()
 	if err = scaler.Scale(namespace, name, 0, nil, retry, waitForReplicas); err != nil {
 		return "", err
 	}
