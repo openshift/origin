@@ -75,7 +75,7 @@
                 <span ng-if="service.spec.portalIP != 'None'">
                   routing traffic on {{service.spec.portalIP}}
                 </span>
-                <span ng-if="numPorts">&#8211;
+                <div ng-if="numPorts">
                   <!--
                   Show only the first two ports if there are many since we don't have much space here.
                   The full list is visible elsewhere.
@@ -88,7 +88,7 @@
                   <span ng-if="numPorts > 2" ng-init="numRemaining = numPorts - 2">
                     and {{numRemaining}} {{numRemaining == 1 ? "other" : "others"}}
                   </span>
-                </span>
+                </div>
               </div>
             </div>
           </div>
