@@ -142,7 +142,7 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 			inUse = append(inUse, net.NetID)
 			oc.VnidMap[net.Name] = net.NetID
 		}
-		oc.netIDManager, err = netutils.NewNetIDAllocator(0, MaxUint, inUse)
+		oc.netIDManager, err = netutils.NewNetIDAllocator(10, MaxUint, inUse)
 		if err != nil {
 			return err
 		}
