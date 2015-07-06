@@ -459,12 +459,13 @@ func TestValidateVolumes(t *testing.T) {
 		{Name: "secret", VolumeSource: api.VolumeSource{Secret: &api.SecretVolumeSource{"my-secret"}}},
 		{Name: "glusterfs", VolumeSource: api.VolumeSource{Glusterfs: &api.GlusterfsVolumeSource{"host1", "path", false}}},
 		{Name: "rbd", VolumeSource: api.VolumeSource{RBD: &api.RBDVolumeSource{CephMonitors: []string{"foo"}, RBDImage: "bar", FSType: "ext4"}}},
+		{Name: "cephfs", VolumeSource: api.VolumeSource{CephFS: &api.CephFSVolumeSource{Monitors: []string{"foo"}}}},
 	}
 	names, errs := validateVolumes(successCase)
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
-	if len(names) != len(successCase) || !names.HasAll("abc", "123", "abc-123", "empty", "gcepd", "gitrepo", "secret", "iscsidisk") {
+	if len(names) != len(successCase) || !names.HasAll("abc", "123", "abc-123", "empty", "gcepd", "gitrepo", "secret", "iscsidisk", "cephfs") {
 		t.Errorf("wrong names result: %v", names)
 	}
 	emptyVS := api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}}
@@ -474,6 +475,7 @@ func TestValidateVolumes(t *testing.T) {
 	emptyPath := api.VolumeSource{Glusterfs: &api.GlusterfsVolumeSource{"host", "", false}}
 	emptyMon := api.VolumeSource{RBD: &api.RBDVolumeSource{CephMonitors: []string{}, RBDImage: "bar", FSType: "ext4"}}
 	emptyImage := api.VolumeSource{RBD: &api.RBDVolumeSource{CephMonitors: []string{"foo"}, RBDImage: "", FSType: "ext4"}}
+	emptyCephFSMon := api.VolumeSource{CephFS: &api.CephFSVolumeSource{Monitors: []string{}}}
 	errorCases := map[string]struct {
 		V []api.Volume
 		T errors.ValidationErrorType
@@ -489,6 +491,7 @@ func TestValidateVolumes(t *testing.T) {
 		"empty path":           {[]api.Volume{{Name: "badpath", VolumeSource: emptyPath}}, errors.ValidationErrorTypeRequired, "[0].source.glusterfs.path"},
 		"empty mon":            {[]api.Volume{{Name: "badmon", VolumeSource: emptyMon}}, errors.ValidationErrorTypeRequired, "[0].source.rbd.monitors"},
 		"empty image":          {[]api.Volume{{Name: "badimage", VolumeSource: emptyImage}}, errors.ValidationErrorTypeRequired, "[0].source.rbd.image"},
+		"empty cephfs mon":     {[]api.Volume{{Name: "badmon", VolumeSource: emptyCephFSMon}}, errors.ValidationErrorTypeRequired, "[0].source.cephfs.monitors"},
 	}
 	for k, v := range errorCases {
 		_, errs := validateVolumes(v.V)

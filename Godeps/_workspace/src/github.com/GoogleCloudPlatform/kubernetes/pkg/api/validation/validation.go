@@ -357,6 +357,10 @@ func validateSource(source *api.VolumeSource) errs.ValidationErrorList {
 		numVolumes++
 		allErrs = append(allErrs, validateRBD(source.RBD).Prefix("rbd")...)
 	}
+	if source.CephFS != nil {
+		numVolumes++
+		allErrs = append(allErrs, validateCephFS(source.CephFS).Prefix("cephfs")...)
+	}
 	if numVolumes != 1 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("", source, "exactly 1 volume type is required"))
 	}
@@ -480,6 +484,14 @@ func validateRBD(rbd *api.RBDVolumeSource) errs.ValidationErrorList {
 	return allErrs
 }
 
+func validateCephFS(cephfs *api.CephFSVolumeSource) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	if len(cephfs.Monitors) == 0 {
+		allErrs = append(allErrs, errs.NewFieldRequired("monitors"))
+	}
+	return allErrs
+}
+
 func ValidatePersistentVolumeName(name string, prefix bool) (bool, string) {
 	return NameIsDNSSubdomain(name, prefix)
 }
@@ -534,6 +546,10 @@ func ValidatePersistentVolume(pv *api.PersistentVolume) errs.ValidationErrorList
 	if pv.Spec.RBD != nil {
 		numVolumes++
 		allErrs = append(allErrs, validateRBD(pv.Spec.RBD).Prefix("rbd")...)
+	}
+	if pv.Spec.CephFS != nil {
+		numVolumes++
+		allErrs = append(allErrs, validateCephFS(pv.Spec.CephFS).Prefix("cephfs")...)
 	}
 	if pv.Spec.ISCSI != nil {
 		numVolumes++
