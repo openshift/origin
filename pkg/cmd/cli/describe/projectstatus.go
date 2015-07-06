@@ -449,13 +449,12 @@ func describeDeploymentPodSummaryInline(deploy *kapi.ReplicationController, incl
 		return s
 	}
 	change := ""
-	if changing, ok := deployutil.DeploymentDesiredReplicas(deploy); ok {
-		switch {
-		case changing < deploy.Spec.Replicas:
-			change = fmt.Sprintf(" reducing to %d", changing)
-		case changing > deploy.Spec.Replicas:
-			change = fmt.Sprintf(" growing to %d", changing)
-		}
+	desired := deploy.Spec.Replicas
+	switch {
+	case desired < deploy.Status.Replicas:
+		change = fmt.Sprintf(" reducing to %d", desired)
+	case desired > deploy.Status.Replicas:
+		change = fmt.Sprintf(" growing to %d", desired)
 	}
 	return fmt.Sprintf(" - %s%s", s, change)
 }
