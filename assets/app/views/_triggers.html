@@ -1,7 +1,7 @@
 <div class="builds-block">
   <div class="builds" ng-repeat="trigger in triggers">
-    <div ng-repeat="build in trigger.builds"
-        ng-if="build | isRecentBuild"
+    <div ng-repeat="build in trigger.builds track by (build | uid)"
+        ng-if="((build | isRecentBuild) || (build | isOscActiveObject)) && !isBuildHidden(build)"
         class="build animate-repeat osc-object"
         kind="Build"
         resource="build">
@@ -27,6 +27,7 @@
           </span>
         </span>
       </span>
+      <a ng-hide="build | isIncompleteBuild" style="margin-left: 5px;" href="" ng-click="hideBuild(build)">Dismiss</a>
     </div>
   </div>
 </div>

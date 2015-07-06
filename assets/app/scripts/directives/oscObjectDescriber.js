@@ -78,7 +78,13 @@ angular.module('openshiftConsole')
         });
       }
     };
-  })  
+  })
+  .filter("isOscActiveObject", function(ObjectDescriber, uidFilter) {
+    return function(resource) {
+      var selectedResource = ObjectDescriber.getResource();
+      return uidFilter(resource) === uidFilter(selectedResource);
+    };
+  })
   .service("ObjectDescriber", function($timeout){
     function ObjectDescriber() {
       this.resource = null;
@@ -101,6 +107,10 @@ angular.module('openshiftConsole')
 
     ObjectDescriber.prototype.clearObject = function() {
       this.setObject(null, null);
+    };
+
+    ObjectDescriber.prototype.getResource = function() {
+      return this.resource;
     };
 
     ObjectDescriber.prototype.getSource = function() {
