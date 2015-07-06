@@ -26,6 +26,7 @@ import (
 	// Volume plugins
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/aws_ebs"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/cephfs"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/empty_dir"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/gce_pd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/git_repo"
@@ -64,6 +65,7 @@ func ProbeVolumePlugins() []volume.VolumePlugin {
 	allPlugins = append(allPlugins, glusterfs.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, persistent_claim.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, rbd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, cephfs.ProbeVolumePlugins()...)
 
 	return allPlugins
 }

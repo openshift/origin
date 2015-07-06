@@ -69,6 +69,29 @@ func deepCopy_api_Capabilities(in Capabilities, out *Capabilities, c *conversion
 	return nil
 }
 
+func deepCopy_api_CephFSVolumeSource(in CephFSVolumeSource, out *CephFSVolumeSource, c *conversion.Cloner) error {
+	if in.Monitors != nil {
+		out.Monitors = make([]string, len(in.Monitors))
+		for i := range in.Monitors {
+			out.Monitors[i] = in.Monitors[i]
+		}
+	} else {
+		out.Monitors = nil
+	}
+	out.User = in.User
+	out.SecretFile = in.SecretFile
+	if in.SecretRef != nil {
+		out.SecretRef = new(LocalObjectReference)
+		if err := deepCopy_api_LocalObjectReference(*in.SecretRef, out.SecretRef, c); err != nil {
+			return err
+		}
+	} else {
+		out.SecretRef = nil
+	}
+	out.ReadOnly = in.ReadOnly
+	return nil
+}
+
 func deepCopy_api_ComponentCondition(in ComponentCondition, out *ComponentCondition, c *conversion.Cloner) error {
 	out.Type = in.Type
 	out.Status = in.Status
@@ -1138,6 +1161,14 @@ func deepCopy_api_PersistentVolumeSource(in PersistentVolumeSource, out *Persist
 	} else {
 		out.ISCSI = nil
 	}
+	if in.CephFS != nil {
+		out.CephFS = new(CephFSVolumeSource)
+		if err := deepCopy_api_CephFSVolumeSource(*in.CephFS, out.CephFS, c); err != nil {
+			return err
+		}
+	} else {
+		out.CephFS = nil
+	}
 	return nil
 }
 
@@ -2137,6 +2168,14 @@ func deepCopy_api_VolumeSource(in VolumeSource, out *VolumeSource, c *conversion
 	} else {
 		out.RBD = nil
 	}
+	if in.CephFS != nil {
+		out.CephFS = new(CephFSVolumeSource)
+		if err := deepCopy_api_CephFSVolumeSource(*in.CephFS, out.CephFS, c); err != nil {
+			return err
+		}
+	} else {
+		out.CephFS = nil
+	}
 	return nil
 }
 
@@ -2175,6 +2214,7 @@ func init() {
 		deepCopy_api_AWSElasticBlockStoreVolumeSource,
 		deepCopy_api_Binding,
 		deepCopy_api_Capabilities,
+		deepCopy_api_CephFSVolumeSource,
 		deepCopy_api_ComponentCondition,
 		deepCopy_api_ComponentStatus,
 		deepCopy_api_ComponentStatusList,
