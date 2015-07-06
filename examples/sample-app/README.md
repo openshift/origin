@@ -462,11 +462,50 @@ Another interesting example is deleting a pod.
 
 Cleaning Up
 -----------
-To empty your project, deleting all BuildConfigs, ImageStreams, DeploymentConfigs,
-Services, etc, you can use:
+
+### Removing objects
+
+To empty your test project, deleting all BuildConfigs, ImageStreams,
+DeploymentConfigs, Services, etc, you can use:
 
     $ oc delete all --all
 
-Alternatively, you can delete the whole project with:
+Now you'll have an empty project that you can reuse later.
+Alternatively, you can delete the whole project:
 
     $ oc delete project test
+
+This will delete the project and all related objects. You'll need to create a
+new project later to deploy more apps.
+
+### Stopping the OpenShift server
+
+If you're running OpenShift as a Docker container, you can stop it now:
+
+    $ docker stop openshift-origin
+
+Otherwise, bring OpenShift's server process to the foreground and kill it:
+
+    $ fg
+    # ^C (CTRL-C)
+
+### Unmounting volumes
+
+*Before removing openshift.local.volumes you'll need to unmount some volumes*
+
+### Removing runtime files
+
+The server creates files under directories named `openshift.local.*`. Removing
+them will bring you back to a clean slate when you start the server again:
+
+    sudo rm -rf openshift.local.*
+
+### Stopping/removing docker containers
+
+Killing the OpenShift server may leave some Docker containers running. You can
+safely stop/remove them:
+
+    $ docker ps
+    $ docker stop <container-IDs>
+    # or
+    $ docker rm -f <constainer-IDs>
