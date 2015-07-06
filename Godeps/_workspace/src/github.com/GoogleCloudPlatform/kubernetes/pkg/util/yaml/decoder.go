@@ -31,14 +31,8 @@ import (
 // or returns an error. If the document appears to be JSON the
 // YAML decoding path is not used (so that error messages are)
 // JSON specific.
-func ToJSON(data []byte, checkValid bool) ([]byte, error) {
+func ToJSON(data []byte) ([]byte, error) {
 	if hasJSONPrefix(data) {
-		if checkValid {
-			var obj interface{}
-			if err := json.Unmarshal(data, &obj); err != nil {
-				return nil, err
-			}
-		}
 		return data, nil
 	}
 	return yaml.YAMLToJSON(data)

@@ -334,6 +334,10 @@ echo "templates: ok"
 [ "$(oc policy TYPO; echo $? | grep '1')" ]
 [ "$(oc secrets TYPO; echo $? | grep '1')" ]
 
+# defend against malformed JSON input
+[ "$(oc create -f test/integration/fixtures/malformed.json 2>&1 | grep "invalid character '}' looking for beginning of object key string")" ]
+[ "$(cat test/integration/fixtures/malformed.json | oc create -f - 2>&1 | grep "invalid character '}' looking for beginning of object key string")" ]
+[ "$(echo '{"apiVersion":"v1", "kind": "ResourceQuota", "metadata": {"name":"quota",}, "spec": {}}' | oc create -f - 2>&1 | grep "invalid character '}' looking for beginning of object key string")" ]
 
 oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org
 # can't use a go template here because the output needs to be base64 decoded.  base64 isn't installed by default in all distros
