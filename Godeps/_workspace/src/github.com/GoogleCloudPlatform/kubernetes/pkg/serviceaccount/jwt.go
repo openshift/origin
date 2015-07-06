@@ -23,13 +23,12 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/golang/glog"
-
-	jwt "github.com/dgrijalva/jwt-go"
-
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authenticator"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang/glog"
 )
 
 const (

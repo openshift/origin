@@ -39,14 +39,16 @@ type ConversionGenerator interface {
 	AssumePrivateConversions()
 }
 
-func NewConversionGenerator(scheme *conversion.Scheme) ConversionGenerator {
+func NewConversionGenerator(scheme *conversion.Scheme, targetPkg string) ConversionGenerator {
 	g := &conversionGenerator{
 		scheme:        scheme,
+		targetPkg:     targetPkg,
 		convertibles:  make(map[reflect.Type]reflect.Type),
 		pkgOverwrites: make(map[string]string),
 		imports:       make(map[string]string),
 		shortImports:  make(map[string]string),
 	}
+	g.targetPackage(targetPkg)
 	g.AddImport("reflect")
 	g.AddImport("github.com/GoogleCloudPlatform/kubernetes/pkg/conversion")
 	return g
@@ -56,6 +58,7 @@ var complexTypes []reflect.Kind = []reflect.Kind{reflect.Map, reflect.Ptr, refle
 
 type conversionGenerator struct {
 	scheme       *conversion.Scheme
+	targetPkg    string
 	convertibles map[reflect.Type]reflect.Type
 	// If pkgOverwrites is set for a given package name, that package name
 	// will be replaced while writing conversion function. If empty, package
@@ -268,6 +271,11 @@ func (s byName) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
+func (g *conversionGenerator) targetPackage(pkg string) {
+	g.imports[pkg] = ""
+	g.shortImports[""] = pkg
+}
+
 func (g *conversionGenerator) RepackImports(exclude util.StringSet) {
 	var packages []string
 	for key := range g.imports {
@@ -276,6 +284,7 @@ func (g *conversionGenerator) RepackImports(exclude util.StringSet) {
 	sort.Strings(packages)
 	g.imports = make(map[string]string)
 	g.shortImports = make(map[string]string)
+	g.targetPackage(g.targetPkg)
 	for _, pkg := range packages {
 		if !exclude.Has(pkg) {
 			g.addImportByPath(pkg)
@@ -295,6 +304,9 @@ func (g *conversionGenerator) WriteImports(w io.Writer) error {
 	buffer.addLine("import (\n", indent)
 	for _, importPkg := range packages {
 		if len(importPkg) == 0 {
+			continue
+		}
+		if len(g.imports[importPkg]) == 0 {
 			continue
 		}
 		buffer.addLine(fmt.Sprintf("%s \"%s\"\n", g.imports[importPkg], importPkg), indent+1)
@@ -407,7 +419,7 @@ func (g *conversionGenerator) addImportByPath(pkg string) string {
 	panic(fmt.Sprintf("unable to find a unique name for the package path %q: %v", pkg, g.shortImports))
 }
 
-func (g *conversionGenerator) nameForType(inType reflect.Type) string {
+func (g *conversionGenerator) typeName(inType reflect.Type) string {
 	switch inType.Kind() {
 	case reflect.Slice:
 		return fmt.Sprintf("[]%s", g.typeName(inType.Elem()))
@@ -434,12 +446,11 @@ func (g *conversionGenerator) nameForType(inType reflect.Type) string {
 			return name
 		}
 		short := g.addImportByPath(pkg)
-		return fmt.Sprintf("%s.%s", short, name)
+		if len(short) > 0 {
+			return fmt.Sprintf("%s.%s", short, name)
+		}
+		return name
 	}
-}
-
-func (g *conversionGenerator) typeName(inType reflect.Type) string {
-	return g.nameForType(inType)
 }
 
 func (g *conversionGenerator) writeDefaultingFunc(b *buffer, inType reflect.Type, indent int) error {

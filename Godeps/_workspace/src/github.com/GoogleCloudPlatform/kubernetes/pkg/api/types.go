@@ -47,6 +47,12 @@ import (
 //         [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*
 //     or more simply:
 //         DNS_LABEL(\.DNS_LABEL)*
+//
+// IANA_SVC_NAME: This is a string, no more than 15 characters long, that
+//      conforms to the definition of IANA service name in RFC 6335.
+//      It must contains at least one letter [a-z] and it must contains only [a-z0-9-].
+//      Hypens ('-') cannot be leading or trailing character of the string
+//      and cannot be adjacent to other hyphens.
 
 // TypeMeta describes an individual object in an API response or request
 // with strings representing the type of the object and its API schema version.
@@ -117,6 +123,10 @@ type ObjectMeta struct {
 	// resource or set of resources. Only servers will generate resource versions.
 	ResourceVersion string `json:"resourceVersion,omitempty"`
 
+	// A sequence number representing a specific generation of the desired state.
+	// Currently only implemented by replication controllers.
+	Generation int64 `json:"generation,omitempty"`
+
 	// CreationTimestamp is a timestamp representing the server time when this object was
 	// created. It is not guaranteed to be set in happens-before order across separate operations.
 	// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
@@ -183,34 +193,32 @@ type VolumeSource struct {
 	// machine. Most containers will NOT need this.
 	// TODO(jonesdl) We need to restrict who can use host directory mounts and who can/can not
 	// mount host directories as read/write.
-	HostPath *HostPathVolumeSource `json:"hostPath"`
+	HostPath *HostPathVolumeSource `json:"hostPath,omitempty"`
 	// EmptyDir represents a temporary directory that shares a pod's lifetime.
-	EmptyDir *EmptyDirVolumeSource `json:"emptyDir"`
+	EmptyDir *EmptyDirVolumeSource `json:"emptyDir,omitempty"`
 	// GCEPersistentDisk represents a GCE Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	GCEPersistentDisk *GCEPersistentDiskVolumeSource `json:"gcePersistentDisk"`
+	GCEPersistentDisk *GCEPersistentDiskVolumeSource `json:"gcePersistentDisk,omitempty"`
 	// AWSElasticBlockStore represents an AWS EBS disk that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	AWSElasticBlockStore *AWSElasticBlockStoreVolumeSource `json:"awsElasticBlockStore"`
+	AWSElasticBlockStore *AWSElasticBlockStoreVolumeSource `json:"awsElasticBlockStore,omitempty"`
 	// GitRepo represents a git repository at a particular revision.
-	GitRepo *GitRepoVolumeSource `json:"gitRepo"`
+	GitRepo *GitRepoVolumeSource `json:"gitRepo,omitempty"`
 	// Secret represents a secret that should populate this volume.
-	Secret *SecretVolumeSource `json:"secret"`
+	Secret *SecretVolumeSource `json:"secret,omitempty"`
 	// NFS represents an NFS mount on the host that shares a pod's lifetime
-	NFS *NFSVolumeSource `json:"nfs"`
+	NFS *NFSVolumeSource `json:"nfs,omitempty"`
 	// ISCSIVolumeSource represents an ISCSI Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	ISCSI *ISCSIVolumeSource `json:"iscsi"`
+	ISCSI *ISCSIVolumeSource `json:"iscsi,omitempty"`
 	// Glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime
-	Glusterfs *GlusterfsVolumeSource `json:"glusterfs"`
+	Glusterfs *GlusterfsVolumeSource `json:"glusterfs,omitempty"`
 	// PersistentVolumeClaimVolumeSource represents a reference to a PersistentVolumeClaim in the same namespace
-	PersistentVolumeClaimVolumeSource *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty"`
+	PersistentVolumeClaim *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty"`
 	// RBD represents a Rados Block Device mount on the host that shares a pod's lifetime
-	RBD *RBDVolumeSource `json:"rbd"`
+	RBD *RBDVolumeSource `json:"rbd,omitempty"`
 	// CephFS represents a Cephfs mount on the host that shares a pod's lifetime
 	CephFS *CephFSVolumeSource `json:"cephfs,omitempty"`
-	// Metadata represents metadata about the pod that should populate this volume
-	Metadata *MetadataVolumeSource `json:"metadata"`
 }
 
 // Similar to VolumeSource but meant for the administrator who creates PVs.
@@ -218,30 +226,30 @@ type VolumeSource struct {
 type PersistentVolumeSource struct {
 	// GCEPersistentDisk represents a GCE Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	GCEPersistentDisk *GCEPersistentDiskVolumeSource `json:"gcePersistentDisk"`
+	GCEPersistentDisk *GCEPersistentDiskVolumeSource `json:"gcePersistentDisk,omitempty"`
 	// AWSElasticBlockStore represents an AWS EBS disk that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	AWSElasticBlockStore *AWSElasticBlockStoreVolumeSource `json:"awsElasticBlockStore"`
+	AWSElasticBlockStore *AWSElasticBlockStoreVolumeSource `json:"awsElasticBlockStore,omitempty"`
 	// HostPath represents a directory on the host.
 	// This is useful for development and testing only.
 	// on-host storage is not supported in any way
-	HostPath *HostPathVolumeSource `json:"hostPath"`
+	HostPath *HostPathVolumeSource `json:"hostPath,omitempty"`
 	// Glusterfs represents a Glusterfs volume that is attached to a host and exposed to the pod
-	Glusterfs *GlusterfsVolumeSource `json:"glusterfs"`
+	Glusterfs *GlusterfsVolumeSource `json:"glusterfs,omitempty"`
 	// NFS represents an NFS mount on the host that shares a pod's lifetime
-	NFS *NFSVolumeSource `json:"nfs"`
+	NFS *NFSVolumeSource `json:"nfs,omitempty"`
 	// RBD represents a Rados Block Device mount on the host that shares a pod's lifetime
-	RBD *RBDVolumeSource `json:"rbd"`
+	RBD *RBDVolumeSource `json:"rbd,omitempty"`
 	// ISCSIVolumeSource represents an ISCSI resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
-	ISCSI *ISCSIVolumeSource `json:"iscsi"`
+	ISCSI *ISCSIVolumeSource `json:"iscsi,omitempty"`
 	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
-	CephFS *CephFSVolumeSource `json:"cephfs"`
+	CephFS *CephFSVolumeSource `json:"cephfs,omitempty"`
 }
 
 type PersistentVolumeClaimVolumeSource struct {
 	// ClaimName is the name of a PersistentVolumeClaim in the same namespace as the pod using this volume
-	ClaimName string `json:"claimName,omitempty" description:"the name of the claim in the same namespace to be mounted as a volume"`
+	ClaimName string `json:"claimName" description:"the name of the claim in the same namespace to be mounted as a volume"`
 	// Optional: Defaults to false (read/write).  ReadOnly here
 	// will force the ReadOnly setting in VolumeMounts
 	ReadOnly bool `json:"readOnly,omitempty"`
@@ -560,23 +568,9 @@ type CephFSVolumeSource struct {
 	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
-// MetadataVolumeSource represents a volume containing metadata about a pod.
-type MetadataVolumeSource struct {
-	// Items is a list of metadata file name
-	Items []MetadataFile `json:"items",omitempty"`
-}
-
-// MetadataFile represents information to create the file containing the pod field
-type MetadataFile struct {
-	// Required: Name is the name of the file
-	Name string `json:"name,omitempty"`
-	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
-	FieldRef ObjectFieldSelector `json:"fieldRef"`
-}
-
 // ContainerPort represents a network port in a single container
 type ContainerPort struct {
-	// Optional: If specified, this must be a DNS_LABEL.  Each named port
+	// Optional: If specified, this must be an IANA_SVC_NAME  Each named port
 	// in a pod must have a unique name.
 	Name string `json:"name,omitempty"`
 	// Optional: If specified, this must be a valid port number, 0 < x < 65536.
@@ -641,7 +635,19 @@ type HTTPGetAction struct {
 	Port util.IntOrString `json:"port,omitempty"`
 	// Optional: Host name to connect to, defaults to the pod IP.
 	Host string `json:"host,omitempty"`
+	// Optional: Scheme to use for connecting to the host, defaults to HTTP.
+	Scheme URIScheme `json:"scheme,omitempty"`
 }
+
+// URIScheme identifies the scheme used for connection to a host for Get actions
+type URIScheme string
+
+const (
+	// URISchemeHTTP means that the scheme used will be http://
+	URISchemeHTTP URIScheme = "HTTP"
+	// URISchemeHTTPS means that the scheme used will be https://
+	URISchemeHTTPS URIScheme = "HTTPS"
+)
 
 // TCPSocketAction describes an action based on opening a socket
 type TCPSocketAction struct {
@@ -801,9 +807,9 @@ type ContainerStateTerminated struct {
 // Only one of its members may be specified.
 // If none of them is specified, the default one is ContainerStateWaiting.
 type ContainerState struct {
-	Waiting     *ContainerStateWaiting    `json:"waiting,omitempty"`
-	Running     *ContainerStateRunning    `json:"running,omitempty"`
-	Termination *ContainerStateTerminated `json:"termination,omitempty"`
+	Waiting    *ContainerStateWaiting    `json:"waiting,omitempty"`
+	Running    *ContainerStateRunning    `json:"running,omitempty"`
+	Terminated *ContainerStateTerminated `json:"terminated,omitempty"`
 }
 
 type ContainerStatus struct {
@@ -862,14 +868,6 @@ type PodCondition struct {
 	Status ConditionStatus  `json:"status"`
 }
 
-// PodContainerInfo is a wrapper for PodInfo that can be encode/decoded
-// DEPRECATED: Replaced with PodStatusResult
-type PodContainerInfo struct {
-	TypeMeta      `json:",inline"`
-	ObjectMeta    `json:"metadata,omitempty"`
-	ContainerInfo []ContainerStatus `json:"containerInfo"`
-}
-
 // RestartPolicy describes how the container should be restarted.
 // Only one of the following restart policies may be specified.
 // If none of the following policies is specified, the default one
@@ -925,14 +923,14 @@ type PodSpec struct {
 	// NodeSelector is a selector which must be true for the pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	// ServiceAccount is the name of the ServiceAccount to use to run this pod
+	// ServiceAccountName is the name of the ServiceAccount to use to run this pod
 	// The pod will be allowed to use secrets referenced by the ServiceAccount
-	ServiceAccount string `json:"serviceAccount"`
+	ServiceAccountName string `json:"serviceAccountName"`
 
-	// Host is a request to schedule this pod onto a specific host.  If it is non-empty,
-	// the the scheduler simply schedules this pod onto that host, assuming that it fits
-	// resource requirements.
-	Host string `json:"host,omitempty"`
+	// NodeName is a request to schedule this pod onto a specific node.  If it is non-empty,
+	// the scheduler simply schedules this pod onto that node, assuming that it fits resource
+	// requirements.
+	NodeName string `json:"nodeName,omitempty"`
 	// Uses the host's network namespace. If this option is set, the ports that will be
 	// used must be specified.
 	// Optional: Default to false.
@@ -950,6 +948,8 @@ type PodStatus struct {
 	Conditions []PodCondition `json:"conditions,omitempty"`
 	// A human readable message indicating details about why the pod is in this state.
 	Message string `json:"message,omitempty"`
+	// A brief CamelCase message indicating details about why the pod is in this state. e.g. 'OutOfDisk'
+	Reason string `json:"reason,omitempty" description:"(brief-CamelCase) reason indicating details about why the pod is in this condition"`
 
 	HostIP string `json:"hostIP,omitempty"`
 	PodIP  string `json:"podIP,omitempty"`
@@ -1027,7 +1027,7 @@ type ReplicationControllerSpec struct {
 	// TemplateRef is a reference to an object that describes the pod that will be created if
 	// insufficient replicas are detected. This reference is ignored if a Template is set.
 	// Must be set before converting to a v1beta3 API object
-	TemplateRef *ObjectReference `json:"templateRef,omitempty"`
+	//TemplateRef *ObjectReference `json:"templateRef,omitempty"`
 
 	// Template is the object that describes the pod that will be created if
 	// insufficient replicas are detected. Internally, this takes precedence over a
@@ -1041,6 +1041,9 @@ type ReplicationControllerSpec struct {
 type ReplicationControllerStatus struct {
 	// Replicas is the number of actual replicas.
 	Replicas int `json:"replicas"`
+
+	// ObservedGeneration is the most recent generation observed by the controller.
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // ReplicationController represents the configuration of a replication controller.
@@ -1065,9 +1068,9 @@ type ReplicationControllerList struct {
 }
 
 const (
-	// PortalIPNone - do not assign a portal IP
+	// ClusterIPNone - do not assign a cluster IP
 	// no proxying required and no environment variables should be created for pods
-	PortalIPNone = "None"
+	ClusterIPNone = "None"
 )
 
 // ServiceList holds a list of services.
@@ -1094,7 +1097,7 @@ type ServiceType string
 
 const (
 	// ServiceTypeClusterIP means a service will only be accessible inside the
-	// cluster, via the portal IP.
+	// cluster, via the ClusterIP.
 	ServiceTypeClusterIP ServiceType = "ClusterIP"
 
 	// ServiceTypeNodePort means a service will be exposed on one port of
@@ -1143,12 +1146,12 @@ type ServiceSpec struct {
 	// those endpoints.
 	Selector map[string]string `json:"selector"`
 
-	// PortalIP is usually assigned by the master.  If specified by the user
+	// ClusterIP is usually assigned by the master.  If specified by the user
 	// we will try to respect it or else fail the request.  This field can
 	// not be changed by updates.
 	// Valid values are None, empty string (""), or a valid IP address
 	// None can be specified for headless services when proxying is not required
-	PortalIP string `json:"portalIP,omitempty"`
+	ClusterIP string `json:"clusterIP,omitempty"`
 
 	// Type determines how the service will be exposed.  Valid options: ClusterIP, NodePort, LoadBalancer
 	Type ServiceType `json:"type,omitempty"`
@@ -1301,6 +1304,10 @@ type NodeSpec struct {
 
 	// External ID of the node assigned by some machine database (e.g. a cloud provider)
 	ExternalID string `json:"externalID,omitempty"`
+
+	// ID of the node assigned by the cloud provider
+	// Note: format is "<ProviderName>://<ProviderSpecificNodeID>"
+	ProviderID string `json:"providerID,omitempty"`
 
 	// Unschedulable controls node schedulability of new pods. By default node is schedulable.
 	Unschedulable bool `json:"unschedulable,omitempty"`
@@ -1593,10 +1600,9 @@ type Status struct {
 // and should assume that any attribute may be empty, invalid, or under
 // defined.
 type StatusDetails struct {
-	// The ID attribute of the resource associated with the status StatusReason
-	// (when there is a single ID which can be described).
-	// TODO: replace with Name with v1beta3
-	ID string `json:"id,omitempty"`
+	// The name attribute of the resource associated with the status StatusReason
+	// (when there is a single name which can be described).
+	Name string `json:"name,omitempty"`
 	// The kind attribute of the resource associated with the status StatusReason.
 	// On some operations may differ from the requested resource Kind.
 	Kind string `json:"kind,omitempty"`
@@ -1847,43 +1853,6 @@ type EventList struct {
 	Items []Event `json:"items"`
 }
 
-// ContainerManifest corresponds to the Container Manifest format, documented at:
-// https://developers.google.com/compute/docs/containers/container_vms#container_manifest
-// This is used as the representation of Kubernetes workloads.
-// DEPRECATED: Replaced with Pod
-type ContainerManifest struct {
-	// Required: This must be a supported version string, such as "v1beta1".
-	Version string `json:"version"`
-	// Required: This must be a DNS_SUBDOMAIN.
-	// TODO: ID on Manifest is deprecated and will be removed in the future.
-	ID string `json:"id"`
-	// TODO: UUID on Manifest is deprecated in the future once we are done
-	// with the API refactoring. It is required for now to determine the instance
-	// of a Pod.
-	UUID                          types.UID     `json:"uuid,omitempty"`
-	Volumes                       []Volume      `json:"volumes"`
-	Containers                    []Container   `json:"containers"`
-	RestartPolicy                 RestartPolicy `json:"restartPolicy,omitempty"`
-	TerminationGracePeriodSeconds *int64        `json:"terminationGracePeriodSeconds,omitempty"`
-	ActiveDeadlineSeconds         *int64        `json:"activeDeadlineSeconds,omitempty"`
-	// Required: Set DNS policy.
-	DNSPolicy   DNSPolicy `json:"dnsPolicy"`
-	HostNetwork bool      `json:"hostNetwork,omitempty"`
-	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec.
-	// If specified, these secrets will be passed to individual puller implementations for them to use.  For example,
-	// in the case of docker, only DockerConfig type secrets are honored.
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" description:"list of references to secrets in the same namespace available for pulling the container images"`
-}
-
-// ContainerManifestList is used to communicate container manifests to kubelet.
-// DEPRECATED: Replaced with Pods
-type ContainerManifestList struct {
-	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty"`
-
-	Items []ContainerManifest `json:"items"`
-}
-
 // List holds a list of objects, which may not be known by the server.
 type List struct {
 	TypeMeta `json:",inline"`
@@ -2029,6 +1998,8 @@ const (
 	ServiceAccountTokenKey = "token"
 	// ServiceAccountKubeconfigKey is the key of the optional kubeconfig data for SecretTypeServiceAccountToken secrets
 	ServiceAccountKubeconfigKey = "kubernetes.kubeconfig"
+	// ServiceAccountRootCAKey is the key of the optional root certificate authority for SecretTypeServiceAccountToken secrets
+	ServiceAccountRootCAKey = "ca.crt"
 
 	// SecretTypeDockercfg contains a dockercfg file that follows the same format rules as ~/.dockercfg
 	//

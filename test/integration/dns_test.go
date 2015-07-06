@@ -61,8 +61,8 @@ func TestDNS(t *testing.T) {
 				Name: "headless",
 			},
 			Spec: kapi.ServiceSpec{
-				PortalIP: kapi.PortalIPNone,
-				Ports:    []kapi.ServicePort{{Port: 443}},
+				ClusterIP: kapi.ClusterIPNone,
+				Ports:     []kapi.ServicePort{{Port: 443}},
 			},
 		}); err != nil {
 			if errors.IsForbidden(err) {
@@ -94,8 +94,8 @@ func TestDNS(t *testing.T) {
 			Name: "headless2",
 		},
 		Spec: kapi.ServiceSpec{
-			PortalIP: kapi.PortalIPNone,
-			Ports:    []kapi.ServicePort{{Port: 443}},
+			ClusterIP: kapi.ClusterIPNone,
+			Ports:     []kapi.ServicePort{{Port: 443}},
 		},
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)

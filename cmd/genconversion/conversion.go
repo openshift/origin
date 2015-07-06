@@ -40,7 +40,7 @@ func main() {
 		funcOut = file
 	}
 
-	generator := pkg_runtime.NewConversionGenerator(api.Scheme.Raw())
+	generator := pkg_runtime.NewConversionGenerator(api.Scheme.Raw(), "github.com/openshift/origin/pkg/api")
 	apiShort := generator.AddImport("github.com/GoogleCloudPlatform/kubernetes/pkg/api")
 	generator.AssumePrivateConversions()
 	// TODO(wojtek-t): Change the overwrites to a flag.

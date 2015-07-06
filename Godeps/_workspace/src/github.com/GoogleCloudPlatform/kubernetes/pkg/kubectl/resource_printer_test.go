@@ -237,18 +237,18 @@ type TestUnknownType struct{}
 
 func (*TestUnknownType) IsAnAPIObject() {}
 
-func PrintCustomType(obj *TestPrintType, w io.Writer, withNamespace bool) error {
+func PrintCustomType(obj *TestPrintType, w io.Writer, withNamespace bool, columnLabels []string) error {
 	_, err := fmt.Fprintf(w, "%s", obj.Data)
 	return err
 }
 
-func ErrorPrintHandler(obj *TestPrintType, w io.Writer, withNamespace bool) error {
+func ErrorPrintHandler(obj *TestPrintType, w io.Writer, withNamespace bool, columnLabels []string) error {
 	return fmt.Errorf("ErrorPrintHandler error")
 }
 
 func TestCustomTypePrinting(t *testing.T) {
 	columns := []string{"Data"}
-	printer := NewHumanReadablePrinter(false, false)
+	printer := NewHumanReadablePrinter(false, false, []string{})
 	printer.Handler(columns, PrintCustomType)
 
 	obj := TestPrintType{"test object"}
@@ -265,7 +265,7 @@ func TestCustomTypePrinting(t *testing.T) {
 
 func TestPrintHandlerError(t *testing.T) {
 	columns := []string{"Data"}
-	printer := NewHumanReadablePrinter(false, false)
+	printer := NewHumanReadablePrinter(false, false, []string{})
 	printer.Handler(columns, ErrorPrintHandler)
 	obj := TestPrintType{"test object"}
 	buffer := &bytes.Buffer{}
@@ -276,7 +276,7 @@ func TestPrintHandlerError(t *testing.T) {
 }
 
 func TestUnknownTypePrinting(t *testing.T) {
-	printer := NewHumanReadablePrinter(false, false)
+	printer := NewHumanReadablePrinter(false, false, []string{})
 	buffer := &bytes.Buffer{}
 	err := printer.PrintObj(&TestUnknownType{}, buffer)
 	if err == nil {
@@ -416,20 +416,7 @@ func TestTemplateStrings(t *testing.T) {
 	}
 	// The point of this test is to verify that the below template works. If you change this
 	// template, you need to update hack/e2e-suite/update.sh.
-	tmpl := ``
-	if api.PreV1Beta3(testapi.Version()) {
-		tmpl = `{{exists . "currentState" "info" "foo" "state" "running"}}`
-		useThisToDebug := `
-a: {{exists . "currentState"}}
-b: {{exists . "currentState" "info"}}
-c: {{exists . "currentState" "info" "foo"}}
-d: {{exists . "currentState" "info" "foo" "state"}}
-e: {{exists . "currentState" "info" "foo" "state" "running"}}
-f: {{exists . "currentState" "info" "foo" "state" "running" "startedAt"}}`
-		_ = useThisToDebug // don't complain about unused var
-	} else {
-		tmpl = `{{if (exists . "status" "containerStatuses")}}{{range .status.containerStatuses}}{{if (and (eq .name "foo") (exists . "state" "running"))}}true{{end}}{{end}}{{end}}`
-	}
+	tmpl := `{{if (exists . "status" "containerStatuses")}}{{range .status.containerStatuses}}{{if (and (eq .name "foo") (exists . "state" "running"))}}true{{end}}{{end}}{{end}}`
 	p, err := NewTemplatePrinter([]byte(tmpl))
 	if err != nil {
 		t.Fatalf("tmpl fail: %v", err)
@@ -465,8 +452,8 @@ func TestPrinters(t *testing.T) {
 		t.Fatal(err)
 	}
 	printers := map[string]ResourcePrinter{
-		"humanReadable":        NewHumanReadablePrinter(true, false),
-		"humanReadableHeaders": NewHumanReadablePrinter(false, false),
+		"humanReadable":        NewHumanReadablePrinter(true, false, []string{}),
+		"humanReadableHeaders": NewHumanReadablePrinter(false, false, []string{}),
 		"json":                 &JSONPrinter{},
 		"yaml":                 &YAMLPrinter{},
 		"template":             templatePrinter,
@@ -503,7 +490,7 @@ func TestPrinters(t *testing.T) {
 
 func TestPrintEventsResultSorted(t *testing.T) {
 	// Arrange
-	printer := NewHumanReadablePrinter(false /* noHeaders */, false)
+	printer := NewHumanReadablePrinter(false /* noHeaders */, false, []string{})
 
 	obj := api.EventList{
 		Items: []api.Event{
@@ -544,7 +531,7 @@ func TestPrintEventsResultSorted(t *testing.T) {
 }
 
 func TestPrintMinionStatus(t *testing.T) {
-	printer := NewHumanReadablePrinter(false, false)
+	printer := NewHumanReadablePrinter(false, false, []string{})
 	table := []struct {
 		minion api.Node
 		status string
@@ -645,7 +632,7 @@ func TestPrintHumanReadableService(t *testing.T) {
 	tests := []api.Service{
 		{
 			Spec: api.ServiceSpec{
-				PortalIP: "1.2.3.4",
+				ClusterIP: "1.2.3.4",
 				Ports: []api.ServicePort{
 					{
 						Port:     80,
@@ -668,7 +655,7 @@ func TestPrintHumanReadableService(t *testing.T) {
 		},
 		{
 			Spec: api.ServiceSpec{
-				PortalIP: "1.2.3.4",
+				ClusterIP: "1.2.3.4",
 				Ports: []api.ServicePort{
 					{
 						Port:     80,
@@ -687,7 +674,7 @@ func TestPrintHumanReadableService(t *testing.T) {
 		},
 		{
 			Spec: api.ServiceSpec{
-				PortalIP: "1.2.3.4",
+				ClusterIP: "1.2.3.4",
 				Ports: []api.ServicePort{
 					{
 						Port:     80,
@@ -715,7 +702,7 @@ func TestPrintHumanReadableService(t *testing.T) {
 		},
 		{
 			Spec: api.ServiceSpec{
-				PortalIP: "1.2.3.4",
+				ClusterIP: "1.2.3.4",
 				Ports: []api.ServicePort{
 					{
 						Port:     80,
@@ -752,11 +739,11 @@ func TestPrintHumanReadableService(t *testing.T) {
 
 	for _, svc := range tests {
 		buff := bytes.Buffer{}
-		printService(&svc, &buff, false)
+		printService(&svc, &buff, false, []string{})
 		output := string(buff.Bytes())
-		ip := svc.Spec.PortalIP
+		ip := svc.Spec.ClusterIP
 		if !strings.Contains(output, ip) {
-			t.Errorf("expected to contain portal ip %s, but doesn't: %s", ip, output)
+			t.Errorf("expected to contain ClusterIP %s, but doesn't: %s", ip, output)
 		}
 
 		for _, ingress := range svc.Status.LoadBalancer.Ingress {
@@ -772,114 +759,13 @@ func TestPrintHumanReadableService(t *testing.T) {
 				t.Errorf("expected to contain port: %s, but doesn't: %s", portSpec, output)
 			}
 		}
-		// Max of # ports and (# public ip + portal ip)
+		// Max of # ports and (# public ip + cluster ip)
 		count := len(svc.Spec.Ports)
 		if len(svc.Status.LoadBalancer.Ingress)+1 > count {
 			count = len(svc.Status.LoadBalancer.Ingress) + 1
 		}
 		if count != strings.Count(output, "\n") {
 			t.Errorf("expected %d newlines, found %d", count, strings.Count(output, "\n"))
-		}
-	}
-}
-
-func TestInterpretContainerStatus(t *testing.T) {
-	tests := []struct {
-		status          *api.ContainerStatus
-		expectedState   string
-		expectedMessage string
-		expectErr       bool
-		name            string
-	}{
-		{
-			status: &api.ContainerStatus{
-				State: api.ContainerState{
-					Running: &api.ContainerStateRunning{},
-				},
-				Ready: true,
-			},
-			expectedState:   "Running",
-			expectedMessage: "",
-			name:            "basic",
-		},
-		{
-			status: &api.ContainerStatus{
-				State: api.ContainerState{
-					Running: &api.ContainerStateRunning{},
-				},
-				Ready: false,
-			},
-			expectedState:   "Running *not ready*",
-			expectedMessage: "",
-			name:            "basic not ready",
-		},
-		{
-			status: &api.ContainerStatus{
-				State: api.ContainerState{
-					Waiting: &api.ContainerStateWaiting{},
-				},
-				Ready: false,
-			},
-			expectedState:   "Waiting",
-			expectedMessage: "",
-			name:            "waiting not ready",
-		},
-		{
-			status: &api.ContainerStatus{
-				State: api.ContainerState{
-					Waiting: &api.ContainerStateWaiting{},
-				},
-				Ready: true,
-			},
-			expectedState:   "Waiting",
-			expectedMessage: "",
-			name:            "waiting",
-		},
-		{
-			status: &api.ContainerStatus{
-				State: api.ContainerState{
-					Termination: &api.ContainerStateTerminated{
-						ExitCode: 3,
-					},
-				},
-				Ready: false,
-			},
-			expectedState:   "Terminated",
-			expectedMessage: "exit code 3",
-			name:            "terminated not ready",
-		},
-		{
-			status: &api.ContainerStatus{
-				State: api.ContainerState{
-					Termination: &api.ContainerStateTerminated{
-						ExitCode: 5,
-						Reason:   "test reason",
-					},
-				},
-				Ready: true,
-			},
-			expectedState:   "Terminated",
-			expectedMessage: "exit code 5, reason: test reason",
-			name:            "terminated",
-		},
-	}
-
-	for _, test := range tests {
-		// TODO: test timestamp printing.
-		state, _, msg, err := interpretContainerStatus(test.status)
-		if test.expectErr && err == nil {
-			t.Errorf("unexpected non-error (%s)", test.name)
-			continue
-		}
-		if !test.expectErr && err != nil {
-			t.Errorf("unexpected error: %v (%s)", err, test.name)
-			continue
-		}
-		if state != test.expectedState {
-			t.Errorf("expected: %s, got: %s", test.expectedState, state)
-		}
-		if msg != test.expectedMessage {
-			t.Errorf("expected: %s, got: %s", test.expectedMessage, msg)
 		}
 	}
 }
@@ -932,7 +818,7 @@ func TestPrintHumanReadableWithNamespace(t *testing.T) {
 			obj: &api.Service{
 				ObjectMeta: api.ObjectMeta{Name: name, Namespace: namespaceName},
 				Spec: api.ServiceSpec{
-					PortalIP: "1.2.3.4",
+					ClusterIP: "1.2.3.4",
 					Ports: []api.ServicePort{
 						{
 							Port:     80,
@@ -1035,7 +921,7 @@ func TestPrintHumanReadableWithNamespace(t *testing.T) {
 		},
 	}
 
-	printer := NewHumanReadablePrinter(false, false)
+	printer := NewHumanReadablePrinter(false, false, []string{})
 	for _, test := range table {
 		buffer := &bytes.Buffer{}
 		err := printer.PrintObj(test.obj, buffer)
@@ -1048,7 +934,7 @@ func TestPrintHumanReadableWithNamespace(t *testing.T) {
 		}
 	}
 
-	printer = NewHumanReadablePrinter(false, true)
+	printer = NewHumanReadablePrinter(false, true, []string{})
 	for _, test := range table {
 		buffer := &bytes.Buffer{}
 		err := printer.PrintObj(test.obj, buffer)
@@ -1061,5 +947,159 @@ func TestPrintHumanReadableWithNamespace(t *testing.T) {
 		} else if !test.printNamespace && matched {
 			t.Errorf("Expect printing object not to contain namespace: %v", test.obj)
 		}
+	}
+}
+
+func TestPrintPod(t *testing.T) {
+	tests := []struct {
+		pod    api.Pod
+		expect string
+	}{
+		{
+			// Test name, num of containers, restarts, container ready status
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "test1"},
+				Spec:       api.PodSpec{Containers: make([]api.Container, 2)},
+				Status: api.PodStatus{
+					Phase: "podPhase",
+					ContainerStatuses: []api.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: api.ContainerState{Running: &api.ContainerStateRunning{}}},
+						{RestartCount: 3},
+					},
+				},
+			},
+			"test1\t1/2\tpodPhase\t6\t",
+		},
+		{
+			// Test container error overwrites pod phase
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "test2"},
+				Spec:       api.PodSpec{Containers: make([]api.Container, 2)},
+				Status: api.PodStatus{
+					Phase: "podPhase",
+					ContainerStatuses: []api.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: api.ContainerState{Running: &api.ContainerStateRunning{}}},
+						{State: api.ContainerState{Waiting: &api.ContainerStateWaiting{Reason: "ContainerWaitingReason"}}, RestartCount: 3},
+					},
+				},
+			},
+			"test2\t1/2\tContainerWaitingReason\t6\t",
+		},
+		{
+			// Test the same as the above but with Terminated state and the first container overwrites the rest
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "test3"},
+				Spec:       api.PodSpec{Containers: make([]api.Container, 2)},
+				Status: api.PodStatus{
+					Phase: "podPhase",
+					ContainerStatuses: []api.ContainerStatus{
+						{State: api.ContainerState{Waiting: &api.ContainerStateWaiting{Reason: "ContainerWaitingReason"}}, RestartCount: 3},
+						{State: api.ContainerState{Terminated: &api.ContainerStateTerminated{Reason: "ContainerTerminatedReason"}}, RestartCount: 3},
+					},
+				},
+			},
+			"test3\t0/2\tContainerWaitingReason\t6\t",
+		},
+		{
+			// Test ready is not enough for reporting running
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "test4"},
+				Spec:       api.PodSpec{Containers: make([]api.Container, 2)},
+				Status: api.PodStatus{
+					Phase: "podPhase",
+					ContainerStatuses: []api.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: api.ContainerState{Running: &api.ContainerStateRunning{}}},
+						{Ready: true, RestartCount: 3},
+					},
+				},
+			},
+			"test4\t1/2\tpodPhase\t6\t",
+		},
+		{
+			// Test ready is not enough for reporting running
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "test5"},
+				Spec:       api.PodSpec{Containers: make([]api.Container, 2)},
+				Status: api.PodStatus{
+					Reason: "OutOfDisk",
+					Phase:  "podPhase",
+					ContainerStatuses: []api.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: api.ContainerState{Running: &api.ContainerStateRunning{}}},
+						{Ready: true, RestartCount: 3},
+					},
+				},
+			},
+			"test5\t1/2\tOutOfDisk\t6\t",
+		},
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	for _, test := range tests {
+		printPod(&test.pod, buf, false, []string{})
+		// We ignore time
+		if !strings.HasPrefix(buf.String(), test.expect) {
+			t.Fatalf("Expected: %s, got: %s", test.expect, buf.String())
+		}
+		buf.Reset()
+	}
+}
+
+func TestPrintPodWithLabels(t *testing.T) {
+	tests := []struct {
+		pod          api.Pod
+		labelColumns []string
+		startsWith   string
+		endsWith     string
+	}{
+		{
+			// Test name, num of containers, restarts, container ready status
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name:   "test1",
+					Labels: map[string]string{"col1": "asd", "COL2": "zxc"},
+				},
+				Spec: api.PodSpec{Containers: make([]api.Container, 2)},
+				Status: api.PodStatus{
+					Phase: "podPhase",
+					ContainerStatuses: []api.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: api.ContainerState{Running: &api.ContainerStateRunning{}}},
+						{RestartCount: 3},
+					},
+				},
+			},
+			[]string{"col1", "COL2"},
+			"test1\t1/2\tpodPhase\t6\t",
+			"\tasd\tzxc\n",
+		},
+		{
+			// Test name, num of containers, restarts, container ready status
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Name:   "test1",
+					Labels: map[string]string{"col1": "asd", "COL2": "zxc"},
+				},
+				Spec: api.PodSpec{Containers: make([]api.Container, 2)},
+				Status: api.PodStatus{
+					Phase: "podPhase",
+					ContainerStatuses: []api.ContainerStatus{
+						{Ready: true, RestartCount: 3, State: api.ContainerState{Running: &api.ContainerStateRunning{}}},
+						{RestartCount: 3},
+					},
+				},
+			},
+			[]string{},
+			"test1\t1/2\tpodPhase\t6\t",
+			"\n",
+		},
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	for _, test := range tests {
+		printPod(&test.pod, buf, false, test.labelColumns)
+		// We ignore time
+		if !strings.HasPrefix(buf.String(), test.startsWith) || !strings.HasSuffix(buf.String(), test.endsWith) {
+			t.Fatalf("Expected to start with: %s and end with: %s, but got: %s", test.startsWith, test.endsWith, buf.String())
+		}
+		buf.Reset()
 	}
 }

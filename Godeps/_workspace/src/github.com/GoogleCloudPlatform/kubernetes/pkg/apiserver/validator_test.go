@@ -18,17 +18,13 @@ package apiserver
 
 import (
 	"bytes"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
-	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/probe"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
 type fakeRoundTripper struct {
@@ -42,6 +38,15 @@ func (f *fakeRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	return f.resp, f.err
 }
 
+func alwaysError([]byte) error { return errors.New("test error") }
+
+func matchError(data []byte) error {
+	if string(data) == "bar" {
+		return errors.New("match error")
+	}
+	return nil
+}
+
 func TestValidate(t *testing.T) {
 	tests := []struct {
 		err            error
@@ -49,10 +54,13 @@ func TestValidate(t *testing.T) {
 		expectedStatus probe.Result
 		code           int
 		expectErr      bool
+		validator      ValidatorFn
 	}{
-		{fmt.Errorf("test error"), "", probe.Unknown, 500 /*ignored*/, true},
-		{nil, "foo", probe.Success, 200, false},
-		{nil, "foo", probe.Failure, 500, true},
+		{fmt.Errorf("test error"), "", probe.Unknown, 500 /*ignored*/, true, nil},
+		{nil, "foo", probe.Success, 200, false, nil},
+		{nil, "foo", probe.Failure, 500, true, nil},
+		{nil, "foo", probe.Failure, 200, true, alwaysError},
+		{nil, "foo", probe.Success, 200, false, matchError},
 	}
 
 	s := Server{Addr: "foo.com", Port: 8080, Path: "/healthz"}
@@ -65,6 +73,7 @@ func TestValidate(t *testing.T) {
 				StatusCode: test.code,
 			},
 		}
+		s.Validate = test.validator
 		status, data, err := s.DoServerCheck(fakeRT)
 		expect := fmt.Sprintf("http://%s:%d/healthz", s.Addr, s.Port)
 		if fakeRT.url != expect {
@@ -82,68 +91,5 @@ func TestValidate(t *testing.T) {
 		if status != test.expectedStatus {
 			t.Errorf("expected %s, got %s", test.expectedStatus.String(), status.String())
 		}
-	}
-}
-
-func makeTestValidator(servers map[string]string, rt http.RoundTripper) (http.Handler, error) {
-	result := map[string]Server{}
-	for name, value := range servers {
-		host, port, err := net.SplitHostPort(value)
-		if err != nil {
-			return nil, fmt.Errorf("invalid server spec: %s (%v)", value, err)
-		}
-		val, err := strconv.Atoi(port)
-		if err != nil {
-			return nil, fmt.Errorf("invalid server spec: %s (%v)", port, err)
-		}
-		result[name] = Server{Addr: host, Port: val, Path: "/healthz"}
-	}
-
-	return &validator{servers: func() map[string]Server { return result }, rt: rt}, nil
-}
-
-func TestValidator(t *testing.T) {
-	fake := &fakeRoundTripper{
-		resp: &http.Response{
-			Body:       ioutil.NopCloser(bytes.NewBufferString("foo")),
-			StatusCode: 200,
-		},
-	}
-	validator, err := makeTestValidator(map[string]string{
-		"foo": "foo.com:80",
-		"bar": "bar.com:8080",
-	}, fake)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	testServer := httptest.NewServer(validator)
-	defer testServer.Close()
-
-	resp, err := http.Get(testServer.URL + "/validatez")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("unexpected response: %v", resp.StatusCode)
-	}
-	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	var status []ServerStatus
-	if err := json.Unmarshal(data, &status); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	components := util.StringSet{}
-	for _, s := range status {
-		if s.Err != "nil" {
-			t.Errorf("Component %v is unhealthy: %v", s.Component, s.Err)
-		}
-		components.Insert(s.Component)
-	}
-	if len(status) != 2 || !components.Has("foo") || !components.Has("bar") {
-		t.Errorf("unexpected status: %#v", status)
 	}
 }

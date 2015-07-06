@@ -27,6 +27,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -38,6 +39,11 @@ import (
 const (
 	workerGoroutines = 10
 
+	// How long to wait before retrying the processing of a service change.
+	// If this changes, the sleep in hack/jenkins/e2e.sh before downing a cluster
+	// should be changed appropriately.
+	processingRetryInterval = 5 * time.Second
+
 	clientRetryCount    = 5
 	clientRetryInterval = 5 * time.Second
 
@@ -46,7 +52,11 @@ const (
 )
 
 type cachedService struct {
-	service *api.Service
+	// The last-known state of the service
+	lastState *api.Service
+	// The state as successfully applied to the load balancer
+	appliedState *api.Service
+
 	// Ensures only one goroutine can operate on this service at any given time.
 	mu sync.Mutex
 }
@@ -57,22 +67,30 @@ type serviceCache struct {
 }
 
 type ServiceController struct {
-	cloud       cloudprovider.Interface
-	kubeClient  client.Interface
-	clusterName string
-	balancer    cloudprovider.TCPLoadBalancer
-	zone        cloudprovider.Zone
-	cache       *serviceCache
+	cloud            cloudprovider.Interface
+	kubeClient       client.Interface
+	clusterName      string
+	balancer         cloudprovider.TCPLoadBalancer
+	zone             cloudprovider.Zone
+	cache            *serviceCache
+	eventBroadcaster record.EventBroadcaster
+	eventRecorder    record.EventRecorder
 }
 
 // New returns a new service controller to keep cloud provider service resources
 // (like external load balancers) in sync with the registry.
 func New(cloud cloudprovider.Interface, kubeClient client.Interface, clusterName string) *ServiceController {
+	broadcaster := record.NewBroadcaster()
+	broadcaster.StartRecordingToSink(kubeClient.Events(""))
+	recorder := broadcaster.NewRecorder(api.EventSource{Component: "service-controller"})
+
 	return &ServiceController{
-		cloud:       cloud,
-		kubeClient:  kubeClient,
-		clusterName: clusterName,
-		cache:       &serviceCache{serviceMap: make(map[string]*cachedService)},
+		cloud:            cloud,
+		kubeClient:       kubeClient,
+		clusterName:      clusterName,
+		cache:            &serviceCache{serviceMap: make(map[string]*cachedService)},
+		eventBroadcaster: broadcaster,
+		eventRecorder:    recorder,
 	}
 }
 
@@ -151,7 +169,7 @@ func (s *ServiceController) watchServices(serviceQueue *cache.DeltaFIFO) {
 		if shouldRetry {
 			// Add the failed service back to the queue so we'll retry it.
 			glog.Errorf("Failed to process service delta. Retrying: %v", err)
-			time.Sleep(5 * time.Second)
+			time.Sleep(processingRetryInterval)
 			serviceQueue.AddIfNotPresent(deltas)
 		} else if err != nil {
 			util.HandleError(fmt.Errorf("Failed to process service delta. Not retrying: %v", err))
@@ -177,8 +195,8 @@ func (s *ServiceController) processDelta(delta *cache.Delta) (error, bool) {
 		if !ok {
 			return fmt.Errorf("Service %s not in cache even though the watcher thought it was. Ignoring the deletion.", key), notRetryable
 		}
-		service = cachedService.service
-		delta.Object = cachedService.service
+		service = cachedService.lastState
+		delta.Object = cachedService.lastState
 		namespacedName = types.NamespacedName{service.Namespace, service.Name}
 	} else {
 		namespacedName.Namespace = service.Namespace
@@ -192,6 +210,9 @@ func (s *ServiceController) processDelta(delta *cache.Delta) (error, bool) {
 	cachedService.mu.Lock()
 	defer cachedService.mu.Unlock()
 
+	// Update the cached service (used above for populating synthetic deletes)
+	cachedService.lastState = service
+
 	// TODO: Handle added, updated, and sync differently?
 	switch delta.Type {
 	case cache.Added:
@@ -199,19 +220,21 @@ func (s *ServiceController) processDelta(delta *cache.Delta) (error, bool) {
 	case cache.Updated:
 		fallthrough
 	case cache.Sync:
-		err, retry := s.createLoadBalancerIfNeeded(namespacedName, service, cachedService.service)
+		err, retry := s.createLoadBalancerIfNeeded(namespacedName, service, cachedService.appliedState)
 		if err != nil {
+			s.eventRecorder.Event(service, "creating loadbalancer failed", err.Error())
 			return err, retry
 		}
 		// Always update the cache upon success.
 		// NOTE: Since we update the cached service if and only if we successully
 		// processed it, a cached service being nil implies that it hasn't yet
 		// been successfully processed.
-		cachedService.service = service
+		cachedService.appliedState = service
 		s.cache.set(namespacedName.String(), cachedService)
 	case cache.Deleted:
 		err := s.balancer.EnsureTCPLoadBalancerDeleted(s.loadBalancerName(service), s.zone.Region)
 		if err != nil {
+			s.eventRecorder.Event(service, "deleting loadbalancer failed", err.Error())
 			return err, retryable
 		}
 		s.cache.delete(namespacedName.String())
@@ -315,7 +338,7 @@ func (s *ServiceController) persistUpdate(service *api.Service) error {
 }
 
 func (s *ServiceController) createExternalLoadBalancer(service *api.Service) error {
-	ports, err := getTCPPorts(service)
+	ports, err := getPortsForLB(service)
 	if err != nil {
 		return err
 	}
@@ -359,6 +382,16 @@ func (s *serviceCache) ListKeys() []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// GetByKey returns the value stored in the serviceMap under the given key
+func (s *serviceCache) GetByKey(key string) (interface{}, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if v, ok := s.serviceMap[key]; ok {
+		return v, true, nil
+	}
+	return nil, false, nil
 }
 
 // ListKeys implements the interface required by DeltaFIFO to list the keys we
@@ -410,7 +443,7 @@ func needsUpdate(oldService *api.Service, newService *api.Service) bool {
 	if wantsExternalLoadBalancer(oldService) != wantsExternalLoadBalancer(newService) {
 		return true
 	}
-	if !portsEqual(oldService, newService) || oldService.Spec.SessionAffinity != newService.Spec.SessionAffinity {
+	if !portsEqualForLB(oldService, newService) || oldService.Spec.SessionAffinity != newService.Spec.SessionAffinity {
 		return true
 	}
 	if len(oldService.Spec.DeprecatedPublicIPs) != len(newService.Spec.DeprecatedPublicIPs) {
@@ -428,8 +461,8 @@ func (s *ServiceController) loadBalancerName(service *api.Service) string {
 	return cloudprovider.GetLoadBalancerName(service)
 }
 
-func getTCPPorts(service *api.Service) ([]int, error) {
-	ports := []int{}
+func getPortsForLB(service *api.Service) ([]*api.ServicePort, error) {
+	ports := []*api.ServicePort{}
 	for i := range service.Spec.Ports {
 		// TODO: Support UDP. Remove the check from the API validation package once
 		// it's supported.
@@ -437,21 +470,58 @@ func getTCPPorts(service *api.Service) ([]int, error) {
 		if sp.Protocol != api.ProtocolTCP {
 			return nil, fmt.Errorf("external load balancers for non TCP services are not currently supported.")
 		}
-		ports = append(ports, sp.Port)
+		ports = append(ports, sp)
 	}
 	return ports, nil
 }
 
-func portsEqual(x, y *api.Service) bool {
-	xPorts, err := getTCPPorts(x)
+func portsEqualForLB(x, y *api.Service) bool {
+	xPorts, err := getPortsForLB(x)
 	if err != nil {
 		return false
 	}
-	yPorts, err := getTCPPorts(y)
+	yPorts, err := getPortsForLB(y)
 	if err != nil {
 		return false
 	}
-	return intSlicesEqual(xPorts, yPorts)
+	return portSlicesEqualForLB(xPorts, yPorts)
+}
+
+func portSlicesEqualForLB(x, y []*api.ServicePort) bool {
+	if len(x) != len(y) {
+		return false
+	}
+
+	for i := range x {
+		if !portEqualForLB(x[i], y[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func portEqualForLB(x, y *api.ServicePort) bool {
+	// TODO: Should we check name?  (In theory, an LB could expose it)
+	if x.Name != y.Name {
+		return false
+	}
+
+	if x.Protocol != y.Protocol {
+		return false
+	}
+
+	if x.Port != y.Port {
+		return false
+	}
+
+	if x.NodePort != y.NodePort {
+		return false
+	}
+
+	// We don't check TargetPort; that is not relevant for load balancing
+	// TODO: Should we blank it out?  Or just check it anyway?
+
+	return true
 }
 
 func intSlicesEqual(x, y []int) bool {
@@ -546,10 +616,10 @@ func (s *ServiceController) updateLoadBalancerHosts(services []*cachedService, h
 			// with by the load balancer reconciler. We can trust the load balancer
 			// reconciler to ensure the service's load balancer is created to target
 			// the correct nodes.
-			if service.service == nil {
+			if service.appliedState == nil {
 				return
 			}
-			if err := s.lockedUpdateLoadBalancerHosts(service.service, hosts); err != nil {
+			if err := s.lockedUpdateLoadBalancerHosts(service.appliedState, hosts); err != nil {
 				glog.Errorf("External error while updating TCP load balancer: %v.", err)
 				servicesToRetry = append(servicesToRetry, service)
 			}

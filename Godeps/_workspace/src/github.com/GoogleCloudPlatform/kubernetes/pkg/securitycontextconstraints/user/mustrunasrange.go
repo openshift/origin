@@ -64,7 +64,7 @@ func (s *mustRunAsRange) Validate(pod *api.Pod, container *api.Container) fielde
 	}
 
 	if *container.SecurityContext.RunAsUser < *s.opts.UIDRangeMin || *container.SecurityContext.RunAsUser > *s.opts.UIDRangeMax {
-		detail :=  fmt.Sprintf("UID on container %s does not match required range.  Found %d, required min: %d max: %d",
+		detail := fmt.Sprintf("UID on container %s does not match required range.  Found %d, required min: %d max: %d",
 			container.Name,
 			*container.SecurityContext.RunAsUser,
 			*s.opts.UIDRangeMin,

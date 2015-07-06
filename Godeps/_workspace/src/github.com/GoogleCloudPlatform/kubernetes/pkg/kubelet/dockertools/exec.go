@@ -24,7 +24,7 @@ import (
 	"time"
 
 	kubecontainer "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/container"
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 )
 
@@ -73,7 +73,7 @@ func (*NsenterExecHandler) ExecInContainer(client DockerInterface, container *do
 	} else {
 		if stdin != nil {
 			// Use an os.Pipe here as it returns true *os.File objects.
-			// This way, if you run 'kubectl exec -p <pod> -i bash' (no tty) and type 'exit',
+			// This way, if you run 'kubectl exec <pod> -i bash' (no tty) and type 'exit',
 			// the call below to command.Run() can unblock because its Stdin is the read half
 			// of the pipe.
 			r, w, err := os.Pipe()

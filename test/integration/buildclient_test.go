@@ -209,9 +209,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 		APIPrefix:        "/api",
 		AdmissionControl: admit.NewAlwaysAdmit(),
 		RestfulContainer: handlerContainer,
-		DisableV1Beta1:   true,
-		DisableV1Beta2:   true,
-		EnableV1:         true,
+		DisableV1:        false,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)

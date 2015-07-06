@@ -5,6 +5,8 @@
 package server
 
 // etcd needs to be running on http://127.0.0.1:4001
+// running standalone tests fails, because metrics need to be enabled. TODO(miek)
+// See `if !metricsDone {` in TestMsgOverflow, should be added to more? TODO(miek)
 
 import (
 	"encoding/json"
@@ -54,7 +56,6 @@ func newTestServer(t *testing.T, c bool) *server {
 	StrPort = strconv.Itoa(Port)
 	s := new(server)
 	client := etcd.NewClient([]string{"http://127.0.0.1:4001"})
-	client.SyncCluster()
 
 	// TODO(miek): why don't I use NewServer??
 	s.group = new(sync.WaitGroup)
@@ -537,6 +538,11 @@ func TestDNS(t *testing.T) {
 			case *dns.CNAME:
 				tt := tc.Extra[i].(*dns.CNAME)
 				if x.Target != tt.Target {
+					// Super super gross hack.
+					if x.Target == "a.ipaddr.skydns.test." && tt.Target == "b.ipaddr.skydns.test." {
+						// These records are randomly choosen, either one is OK.
+						continue
+					}
 					fatal = true
 					t.Fatalf("CNAME target should be %q, but is %q", x.Target, tt.Target)
 				}
@@ -1147,6 +1153,56 @@ func TestDedup(t *testing.T) {
 	if dns.Field(m.Answer[0], 1) != "1.1.1.1" || dns.Field(m.Answer[1], 1) != "2.2.2.2" ||
 		dns.Field(m.Answer[2], 1) != "3.3.3.3" {
 		t.Fatalf("failing dedup: %s", m)
+	}
+}
+
+func TestCacheTruncated(t *testing.T) {
+	s := newTestServer(t, true)
+	m := &dns.Msg{}
+	m.SetQuestion("skydns.test.", dns.TypeSRV)
+	m.Truncated = true
+	s.rcache.InsertMessage(cache.QuestionKey(m.Question[0], false), m)
+
+	// Now asking for this should result in a non-truncated answer.
+	resp, _ := dns.Exchange(m, "127.0.0.1:"+StrPort)
+	if resp.Truncated {
+		t.Fatal("truncated bit should be false")
+	}
+}
+
+func TestMsgOverflow(t *testing.T) {
+	if testing.Short() {
+                t.Skip("skipping test in short mode.")
+        }
+
+	s := newTestServer(t, false)
+	defer s.Stop()
+
+	c := new(dns.Client)
+	m := new(dns.Msg)
+
+	// TODO(miek): rethink how to enable metrics in tests.
+	if !metricsDone {
+		Metrics()
+	}
+
+	for i := 0; i < 2000; i++ {
+		is := strconv.Itoa(i)
+		m := &msg.Service{
+			Host: "2001::" + is, Key: "machine" + is + ".machines.skydns.test.",
+		}
+		addService(t, s, m.Key, 0, m)
+		defer delService(t, s, m.Key)
+	}
+	m.SetQuestion("machines.skydns.test.", dns.TypeSRV)
+	resp, _, err := c.Exchange(m, "127.0.0.1:"+StrPort)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("%s", resp)
+
+	if resp.Rcode != dns.RcodeServerFailure {
+		t.Fatalf("expecting server failure, got %d", resp.Rcode)
 	}
 }
 

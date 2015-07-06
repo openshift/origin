@@ -16,6 +16,9 @@ limitations under the License.
 
 package scheduler
 
+// Note: if you change code in this file, you might need to change code in
+// contrib/mesos/pkg/scheduler/.
+
 import (
 	"time"
 
@@ -149,7 +152,7 @@ func (s *Scheduler) scheduleOne() {
 		s.config.Recorder.Eventf(pod, "scheduled", "Successfully assigned %v to %v", pod.Name, dest)
 		// tell the model to assume that this binding took effect.
 		assumed := *pod
-		assumed.Spec.Host = dest
+		assumed.Spec.NodeName = dest
 		s.config.Modeler.AssumePod(&assumed)
 	})
 }

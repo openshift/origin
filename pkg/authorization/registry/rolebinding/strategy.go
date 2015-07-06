@@ -35,6 +35,10 @@ func (s strategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
+func (strategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
 func (s strategy) GenerateName(base string) string {
 	return base
 }

@@ -238,7 +238,7 @@ func TestGetImageStreamTag(t *testing.T) {
 				t.Fatalf("%s: unexpected error type: %v", name, err)
 			}
 			status := err.(statusError).Status()
-			if status.Details.Kind != testCase.errorTargetKind || status.Details.ID != testCase.errorTargetID {
+			if status.Details.Kind != testCase.errorTargetKind || status.Details.Name != testCase.errorTargetID {
 				t.Errorf("%s: unexpected status: %#v", name, status)
 			}
 		} else {

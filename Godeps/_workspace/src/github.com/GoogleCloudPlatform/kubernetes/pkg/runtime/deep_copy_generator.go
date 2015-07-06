@@ -69,9 +69,10 @@ type DeepCopyGenerator interface {
 	OverwritePackage(pkg, overwrite string)
 }
 
-func NewDeepCopyGenerator(scheme *conversion.Scheme, include util.StringSet) DeepCopyGenerator {
+func NewDeepCopyGenerator(scheme *conversion.Scheme, targetPkg string, include util.StringSet) DeepCopyGenerator {
 	g := &deepCopyGenerator{
 		scheme:        scheme,
+		targetPkg:     targetPkg,
 		copyables:     make(map[reflect.Type]bool),
 		imports:       make(map[string]string),
 		shortImports:  make(map[string]string),
@@ -79,6 +80,7 @@ func NewDeepCopyGenerator(scheme *conversion.Scheme, include util.StringSet) Dee
 		replace:       make(map[pkgPathNamePair]reflect.Type),
 		include:       include,
 	}
+	g.targetPackage(targetPkg)
 	g.AddImport("github.com/GoogleCloudPlatform/kubernetes/pkg/conversion")
 	return g
 }
@@ -90,6 +92,7 @@ type pkgPathNamePair struct {
 
 type deepCopyGenerator struct {
 	scheme    *conversion.Scheme
+	targetPkg string
 	copyables map[reflect.Type]bool
 	// map of package names to shortname
 	imports map[string]string
@@ -135,6 +138,11 @@ func (g *deepCopyGenerator) addImportByPath(pkg string) string {
 		}
 	}
 	panic(fmt.Sprintf("unable to find a unique name for the package path %q: %v", pkg, g.shortImports))
+}
+
+func (g *deepCopyGenerator) targetPackage(pkg string) {
+	g.imports[pkg] = ""
+	g.shortImports[""] = pkg
 }
 
 func (g *deepCopyGenerator) addAllRecursiveTypes(inType reflect.Type) error {
@@ -205,6 +213,8 @@ func (g *deepCopyGenerator) RepackImports() {
 	sort.Strings(packages)
 	g.imports = make(map[string]string)
 	g.shortImports = make(map[string]string)
+
+	g.targetPackage(g.targetPkg)
 	for _, pkg := range packages {
 		g.addImportByPath(pkg)
 	}
@@ -222,6 +232,9 @@ func (g *deepCopyGenerator) WriteImports(w io.Writer) error {
 	buffer.addLine("import (\n", indent)
 	for _, importPkg := range packages {
 		if len(importPkg) == 0 {
+			continue
+		}
+		if len(g.imports[importPkg]) == 0 {
 			continue
 		}
 		buffer.addLine(fmt.Sprintf("%s \"%s\"\n", g.imports[importPkg], importPkg), indent+1)
@@ -277,7 +290,10 @@ func (g *deepCopyGenerator) nameForType(inType reflect.Type) string {
 			return name
 		}
 		short := g.addImportByPath(pkg)
-		return fmt.Sprintf("%s.%s", short, name)
+		if len(short) > 0 {
+			return fmt.Sprintf("%s.%s", short, name)
+		}
+		return name
 	}
 }
 

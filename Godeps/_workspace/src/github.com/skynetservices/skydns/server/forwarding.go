@@ -15,6 +15,7 @@ import (
 // ServeDNSForward forwards a request to a nameservers and returns the response.
 func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) {
 	StatsForwardCount.Inc(1)
+	promExternalRequestCount.WithLabelValues("recursive").Inc()
 
 	if s.config.NoRec {
 		m := new(dns.Msg)
@@ -27,10 +28,12 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) {
 	}
 
 	if len(s.config.Nameservers) == 0 || dns.CountLabel(req.Question[0].Name) < s.config.Ndots {
-		if len(s.config.Nameservers) == 0 {
-			log.Printf("skydns: can not forward, no nameservers defined")
-		} else {
-			log.Printf("skydns: can not forward, name too short (less than %d labels): `%s'", s.config.Ndots, req.Question[0].Name)
+		if s.config.Verbose {
+			if len(s.config.Nameservers) == 0 {
+				log.Printf("skydns: can not forward, no nameservers defined")
+			} else {
+				log.Printf("skydns: can not forward, name too short (less than %d labels): `%s'", s.config.Ndots, req.Question[0].Name)
+			}
 		}
 		m := new(dns.Msg)
 		m.SetReply(req)
@@ -101,9 +104,11 @@ func (s *server) ServeDNSReverse(w dns.ResponseWriter, req *dns.Msg) {
 }
 
 // Lookup looks up name,type using the recursive nameserver defines
-// in the server's config. If none defined it returns an error
+// in the server's config. If none defined it returns an error.
 func (s *server) Lookup(n string, t, bufsize uint16, dnssec bool) (*dns.Msg, error) {
 	StatsLookupCount.Inc(1)
+	promExternalRequestCount.WithLabelValues("lookup").Inc()
+
 	if len(s.config.Nameservers) == 0 {
 		return nil, fmt.Errorf("no nameservers configured can not lookup name")
 	}
@@ -114,12 +119,10 @@ func (s *server) Lookup(n string, t, bufsize uint16, dnssec bool) (*dns.Msg, err
 	m.SetQuestion(n, t)
 	m.SetEdns0(bufsize, dnssec)
 
-	c := &dns.Client{Net: "udp", ReadTimeout: 2 * s.config.ReadTimeout, WriteTimeout: 2 * s.config.ReadTimeout}
 	nsid := int(m.Id) % len(s.config.Nameservers)
 	try := 0
 Redo:
-	// Move this to use s.udpClient/s.tcpClient code instead of allocating a new client for every query.
-	r, _, err := c.Exchange(m, s.config.Nameservers[nsid])
+	r, _, err := s.dnsUDPclient.Exchange(m, s.config.Nameservers[nsid])
 	if err == nil {
 		if r.Rcode != dns.RcodeSuccess {
 			return nil, fmt.Errorf("rcode is not equal to success")

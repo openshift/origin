@@ -75,7 +75,8 @@ func InitCloudProvider(name string, configFilePath string) (Interface, error) {
 	if configFilePath != "" {
 		config, err := os.Open(configFilePath)
 		if err != nil {
-			return nil, fmt.Errorf("couldn't open cloud provider configuration %s: %#v", configFilePath, err)
+			glog.Fatalf("Couldn't open cloud provider configuration %s: %#v",
+				configFilePath, err)
 		}
 
 		defer config.Close()
@@ -87,10 +88,11 @@ func InitCloudProvider(name string, configFilePath string) (Interface, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("couldn't init cloud provider %q: %v", name, err)
+		return nil, fmt.Errorf("could not init cloud provider %q: %v", name, err)
 	}
 	if cloud == nil {
-		return nil, fmt.Errorf("unknown cloud provider: %s", name)
+		return nil, fmt.Errorf("unknown cloud provider %q", name)
 	}
+
 	return cloud, nil
 }

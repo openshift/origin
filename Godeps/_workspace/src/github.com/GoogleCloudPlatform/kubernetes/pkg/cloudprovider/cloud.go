@@ -18,6 +18,7 @@ package cloudprovider
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"strings"
 
@@ -36,6 +37,8 @@ type Interface interface {
 	Clusters() (Clusters, bool)
 	// Routes returns a routes interface along with whether the interface is supported.
 	Routes() (Routes, bool)
+	// ProviderName returns the cloud provider ID.
+	ProviderName() string
 }
 
 // Clusters is an abstract, pluggable interface for clusters of containers.
@@ -59,6 +62,18 @@ func GetLoadBalancerName(service *api.Service) string {
 	return ret
 }
 
+func GetInstanceProviderID(cloud Interface, nodeName string) (string, error) {
+	instances, ok := cloud.Instances()
+	if !ok {
+		return "", fmt.Errorf("failed to get instances from cloud provider")
+	}
+	instanceID, err := instances.InstanceID(nodeName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get instance ID from cloud provider: %v", err)
+	}
+	return cloud.ProviderName() + "://" + instanceID, nil
+}
+
 // TCPLoadBalancer is an abstract, pluggable interface for TCP load balancers.
 type TCPLoadBalancer interface {
 	// TODO: Break this up into different interfaces (LB, etc) when we have more than one type of service
@@ -66,7 +81,7 @@ type TCPLoadBalancer interface {
 	// if so, what its status is.
 	GetTCPLoadBalancer(name, region string) (status *api.LoadBalancerStatus, exists bool, err error)
 	// CreateTCPLoadBalancer creates a new tcp load balancer. Returns the status of the balancer
-	CreateTCPLoadBalancer(name, region string, externalIP net.IP, ports []int, hosts []string, affinityType api.ServiceAffinity) (*api.LoadBalancerStatus, error)
+	CreateTCPLoadBalancer(name, region string, externalIP net.IP, ports []*api.ServicePort, hosts []string, affinityType api.ServiceAffinity) (*api.LoadBalancerStatus, error)
 	// UpdateTCPLoadBalancer updates hosts under the specified load balancer.
 	UpdateTCPLoadBalancer(name, region string, hosts []string) error
 	// EnsureTCPLoadBalancerDeleted deletes the specified load balancer if it
@@ -81,18 +96,31 @@ type TCPLoadBalancer interface {
 // Instances is an abstract, pluggable interface for sets of instances.
 type Instances interface {
 	// NodeAddresses returns the addresses of the specified instance.
+	// TODO(roberthbailey): This currently is only used in such a way that it
+	// returns the address of the calling instance. We should do a rename to
+	// make this clearer.
 	NodeAddresses(name string) ([]api.NodeAddress, error)
-	// ExternalID returns the cloud provider ID of the specified instance.
+	// ExternalID returns the cloud provider ID of the specified instance (deprecated).
 	ExternalID(name string) (string, error)
+	// InstanceID returns the cloud provider ID of the specified instance.
+	// Note that if the instance does not exist or is no longer running, we must return ("", cloudprovider.InstanceNotFound)
+	InstanceID(name string) (string, error)
 	// List lists instances that match 'filter' which is a regular expression which must match the entire instance name (fqdn)
 	List(filter string) ([]string, error)
 	// GetNodeResources gets the resources for a particular node
 	GetNodeResources(name string) (*api.NodeResources, error)
+	// AddSSHKeyToAllInstances adds an SSH public key as a legal identity for all instances
+	// expected format for the key is standard ssh-keygen format: <protocol> <blob>
+	AddSSHKeyToAllInstances(user string, keyData []byte) error
+	// Returns the name of the node we are currently running on
+	// On most clouds (e.g. GCE) this is the hostname, so we provide the hostname
+	CurrentNodeName(hostname string) (string, error)
 }
 
 // Route is a representation of an advanced routing rule.
 type Route struct {
 	// Name is the name of the routing rule in the cloud-provider.
+	// It will be ignored in a Create (although nameHint may influence it)
 	Name string
 	// TargetInstance is the name of the instance as specified in routing rules
 	// for the cloud-provider (in gce: the Instance Name).
@@ -100,18 +128,19 @@ type Route struct {
 	// Destination CIDR is the CIDR format IP range that this routing rule
 	// applies to.
 	DestinationCIDR string
-	// Description is a free-form string. It can be useful for tagging Routes.
-	Description string
 }
 
 // Routes is an abstract, pluggable interface for advanced routing rules.
 type Routes interface {
-	// List all routes that match the filter
-	ListRoutes(filter string) ([]*Route, error)
-	// Create the described route
-	CreateRoute(route *Route) error
-	// Delete the specified route
-	DeleteRoute(name string) error
+	// List all managed routes that belong to the specified clusterName
+	ListRoutes(clusterName string) ([]*Route, error)
+	// Create the described managed route
+	// route.Name will be ignored, although the cloud-provider may use nameHint
+	// to create a more user-meaningful name.
+	CreateRoute(clusterName string, nameHint string, route *Route) error
+	// Delete the specified managed route
+	// Route should be as returned by ListRoutes
+	DeleteRoute(clusterName string, route *Route) error
 }
 
 var InstanceNotFound = errors.New("instance not found")

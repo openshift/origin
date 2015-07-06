@@ -232,8 +232,8 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		podTemplate := &kapi.PodTemplateSpec{
 			ObjectMeta: kapi.ObjectMeta{Labels: label},
 			Spec: kapi.PodSpec{
-				ServiceAccount: cfg.ServiceAccount,
-				NodeSelector:   nodeSelector,
+				ServiceAccountName: cfg.ServiceAccount,
+				NodeSelector:       nodeSelector,
 				Containers: []kapi.Container{
 					{
 						Name:  "registry",

@@ -194,7 +194,7 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	// Make a copy of the originalItem to give to conversion functions
 	// This lets us know if conversion messed with the input object
-	deepCopy, err := conversion.DeepCopy(originalItem)
+	deepCopy, err := api.Scheme.DeepCopy(originalItem)
 	if err != nil {
 		t.Errorf("Could not copy object: %v", err)
 		return

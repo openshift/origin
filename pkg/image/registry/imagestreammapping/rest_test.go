@@ -120,7 +120,7 @@ func TestCreateImageStreamNotFoundWithName(t *testing.T) {
 	if e, a := "imageStream", e.ErrStatus.Details.Kind; e != a {
 		t.Errorf("error status details kind: expected %s, got %s", e, a)
 	}
-	if e, a := "somerepo", e.ErrStatus.Details.ID; e != a {
+	if e, a := "somerepo", e.ErrStatus.Details.Name; e != a {
 		t.Errorf("error status details name: expected %s, got %s", e, a)
 	}
 }

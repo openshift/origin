@@ -47,6 +47,10 @@ func (sdnStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
+func (sdnStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
 // ValidateUpdate is the default update validation for a ClusterNetwork
 func (sdnStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateClusterNetworkUpdate(obj.(*api.ClusterNetwork), old.(*api.ClusterNetwork))

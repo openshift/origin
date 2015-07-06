@@ -90,14 +90,14 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 		}
 
 		// no portalIP and not headless, no DNS
-		if len(svc.Spec.PortalIP) == 0 {
+		if len(svc.Spec.ClusterIP) == 0 {
 			return nil, nil
 		}
 
 		retrieveEndpoints := segments[0] == "endpoints" || (len(segments) > 3 && segments[3] == "_endpoints")
 
 		// if has a portal IP and looking at svc
-		if svc.Spec.PortalIP != kapi.PortalIPNone && !retrieveEndpoints {
+		if svc.Spec.ClusterIP != kapi.ClusterIPNone && !retrieveEndpoints {
 			if len(svc.Spec.Ports) == 0 {
 				return nil, nil
 			}
@@ -121,7 +121,7 @@ func (b *ServiceResolver) Records(name string, exact bool) ([]msg.Service, error
 				keyName := fmt.Sprintf("_%s._%s.%s", portName, p.Protocol, name)
 				services = append(services,
 					msg.Service{
-						Host: svc.Spec.PortalIP,
+						Host: svc.Spec.ClusterIP,
 						Port: port,
 
 						Priority: 10,

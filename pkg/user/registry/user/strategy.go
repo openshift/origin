@@ -47,6 +47,10 @@ func (userStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
+func (userStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
 // ValidateUpdate is the default update validation for an end user.
 func (userStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateUserUpdate(obj.(*api.User), old.(*api.User))

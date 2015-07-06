@@ -70,6 +70,7 @@ func (s *server) UpdateStubZones() {
 // ServeDNSStubForward forwards a request to a nameservers and returns the response.
 func (s *server) ServeDNSStubForward(w dns.ResponseWriter, req *dns.Msg, ns []string) {
 	StatsStubForwardCount.Inc(1)
+	promExternalRequestCount.WithLabelValues("stub").Inc()
 
 	// Check EDNS0 Stub option, if set drop the packet.
 	option := req.IsEdns0()

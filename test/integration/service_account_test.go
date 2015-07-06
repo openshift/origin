@@ -127,6 +127,8 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	cluster2MasterConfig.ServiceAccountConfig.PrivateKeyFile = ""
 	// Use the same public keys to validate tokens as cluster1
 	cluster2MasterConfig.ServiceAccountConfig.PublicKeyFiles = cluster1MasterConfig.ServiceAccountConfig.PublicKeyFiles
+	// don't try to start second dns server
+	cluster2MasterConfig.DNSConfig = nil
 
 	// Start cluster 2 (without clearing etcd) and get admin client configs and clients
 	cluster2Options := testutil.TestOptions{DeleteAllEtcdKeys: false}

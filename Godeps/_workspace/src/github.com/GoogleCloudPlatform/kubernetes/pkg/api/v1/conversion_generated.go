@@ -16,15 +16,14 @@ limitations under the License.
 
 package v1
 
+// AUTO-GENERATED FUNCTIONS START HERE
 import (
-	"reflect"
-
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	api "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	resource "github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
+	conversion "github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	reflect "reflect"
 )
 
-// AUTO-GENERATED FUNCTIONS START HERE
 func convert_api_AWSElasticBlockStoreVolumeSource_To_v1_AWSElasticBlockStoreVolumeSource(in *api.AWSElasticBlockStoreVolumeSource, out *AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.AWSElasticBlockStoreVolumeSource))(in)
@@ -283,13 +282,13 @@ func convert_api_ContainerState_To_v1_ContainerState(in *api.ContainerState, out
 	} else {
 		out.Running = nil
 	}
-	if in.Termination != nil {
-		out.Termination = new(ContainerStateTerminated)
-		if err := convert_api_ContainerStateTerminated_To_v1_ContainerStateTerminated(in.Termination, out.Termination, s); err != nil {
+	if in.Terminated != nil {
+		out.Terminated = new(ContainerStateTerminated)
+		if err := convert_api_ContainerStateTerminated_To_v1_ContainerStateTerminated(in.Terminated, out.Terminated, s); err != nil {
 			return err
 		}
 	} else {
-		out.Termination = nil
+		out.Terminated = nil
 	}
 	return nil
 }
@@ -618,6 +617,7 @@ func convert_api_HTTPGetAction_To_v1_HTTPGetAction(in *api.HTTPGetAction, out *H
 		return err
 	}
 	out.Host = in.Host
+	out.Scheme = URIScheme(in.Scheme)
 	return nil
 }
 
@@ -717,7 +717,7 @@ func convert_api_LimitRangeItem_To_v1_LimitRangeItem(in *api.LimitRangeItem, out
 	}
 	out.Type = LimitType(in.Type)
 	if in.Max != nil {
-		out.Max = make(map[ResourceName]resource.Quantity)
+		out.Max = make(ResourceList)
 		for key, val := range in.Max {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -729,7 +729,7 @@ func convert_api_LimitRangeItem_To_v1_LimitRangeItem(in *api.LimitRangeItem, out
 		out.Max = nil
 	}
 	if in.Min != nil {
-		out.Min = make(map[ResourceName]resource.Quantity)
+		out.Min = make(ResourceList)
 		for key, val := range in.Min {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -741,7 +741,7 @@ func convert_api_LimitRangeItem_To_v1_LimitRangeItem(in *api.LimitRangeItem, out
 		out.Min = nil
 	}
 	if in.Default != nil {
-		out.Default = make(map[ResourceName]resource.Quantity)
+		out.Default = make(ResourceList)
 		for key, val := range in.Default {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -869,34 +869,6 @@ func convert_api_LocalObjectReference_To_v1_LocalObjectReference(in *api.LocalOb
 		defaulting.(func(*api.LocalObjectReference))(in)
 	}
 	out.Name = in.Name
-	return nil
-}
-
-func convert_api_MetadataFile_To_v1_MetadataFile(in *api.MetadataFile, out *MetadataFile, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.MetadataFile))(in)
-	}
-	out.Name = in.Name
-	if err := convert_api_ObjectFieldSelector_To_v1_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-func convert_api_MetadataVolumeSource_To_v1_MetadataVolumeSource(in *api.MetadataVolumeSource, out *MetadataVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.MetadataVolumeSource))(in)
-	}
-	if in.Items != nil {
-		out.Items = make([]MetadataFile, len(in.Items))
-		for i := range in.Items {
-			if err := convert_api_MetadataFile_To_v1_MetadataFile(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
 	return nil
 }
 
@@ -1049,6 +1021,7 @@ func convert_api_NodeSpec_To_v1_NodeSpec(in *api.NodeSpec, out *NodeSpec, s conv
 	}
 	out.PodCIDR = in.PodCIDR
 	out.ExternalID = in.ExternalID
+	out.ProviderID = in.ProviderID
 	out.Unschedulable = in.Unschedulable
 	return nil
 }
@@ -1058,7 +1031,7 @@ func convert_api_NodeStatus_To_v1_NodeStatus(in *api.NodeStatus, out *NodeStatus
 		defaulting.(func(*api.NodeStatus))(in)
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[ResourceName]resource.Quantity)
+		out.Capacity = make(ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1130,6 +1103,7 @@ func convert_api_ObjectMeta_To_v1_ObjectMeta(in *api.ObjectMeta, out *ObjectMeta
 	out.SelfLink = in.SelfLink
 	out.UID = in.UID
 	out.ResourceVersion = in.ResourceVersion
+	out.Generation = in.Generation
 	if err := s.Convert(&in.CreationTimestamp, &out.CreationTimestamp, 0); err != nil {
 		return err
 	}
@@ -1267,7 +1241,7 @@ func convert_api_PersistentVolumeClaimStatus_To_v1_PersistentVolumeClaimStatus(i
 		out.AccessModes = nil
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[ResourceName]resource.Quantity)
+		out.Capacity = make(ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1389,7 +1363,7 @@ func convert_api_PersistentVolumeSpec_To_v1_PersistentVolumeSpec(in *api.Persist
 		defaulting.(func(*api.PersistentVolumeSpec))(in)
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[ResourceName]resource.Quantity)
+		out.Capacity = make(ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1577,8 +1551,8 @@ func convert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conversi
 	} else {
 		out.NodeSelector = nil
 	}
-	out.ServiceAccount = in.ServiceAccount
-	out.Host = in.Host
+	out.ServiceAccountName = in.ServiceAccountName
+	out.NodeName = in.NodeName
 	out.HostNetwork = in.HostNetwork
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]LocalObjectReference, len(in.ImagePullSecrets))
@@ -1609,6 +1583,7 @@ func convert_api_PodStatus_To_v1_PodStatus(in *api.PodStatus, out *PodStatus, s 
 		out.Conditions = nil
 	}
 	out.Message = in.Message
+	out.Reason = in.Reason
 	out.HostIP = in.HostIP
 	out.PodIP = in.PodIP
 	if in.StartTime != nil {
@@ -1804,6 +1779,7 @@ func convert_api_ReplicationControllerStatus_To_v1_ReplicationControllerStatus(i
 		defaulting.(func(*api.ReplicationControllerStatus))(in)
 	}
 	out.Replicas = in.Replicas
+	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
 
@@ -1854,7 +1830,7 @@ func convert_api_ResourceQuotaSpec_To_v1_ResourceQuotaSpec(in *api.ResourceQuota
 		defaulting.(func(*api.ResourceQuotaSpec))(in)
 	}
 	if in.Hard != nil {
-		out.Hard = make(map[ResourceName]resource.Quantity)
+		out.Hard = make(ResourceList)
 		for key, val := range in.Hard {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1873,7 +1849,7 @@ func convert_api_ResourceQuotaStatus_To_v1_ResourceQuotaStatus(in *api.ResourceQ
 		defaulting.(func(*api.ResourceQuotaStatus))(in)
 	}
 	if in.Hard != nil {
-		out.Hard = make(map[ResourceName]resource.Quantity)
+		out.Hard = make(ResourceList)
 		for key, val := range in.Hard {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1885,7 +1861,7 @@ func convert_api_ResourceQuotaStatus_To_v1_ResourceQuotaStatus(in *api.ResourceQ
 		out.Hard = nil
 	}
 	if in.Used != nil {
-		out.Used = make(map[ResourceName]resource.Quantity)
+		out.Used = make(ResourceList)
 		for key, val := range in.Used {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1904,7 +1880,7 @@ func convert_api_ResourceRequirements_To_v1_ResourceRequirements(in *api.Resourc
 		defaulting.(func(*api.ResourceRequirements))(in)
 	}
 	if in.Limits != nil {
-		out.Limits = make(map[ResourceName]resource.Quantity)
+		out.Limits = make(ResourceList)
 		for key, val := range in.Limits {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -1916,7 +1892,7 @@ func convert_api_ResourceRequirements_To_v1_ResourceRequirements(in *api.Resourc
 		out.Limits = nil
 	}
 	if in.Requests != nil {
-		out.Requests = make(map[ResourceName]resource.Quantity)
+		out.Requests = make(ResourceList)
 		for key, val := range in.Requests {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -2290,7 +2266,7 @@ func convert_api_ServiceSpec_To_v1_ServiceSpec(in *api.ServiceSpec, out *Service
 	} else {
 		out.Selector = nil
 	}
-	out.PortalIP = in.PortalIP
+	out.ClusterIP = in.ClusterIP
 	out.Type = ServiceType(in.Type)
 	if in.DeprecatedPublicIPs != nil {
 		out.DeprecatedPublicIPs = make([]string, len(in.DeprecatedPublicIPs))
@@ -2336,6 +2312,36 @@ func convert_api_Status_To_v1_Status(in *api.Status, out *Status, s conversion.S
 		out.Details = nil
 	}
 	out.Code = in.Code
+	return nil
+}
+
+func convert_api_StatusCause_To_v1_StatusCause(in *api.StatusCause, out *StatusCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.StatusCause))(in)
+	}
+	out.Type = CauseType(in.Type)
+	out.Message = in.Message
+	out.Field = in.Field
+	return nil
+}
+
+func convert_api_StatusDetails_To_v1_StatusDetails(in *api.StatusDetails, out *StatusDetails, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.StatusDetails))(in)
+	}
+	out.Name = in.Name
+	out.Kind = in.Kind
+	if in.Causes != nil {
+		out.Causes = make([]StatusCause, len(in.Causes))
+		for i := range in.Causes {
+			if err := convert_api_StatusCause_To_v1_StatusCause(&in.Causes[i], &out.Causes[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Causes = nil
+	}
+	out.RetryAfterSeconds = in.RetryAfterSeconds
 	return nil
 }
 
@@ -2455,13 +2461,13 @@ func convert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *Volu
 	} else {
 		out.Glusterfs = nil
 	}
-	if in.PersistentVolumeClaimVolumeSource != nil {
-		out.PersistentVolumeClaimVolumeSource = new(PersistentVolumeClaimVolumeSource)
-		if err := convert_api_PersistentVolumeClaimVolumeSource_To_v1_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaimVolumeSource, out.PersistentVolumeClaimVolumeSource, s); err != nil {
+	if in.PersistentVolumeClaim != nil {
+		out.PersistentVolumeClaim = new(PersistentVolumeClaimVolumeSource)
+		if err := convert_api_PersistentVolumeClaimVolumeSource_To_v1_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
 			return err
 		}
 	} else {
-		out.PersistentVolumeClaimVolumeSource = nil
+		out.PersistentVolumeClaim = nil
 	}
 	if in.RBD != nil {
 		out.RBD = new(RBDVolumeSource)
@@ -2478,14 +2484,6 @@ func convert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *Volu
 		}
 	} else {
 		out.CephFS = nil
-	}
-	if in.Metadata != nil {
-		out.Metadata = new(MetadataVolumeSource)
-		if err := convert_api_MetadataVolumeSource_To_v1_MetadataVolumeSource(in.Metadata, out.Metadata, s); err != nil {
-			return err
-		}
-	} else {
-		out.Metadata = nil
 	}
 	return nil
 }
@@ -2748,13 +2746,13 @@ func convert_v1_ContainerState_To_api_ContainerState(in *ContainerState, out *ap
 	} else {
 		out.Running = nil
 	}
-	if in.Termination != nil {
-		out.Termination = new(api.ContainerStateTerminated)
-		if err := convert_v1_ContainerStateTerminated_To_api_ContainerStateTerminated(in.Termination, out.Termination, s); err != nil {
+	if in.Terminated != nil {
+		out.Terminated = new(api.ContainerStateTerminated)
+		if err := convert_v1_ContainerStateTerminated_To_api_ContainerStateTerminated(in.Terminated, out.Terminated, s); err != nil {
 			return err
 		}
 	} else {
-		out.Termination = nil
+		out.Terminated = nil
 	}
 	return nil
 }
@@ -3083,6 +3081,7 @@ func convert_v1_HTTPGetAction_To_api_HTTPGetAction(in *HTTPGetAction, out *api.H
 		return err
 	}
 	out.Host = in.Host
+	out.Scheme = api.URIScheme(in.Scheme)
 	return nil
 }
 
@@ -3182,7 +3181,7 @@ func convert_v1_LimitRangeItem_To_api_LimitRangeItem(in *LimitRangeItem, out *ap
 	}
 	out.Type = api.LimitType(in.Type)
 	if in.Max != nil {
-		out.Max = make(map[api.ResourceName]resource.Quantity)
+		out.Max = make(api.ResourceList)
 		for key, val := range in.Max {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3194,7 +3193,7 @@ func convert_v1_LimitRangeItem_To_api_LimitRangeItem(in *LimitRangeItem, out *ap
 		out.Max = nil
 	}
 	if in.Min != nil {
-		out.Min = make(map[api.ResourceName]resource.Quantity)
+		out.Min = make(api.ResourceList)
 		for key, val := range in.Min {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3206,7 +3205,7 @@ func convert_v1_LimitRangeItem_To_api_LimitRangeItem(in *LimitRangeItem, out *ap
 		out.Min = nil
 	}
 	if in.Default != nil {
-		out.Default = make(map[api.ResourceName]resource.Quantity)
+		out.Default = make(api.ResourceList)
 		for key, val := range in.Default {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3334,34 +3333,6 @@ func convert_v1_LocalObjectReference_To_api_LocalObjectReference(in *LocalObject
 		defaulting.(func(*LocalObjectReference))(in)
 	}
 	out.Name = in.Name
-	return nil
-}
-
-func convert_v1_MetadataFile_To_api_MetadataFile(in *MetadataFile, out *api.MetadataFile, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*MetadataFile))(in)
-	}
-	out.Name = in.Name
-	if err := convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-func convert_v1_MetadataVolumeSource_To_api_MetadataVolumeSource(in *MetadataVolumeSource, out *api.MetadataVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*MetadataVolumeSource))(in)
-	}
-	if in.Items != nil {
-		out.Items = make([]api.MetadataFile, len(in.Items))
-		for i := range in.Items {
-			if err := convert_v1_MetadataFile_To_api_MetadataFile(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
 	return nil
 }
 
@@ -3514,6 +3485,7 @@ func convert_v1_NodeSpec_To_api_NodeSpec(in *NodeSpec, out *api.NodeSpec, s conv
 	}
 	out.PodCIDR = in.PodCIDR
 	out.ExternalID = in.ExternalID
+	out.ProviderID = in.ProviderID
 	out.Unschedulable = in.Unschedulable
 	return nil
 }
@@ -3523,7 +3495,7 @@ func convert_v1_NodeStatus_To_api_NodeStatus(in *NodeStatus, out *api.NodeStatus
 		defaulting.(func(*NodeStatus))(in)
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[api.ResourceName]resource.Quantity)
+		out.Capacity = make(api.ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3595,6 +3567,7 @@ func convert_v1_ObjectMeta_To_api_ObjectMeta(in *ObjectMeta, out *api.ObjectMeta
 	out.SelfLink = in.SelfLink
 	out.UID = in.UID
 	out.ResourceVersion = in.ResourceVersion
+	out.Generation = in.Generation
 	if err := s.Convert(&in.CreationTimestamp, &out.CreationTimestamp, 0); err != nil {
 		return err
 	}
@@ -3732,7 +3705,7 @@ func convert_v1_PersistentVolumeClaimStatus_To_api_PersistentVolumeClaimStatus(i
 		out.AccessModes = nil
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[api.ResourceName]resource.Quantity)
+		out.Capacity = make(api.ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -3854,7 +3827,7 @@ func convert_v1_PersistentVolumeSpec_To_api_PersistentVolumeSpec(in *PersistentV
 		defaulting.(func(*PersistentVolumeSpec))(in)
 	}
 	if in.Capacity != nil {
-		out.Capacity = make(map[api.ResourceName]resource.Quantity)
+		out.Capacity = make(api.ResourceList)
 		for key, val := range in.Capacity {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4042,8 +4015,8 @@ func convert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conversi
 	} else {
 		out.NodeSelector = nil
 	}
-	out.ServiceAccount = in.ServiceAccount
-	out.Host = in.Host
+	out.ServiceAccountName = in.ServiceAccountName
+	out.NodeName = in.NodeName
 	out.HostNetwork = in.HostNetwork
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]api.LocalObjectReference, len(in.ImagePullSecrets))
@@ -4074,6 +4047,7 @@ func convert_v1_PodStatus_To_api_PodStatus(in *PodStatus, out *api.PodStatus, s 
 		out.Conditions = nil
 	}
 	out.Message = in.Message
+	out.Reason = in.Reason
 	out.HostIP = in.HostIP
 	out.PodIP = in.PodIP
 	if in.StartTime != nil {
@@ -4269,6 +4243,7 @@ func convert_v1_ReplicationControllerStatus_To_api_ReplicationControllerStatus(i
 		defaulting.(func(*ReplicationControllerStatus))(in)
 	}
 	out.Replicas = in.Replicas
+	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
 
@@ -4319,7 +4294,7 @@ func convert_v1_ResourceQuotaSpec_To_api_ResourceQuotaSpec(in *ResourceQuotaSpec
 		defaulting.(func(*ResourceQuotaSpec))(in)
 	}
 	if in.Hard != nil {
-		out.Hard = make(map[api.ResourceName]resource.Quantity)
+		out.Hard = make(api.ResourceList)
 		for key, val := range in.Hard {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4338,7 +4313,7 @@ func convert_v1_ResourceQuotaStatus_To_api_ResourceQuotaStatus(in *ResourceQuota
 		defaulting.(func(*ResourceQuotaStatus))(in)
 	}
 	if in.Hard != nil {
-		out.Hard = make(map[api.ResourceName]resource.Quantity)
+		out.Hard = make(api.ResourceList)
 		for key, val := range in.Hard {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4350,7 +4325,7 @@ func convert_v1_ResourceQuotaStatus_To_api_ResourceQuotaStatus(in *ResourceQuota
 		out.Hard = nil
 	}
 	if in.Used != nil {
-		out.Used = make(map[api.ResourceName]resource.Quantity)
+		out.Used = make(api.ResourceList)
 		for key, val := range in.Used {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4369,7 +4344,7 @@ func convert_v1_ResourceRequirements_To_api_ResourceRequirements(in *ResourceReq
 		defaulting.(func(*ResourceRequirements))(in)
 	}
 	if in.Limits != nil {
-		out.Limits = make(map[api.ResourceName]resource.Quantity)
+		out.Limits = make(api.ResourceList)
 		for key, val := range in.Limits {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4381,7 +4356,7 @@ func convert_v1_ResourceRequirements_To_api_ResourceRequirements(in *ResourceReq
 		out.Limits = nil
 	}
 	if in.Requests != nil {
-		out.Requests = make(map[api.ResourceName]resource.Quantity)
+		out.Requests = make(api.ResourceList)
 		for key, val := range in.Requests {
 			newVal := resource.Quantity{}
 			if err := s.Convert(&val, &newVal, 0); err != nil {
@@ -4755,7 +4730,7 @@ func convert_v1_ServiceSpec_To_api_ServiceSpec(in *ServiceSpec, out *api.Service
 	} else {
 		out.Selector = nil
 	}
-	out.PortalIP = in.PortalIP
+	out.ClusterIP = in.ClusterIP
 	out.Type = api.ServiceType(in.Type)
 	if in.DeprecatedPublicIPs != nil {
 		out.DeprecatedPublicIPs = make([]string, len(in.DeprecatedPublicIPs))
@@ -4801,6 +4776,36 @@ func convert_v1_Status_To_api_Status(in *Status, out *api.Status, s conversion.S
 		out.Details = nil
 	}
 	out.Code = in.Code
+	return nil
+}
+
+func convert_v1_StatusCause_To_api_StatusCause(in *StatusCause, out *api.StatusCause, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*StatusCause))(in)
+	}
+	out.Type = api.CauseType(in.Type)
+	out.Message = in.Message
+	out.Field = in.Field
+	return nil
+}
+
+func convert_v1_StatusDetails_To_api_StatusDetails(in *StatusDetails, out *api.StatusDetails, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*StatusDetails))(in)
+	}
+	out.Name = in.Name
+	out.Kind = in.Kind
+	if in.Causes != nil {
+		out.Causes = make([]api.StatusCause, len(in.Causes))
+		for i := range in.Causes {
+			if err := convert_v1_StatusCause_To_api_StatusCause(&in.Causes[i], &out.Causes[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Causes = nil
+	}
+	out.RetryAfterSeconds = in.RetryAfterSeconds
 	return nil
 }
 
@@ -4920,13 +4925,13 @@ func convert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.Volu
 	} else {
 		out.Glusterfs = nil
 	}
-	if in.PersistentVolumeClaimVolumeSource != nil {
-		out.PersistentVolumeClaimVolumeSource = new(api.PersistentVolumeClaimVolumeSource)
-		if err := convert_v1_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaimVolumeSource, out.PersistentVolumeClaimVolumeSource, s); err != nil {
+	if in.PersistentVolumeClaim != nil {
+		out.PersistentVolumeClaim = new(api.PersistentVolumeClaimVolumeSource)
+		if err := convert_v1_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
 			return err
 		}
 	} else {
-		out.PersistentVolumeClaimVolumeSource = nil
+		out.PersistentVolumeClaim = nil
 	}
 	if in.RBD != nil {
 		out.RBD = new(api.RBDVolumeSource)
@@ -4943,14 +4948,6 @@ func convert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.Volu
 		}
 	} else {
 		out.CephFS = nil
-	}
-	if in.Metadata != nil {
-		out.Metadata = new(api.MetadataVolumeSource)
-		if err := convert_v1_MetadataVolumeSource_To_api_MetadataVolumeSource(in.Metadata, out.Metadata, s); err != nil {
-			return err
-		}
-	} else {
-		out.Metadata = nil
 	}
 	return nil
 }
@@ -5002,8 +4999,6 @@ func init() {
 		convert_api_LoadBalancerIngress_To_v1_LoadBalancerIngress,
 		convert_api_LoadBalancerStatus_To_v1_LoadBalancerStatus,
 		convert_api_LocalObjectReference_To_v1_LocalObjectReference,
-		convert_api_MetadataFile_To_v1_MetadataFile,
-		convert_api_MetadataVolumeSource_To_v1_MetadataVolumeSource,
 		convert_api_NFSVolumeSource_To_v1_NFSVolumeSource,
 		convert_api_NamespaceList_To_v1_NamespaceList,
 		convert_api_NamespaceSpec_To_v1_NamespaceSpec,
@@ -5069,6 +5064,8 @@ func init() {
 		convert_api_ServiceSpec_To_v1_ServiceSpec,
 		convert_api_ServiceStatus_To_v1_ServiceStatus,
 		convert_api_Service_To_v1_Service,
+		convert_api_StatusCause_To_v1_StatusCause,
+		convert_api_StatusDetails_To_v1_StatusDetails,
 		convert_api_Status_To_v1_Status,
 		convert_api_TCPSocketAction_To_v1_TCPSocketAction,
 		convert_api_TypeMeta_To_v1_TypeMeta,
@@ -5120,8 +5117,6 @@ func init() {
 		convert_v1_LoadBalancerIngress_To_api_LoadBalancerIngress,
 		convert_v1_LoadBalancerStatus_To_api_LoadBalancerStatus,
 		convert_v1_LocalObjectReference_To_api_LocalObjectReference,
-		convert_v1_MetadataFile_To_api_MetadataFile,
-		convert_v1_MetadataVolumeSource_To_api_MetadataVolumeSource,
 		convert_v1_NFSVolumeSource_To_api_NFSVolumeSource,
 		convert_v1_NamespaceList_To_api_NamespaceList,
 		convert_v1_NamespaceSpec_To_api_NamespaceSpec,
@@ -5187,6 +5182,8 @@ func init() {
 		convert_v1_ServiceSpec_To_api_ServiceSpec,
 		convert_v1_ServiceStatus_To_api_ServiceStatus,
 		convert_v1_Service_To_api_Service,
+		convert_v1_StatusCause_To_api_StatusCause,
+		convert_v1_StatusDetails_To_api_StatusDetails,
 		convert_v1_Status_To_api_Status,
 		convert_v1_TCPSocketAction_To_api_TCPSocketAction,
 		convert_v1_TypeMeta_To_api_TypeMeta,

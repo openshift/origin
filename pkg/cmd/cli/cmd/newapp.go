@@ -153,7 +153,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			if len(t.Spec.Ports) > 0 {
 				portMappings = fmt.Sprintf(" with port mappings %s.", describeServicePorts(t.Spec))
 			}
-			fmt.Fprintf(c.Out(), "Service %q created at %s%s\n", t.Name, t.Spec.PortalIP, portMappings)
+			fmt.Fprintf(c.Out(), "Service %q created at %s%s\n", t.Name, t.Spec.ClusterIP, portMappings)
 		case *buildapi.BuildConfig:
 			fmt.Fprintf(c.Out(), "A build was created - you can run `%s start-build %s` to start it.\n", fullName, t.Name)
 		case *imageapi.ImageStream:
@@ -237,14 +237,14 @@ func createObjects(f *clientcmd.Factory, out io.Writer, result *newcmd.AppResult
 func describeServicePorts(spec kapi.ServiceSpec) string {
 	switch len(spec.Ports) {
 	case 1:
-		if spec.Ports[0].TargetPort.String() == "0" || spec.PortalIP == kapi.PortalIPNone || spec.Ports[0].Port == spec.Ports[0].TargetPort.IntVal {
+		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || spec.Ports[0].Port == spec.Ports[0].TargetPort.IntVal {
 			return fmt.Sprintf("%d", spec.Ports[0].Port)
 		}
 		return fmt.Sprintf("%d->%s", spec.Ports[0].Port, spec.Ports[0].TargetPort.String())
 	default:
 		pairs := []string{}
 		for _, port := range spec.Ports {
-			if port.TargetPort.String() == "0" || spec.PortalIP == kapi.PortalIPNone {
+			if port.TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone {
 				pairs = append(pairs, fmt.Sprintf("%d", port.Port))
 				continue
 			}

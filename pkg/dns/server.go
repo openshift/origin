@@ -33,6 +33,7 @@ func ListenAndServe(config *server.Config, client *client.Client, etcdclient *et
 		}))
 	}
 
+	server.Metrics()
 	s := server.New(resolvers, config)
 	defer close(stop)
 	return s.Run()

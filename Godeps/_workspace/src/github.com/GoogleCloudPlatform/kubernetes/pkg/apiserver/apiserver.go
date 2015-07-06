@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"path"
 	"strconv"
@@ -34,6 +35,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver/metrics"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -46,46 +48,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var (
-	// TODO(a-robinson): Add unit tests for the handling of these metrics once
-	// the upstream library supports it.
-	requestCounter = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "apiserver_request_count",
-			Help: "Counter of apiserver requests broken out for each verb, API resource, and HTTP response code.",
-		},
-		[]string{"verb", "resource", "code"},
-	)
-	requestLatencies = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name: "apiserver_request_latencies",
-			Help: "Response latency distribution in microseconds for each verb, and resource.",
-			// Use buckets ranging from 125 ms to 8 seconds.
-			Buckets: prometheus.ExponentialBuckets(125000, 2.0, 7),
-		},
-		[]string{"verb", "resource"},
-	)
-	requestLatenciesSummary = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
-			Name: "apiserver_request_latencies_summary",
-			Help: "Response latency summary in microseconds for each verb and resource.",
-		},
-		[]string{"verb", "resource"},
-	)
-)
-
 func init() {
-	prometheus.MustRegister(requestCounter)
-	prometheus.MustRegister(requestLatencies)
-	prometheus.MustRegister(requestLatenciesSummary)
-}
-
-// monitor is a helper function for each HTTP request handler to use for
-// instrumenting basic request counter and latency metrics.
-func monitor(verb, resource *string, client string, httpCode *int, reqStart time.Time) {
-	requestCounter.WithLabelValues(*verb, *resource, strconv.Itoa(*httpCode)).Inc()
-	requestLatencies.WithLabelValues(*verb, *resource).Observe(float64((time.Since(reqStart)) / time.Microsecond))
-	requestLatenciesSummary.WithLabelValues(*verb, *resource).Observe(float64((time.Since(reqStart)) / time.Microsecond))
+	metrics.Register()
 }
 
 // monitorFilter creates a filter that reports the metrics for a given resource and action.
@@ -94,7 +58,7 @@ func monitorFilter(action, resource string) restful.FilterFunction {
 		reqStart := time.Now()
 		chain.ProcessFilter(req, res)
 		httpCode := res.StatusCode()
-		monitor(&action, &resource, util.GetClient(req.Request), &httpCode, reqStart)
+		metrics.Monitor(&action, &resource, util.GetClient(req.Request), &httpCode, reqStart)
 	}
 }
 
@@ -108,6 +72,7 @@ type Mux interface {
 // It handles URLs of the form:
 // /${storage_key}[/${object_name}]
 // Where 'storage_key' points to a rest.Storage object stored in storage.
+// This object should contain all parameterization necessary for running a particular API version
 type APIGroupVersion struct {
 	Storage map[string]rest.Storage
 
@@ -130,7 +95,12 @@ type APIGroupVersion struct {
 
 	Admit   admission.Interface
 	Context api.RequestContextMapper
+
+	ProxyDialerFn     ProxyDialerFunc
+	MinRequestTimeout time.Duration
 }
+
+type ProxyDialerFunc func(network, addr string) (net.Conn, error)
 
 // TODO: Pipe these in through the apiserver cmd line
 const (
@@ -148,27 +118,26 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container) error {
 
 	prefix := path.Join(g.Root, g.Version)
 	installer := &APIInstaller{
-		group:  g,
-		info:   info,
-		prefix: prefix,
+		group:             g,
+		info:              info,
+		prefix:            prefix,
+		minRequestTimeout: g.MinRequestTimeout,
+		proxyDialerFn:     g.ProxyDialerFn,
 	}
 	ws, registrationErrors := installer.Install()
 	container.Add(ws)
 	return errors.NewAggregate(registrationErrors)
 }
 
-// TODO: This endpoint is deprecated and should be removed at some point.
-// Use "componentstatus" API instead.
-func InstallValidator(mux Mux, servers func() map[string]Server) {
-	mux.Handle("/validate", NewValidator(servers))
-}
-
 // TODO: document all handlers
 // InstallSupport registers the APIServer support functions
-func InstallSupport(mux Mux, ws *restful.WebService) {
+func InstallSupport(mux Mux, ws *restful.WebService, enableResettingMetrics bool) {
 	// TODO: convert healthz and metrics to restful and remove container arg
 	healthz.InstallHandler(mux)
 	mux.Handle("/metrics", prometheus.Handler())
+	if enableResettingMetrics {
+		mux.HandleFunc("/resetMetrics", metrics.Reset)
+	}
 
 	// Set up a service to return the git code version.
 	ws.Path("/version")

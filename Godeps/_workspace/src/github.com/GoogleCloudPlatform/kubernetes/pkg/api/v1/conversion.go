@@ -27,8 +27,6 @@ import (
 func addConversionFuncs() {
 	// Add non-generated conversion functions
 	err := api.Scheme.AddConversionFuncs(
-		convert_api_StatusDetails_To_v1_StatusDetails,
-		convert_v1_StatusDetails_To_api_StatusDetails,
 		convert_v1_ReplicationControllerSpec_To_api_ReplicationControllerSpec,
 		convert_api_ReplicationControllerSpec_To_v1_ReplicationControllerSpec,
 	)
@@ -43,10 +41,8 @@ func addConversionFuncs() {
 			switch label {
 			case "metadata.name",
 				"metadata.namespace",
-				"metadata.labels",
-				"metadata.annotations",
 				"status.phase",
-				"spec.host":
+				"spec.nodeName":
 				return label, value, nil
 			default:
 				return "", "", fmt.Errorf("field label not supported: %s", label)
@@ -106,7 +102,6 @@ func addConversionFuncs() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-
 	err = api.Scheme.AddFieldLabelConversionFunc("v1", "Namespace",
 		func(label, value string) (string, string, error) {
 			switch label {
@@ -120,7 +115,6 @@ func addConversionFuncs() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-
 	err = api.Scheme.AddFieldLabelConversionFunc("v1", "Secret",
 		func(label, value string) (string, string, error) {
 			switch label {
@@ -147,66 +141,19 @@ func addConversionFuncs() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-}
-
-func convert_v1_StatusDetails_To_api_StatusDetails(in *StatusDetails, out *api.StatusDetails, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*StatusDetails))(in)
-	}
-	out.ID = in.Name
-	out.Kind = in.Kind
-	if in.Causes != nil {
-		out.Causes = make([]api.StatusCause, len(in.Causes))
-		for i := range in.Causes {
-			if err := convert_v1_StatusCause_To_api_StatusCause(&in.Causes[i], &out.Causes[i], s); err != nil {
-				return err
+	err = api.Scheme.AddFieldLabelConversionFunc("v1", "Endpoints",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "metadata.name":
+				return label, value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
 			}
-		}
-	} else {
-		out.Causes = nil
+		})
+	if err != nil {
+		// If one of the conversion functions is malformed, detect it immediately.
+		panic(err)
 	}
-	out.RetryAfterSeconds = in.RetryAfterSeconds
-	return nil
-}
-
-func convert_api_StatusDetails_To_v1_StatusDetails(in *api.StatusDetails, out *StatusDetails, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.StatusDetails))(in)
-	}
-	out.Name = in.ID
-	out.Kind = in.Kind
-	if in.Causes != nil {
-		out.Causes = make([]StatusCause, len(in.Causes))
-		for i := range in.Causes {
-			if err := convert_api_StatusCause_To_v1_StatusCause(&in.Causes[i], &out.Causes[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Causes = nil
-	}
-	out.RetryAfterSeconds = in.RetryAfterSeconds
-	return nil
-}
-
-func convert_v1_StatusCause_To_api_StatusCause(in *StatusCause, out *api.StatusCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*StatusCause))(in)
-	}
-	out.Type = api.CauseType(in.Type)
-	out.Message = in.Message
-	out.Field = in.Field
-	return nil
-}
-
-func convert_api_StatusCause_To_v1_StatusCause(in *api.StatusCause, out *StatusCause, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.StatusCause))(in)
-	}
-	out.Type = CauseType(in.Type)
-	out.Message = in.Message
-	out.Field = in.Field
-	return nil
 }
 
 func convert_api_ReplicationControllerSpec_To_v1_ReplicationControllerSpec(in *api.ReplicationControllerSpec, out *ReplicationControllerSpec, s conversion.Scope) error {
@@ -223,14 +170,14 @@ func convert_api_ReplicationControllerSpec_To_v1_ReplicationControllerSpec(in *a
 	} else {
 		out.Selector = nil
 	}
-	if in.TemplateRef != nil {
-		out.TemplateRef = new(ObjectReference)
-		if err := convert_api_ObjectReference_To_v1_ObjectReference(in.TemplateRef, out.TemplateRef, s); err != nil {
-			return err
-		}
-	} else {
-		out.TemplateRef = nil
-	}
+	//if in.TemplateRef != nil {
+	//	out.TemplateRef = new(ObjectReference)
+	//	if err := convert_api_ObjectReference_To_v1_ObjectReference(in.TemplateRef, out.TemplateRef, s); err != nil {
+	//		return err
+	//	}
+	//} else {
+	//	out.TemplateRef = nil
+	//}
 	if in.Template != nil {
 		out.Template = new(PodTemplateSpec)
 		if err := convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in.Template, out.Template, s); err != nil {
@@ -255,14 +202,14 @@ func convert_v1_ReplicationControllerSpec_To_api_ReplicationControllerSpec(in *R
 	} else {
 		out.Selector = nil
 	}
-	if in.TemplateRef != nil {
-		out.TemplateRef = new(api.ObjectReference)
-		if err := convert_v1_ObjectReference_To_api_ObjectReference(in.TemplateRef, out.TemplateRef, s); err != nil {
-			return err
-		}
-	} else {
-		out.TemplateRef = nil
-	}
+	//if in.TemplateRef != nil {
+	//	out.TemplateRef = new(api.ObjectReference)
+	//	if err := convert_v1_ObjectReference_To_api_ObjectReference(in.TemplateRef, out.TemplateRef, s); err != nil {
+	//		return err
+	//	}
+	//} else {
+	//	out.TemplateRef = nil
+	//}
 	if in.Template != nil {
 		out.Template = new(api.PodTemplateSpec)
 		if err := convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(in.Template, out.Template, s); err != nil {

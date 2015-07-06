@@ -61,6 +61,10 @@ func (projectStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
+func (projectStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
 // ValidateUpdate is the default update validation for an end user.
 func (projectStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateProjectUpdate(obj.(*api.Project), old.(*api.Project))

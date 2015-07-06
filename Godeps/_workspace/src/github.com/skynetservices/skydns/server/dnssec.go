@@ -47,6 +47,10 @@ func (s *server) Sign(m *dns.Msg, bufsize uint16) {
 	incep := uint32(now.Add(-3 * time.Hour).Unix())     // 2+1 hours, be sure to catch daylight saving time and such
 	expir := uint32(now.Add(7 * 24 * time.Hour).Unix()) // sign for a week
 
+	defer func() {
+		promCacheSize.WithLabelValues("signature").Set(float64(s.scache.Size()))
+	}()
+
 	for _, r := range rrSets(m.Answer) {
 		if r[0].Header().Rrtype == dns.TypeRRSIG {
 			continue
@@ -81,6 +85,8 @@ func (s *server) Sign(m *dns.Msg, bufsize uint16) {
 		}
 	}
 	if bufsize >= 512 || bufsize <= 4096 {
+		// TCP here?
+		promErrorCount.WithLabelValues("truncated").Inc()
 		m.Truncated = m.Len() > int(bufsize)
 	}
 	o := new(dns.OPT)
@@ -102,7 +108,10 @@ func (s *server) signSet(r []dns.RR, now time.Time, incep, expir uint32) (*dns.R
 		s.scache.Remove(key)
 	}
 	log.Printf("skydns: scache miss for %s type %d", r[0].Header().Name, r[0].Header().Rrtype)
+
 	StatsDnssecCacheMiss.Inc(1)
+	promCacheMiss.WithLabelValues("signature").Inc()
+
 	sig, err, shared := inflight.Do(key, func() (*dns.RRSIG, error) {
 		sig1 := s.NewRRSIG(incep, expir)
 		sig1.Header().Ttl = r[0].Header().Ttl
