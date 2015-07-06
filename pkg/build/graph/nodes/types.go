@@ -34,7 +34,7 @@ func (n BuildConfigNode) Object() interface{} {
 }
 
 func (n BuildConfigNode) String() string {
-	return fmt.Sprintf("<buildconfig %s/%s>", n.Namespace, n.Name)
+	return string(BuildConfigNodeName(n.BuildConfig))
 }
 
 func (*BuildConfigNode) Kind() string {
@@ -57,10 +57,7 @@ type SourceRepositoryNode struct {
 }
 
 func (n SourceRepositoryNode) String() string {
-	if n.Source.Git != nil {
-		return fmt.Sprintf("<sourcerepository %s#%s>", n.Source.Git.URI, n.Source.Git.Ref)
-	}
-	return fmt.Sprintf("<source repository unknown>")
+	return string(SourceRepositoryNodeName(n.Source))
 }
 
 func (SourceRepositoryNode) Kind() string {
@@ -81,7 +78,7 @@ func (n BuildNode) Object() interface{} {
 }
 
 func (n BuildNode) String() string {
-	return fmt.Sprintf("<build %s/%s>", n.Build.Namespace, n.Build.Name)
+	return string(BuildNodeName(n.Build))
 }
 
 func (*BuildNode) Kind() string {

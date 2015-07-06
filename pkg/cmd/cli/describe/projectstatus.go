@@ -42,6 +42,11 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 		return g, err
 	}
 
+	iss, err := d.C.ImageStreams(namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return g, err
+	}
+
 	bcs, err := d.C.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return g, err
@@ -64,6 +69,10 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 		rcs = &kapi.ReplicationControllerList{}
 	}
 
+	for i := range iss.Items {
+		imagegraph.EnsureImageStreamNode(g, &iss.Items[i])
+		imagegraph.EnsureAllImageStreamTagNodes(g, &iss.Items[i])
+	}
 	for i := range bcs.Items {
 		build := buildgraph.EnsureBuildConfigNode(g, &bcs.Items[i])
 		buildedges.AddInputOutputEdges(g, build)
@@ -216,10 +225,10 @@ func describeImageInPipeline(pipeline graphview.ImagePipeline, namespace string)
 func describeImageTagInPipeline(image graphview.ImageTagLocation, namespace string) string {
 	switch t := image.(type) {
 	case *imagegraph.ImageStreamTagNode:
-		if t.ImageStream.Namespace != namespace {
+		if t.ImageStreamTag.Namespace != namespace {
 			return image.ImageSpec()
 		}
-		return fmt.Sprintf("%s:%s", t.ImageStream.Name, image.ImageTag())
+		return t.ImageStreamTag.Name
 	default:
 		return image.ImageSpec()
 	}

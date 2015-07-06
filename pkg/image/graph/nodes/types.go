@@ -32,37 +32,44 @@ func (n ImageStreamNode) Object() interface{} {
 }
 
 func (n ImageStreamNode) String() string {
-	return fmt.Sprintf("<imagestream %s/%s>", n.Namespace, n.Name)
+	return string(ImageStreamNodeName(n.ImageStream))
 }
 
 func (*ImageStreamNode) Kind() string {
 	return ImageStreamNodeKind
 }
 
-func ImageStreamTagNodeName(o *imageapi.ImageStream, tag string) osgraph.UniqueName {
-	return osgraph.UniqueName(fmt.Sprintf("%s|%s/%s:%s", ImageStreamTagNodeKind, o.Namespace, o.Name, tag))
+func ImageStreamTagNodeName(o *imageapi.ImageStreamTag) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(ImageStreamTagNodeKind, o)
 }
 
 type ImageStreamTagNode struct {
 	osgraph.Node
-	*imageapi.ImageStream
-	Tag string
+	*imageapi.ImageStreamTag
+
+	Synthetic bool
+}
+
+func (n ImageStreamTagNode) IsSynthetic() bool {
+	return n.Synthetic
 }
 
 func (n ImageStreamTagNode) ImageSpec() string {
-	return imageapi.DockerImageReference{Namespace: n.Namespace, Name: n.Name, Tag: n.Tag}.String()
+	name, tag, _ := imageapi.SplitImageStreamTag(n.ImageStreamTag.Name)
+	return imageapi.DockerImageReference{Namespace: n.Namespace, Name: name, Tag: tag}.String()
 }
 
 func (n ImageStreamTagNode) ImageTag() string {
-	return n.Tag
+	_, tag, _ := imageapi.SplitImageStreamTag(n.ImageStreamTag.Name)
+	return tag
 }
 
 func (n ImageStreamTagNode) Object() interface{} {
-	return n.ImageStream
+	return n.ImageStreamTag
 }
 
 func (n ImageStreamTagNode) String() string {
-	return fmt.Sprintf("<imagestreamtag %s/%s:%s>", n.Namespace, n.Name, n.Tag)
+	return string(ImageStreamTagNodeName(n.ImageStreamTag))
 }
 
 func (*ImageStreamTagNode) Kind() string {
@@ -87,7 +94,7 @@ func (n DockerImageRepositoryNode) ImageTag() string {
 }
 
 func (n DockerImageRepositoryNode) String() string {
-	return fmt.Sprintf("<dockerrepository %s>", n.Ref.String())
+	return string(DockerImageRepositoryNodeName(n.Ref))
 }
 
 func (*DockerImageRepositoryNode) Kind() string {
@@ -108,7 +115,7 @@ func (n ImageNode) Object() interface{} {
 }
 
 func (n ImageNode) String() string {
-	return fmt.Sprintf("<image %s>", n.Image.Name)
+	return string(ImageNodeName(n.Image))
 }
 
 func (*ImageNode) Kind() string {
@@ -129,7 +136,7 @@ func (n ImageLayerNode) Object() interface{} {
 }
 
 func (n ImageLayerNode) String() string {
-	return fmt.Sprintf("<image layer %s>", n.Layer)
+	return string(ImageLayerNodeName(n.Layer))
 }
 
 func (*ImageLayerNode) Kind() string {
