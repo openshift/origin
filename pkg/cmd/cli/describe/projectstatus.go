@@ -130,12 +130,14 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		}
 
 		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneBCs) == 0) {
-			fmt.Fprintln(out, "\nYou have no Services, DeploymentConfigs, or BuildConfigs. 'oc new-app' can be used to create applications from scratch from existing Docker images and templates.")
+			fmt.Fprintln(out)
+			fmt.Fprintln(out, "You have no services, deployment configs, or build configs.")
+			fmt.Fprintln(out, "Run 'oc new-app' to create an application.")
 
 		} else {
 			fmt.Fprintln(out)
-			fmt.Fprintln(out, "To see more information about a Service or DeploymentConfig, use 'oc describe service <name>' or 'oc describe dc <name>'.")
-			fmt.Fprintln(out, "You can use 'oc get all' to see lists of each of the types described above.")
+			fmt.Fprintln(out, "To see more, use 'oc describe service <name>' or 'oc describe dc <name>'.")
+			fmt.Fprintln(out, "You can use 'oc get all' to see a list of other objects.")
 		}
 
 		return nil
@@ -505,11 +507,11 @@ func describeServiceInServiceGroup(svc graphview.ServiceGroup) []string {
 	port := describeServicePorts(spec)
 	switch {
 	case ip == "None":
-		return []string{fmt.Sprintf("service %s (headless%s)", svc.Service.Name, port)}
+		return []string{fmt.Sprintf("service %s (headless)%s", svc.Service.Name, port)}
 	case len(ip) == 0:
-		return []string{fmt.Sprintf("service %s (<initializing>%s)", svc.Service.Name, port)}
+		return []string{fmt.Sprintf("service %s <initializing>%s", svc.Service.Name, port)}
 	default:
-		return []string{fmt.Sprintf("service %s (%s%s)", svc.Service.Name, ip, port)}
+		return []string{fmt.Sprintf("service %s - %s%s", svc.Service.Name, ip, port)}
 	}
 }
 
@@ -517,11 +519,13 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 	switch len(spec.Ports) {
 	case 0:
 		return " no ports"
+
 	case 1:
 		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || spec.Ports[0].Port == spec.Ports[0].TargetPort.IntVal {
 			return fmt.Sprintf(":%d", spec.Ports[0].Port)
 		}
 		return fmt.Sprintf(":%d -> %s", spec.Ports[0].Port, spec.Ports[0].TargetPort.String())
+
 	default:
 		pairs := []string{}
 		for _, port := range spec.Ports {
@@ -529,8 +533,12 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 				pairs = append(pairs, fmt.Sprintf("%d", port.Port))
 				continue
 			}
-			pairs = append(pairs, fmt.Sprintf("%d->%s", port.Port, port.TargetPort.String()))
+			if port.Port == port.TargetPort.IntVal {
+				pairs = append(pairs, port.TargetPort.String())
+			} else {
+				pairs = append(pairs, fmt.Sprintf("%d->%s", port.Port, port.TargetPort.String()))
+			}
 		}
-		return " " + strings.Join(pairs, ", ")
+		return " ports " + strings.Join(pairs, ", ")
 	}
 }
