@@ -169,13 +169,6 @@
           <div ng-repeat="(deploymentId, deployment) in deploymentsByServiceByDeploymentConfig[''][deploymentConfigId] track by (deployment | uid)"
                ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
 
-            <div class="components-panel service none">
-              <div class="service">
-                <span ng-if="(deployments | hashSize) > 1">There is no service for these deployments.</span>
-                <span ng-if="(deployments | hashSize) == 1">There is no service for this deployment.</span>
-              </div>
-            </div>
-
             <div ng-if="deploymentConfigs[deploymentConfigId] && deploymentConfigsByService[''][deploymentConfigId]">
               <!--
               Pods in deployments created from this deployment config will not be routed to by any service.
@@ -199,12 +192,6 @@
         </section>
 
         <section ng-repeat="pod in monopodsByService[''] track by (pod | uid)" class="components">
-
-          <div class="components-panel service none">
-            <div class="service">
-              There is no service for this pod.
-            </div>
-          </div>
 
           <overview-monopod pod="pod"></overview-monopod>
 
