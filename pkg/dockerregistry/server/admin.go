@@ -8,6 +8,7 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/handlers"
+	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	gorillahandlers "github.com/gorilla/handlers"
 )
 
@@ -46,9 +47,12 @@ func (bh *blobHandler) Delete(w http.ResponseWriter, req *http.Request) {
 
 	err := bh.Registry().Blobs().Delete(bh.Digest)
 	if err != nil {
-		bh.Errors.PushErr(fmt.Errorf("error deleting blob %q: %v", bh.Digest, err))
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		// Ignore PathNotFoundError
+		if _, ok := err.(storagedriver.PathNotFoundError); !ok {
+			bh.Errors.PushErr(fmt.Errorf("error deleting blob %q: %v", bh.Digest, err))
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -89,9 +93,12 @@ func (lh *layerHandler) Delete(w http.ResponseWriter, req *http.Request) {
 
 	err := lh.Repository.Layers().Delete(lh.Digest)
 	if err != nil {
-		lh.Errors.PushErr(fmt.Errorf("error unlinking layer %q from repo %q: %v", lh.Digest, lh.Repository.Name(), err))
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		// Ignore PathNotFoundError
+		if _, ok := err.(storagedriver.PathNotFoundError); !ok {
+			lh.Errors.PushErr(fmt.Errorf("error unlinking layer %q from repo %q: %v", lh.Digest, lh.Repository.Name(), err))
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -133,9 +140,12 @@ func (mh *manifestHandler) Delete(w http.ResponseWriter, req *http.Request) {
 
 	err := mh.Repository.Manifests().Delete(mh.Context, mh.Digest)
 	if err != nil {
-		mh.Errors.PushErr(fmt.Errorf("error deleting repo %q, manifest %q: %v", mh.Repository.Name(), mh.Digest, err))
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		// Ignore PathNotFoundError
+		if _, ok := err.(storagedriver.PathNotFoundError); !ok {
+			mh.Errors.PushErr(fmt.Errorf("error deleting repo %q, manifest %q: %v", mh.Repository.Name(), mh.Digest, err))
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)
