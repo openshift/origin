@@ -188,11 +188,15 @@ func isComplexType(reflection reflect.Type) bool {
 func (g *conversionGenerator) generateConversionsForMap(inType, outType reflect.Type) error {
 	inKey := inType.Key()
 	outKey := outType.Key()
+	g.addImportByPath(inKey.PkgPath())
+	g.addImportByPath(outKey.PkgPath())
 	if err := g.generateConversionsBetween(inKey, outKey); err != nil {
 		return err
 	}
 	inValue := inType.Elem()
 	outValue := outType.Elem()
+	g.addImportByPath(inValue.PkgPath())
+	g.addImportByPath(outValue.PkgPath())
 	if err := g.generateConversionsBetween(inValue, outValue); err != nil {
 		return err
 	}
