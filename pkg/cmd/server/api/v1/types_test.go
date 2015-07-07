@@ -213,6 +213,7 @@ routingConfig:
   subdomain: ""
 serviceAccountConfig:
   managedNames: null
+  masterCA: ""
   privateKeyFile: ""
   publicKeyFiles: null
 servingInfo:
