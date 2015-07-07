@@ -1,21 +1,18 @@
 package graph
 
 import (
-	"sort"
-
 	"github.com/gonum/graph"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-
 	osgraph "github.com/openshift/origin/pkg/api/graph"
+	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
 const (
 	TriggersDeploymentEdgeKind = "TriggersDeployment"
 	UsedInDeploymentEdgeKind   = "UsedInDeployment"
+	DeploymentEdgeKind         = "Deployment"
 )
 
 // AddTriggerEdges creates edges that point to named Docker image repositories for each image used in the deployment.
@@ -59,22 +56,22 @@ func AddAllTriggerEdges(g osgraph.MutableUniqueGraph) {
 	}
 }
 
-// TODO kill this.  It should be based on an edge traversal to loaded replication controllers
-func JoinDeployments(node *deploygraph.DeploymentConfigNode, deploys []kapi.ReplicationController) {
-	matches := []*kapi.ReplicationController{}
-	for i := range deploys {
-		if belongsToDeploymentConfig(node.DeploymentConfig, &deploys[i]) {
-			matches = append(matches, &deploys[i])
+func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentConfigNode) *deploygraph.DeploymentConfigNode {
+	for _, n := range g.(graph.Graph).NodeList() {
+		if rcNode, ok := n.(*kubegraph.ReplicationControllerNode); ok {
+			if belongsToDeploymentConfig(node.DeploymentConfig, rcNode.ReplicationController) {
+				g.AddEdge(node, rcNode, DeploymentEdgeKind)
+			}
 		}
 	}
-	if len(matches) == 0 {
-		return
+
+	return node
+}
+
+func AddAllDeploymentEdges(g osgraph.MutableUniqueGraph) {
+	for _, node := range g.(graph.Graph).NodeList() {
+		if dcNode, ok := node.(*deploygraph.DeploymentConfigNode); ok {
+			AddDeploymentEdges(g, dcNode)
+		}
 	}
-	sort.Sort(RecentDeploymentReferences(matches))
-	if node.DeploymentConfig.LatestVersion == deployutil.DeploymentVersionFor(matches[0]) {
-		node.ActiveDeployment = matches[0]
-		node.Deployments = matches[1:]
-		return
-	}
-	node.Deployments = matches
 }
