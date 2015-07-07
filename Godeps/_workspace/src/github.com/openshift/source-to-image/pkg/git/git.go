@@ -5,10 +5,12 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/util"
 )
 
@@ -17,6 +19,7 @@ type Git interface {
 	ValidCloneSpec(source string) bool
 	Clone(source, target string) error
 	Checkout(repo, ref string) error
+	GetInfo(string) *api.SourceInfo
 }
 
 // New returns a new instance of the default implementation of the Git interface
@@ -88,6 +91,28 @@ func (h *stiGit) Checkout(repo, ref string) error {
 		Dir:    repo,
 	}
 	return h.runner.RunWithOptions(opts, "git", "checkout", ref)
+}
+
+// GetInfo retrieves the informations about the source code and commit
+func (h *stiGit) GetInfo(repo string) *api.SourceInfo {
+	git := func(arg ...string) string {
+		command := exec.Command("git", arg...)
+		command.Dir = repo
+		out, err := command.CombinedOutput()
+		if err != nil {
+			glog.V(1).Infof("Error executing 'git %#v': %s (%v)", arg, out, err)
+			return ""
+		}
+		return strings.TrimSpace(string(out))
+	}
+	return &api.SourceInfo{
+		Location: git("config", "--get", "remote.origin.url"),
+		Ref:      git("rev-parse", "--abbrev-ref", "HEAD"),
+		CommitID: git("rev-parse", "--short", "--verify", "HEAD"),
+		Author:   git("--no-pager", "show", "-s", "--format=%an <%ae>", "HEAD"),
+		Date:     git("--no-pager", "show", "-s", "--format=%ad", "HEAD"),
+		Message:  git("--no-pager", "show", "-s", "--format=%<(80,trunc)%s", "HEAD"),
+	}
 }
 
 func pipeToLog(reader io.Reader, log func(...interface{})) {

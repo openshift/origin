@@ -52,6 +52,7 @@ type STI struct {
 	installedScripts map[string]bool
 	scriptsURL       map[string]string
 	incremental      bool
+	sourceInfo       *api.SourceInfo
 
 	// Interfaces
 	preparer  build.Preparer
@@ -123,7 +124,10 @@ func (b *STI) Build(config *api.Config) (*api.Result, error) {
 	glog.V(2).Infof("Performing source build from %s", config.Source)
 	if b.incremental {
 		if err := b.artifacts.Save(config); err != nil {
-			glog.Warningf("Clean build will be performed becase of error saving previous build artifacts: %v", err)
+			glog.Warningf("Clean build will be performed because of error saving previous build artifacts")
+			if glog.V(2) {
+				glog.Infof("ERROR: %v", err)
+			}
 		}
 	}
 
@@ -165,7 +169,7 @@ func (b *STI) Prepare(config *api.Config) error {
 
 	// fetch sources, for theirs .sti/bin might contain sti scripts
 	if len(config.Source) > 0 {
-		if err = b.source.Download(config); err != nil {
+		if b.sourceInfo, err = b.source.Download(config); err != nil {
 			return err
 		}
 	}
@@ -232,6 +236,7 @@ func (b *STI) PostExecute(containerID, location string) error {
 		Env:         buildEnv,
 		ContainerID: containerID,
 		Repository:  b.config.Tag,
+		Labels:      util.GenerateOutputImageLabels(b.sourceInfo, b.config),
 	}
 
 	imageID, err := b.docker.CommitContainer(opts)

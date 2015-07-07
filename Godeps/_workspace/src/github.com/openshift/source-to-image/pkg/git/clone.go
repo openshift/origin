@@ -16,8 +16,9 @@ type Clone struct {
 
 // Download downloads the application source code from the GIT repository
 // and checkout the Ref specified in the config.
-func (c *Clone) Download(config *api.Config) error {
+func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 	targetSourceDir := filepath.Join(config.WorkingDir, "upload", "src")
+	var info *api.SourceInfo
 
 	if c.ValidCloneSpec(config.Source) {
 		if len(config.ContextDir) > 0 {
@@ -26,15 +27,14 @@ func (c *Clone) Download(config *api.Config) error {
 		glog.V(2).Infof("Cloning into %s", targetSourceDir)
 		if err := c.Clone(config.Source, targetSourceDir); err != nil {
 			glog.V(1).Infof("Git clone failed: %+v", err)
-			return err
+			return nil, err
 		}
 
-		if config.Ref != "" {
-			glog.V(1).Infof("Checking out ref %s", config.Ref)
-
+		if len(config.Ref) > 0 {
 			if err := c.Checkout(targetSourceDir, config.Ref); err != nil {
-				return err
+				return nil, err
 			}
+			glog.V(1).Infof("Checked out %q", config.Ref)
 		}
 
 		if len(config.ContextDir) > 0 {
@@ -44,17 +44,28 @@ func (c *Clone) Download(config *api.Config) error {
 			path := filepath.Join(targetSourceDir, config.ContextDir) + string(filepath.Separator) + "."
 			err := c.Copy(path, originalTargetDir)
 			if err != nil {
-				return err
+				return nil, err
 			}
+			info = c.GetInfo(targetSourceDir)
 			c.RemoveDirectory(targetSourceDir)
+		} else {
+			info = c.GetInfo(targetSourceDir)
 		}
 
-		return nil
+		return info, nil
 	}
 	// we want to copy entire dir contents, thus we need to use dir/. construct
 	path := filepath.Join(config.Source, config.ContextDir) + string(filepath.Separator) + "."
 	if !c.Exists(path) {
-		return errors.NewSourcePathError(path)
+		return nil, errors.NewSourcePathError(path)
 	}
-	return c.Copy(path, targetSourceDir)
+	if err := c.Copy(path, targetSourceDir); err != nil {
+		return nil, err
+	}
+
+	// When building from a local directory (not using GIT clone spec scheme) we
+	// skip gathering informations about the source as there is no guarantee that
+	// the folder is a GIT repository or it requires context-dir to be set.
+	glog.Warning("You are using <source> location that is not valid GIT repository. The source code information will not be stored into the output image. Use this image only for local testing and development.")
+	return nil, nil
 }
