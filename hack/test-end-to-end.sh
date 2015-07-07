@@ -105,6 +105,9 @@ function cleanup()
 	echo
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
+		echo "[INFO] Switch back to 'default' project with 'admin' user for cleanup"
+		oc project ${CLUSTER_ADMIN_CONTEXT}
+
 		echo "[INFO] Deleting test constructs"
 		oc delete -n test all --all
 		oc delete -n docker all --all
