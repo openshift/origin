@@ -64,10 +64,6 @@ func (fake *fakeMountDetector) GetMountMedium(path string) (storageMedium, bool,
 	return fake.medium, fake.isMount, nil
 }
 
-<<<<<<< HEAD
-func TestPlugin(t *testing.T) {
-	plug := makePluginUnderTest(t, "kubernetes.io/empty-dir")
-=======
 type fakeChconRequest struct {
 	dir     string
 	context string
@@ -76,7 +72,6 @@ type fakeChconRequest struct {
 type fakeChconRunner struct {
 	requests []fakeChconRequest
 }
->>>>>>> bff15af... UPSTREAM: Handle SecurityContext correctly for emptyDir volumes
 
 func newFakeChconRunner() *fakeChconRunner {
 	return &fakeChconRunner{}
@@ -88,9 +83,6 @@ func (f *fakeChconRunner) SetContext(dir, context string) error {
 	return nil
 }
 
-<<<<<<< HEAD
-	cleaner, err := plug.(*emptyDirPlugin).newCleanerInternal("vol1", types.UID("poduid"), &mounter, &fakeMountDetector{})
-=======
 func TestPluginEmptyRootContext(t *testing.T) {
 	doTestPlugin(t, pluginTestConfig{
 		medium:                 api.StorageMediumDefault,
@@ -167,7 +159,6 @@ type pluginTestConfig struct {
 // doTestPlugin sets up a volume and tears it back down.
 func doTestPlugin(t *testing.T, config pluginTestConfig) {
 	basePath, err := ioutil.TempDir("/tmp", "emptydir_volume_test")
->>>>>>> bff15af... UPSTREAM: Handle SecurityContext correctly for emptyDir volumes
 	if err != nil {
 		t.Fatalf("can't make a temp rootdir")
 	}
@@ -257,9 +248,6 @@ func doTestPlugin(t *testing.T, config pluginTestConfig) {
 		t.Errorf("Volume directory was created unexpectedly")
 	}
 
-<<<<<<< HEAD
-	cleaner, err := plug.(*emptyDirPlugin).newCleanerInternal("vol1", types.UID("poduid"), &mounter, &fakeMountDetector{mediumMemory, true})
-=======
 	// Check the number of chcons during setup
 	if e, a := config.expectedChcons, len(fakeChconRnr.requests); e != a {
 		t.Errorf("Expected %v chcon calls, got %v", e, a)
@@ -289,7 +277,6 @@ func doTestPlugin(t *testing.T, config pluginTestConfig) {
 	}
 	cleanerMountDetector := &fakeMountDetector{medium: teardownMedium, isMount: config.shouldBeMountedBeforeTeardown}
 	cleaner, err := plug.(*emptyDirPlugin).newCleanerInternal(volumeName, types.UID("poduid"), &mounter, cleanerMountDetector)
->>>>>>> bff15af... UPSTREAM: Handle SecurityContext correctly for emptyDir volumes
 	if err != nil {
 		t.Errorf("Failed to make a new Cleaner: %v", err)
 	}
