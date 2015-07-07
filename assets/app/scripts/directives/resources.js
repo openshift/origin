@@ -41,7 +41,7 @@ angular.module('openshiftConsole')
       templateUrl: 'views/_pod-template.html'
     };
   })
-  .directive('pods', function($rootScope) {
+  .directive('pods', function() {
     return {
       restrict: 'E',
       scope: {
@@ -59,7 +59,7 @@ angular.module('openshiftConsole')
       scope: {
         triggers: '='
       },
-      link: function(scope, elem, attrs) {
+      link: function(scope) {
         scope.isBuildHidden = function(build) {
           var key = hideBuildKey(build);
           return sessionStorage.getItem(key) === 'true';

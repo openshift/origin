@@ -10,7 +10,7 @@ angular.module('openshiftConsole')
         required: "="
       },
       templateUrl: 'views/directives/osc-file-input.html',
-      link: function(scope, element, attrs){
+      link: function(scope, element){
         scope.supportsFileUpload = (window.File && window.FileReader && window.FileList && window.Blob);
         scope.uploadError = false;
         $(element).change(function(){

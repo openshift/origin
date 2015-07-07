@@ -1,3 +1,5 @@
+'use strict';
+
 // Provide a websocket implementation that behaves like $http
 // Methods:
 //   $ws({
@@ -5,13 +7,11 @@
 //     method: "...", // defaults to WATCH
 //   })
 //   returns a promise to the opened WebSocket
-// 
+//
 //   $ws.available()
 //   returns true if WebSockets are available to use
 angular.module('openshiftConsole')
 .provider('$ws', function($httpProvider) {
-
-  var debug = false;
 
   // $get method is called to build the $ws service
   this.$get = function($q, $injector, Logger) {
@@ -75,4 +75,4 @@ angular.module('openshiftConsole')
 
     return $ws;
   };
-})
+});

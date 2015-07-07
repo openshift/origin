@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false */
 
 /**
  * @ngdoc function
@@ -10,14 +11,6 @@
 angular.module('openshiftConsole')
   .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse, Navigate, $filter, imageObjectRefFilter, failureObjectNameFilter) {
     var displayNameFilter = $filter('displayName');
-
-
-    function errorPage(message) {
-      var redirect = URI('error').query({
-        "error_description": message
-      }).toString();
-      $location.url(redirect);
-    }
 
     var dcContainers = $parse('spec.template.spec.containers');
     var stiBuilderImage = $parse('spec.strategy.sourceStrategy.from');

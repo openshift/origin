@@ -2,15 +2,15 @@
 
 describe("DataService", function(){
   var DataService;
-  
+
   beforeEach(function(){
     inject(function(_DataService_){
       DataService = _DataService_;
     });
   });
-  
+
   describe("#url", function(){
-    
+
     var tc = [
       // Empty tests
       [null,           null],
@@ -52,15 +52,13 @@ describe("DataService", function(){
       // Namespaced subresource with params
       [{type:'pods/proxy', id:"mypod", namespace:"myns", myparam1:"myvalue"}, "http://localhost:8443/api/v1beta3/namespaces/myns/pods/mypod/proxy?myparam1=myvalue"],
     ];
-    
-    for (var i=0; i < tc.length; i++) {
-      it("should generate a correct URL for " + JSON.stringify(tc[i][0]), function(tc){
-      	return function() {
-          expect(DataService.url(tc[0])).toEqual(tc[1]);
-        };
-      }(tc[i]));
-    }
-    
+
+    angular.forEach(tc, function(item) {
+      it('should generate a correct URL for ' + JSON.stringify(item[0]), function() {
+        expect(DataService.url(item[0])).toEqual(item[1]);
+      });
+    });
+
   });
-  
+
 });

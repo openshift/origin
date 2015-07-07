@@ -1,3 +1,6 @@
+'use strict';
+/* jshint unused: false, eqeqeq: false */
+
 angular.module('openshiftConsole')
   .directive('oscObjectDescriber', function(ObjectDescriber) {
     return {
@@ -51,7 +54,7 @@ angular.module('openshiftConsole')
           if (scope.resource) {
             $(this).removeClass("osc-object-hover");
           }
-        }); 
+        });
 
         // TODO can we be more efficient about this to reduce the number of listeners
         var resourceChangeCallback = ObjectDescriber.onResourceChanged(function(resource, kind) {

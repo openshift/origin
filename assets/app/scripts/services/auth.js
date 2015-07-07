@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('openshiftConsole')
 // In a config step, set the desired user store and login service. For example:
 //   AuthServiceProvider.setUserStore('LocalStorageUserStore')
@@ -108,7 +110,7 @@ angular.module('openshiftConsole')
 
         var oldName = oldUser && oldUser.metadata && oldUser.metadata.name;
         var newName = user    && user.metadata    && user.metadata.name;
-        if (oldName != newName) {
+        if (oldName !== newName) {
           authLogger.log('AuthService.setUser(), user changed', oldUser, user);
           _userChangedCallbacks.fire(user);
         }
@@ -136,7 +138,7 @@ angular.module('openshiftConsole')
         }
 
         // Handle web socket requests with a parameter
-        if (config.method == 'WATCH') {
+        if (config.method === 'WATCH') {
           config.url = URI(config.url).addQuery({access_token: token}).toString();
           authLogger.log('AuthService.addAuthToRequest(), added token param', config.url);
         } else {
@@ -202,7 +204,7 @@ angular.module('openshiftConsole')
       onUserChanged: function(callback) {
         _userChangedCallbacks.add(callback);
       }
-    }
+    };
   };
 })
 // register the interceptor as a service
@@ -274,4 +276,4 @@ angular.module('openshiftConsole')
       }
     }
   };
-}])
+}]);

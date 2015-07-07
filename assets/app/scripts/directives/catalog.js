@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('catalogTemplate', function($location) {
+  .directive('catalogTemplate', function() {
     return {
       restrict: 'E',
       // Replace the catalog-template element so that the tiles are all equal height as flexbox items.
@@ -14,7 +14,7 @@ angular.module('openshiftConsole')
       templateUrl: 'views/catalog/_template.html'
     };
   })
-  .directive('catalogImage', function($location) {
+  .directive('catalogImage', function() {
     return {
       restrict: 'E',
       // Replace the catalog-template element so that the tiles are all equal height as flexbox items.
