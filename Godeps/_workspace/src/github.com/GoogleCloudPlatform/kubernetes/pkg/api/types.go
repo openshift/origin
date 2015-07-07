@@ -219,6 +219,8 @@ type VolumeSource struct {
 	RBD *RBDVolumeSource `json:"rbd,omitempty"`
 	// CephFS represents a Cephfs mount on the host that shares a pod's lifetime
 	CephFS *CephFSVolumeSource `json:"cephfs,omitempty"`
+	// Metadata represents metadata about the pod that should populate this volume
+	Metadata *MetadataVolumeSource `json:"metadata,omitempty"`
 }
 
 // Similar to VolumeSource but meant for the administrator who creates PVs.
@@ -566,6 +568,20 @@ type CephFSVolumeSource struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty"`
+}
+
+// MetadataVolumeSource represents a volume containing metadata about a pod.
+type MetadataVolumeSource struct {
+	// Items is a list of metadata file name
+	Items []MetadataFile `json:"items",omitempty"`
+}
+
+// MetadataFile represents information to create the file containing the pod field
+type MetadataFile struct {
+	// Required: Name is the name of the file
+	Name string `json:"name,omitempty"`
+	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+	FieldRef ObjectFieldSelector `json:"fieldRef"`
 }
 
 // ContainerPort represents a network port in a single container

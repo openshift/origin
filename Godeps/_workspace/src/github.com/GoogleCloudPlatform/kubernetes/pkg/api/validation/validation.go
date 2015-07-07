@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"path"
 	"reflect"
 	"regexp"
@@ -361,6 +362,10 @@ func validateSource(source *api.VolumeSource) errs.ValidationErrorList {
 		numVolumes++
 		allErrs = append(allErrs, validateCephFS(source.CephFS).Prefix("cephfs")...)
 	}
+	if source.Metadata != nil {
+		numVolumes++
+		allErrs = append(allErrs, validateMetadataVolumeSource(source.Metadata).Prefix("metadata")...)
+	}
 	if numVolumes != 1 {
 		allErrs = append(allErrs, errs.NewFieldInvalid("", source, "exactly 1 volume type is required"))
 	}
@@ -466,6 +471,28 @@ func validateGlusterfs(glusterfs *api.GlusterfsVolumeSource) errs.ValidationErro
 	}
 	if glusterfs.Path == "" {
 		allErrs = append(allErrs, errs.NewFieldRequired("path"))
+	}
+	return allErrs
+}
+
+var validMetadataFieldPathExpressions = util.NewStringSet("metadata.name", "metadata.namespace", "metadata.labels", "metadata.annotations")
+
+func validateMetadataVolumeSource(metadata *api.MetadataVolumeSource) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	for _, metadataFile := range metadata.Items {
+		if len(metadataFile.Name) == 0 {
+			allErrs = append(allErrs, errs.NewFieldRequired("name"))
+		}
+		if path.IsAbs(metadataFile.Name) {
+			allErrs = append(allErrs, errs.NewFieldForbidden("name", "must not be an absolute path"))
+		}
+		items := strings.Split(metadataFile.Name, string(os.PathSeparator))
+		for _, item := range items {
+			if item == ".." {
+				allErrs = append(allErrs, errs.NewFieldForbidden("name", "must not contain `..`"))
+			}
+		}
+		allErrs = append(allErrs, validateObjectFieldSelector(&metadataFile.FieldRef, &validMetadataFieldPathExpressions).Prefix("FieldRef")...)
 	}
 	return allErrs
 }
@@ -661,6 +688,8 @@ func validateEnv(vars []api.EnvVar) errs.ValidationErrorList {
 	return allErrs
 }
 
+var validFieldPathExpressions = util.NewStringSet("metadata.name", "metadata.namespace")
+
 func validateEnvVarValueFrom(ev api.EnvVar) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
@@ -673,7 +702,7 @@ func validateEnvVarValueFrom(ev api.EnvVar) errs.ValidationErrorList {
 	switch {
 	case ev.ValueFrom.FieldRef != nil:
 		numSources++
-		allErrs = append(allErrs, validateObjectFieldSelector(ev.ValueFrom.FieldRef).Prefix("fieldRef")...)
+		allErrs = append(allErrs, validateObjectFieldSelector(ev.ValueFrom.FieldRef, &validFieldPathExpressions).Prefix("fieldRef")...)
 	}
 
 	if ev.Value != "" && numSources != 0 {
@@ -683,9 +712,7 @@ func validateEnvVarValueFrom(ev api.EnvVar) errs.ValidationErrorList {
 	return allErrs
 }
 
-var validFieldPathExpressions = util.NewStringSet("metadata.name", "metadata.namespace")
-
-func validateObjectFieldSelector(fs *api.ObjectFieldSelector) errs.ValidationErrorList {
+func validateObjectFieldSelector(fs *api.ObjectFieldSelector, expressions *util.StringSet) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 
 	if fs.APIVersion == "" {
@@ -696,8 +723,8 @@ func validateObjectFieldSelector(fs *api.ObjectFieldSelector) errs.ValidationErr
 		internalFieldPath, _, err := api.Scheme.ConvertFieldLabel(fs.APIVersion, "Pod", fs.FieldPath, "")
 		if err != nil {
 			allErrs = append(allErrs, errs.NewFieldInvalid("fieldPath", fs.FieldPath, "error converting fieldPath"))
-		} else if !validFieldPathExpressions.Has(internalFieldPath) {
-			allErrs = append(allErrs, errs.NewFieldValueNotSupported("fieldPath", internalFieldPath, validFieldPathExpressions.List()))
+		} else if !expressions.Has(internalFieldPath) {
+			allErrs = append(allErrs, errs.NewFieldValueNotSupported("fieldPath", internalFieldPath, expressions.List()))
 		}
 	}
 
@@ -999,6 +1026,15 @@ func ValidatePodUpdate(newPod, oldPod *api.Pod) errs.ValidationErrorList {
 		allErrs = append(allErrs, errs.NewFieldInvalid("spec.containers", newPod.Spec.Containers, "may not add or remove containers"))
 		return allErrs
 	}
+
+	// for updates, we are allowing ActiveDeadlineSeconds to be 0
+	// since a user may just want to terminate the containers without deleting the pod
+	if newPod.Spec.ActiveDeadlineSeconds != nil {
+		if *newPod.Spec.ActiveDeadlineSeconds <= 0 {
+			allErrs = append(allErrs, errs.NewFieldInvalid("activeDeadlineSeconds", newPod.Spec.ActiveDeadlineSeconds, "activeDeadlineSeconds must be a positive integer greater than 0"))
+		}
+	}
+
 	pod := *newPod
 	// Tricky, we need to copy the container list so that we don't overwrite the update
 	var newContainers []api.Container
@@ -1007,6 +1043,14 @@ func ValidatePodUpdate(newPod, oldPod *api.Pod) errs.ValidationErrorList {
 		newContainers = append(newContainers, container)
 	}
 	pod.Spec.Containers = newContainers
+
+	// allow ActiveDeadlineSeconds to be updated as well
+	pod.Spec.ActiveDeadlineSeconds = nil
+	if oldPod.Spec.ActiveDeadlineSeconds != nil {
+		activeDeadlineSeconds := *oldPod.Spec.ActiveDeadlineSeconds
+		pod.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
+	}
+
 	if !api.Semantic.DeepEqual(pod.Spec, oldPod.Spec) {
 		allErrs = append(allErrs, errs.NewFieldInvalid("spec", newPod.Spec, "may not update fields other than container.image"))
 	}

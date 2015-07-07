@@ -55,6 +55,8 @@ func addConversionFuncs() {
 			switch label {
 			case "metadata.name",
 				"metadata.namespace",
+				"metadata.labels",
+				"metadata.annotations",
 				"status.phase":
 				return label, value, nil
 			case "spec.host":
