@@ -32,10 +32,12 @@
         top:1px;
       }
     }
-    .osc-object-active {
-      .connector {
-        i {
-          color: @osc-object-active-color;
+    @media (min-width: @screen-sm-min) {
+      .osc-object-active {
+        .connector {
+          i {
+            color: @osc-object-active-color;
+          }
         }
       }
     }
