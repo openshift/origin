@@ -51,7 +51,7 @@ module.exports = function (grunt) {
       css: {
         files: '<%= yeoman.app %>/styles/*.less',
         tasks: ['less']
-      },      
+      },
       gruntfile: {
         files: ['Gruntfile.js']
       },
@@ -138,6 +138,14 @@ module.exports = function (grunt) {
         },
         src: ['test/spec/{,*/}*.js']
       }
+    },
+
+    // further enforce js style guildelines
+    jscs: {
+        src: "./app/**/*.js",
+        options: {
+            config: ".jscsrc"
+        }
     },
 
     // Empties folders to start fresh
@@ -261,7 +269,7 @@ module.exports = function (grunt) {
                     beautify: {
                       beautify: true,
                       indent_level: 0, // Don't waste characters indenting
-                      space_colon: false, // Don't waste characters 
+                      space_colon: false, // Don't waste characters
                       width: 1000,
                     },
                   };
@@ -414,13 +422,13 @@ module.exports = function (grunt) {
           cwd: 'bower_components/patternfly/components/font-awesome',
           src: 'fonts/*',
           dest: '<%= yeoman.dist %>/styles'
-        }, 
+        },
         {
           expand: true,
           cwd: 'bower_components/zeroclipboard/dist',
           src: 'ZeroClipboard.swf',
           dest: '<%= yeoman.dist %>/scripts'
-        }, 
+        },
 
         // Copy separate components
         {
@@ -479,21 +487,21 @@ module.exports = function (grunt) {
 
     protractor: {
       options: {
-        configFile: "test/protractor.conf.js", // Default config file 
-        keepAlive: false, // If false, the grunt process stops when the test fails. 
-        noColor: false, // If true, protractor will not use colors in its output. 
+        configFile: "test/protractor.conf.js", // Default config file
+        keepAlive: false, // If false, the grunt process stops when the test fails.
+        noColor: false, // If true, protractor will not use colors in its output.
         args: {
-          // Arguments passed to the command 
+          // Arguments passed to the command
         }
       },
       phantomjs: {},
       chrome: {
         options: {
-          configFile: "test/protractor-chrome.conf.js", // Target-specific config file 
-          args: {} // Target-specific arguments 
+          configFile: "test/protractor-chrome.conf.js", // Target-specific config file
+          args: {} // Target-specific arguments
         }
       }
-    },    
+    },
 
     // Settings for grunt-istanbul-coverage
     // NOTE: coverage task is currently not in use
@@ -508,7 +516,7 @@ module.exports = function (grunt) {
         dir: 'coverage',
         root: 'test'
       }
-    }    
+    }
   });
 
 
@@ -519,6 +527,7 @@ module.exports = function (grunt) {
 
     grunt.task.run([
       'clean:server',
+      'jscs',
       'wiredep',
       'concurrent:server',
       'autoprefixer',
@@ -554,7 +563,7 @@ module.exports = function (grunt) {
     'connect:test',
     'protractor:phantomjs',
     'clean:server'
-  ]);  
+  ]);
 
   grunt.registerTask('test-e2e-chrome', [
     'clean:server',
@@ -563,10 +572,11 @@ module.exports = function (grunt) {
     'connect:test',
     'protractor:chrome',
     'clean:server'
-  ]);  
+  ]);
 
   grunt.registerTask('build', [
     'clean:dist',
+    'jscs',
     'htmlhint',
     'wiredep',
     'useminPrepare',
