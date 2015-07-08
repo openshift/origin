@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"path"
 	"strings"
@@ -124,9 +125,11 @@ type connection struct {
 }
 
 func newConnection(url url.URL, allowInsecure bool) *connection {
-	client := http.DefaultClient
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{Jar: jar}
+
 	if allowInsecure {
-		tr := &http.Transport{
+		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			Proxy:           http.ProxyFromEnvironment,
 			Dial: (&net.Dialer{
@@ -135,7 +138,6 @@ func newConnection(url url.URL, allowInsecure bool) *connection {
 			}).Dial,
 			TLSHandshakeTimeout: 10 * time.Second,
 		}
-		client = &http.Client{Transport: tr}
 	}
 	return &connection{
 		url:    url,
@@ -255,6 +257,7 @@ func (c *connection) getRepository(name string) (*repository, error) {
 	case code >= 300 || resp.StatusCode < 200:
 		return nil, fmt.Errorf("error retrieving repository: server returned %d", resp.StatusCode)
 	}
+
 	// TODO: select a random endpoint
 	return &repository{
 		name:     name,
@@ -330,7 +333,10 @@ func (c *connection) getImage(repo *repository, image, userTag string) (*docker.
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
-	req.Header.Add("Authorization", "Token "+repo.token)
+
+	if len(repo.token) > 0 {
+		req.Header.Add("Authorization", "Token "+repo.token)
+	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting json for image %q: %v", image, err))
@@ -341,7 +347,9 @@ func (c *connection) getImage(repo *repository, image, userTag string) (*docker.
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry
 		delete(c.cached, repo.name)
-
+		if body, err := ioutil.ReadAll(resp.Body); err == nil {
+			glog.V(6).Infof("unable to fetch image %s: %#v\n%s", req.URL, resp, string(body))
+		}
 		return nil, fmt.Errorf("error retrieving image %s: server returned %d", req.URL, resp.StatusCode)
 	}
 	defer resp.Body.Close()

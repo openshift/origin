@@ -292,9 +292,6 @@ describe("ApplicationGenerator", function(){
             }
           },
           "spec": {
-            "strategy": {
-              "type": "Recreate"
-            },
             "replicas": 1,
             "selector": {
               "deploymentconfig": "ruby-hello-world"

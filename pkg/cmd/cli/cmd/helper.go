@@ -29,7 +29,7 @@ func handlePodUpdateError(out io.Writer, err error, resource string) {
 		if errorDetails.Kind == "Pod" {
 			for _, cause := range errorDetails.Causes {
 				if cause.Field == "spec" && strings.Contains(cause.Message, "may not update fields other than") {
-					fmt.Fprintf(out, "Error updating pod %q: may not update %s in a pod directly\n", errorDetails.ID, resource)
+					fmt.Fprintf(out, "Error updating pod %q: may not update %s in a pod directly\n", errorDetails.Name, resource)
 					errored = true
 					break
 				}

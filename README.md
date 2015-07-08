@@ -49,13 +49,15 @@ Getting Started
 ---------------
 The easiest way to run OpenShift Origin is in a Docker container (OpenShift requires Docker 1.6 or higher or 1.6.2 on CentOS/RHEL):
 
+**Important!**: Docker 1.7 changed mount propagation to PRIVATE, which [breaks](https://github.com/openshift/origin/issues/3072) running OpenShift inside a container. If you are on Docker 1.7 you will need to use the [Vagrant](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant) or binary installation paths.
+
     $ sudo docker run -d --name "origin" \
         --privileged --net=host \
         -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker:/var/lib/docker:rw \
         -v /var/lib/openshift/openshift.local.volumes:/var/lib/openshift/openshift.local.volumes \
         openshift/origin start
 
-*Security!* Why do we need to mount your host, run privileged, and get access to your Docker directory? OpenShift runs as a host agent (like Docker)
+**Security!** Why do we need to mount your host, run privileged, and get access to your Docker directory? OpenShift runs as a host agent (like Docker)
 and starts and stops Docker containers, mounts remote volumes, and monitors the system (/sys) to report performance and health info. You can strip all of these options off and OpenShift will still start, but you won't be able to run pods (which is kind of the point).
 
 Once the container is started, you can jump into a console inside the container and run the CLI.

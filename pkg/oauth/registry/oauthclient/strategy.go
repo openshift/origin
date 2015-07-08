@@ -54,6 +54,10 @@ func (strategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
+func (strategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
 // Matchtoken returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {

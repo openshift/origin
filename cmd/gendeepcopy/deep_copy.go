@@ -61,7 +61,7 @@ func main() {
 	if knownVersion == "api" {
 		knownVersion = api.Scheme.Raw().InternalVersion
 	}
-	generator := pkg_runtime.NewDeepCopyGenerator(api.Scheme.Raw(), util.NewStringSet("github.com/openshift/origin"))
+	generator := pkg_runtime.NewDeepCopyGenerator(api.Scheme.Raw(), "github.com/openshift/origin/pkg/api", util.NewStringSet("github.com/openshift/origin"))
 	apiShort := generator.AddImport("github.com/GoogleCloudPlatform/kubernetes/pkg/api")
 	generator.ReplaceType("github.com/GoogleCloudPlatform/kubernetes/pkg/util", "empty", struct{}{})
 

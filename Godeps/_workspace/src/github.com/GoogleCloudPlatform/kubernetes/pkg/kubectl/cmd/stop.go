@@ -57,11 +57,13 @@ func NewCmdStop(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 			cmdutil.CheckErr(RunStop(f, cmd, args, flags.Filenames, out))
 		},
 	}
-	usage := "Filename, directory, or URL to file of resource(s) to be stopped"
+	usage := "Filename, directory, or URL to file of resource(s) to be stopped."
 	kubectl.AddJsonFilenameFlag(cmd, &flags.Filenames, usage)
-	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
-	cmd.Flags().Bool("all", false, "[-all] to select all the specified resources")
+	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on.")
+	cmd.Flags().Bool("all", false, "[-all] to select all the specified resources.")
+	cmd.Flags().Bool("ignore-not-found", false, "Treat \"resource not found\" as a successful stop.")
 	cmd.Flags().Int("grace-period", -1, "Period of time in seconds given to the resource to terminate gracefully. Ignored if negative.")
+	cmd.Flags().Duration("timeout", 0, "The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the object")
 	return cmd
 }
 
@@ -83,5 +85,5 @@ func RunStop(f *cmdutil.Factory, cmd *cobra.Command, args []string, filenames ut
 	if r.Err() != nil {
 		return r.Err()
 	}
-	return ReapResult(r, f, out, false, cmdutil.GetFlagInt(cmd, "grace-period"))
+	return ReapResult(r, f, out, false, cmdutil.GetFlagBool(cmd, "ignore-not-found"), cmdutil.GetFlagDuration(cmd, "timeout"), cmdutil.GetFlagInt(cmd, "grace-period"))
 }

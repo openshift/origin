@@ -37,12 +37,14 @@ import (
 type testRESTStrategy struct {
 	runtime.ObjectTyper
 	api.NameGenerator
-	namespaceScoped     bool
-	allowCreateOnUpdate bool
+	namespaceScoped          bool
+	allowCreateOnUpdate      bool
+	allowUnconditionalUpdate bool
 }
 
-func (t *testRESTStrategy) NamespaceScoped() bool     { return t.namespaceScoped }
-func (t *testRESTStrategy) AllowCreateOnUpdate() bool { return t.allowCreateOnUpdate }
+func (t *testRESTStrategy) NamespaceScoped() bool          { return t.namespaceScoped }
+func (t *testRESTStrategy) AllowCreateOnUpdate() bool      { return t.allowCreateOnUpdate }
+func (t *testRESTStrategy) AllowUnconditionalUpdate() bool { return t.allowUnconditionalUpdate }
 
 func (t *testRESTStrategy) PrepareForCreate(obj runtime.Object)      {}
 func (t *testRESTStrategy) PrepareForUpdate(obj, old runtime.Object) {}
@@ -68,7 +70,7 @@ func NewTestGenericEtcdRegistry(t *testing.T) (*tools.FakeEtcdClient, *Etcd) {
 	f := tools.NewFakeEtcdClient(t)
 	f.TestIndex = true
 	h := tools.NewEtcdHelper(f, testapi.Codec(), etcdtest.PathPrefix())
-	strategy := &testRESTStrategy{api.Scheme, api.SimpleNameGenerator, true, false}
+	strategy := &testRESTStrategy{api.Scheme, api.SimpleNameGenerator, true, false, true}
 	podPrefix := "/pods"
 	return f, &Etcd{
 		NewFunc:        func() runtime.Object { return &api.Pod{} },
@@ -123,11 +125,11 @@ func (everythingMatcher) MatchesSingle() (string, bool) {
 func TestEtcdList(t *testing.T) {
 	podA := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
-		Spec:       api.PodSpec{Host: "machine"},
+		Spec:       api.PodSpec{NodeName: "machine"},
 	}
 	podB := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "bar"},
-		Spec:       api.PodSpec{Host: "machine"},
+		Spec:       api.PodSpec{NodeName: "machine"},
 	}
 
 	singleElemListResp := &etcd.Response{
@@ -230,11 +232,11 @@ func TestEtcdList(t *testing.T) {
 func TestEtcdCreate(t *testing.T) {
 	podA := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
-		Spec:       api.PodSpec{Host: "machine"},
+		Spec:       api.PodSpec{NodeName: "machine"},
 	}
 	podB := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
-		Spec:       api.PodSpec{Host: "machine2"},
+		Spec:       api.PodSpec{NodeName: "machine2"},
 	}
 
 	nodeWithPodA := tools.EtcdResponseWithError{
@@ -308,11 +310,11 @@ func TestEtcdCreate(t *testing.T) {
 func TestEtcdCreateWithName(t *testing.T) {
 	podA := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
-		Spec:       api.PodSpec{Host: "machine"},
+		Spec:       api.PodSpec{NodeName: "machine"},
 	}
 	podB := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
-		Spec:       api.PodSpec{Host: "machine2"},
+		Spec:       api.PodSpec{NodeName: "machine2"},
 	}
 
 	nodeWithPodA := tools.EtcdResponseWithError{
@@ -384,13 +386,16 @@ func TestEtcdCreateWithName(t *testing.T) {
 func TestEtcdUpdate(t *testing.T) {
 	podA := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault},
-		Spec:       api.PodSpec{Host: "machine"},
+		Spec:       api.PodSpec{NodeName: "machine"},
 	}
 	podB := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault, ResourceVersion: "1"},
-		Spec:       api.PodSpec{Host: "machine2"},
+		Spec:       api.PodSpec{NodeName: "machine2"},
 	}
-
+	podAWithResourceVersion := &api.Pod{
+		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: api.NamespaceDefault, ResourceVersion: "3"},
+		Spec:       api.PodSpec{NodeName: "machine"},
+	}
 	nodeWithPodA := tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
@@ -424,18 +429,29 @@ func TestEtcdUpdate(t *testing.T) {
 		E: nil,
 	}
 
+	nodeWithPodAWithResourceVersion := tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(testapi.Codec(), podAWithResourceVersion),
+				ModifiedIndex: 3,
+				CreatedIndex:  1,
+			},
+		},
+		E: nil,
+	}
 	emptyNode := tools.EtcdResponseWithError{
 		R: &etcd.Response{},
 		E: tools.EtcdErrorNotFound,
 	}
 
 	table := map[string]struct {
-		existing    tools.EtcdResponseWithError
-		expect      tools.EtcdResponseWithError
-		toUpdate    runtime.Object
-		allowCreate bool
-		objOK       func(obj runtime.Object) bool
-		errOK       func(error) bool
+		existing                 tools.EtcdResponseWithError
+		expect                   tools.EtcdResponseWithError
+		toUpdate                 runtime.Object
+		allowCreate              bool
+		allowUnconditionalUpdate bool
+		objOK                    func(obj runtime.Object) bool
+		errOK                    func(error) bool
 	}{
 		"normal": {
 			existing: nodeWithPodA,
@@ -462,11 +478,19 @@ func TestEtcdUpdate(t *testing.T) {
 			toUpdate: podB,
 			errOK:    func(err error) bool { return errors.IsConflict(err) },
 		},
+		"unconditionalUpdate": {
+			existing:                 nodeWithPodAWithResourceVersion,
+			allowUnconditionalUpdate: true,
+			toUpdate:                 podA,
+			objOK:                    func(obj runtime.Object) bool { return true },
+			errOK:                    func(err error) bool { return err == nil },
+		},
 	}
 
 	for name, item := range table {
 		fakeClient, registry := NewTestGenericEtcdRegistry(t)
 		registry.UpdateStrategy.(*testRESTStrategy).allowCreateOnUpdate = item.allowCreate
+		registry.UpdateStrategy.(*testRESTStrategy).allowUnconditionalUpdate = item.allowUnconditionalUpdate
 		path := etcdtest.AddPrefix("pods/foo")
 		fakeClient.Data[path] = item.existing
 		obj, _, err := registry.Update(api.NewDefaultContext(), item.toUpdate)
@@ -499,11 +523,11 @@ func TestEtcdUpdate(t *testing.T) {
 func TestEtcdUpdateWithName(t *testing.T) {
 	podA := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
-		Spec:       api.PodSpec{Host: "machine"},
+		Spec:       api.PodSpec{NodeName: "machine"},
 	}
 	podB := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
-		Spec:       api.PodSpec{Host: "machine2"},
+		Spec:       api.PodSpec{NodeName: "machine2"},
 	}
 
 	nodeWithPodA := tools.EtcdResponseWithError{
@@ -574,7 +598,7 @@ func TestEtcdUpdateWithName(t *testing.T) {
 func TestEtcdGet(t *testing.T) {
 	podA := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
-		Spec:       api.PodSpec{Host: "machine"},
+		Spec:       api.PodSpec{NodeName: "machine"},
 	}
 
 	nodeWithPodA := tools.EtcdResponseWithError{
@@ -630,7 +654,7 @@ func TestEtcdGet(t *testing.T) {
 func TestEtcdDelete(t *testing.T) {
 	podA := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
-		Spec:       api.PodSpec{Host: "machine"},
+		Spec:       api.PodSpec{NodeName: "machine"},
 	}
 
 	nodeWithPodA := tools.EtcdResponseWithError{
@@ -699,7 +723,7 @@ func TestEtcdWatch(t *testing.T) {
 				Namespace:       api.NamespaceDefault,
 				ResourceVersion: "1",
 			},
-			Spec: api.PodSpec{Host: "machine"},
+			Spec: api.PodSpec{NodeName: "machine"},
 		}
 		respWithPodA := &etcd.Response{
 			Node: &etcd.Node{

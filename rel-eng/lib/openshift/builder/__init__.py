@@ -2,7 +2,10 @@
 Code for building Openshift v3
 """
 
-from tito.common import get_latest_commit, get_latest_tagged_version, check_tag_exists, run_command, get_script_path
+import sys
+
+from tito.common import (get_latest_commit, get_latest_tagged_version, check_tag_exists,
+        run_command, get_script_path, find_spec_file, get_spec_version_and_release)
 from tito.builder import Builder
 
 class OpenshiftBuilder(Builder):

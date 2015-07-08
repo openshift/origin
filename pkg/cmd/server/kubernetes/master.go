@@ -48,7 +48,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	if !c.Master.DisableV1Beta3 {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s (deprecated)", KubeAPIPrefixV1Beta3))
 	}
-	if c.Master.EnableV1 {
+	if !c.Master.DisableV1 {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1))
 	}
 
@@ -142,7 +142,7 @@ func (c *MasterConfig) RunNodeController() {
 		s.RegisterRetryCount,
 		s.PodEvictionTimeout,
 
-		util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst),
+		nodecontroller.NewPodEvictor(util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst)),
 
 		s.NodeMonitorGracePeriod,
 		s.NodeStartupGracePeriod,

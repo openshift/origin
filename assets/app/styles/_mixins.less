@@ -8,14 +8,16 @@
 
 
 .osc-object-highlight() {
+  @media (min-width: @screen-sm-min) {
     &.osc-object {
-    &.osc-object-hover {
-      cursor: pointer;
-      border-color: @osc-object-hover-color;
+      &.osc-object-hover {
+        cursor: pointer;
+        border-color: @osc-object-hover-color;
+      }
+      &.osc-object-active {
+        border-color: @osc-object-active-color;
+      }
     }
-    &.osc-object-active {
-      border-color: @osc-object-active-color;
-    } 
   }
 }
 

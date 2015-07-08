@@ -102,7 +102,7 @@ items:
           name: sinatra-app-example
           ports:
           - containerPort: 8080
-            name: sinatra-app-example-tcp-8080
+            name: s-tcp-8080
             protocol: TCP
           resources: {}
           securityContext:
@@ -149,7 +149,7 @@ items:
           name: sinatra-app-example
           ports:
           - containerPort: 8080
-            name: sinatra-app-example-tcp-8080
+            name: s-tcp-8080
             protocol: TCP
           resources: {}
           securityContext:

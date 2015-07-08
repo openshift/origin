@@ -291,7 +291,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			failed = true
 			continue
 		}
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, true, data)
+		obj, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, data)
 		if err != nil {
 			handlePodUpdateError(cmd.Out(), err, "environment variables")
 			failed = true

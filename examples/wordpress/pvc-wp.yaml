@@ -1,0 +1,11 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: claim-wp
+spec:
+  accessModes:
+    - ReadWriteOnce
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi

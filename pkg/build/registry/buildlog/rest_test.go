@@ -200,7 +200,7 @@ func resourceLocationHelper(buildStatus api.BuildStatus, podPhase string, ctx ka
 	storage := REST{
 		BuildRegistry:  &buildRegistry,
 		PodGetter:      &testPodGetter{},
-		ConnectionInfo: &kclient.HTTPKubeletClient{EnableHttps: true, Port: 12345, Client: &http.Client{}},
+		ConnectionInfo: &kclient.HTTPKubeletClient{Config: &kclient.KubeletConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
 		Timeout:        defaultTimeout,
 	}
 	getter := rest.GetterWithOptions(&storage)
@@ -231,7 +231,7 @@ func mockPod(podPhase kapi.PodPhase) *kapi.Pod {
 					Name: "foo-container",
 				},
 			},
-			Host: "foo-host",
+			NodeName: "foo-host",
 		},
 		Status: kapi.PodStatus{
 			Phase: podPhase,

@@ -4,7 +4,7 @@ import (
 	"container/heap"
 	"sync"
 
-	"github.com/docker/spdystream/spdy"
+	"golang.org/x/net/spdy"
 )
 
 type prioritizedFrame struct {

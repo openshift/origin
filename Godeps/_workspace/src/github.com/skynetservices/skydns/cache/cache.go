@@ -23,15 +23,15 @@ import (
 type elem struct {
 	key        string
 	expiration time.Time // time added + TTL, after this the elem is invalid
-	msg	   *dns.Msg
+	msg        *dns.Msg
 }
 
-// Cache is a ...
+// Cache is a LRU cache that holds on the a number of RRs or DNS messgas.
 type Cache struct {
 	sync.Mutex
 	l        *list.List
 	m        map[string]*list.Element
-	capacity uint // number of RRs
+	capacity uint // max number of RRs
 	size     uint // current size
 	ttl      time.Duration
 }
@@ -49,6 +49,12 @@ func New(capacity, ttl int) *Cache {
 	return c
 }
 
+// Size returns the size of the cache as an int.
+func (c *Cache) Size() int { return int(c.size) }
+
+// Capacity returns the capacity of the cache as an int.
+func (c *Cache) Capacity() int { return int(c.capacity) }
+
 // Remove removes the element under key s from the cache.
 func (c *Cache) Remove(s string) {
 	c.Lock()
@@ -63,7 +69,7 @@ func (c *Cache) Remove(s string) {
 	c.shrink()
 }
 
-// shrink ...
+// Shrink shrinks the cache back to its capacity.
 func (c *Cache) shrink() {
 	for c.size > c.capacity {
 		e := c.l.Back()

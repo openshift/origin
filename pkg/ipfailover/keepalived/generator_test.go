@@ -105,8 +105,8 @@ func TestGenerateDeploymentConfig(t *testing.T) {
 			t.Errorf("Test case for %s got HostNetwork disabled where HostNetwork was expected to be enabled", tc.Name)
 		}
 
-		if podSpec.ServiceAccount != tc.ServiceAccount {
-			t.Errorf("Test case for %s got service account %s when expecting %s", tc.Name, podSpec.ServiceAccount, tc.ServiceAccount)
+		if podSpec.ServiceAccountName != tc.ServiceAccount {
+			t.Errorf("Test case for %s got service account %s when expecting %s", tc.Name, podSpec.ServiceAccountName, tc.ServiceAccount)
 		}
 
 		psLength := len(podSpec.NodeSelector)

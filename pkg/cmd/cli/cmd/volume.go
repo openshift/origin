@@ -19,7 +19,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -72,6 +71,8 @@ just those that match a wildcard.`
 
   // Output json object with volume info for deployment config 'd1' but don't alter the object on server
   $ %[1]s volume dc/d1 --add --name=v1 --mount=/opt -o json`
+
+	volumePrefix = "volume-"
 )
 
 type VolumeOptions struct {
@@ -166,17 +167,16 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 }
 
 func (v *VolumeOptions) Validate(args []string) error {
-	errList := []error{}
 	if len(v.Selector) > 0 {
 		if _, err := labels.Parse(v.Selector); err != nil {
-			errList = append(errList, errors.New("--selector=<selector> must be a valid label selector"))
+			return errors.New("--selector=<selector> must be a valid label selector")
 		}
 		if v.All {
-			errList = append(errList, errors.New("either specify --selector or --all but not both"))
+			return errors.New("either specify --selector or --all but not both")
 		}
 	}
 	if len(v.Filenames) == 0 && len(args) < 1 {
-		errList = append(errList, errors.New("one or more resources must be specified as <resource> <name> or <resource>/<name>"))
+		return errors.New("one or more resources must be specified as <resource> <name> or <resource>/<name> or <resource> --selector=<label-selector> or <resource> --all")
 	}
 
 	numOps := 0
@@ -192,34 +192,32 @@ func (v *VolumeOptions) Validate(args []string) error {
 
 	switch {
 	case numOps == 0:
-		errList = append(errList, errors.New("must provide a volume operation. Valid values are --add, --remove and --list"))
+		return errors.New("must provide a volume operation. Valid values are --add, --remove and --list")
 	case numOps > 1:
-		errList = append(errList, errors.New("you may only specify one operation at a time"))
+		return errors.New("you may only specify one operation at a time")
 	}
 
 	if v.List && len(v.Output) > 0 {
-		errList = append(errList, errors.New("--list and --output may not be specified together"))
+		return errors.New("--list and --output may not be specified together")
 	}
 
 	err := v.AddOpts.Validate(v.Add)
 	if err != nil {
-		errList = append(errList, err)
+		return err
 	}
 	// Removing all volumes for the resource type needs confirmation
 	if v.Remove && len(v.Name) == 0 && !v.Confirm {
-		errList = append(errList, errors.New("must provide --confirm for removing more than one volume"))
+		return errors.New("must provide --confirm for removing more than one volume")
 	}
-
-	return kerrors.NewAggregate(errList)
+	return nil
 }
 
 func (a *AddVolumeOptions) Validate(isAddOp bool) error {
-	errList := []error{}
 	if isAddOp {
 		if len(a.Type) == 0 && len(a.Source) == 0 {
-			errList = append(errList, errors.New("must provide --type or --source for --add operation"))
+			return errors.New("must provide --type or --source for --add operation")
 		} else if a.TypeChanged && len(a.Source) > 0 {
-			errList = append(errList, errors.New("either specify --type or --source but not both for --add operation"))
+			return errors.New("either specify --type or --source but not both for --add operation")
 		}
 
 		if len(a.Type) > 0 {
@@ -227,44 +225,43 @@ func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 			case "emptydir":
 			case "hostpath":
 				if len(a.Path) == 0 {
-					errList = append(errList, errors.New("must provide --path for --type=hostPath"))
+					return errors.New("must provide --path for --type=hostPath")
 				}
 			case "secret":
 				if len(a.SecretName) == 0 {
-					errList = append(errList, errors.New("must provide --secret-name for --type=secret"))
+					return errors.New("must provide --secret-name for --type=secret")
 				}
 			case "persistentvolumeclaim":
 				if len(a.ClaimName) == 0 {
-					errList = append(errList, errors.New("must provide --claim-name for --type=persistentVolumeClaim"))
+					return errors.New("must provide --claim-name for --type=persistentVolumeClaim")
 				}
 			default:
-				errList = append(errList, errors.New("invalid volume type. Supported types: emptyDir, hostPath, secret, persistentVolumeClaim"))
+				return errors.New("invalid volume type. Supported types: emptyDir, hostPath, secret, persistentVolumeClaim")
 			}
 		} else if len(a.Path) > 0 || len(a.SecretName) > 0 || len(a.ClaimName) > 0 {
-			errList = append(errList, errors.New("--path|--secret-name|--claim-name are only valid for --type option"))
+			return errors.New("--path|--secret-name|--claim-name are only valid for --type option")
 		}
 
 		if len(a.Source) > 0 {
 			var source map[string]interface{}
 			err := json.Unmarshal([]byte(a.Source), &source)
 			if err != nil {
-				errList = append(errList, err)
+				return err
 			}
 			if len(source) > 1 {
-				errList = append(errList, errors.New("must provide only one volume for --source"))
+				return errors.New("must provide only one volume for --source")
 			}
 
 			var vs kapi.VolumeSource
 			err = json.Unmarshal([]byte(a.Source), &vs)
 			if err != nil {
-				errList = append(errList, err)
+				return err
 			}
 		}
 	} else if len(a.Source) > 0 || len(a.Path) > 0 || len(a.SecretName) > 0 || len(a.ClaimName) > 0 || a.Overwrite {
-		errList = append(errList, errors.New("--type|--path|--secret-name|--claim-name|--source|--overwrite are only valid for --add operation"))
+		return errors.New("--type|--path|--secret-name|--claim-name|--source|--overwrite are only valid for --add operation")
 	}
-
-	return kerrors.NewAggregate(errList)
+	return nil
 }
 
 func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
@@ -288,7 +285,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out i
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 
 	if v.Add && len(v.Name) == 0 {
-		v.Name = string(kutil.NewUUID())
+		v.Name = kapi.SimpleNameGenerator.GenerateName(volumePrefix)
 		if len(v.Output) == 0 {
 			fmt.Fprintf(v.Writer, "Generated volume name: %s\n", v.Name)
 		}
@@ -373,7 +370,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 			failed = true
 			continue
 		}
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, true, data)
+		obj, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, true, data)
 		if err != nil {
 			handlePodUpdateError(v.Writer, err, "volume")
 			failed = true
@@ -401,7 +398,7 @@ func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
 			SecretName: opts.SecretName,
 		}
 	case "persistentvolumeclaim":
-		kv.PersistentVolumeClaimVolumeSource = &kapi.PersistentVolumeClaimVolumeSource{
+		kv.PersistentVolumeClaim = &kapi.PersistentVolumeClaimVolumeSource{
 			ClaimName: opts.ClaimName,
 		}
 	default:

@@ -20,6 +20,7 @@ import (
 	"crypto/rsa"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -121,7 +122,7 @@ func TestReadPublicKey(t *testing.T) {
 }
 
 func TestTokenGenerateAndValidate(t *testing.T) {
-	expectedUserName := "serviceaccount:test:my-service-account"
+	expectedUserName := "system:serviceaccount:test:my-service-account"
 	expectedUserUID := "12345"
 
 	// Related API objects
@@ -162,6 +163,7 @@ func TestTokenGenerateAndValidate(t *testing.T) {
 		ExpectedOK       bool
 		ExpectedUserName string
 		ExpectedUserUID  string
+		ExpectedGroups   []string
 	}{
 		"no keys": {
 			Client:      nil,
@@ -182,6 +184,7 @@ func TestTokenGenerateAndValidate(t *testing.T) {
 			ExpectedOK:       true,
 			ExpectedUserName: expectedUserName,
 			ExpectedUserUID:  expectedUserUID,
+			ExpectedGroups:   []string{"system:serviceaccounts", "system:serviceaccounts:test"},
 		},
 		"rotated keys": {
 			Client:           nil,
@@ -190,6 +193,7 @@ func TestTokenGenerateAndValidate(t *testing.T) {
 			ExpectedOK:       true,
 			ExpectedUserName: expectedUserName,
 			ExpectedUserUID:  expectedUserUID,
+			ExpectedGroups:   []string{"system:serviceaccounts", "system:serviceaccounts:test"},
 		},
 		"valid lookup": {
 			Client:           testclient.NewSimpleFake(serviceAccount, secret),
@@ -198,6 +202,7 @@ func TestTokenGenerateAndValidate(t *testing.T) {
 			ExpectedOK:       true,
 			ExpectedUserName: expectedUserName,
 			ExpectedUserUID:  expectedUserUID,
+			ExpectedGroups:   []string{"system:serviceaccounts", "system:serviceaccounts:test"},
 		},
 		"invalid secret lookup": {
 			Client:      testclient.NewSimpleFake(serviceAccount),
@@ -239,6 +244,29 @@ func TestTokenGenerateAndValidate(t *testing.T) {
 		if user.GetUID() != tc.ExpectedUserUID {
 			t.Errorf("%s: Expected userUID=%v, got %v", k, tc.ExpectedUserUID, user.GetUID())
 			continue
+		}
+		if !reflect.DeepEqual(user.GetGroups(), tc.ExpectedGroups) {
+			t.Errorf("%s: Expected groups=%v, got %v", k, tc.ExpectedGroups, user.GetGroups())
+			continue
+		}
+	}
+}
+
+func TestMakeSplitUsername(t *testing.T) {
+	username := MakeUsername("ns", "name")
+	ns, name, err := SplitUsername(username)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if ns != "ns" || name != "name" {
+		t.Errorf("Expected ns/name, got %s/%s", ns, name)
+	}
+
+	invalid := []string{"test", "system:serviceaccount", "system:serviceaccount:", "system:serviceaccount:ns", "system:serviceaccount:ns:name:extra"}
+	for _, n := range invalid {
+		_, _, err := SplitUsername("test")
+		if err == nil {
+			t.Errorf("Expected error for %s", n)
 		}
 	}
 }

@@ -165,7 +165,7 @@ func (c *NodeConfig) RunProxy() {
 	}
 
 	go util.Forever(func() {
-		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol))
+		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol), util.PortRange{})
 		if err != nil {
 			switch {
 			// conflicting use of iptables, retry

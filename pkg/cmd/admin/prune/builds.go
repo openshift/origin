@@ -97,7 +97,7 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 					return nil
 				}
 			default:
-				fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made.")
+				fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove builds")
 				buildPruneFunc = describingPruneBuildFunc
 			}
 

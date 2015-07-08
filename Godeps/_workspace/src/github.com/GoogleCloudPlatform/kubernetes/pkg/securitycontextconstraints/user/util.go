@@ -32,14 +32,14 @@ func AnnotationToIntPtr(sUID string) (*int64, error) {
 }
 
 func GetAllocatedID(kClient client.Interface, pod *api.Pod, annotation string) (*int64, error) {
-	if len(pod.Spec.ServiceAccount) > 0 {
-		sa, err := kClient.ServiceAccounts(pod.Namespace).Get(pod.Spec.ServiceAccount)
+	if len(pod.Spec.ServiceAccountName) > 0 {
+		sa, err := kClient.ServiceAccounts(pod.Namespace).Get(pod.Spec.ServiceAccountName)
 		if err != nil {
 			return nil, err
 		}
 		sUID, ok := sa.Annotations[annotation]
 		if !ok {
-			return nil, fmt.Errorf("Unable to find annotation %s on service account %s", annotation, pod.Spec.ServiceAccount)
+			return nil, fmt.Errorf("Unable to find annotation %s on service account %s", annotation, pod.Spec.ServiceAccountName)
 		}
 		return AnnotationToIntPtr(sUID)
 	} else {

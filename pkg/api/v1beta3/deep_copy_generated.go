@@ -1243,15 +1243,6 @@ func deepCopy_v1beta3_DeploymentConfigSpec(in deployapiv1beta3.DeploymentConfigS
 	} else {
 		out.Selector = nil
 	}
-	if in.TemplateRef != nil {
-		if newVal, err := c.DeepCopy(in.TemplateRef); err != nil {
-			return err
-		} else {
-			out.TemplateRef = newVal.(*v1beta3.ObjectReference)
-		}
-	} else {
-		out.TemplateRef = nil
-	}
 	if in.Template != nil {
 		if newVal, err := c.DeepCopy(in.Template); err != nil {
 			return err

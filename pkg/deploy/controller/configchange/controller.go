@@ -56,7 +56,7 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 				return fatalError(fmt.Sprintf("DeploymentConfig %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
 			}
 			c.recorder.Eventf(config, "failedCreate", "Couldn't create initial deployment: %v", err)
-			return fmt.Errorf("couldn't create initial Deployment for DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
+			return nil
 		}
 		glog.V(4).Infof("Created initial Deployment for DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 		return nil

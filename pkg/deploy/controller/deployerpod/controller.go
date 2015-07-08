@@ -85,9 +85,12 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 		// Detect failure based on the container state
 		nextStatus = deployapi.DeploymentStatusComplete
 		for _, info := range pod.Status.ContainerStatuses {
-			if info.State.Termination != nil && info.State.Termination.ExitCode != 0 {
+			if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
 				nextStatus = deployapi.DeploymentStatusFailed
 			}
+		}
+		if nextStatus == deployapi.DeploymentStatusComplete {
+			delete(deployment.Annotations, deployapi.DesiredReplicasAnnotation)
 		}
 	case kapi.PodFailed:
 		// if the deployment is already marked Failed, do not attempt clean up again

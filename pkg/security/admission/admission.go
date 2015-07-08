@@ -95,8 +95,8 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	}
 
 	// get all constraints that are usable by the SA
-	if len(pod.Spec.ServiceAccount) > 0 {
-		userInfo := serviceaccount.UserInfo(a.GetNamespace(), pod.Spec.ServiceAccount, "")
+	if len(pod.Spec.ServiceAccountName) > 0 {
+		userInfo := serviceaccount.UserInfo(a.GetNamespace(), pod.Spec.ServiceAccountName, "")
 		glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) with service account info %v", pod.Name, pod.GenerateName, userInfo)
 		saConstraints, err := getMatchingSecurityContextConstraints(c.store, userInfo)
 		if err != nil {
