@@ -613,14 +613,17 @@ Revert part of an application back to a previous deployment
 
 [options="nowrap"]
 ----
-  // Perform a rollback
-  $ openshift cli rollback deployment-1
+  // Perform a rollback to the last successfully completed deployment for a deploymentconfig
+  $ openshift cli rollback frontend
 
-  // See what the rollback will look like, but don't perform the rollback
-  $ openshift cli rollback deployment-1 --dry-run
+  // See what a rollback to version 3 will look like, but don't perform the rollback
+  $ openshift cli rollback frontend --to-version=3 --dry-run
+
+  // Perform a rollback to a specific deployment
+  $ openshift cli rollback frontend-2
 
   // Perform the rollback manually by piping the JSON of the new config back to openshift cli
-  $ openshift cli rollback deployment-1 --output=json | openshift cli update deploymentConfigs deployment -f -
+  $ openshift cli rollback frontend --output=json | openshift cli update deploymentConfigs deployment -f -
 ----
 ====
 
