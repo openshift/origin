@@ -314,6 +314,7 @@ func (c *cancelDeploymentCommand) cancel(config *deployapi.DeploymentConfig, out
 		return nil
 	}
 	failedCancellations := []string{}
+	anyCancelled := false
 	for _, deployment := range deployments.Items {
 		status := deployutil.DeploymentStatusFor(&deployment)
 
@@ -330,20 +331,21 @@ func (c *cancelDeploymentCommand) cancel(config *deployapi.DeploymentConfig, out
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
 			_, err := c.client.UpdateDeployment(&deployment)
 			if err == nil {
-				fmt.Fprintf(out, "cancelled #%d\n", config.LatestVersion)
+				fmt.Fprintf(out, "cancelled deployment #%d\n", config.LatestVersion)
+				anyCancelled = true
 			} else {
-				fmt.Fprintf(out, "couldn't cancel deployment %d (status: %s): %v\n", deployutil.DeploymentVersionFor(&deployment), status, err)
+				fmt.Fprintf(out, "couldn't cancel deployment #%d (status: %s): %v\n", deployutil.DeploymentVersionFor(&deployment), status, err)
 				failedCancellations = append(failedCancellations, strconv.Itoa(deployutil.DeploymentVersionFor(&deployment)))
 			}
-		default:
-			fmt.Fprintln(out, "no active deployments to cancel")
 		}
 	}
-	if len(failedCancellations) == 0 {
-		return nil
-	} else {
+	if len(failedCancellations) > 0 {
 		return fmt.Errorf("couldn't cancel deployment %s", strings.Join(failedCancellations, ", "))
 	}
+	if !anyCancelled {
+		fmt.Fprintln(out, "no active deployments to cancel")
+	}
+	return nil
 }
 
 // triggerEnabler can enable image triggers for a config.
