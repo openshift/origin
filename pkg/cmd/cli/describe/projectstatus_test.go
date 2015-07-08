@@ -10,7 +10,10 @@ import (
 	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
+	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
+	buildedges "github.com/openshift/origin/pkg/build/graph"
 	"github.com/openshift/origin/pkg/client/testclient"
+	imageedges "github.com/openshift/origin/pkg/image/graph"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
@@ -20,6 +23,34 @@ func mustParseTime(t string) time.Time {
 		panic(err)
 	}
 	return out
+}
+
+func TestUnpushableBuild(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/unpushable-build.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	buildedges.AddAllInputOutputEdges(g)
+	imageedges.AddAllImageStreamRefEdges(g)
+
+	if e, a := true, hasUnresolvedImageStreamTag(g); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
+func TestPushableBuild(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/pushable-build.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	buildedges.AddAllInputOutputEdges(g)
+	imageedges.AddAllImageStreamRefEdges(g)
+
+	if e, a := false, hasUnresolvedImageStreamTag(g); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
 }
 
 func TestProjectStatus(t *testing.T) {

@@ -25,6 +25,12 @@ func ImageStreamNodeName(o *imageapi.ImageStream) osgraph.UniqueName {
 type ImageStreamNode struct {
 	osgraph.Node
 	*imageapi.ImageStream
+
+	IsFound bool
+}
+
+func (n ImageStreamNode) Found() bool {
+	return n.IsFound
 }
 
 func (n ImageStreamNode) Object() interface{} {
@@ -47,11 +53,11 @@ type ImageStreamTagNode struct {
 	osgraph.Node
 	*imageapi.ImageStreamTag
 
-	Synthetic bool
+	IsFound bool
 }
 
-func (n ImageStreamTagNode) IsSynthetic() bool {
-	return n.Synthetic
+func (n ImageStreamTagNode) Found() bool {
+	return n.IsFound
 }
 
 func (n ImageStreamTagNode) ImageSpec() string {

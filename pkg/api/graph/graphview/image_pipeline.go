@@ -8,12 +8,16 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
+	imageedges "github.com/openshift/origin/pkg/image/graph"
+	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
 // ImagePipeline represents a build, its output, and any inputs. The input
 // to a build may be another ImagePipeline.
 type ImagePipeline struct {
-	Image ImageTagLocation
+	Image               ImageTagLocation
+	DestinationResolved bool
+
 	Build *buildgraph.BuildConfigNode
 	// If set, the base image used by the build
 	BaseImage ImageTagLocation
@@ -93,6 +97,13 @@ func NewImagePipelineFromImageTagLocation(g osgraph.Graph, node graph.Node, imag
 		flow.Build = build
 		flow.BaseImage = base
 		flow.Source = src
+	}
+
+	for _, input := range g.SuccessorNodesByEdgeKind(node, imageedges.ReferencedImageStreamGraphEdgeKind) {
+		covered.Insert(input.ID())
+		imageStreamNode := input.(*imagegraph.ImageStreamNode)
+
+		flow.DestinationResolved = (len(imageStreamNode.Status.DockerImageRepository) != 0)
 	}
 
 	return flow, covered
