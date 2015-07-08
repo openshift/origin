@@ -1,7 +1,7 @@
 <div class="container">
   <div>
     <h1 style="display: inline-block;">Projects</h1>
-    <a ng-if="canCreate" href="createProject" style="margin-top: 10px;" class="btn btn-lg btn-primary pull-right">Create&hellip;</a>
+    <a ng-if="canCreate" href="createProject" style="margin-top: 10px;" class="btn btn-lg btn-primary pull-right">New Project</a>
   </div>
   <div class="tile tile-project tile-click" style="margin: 10px 0;" ng-repeat="project in projects | orderByDisplayName">
     <h2 class="project">
