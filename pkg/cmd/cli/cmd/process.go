@@ -80,6 +80,14 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		return kcmdutil.UsageError(cmd, "Must pass a filename or name of stored template")
 	}
 
+	if kcmdutil.GetFlagBool(cmd, "parameters") {
+		for _, flag := range []string{"value", "labels", "output", "output-version", "raw", "template"} {
+			if f := cmd.Flags().Lookup(flag); f != nil && f.Changed {
+				return kcmdutil.UsageError(cmd, "The --parameters flag does not process the template, can't be used with --%v", flag)
+			}
+		}
+	}
+
 	namespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
