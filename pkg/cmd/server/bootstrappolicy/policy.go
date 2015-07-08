@@ -143,7 +143,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:           util.NewStringSet("get"),
-					NonResourceURLs: util.NewStringSet("/healthz", "/healthz/*", "/version", "/api", "/osapi"),
+					NonResourceURLs: util.NewStringSet("/healthz", "/healthz/*", "/version", "/api", "/oapi", "/osapi"),
 				},
 			},
 		},
