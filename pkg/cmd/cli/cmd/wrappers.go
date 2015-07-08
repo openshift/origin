@@ -54,22 +54,42 @@ func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 }
 
 const (
-	updateLong = `Update a resource by filename or stdin.
+	replaceLong = `Replace a resource by filename or stdin.
 
 JSON and YAML formats are accepted.`
 
-	updateExample = `  // Update a pod using the data in pod.json.
-  $ %[1]s update -f pod.json
+	replaceExample = `  // Replace a pod using the data in pod.json.
+  $ %[1]s replace -f pod.json
 
-  // Update a pod based on the JSON passed into stdin.
-  $ cat pod.json | %[1]s update -f -`
+  // Replace a pod based on the JSON passed into stdin.
+  $ cat pod.json | %[1]s replace -f -
+
+  // Force replace, delete and then re-create the resource
+  $ %[1]s replace --force -f pod.json`
 )
 
-// NewCmdUpdate is a wrapper for the Kubernetes cli update command
-func NewCmdUpdate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+// NewCmdReplace is a wrapper for the Kubernetes cli replace command
+func NewCmdReplace(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdReplace(f.Factory, out)
-	cmd.Long = updateLong
-	cmd.Example = fmt.Sprintf(updateExample, fullName)
+	cmd.Long = replaceLong
+	cmd.Example = fmt.Sprintf(replaceExample, fullName)
+	return cmd
+}
+
+const (
+	patchLong = `Update field(s) of a resource using strategic merge patch
+
+JSON and YAML formats are accepted.`
+
+	patchExample = `  // Partially update a node using strategic merge patch
+  $ %[1]s patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'`
+)
+
+// NewCmdPatch is a wrapper for the Kubernetes cli patch command
+func NewCmdPatch(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdPatch(f.Factory, out)
+	cmd.Long = patchLong
+	cmd.Example = fmt.Sprintf(patchExample, fullName)
 	return cmd
 }
 

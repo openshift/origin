@@ -494,6 +494,19 @@ Request a new project
 ====
 
 
+== oc patch
+Update field(s) of a resource by stdin.
+
+====
+
+[options="nowrap"]
+----
+  // Partially update a node using strategic merge patch
+  $ openshift cli patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'
+----
+====
+
+
 == oc port-forward
 Forward one or more local ports to a pod.
 
@@ -581,11 +594,14 @@ Replace a resource by filename or stdin.
 
 [options="nowrap"]
 ----
-  // Update a pod using the data in pod.json.
-  $ openshift cli update -f pod.json
+  // Replace a pod using the data in pod.json.
+  $ openshift cli replace -f pod.json
 
-  // Update a pod based on the JSON passed into stdin.
-  $ cat pod.json | openshift cli update -f -
+  // Replace a pod based on the JSON passed into stdin.
+  $ cat pod.json | openshift cli replace -f -
+
+  // Force replace, delete and then re-create the resource
+  $ openshift cli replace --force -f pod.json
 ----
 ====
 

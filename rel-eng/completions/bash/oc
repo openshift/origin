@@ -1061,6 +1061,27 @@ _oc_replace()
     must_have_one_noun=()
 }
 
+_oc_patch()
+{
+    last_command="oc_patch"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--patch=")
+    two_word_flags+=("-p")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--patch=")
+    must_have_one_flag+=("-p")
+    must_have_one_noun=()
+}
+
 _oc_process()
 {
     last_command="oc_process"
@@ -1618,6 +1639,7 @@ _oc()
     commands+=("proxy")
     commands+=("create")
     commands+=("replace")
+    commands+=("patch")
     commands+=("process")
     commands+=("export")
     commands+=("policy")
