@@ -166,6 +166,8 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			}
 		}
 	}
+	fmt.Fprintf(c.Out(), "Run '%s status' to view your app.\n", fullName)
+
 	return nil
 }
 
