@@ -97,6 +97,22 @@ func TestProjectStatus(t *testing.T) {
 				"To see more, use",
 			},
 		},
+		"service with RC": {
+			Path: "../../../../test/fixtures/app-scenarios/k8s-unserviced-rc.json",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example\n",
+				"service database-rc",
+				"rc/database-rc-1 runs mysql",
+				"0/1 pods growing to 1",
+				"To see more, use",
+			},
+		},
 		"unstarted build": {
 			Path: "../../../../test/fixtures/app-scenarios/new-project-no-build.yaml",
 			Extra: []runtime.Object{
