@@ -12,7 +12,7 @@ angular.module('openshiftConsole')
         useWordBoundary: '='
       },
       template: '<span ng-attr-title="{{content}}">{{visibleContent}}<span ng-if="truncated">&hellip;</span></span>',
-      link: function(scope, elem, attr) {
+      link: function(scope) {
         scope.visibleContent = scope.content;
         scope.$watch('content', function(content) {
           if (!scope.limit || !content || content.length <= scope.limit) {

@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false */
 
 angular.module('openshiftConsole')
   // this filter is intended for use with the "track by" in an ng-repeat
@@ -11,7 +12,7 @@ angular.module('openshiftConsole')
       else {
         return resource;
       }
-    }
+    };
   })
   .filter('annotation', function() {
     // This maps an annotation key to all known synonymous keys to insulate
@@ -30,7 +31,7 @@ angular.module('openshiftConsole')
       if (resource && resource.metadata && resource.metadata.annotations) {
         // If the key's already in the annotation map, return it.
         if (resource.metadata.annotations[key] !== undefined) {
-          return resource.metadata.annotations[key]
+          return resource.metadata.annotations[key];
         }
         // Try and return a value for a mapped key.
         var mappings = annotationMap[key] || [];
@@ -157,7 +158,7 @@ angular.module('openshiftConsole')
       }
 
       return image.split(":")[1];
-    }
+    };
   })
   .filter('imageStreamName', function() {
     return function(image) {
@@ -167,7 +168,7 @@ angular.module('openshiftConsole')
       // TODO move this parsing method into a utility method
 
       // remove @sha256:....
-      var imageWithoutID = image.split("@")[0]
+      var imageWithoutID = image.split("@")[0];
 
       var slashSplit = imageWithoutID.split("/");
       var semiColonSplit;
@@ -197,7 +198,7 @@ angular.module('openshiftConsole')
       }
       return null;
     };
-  })  
+  })
   .filter('buildForImage', function() {
     return function(image, builds) {
       // TODO concerned that this gets called anytime any data is changed on the scope,
@@ -468,6 +469,7 @@ angular.module('openshiftConsole')
           return ageLessThanFilter(timestamp, 1, 'minutes');
         case 'Failed':
         case 'Error':
+          /* falls through */
         default:
           return ageLessThanFilter(timestamp, 5, 'minutes');
       }
@@ -479,7 +481,7 @@ angular.module('openshiftConsole')
         return [];
       }
 
-      var configJson = annotationFilter(deployment, 'encodedDeploymentConfig')
+      var configJson = annotationFilter(deployment, 'encodedDeploymentConfig');
       if (!configJson) {
         return [];
       }

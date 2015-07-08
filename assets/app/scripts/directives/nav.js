@@ -5,7 +5,7 @@ angular.module('openshiftConsole')
     return {
       restrict: 'E',
       templateUrl: 'views/_sidebar.html',
-      link: function($scope, element, attrs) {
+      link: function($scope) {
         var selectedTab = HawtioNav.selected();
         if (selectedTab) {
           $scope.sidebarHeading = selectedTab.title();
@@ -24,7 +24,7 @@ angular.module('openshiftConsole')
     return {
       restrict: 'E',
       templateUrl: 'views/_project-nav.html',
-      link: function ($scope, element, attrs) {
+      link: function ($scope, element) {
         var select = $('.selectpicker', element);
 
         var updateOptions = function() {
@@ -60,7 +60,7 @@ angular.module('openshiftConsole')
           angular.forEach(sortedProjects, function(project) {
             $('<option>')
               .attr("value", project.metadata.name)
-              .attr("selected", project.metadata.name == projectName)
+              .attr("selected", project.metadata.name === projectName)
               .text($filter('displayName')(project))
               .appendTo(select);
           });

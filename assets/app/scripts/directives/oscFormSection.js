@@ -14,7 +14,9 @@ angular.module("openshiftConsole")
       },
       templateUrl: "views/directives/osc-form-section.html",
       link: function(scope, element, attrs){
-        if(!attrs.editText) attrs.editText="Edit";
+        if(!attrs.editText) {
+           attrs.editText="Edit";
+        }
         scope.expand = attrs.expand ? true : false;
         scope.toggle = function(){
           scope.expand = !scope.expand;

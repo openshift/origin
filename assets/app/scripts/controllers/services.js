@@ -42,7 +42,7 @@ angular.module('openshiftConsole')
           }
         });
         return routeMap;
-    };
+    }
 
     function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services)  && !$.isEmptyObject($scope.unfilteredServices)) {
@@ -54,7 +54,7 @@ angular.module('openshiftConsole')
       else {
         delete $scope.alerts["services"];
       }
-    };
+    }
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
       // trigger a digest loop

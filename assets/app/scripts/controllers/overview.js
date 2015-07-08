@@ -158,7 +158,7 @@ angular.module('openshiftConsole')
             }
           }
         });
-        if (deployments.length == 0 && services.length == 0 && showMonopod(pod)) {
+        if (deployments.length === 0 && services.length === 0 && showMonopod(pod)) {
           $scope.monopodsByService[""][name] = pod;
         }
       });
@@ -166,7 +166,7 @@ angular.module('openshiftConsole')
       Logger.log("podsByDeployment", $scope.podsByDeployment);
       Logger.log("podsByService", $scope.podsByService);
       Logger.log("monopodsByService", $scope.monopodsByService);
-    };
+    }
 
     // Filter out monopods we know we don't want to see
     function showMonopod(pod) {
@@ -213,7 +213,7 @@ angular.module('openshiftConsole')
           $scope.deploymentConfigsByService[""][depName] = deploymentConfig;
         }
       });
-    };
+    }
 
     function deploymentsByService() {
       var bySvc = $scope.deploymentsByService = {"": {}};
@@ -244,7 +244,7 @@ angular.module('openshiftConsole')
           bySvcByDepCfg[""][depConfigName][depName] = deployment;
         }
       });
-    };
+    }
 
     // Sets up subscription for deployments
     watches.push(DataService.watch("replicationcontrollers", $scope, function(deployments, action, deployment) {
@@ -304,7 +304,7 @@ angular.module('openshiftConsole')
           trigger.builds[build.metadata.name] = build;
         }
       }
-    };
+    }
 
     // Sets up subscription for deploymentConfigs, associates builds to triggers on deploymentConfigs
     watches.push(DataService.watch("deploymentconfigs", $scope, function(deploymentConfigs, action, deploymentConfig) {
@@ -372,7 +372,7 @@ angular.module('openshiftConsole')
       else {
         delete $scope.alerts["services"];
       }
-    };
+    }
 
     function isGeneratedHost(route) {
       return annotationFilter(route, "openshift.io/host.generated") === "true";
