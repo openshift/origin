@@ -225,6 +225,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       libvirt.driver      = 'kvm'
       libvirt.memory      = vagrant_openshift_config['memory'].to_i
       libvirt.cpus        = vagrant_openshift_config['cpus'].to_i
+      # run on libvirt somewhere other than default:
+      libvirt.uri         = ENV["VAGRANT_LIBVIRT_URI"] if defined? ENV["VAGRANT_LIBVIRT_URI"] 
       full_provision(override.vm)
     end if vagrant_openshift_config['libvirt']
 
