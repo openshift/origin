@@ -243,9 +243,9 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
 			// Setting the node selector on the deployer pod so that it is created
 			// on the same set of nodes as the pods.
-			NodeSelector:   deployment.Spec.Template.Spec.NodeSelector,
-			RestartPolicy:  kapi.RestartPolicyNever,
-			ServiceAccount: c.serviceAccount,
+			NodeSelector:       deployment.Spec.Template.Spec.NodeSelector,
+			RestartPolicy:      kapi.RestartPolicyNever,
+			ServiceAccountName: c.serviceAccount,
 		},
 	}
 

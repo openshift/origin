@@ -55,6 +55,10 @@ func (strategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
+func (strategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(obj runtime.Object) {
 	build := obj.(*api.Build)

@@ -57,11 +57,6 @@ func convert_v1beta3_DeploymentConfigSpec_To_api_DeploymentTemplate(in *Deployme
 			return err
 		}
 	}
-	if in.TemplateRef != nil {
-		if err := s.Convert(&in.TemplateRef, &out.ControllerTemplate.TemplateRef, 0); err != nil {
-			return err
-		}
-	}
 	if err := s.Convert(&in.Strategy, &out.Strategy, 0); err != nil {
 		return err
 	}
@@ -116,11 +111,6 @@ func convert_api_DeploymentTemplate_To_v1beta3_DeploymentConfigSpec(in *newer.De
 	}
 	if in.ControllerTemplate.Template != nil {
 		if err := s.Convert(&in.ControllerTemplate.Template, &out.Template, 0); err != nil {
-			return err
-		}
-	}
-	if in.ControllerTemplate.TemplateRef != nil {
-		if err := s.Convert(&in.ControllerTemplate.TemplateRef, &out.TemplateRef, 0); err != nil {
 			return err
 		}
 	}

@@ -46,6 +46,10 @@ func (templateStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
+func (templateStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
 // ValidateUpdate is the default update validation for an end user.
 func (templateStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	return validation.ValidateTemplateUpdate(obj.(*api.Template), old.(*api.Template))

@@ -86,7 +86,7 @@ func AddObjectsFromPath(path string, o ObjectRetriever, decoder runtime.Decoder)
 	if err != nil {
 		return err
 	}
-	data, err = yaml.ToJSON(data, false)
+	data, err = yaml.ToJSON(data)
 	if err != nil {
 		return err
 	}

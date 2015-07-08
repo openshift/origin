@@ -17,6 +17,7 @@ limitations under the License.
 package fake_cloud
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -26,12 +27,14 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
 )
 
+const ProviderName = "fake"
+
 // FakeBalancer is a fake storage of balancer information
 type FakeBalancer struct {
 	Name       string
 	Region     string
 	ExternalIP net.IP
-	Ports      []int
+	Ports      []*api.ServicePort
 	Hosts      []string
 }
 
@@ -55,9 +58,14 @@ type FakeCloud struct {
 	ExternalIP    net.IP
 	Balancers     []FakeBalancer
 	UpdateCalls   []FakeUpdateBalancerCall
-	RouteMap      map[string]*cloudprovider.Route
+	RouteMap      map[string]*FakeRoute
 	Lock          sync.Mutex
 	cloudprovider.Zone
+}
+
+type FakeRoute struct {
+	ClusterName string
+	Route       cloudprovider.Route
 }
 
 func (f *FakeCloud) addCall(desc string) {
@@ -79,6 +87,11 @@ func (f *FakeCloud) Master(name string) (string, error) {
 
 func (f *FakeCloud) Clusters() (cloudprovider.Clusters, bool) {
 	return f, true
+}
+
+// ProviderName returns the cloud provider ID.
+func (f *FakeCloud) ProviderName() string {
+	return ProviderName
 }
 
 // TCPLoadBalancer returns a fake implementation of TCPLoadBalancer.
@@ -112,7 +125,7 @@ func (f *FakeCloud) GetTCPLoadBalancer(name, region string) (*api.LoadBalancerSt
 
 // CreateTCPLoadBalancer is a test-spy implementation of TCPLoadBalancer.CreateTCPLoadBalancer.
 // It adds an entry "create" into the internal method call record.
-func (f *FakeCloud) CreateTCPLoadBalancer(name, region string, externalIP net.IP, ports []int, hosts []string, affinityType api.ServiceAffinity) (*api.LoadBalancerStatus, error) {
+func (f *FakeCloud) CreateTCPLoadBalancer(name, region string, externalIP net.IP, ports []*api.ServicePort, hosts []string, affinityType api.ServiceAffinity) (*api.LoadBalancerStatus, error) {
 	f.addCall("create")
 	f.Balancers = append(f.Balancers, FakeBalancer{name, region, externalIP, ports, hosts})
 
@@ -137,6 +150,15 @@ func (f *FakeCloud) EnsureTCPLoadBalancerDeleted(name, region string) error {
 	return f.Err
 }
 
+func (f *FakeCloud) AddSSHKeyToAllInstances(user string, keyData []byte) error {
+	return errors.New("unimplemented")
+}
+
+// Implementation of Instances.CurrentNodeName
+func (f *FakeCloud) CurrentNodeName(hostname string) (string, error) {
+	return hostname, nil
+}
+
 // NodeAddresses is a test-spy implementation of Instances.NodeAddresses.
 // It adds an entry "node-addresses" into the internal method call record.
 func (f *FakeCloud) NodeAddresses(instance string) ([]api.NodeAddress, error) {
@@ -150,6 +172,12 @@ func (f *FakeCloud) NodeAddresses(instance string) ([]api.NodeAddress, error) {
 func (f *FakeCloud) ExternalID(instance string) (string, error) {
 	f.addCall("external-id")
 	return f.ExtID[instance], f.Err
+}
+
+// InstanceID returns the cloud provider ID of the specified instance.
+func (f *FakeCloud) InstanceID(instance string) (string, error) {
+	f.addCall("instance-id")
+	return f.ExtID[instance], nil
 }
 
 // List is a test-spy implementation of Instances.List.
@@ -175,35 +203,42 @@ func (f *FakeCloud) GetNodeResources(name string) (*api.NodeResources, error) {
 	return f.NodeResources, f.Err
 }
 
-func (f *FakeCloud) ListRoutes(filter string) ([]*cloudprovider.Route, error) {
+func (f *FakeCloud) ListRoutes(clusterName string) ([]*cloudprovider.Route, error) {
 	f.Lock.Lock()
 	defer f.Lock.Unlock()
 	f.addCall("list-routes")
 	var routes []*cloudprovider.Route
-	for _, route := range f.RouteMap {
-		if match, _ := regexp.MatchString(filter, route.Name); match {
-			routes = append(routes, route)
+	for _, fakeRoute := range f.RouteMap {
+		if clusterName == fakeRoute.ClusterName {
+			routeCopy := fakeRoute.Route
+			routes = append(routes, &routeCopy)
 		}
 	}
 	return routes, f.Err
 }
 
-func (f *FakeCloud) CreateRoute(route *cloudprovider.Route) error {
+func (f *FakeCloud) CreateRoute(clusterName string, nameHint string, route *cloudprovider.Route) error {
 	f.Lock.Lock()
 	defer f.Lock.Unlock()
 	f.addCall("create-route")
-	if _, exists := f.RouteMap[route.Name]; exists {
-		f.Err = fmt.Errorf("route with name %q already exists")
+	name := clusterName + "-" + nameHint
+	if _, exists := f.RouteMap[name]; exists {
+		f.Err = fmt.Errorf("route %q already exists", name)
 		return f.Err
 	}
-	f.RouteMap[route.Name] = route
+	fakeRoute := FakeRoute{}
+	fakeRoute.Route = *route
+	fakeRoute.Route.Name = name
+	fakeRoute.ClusterName = clusterName
+	f.RouteMap[name] = &fakeRoute
 	return nil
 }
 
-func (f *FakeCloud) DeleteRoute(name string) error {
+func (f *FakeCloud) DeleteRoute(clusterName string, route *cloudprovider.Route) error {
 	f.Lock.Lock()
 	defer f.Lock.Unlock()
 	f.addCall("delete-route")
+	name := route.Name
 	if _, exists := f.RouteMap[name]; !exists {
 		f.Err = fmt.Errorf("no route found with name %q", name)
 		return f.Err

@@ -284,6 +284,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
 	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, legacyAPIVersions...)
 	initAPIVersionRoute(root, OpenShiftAPIPrefix, currentAPIVersions...)
+	initHealthCheckRoute(root, "healthz")
 	initReadinessCheckRoute(root, "healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
 
 	return messages
@@ -471,6 +472,17 @@ func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...st
 		Doc("list supported server API versions").
 		Produces(restful.MIME_JSON).
 		Consumes(restful.MIME_JSON))
+}
+
+// initHealthCheckRoute initalizes an HTTP endpoint for health checking.
+// OpenShift is deemed healthy if the API server can respond with an OK messages
+func initHealthCheckRoute(root *restful.WebService, path string) {
+	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
+		resp.ResponseWriter.WriteHeader(http.StatusOK)
+		resp.ResponseWriter.Write([]byte("ok"))
+	}).Doc("return the health state of OpenShift").
+		Returns(http.StatusOK, "if OpenShift is healthy", nil).
+		Produces(restful.MIME_JSON))
 }
 
 // initReadinessCheckRoute initializes an HTTP endpoint for readiness checking

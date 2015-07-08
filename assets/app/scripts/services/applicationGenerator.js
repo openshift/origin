@@ -54,7 +54,7 @@ angular.module("openshiftConsole")
           }
           ports.push(
             {
-              containerPort: parseInt(parts[0]), 
+              containerPort: parseInt(parts[0]),
               name: input.name + "-" + parts[1] + "-" + parts[0],
               protocol: parts[1].toUpperCase()
             });
@@ -73,7 +73,7 @@ angular.module("openshiftConsole")
       var imageSpec;
       if(input.buildConfig.sourceUrl !== null){
         imageSpec = {
-          name: input.name, 
+          name: input.name,
           tag: "latest",
           toString: function(){
             return this.name + ":" + this.tag;
@@ -125,9 +125,6 @@ angular.module("openshiftConsole")
           labels: labels
         },
         spec: {
-          strategy: {
-              type: "Recreate"
-          },
           replicas: input.scaling.replicas,
           selector: {
             deploymentconfig: input.name

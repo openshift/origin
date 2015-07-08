@@ -37,14 +37,14 @@
       </form>
       <ul class="list-unstyled label-list">
         <li ng-repeat="(key,value) in entries | valuesIn:readonlyKeys">
-          <span class="key truncate">{{key}}</span>
-          <span class="value truncate">{{value}}</span>
+          <span class="key truncate" ng-attr-title="{{key}}">{{key}}</span>
+          <span class="value truncate" ng-attr-title="{{value}}">{{value}}</span>
         </li>
         <li ng-repeat="(key,value) in entries | valuesNotIn:readonlyKeys">
           <span ng-controller="KeyValuesEntryController">
-            <span class="key truncate">{{key}}</span>
+            <span class="key truncate" ng-attr-title="{{key}}">{{key}}</span>
             <span ng-hide="editing">
-              <span class="value truncate">{{ value}}</span>
+              <span class="value truncate" ng-attr-title="{{value}}">{{value}}</span>
               <a href="" ng-click="edit()" class="btn btn-default btn-xs" title="Edit">
                 <i class="icon icon-pencil"></i>
               </a>
@@ -71,8 +71,8 @@
       <div ng-if="(entries | hashSize) === 0"><strong>None</strong></div>
       <ul ng-if="(entries | hashSize) !== 0" class="labels-readonly label-list list-unstyled">
         <li ng-repeat="(key,value) in entries">
-          <span class="key truncate">{{key}}</span>
-          <span class="value truncate">{{ value }}</span>
+          <span class="key truncate" ng-attr-title="{{key}}">{{key}}</span>
+          <span class="value truncate" ng-attr-title="{{value}}">{{value}}</span>
         </li>
       </ul>
     </div>

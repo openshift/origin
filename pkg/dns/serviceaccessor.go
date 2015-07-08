@@ -53,7 +53,7 @@ func NewCachedServiceAccessor(client *client.Client, stopCh <-chan struct{}) Ser
 // ServiceByPortalIP returns the first service that matches the provided portalIP value.
 // errors.IsNotFound(err) will be true if no such service exists.
 func (a *cachedServiceAccessor) ServiceByPortalIP(ip string) (*api.Service, error) {
-	items, err := a.store.Index("portalIP", &api.Service{Spec: api.ServiceSpec{PortalIP: ip}})
+	items, err := a.store.Index("portalIP", &api.Service{Spec: api.ServiceSpec{ClusterIP: ip}})
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (a *cachedServiceAccessor) ServiceByPortalIP(ip string) (*api.Service, erro
 // indexServiceByPortalIP creates an index between a portalIP and the service that
 // uses it.
 func indexServiceByPortalIP(obj interface{}) (string, error) {
-	return obj.(*api.Service).Spec.PortalIP, nil
+	return obj.(*api.Service).Spec.ClusterIP, nil
 }
 
 func (a *cachedServiceAccessor) Services(namespace string) client.ServiceInterface {

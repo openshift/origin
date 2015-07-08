@@ -51,7 +51,7 @@ func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorL
 
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
 		if err != nil {
-			util.ReportError(&templateErrors, i, *fielderrors.NewFieldNotSupported("parameters", err))
+			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("parameters", template.Parameters, err.Error()))
 		}
 		stripNamespace(newItem)
 		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {

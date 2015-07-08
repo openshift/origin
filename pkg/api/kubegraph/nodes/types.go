@@ -32,7 +32,7 @@ func (n ServiceNode) Object() interface{} {
 }
 
 func (n ServiceNode) String() string {
-	return fmt.Sprintf("<service %s/%s>", n.Namespace, n.Name)
+	return string(ServiceNodeName(n.Service))
 }
 
 func (*ServiceNode) Kind() string {
@@ -53,7 +53,7 @@ func (n PodNode) Object() interface{} {
 }
 
 func (n PodNode) String() string {
-	return fmt.Sprintf("<pod %s/%s>", n.Namespace, n.Name)
+	return string(PodNodeName(n.Pod))
 }
 
 func (n PodNode) UniqueName() osgraph.UniqueName {
@@ -105,7 +105,7 @@ func (n ReplicationControllerNode) Object() interface{} {
 }
 
 func (n ReplicationControllerNode) String() string {
-	return fmt.Sprintf("<replicationcontroller %s/%s>", n.Namespace, n.Name)
+	return string(ReplicationControllerNodeName(n.ReplicationController))
 }
 
 func (n ReplicationControllerNode) UniqueName() osgraph.UniqueName {

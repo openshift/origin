@@ -114,9 +114,6 @@ displays Merged kubeconfig settings or a specified kubeconfig file.
   // Show Merged kubeconfig settings.
   $ openshift cli config view
   
-  // Show only local kubeconfig settings
-  $ openshift cli config view --local
-  
   // Get the password for the e2e user
   $ openshift cli config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
 ----
@@ -217,7 +214,7 @@ Edit a resource on the server
   $ openshift cli edit dc/my-deployment
 
   // Use an alternative editor
-  $ OSC_EDITOR="nano" openshift cli edit dc/my-deployment
+  $ OC_EDITOR="nano" openshift cli edit dc/my-deployment
 
   // Edit the service 'docker-registry' in JSON using the v1beta3 API format:
   $ openshift cli edit svc/docker-registry --output-version=v1beta3 -o json
@@ -577,6 +574,22 @@ Run a proxy to the Kubernetes API server
 ====
 
 
+== oc replace
+Replace a resource by filename or stdin.
+
+====
+
+[options="nowrap"]
+----
+  // Update a pod using the data in pod.json.
+  $ openshift cli update -f pod.json
+
+  // Update a pod based on the JSON passed into stdin.
+  $ cat pod.json | openshift cli update -f -
+----
+====
+
+
 == oc rollback
 Revert part of an application back to a previous deployment
 
@@ -723,22 +736,6 @@ An introduction to the concepts and types in OpenShift
 
   // Show the images tagged into an image stream
   $ openshift cli describe is ruby-centos7
-----
-====
-
-
-== oc update
-Update a resource by filename or stdin.
-
-====
-
-[options="nowrap"]
-----
-  // Update a pod using the data in pod.json.
-  $ openshift cli update -f pod.json
-
-  // Update a pod based on the JSON passed into stdin.
-  $ cat pod.json | openshift cli update -f -
 ----
 ====
 

@@ -60,7 +60,7 @@ func (c *ServiceResolverCache) get(name string) (host, port string, ok bool) {
 	if len(service.Spec.Ports) == 0 {
 		return
 	}
-	host, port, ok = service.Spec.PortalIP, strconv.Itoa(service.Spec.Ports[0].Port), true
+	host, port, ok = service.Spec.ClusterIP, strconv.Itoa(service.Spec.Ports[0].Port), true
 	c.cache[name] = serviceEntry{
 		host: host,
 		port: port,

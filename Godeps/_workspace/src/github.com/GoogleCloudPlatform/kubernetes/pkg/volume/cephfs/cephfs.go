@@ -64,16 +64,17 @@ func (plugin *cephfsPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
 }
 
 func (plugin *cephfsPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, _ volume.VolumeOptions, mounter mount.Interface) (volume.Builder, error) {
+	cephvs := plugin.getVolumeSource(spec)
 	secret := ""
-	if spec.VolumeSource.CephFS.SecretRef != nil {
+	if cephvs.SecretRef != nil {
 		kubeClient := plugin.host.GetKubeClient()
 		if kubeClient == nil {
 			return nil, fmt.Errorf("Cannot get kube client")
 		}
 
-		secretName, err := kubeClient.Secrets(pod.Namespace).Get(spec.VolumeSource.CephFS.SecretRef.Name)
+		secretName, err := kubeClient.Secrets(pod.Namespace).Get(cephvs.SecretRef.Name)
 		if err != nil {
-			err = fmt.Errorf("Couldn't get secret %v/%v err: %v", pod.Namespace, spec.VolumeSource.CephFS.SecretRef, err)
+			err = fmt.Errorf("Couldn't get secret %v/%v err: %v", pod.Namespace, cephvs.SecretRef, err)
 			return nil, err
 		}
 		for name, data := range secretName.Data {
@@ -85,11 +86,12 @@ func (plugin *cephfsPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, _ volume
 }
 
 func (plugin *cephfsPlugin) newBuilderInternal(spec *volume.Spec, podUID types.UID, mounter mount.Interface, secret string) (volume.Builder, error) {
-	id := spec.VolumeSource.CephFS.User
+	cephvs := plugin.getVolumeSource(spec)
+	id := cephvs.User
 	if id == "" {
 		id = "admin"
 	}
-	secret_file := spec.VolumeSource.CephFS.SecretFile
+	secret_file := cephvs.SecretFile
 	if secret_file == "" {
 		secret_file = "/etc/ceph/" + id + ".secret"
 	}
@@ -97,9 +99,9 @@ func (plugin *cephfsPlugin) newBuilderInternal(spec *volume.Spec, podUID types.U
 	return &cephfs{
 		podUID:      podUID,
 		volName:     spec.Name,
-		mon:         spec.VolumeSource.CephFS.Monitors,
+		mon:         cephvs.Monitors,
 		secret:      secret,
-		readonly:    spec.VolumeSource.CephFS.ReadOnly,
+		readonly:    cephvs.ReadOnly,
 		id:          id,
 		secret_file: secret_file,
 		mounter:     mounter,
@@ -118,6 +120,14 @@ func (plugin *cephfsPlugin) newCleanerInternal(volName string, podUID types.UID,
 		mounter: mounter,
 		plugin:  plugin,
 	}, nil
+}
+
+func (plugin *cephfsPlugin) getVolumeSource(spec *volume.Spec) *api.CephFSVolumeSource {
+	if spec.VolumeSource.CephFS != nil {
+		return spec.VolumeSource.CephFS
+	} else {
+		return spec.PersistentVolumeSource.CephFS
+	}
 }
 
 // CephFS volumes represent a bare host file or directory mount of an CephFS export.
@@ -175,7 +185,7 @@ func (cephfsVolume *cephfs) TearDownAt(dir string) error {
 
 func (cephfsVolume *cephfs) cleanup(dir string) error {
 	mountpoint, err := cephfsVolume.mounter.IsMountPoint(dir)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("CephFS: Error checking IsMountPoint: %v", err)
 	}
 	if !mountpoint {

@@ -79,6 +79,10 @@ func (s Strategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
+func (Strategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
 // dockerImageRepository determines the docker image stream for stream.
 // If stream.DockerImageRepository is set, that value is returned. Otherwise,
 // if a default registry exists, the value returned is of the form
@@ -366,6 +370,10 @@ func NewStatusStrategy(strategy Strategy) StatusStrategy {
 }
 
 func (StatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+}
+
+func (StatusStrategy) AllowUnconditionalUpdate() bool {
+	return false
 }
 
 func (StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {

@@ -1,7 +1,6 @@
 package nodes
 
 import (
-	"fmt"
 	"reflect"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -31,7 +30,7 @@ func (n DeploymentConfigNode) Object() interface{} {
 }
 
 func (n DeploymentConfigNode) String() string {
-	return fmt.Sprintf("<deploymentconfig %s/%s>", n.Namespace, n.Name)
+	return string(DeploymentConfigNodeName(n.DeploymentConfig))
 }
 
 func (*DeploymentConfigNode) Kind() string {

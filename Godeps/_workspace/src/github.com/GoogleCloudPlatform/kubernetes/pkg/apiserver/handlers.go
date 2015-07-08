@@ -267,8 +267,6 @@ type APIRequestInfoResolver struct {
 // /namespaces/{namespace}/{resource}/{resourceName}
 // /{resource}
 // /{resource}/{resourceName}
-// /{resource}/{resourceName}?namespace={namespace}
-// /{resource}?namespace={namespace}
 //
 // Special verbs:
 // /proxy/{resource}/{resourceName}
@@ -340,6 +338,8 @@ func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIReques
 				currentParts = currentParts[2:]
 			}
 		}
+	} else {
+		requestInfo.Namespace = api.NamespaceNone
 	}
 
 	// parsing successful, so we now know the proper value for .Parts

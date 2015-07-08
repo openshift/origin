@@ -19,6 +19,7 @@ package securitycontextconstraints
 import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -37,12 +38,20 @@ type strategy struct {
 // objects via the REST API.
 var Strategy = strategy{api.Scheme, api.SimpleNameGenerator}
 
+var _ = rest.RESTCreateStrategy(Strategy)
+
+var _ = rest.RESTUpdateStrategy(Strategy)
+
 func (strategy) NamespaceScoped() bool {
 	return false
 }
 
 func (strategy) AllowCreateOnUpdate() bool {
 	return false
+}
+
+func (strategy) AllowUnconditionalUpdate() bool {
+	return true
 }
 
 func (strategy) PrepareForCreate(obj runtime.Object) {

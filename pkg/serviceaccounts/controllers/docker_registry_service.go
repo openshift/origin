@@ -96,9 +96,9 @@ func (e *DockerRegistryServiceController) Stop() {
 }
 
 func (e *DockerRegistryServiceController) getServiceLocation(service *api.Service) string {
-	hasPortalIP := (len(service.Spec.PortalIP) > 0) && (net.ParseIP(service.Spec.PortalIP) != nil)
+	hasPortalIP := (len(service.Spec.ClusterIP) > 0) && (net.ParseIP(service.Spec.ClusterIP) != nil)
 	if hasPortalIP && len(service.Spec.Ports) > 0 {
-		return net.JoinHostPort(service.Spec.PortalIP, fmt.Sprintf("%d", service.Spec.Ports[0].Port))
+		return net.JoinHostPort(service.Spec.ClusterIP, fmt.Sprintf("%d", service.Spec.Ports[0].Port))
 	}
 
 	return e.defaultDockerURL

@@ -180,7 +180,7 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 		}
 
 		status := statusErr.ErrStatus
-		if status.Code != http.StatusNotFound || status.Details.Kind != "imageStream" || status.Details.ID != r.name {
+		if status.Code != http.StatusNotFound || status.Details.Kind != "imageStream" || status.Details.Name != r.name {
 			log.Errorf("Error creating ImageStreamMapping: %s", err)
 			return err
 		}

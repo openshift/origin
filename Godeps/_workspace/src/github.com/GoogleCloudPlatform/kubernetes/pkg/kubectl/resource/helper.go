@@ -17,6 +17,7 @@ limitations under the License.
 package resource
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -43,11 +44,10 @@ type Helper struct {
 // NewHelper creates a Helper from a ResourceMapping
 func NewHelper(client RESTClient, mapping *meta.RESTMapping) *Helper {
 	return &Helper{
-		RESTClient: client,
-		Resource:   mapping.Resource,
-		Codec:      mapping.Codec,
-		Versioner:  mapping.MetadataAccessor,
-
+		RESTClient:      client,
+		Resource:        mapping.Resource,
+		Codec:           mapping.Codec,
+		Versioner:       mapping.MetadataAccessor,
 		NamespaceScoped: mapping.Scope.Name() == meta.RESTScopeNameNamespace,
 	}
 }
@@ -133,28 +133,37 @@ func (m *Helper) Create(namespace string, modify bool, data []byte) (runtime.Obj
 func (m *Helper) createResource(c RESTClient, resource, namespace string, data []byte) (runtime.Object, error) {
 	return c.Post().NamespaceIfScoped(namespace, m.NamespaceScoped).Resource(resource).Body(data).Do().Get()
 }
+func (m *Helper) Patch(namespace, name string, pt api.PatchType, data []byte) (runtime.Object, error) {
+	return m.RESTClient.Patch(pt).
+		NamespaceIfScoped(namespace, m.NamespaceScoped).
+		Resource(m.Resource).
+		Name(name).
+		Body(data).
+		Do().
+		Get()
+}
 
-func (m *Helper) Update(namespace, name string, overwrite bool, data []byte) (runtime.Object, error) {
+func (m *Helper) Replace(namespace, name string, overwrite bool, data []byte) (runtime.Object, error) {
 	c := m.RESTClient
 
 	obj, err := m.Codec.Decode(data)
 	if err != nil {
-		// We don't know how to handle this object, but update it anyway
-		return m.updateResource(c, m.Resource, namespace, name, data)
+		// We don't know how to handle this object, but replace it anyway
+		return m.replaceResource(c, m.Resource, namespace, name, data)
 	}
 
 	// Attempt to version the object based on client logic.
 	version, err := m.Versioner.ResourceVersion(obj)
 	if err != nil {
 		// We don't know how to version this object, so send it to the server as is
-		return m.updateResource(c, m.Resource, namespace, name, data)
+		return m.replaceResource(c, m.Resource, namespace, name, data)
 	}
 	if version == "" && overwrite {
 		// Retrieve the current version of the object to overwrite the server object
 		serverObj, err := c.Get().Namespace(namespace).Resource(m.Resource).Name(name).Do().Get()
 		if err != nil {
 			// The object does not exist, but we want it to be created
-			return m.updateResource(c, m.Resource, namespace, name, data)
+			return m.replaceResource(c, m.Resource, namespace, name, data)
 		}
 		serverVersion, err := m.Versioner.ResourceVersion(serverObj)
 		if err != nil {
@@ -170,9 +179,9 @@ func (m *Helper) Update(namespace, name string, overwrite bool, data []byte) (ru
 		data = newData
 	}
 
-	return m.updateResource(c, m.Resource, namespace, name, data)
+	return m.replaceResource(c, m.Resource, namespace, name, data)
 }
 
-func (m *Helper) updateResource(c RESTClient, resource, namespace, name string, data []byte) (runtime.Object, error) {
+func (m *Helper) replaceResource(c RESTClient, resource, namespace, name string, data []byte) (runtime.Object, error) {
 	return c.Put().NamespaceIfScoped(namespace, m.NamespaceScoped).Resource(resource).Name(name).Body(data).Do().Get()
 }

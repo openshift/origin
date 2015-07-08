@@ -26,6 +26,7 @@ import (
 type mustRunAs struct {
 	opts *api.SELinuxContextStrategyOptions
 }
+
 var _ SELinuxSecurityContextConstraintsStrategy = &mustRunAs{}
 
 func NewMustRunAs(options *api.SELinuxContextStrategyOptions) (SELinuxSecurityContextConstraintsStrategy, error) {

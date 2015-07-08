@@ -276,7 +276,7 @@ func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 			ContainerStatuses: []kapi.ContainerStatus{
 				{
 					State: kapi.ContainerState{
-						Termination: &kapi.ContainerStateTerminated{ExitCode: exitCode},
+						Terminated: &kapi.ContainerStateTerminated{ExitCode: exitCode},
 					},
 				},
 			},

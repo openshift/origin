@@ -16,7 +16,8 @@ import (
 type ImportController struct {
 	streams  client.ImageStreamsNamespacer
 	mappings client.ImageStreamMappingsNamespacer
-	client   dockerregistry.Client
+	// injected for testing
+	client dockerregistry.Client
 }
 
 // needsImport returns true if the provided image stream should have its tags imported.
@@ -53,7 +54,11 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 
 	insecure := stream.Annotations != nil && stream.Annotations[api.InsecureRepositoryAnnotation] == "true"
 
-	conn, err := c.client.Connect(ref.Registry, insecure)
+	client := c.client
+	if client == nil {
+		client = dockerregistry.NewClient()
+	}
+	conn, err := client.Connect(ref.Registry, insecure)
 	if err != nil {
 		return err
 	}

@@ -55,8 +55,8 @@ func TestServiceResolverCache(t *testing.T) {
 	c = fakeRetriever{
 		service: &api.Service{
 			Spec: api.ServiceSpec{
-				PortalIP: "127.0.0.1",
-				Ports:    []api.ServicePort{{Port: 80}},
+				ClusterIP: "127.0.0.1",
+				Ports:     []api.ServicePort{{Port: 80}},
 			},
 		},
 	}

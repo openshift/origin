@@ -27,11 +27,11 @@ const (
 	editLong = `Edit a resource from the default editor.
 
 The edit command allows you to directly edit any API resource you can retrieve via the
-command line tools. It will open the editor defined by your OSC_EDITOR, GIT_EDITOR,
-or EDITOR environment variables, or fall back to 'vi'. You can edit multiple objects,
-although changes are applied one at a time. The command accepts filenames as well as
-command line arguments, although the files you point to must be previously saved
-versions of resources.
+command line tools. It will open the editor defined by your OC_EDITOR, GIT_EDITOR,
+or EDITOR environment variables, or fall back to 'vi' for Linux or 'notepad' for Windows. 
+You can edit multiple objects, although changes are applied one at a time. The command 
+accepts filenames as well as command line arguments, although the files you point to must
+be previously saved versions of resources.
 
 The files to edit will be output in the default API version, or a version specified
 by --output-version. The default format is YAML - if you would like to edit in JSON
@@ -50,12 +50,13 @@ saved copy to include the latest resource version.`
   $ %[1]s edit dc/my-deployment
 
   // Use an alternative editor
-  $ OSC_EDITOR="nano" %[1]s edit dc/my-deployment
+  $ OC_EDITOR="nano" %[1]s edit dc/my-deployment
 
   // Edit the service 'docker-registry' in JSON using the v1beta3 API format:
   $ %[1]s edit svc/docker-registry --output-version=v1beta3 -o json`
 )
 
+// NewCmdEdit implements the OpenShift cli edit command
 func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	var filenames util.StringList
 	cmd := &cobra.Command{
@@ -78,6 +79,7 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 	return cmd
 }
 
+// RunEdit contains all the necessary functionality for the OpenShift cli edit command
 func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, filenames util.StringList) error {
 	var printer kubectl.ResourcePrinter
 	var ext string
@@ -218,7 +220,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 			if err != nil {
 				return err
 			}
-			updated, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, false, data)
+			updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, data)
 			if err != nil {
 				fmt.Fprintln(cmd.Out(), results.AddError(err, info))
 				return nil
@@ -375,7 +377,7 @@ func applyPatch(delta *jsonmerge.Delta, info *resource.Info, version string) err
 	if err != nil {
 		return patchError{err}
 	}
-	updated, err := resource.NewHelper(info.Client, info.Mapping).Update(info.Namespace, info.Name, false, merged)
+	updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, merged)
 	if err != nil {
 		return err
 	}

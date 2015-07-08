@@ -253,6 +253,22 @@ func (s *reuseTokenSource) Token() (*Token, error) {
 	return t, nil
 }
 
+// StaticTokenSource returns a TokenSource that always returns the same token.
+// Because the provided token t is never refreshed, StaticTokenSource is only
+// useful for tokens that never expire.
+func StaticTokenSource(t *Token) TokenSource {
+	return staticTokenSource{t}
+}
+
+// staticTokenSource is a TokenSource that always returns the same Token.
+type staticTokenSource struct {
+	t *Token
+}
+
+func (s staticTokenSource) Token() (*Token, error) {
+	return s.t, nil
+}
+
 // HTTPClient is the context key to use with golang.org/x/net/context's
 // WithValue function to associate an *http.Client value with a context.
 var HTTPClient internal.ContextKey

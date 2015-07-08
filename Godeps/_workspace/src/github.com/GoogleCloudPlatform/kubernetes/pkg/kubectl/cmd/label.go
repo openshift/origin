@@ -32,7 +32,7 @@ import (
 const (
 	label_long = `Update the labels on a resource.
 
-A valid label value is consisted of letters and/or numbers with a max length of %[1]d characters.
+A label must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and underscores, up to %[1]d characters.
 If --overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error.
 If --resource-version is specified, then updates will use this resource version, otherwise the existing resource-version will be used.`
 	label_example = `// Update pod 'foo' with the label 'unhealthy' and the value 'true'.
@@ -83,7 +83,7 @@ func updateObject(info *resource.Info, updateFn func(runtime.Object) (runtime.Ob
 		return nil, err
 	}
 
-	_, err = helper.Update(info.Namespace, info.Name, true, data)
+	_, err = helper.Replace(info.Namespace, info.Name, true, data)
 	if err != nil {
 		return nil, err
 	}

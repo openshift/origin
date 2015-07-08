@@ -17,12 +17,14 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/spf13/cobra"
@@ -32,7 +34,9 @@ const (
 	get_long = `Display one or many resources.
 
 Possible resources include pods (po), replication controllers (rc), services
-(svc), nodes, events (ev), or component statuses (cs).
+(svc), nodes, events (ev), component statuses (cs), limit ranges (limits),
+nodes (no), persistent volumes (pv), persistent volume claims (pvc)
+or resource quotas (quota).
 
 By specifying the output as 'template' and providing a Go template as the value
 of the --template flag, you can filter the attributes of the fetched resource(s).`
@@ -46,7 +50,7 @@ $ kubectl get replicationcontroller web
 $ kubectl get -o json pod web-pod-13je7
 
 // Return only the phase value of the specified pod.
-$ kubectl get -o template web-pod-13je7 --template={{.status.phase}} --api-version=v1beta3
+$ kubectl get -o template web-pod-13je7 --template={{.status.phase}} --api-version=v1
 
 // List all replication controllers and services together in ps output format.
 $ kubectl get rc,services
@@ -58,7 +62,7 @@ $ kubectl get rc/web service/frontend pods/web-pod-13je7`
 // NewCmdGet creates a command object for the generic "get" action, which
 // retrieves one or more resources from a server.
 func NewCmdGet(f *cmdutil.Factory, out io.Writer) *cobra.Command {
-	p := kubectl.NewHumanReadablePrinter(false, false)
+	p := kubectl.NewHumanReadablePrinter(false, false, []string{})
 	validArgs := p.HandledResources()
 
 	cmd := &cobra.Command{
@@ -77,6 +81,7 @@ func NewCmdGet(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().BoolP("watch", "w", false, "After listing/getting the requested object, watch for changes.")
 	cmd.Flags().Bool("watch-only", false, "Watch for changes to the requested object(s), without listing/getting first.")
 	cmd.Flags().Bool("all-namespaces", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
+	kubectl.AddLabelsToColumnsFlag(cmd, &util.StringList{}, "Accepts a comma separated list of labels that are going to be presented as columns. Names are case-sensitive. You can also use multiple flag statements like -L label1 -L label2...")
 	return cmd
 }
 
@@ -90,6 +95,23 @@ func RunGet(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string
 	cmdNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
+	}
+
+	if len(args) == 0 {
+		fmt.Fprint(out, `
+You must specify the type of resource to get. Valid resource types include:
+   * pods (aka 'po')
+   * replicationcontrollers (aka 'rc')
+   * services
+   * nodes (aka 'no')
+   * events (aka 'ev')
+   * secrets
+   * limits
+   * persistentVolumes (aka 'pv')
+   * persistentVolumeClaims (aka 'pvc')
+   * quota
+`)
+		return errors.New("Required resource not specified.")
 	}
 
 	// handle watch separately since we cannot watch multiple resource types

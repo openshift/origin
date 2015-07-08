@@ -31,6 +31,7 @@ type simpleProvider struct {
 	runAsUserStrategy user.RunAsUserSecurityContextConstraintsStrategy
 	seLinuxStrategy   selinux.SELinuxSecurityContextConstraintsStrategy
 }
+
 // ensure we implement the interface correctly.
 var _ SecurityContextConstraintsProvider = &simpleProvider{}
 

@@ -110,9 +110,6 @@ displays Merged kubeconfig settings or a specified kubeconfig file.
   // Show Merged kubeconfig settings.
   $ openshift admin config view
   
-  // Show only local kubeconfig settings
-  $ openshift admin config view --local
-  
   // Get the password for the e2e user
   $ openshift admin config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
 ----

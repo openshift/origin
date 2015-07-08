@@ -14,10 +14,10 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
-	"github.com/openshift/origin/Godeps/_workspace/src/github.com/spf13/cobra"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/spf13/cobra"
 )
 
 // NodeArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting the master

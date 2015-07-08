@@ -26,6 +26,7 @@ import (
 type mustRunAs struct {
 	opts *api.RunAsUserStrategyOptions
 }
+
 var _ RunAsUserSecurityContextConstraintsStrategy = &mustRunAs{}
 
 // NewMustRunAs provides a strategy that requires the container to run as a specific UID.

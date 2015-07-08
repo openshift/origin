@@ -32,10 +32,12 @@
         top:1px;
       }
     }
-    .osc-object-active {
-      .connector {
-        i {
-          color: @osc-object-active-color;
+    @media (min-width: @screen-sm-min) {
+      .osc-object-active {
+        .connector {
+          i {
+            color: @osc-object-active-color;
+          }
         }
       }
     }
@@ -63,6 +65,9 @@
       @media (max-width: @screen-sm-min) {
         /* Switch to vertical layout at small sizes */
         .flex-direction(@direction: column);
+      }
+      &.pod-container {
+        .flex-direction(@direction: row);
       }
       &.pod-template-container {
         margin-top: 5px;
@@ -215,9 +220,9 @@
     }
     .pod {
       .osc-object-highlight();
-      .flex(@columns: 1 1 auto);
+      .flex(@columns: 1 1 0);
       max-width: 450px;
-      min-width: 90px;
+      min-width: 120px;
       background-size: 20px 20px;
       border-radius: @border-radius-md;
       border: 1px solid transparent;

@@ -57,6 +57,7 @@ func TestStop(t *testing.T) {
 				"get-replicationController",
 				"update-replicationController",
 				"get-replicationController",
+				"get-replicationController",
 				"delete-replicationController",
 			},
 			output: "config stopped",
@@ -76,21 +77,26 @@ func TestStop(t *testing.T) {
 				"get-replicationController",
 				"update-replicationController",
 				"get-replicationController",
-				"delete-replicationController",
-				"get-replicationController",
-				"update-replicationController",
 				"get-replicationController",
 				"delete-replicationController",
 				"get-replicationController",
 				"update-replicationController",
 				"get-replicationController",
-				"delete-replicationController",
-				"get-replicationController",
-				"update-replicationController",
 				"get-replicationController",
 				"delete-replicationController",
 				"get-replicationController",
 				"update-replicationController",
+				"get-replicationController",
+				"get-replicationController",
+				"delete-replicationController",
+				"get-replicationController",
+				"update-replicationController",
+				"get-replicationController",
+				"get-replicationController",
+				"delete-replicationController",
+				"get-replicationController",
+				"update-replicationController",
+				"get-replicationController",
 				"get-replicationController",
 				"delete-replicationController",
 			},
@@ -110,6 +116,7 @@ func TestStop(t *testing.T) {
 				"list-replicationControllers",
 				"get-replicationController",
 				"update-replicationController",
+				"get-replicationController",
 				"get-replicationController",
 				"delete-replicationController",
 			},
@@ -150,7 +157,8 @@ func TestStop(t *testing.T) {
 
 	for _, test := range tests {
 		reaper := &DeploymentConfigReaper{oc: test.oc, kc: test.kc, pollInterval: time.Millisecond, timeout: time.Millisecond}
-		out, err := reaper.Stop(test.namespace, test.name, nil)
+		out, err := reaper.Stop(test.namespace, test.name, 1*time.Second, nil)
+
 		if !test.err && err != nil {
 			t.Errorf("%s: unexpected error: %v", test.testName, err)
 		}

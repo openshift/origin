@@ -98,7 +98,7 @@ func (plugin *awsElasticBlockStorePlugin) newBuilderInternal(spec *volume.Spec, 
 		readOnly:    readOnly,
 		manager:     manager,
 		mounter:     mounter,
-		diskMounter: &awsSafeFormatAndMount{mounter, exec.New()},
+		diskMounter: &mount.SafeFormatAndMount{mounter, exec.New()},
 		plugin:      plugin,
 	}, nil
 }
@@ -114,7 +114,7 @@ func (plugin *awsElasticBlockStorePlugin) newCleanerInternal(volName string, pod
 		volName:     volName,
 		manager:     manager,
 		mounter:     mounter,
-		diskMounter: &awsSafeFormatAndMount{mounter, exec.New()},
+		diskMounter: &mount.SafeFormatAndMount{mounter, exec.New()},
 		plugin:      plugin,
 	}, nil
 }
@@ -289,6 +289,9 @@ func (pd *awsElasticBlockStore) TearDownAt(dir string) error {
 		glog.V(2).Info("Error getting mountrefs for ", dir, ": ", err)
 		return err
 	}
+	if len(refs) == 0 {
+		glog.Warning("Did not find pod-mount for ", dir, " during tear-down")
+	}
 	// Unmount the bind-mount inside this pod
 	if err := pd.mounter.Unmount(dir); err != nil {
 		glog.V(2).Info("Error unmounting dir ", dir, ": ", err)
@@ -307,6 +310,8 @@ func (pd *awsElasticBlockStore) TearDownAt(dir string) error {
 			glog.V(2).Info("Error detaching disk ", pd.volumeID, ": ", err)
 			return err
 		}
+	} else {
+		glog.V(2).Infof("Found multiple refs; won't detach EBS volume: %v", refs)
 	}
 	mountpoint, mntErr := pd.mounter.IsMountPoint(dir)
 	if mntErr != nil {
