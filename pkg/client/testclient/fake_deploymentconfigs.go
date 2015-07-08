@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -16,41 +17,41 @@ type FakeDeploymentConfigs struct {
 }
 
 func (c *FakeDeploymentConfigs) List(label labels.Selector, field fields.Selector) (*deployapi.DeploymentConfigList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-deploymentconfig"}, &deployapi.DeploymentConfigList{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "list-deploymentconfig"}, &deployapi.DeploymentConfigList{})
 	return obj.(*deployapi.DeploymentConfigList), err
 }
 
 func (c *FakeDeploymentConfigs) Get(name string) (*deployapi.DeploymentConfig, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-deploymentconfig"}, &deployapi.DeploymentConfig{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "get-deploymentconfig"}, &deployapi.DeploymentConfig{})
 	return obj.(*deployapi.DeploymentConfig), err
 }
 
 func (c *FakeDeploymentConfigs) Create(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-deploymentconfig"}, &deployapi.DeploymentConfig{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "create-deploymentconfig"}, &deployapi.DeploymentConfig{})
 	return obj.(*deployapi.DeploymentConfig), err
 }
 
 func (c *FakeDeploymentConfigs) Update(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-deploymentconfig"}, &deployapi.DeploymentConfig{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "update-deploymentconfig"}, &deployapi.DeploymentConfig{})
 	return obj.(*deployapi.DeploymentConfig), err
 }
 
 func (c *FakeDeploymentConfigs) Delete(name string) error {
-	_, err := c.Fake.Invokes(FakeAction{Action: "delete-deploymentconfig"}, nil)
+	_, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "delete-deploymentconfig"}, nil)
 	return err
 }
 
 func (c *FakeDeploymentConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-deploymentconfig"})
+	c.Fake.Actions = append(c.Fake.Actions, ktestclient.FakeAction{Action: "watch-deploymentconfig"})
 	return nil, nil
 }
 
 func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConfig, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "generate-deploymentconfig"})
+	c.Fake.Actions = append(c.Fake.Actions, ktestclient.FakeAction{Action: "generate-deploymentconfig"})
 	return nil, nil
 }
 
 func (c *FakeDeploymentConfigs) Rollback(config *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "rollback"})
+	c.Fake.Actions = append(c.Fake.Actions, ktestclient.FakeAction{Action: "rollback"})
 	return nil, nil
 }

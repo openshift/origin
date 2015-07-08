@@ -1,6 +1,8 @@
 package testclient
 
 import (
+	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
+
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
@@ -11,21 +13,21 @@ type FakeUserIdentityMappings struct {
 }
 
 func (c *FakeUserIdentityMappings) Get(name string) (*userapi.UserIdentityMapping, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-useridentitymapping", Value: name}, &userapi.UserIdentityMapping{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "get-useridentitymapping", Value: name}, &userapi.UserIdentityMapping{})
 	return obj.(*userapi.UserIdentityMapping), err
 }
 
 func (c *FakeUserIdentityMappings) Create(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-useridentitymapping", Value: mapping}, &userapi.UserIdentityMapping{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "create-useridentitymapping", Value: mapping}, &userapi.UserIdentityMapping{})
 	return obj.(*userapi.UserIdentityMapping), err
 }
 
 func (c *FakeUserIdentityMappings) Update(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-useridentitymapping", Value: mapping}, &userapi.UserIdentityMapping{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "update-useridentitymapping", Value: mapping}, &userapi.UserIdentityMapping{})
 	return obj.(*userapi.UserIdentityMapping), err
 }
 
 func (c *FakeUserIdentityMappings) Delete(name string) error {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-useridentitymapping", Value: name})
+	c.Fake.Actions = append(c.Fake.Actions, ktestclient.FakeAction{Action: "delete-useridentitymapping", Value: name})
 	return nil
 }

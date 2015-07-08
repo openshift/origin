@@ -2,6 +2,7 @@ package testclient
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
@@ -15,11 +16,11 @@ type FakeProjectRequests struct {
 }
 
 func (c *FakeProjectRequests) Create(project *projectapi.ProjectRequest) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-newProject", Value: project}, &projectapi.ProjectRequest{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "create-newProject", Value: project}, &projectapi.ProjectRequest{})
 	return obj.(*projectapi.Project), err
 }
 
 func (c *FakeProjectRequests) List(label labels.Selector, field fields.Selector) (*kapi.Status, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-newProject"}, &kapi.Status{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "list-newProject"}, &kapi.Status{})
 	return obj.(*kapi.Status), err
 }

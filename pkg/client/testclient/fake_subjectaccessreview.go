@@ -1,6 +1,8 @@
 package testclient
 
 import (
+	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
@@ -11,7 +13,7 @@ type FakeSubjectAccessReviews struct {
 }
 
 func (c *FakeSubjectAccessReviews) Create(subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-subjectAccessReview", Value: subjectAccessReview}, &authorizationapi.SubjectAccessReviewResponse{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "create-subjectAccessReview", Value: subjectAccessReview}, &authorizationapi.SubjectAccessReviewResponse{})
 	return obj.(*authorizationapi.SubjectAccessReviewResponse), err
 }
 
@@ -23,6 +25,6 @@ type FakeClusterSubjectAccessReviews struct {
 }
 
 func (c *FakeClusterSubjectAccessReviews) Create(resourceAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-cluster-subjectAccessReview", Value: resourceAccessReview}, &authorizationapi.SubjectAccessReviewResponse{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "create-cluster-subjectAccessReview", Value: resourceAccessReview}, &authorizationapi.SubjectAccessReviewResponse{})
 	return obj.(*authorizationapi.SubjectAccessReviewResponse), err
 }

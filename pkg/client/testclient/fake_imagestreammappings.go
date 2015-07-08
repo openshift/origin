@@ -1,6 +1,8 @@
 package testclient
 
 import (
+	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
+
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -16,6 +18,6 @@ type FakeImageStreamMappings struct {
 var _ client.ImageStreamMappingInterface = &FakeImageStreamMappings{}
 
 func (c *FakeImageStreamMappings) Create(mapping *imageapi.ImageStreamMapping) error {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-imagestream-mapping"})
+	c.Fake.Actions = append(c.Fake.Actions, ktestclient.FakeAction{Action: "create-imagestream-mapping"})
 	return nil
 }

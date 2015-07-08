@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
@@ -18,21 +19,21 @@ type FakeImages struct {
 var _ client.ImageInterface = &FakeImages{}
 
 func (c *FakeImages) List(label labels.Selector, field fields.Selector) (*imageapi.ImageList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-images"}, &imageapi.ImageList{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "list-images"}, &imageapi.ImageList{})
 	return obj.(*imageapi.ImageList), err
 }
 
 func (c *FakeImages) Get(name string) (*imageapi.Image, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-image", Value: name}, &imageapi.Image{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "get-image", Value: name}, &imageapi.Image{})
 	return obj.(*imageapi.Image), err
 }
 
 func (c *FakeImages) Create(image *imageapi.Image) (*imageapi.Image, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-image"}, &imageapi.Image{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "create-image"}, &imageapi.Image{})
 	return obj.(*imageapi.Image), err
 }
 
 func (c *FakeImages) Delete(name string) error {
-	_, err := c.Fake.Invokes(FakeAction{Action: "delete-image", Value: name}, nil)
+	_, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "delete-image", Value: name}, nil)
 	return err
 }
