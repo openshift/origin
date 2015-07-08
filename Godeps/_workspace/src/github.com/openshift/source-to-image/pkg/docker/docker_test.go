@@ -52,7 +52,7 @@ func TestIsImageInLocalRegistry(t *testing.T) {
 	}
 }
 
-func TestCheckAndPull(t *testing.T) {
+func TestCheckAndPullImage(t *testing.T) {
 	type testDef struct {
 		imageName           string
 		docker              test.FakeDockerClient
@@ -118,7 +118,7 @@ func TestCheckAndPull(t *testing.T) {
 
 	for test, def := range tests {
 		dh := getDocker(&def.docker)
-		resultImage, resultErr := dh.CheckAndPull(def.imageName)
+		resultImage, resultErr := dh.CheckAndPullImage(def.imageName)
 		if resultImage != def.expectedImage {
 			t.Errorf("%s: Unexpected image result -- %v", test, resultImage)
 		}

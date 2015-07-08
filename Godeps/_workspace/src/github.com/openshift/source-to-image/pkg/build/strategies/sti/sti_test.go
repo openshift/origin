@@ -522,7 +522,7 @@ func TestFetchSource(t *testing.T) {
 		}
 
 		expectedTargetDir := "/working-dir/upload/src"
-		e := bh.source.Download(bh.config)
+		_, e := bh.source.Download(bh.config)
 		if ft.expectedError == nil && e != nil {
 			t.Errorf("Unexpected error %v [%d]", e, testNum)
 		}
