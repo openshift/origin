@@ -539,6 +539,12 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "Host", route.Host)
 		formatString(out, "Path", route.Path)
 		formatString(out, "Service", route.ServiceName)
+
+		tlsTerm := ""
+		if route.TLS != nil {
+			tlsTerm = string(route.TLS.Termination)
+		}
+		formatString(out, "TLS Termination", tlsTerm)
 		return nil
 	})
 }
