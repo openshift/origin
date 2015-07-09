@@ -165,7 +165,7 @@ export HOME="${FAKE_HOME_DIR}"
 wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta3/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
+wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
@@ -192,8 +192,8 @@ fi
 # must only accept one arg (server)
 [ "$(oc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
 # logs in with a valid certificate authority
-oc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1beta3
-grep -q "v1beta3" ${HOME}/.kube/config
+oc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1
+grep -q "v1" ${HOME}/.kube/config
 oc logout
 # logs in skipping certificate check
 oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
@@ -345,7 +345,7 @@ oc secrets new from-file .dockercfg=${HOME}/dockerconfig
 [ "$(oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o yaml | grep "kubernetes.io/dockercfg")" ]
 [ "$(oc secrets new from-file .dockercfg=${HOME}/dockerconfig -o yaml | grep "kubernetes.io/dockercfg")" ]
 # check to make sure malformed names fail as expected
-[ "$(oc secrets new bad-name .docker=cfg=${HOME}/dockerconfig 2>&1 | grep "error: Key names or file paths cannot contain '='.")" ] 
+[ "$(oc secrets new bad-name .docker=cfg=${HOME}/dockerconfig 2>&1 | grep "error: Key names or file paths cannot contain '='.")" ]
 
 
 # attach secrets to service account
@@ -583,14 +583,14 @@ oc get buildConfigs
 oc get bc
 oc get builds
 
-[[ $(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook GitHub"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta3/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/github") ]]
-[[ $(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1beta3/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/generic") ]]
+[[ $(oc describe buildConfigs ruby-sample-build --api-version=v1 | grep --text "Webhook GitHub"  | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/github") ]]
+[[ $(oc describe buildConfigs ruby-sample-build --api-version=v1 | grep --text "Webhook Generic" | grep -F "${API_SCHEME}://${API_HOST}:${API_PORT}/osapi/v1/namespaces/default/buildconfigs/ruby-sample-build/webhooks/secret101/generic") ]]
 oc start-build --list-webhooks='all' ruby-sample-build
 [[ $(oc start-build --list-webhooks='all' ruby-sample-build | grep --text "generic") ]]
 [[ $(oc start-build --list-webhooks='all' ruby-sample-build | grep --text "github") ]]
 [[ $(oc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101") ]]
 [ ! "$(oc start-build --list-webhooks='blah')" ]
-webhook=$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta3 | head -n 1)
+webhook=$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1 | head -n 1)
 oc start-build --from-webhook="${webhook}"
 webhook=$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1 | head -n 1)
 oc start-build --from-webhook="${webhook}"
