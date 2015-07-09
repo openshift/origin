@@ -337,6 +337,10 @@ type ServiceAccountConfig struct {
 	// Each key is tried in order until the list is exhausted or verification succeeds.
 	// If no keys are specified, no service account authentication will be available.
 	PublicKeyFiles []string `json:"publicKeyFiles"`
+
+	// MasterCA is the CA for verifying the TLS connection back to the master.  The service account controller will automatically
+	// inject the contents of this file into pods so they can verify connections to the master.
+	MasterCA string `json:"masterCA"`
 }
 
 type TokenConfig struct {
