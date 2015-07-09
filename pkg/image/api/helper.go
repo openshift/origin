@@ -30,6 +30,16 @@ func parseRepositoryTag(repos string) (string, string, string) {
 	return repos, "", ""
 }
 
+func isRegistryName(str string) bool {
+	switch {
+	case strings.Contains(str, ":"),
+		strings.Contains(str, "."),
+		str == "localhost":
+		return true
+	}
+	return false
+}
+
 // ParseDockerImageReference parses a Docker pull spec string into a
 // DockerImageReference.
 func ParseDockerImageReference(spec string) (DockerImageReference, error) {
@@ -42,7 +52,7 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 	repoParts := strings.Split(stream, "/")
 	switch len(repoParts) {
 	case 2:
-		if strings.Contains(repoParts[0], ":") {
+		if isRegistryName(repoParts[0]) {
 			// registry/name
 			ref.Registry = repoParts[0]
 			// TODO: default this in all cases where Namespace ends up as ""?
