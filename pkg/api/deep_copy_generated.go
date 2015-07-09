@@ -648,39 +648,11 @@ func deepCopy_api_Build(in buildapi.Build, out *buildapi.Build, c *conversion.Cl
 	} else {
 		out.ObjectMeta = newVal.(api.ObjectMeta)
 	}
-	if err := deepCopy_api_BuildParameters(in.Parameters, &out.Parameters, c); err != nil {
+	if err := deepCopy_api_BuildSpec(in.Spec, &out.Spec, c); err != nil {
 		return err
 	}
-	out.Status = in.Status
-	out.Message = in.Message
-	out.Cancelled = in.Cancelled
-	if in.StartTimestamp != nil {
-		if newVal, err := c.DeepCopy(in.StartTimestamp); err != nil {
-			return err
-		} else {
-			out.StartTimestamp = newVal.(*util.Time)
-		}
-	} else {
-		out.StartTimestamp = nil
-	}
-	if in.CompletionTimestamp != nil {
-		if newVal, err := c.DeepCopy(in.CompletionTimestamp); err != nil {
-			return err
-		} else {
-			out.CompletionTimestamp = newVal.(*util.Time)
-		}
-	} else {
-		out.CompletionTimestamp = nil
-	}
-	out.Duration = in.Duration
-	if in.Config != nil {
-		if newVal, err := c.DeepCopy(in.Config); err != nil {
-			return err
-		} else {
-			out.Config = newVal.(*api.ObjectReference)
-		}
-	} else {
-		out.Config = nil
+	if err := deepCopy_api_BuildStatus(in.Status, &out.Status, c); err != nil {
+		return err
 	}
 	return nil
 }
@@ -696,18 +668,10 @@ func deepCopy_api_BuildConfig(in buildapi.BuildConfig, out *buildapi.BuildConfig
 	} else {
 		out.ObjectMeta = newVal.(api.ObjectMeta)
 	}
-	if in.Triggers != nil {
-		out.Triggers = make([]buildapi.BuildTriggerPolicy, len(in.Triggers))
-		for i := range in.Triggers {
-			if err := deepCopy_api_BuildTriggerPolicy(in.Triggers[i], &out.Triggers[i], c); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Triggers = nil
+	if err := deepCopy_api_BuildConfigSpec(in.Spec, &out.Spec, c); err != nil {
+		return err
 	}
-	out.LastVersion = in.LastVersion
-	if err := deepCopy_api_BuildParameters(in.Parameters, &out.Parameters, c); err != nil {
+	if err := deepCopy_api_BuildConfigStatus(in.Status, &out.Status, c); err != nil {
 		return err
 	}
 	return nil
@@ -734,6 +698,28 @@ func deepCopy_api_BuildConfigList(in buildapi.BuildConfigList, out *buildapi.Bui
 	} else {
 		out.Items = nil
 	}
+	return nil
+}
+
+func deepCopy_api_BuildConfigSpec(in buildapi.BuildConfigSpec, out *buildapi.BuildConfigSpec, c *conversion.Cloner) error {
+	if in.Triggers != nil {
+		out.Triggers = make([]buildapi.BuildTriggerPolicy, len(in.Triggers))
+		for i := range in.Triggers {
+			if err := deepCopy_api_BuildTriggerPolicy(in.Triggers[i], &out.Triggers[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Triggers = nil
+	}
+	if err := deepCopy_api_BuildSpec(in.BuildSpec, &out.BuildSpec, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deepCopy_api_BuildConfigStatus(in buildapi.BuildConfigStatus, out *buildapi.BuildConfigStatus, c *conversion.Cloner) error {
+	out.LastVersion = in.LastVersion
 	return nil
 }
 
@@ -805,35 +791,6 @@ func deepCopy_api_BuildOutput(in buildapi.BuildOutput, out *buildapi.BuildOutput
 	} else {
 		out.PushSecret = nil
 	}
-	out.Tag = in.Tag
-	out.DockerImageReference = in.DockerImageReference
-	return nil
-}
-
-func deepCopy_api_BuildParameters(in buildapi.BuildParameters, out *buildapi.BuildParameters, c *conversion.Cloner) error {
-	out.ServiceAccount = in.ServiceAccount
-	if err := deepCopy_api_BuildSource(in.Source, &out.Source, c); err != nil {
-		return err
-	}
-	if in.Revision != nil {
-		out.Revision = new(buildapi.SourceRevision)
-		if err := deepCopy_api_SourceRevision(*in.Revision, out.Revision, c); err != nil {
-			return err
-		}
-	} else {
-		out.Revision = nil
-	}
-	if err := deepCopy_api_BuildStrategy(in.Strategy, &out.Strategy, c); err != nil {
-		return err
-	}
-	if err := deepCopy_api_BuildOutput(in.Output, &out.Output, c); err != nil {
-		return err
-	}
-	if newVal, err := c.DeepCopy(in.Resources); err != nil {
-		return err
-	} else {
-		out.Resources = newVal.(api.ResourceRequirements)
-	}
 	return nil
 }
 
@@ -887,6 +844,68 @@ func deepCopy_api_BuildSource(in buildapi.BuildSource, out *buildapi.BuildSource
 		}
 	} else {
 		out.SourceSecret = nil
+	}
+	return nil
+}
+
+func deepCopy_api_BuildSpec(in buildapi.BuildSpec, out *buildapi.BuildSpec, c *conversion.Cloner) error {
+	out.ServiceAccount = in.ServiceAccount
+	if err := deepCopy_api_BuildSource(in.Source, &out.Source, c); err != nil {
+		return err
+	}
+	if in.Revision != nil {
+		out.Revision = new(buildapi.SourceRevision)
+		if err := deepCopy_api_SourceRevision(*in.Revision, out.Revision, c); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	if err := deepCopy_api_BuildStrategy(in.Strategy, &out.Strategy, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_BuildOutput(in.Output, &out.Output, c); err != nil {
+		return err
+	}
+	if newVal, err := c.DeepCopy(in.Resources); err != nil {
+		return err
+	} else {
+		out.Resources = newVal.(api.ResourceRequirements)
+	}
+	return nil
+}
+
+func deepCopy_api_BuildStatus(in buildapi.BuildStatus, out *buildapi.BuildStatus, c *conversion.Cloner) error {
+	out.Phase = in.Phase
+	out.Cancelled = in.Cancelled
+	out.Message = in.Message
+	if in.StartTimestamp != nil {
+		if newVal, err := c.DeepCopy(in.StartTimestamp); err != nil {
+			return err
+		} else {
+			out.StartTimestamp = newVal.(*util.Time)
+		}
+	} else {
+		out.StartTimestamp = nil
+	}
+	if in.CompletionTimestamp != nil {
+		if newVal, err := c.DeepCopy(in.CompletionTimestamp); err != nil {
+			return err
+		} else {
+			out.CompletionTimestamp = newVal.(*util.Time)
+		}
+	} else {
+		out.CompletionTimestamp = nil
+	}
+	out.Duration = in.Duration
+	if in.Config != nil {
+		if newVal, err := c.DeepCopy(in.Config); err != nil {
+			return err
+		} else {
+			out.Config = newVal.(*api.ObjectReference)
+		}
+	} else {
+		out.Config = nil
 	}
 	return nil
 }
@@ -950,19 +969,6 @@ func deepCopy_api_BuildTriggerPolicy(in buildapi.BuildTriggerPolicy, out *builda
 }
 
 func deepCopy_api_CustomBuildStrategy(in buildapi.CustomBuildStrategy, out *buildapi.CustomBuildStrategy, c *conversion.Cloner) error {
-	if in.Env != nil {
-		out.Env = make([]api.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if newVal, err := c.DeepCopy(in.Env[i]); err != nil {
-				return err
-			} else {
-				out.Env[i] = newVal.(api.EnvVar)
-			}
-		}
-	} else {
-		out.Env = nil
-	}
-	out.ExposeDockerSocket = in.ExposeDockerSocket
 	if newVal, err := c.DeepCopy(in.From); err != nil {
 		return err
 	} else {
@@ -977,11 +983,23 @@ func deepCopy_api_CustomBuildStrategy(in buildapi.CustomBuildStrategy, out *buil
 	} else {
 		out.PullSecret = nil
 	}
+	if in.Env != nil {
+		out.Env = make([]api.EnvVar, len(in.Env))
+		for i := range in.Env {
+			if newVal, err := c.DeepCopy(in.Env[i]); err != nil {
+				return err
+			} else {
+				out.Env[i] = newVal.(api.EnvVar)
+			}
+		}
+	} else {
+		out.Env = nil
+	}
+	out.ExposeDockerSocket = in.ExposeDockerSocket
 	return nil
 }
 
 func deepCopy_api_DockerBuildStrategy(in buildapi.DockerBuildStrategy, out *buildapi.DockerBuildStrategy, c *conversion.Cloner) error {
-	out.NoCache = in.NoCache
 	if in.From != nil {
 		if newVal, err := c.DeepCopy(in.From); err != nil {
 			return err
@@ -1000,6 +1018,7 @@ func deepCopy_api_DockerBuildStrategy(in buildapi.DockerBuildStrategy, out *buil
 	} else {
 		out.PullSecret = nil
 	}
+	out.NoCache = in.NoCache
 	if in.Env != nil {
 		out.Env = make([]api.EnvVar, len(in.Env))
 		for i := range in.Env {
@@ -2435,13 +2454,16 @@ func init() {
 		deepCopy_api_Build,
 		deepCopy_api_BuildConfig,
 		deepCopy_api_BuildConfigList,
+		deepCopy_api_BuildConfigSpec,
+		deepCopy_api_BuildConfigStatus,
 		deepCopy_api_BuildList,
 		deepCopy_api_BuildLog,
 		deepCopy_api_BuildLogOptions,
 		deepCopy_api_BuildOutput,
-		deepCopy_api_BuildParameters,
 		deepCopy_api_BuildRequest,
 		deepCopy_api_BuildSource,
+		deepCopy_api_BuildSpec,
+		deepCopy_api_BuildStatus,
 		deepCopy_api_BuildStrategy,
 		deepCopy_api_BuildTriggerPolicy,
 		deepCopy_api_CustomBuildStrategy,

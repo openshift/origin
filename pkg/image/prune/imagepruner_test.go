@@ -259,7 +259,9 @@ func bc(namespace, name string, strategyType buildapi.BuildStrategyType, fromKin
 			Namespace: namespace,
 			Name:      name,
 		},
-		Parameters: buildParameters(strategyType, fromKind, fromNamespace, fromName),
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildSpec(strategyType, fromKind, fromNamespace, fromName),
+		},
 	}
 }
 
@@ -275,19 +277,19 @@ func build(namespace, name string, strategyType buildapi.BuildStrategyType, from
 			Namespace: namespace,
 			Name:      name,
 		},
-		Parameters: buildParameters(strategyType, fromKind, fromNamespace, fromName),
+		Spec: buildSpec(strategyType, fromKind, fromNamespace, fromName),
 	}
 }
 
-func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromNamespace, fromName string) buildapi.BuildParameters {
-	params := buildapi.BuildParameters{
+func buildSpec(strategyType buildapi.BuildStrategyType, fromKind, fromNamespace, fromName string) buildapi.BuildSpec {
+	spec := buildapi.BuildSpec{
 		Strategy: buildapi.BuildStrategy{
 			Type: strategyType,
 		},
 	}
 	switch strategyType {
 	case buildapi.SourceBuildStrategyType:
-		params.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{
+		spec.Strategy.SourceStrategy = &buildapi.SourceBuildStrategy{
 			From: kapi.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
@@ -295,7 +297,7 @@ func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromName
 			},
 		}
 	case buildapi.DockerBuildStrategyType:
-		params.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{
+		spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{
 			From: &kapi.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
@@ -303,7 +305,7 @@ func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromName
 			},
 		}
 	case buildapi.CustomBuildStrategyType:
-		params.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{
+		spec.Strategy.CustomStrategy = &buildapi.CustomBuildStrategy{
 			From: kapi.ObjectReference{
 				Kind:      fromKind,
 				Namespace: fromNamespace,
@@ -312,7 +314,7 @@ func buildParameters(strategyType buildapi.BuildStrategyType, fromKind, fromName
 		}
 	}
 
-	return params
+	return spec
 }
 
 type fakeImagePruner struct {

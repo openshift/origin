@@ -120,7 +120,7 @@ func (a *AutoLinkBuilds) Link() (map[string]gitserver.Clone, error) {
 
 	clones := make(map[string]gitserver.Clone)
 	for _, builder := range builders {
-		source := builder.Parameters.Source.Git
+		source := builder.Spec.Source.Git
 		if source == nil {
 			continue
 		}

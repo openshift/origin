@@ -49,16 +49,17 @@ func setupDockerSocket(podSpec *kapi.Pod) {
 func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) error {
 	vars := []kapi.EnvVar{}
 
-	switch build.Parameters.Source.Type {
+	switch build.Spec.Source.Type {
 	case buildapi.BuildSourceGit:
-		vars = append(vars, kapi.EnvVar{Name: "SOURCE_URI", Value: build.Parameters.Source.Git.URI})
-		vars = append(vars, kapi.EnvVar{Name: "SOURCE_REF", Value: build.Parameters.Source.Git.Ref})
+		vars = append(vars, kapi.EnvVar{Name: "SOURCE_URI", Value: build.Spec.Source.Git.URI})
+		vars = append(vars, kapi.EnvVar{Name: "SOURCE_REF", Value: build.Spec.Source.Git.Ref})
 	default:
 		// Do nothing for unknown source types
 	}
 
-	if len(build.Parameters.Output.DockerImageReference) > 0 {
-		ref, err := imageapi.ParseDockerImageReference(build.Parameters.Output.DockerImageReference)
+	if build.Spec.Output.To != nil {
+		// output much always be a DockerImage type reference at this point.
+		ref, err := imageapi.ParseDockerImageReference(build.Spec.Output.To.Name)
 		if err != nil {
 			return err
 		}

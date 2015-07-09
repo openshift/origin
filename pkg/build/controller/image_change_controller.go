@@ -59,7 +59,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 	for _, bc := range c.BuildConfigStore.List() {
 		config := bc.(*buildapi.BuildConfig)
 
-		from := buildutil.GetImageStreamForStrategy(config.Parameters.Strategy)
+		from := buildutil.GetImageStreamForStrategy(config.Spec.Strategy)
 		if from == nil || from.Kind != "ImageStreamTag" {
 			continue
 		}
@@ -69,7 +69,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 		// For every ImageChange trigger find the latest tagged image from the image repository and replace that value
 		// throughout the build strategies. A new build is triggered only if the latest tagged image id or pull spec
 		// differs from the last triggered build recorded on the build config.
-		for _, trigger := range config.Triggers {
+		for _, trigger := range config.Spec.Triggers {
 			if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 				continue
 			}

@@ -68,8 +68,8 @@ func TestBuildConfigNoOutput(t *testing.T) {
 	if config.Name != "origin" {
 		t.Errorf("unexpected name: %#v", config)
 	}
-	if !reflect.DeepEqual(config.Parameters.Output, buildapi.BuildOutput{}) {
-		t.Errorf("unexpected build output: %#v", config.Parameters.Output)
+	if !reflect.DeepEqual(config.Spec.Output, buildapi.BuildOutput{}) {
+		t.Errorf("unexpected build output: %#v", config.Spec.Output)
 	}
 }
 
@@ -112,14 +112,14 @@ func TestBuildConfigOutput(t *testing.T) {
 		if config.Name != "origin" {
 			t.Errorf("(%d) unexpected name: %s", i, config.Name)
 		}
-		if config.Parameters.Output.To.Name != "origin:latest" || config.Parameters.Output.To.Kind != test.expectedKind {
-			t.Errorf("(%d) unexpected output image: %s/%s", i, config.Parameters.Output.To.Kind, config.Parameters.Output.To.Name)
+		if config.Spec.Output.To.Name != "origin:latest" || config.Spec.Output.To.Kind != test.expectedKind {
+			t.Errorf("(%d) unexpected output image: %s/%s", i, config.Spec.Output.To.Kind, config.Spec.Output.To.Name)
 		}
-		if len(config.Triggers) != 3 {
-			t.Errorf("(%d) unexpected number of triggers %d: %#v\n", i, len(config.Triggers), config.Triggers)
+		if len(config.Spec.Triggers) != 3 {
+			t.Errorf("(%d) unexpected number of triggers %d: %#v\n", i, len(config.Spec.Triggers), config.Spec.Triggers)
 		}
 		imageChangeTrigger := false
-		for _, trigger := range config.Triggers {
+		for _, trigger := range config.Spec.Triggers {
 			if trigger.Type == buildapi.ImageChangeBuildTriggerType {
 				imageChangeTrigger = true
 				if trigger.ImageChange == nil {

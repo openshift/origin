@@ -225,17 +225,19 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 			Namespace: "test-namespace",
 			Labels:    map[string]string{"testlabel": "testvalue"},
 		},
-		Parameters: buildapi.BuildParameters{
-			Source: source,
-			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitSourceRevision{
-					Commit: "1234",
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Source: source,
+				Revision: &buildapi.SourceRevision{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitSourceRevision{
+						Commit: "1234",
+					},
 				},
+				Strategy:  strategy,
+				Output:    output,
+				Resources: resources,
 			},
-			Strategy:  strategy,
-			Output:    output,
-			Resources: resources,
 		},
 	}
 	revision := &buildapi.SourceRevision{
@@ -250,23 +252,23 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
-	if !reflect.DeepEqual(source, build.Parameters.Source) {
+	if !reflect.DeepEqual(source, build.Spec.Source) {
 		t.Errorf("Build source does not match BuildConfig source")
 	}
 	// FIXME: This is disabled because the strategies does not match since we plug the
 	//        pullSecret into the build strategy.
 	/*
-		if !reflect.DeepEqual(strategy, build.Parameters.Strategy) {
-			t.Errorf("Build strategy does not match BuildConfig strategy %+v != %+v", strategy.DockerStrategy, build.Parameters.Strategy.DockerStrategy)
+		if !reflect.DeepEqual(strategy, build.Spec.Strategy) {
+			t.Errorf("Build strategy does not match BuildConfig strategy %+v != %+v", strategy.DockerStrategy, build.Spec.Strategy.DockerStrategy)
 		}
 	*/
-	if !reflect.DeepEqual(output, build.Parameters.Output) {
+	if !reflect.DeepEqual(output, build.Spec.Output) {
 		t.Errorf("Build output does not match BuildConfig output")
 	}
-	if !reflect.DeepEqual(revision, build.Parameters.Revision) {
+	if !reflect.DeepEqual(revision, build.Spec.Revision) {
 		t.Errorf("Build revision does not match passed in revision")
 	}
-	if !reflect.DeepEqual(resources, build.Parameters.Resources) {
+	if !reflect.DeepEqual(resources, build.Spec.Resources) {
 		t.Errorf("Build resources does not match passed in resources")
 	}
 	if build.Labels["testlabel"] != bc.Labels["testlabel"] {
@@ -275,8 +277,8 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	if build.Labels[buildapi.BuildConfigLabel] != bc.Name {
 		t.Errorf("Build does not contain labels from BuildConfig")
 	}
-	if build.Config.Name != bc.Name || build.Config.Namespace != bc.Namespace || build.Config.Kind != "BuildConfig" {
-		t.Errorf("Build does not contain correct BuildConfig reference: %v", build.Config)
+	if build.Status.Config.Name != bc.Name || build.Status.Config.Namespace != bc.Namespace || build.Status.Config.Kind != "BuildConfig" {
+		t.Errorf("Build does not contain correct BuildConfig reference: %v", build.Status.Config)
 	}
 }
 
@@ -288,16 +290,18 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
 		},
-		Parameters: buildapi.BuildParameters{
-			Source: source,
-			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitSourceRevision{
-					Commit: "1234",
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Source: source,
+				Revision: &buildapi.SourceRevision{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitSourceRevision{
+						Commit: "1234",
+					},
 				},
+				Strategy: strategy,
+				Output:   output,
 			},
-			Strategy: strategy,
-			Output:   output,
 		},
 	}
 	fakeSecrets := []runtime.Object{}
@@ -352,8 +356,8 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
-	if build.Parameters.Strategy.SourceStrategy.From.Name != newImage {
-		t.Errorf("source-to-image base image value %s does not match expected value %s", build.Parameters.Strategy.SourceStrategy.From.Name, newImage)
+	if build.Spec.Strategy.SourceStrategy.From.Name != newImage {
+		t.Errorf("source-to-image base image value %s does not match expected value %s", build.Spec.Strategy.SourceStrategy.From.Name, newImage)
 	}
 }
 
@@ -365,16 +369,18 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
 		},
-		Parameters: buildapi.BuildParameters{
-			Source: source,
-			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitSourceRevision{
-					Commit: "1234",
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Source: source,
+				Revision: &buildapi.SourceRevision{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitSourceRevision{
+						Commit: "1234",
+					},
 				},
+				Strategy: strategy,
+				Output:   output,
 			},
-			Strategy: strategy,
-			Output:   output,
 		},
 	}
 	fakeSecrets := []runtime.Object{}
@@ -428,8 +434,8 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
-	if build.Parameters.Strategy.DockerStrategy.From.Name != newImage {
-		t.Errorf("Docker base image value %s does not match expected value %s", build.Parameters.Strategy.DockerStrategy.From.Name, newImage)
+	if build.Spec.Strategy.DockerStrategy.From.Name != newImage {
+		t.Errorf("Docker base image value %s does not match expected value %s", build.Spec.Strategy.DockerStrategy.From.Name, newImage)
 	}
 }
 
@@ -441,16 +447,18 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build-config",
 		},
-		Parameters: buildapi.BuildParameters{
-			Source: source,
-			Revision: &buildapi.SourceRevision{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitSourceRevision{
-					Commit: "1234",
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Source: source,
+				Revision: &buildapi.SourceRevision{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitSourceRevision{
+						Commit: "1234",
+					},
 				},
+				Strategy: strategy,
+				Output:   output,
 			},
-			Strategy: strategy,
-			Output:   output,
 		},
 	}
 	fakeSecrets := []runtime.Object{}
@@ -504,8 +512,8 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
-	if build.Parameters.Strategy.CustomStrategy.From.Name != newImage {
-		t.Errorf("Custom base image value %s does not match expected value %s", build.Parameters.Strategy.CustomStrategy.From.Name, newImage)
+	if build.Spec.Strategy.CustomStrategy.From.Name != newImage {
+		t.Errorf("Custom base image value %s does not match expected value %s", build.Spec.Strategy.CustomStrategy.From.Name, newImage)
 	}
 }
 
@@ -517,7 +525,7 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build",
 		},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Source: source,
 			Revision: &buildapi.SourceRevision{
 				Type: buildapi.BuildSourceGit,
@@ -531,7 +539,7 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	}
 
 	newBuild := generateBuildFromBuild(build)
-	if !reflect.DeepEqual(build.Parameters, newBuild.Parameters) {
+	if !reflect.DeepEqual(build.Spec, newBuild.Spec) {
 		t.Errorf("Build parameters does not match the original Build parameters")
 	}
 	if !reflect.DeepEqual(build.ObjectMeta.Labels, newBuild.ObjectMeta.Labels) {
@@ -552,23 +560,23 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 
 	// Full custom build with a Image and a well defined environment variable image value,
 	// both should be replaced.  Additional environment variables should not be touched.
-	build.Parameters.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 2)
-	build.Parameters.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
-	build.Parameters.Strategy.CustomStrategy.Env[1] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: originalImage}
-	updateCustomImageEnv(build.Parameters.Strategy.CustomStrategy, newImage)
-	if build.Parameters.Strategy.CustomStrategy.Env[0].Value != originalImage {
-		t.Errorf("Random env variable %s was improperly substituted in custom strategy", build.Parameters.Strategy.CustomStrategy.Env[0].Name)
+	build.Spec.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 2)
+	build.Spec.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
+	build.Spec.Strategy.CustomStrategy.Env[1] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: originalImage}
+	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
+	if build.Spec.Strategy.CustomStrategy.Env[0].Value != originalImage {
+		t.Errorf("Random env variable %s was improperly substituted in custom strategy", build.Spec.Strategy.CustomStrategy.Env[0].Name)
 	}
-	if build.Parameters.Strategy.CustomStrategy.Env[1].Value != newImage {
+	if build.Spec.Strategy.CustomStrategy.Env[1].Value != newImage {
 		t.Errorf("Image env variable was not properly substituted in custom strategy")
 	}
-	if c := len(build.Parameters.Strategy.CustomStrategy.Env); c != 2 {
+	if c := len(build.Spec.Strategy.CustomStrategy.Env); c != 2 {
 		t.Errorf("Expected %d, found %d environment variables", 2, c)
 	}
-	if bc.Parameters.Strategy.CustomStrategy.From.Name != originalImage {
-		t.Errorf("Custom BuildConfig Image was updated when Build was modified %s!=%s", bc.Parameters.Strategy.CustomStrategy.From.Name, originalImage)
+	if bc.Spec.Strategy.CustomStrategy.From.Name != originalImage {
+		t.Errorf("Custom BuildConfig Image was updated when Build was modified %s!=%s", bc.Spec.Strategy.CustomStrategy.From.Name, originalImage)
 	}
-	if len(bc.Parameters.Strategy.CustomStrategy.Env) != 0 {
+	if len(bc.Spec.Strategy.CustomStrategy.Env) != 0 {
 		t.Errorf("Custom BuildConfig Env was updated when Build was modified")
 	}
 }
@@ -586,9 +594,9 @@ func TestSubstituteImageCustomAllMismatch(t *testing.T) {
 
 	// Full custom build with base image that is not matched
 	// Base image name should be unchanged
-	updateCustomImageEnv(build.Parameters.Strategy.CustomStrategy, "dummy")
-	if build.Parameters.Strategy.CustomStrategy.From.Name != originalImage {
-		t.Errorf("Base image name was improperly substituted in custom strategy %s %s", build.Parameters.Strategy.CustomStrategy.From.Name, originalImage)
+	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, "dummy")
+	if build.Spec.Strategy.CustomStrategy.From.Name != originalImage {
+		t.Errorf("Base image name was improperly substituted in custom strategy %s %s", build.Spec.Strategy.CustomStrategy.From.Name, originalImage)
 	}
 }
 
@@ -605,17 +613,17 @@ func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
 
 	// Full custom build with a Image and a well defined environment variable image value that does not match the new image
 	// Environment variables should not be updated.
-	build.Parameters.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 2)
-	build.Parameters.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someEnvVar", Value: originalImage}
-	build.Parameters.Strategy.CustomStrategy.Env[1] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: "dummy"}
-	updateCustomImageEnv(build.Parameters.Strategy.CustomStrategy, newImage)
-	if build.Parameters.Strategy.CustomStrategy.Env[0].Value != originalImage {
-		t.Errorf("Random env variable %s was improperly substituted in custom strategy", build.Parameters.Strategy.CustomStrategy.Env[0].Name)
+	build.Spec.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 2)
+	build.Spec.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someEnvVar", Value: originalImage}
+	build.Spec.Strategy.CustomStrategy.Env[1] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: "dummy"}
+	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
+	if build.Spec.Strategy.CustomStrategy.Env[0].Value != originalImage {
+		t.Errorf("Random env variable %s was improperly substituted in custom strategy", build.Spec.Strategy.CustomStrategy.Env[0].Name)
 	}
-	if build.Parameters.Strategy.CustomStrategy.Env[1].Value != newImage {
+	if build.Spec.Strategy.CustomStrategy.Env[1].Value != newImage {
 		t.Errorf("Image env variable was not substituted in custom strategy")
 	}
-	if c := len(build.Parameters.Strategy.CustomStrategy.Env); c != 2 {
+	if c := len(build.Spec.Strategy.CustomStrategy.Env); c != 2 {
 		t.Errorf("Expected %d, found %d environment variables", 2, c)
 	}
 }
@@ -634,16 +642,16 @@ func TestSubstituteImageCustomBaseMatchEnvMissing(t *testing.T) {
 	// Custom build with a base Image but no image environment variable.
 	// base image should be replaced, new image environment variable should be added,
 	// existing environment variable should be untouched
-	build.Parameters.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 1)
-	build.Parameters.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
-	updateCustomImageEnv(build.Parameters.Strategy.CustomStrategy, newImage)
-	if build.Parameters.Strategy.CustomStrategy.Env[0].Value != originalImage {
+	build.Spec.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 1)
+	build.Spec.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
+	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
+	if build.Spec.Strategy.CustomStrategy.Env[0].Value != originalImage {
 		t.Errorf("Random env variable was improperly substituted in custom strategy")
 	}
-	if build.Parameters.Strategy.CustomStrategy.Env[1].Name != buildapi.CustomBuildStrategyBaseImageKey || build.Parameters.Strategy.CustomStrategy.Env[1].Value != newImage {
-		t.Errorf("Image env variable was not added in custom strategy %s %s |", build.Parameters.Strategy.CustomStrategy.Env[1].Name, build.Parameters.Strategy.CustomStrategy.Env[1].Value)
+	if build.Spec.Strategy.CustomStrategy.Env[1].Name != buildapi.CustomBuildStrategyBaseImageKey || build.Spec.Strategy.CustomStrategy.Env[1].Value != newImage {
+		t.Errorf("Image env variable was not added in custom strategy %s %s |", build.Spec.Strategy.CustomStrategy.Env[1].Name, build.Spec.Strategy.CustomStrategy.Env[1].Value)
 	}
-	if c := len(build.Parameters.Strategy.CustomStrategy.Env); c != 2 {
+	if c := len(build.Spec.Strategy.CustomStrategy.Env); c != 2 {
 		t.Errorf("Expected %d, found %d environment variables", 2, c)
 	}
 }
@@ -661,11 +669,11 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 
 	// Custom build with a base Image but no environment variables
 	// base image should be replaced, new image environment variable should be added
-	updateCustomImageEnv(build.Parameters.Strategy.CustomStrategy, newImage)
-	if build.Parameters.Strategy.CustomStrategy.Env[0].Name != buildapi.CustomBuildStrategyBaseImageKey || build.Parameters.Strategy.CustomStrategy.Env[0].Value != newImage {
+	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
+	if build.Spec.Strategy.CustomStrategy.Env[0].Name != buildapi.CustomBuildStrategyBaseImageKey || build.Spec.Strategy.CustomStrategy.Env[0].Value != newImage {
 		t.Errorf("New image name variable was not added to environment list in custom strategy")
 	}
-	if c := len(build.Parameters.Strategy.CustomStrategy.Env); c != 1 {
+	if c := len(build.Spec.Strategy.CustomStrategy.Env); c != 1 {
 		t.Errorf("Expected %d, found %d environment variables", 1, c)
 	}
 }
@@ -675,7 +683,7 @@ func TestGetNextBuildName(t *testing.T) {
 	if expected, actual := bc.Name+"-1", getNextBuildName(bc); expected != actual {
 		t.Errorf("Wrong buildName, expected %s, got %s", expected, actual)
 	}
-	if expected, actual := 1, bc.LastVersion; expected != actual {
+	if expected, actual := 1, bc.Status.LastVersion; expected != actual {
 		t.Errorf("Wrong version, expected %d, got %d", expected, actual)
 	}
 }
@@ -839,7 +847,7 @@ func mockBuild(source buildapi.BuildSource, strategy buildapi.BuildStrategy, out
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build",
 		},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Source: source,
 			Revision: &buildapi.SourceRevision{
 				Type: buildapi.BuildSourceGit,
@@ -943,18 +951,18 @@ func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
 		bc := mocks.MockBuildConfig(source, strategy, output)
 		build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, revision)
 
-		if build.Parameters.Output.PushSecret == nil {
+		if build.Spec.Output.PushSecret == nil {
 			t.Errorf("Expected PushSecret for image '%s' to be set, got nil", imageName)
 			continue
 		}
-		if build.Parameters.Strategy.DockerStrategy.PullSecret == nil {
+		if build.Spec.Strategy.DockerStrategy.PullSecret == nil {
 			t.Errorf("Expected PullSecret for image '%s' to be set, got nil", imageName)
 			continue
 		}
-		if len(build.Parameters.Output.PushSecret.Name) == 0 {
+		if len(build.Spec.Output.PushSecret.Name) == 0 {
 			t.Errorf("Expected PushSecret for image %s to be set not empty", imageName)
 		}
-		if len(build.Parameters.Strategy.DockerStrategy.PullSecret.Name) == 0 {
+		if len(build.Spec.Strategy.DockerStrategy.PullSecret.Name) == 0 {
 			t.Errorf("Expected PullSecret for image %s to be set not empty", imageName)
 		}
 		if err != nil {

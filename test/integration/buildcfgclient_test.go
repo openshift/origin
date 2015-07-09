@@ -122,28 +122,33 @@ func mockBuildConfig() *buildapi.BuildConfig {
 				"label2": "value2",
 			},
 		},
-		Triggers: []buildapi.BuildTriggerPolicy{
-			{
-				Type: buildapi.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &buildapi.WebHookTrigger{
-					Secret: "secret101",
+		Spec: buildapi.BuildConfigSpec{
+			Triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret101",
+					},
 				},
 			},
-		},
-		Parameters: buildapi.BuildParameters{
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.docker/build",
+			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.docker/build",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				DockerImageReference: "namespace/builtimage",
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "namespace/builtimage",
+					},
+				},
 			},
 		},
 	}
@@ -171,20 +176,25 @@ func TestBuildConfigClient(t *testing.T) {
 				"label2": "value2",
 			},
 		},
-		Parameters: buildapi.BuildParameters{
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.docker/build",
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.docker/build",
+					},
+					ContextDir: "context",
 				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				Type:           buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{},
-			},
-			Output: buildapi.BuildOutput{
-				DockerImageReference: "namespace/builtimage",
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "namespace/builtimage",
+					},
+				},
 			},
 		},
 	}

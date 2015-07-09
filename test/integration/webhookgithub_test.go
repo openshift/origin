@@ -109,14 +109,14 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 		actual := event.Object.(*buildapi.Build)
 
 		// FIXME: I think the build creation is fast and in some situlation we miss
-		// the BuildStatusNew here. Note that this is not a bug, in future we should
+		// the BuildPhaseNew here. Note that this is not a bug, in future we should
 		// move this to use go routine to capture all events.
-		if actual.Status != buildapi.BuildStatusNew && actual.Status != buildapi.BuildStatusPending {
-			t.Errorf("Expected %s or %s, got %s", buildapi.BuildStatusNew, buildapi.BuildStatusPending, actual.Status)
+		if actual.Status.Phase != buildapi.BuildPhaseNew && actual.Status.Phase != buildapi.BuildPhasePending {
+			t.Errorf("Expected %s or %s, got %s", buildapi.BuildPhaseNew, buildapi.BuildPhasePending, actual.Status.Phase)
 		}
 
-		if actual.Parameters.Strategy.DockerStrategy.From.Name != "originalImage" {
-			t.Errorf("Expected %s, got %s", "originalImage", actual.Parameters.Strategy.DockerStrategy.From.Name)
+		if actual.Spec.Strategy.DockerStrategy.From.Name != "originalImage" {
+			t.Errorf("Expected %s, got %s", "originalImage", actual.Spec.Strategy.DockerStrategy.From.Name)
 		}
 	}
 }
@@ -206,14 +206,14 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 		actual := event.Object.(*buildapi.Build)
 
 		// FIXME: I think the build creation is fast and in some situlation we miss
-		// the BuildStatusNew here. Note that this is not a bug, in future we should
+		// the BuildPhaseNew here. Note that this is not a bug, in future we should
 		// move this to use go routine to capture all events.
-		if actual.Status != buildapi.BuildStatusNew && actual.Status != buildapi.BuildStatusPending {
-			t.Errorf("Expected %s or %s, got %s", buildapi.BuildStatusNew, buildapi.BuildStatusPending, actual.Status)
+		if actual.Status.Phase != buildapi.BuildPhaseNew && actual.Status.Phase != buildapi.BuildPhasePending {
+			t.Errorf("Expected %s or %s, got %s", buildapi.BuildPhaseNew, buildapi.BuildPhasePending, actual.Status.Phase)
 		}
 
-		if actual.Parameters.Strategy.SourceStrategy.From.Name != "registry:3000/integration/imageStream:success" {
-			t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageStream:success", actual.Parameters.Strategy.SourceStrategy.From.Name)
+		if actual.Spec.Strategy.SourceStrategy.From.Name != "registry:3000/integration/imageStream:success" {
+			t.Errorf("Expected %s, got %s", "registry:3000/integration-test/imageStream:success", actual.Spec.Strategy.SourceStrategy.From.Name)
 		}
 	}
 }
@@ -275,7 +275,7 @@ func postFile(client kclient.HTTPClient, event, filename, url string, expStatusC
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != expStatusCode {
-		t.Errorf("Wrong response code, expecting %d, got %s: %s!", expStatusCode, resp.Status, string(body))
+		t.Errorf("Wrong response code, expecting %d, got %s: %s!", expStatusCode, resp.StatusCode, string(body))
 	}
 }
 
@@ -284,37 +284,42 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "pushbuild",
 		},
-		Triggers: []buildapi.BuildTriggerPolicy{
-			{
-				Type: buildapi.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &buildapi.WebHookTrigger{
-					Secret: "secret101",
-				},
-			},
-			{
-				Type:        buildapi.ImageChangeBuildTriggerType,
-				ImageChange: &buildapi.ImageChangeTrigger{},
-			},
-		},
-		Parameters: buildapi.BuildParameters{
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.docker/build",
-				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.DockerBuildStrategyType,
-				DockerStrategy: &buildapi.DockerBuildStrategy{
-					From: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: imageName,
+		Spec: buildapi.BuildConfigSpec{
+			Triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret101",
 					},
 				},
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
+				},
 			},
-			Output: buildapi.BuildOutput{
-				DockerImageReference: "namespace/builtimage",
+			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.docker/build",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						From: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: imageName,
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "namespace/builtimage",
+					},
+				},
 			},
 		},
 	}
@@ -325,37 +330,42 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "pushbuild",
 		},
-		Triggers: []buildapi.BuildTriggerPolicy{
-			{
-				Type: buildapi.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &buildapi.WebHookTrigger{
-					Secret: "secret101",
-				},
-			},
-			{
-				Type:        buildapi.ImageChangeBuildTriggerType,
-				ImageChange: &buildapi.ImageChangeTrigger{},
-			},
-		},
-		Parameters: buildapi.BuildParameters{
-			Source: buildapi.BuildSource{
-				Type: buildapi.BuildSourceGit,
-				Git: &buildapi.GitBuildSource{
-					URI: "http://my.docker/build",
-				},
-				ContextDir: "context",
-			},
-			Strategy: buildapi.BuildStrategy{
-				Type: buildapi.SourceBuildStrategyType,
-				SourceStrategy: &buildapi.SourceBuildStrategy{
-					From: kapi.ObjectReference{
-						Kind: "ImageStreamTag",
-						Name: imageStream + ":" + imageTag,
+		Spec: buildapi.BuildConfigSpec{
+			Triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret101",
 					},
 				},
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
+				},
 			},
-			Output: buildapi.BuildOutput{
-				DockerImageReference: "namespace/builtimage",
+			BuildSpec: buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://my.docker/build",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.SourceBuildStrategyType,
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: imageStream + ":" + imageTag,
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "namespace/builtimage",
+					},
+				},
 			},
 		},
 	}

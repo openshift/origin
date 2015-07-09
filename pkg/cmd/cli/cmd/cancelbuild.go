@@ -87,7 +87,7 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 
 	// Mark build to be cancelled.
 	for {
-		build.Cancelled = true
+		build.Status.Cancelled = true
 		if _, err = buildClient.Update(build); err != nil && errors.IsConflict(err) {
 			build, err = buildClient.Get(buildName)
 			if err != nil {
@@ -121,15 +121,15 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 
 // isBuildCancellable checks if another cancellation event was triggered, and if the build status is correct.
 func isBuildCancellable(build *buildapi.Build) bool {
-	if build.Status != buildapi.BuildStatusNew &&
-		build.Status != buildapi.BuildStatusPending &&
-		build.Status != buildapi.BuildStatusRunning {
+	if build.Status.Phase != buildapi.BuildPhaseNew &&
+		build.Status.Phase != buildapi.BuildPhasePending &&
+		build.Status.Phase != buildapi.BuildPhaseRunning {
 
 		glog.V(2).Infof("A build can be cancelled only if it has new/pending/running status.")
 		return false
 	}
 
-	if build.Cancelled {
+	if build.Status.Cancelled {
 		glog.V(2).Infof("A cancellation event was already triggered for the build %s.", build.Name)
 		return false
 	}

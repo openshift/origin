@@ -37,10 +37,10 @@ func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.D
 			glog.V(4).Infof("Retrying Build %s/%s with error: %v", build.Namespace, build.Name, err)
 			return true
 		}
-		build.Status = buildapi.BuildStatusFailed
-		build.Message = err.Error()
+		build.Status.Phase = buildapi.BuildPhaseFailed
+		build.Status.Message = err.Error()
 		now := kutil.Now()
-		build.CompletionTimestamp = &now
+		build.Status.CompletionTimestamp = &now
 		glog.V(3).Infof("Giving up retrying Build %s/%s: %v", build.Namespace, build.Name, err)
 		kutil.HandleError(err)
 		if err := buildupdater.Update(build.Namespace, build); err != nil {
@@ -288,7 +288,7 @@ type typeBasedFactoryStrategy struct {
 func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 	var pod *kapi.Pod
 	var err error
-	switch build.Parameters.Strategy.Type {
+	switch build.Spec.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
 		pod, err = f.DockerBuildStrategy.CreateBuildPod(build)
 	case buildapi.SourceBuildStrategyType:
@@ -296,7 +296,7 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.
 	case buildapi.CustomBuildStrategyType:
 		pod, err = f.CustomBuildStrategy.CreateBuildPod(build)
 	default:
-		return nil, fmt.Errorf("no supported build strategy defined for Build %s/%s with type %s", build.Namespace, build.Name, build.Parameters.Strategy.Type)
+		return nil, fmt.Errorf("no supported build strategy defined for Build %s/%s with type %s", build.Namespace, build.Name, build.Spec.Strategy.Type)
 	}
 	if pod != nil {
 		if pod.Annotations == nil {

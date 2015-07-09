@@ -20,7 +20,7 @@ func TestBuildStrategy(t *testing.T) {
 	}
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
@@ -33,13 +33,16 @@ func TestBuildStrategy(t *testing.T) {
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
-				DockerImageReference: "repository/data",
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "repository/data",
+				},
 			},
 		},
 	}
 	Strategy.PrepareForCreate(build)
-	if len(build.Status) == 0 || build.Status != buildapi.BuildStatusNew {
-		t.Errorf("Build status is not New")
+	if len(build.Status.Phase) == 0 || build.Status.Phase != buildapi.BuildPhaseNew {
+		t.Errorf("Build phase is not New")
 	}
 	errs := Strategy.Validate(ctx, build)
 	if len(errs) != 0 {
@@ -61,7 +64,7 @@ func TestBuildStrategy(t *testing.T) {
 func TestBuildDecorator(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
@@ -74,19 +77,24 @@ func TestBuildDecorator(t *testing.T) {
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
-				DockerImageReference: "repository/data",
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "repository/data",
+				},
 			},
 		},
-		Status: buildapi.BuildStatusNew,
+		Status: buildapi.BuildStatus{
+			Phase: buildapi.BuildPhaseNew,
+		},
 	}
 	now := util.Now()
 	startTime := util.NewTime(now.Time.Add(-1 * time.Minute))
-	build.StartTimestamp = &startTime
+	build.Status.StartTimestamp = &startTime
 	err := Decorator(build)
 	if err != nil {
 		t.Errorf("Unexpected error decorating build")
 	}
-	if build.Duration <= 0 {
+	if build.Status.Duration <= 0 {
 		t.Errorf("Build duration should be greater than zero")
 	}
 }
