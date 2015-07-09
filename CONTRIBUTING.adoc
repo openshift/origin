@@ -20,7 +20,7 @@ Or if you are interested in development, start with:
 
 == Download from GitHub
 
-The OpenShift team periodically publishes binaries to GitHub on https://github.com/openshift/origin/releases[the Releases page].  These are Linux, Windows, or Mac OS X 64bit binaries (note that Mac and Windows are client only). You'll need Docker installed on your local system (see https://docs.docker.com/installation/#installation[the installation page] if you've never installed Docker before).
+The OpenShift team periodically publishes binaries to GitHub on https://github.com/openshift/origin/releases[the Releases page].  These are Linux, Windows, or Mac OS X 64bit binaries (note that Mac and Windows are client only). You'll need Docker installed on your local system (see https://docs.docker.com/installation/[the installation page] if you've never installed Docker before).
 
 The tar file for each platform contains a single binary `openshift` which is the all-in-one OpenShift installation.
 
@@ -31,7 +31,7 @@ The tar file for each platform contains a single binary `openshift` which is the
 
 == OpenShift Development
 
-To get started, https://help.github.com/articles/fork-a-repo[fork] the https://github.com/openshift/origin[origin repo]
+To get started, https://help.github.com/articles/fork-a-repo[fork] the https://github.com/openshift/origin[origin repo].
 
 === Develop locally on your host
 
@@ -45,7 +45,7 @@ Here's how to get set up:
 1. For Go, Git and optionally also Docker, follow the links below to get to installation information for these tools: +
 ** http://golang.org/doc/install[Installing Go]. You must install Go 1.4 and NOT use $HOME/go directory for Go installation.
 ** http://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Installing Git]
-** https://docs.docker.com/installation/#installation[Installing Docker]. NOTE: OpenShift now requires at least Docker 1.6. RPMs for CentOS 7 are not yet available in the default yum repositories. If you're running CentOS, please see the link:README.md#docker-16[README] for information on where to get Docker 1.6 RPMs for your platform.
+** https://docs.docker.com/installation/[Installing Docker]. NOTE: OpenShift requires Docker 1.6 or higher or 1.6.2 on CentOS/RHEL.
 2. Next, create a Go workspace directory: +
 +
 ----
@@ -67,9 +67,9 @@ export PATH=$PATH:$GOPATH/bin
 
 5.  From here, you can generate the OpenShift binaries by running:
 
-        $ make clean run
+        $ make clean build
 
-6.  Next, assuming you have installed Docker 1.3.2 or higher, and that you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.0.0/16, you need to instruct the Docker daemon to trust any Docker registry on the 172.30.0.0/16 subnet.  If you are running Docker as a service via `systemd`, add the `--insecure-registry 172.30.0.0/16` argument to the options value in `/etc/sysconfig/docker` and restart the Docker daemon.  Otherwise, add "--insecure-registry 172.30.0.0/16" to the Docker daemon invocation, eg:
+6.  Next, assuming you have not changed the kubernetes/openshift service subnet configuration from the default value of 172.30.0.0/16, you need to instruct the Docker daemon to trust any Docker registry on the 172.30.0.0/16 subnet.  If you are running Docker as a service via `systemd`, add the `--insecure-registry 172.30.0.0/16` argument to the options value in `/etc/sysconfig/docker` and restart the Docker daemon.  Otherwise, add "--insecure-registry 172.30.0.0/16" to the Docker daemon invocation, eg:
 
         $ docker -d --insecure-registry 172.30.0.0/16
 
@@ -94,9 +94,9 @@ export PATH=$PATH:$GOPATH/bin
 
 11.  If it is not there already, add the current directory to the $PATH, so you can leverage the OpenShift commands elsewhere.
 
-12.  You are now ready to edit the OpenShift source, rebuild / restart OpenShift, and test your changes.
+12.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
 
-13.  NOTE:  to properly stop OpenShift and clean up so you can restart OpenShift, execute:
+13.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
 
         $ sudo killall openshift
         $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
@@ -132,15 +132,32 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 6.  Run a build in SSH:
 
         $ cd /data/src/github.com/openshift/origin
-        $ make build
+        $ make clean build
 
-7.  Start an OpenShift all-in-one server in SSH (includes everything you need to try OpenShift)
+7.  Now change into the directory with the OpenShift binaries, and start the OpenShift server:
 
-        $ sudo systemctl start openshift
+        $ cd _output/local/go/bin
+        $ sudo ./openshift start --public-master=localhost &> logs/openshift.log &
+
++
+NOTE: when using vagrant synced folder (by default your origin directory is mounted using synced folder into `/data/src/github.com/openshift/origin`) it is advised to use a different directory for volume storage than the one in the synced folder. This can be achieved by passing `--volume-dir=/absolute/path` to `openshift start` command.
 
 8.  On your host system, try browsing to: https://localhost:8443/console
 
-9.  From here, you can follow https://github.com/openshift/origin/#start-developing[Start Developing] from the README.
+9.  Deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
+
+        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
+        $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
+        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+
+10.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
+
+11.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
+
+        $ sudo killall openshift
+        $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+        $ mount | grep "openshift.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
+        $ cd <to the dir you ran openshift start> ; sudo rm -rf openshift.local.*
 
 TIP: To ensure you get the latest image.  First run `vagrant box remove fedora_inst` and `vagrant box remove fedora_deps`.
 
