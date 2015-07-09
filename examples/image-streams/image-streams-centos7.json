@@ -251,6 +251,29 @@
           }
         ]
       }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1beta3",
+      "metadata": {
+        "name": "jenkins",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "dockerImageRepository": "openshift/jenkins-16-centos7",
+        "tags": [
+          {
+            "name": "latest"
+          },
+          {
+            "name": "1.6",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
+            }
+          }
+        ]
+      }
     }
   ]
 }
