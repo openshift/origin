@@ -35,8 +35,8 @@ func TestSecretEdges(t *testing.T) {
 	if edge := g.EdgeBetween(saNode, secretNode); edge == nil {
 		t.Errorf("edge missing")
 	} else {
-		if edgeKind := g.EdgeKind(edge); edgeKind != MountableSecretEdgeKind {
-			t.Errorf("expected %v, got %v", MountableSecretEdgeKind, edgeKind)
+		if !g.EdgeKinds(edge).Has(MountableSecretEdgeKind) {
+			t.Errorf("expected %v, got %v", MountableSecretEdgeKind, edge)
 		}
 	}
 
@@ -48,8 +48,8 @@ func TestSecretEdges(t *testing.T) {
 	if edge := g.EdgeBetween(podSpecNodes[0], secretNode); edge == nil {
 		t.Errorf("edge missing")
 	} else {
-		if edgeKind := g.EdgeKind(edge); edgeKind != MountedSecretEdgeKind {
-			t.Errorf("expected %v, got %v", MountedSecretEdgeKind, edgeKind)
+		if !g.EdgeKinds(edge).Has(MountedSecretEdgeKind) {
+			t.Errorf("expected %v, got %v", MountedSecretEdgeKind, edge)
 		}
 	}
 }

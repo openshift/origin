@@ -25,8 +25,8 @@ func TestDCRCSpecNode(t *testing.T) {
 	}
 
 	edge := g.EdgeList()[0]
-	if g.EdgeKind(edge) != osgraph.ContainsEdgeKind {
-		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, g.EdgeKind(edge))
+	if !g.EdgeKinds(edge).Has(osgraph.ContainsEdgeKind) {
+		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, g.EdgeKinds(edge))
 	}
 	if edge.Head().ID() != dcNode.ID() {
 		t.Errorf("expected %v, got %v", dcNode.ID(), edge.Head())
