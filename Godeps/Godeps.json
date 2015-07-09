@@ -1154,6 +1154,10 @@
 			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
 		},
 		{
+			"ImportPath": "github.com/vjeantet/asn1-ber",
+			"Rev": "85041cd0f4769ebf4a5ae600b1e921e630d6aff0"
+		},
+		{
 			"ImportPath": "github.com/vjeantet/ldapserver",
 			"Rev": "5700661e721f508db936af42597a254c4ea6aea4"
 		},
