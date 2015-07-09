@@ -104,14 +104,14 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for database service to start"
   wait_for_command "oc get -n $1 services | grep database" $((20*TIME_SEC))
-  DB_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service database)
+  DB_IP=$(oc get -n $1 --output-version=v1 --template="{{ .spec.portalIP }}" service database)
 
   echo "[INFO] Waiting for frontend pod to start"
   wait_for_command "oc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
 
   echo "[INFO] Waiting for frontend service to start"
   wait_for_command "oc get -n $1 services | grep frontend" $((20*TIME_SEC))
-  FRONTEND_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service frontend)
+  FRONTEND_IP=$(oc get -n $1 --output-version=v1 --template="{{ .spec.portalIP }}" service frontend)
 
   echo "[INFO] Waiting for database to start..."
   wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
@@ -129,7 +129,7 @@ function wait_for_app() {
 function wait_for_build() {
   echo "[INFO] Waiting for $1 namespace build to complete"
   wait_for_command "oc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
-  BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+  BUILD_ID=`oc get -n $1 builds --output-version=v1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
   echo "[INFO] Build ${BUILD_ID} finished"
   # TODO: fix
   set +e
@@ -189,4 +189,3 @@ echo "[INFO] Starting build..."
 #oc start-build -n test ruby-sample-build --follow
 wait_for_build "test"
 wait_for_app "test"
-
