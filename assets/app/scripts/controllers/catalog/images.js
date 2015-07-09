@@ -82,22 +82,4 @@ angular.module('openshiftConsole')
 
       Logger.info("openshift image repos", openshiftImageRepos);
     });
-
-
-    var templatesByTag = function() {
-      $scope.templatesByTag = {};
-      angular.forEach($scope.templates, function(template) {
-        if (template.metadata.annotations && template.metadata.annotations.tags) {
-          var tags = template.metadata.annotations.tags.split(",");
-          angular.forEach(tags, function(tag){
-            tag = $.trim(tag);
-            // not doing this as a map since we are dealing with things across namespaces that could have collisions on name
-            $scope.templatesByTag[tag] = $scope.templatesByTag[tag] || [];
-            $scope.templatesByTag[tag].push(template);
-          });
-        }
-      });
-
-      Logger.info("templatesByTag", $scope.templatesByTag);
-    };
   });

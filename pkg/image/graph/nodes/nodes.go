@@ -85,7 +85,7 @@ func EnsureImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *imageapi.ImageS
 	return osgraph.EnsureUnique(g,
 		ImageStreamTagNodeName(ist),
 		func(node osgraph.Node) graph.Node {
-			return &ImageStreamTagNode{node, ist, false}
+			return &ImageStreamTagNode{node, ist, true}
 		},
 	).(*ImageStreamTagNode)
 }
@@ -95,19 +95,29 @@ func FindOrCreateSyntheticImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *
 	return osgraph.EnsureUnique(g,
 		ImageStreamTagNodeName(ist),
 		func(node osgraph.Node) graph.Node {
-			return &ImageStreamTagNode{node, ist, true}
+			return &ImageStreamTagNode{node, ist, false}
 		},
 	).(*ImageStreamTagNode)
 }
 
 // EnsureImageStreamNode adds a graph node for the Image Stream if it does not already exist.
-func EnsureImageStreamNode(g osgraph.MutableUniqueGraph, stream *imageapi.ImageStream) graph.Node {
+func EnsureImageStreamNode(g osgraph.MutableUniqueGraph, is *imageapi.ImageStream) graph.Node {
 	return osgraph.EnsureUnique(g,
-		ImageStreamNodeName(stream),
+		ImageStreamNodeName(is),
 		func(node osgraph.Node) graph.Node {
-			return &ImageStreamNode{node, stream}
+			return &ImageStreamNode{node, is, true}
 		},
 	)
+}
+
+// FindOrCreateSyntheticImageStreamNode returns the existing ISNode or creates a synthetic node in its place
+func FindOrCreateSyntheticImageStreamNode(g osgraph.MutableUniqueGraph, is *imageapi.ImageStream) *ImageStreamNode {
+	return osgraph.EnsureUnique(g,
+		ImageStreamNodeName(is),
+		func(node osgraph.Node) graph.Node {
+			return &ImageStreamNode{node, is, false}
+		},
+	).(*ImageStreamNode)
 }
 
 // EnsureImageLayerNode adds a graph node for the layer if it does not already exist.

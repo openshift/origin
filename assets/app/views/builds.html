@@ -66,7 +66,7 @@
                       <i class="fa fa-external-link"></i></span></a>
                       </dt>
                       <dd>
-                        <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
+                        <span click-to-reveal link-text='Show URL' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name}}</span>
                         <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
                       </dd>
                   </div>
@@ -75,7 +75,7 @@
                         <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
                       </dt>
                       <dd>
-                        <span click-to-reveal link-text='Show URL...' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
+                        <span click-to-reveal link-text='Show URL' style="margin-right: 5px;">{{buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name}}</span>
                         <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard-button>
                       </dd>
                   </div>

@@ -76,7 +76,7 @@ describe('', function() {
 
     it('should be able to show the create project page', function() {
       browser.get('/createProject');
-      expect(element(by.cssContainingText("h1","Create Project")).isPresent()).toBe(true);
+      expect(element(by.cssContainingText("h1","New Project")).isPresent()).toBe(true);
       // TODO: attempt creating a project with a taken name
       // TODO: attempt creating a new project, ensure all three fields are honored
     });

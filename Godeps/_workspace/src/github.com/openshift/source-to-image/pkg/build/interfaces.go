@@ -38,7 +38,7 @@ type ScriptsHandler interface {
 
 // Downloader provides methods for downloading the application source code
 type Downloader interface {
-	Download(*api.Config) error
+	Download(*api.Config) (*api.SourceInfo, error)
 }
 
 // SourceHandler is a wrapper for STI strategy Downloader and Preparer which

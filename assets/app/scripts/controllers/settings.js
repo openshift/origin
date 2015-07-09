@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false */
 
 /**
  * @ngdoc function

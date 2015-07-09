@@ -1,8 +1,10 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .directive('selectOnFocus', function() {
     return {
-      restrict: 'A', 
-      link: function($scope, element, attrs) {
+      restrict: 'A',
+      link: function($scope, element) {
         $(element).focus(function () {
           $(this).select();
         });
@@ -11,8 +13,8 @@ angular.module('openshiftConsole')
   })
   .directive('tileClick', function() {
     return {
-      restrict: 'AC', 
-      link: function($scope, element, attrs) {
+      restrict: 'AC',
+      link: function($scope, element) {
         $(element).click(function (evt) {
           var t = $(evt.target);
           if (t && t.is('a')){
@@ -31,8 +33,8 @@ angular.module('openshiftConsole')
         linkText: "@"
       },
       templateUrl: 'views/directives/_click-to-reveal.html',
-      link: function($scope, element, attrs) {
-        $('.reveal-contents-link', element).click(function (evt) {
+      link: function($scope, element) {
+        $('.reveal-contents-link', element).click(function () {
           $(this).hide();
           $('.reveal-contents', element).show();
         });
@@ -46,7 +48,7 @@ angular.module('openshiftConsole')
         clipboardText: "="
       },
       templateUrl: 'views/directives/_copy-to-clipboard.html',
-      link: function($scope, element, attrs) {
+      link: function($scope, element) {
         if (ZeroClipboard.isFlashUnusable()) {
           $(element).hide();
         }
@@ -55,7 +57,7 @@ angular.module('openshiftConsole')
           $("#global-zeroclipboard-html-bridge").tooltip({title: "Copy to clipboard", placement: 'bottom'});
         }
       }
-    }
+    };
   })
   .directive('shortId', function() {
     return {
@@ -64,7 +66,7 @@ angular.module('openshiftConsole')
         id: '@'
       },
       template: '<code class="short-id" title="{{id}}">{{id.substring(0, 6)}}</code>'
-    }
+    };
   })
   .directive('customIcon', function() {
     return {
@@ -80,7 +82,7 @@ angular.module('openshiftConsole')
         } else {
           $scope.icon = $filter('annotation')($scope.resource, "icon");
         }
-        $scope.isDataIcon = $scope.icon && $scope.icon.indexOf("data:") == 0;
+        $scope.isDataIcon = $scope.icon && ($scope.icon.indexOf("data:") === 0);
         if (!$scope.isDataIcon) {
           // The icon class filter will at worst return the default icon for the given kind
           if ($scope.tag) {
@@ -91,5 +93,5 @@ angular.module('openshiftConsole')
         }
       },
       templateUrl: 'views/directives/_custom-icon.html'
-    }
+    };
   });

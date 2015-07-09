@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('openshiftConsole')
 .directive('oscGitLink', function() {
   return {
@@ -9,4 +11,4 @@ angular.module('openshiftConsole')
     transclude: true,
     template: '<a ng-href="{{uri | githubLink : commit}}" ng-transclude></a>'
   };
-})
+});

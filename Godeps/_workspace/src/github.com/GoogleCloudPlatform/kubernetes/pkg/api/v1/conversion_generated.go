@@ -1592,6 +1592,11 @@ func convert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conversi
 	} else {
 		out.ImagePullSecrets = nil
 	}
+
+	// Carry conversion
+	out.DeprecatedServiceAccount = in.ServiceAccountName
+	out.DeprecatedHost = in.NodeName
+
 	return nil
 }
 
@@ -2305,6 +2310,10 @@ func convert_api_ServiceSpec_To_v1_ServiceSpec(in *api.ServiceSpec, out *Service
 		out.DeprecatedPublicIPs = nil
 	}
 	out.SessionAffinity = ServiceAffinity(in.SessionAffinity)
+
+	// Carry conversion
+	out.DeprecatedPortalIP = in.ClusterIP
+
 	return nil
 }
 

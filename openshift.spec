@@ -51,6 +51,7 @@ Requires:       docker-io >= 1.6.2
 Requires:       tuned-profiles-openshift-node
 Requires:       util-linux
 Requires:       socat
+Requires:       nfs-utils
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd

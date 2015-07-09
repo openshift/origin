@@ -1,4 +1,5 @@
 'use strict';
+/* jshint unused: false */
 
 angular.module('openshiftConsole')
 .factory('Notification', function($rootScope) {
@@ -41,7 +42,7 @@ angular.module('openshiftConsole')
 
   Notification.prototype.info = function(message, opts) {
     this.notify("info", message, opts);
-  };  
+  };
 
   Notification.prototype.error = function(message, opts) {
     this.notify("error", message, opts);
@@ -55,5 +56,5 @@ angular.module('openshiftConsole')
     this.messenger.hideAll();
   };
 
-  return new Notification();;
+  return new Notification();
 });
