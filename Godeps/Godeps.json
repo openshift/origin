@@ -1154,6 +1154,10 @@
 			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
 		},
 		{
+			"ImportPath": "github.com/vjeantet/ldapserver",
+			"Rev": "5700661e721f508db936af42597a254c4ea6aea4"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/ssh",
 			"Rev": "c84e1f8e3a7e322d497cd16c0e8a13c7e127baf3"
 		},
