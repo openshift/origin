@@ -32,7 +32,7 @@ angular.module('openshiftConsole')
         });
         promises.push(imageStreamImagePromise);
       });
-    })
+    });
     return $q.all(promises);
   };
 

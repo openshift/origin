@@ -19,7 +19,7 @@ const (
 const (
 	// UserScripts is the location of scripts downloaded from user provided URL (-s flag).
 	UserScripts = "downloads/scripts"
-	// DefaultScripts is the location of scripts downloaded from default location (io.s2i.scripts-url label).
+	// DefaultScripts is the location of scripts downloaded from default location (io.openshift.s2i.scripts-url label).
 	DefaultScripts = "downloads/defaultScripts"
 	// SourceScripts is the location of scripts downloaded with application sources.
 	SourceScripts = "upload/src/.sti/bin"

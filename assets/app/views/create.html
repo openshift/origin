@@ -3,7 +3,7 @@
     <div class="container">
       <ol class="breadcrumb">
         <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
-        <li class="active"><strong>Create</strong></li>
+        <li class="active"><strong>Add to Project</strong></li>
       </ol>
       <div class="row">
         <div class="col-md-12">
@@ -53,7 +53,7 @@
                 </catalog-template>
               </div>
               <div ng-show="!showAllTemplates && (otherTemplates | hashSize) !== 0" class="show-all-button-container gutter-bottom">
-                <a ng-click="showAllTemplates = true" class="btn btn-lg btn-primary">Show all templates...</a>
+                <a ng-click="showAllTemplates = true" class="btn btn-lg btn-primary">Show All Templates</a>
               </div>
               <div ng-show="showAllTemplates">
                 <h3>Other Templates</h3>

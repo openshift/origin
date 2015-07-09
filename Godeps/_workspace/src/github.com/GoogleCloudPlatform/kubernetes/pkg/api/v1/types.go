@@ -896,6 +896,11 @@ type PodSpec struct {
 	// NodeSelector is a selector which must be true for the pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty" description:"selector which must match a node's labels for the pod to be scheduled on that node"`
 
+	// DeprecatedServiceAccount is the name of the ServiceAccount to use to run this pod
+	DeprecatedServiceAccount string `json:"serviceAccount,omitempty" description:"deprecated, use serviceAccountName instead."`
+	// DeprecatedHost is a request to schedule this pod onto a specific node
+	DeprecatedHost string `json:"host,omitempty" description:"deprecated, use nodeName instead"`
+
 	// ServiceAccountName is the name of the ServiceAccount to use to run this pod
 	ServiceAccountName string `json:"serviceAccountName,omitempty" description:"name of the ServiceAccount to use to run this pod"`
 
@@ -1104,6 +1109,9 @@ type ServiceSpec struct {
 
 	// This service will route traffic to pods having labels matching this selector. If null, no endpoints will be automatically created. If empty, all pods will be selected.
 	Selector map[string]string `json:"selector,omitempty" description:"label keys and values that must match in order to receive traffic for this service; if empty, all pods are selected, if not specified, endpoints must be manually specified"`
+
+	// DeprecatedPortalIP
+	DeprecatedPortalIP string `json:"portalIP,omitempty" description:"deprecated, use clusterIP instead"`
 
 	// ClusterIP is usually assigned by the master.  If specified by the user
 	// we will try to respect it or else fail the request.  This field can

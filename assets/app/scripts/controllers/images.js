@@ -37,7 +37,7 @@ angular.module('openshiftConsole')
       else {
         delete $scope.alerts["imageStreams"];
       }
-    };
+    }
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
       // trigger a digest loop

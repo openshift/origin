@@ -2,6 +2,7 @@ package strategies
 
 import (
 	dockerclient "github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/build/strategies/onbuild"
@@ -37,8 +38,12 @@ func GetBuilderImage(config *api.Config) (*docker.PullResult, error) {
 	var image *dockerclient.Image
 	if config.ForcePull {
 		image, err = d.PullImage(config.BuilderImage)
+		if err != nil {
+			glog.Warningf("An error occurred when pulling %s: %v. Attempting to use local image.", config.BuilderImage, err)
+			image, err = d.CheckImage(config.BuilderImage)
+		}
 	} else {
-		image, err = d.CheckAndPull(config.BuilderImage)
+		image, err = d.CheckAndPullImage(config.BuilderImage)
 	}
 
 	if err != nil {

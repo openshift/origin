@@ -21,9 +21,6 @@ angular.module('openshiftConsole')
   // Maximum amount of time that a successful task will hang around after completion
   var TASK_TIMEOUT = 30*1000;
 
-  // How often the task list will be checked
-  var TASK_REFRESH_INTERVAL = 100;
-
   function TaskList() {
     this.tasks = [];
   }

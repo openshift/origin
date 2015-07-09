@@ -117,7 +117,8 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 			Message: "Advanced Commands:",
 			Commands: []*cobra.Command{
 				cmd.NewCmdCreate(fullName, f, out),
-				cmd.NewCmdUpdate(fullName, f, out),
+				cmd.NewCmdReplace(fullName, f, out),
+				cmd.NewCmdPatch(fullName, f, out),
 				cmd.NewCmdProcess(fullName, f, out),
 				cmd.NewCmdExport(fullName, f, os.Stdin, out),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),

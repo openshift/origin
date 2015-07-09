@@ -2436,6 +2436,27 @@ _openshift_cli_replace()
     must_have_one_noun=()
 }
 
+_openshift_cli_patch()
+{
+    last_command="openshift_cli_patch"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--patch=")
+    two_word_flags+=("-p")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--patch=")
+    must_have_one_flag+=("-p")
+    must_have_one_noun=()
+}
+
 _openshift_cli_process()
 {
     last_command="openshift_cli_process"
@@ -2993,6 +3014,7 @@ _openshift_cli()
     commands+=("proxy")
     commands+=("create")
     commands+=("replace")
+    commands+=("patch")
     commands+=("process")
     commands+=("export")
     commands+=("policy")

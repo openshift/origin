@@ -318,6 +318,8 @@ echo "templates: ok"
 [ "$(openshift help start master 2>&1 | grep 'Start an OpenShift master')" ]
 [ "$(openshift help start node 2>&1 | grep 'Start an OpenShift node')" ]
 [ "$(openshift cli help update 2>&1 | grep 'openshift')" ]
+[ "$(openshift cli help replace 2>&1 | grep 'openshift')" ]
+[ "$(openshift cli help patch 2>&1 | grep 'openshift')" ]
 
 # runnable commands with required flags must error consistently
 [ "$(oc get 2>&1 | grep 'Required resource not specified')" ]
@@ -545,7 +547,6 @@ oc deploy test-deployment-config
 oc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
-oc process -f test/templates/fixtures/guestbook.json --parameters --value="ADMIN_USERNAME=admin"
 oc process -f test/templates/fixtures/guestbook.json -l app=guestbook | oc create -f -
 oc status
 [ "$(oc status | grep frontend-service)" ]

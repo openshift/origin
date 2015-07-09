@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('openshiftConsole')
   .filter('dateRelative', function() {
     return function(timestamp) {
@@ -43,7 +45,7 @@ angular.module('openshiftConsole')
       add(minutes, "minute", "minutes");
       add(seconds, "second", "seconds");
 
-      if (humanizedDuration.length == 0) {
+      if (humanizedDuration.length === 0) {
         humanizedDuration.push("0 seconds");
       }
 
@@ -58,7 +60,7 @@ angular.module('openshiftConsole')
     // ex:  amt = 5  and unit = 'minutes'
     return function(timestamp, amt, unit) {
       return moment().subtract(amt, unit).diff(moment(timestamp)) < 0;
-    }
+    };
   })
   .filter('orderObjectsByDate', function() {
     return function(items, reverse) {
@@ -72,7 +74,9 @@ angular.module('openshiftConsole')
         }
         return moment(a.metadata.creationTimestamp).diff(moment(b.metadata.creationTimestamp));
       });
-      if(reverse) filtered.reverse();
+      if(reverse) {
+        filtered.reverse();
+      }
       return filtered;
-    }
+    };
   });

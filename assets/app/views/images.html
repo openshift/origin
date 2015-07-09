@@ -32,7 +32,7 @@
             </div>
           </div>
           <div ng-if="tag.items.length > 1">
-            <div click-to-reveal link-text="Show older images...">
+            <div click-to-reveal link-text="Show older images">
               <div ng-repeat="image in tag.items" ng-if="$index != 0">
                 <short-id ng-if="image.image" id="{{image.image | imageName}}"></short-id>
                 <span ng-if="!image.image">{{image.dockerImageReference}}</span>

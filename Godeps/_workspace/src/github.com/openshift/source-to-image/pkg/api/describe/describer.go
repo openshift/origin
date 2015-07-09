@@ -14,6 +14,12 @@ import (
 // Config returns the Config object in nice readable, tabbed format.
 func DescribeConfig(config *api.Config) string {
 	out, err := tabbedString(func(out io.Writer) error {
+		if len(config.DisplayName) > 0 {
+			fmt.Fprintf(out, "Application Name:\t%s\n", config.DisplayName)
+		}
+		if len(config.Description) > 0 {
+			fmt.Fprintf(out, "Description:\t%s\n", config.Description)
+		}
 		fmt.Fprintf(out, "Builder Image:\t%s\n", config.BuilderImage)
 		fmt.Fprintf(out, "Source:\t%s\n", config.Source)
 		if len(config.Ref) > 0 {
