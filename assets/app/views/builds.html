@@ -58,7 +58,6 @@
               <div ng-repeat="trigger in buildConfig.spec.triggers">
                 <div ng-switch="trigger.type">
                   <div ng-switch-when="github">
-                    
                       <dt>GitHub webhook URL
                         <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more 
                         <i class="fa fa-external-link"></i></span></a>
@@ -141,7 +140,7 @@
             </dl>
           </div>
         </div>
-        <div class="well build-well" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true">
+        <div ng-show="$first || expanded" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true" class="well build-well">
           <div class="row">
             <div class="col-md-7 col-sm-7 col-xs-7">
               <h3>{{build.metadata.name}}</h3>
@@ -213,6 +212,7 @@
             </div><!-- /.col -->
           </div><!-- /.row -->
         </div><!-- /build .well -->
+        <div ng-hide="expanded || (buildsByBuildConfig[buildConfigName] | hashSize) <= 1"><a href="" ng-click="expanded = true">Show older builds</a></div>
       </div><!-- /buildConfig .tile -->
 
       <!-- render any builds whose build configs no longer exist -->
