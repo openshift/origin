@@ -34,7 +34,7 @@ func RelevantDeployments(g osgraph.Graph, dcNode *deploygraph.DeploymentConfigNo
 	return nil, allDeployments
 }
 
-func belongsToDeploymentConfig(config *deployapi.DeploymentConfig, b *kapi.ReplicationController) bool {
+func BelongsToDeploymentConfig(config *deployapi.DeploymentConfig, b *kapi.ReplicationController) bool {
 	if b.Annotations != nil {
 		return config.Name == deployutil.DeploymentConfigNameFor(b)
 	}

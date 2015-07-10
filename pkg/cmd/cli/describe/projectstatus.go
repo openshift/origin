@@ -74,7 +74,6 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 	buildedges.AddAllBuildEdges(g)
 	deployedges.AddAllTriggerEdges(g)
 	deployedges.AddAllDeploymentEdges(g)
-
 	imageedges.AddAllImageStreamRefEdges(g)
 
 	return g, nil
@@ -113,6 +112,16 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 			for _, dcPipeline := range service.DeploymentConfigPipelines {
 				printLines(out, indent, 1, describeDeploymentInServiceGroup(dcPipeline)...)
+			}
+
+		rcNode:
+			for _, rcNode := range service.FulfillingRCs {
+				for _, coveredDC := range service.FulfillingDCs {
+					if deployedges.BelongsToDeploymentConfig(coveredDC.DeploymentConfig, rcNode.ReplicationController) {
+						continue rcNode
+					}
+				}
+				printLines(out, indent, 1, describeRCInServiceGroup(rcNode)...)
 			}
 		}
 
@@ -193,6 +202,22 @@ func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline)
 		lines = append(lines, describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)
 		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
 	}
+	return lines
+}
+
+func describeRCInServiceGroup(rcNode *kubegraph.ReplicationControllerNode) []string {
+	if rcNode.ReplicationController.Spec.Template == nil {
+		return []string{}
+	}
+
+	images := []string{}
+	for _, container := range rcNode.ReplicationController.Spec.Template.Spec.Containers {
+		images = append(images, container.Image)
+	}
+
+	lines := []string{fmt.Sprintf("rc/%s runs %s", rcNode.ReplicationController.Name, strings.Join(images, ", "))}
+	lines = append(lines, describeRCStatus(rcNode.ReplicationController))
+
 	return lines
 }
 
@@ -461,35 +486,40 @@ func describeDeploymentStatus(deploy *kapi.ReplicationController, first bool) st
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("#%d deployment failed %s ago%s%s", version, timeAt, reason, describeDeploymentPodSummaryInline(deploy, false))
+		return fmt.Sprintf("#%d deployment failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(deploy, false))
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
-		return fmt.Sprintf("#%d deployed %s ago%s", version, timeAt, describeDeploymentPodSummaryInline(deploy, first))
+		return fmt.Sprintf("#%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy, first))
 	case deployapi.DeploymentStatusRunning:
-		return fmt.Sprintf("#%d deployment running for %s%s", version, timeAt, describeDeploymentPodSummaryInline(deploy, false))
+		return fmt.Sprintf("#%d deployment running for %s%s", version, timeAt, describePodSummaryInline(deploy, false))
 	default:
-		return fmt.Sprintf("#%d deployment %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describeDeploymentPodSummaryInline(deploy, false))
+		return fmt.Sprintf("#%d deployment %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describePodSummaryInline(deploy, false))
 	}
 }
 
-func describeDeploymentPodSummaryInline(deploy *kapi.ReplicationController, includeEmpty bool) string {
-	s := describeDeploymentPodSummary(deploy, includeEmpty)
+func describeRCStatus(rc *kapi.ReplicationController) string {
+	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
+	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc, false))
+}
+
+func describePodSummaryInline(rc *kapi.ReplicationController, includeEmpty bool) string {
+	s := describePodSummary(rc, includeEmpty)
 	if len(s) == 0 {
 		return s
 	}
 	change := ""
-	desired := deploy.Spec.Replicas
+	desired := rc.Spec.Replicas
 	switch {
-	case desired < deploy.Status.Replicas:
+	case desired < rc.Status.Replicas:
 		change = fmt.Sprintf(" reducing to %d", desired)
-	case desired > deploy.Status.Replicas:
+	case desired > rc.Status.Replicas:
 		change = fmt.Sprintf(" growing to %d", desired)
 	}
 	return fmt.Sprintf(" - %s%s", s, change)
 }
 
-func describeDeploymentPodSummary(deploy *kapi.ReplicationController, includeEmpty bool) string {
-	actual, requested := deploy.Status.Replicas, deploy.Spec.Replicas
+func describePodSummary(rc *kapi.ReplicationController, includeEmpty bool) string {
+	actual, requested := rc.Status.Replicas, rc.Spec.Replicas
 	if actual == requested {
 		switch {
 		case actual == 0:
