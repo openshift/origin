@@ -53,6 +53,10 @@ module.exports = function (grunt) {
         files: '<%= yeoman.app %>/styles/*.less',
         tasks: ['less']
       },
+      extensions: {
+        files: ['extensions/extensions.js', 'extensions/extensions.css'],
+        tasks: ['copy:extensions']
+      },
       gruntfile: {
         files: ['Gruntfile.js']
       },
@@ -63,6 +67,7 @@ module.exports = function (grunt) {
         files: [
           '<%= yeoman.app %>/{,*/}*.html',
           '.tmp/styles/{,*/}*.css',
+          '.tmp/scripts/extensions.js',
           '<%= yeoman.app %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
         ]
       }
@@ -456,6 +461,20 @@ module.exports = function (grunt) {
           src: 'fonts/*',
           dest: '.tmp/styles'
         }]
+      },
+      // Copy files in the extensions dir for development, but not distribution.
+      extensions: {
+        files: [{
+          expand: true,
+          cwd: 'extensions',
+          src: 'extensions.js',
+          dest: '.tmp/scripts'
+        }, {
+          expand: true,
+          cwd: 'extensions',
+          src: 'extensions.css',
+          dest: '.tmp/styles'
+        }]
       }
     },
 
@@ -463,7 +482,8 @@ module.exports = function (grunt) {
     concurrent: {
       server: [
         'less:development',
-        'copy:styles'
+        'copy:styles',
+        'copy:extensions'
       ],
       test: [
         'less:development'

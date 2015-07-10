@@ -335,6 +335,22 @@ type AssetConfig struct {
 
 	// MasterPublicURL is how the web console can access the OpenShift api server
 	MasterPublicURL string
+
+	// ExtensionScripts are file paths on the asset server files to load as scripts when the Web
+	// Console loads
+	ExtensionScripts []string
+
+	// ExtensionStylesheets are file paths on the asset server files to load as stylesheets when
+	// the Web Console loads
+	ExtensionStylesheets []string
+
+	// Extensions are files to serve from the asset server filesystem under a subcontext
+	Extensions []AssetExtensionsConfig
+
+	// ExtensionDevelopment when true tells the asset server to reload extension scripts and
+	// stylesheets for every request rather than only at startup. It lets you develop extensions
+	// without having to restart the server for every change.
+	ExtensionDevelopment bool
 }
 
 type OAuthConfig struct {
@@ -645,4 +661,17 @@ type PodManifestConfig struct {
 	// FileCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data
 	// The interval needs to be a positive value
 	FileCheckIntervalSeconds int64
+}
+
+type AssetExtensionsConfig struct {
+	// Name is the path under /<context>/extensions/ to serve files from SourceDirectory
+	Name string
+	// SourceDirectory is a directory on the asset server to serve files under Name in the Web
+	// Console. It may have nested folders.
+	SourceDirectory string
+	// HTML5Mode determines whether to redirect to the root index.html when a file is not found.
+	// This is needed for apps that use the HTML5 history API like AngularJS apps with HTML5
+	// mode enabled. If HTML5Mode is true, also rewrite the base element in index.html with the
+	// Web Console's context root. Defaults to false.
+	HTML5Mode bool
 }

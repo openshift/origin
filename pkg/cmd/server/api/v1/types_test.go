@@ -48,6 +48,10 @@ volumeDirectory: ""
 	expectedSerializedMasterConfig = `apiLevels: null
 apiVersion: v1
 assetConfig:
+  extensionDevelopment: false
+  extensionScripts: null
+  extensionStylesheets: null
+  extensions: null
   logoutURL: ""
   masterPublicURL: ""
   publicURL: ""

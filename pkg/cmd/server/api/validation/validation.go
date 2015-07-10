@@ -209,6 +209,22 @@ func ValidateFile(path string, field string) fielderrors.ValidationErrorList {
 	return allErrs
 }
 
+func ValidateDir(path string, field string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	if len(path) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired(field))
+	} else {
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, path, "could not read info"))
+		} else if !fileInfo.IsDir() {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, path, "not a directory"))
+		}
+	}
+
+	return allErrs
+}
+
 func ValidateExtendedArguments(config api.ExtendedArguments, flagFunc func(*pflag.FlagSet)) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 

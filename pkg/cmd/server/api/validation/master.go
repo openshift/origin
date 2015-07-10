@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -275,6 +276,42 @@ func ValidateAssetConfig(config *api.AssetConfig) fielderrors.ValidationErrorLis
 
 	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
 		allErrs = append(allErrs, urlErrs...)
+	}
+
+	for i, scriptFile := range config.ExtensionScripts {
+		allErrs = append(allErrs, ValidateFile(scriptFile, fmt.Sprintf("extensionScripts[%d]", i))...)
+	}
+
+	for i, stylesheetFile := range config.ExtensionStylesheets {
+		allErrs = append(allErrs, ValidateFile(stylesheetFile, fmt.Sprintf("extensionStylesheets[%d]", i))...)
+	}
+
+	nameTaken := map[string]bool{}
+	for i, extConfig := range config.Extensions {
+		extConfigErrors := ValidateAssetExtensionsConfig(extConfig).Prefix(fmt.Sprintf("extensions[%d]", i))
+		allErrs = append(allErrs, extConfigErrors...)
+		if nameTaken[extConfig.Name] {
+			dupError := fielderrors.NewFieldInvalid(fmt.Sprintf("extensions[%d].name", i), extConfig.Name, "duplicate extension name")
+			allErrs = append(allErrs, dupError)
+		} else {
+			nameTaken[extConfig.Name] = true
+		}
+	}
+
+	return allErrs
+}
+
+var extNameExp = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
+
+func ValidateAssetExtensionsConfig(extConfig api.AssetExtensionsConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	allErrs = append(allErrs, ValidateDir(extConfig.SourceDirectory, "sourceDirectory")...)
+
+	if len(extConfig.Name) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
+	} else if !extNameExp.MatchString(extConfig.Name) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", extConfig.Name, fmt.Sprintf("does not match %v", extNameExp)))
 	}
 
 	return allErrs
