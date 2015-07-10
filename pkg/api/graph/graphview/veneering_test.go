@@ -20,8 +20,6 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
 func TestServiceGroup(t *testing.T) {
@@ -166,8 +164,11 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	}
+	for i := range builds {
+		buildgraph.EnsureBuildNode(g, &builds[i])
+	}
 
-	bc1Node := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
+	buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "build1"},
 		Spec: buildapi.BuildConfigSpec{
 			Triggers: []buildapi.BuildTriggerPolicy{
@@ -188,7 +189,6 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	})
-	buildedges.JoinBuilds(bc1Node, builds)
 	bcTestNode := buildgraph.EnsureBuildConfigNode(g, &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "test"},
 		Spec: buildapi.BuildConfigSpec{
@@ -298,36 +298,12 @@ func TestGraph(t *testing.T) {
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
+	buildedges.AddAllBuildEdges(g)
 	deployedges.AddAllTriggerEdges(g)
+	deployedges.AddAllDeploymentEdges(g)
 
 	t.Log(g)
 
-	ist, dc, bc, other := 0, 0, 0, 0
-	for _, node := range g.NodeList() {
-		switch g.Object(node).(type) {
-		case *deployapi.DeploymentConfig:
-			if g.Kind(node) != deploygraph.DeploymentConfigNodeKind {
-				t.Fatalf("unexpected kind: %v", g.Kind(node))
-			}
-			dc++
-		case *buildapi.BuildConfig:
-			if g.Kind(node) != buildgraph.BuildConfigNodeKind {
-				t.Fatalf("unexpected kind: %v", g.Kind(node))
-			}
-			bc++
-		case *imageapi.ImageStreamTag:
-			if g.Kind(node) != imagegraph.ImageStreamTagNodeKind {
-				t.Fatalf("unexpected kind: %v", g.Kind(node))
-			}
-			ist++
-		default:
-			other++
-		}
-	}
-
-	if dc != 2 || bc != 3 || ist != 3 || other != 12 {
-		t.Errorf("unexpected nodes: %d %d %d %d", dc, bc, ist, other)
-	}
 	for _, edge := range g.EdgeList() {
 		if g.EdgeKind(edge) == osgraph.UnknownEdgeKind {
 			t.Errorf("edge reported unknown kind: %#v", edge)
@@ -395,13 +371,13 @@ func TestGraph(t *testing.T) {
 			for _, image := range deployment.Images {
 				t.Logf("%s  image %s", indent, image.Image.ImageSpec())
 				if image.Build != nil {
-					if image.Build.LastSuccessfulBuild != nil {
-						t.Logf("%s    built at %s", indent, image.Build.LastSuccessfulBuild.CreationTimestamp)
-					} else if image.Build.LastUnsuccessfulBuild != nil {
-						t.Logf("%s    build %s at %s", indent, image.Build.LastUnsuccessfulBuild.Status, image.Build.LastSuccessfulBuild.CreationTimestamp)
+					if image.LastSuccessfulBuild != nil {
+						t.Logf("%s    built at %s", indent, image.LastSuccessfulBuild.Build.CreationTimestamp)
+					} else if image.LastUnsuccessfulBuild != nil {
+						t.Logf("%s    build %s at %s", indent, image.LastUnsuccessfulBuild.Build.Status, image.LastUnsuccessfulBuild.Build.CreationTimestamp)
 					}
-					for _, b := range image.Build.ActiveBuilds {
-						t.Logf("%s    build %s %s", indent, b.Name, b.Status)
+					for _, b := range image.ActiveBuilds {
+						t.Logf("%s    build %s %s", indent, b.Build.Name, b.Build.Status)
 					}
 				}
 			}
