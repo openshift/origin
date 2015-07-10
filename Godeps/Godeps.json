@@ -1019,43 +1019,43 @@
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/docker",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/errors",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/git",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scripts",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/pkg/profile",
