@@ -257,12 +257,12 @@ func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *auth
 	)
 	ownerLocalRules, err := ruleResolver.GetEffectivePolicyRules(ctx)
 	if err != nil {
-		return err
+		return kapierrors.NewInternalError(err)
 	}
 	masterContext := kapi.WithNamespace(ctx, "")
 	ownerGlobalRules, err := ruleResolver.GetEffectivePolicyRules(masterContext)
 	if err != nil {
-		return err
+		return kapierrors.NewInternalError(err)
 	}
 
 	ownerRules := make([]authorizationapi.PolicyRule, 0, len(ownerGlobalRules)+len(ownerLocalRules))
@@ -272,7 +272,7 @@ func (m *VirtualStorage) confirmNoEscalation(ctx kapi.Context, roleBinding *auth
 	ownerRightsCover, missingRights := rulevalidation.Covers(ownerRules, modifyingRole.Rules)
 	if !ownerRightsCover {
 		user, _ := kapi.UserFrom(ctx)
-		return fmt.Errorf("attempt to grant extra privileges: %v\nuser=%v\nownerrules%v\n", missingRights, user, ownerRules)
+		return kapierrors.NewUnauthorized(fmt.Sprintf("attempt to grant extra privileges: %v user=%v ownerrules=%v", missingRights, user, ownerRules))
 	}
 
 	return nil
