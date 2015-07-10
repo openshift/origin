@@ -20,6 +20,7 @@ const (
 	URLHandlerError
 	STIContainerError
 	SourcePathError
+	BuilderRootNotAllowedError
 )
 
 // Error represents an error thrown during STI execution
@@ -202,5 +203,21 @@ func NewSourcePathError(path string) error {
 		Details:    nil,
 		ErrorCode:  SourcePathError,
 		Suggestion: "check the source code path on the local filesystem",
+	}
+}
+
+// NewBuilderRootNotAllowedError returns a new error that indicates that the build
+// could not proceed because the builder is not allowed to specify a user that could be root
+func NewBuilderRootNotAllowedError(image string, onbuild bool) error {
+	var msg string
+	if onbuild {
+		msg = fmt.Sprintf("Image %q includes at least one ONBUILD instruction that sets the user to a non-numeric user or to user 0", image)
+	} else {
+		msg = fmt.Sprintf("Image %q must specify a user that is numeric and not equal to 0", image)
+	}
+	return Error{
+		Message:    msg,
+		ErrorCode:  BuilderRootNotAllowedError,
+		Suggestion: "modify builder image to use a numeric non-root user or build without the --no-root flag",
 	}
 }
