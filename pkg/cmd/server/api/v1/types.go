@@ -411,6 +411,42 @@ type HTPasswdPasswordIdentityProvider struct {
 	File string `json:"file"`
 }
 
+type LDAPPasswordIdentityProvider struct {
+	v1.TypeMeta `json:",inline"`
+	// URL is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is
+	//    ldap://host:port/basedn?attribute?scope?filter
+	URL string `json:"url"`
+	// BindDN is an optional DN to bind with during the search phase.
+	BindDN string `json:"bindDN"`
+	// BindPassword is an optional password to bind with during the search phase.
+	BindPassword string `json:"bindPassword"`
+	// Insecure, if true, indicates the connection should not use TLS.
+	// Cannot be set to true with a URL scheme of "ldaps://"
+	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830
+	Insecure bool `json:"insecure"`
+	// CA is the optional trusted certificate authority bundle to use when making requests to the server
+	// If empty, the default system roots are used
+	CA string `json:"ca"`
+	// Attributes maps LDAP attributes to identities
+	Attributes LDAPAttributes `json:"attributes"`
+}
+
+type LDAPAttributes struct {
+	// ID is the list of attributes whose values should be used as the user ID. Required.
+	// LDAP standard identity attribute is "dn"
+	ID []string `json:"id"`
+	// PreferredUsername is the list of attributes whose values should be used as the preferred username.
+	// LDAP standard login attribute is "uid"
+	PreferredUsername []string `json:"preferredUsername"`
+	// Name is the list of attributes whose values should be used as the display name. Optional.
+	// If unspecified, no display name is set for the identity
+	// LDAP standard display name attribute is "cn"
+	Name []string `json:"name"`
+	// Email is the list of attributes whose values should be used as the email address. Optional.
+	// If unspecified, no email is set for the identity
+	Email []string `json:"email"`
+}
+
 type RequestHeaderIdentityProvider struct {
 	v1.TypeMeta `json:",inline"`
 

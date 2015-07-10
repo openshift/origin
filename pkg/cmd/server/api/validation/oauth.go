@@ -6,31 +6,32 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/ldappassword"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/user/api/validation"
 )
 
-func ValidateOAuthConfig(config *api.OAuthConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
+	validationResults := ValidationResults{}
 
 	if len(config.MasterURL) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("masterURL"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("masterURL"))
 	}
 
 	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
-		allErrs = append(allErrs, urlErrs...)
+		validationResults.AddErrors(urlErrs...)
 	}
 
 	if len(config.AssetPublicURL) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("assetPublicURL"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("assetPublicURL"))
 	}
 
 	if config.SessionConfig != nil {
-		allErrs = append(allErrs, ValidateSessionConfig(config.SessionConfig).Prefix("sessionConfig")...)
+		validationResults.AddErrors(ValidateSessionConfig(config.SessionConfig).Prefix("sessionConfig")...)
 	}
 
-	allErrs = append(allErrs, ValidateGrantConfig(config.GrantConfig).Prefix("grantConfig")...)
+	validationResults.AddErrors(ValidateGrantConfig(config.GrantConfig).Prefix("grantConfig")...)
 
 	providerNames := util.NewStringSet()
 	redirectingIdentityProviders := []string{}
@@ -40,64 +41,115 @@ func ValidateOAuthConfig(config *api.OAuthConfig) fielderrors.ValidationErrorLis
 
 			if api.IsPasswordAuthenticator(identityProvider) {
 				if config.SessionConfig == nil {
-					allErrs = append(allErrs, fielderrors.NewFieldInvalid("sessionConfig", config, "sessionConfig is required if a password identity provider is used for browser based login"))
+					validationResults.AddErrors(fielderrors.NewFieldInvalid("sessionConfig", config, "sessionConfig is required if a password identity provider is used for browser based login"))
 				}
 			}
 		}
 
-		allErrs = append(allErrs, ValidateIdentityProvider(identityProvider).Prefix(fmt.Sprintf("identityProvider[%d]", i))...)
+		validationResults.Append(ValidateIdentityProvider(identityProvider).Prefix(fmt.Sprintf("identityProvider[%d]", i)))
 
 		if len(identityProvider.Name) > 0 {
 			if providerNames.Has(identityProvider.Name) {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("identityProvider[%d].name", i), identityProvider.Name, "must have a unique name"))
+				validationResults.AddErrors(fielderrors.NewFieldInvalid(fmt.Sprintf("identityProvider[%d].name", i), identityProvider.Name, "must have a unique name"))
 			}
 			providerNames.Insert(identityProvider.Name)
 		}
 	}
 
 	if len(redirectingIdentityProviders) > 1 {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("identityProviders", config.IdentityProviders, fmt.Sprintf("only one identity provider can support login for a browser, found: %v", redirectingIdentityProviders)))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("identityProviders", config.IdentityProviders, fmt.Sprintf("only one identity provider can support login for a browser, found: %v", redirectingIdentityProviders)))
 	}
 
-	return allErrs
+	return validationResults
 }
 
-func ValidateIdentityProvider(identityProvider api.IdentityProvider) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationResults {
+	validationResults := ValidationResults{}
 
 	if len(identityProvider.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("name"))
 	}
 	if ok, err := validation.ValidateIdentityProviderName(identityProvider.Name); !ok {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", identityProvider.Name, err))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("name", identityProvider.Name, err))
 	}
 
 	if !api.IsIdentityProviderType(identityProvider.Provider) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("provider", identityProvider.Provider, fmt.Sprintf("%v is invalid in this context", identityProvider.Provider)))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider", identityProvider.Provider, fmt.Sprintf("%v is invalid in this context", identityProvider.Provider)))
 	} else {
 		switch provider := identityProvider.Provider.Object.(type) {
 		case (*api.RequestHeaderIdentityProvider):
-			allErrs = append(allErrs, ValidateRequestHeaderIdentityProvider(provider, identityProvider)...)
+			validationResults.AddErrors(ValidateRequestHeaderIdentityProvider(provider, identityProvider)...)
 
 		case (*api.BasicAuthPasswordIdentityProvider):
-			allErrs = append(allErrs, ValidateRemoteConnectionInfo(provider.RemoteConnectionInfo).Prefix("provider")...)
+			validationResults.AddErrors(ValidateRemoteConnectionInfo(provider.RemoteConnectionInfo).Prefix("provider")...)
 
 		case (*api.HTPasswdPasswordIdentityProvider):
-			allErrs = append(allErrs, ValidateFile(provider.File, "provider.file")...)
+			validationResults.AddErrors(ValidateFile(provider.File, "provider.file")...)
+
+		case (*api.LDAPPasswordIdentityProvider):
+			validationResults.Append(ValidateLDAPIdentityProvider(provider, identityProvider))
 
 		case (*api.GitHubIdentityProvider):
-			allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
+			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
 
 		case (*api.GoogleIdentityProvider):
-			allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
+			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
 
 		case (*api.OpenIDIdentityProvider):
-			allErrs = append(allErrs, ValidateOpenIDIdentityProvider(provider, identityProvider)...)
+			validationResults.AddErrors(ValidateOpenIDIdentityProvider(provider, identityProvider)...)
 
 		}
 	}
 
-	return allErrs
+	return validationResults
+}
+
+func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, identityProvider api.IdentityProvider) ValidationResults {
+	validationResults := ValidationResults{}
+
+	if len(provider.URL) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired("provider.url"))
+		return validationResults
+	}
+
+	u, err := ldappassword.ParseURL(provider.URL)
+	if err != nil {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.url", provider.URL, err.Error()))
+		return validationResults
+	}
+
+	// Make sure bindDN and bindPassword are both set, or both unset
+	// Both unset means an anonymous bind is used for search (https://tools.ietf.org/html/rfc4513#section-5.1.1)
+	// Both set means the name/password simple bind is used for search (https://tools.ietf.org/html/rfc4513#section-5.1.3)
+	if (len(provider.BindDN) == 0) != (len(provider.BindPassword) == 0) {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.bindDN", provider.BindDN, "bindDN and bindPassword must both be specified, or both be empty"))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.bindPassword", "<masked>", "bindDN and bindPassword must both be specified, or both be empty"))
+	}
+
+	if provider.Insecure {
+		if u.Scheme == ldappassword.SchemeLDAPS {
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.url", provider.URL, fmt.Sprintf("Cannot use %s scheme with insecure=true", u.Scheme)))
+		}
+		if len(provider.CA) > 0 {
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.ca", provider.CA, "Cannot specify a ca with insecure=true"))
+		}
+	} else {
+		if len(provider.CA) > 0 {
+			validationResults.AddErrors(ValidateFile(provider.CA, "provider.ca")...)
+		}
+	}
+
+	// At least one attribute to use as the user id is required
+	if len(provider.Attributes.ID) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.attributes.id", "[]", "at least one id attribute is required (LDAP standard identity attribute is 'dn')"))
+	}
+
+	// Warn if insecure
+	if provider.Insecure {
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("provider.insecure", provider.Insecure, "validating passwords over an insecure connection could allow them to be intercepted"))
+	}
+
+	return validationResults
 }
 
 func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityProvider, identityProvider api.IdentityProvider) fielderrors.ValidationErrorList {
