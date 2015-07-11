@@ -263,6 +263,9 @@ type DockerBuildStrategy struct {
 
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar
+
+	// ForcePull describes if the builder should pull the images from registry prior to building.
+	ForcePull bool
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
@@ -284,6 +287,9 @@ type SourceBuildStrategy struct {
 
 	// Incremental flag forces the Source build to do incremental builds if true.
 	Incremental bool
+
+	// ForcePull describes if the builder should pull the images from registry prior to building.
+	ForcePull bool
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy

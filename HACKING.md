@@ -10,12 +10,17 @@ the `openshift/origin-base` image which is the common parent image for all OpenS
 
     $ hack/build-release.sh
 
+NOTE:  Only committed code is built.
+
 Once the release has been built the official Docker images can be generated with `hack/build-images.sh`.
 The resulting images can then be pushed to a Docker registry.
 
     $ hack/build-images.sh
 
-Note: To build the base and release images, run:
+NOTE:  You only need to run this script if your code changes are part of any images OpenShift runs internally
+such as origin-sti-builder, origin-docker-builder,  origin-deployer, etc.
+
+To build the base and release images, run:
 
     $ hack/build-base-images.sh
 

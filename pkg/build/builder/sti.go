@@ -66,6 +66,7 @@ func (s *STIBuilder) Build() error {
 		ScriptsURL:    s.build.Spec.Strategy.SourceStrategy.Scripts,
 		Environment:   getBuildEnvVars(s.build),
 		Incremental:   s.build.Spec.Strategy.SourceStrategy.Incremental,
+		ForcePull:     s.build.Spec.Strategy.SourceStrategy.ForcePull,
 	}
 	if s.build.Spec.Revision != nil && s.build.Spec.Revision.Git != nil &&
 		s.build.Spec.Revision.Git.Commit != "" {

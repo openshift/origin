@@ -57,7 +57,11 @@ The most recent container in that list should be the one that ran your build.  T
 
 Hopefully the logs will provide some indication of what it failed (e.g. failure to find the source repository, an actual build issue, failure to push the resulting image to the docker registry, etc).
 
-One issue seen somewhat often is not being able to resolve any hostname (for example github.com) from within running containers.  If this shows up in your build logs, restart docker and then resubmit a build:
+One issue seen sometimes is not being able to resolve any hostname (for example github.com) from within running containers:
+
+    E0708 17:28:07.845231       1 git.go:102] fatal: unable to access 'https://github.com/gabemontero/cakephp-ex.git/': Could not resolve host: github.com; Unknown error
+
+If this shows up in your build logs, restart docker and then resubmit a build:
 
     $ sudo systemctl restart docker
     $ oc start-build <your build identifier>
