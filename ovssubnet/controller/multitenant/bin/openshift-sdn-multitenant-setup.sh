@@ -57,10 +57,10 @@ function setup() {
 
     # Table 1; initial dispatch
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, arp, actions=goto_table:7"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=1, actions=goto_table:2"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=2, actions=goto_table:4"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=9, actions=goto_table:4"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, actions=goto_table:3"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=1, actions=goto_table:2" # vxlan0
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=2, actions=goto_table:4" # tun0
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=9, actions=goto_table:4" # vovsbr
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, actions=goto_table:3"            # container
 
     # Table 2; incoming from vxlan
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, arp, actions=goto_table:7"
