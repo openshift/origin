@@ -29,6 +29,7 @@ import (
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	"github.com/openshift/origin/pkg/util/parallel"
 )
 
 // ProjectStatusDescriber generates extended information about a Project
@@ -41,32 +42,16 @@ type GraphLoadingFunc func(g osgraph.Graph, graphLock sync.Mutex, namespace stri
 
 func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, error) {
 	g := osgraph.New()
-
-	loadingFuncs := []GraphLoadingFunc{loadServices, loadBuildConfigs, loadImageStreams, loadDeploymentConfigs, loadBuilds, loadReplicationControllers}
-
-	listingWaitGroup := sync.WaitGroup{}
 	graphLock := sync.Mutex{}
-	errorChannel := make(chan error, len(loadingFuncs))
 
-	for _, loadingFunc := range loadingFuncs {
-		listingWaitGroup.Add(1)
-		go func(loadingFunc GraphLoadingFunc) {
-			defer listingWaitGroup.Done()
-			if err := loadingFunc(g, graphLock, namespace, d.K, d.C); err != nil {
-				errorChannel <- err
-			}
-		}(loadingFunc)
+	parallelFuncs := []func() error{}
+	for _, loadingFunc := range []GraphLoadingFunc{loadServices, loadBuildConfigs, loadImageStreams, loadDeploymentConfigs, loadBuilds, loadReplicationControllers} {
+		parallelFuncs = append(parallelFuncs, (&loadingFuncArgs{loadingFunc, g, graphLock, namespace, d.K, d.C}).load)
 	}
-	listingWaitGroup.Wait()
-	close(errorChannel)
 
 	// if we had an error.  Aggregate them and return them
-	errlist := []error{}
-	for err := range errorChannel {
-		errlist = append(errlist, err)
-	}
-	if len(errlist) > 0 {
-		return g, utilerrors.NewAggregate(errlist)
+	if errs := parallel.Run(parallelFuncs...); len(errs) > 0 {
+		return g, utilerrors.NewAggregate(errs)
 	}
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
@@ -598,6 +583,20 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 		}
 		return " ports " + strings.Join(pairs, ", ")
 	}
+}
+
+type loadingFuncArgs struct {
+	fn GraphLoadingFunc
+
+	g         osgraph.Graph
+	graphLock sync.Mutex
+	namespace string
+	kclient   kclient.Interface
+	client    client.Interface
+}
+
+func (a *loadingFuncArgs) load() error {
+	return a.fn(a.g, a.graphLock, a.namespace, a.kclient, a.client)
 }
 
 func loadServices(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
