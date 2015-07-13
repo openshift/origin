@@ -13,7 +13,8 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const kubernetesLong = `Start Kubernetes server components
+const kubernetesLong = `
+Start Kubernetes server components
 
 The primary Kubernetes server components can be started individually using their direct
 arguments. No configuration settings will be used when launching these components.

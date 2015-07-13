@@ -30,7 +30,7 @@ type CreateKeyPairOptions struct {
 }
 
 const createKeyPairLong = `
-Create a 2048-bit RSA key pair, and generate PEM-encoded public/private key files.
+Create an RSA key pair and generate PEM-encoded public/private key files
 
 Example: Creating service account signing and authenticating key files:
 

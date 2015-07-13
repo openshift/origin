@@ -20,7 +20,9 @@ import (
 )
 
 const (
-	buildChainLong = `Output build dependencies of a specific image stream.
+	buildChainLong = `
+Output the inputs and dependencies of your builds
+
 Supported output formats are json, dot, and ast. The default is set to json.
 Tag and namespace are optional and if they are not specified, 'latest' and the 
 default namespace will be used respectively.`

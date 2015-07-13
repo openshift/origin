@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	importImageLong = `Import tag and image information from an external Docker image repository.
+	importImageLong = `
+Import tag and image information from an external Docker image repository
 
 Only image streams that have a value set for spec.dockerImageRepository may
 have tag and image information imported.`

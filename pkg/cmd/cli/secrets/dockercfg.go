@@ -19,7 +19,8 @@ import (
 const (
 	CreateDockerConfigSecretRecommendedName = "new-dockercfg"
 
-	createDockercfgLong = `Create a new dockercfg secret
+	createDockercfgLong = `
+Create a new dockercfg secret
 
 Dockercfg secrets are used to authenticate against Docker registries.
 

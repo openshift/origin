@@ -25,7 +25,8 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const openshiftLong = `OpenShift Application Platform.
+const openshiftLong = `
+OpenShift Application Platform
 
 OpenShift helps you build, deploy, and manage your applications. To start an all-in-one server, run:
 

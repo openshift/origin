@@ -37,7 +37,8 @@ type AllInOneOptions struct {
 	Output io.Writer
 }
 
-const allInOneLong = `Start an OpenShift all-in-one server
+const allInOneLong = `
+Start an OpenShift all-in-one server
 
 This command helps you launch an OpenShift all-in-one server, which allows
 you to run all of the components of an OpenShift system on a server with Docker. Running

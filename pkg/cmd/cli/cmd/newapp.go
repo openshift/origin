@@ -29,7 +29,8 @@ type usage interface {
 var errExit = fmt.Errorf("exit directly")
 
 const (
-	newAppLong = `Create a new application in OpenShift by specifying source code, templates, and/or images.
+	newAppLong = `
+Create a new application in OpenShift by specifying source code, templates, and/or images
 
 This command will try to build up the components of an application using images, templates,
 or code that has a public repository. It will lookup the images on the local Docker installation

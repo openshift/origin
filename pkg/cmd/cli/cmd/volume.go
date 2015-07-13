@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	volumeLong = `Update volumes on a pod template
+	volumeLong = `
+Update volumes on a pod template
 
 This command can add, update or remove volumes from containers for any object
 that has a pod template (replication controllers or deployment configurations).

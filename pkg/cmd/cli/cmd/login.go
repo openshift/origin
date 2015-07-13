@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	loginLong = `Log in to an OpenShift server and save config for future use
+	loginLong = `
+Log in to an OpenShift server and save login for subsequent use
 
 First-time users of the OpenShift client should run this command to connect to a server,
 establish an authenticated session, and save connection to the configuration file. The

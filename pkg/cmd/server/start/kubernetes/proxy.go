@@ -12,7 +12,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-const proxyLong = `Start Kubernetes Proxy
+const proxyLong = `
+Start Kubernetes Proxy
 
 This command launches an instance of the Kubernetes proxy (kube-proxy).`
 

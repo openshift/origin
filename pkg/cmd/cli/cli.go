@@ -23,7 +23,8 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const cliLong = `OpenShift Client.
+const cliLong = `
+OpenShift Client
 
 The OpenShift client exposes commands for managing your applications, as well as lower level
 tools to interact with each component of your system.

@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	editLong = `Edit a resource from the default editor.
+	editLong = `
+Edit a resource from the default editor
 
 The edit command allows you to directly edit any API resource you can retrieve via the
 command line tools. It will open the editor defined by your OC_EDITOR, GIT_EDITOR,

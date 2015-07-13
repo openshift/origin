@@ -284,7 +284,7 @@ echo "templates: ok"
 [ "$(openshift start kubernetes 2>&1 | grep 'Kubernetes server components')" ]
 # check deprecated admin cmds for backward compatibility
 [ "$(oadm create-master-certs -h 2>&1 | grep 'Create keys and certificates')" ]
-[ "$(oadm create-key-pair -h 2>&1 | grep 'Create a 2048-bit RSA key pair')" ]
+[ "$(oadm create-key-pair -h 2>&1 | grep 'Create an RSA key pair')" ]
 [ "$(oadm create-server-cert -h 2>&1 | grep 'Create a key and server certificate')" ]
 [ "$(oadm create-signer-cert -h 2>&1 | grep 'Create a self-signed CA')" ]
 
@@ -629,7 +629,7 @@ oc delete bc/ruby-sample-build-validtag
 oc delete bc/ruby-sample-build-invalidtag
 
 # Test admin manage-node operations
-[ "$(openshift admin manage-node --help 2>&1 | grep 'Manage node operations')" ]
+[ "$(openshift admin manage-node --help 2>&1 | grep 'Manage nodes')" ]
 [ "$(oadm manage-node --selector='' --schedulable=true | grep --text 'Ready' | grep -v 'Sched')" ]
 oc create -f examples/hello-openshift/hello-pod.json
 #[ "$(oadm manage-node --list-pods | grep 'hello-openshift' | grep -E '(unassigned|assigned)')" ]

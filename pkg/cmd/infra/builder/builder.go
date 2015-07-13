@@ -8,12 +8,14 @@ import (
 )
 
 const (
-	stiBuilderLong = `Perform a Source-to-Image Build.
+	stiBuilderLong = `
+Perform a Source-to-Image build
 
 This command executes a Source-to-Image build using arguments passed via the environment.
 It expects to be run inside of a container.`
 
-	dockerBuilderLong = `Perform a Docker Build.
+	dockerBuilderLong = `
+Perform a Docker build
 
 This command executes a Docker build using arguments passed via the environment.
 It expects to be run inside of a container.`

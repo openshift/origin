@@ -39,6 +39,8 @@ func BindSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.FlagSe
 }
 
 const createSignerLong = `
+Create a self-signed CA key/cert
+
 Create a self-signed CA key/cert for signing certificates used by
 OpenShift components.
 

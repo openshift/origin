@@ -15,7 +15,11 @@ import (
 )
 
 const (
-	cancelBuildLong = `Cancels a pending or running build.`
+	cancelBuildLong = `
+Cancels a pending or running build
+
+This command requests a graceful shutdown of the running build. There may be a delay between requesting 
+the build and the time the build is terminated.`
 
 	cancelBuildExample = `  // Cancel the build with the given name
   $ %[1]s cancel-build 1da32cvq

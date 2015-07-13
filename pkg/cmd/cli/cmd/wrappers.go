@@ -24,7 +24,7 @@ func tab(original string) string {
 }
 
 const (
-	getLong = `Display one or many resources.
+	getLong = `Display one or many resources
 
 Possible resources include builds, buildConfigs, services, pods, etc.`
 
@@ -54,7 +54,7 @@ func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 }
 
 const (
-	replaceLong = `Replace a resource by filename or stdin.
+	replaceLong = `Replace a resource by filename or stdin
 
 JSON and YAML formats are accepted.`
 
@@ -94,7 +94,7 @@ func NewCmdPatch(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 }
 
 const (
-	deleteLong = `Delete a resource by filename, stdin, resource and ID, or by resources and label selector.
+	deleteLong = `Delete a resource
 
 JSON and YAML formats are accepted.
 
@@ -130,7 +130,10 @@ func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 }
 
 const (
-	logsLong = `Print the logs for a container in a pod. If the pod has only one container, the container name is optional.`
+	logsLong = `
+Print the logs for a container in a pod
+
+If the pod has only one container, the container name is optional.`
 
 	logsExample = `  // Returns snapshot of ruby-container logs from pod 123456-7890.
   $ %[1]s logs 123456-7890 ruby-container
@@ -148,7 +151,7 @@ func NewCmdLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 }
 
 const (
-	createLong = `Create a resource by filename or stdin.
+	createLong = `Create a resource by filename or stdin
 
 JSON and YAML formats are accepted.`
 
@@ -168,7 +171,7 @@ func NewCmdCreate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 }
 
 const (
-	execLong = `Execute a command in a container.`
+	execLong = `Execute a command in a container`
 
 	execExample = `  // Get output from running 'date' in ruby-container from pod 123456-7890
   $ %[1]s exec -p 123456-7890 -c ruby-container date
@@ -186,7 +189,7 @@ func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, 
 }
 
 const (
-	portForwardLong = `Forward 1 or more local ports to a pod.`
+	portForwardLong = `Forward 1 or more local ports to a pod`
 
 	portForwardExample = `  // Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
   $ %[1]s port-forward -p mypod 5000 6000
@@ -210,7 +213,7 @@ func NewCmdPortForward(fullName string, f *clientcmd.Factory) *cobra.Command {
 }
 
 const (
-	describeLong = `Show details of a specific resource.
+	describeLong = `Show details of a specific resource
 
 This command joins many API calls together to form a detailed description of a
 given resource.`
@@ -232,7 +235,7 @@ func NewCmdDescribe(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 }
 
 const (
-	proxyLong = `Run a proxy to the Kubernetes API server.`
+	proxyLong = `Run a proxy to the Kubernetes API server`
 
 	proxyExample = `  // Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
   $ %[1]s proxy --port=8011 --www=./local/www/
@@ -251,7 +254,7 @@ func NewCmdProxy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 }
 
 const (
-	scaleLong = `Set a new size for a Replication Controller either directly or via its Deployment Configuration.
+	scaleLong = `Set a new size for a deployment or replication controller
 
 Scale also allows users to specify one or more preconditions for the scale action.
 If --current-replicas or --resource-version is specified, it is validated before the
@@ -274,7 +277,7 @@ func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 }
 
 const (
-	stopLong = `Gracefully shut down a resource by id or filename.
+	stopLong = `Gracefully shut down a resource by id or filename
 
 Attempts to shut down and delete a resource that supports graceful termination.
 If the resource is scalable it will be scaled to 0 before deletion.`
@@ -301,7 +304,7 @@ func NewCmdStop(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 }
 
 const (
-	labelLong = `Update the labels on a resource.
+	labelLong = `Update the labels on a resource
 
 A valid label value is consisted of letters and/or numbers with a max length of %[1]d characters.
 If --overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error.
