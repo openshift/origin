@@ -130,8 +130,11 @@ func (o DeployOptions) Validate(args []string) error {
 	if o.cancelDeploy {
 		numOptions++
 	}
+	if o.enableTriggers {
+		numOptions++
+	}
 	if numOptions > 1 {
-		return errors.New("only one of --latest, --retry, or --cancel is allowed.")
+		return errors.New("only one of --latest, --retry, --cancel, or --enable-triggers is allowed.")
 	}
 	return nil
 }
@@ -189,7 +192,7 @@ func (o DeployOptions) RunDeploy() error {
 				return o.osClient.DeploymentConfigs(namespace).Update(config)
 			},
 		}
-		t.enableTriggers(config, o.out)
+		err = t.enableTriggers(config, o.out)
 	default:
 		describer := describe.NewLatestDeploymentsDescriber(o.osClient, o.kubeClient, -1)
 		desc, err := describer.Describe(config.Namespace, config.Name)
