@@ -11,6 +11,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -35,11 +36,13 @@ func NewUpgradeAwareSingleHostReverseProxy(clientConfig *kclient.Config, backend
 	if err != nil {
 		return nil, err
 	}
+	reverseProxy := httputil.NewSingleHostReverseProxy(backendAddr)
+	reverseProxy.FlushInterval = 200 * time.Millisecond
 	p := &UpgradeAwareSingleHostReverseProxy{
 		clientConfig: clientConfig,
 		backendAddr:  backendAddr,
 		transport:    transport,
-		reverseProxy: httputil.NewSingleHostReverseProxy(backendAddr),
+		reverseProxy: reverseProxy,
 	}
 	p.reverseProxy.Transport = p
 	return p, nil
