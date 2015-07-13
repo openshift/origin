@@ -59,6 +59,7 @@ function setup() {
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, arp, actions=goto_table:7"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=1, actions=goto_table:2"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=2, actions=goto_table:4"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=9, actions=goto_table:4"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, actions=goto_table:3"
 
     # Table 2; incoming from vxlan
@@ -68,8 +69,6 @@ function setup() {
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, ip, nw_dst=${subnet}, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:5"
 
     # Table 3; incoming from container; filled in by openshift-ovs-multitenant
-    # But let incoming traffic from docker-only containers through (ingress on vovsbr)
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=3, cookie=0x9, in_port=9, ip, actions=goto_table:4"
 
     # Table 4; general routing
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=200, ip, nw_dst=${subnet_gateway}, actions=output:2"
